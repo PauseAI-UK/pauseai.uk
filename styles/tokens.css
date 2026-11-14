@@ -198,12 +198,14 @@
 
   /* The colours of the marks of the services the imports read from
      (ImportIcon), as each draws its own. */
-  --brand-airtable-yellow: #fcb400;
-  --brand-airtable-blue: #18bfff;
-  --brand-airtable-red: #f82b60;
   --brand-gmail-blue: #4285f4;
-  /* The House of Commons' green, for a plain portcullis standing for Parliament. */
+  /* The parliaments' buildings (ImportIcon): the House of Commons' green,
+     for the Elizabeth Tower; a Saltire blue, for Holyrood; a deep green, for
+     the Senedd; and a slate blue, for Stormont. */
   --brand-parliament-green: #006548;
+  --brand-holyrood-blue: #0065bd;
+  --brand-senedd-green: #00845a;
+  --brand-stormont-blue: #2f5d8a;
   /* A text as a messaging app shows it: the wall behind it, our bubble, and the names on the bubbles. */
   --chat-wall: #e4ddd3;
   --chat-ours: #d9fdd3;

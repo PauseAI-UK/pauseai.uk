@@ -29,6 +29,9 @@ import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_compon
 import PoliticianCorrespondence from "@/app/(staff)/staff/_components/PoliticianCorrespondence";
 import PoliticianDetails from "@/app/(staff)/staff/_components/PoliticianDetails";
 import AddAliasForm from "@/app/(staff)/staff/_components/AddAliasForm";
+import { AddressesBubble, SalutationBubble } from "@/app/(staff)/staff/_components/PoliticianWriting";
+import PoliticianMarks from "@/app/(staff)/staff/_components/PoliticianMarks";
+import type { EditResult } from "@/lib/server/politician-edits";
 import type { AddResult } from "@/lib/server/politician-aliases";
 import { correspondenceThreads } from "@/lib/politician-correspondence";
 import PoliticianTable from "@/app/(staff)/staff/_components/PoliticianTable";
@@ -50,7 +53,6 @@ import {
 import Run from "@/app/(staff)/staff/_components/Run";
 import AskRow, { AskRows, PoliticianAsks } from "@/app/(staff)/staff/_components/AskRow";
 import EraseForm from "@/app/(staff)/staff/_components/EraseForm";
-import DeletePolitician from "@/app/(staff)/staff/_components/DeletePolitician";
 import StaffAccountsTable, { AddStaff } from "@/app/(staff)/staff/_components/StaffAccountsTable";
 import type { StaffAccount } from "@/lib/server/staff-accounts";
 import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
@@ -63,7 +65,12 @@ import {
   exampleNotesAt,
   exampleNoteWriter,
 } from "@/app/(staff)/staff/_components/Notes.examples";
-import { exampleFailedRun, exampleHeldSync, exampleRun } from "@/app/(staff)/staff/_components/RunList.examples";
+import {
+  exampleFailedRun,
+  exampleHeldImport,
+  exampleImportResult,
+  exampleRun,
+} from "@/app/(staff)/staff/_components/RunList.examples";
 import type { JSONContent } from "@tiptap/react";
 import { useId, useState } from "react";
 import MailingEditor from "@/app/(staff)/staff/_components/MailingEditor";
@@ -157,8 +164,8 @@ export function PoliticianTableEmptyExample() {
 }
 
 /** An MP sync held for a decision: apply and discard log what they'd send. */
-export function HeldSyncExample() {
-  return <Logged>{(log) => <Run run={exampleHeldSync} decide={log("decide")} />}</Logged>;
+export function HeldImportExample() {
+  return <Logged>{(log) => <Run run={exampleHeldImport} decide={log("decide")} />}</Logged>;
 }
 
 /**
@@ -278,7 +285,8 @@ export function PoliticianDetailsExample({
           aliases={aliases ? exampleAliases : undefined}
           aliasesOpen={aliases}
           aliasActions={{ add: log("addAlias"), remove: log("removeAlias") }}
-          airtableTable="https://airtable.com/appExample/tblExample"
+          setMark={log("setMark")}
+          editDetails={async (form) => (log("editDetails")(form), { saved: true })}
           notes={
             fromAirtable
               ? undefined
@@ -323,6 +331,64 @@ export function AddAliasFormExample({ result }: { result: AddResult }) {
           }}
         />
       )}
+    </Logged>
+  );
+}
+
+/** A politician's salutation in the band, each save logged, answering with `result`; one made from their name, with the two it most likely is. */
+export function SalutationBubbleExample({ result, fromName = false }: { result: EditResult; fromName?: boolean }) {
+  return (
+    <Logged>
+      {(log) => (
+        <SalutationBubble
+          politician={
+            fromName
+              ? { ...examplePolitician, salutation: examplePolitician.name, salutationToCheck: true }
+              : examplePolitician
+          }
+          action={(form) => {
+            log("editDetails")(form);
+            return result;
+          }}
+        />
+      )}
+    </Logged>
+  );
+}
+
+/** A politician's email in the band, its bubble of their other addresses open, each change logged; a Lord's with none, to set. */
+export function AddressesBubbleExample({ result, lord = false }: { result: EditResult; lord?: boolean }) {
+  return (
+    <Logged>
+      {(log) => (
+        <AddressesBubble
+          politician={
+            lord
+              ? { ...examplePolitician, name: "Lord Seedling", salutation: "Lord Seedling", email: null }
+              : examplePolitician
+          }
+          aliases={lord ? { ...exampleAliases, email: null } : exampleAliases}
+          actions={{ add: log("addAlias"), remove: log("removeAlias") }}
+          setEmail={
+            lord
+              ? (form) => {
+                  log("editDetails")(form);
+                  return result;
+                }
+              : undefined
+          }
+          open
+        />
+      )}
+    </Logged>
+  );
+}
+
+/** A politician's markers, each button's press logged: on, off, and for a test politician its tag. */
+export function PoliticianMarksExample({ test = false }: { test?: boolean }) {
+  return (
+    <Logged>
+      {(log) => <PoliticianMarks politician={{ ...examplePolitician, isTest: test }} setMark={log("setMark")} />}
     </Logged>
   );
 }
@@ -470,7 +536,7 @@ export function NoteTextExample() {
   return <NoteText body={exampleNotes[0].body + "\n" + exampleNotes[1].body} />;
 }
 
-/** A job's page, its button and any held sync's buttons logged: the MP check with three runs, while a run started by a staff member or its schedule is going, or the ControlAI import, never run. */
+/** A job's page, its button and any held import's buttons logged: Parliament's import with three runs, while a run started by a staff member or its schedule is going, or the ControlAI import, never run. */
 export function ImportJobPageExample({
   never = false,
   running,
@@ -483,25 +549,21 @@ export function ImportJobPageExample({
     <Logged>
       {(log) =>
         never ? (
-          <ImportJobPage
-            job="import-controlai"
-            runs={[]}
-            run={log("run")}
-            decide={log("decide")}
-            airtableTable="https://airtable.com/"
-          />
+          <ImportJobPage job="import-controlai" runs={[]} run={log("run")} decide={log("decide")} />
         ) : (
           <ImportJobPage
-            job="check-mps"
+            job="import-parliament"
             running={running ? { startedBy: running, startedAt: new Date("2026-11-04T09:00:00Z") } : undefined}
             runs={[
-              exampleRun("check-mps", { problems: [] }, { id: 7, at: new Date("2026-11-03T01:00:00Z") }),
-              exampleFailedRun("check-mps", "Parliament answered 500", { id: 6, at: new Date("2026-11-02T01:00:00Z") }),
-              exampleRun("check-mps", { problems: [] }, { id: 5, at: new Date("2026-11-01T01:00:00Z") }),
+              exampleRun("import-parliament", exampleImportResult, { id: 7, at: new Date("2026-11-03T06:21:00Z") }),
+              exampleFailedRun("import-parliament", "Parliament answered 500", {
+                id: 6,
+                at: new Date("2026-11-02T06:21:00Z"),
+              }),
+              exampleRun("import-parliament", exampleImportResult, { id: 5, at: new Date("2026-11-01T06:21:00Z") }),
             ]}
             run={log("run")}
             decide={log("decide")}
-            airtableTable="https://airtable.com/"
           />
         )
       }
@@ -576,10 +638,6 @@ export function StaffAccountsTableExample() {
       )}
     </Logged>
   );
-}
-
-export function DeletePoliticianExample() {
-  return <Logged>{(log) => <DeletePolitician politician={{ id: 7 }} action={log("deletePoliticianNow")} />}</Logged>;
 }
 
 export function EraseFormExample() {

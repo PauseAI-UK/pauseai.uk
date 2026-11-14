@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { sectionsFor, staffPageHref, staffPageOf } from "./staff-sections";
+import { sectionsFor, staffPageAdded, staffPageHref, staffPageOf } from "./staff-sections";
+
+describe("staffPageAdded", () => {
+  it("says nothing of a page whose entry has no day it went live", () => {
+    expect(staffPageAdded("supporters")).toBeUndefined();
+  });
+});
 
 const pages = (permissions: Parameters<typeof sectionsFor>[0]) =>
   sectionsFor(permissions).map((s) => [s.id, s.pages.map((p) => p.id)]);

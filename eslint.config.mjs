@@ -54,12 +54,6 @@ const OUTSIDE_FETCH_RULE = {
 // too, so their hosts can appear anywhere; they're fetched only from their
 // bindings like every other service.
 const SERVICES = [
-  {
-    name: "Airtable",
-    files: ["airtable.ts"],
-    host: "api\\.airtable\\.com",
-    why: "so its signed-only filter and field whitelist can't be bypassed",
-  },
   // Luma's API, not its event pages, which are ordinary links.
   {
     name: "Luma's API",

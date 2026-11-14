@@ -1,6 +1,6 @@
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { importLuma, lockTable, syncPoliticians } from "../steps";
+import { importLuma, lockTable, importPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { PM_LETTER, staffEmail, logIn, holdNextPage, loadingLine, settled } from "./staff-steps";
 import type { Section } from "./report/frames";
@@ -166,7 +166,7 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
   story(
     "An admin records that Polly Placeholder signed the Frontier AI letter to the Prime Minister. The dashboard's politicians agreed tile counts her.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/politicians`);
   await page.getByRole("link", { name: "Polly Placeholder" }).click();
@@ -211,7 +211,7 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
 
 test("A test MP's page", async ({ page, request, flowDatabase }) => {
   story("Staff open the test MP's page. It's marked as a test MP, says what they are, and has no history yet.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians?flag=test`);
   await page.getByRole("link", { name: "Testy McTestface MP" }).click();
@@ -222,6 +222,7 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
     page.getByText(staffCopy.politician.role(staffCopy.politician.roles.commons, "Testshire", true)),
   ).toBeVisible();
   await expect(page.getByText(staffCopy.politician.sources.test)).toBeVisible();
+  await page.getByRole("heading", { name: staffCopy.politician.historyTitle }).click();
   await expect(page.getByText(staffCopy.politician.noHistory)).toBeVisible();
   await frame(page, "The test MP's page");
   story(
@@ -243,7 +244,7 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
 
 test("An MP signs", async ({ page, request, flowDatabase }) => {
   story("An admin logs in, and lands on the dashboard.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase, ["admin"]);
   // Logging in lands on the home page: the dashboard, with this admin's permission under their address in the sidebar.
   await expect(page).toHaveURL(`${BASE}/staff`);
@@ -327,15 +328,12 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
     "ControlAI's letter to the Prime Minister",
   );
   await frame(page, "The politicians list, with ControlAI's letter");
-  story("The MP check finds Polly Placeholder has an email in Airtable that Parliament doesn't list.");
+  story("Parliament's import runs again, and finds nothing has changed since the politicians were imported.");
 
-  // The fixture Airtable gives Polly Placeholder an email Parliament doesn't list.
-  await page.goto(`${BASE}/staff/scheduled-jobs/mp-check`);
-  await page.getByRole("button", { name: staffCopy.check.checkNow }).click();
-  const blake = page.getByRole("row").filter({ hasText: "Cities of London and Westminster" });
-  await expect(blake).toContainText(staffCopy.check.kinds.email);
-  await expect(blake).toContainText("polly.placeholder.mp@parliament.uk");
-  await frame(page, "The MP check");
+  await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
+  await page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] }).click();
+  await expect(page.getByText(staffCopy.runs.status.unchanged, { exact: true }).first()).toBeVisible();
+  await frame(page, "Parliament's import");
   story("They log out (on a phone, from the menu), and the staff pages ask them to log in again.");
 
   // On a phone the navigation and Log out are behind the bar's menu.

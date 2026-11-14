@@ -1,13 +1,14 @@
 import "server-only";
-import { fetchCurrentMps, type ParliamentMp } from "@/lib/parliament";
+import { memberUrl, parliamentEnding, parliamentMembers, parliamentMembersUrl } from "@/lib/parliament";
+import type { Ending, OfficialMember } from "@/lib/politician-import";
 import { outsideFetch } from "./outside-fetch";
 
-// Parliament's Members API, no key needed. lib/parliament.ts knows its
-// paths and reads its answers; this fetches them.
+// Parliament's Members Data Platform and Members API, no key needed.
+// lib/parliament.ts knows their paths and reads their answers; this fetches
+// them.
 
-// It answers 429 when asked too much at once, which ~650 contact lookups
-// can do. Wait as it says (Retry-After, in seconds), or longer each time,
-// and try again.
+// The Members API answers 429 when asked too much at once. Wait as it says
+// (Retry-After, in seconds), or longer each time, and try again.
 const ATTEMPTS = 5;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,7 +16,8 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function getJson(url: string): Promise<unknown> {
   for (let attempt = 1; ; attempt++) {
     const res = await outsideFetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
-    if (res.ok) return res.json();
+    // The Members Data Platform starts its JSON with a byte-order mark.
+    if (res.ok) return JSON.parse((await res.text()).replace(/^﻿/, ""));
     if ((res.status !== 429 && res.status !== 503) || attempt === ATTEMPTS)
       throw new Error(`${url} returned ${res.status}`);
     const retryAfter = Number(res.headers.get("retry-after"));
@@ -25,7 +27,22 @@ async function getJson(url: string): Promise<unknown> {
   }
 }
 
-/** Every sitting MP, with their emails, as Parliament lists them. */
-export function currentMps(): Promise<ParliamentMp[]> {
-  return fetchCurrentMps(getJson);
+/** Every sitting member of both Houses, with their emails and websites, as Parliament lists them. */
+export async function parliamentMembersNow(): Promise<OfficialMember[]> {
+  const [commons, lords] = await Promise.all([
+    getJson(parliamentMembersUrl("Commons")),
+    getJson(parliamentMembersUrl("Lords")),
+  ]);
+  return [...parliamentMembers(commons), ...parliamentMembers(lords)];
+}
+
+/** Why each of these members' membership ended, by their ID, a few at a time. */
+export async function parliamentEndings(ids: number[]): Promise<Map<number, Ending>> {
+  const endings = new Map<number, Ending>();
+  for (let i = 0; i < ids.length; i += 5) {
+    const batch = ids.slice(i, i + 5);
+    const answers = await Promise.all(batch.map((id) => getJson(memberUrl(id))));
+    batch.forEach((id, j) => endings.set(id, parliamentEnding(answers[j])));
+  }
+  return endings;
 }

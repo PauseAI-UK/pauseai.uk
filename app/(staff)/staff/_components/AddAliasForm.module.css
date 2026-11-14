@@ -20,3 +20,9 @@
 .result {
   margin: var(--space-2) 0 0;
 }
+
+/* Add stays whole, however narrow the field gets. */
+.form button {
+  flex: none;
+  white-space: nowrap;
+}

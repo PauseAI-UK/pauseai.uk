@@ -2,6 +2,7 @@
 import Brand from "@/components/layout/Brand";
 import CookieConsent, { CookieSettingsLink } from "@/components/layout/CookieConsent";
 import ErrorReporter from "@/components/layout/ErrorReporter";
+import FrameOnce from "@/components/layout/FrameOnce";
 import Footer from "@/components/layout/Footer";
 import FooterQr from "@/components/layout/FooterQr";
 import FooterYear from "@/components/layout/FooterYear";
@@ -11,6 +12,7 @@ import MarchBanner from "@/components/layout/MarchBanner";
 import Nav from "@/components/layout/Nav";
 import NoAnalytics from "@/components/layout/NoAnalytics";
 import NotFoundMain from "@/components/layout/NotFoundMain";
+import SiteFrame from "@/components/layout/SiteFrame";
 import { localGroups } from "@/lib/content/local-groups";
 import type { Group } from "../_components/types";
 import styles from "../_components/Gallery.module.css";
@@ -70,6 +72,40 @@ export const layout: Group = {
       name: "MarchBanner",
       file: "components/layout/MarchBanner.tsx",
       variants: [{ label: "The strip under the header until the march", render: () => <MarchBanner /> }],
+    },
+    {
+      name: "FrameOnce",
+      file: "components/layout/FrameOnce.tsx",
+      variants: [
+        {
+          label: "A frame inside a frame: drawn once",
+          render: () => (
+            <FrameOnce header={<p className="container">Header</p>} footer={<p className="container">Footer</p>}>
+              <FrameOnce header={<p className="container">A second header</p>} footer={<p>A second footer</p>}>
+                <p className="container">The page</p>
+              </FrameOnce>
+            </FrameOnce>
+          ),
+        },
+      ],
+    },
+    {
+      name: "SiteFrame",
+      file: "components/layout/SiteFrame.tsx",
+      variants: [
+        {
+          label: "A 404 inside a section's frame: one header, one footer",
+          render: () => (
+            <CookieConsent analytics={false}>
+              <SiteFrame after={<MarchBanner />}>
+                <SiteFrame>
+                  <NotFoundMain as="div" />
+                </SiteFrame>
+              </SiteFrame>
+            </CookieConsent>
+          ),
+        },
+      ],
     },
     {
       name: "NotFoundMain",

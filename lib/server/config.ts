@@ -68,7 +68,7 @@ export const config = {
   get notificationInbox(): string | undefined {
     return address(process.env.NOTIFICATION_INBOX);
   },
-  /** Where the test MPs' letters go (lib/server/politician-sync.ts). */
+  /** Where the test MPs' letters go (lib/server/politician-import.ts). */
   get testMpEmail(): string | undefined {
     return address(process.env.TEST_MP_EMAIL);
   },
@@ -92,9 +92,6 @@ export const config = {
   // Keys and secrets, as set: a secret another service sends back is compared
   // exactly. Luma's key is trimmed, as it goes in a header, which is trimmed
   // anyway.
-  get airtableToken(): string | undefined {
-    return value(process.env.AIRTABLE_TOKEN);
-  },
   /** Our UK chapter's key to Global's CiviCRM chapter contacts API (lib/server/outside-services/civicrm.ts). */
   get civicrmChapterKey(): string | undefined {
     return value(process.env.CIVICRM_CHAPTER_KEY);

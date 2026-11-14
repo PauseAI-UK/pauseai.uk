@@ -706,8 +706,8 @@ order, alongside the others:
   afterwards. In a fixture build only, `lib/server/db.ts` reads that cookie
   and queries the database it names, through one small pool per database,
   closed when idle. Otherwise it queries the database `NETLIFY_DB_URL`
-  names. Flows that need the fixture politicians sync them in with
-  `syncPoliticians()` (`tests/steps.ts`). So the staff pages that list
+  names. Flows that need the fixture politicians import them with
+  `importPoliticians()` (`tests/steps.ts`). So the staff pages that list
   what's happened, like `/staff/campaigns`, are compared unmasked.
 - **A fixed clock.** `FIXTURE_NOW` (`lib/server/fixtures/fixture-env.mjs`)
   is the moment every clock is fixed to:
@@ -858,9 +858,9 @@ that drives it or why nothing does.
   - setting a status that shows on `/campaigns`, and the audit log;
   - the "new" tag, on the sidebar and the folded rail, and gone after 3 days.
 - `imports.spec.ts`: The imports staff run and watch:
-  - the Scheduled jobs page and each job's own page, with the MP check run twice on its page;
-  - a held politician import: the notification inbox is emailed, the home has an action for it, and it's discarded, then applied;
-  - an import held for a renamed record;
+  - the Scheduled jobs page and each job's own page, with Parliament's import run twice on its page;
+  - a held politician import, of 21 MPs Parliament no longer lists: the notification inbox is emailed, the home has an action for it, and it's discarded, then applied;
+  - an import held for a renamed politician;
   - the Luma import run twice from its page;
   - the CiviCRM import, skipping an erased contact;
   - the logs of Luma, the Gmail reading and CiviCRM, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch;
@@ -884,7 +884,7 @@ that drives it or why nothing does.
   - a supporter's letter's page, with no Gmail search as its text is there, and the MP's answer to its campaign's ask set from it;
   - a bounce emailing staff and blocking the address, and the home's action for it;
   - an MP whose address is blocked, unblocked by staff.
-- `politicians.spec.ts`: The politicians from Airtable:
+- `politicians.spec.ts`: The politicians from each body's list:
   - one with markers, notes, answers and PauseAI's emails;
   - her correspondence, its switch to replies only, the band's counts leading to it and to her asks, and the list sorted by emails from them, with the same counts;
   - a note added on one, above Airtable's;
@@ -895,8 +895,11 @@ that drives it or why nothing does.
   - the house tabs;
   - paging through many;
   - searching by each word, for those not in office and the nearest to a typo;
-  - deleting one gone from Airtable;
   - the politicians mailed about an ask, and those not yet;
+  - the two marks switched on and off in their card;
+  - a Lord's email set from the bubble on it in the band, and an MP's, with no email to set;
+  - a salutation made from the name, set to Ms from its bubble's choices;
+  - ControlAI's statement imported, and its ask's page;
   - several answers to an ask, ticked in the chip's second half;
   - PauseAI's email to one, from her history, and its Gmail search copied;
   - her own Gmail added to her aliases, the next Gmail read finding her email from it, and the list sorted by last activity, which that email dates.
@@ -1037,8 +1040,8 @@ that drives it or why nothing does.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
 - `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.ts`), Vitest-tested beside it for every job:
-  - `sync-politicians`: `syncPoliticians()` in `tests/steps.ts`, at the start of the staff flows that need politicians.
-  - `check-mps`, `import-controlai`: Not driven. The `imports` page runs the same check and import through its buttons.
+  - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`: `importPoliticians()` in `tests/steps.ts`, at the start of the staff flows that need politicians, which then gives them their Airtable records' details; `imports` runs Parliament's again to hold it.
+  - `import-controlai`, `import-controlai-statement`: Not driven. The `staff-navigation` and `politicians` sections run them through their buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
   - `send-mailings`:
     - `mailings`: a mailing scheduled from your Gmail, then started and sent by the job.
@@ -1181,8 +1184,9 @@ not a mock.
   outboxes and main's worktree, end with a hash of the checkout's path, and
   the ports come from that hash too (below). So worktrees can run the
   storyboard at the same time. Flows that need politicians call
-  `syncPoliticians()` (`tests/steps.ts`), which runs the nightly sync's
-  route against the Airtable fixture.
+  `importPoliticians()` (`tests/steps.ts`), which runs each body's nightly
+  import's route against its fixture list, then the copy from the Airtable
+  fixture.
 - **Staff screens** are reached through the fixture build's dev login
   (`logInAsStaff` in `tests/steps.ts`): one request for a session, as a
   login link's callback gives, then the staff home. The `staff-login`
@@ -1214,6 +1218,10 @@ import("@/tests/next-headers"))` and put the session cookie in
   then pictures it in every review.
 - **A page has no branches** (`tests/checks/thin-pages.test.ts`). Put the
   choice in a component or a `lib/` helper with its own tests.
+- **The site's header and footer are drawn only by `SiteFrame`**
+  (`tests/checks/site-frame.test.ts`), which draws them once however many
+  layouts a page is inside, so a 404 inside a section's layout never shows
+  two of each.
 - **A caught error is rethrown or reported** with `problem()`, nothing
   writes an error to the log by hand, and every job runs as a run of
   the import log (`docs/code-structure.md`, "Rules"). Three checks fail

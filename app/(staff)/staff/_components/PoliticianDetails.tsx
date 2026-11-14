@@ -8,7 +8,6 @@ import { PoliticianAsks } from "./AskRow";
 import CampaignName from "./CampaignName";
 import { FieldChanges } from "./AuditDetail";
 import type { FieldChange } from "@/lib/field-changes";
-import { importPath } from "@/lib/import-runs";
 import type { EmailBlock } from "@/lib/server/email";
 import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
 import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/server/letters";
@@ -20,24 +19,22 @@ import Band, { BandFact } from "./ui/Band";
 import Counts, { type Count } from "./ui/Counts";
 import Empty from "./ui/Empty";
 import Grid, { Card, Column } from "./ui/Grid";
-import { ListTable, type ListColumn } from "./ui/ListFrame";
 import Strip from "./ui/Strip";
 import Tabs from "./ui/Tabs";
 import Withheld from "./ui/Withheld";
 import { NationShape, Rosette, StatusDot } from "./PoliticianIcons";
 import UnblockForm from "./UnblockForm";
 import NotesCard from "./NotesCard";
-import { NoteEntry, NoteFrom, type NotesProps } from "./Notes";
+import { NoteEntry, type NotesProps } from "./Notes";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import { statusOf } from "./LetterStatus";
-import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
-import TestTag from "./TestTag";
 import ExternalLink from "./ui/ExternalLink";
-import { FilterForm } from "@/components/ui/Form";
-import { SubmitButton } from "@/components/ui/SubmitButton";
-import type { AddResult, PoliticianAliases } from "@/lib/server/politician-aliases";
-import AddAliasForm from "./AddAliasForm";
+import type { PoliticianAliases } from "@/lib/server/politician-aliases";
+import PoliticianMarks from "./PoliticianMarks";
+import { AddressesBubble, SalutationBubble, type AliasActions } from "./PoliticianWriting";
+import { bodyOf, officialProfile } from "@/lib/official-profiles";
+import type { EditResult } from "@/lib/server/politician-edits";
 
 const copy = staffCopy.politician;
 
@@ -222,10 +219,9 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
 }
 
 /**
- * The band at the top of their page: their name and tags, with whether
- * their record has gone from Airtable, and under it what they are; at its
- * top right, quietly, where their record came from, an Airtable MP's linked
- * to it there; then their party, whether they're in office, their nation
+ * The band at the top of their page: their name, and under it what they are; at its
+ * top right, quietly, where their record came from, linked to their page on
+ * their body's site; then their party, whether they're in office, their nation
  * and how to write to them; and how many asks they agreed to (asksAgreed),
  * then roughly how many emails went each way, when any did, each leading to
  * Correspondence.
@@ -233,47 +229,34 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
 function PoliticianBand({
   politician,
   emailCounts,
-  airtableTable,
-  aliases,
+  email,
+  salutation,
 }: {
   politician: Politician;
   emailCounts: Count[];
-  airtableTable: string;
-  /** Whether the page has their aliases, which their email then leads to. */
-  aliases: boolean;
+  /** Their email, with its bubble of their other addresses where staff can change them. */
+  email: ReactNode;
+  /** Their salutation, quietly under their email, with its bubble to change it. */
+  salutation: ReactNode;
 }) {
   const inOffice = politician.status === "in_office";
+  const body = bodyOf(politician.house);
+  const profile = officialProfile(politician);
   const source = politician.isTest
     ? copy.sources.test
-    : politician.airtableId
-      ? copy.sources.airtable
-      : copy.sources.staff;
+    : profile && body
+      ? copy.sources[body]
+      : politician.airtableId
+        ? copy.sources.airtable
+        : copy.sources.staff;
   return (
     <Band
       className={styles.band}
       title={politician.name}
       subtitle={copy.role(copy.roles[politician.house], politician.constituency, inOffice)}
-      tag={
-        <>
-          <TestTag isTest={politician.isTest} />
-          {politician.importantTarget && <Tag tone="amber">{copy.importantTarget}</Tag>}
-          {politician.personalConnection && <Tag>{copy.personalConnection}</Tag>}
-          {politician.airtableRemovedAt && (
-            <Tag tone="amber">{copy.airtableRemoved(staffDate(politician.airtableRemovedAt))}</Tag>
-          )}
-        </>
-      }
       corner={
         <>
-          {copy.source}{" "}
-          {politician.airtableId ? (
-            <>
-              <ExternalLink href={`${airtableTable}/${politician.airtableId}`}>{source}</ExternalLink>
-              {copy.editInAirtable}
-            </>
-          ) : (
-            source
-          )}
+          {copy.source} {profile ? <ExternalLink href={profile}>{source}</ExternalLink> : source}
         </>
       }
       aside={
@@ -315,119 +298,25 @@ function PoliticianBand({
           </span>
         )}
       </BandFact>
-      <BandFact
-        label={staffCopy.fields.email}
-        link={
-          aliases && (
-            <StaffLink href={`/staff/politicians/${politician.id}?aliases=open#aliases`}>{copy.aliases.see}</StaffLink>
-          )
-        }
-        detail={politician.salutation}
-      >
-        {politician.email ? (
-          <a href={`mailto:${politician.email}`}>{politician.email}</a>
-        ) : (
-          staffCopy.politicians.noEmail
-        )}
+      <BandFact label={staffCopy.fields.email} detail={salutation}>
+        {email}
       </BandFact>
     </Band>
   );
 }
 
+/** Whether staff keep their email: a Lord's, as most Lords list none of their own. */
+const ownEmail = (politician: Politician) => politician.house === "lords";
+
 const NO_MESSAGES: ThreadMessages = { subjects: {}, letters: {}, oneOffs: {} };
-
-/** A line of a politician's aliases: an address or domain, and where it came from. */
-type AliasRow = { key: string; address: string; from: ReactNode };
-
-/** The changes a politician's aliases can take: adding an address, removing one staff added. */
-export type AliasActions = {
-  add: (form: FormData) => Promise<AddResult | undefined> | AddResult | undefined | void;
-  remove: (form: FormData) => void | Promise<void>;
-};
-
-/**
- * A politician's aliases, folded at the foot of their page, open when their
- * email's link led here: every address and domain that says an email is
- * theirs, with where each came from, those staff added with who added them;
- * a button by each staff added or guessed was their office's, to remove it;
- * then the form to add one.
- */
-function Aliases({
-  politicianId,
-  aliases,
-  open,
-  actions,
-}: {
-  politicianId: number;
-  aliases: PoliticianAliases;
-  open: boolean;
-  actions: AliasActions;
-}) {
-  const words = copy.aliases;
-  const of = (key: string, addresses: string[], from: ReactNode): AliasRow[] =>
-    addresses.map((address) => ({ key: `${key} ${address}`, address, from }));
-  /** A line staff can remove: where it came from, and its Remove button beside. */
-  const removable = (key: string, address: string, from: ReactNode): AliasRow => ({
-    key: `${key} ${address}`,
-    address,
-    from: (
-      <span className={styles.aliasAdded}>
-        {from}
-        <FilterForm action={actions.remove} aria-label={`${words.remove}: ${address}`}>
-          <input type="hidden" name="politicianId" value={politicianId} />
-          <input type="hidden" name="address" value={address} />
-          <SubmitButton variant="ghost" size="small" fit>
-            {words.remove}
-          </SubmitButton>
-        </FilterForm>
-      </span>
-    ),
-  });
-  const rows: AliasRow[] = [
-    ...of("email", aliases.email ? [aliases.email] : [], words.sources.email),
-    ...of("past", aliases.past, words.sources.past),
-    ...of("parliament", aliases.parliament, words.sources.parliament),
-    ...aliases.office.map((address) => removable("office", address, words.sources.office)),
-    ...aliases.added.map(({ address, addedBy, at }) =>
-      removable("added", address, words.addedBy(addedBy, staffDate(at))),
-    ),
-    ...of(
-      "domain",
-      aliases.domains.map((domain) => `@${domain}`),
-      words.sources.domain,
-    ),
-    ...of("form", aliases.forms, words.sources.form),
-  ];
-  return (
-    <details className={styles.footRow} id="aliases" open={open}>
-      <summary>
-        <h2 id="aliases-title">{words.title}</h2> <span className={styles.count}>{rows.length}</span>
-      </summary>
-      <p className={styles.aliasIntro}>{words.intro}</p>
-      <ListTable columns={aliasColumns} rows={rows} rowKey={(row) => row.key} />
-      <AddAliasForm politicianId={politicianId} action={actions.add} />
-    </details>
-  );
-}
-
-const aliasColumns: ListColumn<AliasRow>[] = [
-  { key: "address", label: copy.aliases.columns.address, cell: (row) => row.address },
-  { key: "from", label: copy.aliases.columns.from, cell: (row) => row.from },
-];
-
-const changeColumns: ListColumn<PoliticianChange & { what: ReactNode }>[] = [
-  { key: "at", label: staffCopy.supporters.detail.held.columns.when, short: true, cell: (c) => staffTime(c.at) },
-  { key: "what", label: staffCopy.supporters.detail.held.columns.what, cell: (c) => c.what },
-  { key: "who", label: copy.recordWho, cell: (c) => c.actor },
-];
 
 /**
  * A politician's page, laid out like a supporter's: the band of who they
  * are (PoliticianBand); if their address is blocked, why, and a way to
  * unblock it; then their correspondence (PoliticianCorrespondence); and
  * beside it the card of their answer to each ask, with the button to change
- * one staff record, and the card of staff's notes (NotesCard), with Airtable's
- * notes on them, which are changed there, as the last. Under those, folded as a
+ * one staff record, the card of staff's notes (NotesCard), Airtable's among
+ * them, and the card of the marks on them (PoliticianMarks). Under those, folded as a
  * supporter's are, their history, newest first: the letters written to them,
  * the replies, PauseAI's emails, one-off threads, staff's notes and their
  * answers, the letters' senders only when it's given them; then what changed
@@ -444,7 +333,8 @@ export default function PoliticianDetails({
   oneOffs = [],
   messages = NO_MESSAGES,
   history,
-  airtableTable,
+  setMark,
+  editDetails,
   notes,
   onlyReplies = false,
   aliases,
@@ -467,8 +357,10 @@ export default function PoliticianDetails({
   /** What's known of each letter's and thread's messages. */
   messages?: ThreadMessages;
   history: PoliticianChange[];
-  /** Airtable's table of MPs, which the server knows; an MP's record there is under it. */
-  airtableTable: string;
+  /** Turns one of the marks on or off: politicianId, mark, on. */
+  setMark?: (form: FormData) => void | Promise<void>;
+  /** Saves what staff edit of their details (PoliticianWriting), saying whether it did, or why not. */
+  editDetails?: (form: FormData) => Promise<EditResult | undefined>;
   /** Staff's notes on them, and what adding and changing them needs. */
   notes?: NotesProps;
   /** Correspondence shows only the threads they've really replied on, as Emails from them leads to. */
@@ -560,8 +452,22 @@ export default function PoliticianDetails({
       <PoliticianBand
         politician={politician}
         emailCounts={emailCounts}
-        airtableTable={airtableTable}
-        aliases={!!(aliases && aliasActions)}
+        email={
+          aliases && aliasActions ? (
+            <AddressesBubble
+              politician={politician}
+              aliases={aliases}
+              actions={aliasActions}
+              setEmail={editDetails && !politician.isTest && ownEmail(politician) ? editDetails : undefined}
+              open={aliasesOpen}
+            />
+          ) : politician.email ? (
+            <a href={`mailto:${politician.email}`}>{politician.email}</a>
+          ) : (
+            staffCopy.politicians.noEmail
+          )
+        }
+        salutation={<SalutationBubble politician={politician} action={politician.isTest ? undefined : editDetails} />}
       />
       {block && (
         <section className={styles.blocked} aria-labelledby="blocked-title">
@@ -573,18 +479,14 @@ export default function PoliticianDetails({
               {copy.blocked.why.after(block.reason, staffTime(block.since))}
             </p>
             <div className={styles.fixes}>
-              {block.canReset && (
+              {block.canReset && editDetails && ownEmail(politician) && (
                 <div>
                   <h3>{copy.blocked.wrong.title}</h3>
                   <p>
                     {copy.blocked.wrong.before}
-                    <ExternalLink
-                      href={politician.airtableId ? `${airtableTable}/${politician.airtableId}` : airtableTable}
-                    >
-                      {copy.blocked.wrong.airtable}
-                    </ExternalLink>
-                    {copy.blocked.wrong.middle}
-                    <StaffLink href={importPath("sync-politicians")}>{copy.blocked.wrong.link}</StaffLink>
+                    <StaffLink href={`/staff/politicians/${politician.id}?aliases=open`}>
+                      {copy.blocked.wrong.link}
+                    </StaffLink>
                     {copy.blocked.wrong.after}
                   </p>
                 </div>
@@ -637,33 +539,25 @@ export default function PoliticianDetails({
               writer={notes?.reader.email ?? ""}
               add={notes?.add}
             >
-              {[
-                ...(notes?.notes ?? []).map((note) => (
-                  <li key={note.id}>
-                    <NoteEntry note={note} {...notes!} />
-                  </li>
-                )),
-                ...(politician.notes
-                  ? [
-                      <li key="airtable">
-                        <NoteFrom body={politician.notes} source={copy.notes} />
-                      </li>,
-                    ]
-                  : []),
-              ]}
+              {(notes?.notes ?? []).map((note) => (
+                <li key={note.id}>
+                  <NoteEntry note={note} {...notes!} />
+                </li>
+              ))}
             </NotesCard>
+            <Card look="aside" title={copy.marks} id="marks-title">
+              <PoliticianMarks politician={politician} setMark={setMark} />
+            </Card>
           </Column>
         </Grid>
         <div className={styles.foot}>
-          {entries.length === 0 ? (
-            <section aria-labelledby="history-title" className={styles.footRow}>
-              <h2 id="history-title">{copy.historyTitle}</h2> <Empty inline>{copy.noHistory}</Empty>
-            </section>
-          ) : (
-            <details className={styles.footRow}>
-              <summary>
-                <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.count}>{entries.length}</span>
-              </summary>
+          <details className={styles.footRow}>
+            <summary>
+              <h2 id="history-title">{copy.historyTitle}</h2> <span className={styles.count}>{entries.length}</span>
+            </summary>
+            {entries.length === 0 ? (
+              <Empty>{copy.noHistory}</Empty>
+            ) : (
               <ol className={styles.history} aria-labelledby="history-title">
                 {entries.map((entry) => (
                   <li key={entry.key}>
@@ -672,18 +566,26 @@ export default function PoliticianDetails({
                   </li>
                 ))}
               </ol>
-            </details>
-          )}
+            )}
+          </details>
           {changes.length > 0 && (
             <details className={styles.footRow}>
               <summary>
                 <h2 id="record-changes">{copy.recordTitle}</h2> <span className={styles.count}>{changes.length}</span>
               </summary>
-              <ListTable columns={changeColumns} rows={changes} rowKey={(change) => String(change.id)} />
+              <ol
+                className={politician.status === "in_office" ? styles.timeline : `${styles.timeline} ${styles.ended}`}
+              >
+                {changes.map((change) => (
+                  <li key={change.id}>
+                    <span>{change.what}</span>
+                    <span className={styles.timelineWhen}>
+                      {staffTime(change.at)} · {change.actor}
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </details>
-          )}
-          {aliases && aliasActions && (
-            <Aliases politicianId={politician.id} aliases={aliases} open={aliasesOpen} actions={aliasActions} />
           )}
         </div>
       </div>

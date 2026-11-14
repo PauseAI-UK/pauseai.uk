@@ -1,13 +1,14 @@
 import "server-only";
 import type { ImportJob } from "@/lib/import-runs";
+import type { Body } from "@/lib/politician-import";
 import { importControlAiLetter } from "./controlai-import";
 import { readGmail } from "./gmail-reading";
 import { startRunning, stopRunning } from "./import-runs";
 import { runTidying } from "./log-retention";
 import { importLuma } from "./luma-import";
 import { importCivicrm } from "./civicrm-import";
-import { checkMps } from "./mp-check";
-import { syncPoliticians } from "./politician-sync";
+import { importControlAiStatement } from "./controlai-statement-import";
+import { importPoliticians } from "./politician-import";
 import { runSending } from "./sending-job";
 
 // What runs each job (lib/import-runs.ts, JOBS), whoever starts it, one run
@@ -30,23 +31,21 @@ const RUNS: Record<ImportJob, RunJob> = {
   "import-civicrm": (by) => importCivicrm(by),
   "read-gmail": (by, request) => readGmail(by, request),
   "send-mailings": (by, request) => runSending(by, request),
-  "sync-politicians": async (by) => {
-    const { status, changes, renamed } = await syncPoliticians(by);
-    return {
-      status,
-      added: changes.added.length,
-      removed: changes.removed.length,
-      changed: changes.changed.length,
-      renamed: renamed.length,
-    };
-  },
-  "check-mps": async (by) => {
-    const { problems, relinked } = await checkMps(by);
-    return { problems: problems.length, ...relinked };
-  },
+  "import-parliament": (by) => importPoliticianCounts("parliament", by),
+  "import-scottish-parliament": (by) => importPoliticianCounts("scottish-parliament", by),
+  "import-senedd": (by) => importPoliticianCounts("senedd", by),
+  "import-ni-assembly": (by) => importPoliticianCounts("ni-assembly", by),
   "import-controlai": (by) => importControlAiLetter(by),
+  "import-controlai-statement": (by) => importControlAiStatement(by),
   "tidy-logs": (by) => runTidying(by),
 };
+
+/** A body's import, answering with its counts. */
+async function importPoliticianCounts(body: Body, by: string) {
+  const { status, result } = await importPoliticians(body, by);
+  const { added, changed, left } = result.changes;
+  return { status, added: added.length, changed: changed.length, left: left.length };
+}
 
 /** What a run says when another of its job was going, so it didn't: it keeps no run, as it did nothing. */
 export const ANOTHER_RUNNING = { stoppedBy: "running" } as const;

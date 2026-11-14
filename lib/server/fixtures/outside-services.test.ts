@@ -44,15 +44,6 @@ describe("fixtureResponse", () => {
     expect(contacts.has_more).toBe(true);
   });
 
-  it("serves the UK Parliamentarians table, and nothing for another", async () => {
-    const records = async (table: string) =>
-      (await fixtureResponse(`https://eu.airtable.com/v0/appBInVvIm6opJ1Ob/${table}?x=1`)!.json()).records.map(
-        (r: { id: string }) => r.id,
-      );
-    expect(await records("tblH3ks9wqQHLpYx3")).toContain("recPlaceholder");
-    expect(fixtureResponse("https://eu.airtable.com/v0/appBInVvIm6opJ1Ob/tblOther")).toBeUndefined();
-  });
-
   it("serves CiviCRM's UK chapter contacts a page after a contact ID", async () => {
     const get = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
     const ids = async (response: Response | undefined) =>
@@ -151,12 +142,43 @@ describe("fixtureResponse", () => {
     );
   });
 
-  it("lists three MPs, each with an office email", async () => {
+  it("lists each body's members, Parliament's after a byte-order mark, as Parliament's own", async () => {
+    const commons = new Uint8Array(
+      await fixtureResponse(
+        "https://data.parliament.uk/membersdataplatform/services/mnis/members/query/house=Commons%7CMembership=current/Addresses/",
+      )!.arrayBuffer(),
+    );
+    expect([...commons.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+    expect(JSON.parse(new TextDecoder().decode(commons)).Members.Member).toHaveLength(3);
+    expect((await fixtureResponse("https://members-api.parliament.uk/api/Members/90001")!.json()).value).toBeDefined();
+    expect(await fixtureResponse("https://data.parliament.scot/api/members")!.json()).toHaveLength(2);
+    expect(fixtureResponse("https://data.parliament.scot/api/unknown")).toBeUndefined();
     expect(
-      (await fixtureResponse("https://members-api.parliament.uk/api/Members/Search?House=1")!.json()).items,
-    ).toHaveLength(3);
-    const contact = await fixtureResponse("https://members-api.parliament.uk/api/Members/90001/Contact")!.json();
-    expect(contact.value[0].email).toBe("mp90001.office@parliament.uk ");
+      await fixtureResponse("https://business.senedd.wales/mgwebservice.asmx/GetCouncillorsByWard")!.text(),
+    ).toContain("Gwen Example");
+    const ni = "https://data.niassembly.gov.uk/members.asmx";
+    expect((await fixtureResponse(`${ni}/GetAllCurrentMembers_JSON`)!.json()).AllMembersList.Member).toHaveLength(1);
+    expect((await fixtureResponse(`${ni}/GetAllMemberContactDetails_JSON`)!.json()).AllMembersList.Member).toHaveLength(
+      1,
+    );
+    expect(await fixtureResponse("https://controlai.org/statement")!.text()).toContain("member/90002");
+  });
+
+  it("answers Wikidata about the people it's asked for, and TheyWorkForYou with its people", async () => {
+    const asked = (query: string) =>
+      fixtureResponse("https://query.wikidata.org/sparql", {
+        method: "POST",
+        body: new URLSearchParams({ query }).toString(),
+      })!.json();
+    expect((await asked('VALUES ?id { "92001" }')).results.bindings).toHaveLength(1);
+    expect((await asked("")).results.bindings).toEqual([]);
+    expect(
+      (await fixtureResponse("https://query.wikidata.org/sparql", { method: "POST" })!.json()).results.bindings,
+    ).toEqual([]);
+    const people = await fixtureResponse(
+      "https://raw.githubusercontent.com/mysociety/parlparse/master/members/people.json",
+    )!.json();
+    expect(people.persons).toHaveLength(1);
   });
 
   it("accepts every email sent through Postmark", async () => {
@@ -191,7 +213,7 @@ describe("fixtureResponse", () => {
   it("has nothing for other URLs", () => {
     expect(fixtureResponse("https://public-api.luma.com/other")).toBeUndefined();
     expect(fixtureResponse("https://eu.airtable.com/other")).toBeUndefined();
-    expect(fixtureResponse("https://members-api.parliament.uk/api/Members/90001")).toBeUndefined();
+    expect(fixtureResponse("https://members-api.parliament.uk/api/Members/90001/Contact")).toBeUndefined();
     expect(fixtureResponse("https://example.com/")).toBeUndefined();
   });
 

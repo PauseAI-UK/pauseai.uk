@@ -210,7 +210,8 @@ the code should go instead. The rules below say which ones are enforced.
 - **Layouts own the chrome.** Pages don't render `<Nav>`; their route
   group's layout does.
 - **Outside services** (Airtable, Luma, Postmark, Gmail, Netlify Blobs,
-  postcodes.io, Stripe, Turnstile, Parliament, ControlAI's letter) are each
+  postcodes.io, Stripe, Turnstile, the bodies' lists of members, Wikidata,
+  ControlAI's letter and statement) are each
   called from one binding in
   `lib/server/outside-services/`, through `outsideFetch`
   (`outside-fetch.ts` there), so tests and fixture builds can answer

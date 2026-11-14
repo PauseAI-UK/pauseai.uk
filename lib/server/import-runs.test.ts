@@ -88,7 +88,7 @@ describeWithDatabase("the import log", () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
     for (const count of [2, 3]) {
-      await asRun("check-mps", "nightly", async () => {
+      await asRun("import-parliament", "nightly", async () => {
         problem("Messages that matched nothing:", count);
         return ended();
       });
@@ -99,21 +99,21 @@ describeWithDatabase("the import log", () => {
   it("leaves a problem with an alert of its own out of the email about another", async () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    await asRun("check-mps", "nightly", async () => {
+    await asRun("import-parliament", "nightly", async () => {
       problem("Google disconnected an account", undefined, { told: true });
       problem("Parliament was slow");
       return ended();
     });
-    const title = jobTitles["check-mps"];
+    const title = jobTitles["import-parliament"];
     expect(sent.map((email) => email.TextBody)).toEqual([
       staffCopy.notifications.importProblems.body(
         title,
         ["- Parliament was slow"],
-        "https://pauseai.uk/staff/scheduled-jobs/mp-check",
+        "https://pauseai.uk/staff/scheduled-jobs/parliament",
       ),
     ]);
     // Still on the run, for its page.
-    expect(await latestRun("check-mps")).toMatchObject({
+    expect(await latestRun("import-parliament")).toMatchObject({
       problems: [{ what: "Google disconnected an account", told: true }, { what: "Parliament was slow" }],
     });
   });
@@ -122,63 +122,63 @@ describeWithDatabase("the import log", () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
     const slow = () =>
-      asRun("check-mps", "nightly", async () => {
+      asRun("import-parliament", "nightly", async () => {
         problem("Parliament was slow");
         return ended();
       });
     await slow();
-    await asRun("check-mps", "nightly", async () => {
+    await asRun("import-parliament", "nightly", async () => {
       problem("Parliament was slow");
       throw new Error("then it went away");
     }).catch(() => {});
     await slow();
-    expect(await listRuns("check-mps")).toMatchObject([
+    expect(await listRuns("import-parliament")).toMatchObject([
       { status: "ok", problems: [{ what: "Parliament was slow" }] },
       { status: "failed", error: "then it went away", problems: [{ what: "Parliament was slow" }] },
       { status: "ok", problems: [{ what: "Parliament was slow" }] },
     ]);
     expect(sent.map((email) => email.Subject)).toEqual([
-      staffCopy.notifications.importProblems.subject(jobTitles["check-mps"]),
-      staffCopy.notifications.importFailed.subject(jobTitles["check-mps"]),
-      staffCopy.notifications.importProblems.subject(jobTitles["check-mps"]),
+      staffCopy.notifications.importProblems.subject(jobTitles["import-parliament"]),
+      staffCopy.notifications.importFailed.subject(jobTitles["import-parliament"]),
+      staffCopy.notifications.importProblems.subject(jobTitles["import-parliament"]),
     ]);
   });
 
   it("keeps how a run ended and what it found, and gives the caller all the work said, emailing nobody when it went well", async () => {
     const sent = notifications();
-    const done = await asRun("check-mps", "jo@pauseai.uk", async () => ({
+    const done = await asRun("import-parliament", "jo@pauseai.uk", async () => ({
       status: "unchanged" as const,
       result: { problems: [] },
       extra: 42,
     }));
     expect(done.extra).toBe(42);
-    expect(await listRuns("check-mps")).toMatchObject([
+    expect(await listRuns("import-parliament")).toMatchObject([
       { status: "unchanged", startedBy: "jo@pauseai.uk", result: { problems: [] }, problems: [] },
     ]);
     expect(sent).toEqual([]);
   });
 
   it("keeps each run with who started it and what it found, newest first, a job at a time", async () => {
-    const id = await recordRun("check-mps", "nightly", "ok", { problems: [] });
-    await recordRun("sync-politicians", "jo@pauseai.uk", "unchanged", { changes: {} });
-    await recordFailure("sync-politicians", "nightly", new Error("Airtable request failed with status 422"));
-    await recordFailure("sync-politicians", "nightly", "not an Error");
+    const id = await recordRun("import-parliament", "nightly", "ok", { problems: [] });
+    await recordRun("import-senedd", "jo@pauseai.uk", "unchanged", { changes: {} });
+    await recordFailure("import-senedd", "nightly", new Error("The Senedd answered 422"));
+    await recordFailure("import-senedd", "nightly", "not an Error");
 
-    expect(await listRuns("sync-politicians")).toMatchObject([
+    expect(await listRuns("import-senedd")).toMatchObject([
       {
-        job: "sync-politicians",
+        job: "import-senedd",
         status: "failed",
         startedBy: "nightly",
         error: "not an Error",
         result: {},
         decidedBy: null,
       },
-      { status: "failed", startedBy: "nightly", error: "Airtable request failed with status 422", result: {} },
+      { status: "failed", startedBy: "nightly", error: "The Senedd answered 422", result: {} },
       { status: "unchanged", startedBy: "jo@pauseai.uk", error: null, result: { changes: {} } },
     ]);
-    expect(await listRuns("check-mps")).toMatchObject([{ id, status: "ok", result: { problems: [] } }]);
-    expect(await latestRun("check-mps")).toMatchObject({ id });
-    expect(await latestRun("sync-politicians")).toMatchObject({ error: "not an Error" });
+    expect(await listRuns("import-parliament")).toMatchObject([{ id, status: "ok", result: { problems: [] } }]);
+    expect(await latestRun("import-parliament")).toMatchObject({ id });
+    expect(await latestRun("import-senedd")).toMatchObject({ error: "not an Error" });
     expect(await latestRun("import-controlai")).toBeUndefined();
   });
 
@@ -186,19 +186,19 @@ describeWithDatabase("the import log", () => {
     const sent = notifications();
     // JSON can't hold a BigInt.
     await expect(
-      asRun("check-mps", "nightly", async () => ({ status: "ok", result: { n: BigInt(1) } }) as const),
+      asRun("import-parliament", "nightly", async () => ({ status: "ok", result: { n: BigInt(1) } }) as const),
     ).rejects.toThrow("BigInt");
-    expect(await listRuns("check-mps")).toEqual([]);
+    expect(await listRuns("import-parliament")).toEqual([]);
     expect(sent).toEqual([]);
   });
 
   it("asRun keeps a failure and throws it on", async () => {
     await expect(
-      asRun("check-mps", "nightly", async () => {
+      asRun("import-parliament", "nightly", async () => {
         throw new Error("boom");
       }),
     ).rejects.toThrow("boom");
-    expect(await listRuns("check-mps")).toMatchObject([{ status: "failed", error: "boom", problems: [] }]);
+    expect(await listRuns("import-parliament")).toMatchObject([{ status: "failed", error: "boom", problems: [] }]);
   });
 
   it("lets one run of a job go at a time, until it ends or is older than any can be", async () => {
@@ -206,7 +206,7 @@ describeWithDatabase("the import log", () => {
     expect(await startRunning("tidy-logs", "nightly")).toBe(true);
     expect(await runningNow("tidy-logs")).toMatchObject({ startedBy: "nightly" });
     expect(await startRunning("tidy-logs", "sam@pauseai.uk")).toBe(false);
-    expect(await startRunning("check-mps", "sam@pauseai.uk")).toBe(true);
+    expect(await startRunning("import-parliament", "sam@pauseai.uk")).toBe(true);
     await stopRunning("tidy-logs");
     expect(await startRunning("tidy-logs", "sam@pauseai.uk")).toBe(true);
     await query("UPDATE job_presses SET started_at = now() - interval '6 minutes' WHERE job = 'tidy-logs'");

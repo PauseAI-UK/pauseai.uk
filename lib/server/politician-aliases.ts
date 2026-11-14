@@ -1,5 +1,5 @@
 import "server-only";
-import { keepsPoliticianThreads, nameParts, type PoliticianBook } from "@/lib/one-off";
+import { isSharedInbox, keepsPoliticianThreads, nameParts, type PoliticianBook } from "@/lib/one-off";
 import { auditActions, logChange } from "./audit";
 import { config } from "./config";
 import { query, transaction } from "./db";
@@ -77,9 +77,11 @@ export async function politicianAliases(politician: {
 }): Promise<PoliticianAliases> {
   const [past, listed, domains, book] = await Promise.all([
     query<{ address: string }>(
-      `SELECT DISTINCT lower(jsonb_array_elements_text(details->'changed'->'email')) AS address
-       FROM audit_log WHERE action = ${auditActions("edit politician")} AND (details->>'id')::bigint = $1
-         AND details->'changed' ? 'email' ORDER BY address`,
+      `SELECT DISTINCT address FROM (
+         SELECT lower(jsonb_array_elements_text(details->'changed'->'email')) AS address
+         FROM audit_log WHERE action = ${auditActions("edit politician")} AND (details->>'id')::bigint = $1
+           AND details->'changed' ? 'email'
+       ) emails WHERE address IS NOT NULL ORDER BY address`,
       [politician.id],
     ),
     query<{ address: string; source: AddressSource; addedBy: string | null; at: Date }>(
@@ -195,7 +197,7 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
 }
 
 /** What adding an address did, or why it didn't. */
-export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" };
+export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" | "shared" };
 
 /**
  * Adds an address to a politician's by hand, logged, and relinks every
@@ -206,24 +208,44 @@ export type AddResult = { added: true } | { added: false; why: "invalid" | "exis
 export async function addPoliticianAddress(politicianId: number, given: string, by: string): Promise<AddResult> {
   const address = given.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return { added: false, why: "invalid" };
-  const added = await transaction(async (db) => {
-    const rows = await query(
-      `INSERT INTO politician_addresses (address, notable_person_id, source, added_by)
-       SELECT $1, $2, 'staff', $3 WHERE EXISTS (SELECT 1 FROM politicians WHERE id = $2) ON CONFLICT DO NOTHING RETURNING 1`,
+  if (isSharedInbox(address)) return { added: false, why: "shared" };
+  // Already theirs, however: their email, a past one, one their body lists, their office's, or a form of their name.
+  const [who] = await query<{
+    id: number;
+    name: string;
+    house: string;
+    constituency: string | null;
+    email: string | null;
+  }>(
+    `SELECT n.id::int AS id, n.name, p.house, p.constituency, n.email FROM notable_people n
+     JOIN politicians p ON p.id = n.id WHERE n.id = $1`,
+    [politicianId],
+  );
+  if (!who) return { added: false, why: "exists" };
+  const known = await politicianAliases(who);
+  const theirs = [
+    known.email?.toLowerCase(),
+    ...known.past,
+    ...known.parliament,
+    ...known.office,
+    ...known.added.map((row) => row.address),
+    ...known.forms,
+  ];
+  if (theirs.includes(address)) return { added: false, why: "exists" };
+  await transaction(async (db) => {
+    await query(
+      `INSERT INTO politician_addresses (address, notable_person_id, source, added_by) VALUES ($1, $2, 'staff', $3)
+       ON CONFLICT DO NOTHING`,
       [address, politicianId, by],
       db,
     );
-    if (rows.length) {
-      await query(
-        "DELETE FROM politician_addresses WHERE address = $1 AND notable_person_id = $2 AND source = 'rejected'",
-        [address, politicianId],
-        db,
-      );
-      await logChange(by, "add politician address", { politicianId, address }, db);
-    }
-    return rows.length > 0;
+    await query(
+      "DELETE FROM politician_addresses WHERE address = $1 AND notable_person_id = $2 AND source = 'rejected'",
+      [address, politicianId],
+      db,
+    );
+    await logChange(by, "add politician address", { politicianId, address }, db);
   });
-  if (!added) return { added: false, why: "exists" };
   await relinkOneOffs(Date.now());
   return { added: true };
 }

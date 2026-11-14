@@ -102,7 +102,7 @@ export const exampleChanges: LoggedChange[] = [
   change(20, "sync", "edit politician", {
     id: 98,
     name: "Old MP",
-    changed: { house: ["commons", "lords"], party: ["Labour", null] },
+    changed: { house: ["commons", "lords"], party: ["Labour", null], importantTarget: [false, true] },
   }),
   change(21, "jo@pauseai.uk", "apply held MP sync", { id: 13 }),
   change(22, "jo@pauseai.uk", "apply held politician sync", { id: 14 }),

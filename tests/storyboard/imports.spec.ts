@@ -6,7 +6,7 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { FIXTURE_NOW, LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
-import { addStaffAccount, logInAsStaff, newestEmail, syncPoliticians } from "../steps";
+import { addStaffAccount, logInAsStaff, newestEmail, importPoliticians } from "../steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
 import { connectPolicyMailboxes, logIn, staffEmail, TO_NOTIFICATIONS } from "./staff-steps";
 import type { Section } from "./report/frames";
@@ -262,28 +262,28 @@ test("The letters inbox connects", async ({ page }) => {
 
 test("An import's runs", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff run the MP check twice. Its page lists both runs, under the day's heading, and none of the other imports' runs.",
+    "Staff run Parliament's import twice. Its page lists both runs, under the day's heading, and none of the other imports' runs.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
-  // The check, twice: its page lists both runs, under the day's heading, and none of the MP import's.
-  await page.goto(`${BASE}/staff/scheduled-jobs/mp-check`);
-  const check = page.getByRole("button", { name: staffCopy.check.checkNow });
-  await check.click();
-  await expect(page.getByRole("row").filter({ hasText: "Cities of London and Westminster" })).toBeVisible();
-  await check.click();
-  await expect(page.getByRole("row").filter({ hasText: "Cities of London and Westminster" })).toHaveCount(2);
-  // One day's heading over both: the fixture clock's day.
+  // The import, twice: its page lists both runs, under the day's heading, and none of the other bodies'.
+  await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
+  const run = page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] });
+  const unchanged = page.getByText(staffCopy.runs.status.unchanged, { exact: true });
+  await run.click();
+  await expect(unchanged).toHaveCount(1);
+  await run.click();
+  await expect(unchanged).toHaveCount(2);
+  // One day's heading over every run: the fixture clock's day.
   const day = page.getByRole("heading", { level: 2, name: staffDate(new Date(FIXTURE_NOW)) });
   await expect(day).toHaveCount(1);
   // Where the second run leaves the window depends on when its result arrives, so the frame starts at the day.
   await day.evaluate((heading) => heading.scrollIntoView({ block: "start" }));
-  await frame(page, "The MP check's page");
+  await frame(page, "Parliament's import's page");
 
   story(
-    "The Scheduled jobs page has a card for each job, showing its newest run. The check is done, and ControlAI's letter hasn't been read yet.",
+    "The Scheduled jobs page has a card for each job, showing its newest run. Parliament's import is done, and ControlAI's letter hasn't been read yet. The copy from Airtable runs only when someone presses it, so it's last.",
   );
-  // The Scheduled jobs page: each job's newest run on its card; the MP import's, from the start of the flow.
   await page
     .getByRole("navigation", { name: staffCopy.breadcrumb })
     .getByRole("link", { name: staffCopy.import.pageTitle })
@@ -291,7 +291,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs`);
   const card = (job: ImportJob) =>
     page.locator("section").filter({ has: page.getByRole("link", { name: jobTitles[job] }) });
-  await expect(card("check-mps").getByText(staffCopy.runs.status.ok)).toBeVisible();
+  await expect(card("import-parliament").getByText(staffCopy.runs.status.unchanged)).toBeVisible();
   await expect(card("import-controlai").getByText(staffCopy.controlAi.never)).toBeVisible();
   await frame(page, "The Scheduled jobs page");
 });
@@ -342,91 +342,91 @@ test("An import has problems", async ({ page, request, flowDatabase }) => {
 
 test("A held politician import", async ({ page, request, flowDatabase }) => {
   story(
-    "21 MPs are no longer in Airtable. An import that would mark that many gone changes too much to go ahead alone, so it's held for a person to check.",
+    "21 MPs we have are no longer in Parliament's list. An import that would mark that many as having left changes too much to go ahead alone, so it's held for a person to check.",
   );
-  await syncPoliticians(request, BASE);
-  // Twenty-one MPs Airtable no longer lists: the next import would mark them
-  // all gone from it, more than it may without a person checking.
+  await importPoliticians(request, BASE, flowDatabase);
+  // Twenty-one MPs with IDs Parliament no longer lists: the next import would
+  // mark them all as having left, more than it may without a person checking.
   runSql(
     flowDatabase,
     `WITH people AS (
-       INSERT INTO notable_people (kind, airtable_id, name)
-       SELECT 'politician', 'recGone' || n, 'Gone McTestface ' || n || ' MP' FROM generate_series(1, 21) n RETURNING id, name
+       INSERT INTO notable_people (kind, name)
+       SELECT 'politician', 'Gone McTestface ' || n || ' MP' FROM generate_series(1, 21) n RETURNING id, name
      )
-     INSERT INTO politicians (id, house, constituency) SELECT id, 'commons', replace(replace(name, ' MP', ''), 'McTestface ', '') FROM people`,
+     INSERT INTO politicians (id, house, constituency, official_id)
+     SELECT id, 'commons', replace(replace(name, ' MP', ''), 'McTestface ', ''), 70000 + id FROM people`,
   );
-  const inAirtable = () =>
+  const inOffice = () =>
     Number(
-      runSql(
-        flowDatabase,
-        "SELECT count(*) FROM notable_people WHERE name LIKE 'Gone %' AND airtable_removed_at IS NULL",
-      )[0],
+      runSql(flowDatabase, "SELECT count(*) FROM notable_people WHERE name LIKE 'Gone %' AND status = 'in_office'")[0],
     );
+  const parliament = () =>
+    request.post(`${BASE}/api/cron/import-parliament`, { headers: { Authorization: "Bearer fixture-cron-secret" } });
 
   // The nightly import, which holds it.
-  await syncPoliticians(request, BASE);
+  expect((await parliament()).ok()).toBe(true);
   story("The notification inbox gets an email about it, once.");
+  const title = jobTitles["import-parliament"];
   await emailFrame(
     page,
-    notified(staffCopy.notifications.syncHeld.subject(21))!,
+    notified(staffCopy.notifications.importHeld.subject(title, 21))!,
     "The email to the notification inbox",
   );
 
   story("The import's page shows the run held, with what it would change.");
   await logIn(page, flowDatabase, ["admin"]);
-  await page.goto(`${BASE}/staff/scheduled-jobs/politicians`);
-  await expect(page.getByRole("button", { name: staffCopy.syncs.apply })).toBeVisible();
-  await expect(page.getByText(`${staffCopy.syncs.removed} 21`).first()).toBeVisible();
+  await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
+  const words = staffCopy.politicianImports;
+  await expect(page.getByRole("button", { name: words.apply })).toBeVisible();
+  await expect(page.getByText(`${words.left} (21)`).first()).toBeVisible();
   await expect(page.getByText("Gone 1: Gone McTestface 1 MP")).toBeAttached();
-  expect(inAirtable()).toBe(21);
+  expect(inOffice()).toBe(21);
   await frame(page, "The import, held");
 
   story("The staff dashboard says so first, with a button back to the decision.");
-  // The home page says so, first thing, with a button back to the decision.
   await page.goto(`${BASE}/staff`);
-  await expect(page.getByText(staffCopy.home.dashboard.actions.heldSync(21))).toBeVisible();
+  await expect(page.getByText(staffCopy.home.dashboard.actions.heldImport(title, 21))).toBeVisible();
   await frame(page, "The dashboard");
   await page.getByRole("link", { name: staffCopy.home.dashboard.actions.decide }).click();
-  await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs/politicians`);
+  await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs/parliament`);
 
-  story("An admin discards it. Nothing changes: all 21 are still in Airtable here.");
-  await page.getByRole("button", { name: staffCopy.syncs.discard }).click();
-  await expect(page.getByRole("button", { name: staffCopy.syncs.apply })).toHaveCount(0);
+  story("An admin discards it. Nothing changes: all 21 are still in office here.");
+  await page.getByRole("button", { name: words.discard }).click();
+  await expect(page.getByRole("button", { name: words.apply })).toHaveCount(0);
   await expect(page.getByText(staffCopy.runs.status.discarded).first()).toBeVisible();
-  expect(inAirtable()).toBe(21);
+  expect(inOffice()).toBe(21);
   // From the top, where the newest run says how it ended; the button left the page scrolled down its list.
   await page.evaluate(() => window.scrollTo(0, 0));
   await frame(page, "The import, discarded");
 
   story(
-    "They run the import again, and it's held again. This time they apply it. The 21 are marked gone from Airtable, and kept, and the run says who decided.",
+    "They run the import again, and it's held again. This time they apply it. The 21 are marked as having retired, as Parliament says, and kept, and the run says who decided.",
   );
-  await page.getByRole("button", { name: staffCopy.syncs.syncNow }).click();
-  await page.getByRole("button", { name: staffCopy.syncs.apply }).click();
-  await expect(page.getByRole("button", { name: staffCopy.syncs.apply })).toHaveCount(0);
+  await page.getByRole("button", { name: words.importNow["import-parliament"] }).click();
+  await page.getByRole("button", { name: words.apply }).click();
+  await expect(page.getByRole("button", { name: words.apply })).toHaveCount(0);
   await expect(page.getByText(staffCopy.runs.decidedBy(staffEmail())).first()).toBeVisible();
-  expect(inAirtable()).toBe(0);
+  expect(inOffice()).toBe(0);
   await page.evaluate(() => window.scrollTo(0, 0));
   await frame(page, "The import, applied");
 
   story("The audit log records who discarded it and who applied it.");
   await page.goto(`${BASE}/staff/audit-log`);
-  await expect(page.getByRole("cell", { name: "apply held politician sync" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "discard held politician sync" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "apply held politician import" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "discard held politician import" })).toBeVisible();
   await frame(page, "The audit log");
 });
 
 test("A held rename", async ({ page, request, flowDatabase }) => {
   story(
-    "A record here named Penny Previous is now Polly Placeholder in Airtable. That may be Airtable reusing the record for someone new, so the import is held, showing the old name and the new.",
+    "Someone here named Penny Previous has the ID Parliament gives Polly Placeholder. That may be the same person, or a mistake in matching, so the import is held, showing the old name and the new.",
   );
-  await syncPoliticians(request, BASE);
-  // Polly's record had another name here: Airtable now names someone else in it.
-  runSql(flowDatabase, "UPDATE notable_people SET name = 'Penny Previous' WHERE airtable_id = 'recPlaceholder'");
+  await importPoliticians(request, BASE, flowDatabase);
+  runSql(flowDatabase, "UPDATE notable_people SET name = 'Penny Previous' WHERE name = 'Polly Placeholder'");
   await logIn(page, flowDatabase, ["admin"]);
-  await page.goto(`${BASE}/staff/scheduled-jobs/politicians`);
-  await page.getByRole("button", { name: staffCopy.syncs.syncNow }).click();
-  await expect(page.getByRole("button", { name: staffCopy.syncs.apply })).toBeVisible();
+  await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
+  await page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] }).click();
+  await expect(page.getByRole("button", { name: staffCopy.politicianImports.apply })).toBeVisible();
   await expect(page.getByText("Penny Previous → Polly Placeholder")).toBeVisible();
   await frame(page, "The import, held");
 });
@@ -447,7 +447,7 @@ test("Mail that matches nothing", async ({ page, request, flowDatabase }) => {
   story(
     "Mail in policy@ that isn't about a politician isn't kept, but staff get a list of it, once a day, by sender and subject, each with a link to it in policy@'s Gmail.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   connectPolicyMailboxes(flowDatabase);
   await logIn(page, flowDatabase, ["supporters", "admin"]);
   runSql(flowDatabase, "INSERT INTO unmatched_mail (account, gmail_message_id) VALUES ('policy@pauseai.uk', '0b02')");

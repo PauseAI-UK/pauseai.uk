@@ -1,0 +1,130 @@
+/* The value, then the button that opens its bubble. */
+.value {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+}
+
+/* A quiet link-like button, as the band's own links are. */
+.trigger {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  text-decoration: underline;
+}
+
+.bubble {
+  --bubble-width: 26rem;
+}
+
+/* Each part of a bubble, a rule between them. */
+.part + .part {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+/* A field, then Save, on one line, what the server said under them. */
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.field {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.status {
+  flex-basis: 100%;
+}
+
+.status:empty {
+  display: none;
+}
+
+/* Under a salutation made from their name: a button for each it most likely is. */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.heading {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-md);
+}
+
+/* What the addresses are for, ghosted, as each one's reason is. */
+.intro {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+/* Each other address, where it came from under it, and its Remove at the right. */
+.addresses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.addresses li {
+  position: relative;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* The one just added: one pulse of the accent's tint, then plain
+   (docs/style-guide.md, "Drawing the eye"). */
+/* A band behind the row, out to the bubble's edges (its padding, --space-4),
+   so the tint fills its width while the row and its rule stay put. */
+.addresses li[data-pulse]::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc(-1 * var(--space-4));
+  content: "";
+  animation: added-pulse 1.4s 0.15s ease-in-out;
+}
+
+@keyframes added-pulse {
+  40% {
+    background: var(--accent-light);
+  }
+}
+
+.address {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Under a Lord's email field while they have none: why it's theirs to set, ghosted. */
+.hint {
+  margin: var(--space-2) 0 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+/* Where it came from, ghosted, under the address. */
+.from {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}

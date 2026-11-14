@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, changeFilter, importLuma, lockTable, syncPoliticians } from "../steps";
+import { addFilter, changeFilter, importLuma, lockTable, importPoliticians } from "../steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { logIn, staffEmail } from "./staff-steps";
 import type { Section } from "./report/frames";
@@ -29,7 +29,7 @@ const save = (page: Page) => page.getByRole("button", { name: copy.save, exact: 
 
 test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
   story("Nothing's on the politicians list, so there's nothing to save: the chip is only the way to saved filters.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(POLITICIANS);
   await expect(save(page)).toHaveCount(0);
@@ -74,7 +74,7 @@ test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase 
 
 test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
   story("A colleague saved Labour MPs. It's in the list, with what it filters by, who made it and when.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   addSaved(flowDatabase, "politicians", "Labour MPs", { party: "Labour", house: "commons" });
   await page.goto(POLITICIANS);
@@ -131,7 +131,7 @@ test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page
 
 test("Finding a saved filter by name", async ({ page, request, flowDatabase }) => {
   story("There are several saved filters. Typing in the box over the list narrows them by name as it's typed.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   addSaved(flowDatabase, "politicians", "Conservatives who replied", { party: "Conservative" });
   addSaved(
@@ -154,7 +154,7 @@ test("Finding a saved filter by name", async ({ page, request, flowDatabase }) =
 
 test("Renaming and deleting a saved filter", async ({ page, request, flowDatabase }) => {
   story("A row's menu works on a saved filter without loading it.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   addSaved(flowDatabase, "politicians", "Peers", { house: "lords" });
   addSaved(flowDatabase, "politicians", "Scottish MPs", { nation: "scotland" });
@@ -196,7 +196,7 @@ test("A saved filter naming something that has gone", async ({ page, request, fl
   story(
     "A saved filter names a party no politician belongs to any more. Loading it leaves that out, and says so over the list, which may be longer than it was.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   const id = addSaved(flowDatabase, "politicians", "Reform Group and important", {
     party: ["Reform Group"],
@@ -213,7 +213,7 @@ test("Who can see saved filters", async ({ page, request, flowDatabase }) => {
   story(
     "Saved filters on Supporters are for those who can open it. Someone with the permission sees one, with the search and Near filter it saved.",
   );
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase, ["supporters"]);
   const id = addSaved(flowDatabase, "supporters", "Near Manchester", { near: "Manchester", within: "25", q: "jane" });
   await page.goto(`${BASE}/staff/supporters?near=Manchester&within=25&q=jane&saved=${id}`);
@@ -249,7 +249,7 @@ test("A saved filter on Events", async ({ page, flowDatabase }) => {
 
 test("Loading a saved filter while choosing who a mailing goes to", async ({ page, request, flowDatabase }) => {
   story("Staff start a new mailing, and the list is choosing who it's for. A saved filter loads as usual.");
-  await syncPoliticians(request, BASE);
+  await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   addSaved(flowDatabase, "politicians", "Labour MPs", { party: "Labour", house: "commons" });
   await page.goto(POLITICIANS);

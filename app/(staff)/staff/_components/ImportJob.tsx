@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { site } from "@/lib/content/site";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
+import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/asks";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
 import type { RunningJob } from "@/lib/server/import-runs";
 import {
@@ -9,11 +10,12 @@ import {
   jobSchedule,
   type ImportJob,
   importPath,
+  type PoliticianImportJob,
   NIGHTLY,
   runStatus,
   runTone,
 } from "@/lib/import-runs";
-import { MEMBERS_API } from "@/lib/parliament";
+import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
 import styles from "./ImportJob.module.css";
@@ -37,9 +39,12 @@ const CIVICRM = "https://crm.pauseai.info/";
 /** Where each job reads from, as its icon. */
 const SOURCES: Record<ImportJob, ImportSource> = {
   "import-luma": "luma",
-  "sync-politicians": "airtable",
-  "check-mps": "parliament",
+  "import-parliament": "parliament",
+  "import-scottish-parliament": "scottish-parliament",
+  "import-senedd": "senedd",
+  "import-ni-assembly": "ni-assembly",
   "import-controlai": "controlai",
+  "import-controlai-statement": "controlai",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
   "send-mailings": "gmail",
@@ -51,7 +56,6 @@ const SOURCES: Record<ImportJob, ImportSource> = {
  * import has none: its description starts by saying it imports.
  */
 const KINDS: Partial<Record<ImportJob, keyof typeof words.kinds>> = {
-  "check-mps": "check",
   "read-gmail": "read",
   "send-mailings": "send",
   "tidy-logs": "tidy",
@@ -79,13 +83,33 @@ function JobTags({ job }: { job: ImportJob }) {
   );
 }
 
+/** Where each body documents the API its import reads. */
+const API_DOCS: Record<PoliticianImportJob, string> = {
+  "import-parliament": "https://data.parliament.uk/membersdataplatform/memberquery.aspx",
+  "import-scottish-parliament": "https://data.parliament.scot/#/api-list/",
+  "import-senedd": "https://business.senedd.wales/mgWebService.asmx",
+  "import-ni-assembly": "https://data.niassembly.gov.uk/members.asmx",
+};
+
+/** A body's import's description, button and words before its first run, with its API's documentation linked. */
+function politicianImport(job: PoliticianImportJob) {
+  const words = staffCopy.politicianImports;
+  return {
+    intro: words.intros[job],
+    href: API_DOCS[job],
+    also: words.held,
+    button: words.importNow[job],
+    none: words.never,
+  };
+}
+
 /** Each job's description, around a link to where it reads from, and its button and what to say before its first run. */
 const ABOUT: Record<
   ImportJob,
   {
     intro: { before: string; link: string; after: string };
-    /** Where it reads from: a page; the politicians' table in Airtable when left out. */
-    href?: string;
+    /** Where it reads from. */
+    href: string;
     /** More of the intro, each part with a link of its own, for a job that works on more than one place. */
     then?: { link: string; after: string; href: string }[];
     also?: string;
@@ -99,23 +123,23 @@ const ABOUT: Record<
     button: staffCopy.luma.importNow,
     none: staffCopy.luma.never,
   },
-  "sync-politicians": {
-    intro: staffCopy.syncs.intro,
-    also: staffCopy.syncs.testMps,
-    button: staffCopy.syncs.syncNow,
-    none: staffCopy.syncs.none,
-  },
-  "check-mps": {
-    intro: staffCopy.check.intro,
-    href: MEMBERS_API,
-    button: staffCopy.check.checkNow,
-    none: staffCopy.check.never,
-  },
+  "import-parliament": politicianImport("import-parliament"),
+  "import-scottish-parliament": politicianImport("import-scottish-parliament"),
+  "import-senedd": politicianImport("import-senedd"),
+  "import-ni-assembly": politicianImport("import-ni-assembly"),
   "import-controlai": {
     intro: staffCopy.controlAi.intro,
     href: CONTROLAI_LETTER_PAGE,
+    then: [{ ...staffCopy.controlAi.introThen, href: askHref(CONTROLAI_LETTER_ASK) }],
     button: staffCopy.controlAi.importNow,
     none: staffCopy.controlAi.never,
+  },
+  "import-controlai-statement": {
+    intro: staffCopy.controlAiStatement.intro,
+    href: CONTROLAI_STATEMENT_PAGE,
+    then: [{ ...staffCopy.controlAiStatement.introThen, href: askHref(CONTROLAI_STATEMENT_ASK) }],
+    button: staffCopy.controlAiStatement.importNow,
+    none: staffCopy.controlAiStatement.never,
   },
   "import-civicrm": {
     intro: staffCopy.civicrm.intro,
@@ -151,13 +175,13 @@ const ABOUT: Record<
   },
 };
 
-/** What the job does, with its source linked. Airtable's table link is the server's, so it comes in as a prop. */
-function Intro({ job, airtableTable }: { job: ImportJob; airtableTable: string }) {
+/** What the job does, with its source linked. */
+function Intro({ job }: { job: ImportJob }) {
   const { intro, href, then, also } = ABOUT[job];
   return (
     <>
       {intro.before}
-      <ExternalLink href={href ?? airtableTable}>{intro.link}</ExternalLink>
+      <ExternalLink href={href}>{intro.link}</ExternalLink>
       {intro.after}
       {then?.map((part) => (
         <Fragment key={part.href}>
@@ -204,13 +228,11 @@ const SCHEDULES = ["frequent", "quarter-hour", "hourly", "nightly"] as const;
 export function ImportOverview({
   newest,
   running,
-  airtableTable,
 }: {
   /** Each job's newest run, in IMPORT_JOBS order; undefined for one that has never run. */
   newest: (AnyImportRun | undefined)[];
   /** Each job's run going now, in the same order. */
   running: (RunningJob | undefined)[];
-  airtableTable: string;
 }) {
   return (
     <>
@@ -227,7 +249,7 @@ export function ImportOverview({
                   href={importPath(job)}
                   icon={<ImportIcon source={SOURCES[job]} />}
                   tags={<JobTags job={job} />}
-                  intro={<Intro job={job} airtableTable={airtableTable} />}
+                  intro={<Intro job={job} />}
                 >
                   <NewestRun job={job} run={newest[i]} running={running[i]} />
                 </ImportCard>
@@ -252,7 +274,6 @@ export function ImportJobPage({
   running,
   run,
   decide,
-  airtableTable,
 }: {
   job: ImportJob;
   runs: AnyImportRun[];
@@ -260,9 +281,8 @@ export function ImportJobPage({
   running?: RunningJob;
   /** The Server Action that runs the job now. */
   run: (form: FormData) => void | Promise<void>;
-  /** Applies or discards a held politician sync. */
+  /** Applies or discards a held import. */
   decide: Decide;
-  airtableTable: string;
 }): ReactNode {
   return (
     <>
@@ -279,7 +299,7 @@ export function ImportJobPage({
       </PageHead>
       <div className={styles.about}>
         <p>
-          <Intro job={job} airtableTable={airtableTable} />
+          <Intro job={job} />
         </p>
         <JobActions action={run} label={ABOUT[job].button} />
       </div>

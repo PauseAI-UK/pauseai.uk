@@ -8,7 +8,6 @@ import { POST } from "./route";
 
 beforeEach(() => {
   vi.stubEnv("CRON_SECRET", "s3cret");
-  vi.stubEnv("AIRTABLE_TOKEN", "token");
   vi.stubEnv("CIVICRM_CHAPTER_KEY", "key");
   vi.stubEnv("LUMA_API_KEY", "k");
 });
@@ -24,42 +23,35 @@ const answer = async (job: string) => (await call(job)).json();
 describeWithDatabase("POST /api/cron/<job>", () => {
   useTestDatabase();
 
-  it("copies the politicians from Airtable, and says what changed", async () => {
-    expect(await answer("sync-politicians")).toEqual({
-      status: "applied",
-      added: 7,
-      removed: 0,
-      changed: 0,
-      renamed: 0,
-    });
-  });
-
-  it("fails when the politicians do, keeping the run", async () => {
-    server.use(
-      // A Status the sync doesn't know fails it.
-      http.get("https://*.airtable.com/v0/appBInVvIm6opJ1Ob/tblH3ks9wqQHLpYx3", () =>
-        HttpResponse.json({ records: [{ id: "recOdd", fields: { "Full name or Title": "Odd", Status: "Odd" } }] }),
-      ),
-    );
-    await expect(call("sync-politicians")).rejects.toThrow('Unknown Status "Odd"');
+  it("fails when an import does, keeping the run", async () => {
+    server.use(http.get("https://business.senedd.wales/*", () => new HttpResponse(null, { status: 500 })));
+    await expect(call("import-senedd")).rejects.toThrow();
     expect(await query("SELECT job, status FROM import_runs ORDER BY id")).toEqual([
-      { job: "sync-politicians", status: "failed" },
+      { job: "import-senedd", status: "failed" },
     ]);
     // It's no longer going, so the next run goes.
-    expect(await runningNow("sync-politicians")).toBeUndefined();
+    expect(await runningNow("import-senedd")).toBeUndefined();
   });
 
   it("doesn't run a job while a staff member's run of it is going, and says so", async () => {
-    await startRunning("check-mps", "jo@pauseai.uk");
-    const res = await call("check-mps");
+    await startRunning("import-parliament", "jo@pauseai.uk");
+    const res = await call("import-parliament");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ stoppedBy: "running" });
     expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
   });
 
-  it("checks the MPs against Parliament's, and says how many problems it found", async () => {
-    // No MPs copied yet, so each of Parliament's is missing.
-    expect(await answer("check-mps")).toEqual({ problems: 3, read: 0, unread: 0, linked: 0, unlinked: 0, offices: 0 });
+  it("imports each body's members, and says what changed", async () => {
+    // No politicians yet, so each body's are added.
+    expect(await answer("import-parliament")).toEqual({ status: "applied", added: 4, changed: 0, left: 0 });
+    expect(await answer("import-scottish-parliament")).toEqual({ status: "applied", added: 1, changed: 0, left: 0 });
+    expect(await answer("import-senedd")).toEqual({ status: "applied", added: 1, changed: 0, left: 0 });
+    expect(await answer("import-ni-assembly")).toEqual({ status: "applied", added: 1, changed: 0, left: 0 });
+  });
+
+  it("reads ControlAI's statement and says what it did", async () => {
+    await answer("import-parliament");
+    expect(await answer("import-controlai-statement")).toMatchObject({ supporters: 5, matched: 2, added: 2 });
   });
 
   it("reads ControlAI's letter and says what it did", async () => {
@@ -131,7 +123,7 @@ describeWithDatabase("POST /api/cron/<job>", () => {
   });
 
   it("refuses anyone without the secret, before saying whether the job exists", async () => {
-    expect((await call("check-mps", "Bearer guess")).status).toBe(401);
+    expect((await call("import-parliament", "Bearer guess")).status).toBe(401);
     expect((await call("nothing", "Bearer guess")).status).toBe(401);
     expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
   });

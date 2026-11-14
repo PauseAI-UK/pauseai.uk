@@ -500,7 +500,8 @@ describe("politiciansSearch", () => {
         house: "lords",
         status: "retired",
         party: ["Crossbench", "Labour"],
-        flags: ["important", "removed"],
+        // "removed" was a marker once: an old link keeps working without it.
+        flags: ["important"],
         country: ["wales"],
         email: ["none", "blocked"],
         mailed: ["deepmind-letter"],

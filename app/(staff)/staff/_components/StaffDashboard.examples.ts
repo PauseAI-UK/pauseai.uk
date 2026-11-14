@@ -48,7 +48,14 @@ export const exampleDashboard: Dashboard = {
   },
   supportersBySource: bySource([37, 57, 168, 58, 157, 223, 437, 176]),
   actions: [
-    { kind: "held-sync", at: new Date("2026-10-21T00:00:00.000Z"), added: 0, removed: 21, changed: 3 },
+    {
+      kind: "held-import",
+      job: "import-parliament",
+      at: new Date("2026-10-21T06:21:00.000Z"),
+      added: 0,
+      left: 21,
+      changed: 3,
+    },
     {
       kind: "blocked-mp",
       politicianId: 7,

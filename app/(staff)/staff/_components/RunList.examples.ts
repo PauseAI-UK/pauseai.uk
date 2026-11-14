@@ -1,32 +1,38 @@
 import {
   type AnyImportRun,
   type ControlAiImportResult,
+  type ControlAiStatementResult,
   type GmailRead,
   type GmailReadResult,
   type ImportJob,
   type LumaImportResult,
   type CivicrmImportResult,
-  type MpCheckResult,
   NIGHTLY,
-  type PoliticianSync,
-  type PoliticianSyncResult,
+  type PoliticianImport,
+  type PoliticianImportJob,
+  type PoliticianImportResult,
   type Problem,
   type SendingResult,
   type TidyingResult,
 } from "@/lib/import-runs";
-import type { SyncedPolitician } from "@/lib/politician-sync";
 
-type Results = {
-  "sync-politicians": PoliticianSyncResult;
-  "check-mps": MpCheckResult;
+type Results = Record<PoliticianImportJob, PoliticianImportResult> & {
   "import-controlai": ControlAiImportResult;
+  "import-controlai-statement": ControlAiStatementResult;
   "import-luma": LumaImportResult;
   "import-civicrm": CivicrmImportResult;
   "read-gmail": GmailReadResult;
   "send-mailings": SendingResult;
   "tidy-logs": TidyingResult;
 };
-type RunOf<Job extends ImportJob> = Extract<AnyImportRun, { job: Job }>;
+/** A job's runs: the run type whose jobs include it, as the bodies' imports share one. */
+type RunOf<Job extends ImportJob> = AnyImportRun extends infer Run
+  ? Run extends { job: infer Jobs }
+    ? Job extends Jobs
+      ? Run
+      : never
+    : never
+  : never;
 
 /** A run from the import log that went well, with `result`. */
 export function exampleRun<Job extends ImportJob>(
@@ -55,59 +61,66 @@ export const exampleFailedRun = <Job extends ImportJob>(
   run: Partial<RunOf<Job>>,
 ): RunOf<Job> => ({ ...exampleRun(job, {} as Results[Job]), status: "failed", error, ...run }) as RunOf<Job>;
 
-/** An MP as a sync copies them from Airtable: "MP 1", of "Seat 1". */
-export const exampleSyncedMp = (id: number, email: string | null = "a@parliament.uk"): SyncedPolitician => ({
-  airtableId: `rec${id}`,
-  name: `MP ${id}`,
-  salutation: "",
-  email,
-  status: "in_office",
-  house: "commons",
-  constituency: `Seat ${id}`,
-  party: "",
-  country: null,
-  notes: "",
-  importantTarget: false,
-  personalConnection: false,
-});
-
-/** A peer as a sync copies them: no constituency. */
-const examplePeer: SyncedPolitician = {
-  ...exampleSyncedMp(5),
-  name: "Lord Example",
-  house: "lords",
-  constituency: null,
+/** What a body's import did that changed nothing, and what relinking the one-off threads did after. */
+export const exampleImportResult: PoliticianImportResult = {
+  changes: { added: [], changed: [], left: [], renamed: [], unofficial: [], salutations: [] },
+  vacant: [],
+  relinked: { read: 0, unread: 0, linked: 0, unlinked: 0, offices: 0 },
 };
 
 /**
- * A sync held for staff to apply or discard: one MP added, one gone from
- * Airtable, a peer added, and one renamed.
+ * Parliament's import held for staff to apply or discard: a new MP and a
+ * new peer, one who retired, one changed, one renamed, a seat no postcode
+ * finds and a salutation unlike the rule's.
  */
-export const exampleHeldSync: PoliticianSync = exampleRun(
-  "sync-politicians",
+export const exampleHeldImport: PoliticianImport = exampleRun(
+  "import-parliament",
   {
     changes: {
-      added: [exampleSyncedMp(1), examplePeer],
-      removed: [exampleSyncedMp(2, null)],
-      changed: [{ ...exampleSyncedMp(6), name: "Someone New" }],
+      added: [
+        {
+          officialId: 5001,
+          house: "commons",
+          name: "Sam Newcomer",
+          constituency: "Ipswich",
+          party: "Labour",
+          country: "england",
+          emails: ["sam.newcomer.mp@parliament.uk"],
+          websites: [],
+          salutation: "Mr Newcomer",
+        },
+        {
+          officialId: 5002,
+          house: "lords",
+          name: "Lord Example",
+          constituency: null,
+          party: "Crossbench",
+          country: null,
+          emails: [],
+          websites: [],
+          salutation: "Lord Example",
+        },
+      ],
+      changed: [{ id: 7, name: "Polly Placeholder", changed: { party: ["Labour", "Labour (Co-op)"] } }],
+      left: [
+        {
+          id: 8,
+          name: "Rita Retired",
+          house: "commons",
+          constituency: "Old Seat",
+          status: "retired",
+          date: "2026-10-01",
+          reason: "Retirement",
+        },
+      ],
+      renamed: [{ id: 9, from: "Dora Dummy", to: "Dora Smith" }],
+      unofficial: [{ name: "Mo Example", constituency: "Manchester Centre" }],
+      salutations: [{ id: 7, name: "Polly Placeholder", ours: "Polly", rule: "Ms Placeholder" }],
     },
-    renamed: [{ airtableId: "rec6", from: "MP 6", to: "Someone New" }],
-    records: [{ politician: exampleSyncedMp(1) }],
+    members: [],
+    endings: [],
   },
-  { id: 3, at: new Date("2026-10-12T02:00:00Z"), status: "held" },
-);
-
-/** An MP sync someone applied, kept from before the sync read every body: one MP changed. */
-export const exampleAppliedSync: PoliticianSync = exampleRun(
-  "sync-politicians",
-  {
-    changes: {
-      added: [],
-      removed: [],
-      changed: [{ airtableId: "rec4", name: "MP 4", constituency: "Seat 4", email: "a@parliament.uk" }],
-    },
-  } as unknown as PoliticianSyncResult,
-  { id: 2, at: new Date("2026-10-11T02:00:00Z"), status: "applied", decidedBy: "jo@pauseai.uk" },
+  { id: 4, at: new Date("2026-10-13T06:21:00Z"), status: "held" },
 );
 
 /** What a run of the Luma import did: every event read, nothing left over. */
@@ -180,6 +193,15 @@ export const exampleControlAiResult: ControlAiImportResult = {
   added: 2,
   removed: 1,
   problems: [],
+};
+
+/** What a read of ControlAI's statement found, with every supporter placed. */
+export const exampleControlAiStatementResult: ControlAiStatementResult = {
+  supporters: 190,
+  matched: 190,
+  added: 3,
+  removed: 0,
+  unmatched: [],
 };
 
 /** What an hour's sending did: a mailing started and most of it sent. */

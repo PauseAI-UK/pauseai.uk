@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changeChoices, recentChanges } from "@/lib/server/audit";
-import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import type { ChangesSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
@@ -37,13 +36,7 @@ export default async function ChangesPage({ searchParams }: Props) {
         saved={saved}
         actions={{ save: saveFilter, update: updateFilter, rename: renameFilter, remove: deleteFilter }}
       />
-      <ChangesTable
-        log={log}
-        search={search}
-        page={filter.page!}
-        supporters={supporters}
-        airtableTable={PARLIAMENTARIANS_TABLE_URL}
-      />
+      <ChangesTable log={log} search={search} page={filter.page!} supporters={supporters} />
     </Page>
   );
 }

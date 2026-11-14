@@ -2,14 +2,21 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
-import { type AnyImportRun, type ControlAiImport, type MpCheck, type PoliticianSync } from "@/lib/import-runs";
+import {
+  type AnyImportRun,
+  type ControlAiImport,
+  NEWER_RUN,
+  type ControlAiStatementImport,
+  type PoliticianImport,
+} from "@/lib/import-runs";
 import RunList from "./RunList";
 import RunTable from "./RunTable";
 import {
-  exampleAppliedSync,
   exampleControlAiResult,
+  exampleControlAiStatementResult,
   exampleFailedRun,
-  exampleHeldSync,
+  exampleHeldImport,
+  exampleImportResult,
   exampleLumaResult,
   exampleDisconnectedGmail,
   exampleGmailResult,
@@ -17,7 +24,6 @@ import {
   exampleCivicrmResult,
   exampleRun,
   exampleSendingResult,
-  exampleSyncedMp,
   exampleTidyingResult,
 } from "./RunList.examples";
 import { action, press } from "@/tests/browser/staff";
@@ -32,36 +38,59 @@ const AT = "15 Oct 2026, 02:00";
 const toRgb = (hex: string) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.trim().slice(i, i + 2), 16)).join(", ")})`;
 
 describe("RunList", () => {
-  const mp = exampleSyncedMp;
-  const held = exampleHeldSync;
-  const applied = exampleAppliedSync;
+  const heldImport = exampleHeldImport;
+  // An earlier import someone applied: one MP who left.
+  const applied: PoliticianImport = ran(
+    "import-parliament",
+    {
+      changes: {
+        ...exampleImportResult.changes,
+        left: [{ ...heldImport.result.changes.left[0], name: "Rob Removed" }],
+      },
+    },
+    { id: 2, at: new Date("2026-10-11T06:21:00Z"), status: "applied", decidedBy: "jo@pauseai.uk" },
+  );
   const controlAi = exampleControlAiResult;
 
-  it("lists each MP sync's changes, and lets a held one be applied or discarded", async () => {
+  it("lists each import's changes, and lets a held one be applied or discarded", async () => {
     const { fn, sent } = action();
-    await render(<RunList runs={[held, applied]} none="None" decide={fn} />);
+    const words = staffCopy.politicianImports;
+    await render(<RunList runs={[heldImport, applied]} none="None" decide={fn} />);
     await expect.element(page.getByText(staffCopy.runs.status.held)).toBeVisible();
     await expect
-      .element(page.getByText(`${staffCopy.syncs.added} 2, ${staffCopy.syncs.removed} 1`, { exact: false }))
+      .element(page.getByText(words.result({ added: 2, changed: 1, left: 1 }), { exact: false }))
       .toBeVisible();
-    await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`Seat 2: MP 2 (${staffCopy.politicians.noEmail})`)).toBeVisible();
-    await expect.element(page.getByText(`${staffCopy.syncs.changed} (1)`).first()).toBeVisible();
-    // A peer by their house, and a renamed record from and to.
-    await expect.element(page.getByText(`${staffCopy.houses.lords}: Lord Example`)).toBeVisible();
-    await expect.element(page.getByText("MP 6 → Someone New")).toBeVisible();
+    // What a person should look at first: the names changed, then the seats no postcode finds.
+    await expect.element(page.getByText("Dora Dummy → Dora Smith")).toBeVisible();
+    await expect.element(page.getByText("Manchester Centre: Mo Example")).toBeVisible();
+    await expect.element(page.getByText("Ipswich: Sam Newcomer", { exact: true })).toBeVisible();
+    await expect
+      .element(page.getByText(`${staffCopy.houses.lords}: Lord Example (${staffCopy.politicians.noEmail})`))
+      .toBeVisible();
+    await expect.element(page.getByText("Old Seat: Rita Retired")).toBeVisible();
+    await expect.element(page.getByText("Polly Placeholder: party")).toBeVisible();
+    await expect.element(page.getByText("Polly Placeholder: Polly → Ms Placeholder")).toBeVisible();
+    // The earlier one, applied, has no buttons.
     await expect.element(page.getByText(staffCopy.runs.decidedBy("jo@pauseai.uk"), { exact: false })).toBeVisible();
-    expect(page.getByRole("button", { name: staffCopy.syncs.apply }).all()).toHaveLength(1);
-
-    await page.getByRole("button", { name: staffCopy.syncs.discard }).click();
+    expect(page.getByRole("button", { name: words.apply }).all()).toHaveLength(1);
+    await page.getByRole("button", { name: words.discard }).click();
     await vi.waitFor(() => expect(sent).toHaveLength(1));
-    expect(sent[0]).toEqual({ id: "3", decision: "discard" });
+    expect(sent[0]).toEqual({ id: "4", job: "import-parliament", decision: "discard" });
   });
 
-  it("starts a sync with many changes folded to its status line, with the buttons still there", async () => {
-    const big: PoliticianSync = ran(
-      "sync-politicians",
-      { changes: { added: [1, 2, 3, 4, 5, 6].map((n) => mp(n)), removed: [], changed: [] } },
+  it("starts an import with many changes folded to its status line, with the buttons still there", async () => {
+    const big: PoliticianImport = ran(
+      "import-parliament",
+      {
+        changes: {
+          ...exampleImportResult.changes,
+          added: [1, 2, 3, 4, 5, 6].map((n) => ({
+            ...heldImport.result.changes.added[0],
+            name: `MP ${n}`,
+            constituency: `Seat ${n}`,
+          })),
+        },
+      },
       { id: 9, status: "held" },
     );
     // The newest run starts unfolded, however long; the same run further down starts folded.
@@ -69,8 +98,10 @@ describe("RunList", () => {
     const folds = page.getByRole("group").all();
     expect(folds.map((fold) => (fold.element() as HTMLDetailsElement).open)).toEqual([true, false]);
     await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).not.toBeVisible();
-    await expect.element(page.getByRole("button", { name: staffCopy.syncs.apply })).toBeVisible();
-    await page.getByText(`${staffCopy.syncs.added} 6`, { exact: false }).click();
+    await expect.element(page.getByRole("button", { name: staffCopy.politicianImports.apply })).toBeVisible();
+    await page
+      .getByText(staffCopy.politicianImports.result({ added: 6, changed: 0, left: 0 }), { exact: false })
+      .click();
     await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).toBeVisible();
   });
 
@@ -193,7 +224,10 @@ describe("RunList", () => {
   it("keeps a failure plain further down on a job that runs rarely", async () => {
     await render(
       <RunList
-        runs={[ran("check-mps", { problems: [] }, { id: 1 }), failed("check-mps", "boom", { id: 2 })]}
+        runs={[
+          ran("import-parliament", exampleImportResult, { id: 1 }),
+          failed("import-parliament", "boom", { id: 2 }),
+        ]}
         none="None"
       />,
     );
@@ -239,8 +273,17 @@ describe("RunList", () => {
   });
 
   it("unfolds only the newest runs, and while a press runs, not the newest one if it's long", async () => {
-    const sync = (id: number, added: number[], at = new Date("2026-10-21T11:00:00Z")): PoliticianSync =>
-      ran("sync-politicians", { changes: { added: added.map((n) => mp(n)), removed: [], changed: [] } }, { id, at });
+    const sync = (id: number, added: number[], at = new Date("2026-10-21T11:00:00Z")): PoliticianImport =>
+      ran(
+        "import-parliament",
+        {
+          changes: {
+            ...exampleImportResult.changes,
+            added: added.map((n) => ({ ...heldImport.result.changes.added[0], name: `MP ${n}` })),
+          },
+        },
+        { id, at },
+      );
     const opens = () =>
       page
         .getByRole("group")
@@ -254,103 +297,68 @@ describe("RunList", () => {
     expect(opens().slice(0, 2)).toEqual([false, true]);
   });
 
-  it("shows a failed or unchanged sync as one line, and a held one without buttons where nothing can be decided", async () => {
-    const unchanged: PoliticianSync = ran(
-      "sync-politicians",
-      { changes: { added: [], removed: [], changed: [] } },
-      { id: 5, status: "unchanged" },
-    );
+  it("shows a failed or unchanged import as one line, and a held one without buttons where nothing can be decided", async () => {
+    const unchanged: PoliticianImport = ran("import-parliament", exampleImportResult, { id: 5, status: "unchanged" });
+    // One held earlier, replaced by the newer run.
+    const replaced = ran("import-parliament", exampleImportResult, {
+      id: 3,
+      status: "discarded",
+      decidedBy: NEWER_RUN,
+    });
     await render(
       <RunList
-        runs={[failed("sync-politicians", "Airtable request failed with status 422", { id: 6 }), unchanged, held]}
+        runs={[
+          failed("import-parliament", "Parliament answered with status 422", { id: 6 }),
+          unchanged,
+          heldImport,
+          replaced,
+        ]}
         none="None"
       />,
     );
+    await expect.element(page.getByText(staffCopy.runs.replaced, { exact: false })).toBeVisible();
     await expect.element(page.getByText(/status 422/)).toBeVisible();
     await expect.element(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
     await expect.element(page.getByText(staffCopy.runs.status.held)).toBeVisible();
     await expect.element(page.getByRole("textbox")).not.toBeInTheDocument();
+    expect(page.getByRole("button").all()).toHaveLength(0);
   });
 
-  it("lists each check's problems, with what Airtable and Parliament say", async () => {
-    await render(
-      <RunList
-        none="None"
-        runs={[
-          ran("check-mps", {
-            problems: [
-              { kind: "extra", constituency: "Gone", airtable: "Former MP" },
-              { kind: "unofficial", constituency: "Montgomeryshire and Glyndwr", airtable: "Steve Witherden" },
-              { kind: "missing", constituency: "New Seat", parliament: "New MP" },
-              {
-                kind: "name",
-                constituency: "North East Derbyshire",
-                airtable: "Louise Jones",
-                parliament: "Louise Sandher-Jones",
-              },
-              {
-                kind: "email",
-                constituency: "Wallasey",
-                name: "Angela Eagle",
-                airtable: "eaglea@parliament.uk",
-                parliament: ["angela.eagle.mp@parliament.uk", "a@example.org"],
-              },
-              { kind: "email", constituency: "Zetland", name: "Zed", airtable: null, parliament: ["z@parliament.uk"] },
-            ],
-          }),
-        ]}
-      />,
-    );
-    // Six problems is more than a few lines, but it's the newest run, so it starts unfolded.
-    expect((page.getByRole("group").element() as HTMLDetailsElement).open).toBe(true);
-    const row = (constituency: string) => page.getByRole("row").filter({ hasText: constituency });
-    await expect.element(row("Gone")).toHaveTextContent(`Gone${staffCopy.check.kinds.extra}Former MP`);
-    await expect
-      .element(row("Montgomeryshire"))
-      .toHaveTextContent(`Montgomeryshire and Glyndwr${staffCopy.check.kinds.unofficial}Steve Witherden`);
-    await expect.element(row("New Seat")).toHaveTextContent(`New Seat${staffCopy.check.kinds.missing}New MP`);
-    await expect
-      .element(row("North East Derbyshire"))
-      .toHaveTextContent(`North East Derbyshire${staffCopy.check.kinds.name}Louise JonesLouise Sandher-Jones`);
-    await expect
-      .element(row("Wallasey"))
-      .toHaveTextContent(
-        `Wallasey${staffCopy.check.kinds.email}Angela Eagle: eaglea@parliament.ukangela.eagle.mp@parliament.uk, a@example.org`,
-      );
-    await expect
-      .element(row("Zetland"))
-      .toHaveTextContent(`Zetland${staffCopy.check.kinds.email}Zed: ${staffCopy.check.noEmail}z@parliament.uk`);
-  });
-
-  it("says when a check found all well, or why it failed", async () => {
-    const runs: MpCheck[] = [
-      ran("check-mps", { problems: [] }, { id: 2 }),
-      failed("check-mps", "Parliament returned 500", { id: 1 }),
+  it("says what an import did, the constituencies with no MP, and why one failed", async () => {
+    const runs: PoliticianImport[] = [
+      ran("import-parliament", { ...exampleImportResult, vacant: ["Runcorn and Helsby"] }, { id: 2 }),
+      failed("import-parliament", "Parliament returned 500", { id: 1 }),
     ];
-    const { rerender } = await render(<RunList runs={runs} none="None" />);
-    await expect.element(page.getByText(staffCopy.check.allGood, { exact: false })).toBeVisible();
+    await render(<RunList runs={runs} none="None" />);
+    const words = staffCopy.politicianImports;
+    await expect.element(page.getByText(words.vacant(1), { exact: false })).toBeVisible();
+    await expect.element(page.getByText(`${words.noMp} (1)`)).toBeVisible();
+    await expect.element(page.getByText("Runcorn and Helsby")).toBeVisible();
     await expect.element(page.getByText(/Parliament returned 500/)).toBeVisible();
-    await expect.element(page.getByRole("group")).not.toBeInTheDocument();
-    await rerender(
-      <RunList
-        none="None"
-        runs={[ran("check-mps", { problems: [{ kind: "missing", constituency: "New Seat", parliament: "N" }] })]}
-      />,
-    );
-    await expect.element(page.getByText(staffCopy.check.problems(1), { exact: false })).toBeVisible();
   });
 
-  it("says what relinking the one-off emails did after a check, and the quotes it read and has still to read", async () => {
+  it("says what relinking the one-off emails did after an import, and the quotes it read and has still to read", async () => {
     const relinked = { read: 0, unread: 0, linked: 3, unlinked: 1, offices: 2 };
-    const { rerender } = await render(<RunList none="None" runs={[ran("check-mps", { problems: [], relinked })]} />);
-    await expect
-      .element(page.getByText(`${staffCopy.check.allGood} ${staffCopy.check.relinked(relinked)}`, { exact: false }))
-      .toBeVisible();
-    expect(staffCopy.check.relinked(relinked)).not.toContain("still to check");
-    const reading = { ...relinked, read: 40, unread: 700 };
-    await rerender(<RunList none="None" runs={[ran("check-mps", { problems: [], relinked: reading })]} />);
+    const words = staffCopy.politicianImports;
+    const run = (r: typeof relinked) => ran("import-senedd", { changes: exampleImportResult.changes, relinked: r });
+    const { rerender } = await render(<RunList none="None" runs={[run(relinked)]} />);
+    await expect.element(page.getByText(words.relinked(relinked), { exact: false })).toBeVisible();
+    expect(words.relinked(relinked)).not.toContain("still to check");
+    await rerender(<RunList none="None" runs={[run({ ...relinked, read: 40, unread: 700 })]} />);
     await expect.element(page.getByText(/700 older emails still to check/)).toBeVisible();
-    expect(staffCopy.check.relinked({ ...relinked, unread: 5 })).toContain("5 older emails still to check");
+    expect(words.relinked({ ...relinked, unread: 5 })).toContain("5 older emails still to check");
+  });
+
+  it("says what a read of ControlAI's statement did", async () => {
+    const runs: ControlAiStatementImport[] = [
+      ran("import-controlai-statement", exampleControlAiStatementResult, { id: 2 }),
+      failed("import-controlai-statement", "Only 0 supporters", { id: 1 }),
+    ];
+    await render(<RunList runs={runs} none="None" />);
+    await expect
+      .element(page.getByText(staffCopy.controlAiStatement.result(exampleControlAiStatementResult), { exact: false }))
+      .toBeVisible();
+    await expect.element(page.getByText(/Only 0 supporters/)).toBeVisible();
   });
 
   it("says what each ControlAI read did, and why one failed", async () => {
@@ -388,11 +396,12 @@ describe("RunList", () => {
 
   it("says what a run did, who ran it, or why it failed", async () => {
     const runs: AnyImportRun[] = [
-      ran("check-mps", { problems: [] }, { id: 3, startedBy: "jo@pauseai.uk" }),
-      failed("check-mps", "Parliament answered 503", { id: 1, startedBy: null }),
+      ran("import-parliament", exampleImportResult, { id: 3, startedBy: "jo@pauseai.uk" }),
+      failed("import-parliament", "Parliament answered 503", { id: 1, startedBy: null }),
     ];
     await render(<RunList runs={runs} none="None" />);
-    for (const words of [staffCopy.check.allGood, staffCopy.runs.error("Parliament answered 503")]) {
+    const did = staffCopy.politicianImports.result({ added: 0, changed: 0, left: 0 });
+    for (const words of [did, staffCopy.runs.error("Parliament answered 503")]) {
       await expect.element(page.getByText(words, { exact: false })).toBeVisible();
     }
     expect(page.getByText(staffCopy.runs.by("jo@pauseai.uk"), { exact: false }).all()).toHaveLength(1);
@@ -606,9 +615,9 @@ describe("RunList", () => {
 
   it("heads each day's runs with its date, and says when there are none", async () => {
     const runs: AnyImportRun[] = [
-      ran("check-mps", { problems: [] }, { id: 7, at: new Date("2026-11-03T01:00:00Z") }),
-      ran("check-mps", { problems: [] }, { id: 10, at: new Date("2026-11-03T00:17:00Z") }),
-      ran("check-mps", { problems: [] }, { id: 8, at: new Date("2026-11-02T02:00:00Z") }),
+      ran("import-parliament", exampleImportResult, { id: 7, at: new Date("2026-11-03T01:00:00Z") }),
+      ran("import-parliament", exampleImportResult, { id: 10, at: new Date("2026-11-03T00:17:00Z") }),
+      ran("import-parliament", exampleImportResult, { id: 8, at: new Date("2026-11-02T02:00:00Z") }),
     ];
     const { rerender } = await render(<RunList runs={runs} none="None" />);
     expect(
@@ -618,7 +627,9 @@ describe("RunList", () => {
         .map((h) => h.element().textContent),
     ).toEqual(["3 Nov 2026", "2 Nov 2026"]);
     // The page is one job's, so no run is labelled with it.
-    await expect.element(page.getByText(`${jobTitles["check-mps"]} ·`, { exact: false })).not.toBeInTheDocument();
+    await expect
+      .element(page.getByText(`${jobTitles["import-parliament"]} ·`, { exact: false }))
+      .not.toBeInTheDocument();
     await rerender(<RunList runs={[]} none="Nothing here" />);
     const before = ran(
       "import-luma",

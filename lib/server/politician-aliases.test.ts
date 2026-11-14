@@ -50,13 +50,16 @@ describeWithDatabase("a politician's aliases", () => {
   it("lists each address and domain by where it came from, leaving out their email where it's repeated", async () => {
     const polly = await politician();
     await query(
-      `INSERT INTO audit_log (actor, action, details) VALUES ('sync', 'edit politician', $1), ('sync', 'edit politician', $2)`,
+      `INSERT INTO audit_log (actor, action, details)
+       VALUES ('sync', 'edit politician', $1), ('sync', 'edit politician', $2), ('sync', 'edit politician', $3)`,
       [
         JSON.stringify({
           id: polly.id,
           changed: { email: ["old.polly@example.com", "polly.placeholder.mp@parliament.uk"] },
         }),
         JSON.stringify({ id: polly.id, changed: { name: ["Polly", "Polly Placeholder"] } }),
+        // An address given where there was none: the none isn't a past address.
+        JSON.stringify({ id: polly.id, changed: { email: [null, "old.polly@example.com"] } }),
       ],
     );
     await query(
@@ -265,6 +268,40 @@ describeWithDatabase("a politician's aliases", () => {
       why: "invalid",
     });
     expect(await addPoliticianAddress(polly.id + 99, "a@example.com", "jo@pauseai.uk")).toEqual({
+      added: false,
+      why: "exists",
+    });
+    // The Lords' shared inbox is no one's own address.
+    expect(await addPoliticianAddress(polly.id, "ContactHOLMember@parliament.uk", "jo@pauseai.uk")).toEqual({
+      added: false,
+      why: "shared",
+    });
+  });
+
+  it("refuses an address that's already theirs: their email, one their body lists, their office's, or a form of their name", async () => {
+    const polly = await politician();
+    await query(
+      `INSERT INTO politician_addresses (address, notable_person_id, source) VALUES
+       ('listed@parliament.uk', $1, 'parliament'), ('aaron.lukas@parliament.uk', $1, 'office')`,
+      [polly.id],
+    );
+    for (const address of [
+      "Polly.Placeholder.MP@parliament.uk",
+      "listed@parliament.uk",
+      "aaron.lukas@parliament.uk",
+      "citiesoflondonandwestminster.mp@parliament.uk",
+    ]) {
+      expect(await addPoliticianAddress(polly.id, address, "jo@pauseai.uk"), address).toEqual({
+        added: false,
+        why: "exists",
+      });
+    }
+    expect(await query("SELECT count(*)::int AS n FROM politician_addresses WHERE source = 'staff'")).toEqual([
+      { n: 0 },
+    ]);
+    // With no email, the rest still counts.
+    await query("UPDATE notable_people SET email = NULL WHERE id = $1", [polly.id]);
+    expect(await addPoliticianAddress(polly.id, "listed@parliament.uk", "jo@pauseai.uk")).toEqual({
       added: false,
       why: "exists",
     });

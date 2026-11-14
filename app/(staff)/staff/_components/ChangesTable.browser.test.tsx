@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { importPath } from "@/lib/import-runs";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changesSearch } from "@/lib/staff-search";
 import ChangesTable from "./ChangesTable";
@@ -16,14 +15,7 @@ describe("ChangesTable", () => {
 
   it("sorts by date, who and what, keeping the filters, and pages and downloads what they find", async () => {
     const search = changesSearch({ actor: ["sync"], sort: "actor", dir: "asc", page: "2", saved: "4" });
-    await render(
-      <ChangesTable
-        search={search}
-        log={{ ...log(exampleChanges), pages: 3 }}
-        page={2}
-        airtableTable="https://airtable.com/app/tbl"
-      />,
-    );
+    await render(<ChangesTable search={search} log={{ ...log(exampleChanges), pages: 3 }} page={2} />);
     const copy = staffCopy.changes;
     const heading = (name: string) =>
       [...document.querySelectorAll("th a")].find((a) => a.textContent!.includes(name))!.getAttribute("href");
@@ -49,7 +41,6 @@ describe("ChangesTable", () => {
         search={changesSearch({})}
         log={log([imported as unknown as (typeof exampleChanges)[number]])}
         page={1}
-        airtableTable="https://airtable.com/app/tbl"
       />,
     );
     const cell = page.getByRole("row").nth(1).getByRole("cell").nth(4);
@@ -60,16 +51,27 @@ describe("ChangesTable", () => {
     await expect.element(cell.getByRole("link")).toHaveAttribute("href", "/staff/supporters/import/previous/3");
   });
 
-  it("says whose address was added or removed", async () => {
-    const entries = exampleChanges.filter((one) => /politician address/.test(one.action));
+  it("links a decision on a held import to its job's page", async () => {
+    const edit = exampleChanges.find((one) => one.action === "edit politician")!;
+    const applied = {
+      ...edit,
+      action: "apply held politician import",
+      details: { id: 4, job: "import-senedd" },
+    } as const;
     await render(
       <ChangesTable
         search={changesSearch({})}
-        log={log(entries)}
+        log={log([applied as unknown as (typeof exampleChanges)[number]])}
         page={1}
-        airtableTable="https://airtable.com/app/tbl"
       />,
     );
+    const cell = page.getByRole("row").nth(1).getByRole("cell").nth(4);
+    await expect.element(cell.getByRole("link")).toHaveAttribute("href", "/staff/scheduled-jobs/senedd");
+  });
+
+  it("says whose address was added or removed", async () => {
+    const entries = exampleChanges.filter((one) => /politician address/.test(one.action));
+    await render(<ChangesTable search={changesSearch({})} log={log(entries)} page={1} />);
     const details = (n: number) => page.getByRole("row").nth(n).getByRole("cell").nth(4);
     expect(details(1).element().textContent).toBe("Polly Placeholder · polly@example.com");
     expect(details(2).element().textContent).toBe(`${staffCopy.changes.gone("7")} · polly@example.com`);
@@ -78,28 +80,14 @@ describe("ChangesTable", () => {
   it("leaves a change of nothing out of an entry's fields", async () => {
     const edit = exampleChanges.find((one) => one.action === "edit politician")!;
     const empty = { ...edit, details: { ...edit.details, changed: {} } };
-    await render(
-      <ChangesTable
-        search={changesSearch({})}
-        log={log([empty])}
-        page={1}
-        airtableTable="https://airtable.com/app/tbl"
-      />,
-    );
+    await render(<ChangesTable search={changesSearch({})} log={log([empty])} page={1} />);
     const details = page.getByRole("row").nth(1).getByRole("cell").nth(4).element().textContent!;
     expect(details).not.toContain("·  ·");
     expect(details).not.toMatch(/·\s*·/);
   });
 
   it("lists who changed what, the day in a column of its own, and every field each logged, in words, linked where there's a page", async () => {
-    await render(
-      <ChangesTable
-        search={changesSearch({})}
-        log={log(exampleChanges)}
-        page={1}
-        airtableTable="https://airtable.com/app/tbl"
-      />,
-    );
+    await render(<ChangesTable search={changesSearch({})} log={log(exampleChanges)} page={1} />);
     const copy = staffCopy.changes;
     const fields = staffCopy.fields;
     const labels = copy.labels;
@@ -141,7 +129,7 @@ describe("ChangesTable", () => {
       `odd@example.org · ${labels.kind} weird`,
       `Polly Placeholder · ${odd.before}${pm.title}${odd.after}`,
       `2 widgets · ${labels.status} maybe · ${labels.campaign} ${pm.title}`,
-      `Old MP · ${fields.house} ${staffCopy.houses.commons} → ${staffCopy.houses.lords} · ${fields.party} Labour → ${copy.empty}`,
+      `Old MP · ${fields.house} ${staffCopy.houses.commons} → ${staffCopy.houses.lords} · ${fields.party} Labour → ${copy.empty} · ${copy.labels.importantTarget} ${copy.off} → ${copy.on}`,
       copy.run("13"),
       copy.run("14"),
       copy.run("15"),
@@ -159,26 +147,17 @@ describe("ChangesTable", () => {
       undefined,
       "/staff/supporters/3",
       "/staff/supporters/4",
-      importPath("sync-politicians"),
+      undefined,
       "/staff/politicians/7",
       "/staff/supporters/3",
       undefined,
     ]);
-    // The Airtable ID leads to the record, in a new tab.
-    const record = rows[2].getByRole("link", { name: "recPolly" });
-    await expect.element(record).toHaveAttribute("href", "https://airtable.com/app/tbl/recPolly");
-    await expect.element(record).toHaveAttribute("target", "_blank");
+    // An Airtable ID is just text: Airtable is gone.
+    expect(rows[2].getByRole("link", { name: "recPolly" }).query()).toBeNull();
   });
 
   it("opens each entry's details as logged from a button at the right", async () => {
-    await render(
-      <ChangesTable
-        search={changesSearch({})}
-        log={log(exampleChanges.slice(4, 5))}
-        page={1}
-        airtableTable="https://airtable.com/app/tbl"
-      />,
-    );
+    await render(<ChangesTable search={changesSearch({})} log={log(exampleChanges.slice(4, 5))} page={1} />);
     const json = page.getByText('"name": "Old MP"', { exact: false });
     await expect.element(json).not.toBeVisible();
     await page.getByRole("button", { name: staffCopy.changes.json }).click();
@@ -194,7 +173,6 @@ describe("the lists' paging", () => {
         search={changesSearch({})}
         log={{ changes: exampleChanges, total: 250, pages: 3, pageSize: 100 }}
         page={2}
-        airtableTable="https://airtable.com/app/tbl"
       />,
     );
     await expect

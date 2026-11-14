@@ -1,19 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  addAuditEntry,
-  addTestLetter,
-  addTestMp,
-  addTestPolitician,
-  describeWithDatabase,
-  useTestDatabase,
-} from "@/tests/database";
+import { addAuditEntry, addTestMp, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query, transaction } from "./db";
 import {
   addPolitician,
-  canDeletePolitician,
   closestPoliticians,
   countPoliticians,
-  deletePolitician,
   findMpInOffice,
   findTestMp,
   getPolitician,
@@ -146,28 +137,6 @@ describeWithDatabase("politicians", () => {
     expect(await statusesOf(id)).toEqual({});
   });
 
-  it("deletes a politician gone from Airtable, with their answers, logging who they were; never one still there, a test MP or one written to", async () => {
-    const gone = await addTestPolitician({ airtableId: "recGone" });
-    const there = await addTestPolitician({ name: "Still There", airtableId: "recThere" });
-    const written = await addTestPolitician({ name: "Written To", airtableId: "recWritten" });
-    const testMp = await addTestMp();
-    await addTestLetter({ politicianId: written });
-    await query("UPDATE notable_people SET airtable_removed_at = now() WHERE id IN ($1, $2)", [gone, written]);
-    await setStatus(gone, PM, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
-
-    for (const id of [there, written, testMp]) {
-      expect(await canDeletePolitician(id)).toBe(false);
-      expect(await deletePolitician(id, "jo@pauseai.uk")).toBe(false);
-    }
-    expect(await canDeletePolitician(gone)).toBe(true);
-    expect(await deletePolitician(gone, "jo@pauseai.uk")).toBe(true);
-    expect(await getPolitician(gone)).toBeUndefined();
-    expect(await query("SELECT count(*)::int AS n FROM ask_statuses")).toEqual([{ n: 0 }]);
-    expect(await query("SELECT actor, details FROM audit_log WHERE action = 'delete politician'")).toEqual([
-      { actor: "jo@pauseai.uk", details: { id: gone, name: "Polly Placeholder", airtableId: "recGone" } },
-    ]);
-  });
-
   it("gives the politicians page: the list, its count and pages, and for a search, the others it finds", async () => {
     await addTestPolitician({ name: "Polly Placeholder" });
     await addTestPolitician({ name: "Peter Placeholder", status: "retired", airtableId: "recPeter" });
@@ -189,12 +158,11 @@ describeWithDatabase("politicians", () => {
     const hidden = {
       search: "McTestface",
       status: "in_office" as const,
-      not: { flags: ["removed" as const, "test" as const] },
+      not: { flags: ["test" as const] },
     };
     expect(await page(hidden)).toMatchObject({ total: 0, tests: 1 });
     expect(await page({ ...hidden, search: "placeholder" })).toMatchObject({ tests: 0 });
     expect(await page({ ...hidden, not: undefined })).toMatchObject({ total: 1, tests: 0 });
-    expect(await page({ ...hidden, not: { flags: ["removed"] } })).toMatchObject({ total: 1, tests: 0 });
     expect(await page({ page: 2 })).toMatchObject({ page: 2, politicians: [] });
   });
 
@@ -354,16 +322,16 @@ describeWithDatabase("politicians", () => {
     expect((await listPoliticians({ search: "Polly" }))[0]).toEqual({
       id: mp,
       airtableId: "recPlaceholder",
-      airtableRemovedAt: null,
+      officialId: null,
       house: "commons",
       name: "Polly Placeholder",
       salutation: "Ms Placeholder",
+      salutationToCheck: false,
       constituency: "Cities of London and Westminster",
       party: "Labour (Co-op)",
       country: null,
       email: "polly.placeholder.mp@parliament.uk",
       status: "in_office",
-      notes: "",
       importantTarget: false,
       personalConnection: false,
       isTest: false,
@@ -423,7 +391,6 @@ describeWithDatabase("politicians", () => {
     const retired = await addTestPolitician({ airtableId: "rec3", name: "Rita Retired", status: "retired", party: "" });
     await query("UPDATE notable_people SET important_target = true WHERE id = $1", [mp]);
     await query("UPDATE notable_people SET personal_connection = true WHERE id = $1", [peer]);
-    await query("UPDATE notable_people SET airtable_removed_at = now() WHERE id = $1", [retired]);
     await setStatus(mp, EDINBURGH, { status: "declined", date: null, note: "" }, "airtable");
     await setStatus(peer, EDINBURGH, { status: "going", date: null, note: "" }, "airtable");
     const ids = async (filter: Parameters<typeof listPoliticians>[0]) =>
@@ -434,8 +401,7 @@ describeWithDatabase("politicians", () => {
     expect(await ids({ party: ["Crossbench", "Labour (Co-op)"] })).toEqual([mp, peer].sort());
     expect(await ids({ flags: ["important"] })).toEqual([mp]);
     expect(await ids({ flags: ["connection"] })).toEqual([peer]);
-    expect(await ids({ flags: ["removed"] })).toEqual([retired]);
-    expect(await ids({ flags: ["important", "removed"] })).toEqual([mp, retired].sort());
+    expect(await ids({ flags: ["important", "connection"] })).toEqual([mp, peer].sort());
     const test = await addTestMp();
     expect(await ids({ flags: ["test"], status: undefined })).toEqual([test]);
     expect(await ids({ not: { flags: ["test"] }, status: undefined })).toEqual([mp, peer, retired].sort());
@@ -456,7 +422,7 @@ describeWithDatabase("politicians", () => {
     expect(await ids({ not: { party: ["Crossbench"] } })).toEqual([mp, retired].sort());
     expect(await ids({ party: ["Crossbench", "Labour (Co-op)"], not: { party: ["Crossbench"] } })).toEqual([mp]);
     expect(await ids({ party: ["Crossbench"], not: { party: ["Crossbench"] } })).toEqual([]);
-    expect(await ids({ not: { flags: ["important", "removed"] } })).toEqual([peer]);
+    expect(await ids({ not: { flags: ["important", "connection"] } })).toEqual([retired]);
     expect(await ids({ not: { country: ["wales"] } })).toEqual([mp, retired].sort());
     expect(await ids({ not: { email: ["blocked"] } })).toEqual([mp, retired].sort());
     expect(await ids({ ask: EDINBURGH })).toEqual([mp, peer].sort());
@@ -522,11 +488,11 @@ describeWithDatabase("politicians", () => {
       address: "polly.placeholder.mp@parliament.uk",
       note: "Back",
     });
-    // As the imports log them: added, and gone from Airtable.
+    // As the imports logged them: added, and, before, gone from Airtable.
     await addAuditEntry("jo@pauseai.uk", "add politician", { id: peer, name: "Lord Example" });
-    await logChange("sync", "remove politician", { id: peer, name: "Lord Example" });
-    // Not theirs: a held sync's run with the same id, and someone else's status.
-    await logChange("jo@pauseai.uk", "apply held politician sync", { id: peer });
+    await addAuditEntry("sync", "remove politician", { id: peer, name: "Lord Example" });
+    // Not theirs: a held import's run with the same id, and someone else's status.
+    await logChange("jo@pauseai.uk", "apply held politician import", { id: peer, job: "import-parliament" });
     expect((await politicianHistory(peer, null)).map((c) => [c.action, c.actor])).toEqual([
       ["remove politician", "sync"],
       ["add politician", "jo@pauseai.uk"],

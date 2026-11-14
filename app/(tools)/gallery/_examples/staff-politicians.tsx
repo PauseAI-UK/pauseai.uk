@@ -30,9 +30,11 @@ import {
   PoliticianCorrespondenceExample,
   PoliticianDetailsExample,
   AddAliasFormExample,
+  AddressesBubbleExample,
+  SalutationBubbleExample,
+  PoliticianMarksExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
-  DeletePoliticianExample,
   AskFormExample,
 } from "./staff.client";
 
@@ -192,20 +194,6 @@ export const staffPoliticians: Group = {
       ],
     },
     {
-      name: "DeletePolitician",
-      file: "app/(staff)/staff/_components/DeletePolitician.tsx",
-      variants: [
-        {
-          label: "At the foot of the page of a politician gone from Airtable",
-          render: () => (
-            <StaffPage as="div">
-              <DeletePoliticianExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
       name: "AskRow",
       file: "app/(staff)/staff/_components/AskRow.tsx",
       variants: [
@@ -297,6 +285,47 @@ export const staffPoliticians: Group = {
       ],
     },
     {
+      name: "PoliticianMarks",
+      file: "app/(staff)/staff/_components/PoliticianMarks.tsx",
+      variants: [
+        { label: "One marker on, one off", render: () => <PoliticianMarksExample /> },
+        { label: "A test politician's", render: () => <PoliticianMarksExample test /> },
+      ],
+    },
+    {
+      name: "SalutationBubble",
+      file: "app/(staff)/staff/_components/PoliticianWriting.tsx",
+      variants: [
+        { label: "A salutation, with its Change", render: () => <SalutationBubbleExample result={{ saved: true }} /> },
+        {
+          label: "One made from their name, which says so",
+          render: () => <SalutationBubbleExample fromName result={{ saved: true }} />,
+        },
+      ],
+    },
+    {
+      name: "AddressesBubble",
+      file: "app/(staff)/staff/_components/PoliticianWriting.tsx",
+      variants: [
+        {
+          label: "An MP's email, its bubble of their other addresses open",
+          render: () => (
+            <StaffPage as="div">
+              <AddressesBubbleExample result={{ saved: true }} />
+            </StaffPage>
+          ),
+        },
+        {
+          label: "A Lord with no email, to set one",
+          render: () => (
+            <StaffPage as="div">
+              <AddressesBubbleExample lord result={{ saved: false, why: "shared" }} />
+            </StaffPage>
+          ),
+        },
+      ],
+    },
+    {
       name: "AddAliasForm",
       file: "app/(staff)/staff/_components/AddAliasForm.tsx",
       variants: [
@@ -311,6 +340,10 @@ export const staffPoliticians: Group = {
         {
           label: "An address they have already",
           render: () => <AddAliasFormExample result={{ added: false, why: "exists" }} />,
+        },
+        {
+          label: "The Lords' shared inbox",
+          render: () => <AddAliasFormExample result={{ added: false, why: "shared" }} />,
         },
       ],
     },

@@ -37,12 +37,12 @@ const copy = staffCopy.home.dashboard;
 function Action({ action }: { action: DashboardAction }) {
   const words = copy.actions;
   const [title, detail, button, href] =
-    action.kind === "held-sync"
+    action.kind === "held-import"
       ? [
-          words.heldSync(action.added + action.removed + action.changed),
-          words.heldSyncDetail,
+          words.heldImport(jobTitles[action.job], action.added + action.left + action.changed),
+          words.heldImportDetail,
           words.decide,
-          importPath("sync-politicians"),
+          importPath(action.job),
         ]
       : action.kind === "blocked-mp"
         ? [
@@ -77,7 +77,7 @@ function Action({ action }: { action: DashboardAction }) {
   return (
     <li>
       <Strip
-        tone={action.kind === "held-sync" || action.kind === "broadcast-replies" ? "amber" : "red"}
+        tone={action.kind === "held-import" || action.kind === "broadcast-replies" ? "amber" : "red"}
         action={
           <StaffLink className={buttonClass({ variant: "primary", size: "small", fit: true })} href={href}>
             {button}

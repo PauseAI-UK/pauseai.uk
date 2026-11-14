@@ -31,17 +31,17 @@ describeWithDatabase("tidying the logs", () => {
     await query("DELETE FROM import_runs");
     await run("import-luma", "8 days");
     const frequentNew = await run("import-luma", "6 days");
-    await run("check-mps", "32 days");
-    const nightlyNew = await run("check-mps", "20 days");
+    await run("import-parliament", "32 days");
+    const nightlyNew = await run("import-parliament", "20 days");
     expect(await tidyLogs()).toEqual({ importRuns: 2, auditEntries: 0 });
     expect(await ids("import_runs")).toEqual([frequentNew, nightlyNew]);
   });
 
-  it("keeps each job's newest run however old, and a held sync until it's decided", async () => {
+  it("keeps each job's newest run however old, and a held import until it's decided", async () => {
     await query("DELETE FROM import_runs");
-    const held = await run("sync-politicians", "60 days", "held");
-    await run("sync-politicians", "50 days", "applied");
-    const newest = await run("sync-politicians", "40 days", "unchanged");
+    const held = await run("import-parliament", "60 days", "held");
+    await run("import-parliament", "50 days", "applied");
+    const newest = await run("import-parliament", "40 days", "unchanged");
     const onlyRun = await run("import-civicrm", "90 days");
     expect(await tidyLogs()).toEqual({ importRuns: 1, auditEntries: 0 });
     expect(await ids("import_runs")).toEqual([held, newest, onlyRun]);

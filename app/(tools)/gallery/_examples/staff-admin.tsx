@@ -21,8 +21,10 @@ import { ImportOverview } from "@/app/(staff)/staff/_components/ImportJob";
 import RunList from "@/app/(staff)/staff/_components/RunList";
 import RunTable from "@/app/(staff)/staff/_components/RunTable";
 import {
-  exampleAppliedSync,
   exampleControlAiResult,
+  exampleControlAiStatementResult,
+  exampleHeldImport,
+  exampleImportResult,
   exampleFailedRun,
   exampleLumaResult,
   exampleDisconnectedGmail,
@@ -31,7 +33,6 @@ import {
   exampleCivicrmResult,
   exampleRun,
   exampleSendingResult,
-  exampleSyncedMp,
   exampleTidyingResult,
 } from "@/app/(staff)/staff/_components/RunList.examples";
 import AccountsNotice from "@/app/(staff)/staff/_components/AccountsNotice";
@@ -55,10 +56,10 @@ import Tag from "@/components/ui/Tag";
 import { GmailConnect, GmailOutcome, SentToday } from "@/app/(staff)/staff/_components/GmailConnect";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { changesSearch } from "@/lib/staff-search";
-import { type ImportJob, NIGHTLY } from "@/lib/import-runs";
+import { type ImportJob, NIGHTLY, type PoliticianImportJob } from "@/lib/import-runs";
 import type { Group, Variant } from "../_components/types";
 import {
-  HeldSyncExample,
+  HeldImportExample,
   ImportJobPageExample,
   JobActionsExample,
   ErrorSeenViewExample,
@@ -68,35 +69,40 @@ import {
   ChangesFiltersExample,
 } from "./staff.client";
 
-// A run of each job, as its job's page shows it. A held politician sync, with its buttons, is in the client file.
+/** A body's import, as its page shows it: what it changed, and what relinking the one-off threads did. */
+const importRun = (job: PoliticianImportJob, label: string): Variant => ({
+  label,
+  render: () => (
+    <StaffPage as="div">
+      <Run
+        run={exampleRun(job, {
+          ...exampleImportResult,
+          changes: { ...exampleHeldImport.result.changes, renamed: [], unofficial: [] },
+          relinked: { read: 0, unread: 0, linked: 2, unlinked: 0, offices: 1 },
+        })}
+      />
+    </StaffPage>
+  ),
+});
+
+// A run of each job, as its job's page shows it. A held import, with its buttons, is in the client file.
 const RUNS: Record<ImportJob, Variant> = {
-  "sync-politicians": {
-    label: "A politician sync, held for a decision",
+  "import-parliament": {
+    label: "Parliament's import, held for a decision",
     render: () => (
       <StaffPage as="div">
-        <HeldSyncExample />
+        <HeldImportExample />
       </StaffPage>
     ),
   },
-  "check-mps": {
-    label: "An MP check that found problems",
+  "import-scottish-parliament": importRun("import-scottish-parliament", "The Scottish Parliament's import"),
+  "import-senedd": importRun("import-senedd", "The Senedd's import"),
+  "import-ni-assembly": importRun("import-ni-assembly", "The NI Assembly's import"),
+  "import-controlai-statement": {
+    label: "A read of ControlAI's statement",
     render: () => (
       <StaffPage as="div">
-        <Run
-          run={exampleRun("check-mps", {
-            problems: [
-              { kind: "missing", constituency: "Seat 1", parliament: "MP 1" },
-              { kind: "name", constituency: "Seat 2", airtable: "MP Two", parliament: "MP 2" },
-              {
-                kind: "email",
-                constituency: "Seat 3",
-                name: "MP 3",
-                airtable: null,
-                parliament: ["mp3@example.org"],
-              },
-            ],
-          })}
-        />
+        <Run run={exampleRun("import-controlai-statement", exampleControlAiStatementResult)} />
       </StaffPage>
     ),
   },
@@ -676,11 +682,9 @@ export const staffAdmin: Group = {
           render: () => (
             <StaffPage as="div">
               <div style={{ display: "flex", gap: "var(--space-3)" }}>
-                {(["airtable", "luma", "civicrm", "gmail", "parliament", "controlai", "database"] as const).map(
-                  (source) => (
-                    <ImportIcon key={source} source={source} />
-                  ),
-                )}
+                {(["luma", "civicrm", "gmail", "parliament", "controlai", "database"] as const).map((source) => (
+                  <ImportIcon key={source} source={source} />
+                ))}
               </div>
             </StaffPage>
           ),
@@ -732,7 +736,7 @@ export const staffAdmin: Group = {
               <ImportCard
                 title="An import"
                 href="/staff/scheduled-jobs/luma"
-                icon={<ImportIcon source="airtable" />}
+                icon={<ImportIcon source="luma" />}
                 intro="What it copies."
               >
                 <p>Not imported yet.</p>
@@ -761,16 +765,18 @@ export const staffAdmin: Group = {
                   exampleRun("import-civicrm", exampleCivicrmResult, { at: new Date("2026-10-21T10:49:00Z") }),
                   exampleRun("read-gmail", exampleGmailResult, { at: new Date("2026-10-21T11:20:00Z") }),
                   undefined,
-                  exampleRun(
-                    "sync-politicians",
-                    { changes: { added: [], removed: [exampleSyncedMp(2)], changed: [] }, records: [] },
-                    { at: new Date("2026-10-21T00:00:00Z"), status: "held" },
-                  ),
-                  exampleRun("check-mps", { problems: [] }, { at: new Date("2026-10-21T01:00:00Z") }),
+                  { ...exampleHeldImport, at: new Date("2026-10-21T06:21:00Z") },
+                  exampleRun("import-scottish-parliament", exampleImportResult, {
+                    at: new Date("2026-10-21T06:22:00Z"),
+                  }),
+                  undefined,
+                  undefined,
                   exampleFailedRun("import-controlai", "No PDF linked", { at: new Date("2026-10-21T02:00:00Z") }),
+                  exampleRun("import-controlai-statement", exampleControlAiStatementResult, {
+                    at: new Date("2026-10-21T06:26:00Z"),
+                  }),
                   undefined,
                 ]}
-                airtableTable="https://airtable.com/"
               />
             </StaffPage>
           ),
@@ -903,7 +909,7 @@ export const staffAdmin: Group = {
           label: "An MP's status set, in words, linked to their page and the campaign's",
           render: () => (
             <StaffPage as="div">
-              <AuditDetail change={exampleChanges[0]} airtableTable="https://airtable.com/app/tbl" />
+              <AuditDetail change={exampleChanges[0]} />
             </StaffPage>
           ),
         },
@@ -973,7 +979,6 @@ export const staffAdmin: Group = {
                 search={changesSearch({})}
                 log={{ changes: exampleChanges, total: exampleChanges.length, pages: 1, pageSize: 100 }}
                 page={1}
-                airtableTable="https://airtable.com/app/tbl"
               />
             </StaffPage>
           ),
@@ -1002,10 +1007,10 @@ export const staffAdmin: Group = {
                 actions={
                   <>
                     <Button variant="primary" size="small" fit>
-                      {staffCopy.syncs.apply}
+                      {staffCopy.politicianImports.apply}
                     </Button>
                     <Button variant="ghost" size="small" fit>
-                      {staffCopy.syncs.discard}
+                      {staffCopy.politicianImports.discard}
                     </Button>
                   </>
                 }
@@ -1053,7 +1058,11 @@ export const staffAdmin: Group = {
           label: "A run, with detail",
           render: () => (
             <StaffPage as="div">
-              <RunBox run={exampleAppliedSync} summary="an example summary" lines={1}>
+              <RunBox
+                run={exampleRun("import-parliament", exampleImportResult, { status: "applied" })}
+                summary="an example summary"
+                lines={1}
+              >
                 <p>Detail</p>
               </RunBox>
             </StaffPage>
@@ -1067,7 +1076,7 @@ export const staffAdmin: Group = {
                 run={exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "time" })}
                 summary="an example summary"
               />
-              <RunBox run={exampleFailedRun("sync-politicians", "An example error", { id: 5 })} summary={null} />
+              <RunBox run={exampleFailedRun("import-parliament", "An example error", { id: 5 })} summary={null} />
             </StaffPage>
           ),
         },
@@ -1162,17 +1171,17 @@ export const staffAdmin: Group = {
               <RunList
                 none="None"
                 runs={[
-                  exampleRun("check-mps", { problems: [] }, { id: 7, at: new Date("2026-11-03T01:00:00Z") }),
+                  exampleRun("import-parliament", exampleImportResult, { id: 7, at: new Date("2026-11-03T06:21:00Z") }),
                   exampleRun("import-controlai", exampleControlAiResult, {
                     id: 8,
                     at: new Date("2026-11-02T02:00:00Z"),
                   }),
-                  exampleRun(
-                    "sync-politicians",
-                    { changes: { added: [exampleSyncedMp(5)], removed: [], changed: [] } },
-                    { id: 6, at: new Date("2026-11-02T00:30:00Z"), status: "discarded", decidedBy: "jo@pauseai.uk" },
-                  ),
-                  exampleAppliedSync,
+                  exampleRun("import-senedd", exampleImportResult, {
+                    id: 6,
+                    at: new Date("2026-11-02T00:30:00Z"),
+                    status: "discarded",
+                    decidedBy: "jo@pauseai.uk",
+                  }),
                 ]}
               />
             </StaffPage>

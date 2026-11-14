@@ -4,33 +4,22 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import styles from "./ImportIcon.module.css";
 
 /** Where a job reads from, or works on. */
-export type ImportSource = "airtable" | "luma" | "civicrm" | "gmail" | "parliament" | "controlai" | "database";
+export type ImportSource =
+  | "luma"
+  | "civicrm"
+  | "gmail"
+  | "parliament"
+  | "scottish-parliament"
+  | "senedd"
+  | "ni-assembly"
+  | "controlai"
+  | "database";
 
-// Each service's own mark, in its own colours: Airtable's three boxes (its
-// shape Simple Icons', https://simpleicons.org, CC0), Gmail's M, and Luma's
+// Each service's own mark, in its own colours: Gmail's M, and Luma's
 // star, CiviCRM's triangle and ControlAI's box, their own pictures from
 // luma.com, civicrm.org and controlai.com, as Luma's is shaded and the others
-// have no flat copy to hand. Parliament's is a plain portcullis in the
-// Commons' green, not its crowned one, whose use Parliament restricts
-// (https://www.parliament.uk/site-information/copyright-parliament/the-crowned-portcullis/).
-// Our own database, no one's, is a stack of discs.
+// have no flat copy to hand. Our own database, no one's, is a stack of discs.
 const MARKS: Record<ImportSource, ReactNode> = {
-  airtable: (
-    <svg viewBox="0 0 24 24">
-      <path
-        fill="var(--brand-airtable-yellow)"
-        d="M11.992 1.966c-.434 0-.87.086-1.28.257L1.779 5.917c-.503.208-.49.908.012 1.116l8.982 3.558a3.266 3.266 0 0 0 2.454 0l8.982-3.558c.503-.196.503-.908.012-1.116l-8.957-3.694a3.255 3.255 0 0 0-1.272-.257z"
-      />
-      <path
-        fill="var(--brand-airtable-blue)"
-        d="M23.4 8.056a.589.589 0 0 0-.222.045l-10.012 3.877a.612.612 0 0 0-.38.564v8.896a.6.6 0 0 0 .821.552L23.62 18.1a.583.583 0 0 0 .38-.551V8.653a.6.6 0 0 0-.6-.596z"
-      />
-      <path
-        fill="var(--brand-airtable-red)"
-        d="M.676 8.095a.644.644 0 0 0-.48.19C.086 8.396 0 8.53 0 8.69v8.355c0 .442.515.737.908.54l6.27-3.006.307-.147 2.969-1.436c.466-.22.43-.908-.061-1.092L.883 8.138a.57.57 0 0 0-.207-.044z"
-      />
-    </svg>
-  ),
   gmail: (
     <svg viewBox="52 42 88 66">
       <path fill="var(--brand-gmail-blue)" d="M58 108h14V74L52 59v43c0 3.32 2.69 6 6 6" />
@@ -43,13 +32,43 @@ const MARKS: Record<ImportSource, ReactNode> = {
   luma: <Image src="/images/logos/luma.png" alt="" width={36} height={36} />,
   civicrm: <Image src="/images/logos/civicrm.png" alt="" width={36} height={35} />,
   controlai: <Image src="/images/logos/controlai.png" alt="" width={36} height={36} />,
-  // Chains from its top corners, a beam, five bars down ending in spikes, and three across.
+  // Each body by its building, plainly, in one colour: Parliament by the
+  // Elizabeth Tower, its clock cut out; the Scottish Parliament by Holyrood's
+  // leaf-shaped roofs over its front; the Senedd by its wavy roof over its
+  // glass front and steps; the Northern Ireland Assembly by Stormont's front,
+  // a pediment, six columns and the steps.
   parliament: (
-    <svg viewBox="0 0 24 24" fill="var(--brand-parliament-green)">
-      <path d="M3 1h1.5v4H3zM19.5 1H21v4h-1.5z" />
-      <path d="M2 5h20v2H2z" />
-      <path d="M3 7h1.6v12L3.8 21 3 19zM7.6 7h1.6v12l-.8 2-.8-2zM11.2 7h1.6v12l-.8 2-.8-2zM14.8 7h1.6v12l-.8 2-.8-2zM19.4 7H21v12l-.8 2-.8-2z" />
-      <path d="M3 10h18v1.5H3zM3 13.5h18V15H3zM3 17h18v1.5H3z" />
+    <svg viewBox="0 0 24 24" fill="var(--brand-parliament-green)" fillRule="evenodd">
+      <path d="M12 0.5 15 5.5H9z" />
+      <path d="M9 5.5h6V8H9z" />
+      <path d="M7.5 8h9v8h-9zM12 9.3a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 0 0 0-5.4z" />
+      <path d="M11.5 10.2h1v2h1.5v1h-2.5z" />
+      <path d="M8.3 16h7.4v6H8.3zM10 17.5h1.4v3H10zM12.6 17.5H14v3h-1.4z" />
+      <path d="M6.5 22h11v1.5h-11z" />
+    </svg>
+  ),
+  "scottish-parliament": (
+    <svg viewBox="0 0 24 24" fill="var(--brand-holyrood-blue)">
+      <path d="M2 13.5C5 8 10 6.5 13 9.5 9.5 10 6 11.5 2 13.5z" />
+      <path d="M7 13C10.5 7 16 5.5 19 8.5 15 9.5 11 11 7 13z" />
+      <path d="M12 12.8C15.5 8.5 20 7.8 22.5 10 19 11 15.5 12 12 12.8z" />
+      <path d="M2 15h20v6H2z" opacity=".35" />
+      <path d="M2 14h20v1.5H2zM2 20.5h20V22H2zM5 15.5h1.2v5H5zM9 15.5h1.2v5H9zM13 15.5h1.2v5H13zM17 15.5h1.2v5H17z" />
+    </svg>
+  ),
+  senedd: (
+    <svg viewBox="0 0 24 24" fill="var(--brand-senedd-green)">
+      <path d="M0.5 6.5C4 5 8 8.5 12 7s8-2 11.5-0.5V9.5C20 8 16 9 12 10.2S4 8 0.5 9.5z" />
+      <path d="M3 10.5h18V19H3z" opacity=".35" />
+      <path d="M3 10.2h1.4V19H3zM11.3 10.4h1.4V19h-1.4zM19.6 9.4H21V19h-1.4z" />
+      <path d="M1.5 19h21v1.6h-21zM0.5 21.3h23v1.6H0.5z" />
+    </svg>
+  ),
+  "ni-assembly": (
+    <svg viewBox="0 0 24 24" fill="var(--brand-stormont-blue)">
+      <path d="M12 2 22 7H2z" />
+      <path d="M3.5 8.5h2v9h-2zM7 8.5h2v9H7zM10.5 8.5h1.5v9h-1.5zM12 8.5h1.5v9H12zM15 8.5h2v9h-2zM18.5 8.5h2v9h-2z" />
+      <path d="M2 18.5h20v1.5H2zM1 21h22v1.5H1z" />
     </svg>
   ),
   database: (

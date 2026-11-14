@@ -18,16 +18,15 @@ const PATH = "/staff/audit-log";
 /**
  * The audit log's columns: the day and time; who; what; the details, in
  * words; and at the right, a button that opens the details as logged,
- * which a download has in place of the words. `airtableTable` is the table
- * an Airtable ID in the details is a record of.
+ * which a download has in place of the words.
  */
-export function changeColumns(airtableTable: string): ListColumn<LoggedChange>[] {
+export function changeColumns(): ListColumn<LoggedChange>[] {
   return [
     { key: "day", label: copy.day, short: true, text: (c) => c.at, cell: (c) => staffDate(c.at) },
     { key: "at", label: copy.at, short: true, cell: (c) => staffClock(c.at) },
     { key: "actor", label: copy.actor, text: (c) => c.actor, cell: (c) => c.actor },
     { key: "action", label: copy.action, words: "name", text: (c) => c.action, cell: (c) => c.action },
-    { key: "details", label: copy.details, cell: (c) => <AuditDetail change={c} airtableTable={airtableTable} /> },
+    { key: "details", label: copy.details, cell: (c) => <AuditDetail change={c} /> },
     {
       key: "json",
       label: copy.json,
@@ -60,18 +59,16 @@ export default function ChangesTable({
   search,
   page,
   supporters = true,
-  airtableTable,
 }: {
   log: ChangesPage;
   search: ChangesSearch;
   page: number;
   /** Whether they may see entries about supporters; if not, it says they're left out. */
   supporters?: boolean;
-  airtableTable: string;
 }) {
   const kept = changeFiltersOf(search);
   const current = AUDIT_LOG_LIST.sort(search);
-  const columns = changeColumns(airtableTable).map((column) =>
+  const columns = changeColumns().map((column) =>
     column.key in AUDIT_LOG_LIST.columns
       ? {
           ...column,

@@ -27,8 +27,9 @@ import {
   deleteAskNow,
   disconnectMyGmail,
   saveAskNow,
-  decideSync,
-  deletePoliticianNow,
+  decideImport,
+  editPoliticianNow,
+  setMarkNow,
   eraseSupporterNow,
   endStaffSessionsNow,
   recordOptOutNow,
@@ -70,7 +71,6 @@ describeWithDatabase("staff Server Actions", () => {
     revalidatePath.mockClear();
     requestCookies.set("staff_session", await createSession("jo@pauseai.uk"));
     // The session made jo an account, with no permissions; they come per test.
-    vi.stubEnv("AIRTABLE_TOKEN", "token");
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -81,13 +81,14 @@ describeWithDatabase("staff Server Actions", () => {
       () => setAskStatus(form({ politicianId: String(id), ask: PM, status: "signed" })),
       () => runJobNow("check-mps"),
       () => runJobNow("nothing"),
-      () => decideSync(form({ id: "1", decision: "apply" })),
+      () => decideImport(form({ id: "1", job: "import-parliament", decision: "apply" })),
+      () => setMarkNow(form({ politicianId: "1", mark: "importantTarget", on: "true" })),
+      () => editPoliticianNow(form({ politicianId: "1", salutation: "X" })),
       () => removeStaffAccountNow(form({ email: "x@pauseai.uk" })),
       () => saveStaffAccountNow(form({ email: "jo@pauseai.uk", "permission:admin": "on" })),
       () => eraseSupporterNow(form({ id: "1", reference: "r", confirm: "on" })),
       () => unblockAddress(form({ address: "a@example.org", note: "" })),
       () => endStaffSessionsNow(form({ email: "jo@pauseai.uk" })),
-      () => deletePoliticianNow(form({ politicianId: "1" })),
       () => addNoteNow(form({ politicianId: String(id), body: "Hi" })),
       () => editNoteNow(form({ id: "1", body: "Hi" })),
       () => deleteNoteNow(form({ id: "1" })),
@@ -131,19 +132,6 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await deleteNoteNow(form({ id: "2" }))).toBe(true);
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/supporters/${supporterId}`);
     expect(await bodies()).toEqual([{ body: "Met them twice", written_by: "jo@pauseai.uk" }]);
-  });
-
-  it("deletePoliticianNow deletes a politician gone from Airtable and goes to the list; anyone else, or a bad form, it leaves", async () => {
-    const id = await addTestPolitician();
-    const kept = () => query("SELECT count(*)::int AS n FROM notable_people").then(([row]) => row.n);
-    await deletePoliticianNow(form({ politicianId: String(id) }));
-    await deletePoliticianNow(form({ politicianId: "x" }));
-    expect(await kept()).toBe(1);
-    await query("UPDATE notable_people SET airtable_removed_at = now() WHERE id = $1", [id]);
-    expect(await expectRedirect(() => deletePoliticianNow(form({ politicianId: String(id) })))).toBe(
-      "/staff/politicians",
-    );
-    expect(await kept()).toBe(0);
   });
 
   it("saveEventNow sets an event's owner and Google Doc as any staff member, refreshing the page only when either changed", async () => {
@@ -295,7 +283,6 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await record({ choice: "email|bulk|jane.smith@example.com", how: "At the stall" })).toBe(true);
     expect(removed).toEqual([{ email: "jane.smith@example.com" }]);
     vi.unstubAllEnvs();
-    vi.stubEnv("AIRTABLE_TOKEN", "token");
     await query("DELETE FROM civicrm_updates");
     await query("DELETE FROM opt_outs");
     await query("DELETE FROM audit_log WHERE action = 'record opt-out'");
@@ -365,41 +352,68 @@ describeWithDatabase("staff Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/tidying");
   });
 
-  it("the check's button checks the MPs against Parliament's", async () => {
-    await runJobNow("check-mps");
-    expect(await runs()).toEqual([{ job: "check-mps", status: "ok", startedBy: "jo@pauseai.uk" }]);
+  it("an import's button imports its body's members", async () => {
+    await runJobNow("import-senedd");
+    expect(await runs()).toEqual([{ job: "import-senedd", status: "applied", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });
 
-  it("the sync's button copies the politicians from Airtable, and keeps a failure rather than crashing the page", async () => {
-    await runJobNow("sync-politicians");
-    expect(await query("SELECT count(*)::int AS n FROM notable_people WHERE airtable_id IS NOT NULL")).toEqual([
-      { n: 7 },
-    ]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
-
+  it("a job's button keeps a failure rather than crashing the page", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    server.use(http.get("https://*.airtable.com/v0/*", () => new HttpResponse(null, { status: 500 })));
-    await runJobNow("sync-politicians");
+    server.use(http.get("https://business.senedd.wales/*", () => new HttpResponse(null, { status: 500 })));
+    await runJobNow("import-senedd");
     // The failure, and that nobody could be emailed about it, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(2);
     expect(error).toHaveBeenCalledWith(staffCopy.problems.anywhere.noInbox);
-    expect(await runs()).toEqual([
-      { job: "sync-politicians", status: "applied", startedBy: "jo@pauseai.uk" },
-      { job: "sync-politicians", status: "failed", startedBy: "jo@pauseai.uk" },
+    expect(await runs()).toEqual([{ job: "import-senedd", status: "failed", startedBy: "jo@pauseai.uk" }]);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
+  });
+
+  it("decideImport applies or discards a held import, and ignores a bad form", async () => {
+    await query(
+      `INSERT INTO import_runs (job, started_by, status, result) VALUES ('import-senedd', 'nightly', 'held', $1)`,
+      [JSON.stringify({ changes: {}, members: [], endings: [] })],
+    );
+    const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM import_runs");
+    await decideImport(form({ id: String(id), job: "import-senedd", decision: "maybe" }));
+    await decideImport(form({ id: "x", job: "import-senedd", decision: "apply" }));
+    await decideImport(form({ id: String(id), job: "sync-politicians", decision: "apply" }));
+    await decideImport(form({ id: String(id), decision: "apply" }));
+    expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "held" }]);
+    await decideImport(form({ id: String(id), job: "import-senedd", decision: "discard" }));
+    expect(await query("SELECT status, decided_by FROM import_runs")).toEqual([
+      { status: "discarded", decided_by: "jo@pauseai.uk" },
     ]);
   });
 
-  it("decideSync applies or discards a held sync, and ignores a bad form", async () => {
-    for (let i = 1; i <= 25; i++) await addTestPolitician({ airtableId: `rec${10000 + i}`, constituency: `Seat ${i}` });
-    await runJobNow("sync-politicians");
-    const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM import_runs");
-    await decideSync(form({ id: String(id), decision: "maybe" }));
-    await decideSync(form({ id: "x", decision: "apply" }));
-    expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "held" }]);
-    await decideSync(form({ id: String(id), decision: "discard" }));
-    expect(await query("SELECT status, decided_by FROM import_runs")).toEqual([
-      { status: "discarded", decided_by: "jo@pauseai.uk" },
+  it("setMarkNow turns a marker on and off, and ignores a bad form", async () => {
+    const id = await addTestPolitician();
+    await setMarkNow(form({ politicianId: String(id), mark: "importantTarget", on: "true" }));
+    await setMarkNow(form({ politicianId: String(id), mark: "is_test", on: "true" }));
+    await setMarkNow(form({ politicianId: "x", mark: "importantTarget", on: "true" }));
+    await setMarkNow(form({ politicianId: String(id) }));
+    expect(await query("SELECT important_target AS on FROM notable_people")).toEqual([{ on: true }]);
+    await setMarkNow(form({ politicianId: String(id), mark: "importantTarget", on: "false" }));
+    expect(await query("SELECT important_target AS on FROM notable_people")).toEqual([{ on: false }]);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/politicians/${id}`);
+  });
+
+  it("editPoliticianNow saves a salutation and a Lord's email, says why not, and ignores a bad form", async () => {
+    const lord = await addTestPolitician({ house: "lords", email: null });
+    expect(await editPoliticianNow(form({ politicianId: "x", salutation: "Lord X" }))).toBeUndefined();
+    expect(await editPoliticianNow(form({ politicianId: String(lord) }))).toEqual({
+      saved: false,
+      why: "salutation",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(
+      await editPoliticianNow(form({ politicianId: String(lord), salutation: "Lord X", email: "x@example.org" })),
+    ).toEqual({ saved: true });
+    expect(await editPoliticianNow(form({ politicianId: String(lord), salutation: "Lord Y" }))).toEqual({
+      saved: true,
+    });
+    expect(await query("SELECT salutation, email FROM notable_people")).toEqual([
+      { salutation: "Lord Y", email: "x@example.org" },
     ]);
   });
 

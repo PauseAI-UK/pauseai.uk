@@ -550,6 +550,8 @@ it:
   stays tinted;
 - the broadcast just sent for approval, on the list of broadcasts
   (`MailingsOverview.module.css`);
+- the address just added to a politician's, in their email's bubble
+  (`PoliticianWriting.module.css`);
 - a notice that opens after something happened (`ui/Notice.module.css`),
   which starts lit and fades to plain over eight seconds.
 

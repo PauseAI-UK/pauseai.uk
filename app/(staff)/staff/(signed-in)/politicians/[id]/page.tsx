@@ -3,9 +3,8 @@ import { found } from "@/lib/found";
 import { listAsks } from "@/lib/server/asks";
 import { blockOn } from "@/lib/server/email";
 import { pauseaiLetters, politicianLetters } from "@/lib/server/letters";
-import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
 import { notesOn } from "@/lib/server/notes";
-import { canDeletePolitician, getPolitician, politicianHistory } from "@/lib/server/politicians";
+import { getPolitician, politicianHistory } from "@/lib/server/politicians";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { now } from "@/lib/now";
 import { politicianId } from "@/lib/staff-search";
@@ -14,15 +13,15 @@ import {
   addAliasNow,
   addNoteNow,
   deleteNoteNow,
-  deletePoliticianNow,
   editNoteNow,
+  editPoliticianNow,
   removeAliasNow,
   setAskStatus,
+  setMarkNow,
   unblockAddress,
 } from "../../../actions";
 import { politicianOneOffs } from "@/lib/server/one-off-emails";
 import { politicianMessages } from "@/lib/server/politician-correspondence";
-import DeletePolitician from "../../../_components/DeletePolitician";
 import PoliticianDetails from "../../../_components/PoliticianDetails";
 import Page from "../../../_components/ui/Page";
 
@@ -42,13 +41,12 @@ export default async function PoliticianPage({
   const { permissions } = staff;
   const politician = found(await getPolitician(found(politicianId((await params).id))));
   const query = await searchParams;
-  const [asks, block, letters, fromPauseai, history, deletable, notes, oneOffs, messages, aliases] = await Promise.all([
+  const [asks, block, letters, fromPauseai, history, notes, oneOffs, messages, aliases] = await Promise.all([
     listAsks(),
     blockOn(politician.email),
     politicianLetters(politician.id, permissions),
     pauseaiLetters(politician.id),
     politicianHistory(politician.id, politician.email),
-    canDeletePolitician(politician.id),
     notesOn({ politicianId: politician.id }),
     politicianOneOffs(politician.id, permissions),
     politicianMessages(politician.id, permissions),
@@ -71,7 +69,8 @@ export default async function PoliticianPage({
         aliasesOpen={query.aliases === "open"}
         aliasActions={{ add: addAliasNow, remove: removeAliasNow }}
         history={history}
-        airtableTable={PARLIAMENTARIANS_TABLE_URL}
+        setMark={setMarkNow}
+        editDetails={editPoliticianNow}
         notes={{
           notes,
           reader: staff,
@@ -81,7 +80,6 @@ export default async function PoliticianPage({
           remove: deleteNoteNow,
         }}
       />
-      <DeletePolitician politician={politician} deletable={deletable} action={deletePoliticianNow} />
     </Page>
   );
 }

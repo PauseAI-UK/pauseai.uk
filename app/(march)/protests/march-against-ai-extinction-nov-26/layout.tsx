@@ -1,5 +1,4 @@
-import Footer from "@/components/layout/Footer";
-import Nav from "@/components/layout/Nav";
+import SiteFrame from "@/components/layout/SiteFrame";
 import { m } from "./_components/classes";
 import MarchSignupFrame from "./_components/MarchSignupFrame";
 
@@ -8,13 +7,14 @@ import MarchSignupFrame from "./_components/MarchSignupFrame";
 // header's links to the page.
 export default function MarchLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <a className={m("skip-link")} href="#main">
-        Skip to content
-      </a>
-      <Nav />
+    <SiteFrame
+      before={
+        <a className={m("skip-link")} href="#main">
+          Skip to content
+        </a>
+      }
+    >
       <MarchSignupFrame>{children}</MarchSignupFrame>
-      <Footer />
-    </>
+    </SiteFrame>
   );
 }

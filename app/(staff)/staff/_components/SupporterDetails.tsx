@@ -396,15 +396,13 @@ export default function SupporterDetails({
         </Column>
       </Grid>
       <div className={styles.foot}>
-        {activity.length === 0 ? (
-          <section aria-labelledby="history" className={styles.footRow}>
-            <h2 id="history">{copy.detail.activityTitle}</h2> <Empty inline>{copy.detail.noActivity}</Empty>
-          </section>
-        ) : (
-          <details className={styles.footRow}>
-            <summary>
-              <h2 id="history">{copy.detail.activityTitle}</h2> <span className={styles.count}>{activity.length}</span>
-            </summary>
+        <details className={styles.footRow}>
+          <summary>
+            <h2 id="history">{copy.detail.activityTitle}</h2> <span className={styles.count}>{activity.length}</span>
+          </summary>
+          {activity.length === 0 ? (
+            <Empty>{copy.detail.noActivity}</Empty>
+          ) : (
             <ol className={styles.history} aria-labelledby="history">
               {activity.map((item, i) => (
                 <li key={i}>
@@ -415,8 +413,8 @@ export default function SupporterDetails({
                 </li>
               ))}
             </ol>
-          </details>
-        )}
+          )}
+        </details>
         <details className={styles.footRow}>
           <summary>
             <h2 id="everything">{copy.detail.everythingTitle}</h2>{" "}

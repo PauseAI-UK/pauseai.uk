@@ -31,8 +31,18 @@ export type StaffSectionId = "supporters" | "events" | "politicians" | "admin";
  * A page in the navigation: which, where, and the permission it needs. The
  * paths `under` it too, besides its own: pages that belong with it but live
  * elsewhere. `draft`, for a page to try out that can't do its job yet, which says so in the navigation.
+ * `added`, the day a page went live (as 2026-11-13), so for its first days
+ * it's new even to an account seeing the navigation for the first time
+ * (lib/server/staff-nav-seen.ts).
  */
-export type StaffPageLink = { id: StaffPageId; href: string; permission?: Permission; under?: string[]; draft?: true };
+export type StaffPageLink = {
+  id: StaffPageId;
+  href: string;
+  permission?: Permission;
+  under?: string[];
+  draft?: true;
+  added?: string;
+};
 
 export type StaffSection = { id: StaffSectionId; pages: StaffPageLink[] };
 
@@ -106,6 +116,11 @@ export function staffPageOf(path: string): StaffPageLink | undefined {
 /** Where a page in the navigation is. */
 export function staffPageHref(id: StaffPageId): string {
   return STAFF_SECTIONS.flatMap((section) => section.pages).find((page) => page.id === id)!.href;
+}
+
+/** The day a page went live, if its entry says. */
+export function staffPageAdded(id: StaffPageId): string | undefined {
+  return STAFF_SECTIONS.flatMap((section) => section.pages).find((page) => page.id === id)!.added;
 }
 
 /** How long a page shows as new after someone first saw it. */

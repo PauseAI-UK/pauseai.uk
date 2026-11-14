@@ -1,8 +1,0 @@
-/* The delete button and its note, well under the history, side by side. */
-.delete {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-  margin-top: var(--space-8);
-}

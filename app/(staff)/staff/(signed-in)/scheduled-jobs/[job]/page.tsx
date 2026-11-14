@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import { jobTitles } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { jobBySlug } from "@/lib/import-runs";
-import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
 import { listRuns, runningNow } from "@/lib/server/import-runs";
 import { requireStaff } from "@/lib/server/staff-auth";
-import { decideSync, runJobNow } from "../../../actions";
+import { decideImport, runJobNow } from "../../../actions";
 import { ImportJobPage } from "../../../_components/ImportJob";
 import Page from "../../../_components/ui/Page";
 
@@ -23,14 +22,7 @@ export default async function ImportJobRoute({ params }: Params) {
   const [runs, running] = await Promise.all([listRuns(job), runningNow(job)]);
   return (
     <Page kind="item" under="import" here={jobTitles[job]}>
-      <ImportJobPage
-        job={job}
-        runs={runs}
-        running={running}
-        run={runJobNow.bind(null, job)}
-        decide={decideSync}
-        airtableTable={PARLIAMENTARIANS_TABLE_URL}
-      />
+      <ImportJobPage job={job} runs={runs} running={running} run={runJobNow.bind(null, job)} decide={decideImport} />
     </Page>
   );
 }

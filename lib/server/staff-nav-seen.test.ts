@@ -1,7 +1,14 @@
 import { expect, it } from "vitest";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "./db";
-import { newPagesFor } from "./staff-nav-seen";
+import { firstSeen, newPagesFor } from "./staff-nav-seen";
+
+it("dates a page an account first sees now, or on its first sight of the navigation, when the page went live", () => {
+  const at = new Date("2026-11-13T12:00:00Z");
+  expect(firstSeen(at, false, "2026-11-12")).toEqual(at);
+  expect(firstSeen(at, true, "2026-11-12")).toEqual(new Date("2026-11-12"));
+  expect(firstSeen(at, true, undefined)).toEqual(new Date("2000-01-01"));
+});
 
 const add = (email: string) => query("INSERT INTO staff_accounts (email, added_by) VALUES ($1, 'test')", [email]);
 
