@@ -137,7 +137,7 @@ through `outsideFetch` like any other outside service.
   test checks the letter in the newest email to the test MP. This is
   test-only plumbing, with no production route or table.
 - **The storyboard pictures the emails.**
-  `emailFrame(page, email, caption)` (`tests/storyboard/frame.ts`) shows an
+  `emailFrame(page, email, caption)` (`tests/storyboard/email-frame.ts`) shows an
   email from the outbox as a frame, in a plain mail app's layout
   (`tests/fixtures/email-view.ts`): its headers, its body (the HTML if it
   has one) and its attachments. Every email the site sends has one, such as
@@ -146,7 +146,8 @@ through `outsideFetch` like any other outside service.
 - **And the WhatsApp texts.** The fake WhatsApp writes each text to the
   outbox as a text file (`.txt`): its template's name and fields, or words
   of our own (`lib/server/fixtures/whatsapp-outbox.ts`).
-  `textFrame(page, from, text, caption)` shows one as the supporter gets it,
+  `textFrame(page, from, text, caption)` (`tests/storyboard/whatsapp-steps.ts`)
+  shows one as the supporter gets it,
   in a plain chat app (`tests/fixtures/text-view.ts`): our picture, name
   and number, then the text in a bubble with its footer.
   WhatsApp keeps a template's words, so `shownText` in
@@ -740,7 +741,7 @@ order, alongside the others:
 - Every flow is told: a title that names it, captions that say what each
   frame shows, and its story ("How a flow is told", above).
 - Every email the site sends is pictured: the flow that sends it shows it
-  with `emailFrame` (`tests/storyboard/frame.ts`), right after it's sent.
+  with `emailFrame` (`tests/storyboard/email-frame.ts`), right after it's sent.
   A new email, or a change to one, isn't done until its frame is in a
   flow ("Email", above).
 - Flows stay small: one thing a person does, about ten frames at most.

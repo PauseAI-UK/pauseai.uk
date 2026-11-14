@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LETTERS_INBOX } from "./fixture-env.mjs";
-import { deliverToLettersInbox, historyIdNow, labelNames, lettersMailbox, resetLettersInbox } from "./letters-inbox";
+import { historyIdNow } from "./inbox-clock";
+import { deliverToLettersInbox, labelNames, lettersMailbox, resetLettersInbox } from "./letters-inbox";
 import { fixtureResponse } from "./outside-services";
 
 const gmail = (path: string, init: RequestInit = {}, scope?: string, account = LETTERS_INBOX) =>

@@ -11,7 +11,8 @@ import { addStaffAccount, logIn, logInAsStaff, staffEmail } from "./login-steps"
 import { newestEmail } from "./outbox-steps";
 import { importPoliticians } from "./politician-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };

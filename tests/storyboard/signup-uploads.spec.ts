@@ -6,7 +6,8 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { logIn } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Import sign-ups", part: "Staff pages", order: 55 };

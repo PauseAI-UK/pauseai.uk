@@ -4,7 +4,8 @@ import { ROUTES } from "../routes";
 import { stayOnPage } from "./loading-steps";
 import { addStaffAccount, logIn, staffEmail } from "./login-steps";
 import { newestEmailTo } from "./outbox-steps";
-import { BASE, emailFrame, expect, flowStorageState, frame, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, flowStorageState, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Logging in, and your account", part: "Staff pages", order: 10 };

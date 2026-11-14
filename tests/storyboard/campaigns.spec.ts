@@ -5,7 +5,8 @@ import { fillLetter, letterIdOf, lookUpTestMp, openLookup, sendLetter } from "./
 import { MPS_PROXY, sentEmail } from "./letters-inbox-steps";
 import { WEBHOOK_AUTH } from "./postmark-steps";
 import { fakeTurnstile } from "./turnstile-steps";
-import { BASE, emailFrame, expect, madeUpAddress, frame, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { caretAt, editor, newParagraphAboveSignOff, paste, toolbar } from "./editor-steps";
 import { wholePage } from "./settle";
 import type { Section } from "./report/frames";

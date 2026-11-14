@@ -38,7 +38,8 @@ type EditorHandle = {
 };
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
-import { BASE, emailFrame, expect, frame, madeUpAddress, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Replies to letters", part: "Staff pages", order: 110 };

@@ -6,7 +6,8 @@ import { addStaffAccount, logInAsStaff } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { importLuma } from "./supporter-steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Events and their owners", part: "Staff pages", order: 120 };

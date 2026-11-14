@@ -9,7 +9,8 @@ import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician
 import { WEBHOOK_AUTH } from "./postmark-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { caretAtEnd } from "./editor-steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import { scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
 

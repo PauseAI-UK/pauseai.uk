@@ -9,7 +9,8 @@ import { logIn } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { fakeTurnstile } from "./turnstile-steps";
-import { BASE, emailFrame, expect, frame, madeUpAddress, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Errors", part: "Staff pages", order: 135 };

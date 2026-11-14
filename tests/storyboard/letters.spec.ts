@@ -8,7 +8,8 @@ import { newestEmail } from "./outbox-steps";
 import { bouncy, BOUNCY_ADDRESS, postBounce } from "./postmark-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { fakeTurnstile } from "./turnstile-steps";
-import { BASE, emailFrame, expect, madeUpAddress, frame, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { TEST_MPS } from "@/lib/test-mps";
 import type { Section } from "./report/frames";
 

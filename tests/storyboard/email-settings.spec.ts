@@ -5,7 +5,8 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { newestEmail } from "./outbox-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
-import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
+import { emailFrame } from "./email-frame";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";
 

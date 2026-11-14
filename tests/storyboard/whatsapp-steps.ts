@@ -1,15 +1,17 @@
-// WhatsApp texts as a supporter gets them, for a flow to picture
-// (textFrame, ./frame.ts). The fake writes each send to the outbox
+// WhatsApp texts as a supporter gets them, and their frames (textFrame).
+// The fake writes each send to the outbox
 // (lib/server/fixtures/whatsapp-outbox.ts): a template's name and its
 // fields' words, as WhatsApp is sent them. WhatsApp keeps the template's
 // words, so they're read from the flow's database, as the site has them.
+import type { Page } from "@playwright/test";
 import { TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { readTexts, type OutboxText } from "@/lib/server/fixtures/whatsapp-outbox";
 import type { MailingDoc } from "@/lib/mailing-doc";
 import { filledTemplate, templateText } from "@/lib/whatsapp-template";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { OUTBOX_DIR } from "../checkout.mjs";
-import type { TextShown } from "../fixtures/text-view";
+import { textView, type TextShown } from "../fixtures/text-view";
+import { frame } from "./frame";
 
 /** Our chat, as a supporter's WhatsApp names it: our name, and the fake's number. */
 export const OUR_CHAT = { name: TEXT_SENDER_NAME, number: "+44 7700 900000" };
@@ -46,4 +48,26 @@ export function shownText(database: string, text: OutboxText): TextShown {
 /** A template as it went to WhatsApp for approval: its words, each field as {{first_name}}, with its footer. */
 export function templateSent(database: string, name: string): TextShown {
   return { words: templateWords(database, name), footer: footerOf(database, name) };
+}
+
+/**
+ * A frame of a WhatsApp text as the supporter gets it, in a plain chat app
+ * (tests/fixtures/text-view.ts), from `from`, our name and number; `note`
+ * above it, such as that it went for approval. In a page of its own, as
+ * emailFrame's is (./email-frame.ts).
+ */
+export async function textFrame(
+  page: Page,
+  from: { name: string; number: string },
+  text: TextShown,
+  caption: string,
+  note?: string,
+): Promise<void> {
+  const chat = await page.context().newPage();
+  try {
+    await chat.setContent(textView(from, text, note));
+    await frame(chat, caption);
+  } finally {
+    await chat.close();
+  }
 }
