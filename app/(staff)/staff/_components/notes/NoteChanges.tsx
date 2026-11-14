@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { TextArea } from "@/components/ui/Controls";
 import { ErrorText } from "@/components/ui/Text";
 import { isSaveKey } from "@/lib/notes/notes";
-import { DeleteTwice } from "../DeleteTwice";
+import { DeleteTwice } from "../ui/DeleteTwice";
 import styles from "./Notes.module.css";
 import { notesCopy } from "./copy";
 

@@ -7,7 +7,7 @@ import { filtersPath, pageParam } from "@/lib/list-params";
 import { clearedPath, SENT_EMAILS_LIST, type SentEmailSort } from "@/lib/staff-lists";
 import { sortHref } from "@/lib/staff-sort";
 import { staffTime } from "@/lib/staff-time";
-import SortHeading from "../SortHeading";
+import SortHeading from "../ui/SortHeading";
 import FilterBar from "../ui/FilterBar";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import PageHead from "../ui/PageHead";

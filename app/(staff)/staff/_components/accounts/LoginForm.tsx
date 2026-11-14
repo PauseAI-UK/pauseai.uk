@@ -5,7 +5,7 @@ import { Field, FieldError } from "@/components/ui/Field";
 import { FormStack } from "@/components/ui/Form";
 import { LOGIN_PATH, NEXT_PARAM } from "@/lib/accounts/session";
 import KeepSignedIn from "./KeepSignedIn";
-import styles from "../StaffForms.module.css";
+import styles from "../ui/StaffForms.module.css";
 import { accountsCopy } from "./copy";
 
 /**

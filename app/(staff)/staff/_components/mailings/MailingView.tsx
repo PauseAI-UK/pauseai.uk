@@ -29,7 +29,7 @@ import Bubble from "@/components/ui/Bubble";
 import AnswerWord from "../asks/AnswerWord";
 import LetterStatus from "../letters/LetterStatus";
 import styles from "./MailingView.module.css";
-import TestTag from "../TestTag";
+import TestTag from "../ui/TestTag";
 import { asksCopy } from "@/lib/asks/copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { mailingsCopy } from "./copy";

@@ -1,36 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { changesSearch } from "@/lib/staff-search";
-import ChangesTable from "./oversight/ChangesTable";
-import MyGmail from "./accounts/MyGmail";
-import { accountsCopy } from "./accounts/copy";
-import ListFrame from "./ui/ListFrame";
-import Withheld from "./ui/Withheld";
-import Tabs from "./ui/Tabs";
-import SentEmails from "./oversight/SentEmails";
-import StaffNav from "./shell/StaffNav";
-import { shellCopy } from "./shell/copy";
-import { exampleSentEmails } from "./oversight/SentEmails.examples";
+import SentEmails from "./SentEmails";
+import { exampleSentEmails } from "./SentEmails.examples";
 import { oversightCopy } from "@/lib/oversight/copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { shellCopy } from "../shell/copy";
 
-const NOW = "2026-11-05T09:00:00Z";
 const link = (name: string) => page.getByRole("link", { name, exact: true });
 /** Whether the page says `text`, whichever element it's in and however its line wraps. */
 const says = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
-
-describe("ChangesTable, without the supporters permission", () => {
-  it("says entries about supporters are left out", async () => {
-    const log = { changes: [], total: 0, pages: 1, pageSize: 100 };
-    const { rerender } = await render(
-      <ChangesTable search={changesSearch({})} log={log} page={1} supporters={false} />,
-    );
-    await says(oversightCopy.changes.withheld);
-    await rerender(<ChangesTable search={changesSearch({})} log={log} page={1} />);
-    expect(document.body.textContent).not.toContain(oversightCopy.changes.withheld);
-  });
-});
 
 const NO_SEARCH = { q: "", purpose: [], outcome: [], backend: [], link: [], sort: "", dir: "", page: "" };
 
@@ -129,78 +108,5 @@ describe("SentEmails", () => {
     );
     await says("new-purpose");
     await says("new-outcome");
-  });
-});
-
-describe("the rule over a list", () => {
-  it("is the tabs', with none of the list's own to double it", async () => {
-    await render(
-      <>
-        <Tabs label="Which" current="a" tabs={[{ key: "a", label: "A", href: "/a" }]} />
-        <ListFrame
-          count="1 row"
-          total={1}
-          page={1}
-          pages={1}
-          pageSize={1}
-          columns={[{ key: "one", label: "One", cell: (row: string) => row }]}
-          rows={["Row"]}
-          rowKey={(row) => row}
-          empty="None"
-        />
-      </>,
-    );
-    const bar = page.getByText("1 row").element().parentElement!.parentElement!;
-    expect(getComputedStyle(bar).borderTopWidth).toBe("0px");
-    expect(getComputedStyle(page.getByRole("navigation", { name: "Which" }).element()).boxShadow).not.toBe("none");
-  });
-});
-
-describe("Withheld", () => {
-  it("says what's kept back beside its envelope, and links nowhere", async () => {
-    await render(<Withheld>Kept back</Withheld>);
-    await says("Kept back");
-    expect(document.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
-    expect(page.getByRole("link").query()).toBeNull();
-  });
-});
-
-describe("the rest", () => {
-  it("has all emails in the menu, under Politicians", async () => {
-    await render(<StaffNav email="jo@pauseai.uk" permissions={[]} />);
-    expect(document.querySelector('nav a[href="/staff/emails"]')?.textContent).toContain(shellCopy.nav.emails);
-  });
-
-  it("marks new pages in the navigation", async () => {
-    await render(<StaffNav email="jo@pauseai.uk" permissions={["supporters"]} fresh={["campaigns"]} />);
-    const tagged = [...document.querySelectorAll("nav a")].filter((a) => a.textContent?.endsWith(shellCopy.nav.newTag));
-    expect(tagged.map((a) => a.getAttribute("href"))).toContain("/staff/campaigns");
-    expect(tagged.map((a) => a.getAttribute("href"))).not.toContain("/staff/supporters");
-  });
-
-  it("marks a draft page as a draft, however new, with no dot", async () => {
-    await render(<StaffNav email="jo@pauseai.uk" permissions={["supporters"]} fresh={["broadcasts"]} />);
-    const link = document.querySelector('nav a[href="/staff/broadcasts"]')!;
-    expect(link.textContent).toContain(shellCopy.nav.draftTag);
-    expect(link.textContent).not.toContain(shellCopy.nav.newTag);
-    expect(link.querySelector("[aria-hidden='true'] + [aria-hidden='true']")).toBeNull();
-  });
-
-  it("says when threads with politicians are kept from your Gmail", async () => {
-    const account = { email: "jo@pauseai.uk", name: "Jo", connectedAt: new Date(NOW), sentToday: 0, remaining: 1800 };
-    const props = { me: "jo@pauseai.uk", account, outcome: "", disconnect: () => {} };
-    const { rerender } = await render(<MyGmail {...props} keepsThreads />);
-    await says(accountsCopy.gmail.kept.before);
-    await expect.element(link(accountsCopy.gmail.oneOffEmails)).toHaveAttribute("href", "/staff/emails?type=one-off");
-    await rerender(<MyGmail {...props} />);
-    expect(link(accountsCopy.gmail.oneOffEmails).query()).toBeNull();
-    await says(accountsCopy.gmail.notKept.before);
-    await expect.element(link(shellCopy.nav.mailings)).toHaveAttribute("href", "/staff/mailings");
-    // hello@'s sends the broadcasts too.
-    await rerender(<MyGmail {...props} me="hello@pauseai.uk" sendsBroadcasts />);
-    await says(accountsCopy.gmail.notKeptBroadcasts.before);
-    await expect.element(link(shellCopy.nav.broadcasts)).toHaveAttribute("href", "/staff/broadcasts");
-    await rerender(<MyGmail {...props} lettersInbox />);
-    expect(link(shellCopy.nav.mailings).query()).toBeNull();
   });
 });

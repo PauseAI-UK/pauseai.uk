@@ -2,7 +2,6 @@
 // Gmail, on fake runs and changes.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
-import { DotParts, LoggedJson } from "@/app/(staff)/staff/_components/Logged";
 import { keepSignedInGallery } from "@/app/(staff)/staff/_components/accounts/KeepSignedIn.gallery";
 import { myGmailGallery } from "@/app/(staff)/staff/_components/accounts/MyGmail.gallery";
 import { gmailConnectGallery } from "@/app/(staff)/staff/_components/accounts/GmailConnect.gallery";
@@ -12,14 +11,9 @@ import { accountsNoticeGallery } from "@/app/(staff)/staff/_components/accounts/
 import { loginCardGallery } from "@/app/(staff)/staff/_components/accounts/LoginCard.gallery";
 import { devLoginGallery } from "@/app/(staff)/staff/_components/accounts/DevLogin.gallery";
 import { loginFormGallery } from "@/app/(staff)/staff/_components/accounts/LoginForm.gallery";
-import PermissionTiles, { ContactLink } from "@/app/(staff)/staff/_components/PermissionTiles";
-import {
-  exampleBlockedPermissions,
-  exampleMemberDetails,
-  exampleSupporterDetails,
-} from "@/app/(staff)/staff/_components/supporters/SupportersTable.examples";
-import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import type { Group } from "../_components/types";
+import { permissionTilesGallery } from "@/app/(staff)/staff/_components/supporters/PermissionTiles.gallery";
+import { loggedGallery } from "@/app/(staff)/staff/_components/ui/Logged.gallery";
 import { staffHomeGallery } from "@/app/(staff)/staff/_components/dashboard/StaffHome.gallery";
 import { sparklineGallery } from "@/app/(staff)/staff/_components/dashboard/Sparkline.gallery";
 import { stackedBarsGallery } from "@/app/(staff)/staff/_components/dashboard/StackedBars.gallery";
@@ -48,72 +42,7 @@ export const staffAdmin: Group = {
     ...sentEmailsGallery,
     ...errorsSeenGallery,
     ...errorSeenViewGallery,
-    {
-      name: "PermissionTiles",
-      file: "app/(staff)/staff/_components/PermissionTiles.tsx",
-      variants: [
-        {
-          label: "Will and won't email, by topic, and a phone number we may not use",
-          render: () => (
-            <StaffPage as="div">
-              <PermissionTiles permissions={exampleSupporterDetails.permissions} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A member from CiviCRM, with No bulk emails set there, who follows the Luma calendar",
-          render: () => (
-            <StaffPage as="div">
-              <PermissionTiles
-                permissions={exampleMemberDetails.permissions.map((p) =>
-                  p.topic === "events"
-                    ? { ...p, send: "yes", reason: "following", at: new Date("2026-10-23T09:00:00Z") }
-                    : p,
-                )}
-              />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A volunteer's phone number",
-          render: () => (
-            <StaffPage as="div">
-              <PermissionTiles permissions={exampleMemberDetails.permissions.slice(3)} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A blocked address",
-          render: () => (
-            <StaffPage as="div">
-              <PermissionTiles permissions={exampleBlockedPermissions} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "ContactLink",
-      file: "app/(staff)/staff/_components/PermissionTiles.tsx",
-      variants: [
-        {
-          label: "An address to email, a number to text on WhatsApp, and one to call",
-          render: () => (
-            <StaffPage as="div">
-              <p>
-                <ContactLink address="jane.smith@example.com" way="email" />
-              </p>
-              <p>
-                <ContactLink address="+447700900123" way="text" />
-              </p>
-              <p>
-                <ContactLink address="+447700900123" way="call" />
-              </p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...permissionTilesGallery,
     ...staffDashboardGallery,
     ...stackedBarsGallery,
     ...sparklineGallery,
@@ -133,34 +62,7 @@ export const staffAdmin: Group = {
     ...jobActionsGallery,
     ...auditDetailGallery,
     ...fieldChangesGallery,
-    {
-      name: "DotParts",
-      file: "app/(staff)/staff/_components/Logged.tsx",
-      variants: [
-        {
-          label: "Parts of a line, between middle dots",
-          render: () => (
-            <StaffPage as="div">
-              <DotParts>{["Bounced", "Type HardBounce", "Address jo.mp@parliament.uk"]}</DotParts>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "LoggedJson",
-      file: "app/(staff)/staff/_components/Logged.tsx",
-      variants: [
-        {
-          label: "The {} button, which opens what was logged as JSON",
-          render: () => (
-            <StaffPage as="div">
-              <LoggedJson id="gallery-logged-json" details={{ type: "HardBounce", description: "No such address" }} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...loggedGallery,
     ...changesFiltersGallery,
     ...changesTableGallery,
     ...resultBoxGallery,

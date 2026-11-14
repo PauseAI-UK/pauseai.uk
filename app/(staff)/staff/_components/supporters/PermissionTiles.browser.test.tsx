@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import {
-  exampleBlockedPermissions,
-  exampleMemberDetails,
-  exampleSupporterDetails,
-} from "./supporters/SupportersTable.examples";
+import { exampleBlockedPermissions, exampleMemberDetails, exampleSupporterDetails } from "./SupportersTable.examples";
 import PermissionTiles from "./PermissionTiles";
 import { REASONS } from "@/lib/supporters/contact-permissions";
-import { supportersCopy } from "./supporters/copy";
+import { supportersCopy } from "./copy";
 
 describe("PermissionTiles", () => {
   const copy = supportersCopy.supporters.detail.permissions;

@@ -18,7 +18,7 @@ import StaffLink from "../ui/StaffLink";
 import AnswerWord from "../asks/AnswerWord";
 import LetterStatus from "../letters/LetterStatus";
 import styles from "./MailingView.module.css";
-import TestTag from "../TestTag";
+import TestTag from "../ui/TestTag";
 import ExternalLink from "../ui/ExternalLink";
 import When from "../ui/When";
 import { asksCopy } from "@/lib/asks/copy";

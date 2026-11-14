@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import EmailBlocksTable from "./EmailBlocksTable";
-import { exampleBlock, exampleComplaint } from "./EmailBlocksTable.examples";
+import EmailBlocksTable, { blockColumns } from "./EmailBlocksTable";
+import { exampleBlock, exampleComplaint, exampleGmailBlock } from "./EmailBlocksTable.examples";
 import { action } from "@/tests/browser/staff";
 import { supportersCopy } from "../supporters/copy";
 import { emailCopy } from "@/lib/email/copy";
+import { type DownloadColumn } from "@/lib/staff-list";
 
 describe("EmailBlocksTable", () => {
   it("lists each blocked address: why, since when, whose, the letter, emails not sent, and unblocks one", async () => {
@@ -95,5 +96,31 @@ describe("EmailBlocksTable", () => {
   it("says when there are none", async () => {
     await render(<EmailBlocksTable blocks={[]} unblock={vi.fn()} letterLinks />);
     await expect.element(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
+  });
+});
+
+describe("each list's download values and contact cards", () => {
+  const values = <Row,>(columns: DownloadColumn<Row>[], row: Row) =>
+    Object.fromEntries(columns.filter((c) => c.text).map((c) => [c.key, c.text!(row)]));
+
+  it("blocked addresses: whose, and the email that found them out, or nothing", () => {
+    const columns = blockColumns(false);
+    expect(values(columns, exampleBlock)).toMatchObject({
+      whose: "Bouncy McTestface MP",
+      sent: `${emailCopy.emails.letterTo} Bouncy McTestface MP`,
+    });
+    expect(values(columns, exampleComplaint).sent).toBe(emailCopy.emails.purposes["forwarded-reply"]);
+    expect(values(columns, { ...exampleComplaint, politicians: exampleBlock.politicians }).whose).toBe(
+      "Bouncy McTestface MP; Jane Example",
+    );
+    expect(values(columns, { ...exampleComplaint, supporters: [{ id: 8, name: null }] }).whose).toBe(
+      supportersCopy.supporters.noName,
+    );
+    expect(values(columns, { ...exampleComplaint, purpose: null }).sent).toBeNull();
+    // After its reason, in brackets, who told us.
+    expect(values(columns, exampleBlock).reason).toBe(`${exampleBlock.reason} (${emailCopy.emails.from.postmark})`);
+    expect(values(columns, exampleGmailBlock).reason).toBe(
+      `${exampleGmailBlock.reason} (${emailCopy.emails.from.gmail})`,
+    );
   });
 });

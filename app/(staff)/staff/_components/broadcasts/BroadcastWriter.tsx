@@ -59,8 +59,8 @@ import {
   useDraftWriter,
   type DraftActions,
 } from "../mailings/DraftWriter";
-import Alert from "../Alert";
-import { ARMED_FOR } from "../DeleteTwice";
+import Alert from "../ui/Alert";
+import { ARMED_FOR } from "../ui/DeleteTwice";
 import { DeleteDraft } from "../mailings/MailingButtons";
 import MailingEditor from "../mailings/MailingEditor";
 import MailingFiles from "../mailings/MailingFiles";

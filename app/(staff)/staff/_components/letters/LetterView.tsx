@@ -8,7 +8,7 @@ import LetterStatus from "./LetterStatus";
 import Grid, { Card, Column, spanClass } from "../ui/Grid";
 import PageHead from "../ui/PageHead";
 import styles from "./LetterView.module.css";
-import TestTag from "../TestTag";
+import TestTag from "../ui/TestTag";
 import { lettersCopy } from "./copy";
 
 /** What a letter's page shows of the politician it's to: whether they're a test one, their seat and party, and their answers. */

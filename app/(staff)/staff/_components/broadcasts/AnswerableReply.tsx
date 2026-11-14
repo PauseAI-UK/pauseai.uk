@@ -8,7 +8,7 @@ import { answerSubject } from "@/lib/email-parsing/subjects";
 import { hasWords } from "@/lib/letters/format";
 import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
 import type { AnswerResult } from "@/lib/broadcasts/answers.server";
-import Alert from "../Alert";
+import Alert from "../ui/Alert";
 import MailingEditor from "../mailings/MailingEditor";
 import { ChatBubble, ChatWall } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";

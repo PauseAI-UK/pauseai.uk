@@ -12,7 +12,7 @@ import {
 } from "@/lib/events/list";
 import { among } from "@/lib/list-params";
 import type { EventsSearch } from "@/lib/staff-search";
-import AlertIcon from "../AlertIcon";
+import AlertIcon from "../ui/AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
 import EventsTable, { Missing } from "./EventsTable";
 import Empty from "../ui/Empty";

@@ -185,3 +185,18 @@ describe("the lists' paging", () => {
       .toHaveAttribute("href", "/staff/audit-log?page=3");
   });
 });
+
+/** Whether the page says `text`, whichever element it's in and however its line wraps. */
+const says = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
+
+describe("ChangesTable, without the supporters permission", () => {
+  it("says entries about supporters are left out", async () => {
+    const log = { changes: [], total: 0, pages: 1, pageSize: 100 };
+    const { rerender } = await render(
+      <ChangesTable search={changesSearch({})} log={log} page={1} supporters={false} />,
+    );
+    await says(oversightCopy.changes.withheld);
+    await rerender(<ChangesTable search={changesSearch({})} log={log} page={1} />);
+    expect(document.body.textContent).not.toContain(oversightCopy.changes.withheld);
+  });
+});

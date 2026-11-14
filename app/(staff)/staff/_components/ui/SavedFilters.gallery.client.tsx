@@ -1,64 +1,10 @@
 "use client";
 
-// The staff screens' examples whose Server Actions are props: client
-// components with no props, each action logged rather than sent.
-import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
-import Menu, { menuItemsClass } from "@/app/(staff)/staff/_components/ui/Menu";
-import MenuSubmit from "@/app/(staff)/staff/_components/ui/MenuSubmit";
-import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
-import { savedFiltersProps } from "@/app/(staff)/staff/_components/ui/SavedFilters";
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { DeleteTwice } from "@/app/(staff)/staff/_components/DeleteTwice";
-import Notice from "@/app/(staff)/staff/_components/ui/Notice";
-import { Logged } from "../_components/wiring";
-
-/** A note, open, that its × closes, and opens again. */
-export function NoticeExample() {
-  const [open, setOpen] = useState(true);
-  return (
-    <span role="status">
-      {open ? (
-        <Notice close="Close" onClose={() => setOpen(false)}>
-          Emailed sean@pauseai.uk and joseph@pauseai.uk to let them know sean@pauseai.uk now owns this event.
-        </Notice>
-      ) : (
-        <Button variant="ghost" size="small" fit onClick={() => setOpen(true)}>
-          Open it again
-        </Button>
-      )}
-    </span>
-  );
-}
-
-/** A delete pressed twice, logged; and one that can't be pressed. */
-export function DeleteTwiceExample() {
-  return (
-    <Logged>
-      {(log) => (
-        <>
-          <DeleteTwice name="slug" value="winter-reception-dec-2026" label="Delete ask" action={log("delete")} />
-          <DeleteTwice name="slug" value="frontier-ai-letter" label="Delete ask" disabled action={log("delete")} />
-        </>
-      )}
-    </Logged>
-  );
-}
-
-/** A menu holding an item that sends a form, logged. */
-export function MenuSubmitExample() {
-  return (
-    <Logged>
-      {(log) => (
-        <Menu id="example-menu-submit" label="Choose">
-          <form action={log("update")} className={menuItemsClass}>
-            <MenuSubmit>Update for everyone</MenuSubmit>
-          </form>
-        </Menu>
-      )}
-    </Logged>
-  );
-}
+// SavedFilters' examples that keep state or log what's pressed (SavedFilters.gallery.tsx).
+import FilterBar from "./FilterBar";
+import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import StaffPage from "./StaffPage";
+import { savedFiltersProps } from "./SavedFilters";
 
 const SAVED_ROWS = [
   {

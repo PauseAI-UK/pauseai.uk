@@ -5,7 +5,7 @@ import { Card } from "../ui/Grid";
 import { ListTable, type ListColumn } from "../ui/ListFrame";
 import StaffLink from "../ui/StaffLink";
 import Withheld from "../ui/Withheld";
-import TestTag from "../TestTag";
+import TestTag from "../ui/TestTag";
 import { lettersCopy } from "./copy";
 
 const PATH = "/staff/one-off";

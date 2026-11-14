@@ -1,5 +1,5 @@
-import ExternalLink from "./ui/ExternalLink";
-import StaffLink from "./ui/StaffLink";
+import ExternalLink from "../ui/ExternalLink";
+import StaffLink from "../ui/StaffLink";
 import {
   TOPICS,
   WAYS,
@@ -15,7 +15,7 @@ import Tag from "@/components/ui/Tag";
 import { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import styles from "./PermissionTiles.module.css";
-import { supportersCopy } from "./supporters/copy";
+import { supportersCopy } from "./copy";
 
 const copy = supportersCopy.supporters.detail.permissions;
 

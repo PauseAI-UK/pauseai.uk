@@ -5,7 +5,7 @@ import type { LetterSummary } from "@/lib/letters/records.server";
 import Empty from "../ui/Empty";
 import { ListTable, type ListColumn } from "../ui/ListFrame";
 import { Muted } from "@/components/ui/Text";
-import TestTag from "../TestTag";
+import TestTag from "../ui/TestTag";
 import { statusOf } from "./LetterStatus";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { lettersCopy } from "./copy";

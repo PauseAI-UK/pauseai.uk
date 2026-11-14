@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import AlertIcon from "../AlertIcon";
+import AlertIcon from "./AlertIcon";
 import styles from "./Strip.module.css";
 
 export type StripTone = "plain" | "green" | "amber" | "red" | "blue" | "dark";

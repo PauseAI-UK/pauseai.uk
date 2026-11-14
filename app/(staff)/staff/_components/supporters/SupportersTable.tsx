@@ -24,8 +24,8 @@ import {
   type SupporterPlaceName,
   type SupporterRow,
 } from "@/lib/supporters/supporters";
-import { ContactLink, permissionReason } from "../PermissionTiles";
-import SortHeading from "../SortHeading";
+import { ContactLink, permissionReason } from "./PermissionTiles";
+import SortHeading from "../ui/SortHeading";
 import SubscriptionBadges, { subscriptionWords } from "./SubscriptionBadges";
 import SupporterBadges, { supporterBadgeWords } from "./SupporterBadges";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";

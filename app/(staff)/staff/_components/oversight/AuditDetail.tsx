@@ -9,7 +9,7 @@ import CampaignName from "../CampaignName";
 import { importPath } from "@/lib/import-runs";
 import { signupUploadPath } from "@/lib/supporters/signup-csv";
 import type { LoggedChange, Named } from "@/lib/oversight/audit-log.server";
-import { DotParts } from "../Logged";
+import { DotParts } from "../ui/Logged";
 import { accountsCopy } from "../accounts/copy";
 import { supportersCopy } from "../supporters/copy";
 import { politiciansCopy } from "../politicians/copy";

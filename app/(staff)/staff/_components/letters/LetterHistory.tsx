@@ -4,10 +4,10 @@ import type { LetterDetails as Details, LetterEvent, LetterForward, ReplyHandlin
 import { staffTime } from "@/lib/staff-time";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
-import { LoggedJson } from "../Logged";
+import { LoggedJson } from "../ui/Logged";
 import { statusOf } from "./LetterStatus";
 import Empty from "../ui/Empty";
-import styles from "../Details.module.css";
+import styles from "../ui/Details.module.css";
 import { lettersCopy } from "./copy";
 
 const copy = lettersCopy.letters;

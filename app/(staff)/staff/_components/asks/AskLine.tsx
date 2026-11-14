@@ -3,7 +3,7 @@ import { askHref } from "@/lib/asks/asks";
 import type { Ask } from "@/lib/asks/records.server";
 import { staffDate } from "@/lib/staff-time";
 import AnswerWord from "./AnswerWord";
-import styles from "../Details.module.css";
+import styles from "../ui/Details.module.css";
 import { asksCopy } from "@/lib/asks/copy";
 
 /** Who asked and what, as a politician's page says it. */

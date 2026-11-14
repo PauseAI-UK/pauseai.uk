@@ -1,7 +1,7 @@
 "use client";
 
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { DeleteTwice } from "../DeleteTwice";
+import { DeleteTwice } from "../ui/DeleteTwice";
 import { mailingsCopy } from "./copy";
 
 const copy = mailingsCopy.mailingPages;

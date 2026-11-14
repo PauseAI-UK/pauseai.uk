@@ -6,7 +6,7 @@ import Tag from "@/components/ui/Tag";
 import { displayPostcode } from "@/lib/email-your-mp";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { staffDate, staffTime } from "@/lib/staff-time";
-import { UK_MAP_HEIGHT, UK_MAP_WIDTH, ukMapPoint, ukOutline } from "@/lib/uk-map";
+import { UK_MAP_HEIGHT, UK_MAP_WIDTH, ukMapPoint, ukOutline } from "@/lib/supporters/uk-map";
 import { dayOnly, eventsCounted, eventsOf, registrationStatus } from "@/lib/supporters/supporters";
 import type {
   SupporterActivity,
@@ -15,14 +15,14 @@ import type {
   SupporterSource,
 } from "@/lib/supporters/supporters";
 import CampaignName from "../CampaignName";
-import PermissionTiles from "../PermissionTiles";
+import PermissionTiles from "./PermissionTiles";
 import Band, { BandFact } from "../ui/Band";
 import Counts from "../ui/Counts";
 import Empty from "../ui/Empty";
 import Grid, { Card, Column } from "../ui/Grid";
 import { ListTable, type ListColumn } from "../ui/ListFrame";
-import styles from "../Details.module.css";
-import TestTag from "../TestTag";
+import styles from "../ui/Details.module.css";
+import TestTag from "../ui/TestTag";
 import { statusOf } from "../letters/LetterStatus";
 import { supportersCopy } from "./copy";
 

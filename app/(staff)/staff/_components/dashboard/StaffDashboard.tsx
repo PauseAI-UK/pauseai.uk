@@ -23,7 +23,7 @@ import Strip from "../ui/Strip";
 import Tabs from "../ui/Tabs";
 import Sparkline from "./Sparkline";
 import StackedBars from "./StackedBars";
-import TestTag from "../TestTag";
+import TestTag from "../ui/TestTag";
 import styles from "./StaffDashboard.module.css";
 import { buttonClass } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";

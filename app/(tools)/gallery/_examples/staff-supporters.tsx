@@ -16,9 +16,8 @@ import { supporterBadgesGallery } from "@/app/(staff)/staff/_components/supporte
 import { supporterDetailsGallery } from "@/app/(staff)/staff/_components/supporters/SupporterDetails.gallery";
 import { supporterFiltersGallery } from "@/app/(staff)/staff/_components/supporters/SupporterFilters.gallery";
 import { supportersTableGallery } from "@/app/(staff)/staff/_components/supporters/SupportersTable.gallery";
-import ChannelIcon from "@/components/ui/ChannelIcon";
-import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import type { Group } from "../_components/types";
+import { channelIconGallery } from "@/components/ui/ChannelIcon.gallery";
 import { notesCardGallery } from "@/app/(staff)/staff/_components/notes/NotesCard.gallery";
 import { noteChangesGallery } from "@/app/(staff)/staff/_components/notes/NoteChanges.gallery";
 import { notesGallery } from "@/app/(staff)/staff/_components/notes/Notes.gallery";
@@ -35,23 +34,7 @@ export const staffSupporters: Group = {
     ...supportersTableGallery,
     ...supporterBadgesGallery,
     ...subscriptionBadgesGallery,
-    {
-      name: "ChannelIcon",
-      file: "components/ui/ChannelIcon.tsx",
-      variants: [
-        {
-          label: "Email and phone, named, and as decoration",
-          render: () => (
-            <StaffPage as="div">
-              <p>
-                <ChannelIcon channel="email" label="Email" /> <ChannelIcon channel="phone" label="Phone" />{" "}
-                <ChannelIcon channel="email" /> <ChannelIcon channel="phone" />
-              </p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...channelIconGallery,
     ...supporterDetailsGallery,
     ...eraseFormGallery,
     ...erasedNoticeGallery,

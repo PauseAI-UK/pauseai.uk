@@ -8,7 +8,7 @@ import { filtersPath, pageParam } from "@/lib/list-params";
 import { sortHref } from "@/lib/staff-sort";
 import { staffTime } from "@/lib/staff-time";
 import CampaignName from "../CampaignName";
-import SortHeading from "../SortHeading";
+import SortHeading from "../ui/SortHeading";
 import FilterBar from "../ui/FilterBar";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import PageHead from "../ui/PageHead";

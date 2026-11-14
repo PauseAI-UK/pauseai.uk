@@ -2,10 +2,8 @@
 // page, thread and history, and the blocked addresses, on fake letters.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
-import CampaignName from "@/app/(staff)/staff/_components/CampaignName";
-import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
-import { campaigns } from "@/lib/content/email-your-mp";
 import type { Group } from "../_components/types";
+import { campaignNameGallery } from "@/app/(staff)/staff/_components/CampaignName.gallery";
 import { emailProblemsTableGallery } from "@/app/(staff)/staff/_components/oversight/EmailProblemsTable.gallery";
 import { emailBlockFiltersGallery } from "@/app/(staff)/staff/_components/email/EmailBlockFilters.gallery";
 import { unblockFormGallery } from "@/app/(staff)/staff/_components/email/UnblockForm.gallery";
@@ -30,10 +28,6 @@ import { letterHistoryGallery } from "@/app/(staff)/staff/_components/letters/Le
 import { findInGmailGallery } from "@/app/(staff)/staff/_components/letters/FindInGmail.gallery";
 import { letterLinkGallery } from "@/app/(staff)/staff/_components/letters/LetterLink.gallery";
 
-const [pm] = campaigns;
-
-const [unblockForm, unblockBubble] = unblockFormGallery;
-
 export const staffLetters: Group = {
   id: "staff-letters",
   title: "The staff interface: letters",
@@ -44,8 +38,7 @@ export const staffLetters: Group = {
     ...mailFoldGallery,
     ...bounceReasonGallery,
     ...emailBlocksTableGallery,
-    unblockForm,
-    unblockBubble,
+    ...unblockFormGallery,
     ...emailBlockFiltersGallery,
     ...emailProblemsTableGallery,
     ...campaignsOverviewGallery,
@@ -61,23 +54,7 @@ export const staffLetters: Group = {
     ...letterStatusGallery,
     ...letterHistoryGallery,
     ...findInGmailGallery,
-    {
-      name: "CampaignName",
-      file: "app/(staff)/staff/_components/CampaignName.tsx",
-      variants: [
-        {
-          label: "Leading to its page, by its name or its slug; and plain, for staff who can't open it",
-          render: () => (
-            <StaffPage as="div">
-              <p>
-                <CampaignName slug={pm.slug} /> · <CampaignName slug="old-campaign" /> ·{" "}
-                <CampaignName slug={pm.slug} linked={false} />
-              </p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...campaignNameGallery,
     ...letterLinkGallery,
   ],
 };

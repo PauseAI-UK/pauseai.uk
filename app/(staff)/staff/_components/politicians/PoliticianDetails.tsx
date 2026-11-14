@@ -14,7 +14,7 @@ import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } 
 import type { Politician, PoliticianChange } from "@/lib/politicians/records.server";
 import { correspondenceThreads, hasReply, type ThreadMessages } from "@/lib/politicians/threads";
 import { staffDate, staffTime } from "@/lib/staff-time";
-import styles from "../Details.module.css";
+import styles from "../ui/Details.module.css";
 import Band, { BandFact } from "../ui/Band";
 import Counts, { type Count } from "../ui/Counts";
 import Empty from "../ui/Empty";

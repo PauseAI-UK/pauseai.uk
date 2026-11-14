@@ -4,6 +4,7 @@ import { page } from "vitest/browser";
 import { exampleGmailAccount } from "../letters/LetterThread.examples";
 import { accountsCopy } from "./copy";
 import MyGmail from "./MyGmail";
+import { shellCopy } from "../shell/copy";
 
 const gmail = accountsCopy.gmail;
 
@@ -44,5 +45,30 @@ describe("MyGmail", () => {
     );
     await expect.element(page.getByRole("heading", { level: 2, name: gmail.lettersInboxConnectedTitle })).toBeVisible();
     await expect.element(page.getByRole("status")).toHaveTextContent(gmail.outcomes.connectedLettersInbox);
+  });
+});
+
+const link = (name: string) => page.getByRole("link", { name, exact: true });
+/** Whether the page says `text`, whichever element it's in and however its line wraps. */
+const says = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
+const NOW = "2026-11-05T09:00:00Z";
+
+describe("MyGmail, on what's kept from your Gmail", () => {
+  it("says when threads with politicians are kept from your Gmail", async () => {
+    const account = { email: "jo@pauseai.uk", name: "Jo", connectedAt: new Date(NOW), sentToday: 0, remaining: 1800 };
+    const props = { me: "jo@pauseai.uk", account, outcome: "", disconnect: () => {} };
+    const { rerender } = await render(<MyGmail {...props} keepsThreads />);
+    await says(accountsCopy.gmail.kept.before);
+    await expect.element(link(accountsCopy.gmail.oneOffEmails)).toHaveAttribute("href", "/staff/emails?type=one-off");
+    await rerender(<MyGmail {...props} />);
+    expect(link(accountsCopy.gmail.oneOffEmails).query()).toBeNull();
+    await says(accountsCopy.gmail.notKept.before);
+    await expect.element(link(shellCopy.nav.mailings)).toHaveAttribute("href", "/staff/mailings");
+    // hello@'s sends the broadcasts too.
+    await rerender(<MyGmail {...props} me="hello@pauseai.uk" sendsBroadcasts />);
+    await says(accountsCopy.gmail.notKeptBroadcasts.before);
+    await expect.element(link(shellCopy.nav.broadcasts)).toHaveAttribute("href", "/staff/broadcasts");
+    await rerender(<MyGmail {...props} lettersInbox />);
+    expect(link(shellCopy.nav.mailings).query()).toBeNull();
   });
 });

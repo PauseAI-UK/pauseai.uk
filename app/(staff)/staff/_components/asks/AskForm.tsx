@@ -11,11 +11,11 @@ import { ASK_STATUSES, ASKERS, askSlug, type AskKind, type Asker } from "@/lib/a
 import type { Ask } from "@/lib/asks/records.server";
 import { AskPreview } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
-import { DeleteTwice } from "../DeleteTwice";
+import { DeleteTwice } from "../ui/DeleteTwice";
 import Grid, { Card } from "../ui/Grid";
 import Strip from "../ui/Strip";
 import styles from "./AskForm.module.css";
-import forms from "../StaffForms.module.css";
+import forms from "../ui/StaffForms.module.css";
 import { asksCopy } from "@/lib/asks/copy";
 
 const copy = asksCopy.asks;

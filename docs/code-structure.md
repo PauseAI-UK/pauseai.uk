@@ -574,10 +574,10 @@ Every feature is in its folders: at the top of `_components/`, `lib/` and
   features it really uses, and no two use each other.
 - **Only feature folders.** `tests/checks/staff-components.test.ts` lists
   what stays at the top of `_components/`, `lib/` and `lib/server/`: what
-  every feature stands on, and the public site's own helpers (`STAYS`). The
-  files of features that haven't moved are `UNSORTED`. It fails on a file
-  on neither list, and on a listed file that's gone, so `UNSORTED` only
-  shrinks: a feature that moves takes its files off it.
+  every feature stands on, and the public site's own helpers (`STAYS`),
+  each with why. It fails on a file not on the list, and on a listed file
+  that's gone, so a new file goes in its feature's folder, or on the list
+  with its reason.
 - **Gallery examples beside their components.** Every component in a
   feature's folder has its examples in a `Component.gallery.tsx` beside it
   (`docs/testing.md`, "The component gallery").

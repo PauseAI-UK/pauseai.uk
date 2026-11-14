@@ -19,7 +19,7 @@ import AskKindIcon from "./AskKindIcon";
 import IconText from "../ui/IconText";
 import AskWays from "./AskWays";
 import styles from "./AskView.module.css";
-import TestTag from "../TestTag";
+import TestTag from "../ui/TestTag";
 import ExternalLink from "../ui/ExternalLink";
 import { asksCopy } from "@/lib/asks/copy";
 

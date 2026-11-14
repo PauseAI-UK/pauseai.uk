@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Alert from "../Alert";
+import Alert from "../ui/Alert";
 import Notice from "../ui/Notice";
 import { accountsCopy } from "./copy";
 

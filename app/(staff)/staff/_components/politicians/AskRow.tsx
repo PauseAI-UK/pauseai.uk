@@ -16,7 +16,7 @@ import { AskLead } from "../asks/AskLine";
 import { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import Menu from "../ui/Menu";
-import styles from "../Details.module.css";
+import styles from "../ui/Details.module.css";
 import { politiciansCopy } from "./copy";
 
 const copy = politiciansCopy.politician;

@@ -8,7 +8,7 @@ import type { Politician } from "@/lib/politicians/records.server";
 import { anyAndNone, firstOf, valuesOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import { sortHref } from "@/lib/staff-sort";
-import SortHeading from "../SortHeading";
+import SortHeading from "../ui/SortHeading";
 import Empty from "../ui/Empty";
 import { ListTable, type ListColumn } from "../ui/ListFrame";
 import type { Contact } from "@/lib/vcard";

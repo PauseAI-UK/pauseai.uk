@@ -5,8 +5,8 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { menuItemArmedClass, menuItemDangerClass } from "./ui/Menu";
-import MenuSubmit from "./ui/MenuSubmit";
+import { menuItemArmedClass, menuItemDangerClass } from "./Menu";
+import MenuSubmit from "./MenuSubmit";
 
 /** How long a delete waits for its second press. */
 export const ARMED_FOR = 4000;

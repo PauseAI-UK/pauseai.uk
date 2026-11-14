@@ -1,5 +1,5 @@
-import StaffLink from "./ui/StaffLink";
-import { brokenOnce } from "./ui/ListFrame";
+import StaffLink from "./StaffLink";
+import { brokenOnce } from "./ListFrame";
 import type { SortSpec } from "@/lib/staff-sort";
 import styles from "./SortHeading.module.css";
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import styles from "./Alert.module.css";
-import Strip from "./ui/Strip";
+import Strip from "./Strip";
 
 /**
  * A message on the page that something is wrong or waiting, as a strip read

@@ -11,8 +11,8 @@ import { sortHref, type SortSpec } from "@/lib/staff-sort";
 import type { StaffAccount } from "@/lib/accounts/staff-accounts.server";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
-import { DeleteTwice } from "../DeleteTwice";
-import SortHeading from "../SortHeading";
+import { DeleteTwice } from "../ui/DeleteTwice";
+import SortHeading from "../ui/SortHeading";
 import Bubble from "@/components/ui/Bubble";
 import When from "../ui/When";
 // A row's button, kept at the window's right edge as a list's is.

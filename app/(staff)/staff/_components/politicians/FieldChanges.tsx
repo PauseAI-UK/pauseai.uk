@@ -3,7 +3,7 @@ import { Muted } from "@/components/ui/Text";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { FieldChange } from "@/lib/field-changes";
 import CampaignName from "../CampaignName";
-import { DotParts } from "../Logged";
+import { DotParts } from "../ui/Logged";
 
 /** A field's name, in bold before its value; one with no name in the copy, as logged, with a capital. */
 export function fieldLabel(key: string): string {

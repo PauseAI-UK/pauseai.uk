@@ -7,8 +7,8 @@ import { carriedParams, savedFilterHref, type SavedList } from "@/lib/saved-filt
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import { filtersPath, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
-import Alert from "../Alert";
-import { DeleteTwice } from "../DeleteTwice";
+import Alert from "./Alert";
+import { DeleteTwice } from "./DeleteTwice";
 import Bubble from "@/components/ui/Bubble";
 import ChoiceSearch from "./ChoiceSearch";
 import Empty from "./Empty";
