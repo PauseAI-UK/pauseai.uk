@@ -9,7 +9,6 @@ A review's time is its flows': the fixture build takes 8 to 20 seconds, and ever
 A review runs only the flows a change can reach (`docs/testing.md`, "Which flows a review runs"). On the 79 later pushes of 37 PRs (12 November 2026), that was about half of a full review's time on average. A quarter of pushes need none. A sixth change a migration, `schema.sql` or the seed data, which reruns every desktop flow. What's left is mostly:
 
 - **The staff pages reach most of the staff code.** A list page reaches 180 to 280 files, mostly through Server Action modules (`narrow-imports.md`), and `staffCopy` is in two thirds of the commits that rerun over half (`copy-beside-features.md`).
-- **The storyboard's own shape.** Signing in lands on the dashboard, and a few helper files serve every area (`flows-that-reach-less.md`).
 - **The gallery's flows are a quarter of a review.** A gallery flow is a whole group, one frame per component, and the six staff groups share `_examples/staff.client.tsx` (`gallery-beside-components.md`). So a change to one staff component re-pictures every staff group, about 45 seconds of a review.
 - **One file of seed data**, which every desktop flow reruns for (`test-data-builders.md`).
 

@@ -516,6 +516,22 @@ What a flow can reach:
 - what every flow runs: `next.config.ts`, `proxy.ts`, Playwright's set-up
   and the fixture server's, and what they import.
 
+So the storyboard keeps what a flow reaches to what it pictures:
+
+- A flow signs in straight to the page it's going to (`logIn` and
+  `logInAsStaff` in `tests/storyboard/login-steps.ts`), so only the flows
+  about the staff home open it.
+- What flows share is in a file of steps for each area beside the specs
+  (`login-steps.ts`, `letter-steps.ts`, `politician-steps.ts` and so on),
+  so a spec imports only what it uses. A helper only one spec uses is in
+  that spec. `tests/routes.ts` walks `app/`, so only the specs that walk
+  every route import it.
+- `fixtures.ts` and `frame.ts`, which every spec imports, import nothing
+  of the site but small constants. An email is pictured by `emailFrame`, a
+  module of its own (`email-frame.ts`).
+- `next.config.ts` takes the addresses its redirects need from
+  `lib/content/redirect-addresses.ts`, not from the content they belong to.
+
 Imports of types alone (`import type`) don't count, as they're gone once
 compiled. A stylesheet's `@import` and `composes` do. So does code handed
 to a module without an import (`HANDED_OVER`): `lib/server/problems.ts` is
@@ -711,7 +727,7 @@ order, alongside the others:
   and queries the database it names, through one small pool per database,
   closed when idle. Otherwise it queries the database `NETLIFY_DB_URL`
   names. Flows that need the fixture politicians import them with
-  `importPoliticians()` (`tests/steps.ts`). So the staff pages that list
+  `importPoliticians()` (`tests/storyboard/politician-steps.ts`). So the staff pages that list
   what's happened, like `/staff/campaigns`, are compared unmasked.
 - **A fixed clock.** `FIXTURE_NOW` (`lib/server/fixtures/fixture-env.mjs`)
   is the moment every clock is fixed to:
@@ -729,7 +745,7 @@ order, alongside the others:
   a seed, and an email's `Date` is the fixed clock's, so the pictures of the
   emails are compared too ("Email", above).
 - **Unique identifiers.** A flow's staff login address includes its test ID
-  (`staffEmail` in `tests/storyboard/staff-steps.ts`), and each address it
+  (`staffEmail` in `tests/storyboard/login-steps.ts`), and each address it
   makes up for a supporter has a number no other flow uses (`madeUpAddress`
   in `tests/storyboard/fixtures.ts`), so two flows never share a letter or a
   link.
@@ -854,7 +870,7 @@ that drives it or why nothing does.
 - `staff-navigation.spec.ts`: The dashboard, and getting around the staff pages:
   - the sidebar folded to a rail of icons, each where it was, with a name on hover, and still folded on the next page;
   - a sort's arrow turned at once, and a line along the top while a sort or a search loads;
-  - another page marked in the sidebar at once while it loads (its table locked, `lockTable` in `tests/steps.ts`);
+  - another page marked in the sidebar at once while it loads (its table locked, `lockTable` in `tests/storyboard/loading-steps.ts`);
   - the dashboard's tabs, kept on going back, and a bar pointed at;
   - the events held tile leading to those events, and the supporter emails tile leading to those emails in Correspondence;
   - the politicians agreed tile, leading to the one politician who agreed and then to everyone who agreed, newest first;
@@ -1029,7 +1045,7 @@ that drives it or why nothing does.
 - `scroll.spec.ts`: Anchor links, deep links, the back button, keyboard focus, reduced motion, the footer's cookie link, the embed not scrolling the page.
 - `gallery.spec.ts`: The component gallery ("The component gallery", below): its index and a flow per group, a frame of each component's section, each checked for noindex and console errors.
 - `redirects.spec.ts`: Every redirect in `next.config.ts`, over HTTP, and that each destination resolves.
-- `/api/email-your-mp/lookup`: `campaigns`: the postcode form (`lookUpTestMp` in `tests/steps.ts`).
+- `/api/email-your-mp/lookup`: `campaigns`: the postcode form (`lookUpTestMp` in `tests/storyboard/letter-steps.ts`).
 - `/api/email-your-mp/letters`: `campaigns`: sending the letter (`sendLetter`).
 - `/api/events/place`: `home-events`: events near a postcode.
 - `/api/march/register`:
@@ -1044,7 +1060,7 @@ that drives it or why nothing does.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
 - `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.ts`), Vitest-tested beside it for every job:
-  - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`: `importPoliticians()` in `tests/steps.ts`, at the start of the staff flows that need politicians, which then gives them their Airtable records' details; `imports` runs Parliament's again to hold it.
+  - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`: `importPoliticians()` in `tests/storyboard/politician-steps.ts`, at the start of the staff flows that need politicians, which then gives them their Airtable records' details; `imports` runs Parliament's again to hold it.
   - `import-controlai`, `import-controlai-statement`: Not driven. The `staff-navigation` and `politicians` sections run them through their buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
   - `send-mailings`:
@@ -1054,19 +1070,19 @@ that drives it or why nothing does.
     - `replies` and `letters`: `readInbox()` in `tests/storyboard/letters-inbox-steps.ts` runs it, after a flow puts a reply or a bounce in the letters inbox.
     - `imports`: the read that finds Google has disconnected a Gmail. The Gmail page's button runs the same `readGmail()`.
     - `mailings`: not through the route. A staff member's fixture Gmail has no messages to read, so the flow adds the reply that the read would keep.
-  - `import-luma`: `supporters`: `importLuma()` in `tests/steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
+  - `import-luma`: `supporters`: `importLuma()` in `tests/storyboard/supporter-steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
 - `/api/backup/messages`: Not driven: it's for the backup's container, and shows nothing. Vitest-tested.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
 - `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, and Stop pressed. Its check of the callback URL is Vitest-tested.
-- `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `tests/steps.ts`), and the redelivery that changes nothing.
-- `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `tests/steps.ts`).
+- `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `supporters.spec.ts`), and the redelivery that changes nothing.
+- `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `staff-login.spec.ts`).
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.
 - `/staff/api/gmail/connect`, `/staff/api/gmail/callback`:
   - `staff-login`: your Gmail connected from your own page.
   - `mailings`: the same, reached by the link in a mailing's Sent from.
 - `/staff/api/dev-contact-preferences`: `supporters`: their contact preferences, from their page, a fixture build's link per address; its links to an email's unsubscribe page, per topic and for an old email, go to the page as `email-settings` pictures it.
-- `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account. Every other section logs in with it (`logInAsStaff` in `tests/steps.ts`).
+- `/staff/api/dev-login`: `staff-login`: the dev login, a fixture build's one-click sign-in as a seeded account. Every other section logs in with it (`logInAsStaff` in `tests/storyboard/login-steps.ts`).
 - `/staff/mailings/[id]/files/[file]`: Not driven: the mailings flows' files are drawn from it, but no flow opens one. Vitest-tested.
 - `/staff/broadcasts/[id]/files/[file]`: Not driven, as the broadcasts flows attach no files. It's the twin of the mailings' route, and is Vitest-tested.
 - `/staff/politicians/download`, `/staff/supporters/download`, `/staff/politicians/addresses-to-fix/download`, `/staff/supporters/bounced-emails/download`, `/staff/audit-log/download`, the lists' downloads. Each route is Vitest-tested beside it.
@@ -1188,12 +1204,15 @@ not a mock.
   outboxes and main's worktree, end with a hash of the checkout's path, and
   the ports come from that hash too (below). So worktrees can run the
   storyboard at the same time. Flows that need politicians call
-  `importPoliticians()` (`tests/steps.ts`), which runs each body's nightly
+  `importPoliticians()` (`tests/storyboard/politician-steps.ts`), which runs each body's nightly
   import's route against its fixture list, then the copy from the Airtable
   fixture.
 - **Staff screens** are reached through the fixture build's dev login
-  (`logInAsStaff` in `tests/steps.ts`): one request for a session, as a
-  login link's callback gives, then the staff home. The `staff-login`
+  (`logInAsStaff` in `tests/storyboard/login-steps.ts`): one request for a
+  session, as a login link's callback gives. Given a staff page, it lands
+  there, as a login asked for from that page does; without one, the flow
+  opens the page it's going to itself. So only the flows about the staff
+  home open it. The `staff-login`
   section logs in as staff do, asking for a link, taking it from the
   build's outbox and opening it in the same browser (`logInWithLink`).
 - **`next/headers`** can't run outside a request, so Node tests of code

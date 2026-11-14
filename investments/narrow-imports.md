@@ -14,7 +14,6 @@ So a change to one import job, the sender or the Gmail reader reaches about 130 
 
 What else makes a change reach many flows has its own file:
 
-- how the storyboard signs in and shares its helpers (`flows-that-reach-less.md`);
 - the cycle through the email transport (`module-boundaries.md`);
 - the one `staffCopy` object (`copy-beside-features.md`);
 - the gallery's shared `staff.client.tsx`, which every staff group imports (`gallery-beside-components.md`).
