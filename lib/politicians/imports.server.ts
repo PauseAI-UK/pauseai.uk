@@ -52,7 +52,7 @@ import { importRunsCopy } from "@/lib/import-runs-copy";
 // discard. Every run goes in the import log, under its job.
 
 /** Each body's job in the import log. */
-export const BODY_JOBS: Record<Body, PoliticianImportJob> = {
+const BODY_JOBS: Record<Body, PoliticianImportJob> = {
   parliament: "import-parliament",
   "scottish-parliament": "import-scottish-parliament",
   senedd: "import-senedd",

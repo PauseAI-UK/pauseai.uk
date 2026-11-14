@@ -7,7 +7,7 @@ import ListFrame, { ListTable } from "./ListFrame";
 import Page from "./Page";
 import PageHead from "./PageHead";
 import StaffPage from "./StaffPage";
-import { exampleColumns, exampleRows, nameOf, pageHref } from "./ListFrame.examples";
+import { exampleColumns, exampleRows, nameOf, pageHref } from "./ListFrame.gallery";
 import Tag from "@/components/ui/Tag";
 
 export const pageGallery: Example[] = [

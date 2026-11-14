@@ -17,7 +17,7 @@ export type MetricSource = { from: string; at: string; count?: string };
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** What a metric counts, as SQL. */
-export const counted = ({ count }: MetricSource) => `count(${count ?? "*"})::int`;
+const counted = ({ count }: MetricSource) => `count(${count ?? "*"})::int`;
 
 /** Each metric's count in the window and in the window before it, in one query. */
 export async function windowCounts<M extends string>(
