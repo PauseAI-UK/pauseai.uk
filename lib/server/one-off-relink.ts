@@ -168,9 +168,8 @@ export async function relinkOneOffs(until: number): Promise<Relinked> {
   const book: PoliticianBook = { ...direct, addresses: new Map(direct.addresses) };
   for (const [address, id] of offices) book.addresses.set(address, [...(book.addresses.get(address) ?? []), id]);
   const people = threadPeople(book, rows);
-  for (const [thread, id] of sharedInboxLords(rows, subjects, lords)) {
-    people.set(thread, new Set([...(people.get(thread) ?? []), id]));
-  }
+  // Every thread with a message has its set of people, if an empty one.
+  for (const [thread, id] of sharedInboxLords(rows, subjects, lords)) people.get(thread)!.add(id);
   const unreadThreads = new Set(rows.filter((row) => row.quoted === null).map((row) => row.thread));
   const had = new Set(linked.map(({ thread, id }) => `${thread} ${id}`));
   const add = [...people].flatMap(([thread, ids]) =>

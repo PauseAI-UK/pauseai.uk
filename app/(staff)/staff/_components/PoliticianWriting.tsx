@@ -177,8 +177,20 @@ export function AddressesBubble({
   const bubble = useRef<HTMLDivElement>(null);
   // The address just added, which pulses once at the foot of the list.
   const [justAdded, setJustAdded] = useState<string | null>(null);
+  // A fresh start for the add form, and what it said, after a remove or a close.
+  const [round, setRound] = useState(0);
+  const freshStart = () => {
+    setRound((r) => r + 1);
+    setJustAdded(null);
+  };
   useEffect(() => {
-    if (open) bubble.current!.showPopover();
+    const box = bubble.current!;
+    if (open) box.showPopover();
+    const toggled = (event: Event) => {
+      if ((event as ToggleEvent).newState === "closed") freshStart();
+    };
+    box.addEventListener("toggle", toggled);
+    return () => box.removeEventListener("toggle", toggled);
   }, [open]);
   const of = (key: string, addresses: string[], from: string): Line[] =>
     addresses.map((address) => ({ key: `${key} ${address}`, address, from }));
@@ -240,7 +252,13 @@ export function AddressesBubble({
                     <span className={styles.from}>{line.from}</span>
                   </span>
                   {line.removable && (
-                    <FilterForm action={actions.remove} aria-label={`${words.remove}: ${line.address}`}>
+                    <FilterForm
+                      action={async (form) => {
+                        freshStart();
+                        await actions.remove(form);
+                      }}
+                      aria-label={`${words.remove}: ${line.address}`}
+                    >
                       <input type="hidden" name="politicianId" value={politician.id} />
                       <input type="hidden" name="address" value={line.address} />
                       <SubmitButton variant="ghost" size="small" fit>
@@ -251,7 +269,7 @@ export function AddressesBubble({
                 </li>
               ))}
             </ul>
-            <AddAliasForm politicianId={politician.id} action={actions.add} onAdded={setJustAdded} />
+            <AddAliasForm key={round} politicianId={politician.id} action={actions.add} onAdded={setJustAdded} />
           </div>
         )}
       </BubbleBox>

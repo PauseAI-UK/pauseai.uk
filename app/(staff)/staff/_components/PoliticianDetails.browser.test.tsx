@@ -602,6 +602,32 @@ describe("PoliticianDetails", () => {
     }
   });
 
+  it("ends the record's timeline at the newest change for someone no longer in office, as at the oldest", async () => {
+    const changes = [
+      {
+        id: 1,
+        at: new Date("2026-07-15T10:00:00Z"),
+        actor: "import",
+        action: "add politician",
+        details: { id: MP.id, name: MP.name },
+      },
+    ];
+    const timeline = () =>
+      page
+        .getByRole("heading", { name: staffCopy.politician.recordTitle })
+        .element()
+        .closest("details")!
+        .querySelector("ol")!;
+    const { rerender } = await render(
+      <PoliticianDetails politician={MP} unblock={vi.fn()} {...none} history={changes} />,
+    );
+    expect(timeline().className).not.toMatch(/ended/);
+    await rerender(
+      <PoliticianDetails politician={{ ...MP, status: "retired" }} unblock={vi.fn()} {...none} history={changes} />,
+    );
+    expect(timeline().className).toMatch(/ended/);
+  });
+
   it("tells one history of the letters to them, the replies and their answers, newest first, and apart what changed their record", async () => {
     // A peer: no constituency, country or notes, so no line for them.
     const peer = { ...MP, constituency: null, country: null, notes: "" };

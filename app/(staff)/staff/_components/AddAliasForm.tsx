@@ -4,7 +4,8 @@ import { useState } from "react";
 import { TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { ErrorText, Muted } from "@/components/ui/Text";
+import { SaveState } from "@/components/ui/SaveState";
+import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { AddResult } from "@/lib/server/politician-aliases";
 import styles from "./AddAliasForm.module.css";
@@ -42,12 +43,22 @@ export default function AddAliasForm({
         <span className={styles.address}>
           <TextInput name="address" type="email" required aria-label={copy.address} placeholder={copy.address} />
         </span>
-        <SubmitButton variant="ghost" size="small" fit>
+        <SubmitButton variant="primary" size="small" fit>
           {copy.add}
         </SubmitButton>
       </FilterForm>
       <p role="status" className={styles.result}>
-        {result && (result.added ? <Muted>{copy.added}</Muted> : <ErrorText>{copy.refused[result.why]}</ErrorText>)}
+        {result &&
+          (result.added ? (
+            <>
+              <SaveState state="saved">{copy.added}</SaveState>
+              <span className={styles.next}>
+                <Muted>{copy.addedNext}</Muted>
+              </span>
+            </>
+          ) : (
+            <SaveState state="failed">{copy.refused[result.why]}</SaveState>
+          ))}
       </p>
     </>
   );

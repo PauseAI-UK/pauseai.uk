@@ -2049,7 +2049,7 @@ All events: ${link}`,
       // other address that links their emails, where they're changed.
       more: (n: number) => `+${n} more`,
       title: "Other addresses",
-      intro: "Policy emails using these addresses will be linked to this politician.",
+      intro: "Policy emails using these will be linked to this politician.",
       columns: { address: "Address", from: "Source" },
       sources: {
         email: "Main address, we send email here",
@@ -2065,7 +2065,9 @@ All events: ${link}`,
       // The form under the list.
       address: "New address",
       add: "Add",
-      added: "Added. Earlier threads referencing the mail in policy mailboxes will be found within a few minutes.",
+      // Once added: that it was, with the save's green dot, and under it what happens next.
+      added: "⁂ Added",
+      addedNext: "⁂ Their earlier emails from it will show up here within a few minutes.",
       refused: {
         invalid: "That doesn't look like an email address.",
         exists: "That address is already listed.",
