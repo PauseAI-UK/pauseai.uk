@@ -19,7 +19,6 @@ import Band, { BandFact } from "./ui/Band";
 import Counts, { type Count } from "./ui/Counts";
 import Empty from "./ui/Empty";
 import Grid, { Card, Column } from "./ui/Grid";
-import { ListTable, type ListColumn } from "./ui/ListFrame";
 import Strip from "./ui/Strip";
 import Tabs from "./ui/Tabs";
 import Withheld from "./ui/Withheld";
@@ -31,9 +30,7 @@ import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import { statusOf } from "./LetterStatus";
 import { Muted } from "@/components/ui/Text";
 import ExternalLink from "./ui/ExternalLink";
-import { FilterForm } from "@/components/ui/Form";
-import { SubmitButton } from "@/components/ui/SubmitButton";
-import type { AddResult, PoliticianAliases } from "@/lib/server/politician-aliases";
+import type { PoliticianAliases } from "@/lib/server/politician-aliases";
 import PoliticianMarks from "./PoliticianMarks";
 import { AddressesBubble, SalutationBubble, type AliasActions } from "./PoliticianWriting";
 import { bodyOf, officialProfile } from "@/lib/official-profiles";
@@ -313,13 +310,6 @@ const ownEmail = (politician: Politician) => politician.house === "lords";
 
 const NO_MESSAGES: ThreadMessages = { subjects: {}, letters: {}, oneOffs: {} };
 
-/** A line of a politician's aliases: an address or domain, and where it came from. */
-const changeColumns: ListColumn<PoliticianChange & { what: ReactNode }>[] = [
-  { key: "at", label: staffCopy.supporters.detail.held.columns.when, short: true, cell: (c) => staffTime(c.at) },
-  { key: "what", label: staffCopy.supporters.detail.held.columns.what, cell: (c) => c.what },
-  { key: "who", label: copy.recordWho, cell: (c) => c.actor },
-];
-
 /**
  * A politician's page, laid out like a supporter's: the band of who they
  * are (PoliticianBand); if their address is blocked, why, and a way to
@@ -584,9 +574,7 @@ export default function PoliticianDetails({
                 <h2 id="record-changes">{copy.recordTitle}</h2> <span className={styles.count}>{changes.length}</span>
               </summary>
               <ol
-                className={
-                  politician.status === "in_office" ? styles.timeline : `${styles.timeline} ${styles.ended}`
-                }
+                className={politician.status === "in_office" ? styles.timeline : `${styles.timeline} ${styles.ended}`}
               >
                 {changes.map((change) => (
                   <li key={change.id}>

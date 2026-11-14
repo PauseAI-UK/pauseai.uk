@@ -2018,7 +2018,6 @@ All events: ${link}`,
     emailFrom: (name: string) => `Email from ${name}`,
     // Under the history: edits to their record and their address blocked or unblocked, with who.
     recordTitle: "Changes to their record",
-    recordWho: "Who",
     historyTitle: "History",
     // A status set or cleared, in the history: around the ask's name.
     statusSet: (status: string) => ({ before: `${status} '`, after: "'" }),
