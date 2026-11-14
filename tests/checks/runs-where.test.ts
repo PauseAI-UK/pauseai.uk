@@ -115,6 +115,8 @@ function facts(path: string, text: string) {
 export function misplaced(path: string, text: string): string[] {
   const name = basename(path);
   if (path.startsWith("app/") && NEXT_FILES.has(name.replace(/\.(ts|tsx)$/, ""))) return [];
+  // Most modules mention none of it, and parsing every one is slow.
+  if (!/\.(server|client)\./.test(name) && !/server-only|client-only|process\.env|\.server["']/.test(text)) return [];
   const { imports, readsEnv, said } = facts(path, text);
   if (said === "use server") return [];
   const server = /\.server\.(ts|tsx|mts)$/.test(name);
