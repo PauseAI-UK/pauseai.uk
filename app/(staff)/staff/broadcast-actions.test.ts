@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { query } from "@/lib/server/db";
-import { createDraft, getWrittenMailing, saveDraft } from "@/lib/mailings/drafts";
-import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/server/broadcast-drafts";
-import { createSession } from "@/lib/accounts/auth";
+import { query } from "@/lib/server/db.server";
+import { createDraft, getWrittenMailing, saveDraft } from "@/lib/mailings/drafts.server";
+import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/server/broadcast-drafts.server";
+import { createSession } from "@/lib/accounts/auth.server";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";

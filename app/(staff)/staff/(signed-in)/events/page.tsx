@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { eventsPage } from "@/lib/events/staff-events";
-import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
+import { eventsPage } from "@/lib/events/staff-events.server";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import { type EventsSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { saveEventNow } from "../../_components/events/actions";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
-import { openSavedList } from "../../saved-lists";
+import { openSavedList } from "../../saved-lists.server";
 import EventFilters, { eventWords } from "../../_components/events/EventFilters";
 import { EventsList } from "../../_components/events/EventColumns";
 import { EventsIntro, EventTabs } from "../../_components/events/EventsTable";

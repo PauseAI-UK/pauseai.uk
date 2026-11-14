@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { buttonClass } from "@/components/ui/Button";
 import { now } from "@/lib/now";
-import { signupEventChoices } from "@/lib/supporters/signup-uploads";
+import { signupEventChoices } from "@/lib/supporters/signup-uploads.server";
 import { SIGNUP_UPLOADS_PATH } from "@/lib/supporters/signup-csv";
-import { requireStaff } from "@/lib/accounts/auth";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import SignupUploadForm from "../../../_components/supporters/SignupUploadForm";
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";

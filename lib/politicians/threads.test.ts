@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { LetterSummary, PauseaiLetter, UnsignedLetter } from "@/lib/server/letters";
-import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
+import type { LetterSummary, PauseaiLetter, UnsignedLetter } from "@/lib/server/letters.server";
+import type { OneOffThreadRow } from "@/lib/server/one-off-emails.server";
 import { correspondenceThreads, hasReply, type ThreadMessages, type ThreadStep } from "./threads";
 
 const at = (day: number) => new Date(`2026-10-${String(day).padStart(2, "0")}T09:00:00.000Z`);

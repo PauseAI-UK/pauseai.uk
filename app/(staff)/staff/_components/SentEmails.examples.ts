@@ -1,4 +1,4 @@
-import type { SentEmail } from "@/lib/server/sent-emails";
+import type { SentEmail } from "@/lib/server/sent-emails.server";
 
 // Fake rows of the sent emails page, for its tests and the gallery.
 

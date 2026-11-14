@@ -1,5 +1,5 @@
 import { Muted } from "@/components/ui/Text";
-import type { AskWay } from "@/lib/asks/records";
+import type { AskWay } from "@/lib/asks/records.server";
 import StaffLink from "../ui/StaffLink";
 import styles from "./AskWays.module.css";
 import { asksCopy } from "@/lib/asks/copy";

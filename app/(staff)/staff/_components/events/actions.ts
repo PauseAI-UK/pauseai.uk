@@ -3,8 +3,8 @@
 // The events page's Server Actions. Each is a public endpoint, so each calls
 // requireStaff() before anything else (tests/checks/staff-auth.test.ts).
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/accounts/auth";
-import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/events/staff-events";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/events/staff-events.server";
 import { eventFrom } from "@/lib/staff-forms";
 
 /**

@@ -1,4 +1,4 @@
-import type { MailingPageData } from "@/lib/mailings/pages";
+import type { MailingPageData } from "@/lib/mailings/pages.server";
 import { FilterPills } from "./MailingParts";
 import MailingView from "./MailingView";
 import MailingWriter, { type MailingWriterActions } from "./MailingWriter";

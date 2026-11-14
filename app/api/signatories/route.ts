@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { signatories } from "@/lib/politicians/records";
+import { signatories } from "@/lib/politicians/records.server";
 import { FRONTIER_AI_LETTER_ASK } from "@/lib/asks/asks";
-import { problem } from "@/lib/server/problems";
+import { problem } from "@/lib/server/problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";
 
 /** Everyone who signed the letter to the Prime Minister, for the list on /campaigns. */

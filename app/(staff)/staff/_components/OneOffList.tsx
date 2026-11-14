@@ -1,6 +1,6 @@
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
+import type { OneOffThreadRow } from "@/lib/server/one-off-emails.server";
 import { staffTime } from "@/lib/staff-time";
 import { Card } from "./ui/Grid";
 import { ListTable, type ListColumn } from "./ui/ListFrame";

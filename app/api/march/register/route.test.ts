@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { POST } from "./route";

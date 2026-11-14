@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { site } from "@/lib/content/site";
-import type { EventHost, StaffEvent } from "@/lib/events/staff-events";
+import type { EventHost, StaffEvent } from "@/lib/events/staff-events.server";
 import {
   EVENT_SORTS,
   EVENTS_PAGE_SIZE,

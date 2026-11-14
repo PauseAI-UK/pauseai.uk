@@ -4,10 +4,10 @@
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { listWindow, type DashboardWindow } from "./staff-dashboard";
 import { contactState } from "@/lib/supporters/contact-permissions";
-import type { ChangesFilter } from "@/lib/server/audit";
-import type { BlocksFilter } from "@/lib/server/email";
-import type { PoliticianFilter } from "@/lib/politicians/records";
-import type { SentEmailsFilter } from "@/lib/server/sent-emails";
+import type { ChangesFilter } from "@/lib/server/audit.server";
+import type { BlocksFilter } from "@/lib/server/email.server";
+import type { PoliticianFilter } from "@/lib/politicians/records.server";
+import type { SentEmailsFilter } from "@/lib/server/sent-emails.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { LETTER_STATES } from "@/lib/mailings/copy-states";
 import {
@@ -69,7 +69,7 @@ export type LetterReply = (typeof LETTER_REPLIES)[number];
 /** The filters of the letters list that repeat, which can leave out as well as find. */
 type NegatableLetterFilter = "campaign" | "flags" | "backend";
 
-/** Which letters the letters page lists (recentLetters in lib/server/letters.ts). */
+/** Which letters the letters page lists (recentLetters in lib/server/letters.server.ts). */
 export type LetterFilter = {
   /** A letter's status, as SUPPORTER_LETTER_STATUSES. */
   status?: string;
@@ -444,7 +444,7 @@ export function staffBack(back: string | null | undefined, fallback: string): st
 
 // Who a list shows, kept apart from how it shows them (the sort and the
 // page), as its URL parameters, so a mailing can keep it and run it again
-// (lib/server/stored-filters.ts reads it back strictly).
+// (lib/server/stored-filters.server.ts reads it back strictly).
 
 /** The lists a mailing can be to. */
 export const FILTER_LISTS = ["politicians", "supporters"] as const;

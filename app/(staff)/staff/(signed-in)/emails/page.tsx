@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { emailPeople, listAllLetters } from "@/lib/server/all-letters";
-import { oneOffInbox } from "@/lib/server/one-off-emails";
-import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
+import { emailPeople, listAllLetters } from "@/lib/server/all-letters.server";
+import { oneOffInbox } from "@/lib/server/one-off-emails.server";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import { allLettersSearch, type AllLettersSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import AllLetters from "../../_components/AllLetters";

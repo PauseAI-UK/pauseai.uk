@@ -5,12 +5,12 @@
 // (tests/checks/staff-auth.test.ts), and asks for the supporters permission,
 // as a broadcast is to someone who said yes to it.
 import { revalidatePath } from "next/cache";
-import { dealWithReply, type ReplyDecision } from "@/lib/server/broadcast-replies";
-import { answerReply, type AnswerResult } from "@/lib/server/broadcast-answers";
+import { dealWithReply, type ReplyDecision } from "@/lib/server/broadcast-replies.server";
+import { answerReply, type AnswerResult } from "@/lib/server/broadcast-answers.server";
 import { redirect } from "next/navigation";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { fakeRecipient } from "@/lib/broadcasts";
-import { addAttachment, deleteDraft, removeAttachment, rescheduleMailing } from "@/lib/mailings/drafts";
+import { addAttachment, deleteDraft, removeAttachment, rescheduleMailing } from "@/lib/mailings/drafts.server";
 import {
   changeBroadcastConsent,
   changeBroadcastFilter,
@@ -26,9 +26,9 @@ import {
   withdrawTemplate,
   type BroadcastScheduleResult,
   type TemplateSubmitResult,
-} from "@/lib/server/broadcast-drafts";
-import { requireStaff } from "@/lib/accounts/auth";
-import type { SaveResult } from "@/lib/mailings/drafts";
+} from "@/lib/server/broadcast-drafts.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import type { SaveResult } from "@/lib/mailings/drafts.server";
 import { dueAtFrom, idFrom } from "@/lib/staff-forms";
 import { storedFilter } from "@/lib/staff-search";
 import { filtersPath, type Params } from "@/lib/list-params";

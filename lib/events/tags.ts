@@ -1,5 +1,5 @@
 // Which of our Luma tags an upcoming event should have, from its name and
-// where it is, for the Luma import to apply (lib/events/tagging.ts).
+// where it is, for the Luma import to apply (lib/events/tagging.server.ts).
 // Only a tag the calendar already has is ever given, and only when the event
 // says clearly which: anything else is left for a person.
 

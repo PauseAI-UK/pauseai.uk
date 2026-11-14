@@ -2,7 +2,7 @@
 
 // PoliticianWriting's examples that log each change (PoliticianWriting.gallery.tsx).
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
-import type { EditResult } from "@/lib/politicians/edits";
+import type { EditResult } from "@/lib/politicians/edits.server";
 import { exampleAliases, examplePolitician } from "./PoliticianTable.examples";
 import { AddressesBubble, SalutationBubble } from "./PoliticianWriting";
 

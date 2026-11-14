@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { verifyToken } from "@/lib/server/whatsapp-verify-token.mjs";
 import { describeWithDatabase, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { GET, POST } from "./route";

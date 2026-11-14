@@ -4,7 +4,7 @@ import { Field } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { carriedParams, savedFilterHref, type SavedList } from "@/lib/saved-filters";
-import type { SavedFiltersState } from "@/lib/server/saved-filters";
+import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import { filtersPath, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import Alert from "../Alert";

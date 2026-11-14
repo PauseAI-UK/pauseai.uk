@@ -311,7 +311,7 @@ sends nothing, as its entries are already there.
 
 **Sending.** A broadcast says what sends it (`mailings.send_by`), and
 goes by that channel, one of those mailings go by
-(`lib/mailings/channels.ts`), so another can be added beside them.
+(`lib/mailings/channels.server.ts`), so another can be added beside them.
 Always from `hello@pauseai.uk`, which is connected as a staff Gmail, so the
 site reads its replies.
 
@@ -332,7 +332,7 @@ site reads its replies.
   `available` in `BROADCAST_SEND_BY` (`lib/broadcasts.ts`).
 
 The broadcast stream has the webhooks the site's own emails have
-(`lib/server/postmark-webhooks.ts`): delivery, for the delivered count;
+(`lib/server/postmark-webhooks.server.ts`): delivery, for the delivered count;
 a bounce, marking the message failed and, if hard, blocking the
 address; and a spam complaint, which is an opt-out (Opt-outs).
 
@@ -394,7 +394,7 @@ broadcasts' editor without merge fields, Send reply and Discard. Cmd+Enter
 (Ctrl+Enter off a Mac) sends it, as in Gmail. Replying and opting out go
 together: one recorded as an opt-out can still be answered, and one
 answered can still be recorded as an opt-out. Built
-(`lib/server/broadcast-answers.ts`).
+(`lib/server/broadcast-answers.server.ts`).
 
 **Which consents a broadcast goes to** (phase 1). A newsletter or
 events broadcast goes to newsletter, events or both, and one to both

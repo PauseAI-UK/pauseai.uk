@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ASK_STATUSES } from "@/lib/asks/asks";
-import { COUNTRIES, PERSON_STATUSES } from "@/lib/politicians/records";
+import { COUNTRIES, PERSON_STATUSES } from "@/lib/politicians/records.server";
 import { staffVocabulary } from "./staff-vocabulary";
 
 describe("staff vocabulary", () => {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseJsonIfAny } from "@/lib/server/json";
+import { parseJsonIfAny } from "@/lib/server/json.server";
 
 // Receives Content-Security-Policy violation reports. Without this the
 // report-only policy in next.config.ts reports to nobody: violations reach the

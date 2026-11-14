@@ -1,6 +1,6 @@
 import StaffLink from "../ui/StaffLink";
 import { askHref } from "@/lib/asks/asks";
-import type { Ask } from "@/lib/asks/records";
+import type { Ask } from "@/lib/asks/records.server";
 import { staffDate } from "@/lib/staff-time";
 import AnswerWord from "./AnswerWord";
 import styles from "../Details.module.css";

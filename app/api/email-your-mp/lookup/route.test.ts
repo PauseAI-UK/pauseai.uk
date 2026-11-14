@@ -2,8 +2,8 @@ import { expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { copy } from "@/lib/content/email-your-mp";
-import { recordProblem } from "@/lib/server/email";
-import { setStatus } from "@/lib/politicians/records";
+import { recordProblem } from "@/lib/server/email.server";
+import { setStatus } from "@/lib/politicians/records.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { POST } from "./route";
 

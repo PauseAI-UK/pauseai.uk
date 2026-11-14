@@ -2,11 +2,11 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { query } from "@/lib/server/db";
-import { isBlocked, recordProblem } from "@/lib/server/email";
-import { getPolitician } from "@/lib/politicians/records";
-import { createSession } from "@/lib/accounts/auth";
-import { saveStaffAccount } from "@/lib/accounts/staff-accounts";
+import { query } from "@/lib/server/db.server";
+import { isBlocked, recordProblem } from "@/lib/server/email.server";
+import { getPolitician } from "@/lib/politicians/records.server";
+import { createSession } from "@/lib/accounts/auth.server";
+import { saveStaffAccount } from "@/lib/accounts/staff-accounts.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {

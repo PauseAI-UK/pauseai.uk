@@ -1,6 +1,6 @@
 import { pageMetadata } from "@/lib/metadata";
 import { pausefest } from "@/lib/content/pausefest";
-import { getPauseFestLive } from "@/lib/events/pausefest";
+import { getPauseFestLive } from "@/lib/events/pausefest.server";
 import Programme from "./_components/Programme";
 import PauseFestHero from "./_components/PauseFestHero";
 

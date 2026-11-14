@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { messageCopy } from "@/lib/server/broadcast-pages";
-import { requireStaff } from "@/lib/accounts/auth";
+import { messageCopy } from "@/lib/server/broadcast-pages.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { mailingId } from "@/lib/staff-search";
 import MessageCopyView from "../../../../_components/MessageCopyView";
 import Page from "../../../../_components/ui/Page";

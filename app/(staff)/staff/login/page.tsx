@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { devLoginAccounts } from "@/lib/accounts/dev-login";
+import { devLoginAccounts } from "@/lib/accounts/dev-login.server";
 import DevLogin from "../_components/accounts/DevLogin";
 import LoginCard from "../_components/accounts/LoginCard";
 import LoginForm from "../_components/accounts/LoginForm";

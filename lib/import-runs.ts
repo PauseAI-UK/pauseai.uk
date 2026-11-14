@@ -1,4 +1,4 @@
-// The import log's types, shared by the server (lib/server/import-runs.ts)
+// The import log's types, shared by the server (lib/server/import-runs.server.ts)
 // and the staff components that show a run (app/(staff)/staff/_components/Run.tsx).
 import type { ControlAiMatchProblem } from "./controlai-letter";
 import type { Ending, ImportChanges, OfficialMember } from "@/lib/politicians/import-changes";
@@ -16,7 +16,7 @@ export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
  * do than a run can, how long a run works before it stops taking on more,
  * leaving the rest for the next. Every run is a request to the site, which
  * a Netlify function stops at 30 seconds, so a budget leaves room for the
- * run's last steps. What runs a job is lib/server/jobs.ts; its title, icon
+ * run's last steps. What runs a job is lib/server/jobs.server.ts; its title, icon
  * and description are the staff interface's (jobTitles, ImportJob.tsx). The
  * overview lists them in this order.
  */
@@ -89,13 +89,13 @@ export type ImportRun<Job extends ImportJob, Result> = {
 );
 
 /**
- * What relinking the one-off threads did (lib/server/one-off-relink.ts):
+ * What relinking the one-off threads did (lib/server/one-off-relink.server.ts):
  * messages whose quotes it read, those left to read, people linked to threads
  * and unlinked from them, and the offices' addresses it found.
  */
 export type Relinked = { read: number; unread: number; linked: number; unlinked: number; offices: number };
 
-/** The imports of each body's members (lib/politicians/imports.ts). */
+/** The imports of each body's members (lib/politicians/imports.server.ts). */
 export type PoliticianImportJob =
   "import-parliament" | "import-scottish-parliament" | "import-senedd" | "import-ni-assembly";
 
@@ -239,9 +239,9 @@ export type NotUnderstood = { gmailMessageId: string; from: string; subject: str
 
 /**
  * What searching the mailboxes for addresses staff added to politicians' did
- * (lib/politicians/aliases.ts): how many it searched for, the messages
+ * (lib/politicians/aliases.server.ts): how many it searched for, the messages
  * it kept, how many are left for the next run, and whether it stopped as its
- * time ran out. A failure is a problem of the run (problems.ts).
+ * time ran out. A failure is a problem of the run (problems.server.ts).
  */
 export type AddressSearch = {
   searched: number;

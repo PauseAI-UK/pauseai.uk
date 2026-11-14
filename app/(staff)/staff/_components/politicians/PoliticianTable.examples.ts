@@ -1,7 +1,7 @@
 import type { Choosing } from "@/lib/politicians/filters";
 import type { PastedLine } from "./PoliticiansList";
-import type { Politician, PoliticianChange, PoliticiansPage } from "@/lib/politicians/records";
-import type { PoliticianAliases } from "@/lib/politicians/aliases";
+import type { Politician, PoliticianChange, PoliticiansPage } from "@/lib/politicians/records.server";
+import type { PoliticianAliases } from "@/lib/politicians/aliases.server";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 
 /** The example politician's aliases: one of each kind, a personal address staff added among them. */

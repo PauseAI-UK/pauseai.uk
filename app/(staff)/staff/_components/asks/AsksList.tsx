@@ -3,7 +3,7 @@ import { Muted } from "@/components/ui/Text";
 import { ASK_STATUSES, askHref } from "@/lib/asks/asks";
 import { askGroups, askPeriod } from "@/lib/asks/ask-groups";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { AskWithCounts } from "@/lib/asks/records";
+import type { AskWithCounts } from "@/lib/asks/records.server";
 import { askedLine } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
 import IconText from "../ui/IconText";

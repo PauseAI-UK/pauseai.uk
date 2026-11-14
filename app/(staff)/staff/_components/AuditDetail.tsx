@@ -8,7 +8,7 @@ import { staffDate } from "@/lib/staff-time";
 import type { FieldChange } from "@/lib/field-changes";
 import { importPath } from "@/lib/import-runs";
 import { signupUploadPath } from "@/lib/supporters/signup-csv";
-import type { LoggedChange, Named } from "@/lib/server/audit";
+import type { LoggedChange, Named } from "@/lib/server/audit.server";
 import CampaignName from "./CampaignName";
 import { DotParts } from "./Logged";
 import { accountsCopy } from "./accounts/copy";

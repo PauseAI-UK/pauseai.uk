@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { AnyImportRun } from "@/lib/import-runs";
 import { type LogEntry, runLog, tabled } from "@/lib/run-log";
-import type { RunningJob } from "@/lib/server/import-runs";
+import type { RunningJob } from "@/lib/server/import-runs.server";
 import { staffClock } from "@/lib/staff-time";
 import Run, { type Decide } from "./Run";
 import RunTable from "./RunTable";

@@ -1,6 +1,6 @@
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
-import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/supporters/signup-uploads";
+import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/supporters/signup-uploads.server";
 import { signupUploadPath } from "@/lib/supporters/signup-csv";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { Muted } from "@/components/ui/Text";

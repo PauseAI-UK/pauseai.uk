@@ -1,4 +1,4 @@
-import type { Ask, AskPageData, AskWay, AskWithCounts } from "@/lib/asks/records";
+import type { Ask, AskPageData, AskWay, AskWithCounts } from "@/lib/asks/records.server";
 import type { EditableAsk } from "./AskForm";
 
 // Fake asks, for the tests and the gallery: the asks as the migrations add

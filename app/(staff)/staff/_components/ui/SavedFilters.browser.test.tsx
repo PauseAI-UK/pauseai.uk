@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { SavedFilter, SavedFiltersState } from "@/lib/server/saved-filters";
+import type { SavedFilter, SavedFiltersState } from "@/lib/server/saved-filters.server";
 import EventFilters from "../events/EventFilters";
 import PoliticianFilters from "../politicians/PoliticianFilters";
 import { emptyPoliticiansSearch } from "../politicians/PoliticianTable.examples";

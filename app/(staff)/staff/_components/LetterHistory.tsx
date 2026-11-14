@@ -1,7 +1,7 @@
 import StaffLink from "./ui/StaffLink";
 import { Fragment } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { LetterDetails as Details, LetterEvent, LetterForward, ReplyHandling } from "@/lib/server/letters";
+import type { LetterDetails as Details, LetterEvent, LetterForward, ReplyHandling } from "@/lib/server/letters.server";
 import { staffTime } from "@/lib/staff-time";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
@@ -111,7 +111,7 @@ function nested(events: HistoryEntry[]): HistoryEntry[] {
 export function historyOf(letter: Details): HistoryEntry[] {
   const tag = letter.backend ? copy.backends[letter.backend] : undefined;
   // An email's own record of what sent or received it, which every send and reply keeps (sentBy in
-  // lib/server/email.ts). For a Sent recorded before they did, the letter's; for a reply, what the letter went
+  // lib/server/email.server.ts). For a Sent recorded before they did, the letter's; for a reply, what the letter went
   // by, which is what its replies came back through, but for one from Airtable, which sent it and heard nothing.
   const tagOf = (event: LetterEvent) =>
     typeof event.details.backend === "string"

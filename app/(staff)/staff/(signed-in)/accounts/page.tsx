@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { requireStaff } from "@/lib/accounts/auth";
-import { listStaffAccounts } from "@/lib/accounts/staff-accounts";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { listStaffAccounts } from "@/lib/accounts/staff-accounts.server";
 import { accountsSearch } from "@/lib/staff-search";
 import { endStaffSessionsNow, removeStaffAccountNow, saveStaffAccountNow } from "../../_components/accounts/actions";
 import AccountsNotice from "../../_components/accounts/AccountsNotice";

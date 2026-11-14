@@ -8,7 +8,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { answerSubject } from "@/lib/email-parsing/subjects";
 import { hasWords } from "@/lib/letter-format";
 import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
-import type { AnswerResult } from "@/lib/server/broadcast-answers";
+import type { AnswerResult } from "@/lib/server/broadcast-answers.server";
 import Alert from "./Alert";
 import MailingEditor from "./mailings/MailingEditor";
 import { ChatBubble, ChatWall } from "./TextBubble";

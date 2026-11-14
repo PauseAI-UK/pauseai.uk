@@ -8,7 +8,7 @@ import {
   sessionCookie,
   STAFF_PATH_HEADER,
 } from "@/lib/accounts/session";
-import { siteUrl } from "@/lib/site-url";
+import { siteUrl } from "@/lib/site-url.server";
 
 // Turns away anyone on /staff without a session cookie: pages go to the
 // login page, staff API routes get a 401. This is only the first, cheap

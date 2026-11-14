@@ -7,7 +7,7 @@ import { copy } from "@/lib/content/email-your-mp";
 import { campaignBySlug, campaignPath, campaignToMoveTo, isDone, type Mp, type MpStatuses } from "@/lib/email-your-mp";
 import type { Place } from "@/lib/site-events";
 import { TEST_MPS, type TestMp } from "@/lib/politicians/test-mps";
-import { readLookup, saveLookup } from "./draft";
+import { readLookup, saveLookup } from "./draft.client";
 import MpCard from "./MpCard";
 import Required from "@/components/ui/Required";
 import { TextInput } from "@/components/ui/Controls";

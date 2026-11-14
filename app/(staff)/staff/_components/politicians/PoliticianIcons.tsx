@@ -1,4 +1,4 @@
-import type { Country } from "@/lib/politicians/records";
+import type { Country } from "@/lib/politicians/records.server";
 import { NATION_SHAPES } from "@/lib/politicians/nation-shapes";
 import { partyColour } from "@/lib/politicians/party-colours";
 import styles from "./PoliticianIcons.module.css";

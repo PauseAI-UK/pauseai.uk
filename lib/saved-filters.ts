@@ -1,5 +1,5 @@
 // Saved filters' parameters: which of a list's URL parameters a saved filter
-// keeps, and comparing them. lib/server/saved-filters.ts stores them.
+// keeps, and comparing them. lib/server/saved-filters.server.ts stores them.
 import { filtersPath, valuesOf, type ParamValue, type Params } from "@/lib/list-params";
 import { AUDIT_LOG_LIST, EVENTS_LIST, POLITICIANS_LIST, SUPPORTERS_LIST, type StaffList } from "@/lib/staff-lists";
 

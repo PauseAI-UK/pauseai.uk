@@ -1,6 +1,6 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import { letterState } from "@/lib/mailings/copy-states";
-import type { SkipReason } from "@/lib/mailings/records";
+import type { SkipReason } from "@/lib/mailings/records.server";
 import { CopyStatus } from "./mailings/CopyStatus";
 import styles from "./LetterStatus.module.css";
 

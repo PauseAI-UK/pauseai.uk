@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { copy } from "@/lib/content/email-your-mp";
-import { findMp } from "@/lib/politicians/find-mp";
-import { statusesOf } from "@/lib/politicians/records";
-import { readJsonIfAny } from "@/lib/server/json";
+import { findMp } from "@/lib/politicians/find-mp.server";
+import { statusesOf } from "@/lib/politicians/records.server";
+import { readJsonIfAny } from "@/lib/server/json.server";
 
 const MESSAGES = {
   not_found: copy.lookup.notFound,
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const { mp } = found;
   return NextResponse.json({
     ok: true,
-    // An address that bounced can still be written to: the letter waits until it works (lib/server/letter-sending.ts).
+    // An address that bounced can still be written to: the letter waits until it works (lib/server/letter-sending.server.ts).
     mp,
     statuses: await statusesOf(mp.id),
     place: found.place ?? null,

@@ -1,4 +1,4 @@
-import type { Mailing, MailingSummary } from "@/lib/mailings/records";
+import type { Mailing, MailingSummary } from "@/lib/mailings/records.server";
 
 /** No letters in any state, for an example to add its own. */
 const NO_STATES: MailingSummary["states"] = {

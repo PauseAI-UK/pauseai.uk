@@ -39,8 +39,8 @@ describe("feature imports", () => {
       "../supporters/SupporterLink",
       "../SupporterBadges",
       "@/lib/events/owners",
-      "@/lib/supporters/places",
-      "@/lib/server/db",
+      "@/lib/supporters/places.server",
+      "@/lib/server/db.server",
       "@/lib/content/plural",
       "@/lib/email-parsing/addresses",
       "@/lib/staff-vocabulary",
@@ -54,30 +54,41 @@ describe("feature imports", () => {
     const wrong = [
       "../politicians/PoliticianTable",
       "../../politicians/page",
-      "@/lib/politicians/edits",
+      "@/lib/politicians/edits.server",
       "@/lib/collateral/draw",
       "@/app/(staff)/staff/_components/ui/Band",
       "next/link",
       "@/tests/fixtures/x",
     ];
     expect(await refused(UI, wrong)).toEqual(wrong);
-    const fetching = `import { outsideFetch } from "@/lib/server/outside-services/outside-fetch";\nexport const f = outsideFetch;`;
+    const fetching = `import { outsideFetch } from "@/lib/server/outside-services/outside-fetch.server";\nexport const f = outsideFetch;`;
     const [result] = await eslint.lintText(fetching, { filePath: UI });
     expect(result.messages.map((message) => message.ruleId)).toContain("no-restricted-imports");
   });
 
   it("lets a feature's logic use its own folder, the features listed and what all share", async () => {
-    const allowed = ["./tags", "../supporters/places", "../server/db", "../found", "@/lib/supporters/places"];
+    const allowed = [
+      "./tags",
+      "../supporters/places.server",
+      "../server/db.server",
+      "../found",
+      "@/lib/supporters/places.server",
+    ];
     expect(await refused(LIB, allowed)).toEqual([]);
   });
 
   it("refuses a feature's logic another feature's folders, components and routes", async () => {
-    const wrong = ["../politicians/edits", "@/lib/politicians/edits", "@/components/ui/Button", "@/app/api/x/route"];
+    const wrong = [
+      "../politicians/edits.server",
+      "@/lib/politicians/edits.server",
+      "@/components/ui/Button",
+      "@/app/api/x/route",
+    ];
     expect(await refused(LIB, wrong)).toEqual(wrong);
   });
 
   it("holds a feature that uses none to its own folders", async () => {
-    expect(await refused("lib/supporters/places.ts", ["../events/owners", "@/lib/events/owners"])).toEqual([
+    expect(await refused("lib/supporters/places.server.ts", ["../events/owners", "@/lib/events/owners"])).toEqual([
       "../events/owners",
       "@/lib/events/owners",
     ]);
@@ -89,7 +100,7 @@ describe("feature imports", () => {
       "app/(staff)/staff/_components/events/EventRow.gallery.tsx",
       "lib/events/owners.test.ts",
     ]) {
-      expect(await refused(path, ["../politicians/edits", "@/lib/politicians/edits"])).toEqual([]);
+      expect(await refused(path, ["../politicians/edits.server", "@/lib/politicians/edits.server"])).toEqual([]);
     }
   });
 });

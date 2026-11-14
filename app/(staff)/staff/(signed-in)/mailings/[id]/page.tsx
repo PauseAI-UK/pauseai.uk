@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { mailingPageData } from "@/lib/mailings/pages";
-import { mailingCrumb, mailingTitle } from "@/lib/mailings/records";
-import { requireStaff } from "@/lib/accounts/auth";
+import { mailingPageData } from "@/lib/mailings/pages.server";
+import { mailingCrumb, mailingTitle } from "@/lib/mailings/records.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import MailingFor from "../../../_components/mailings/MailingFor";

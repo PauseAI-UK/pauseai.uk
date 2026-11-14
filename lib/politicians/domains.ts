@@ -2,7 +2,7 @@ import { onParliamentDomain } from "@/lib/one-off";
 
 // Politicians' names as the imports match them, and the domains of their own
 // that their bodies list, which say whose a one-off thread is
-// (lib/politicians/imports.ts).
+// (lib/politicians/imports.server.ts).
 
 const TITLES = /^(?:(?:the\s+)?rt\.?\s+hon\.?|mr|mrs|ms|miss|mx|dr|sir|dame|prof(?:essor)?|lord|lady)\.?\s+/i;
 

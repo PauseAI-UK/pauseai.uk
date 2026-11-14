@@ -1,5 +1,5 @@
 import { monthsAndYears } from "@/lib/dated-groups";
-import type { MailingBase, MailingSummary } from "./records";
+import type { MailingBase, MailingSummary } from "./records.server";
 import { mailingsCopy } from "./copy";
 
 /** A heading of the mailings page, and its mailings in order. */

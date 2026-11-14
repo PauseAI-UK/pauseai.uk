@@ -11,7 +11,7 @@ import {
 import { LIBRARY_PHOTOS } from "@/lib/collateral/photos";
 import { designToData, newDesign } from "./designState";
 import type { LintIssue } from "@/lib/collateral/lint";
-import type { RenderOptions } from "@/lib/collateral/render";
+import type { RenderOptions } from "@/lib/collateral/render.client";
 import { nextCall } from "@/tests/browser/next-call";
 import PackStudio from "./PackStudio";
 
@@ -24,8 +24,8 @@ const { downloads, extraIssues } = vi.hoisted(() => ({
   // Checks to add to a format's own, so each kind of result can be shown without crafting a design that fails it.
   extraIssues: { byFormat: {} as Record<string, LintIssue[]> },
 }));
-vi.mock("@/lib/collateral/render", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/collateral/render")>();
+vi.mock("@/lib/collateral/render.client", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/collateral/render.client")>();
   return {
     ...actual,
     renderCollateral: (canvas: HTMLCanvasElement, opts: RenderOptions) => {
@@ -36,8 +36,8 @@ vi.mock("@/lib/collateral/render", async (importActual) => {
     },
   };
 });
-vi.mock("@/lib/collateral/export", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/collateral/export")>();
+vi.mock("@/lib/collateral/export.client", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/collateral/export.client")>();
   return {
     ...actual,
     downloadFilesZip: (...a: unknown[]) => downloads.zip(...a),

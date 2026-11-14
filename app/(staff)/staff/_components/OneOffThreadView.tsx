@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mailboxes, named } from "@/lib/email-parsing/addresses";
-import type { OneOffThread } from "@/lib/server/one-off-emails";
+import type { OneOffThread } from "@/lib/server/one-off-emails.server";
 import { MessageText } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
 import { staffTime } from "@/lib/staff-time";

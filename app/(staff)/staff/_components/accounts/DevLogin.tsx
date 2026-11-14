@@ -1,6 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
-import type { DevLoginChoice } from "@/lib/accounts/dev-login";
+import type { DevLoginChoice } from "@/lib/accounts/dev-login.server";
 import { DEV_LOGIN_PATH, NEXT_PARAM } from "@/lib/accounts/session";
 import styles from "./DevLogin.module.css";
 import { accountsCopy } from "./copy";
@@ -13,7 +13,7 @@ const copy = accountsCopy.devLogin;
  * signs in as them at once, with no email, and under it what they are:
  * their permissions, an account with none, or no account, and goes to
  * `next`, as the emailed link would. Given no addresses, as outside a
- * fixture build (lib/accounts/dev-login.ts), it's nothing; the route refuses
+ * fixture build (lib/accounts/dev-login.server.ts), it's nothing; the route refuses
  * it there too.
  */
 export default function DevLogin({ accounts, next }: { accounts: DevLoginChoice[] | undefined; next?: string }) {

@@ -5,7 +5,7 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { Label } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import type { EventSaved } from "@/lib/events/staff-events";
+import type { EventSaved } from "@/lib/events/staff-events.server";
 import { GOOGLE_DOC_PATTERN } from "@/lib/staff-forms";
 import Bubble from "@/components/ui/Bubble";
 import Notice from "../ui/Notice";

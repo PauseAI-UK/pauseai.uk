@@ -4,7 +4,7 @@ import { chooseDay } from "@/tests/browser/date-picker";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { Mailing } from "@/lib/mailings/records";
+import type { Mailing } from "@/lib/mailings/records.server";
 import MailingView from "./MailingView";
 import { exampleWrittenMailing } from "./MailingWriter.examples";
 import { exampleMailing, exampleMailings } from "./MailingsTable.examples";

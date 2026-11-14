@@ -1,4 +1,4 @@
-import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/supporters/signup-uploads";
+import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/supporters/signup-uploads.server";
 import type { SignupPlan } from "@/lib/supporters/signup-csv";
 
 const person = { phone: null, postcode: null, going: false, problem: null, notice: null };

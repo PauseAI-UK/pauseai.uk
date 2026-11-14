@@ -1,6 +1,6 @@
 /**
  * Google Tag Manager's fallback for browsers without JavaScript, on the live
- * site only (lib/analytics.ts). CookieConsent loads its script.
+ * site only (lib/analytics.server.ts). CookieConsent loads its script.
  */
 export default function TagManagerNoscript({ analytics }: { analytics: boolean }) {
   if (!analytics) return null;

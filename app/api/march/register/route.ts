@@ -8,13 +8,13 @@
 import { NextResponse } from "next/server";
 import { checkMarchRegistration, type MarchRegisterResult } from "@/lib/march-registration";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { sendBulkNotice } from "@/lib/supporters/email-settings";
-import { addFormEntry } from "@/lib/supporters/form-entries";
-import { marchEventId } from "@/lib/events/march";
-import { addLumaGuest } from "@/lib/server/outside-services/luma-guests";
-import { problem } from "@/lib/server/problems";
+import { sendBulkNotice } from "@/lib/supporters/email-settings.server";
+import { addFormEntry } from "@/lib/supporters/form-entries.server";
+import { marchEventId } from "@/lib/events/march.server";
+import { addLumaGuest } from "@/lib/server/outside-services/luma-guests.server";
+import { problem } from "@/lib/server/problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { readJsonIfAny } from "@/lib/server/json";
+import { readJsonIfAny } from "@/lib/server/json.server";
 
 /** The form's honeypot field: hidden from people, filled in by bots that fill in everything. */
 const HONEYPOT_FIELD = "website";

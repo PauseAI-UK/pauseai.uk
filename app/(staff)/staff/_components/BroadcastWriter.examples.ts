@@ -1,18 +1,18 @@
-import type { BroadcastAnswer } from "@/lib/server/broadcast-answers";
-import type { BroadcastReply } from "@/lib/server/broadcast-replies";
+import type { BroadcastAnswer } from "@/lib/server/broadcast-answers.server";
+import type { BroadcastReply } from "@/lib/server/broadcast-replies.server";
 import type { LetterDoc } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { MailingDoc } from "@/lib/mailings/doc";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
-import type { WhatsAppTemplate, WrittenBroadcast } from "@/lib/server/broadcast-drafts";
+import type { WhatsAppTemplate, WrittenBroadcast } from "@/lib/server/broadcast-drafts.server";
 import type {
   MessageCopy,
   BroadcastPageData,
   BroadcastSummary,
   BroadcastWriterData,
-} from "@/lib/server/broadcast-pages";
-import type { BroadcastPart } from "@/lib/server/broadcast-recipients";
-import type { SupporterChoices } from "@/lib/supporters/records";
+} from "@/lib/server/broadcast-pages.server";
+import type { BroadcastPart } from "@/lib/server/broadcast-recipients.server";
+import type { SupporterChoices } from "@/lib/supporters/records.server";
 
 /** An email with a first name, a part only for those with a local group, and their MP. */
 const exampleBroadcastWords: MailingDoc = {

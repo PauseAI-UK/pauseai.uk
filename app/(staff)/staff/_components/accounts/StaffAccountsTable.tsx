@@ -8,7 +8,7 @@ import Table from "@/components/ui/Table";
 import { ACCOUNTS_LIST, type AccountSort } from "@/lib/staff-lists";
 import { ADDED_BY_LOGIN, isStaffEmail, PERMISSIONS, type Permission } from "@/lib/accounts/permissions";
 import { sortHref, type SortSpec } from "@/lib/staff-sort";
-import type { StaffAccount } from "@/lib/accounts/staff-accounts";
+import type { StaffAccount } from "@/lib/accounts/staff-accounts.server";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { DeleteTwice } from "../DeleteTwice";

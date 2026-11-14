@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { TOPICS, type Topic } from "@/lib/supporters/contact-permissions";
-import { config } from "@/lib/server/config";
-import { newSettingsLink, newTopicLink } from "@/lib/supporters/email-settings";
-import { requireStaff } from "@/lib/accounts/auth";
-import { siteUrl } from "@/lib/site-url";
+import { config } from "@/lib/server/config.server";
+import { newSettingsLink, newTopicLink } from "@/lib/supporters/email-settings.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { siteUrl } from "@/lib/site-url.server";
 
 // Development only (DevPreferences): in a fixture build, a supporter's page
 // links here for each of their addresses, and for each topic they get by

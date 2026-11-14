@@ -5,7 +5,7 @@ import { FilterForm } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { EmailBlock } from "@/lib/server/email";
+import type { EmailBlock } from "@/lib/server/email.server";
 import Bubble from "@/components/ui/Bubble";
 import styles from "./UnblockForm.module.css";
 

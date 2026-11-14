@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { NextRequest } from "next/server";
 import { server } from "@/tests/fixtures/msw";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { POST } from "./route";
 
 beforeEach(() => {

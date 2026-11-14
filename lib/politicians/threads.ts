@@ -1,5 +1,5 @@
-import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/server/letters";
-import type { OneOffThreadRow } from "@/lib/server/one-off-emails";
+import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/server/letters.server";
+import type { OneOffThreadRow } from "@/lib/server/one-off-emails.server";
 import { isIn, NEVER_WENT } from "@/lib/letter-status";
 
 // A politician's threads as their page lists them: a line of who wrote and

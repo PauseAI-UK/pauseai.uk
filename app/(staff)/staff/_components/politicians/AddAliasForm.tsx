@@ -5,7 +5,7 @@ import { TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ErrorText } from "@/components/ui/Text";
-import type { AddResult } from "@/lib/politicians/aliases";
+import type { AddResult } from "@/lib/politicians/aliases.server";
 import styles from "./AddAliasForm.module.css";
 import { politiciansCopy } from "./copy";
 

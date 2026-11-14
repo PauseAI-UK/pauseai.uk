@@ -1,5 +1,5 @@
 import { pageMetadata } from "@/lib/metadata";
-import { fixturesOnly } from "@/lib/server/fixtures-only";
+import { fixturesOnly } from "@/lib/server/fixtures-only.server";
 import Broken from "./Broken";
 
 // A page that breaks in the browser when asked, for the storyboard to show

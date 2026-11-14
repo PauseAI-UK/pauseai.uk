@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { createSession } from "@/lib/accounts/auth";
-import { getPolitician } from "@/lib/politicians/records";
-import { query } from "@/lib/server/db";
+import { createSession } from "@/lib/accounts/auth.server";
+import { getPolitician } from "@/lib/politicians/records.server";
+import { query } from "@/lib/server/db.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { addAliasNow, editPoliticianNow, removeAliasNow, setAskStatus, setMarkNow } from "./actions";

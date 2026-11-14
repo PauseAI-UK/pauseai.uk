@@ -127,7 +127,7 @@ All events: ${link}`,
           )}\n\nAs the owner, you make sure the event is exceptional:\n- Be chronically early: arrive before anyone else to get everything ready, and leave last\n- Spot early what could go wrong, like an entrance that's hard to find\n- Make sure enough people come\n- Have everyone leave feeling it was better than they expected`,
     },
   },
-  // What went wrong without stopping the work (lib/server/problems.ts).
+  // What went wrong without stopping the work (lib/server/problems.server.ts).
   problems: {
     // On the Luma import's run, so on its page and in the email: something it carried on past.
     // Luma errored on one event's guests. Its other events carry on.
@@ -140,7 +140,7 @@ All events: ${link}`,
     lumaTagsUnread: "Luma wouldn't list its event tags, so no events were tagged",
     // The tag wouldn't go on one event; the next run tries again.
     lumaTagRefused: (event: string) => `Luma wouldn't tag ${event}`,
-    // No job reaches this: it's kept as an error (lib/server/errors-seen.ts), on the errors page and emailed to
+    // No job reaches this: it's kept as an error (lib/server/errors-seen.server.ts), on the errors page and emailed to
     // staff. Luma gets an error, so it sends the webhook again.
     webhookNotRecorded: "A Luma webhook couldn't be recorded",
   },

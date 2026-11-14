@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { newBroadcastPageData } from "@/lib/server/broadcast-pages";
-import { requireStaff } from "@/lib/accounts/auth";
+import { newBroadcastPageData } from "@/lib/server/broadcast-pages.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import ChannelWriter from "../../../_components/ChannelWriter";
 import Page from "../../../_components/ui/Page";
 import { BroadcastWho } from "../../../_components/BroadcastFor";

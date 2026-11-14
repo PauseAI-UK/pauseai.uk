@@ -1,7 +1,7 @@
 // ControlAI's letter to the Prime Minister backing the Artificial
 // Superintelligence Security Bill. Its page
 // links the letter as a PDF, whose text ends with the signatories. An MP on
-// it already supports the bill: lib/server/controlai-import.ts copies them
+// it already supports the bill: lib/server/controlai-import.server.ts copies them
 // in nightly, and nobody edits that status by hand. The caller fetches and
 // extracts the text; this is the parsing and the matching.
 

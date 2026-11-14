@@ -1,6 +1,6 @@
 import type { MailingDoc } from "@/lib/mailings/doc";
-import type { WrittenMailing } from "@/lib/mailings/drafts";
-import type { WriterData } from "@/lib/mailings/pages";
+import type { WrittenMailing } from "@/lib/mailings/drafts.server";
+import type { WriterData } from "@/lib/mailings/pages.server";
 import { exampleAsks } from "../asks/AsksList.examples";
 
 /** A letter with a salutation, and a thank-you only for those who signed the letter to the PM. */

@@ -12,9 +12,9 @@ import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
 import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politicians/filters";
-import type { EmailChoice } from "./server/all-letters";
-import type { Ask } from "@/lib/asks/records";
-import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records";
+import type { EmailChoice } from "./server/all-letters.server";
+import type { Ask } from "@/lib/asks/records.server";
+import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records.server";
 import { WINDOW_OPTIONS } from "./staff-dashboard";
 import { NO_OWNER, ONLINE } from "@/lib/events/list";
 import {

@@ -16,9 +16,9 @@ import {
   stopEverything,
   unsubscribeCopy,
   type SettingsKind,
-} from "@/lib/supporters/email-settings";
-import { actionRequest } from "@/lib/site-url";
-import { checkNotSpam } from "@/lib/server/outside-services/turnstile";
+} from "@/lib/supporters/email-settings.server";
+import { actionRequest } from "@/lib/site-url.server";
+import { checkNotSpam } from "@/lib/server/outside-services/turnstile.server";
 
 const text = (form: FormData, name: string): string => String(form.get(name) ?? "");
 const kindOf = (form: FormData): SettingsKind => (text(form, "kind") === "copy" ? "copy" : "link");

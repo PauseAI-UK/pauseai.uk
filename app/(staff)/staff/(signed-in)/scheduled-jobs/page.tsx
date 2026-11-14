@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { IMPORT_JOBS } from "@/lib/import-runs";
-import { latestRun, runningNow } from "@/lib/server/import-runs";
-import { requireStaff } from "@/lib/accounts/auth";
+import { latestRun, runningNow } from "@/lib/server/import-runs.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { ImportOverview } from "../../_components/ImportJob";
 import Page from "../../_components/ui/Page";
 

@@ -12,7 +12,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import "@/components/tools/kit/Studio";
 import { FORMATS, getFormat } from "@/lib/collateral/formats";
 import { LIBRARY_PHOTOS } from "@/lib/collateral/photos";
-import { loadFonts, loadImage, renderCollateral, type RenderOptions } from "@/lib/collateral/render";
+import { loadFonts, loadImage, renderCollateral, type RenderOptions } from "@/lib/collateral/render.client";
 import { defaultValues, getTemplate, type Drawable } from "@/lib/collateral/templates";
 import { CLEAR_PHOTO_LOGO_SRC, THEMES, getTheme } from "@/lib/collateral/themes";
 

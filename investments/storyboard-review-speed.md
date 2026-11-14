@@ -25,13 +25,13 @@ In order of what each would save:
 
 ## How the map was checked
 
-On 12 November 2026, against what runs. Each of the 280 desktop flows was run alone, on a warm server, with the server's precise coverage taken before and after it, and Next's prefetches answered with nothing. Every position of the build's source maps inside a function that ran was taken as its source file having run in that flow: 19,221 pairs of a flow and a file. Each file was in what the map says the flow reaches, from what the flow recorded as opened in that same run. Taking the hand-overs to `lib/server/problems.ts` back out of the map made the check fail on the two files they stand for, so it could have failed.
+On 12 November 2026, against what runs. Each of the 280 desktop flows was run alone, on a warm server, with the server's precise coverage taken before and after it, and Next's prefetches answered with nothing. Every position of the build's source maps inside a function that ran was taken as its source file having run in that flow: 19,221 pairs of a flow and a file. Each file was in what the map says the flow reaches, from what the flow recorded as opened in that same run. Taking the hand-overs to `lib/server/problems.server.ts` back out of the map made the check fail on the two files they stand for, so it could have failed.
 
 What that check found on the way, each now in the map or the recording:
 
 - a flow's own request follows redirects without the browser's events, so the fixture server keeps every request;
 - two flows start a second browser, whose requests weren't recorded;
-- `run-store.ts` and `instrumentation.ts` hand code to `problems.ts` without an import;
+- `run-store.server.ts` and `instrumentation.ts` hand code to `problems.server.ts` without an import;
 - `next.config.ts` and `proxy.ts` import files no page does;
 - files read by name or by listing a folder: fonts, a stand-in picture, the sitemap's walk of `app/`.
 

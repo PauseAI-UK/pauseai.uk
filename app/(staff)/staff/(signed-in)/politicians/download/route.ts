@@ -1,11 +1,11 @@
 import type { NextRequest } from "next/server";
 import { politicianWords } from "../../../_components/politicians/PoliticianFilters";
 import { politicianColumns, politicianContact } from "../../../_components/politicians/PoliticianTable";
-import { listAsks } from "@/lib/asks/records";
-import { listParties, listPoliticians } from "@/lib/politicians/records";
+import { listAsks } from "@/lib/asks/records.server";
+import { listParties, listPoliticians } from "@/lib/politicians/records.server";
 import { politiciansSearch } from "@/lib/staff-search";
-import { requireStaff } from "@/lib/accounts/auth";
-import { staffDownload } from "@/lib/server/staff-download";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { staffDownload } from "@/lib/server/staff-download.server";
 import { politiciansCopy } from "../../../_components/politicians/copy";
 
 /** Every politician the list's filters find, in the columns the list shows, named for its house and filters. */

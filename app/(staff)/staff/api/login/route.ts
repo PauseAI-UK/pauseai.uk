@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { loginBrowser, loginBrowserCookie, sendLoginLink } from "@/lib/accounts/login";
+import { loginBrowser, loginBrowserCookie, sendLoginLink } from "@/lib/accounts/login.server";
 import { afterLogin, LOGIN_BROWSER_COOKIE, LOGIN_PATH, NEXT_PARAM } from "@/lib/accounts/session";
-import { siteUrl } from "@/lib/site-url";
+import { siteUrl } from "@/lib/site-url.server";
 
 // Step one of logging in: the login page's form posts an email address, and
 // a link is sent if it's a pauseai.uk one. It only works in this browser, so

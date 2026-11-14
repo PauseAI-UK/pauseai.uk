@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { requireStaff } from "@/lib/accounts/auth";
-import { getSupporter } from "@/lib/supporters/records";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { getSupporter } from "@/lib/supporters/records.server";
 import { supporterId } from "@/lib/staff-search";
 import { supporterTitle } from "@/lib/supporters/supporters";
 import { eraseSupporterNow } from "../../../../_components/erasure/actions";

@@ -1,5 +1,5 @@
 // The values the politicians list's filters choose among, shared by the
-// server's query (lib/politicians/records.ts) and the filter bar.
+// server's query (lib/politicians/records.server.ts) and the filter bar.
 
 /** The nations a politician can be in. */
 export const COUNTRIES = ["england", "scotland", "wales", "northern-ireland"] as const;

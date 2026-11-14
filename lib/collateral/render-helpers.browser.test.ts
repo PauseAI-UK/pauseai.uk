@@ -13,7 +13,7 @@ import {
   loadImage,
   renderCollateral,
   type RenderOptions,
-} from "./render";
+} from "./render.client";
 import { PHOTO_TINTS } from "./design";
 import { defaultValues, getTemplate, type Drawable } from "./templates";
 import { getTheme } from "./themes";

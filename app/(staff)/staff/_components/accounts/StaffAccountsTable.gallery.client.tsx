@@ -2,7 +2,7 @@
 
 // StaffAccountsTable's examples that log what their forms do (StaffAccountsTable.gallery.tsx).
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
-import type { StaffAccount } from "@/lib/accounts/staff-accounts";
+import type { StaffAccount } from "@/lib/accounts/staff-accounts.server";
 import StaffAccountsTable, { AddStaff } from "./StaffAccountsTable";
 
 /** Add staff, at the accounts page's top right: its box adds someone, logged; jo@pauseai.uk is there already. */

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireStaff } from "@/lib/accounts/auth";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { askFormSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { deleteAskNow, saveAskNow } from "../../../_components/asks/actions";

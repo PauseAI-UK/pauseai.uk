@@ -2,7 +2,7 @@
 // each way, and why: the answer the supporter pages show, the list filters
 // on and the staff home counts. The rules are contact_permission()'s
 // (netlify/database/migrations/0100_consents.sql), and
-// lib/supporters/permissions-for.ts reads them.
+// lib/supporters/permissions-for.server.ts reads them.
 
 /** What we'd reach someone at: an email address, or a phone number. */
 export const CHANNELS = ["email", "phone"] as const;

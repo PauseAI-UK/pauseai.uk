@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/mailings/attachments";
 import { earliestRun, fromLondon, londonDayTime, SENDING } from "@/lib/staff-time";
-import type { MailingAttachmentSummary, SaveResult } from "@/lib/mailings/drafts";
+import type { MailingAttachmentSummary, SaveResult } from "@/lib/mailings/drafts.server";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { SaveState as SaveStatePill, type SaveStateValue as SaveState } from "@/components/ui/SaveState";

@@ -1,7 +1,7 @@
 // What an import of a body's members would change: Parliament's (the Commons
 // and the Lords), the Scottish Parliament's, the Senedd's and the Northern
 // Ireland Assembly's, each read from the body's own list
-// (lib/politicians/imports.ts). Pure, so a held run can be worked out
+// (lib/politicians/imports.server.ts). Pure, so a held run can be worked out
 // again when it's applied.
 
 import { isOfficialName } from "./constituencies";

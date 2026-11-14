@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { config } from "@/lib/server/config";
-import { parseJsonIfAny } from "@/lib/server/json";
-import { signedByMeta } from "@/lib/server/outside-services/whatsapp";
-import { problem } from "@/lib/server/problems";
-import { recordWhatsAppWebhook, type WhatsAppWebhook } from "@/lib/server/whatsapp-webhooks";
+import { config } from "@/lib/server/config.server";
+import { parseJsonIfAny } from "@/lib/server/json.server";
+import { signedByMeta } from "@/lib/server/outside-services/whatsapp.server";
+import { problem } from "@/lib/server/problems.server";
+import { recordWhatsAppWebhook, type WhatsAppWebhook } from "@/lib/server/whatsapp-webhooks.server";
 import { verifyToken } from "@/lib/server/whatsapp-verify-token.mjs";
 
 /**
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 /**
  * WhatsApp's webhook, signed with the Meta app's secret: what became of
  * texts, messages to us, stops and resumes, and what it decided of
- * templates (whatsapp-webhooks.ts). Says how many changes it applied, in the
+ * templates (lib/server/whatsapp-webhooks.server.ts). Says how many changes it applied, in the
  * answer and the function's log. 500 on a failure to, so Meta sends it again.
  */
 export async function POST(request: Request) {

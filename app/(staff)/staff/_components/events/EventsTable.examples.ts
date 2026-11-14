@@ -1,4 +1,4 @@
-import type { SearchedEvent, StaffEvent } from "@/lib/events/staff-events";
+import type { SearchedEvent, StaffEvent } from "@/lib/events/staff-events.server";
 import { findEvents } from "@/lib/events/list";
 import { eventsSearch } from "@/lib/staff-search";
 

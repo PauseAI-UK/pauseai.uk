@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
-import { createSession } from "@/lib/accounts/auth";
-import { query } from "@/lib/server/db";
+import { createSession } from "@/lib/accounts/auth.server";
+import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";

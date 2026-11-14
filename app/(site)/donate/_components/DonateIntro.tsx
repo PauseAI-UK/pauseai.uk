@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ThankedDonor } from "@/lib/server/outside-services/stripe";
+import type { ThankedDonor } from "@/lib/server/outside-services/stripe.server";
 import DonateForm from "./DonateForm";
 import DonateThanks from "./DonateThanks";
 import styles from "./DonateIntro.module.css";

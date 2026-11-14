@@ -1,4 +1,4 @@
-// The emails to the notification inbox (lib/server/notifications.ts), as
+// The emails to the notification inbox (lib/server/notifications.server.ts), as
 // Postmark gets them, for the tests of what sends them.
 import { http, HttpResponse } from "msw";
 import { vi } from "vitest";

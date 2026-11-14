@@ -1,7 +1,7 @@
 import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { SentEmail, SentPerson } from "@/lib/server/sent-emails";
+import type { SentEmail, SentPerson } from "@/lib/server/sent-emails.server";
 import type { SentEmailsSearch } from "@/lib/staff-search";
 import { SENT_EMAIL_FILTERS } from "@/lib/staff-list-filters";
 import { filtersPath, pageParam } from "@/lib/list-params";

@@ -1,5 +1,5 @@
 // Supporters, as the staff pages show them: the shapes the server
-// (lib/supporters/records.ts) gives the components.
+// (lib/supporters/records.server.ts) gives the components.
 import type { SupporterSort } from "@/lib/staff-lists";
 import { permanentRedirect } from "next/navigation";
 import type { ContactPermission, ContactState } from "./contact-permissions";
@@ -17,7 +17,7 @@ export const SUPPORTER_SOURCES = [
 ] as const;
 export type SupporterSource = (typeof SUPPORTER_SOURCES)[number];
 
-/** What a supporter_links row points at (lib/supporters/sources.ts): a Luma user, a form entry or a CiviCRM contact. */
+/** What a supporter_links row points at (lib/supporters/sources.server.ts): a Luma user, a form entry or a CiviCRM contact. */
 export type SupporterLinkSource = "luma" | "form" | "civicrm";
 
 /** The lozenges in the list's Activities column, in its order: a member, a contact of the Luma calendar, registered for events, wrote to their MP, signed up for the march. */

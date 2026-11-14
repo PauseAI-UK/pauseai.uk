@@ -1,4 +1,4 @@
-import type { CampaignSummary, CampaignVersion } from "@/lib/mailings/campaigns";
+import type { CampaignSummary, CampaignVersion } from "@/lib/mailings/campaigns.server";
 
 // Fake data for the pages of campaigns, for their tests and the gallery.
 

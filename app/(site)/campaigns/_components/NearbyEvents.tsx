@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { eventsNear, type LumaEvent } from "@/lib/site-events";
 import UpcomingEvents from "@/components/events/UpcomingEvents";
-import { readLookup } from "./draft";
+import { readLookup } from "./draft.client";
 
 /**
  * On the "sent" page: the home page's "Upcoming events", with the events

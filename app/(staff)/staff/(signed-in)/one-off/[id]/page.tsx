@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { getOneOffThread } from "@/lib/server/one-off-emails";
-import { requireStaff } from "@/lib/accounts/auth";
+import { getOneOffThread } from "@/lib/server/one-off-emails.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { letterId } from "@/lib/staff-search";
 import OneOffThreadView from "../../../_components/OneOffThreadView";
 import Page from "../../../_components/ui/Page";

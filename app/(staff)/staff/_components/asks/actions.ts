@@ -5,8 +5,8 @@
 // else (tests/checks/staff-auth.test.ts).
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireStaff } from "@/lib/accounts/auth";
-import { addAsk, deleteAsk, editAsk } from "@/lib/asks/records";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { addAsk, deleteAsk, editAsk } from "@/lib/asks/records.server";
 import { askFrom } from "@/lib/staff-forms";
 import { staffBack } from "@/lib/staff-search";
 

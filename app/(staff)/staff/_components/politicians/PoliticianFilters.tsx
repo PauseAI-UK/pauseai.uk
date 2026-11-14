@@ -1,10 +1,10 @@
 import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { Ask } from "@/lib/asks/records";
+import type { Ask } from "@/lib/asks/records.server";
 import { filteredName, filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 import { firstOf, type Params } from "@/lib/list-params";
-import type { SavedFiltersState } from "@/lib/server/saved-filters";
+import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import FilterBar from "../ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "../ui/SavedFilters";
 import { politiciansCopy } from "./copy";

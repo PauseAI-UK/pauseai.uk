@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AskWithCounts } from "./records";
+import type { AskWithCounts } from "./records.server";
 import { askGroups, askPeriod } from "./ask-groups";
 import { asksCopy } from "./copy";
 

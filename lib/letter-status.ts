@@ -1,7 +1,7 @@
 // A letter's status, where it is on its way to a politician, and the
 // events in its history. letters.status's CHECK allows these, a supporter's
 // letter some and PauseAI's others (docs/domain-concepts.md). A status
-// changes only through transition() (lib/server/letter-lifecycle.ts), which
+// changes only through transition() (lib/server/letter-lifecycle.server.ts), which
 // logs its event in the same statement.
 
 /** Every status a letter can have. */

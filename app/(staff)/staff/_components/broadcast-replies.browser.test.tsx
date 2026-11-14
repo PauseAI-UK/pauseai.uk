@@ -16,8 +16,8 @@ import {
   exampleTextReplies,
   exampleTextReplyPastDay,
 } from "./BroadcastWriter.examples";
-import type { BroadcastAnswer } from "@/lib/server/broadcast-answers";
-import type { BroadcastReply } from "@/lib/server/broadcast-replies";
+import type { BroadcastAnswer } from "@/lib/server/broadcast-answers.server";
+import type { BroadcastReply } from "@/lib/server/broadcast-replies.server";
 import MessageCopyView from "./MessageCopyView";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import ReplyActions, { ReplyButton } from "./ReplyActions";

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { pageNumber, type ParamValue } from "@/lib/list-params";
-import { listErrorsSeen } from "@/lib/server/errors-seen";
-import { requireStaff } from "@/lib/accounts/auth";
+import { listErrorsSeen } from "@/lib/server/errors-seen.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import ErrorsSeen from "../../_components/ErrorsSeen";
 import Page from "../../_components/ui/Page";

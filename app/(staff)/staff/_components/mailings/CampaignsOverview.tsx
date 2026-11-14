@@ -1,7 +1,7 @@
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks/asks";
 import { monthsAndYears } from "@/lib/dated-groups";
-import type { CampaignSummary } from "@/lib/mailings/campaigns";
+import type { CampaignSummary } from "@/lib/mailings/campaigns.server";
 import { staffDate } from "@/lib/staff-time";
 import { countsOpening, type Count } from "../ui/Counts";
 import { NeedsAndFine } from "./CopyCounts";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { listSentEmails } from "@/lib/server/sent-emails";
-import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
+import { listSentEmails } from "@/lib/server/sent-emails.server";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import { sentEmailsSearch, type SentEmailsSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import SentEmails from "../../_components/SentEmails";

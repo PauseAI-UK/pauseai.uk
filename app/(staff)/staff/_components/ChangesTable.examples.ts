@@ -1,4 +1,4 @@
-import type { LoggedChange } from "@/lib/server/audit";
+import type { LoggedChange } from "@/lib/server/audit.server";
 
 /** An entry, at a fixed time, the last few the day before the rest, about no one unless it says so. */
 function change(

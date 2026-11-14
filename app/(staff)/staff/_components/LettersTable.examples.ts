@@ -1,7 +1,7 @@
 import { campaigns } from "@/lib/content/email-your-mp";
 import { draftLetter } from "@/lib/email-your-mp";
 import { toText } from "@/lib/letter-format";
-import type { LetterSummary, PauseaiLetterDetails, SupporterLetterDetails } from "@/lib/server/letters";
+import type { LetterSummary, PauseaiLetterDetails, SupporterLetterDetails } from "@/lib/server/letters.server";
 import type { LettersSearch } from "@/lib/staff-search";
 
 const [pm] = campaigns;

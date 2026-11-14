@@ -3,7 +3,7 @@ import { pickedWho } from "@/lib/mailings/picks";
 import { type Picked } from "@/lib/staff-search";
 import { firstOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
-import type { FilterWordsData } from "@/lib/mailings/pages";
+import type { FilterWordsData } from "@/lib/mailings/pages.server";
 import { filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
 import styles from "./MailingParts.module.css";
 import { mailingsCopy } from "./copy";

@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
-import { createSession } from "@/lib/accounts/auth";
-import { saveStaffAccount } from "@/lib/accounts/staff-accounts";
-import { query } from "@/lib/server/db";
-import { addFormEntry } from "@/lib/supporters/form-entries";
-import { recordStaffOptOut } from "@/lib/supporters/opt-outs";
+import { createSession } from "@/lib/accounts/auth.server";
+import { saveStaffAccount } from "@/lib/accounts/staff-accounts.server";
+import { query } from "@/lib/server/db.server";
+import { addFormEntry } from "@/lib/supporters/form-entries.server";
+import { recordStaffOptOut } from "@/lib/supporters/opt-outs.server";
 import type { SignupPlan } from "@/lib/supporters/signup-csv";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
@@ -13,8 +13,8 @@ import { importSignupUpload, previewSignupUpload, recordOptOutNow } from "./acti
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 // The real one, which a test can make find the opt-out recorded already, as one recorded since the page was opened.
-vi.mock("@/lib/supporters/opt-outs", async (original) => {
-  const real = await original<typeof import("@/lib/supporters/opt-outs")>();
+vi.mock("@/lib/supporters/opt-outs.server", async (original) => {
+  const real = await original<typeof import("@/lib/supporters/opt-outs.server")>();
   return { ...real, recordStaffOptOut: vi.fn(real.recordStaffOptOut) };
 });
 // revalidatePath needs a Next request; here it only needs to have been asked.

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { listSignupUploads } from "@/lib/supporters/signup-uploads";
-import { requireStaff } from "@/lib/accounts/auth";
+import { listSignupUploads } from "@/lib/supporters/signup-uploads.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import Page from "../../../../_components/ui/Page";
 import PageHead from "../../../../_components/ui/PageHead";
 import { now } from "@/lib/now";

@@ -1,14 +1,14 @@
 import Image from "next/image";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
-import { shuffle } from "@/lib/shuffle";
+import { shuffle } from "@/lib/shuffle.server";
 import styles from "./HomeHero.module.css";
 
 // The home page hero: three rows of photos scrolling in alternating
 // directions behind the headline (HeroMarqueeEffects measures and starts them).
 export default function HomeHero() {
   // Server-component shuffle: a new order each render (the same order in a
-  // fixture build, lib/shuffle.ts). Sent to the client as part of the
+  // fixture build, lib/shuffle.server.ts). Sent to the client as part of the
   // rendered HTML so hydration matches.
   const shuffled = shuffle(HERO_PHOTOS);
   // Share the photos across three rows so none are dropped as the list grows.

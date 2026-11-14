@@ -6,7 +6,7 @@ import { getFormat } from "@/lib/collateral/formats";
 import { LIBRARY_PHOTOS } from "@/lib/collateral/photos";
 import type { PhotoView } from "@/lib/collateral/photoTransform";
 import type { DesignData } from "@/lib/collateral/project";
-import * as render_ from "@/lib/collateral/render";
+import * as render_ from "@/lib/collateral/render.client";
 import { LOGO_COVER_TITLE_CHARS, defaultValues, getTemplate } from "@/lib/collateral/templates";
 import { THEMES } from "@/lib/collateral/themes";
 import CharCount from "./CharCount";

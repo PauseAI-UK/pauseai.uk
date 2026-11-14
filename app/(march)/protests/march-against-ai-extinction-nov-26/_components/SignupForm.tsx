@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { march } from "@/lib/content/march";
 import { marchSignupCopy } from "@/lib/content/march-signup";
 import type { MarchRegisterResult } from "@/lib/march-registration";
-import { track } from "./analytics";
+import { track } from "./analytics.client";
 import { cardMotionProps, type CardMotion } from "./card-motion";
 import { m } from "./classes";
 import SignupCount from "./SignupCount";

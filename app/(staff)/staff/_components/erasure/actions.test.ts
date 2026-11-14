@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { createSession } from "@/lib/accounts/auth";
-import { saveStaffAccount } from "@/lib/accounts/staff-accounts";
-import { query } from "@/lib/server/db";
-import { runJob } from "@/lib/server/jobs";
+import { createSession } from "@/lib/accounts/auth.server";
+import { saveStaffAccount } from "@/lib/accounts/staff-accounts.server";
+import { query } from "@/lib/server/db.server";
+import { runJob } from "@/lib/server/jobs.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { eraseSupporterNow } from "./actions";

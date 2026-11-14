@@ -1,4 +1,4 @@
-import { config } from "@/lib/server/config";
+import { config } from "@/lib/server/config.server";
 import { pageMetadata } from "@/lib/metadata";
 import Signatories from "../_components/Signatories";
 import CampaignContext from "../_components/CampaignContext";

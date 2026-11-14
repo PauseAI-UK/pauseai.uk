@@ -2,10 +2,10 @@
 // supporter, or a letter to a politician (docs/domain-concepts.md, "How a
 // copy went"). Each copy is in one state, which gives its tag, its colour and
 // the count it's in. A broadcast works its states out in
-// lib/server/broadcast-pages.ts; a letter's are here, as its tag needs them
+// lib/server/broadcast-pages.server.ts; a letter's are here, as its tag needs them
 // wherever it's shown.
 
-import type { SkipReason } from "./records";
+import type { SkipReason } from "./records.server";
 import { statusIn } from "@/lib/letter-status";
 
 /** A state's colour: red bad, amber sad, green good, blue for staff to do; none for normal, grey. */

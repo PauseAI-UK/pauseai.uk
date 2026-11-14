@@ -20,7 +20,7 @@ import { politiciansCopy } from "../politicians/copy";
 
 // Following a link that saves first leaves the page, which would take the test with it.
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
-vi.mock("@/lib/leave-page", () => ({ leavePage }));
+vi.mock("@/lib/leave-page.client", () => ({ leavePage }));
 afterEach(() => leavePage.mockClear());
 
 const copy = mailingsCopy.mailingPages;

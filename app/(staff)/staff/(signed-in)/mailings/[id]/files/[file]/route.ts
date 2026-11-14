@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { attachmentHeaders } from "@/lib/mailings/attachments";
-import { attachmentFile } from "@/lib/mailings/drafts";
-import { requireStaff } from "@/lib/accounts/auth";
+import { attachmentFile } from "@/lib/mailings/drafts.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { mailingId } from "@/lib/staff-search";
 
 /** One of a mailing's files: to open in the browser or picture as a thumbnail, if it's a kind that's safe to; else to save (attachmentHeaders). */

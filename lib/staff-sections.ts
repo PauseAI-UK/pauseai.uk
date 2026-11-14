@@ -33,7 +33,7 @@ export type StaffSectionId = "supporters" | "events" | "politicians" | "admin";
  * elsewhere. `draft`, for a page to try out that can't do its job yet, which says so in the navigation.
  * `added`, the day a page went live (as 2026-11-13), so for its first days
  * it's new even to an account seeing the navigation for the first time
- * (lib/accounts/nav-seen.ts).
+ * (lib/accounts/nav-seen.server.ts).
  */
 export type StaffPageLink = {
   id: StaffPageId;

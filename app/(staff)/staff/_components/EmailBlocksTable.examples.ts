@@ -1,4 +1,4 @@
-import type { EmailBlock, ProblemSummary } from "@/lib/server/email";
+import type { EmailBlock, ProblemSummary } from "@/lib/server/email.server";
 
 /** The test MP's address, blocked by a letter's hard bounce, with two emails not sent since. */
 export const exampleBlock: EmailBlock = {

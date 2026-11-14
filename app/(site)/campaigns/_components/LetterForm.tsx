@@ -18,7 +18,7 @@ import {
 import { draftHash } from "@/lib/letter-changes";
 import { toText } from "@/lib/letter-format";
 import AttachmentChips from "./AttachmentChips";
-import { saveDraft, type Draft } from "./draft";
+import { saveDraft, type Draft } from "./draft.client";
 import LetterEditor from "./LetterEditor";
 import Required from "@/components/ui/Required";
 import styles from "./LetterForm.module.css";

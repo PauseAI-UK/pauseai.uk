@@ -1,5 +1,5 @@
 import { campaigns } from "@/lib/content/email-your-mp";
-import type { Draft, Lookup } from "./draft";
+import type { Draft, Lookup } from "./draft.client";
 
 const [letterToPm] = campaigns;
 

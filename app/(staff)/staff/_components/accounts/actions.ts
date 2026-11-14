@@ -5,14 +5,14 @@
 // else (tests/checks/staff-auth.test.ts).
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireStaff } from "@/lib/accounts/auth";
-import { disconnectGmail } from "@/lib/accounts/gmail-accounts";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { disconnectGmail } from "@/lib/accounts/gmail-accounts.server";
 import {
   type AccountChange,
   endStaffSessions,
   removeStaffAccount,
   saveStaffAccount,
-} from "@/lib/accounts/staff-accounts";
+} from "@/lib/accounts/staff-accounts.server";
 import { permissionsFrom } from "@/lib/staff-forms";
 
 /** Where the accounts page goes after a change: back to itself, saying why if the change was refused. */

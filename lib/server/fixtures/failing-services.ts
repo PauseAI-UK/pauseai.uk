@@ -36,5 +36,5 @@ export function failingResponse(hostname: string, scope?: string, dir = process.
   return new Response("Service Unavailable", { status: 503, headers });
 }
 
-/** The fixture build's Blobs store (outside-services/blobs.ts). */
+/** The fixture build's Blobs store (outside-services/blobs.server.ts). */
 const BLOBS_HOST = "blobs.fixture.invalid";

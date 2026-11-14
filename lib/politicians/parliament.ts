@@ -2,7 +2,7 @@
 // gives each House's sitting members with their addresses in one answer
 // (https://data.parliament.uk/membersdataplatform/, no key needed), and why
 // a membership ended from its Members API (https://members-api.parliament.uk/).
-// The caller fetches: lib/server/outside-services/parliament.ts.
+// The caller fetches: lib/server/outside-services/parliament.server.ts.
 
 import { constituencyCountry } from "./constituencies";
 import type { Ending, OfficialMember } from "./import-changes";

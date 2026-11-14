@@ -5,16 +5,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
-import { runJob } from "@/lib/server/jobs";
-import { actionRequest } from "@/lib/site-url";
+import { runJob } from "@/lib/server/jobs.server";
+import { actionRequest } from "@/lib/site-url.server";
 import { idFrom, noteEditFrom, noteFrom, unblockFrom } from "@/lib/staff-forms";
-import { unblock } from "@/lib/server/delivery-problems";
-import { isPoliticianAddress } from "@/lib/server/email";
-import { setErrorDone } from "@/lib/server/errors-seen";
+import { unblock } from "@/lib/server/delivery-problems.server";
+import { isPoliticianAddress } from "@/lib/server/email.server";
+import { setErrorDone } from "@/lib/server/errors-seen.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
-import { decideHeldImport, isPoliticianImport } from "@/lib/politicians/imports";
-import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
-import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
+import { decideHeldImport, isPoliticianImport } from "@/lib/politicians/imports.server";
+import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes.server";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 
 /** Refreshes the page of whom a note is about. */
 function refreshNotes(target: NoteTarget): void {
@@ -57,7 +57,7 @@ function refreshImport(job: ImportJob): void {
 
 /**
  * A job's button, bound to the job's name: runs it as the staff member,
- * unless a run of it is going (lib/server/jobs.ts), then refreshes its
+ * unless a run of it is going (lib/server/jobs.server.ts), then refreshes its
  * pages. Any staff member may run any job. A failure is in the import log,
  * shown on its page like a scheduled one, so it's logged rather than
  * crashing the page.

@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { createSession } from "@/lib/accounts/auth";
-import { query } from "@/lib/server/db";
+import { createSession } from "@/lib/accounts/auth.server";
+import { query } from "@/lib/server/db.server";
 import { addTestPolitician, describeWithDatabase, MIGRATION_ASKS, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { deleteAskNow, saveAskNow } from "./actions";

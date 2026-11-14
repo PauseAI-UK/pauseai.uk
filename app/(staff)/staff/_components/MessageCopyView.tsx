@@ -1,7 +1,7 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import { letterFor } from "@/lib/mailings/doc";
 import { named } from "@/lib/email-parsing/addresses";
-import type { MessageCopy } from "@/lib/server/broadcast-pages";
+import type { MessageCopy } from "@/lib/server/broadcast-pages.server";
 import Reply, { type ReplyHandlers } from "./CopyReply";
 import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts";

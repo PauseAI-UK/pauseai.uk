@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { type LumaWebhook, recordLumaWebhook, signedByLuma } from "@/lib/events/luma-webhooks";
-import { problem } from "@/lib/server/problems";
-import { parseJsonIfAny } from "@/lib/server/json";
+import { type LumaWebhook, recordLumaWebhook, signedByLuma } from "@/lib/events/luma-webhooks.server";
+import { problem } from "@/lib/server/problems.server";
+import { parseJsonIfAny } from "@/lib/server/json.server";
 import { eventsCopy } from "@/lib/events/copy";
 
 /**

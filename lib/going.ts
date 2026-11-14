@@ -1,7 +1,7 @@
 import { goingCopy } from "@/lib/content/going";
 
 // Who's going to an event, as its page on luma.com shows anyone: how many,
-// and the few guests Luma features (lib/server/outside-services/luma-public.ts).
+// and the few guests Luma features (lib/server/outside-services/luma-public.server.ts).
 
 /** A guest Luma features: their name, and their photo if next/image may show it. */
 export type FeaturedGuest = { name: string; avatar: string | null };

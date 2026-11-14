@@ -2,7 +2,7 @@ import StaffLink from "./ui/StaffLink";
 import CampaignName from "./CampaignName";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffTime } from "@/lib/staff-time";
-import type { LetterSummary } from "@/lib/server/letters";
+import type { LetterSummary } from "@/lib/server/letters.server";
 import Empty from "./ui/Empty";
 import { ListTable, type ListColumn } from "./ui/ListFrame";
 import { Muted } from "@/components/ui/Text";

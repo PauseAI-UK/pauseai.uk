@@ -14,8 +14,8 @@ import { designQrCodes, designValues, newDesign, withQrCodes, type DesignState }
 
 // Library photos that fail to load, which the real ones never do.
 const { failImage } = vi.hoisted(() => ({ failImage: { on: false } }));
-vi.mock("@/lib/collateral/render", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/collateral/render")>();
+vi.mock("@/lib/collateral/render.client", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/collateral/render.client")>();
   return {
     ...actual,
     loadImage: (src: string) => (failImage.on ? Promise.reject(new Error("no")) : actual.loadImage(src)),

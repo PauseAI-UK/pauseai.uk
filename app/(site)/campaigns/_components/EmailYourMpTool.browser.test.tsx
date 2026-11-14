@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { navigation } from "@/tests/browser/navigation";
-import { readLookup, saveDraft, saveLookup } from "./draft";
+import { readLookup, saveDraft, saveLookup } from "./draft.client";
 import EmailYourMpTool from "./EmailYourMpTool";
 
 const [letterToPm, bill] = campaigns;

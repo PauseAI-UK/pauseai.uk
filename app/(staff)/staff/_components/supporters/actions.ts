@@ -4,14 +4,14 @@
 // sign-ups. Each is a public endpoint, so each calls requireStaff() before
 // anything else (tests/checks/staff-auth.test.ts).
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/accounts/auth";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { idFrom } from "@/lib/staff-forms";
-import { offCalendarAfter } from "@/lib/supporters/email-settings";
+import { offCalendarAfter } from "@/lib/supporters/email-settings.server";
 import { chosen, optOutChoices } from "@/lib/supporters/opt-out-choices";
-import { recordStaffOptOut } from "@/lib/supporters/opt-outs";
-import { getSupporter } from "@/lib/supporters/records";
+import { recordStaffOptOut } from "@/lib/supporters/opt-outs.server";
+import { getSupporter } from "@/lib/supporters/records.server";
 import type { SignupUploadInput } from "@/lib/supporters/signup-csv";
-import { finishSignupUpload, planSignupUpload } from "@/lib/supporters/signup-uploads";
+import { finishSignupUpload, planSignupUpload } from "@/lib/supporters/signup-uploads.server";
 
 /**
  * The form in a supporter's consents: records that they opted out of what

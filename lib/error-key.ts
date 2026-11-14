@@ -1,4 +1,4 @@
-// What makes two happenings the same error (lib/server/errors-seen.ts): where
+// What makes two happenings the same error (lib/server/errors-seen.server.ts): where
 // it was, its class, and its words with what varies taken out, so "No
 // politician 4127" and "No politician 4128" are one. Coarse on purpose: two
 // bugs counted as one are found a day apart, but one bug counted afresh each

@@ -1,4 +1,4 @@
-// Names shared by proxy.ts and lib/accounts/auth.ts. Kept apart from
+// Names shared by proxy.ts and lib/accounts/auth.server.ts. Kept apart from
 // the latter so the proxy doesn't bundle the database driver.
 
 /** The session cookie. Its value is a random token; the database holds its hash. */

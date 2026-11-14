@@ -4,8 +4,8 @@
 // requireStaff() before anything else (tests/checks/staff-auth.test.ts).
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireStaff } from "@/lib/accounts/auth";
-import { eraseSupporter } from "@/lib/erasure/erase";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { eraseSupporter } from "@/lib/erasure/erase.server";
 import { eraseFrom } from "@/lib/staff-forms";
 import { erasedPath } from "@/lib/staff-search";
 

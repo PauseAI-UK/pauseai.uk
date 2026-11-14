@@ -1,6 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { GmailAccount } from "@/lib/accounts/gmail-accounts";
+import type { GmailAccount } from "@/lib/accounts/gmail-accounts.server";
 import { staffDate } from "@/lib/staff-time";
 import { BROADCAST_SENDER } from "@/lib/broadcasts";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";

@@ -4,7 +4,7 @@ import { type ChangesSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { sortHref } from "@/lib/staff-sort";
 import { staffClock, staffDate } from "@/lib/staff-time";
-import type { ChangesPage, LoggedChange } from "@/lib/server/audit";
+import type { ChangesPage, LoggedChange } from "@/lib/server/audit.server";
 import AuditDetail from "./AuditDetail";
 import { LoggedJson } from "./Logged";
 import SortHeading from "./SortHeading";

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
-import { markSent } from "./draft";
+import { markSent } from "./draft.client";
 import LetterSent from "./LetterSent";
 import LetterStep from "./LetterStep";
 

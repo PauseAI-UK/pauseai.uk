@@ -23,13 +23,13 @@ import StaffLink from "../ui/StaffLink";
 import { DEFAULT_SENDER } from "@/lib/accounts/gmail-connect";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { named } from "@/lib/email-parsing/addresses";
-import { leavePage } from "@/lib/leave-page";
+import { leavePage } from "@/lib/leave-page.client";
 import { scheduleProblems } from "@/lib/mailings/schedule";
 import { filtersPath } from "@/lib/list-params";
 import { londonWhen } from "@/lib/staff-time";
-import type { ChannelResult } from "@/lib/mailings/channels";
-import type { ScheduleResult, WrittenMailing } from "@/lib/mailings/drafts";
-import type { PreviewRecipient, WriterData } from "@/lib/mailings/pages";
+import type { ChannelResult } from "@/lib/mailings/channels.server";
+import type { ScheduleResult, WrittenMailing } from "@/lib/mailings/drafts.server";
+import type { PreviewRecipient, WriterData } from "@/lib/mailings/pages.server";
 import {
   DraftTitle,
   DueSection,

@@ -1,7 +1,7 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { BroadcastPageData } from "@/lib/server/broadcast-pages";
-import type { SupporterChoices } from "@/lib/supporters/records";
+import type { BroadcastPageData } from "@/lib/server/broadcast-pages.server";
+import type { SupporterChoices } from "@/lib/supporters/records.server";
 import { type Params } from "@/lib/list-params";
 import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts";

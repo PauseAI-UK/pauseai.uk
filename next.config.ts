@@ -94,10 +94,10 @@ const nextConfig: NextConfig = {
   env: {
     // Netlify's deploy context ("production", "deploy-preview", ...), fixed
     // at build time. Outside production, letters go only to the test MP
-    // (lib/server/mp-letters.ts).
+    // (lib/server/mp-letters.server.ts).
     DEPLOY_CONTEXT: process.env.CONTEXT ?? "local",
     // This deploy's own address, from Netlify: in production the site's main
-    // domain, pauseai.uk. Read only by siteUrl() (lib/site-url.ts), for every
+    // domain, pauseai.uk. Read only by siteUrl() (lib/site-url.server.ts), for every
     // link in an email and every redirect. A fixture build is told the
     // address it's served at (FIXTURE_ORIGIN, lib/server/fixtures/fixture-env.mjs), so its
     // links are whole as the live site's are; any other local build has none.

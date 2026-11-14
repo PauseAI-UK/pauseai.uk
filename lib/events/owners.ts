@@ -3,7 +3,7 @@
 // event is in, by its city or one of its Luma tags, gives its owner; an
 // event no rule matches is the default owner's. The Luma import
 // gives each upcoming event with no owner its owner by these
-// (lib/events/staff-events.ts).
+// (lib/events/staff-events.server.ts).
 
 /** Whose an event is when no rule matches. */
 export const DEFAULT_OWNER = "joseph@pauseai.uk";

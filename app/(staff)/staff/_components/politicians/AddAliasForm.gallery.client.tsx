@@ -2,7 +2,7 @@
 
 // AddAliasForm's example that logs the address added (AddAliasForm.gallery.tsx).
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
-import type { AddResult } from "@/lib/politicians/aliases";
+import type { AddResult } from "@/lib/politicians/aliases.server";
 import AddAliasForm from "./AddAliasForm";
 import { examplePolitician } from "./PoliticianTable.examples";
 

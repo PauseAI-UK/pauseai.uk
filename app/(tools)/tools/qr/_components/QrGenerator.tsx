@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { declareCanvasFonts } from "@/lib/collateral/canvasFonts";
-import { canvasToPngBlob, downloadCanvasPng, downloadText } from "@/lib/collateral/export";
+import { declareCanvasFonts } from "@/lib/collateral/canvasFonts.client";
+import { canvasToPngBlob, downloadCanvasPng, downloadText } from "@/lib/collateral/export.client";
 import { isWebAddress, qrFilenameStem, qrMinPrintMm, qrTarget } from "@/lib/collateral/qr";
 import {
   CAPTION_FONTS,
@@ -14,7 +14,7 @@ import {
   type QrCaption,
 } from "@/lib/collateral/qrCaption";
 import { qrShape, qrSvg } from "@/lib/collateral/qrShape";
-import { loadDataUrl } from "@/lib/collateral/render";
+import { loadDataUrl } from "@/lib/collateral/render.client";
 import { INK } from "@/lib/collateral/themes";
 import QrScanner from "./QrScanner";
 import { Button } from "@/components/ui/Button";

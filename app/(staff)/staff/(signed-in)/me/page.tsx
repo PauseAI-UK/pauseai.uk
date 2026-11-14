@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { keepsPoliticianThreads } from "@/lib/one-off";
-import { gmailAccount } from "@/lib/accounts/gmail-accounts";
-import { isLettersInboxAddress } from "@/lib/server/letters-inbox";
-import { listSessions, requireStaff } from "@/lib/accounts/auth";
+import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
+import { isLettersInboxAddress } from "@/lib/server/letters-inbox.server";
+import { listSessions, requireStaff } from "@/lib/accounts/auth.server";
 import { firstOf, type ParamValue } from "@/lib/list-params";
 import { disconnectMyGmail } from "../../_components/accounts/actions";
 import MyGmail from "../../_components/accounts/MyGmail";

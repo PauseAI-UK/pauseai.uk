@@ -4,7 +4,7 @@ import { askHref } from "@/lib/asks/asks";
 import type { ReactNode } from "react";
 import type { MailingGroup } from "@/lib/mailings/groups";
 import { mailingWhen } from "@/lib/mailings/groups";
-import type { MailingBase, MailingSummary } from "@/lib/mailings/records";
+import type { MailingBase, MailingSummary } from "@/lib/mailings/records.server";
 import { named } from "@/lib/email-parsing/addresses";
 import { londonWhenShort, staffDate } from "@/lib/staff-time";
 import { countsOpening, type Count } from "../ui/Counts";

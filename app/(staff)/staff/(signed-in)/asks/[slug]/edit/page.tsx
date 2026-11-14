@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { askToEdit } from "@/lib/asks/records";
-import { requireStaff } from "@/lib/accounts/auth";
+import { askToEdit } from "@/lib/asks/records.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { askFormSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { deleteAskNow, saveAskNow } from "../../../../_components/asks/actions";

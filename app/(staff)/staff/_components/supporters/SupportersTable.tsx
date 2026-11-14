@@ -10,7 +10,7 @@ import {
   type ContactPermission,
   type ContactState,
 } from "@/lib/supporters/contact-permissions";
-import type { SupportersPage } from "@/lib/supporters/records";
+import type { SupportersPage } from "@/lib/supporters/records.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { type SupportersSearch } from "@/lib/staff-search";
 import { anyAndNone, filtersPath, pageParam, valuesOf, type Params } from "@/lib/list-params";

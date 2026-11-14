@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { featureLibFolders } from "../../eslint.config.mjs";
 
 // An error that's caught is rethrown or reported with problem()
-// (lib/server/problems.ts), so that carrying on past it leaves a record on
+// (lib/server/problems.server.ts), so that carrying on past it leaves a record on
 // the run, or at least in the log. This fails on any catch block, or
 // function passed to .catch(), that does neither, or has a way out (break,
 // continue, return) ahead of its report, as an early exit for one kind of
@@ -21,20 +21,26 @@ const DIRS = ["lib/server", ...featureLibFolders(), "app/api", "netlify/function
 /** The catches that aren't losing anything, as "file  function", with why. */
 const EXCEPTIONS = new Map([
   // Asking Next for the request's cookies throws outside a request: the catch is the question.
-  ["lib/server/flow-database.ts  flowDatabase", "outside a request there's no cookie, and nothing to report"],
+  ["lib/server/flow-database.server.ts  flowDatabase", "outside a request there's no cookie, and nothing to report"],
   // A development-only warning about migrations: the query after it reports the database being down.
-  ["lib/server/db.ts  warnIfBehind", "the query that follows reports the database being unreachable"],
+  ["lib/server/db.server.ts  warnIfBehind", "the query that follows reports the database being unreachable"],
   // "Not JSON" is an answer, not a failure: the one place that swallows the parse error.
-  ["lib/server/json.ts  parseJsonIfAny", "a body that isn't JSON is an answer the caller asked for"],
+  ["lib/server/json.server.ts  parseJsonIfAny", "a body that isn't JSON is an answer the caller asked for"],
   // The tests' reader of a fixture build's outbox: one not made yet holds no emails.
   ["lib/server/fixtures/outbox.ts  readOutbox", "an outbox that isn't there yet has no emails in it"],
   ["lib/server/fixtures/whatsapp-outbox.ts  readTexts", "an outbox that isn't there yet has no texts in it"],
   // Asking Next to wait for work after the response throws outside a request: the work is already going.
-  ["lib/server/errors-seen.ts  heldOpen", "outside a request there's nothing to hold open, and the work goes on"],
+  [
+    "lib/server/errors-seen.server.ts  heldOpen",
+    "outside a request there's nothing to hold open, and the work goes on",
+  ],
   // Gmail's history of a mailbox expires: the read searches instead, and its run says it restarted.
-  ["lib/server/outside-services/gmail.ts  gmailHistory", "history gone is an answer: the read searches, and says so"],
+  [
+    "lib/server/outside-services/gmail.server.ts  gmailHistory",
+    "history gone is an answer: the read searches, and says so",
+  ],
   // Postmark refusing a suppressed address is kept as that address blocked, which staff see.
-  ["lib/server/email.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
+  ["lib/server/email.server.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
   // A file that isn't UTF-8 is read as Windows-1252, as spreadsheets save it: the catch is the question.
   ["lib/supporters/signup-csv.ts  signupFileText", "a file that isn't UTF-8 is an answer: it's read as Windows-1252"],
 ]);

@@ -1,4 +1,4 @@
-import type { OneOffThread, OneOffThreadRow } from "@/lib/server/one-off-emails";
+import type { OneOffThread, OneOffThreadRow } from "@/lib/server/one-off-emails.server";
 
 // Fake one-off emails with politicians, for their tests and the gallery.
 

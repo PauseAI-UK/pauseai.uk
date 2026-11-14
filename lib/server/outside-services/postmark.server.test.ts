@@ -1,0 +1,234 @@
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { readOutbox } from "@/lib/server/fixtures/outbox";
+import { server } from "@/tests/fixtures/msw";
+import { headerName, PostmarkError, sendEmail, unsuppress } from "./postmark.server";
+
+const POSTMARK = "https://api.postmarkapp.com/email";
+const EMAIL = { From: "a@letters.pauseai.uk", To: "b@example.org", Subject: "S", TextBody: "T" };
+
+beforeEach(() => vi.stubEnv("POSTMARK_SERVER_TOKEN", "server-token"));
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
+
+describe("sendEmail", () => {
+  it("posts the email to Postmark's transactional stream, and returns the MessageID", async () => {
+    let request: Request | undefined;
+    server.use(
+      http.post(POSTMARK, ({ request: r }) => {
+        request = r.clone();
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "msg-1" });
+      }),
+    );
+    expect(await sendEmail(EMAIL)).toBe("msg-1");
+    expect(request!.headers.get("X-Postmark-Server-Token")).toBe("server-token");
+    expect(await request!.json()).toEqual({ ...EMAIL, MessageStream: "outbound" });
+  });
+
+  it("posts a broadcast's copy to the broadcast stream", async () => {
+    let body: unknown;
+    server.use(
+      http.post(POSTMARK, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "msg-2" });
+      }),
+    );
+    expect(await sendEmail(EMAIL, "broadcast")).toBe("msg-2");
+    expect(body).toEqual({ ...EMAIL, MessageStream: "broadcast" });
+  });
+
+  it("works with the fixture Postmark", async () => {
+    expect(await sendEmail(EMAIL)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("needs no token with fixtures on", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+    vi.stubEnv("DATA_FIXTURES", "1");
+    expect(await sendEmail(EMAIL)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("in the dev server without a real token, writes the email to the outbox instead of asking Postmark, and says so", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "outbox-"));
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("OUTBOX_DIR", dir);
+    server.use(http.post(POSTMARK, () => HttpResponse.error()));
+    try {
+      vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+      expect(await sendEmail({ ...EMAIL, Tag: "staff-login" })).toMatch(/^[0-9a-f-]{36}$/);
+      vi.stubEnv("POSTMARK_SERVER_TOKEN", "POSTMARK_API_TEST");
+      await sendEmail(EMAIL);
+      expect(readOutbox(dir).map((e) => e.To)).toEqual(["b@example.org", "b@example.org"]);
+      const files = readdirSync(dir).sort();
+      expect(info.mock.calls.map(([line]) => line)).toEqual([
+        `Email "staff-login" to an address at example.org: not sent, as POSTMARK_SERVER_TOKEN isn't set. Written to ${join(dir, files[0])} instead.`,
+        `Email to an address at example.org: not sent, as POSTMARK_SERVER_TOKEN is Postmark's test token. Written to ${join(dir, files[1])} instead.`,
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("in the dev server, uses tmp/outbox when OUTBOX_DIR isn't set, and treats a missing token like an empty one", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("OUTBOX_DIR", "");
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", undefined);
+    await sendEmail(EMAIL);
+    const file = String(info.mock.calls[0][0]).match(/Written to (\S+\.eml) instead/)![1];
+    try {
+      expect(file.startsWith(join("tmp", "outbox"))).toBe(true);
+      expect(info.mock.calls[0][0]).toContain("not sent, as POSTMARK_SERVER_TOKEN isn't set");
+    } finally {
+      rmSync(file, { force: true });
+    }
+  });
+
+  it("with fixtures on, writes the email to the outbox if there is one", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "outbox-"));
+    vi.stubEnv("DATA_FIXTURES", "1");
+    vi.stubEnv("OUTBOX_DIR", dir);
+    try {
+      await sendEmail(EMAIL);
+      expect(readOutbox(dir).map((e) => e.Subject)).toEqual(["S"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("logs nothing in unit tests, and says what happened elsewhere", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0, MessageID: "msg-1" })));
+    await sendEmail(EMAIL);
+    expect(info).not.toHaveBeenCalled();
+    vi.stubEnv("NODE_ENV", "production");
+    await sendEmail({ ...EMAIL, Tag: "staff-login" });
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "POSTMARK_API_TEST");
+    // A named recipient: only the domain is logged.
+    await sendEmail({ ...EMAIL, To: '"B" <b@example.org>' });
+    vi.stubEnv("DATA_FIXTURES", "1");
+    vi.stubEnv("OUTBOX_DIR", "");
+    await sendEmail(EMAIL);
+    expect(info.mock.calls.map(([line]) => line)).toEqual([
+      'Email "staff-login" to an address at example.org: sent through Postmark, MessageID msg-1',
+      "Email to an address at example.org: not sent, as POSTMARK_SERVER_TOKEN is Postmark's test token.",
+      "Email to an address at example.org: not sent, as DATA_FIXTURES=1. There's no outbox, so it isn't saved anywhere either.",
+    ]);
+  });
+
+  it("throws when Postmark refuses, answers oddly, or there's no token", async () => {
+    server.use(
+      http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 406, Message: "Inactive recipient" }, { status: 422 })),
+    );
+    await expect(sendEmail(EMAIL)).rejects.toThrow("422 406 Inactive recipient");
+    await expect(sendEmail(EMAIL)).rejects.toMatchObject({ inactive: true });
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 0 })));
+    await expect(sendEmail(EMAIL)).rejects.toThrow(PostmarkError);
+    await expect(sendEmail(EMAIL)).rejects.toMatchObject({ inactive: false });
+    server.use(http.post(POSTMARK, () => new HttpResponse("not json", { status: 500 })));
+    await expect(sendEmail(EMAIL)).rejects.toThrow("Postmark refused the email: 500");
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+    await expect(sendEmail(EMAIL)).rejects.toThrow("POSTMARK_SERVER_TOKEN is not set");
+  });
+});
+
+describe("unsuppress", () => {
+  const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
+
+  it("asks Postmark to take the address off both streams' suppression lists", async () => {
+    const requests: Request[] = [];
+    server.use(
+      http.post(UNSUPPRESS, ({ request: r }) => {
+        requests.push(r.clone());
+        return HttpResponse.json({ Suppressions: [] });
+      }),
+    );
+    await unsuppress("a@example.org");
+    expect(requests.map((r) => new URL(r.url).pathname.split("/")[2])).toEqual(["outbound", "broadcast"]);
+    expect(requests[0].headers.get("X-Postmark-Server-Token")).toBe("server-token");
+    expect(await requests[1].json()).toEqual({ Suppressions: [{ EmailAddress: "a@example.org" }] });
+  });
+
+  it("works with the fixture Postmark, which needs no token", async () => {
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+    vi.stubEnv("DATA_FIXTURES", "1");
+    await expect(unsuppress("a@example.org")).resolves.toBeUndefined();
+  });
+
+  it("in the dev server without a real token, doesn't ask, and says so", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "development");
+    server.use(http.post(UNSUPPRESS, () => HttpResponse.error()));
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", undefined);
+    await unsuppress("a@example.org");
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "POSTMARK_API_TEST");
+    await unsuppress("a@example.org");
+    expect(info).toHaveBeenCalledTimes(2);
+    expect(info.mock.calls[0][0]).toBe(
+      "a@example.org: not taken off Postmark's suppression list, as there's no real POSTMARK_SERVER_TOKEN.",
+    );
+  });
+
+  it("goes on when Postmark won't for the broadcast stream, as a server without one has nothing suppressed on it", async () => {
+    const asked: string[] = [];
+    server.use(
+      http.post(UNSUPPRESS, ({ params }) => {
+        asked.push(String(params.stream));
+        return params.stream === "broadcast"
+          ? HttpResponse.json({ ErrorCode: 1226, Message: "No such stream" }, { status: 422 })
+          : HttpResponse.json({ Suppressions: [] });
+      }),
+    );
+    await expect(unsuppress("a@example.org")).resolves.toBeUndefined();
+    expect(asked).toEqual(["outbound", "broadcast"]);
+  });
+
+  it("throws when Postmark won't for the transactional stream, or fails on the broadcast one", async () => {
+    const answers = (status: { outbound: number; broadcast: number }) =>
+      server.use(
+        http.post(
+          UNSUPPRESS,
+          ({ params }) => new HttpResponse(null, { status: status[params.stream as "outbound" | "broadcast"] }),
+        ),
+      );
+    answers({ outbound: 422, broadcast: 200 });
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 422");
+    answers({ outbound: 200, broadcast: 503 });
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 503");
+    // Nor is its limit on how fast we ask the stream not being there.
+    answers({ outbound: 200, broadcast: 429 });
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 429");
+    // Nor a 422 for anything but the stream not being there (its error 1226).
+    server.use(
+      http.post(UNSUPPRESS, ({ params }) =>
+        params.stream === "broadcast"
+          ? HttpResponse.json({ ErrorCode: 300, Message: "Invalid" }, { status: 422 })
+          : HttpResponse.json({ Suppressions: [] }),
+      ),
+    );
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 422");
+    // Nor one that says nothing at all.
+    answers({ outbound: 200, broadcast: 422 });
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 422");
+    answers({ outbound: 200, broadcast: 404 });
+    await expect(unsuppress("a@example.org")).resolves.toBeUndefined();
+  });
+
+  it("throws when Postmark refuses, or there's no token", async () => {
+    server.use(http.post(UNSUPPRESS, () => new HttpResponse(null, { status: 500 })));
+    await expect(unsuppress("a@example.org")).rejects.toThrow("Postmark refused to unsuppress the address: 500");
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "");
+    await expect(unsuppress("a@example.org")).rejects.toThrow("POSTMARK_SERVER_TOKEN is not set");
+  });
+});
+
+describe("headerName", () => {
+  it("removes what could break out of a From header", () => {
+    expect(headerName(' Jane "J" <Smith>\r\nBcc: x\\ ')).toBe("Jane J SmithBcc: x");
+  });
+});

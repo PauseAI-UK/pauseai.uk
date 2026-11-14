@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { POST } from "./route";
 

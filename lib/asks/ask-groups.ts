@@ -1,5 +1,5 @@
 import { monthsAndYears, type DatedGroup } from "@/lib/dated-groups";
-import type { AskWithCounts } from "./records";
+import type { AskWithCounts } from "./records.server";
 import { staffDate } from "@/lib/staff-time";
 import { asksCopy } from "./copy";
 

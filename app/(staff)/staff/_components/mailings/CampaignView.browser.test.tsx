@@ -1,5 +1,5 @@
 import { campaigns } from "@/lib/content/email-your-mp";
-import type { CampaignSummary } from "@/lib/mailings/campaigns";
+import type { CampaignSummary } from "@/lib/mailings/campaigns.server";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";

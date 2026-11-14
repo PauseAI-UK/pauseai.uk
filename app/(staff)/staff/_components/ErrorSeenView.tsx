@@ -1,6 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { ErrorSeen } from "@/lib/server/errors-seen";
+import type { ErrorSeen } from "@/lib/server/errors-seen.server";
 import { staffTime } from "@/lib/staff-time";
 import Band, { BandFact } from "./ui/Band";
 import Empty from "./ui/Empty";

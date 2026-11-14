@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadFonts, loadImage } from "@/lib/collateral/render";
+import { loadFonts, loadImage } from "@/lib/collateral/render.client";
 import type { Drawable } from "@/lib/collateral/templates";
 import { THEMES } from "@/lib/collateral/themes";
 

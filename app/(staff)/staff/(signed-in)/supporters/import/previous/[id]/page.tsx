@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { getSignupUpload } from "@/lib/supporters/signup-uploads";
+import { getSignupUpload } from "@/lib/supporters/signup-uploads.server";
 import { SIGNUP_UPLOADS_PATH } from "@/lib/supporters/signup-csv";
-import { requireStaff } from "@/lib/accounts/auth";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { supporterId } from "@/lib/staff-search";
 import SignupUploadResult, { SignupUploadHead } from "../../../../../_components/supporters/SignupUploadResult";
 import Page from "../../../../../_components/ui/Page";

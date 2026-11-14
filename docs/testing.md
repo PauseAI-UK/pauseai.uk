@@ -98,7 +98,7 @@ live in one place: `lib/server/fixtures/outside-services.ts`.
   only for browser requests that mustn't really happen (form submits to
   other sites). The storyboard's fixtures (`tests/storyboard/fixtures.ts`)
   deal with what a page loads from other sites:
-  - Analytics loads only on the live site (`lib/analytics.ts`). The fixture
+  - Analytics loads only on the live site (`lib/analytics.server.ts`). The fixture
     build turns it on so the consent flow can be driven, and the fixtures
     block every request to Google for every flow.
   - The two embeds from other sites have stand-ins, since what the real
@@ -117,7 +117,7 @@ Wrap the real module (`importActual`) and replace only that one function.
 ## Email
 
 Emails go through Postmark's HTTP API
-(`lib/server/outside-services/postmark.ts`) or Gmail's (`gmail.ts` beside
+(`lib/server/outside-services/postmark.server.ts`) or Gmail's (`gmail.server.ts` beside
 it), as the letters inbox or a staff member's connected account. Both go
 through `outsideFetch` like any other outside service.
 
@@ -127,7 +127,7 @@ through `outsideFetch` like any other outside service.
   `MessageID`, and the Gmail one its IDs. Tests read the request MSW
   received:
   - `recordGmail()` (`tests/gmail-sends.ts`) records what goes by Gmail.
-    `lib/server/mp-letters.test.ts` uses it to check a letter's From, To,
+    `lib/server/mp-letters.server.test.ts` uses it to check a letter's From, To,
     text and attachments.
   - `notifications()` (`tests/notifications.ts`) records what Postmark is
     asked to send, for the emails to the notification inbox.
@@ -156,7 +156,7 @@ through `outsideFetch` like any other outside service.
 
   So that the frames compare, the fixture build fills in what would be
   random: the `Date` header is the fixed clock's, and a login link's token
-  comes from a seed (`randomId` in `lib/server/random-id.ts`).
+  comes from a seed (`randomId` in `lib/server/random-id.server.ts`).
 
   A fixture build knows the address it's served at (`FIXTURE_ORIGIN`, from
   `lib/server/fixtures/fixture-env.mjs`, which both fixture builds use), as
@@ -534,8 +534,8 @@ So the storyboard keeps what a flow reaches to what it pictures:
 
 Imports of types alone (`import type`) don't count, as they're gone once
 compiled. A stylesheet's `@import` and `composes` do. So does code handed
-to a module without an import (`HANDED_OVER`): `lib/server/problems.ts` is
-told how to find the run in progress by `run-store.ts`, and what keeps an
+to a module without an import (`HANDED_OVER`): `lib/server/problems.server.ts` is
+told how to find the run in progress by `run-store.server.ts`, and what keeps an
 error by `instrumentation.ts`, so a flow that reaches the one reaches the
 others. A changed file reaches the flows whose reach has it, and some
 files reach more:
@@ -723,7 +723,7 @@ order, alongside the others:
   (`tests/storyboard/fixtures.ts`) copies it for each flow
   (`CREATE DATABASE … TEMPLATE`, tens of milliseconds), names the copy in a
   cookie on the browser context and the `request` fixture, and drops it
-  afterwards. In a fixture build only, `lib/server/db.ts` reads that cookie
+  afterwards. In a fixture build only, `lib/server/db.server.ts` reads that cookie
   and queries the database it names, through one small pool per database,
   closed when idle. Otherwise it queries the database `NETLIFY_DB_URL`
   names. Flows that need the fixture politicians import them with
@@ -739,7 +739,7 @@ order, alongside the others:
 
   Nothing date-shaped is masked.
 
-- **A seeded hero.** `lib/shuffle.ts` shuffles the same way every time in a
+- **A seeded hero.** `lib/shuffle.server.ts` shuffles the same way every time in a
   fixture build, so the home page's hero is compared too.
 - **Seeded emails.** In a fixture build, a login link's token is made from
   a seed, and an email's `Date` is the fixed clock's, so the pictures of the
@@ -1059,7 +1059,7 @@ that drives it or why nothing does.
   - `replies`: a reply to an old letter's own address.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
-- `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.ts`), Vitest-tested beside it for every job:
+- `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.server.ts`), Vitest-tested beside it for every job:
   - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`: `importPoliticians()` in `tests/storyboard/politician-steps.ts`, at the start of the staff flows that need politicians, which then gives them their Airtable records' details; `imports` runs Parliament's again to hold it.
   - `import-controlai`, `import-controlai-statement`: Not driven. The `staff-navigation` and `politicians` sections run them through their buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
@@ -1182,7 +1182,7 @@ not a mock.
   press on its page) are tested running at once: `atOnce()`
   (`tests/at-once.ts`) starts several runs together on the test file's
   database, and the test checks each letter, guest or message was handled
-  once (`lib/server/sending-job.test.ts`, `lib/events/luma-import.test.ts`).
+  once (`lib/server/sending-job.server.test.ts`, `lib/events/luma-import.server.test.ts`).
 - **A data migration gets a test while its tables are still changing.** A
   migration that moves or reshapes rows, not only tables, is tested with
   `useDatabaseUpTo()`:
@@ -1274,7 +1274,13 @@ import("@/tests/next-headers"))` and put the session cookie in
   module's class (its name is hashed) or import one into a test. To check
   something visual, read its computed style, since a component's module
   loads with it.
-- New logic in `lib/` ships with its `*.test.ts`.
+- New logic in `lib/` ships with its `*.test.ts`, named for its module
+  (`x.server.test.ts` for `x.server.ts`).
+- **A module's name says where it runs** (`docs/code-structure.md`,
+  "Where code runs"): `x.server.ts` imports `"server-only"`, `x.client.ts`
+  imports `"client-only"`, and one that reads `process.env` or imports the
+  database, settings or an outside service is `.server.ts`, or
+  `tests/checks/runs-where.test.ts` fails.
 - A new staff page, route handler or Server Action under `app/(staff)/`
   must call `requireStaff()` as its first statement, or `tests/checks/staff-auth.test.ts`
   fails. Each exported function is checked on its own, so every action in

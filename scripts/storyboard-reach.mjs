@@ -134,13 +134,13 @@ export function importsOf(path, text) {
 
 /**
  * Code handed to a module as another loads, which the first then calls
- * without importing it: lib/server/problems.ts is told how to find the run
- * in progress by run-store.ts, and what keeps an error by instrumentation.ts.
+ * without importing it: lib/server/problems.server.ts is told how to find the run
+ * in progress by run-store.server.ts, and what keeps an error by instrumentation.ts.
  * A flow that reaches the module reaches what's handed to it, as if it were
  * imported. handOvers finds the places in the site's code that could be
  * another, and the tests check each is here or known not to be one.
  */
-const HANDED_OVER = { "lib/server/problems.ts": ["lib/server/run-store.ts", "instrumentation.ts"] };
+const HANDED_OVER = { "lib/server/problems.server.ts": ["lib/server/run-store.server.ts", "instrumentation.ts"] };
 
 /**
  * Where the site's code (`dirs` under `root`) could hand code over without

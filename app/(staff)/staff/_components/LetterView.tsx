@@ -1,9 +1,9 @@
 import StaffLink from "./ui/StaffLink";
 import type { ReactNode } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { Ask } from "@/lib/asks/records";
-import type { LetterDetails } from "@/lib/server/letters";
-import type { Politician } from "@/lib/politicians/records";
+import type { Ask } from "@/lib/asks/records.server";
+import type { LetterDetails } from "@/lib/server/letters.server";
+import type { Politician } from "@/lib/politicians/records.server";
 import AskRow, { AskRows } from "./politicians/AskRow";
 import CampaignName from "./CampaignName";
 import { historyOf, LetterHistory, letterTitle } from "./LetterHistory";

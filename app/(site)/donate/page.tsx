@@ -1,5 +1,5 @@
 import { pageMetadata } from "@/lib/metadata";
-import { getThankedDonors } from "@/lib/server/outside-services/stripe";
+import { getThankedDonors } from "@/lib/server/outside-services/stripe.server";
 import DonateIntro from "./_components/DonateIntro";
 import DonateBottom from "./_components/DonateBottom";
 

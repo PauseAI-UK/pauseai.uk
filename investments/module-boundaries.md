@@ -15,4 +15,4 @@ About 40 server files import the staff UI's copy.
 
 ## Hits
 
-- 2026-11-12: `email.ts`, `gmail-accounts.ts`, `notifications.ts` and `relays.ts` import each other, so a change to any of them reaches 82 files and most staff flows of the storyboard (`narrow-imports.md`)
+- 2026-11-12: `email.server.ts`, `gmail-accounts.server.ts`, `notifications.server.ts` and `relays.server.ts` import each other, so a change to any of them reaches 82 files and most staff flows of the storyboard (`narrow-imports.md`)

@@ -1,8 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { createSession } from "@/lib/accounts/auth";
-import { gmailAccounts } from "@/lib/accounts/gmail-accounts";
-import { saveStaffAccount } from "@/lib/accounts/staff-accounts";
-import { query } from "@/lib/server/db";
+import { createSession } from "@/lib/accounts/auth.server";
+import { gmailAccounts } from "@/lib/accounts/gmail-accounts.server";
+import { saveStaffAccount } from "@/lib/accounts/staff-accounts.server";
+import { query } from "@/lib/server/db.server";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { disconnectMyGmail, endStaffSessionsNow, removeStaffAccountNow, saveStaffAccountNow } from "./actions";

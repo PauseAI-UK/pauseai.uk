@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { navigation } from "@/tests/browser/navigation";
-import { readDraft, type Draft } from "./draft";
+import { readDraft, type Draft } from "./draft.client";
 import { exampleMp } from "./draft.examples";
 import LetterForm from "./LetterForm";
 

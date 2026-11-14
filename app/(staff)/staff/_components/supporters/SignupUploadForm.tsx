@@ -8,7 +8,7 @@ import LinkButton from "@/components/ui/LinkButton";
 import Required from "@/components/ui/Required";
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
-import type { SignupEventChoice } from "@/lib/supporters/signup-uploads";
+import type { SignupEventChoice } from "@/lib/supporters/signup-uploads.server";
 import {
   MAX_SIGNUP_FILE_BYTES,
   readSignupFile,

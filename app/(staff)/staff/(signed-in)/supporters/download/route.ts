@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
 import { supporterWords } from "../../../_components/supporters/SupporterFilters";
 import { supporterColumns, supporterContact } from "../../../_components/supporters/SupportersTable";
-import { requireStaff } from "@/lib/accounts/auth";
-import { staffDownload } from "@/lib/server/staff-download";
-import { listSupporters, supporterChoices } from "@/lib/supporters/records";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { staffDownload } from "@/lib/server/staff-download.server";
+import { listSupporters, supporterChoices } from "@/lib/supporters/records.server";
 import { supportersSearch } from "@/lib/staff-search";
 import { supportersCopy } from "../../../_components/supporters/copy";
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { webhookRequest } from "@/tests/postmark-webhooks";

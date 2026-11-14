@@ -15,7 +15,7 @@ import {
   type Draft,
   type Lookup,
   type Sent,
-} from "@/app/(site)/campaigns/_components/draft";
+} from "@/app/(site)/campaigns/_components/draft.client";
 import { exampleDraft, exampleLookup, exampleMp } from "@/app/(site)/campaigns/_components/draft.examples";
 import EmailYourMpTool from "@/app/(site)/campaigns/_components/EmailYourMpTool";
 import LetterEditor from "@/app/(site)/campaigns/_components/LetterEditor";

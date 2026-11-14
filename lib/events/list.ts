@@ -1,8 +1,8 @@
 // The staff events list's tabs, filters and sorts, applied to our events
-// as lib/events/staff-events.ts lists them. There are few enough events
+// as lib/events/staff-events.server.ts lists them. There are few enough events
 // to filter and sort them all here, rather than in SQL.
 import { BIG_EVENTS_TAG, ONLINE_TAG } from "./tags";
-import type { SearchedEvent, StaffEvent } from "./staff-events";
+import type { SearchedEvent, StaffEvent } from "./staff-events.server";
 import { windowStart } from "@/lib/staff-dashboard";
 import type { SortColumns, SortSpec } from "@/lib/staff-sort";
 import { londonDayTime } from "@/lib/staff-time";

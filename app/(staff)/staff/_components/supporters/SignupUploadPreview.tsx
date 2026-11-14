@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
-import type { SignupUploadFinished, SignupUploadRefused } from "@/lib/supporters/signup-uploads";
+import type { SignupUploadFinished, SignupUploadRefused } from "@/lib/supporters/signup-uploads.server";
 import {
   SIGNUP_PILES,
   signupPileCounts,

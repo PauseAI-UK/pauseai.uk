@@ -1,4 +1,4 @@
-import { unsubscribeCopy } from "@/lib/supporters/email-settings";
+import { unsubscribeCopy } from "@/lib/supporters/email-settings.server";
 
 // A mail app's own Unsubscribe button, by the List-Unsubscribe-Post header
 // on every copy of a broadcast (RFC 8058): one POST, no page, which opts the

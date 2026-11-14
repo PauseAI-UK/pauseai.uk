@@ -1,8 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { query } from "@/lib/server/db";
-import { addAttachment, createDraft } from "@/lib/mailings/drafts";
-import { createBroadcastDraft } from "@/lib/server/broadcast-drafts";
-import { createSession } from "@/lib/accounts/auth";
+import { query } from "@/lib/server/db.server";
+import { addAttachment, createDraft } from "@/lib/mailings/drafts.server";
+import { createBroadcastDraft } from "@/lib/server/broadcast-drafts.server";
+import { createSession } from "@/lib/accounts/auth.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { GET } from "./route";

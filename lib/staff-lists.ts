@@ -126,7 +126,7 @@ export const POLITICIANS_LIST = defineStaffList({
   sorts: {
     // The Asks column sorts by when their newest answer was recorded, newest first: the dashboard
     // counts signatures by the same time. First and last activity sort by the times
-    // POLITICIAN_ACTIVITY in lib/politicians/records.ts gives.
+    // POLITICIAN_ACTIVITY in lib/politicians/records.server.ts gives.
     columns: {
       name: "asc",
       house: "asc",
@@ -355,7 +355,7 @@ export const ACCOUNTS_LIST = defineStaffList({
   },
 });
 
-/** What has gone wrong on the site (lib/server/errors-seen.ts). It's the one seen most recently first, with no other sort. */
+/** What has gone wrong on the site (lib/server/errors-seen.server.ts). It's the one seen most recently first, with no other sort. */
 export const ERRORS_LIST = defineStaffList({
   path: "/staff/errors",
   needs: "admin",

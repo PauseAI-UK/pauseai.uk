@@ -2,7 +2,7 @@ import { ALL_EMAILS_LIST, clearedPath, type AllEmailsSort } from "@/lib/staff-li
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { AllLettersFound, AnyLetter, EmailChoice } from "@/lib/server/all-letters";
+import type { AllLettersFound, AnyLetter, EmailChoice } from "@/lib/server/all-letters.server";
 import { ALL_EMAIL_FILTERS } from "@/lib/staff-list-filters";
 import { ALL_LETTERS_PAGE_SIZE, type AllLettersSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam } from "@/lib/list-params";

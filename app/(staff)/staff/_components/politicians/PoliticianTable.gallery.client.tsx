@@ -1,7 +1,7 @@
 "use client";
 
 // PoliticianTable's examples (PoliticianTable.gallery.tsx).
-import type { Politician } from "@/lib/politicians/records";
+import type { Politician } from "@/lib/politicians/records.server";
 import PoliticianTable from "./PoliticianTable";
 import { examplePolitician } from "./PoliticianTable.examples";
 import { exampleAsks } from "../asks/AsksList.examples";

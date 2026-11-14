@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { errorSeen } from "@/lib/server/errors-seen";
-import { requireStaff } from "@/lib/accounts/auth";
+import { errorSeen } from "@/lib/server/errors-seen.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { setErrorDoneNow } from "../../../actions";
 import ErrorSeenView from "../../../_components/ErrorSeenView";
 import Page from "../../../_components/ui/Page";

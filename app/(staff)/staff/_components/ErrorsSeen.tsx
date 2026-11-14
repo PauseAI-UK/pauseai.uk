@@ -1,6 +1,6 @@
 import { staffCopy } from "@/lib/content/staff-interface";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import type { ErrorSeen } from "@/lib/server/errors-seen";
+import type { ErrorSeen } from "@/lib/server/errors-seen.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
@@ -35,7 +35,7 @@ const doneColumns: ListColumn<ErrorSeen>[] = [
 
 /**
  * What has gone wrong on the site outside a job's run, for admins
- * (lib/server/errors-seen.ts): in two tabs, those to do and those marked
+ * (lib/server/errors-seen.server.ts): in two tabs, those to do and those marked
  * done (`done`), a row for each error, the one seen most recently first,
  * its words leading to its own page.
  */

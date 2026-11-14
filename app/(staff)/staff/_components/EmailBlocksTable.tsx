@@ -1,7 +1,7 @@
 import StaffLink from "./ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { EmailBlock } from "@/lib/server/email";
+import type { EmailBlock } from "@/lib/server/email.server";
 import type { DownloadFormat } from "@/lib/staff-list";
 import { staffTime } from "@/lib/staff-time";
 import Reason, { problemSource } from "./BounceReason";

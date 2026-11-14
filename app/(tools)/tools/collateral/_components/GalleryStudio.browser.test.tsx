@@ -21,16 +21,16 @@ const { downloads, loads } = vi.hoisted(() => ({
   // Image addresses that fail to load, and whether the fonts do.
   loads: { failing: [] as string[], fontsFail: false },
 }));
-vi.mock("@/lib/collateral/export", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/collateral/export")>();
+vi.mock("@/lib/collateral/export.client", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/collateral/export.client")>();
   return {
     ...actual,
     downloadPlatformBundleZip: (...a: unknown[]) => downloads.zip(...a),
     downloadText: (...a: unknown[]) => downloads.text(...a),
   };
 });
-vi.mock("@/lib/collateral/render", async (importActual) => {
-  const actual = await importActual<typeof import("@/lib/collateral/render")>();
+vi.mock("@/lib/collateral/render.client", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/collateral/render.client")>();
   return {
     ...actual,
     loadImage: (src: string) => (loads.failing.includes(src) ? Promise.reject(new Error("no")) : actual.loadImage(src)),

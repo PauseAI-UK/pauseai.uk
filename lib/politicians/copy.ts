@@ -264,7 +264,7 @@ export const politiciansCopy = {
       },
     },
   },
-  // The nightly imports of each body's members from its own list (lib/politicians/imports.ts).
+  // The nightly imports of each body's members from its own list (lib/politicians/imports.server.ts).
   politicianImports: {
     titles: {
       "import-parliament": "MPs and Lords from UK Parliament",
@@ -337,12 +337,12 @@ export const politiciansCopy = {
     keptSalutation: (name: string, ours: string, body: Body, theirs: string) =>
       `${name}: staff set ${ours}; ${bodyNames[body]} records ${theirs}`,
   },
-  // What went wrong without stopping the work (lib/server/problems.ts).
+  // What went wrong without stopping the work (lib/server/problems.server.ts).
   problems: {
     // On the Gmail read's run, so on its page and in the email: searching the mailboxes for an address staff added
     // to a politician's failed, so its earlier mail may not be kept.
     addressNotSearched: (address: string) => `Couldn't search policy@ and Joseph's inbox for ${address}`,
-    // No job reaches this: it's kept as an error (lib/server/errors-seen.ts), on the errors page and emailed to
+    // No job reaches this: it's kept as an error (lib/server/errors-seen.server.ts), on the errors page and emailed to
     // staff. A visitor looking up their MP is told it failed.
     mpLookupFailed: "The MP lookup failed",
   },

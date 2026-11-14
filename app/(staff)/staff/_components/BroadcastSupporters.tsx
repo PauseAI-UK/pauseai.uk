@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { ChoosingBroadcast } from "@/lib/server/broadcast-pages";
+import type { ChoosingBroadcast } from "@/lib/server/broadcast-pages.server";
 import { storedFilter, type SupportersSearch } from "@/lib/staff-search";
 import { valuesOf } from "@/lib/list-params";
 import { broadcastTerms } from "@/lib/broadcasts";

@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { now } from "@/lib/now";
-import { broadcastsToSupporter } from "@/lib/server/broadcast-pages";
-import { notesOn } from "@/lib/server/notes";
-import { requireStaff } from "@/lib/accounts/auth";
-import { getSupporter } from "@/lib/supporters/records";
+import { broadcastsToSupporter } from "@/lib/server/broadcast-pages.server";
+import { notesOn } from "@/lib/server/notes.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { getSupporter } from "@/lib/supporters/records.server";
 import { supporterId } from "@/lib/staff-search";
 import { canonicalSupporter, supporterTitle } from "@/lib/supporters/supporters";
 import { optOutChoices } from "@/lib/supporters/opt-out-choices";
-import { config } from "@/lib/server/config";
+import { config } from "@/lib/server/config.server";
 import { addNoteNow, deleteNoteNow, editNoteNow } from "../../../actions";
 import { recordOptOutNow } from "../../../_components/supporters/actions";
 import DevPreferences from "../../../_components/supporters/DevPreferences";
@@ -17,7 +17,7 @@ import EraseLink from "../../../_components/erasure/EraseLink";
 import Notes from "../../../_components/Notes";
 import SupporterBroadcasts from "../../../_components/SupporterBroadcasts";
 import SupporterDetails from "../../../_components/supporters/SupporterDetails";
-import { supporterOneOffs } from "@/lib/server/one-off-emails";
+import { supporterOneOffs } from "@/lib/server/one-off-emails.server";
 import { OneOffTable } from "../../../_components/OneOffList";
 import Page from "../../../_components/ui/Page";
 

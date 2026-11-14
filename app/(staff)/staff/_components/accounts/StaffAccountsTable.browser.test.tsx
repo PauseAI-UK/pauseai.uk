@@ -2,7 +2,7 @@ import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { type StaffAccount } from "@/lib/accounts/staff-accounts";
+import { type StaffAccount } from "@/lib/accounts/staff-accounts.server";
 import StaffAccountsTable, { AddStaff } from "./StaffAccountsTable";
 import { action } from "@/tests/browser/staff";
 import { accountsCopy } from "./copy";

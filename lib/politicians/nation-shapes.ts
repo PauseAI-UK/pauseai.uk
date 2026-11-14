@@ -1,4 +1,4 @@
-import type { Country } from "./records";
+import type { Country } from "./records.server";
 
 // Each nation's outline, as an SVG path in a 24-unit square, simplified from
 // Natural Earth's 1:50m map subunits (public domain, naturalearthdata.com):

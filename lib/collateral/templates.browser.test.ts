@@ -4,7 +4,7 @@ import "@/components/tools/kit/Studio";
 import { getFormat } from "./formats";
 import type { LintIssue } from "./lint";
 import { LIBRARY_PHOTOS } from "./photos";
-import { loadFonts, loadImage, renderCollateral, type RenderOptions } from "./render";
+import { loadFonts, loadImage, renderCollateral, type RenderOptions } from "./render.client";
 import { defaultValues, getTemplate, logoCoverRect, TEMPLATES, type Drawable, type Values } from "./templates";
 import { CLEAR_PHOTO_LOGO_SRC, getTheme } from "./themes";
 

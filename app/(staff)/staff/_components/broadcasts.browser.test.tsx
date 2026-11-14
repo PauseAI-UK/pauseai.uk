@@ -4,8 +4,8 @@ import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { mailingGroups } from "@/lib/mailings/groups";
-import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
-import type { BroadcastSummary } from "@/lib/server/broadcast-pages";
+import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts.server";
+import type { BroadcastSummary } from "@/lib/server/broadcast-pages.server";
 import { supportersSearch } from "@/lib/staff-search";
 import { londonWhen, staffTime } from "@/lib/staff-time";
 import { textCost } from "@/lib/broadcasts";
@@ -44,7 +44,7 @@ import { supportersCopy } from "./supporters/copy";
 import { mailingsCopy } from "./mailings/copy";
 
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
-vi.mock("@/lib/leave-page", () => ({ leavePage }));
+vi.mock("@/lib/leave-page.client", () => ({ leavePage }));
 afterEach(() => leavePage.mockClear());
 
 const copy = staffCopy.broadcastPages;

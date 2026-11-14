@@ -1,6 +1,6 @@
 // What a staff account may do beyond the pages about politicians and
 // campaigns. Any pauseai.uk address can log in, and gets an account
-// (lib/accounts/staff-accounts.ts) with none of these on its first login.
+// (lib/accounts/staff-accounts.server.ts) with none of these on its first login.
 
 // In the order forms list them.
 export const PERMISSIONS = ["supporters", "admin"] as const;

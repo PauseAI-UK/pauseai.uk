@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { recentLetters } from "@/lib/server/letters";
-import { requireStaff } from "@/lib/accounts/auth";
-import { getSupporter } from "@/lib/supporters/records";
+import { recentLetters } from "@/lib/server/letters.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { getSupporter } from "@/lib/supporters/records.server";
 import { supporterId } from "@/lib/staff-search";
 import { supporterTitle } from "@/lib/supporters/supporters";
 import LettersTable from "../../../../_components/LettersTable";

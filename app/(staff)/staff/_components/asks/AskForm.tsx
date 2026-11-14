@@ -8,7 +8,7 @@ import DatePicker from "@/components/ui/DatePicker";
 import { Field, FieldError, FieldSet, Hint } from "@/components/ui/Field";
 import { FormStack } from "@/components/ui/Form";
 import { ASK_STATUSES, ASKERS, askSlug, type AskKind, type Asker } from "@/lib/asks/asks";
-import type { Ask } from "@/lib/asks/records";
+import type { Ask } from "@/lib/asks/records.server";
 import { AskPreview } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
 import { DeleteTwice } from "../DeleteTwice";

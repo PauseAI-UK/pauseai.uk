@@ -2,24 +2,25 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-// The database's connection string: only lib/server/db.ts connects, and the
+// The database's connection string: only lib/server/db.server.ts connects, and the
 // test helper points it at a fresh database.
 const DATABASE_URL_RULE = {
   selector: "MemberExpression[property.name='NETLIFY_DB_URL']",
-  message: "Only lib/server/db.ts connects to the database. Query through it.",
+  message: "Only lib/server/db.server.ts connects to the database. Query through it.",
 };
-const PG_IMPORT = { name: "pg", message: "Only lib/server/db.ts connects to the database. Query through it." };
+const PG_IMPORT = { name: "pg", message: "Only lib/server/db.server.ts connects to the database. Query through it." };
 
 // The site's settings are read from the environment only in
-// lib/server/config.ts, which gives each one shape for every caller. The
+// lib/server/config.server.ts, which gives each one shape for every caller. The
 // database's connection string has its own rule, above.
 const PROCESS_ENV_RULE = {
   selector: "MemberExpression[object.name='process'][property.name='env'][parent.property.name!='NETLIFY_DB_URL']",
-  message: "Read settings from config (lib/server/config.ts), which reads and normalises each environment variable.",
+  message:
+    "Read settings from config (lib/server/config.server.ts), which reads and normalises each environment variable.",
 };
 
 // The site's own address: every absolute URL on it, in an email or a
-// redirect, comes from siteUrl() in lib/site-url.ts, which uses the deploy's
+// redirect, comes from siteUrl() in lib/site-url.server.ts, which uses the deploy's
 // address. A request's own URL or Host is the wrong one on Netlify
 // (main--pauseaiuk.netlify.app), and whoever sends the request can set it.
 const SITE_URL_RULE = {
@@ -30,7 +31,7 @@ const SITE_URL_RULE = {
     "CallExpression[callee.property.name='get'][arguments.0.value=/^(host|origin|x-forwarded-host)$/i]",
   ].join(", "),
   message:
-    "Build URLs on this site with siteUrl() from lib/site-url.ts. The request's own URL and Host are netlify.app on Netlify, and can be forged.",
+    "Build URLs on this site with siteUrl() from lib/site-url.server.ts. The request's own URL and Host are netlify.app on Netlify, and can be forged.",
 };
 
 // Outside services are called only from their bindings in
@@ -39,7 +40,7 @@ const SITE_URL_RULE = {
 // and server code never calls fetch() itself.
 const OUTSIDE = "lib/server/outside-services";
 const OUTSIDE_FETCH_IMPORT = {
-  group: ["**/outside-fetch"],
+  group: ["**/outside-fetch.server"],
   importNames: ["outsideFetch"],
   message: `Outside services are called only from their bindings in ${OUTSIDE}/. Use one, or add one there.`,
 };
@@ -57,27 +58,32 @@ const SERVICES = [
   // Luma's API, not its event pages, which are ordinary links.
   {
     name: "Luma's API",
-    files: ["luma-api.ts", "luma-calendar.ts", "luma-guests.ts"],
+    files: ["luma-api.server.ts", "luma-calendar.server.ts", "luma-guests.server.ts"],
     host: "(?:api2|public-api)\\.luma\\.com",
     why: "and its key stays on the server",
   },
   {
     name: "Postmark",
-    files: ["postmark.ts"],
+    files: ["postmark.server.ts"],
     host: "api\\.postmarkapp\\.com",
-    why: "and email is sent with send() from lib/server/email-sending.ts",
+    why: "and email is sent with send() from lib/server/email-sending.server.ts",
   },
   {
     name: "Google's OAuth and Gmail",
-    files: ["gmail.ts"],
+    files: ["gmail.server.ts"],
     host: "(?:oauth2|gmail|openidconnect)\\.googleapis\\.com|accounts\\.google\\.com.o.oauth2",
-    why: "and email is sent with send() from lib/server/email-sending.ts",
+    why: "and email is sent with send() from lib/server/email-sending.server.ts",
   },
-  { name: "postcodes.io", files: ["postcodes.ts"], host: "api\\.postcodes\\.io" },
+  { name: "postcodes.io", files: ["postcodes.server.ts"], host: "api\\.postcodes\\.io" },
   // Stripe's API, not the donate links, which are payment pages on donate.stripe.com.
-  { name: "Stripe's API", files: ["stripe.ts"], host: "api\\.stripe\\.com", why: "and its key stays on the server" },
+  {
+    name: "Stripe's API",
+    files: ["stripe.server.ts"],
+    host: "api\\.stripe\\.com",
+    why: "and its key stays on the server",
+  },
   // Turnstile's server-side check, not the widget's script, which the browser loads.
-  { name: "Turnstile", files: ["turnstile.ts"], host: "challenges\\.cloudflare\\.com.turnstile.v0.siteverify" },
+  { name: "Turnstile", files: ["turnstile.server.ts"], host: "challenges\\.cloudflare\\.com.turnstile.v0.siteverify" },
 ].map((service) => ({ ...service, files: service.files.map((file) => `${OUTSIDE}/${file}`) }));
 
 const hostRule = ({ name, files, host, why }) => ({
@@ -85,20 +91,20 @@ const hostRule = ({ name, files, host, why }) => ({
   message: `${name} is called only from ${files.join(" and ")}${why ? `, ${why}` : ""}.`,
 });
 
-// Email goes out only through sendWith() in lib/server/email.ts, which skips
+// Email goes out only through sendWith() in lib/server/email.server.ts, which skips
 // blocked addresses and records each send, so a bounce can be traced to
 // what was sent. Only it uses Postmark's binding to send or unblock.
 const POSTMARK_IMPORT = {
-  group: ["**/postmark"],
+  group: ["**/postmark.server"],
   importNames: ["sendEmail", "unsuppress"],
   message:
-    "Send email with send() from lib/server/email-sending.ts, which skips blocked addresses and records each send; unblock with unblock() from lib/server/delivery-problems.ts.",
+    "Send email with send() from lib/server/email-sending.server.ts, which skips blocked addresses and records each send; unblock with unblock() from lib/server/delivery-problems.server.ts.",
 };
 const GMAIL_IMPORT = {
-  group: ["**/gmail"],
+  group: ["**/gmail.server"],
   importNames: ["sendGmail"],
   message:
-    "Send email with send() from lib/server/email-sending.ts, which skips blocked addresses and records each send.",
+    "Send email with send() from lib/server/email-sending.server.ts, which skips blocked addresses and records each send.",
 };
 
 // Packages that make their own requests, which a fixture build can't
@@ -420,8 +426,8 @@ const eslintConfig = defineConfig([
   // file its own database, and the scripts that make the local ones.
   {
     files: [
-      "lib/server/db.ts",
-      "lib/server/db.test.ts",
+      "lib/server/db.server.ts",
+      "lib/server/db.server.test.ts",
       "tests/database.ts",
       "scripts/db-migrate.mjs",
       "scripts/db-reset.mjs",
@@ -449,13 +455,13 @@ const eslintConfig = defineConfig([
     },
     // The fakes read the fixture build's own settings, as the storyboard loads them outside the site.
     { files: ["lib/server/fixtures/*.ts"], fakes: true, env: true },
-    { files: ["lib/server/config.ts"], env: true, siteUrl: true },
+    { files: ["lib/server/config.server.ts"], env: true, siteUrl: true },
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true })),
-    { files: [`${OUTSIDE}/outside-fetch.ts`], fetch: true },
-    { files: ["lib/server/email.ts"], sendEmail: true },
-    { files: ["lib/site-url.ts"], siteUrl: true },
-    { files: ["lib/server/db.ts"], database: true },
+    { files: [`${OUTSIDE}/outside-fetch.server.ts`], fetch: true },
+    { files: ["lib/server/email.server.ts"], sendEmail: true },
+    { files: ["lib/site-url.server.ts"], siteUrl: true },
+    { files: ["lib/server/db.server.ts"], database: true },
   ].map(({ files, ...allowed }) => ({ files, ignores: ["**/*.test.{ts,tsx}"], rules: siteCodeRules(allowed) })),
   {
     files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],

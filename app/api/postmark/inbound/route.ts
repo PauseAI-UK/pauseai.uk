@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { forwardReply, isPostmark } from "@/lib/server/postmark-webhooks";
-import { problem } from "@/lib/server/problems";
+import { forwardReply, isPostmark } from "@/lib/server/postmark-webhooks.server";
+import { problem } from "@/lib/server/problems.server";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { readJsonIfAny } from "@/lib/server/json";
+import { readJsonIfAny } from "@/lib/server/json.server";
 
 /**
  * Postmark's inbound webhook: mail to a letter's own address, such as jane.smith.482913@letters.pauseai.uk. Answers

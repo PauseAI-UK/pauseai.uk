@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import type { MailingAttachmentSummary } from "@/lib/mailings/drafts";
+import type { MailingAttachmentSummary } from "@/lib/mailings/drafts.server";
 import styles from "./MailingFiles.module.css";
 import { mailingsCopy } from "./copy";
 

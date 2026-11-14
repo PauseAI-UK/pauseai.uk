@@ -1,4 +1,4 @@
-import type { Mark } from "@/lib/politicians/edits";
+import type { Mark } from "@/lib/politicians/edits.server";
 import styles from "./PoliticianMarks.module.css";
 import { politiciansCopy } from "./copy";
 

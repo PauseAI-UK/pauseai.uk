@@ -1,5 +1,5 @@
-import { requireStaff } from "@/lib/accounts/auth";
-import { newPagesFor } from "@/lib/accounts/nav-seen";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { newPagesFor } from "@/lib/accounts/nav-seen.server";
 import StaffNav from "../_components/shell/StaffNav";
 import StaffPage from "../_components/ui/StaffPage";
 

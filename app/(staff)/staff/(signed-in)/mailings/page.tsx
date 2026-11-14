@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { mailingsPage } from "@/lib/mailings/records";
-import { requireStaff } from "@/lib/accounts/auth";
+import { mailingsPage } from "@/lib/mailings/records.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { newMailing } from "../../_components/mailings/actions";
 import MailingsOverview from "../../_components/mailings/MailingsOverview";
 import Page from "../../_components/ui/Page";

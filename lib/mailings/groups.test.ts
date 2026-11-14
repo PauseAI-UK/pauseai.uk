@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MailingSummary } from "./records";
+import type { MailingSummary } from "./records.server";
 import { mailingGroups, mailingWhen } from "./groups";
 import { mailingsCopy } from "./copy";
 

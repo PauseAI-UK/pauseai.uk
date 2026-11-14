@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { now } from "@/lib/now";
-import { listCampaignSummaries } from "@/lib/mailings/campaigns";
-import { requireStaff } from "@/lib/accounts/auth";
+import { listCampaignSummaries } from "@/lib/mailings/campaigns.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import CampaignsOverview from "../../_components/mailings/CampaignsOverview";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { changeChoices, recentChanges } from "@/lib/server/audit";
-import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
+import { changeChoices, recentChanges } from "@/lib/server/audit.server";
+import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import type { ChangesSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
@@ -9,7 +9,7 @@ import ChangesFilters, { changeWords } from "../../_components/ChangesFilters";
 import ChangesTable from "../../_components/ChangesTable";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
-import { openSavedList } from "../../saved-lists";
+import { openSavedList } from "../../saved-lists.server";
 
 type Props = { searchParams: Promise<Partial<Record<keyof ChangesSearch, ParamValue>>> };
 

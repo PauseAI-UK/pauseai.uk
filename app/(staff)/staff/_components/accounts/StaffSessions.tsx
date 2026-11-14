@@ -1,6 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import Tag from "@/components/ui/Tag";
-import type { StaffSession } from "@/lib/accounts/auth";
+import type { StaffSession } from "@/lib/accounts/auth.server";
 import { browserOf, systemOf } from "@/lib/user-agent";
 import { Card } from "../ui/Grid";
 import Rows, { Row } from "../ui/Rows";

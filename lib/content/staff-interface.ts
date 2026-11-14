@@ -542,7 +542,7 @@ export const staffCopy = {
   },
   // The web imports on the Scheduled jobs page: ControlAI's
   // letter to the PM, copied nightly into the bill's statuses
-  // (lib/server/controlai-import.ts).
+  // (lib/server/controlai-import.server.ts).
   controlAi: {
     title: "ControlAI letter to the Prime Minister backing the Sobel bill",
     intro: {
@@ -560,7 +560,7 @@ export const staffCopy = {
     kinds: { nobody: "Nobody here", several: "Could be:" } as Record<string, string>,
   },
   // The copy every 5 minutes of the Luma calendar's events, guests and contacts
-  // (lib/events/luma-import.ts), on the Scheduled jobs page.
+  // (lib/events/luma-import.server.ts), on the Scheduled jobs page.
   luma: {
     title: "Events, guests and subscriptions from Luma",
     intro: {
@@ -617,7 +617,7 @@ export const staffCopy = {
     // In place of paragraphs left as they were; a click unfolds them.
     folded: (n: number) => `${count(n, "paragraph", "paragraphs")} unchanged`,
   },
-  // The letters inbox, which supporters' letters to MPs go from (lib/server/letters-inbox-reading.ts).
+  // The letters inbox, which supporters' letters to MPs go from (lib/server/letters-inbox-reading.server.ts).
   lettersInbox: {
     // The labels reading puts on each message in Gmail, by what it made of it.
     labels: {
@@ -653,7 +653,7 @@ export const staffCopy = {
     notifications: "PauseAI UK notifications",
     policy: "PauseAI UK policy",
   },
-  // The emails to the notification inbox (lib/server/notifications.ts) that
+  // The emails to the notification inbox (lib/server/notifications.server.ts) that
   // aren't above (alert, lettersInbox.alert): each a subject, and a body with
   // a link to where a person can deal with it.
   notifications: {
@@ -806,7 +806,7 @@ export const staffCopy = {
     },
   },
   // The read every 5 minutes of the connected Gmail accounts for replies to our
-  // letters and bounces (lib/server/gmail-reading.ts), on the Scheduled jobs page.
+  // letters and bounces (lib/server/gmail-reading.server.ts), on the Scheduled jobs page.
   gmailReading: {
     // The columns of the table of a day's reads.
     columns: {
@@ -944,7 +944,7 @@ export const staffCopy = {
       links: { letter: "Has a letter", campaign: "Has a campaign", mailing: "Has a mailing" },
     },
   },
-  // What went wrong on the site outside a job's run (lib/server/errors-seen.ts): the admins' list at
+  // What went wrong on the site outside a job's run (lib/server/errors-seen.server.ts): the admins' list at
   // /staff/errors, one error's page, and the emails to the notification inbox.
   errorsSeen: {
     // Under the list's heading.
@@ -1089,7 +1089,7 @@ export const staffCopy = {
       more: (n: number) => `And ${n} more, in the next report.`,
     },
   },
-  // The hourly pull of Global's UK chapter contacts from CiviCRM (lib/server/civicrm-import.ts).
+  // The hourly pull of Global's UK chapter contacts from CiviCRM (lib/server/civicrm-import.server.ts).
   civicrm: {
     title: "UK chapter contacts in CiviCRM",
     intro: {
@@ -1114,7 +1114,7 @@ export const staffCopy = {
     }) =>
       `${r.updates ? sentToCivicrm(r.updates) : ""}${count(r.contacts, "contact", "contacts")} read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${count(r.optOuts, "unsubscribe", "unsubscribes")} changed, ${count(r.blocked, "address", "addresses")} blocked for a hold.${r.unblocked ? ` ${count(r.unblocked, "address", "addresses")} unblocked, as CiviCRM lifted the hold.` : ""}${r.linked ? ` ${count(r.supportersAdded!, "new supporter", "new supporters")}, ${r.linked} linked.` : ""}`,
   },
-  // What went wrong without stopping the work (lib/server/problems.ts), by how far each can reach.
+  // What went wrong without stopping the work (lib/server/problems.server.ts), by how far each can reach.
   problems: {
     // On a job's run, so on its page and in the email: something the job carried on past.
     job: {
@@ -1141,7 +1141,7 @@ export const staffCopy = {
         `CiviCRM rejected ${plural(n, "opt-out", "opt-outs")}. A developer needs to look at them:`,
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
-    // as a visitor sending a letter, it's kept as an error (lib/server/errors-seen.ts): on the errors page, and
+    // as a visitor sending a letter, it's kept as an error (lib/server/errors-seen.server.ts): on the errors page, and
     // emailed to staff.
     anywhere: {
       // An email didn't go, as Gmail or Postmark errored.
@@ -1177,7 +1177,7 @@ export const staffCopy = {
       charsetUnknown: (charset: string) =>
         `An email's charset isn't one we know, so its text may be garbled: ${charset}`,
     },
-    // No job reaches these: each is kept as an error (lib/server/errors-seen.ts), on the errors page and
+    // No job reaches these: each is kept as an error (lib/server/errors-seen.server.ts), on the errors page and
     // emailed to staff, but for connectionDropped and errorNotKept, which only reach Netlify's logs. Each
     // says what the person saw, if anything.
     logs: {
@@ -1249,7 +1249,7 @@ export const staffCopy = {
     quiet: (n: number) => `${count(n, "run", "runs")}, nothing new`,
     stretch: (n: number) => `${count(n, "run", "runs")}, no problems`,
   },
-  // The nightly import of ControlAI's statement's supporters (lib/server/controlai-statement-import.ts).
+  // The nightly import of ControlAI's statement's supporters (lib/server/controlai-statement-import.server.ts).
   controlAiStatement: {
     title: "ControlAI's UK campaign statement",
     intro: {

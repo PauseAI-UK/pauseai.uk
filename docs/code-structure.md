@@ -43,8 +43,7 @@ components/               React components used by more than one route
 lib/                      logic and data, no React state
   staff-vocabulary.ts     the words every staff feature shares
   <feature>/              a staff feature's logic (Feature folders, below)
-  server/                 server-side logic and the database;
-                          `import "server-only"`
+  server/                 server-side logic and the database
     outside-services/     one binding per outside service, the only
                           code that calls one (outsideFetch)
     fixtures/             what a fixture build (DATA_FIXTURES=1) answers
@@ -84,6 +83,35 @@ investments/              what would make working here faster or safer, and
 Route groups like `(site)` don't appear in URLs. Folders starting with `_`
 (e.g. `_components/`) are private: Next never turns them into routes.
 
+## Where code runs
+
+A module's name says where it runs, wherever its folder is:
+
+- `x.server.ts` runs only on the server, and starts `import "server-only"`.
+  Next stops the build if a client component imports it, so a secret or a
+  query can't end up in the browser. A module that reads `process.env`, or
+  imports the database (`db.server.ts`, `sql.server.ts`), the settings
+  (`config.server.ts`) or an outside service's binding, is one of these.
+- `x.client.ts` runs only in the browser, as it uses `window`, `document`,
+  storage or a canvas when it's called, and starts `import "client-only"`.
+  Next stops the build if a server component imports it.
+- Anything else runs on both: pure logic, types, words, and components.
+  A component has no suffix, `"use client"` or not.
+
+A test is named for what it tests (`x.server.test.ts`). Next's own file
+names (`page.tsx`, `route.ts`, `instrumentation.ts` and the rest), Server
+Actions (`actions.ts`, `"use server"`, which the browser calls), the
+gallery's examples with state (`*.gallery.client.tsx`, components),
+`scripts/`, `tests/` and `netlify/` keep their names. So do the fakes in
+`lib/server/fixtures/`, which the storyboard loads outside the site, where
+`server-only` throws, and `lib/now.ts`, the clock, which runs on both.
+`tests/checks/runs-where.test.ts` holds all of this.
+
+The two packages are Next's markers
+(`node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md`,
+"Preventing environment poisoning"). Vitest gives the tests `server-only`'s
+empty module, as they run server code directly.
+
 ## Rules
 
 A rule about which code may import or call what is enforced by an ESLint
@@ -114,7 +142,7 @@ the code should go instead. The rules below say which ones are enforced.
     imports aside (`tests/checks/import-cycles.test.ts`). Where a lower
     module needs something of a higher one, move it down, or have the
     higher one pass it in, as `send()` passes `sendWith()` its Gmail
-    access (`lib/server/email-sending.ts`).
+    access (`lib/server/email-sending.server.ts`).
 - **Redirects are in `next.config.ts`.** A path that only sends people
   elsewhere is an entry in its `redirects()`, never a page that calls
   `redirect()`. On a click within the site, a page that redirects while
@@ -124,32 +152,32 @@ the code should go instead. The rules below say which ones are enforced.
   redirects depend on what only the request can tell, such as who's logged
   in or a record merged into another. A helper in `lib/` makes those, and
   the page calls it before anything else: `requireStaff()`
-  (`lib/accounts/auth.ts`), or `canonicalSupporter()`
+  (`lib/accounts/auth.server.ts`), or `canonicalSupporter()`
   (`lib/supporters/supporters.ts`) for a merged supporter's old ID. Links within the
   site never lead to these redirects, so no one clicking around sees the
   empty layout.
 - **A caught error is rethrown or reported.** Code that catches an error
-  and carries on reports it with `problem()` (`lib/server/problems.ts`), in
+  and carries on reports it with `problem()` (`lib/server/problems.server.ts`), in
   our words, with the error.
   - Every way out of a catch reports first. An early `break`, `continue` or
     `return` for one kind of error, such as "Gmail refused, try next time",
     skips the report, and the error is lost however often it happens.
     `tests/checks/caught-errors.test.ts` fails on one, but for the few it
     lists as answers rather than failures, each with why.
-  - During a run of a job (`asRun()` in `lib/server/import-runs.ts`), the
+  - During a run of a job (`asRun()` in `lib/server/import-runs.server.ts`), the
     problem is kept on the run, so the job's page shows it under the run's
     line. Staff are emailed about it once, and not again until a run has
     gone right or something else goes wrong.
   - Outside a run, as in a form or a webhook, the problem is kept as an
     error, as what the server throws is: on the admins' Errors page, and
-    emailed to staff when it's new (`lib/server/errors-seen.ts`;
+    emailed to staff when it's new (`lib/server/errors-seen.server.ts`;
     `docs/domain-concepts.md`, "Errors"). So a thrown error needs no catch
     to be noticed, and a caught one needs only `problem()`.
   - Nothing in `lib/server`, `app/api` or `netlify/functions` writes an
     error to the log by hand. `console.error` reaches only Netlify's logs.
     `String(error)` drops the error's cause, so a network failure reads
     "fetch failed" and nothing more. `describeError()` keeps the cause.
-  - Every job is run by `lib/server/jobs.ts`, as a run of the import log.
+  - Every job is run by `lib/server/jobs.server.ts`, as a run of the import log.
   - Three checks enforce these: `tests/checks/caught-errors.test.ts`,
     `problem-reporting.test.ts` and `cron-runs.test.ts`. The first names
     its few exceptions. Each is a catch that answers a question rather
@@ -187,7 +215,7 @@ the code should go instead. The rules below say which ones are enforced.
     The saved filters' actions need the list's permission. The list's page
     calls `requireStaff()` itself, first, because
     `tests/checks/staff-auth.test.ts` reads the call there. The page then
-    calls `openSavedList()` (`app/(staff)/staff/saved-lists.ts`), which
+    calls `openSavedList()` (`app/(staff)/staff/saved-lists.server.ts`), which
     gives it the saved filter loaded, what that finds and the page's
     title.
 - **Metadata** comes from `pageMetadata()` (`lib/metadata.ts`), which fills in
@@ -226,12 +254,12 @@ the code should go instead. The rules below say which ones are enforced.
   ControlAI's letter and statement) are each
   called from one binding in
   `lib/server/outside-services/`, through `outsideFetch`
-  (`outside-fetch.ts` there), so tests and fixture builds can answer
+  (`outside-fetch.server.ts` there), so tests and fixture builds can answer
   instead. The rest of the code calls the binding's functions. A new
   service gets a new binding there, and its canned answers in
   `lib/server/fixtures/outside-services.ts` (`docs/testing.md`, "Mocking").
-  The files in that folder import `server-only`, so they can't end up in a
-  browser bundle. In the site's code, ESLint rules (`npm run lint`) fail
+  The bindings are `*.server.ts`, so they can't end up in a browser bundle
+  (Where code runs, above). In the site's code, ESLint rules (`npm run lint`) fail
   on:
   - importing `outsideFetch` outside that folder, or calling `fetch()` in
     server code (`lib/server/`, route handlers, Server Actions);
@@ -242,22 +270,22 @@ the code should go instead. The rules below say which ones are enforced.
     ControlAI's are left out, as pages link to them too.
 - **Reading email** is all in `lib/email-parsing/`: addresses, MIME and
   headers, subjects and machine replies, bounces, the mail a message
-  quotes, and a plain text's links and bold. `lib/server/mime.ts` only writes email.
-- **Email** goes out only through `sendWith()` (`lib/server/email.ts`),
+  quotes, and a plain text's links and bold. `lib/server/mime.server.ts` only writes email.
+- **Email** goes out only through `sendWith()` (`lib/server/email.server.ts`),
   which skips blocked addresses and records each send
   (`docs/domain-concepts.md`). The site's code calls it by `send()`
-  (`lib/server/email-sending.ts`); staff's notifications call it directly
-  (`lib/server/notifications.ts`), as the Gmail accounts `send()` reaches
+  (`lib/server/email-sending.server.ts`); staff's notifications call it directly
+  (`lib/server/notifications.server.ts`), as the Gmail accounts `send()` reaches
   notify staff themselves.
   An ESLint rule lets only that file import `sendEmail` or `unsuppress`
-  from Postmark's binding (`lib/server/outside-services/postmark.ts`), or
-  `sendGmail` from Gmail's (`gmail.ts` there).
-- **The database** is only reached through `lib/server/db.ts`. It is the
+  from Postmark's binding (`lib/server/outside-services/postmark.server.ts`), or
+  `sendGmail` from Gmail's (`gmail.server.ts` there).
+- **The database** is only reached through `lib/server/db.server.ts`. It is the
   only file that may import `pg` or read `NETLIFY_DB_URL` (an ESLint rule,
   in `npm run lint`).
   - Queries are plain SQL, with no ORM. A query built from parts, such as
     a list's filters, is written with the `sql` tagged template
-    (`lib/server/sql.ts`). Each `${value}` goes as a parameter, and each
+    (`lib/server/sql.server.ts`). Each `${value}` goes as a parameter, and each
     `${sql`…`}` joins the text with its values. So conditions written
     apart compose with `sql.and`, `sql.or` and `sql.where`, never by
     counting `$n` by hand. Text that isn't a value, such as a column's
@@ -271,7 +299,7 @@ the code should go instead. The rules below say which ones are enforced.
     with `netlify/database/schema.sql` (`docs/development.md`, "Adding a
     migration"). Tables follow the SQL rules below.
 - **A letter's status** changes only through `transition()`
-  (`lib/server/letter-lifecycle.ts`). It is one statement that moves
+  (`lib/server/letter-lifecycle.server.ts`). It is one statement that moves
   letters from the statuses it's allowed from and logs each one's event.
   So two runs can't both take a letter, and a letter's status always
   matches its history.
@@ -281,27 +309,27 @@ the code should go instead. The rules below say which ones are enforced.
     list typed out.
   - Every letter, a supporter's or a mailing's, is sent by
     `sendLetterVia(channel, letter)`, beside `transition()`, with a
-    `MailingChannel` (`lib/mailings/channels.ts`). A new kind of
+    `MailingChannel` (`lib/mailings/channels.server.ts`). A new kind of
     letter says what it sends and what becomes of one that can't go. A new
     way to send is a channel.
-- **Settings** come from `config` (`lib/server/config.ts`), which reads
+- **Settings** come from `config` (`lib/server/config.server.ts`), which reads
   each environment variable and gives it one shape for every caller: an
   address is trimmed and lowercased, and unset and empty are both
   undefined. Nothing else in `app/`, `components/` or `lib/` reads
   `process.env` (an ESLint rule, `PROCESS_ENV_RULE`). The exceptions are:
-  - `lib/server/db.ts`, for its connection string;
+  - `lib/server/db.server.ts`, for its connection string;
   - `lib/now.ts`, which runs in the browser too;
   - the fakes in `lib/server/fixtures/`, which the storyboard loads
     outside the site.
 - **Links to the site** in emails and redirects are built with
-  `siteUrl(path, request)` (`lib/site-url.ts`), on the deploy's own
+  `siteUrl(path, request)` (`lib/site-url.server.ts`), on the deploy's own
   address: `https://pauseai.uk` in production (`SITE_ORIGIN`, set in
   `next.config.ts` from Netlify's settings). On Netlify a request's own
   URL has the `main--pauseaiuk.netlify.app` host, and anyone can set its
   Host. So the site's code never reads a request's URL, origin or Host
   header, or `SITE_ORIGIN` itself (an ESLint rule, in `npm run lint`).
   Links in pages are relative.
-- **Staff pages** each call `requireStaff()` (`lib/accounts/auth.ts`)
+- **Staff pages** each call `requireStaff()` (`lib/accounts/auth.server.ts`)
   first, as does every staff route handler and Server Action
   (`tests/checks/staff-auth.test.ts`). `proxy.ts` only checks the cookie exists.
   A page that shows more to staff who may see supporters asks
@@ -309,7 +337,7 @@ the code should go instead. The rules below say which ones are enforced.
 - **Scheduled jobs** are Netlify scheduled functions. Each is in its own
   folder in `netlify/functions/`, named after its job, and POSTs to
   `/api/cron/<job>` with `CRON_SECRET` (`netlify/scheduled.ts`).
-  - The work itself stays in the Next app. `lib/server/jobs.ts` says what
+  - The work itself stays in the Next app. `lib/server/jobs.server.ts` says what
     runs each job, for that route and for the job's button.
   - Every one is a job on `/staff/scheduled-jobs`, whether or not it imports
     anything and despite the page's name, so that staff can see its runs
@@ -410,8 +438,9 @@ app/(staff)/staff/_components/
                       (actions.ts)
 lib/
   staff-vocabulary.ts the words every feature shares
-  <feature>/          its logic, pure and server-only together (server
-                      files import "server-only"), and copy.ts with the
+  <feature>/          its logic, shared and server-only together (each
+                      named for where it runs: Where code runs, above),
+                      and copy.ts with the
                       words its server code sends or logs, and those its
                       logic and components share
   accounts/           staff auth, login and sessions, permissions, staff

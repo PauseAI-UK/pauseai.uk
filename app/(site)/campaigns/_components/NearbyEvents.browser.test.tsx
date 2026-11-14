@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
 import type { Place } from "@/lib/site-events";
-import { markSent, saveLookup } from "./draft";
+import { markSent, saveLookup } from "./draft.client";
 import { exampleMp } from "./draft.examples";
 import NearbyEvents from "./NearbyEvents";
 import { exampleEvents, westminster } from "./NearbyEvents.examples";

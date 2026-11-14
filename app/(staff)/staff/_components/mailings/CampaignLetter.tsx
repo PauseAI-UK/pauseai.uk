@@ -5,7 +5,7 @@ import { Select } from "@/components/ui/Controls";
 import { Field } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { campaignTextDoc } from "@/lib/mailings/campaign-versions";
-import type { CampaignVersion } from "@/lib/mailings/campaigns";
+import type { CampaignVersion } from "@/lib/mailings/campaigns.server";
 import { staffDate } from "@/lib/staff-time";
 import MailEmail from "./MailEmail";
 import { MailingLetter } from "./MailingLetter";

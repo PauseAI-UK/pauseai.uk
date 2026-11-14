@@ -58,7 +58,7 @@ export const NAMED_ASKS: readonly string[] = [FRONTIER_AI_LETTER_ASK, CONTROLAI_
 
 /**
  * The asks an import answers, which staff can't: ControlAI's letter and
- * statement (lib/server/controlai-import.ts, controlai-statement-import.ts).
+ * statement (lib/server/controlai-import.server.ts, controlai-statement-import.server.ts).
  */
 export const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK];
 

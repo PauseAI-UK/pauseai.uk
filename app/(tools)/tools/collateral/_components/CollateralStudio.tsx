@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CalendarEvent } from "@/lib/collateral/eventText";
-import { downloadCanvasPdf, downloadCanvasPng, downloadText, exportFilename } from "@/lib/collateral/export";
+import { downloadCanvasPdf, downloadCanvasPng, downloadText, exportFilename } from "@/lib/collateral/export.client";
 import {
   BLEED_MM,
   DEFAULT_FORMAT_ID,
@@ -19,7 +19,7 @@ import { sameIssues, type LintIssue } from "@/lib/collateral/lint";
 import type { PhotoView } from "@/lib/collateral/photoTransform";
 import { parseProject, serializeProject, type Project } from "@/lib/collateral/project";
 import { qrPlan, usableQrCodes } from "@/lib/collateral/qr";
-import { renderCollateral, type RenderOptions } from "@/lib/collateral/render";
+import { renderCollateral, type RenderOptions } from "@/lib/collateral/render.client";
 import { defaultValues, type Drawable } from "@/lib/collateral/templates";
 import { CLEAR_PHOTO_LOGO_SRC, getTheme } from "@/lib/collateral/themes";
 import Checks from "./Checks";

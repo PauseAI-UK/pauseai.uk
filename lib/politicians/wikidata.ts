@@ -6,7 +6,7 @@
 // their TheyWorkForYou ID (P2171), which TheyWorkForYou's people data links
 // to the ID the Scottish Parliament gives them. Gender is read to choose Mr
 // or Ms, and never kept. The caller fetches:
-// lib/server/outside-services/wikidata.ts.
+// lib/server/outside-services/wikidata.server.ts.
 
 import type { Gender } from "./salutation";
 

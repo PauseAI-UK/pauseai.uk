@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { LetterThread as Thread } from "@/lib/server/letter-threads";
-import type { SupporterLetterDetails } from "@/lib/server/letters";
+import type { LetterThread as Thread } from "@/lib/server/letter-threads.server";
+import type { SupporterLetterDetails } from "@/lib/server/letters.server";
 import { named } from "@/lib/email-parsing/addresses";
 import LetterChanges from "./LetterChanges";
 import MailFold from "./MailFold";

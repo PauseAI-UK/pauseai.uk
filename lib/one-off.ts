@@ -3,7 +3,7 @@ import { quotedHeaders } from "@/lib/email-parsing/quoted";
 
 // One-off emails: threads with a politician that aren't a letter of a
 // campaign or mailing. What counts as one, and who a thread's people are
-// (lib/server/one-off-emails.ts keeps them).
+// (lib/server/one-off-emails.server.ts keeps them).
 
 /** The mailboxes whose threads with politicians the regular read keeps: the shared one, and Joseph's, as he's agreed. */
 const KEPT_MAILBOXES: readonly string[] = ["policy@pauseai.uk", "joseph@pauseai.uk"];

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { query } from "@/lib/server/db";
+import { query } from "@/lib/server/db.server";
 import { POST } from "./route";
 
 beforeEach(() => vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk"));

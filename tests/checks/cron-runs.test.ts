@@ -5,15 +5,15 @@ import { describe, expect, it } from "vitest";
 import { featureLibFolders } from "../../eslint.config.mjs";
 
 // Every job runs as a run of the import log: inside asRun()
-// (lib/server/import-runs.ts), so that a failure is kept as a failed run and
+// (lib/server/import-runs.server.ts), so that a failure is kept as a failed run and
 // emailed about, and what it reports with problem() has a run to go on.
 // Without it, a failure reaches only Netlify's logs. Every job runs through
-// lib/server/jobs.ts, so this fails on any server module it imports (from
+// lib/server/jobs.server.ts, so this fails on any server module it imports (from
 // lib/server/ or a feature's lib/ folder), but for types and the import
 // log's own, that doesn't call asRun.
 
 const ROOT = join(__dirname, "..", "..");
-const JOBS = "lib/server/jobs.ts";
+const JOBS = "lib/server/jobs.server.ts";
 const SERVER = ["lib/server", ...featureLibFolders()];
 
 /** The server modules `source`, at `file`, imports, as paths from the root: lib/server's and the features'. */
@@ -39,30 +39,30 @@ describe("jobs", () => {
     const code = `
       import "server-only";
       import { NextResponse } from "next/server";
-      import { isCronRequest } from "@/lib/server/cron";
+      import { isCronRequest } from "@/lib/server/cron.server";
       import { importLuma } from "./luma-import";
-      import { tagEvents } from "@/lib/events/tagging";
+      import { tagEvents } from "@/lib/events/tagging.server";
       import { NIGHTLY } from "@/lib/import-runs";
       import type { Body } from "@/lib/politicians/import-changes";
       import { found } from "../found";`;
-    expect(serverImports("lib/server/jobs.ts", parse("jobs.ts", code))).toEqual([
-      "lib/server/cron.ts",
+    expect(serverImports("lib/server/jobs.server.ts", parse("jobs.ts", code))).toEqual([
+      "lib/server/cron.server.ts",
       "lib/server/luma-import.ts",
-      "lib/events/tagging.ts",
+      "lib/events/tagging.server.ts",
     ]);
   });
 
-  it("the cron route runs its job through lib/server/jobs.ts", () => {
+  it("the cron route runs its job through lib/server/jobs.server.ts", () => {
     const route = "app/api/cron/[job]/route.ts";
     expect(serverImports(route, parse(route, readFileSync(join(ROOT, route), "utf8")))).toContain(JOBS);
   });
 
   it("every job runs as a run of the import log", () => {
     const modules = serverImports(JOBS, parse(JOBS, readFileSync(join(ROOT, JOBS), "utf8")));
-    expect(modules).toContain("lib/events/luma-import.ts");
+    expect(modules).toContain("lib/events/luma-import.server.ts");
     const outside = modules.filter(
       (module) =>
-        module !== "lib/server/import-runs.ts" && !readFileSync(join(ROOT, module), "utf8").includes("asRun("),
+        module !== "lib/server/import-runs.server.ts" && !readFileSync(join(ROOT, module), "utf8").includes("asRun("),
     );
     expect(outside, "run the job inside asRun(), so it, its failures and its problems are kept").toEqual([]);
   });

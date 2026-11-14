@@ -4,7 +4,7 @@
 // components with no props, each action logged rather than sent.
 import ChangesFilters from "@/app/(staff)/staff/_components/ChangesFilters";
 import { changesSearch } from "@/lib/staff-search";
-import type { EmailBlock } from "@/lib/server/email";
+import type { EmailBlock } from "@/lib/server/email.server";
 import EmailBlocksTable from "@/app/(staff)/staff/_components/EmailBlocksTable";
 import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
 import Menu, { menuItemsClass } from "@/app/(staff)/staff/_components/ui/Menu";

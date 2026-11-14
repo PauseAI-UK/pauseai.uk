@@ -1,0 +1,551 @@
+import { docFromMarkup } from "@/lib/letter-format";
+import { deliverToLettersInbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
+import { LETTERS_INBOX, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
+import { readGmail } from "./gmail-reading.server";
+import { submitLetter } from "./mp-letters.server";
+import { expect, it, vi } from "vitest";
+import {
+  addTestLetter,
+  addTestMp,
+  addTestPolitician,
+  connectTestGmail,
+  describeWithDatabase,
+  useTestDatabase,
+} from "@/tests/database";
+import { sentNearSearch } from "@/lib/letter-links";
+import type { LetterFilter, LetterTab } from "@/lib/staff-search";
+import { query } from "./db.server";
+import {
+  getPauseaiLetter,
+  getSupporterLetter,
+  LETTERS_PAGE_SIZE,
+  listLetters,
+  pauseaiLetters,
+  politicianLetters,
+  recentLetters,
+} from "./letters.server";
+
+describeWithDatabase("recentLetters", () => {
+  useTestDatabase();
+
+  it("pages the letters page's list, with how many there are in all", async () => {
+    const mp = await addTestMp();
+    for (let i = 0; i <= LETTERS_PAGE_SIZE; i++) await addTestLetter({ politicianId: mp, postmarkMailbox: `h${i}` });
+    const first = await listLetters({});
+    expect([first.letters.length, first.total, first.pages]).toEqual([LETTERS_PAGE_SIZE, LETTERS_PAGE_SIZE + 1, 2]);
+    const second = await listLetters({ page: 2 });
+    expect([second.letters.length, second.total]).toEqual([1, LETTERS_PAGE_SIZE + 1]);
+    expect(second.letters[0]).not.toHaveProperty("total");
+    // Past the end, none, but still the count.
+    expect(await listLetters({ page: 3 })).toEqual({
+      letters: [],
+      total: LETTERS_PAGE_SIZE + 1,
+      pages: 2,
+      pageSize: LETTERS_PAGE_SIZE,
+    });
+    expect(await listLetters({ status: "bounced" })).toEqual({
+      letters: [],
+      total: 0,
+      pages: 1,
+      pageSize: LETTERS_PAGE_SIZE,
+    });
+    expect(await listLetters({ status: "bounced", page: 2 })).toEqual({
+      letters: [],
+      total: 0,
+      pages: 1,
+      pageSize: LETTERS_PAGE_SIZE,
+    });
+  });
+
+  it("lists letters newest first, with their history, filtered by status", async () => {
+    const mp = await addTestMp();
+    for (const [hash, status] of [
+      ["a", "sent"],
+      ["b", "sending"],
+    ]) {
+      await addTestLetter({
+        politicianId: mp,
+        senderName: "Jane",
+        senderEmail: "jane@example.com",
+        postmarkMailbox: hash,
+        status,
+      });
+    }
+    await query(
+      "INSERT INTO letter_events (letter_id, status, details) VALUES (1, 'sending', '{}'), (1, 'sent', '{\"messageId\":\"m\"}')",
+    );
+
+    const letters = await recentLetters();
+    expect(letters.map((l) => [l.id, l.status, l.mpName, l.politicianId, l.isTest])).toEqual([
+      [2, "sending", "Testy McTestface MP", mp, true],
+      [1, "sent", "Testy McTestface MP", mp, true],
+    ]);
+    expect((await recentLetters({ politicianId: mp })).map((l) => l.id)).toEqual([2, 1]);
+    expect(await recentLetters({ politicianId: mp + 1 })).toEqual([]);
+    // Newest first: at the same moment, the one recorded last.
+    expect(letters[1].events.map((e) => [e.status, e.details])).toEqual([
+      ["sent", { messageId: "m" }],
+      ["sending", {}],
+    ]);
+    expect(letters[0].events).toEqual([]);
+    expect((await recentLetters({ status: "sent" })).map((l) => l.id)).toEqual([1]);
+    expect(await recentLetters({ limit: 1 })).toHaveLength(1);
+  });
+
+  it("filters by a search over sender and MP, by whether answered, by campaign, by consent, and by supporter", async () => {
+    const mp = await addTestMp();
+    for (const [hash, name, email, subject] of [
+      ["a", "Jane Smith", "jane@example.com", "Please act"],
+      ["b", "Sam Jones", "sam@example.com", "AI risk"],
+    ]) {
+      await addTestLetter({ politicianId: mp, senderName: name, senderEmail: email, subject, postmarkMailbox: hash });
+    }
+    await query("UPDATE letters SET replied_at = now() WHERE id = 2");
+    await query("INSERT INTO supporters DEFAULT VALUES");
+    await query(
+      `INSERT INTO supporter_links (supporter_id, form_entry_id, matched_by, matched_value)
+       SELECT 1, entry_id, 'email', 'jane@example.com' FROM letters_from_supporters WHERE id = 1`,
+    );
+    const ids = async (filter: Parameters<typeof recentLetters>[0]) => (await recentLetters(filter)).map((l) => l.id);
+    expect(await ids({ search: "SMITH" })).toEqual([1]);
+    expect(await ids({ search: "sam@" })).toEqual([2]);
+    // Not the subject.
+    expect(await ids({ search: "risk" })).toEqual([]);
+    expect(await ids({ search: "McTestface" })).toEqual([2, 1]);
+    expect(await ids({ answered: "yes" })).toEqual([2]);
+    expect(await ids({ answered: "auto" })).toEqual([]);
+    expect(await ids({ answered: "no" })).toEqual([1]);
+    // An automatic reply: from the first, when it came; a written reply outweighs one.
+    await query(
+      `INSERT INTO letter_events (letter_id, status, details, at) VALUES
+         (1, 'auto_reply', '{}', '2026-10-13T09:00:00Z'), (1, 'auto_reply', '{}', '2026-10-14T09:00:00Z'),
+         (2, 'auto_reply', '{}', '2026-10-13T09:00:00Z')`,
+    );
+    expect(await ids({ answered: "yes" })).toEqual([2]);
+    expect(await ids({ answered: "auto" })).toEqual([1]);
+    expect(await ids({ answered: "no" })).toEqual([]);
+    const [auto] = await recentLetters({ answered: "auto" });
+    expect([auto.repliedAt, new Date(auto.autoRepliedAt!).toISOString()]).toEqual([null, "2026-10-13T09:00:00.000Z"]);
+    await query("UPDATE letters_from_supporters SET campaign = 'support-sobel-bill' WHERE id = 2");
+    expect(await ids({ campaign: ["support-sobel-bill"] })).toEqual([2]);
+    expect(await ids({ campaign: ["regulate-letter-pm"] })).toEqual([1]);
+    expect(await ids({ campaign: ["regulate-letter-pm", "support-sobel-bill"] })).toEqual([2, 1]);
+    expect(await ids({ not: { campaign: ["support-sobel-bill"] } })).toEqual([1]);
+    // What sent it: Airtable, for one copied from it, or the backend of its newest send that went.
+    await query("UPDATE letters_from_supporters SET airtable_id = 'rec1', postmark_mailbox = NULL WHERE id = 2");
+    await query(
+      `INSERT INTO email_sends (at, purpose, letter_id, address, outcome, message_id, backend, sender) VALUES
+         ('2026-10-01T09:00:00Z', 'letter', 1, 'test-mp@parliament.example', 'sent', 'pm-1', 'postmark', NULL),
+         ('2026-10-02T09:00:00Z', 'letter', 1, 'test-mp@parliament.example', 'sent', 'gm-1', 'gmail', 'staff@pauseai.uk'),
+         ('2026-10-03T09:00:00Z', 'letter', 1, 'test-mp@parliament.example', 'failed', NULL, 'postmark', NULL)`,
+    );
+    expect((await recentLetters()).map((l) => [l.id, l.backend])).toEqual([
+      [2, "airtable"],
+      [1, "gmail"],
+    ]);
+    expect(await ids({ backend: ["airtable"] })).toEqual([2]);
+    expect(await ids({ backend: ["postmark", "gmail"] })).toEqual([1]);
+    expect(await ids({ not: { backend: ["airtable"] } })).toEqual([1]);
+    // The MP's markers: the test MP is one of ours.
+    expect(await ids({ flags: ["test"] })).toEqual([2, 1]);
+    expect(await ids({ flags: ["important", "connection"] })).toEqual([]);
+    expect(await ids({ not: { flags: ["test"] } })).toEqual([]);
+    expect(await ids({ not: { flags: ["important"] } })).toEqual([2, 1]);
+    expect(await ids({ supporterId: 1 })).toEqual([1]);
+    expect(await ids({ supporterId: 2 })).toEqual([]);
+    expect(await ids({ letterId: 1 })).toEqual([1]);
+  });
+
+  it("shows a campaign's tabs: sent, failed, replied to, from a politician who's answered its ask, and in the sender's own words", async () => {
+    const polly = await addTestMp();
+    const dora = await addTestPolitician({ name: "Dora", email: "dora@parliament.uk", airtableId: "b" });
+    const campaign = "regulate-letter-pm";
+    await addTestLetter({ politicianId: polly, campaign, postmarkMailbox: "a", status: "sent" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "b", status: "bounced" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "c", status: "sent" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "d", status: "sent" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "e", status: "spam_complaint" });
+    await addTestLetter({ politicianId: dora, campaign, postmarkMailbox: "f", status: "not_sent" });
+    await query("UPDATE letters SET replied_at = now() WHERE id = 3");
+    await query(
+      "UPDATE letters_from_supporters SET draft = 'x', draft_approximate = false, own_words = 0.2 WHERE id = 2",
+    );
+    await query(
+      "INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by) VALUES ($1, 'frontier-ai-letter', 'letter', 'signed', 'test')",
+      [polly],
+    );
+    const ids = async (tab: LetterTab) => (await recentLetters({ tab })).map((l) => l.id);
+    // Each letter in one state: Polly's answered the ask, so hers isn't counted as sent.
+    expect(await ids("answered")).toEqual([1]);
+    expect(await ids("unreached")).toEqual([2]);
+    expect(await ids("replied")).toEqual([3]);
+    expect(await ids("sent")).toEqual([4]);
+    expect(await ids("spam")).toEqual([5]);
+    expect(await ids("error")).toEqual([6]);
+    expect(await ids("changed")).toEqual([2]);
+  });
+
+  it("sorts by any column, either way, then newest written first", async () => {
+    const mp = await addTestMp();
+    for (const [hash, name, day] of [
+      ["a", "Sam Jones", "01"],
+      ["b", "Jane Smith", "02"],
+      ["c", "Jane Smith", "03"],
+    ]) {
+      await addTestLetter({
+        politicianId: mp,
+        senderName: name,
+        senderEmail: `${hash}@example.com`,
+        postmarkMailbox: hash,
+        createdAt: `2026-10-${day}T09:00:00Z`,
+        repliedAt: hash === "c" ? "2026-10-04T09:00:00Z" : null,
+      });
+    }
+    const ids = async (sort: LetterFilter["sort"]) => (await recentLetters({ sort })).map((l) => l.id);
+    expect(await ids(undefined)).toEqual([3, 2, 1]);
+    expect(await ids({ key: "created", dir: "asc" })).toEqual([1, 2, 3]);
+    expect(await ids({ key: "from", dir: "asc" })).toEqual([3, 2, 1]);
+    expect(await ids({ key: "from", dir: "desc" })).toEqual([1, 3, 2]);
+    // None has a draft, so none has own words, and they keep the newest first.
+    expect(await ids({ key: "ownWords", dir: "desc" })).toEqual([3, 2, 1]);
+    expect((await recentLetters({})).map((l) => l.ownWords)).toEqual([null, null, null]);
+    // Those with none last, either way.
+    expect(await ids({ key: "replied", dir: "desc" })).toEqual([3, 2, 1]);
+    expect(await ids({ key: "replied", dir: "asc" })).toEqual([3, 2, 1]);
+    // By when an automatic reply came, for one with no written reply.
+    await query(
+      "INSERT INTO letter_events (letter_id, status, details, at) VALUES (1, 'auto_reply', '{}', '2026-10-05T09:00:00Z')",
+    );
+    expect(await ids({ key: "replied", dir: "desc" })).toEqual([1, 3, 2]);
+    expect(await ids({ key: "replied", dir: "asc" })).toEqual([3, 1, 2]);
+  });
+});
+
+describeWithDatabase("politicianLetters", () => {
+  useTestDatabase();
+
+  it("gives an MP's letters with their senders only to staff with supporters, and selects nothing of them otherwise", async () => {
+    const mp = await addTestMp();
+    await addTestLetter({
+      politicianId: mp,
+      senderName: "Jane",
+      senderEmail: "jane@example.com",
+      senderPostcode: "ZZ9 9ZZ",
+      repliedAt: new Date().toISOString(),
+    });
+    const withSenders = await politicianLetters(mp, ["supporters"]);
+    expect(withSenders.senders).toBe(true);
+    expect(withSenders.letters).toMatchObject([{ id: 1, senderName: "Jane", senderEmail: "jane@example.com" }]);
+
+    const without = await politicianLetters(mp, ["admin"]);
+    expect(without).toEqual({
+      senders: false,
+      letters: [
+        {
+          id: 1,
+          campaign: "regulate-letter-pm",
+          campaignTitle: "Regulate AI developers now",
+          status: "sent",
+          createdAt: expect.any(Date),
+          repliedAt: expect.any(Date),
+        },
+      ],
+    });
+    expect(JSON.stringify(without)).not.toMatch(/Jane|jane@|ZZ9/);
+    expect(await politicianLetters(mp + 1, [])).toEqual({ senders: false, letters: [] });
+  });
+});
+
+describeWithDatabase("pauseaiLetters", () => {
+  useTestDatabase();
+
+  it("lists PauseAI's letters to a politician, newest first, with their mailing and whether personalised", async () => {
+    const mp = await addTestMp();
+    for (const [at, personalised] of [
+      ["2026-06-10T09:00:00Z", false],
+      ["2026-10-01T09:00:00Z", true],
+    ] as const) {
+      const [{ id }] = await query<{ id: number }>(
+        "INSERT INTO letters (kind, notable_person_id, status, created_at, sent_at) VALUES ('pauseai', $1, 'sent', $2, $2) RETURNING id::int AS id",
+        [mp, at],
+      );
+      await query(
+        `INSERT INTO letters_from_pauseai (id, mailing_id, personalised)
+         SELECT $1, id, $2 FROM mailings WHERE airtable_field = 'CSRB Iqbal Amendment'`,
+        [id, personalised],
+      );
+    }
+    // A supporter's letter isn't one of them, nor is it on the letters page as PauseAI's.
+    await addTestLetter({ politicianId: mp });
+    expect(await pauseaiLetters(mp)).toEqual([
+      {
+        id: 2,
+        mailingId: expect.any(Number),
+        mailing: "CSRB Iqbal Amendment",
+        status: "sent",
+        at: new Date("2026-10-01T09:00:00Z"),
+        personalised: true,
+      },
+      {
+        id: 1,
+        mailingId: expect.any(Number),
+        mailing: "CSRB Iqbal Amendment",
+        status: "sent",
+        at: new Date("2026-06-10T09:00:00Z"),
+        personalised: false,
+      },
+    ]);
+    expect((await recentLetters()).map((l) => [l.id, l.backend])).toEqual([[3, null]]);
+    expect(await pauseaiLetters(mp + 1)).toEqual([]);
+  });
+});
+
+describeWithDatabase("a letter for its page", () => {
+  useTestDatabase();
+
+  it("gives a supporter's letter, with its subject, found in the policy inbox by the newest send's Postmark ID", async () => {
+    vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
+    const mp = await addTestMp();
+    const id = await addTestLetter({ politicianId: mp, senderName: "Jane Smith" });
+    await query(
+      `INSERT INTO email_sends (at, purpose, letter_id, address, outcome, message_id) VALUES
+         ('2026-10-01T09:00:00Z', 'letter', $1, 'test-mp@parliament.example', 'sent', 'pm-old'),
+         ('2026-10-02T09:00:00Z', 'letter', $1, 'test-mp@parliament.example', 'sent', 'pm-new'),
+         ('2026-10-03T09:00:00Z', 'letter', $1, 'test-mp@parliament.example', 'failed', NULL),
+         ('2026-10-05T09:00:00Z', 'forwarded-reply', $1, 'jane@example.com', 'refused', NULL),
+         ('2026-10-04T09:00:00Z', 'forwarded-reply', $1, 'policy@pauseai.uk', 'sent', 'fwd-1')`,
+      [id],
+    );
+    const letter = await getSupporterLetter(id);
+    // Its replies' forwards, oldest first, for the history of replies recorded before their handling was.
+    expect(letter!.forwards).toEqual([
+      { at: new Date("2026-10-04T09:00:00Z"), address: "policy@pauseai.uk", outcome: "sent" },
+      { at: new Date("2026-10-05T09:00:00Z"), address: "jane@example.com", outcome: "refused" },
+    ]);
+    expect(letter).toMatchObject({
+      kind: "supporter",
+      id,
+      senderName: "Jane Smith",
+      mpEmail: "test-mp@parliament.example",
+      campaignAsk: "frontier-ai-letter",
+      gmail: { mailbox: "policy@pauseai.uk", search: "rfc822msgid:pm-new@mtasv.net" },
+    });
+    expect(typeof (letter as { subject: string }).subject).toBe("string");
+    expect(await getSupporterLetter(id + 100)).toBeUndefined();
+    // One copied from Airtable, which Postmark didn't send, by its MP's address and when it went; with no
+    // policy inbox, in a mailbox we don't know.
+    vi.stubEnv("POLICY_INBOX", "");
+    const imported = await addTestLetter({ politicianId: mp, sentAt: "2026-10-01T12:00:00Z" });
+    // Sent while the policy inbox was a Google Group, so in its members' mail.
+    expect(await getSupporterLetter(imported)).toMatchObject({
+      gmail: {
+        mailbox: null,
+        search: sentNearSearch("test-mp@parliament.example", "2026-10-01T12:00:00Z"),
+        inPolicyGroup: true,
+      },
+    });
+    // Sent once it was a Gmail account, in its own mail.
+    const lately = await addTestLetter({ politicianId: mp, sentAt: "2026-10-29T09:00:00Z" });
+    expect((await getSupporterLetter(lately))!.gmail).toEqual({
+      mailbox: null,
+      search: sentNearSearch("test-mp@parliament.example", "2026-10-29T09:00:00Z"),
+    });
+    // One never sent has nothing to find; nor has one to an MP with no address.
+    const unsent = await addTestLetter({ politicianId: mp });
+    expect(await getSupporterLetter(unsent)).toMatchObject({ gmail: null });
+    const noAddress = await addTestLetter({
+      politicianId: await addTestPolitician({ email: null }),
+      sentAt: "2026-10-01T12:00:00Z",
+    });
+    expect(await getSupporterLetter(noAddress)).toMatchObject({ gmail: null });
+    vi.unstubAllEnvs();
+  });
+
+  it("gives a letter whose text the import kept: a form letter by the Message-ID Joseph's mailbox has, a Postmark letter by its copy", async () => {
+    vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
+    const politicianId = await addTestPolitician();
+    const doc = JSON.stringify(docFromMarkup("Dear MP"));
+    const form = await addTestLetter({ politicianId, sentAt: "2026-06-01T09:00:00Z" });
+    await query("UPDATE letters_from_supporters SET letter = $2 WHERE id = $1", [form, doc]);
+    await query(
+      `INSERT INTO email_sends (purpose, letter_id, address, outcome, message_id, backend, sender, rfc_message_id, imported)
+       VALUES ('letter', $1, 'mp@parliament.uk', 'sent', 'g1', 'gmail', 'joseph@pauseai.uk', 'r1@mail.gmail.com', true)`,
+      [form],
+    );
+    expect((await getSupporterLetter(form))?.gmail).toEqual({
+      mailbox: "joseph@pauseai.uk",
+      search: "rfc822msgid:r1@mail.gmail.com",
+    });
+    const postmark = await addTestLetter({
+      politicianId,
+      senderEmail: "b@example.com",
+      sentAt: "2026-11-01T09:00:00Z",
+    });
+    await query("UPDATE letters_from_supporters SET letter = $2 WHERE id = $1", [postmark, doc]);
+    await query(
+      `INSERT INTO email_sends (purpose, letter_id, address, outcome, message_id) VALUES ('letter', $1, 'mp@parliament.uk', 'sent', 'pm-1')`,
+      [postmark],
+    );
+    const letter = await getSupporterLetter(postmark);
+    expect(letter?.gmail).toEqual({ mailbox: "policy@pauseai.uk", search: "rfc822msgid:pm-1@mtasv.net" });
+    expect(letter?.sent?.text).toBe("Dear MP");
+    vi.unstubAllEnvs();
+  });
+
+  it("gives a letter from the letters inbox with its text, its draft and the messages both ways, found there by its Message-ID", async () => {
+    stubLettersInboxEnv();
+    resetLettersInbox();
+    await addTestMp();
+    await connectTestGmail(LETTERS_INBOX);
+    await submitLetter({
+      campaign: "regulate-letter-pm",
+      name: "Jane Smith",
+      postcode: "zz9 9zz",
+      address: "1 High Street",
+      email: "jane@example.com",
+      subject: "Please back a pause",
+      letter: docFromMarkup("Dear Mr McTestface,\n\nPlease back a pause."),
+      draftHash: "",
+      consent: false,
+      nickname: "",
+      turnstileToken: "",
+    });
+    deliverToLettersInbox(testMail({ from: "test-mp@parliament.example", to: testProxy("jane.smith") }));
+    await readGmail("test");
+    const [{ id, rfc }] = await query<{ id: number; rfc: string }>(
+      "SELECT letter_id::int AS id, rfc_message_id AS rfc FROM email_sends WHERE purpose = 'letter'",
+    );
+    const letter = (await getSupporterLetter(id))!;
+    expect(letter.gmail).toEqual({ mailbox: LETTERS_INBOX, search: `rfc822msgid:${rfc}` });
+    expect(letter.backend).toBe("gmail");
+    expect(letter.sent).toEqual({
+      text: "Dear Mr McTestface,\n\nPlease back a pause.",
+      draft: expect.stringContaining("Jane Smith"),
+    });
+    expect(letter.messages).toEqual([
+      expect.objectContaining({
+        fromAddress: "test-mp@parliament.example",
+        fromSupporter: false,
+        auto: false,
+        text: "Dear Jane,\n\nThank you for writing to me.",
+      }),
+    ]);
+    // Noted as an automatic reply, it says so.
+    await query(
+      `UPDATE letter_events e SET status = 'auto_reply' FROM letter_replies r
+       WHERE e.letter_id = r.letter_id AND e.status = 'replied' AND e.details->>'gmailMessageId' = r.gmail_message_id`,
+    );
+    expect((await getSupporterLetter(id))!.messages).toMatchObject([{ auto: true }]);
+    // Where the letters inbox isn't set, in a mailbox we don't know.
+    vi.stubEnv("LETTERS_INBOX", "");
+    expect((await getSupporterLetter(id))!.gmail).toMatchObject({ mailbox: null });
+    vi.stubEnv("LETTERS_INBOX", LETTERS_INBOX);
+    // Before it's sent, nothing to find it by.
+    await query(
+      "UPDATE email_sends SET outcome = 'failed', message_id = NULL, rfc_message_id = NULL WHERE purpose = 'letter'",
+    );
+    expect((await getSupporterLetter(id))!.gmail).toBeNull();
+    vi.unstubAllEnvs();
+  });
+
+  it("gives PauseAI's letter in its mailing, with the mailing and the MP's address; not in another, nor as a supporter's", async () => {
+    const mp = await addTestMp("mp@example.org");
+    const [{ id }] = await query<{ id: number }>(
+      "INSERT INTO letters (kind, notable_person_id, status, created_at, sent_at) VALUES ('pauseai', $1, 'sent', $2, $2) RETURNING id::int AS id",
+      [mp, "2026-10-01T09:00:00Z"],
+    );
+    await query(
+      `INSERT INTO letters_from_pauseai (id, mailing_id, personalised)
+       SELECT $1, id, true FROM mailings WHERE airtable_field = 'CSRB Iqbal Amendment'`,
+      [id],
+    );
+    const [{ mailing }] = await query<{ mailing: number }>(
+      "SELECT mailing_id::int AS mailing FROM letters_from_pauseai WHERE id = $1",
+      [id],
+    );
+    expect(await getPauseaiLetter(mailing + 1, id)).toBeUndefined();
+    expect(await getSupporterLetter(id)).toBeUndefined();
+    expect(await getPauseaiLetter(mailing, id)).toEqual({
+      kind: "pauseai",
+      id,
+      status: "sent",
+      skipReason: null,
+      createdAt: new Date("2026-10-01T09:00:00Z"),
+      sentAt: new Date("2026-10-01T09:00:00Z"),
+      repliedAt: null,
+      mpName: "Testy McTestface MP",
+      politicianId: mp,
+      mpEmail: "mp@example.org",
+      mailingId: mailing,
+      mailing: "CSRB Iqbal Amendment",
+      mailingAsk: null,
+      personalised: true,
+      backend: "gmail",
+      gmail: { mailbox: null, search: sentNearSearch("mp@example.org", "2026-10-01T09:00:00Z") },
+      events: [],
+    });
+    // Copied from Airtable, Airtable sent it; never sent, nothing did.
+    await query("UPDATE letters_from_pauseai SET airtable_id = 'recA' WHERE id = $1", [id]);
+    expect(await getPauseaiLetter(mailing, id)).toMatchObject({ backend: "airtable" });
+    await query("UPDATE letters_from_pauseai SET airtable_id = NULL WHERE id = $1", [id]);
+    await query("UPDATE letters SET sent_at = NULL WHERE id = $1", [id]);
+    expect(await getPauseaiLetter(mailing, id)).toMatchObject({ backend: null });
+  });
+
+  it("finds PauseAI's letter in Gmail by its Message-ID, a reply's, or its MP's address and time; an unsent one not at all", async () => {
+    const mp = await addTestMp("mp@example.org");
+    const [{ mailing }] = await query<{ mailing: number }>(
+      "UPDATE mailings SET sent_from = 'policy@pauseai.uk' WHERE airtable_field = 'CSRB Iqbal Amendment' RETURNING id::int AS mailing",
+    );
+    const letter = async (sentAt: string | null, to = mp) => {
+      const [{ id }] = await query<{ id: number }>(
+        "INSERT INTO letters (kind, notable_person_id, status, sent_at) VALUES ('pauseai', $1, 'sent', $2) RETURNING id::int AS id",
+        [to, sentAt],
+      );
+      await query("INSERT INTO letters_from_pauseai (id, mailing_id) VALUES ($1, $2)", [id, mailing]);
+      return id;
+    };
+    const send = (id: number, rfc: string | null) =>
+      query(
+        `INSERT INTO email_sends (purpose, letter_id, address, outcome, message_id, backend, sender, rfc_message_id, gmail_thread_id)
+         VALUES ('mailing', $1, 'mp@example.org', 'sent', 'g-1', 'gmail', 'policy@pauseai.uk', $2, 'thread-1')`,
+        [id, rfc],
+      );
+    const reply = (id: number, rfc: string | null, at: string) =>
+      query(
+        `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address, at, from_us, blob_key, size)
+         VALUES ($1, 'jo@pauseai.uk', $3, 'thread-2', $2, 'mp@example.org', $4, false, $3, 0)`,
+        [id, rfc, `g-${at}`, at],
+      );
+    const at = "2026-10-01T09:00:00Z";
+
+    // Sent from Gmail: by the Message-ID it went with, in the mailbox it went from.
+    const sent = await letter(at);
+    await send(sent, "abc@pauseai.uk");
+    expect((await getPauseaiLetter(mailing, sent))!.gmail).toEqual({
+      mailbox: "policy@pauseai.uk",
+      search: "rfc822msgid:abc@pauseai.uk",
+    });
+    // Its Message-ID not kept: by its MP's address and when it went.
+    const noId = await letter(at);
+    await send(noId, null);
+    expect((await getPauseaiLetter(mailing, noId))!.gmail).toEqual({
+      mailbox: "policy@pauseai.uk",
+      search: sentNearSearch("mp@example.org", at),
+    });
+    // Not sent from here, but replied to: by the first reply with a Message-ID, in the mailbox that read it.
+    const replied = await letter(at);
+    await reply(replied, null, "2026-10-02T09:00:00Z");
+    await reply(replied, "reply-2@parliament.uk", "2026-10-04T09:00:00Z");
+    await reply(replied, "reply-1@parliament.uk", "2026-10-03T09:00:00Z");
+    expect((await getPauseaiLetter(mailing, replied))!.gmail).toEqual({
+      mailbox: "jo@pauseai.uk",
+      search: "rfc822msgid:reply-1@parliament.uk",
+    });
+    // Never sent, or to an MP with no address and nothing else to go by: nothing to find.
+    expect((await getPauseaiLetter(mailing, await letter(null)))!.gmail).toBeNull();
+    expect(
+      (await getPauseaiLetter(mailing, await letter(at, await addTestPolitician({ email: null }))))!.gmail,
+    ).toBeNull();
+  });
+});

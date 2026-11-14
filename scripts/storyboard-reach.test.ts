@@ -71,7 +71,7 @@ const FILES: Record<string, string> = {
   "components/Letters.tsx": `import { type Letter, sortLetters } from "@/lib/letters";\nexport const Letters = sortLetters;`,
   "lib/letters.ts": `export type Letter = string;\nexport const sortLetters = () => require("./sort");`,
   "lib/sort.ts": `export default 1;`,
-  "lib/posts.ts": `import "@/lib/server/problems";\nexport default 1;`,
+  "lib/posts.ts": `import "@/lib/server/problems.server";\nexport default 1;`,
   "lib/feed.ts": `export default 1;`,
   "lib/redirects.ts": `export default [];`,
   "lib/session.ts": `export default 1;`,
@@ -84,8 +84,8 @@ const FILES: Record<string, string> = {
   "public/pdfs/briefing.pdf": `pdf`,
   "lib/content/staff-interface.ts": COPY,
   "lib/server/errors.ts": `export const keep = 1;`,
-  "lib/server/problems.ts": `export const registerRunStore = (find: () => void) => find;\nconst held = globalThis;`,
-  "lib/server/run-store.ts": `import * as storage from "node:async_hooks";\nimport register, { registerRunStore } from "./problems";\nconst find = () => storage;\nregisterRunStore(find);\nawait register.late(find);\nfind();\nnew Map();`,
+  "lib/server/problems.server.ts": `export const registerRunStore = (find: () => void) => find;\nconst held = globalThis;`,
+  "lib/server/run-store.server.ts": `import * as storage from "node:async_hooks";\nimport register, { registerRunStore } from "./problems.server";\nconst find = () => storage;\nregisterRunStore(find);\nawait register.late(find);\nfind();\nnew Map();`,
   "lib/posts.test.ts": `import { check } from "./posts";\ncheck(globalThis);`,
   "lib/server/inbox.ts": `export const folder = "lib/server/replies/";`,
   "lib/server/replies/jane.eml": `From: jane.smith@example.com`,
@@ -206,22 +206,25 @@ describe("readByNoFlow", () => {
 describe("handOvers", () => {
   it("finds where code could be handed over without an import: a call of an imported function as a module loads, and globalThis", () => {
     expect(handOvers(root, ["lib", "components"])).toEqual([
-      "lib/server/problems.ts: uses globalThis",
-      "lib/server/run-store.ts: calls registerRunStore() as it loads",
-      "lib/server/run-store.ts: calls register() as it loads",
+      "lib/server/problems.server.ts: uses globalThis",
+      "lib/server/run-store.server.ts: calls registerRunStore() as it loads",
+      "lib/server/run-store.server.ts: calls register() as it loads",
     ]);
   });
 
   it("joins what's handed over to the module it's handed to, so a flow that reaches the one reaches the other", () => {
     const graph = importGraph(root);
-    expect(graph.get("lib/server/problems.ts")).toEqual(["lib/server/run-store.ts", "instrumentation.ts"]);
+    expect(graph.get("lib/server/problems.server.ts")).toEqual([
+      "lib/server/run-store.server.ts",
+      "instrumentation.ts",
+    ]);
     expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).toContain("lib/server/errors.ts");
-    expect(importGraph(join(root, "components")).has("lib/server/problems.ts")).toBe(false);
+    expect(importGraph(join(root, "components")).has("lib/server/problems.server.ts")).toBe(false);
   });
 
   it("leaves them out when asked for the imports alone", () => {
     const graph = importGraph(root, { handedOver: false });
-    expect(graph.get("lib/server/problems.ts")).toEqual([]);
+    expect(graph.get("lib/server/problems.server.ts")).toEqual([]);
     expect(graph.get("instrumentation.ts")).toEqual(["lib/server/errors.ts"]);
   });
 });
@@ -445,7 +448,7 @@ describe("reachedFlows", () => {
 
   it("reruns, for what handles an error, the flows that kept one and those that reach where problems are reported", () => {
     expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(post, broken));
-    expect(reached(["lib/server/run-store.ts"]).keys).toEqual(keysOf(post));
+    expect(reached(["lib/server/run-store.server.ts"]).keys).toEqual(keysOf(post));
   });
 
   it("reruns the flows that fetched a public file, there or not, and none for one nothing fetches or names", () => {
@@ -722,9 +725,9 @@ describe("this repo", { timeout: 120_000 }, () => {
       // The fakes' mail and answers, kept for each flow's database across the build's copies of a module: no code.
       "lib/server/fixtures/letters-inbox.ts: uses globalThis",
       "lib/server/fixtures/outside-services.ts: uses globalThis",
-      // Handed the keeper of errors by instrumentation.ts, and the run in progress by run-store.ts (HANDED_OVER).
-      "lib/server/problems.ts: uses globalThis",
-      "lib/server/run-store.ts: calls registerRunStore() as it loads",
+      // Handed the keeper of errors by instrumentation.ts, and the run in progress by run-store.server.ts (HANDED_OVER).
+      "lib/server/problems.server.ts: uses globalThis",
+      "lib/server/run-store.server.ts: calls registerRunStore() as it loads",
     ]);
   });
 

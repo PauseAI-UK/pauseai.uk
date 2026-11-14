@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { AnyLetter } from "@/lib/server/all-letters";
+import type { AnyLetter } from "@/lib/server/all-letters.server";
 import AllLetters from "./AllLetters";
 import { supportersCopy } from "./supporters/copy";
 

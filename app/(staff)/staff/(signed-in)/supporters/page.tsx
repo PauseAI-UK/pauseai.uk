@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { withChoosing } from "@/lib/server/broadcast-pages";
-import { requireStaff } from "@/lib/accounts/auth";
-import { listSupporters, supporterChoices } from "@/lib/supporters/records";
+import { withChoosing } from "@/lib/server/broadcast-pages.server";
+import { requireStaff } from "@/lib/accounts/auth.server";
+import { listSupporters, supporterChoices } from "@/lib/supporters/records.server";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
 import ErasedNotice from "../../_components/erasure/ErasedNotice";
@@ -11,7 +11,7 @@ import SupportersTable from "../../_components/supporters/SupportersTable";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
 import { keepFilterForBroadcast, newBroadcast } from "../../broadcast-actions";
-import { openSavedList } from "../../saved-lists";
+import { openSavedList } from "../../saved-lists.server";
 import { supportersCopy } from "../../_components/supporters/copy";
 
 type Props = { searchParams: Promise<Partial<SupportersSearch>> };

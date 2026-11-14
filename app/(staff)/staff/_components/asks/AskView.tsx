@@ -5,7 +5,7 @@ import { askPeriod } from "@/lib/asks/ask-groups";
 import type { AskStatus } from "@/lib/asks/asks";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/asks/records";
+import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/asks/records.server";
 import { staffDate } from "@/lib/staff-time";
 import { answeredOf, ANSWER_TONES, askCounts } from "./AsksList";
 import Band, { BandFact } from "../ui/Band";

@@ -5,11 +5,11 @@
 // each calls requireStaff() before anything else
 // (tests/checks/staff-auth.test.ts).
 import { revalidatePath } from "next/cache";
-import { requireStaff } from "@/lib/accounts/auth";
+import { requireStaff } from "@/lib/accounts/auth.server";
 import { now } from "@/lib/now";
-import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@/lib/politicians/aliases";
-import { editPoliticianDetails, type EditResult, isMark, setMark } from "@/lib/politicians/edits";
-import { setStatus } from "@/lib/politicians/records";
+import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@/lib/politicians/aliases.server";
+import { editPoliticianDetails, type EditResult, isMark, setMark } from "@/lib/politicians/edits.server";
+import { setStatus } from "@/lib/politicians/records.server";
 import { idFrom, statusFrom } from "@/lib/staff-forms";
 
 /** The form on a politician's page: sets their answer to an ask, dated today, or clears it, with its note of how we know. */

@@ -3,7 +3,7 @@ import { site } from "@/lib/content/site";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/asks/asks";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
-import type { RunningJob } from "@/lib/server/import-runs";
+import type { RunningJob } from "@/lib/server/import-runs.server";
 import {
   type AnyImportRun,
   IMPORT_JOBS,

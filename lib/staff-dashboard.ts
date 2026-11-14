@@ -6,7 +6,7 @@ import type { SupporterSource } from "@/lib/supporters/supporters";
 
 // The staff home's dashboard: what needs a person, and what happened in
 // the window against the window before. The
-// server fills it (lib/server/staff-dashboard.ts); StaffDashboard shows it.
+// server fills it (lib/server/staff-dashboard.server.ts); StaffDashboard shows it.
 
 /** The windows the dashboard can show, in days; the first is the default. */
 export const DASHBOARD_WINDOWS = [7, 30, 90] as const;

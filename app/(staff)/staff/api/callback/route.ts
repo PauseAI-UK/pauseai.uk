@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createSession } from "@/lib/accounts/auth";
-import { redeemLoginLink } from "@/lib/accounts/login";
+import { createSession } from "@/lib/accounts/auth.server";
+import { redeemLoginLink } from "@/lib/accounts/login.server";
 import { keepCookie, LOGIN_BROWSER_COOKIE, LOGIN_PATH, sessionCookie } from "@/lib/accounts/session";
-import { siteUrl } from "@/lib/site-url";
+import { siteUrl } from "@/lib/site-url.server";
 
 // Step two of logging in: where the emailed link goes. Open to anyone, so it
 // doesn't call requireStaff(); it starts a session only for a current,

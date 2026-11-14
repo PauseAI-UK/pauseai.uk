@@ -2,7 +2,7 @@
 
 import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
 import { AI_IMPACTS_SURVEY_URL, marchSignupCopy, type ShareSource } from "@/lib/content/march-signup";
-import { track } from "./analytics";
+import { track } from "./analytics.client";
 import { cardMotionProps, type CardMotion } from "./card-motion";
 import { m } from "./classes";
 
