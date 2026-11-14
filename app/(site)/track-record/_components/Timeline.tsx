@@ -30,7 +30,7 @@ export default function Timeline() {
                   Science &amp; Technology.
                 </li>
                 <li>
-                  <strong>Ben Macpherson MSP</strong>, for Edinburgh Northern and Leith, and former Minister for
+                  <strong>Ben Macpherson MSP</strong>, for Edinburgh Northern and Leith (SNP), and former Minister for
                   Innovation, Technology and Tertiary Education.
                 </li>
                 <li>
