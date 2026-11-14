@@ -1,6 +1,6 @@
 import { FIXTURE_NOW } from "@/lib/server/fixtures/fixture-env.mjs";
 import { campaigns } from "@/lib/content/email-your-mp";
-import type { Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { marchSignupCopy } from "@/lib/content/march-signup";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -8,20 +8,13 @@ import type { Reason, Topic } from "@/lib/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
 import { TEST_MPS } from "@/lib/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import {
-  addFilter,
-  addStaffAccount,
-  changeFilter,
-  fakeTurnstile,
-  fillLetter,
-  importLuma,
-  importCivicrm,
-  logInAsStaff,
-  lookUpTestMp,
-  postLumaWebhook,
-  sendLetter,
-  importPoliticians,
-} from "../steps";
+import { lumaPersonWebhook, lumaWebhookHeaders } from "../luma-webhooks";
+import { fillLetter, lookUpTestMp, sendLetter } from "./letter-steps";
+import { addFilter, changeFilter } from "./list-steps";
+import { addStaffAccount, logInAsStaff } from "./login-steps";
+import { importPoliticians } from "./politician-steps";
+import { importCivicrm, importLuma } from "./supporter-steps";
+import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
@@ -40,6 +33,27 @@ async function logInWithSupporters(page: Page, database: string) {
 }
 
 const copy = staffCopy.supporters;
+
+/**
+ * Posts one of Luma's calendar.person webhooks for `email`, signed with the
+ * fixture build's secret at its fixed clock, which is what its five-minute
+ * window is measured against.
+ */
+async function postLumaWebhook(
+  request: APIRequestContext,
+  base: string,
+  type: "calendar.person.unsubscribed" | "calendar.person.subscribed",
+  email: string,
+  webhookId: string,
+) {
+  const body = JSON.stringify(lumaPersonWebhook(type, email));
+  const res = await request.post(`${base}/api/luma/webhook`, {
+    headers: lumaWebhookHeaders(body, new Date(FIXTURE_NOW), webhookId),
+    data: body,
+  });
+  if (!res.ok()) throw new Error(`Luma webhook on ${base} failed: ${res.status()} ${await res.text()}`);
+  return (await res.json()) as { recorded: boolean };
+}
 
 /** Changes the Consent filter's topic, from its chip, to `topic` by email: the first of its ways in the menu. */
 async function changeTopic(page: Page, chip: string, topic: string) {

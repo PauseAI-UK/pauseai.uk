@@ -24,7 +24,7 @@ import {
 // Then the template database each flow's is copied from
 // (fixtures.ts), migrated and with the test MPs, as the build's own database
 // is made, with the letters inbox connected. Flows that need the fixture politicians sync them in themselves
-// (importPoliticians in tests/steps.ts).
+// (importPoliticians in politician-steps.ts).
 //
 // The server's clock is fixed at FIXTURE_NOW (lib/now.ts); so is the
 // database's: a now() in a `fixture` schema, which each flow's database puts

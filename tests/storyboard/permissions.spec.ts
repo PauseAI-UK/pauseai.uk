@@ -4,19 +4,12 @@ import { IMPORT_JOBS, importPath } from "@/lib/import-runs";
 import { TEST_MPS } from "@/lib/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { ROUTES } from "../routes";
-import {
-  addStaffAccount,
-  fakeTurnstile,
-  fillLetter,
-  importLuma,
-  importCivicrm,
-  logInAsStaff,
-  lookUpTestMp,
-  sendLetter,
-  importPoliticians,
-  WEBHOOK_AUTH,
-} from "../steps";
-import { addPauseaiEmails } from "./staff-steps";
+import { fillLetter, lookUpTestMp, sendLetter } from "./letter-steps";
+import { addStaffAccount, logInAsStaff } from "./login-steps";
+import { addPauseaiEmails, importPoliticians } from "./politician-steps";
+import { WEBHOOK_AUTH } from "./postmark-steps";
+import { importCivicrm, importLuma } from "./supporter-steps";
+import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 

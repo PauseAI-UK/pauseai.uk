@@ -3,9 +3,13 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { failService } from "@/lib/server/fixtures/failing-services";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
-import { fakeTurnstile, fillLetter, lookUpTestMp, newestEmail } from "../steps";
+import { fillLetter, lookUpTestMp } from "./letter-steps";
+import { settled } from "./loading-steps";
+import { logIn } from "./login-steps";
+import { newestEmail } from "./outbox-steps";
+import { TO_NOTIFICATIONS } from "./staff-inboxes";
+import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, emailFrame, expect, frame, madeUpAddress, story, test } from "./fixtures";
-import { logIn, settled, TO_NOTIFICATIONS } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Errors", part: "Staff pages", order: 135 };

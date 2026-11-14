@@ -1,20 +1,15 @@
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { fakeTurnstile, lookUpTestMp, newestEmail, openLookup } from "../steps";
+import { lookUpTestMp, openLookup, sentLetterId } from "./letter-steps";
+import { bounceLetter, postReply, sentEmail } from "./letters-inbox-steps";
+import { logIn } from "./login-steps";
+import { newestEmail } from "./outbox-steps";
+import { bouncy, BOUNCY_ADDRESS, postBounce } from "./postmark-steps";
+import { TO_NOTIFICATIONS } from "./staff-inboxes";
+import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, emailFrame, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { TEST_MPS } from "@/lib/test-mps";
-import { sentEmail } from "./letters-inbox-steps";
-import {
-  bounceLetter,
-  bouncy,
-  BOUNCY_ADDRESS,
-  logIn,
-  TO_NOTIFICATIONS,
-  postBounce,
-  postReply,
-  sentLetterId,
-} from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Letters and bounces", part: "Staff pages", order: 100 };

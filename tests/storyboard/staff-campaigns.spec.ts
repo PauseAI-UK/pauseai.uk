@@ -1,9 +1,14 @@
+import type { Page } from "@playwright/test";
+import { longDay } from "@/lib/calendar-days";
+import { DATE_PICKER_WORDS } from "@/lib/content/date-picker";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, recordAnswers, importPoliticians } from "../steps";
+import { sentLetterId } from "./letter-steps";
+import { addFilter } from "./list-steps";
+import { logIn } from "./login-steps";
+import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
-import { addPauseaiEmails, chooseDay, logIn, sentLetterId } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
@@ -12,6 +17,18 @@ export const section: Section = { name: "Campaigns, asks and sent emails", part:
 // own database.
 
 const copy = staffCopy.campaigns;
+
+/**
+ * Chooses `day` with the date picker the field `label` names: opens it,
+ * moves on a few weeks at a time until the day is in view, and clicks it.
+ */
+async function chooseDay(page: Page, label: string, day: string) {
+  await page.getByRole("button", { name: label }).click();
+  const calendar = page.getByRole("dialog");
+  const target = calendar.getByRole("button", { name: new RegExp(`^${longDay(day)}`) });
+  while (!(await target.isVisible())) await calendar.getByRole("button", { name: DATE_PICKER_WORDS.later }).click();
+  await target.click();
+}
 
 test("Campaigns", async ({ page, flowDatabase }) => {
   story(

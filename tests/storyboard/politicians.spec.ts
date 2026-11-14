@@ -1,11 +1,13 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addFilter, addStaffAccount, changeFilter, logInAsStaff, recordAnswers, importPoliticians } from "../steps";
+import { connectPolicyMailboxes } from "./gmail-steps";
+import { addFilter, changeFilter } from "./list-steps";
+import { addStaffAccount, logInAsStaff } from "./login-steps";
+import { addPauseaiEmails, importPoliticians, PM_LETTER, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
-import { addPauseaiEmails, connectPolicyMailboxes, PM_LETTER } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };

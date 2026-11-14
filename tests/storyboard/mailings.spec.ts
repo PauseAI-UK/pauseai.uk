@@ -1,11 +1,15 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { addStaffAccount, logInAsStaff, newestEmail, recordAnswers, importPoliticians, WEBHOOK_AUTH } from "../steps";
+import { runQueue } from "./letters-inbox-steps";
+import { stayOnPage } from "./loading-steps";
+import { addStaffAccount, logInAsStaff } from "./login-steps";
+import { newestEmail } from "./outbox-steps";
+import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
+import { WEBHOOK_AUTH } from "./postmark-steps";
+import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { caretAtEnd } from "./editor-steps";
 import { BASE, emailFrame, expect, frame, story, test } from "./fixtures";
-import { addPauseaiEmails, stayOnPage, TO_NOTIFICATIONS } from "./staff-steps";
-import { runQueue } from "./letters-inbox-steps";
 import { scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
 

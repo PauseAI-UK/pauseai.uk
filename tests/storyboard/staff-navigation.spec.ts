@@ -1,8 +1,10 @@
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { importLuma, lockTable, importPoliticians } from "../steps";
+import { holdNextPage, loadingLine, lockTable, settled } from "./loading-steps";
+import { logIn, staffEmail } from "./login-steps";
+import { importPoliticians, PM_LETTER } from "./politician-steps";
+import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { PM_LETTER, staffEmail, logIn, holdNextPage, loadingLine, settled } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };

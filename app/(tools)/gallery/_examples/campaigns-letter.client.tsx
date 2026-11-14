@@ -80,7 +80,7 @@ export function Seeded({
 }
 
 // Cloudflare's widget mustn't load here. As the storyboard's flows do
-// (tests/steps.ts), this stands in for it: it hands over a token at once,
+// (tests/storyboard/turnstile-steps.ts), this stands in for it: it hands over a token at once,
 // which a fixture build's Turnstile accepts. It draws a box, so there's
 // something to see where the widget goes.
 const FAKE_TURNSTILE: TurnstileApi = {

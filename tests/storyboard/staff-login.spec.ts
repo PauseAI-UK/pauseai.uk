@@ -1,7 +1,10 @@
+import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { addStaffAccount, askForLoginLink, logInWithLink, loginLinkFor, newestEmailTo } from "../steps";
+import { ROUTES } from "../routes";
+import { stayOnPage } from "./loading-steps";
+import { addStaffAccount, logIn, staffEmail } from "./login-steps";
+import { newestEmailTo } from "./outbox-steps";
 import { BASE, emailFrame, expect, flowStorageState, frame, story, test } from "./fixtures";
-import { STAFF_PAGES, stayOnPage, staffEmail, logIn } from "./staff-steps";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Logging in, and your account", part: "Staff pages", order: 10 };
@@ -9,8 +12,41 @@ export const section: Section = { name: "Logging in, and your account", part: "S
 // Logging in to the staff pages, and your own account: the dev login, a
 // login link, a first login and an admin's accounts, being logged out, your
 // Gmail, and the pages kept out of search. Each flow on its own database.
-// Here staff log in with the link emailed to them (logInWithLink in
-// tests/steps.ts); the other sections use the dev login (logInAsStaff).
+// Here staff log in with the link emailed to them (logInWithLink); the
+// other sections use the dev login (logInAsStaff, ./login-steps.ts).
+
+/** Every staff page but the login page. */
+const STAFF_PAGES = ROUTES.filter((route) => route.startsWith("/staff") && !route.startsWith("/staff/login"));
+
+/** The login link in the newest email to `email`, if it got one. */
+function loginLinkFor(email: string): string | undefined {
+  return newestEmailTo(email)?.TextBody.match(/https?:\/\/\S+\/staff\/api\/callback\?token=[\w-]+/)?.[0];
+}
+
+/** Asks for a login link for `email`, ticking "Keep me signed in" if `keep`, and waits for "check your inbox". */
+async function askForLoginLink(page: Page, base: string, email: string, keep = false) {
+  const login = await page.goto(`${base}/staff/login`);
+  if (!login?.ok()) throw new Error(`${base}/staff/login returned ${login?.status()}: is the staff interface there?`);
+  await page.getByLabel(staffCopy.login.emailLabel).fill(email);
+  if (keep) await page.getByRole("checkbox", { name: staffCopy.login.keep }).check();
+  await page.getByRole("button", { name: staffCopy.login.button }).click();
+  await expect(page.getByRole("status")).toHaveText(staffCopy.login.sent);
+}
+
+/**
+ * Logs in on `base` as `email`, as staff do: asks for a link, takes it from
+ * the build's outbox (lib/server/fixtures/outbox.ts), and opens it in the same
+ * browser. For an address that gets no link, stops at "check your inbox"
+ * and returns false.
+ */
+async function logInWithLink(page: Page, base: string, email = "staff@pauseai.uk"): Promise<boolean> {
+  await askForLoginLink(page, base, email);
+  const link = loginLinkFor(email);
+  if (!link) return false;
+  // In the same browser that asked for it, so it logs in.
+  await page.goto(link);
+  return true;
+}
 
 test("The dev login", async ({ page, flowDatabase }) => {
   story(
