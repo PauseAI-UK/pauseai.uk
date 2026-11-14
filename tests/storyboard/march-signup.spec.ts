@@ -200,27 +200,36 @@ test("How many have registered", { tag: "@phone" }, async ({ page }) => {
 
 test("The march page in a wide window", { tag: "@desktop-only" }, async ({ page }) => {
   story(
-    "Someone opens the march page in a window wider than the site's column, then makes it wider still. The hero's words start in line with the site's logo above them and the page below, and the photo keeps its place beside the words.",
+    "Someone opens the march page in a window 1920 pixels wide. The hero's words start near the window's edge, clear of the woman with the sign, who stands in the middle of the window's right half.",
   );
   const left = async (locator: Locator) => Math.round((await locator.boundingBox())!.x);
   const hero = page.locator("section").filter({ has: page.getByRole("heading", { level: 1 }) });
-  /** How far the photo starts from the words, once the words are checked to be in line. */
-  const photoFromWords = async () => {
-    const words = await left(page.getByRole("heading", { level: 1 }));
-    expect(words).toBe(await left(header(page).getByRole("link", { name: "PauseAI UK" })));
-    expect(words).toBe(await left(page.getByRole("heading", { level: 2 }).first()));
-    return (await left(hero.getByRole("img").first())) - words;
+  const words = page.getByRole("heading", { level: 1 });
+  /**
+   * Where the woman with the sign stands: 56% of the way across the photo.
+   * The photo is decorative, so it has no role to find it by.
+   */
+  const woman = async () => {
+    const photo = (await hero.locator('img[src*="hero-march"]').boundingBox())!;
+    return Math.round(photo.x + photo.width * 0.56);
   };
-  await page.setViewportSize({ width: 1440, height: 800 });
-  await openSignup(page);
-  const beside = await photoFromWords();
-  await frame(page, "The top of the page, in a window 1440 pixels wide", { window: true });
-  story("They make the window wider.");
-
   await page.setViewportSize({ width: 1920, height: 800 });
-  await layoutSettled(page, "main");
-  expect(await photoFromWords()).toBe(beside);
+  await openSignup(page);
+  const box = (await hero.boundingBox())!;
+  expect(await left(words)).toBe(Math.round(box.x) + 80);
+  expect(await woman()).toBe(Math.round(box.x + box.width * 0.75));
   await frame(page, "The top of the page, in a window 1920 pixels wide", { window: true });
+  story(
+    "They make the window wider still. Past 1920 pixels the words start in line with the site's logo above them and the page below, and the photo keeps its place beside them.",
+  );
+
+  await page.setViewportSize({ width: 2560, height: 800 });
+  await layoutSettled(page, "main");
+  const edge = await left(words);
+  expect(edge).toBe(await left(header(page).getByRole("link", { name: "PauseAI UK" })));
+  expect(edge).toBe(await left(page.getByRole("heading", { level: 2 }).first()));
+  expect((await woman()) - edge).toBe(1000);
+  await frame(page, "The top of the page, in a window 2560 pixels wide", { window: true });
 });
 
 test("Seeing all the details", { tag: "@phone" }, async ({ page }) => {
