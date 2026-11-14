@@ -32,7 +32,7 @@ export default function Timeline() {
                   AI safety.
                 </li>
                 <li>
-                  <strong>Susan Murray</strong>, MP for Mid Dunbartonshire (Liberal Democrats).
+                  <strong>Susan Murray MP</strong>, for Mid Dunbartonshire (Liberal Democrats).
                 </li>
                 <li>
                   <strong>David Kirkwood MSP</strong>, for South Scotland (Reform), on the cross-party group on Science
