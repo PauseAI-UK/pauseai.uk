@@ -1,7 +1,6 @@
 "use client";
 
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { DeleteTwice } from "../DeleteTwice";
 import { mailingsCopy } from "./copy";
 
@@ -21,7 +20,7 @@ export function ResumeBroadcast({ id, action }: { id: number; action: FormAction
     <form action={action}>
       <input type="hidden" name="id" value={id} />
       <SubmitButton variant="ghost" size="small" fit>
-        {staffCopy.broadcastPages.resume}
+        {mailingsCopy.mailingPages.resume}
       </SubmitButton>
     </form>
   );

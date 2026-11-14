@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { campaignBySlug } from "@/lib/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { CONSENT_ORDER } from "@/lib/staff-list-filters";
 import SupporterFilters from "./SupporterFilters";
@@ -128,8 +127,8 @@ describe("SupporterFilters", () => {
     ]);
     expect(locked.every((chip) => chip.tagName === "SPAN")).toBe(true);
     expect(locked.map((chip) => chip.getAttribute("title"))).toEqual([
-      staffCopy.broadcastPages.consentLocked,
-      staffCopy.broadcastPages.consentLocked,
+      supportersCopy.consentLocked,
+      supportersCopy.consentLocked,
     ]);
     // Its padlock at the end, in the second half.
     expect(locked.map((chip) => Boolean(chip.querySelector("svg:last-child[class*=lockIcon]")))).toEqual([false, true]);

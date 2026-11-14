@@ -2,7 +2,7 @@
 // supporter, or a letter to a politician (docs/domain-concepts.md, "How a
 // copy went"). Each copy is in one state, which gives its tag, its colour and
 // the count it's in. A broadcast works its states out in
-// lib/server/broadcast-pages.server.ts; a letter's are here, as its tag needs them
+// lib/broadcasts/pages.server.ts; a letter's are here, as its tag needs them
 // wherever it's shown.
 
 import { statusIn } from "./status";

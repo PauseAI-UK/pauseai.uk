@@ -3,7 +3,7 @@
 // "Configure Webhooks" (docs/development.md, "WhatsApp"):
 //
 //   WHATSAPP_APP_SECRET=... npm run whatsapp:verify-token
-import { verifyToken } from "../lib/server/whatsapp-verify-token.mjs";
+import { verifyToken } from "../lib/broadcasts/whatsapp-verify-token.mjs";
 
 const secret = process.env.WHATSAPP_APP_SECRET;
 if (!secret) {

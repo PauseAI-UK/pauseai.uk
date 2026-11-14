@@ -205,7 +205,7 @@ describe("the rest", () => {
     await says(accountsCopy.gmail.notKept.before);
     await expect.element(link(shellCopy.nav.mailings)).toHaveAttribute("href", "/staff/mailings");
     // hello@'s sends the broadcasts too.
-    await rerender(<MyGmail {...props} me="hello@pauseai.uk" />);
+    await rerender(<MyGmail {...props} me="hello@pauseai.uk" sendsBroadcasts />);
     await says(accountsCopy.gmail.notKeptBroadcasts.before);
     await expect.element(link(shellCopy.nav.broadcasts)).toHaveAttribute("href", "/staff/broadcasts");
     await rerender(<MyGmail {...props} lettersInbox />);

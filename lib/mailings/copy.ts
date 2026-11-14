@@ -232,5 +232,30 @@ export const mailingsCopy = {
     // In a mailing's email, who it's to: each recipient, as it's a letter to many.
     toEach: "Each recipient, by name and address",
     emailTitle: "The email",
+    // Each address a mailing or a broadcast's email can go from, with what sends it: Postmark, or a staff member's Gmail.
+    fromOption: (address: string, backend: string) => `${address}, by ${backend}`,
+    // What sends an email: by name.
+    sendBy: { names: { gmail: "Gmail", postmark: "Postmark" } },
+    // What will go, as facts with their labels: how many, from whom and how, when, and a text's cost, on a
+    // mailing's Send and a broadcast's.
+    sendFacts: {
+      what: "Sends",
+      count: (n: number, channel: "email" | "text") =>
+        channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts"),
+      from: "From",
+      // A mailing's, before its Gmail is chosen.
+      noSender: "No account chosen yet",
+      // What sends it: Gmail, Postmark or WhatsApp.
+      via: "Via",
+      // On a sent one's page, under who it's from, after their name: what sends it (Gmail, Postmark or WhatsApp).
+      viaDetail: (name: string) => `via ${name}`,
+      whatsApp: "WhatsApp",
+      when: "When",
+      noTime: "No time chosen yet",
+      cost: "Cost",
+    },
+    // Beside a broadcast that stopped by itself: sets it going again, to those it didn't reach. The email
+    // about one stopping names it.
+    resume: "Resume sending",
   },
 };

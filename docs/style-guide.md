@@ -393,7 +393,7 @@ on, however far they've scrolled.
 The supporters list chooses who a broadcast goes to with the same two
 bars, but with no ticks. There the filters say who, and the button at the
 foot keeps the filters for the draft (`ChoosingBroadcastFrame` in
-`_components/BroadcastSupporters.tsx`). A new choosing mode uses these two
+`_components/broadcasts/BroadcastSupporters.tsx`). A new choosing mode uses these two
 bars too, not a design of its own. The mailing's bars are in
 `_components/politicians/PoliticiansList.tsx`, and the broadcast's bars share its
 stylesheet.

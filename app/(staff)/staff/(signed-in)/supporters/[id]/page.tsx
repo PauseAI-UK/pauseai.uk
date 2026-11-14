@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { now } from "@/lib/now";
-import { broadcastsToSupporter } from "@/lib/server/broadcast-pages.server";
+import { broadcastsToSupporter } from "@/lib/broadcasts/pages.server";
 import { notesOn } from "@/lib/server/notes.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { getSupporter } from "@/lib/supporters/records.server";
@@ -15,7 +15,7 @@ import DevPreferences from "../../../_components/supporters/DevPreferences";
 import OptOutForm from "../../../_components/supporters/OptOutForm";
 import EraseLink from "../../../_components/erasure/EraseLink";
 import Notes from "../../../_components/Notes";
-import SupporterBroadcasts from "../../../_components/SupporterBroadcasts";
+import SupporterBroadcasts from "../../../_components/broadcasts/SupporterBroadcasts";
 import SupporterDetails from "../../../_components/supporters/SupporterDetails";
 import { supporterOneOffs } from "@/lib/letters/one-off-emails.server";
 import { OneOffTable } from "../../../_components/letters/OneOffList";

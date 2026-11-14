@@ -1,7 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { GmailAccount } from "@/lib/accounts/gmail-accounts.server";
 import { staffDate } from "@/lib/staff-time";
-import { BROADCAST_SENDER } from "@/lib/broadcasts";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
 import styles from "./MyGmail.module.css";
 import { Card } from "../ui/Grid";
@@ -15,9 +14,9 @@ const copy = accountsCopy.gmail;
  * What's kept from this mailbox: all its threads with politicians, or only
  * replies to what's sent from here: mailings, and from hello@ broadcasts too.
  */
-function KeptNote({ keeps, me }: { keeps: boolean; me: string }) {
+function KeptNote({ keeps, broadcasts }: { keeps: boolean; broadcasts: boolean }) {
   const words = copy;
-  if (!keeps && me === BROADCAST_SENDER.email) {
+  if (!keeps && broadcasts) {
     const both = words.notKeptBroadcasts;
     return (
       <p>
@@ -59,6 +58,7 @@ export default function MyGmail({
   outcome,
   disconnect,
   keepsThreads = false,
+  sendsBroadcasts = false,
 }: {
   /** Who's logged in. */
   me: string;
@@ -70,6 +70,8 @@ export default function MyGmail({
   disconnect: (form: FormData) => void | Promise<void>;
   /** Whether threads with politicians are kept from it. */
   keepsThreads?: boolean;
+  /** Whether it's the address broadcasts go from, so replies to them are kept from it too. */
+  sendsBroadcasts?: boolean;
 }) {
   return (
     <Card
@@ -90,7 +92,7 @@ export default function MyGmail({
         <GmailOutcome outcome={outcome} me={me} lettersInbox={lettersInbox} />
         {account ? (
           <>
-            {!lettersInbox && <KeptNote keeps={keepsThreads} me={me} />}
+            {!lettersInbox && <KeptNote keeps={keepsThreads} broadcasts={sendsBroadcasts} />}
             <p>
               {copy.connected(staffDate(account.connectedAt))}{" "}
               <SentToday sent={account.sentToday} lettersInbox={lettersInbox} />

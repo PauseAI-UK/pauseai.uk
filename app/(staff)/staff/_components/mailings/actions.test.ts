@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
 import { createDraft, getWrittenMailing, saveDraft, type MailingChanges } from "@/lib/mailings/drafts.server";
-import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/server/broadcast-drafts.server";
+import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import { createSession } from "@/lib/accounts/auth.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";

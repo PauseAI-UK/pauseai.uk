@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { broadcastCrumb, broadcastPageData, broadcastTitle } from "@/lib/server/broadcast-pages.server";
+import { broadcastCrumb, broadcastPageData, broadcastTitle } from "@/lib/broadcasts/pages.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { mailingId } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
-import BroadcastFor from "../../../_components/BroadcastFor";
+import BroadcastFor from "../../../_components/broadcasts/BroadcastFor";
 import Page from "../../../_components/ui/Page";
-import { broadcastWriterActions } from "../writer-actions";
+import { broadcastWriterActions } from "../../../_components/broadcasts/writer-actions";
 
 type Params = {
   params: Promise<{ id: string }>;

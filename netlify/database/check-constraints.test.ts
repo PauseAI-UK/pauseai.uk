@@ -1,4 +1,4 @@
-import type { AnswerStatus } from "@/lib/server/broadcast-answers.server";
+import type { AnswerStatus } from "@/lib/broadcasts/answers.server";
 import { expect, it } from "vitest";
 import { ASK_STATUSES, ASKERS } from "@/lib/asks/asks";
 import { TOPICS, WAYS, type Topic } from "@/lib/supporters/contact-permissions";
@@ -13,12 +13,12 @@ import { GUEST_STATUSES, type ImportList } from "@/lib/events/luma-import.server
 import type { mailingChannel } from "@/lib/mailings/channels.server";
 import type { MailingState } from "@/lib/mailings/drafts.server";
 import type { SkipReason } from "@/lib/letters/copy-states";
-import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts.server";
+import type { WhatsAppTemplate } from "@/lib/broadcasts/drafts.server";
 import type { AddressSource } from "@/lib/politicians/aliases.server";
 import type { OptOutList, OptOutSource } from "@/lib/supporters/opt-outs.server";
-import type { BroadcastReply } from "@/lib/server/broadcast-replies.server";
-import type { BroadcastSendBy } from "@/lib/broadcasts";
-import type { StopReason } from "@/lib/server/broadcast-sending.server";
+import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
+import type { BroadcastSendBy } from "@/lib/broadcasts/broadcasts";
+import type { StopReason } from "@/lib/broadcasts/sending.server";
 import {
   INTENTS,
   LIST_STATUSES,

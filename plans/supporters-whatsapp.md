@@ -34,7 +34,7 @@ three days a broadcast may send for; and "Newsletter or events only".
 - Broadcasts by text can be written, and a fixture build sends them by a
   fake backend; on the live site nothing sends them. The send loop, and
   the checks just before each copy goes, are email's
-  (`lib/server/broadcast-sending.server.ts`); texts skip the checks.
+  (`lib/broadcasts/sending.server.ts`); texts skip the checks.
 - The site doesn't send texts. Our giffgaff number has the WhatsApp Business
   app on Reuben's phone, but its broadcast lists only reach people who
   have saved the number, so we need the API.
@@ -148,7 +148,7 @@ and event messages.
 ### Steps
 
 0. Built: the sending shared between channels
-   (`lib/server/broadcast-sending.server.ts`): one send loop, and one check
+   (`lib/broadcasts/sending.server.ts`): one send loop, and one check
    just before each copy goes (our own opt-outs, then CiviCRM's
    `checkSuppression`), each channel a sender giving how it checks,
    builds and sends a message, and its pace. Texts wait for a fresh
@@ -360,7 +360,7 @@ for approval.
    Meanwhile the words are locked. To change them, staff withdraw
    them. Sending them and Meta's decision are each emailed to whoever
    sent them and the notification inbox, with the words
-   (`reviewTemplate` in `lib/server/broadcast-drafts.server.ts`, which this
+   (`reviewTemplate` in `lib/broadcasts/drafts.server.ts`, which this
    step's webhook and hourly check call). Meta's reasons are codes, so
    the page says the code's meaning in plain words, and what to do when
    Meta recommends something.

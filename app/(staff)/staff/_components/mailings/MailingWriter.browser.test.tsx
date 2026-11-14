@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { page, userEvent } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { DEFAULT_SENDER } from "@/lib/accounts/gmail-connect";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/mailings/attachments";
 import { navigation } from "@/tests/browser/navigation";
@@ -486,7 +485,7 @@ describe("MailingWriter", () => {
         .map((option) => option.element().textContent),
     ).toEqual(
       ["al@pauseai.uk", "samuel.whitlock@pauseai.uk"].map((address) =>
-        staffCopy.broadcastPages.fromOption(address, staffCopy.broadcastPages.sendBy.names.gmail),
+        mailingsCopy.mailingPages.fromOption(address, mailingsCopy.mailingPages.sendBy.names.gmail),
       ),
     );
     await expect.element(field(copy.fromLegend)).toHaveValue("al@pauseai.uk");
@@ -552,7 +551,7 @@ describe("MailingWriter", () => {
         .map((option) => option.element().textContent),
     ).toEqual(
       [DEFAULT_SENDER, "al@pauseai.uk", "samuel.whitlock@pauseai.uk"].map((address) =>
-        staffCopy.broadcastPages.fromOption(address, staffCopy.broadcastPages.sendBy.names.gmail),
+        mailingsCopy.mailingPages.fromOption(address, mailingsCopy.mailingPages.sendBy.names.gmail),
       ),
     );
   });
@@ -563,8 +562,8 @@ describe("MailingWriter", () => {
     await expect.element(from.getByText(copy.noSenders)).toBeVisible();
     // Send says no one's chosen yet, nor a time.
     const send = region(copy.sections.send);
-    await expect.element(send.getByText(staffCopy.broadcastPages.sendFacts.noSender)).toBeVisible();
-    await expect.element(send.getByText(staffCopy.broadcastPages.sendFacts.noTime)).toBeVisible();
+    await expect.element(send.getByText(mailingsCopy.mailingPages.sendFacts.noSender)).toBeVisible();
+    await expect.element(send.getByText(mailingsCopy.mailingPages.sendFacts.noTime)).toBeVisible();
     expect(from.getByRole("combobox").query()).toBeNull();
     await expect.element(from.getByRole("link", { name: copy.connectOne })).toBeVisible();
   });

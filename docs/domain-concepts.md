@@ -436,7 +436,7 @@ The states, their colours and their words are one set (`lib/letters/copy-states.
 (`CopyStatus.tsx` and `CopyCounts.tsx` in
 `app/(staff)/staff/_components/mailings/`). Each kind adds its own: a broadcast's
 copies are delivered, read, opted out or to check, worked out in
-`lib/server/broadcast-pages.server.ts`; a letter is answered or marked spam, and
+`lib/broadcasts/pages.server.ts`; a letter is answered or marked spam, and
 has no "to check", as nothing marks a reply to it dealt with. A letter's
 state is worked out twice, in TypeScript for its tag wherever it's shown
 (`letterState`) and in SQL for counting and listing by state
@@ -457,7 +457,7 @@ job all leave broadcasts out.
 
 - **Channel and topic.** A broadcast has one channel and one topic, which
   together are its Consent: one topic, answered yes (`broadcastTerms` in
-  `lib/broadcasts.ts`). "Not sure" isn't enough. One more choice goes to
+  `lib/broadcasts/broadcasts.ts`). "Not sure" isn't enough. One more choice goes to
   the newsletter's and events' yeses both ("Newsletter or events only",
   `alsoEvents`), as only an event invitation suits both: it can't be
   scheduled until staff tick that it's about our events. A draft is made in two
@@ -480,7 +480,7 @@ job all leave broadcasts out.
 
   Scheduling doesn't fix who a broadcast goes to. Sending finds them when
   it starts: those the filter finds whom `contact_permission()` says yes
-  for (`lib/server/broadcast-recipients.server.ts`), with a row of
+  for (`lib/broadcasts/recipients.server.ts`), with a row of
   `broadcast_messages` for each. So it reaches whoever the filters find
   then. Until it's sent, the list of broadcasts and the broadcast's page
   count who the filters find now.
@@ -510,11 +510,11 @@ job all leave broadcasts out.
   draft is as it was, and says so. Withdrawn, they're deleted there too.
   WhatsApp's decision comes by its webhook, and each run of the sending asks
   it too while a template waits or a text is to go, in case a webhook went
-  astray (`lib/server/whatsapp-templates.server.ts`). A rejection is put in plain
+  astray (`lib/broadcasts/whatsapp-templates.server.ts`). A rejection is put in plain
   words with what to do. Once approved, WhatsApp can pause or disable a
   template for its quality, which stops every text on it (`wait_reason`
   `template`), and approve it again.
-- **Sending** (`lib/server/broadcast-sending.server.ts`). The 15-minute
+- **Sending** (`lib/broadcasts/sending.server.ts`). The 15-minute
   `send-mailings` run starts each broadcast that's due, as it does
   mailings, none overnight: a copy for each it goes to then, once to each
   address, with the topics whose yes it goes under and the Message-ID it
@@ -565,7 +565,7 @@ job all leave broadcasts out.
 - **What sends a text**: WhatsApp's Cloud API
   (`lib/server/outside-services/whatsapp.server.ts`), from our number, read from
   the WhatsApp account, where its keys are set: on the live site alone, and
-  a fixture build's fake (`lib/server/broadcast-channels.server.ts`). Anywhere
+  a fixture build's fake (`lib/broadcasts/channels.server.ts`). Anywhere
   else nothing sends a text, so scheduling one is refused and the pages say
   so. A copy is the text's template, its fields filled in for the person.
   Before a copy goes, its number is checked with CiviCRM's
@@ -584,7 +584,7 @@ job all leave broadcasts out.
   they've had enough marketing messages lately, when it's held a day
   (`not_before`).
 - **What sends an email** (`mailings.send_by`; `BROADCAST_SEND_BY` in
-  `lib/broadcasts.ts`). An email is always from `hello@pauseai.uk`
+  `lib/broadcasts/broadcasts.ts`). An email is always from `hello@pauseai.uk`
   (`BROADCAST_SENDER`), where its replies are read. It goes by one of the
   channels mailings go by (`lib/mailings/channels.server.ts`), through
   `send()`, to its supporter by name, or to their address alone if they
@@ -611,7 +611,7 @@ job all leave broadcasts out.
 - **Stopping.** A broadcast that has waited for CiviCRM for three days
   (`WAIT_DAYS`), from when it first couldn't go, whether at its time or
   days into sending, or one still sending, at a day's limit of emails, seven
-  days after its time (`SENDING_DAYS`, both in `lib/broadcast-days.ts`, which the
+  days after its time (`SENDING_DAYS`, both in `lib/broadcasts/days.ts`, which the
   pages' words take their numbers from), stops: its copies not yet gone
   are cancelled, and whoever scheduled it and the notification inbox are
   emailed why and how many it didn't reach (`wait_reason`: `civicrm`,
@@ -631,7 +631,7 @@ job all leave broadcasts out.
   a hard bounce marks it failed and blocks the address; a spam complaint is
   an opt-out of every bulk email (`lib/server/delivery-problems.server.ts`).
 - **What WhatsApp reports**, by its webhook, `/api/whatsapp`, signed with
-  the Meta app's secret (`lib/server/whatsapp-webhooks.server.ts`): each text
+  the Meta app's secret (`lib/broadcasts/whatsapp-webhooks.server.ts`): each text
   delivered, read or failed; a message to us, which answers the text it
   quotes, or else the newest sent to that number, and is kept as a reply,
   or is a stop of the topics that text went under if it says "stop" or
@@ -643,7 +643,7 @@ job all leave broadcasts out.
   decided of a template, or its category; and anything about our number's
   quality or limit, a template's quality or our account, emailed to the
   notification inbox. Each is applied once, however often it's sent.
-- **Replies** (`lib/server/broadcast-replies.server.ts`). The read of each
+- **Replies** (`lib/broadcasts/replies.server.ts`). The read of each
   connected Gmail matches a reply to its copy by the Message-ID it went
   with, before anything else in the mailbox sees it, and keeps it whole
   (`broadcast_replies`, the message in Netlify Blobs). A person's reply
@@ -654,7 +654,7 @@ job all leave broadcasts out.
   amber, which come first among its recipients; the staff home says how
   many wait. A message from the mailbox's own address in the thread is an
   answer of ours sent from its Gmail, and isn't kept as a reply.
-- **Answers** (`lib/server/broadcast-answers.server.ts`). Staff answer a reply on
+- **Answers** (`lib/broadcasts/answers.server.ts`). Staff answer a reply on
   its Thread page: Reply, first of its buttons, opens a draft after it,
   which Send reply or Cmd+Enter (Ctrl+Enter off a Mac) sends. It goes by Gmail
   from the mailbox the reply came to, as the broadcast's name, in the

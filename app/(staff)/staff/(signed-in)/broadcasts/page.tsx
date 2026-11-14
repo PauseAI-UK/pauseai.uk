@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/Button";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { broadcastsPage } from "@/lib/server/broadcast-pages.server";
+import { broadcastsPage } from "@/lib/broadcasts/pages.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { mailingId } from "@/lib/staff-search";
 import { firstOf, type ParamValue } from "@/lib/list-params";
-import BroadcastsOverview from "../../_components/BroadcastsOverview";
+import BroadcastsOverview from "../../_components/broadcasts/BroadcastsOverview";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
-export const metadata: Metadata = { title: staffCopy.broadcastPages.title };
+export const metadata: Metadata = { title: broadcastsCopy.broadcastPages.title };
 
 /**
  * Broadcasts, emails and texts to supporters, together. New broadcast asks
@@ -23,14 +23,14 @@ export default async function BroadcastsPage({ searchParams }: { searchParams: P
   return (
     <Page kind="month-list">
       <PageHead
-        intro={staffCopy.broadcastPages.intro}
+        intro={broadcastsCopy.broadcastPages.intro}
         action={
           <ButtonLink variant="primary" fit href="/staff/broadcasts/new">
-            {staffCopy.broadcastPages.newBroadcast}
+            {broadcastsCopy.broadcastPages.newBroadcast}
           </ButtonLink>
         }
       >
-        {staffCopy.broadcastPages.title}
+        {broadcastsCopy.broadcastPages.title}
       </PageHead>
       <BroadcastsOverview {...await broadcastsPage()} pulse={pulse} />
     </Page>

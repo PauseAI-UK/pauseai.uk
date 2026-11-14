@@ -4,7 +4,7 @@
 // may still hold, as the log keeps a politician's history while they're here
 // and everything else for a month (lib/server/log-retention.server.ts).
 import type { AskStatus } from "@/lib/asks/asks";
-import type { BroadcastTerms } from "./broadcasts";
+import type { BroadcastTerms } from "@/lib/broadcasts/broadcasts";
 import type { FieldChange } from "./field-changes";
 import type { PoliticianImportJob } from "./import-runs";
 import type { ImportedFields } from "@/lib/politicians/import-changes";

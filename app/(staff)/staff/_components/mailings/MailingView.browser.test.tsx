@@ -2,7 +2,6 @@ import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Mailing } from "@/lib/mailings/records.server";
 import MailingView from "./MailingView";
@@ -55,7 +54,7 @@ describe("MailingView", () => {
     await expect.element(page.getByText(copy.by(written.createdBy))).toBeVisible();
     await expect.element(page.getByText("jo@pauseai.uk", { exact: true })).toBeVisible();
     await expect
-      .element(page.getByText(`Jo Example · ${staffCopy.broadcastPages.sendFacts.viaDetail("Gmail")}`))
+      .element(page.getByText(`Jo Example · ${mailingsCopy.mailingPages.sendFacts.viaDetail("Gmail")}`))
       .toBeVisible();
     await expect.element(page.getByText("who")).toBeVisible();
     await expect.element(page.getByText(staffVocabulary.politicians(12))).toBeVisible();

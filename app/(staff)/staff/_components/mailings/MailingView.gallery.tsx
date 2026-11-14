@@ -4,7 +4,7 @@
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import { MailingWhen } from "./MailingView";
-import { exampleBroadcastSent, exampleBroadcastSummary } from "../BroadcastWriter.examples";
+import { exampleBroadcastSent, exampleBroadcastSummary } from "../broadcasts/BroadcastWriter.examples";
 import { MailingStandingExample, MailingViewExample } from "./MailingView.gallery.client";
 
 export const mailingViewGallery: Example[] = [

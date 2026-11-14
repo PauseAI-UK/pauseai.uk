@@ -1,7 +1,7 @@
 // OptOutForm in the component gallery (app/(tools)/gallery/), in the staff supporters group (app/(tools)/gallery/_examples/staff-supporters.tsx), and
 // UnsubscribeForm in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import { ReplyActionsExample } from "@/app/(tools)/gallery/_examples/staff-broadcasts.client";
+import { ReplyActionsExample } from "../broadcasts/ReplyActions.gallery.client";
 import StaffPage from "../ui/StaffPage";
 import { OptOutFormExample } from "./OptOutForm.gallery.client";
 

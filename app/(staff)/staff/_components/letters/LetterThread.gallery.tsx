@@ -8,11 +8,11 @@ import {
   exampleSupporterLetterDetails,
 } from "./LettersTable.examples";
 import StaffPage from "../ui/StaffPage";
-import { staffCopy } from "@/lib/content/staff-interface";
 import ThreadEmail from "./ThreadEmail";
 import LetterThread, { MessageText, SupporterLetterThread, Thread } from "./LetterThread";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { exampleImportedThread, exampleThread } from "./LetterThread.examples";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 /** A mailing's letter as it reads, as its page shows it. */
 const showLetter = (doc: LetterDoc) => <MailingLetter doc={doc} />;
@@ -119,7 +119,7 @@ export const letterThreadGallery: Example[] = [
         label: "Titled as a broadcast's message is",
         render: () => (
           <StaffPage as="div">
-            <Thread title={staffCopy.broadcastPages.threadTitle}>
+            <Thread title={broadcastsCopy.broadcastPages.threadTitle}>
               <ThreadEmail {...exampleEmail}>Hi Jane, the march meets at 11:00.</ThreadEmail>
             </Thread>
           </StaffPage>

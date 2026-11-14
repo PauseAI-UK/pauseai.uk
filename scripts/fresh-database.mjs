@@ -227,7 +227,7 @@ export function addFixtureData(url) {
   psql(url, "-1", "-f", FIXTURE_DATA);
 }
 
-/** The mailbox broadcasts go from and their replies come to (BROADCAST_SENDER in lib/broadcasts.ts). */
+/** The mailbox broadcasts go from and their replies come to (BROADCAST_SENDER in lib/broadcasts/broadcasts.ts). */
 const BROADCAST_MAILBOX = "hello@pauseai.uk";
 
 /**

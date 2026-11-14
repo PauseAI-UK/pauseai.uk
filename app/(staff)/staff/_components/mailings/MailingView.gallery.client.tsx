@@ -7,7 +7,7 @@ import { exampleWriterData, exampleWrittenMailing } from "./MailingWriter.exampl
 import { exampleMailing, exampleMailings } from "./MailingsTable.examples";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import { exampleAsks } from "../asks/AsksList.examples";
-import { exampleBroadcastSent, exampleBroadcastSummary } from "../BroadcastWriter.examples";
+import { exampleBroadcastSent, exampleBroadcastSummary } from "../broadcasts/BroadcastWriter.examples";
 
 /** A Server Action that does nothing. */
 const nothing = async () => {};

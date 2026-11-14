@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, changeFilter } from "./list-steps";
@@ -11,6 +10,7 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 export const section: Section = { name: "Saved filters", part: "Staff pages", order: 60 };
 
@@ -279,7 +279,7 @@ test("Loading a saved filter while choosing who a mailing goes to", async ({ pag
 
 test("Loading a saved filter while choosing who a broadcast goes to", async ({ page, request, flowDatabase }) => {
   story("Staff write an email to supporters, then Narrow down: the supporters list is choosing who it's for.");
-  const broadcasts = staffCopy.broadcastPages;
+  const broadcasts = broadcastsCopy.broadcastPages;
   await importLuma(request, BASE);
   await logIn(page, flowDatabase, ["supporters"]);
   addSaved(flowDatabase, "supporters", "Fixture emails", { contact: "email:events:yes", q: "fixture" });

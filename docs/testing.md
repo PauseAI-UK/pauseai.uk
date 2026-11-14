@@ -398,7 +398,7 @@ committed or not.
 A sidebar lists every piece of copy in clusters, in the diff's order. A
 piece's cluster is its file, or for `lib/content/` the set of strings it's
 in (the copy object's top-level key, such as
-`staff-interface.ts › broadcastPages`). Clicking a piece (or <kbd>j</kbd>
+`staff-interface.ts › notifications`). Clicking a piece (or <kbd>j</kbd>
 and <kbd>k</kbd>) shows it alone:
 
 - the copy as written;

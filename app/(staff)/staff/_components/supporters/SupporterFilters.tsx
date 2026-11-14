@@ -1,6 +1,5 @@
 import { SUPPORTERS_LIST } from "@/lib/staff-lists";
 import type { Way } from "@/lib/supporters/contact-permissions";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import type { Params } from "@/lib/list-params";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
@@ -53,7 +52,7 @@ export default function SupporterFilters({
   lockConsent?: boolean;
 }) {
   const filters = SUPPORTER_FILTERS({ ...choices, near: search.near, found: near, channelIcon }).map((filter) =>
-    lockConsent && filter.name === "contact" ? { ...filter, locked: staffCopy.broadcastPages.consentLocked } : filter,
+    lockConsent && filter.name === "contact" ? { ...filter, locked: supportersCopy.consentLocked } : filter,
   );
   return (
     <FilterBar

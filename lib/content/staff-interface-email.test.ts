@@ -24,15 +24,10 @@ it("says where no bulk email, or no email, came from but CiviCRM", () => {
   );
 });
 
-it("says what a sending run did with broadcasts, when it has them, and why one waits", () => {
+it("says what a sending run did with broadcasts, when it has them", () => {
   const run = { started: [], sent: 0, skipped: 0, failed: 0, left: 0, queue: { sent: 0, left: 0 } };
   expect(staffCopy.sending.result(run)).not.toContain("Broadcasts");
   expect(
     staffCopy.sending.result({ ...run, broadcasts: { started: [4], sent: 3, skipped: 1, failed: 0, waiting: 0 } }),
   ).toContain(" Broadcasts: started 1; copies sent 3, skipped 1, failed 0; 0 waiting for CiviCRM.");
-  const waiting = staffCopy.notifications.broadcastWaiting;
-  expect(waiting.body("Hi", "civicrm", "3 Nov", "link")).toContain("CiviCRM isn't answering");
-  expect(waiting.body("Hi", "pull", "3 Nov", "link")).toContain("our import from CiviCRM hasn't worked");
-  expect(staffCopy.broadcastPages.waiting("civicrm", "5 Nov")).toContain("Waiting for CiviCRM to work again");
-  expect(staffCopy.broadcastPages.waiting("pull", "5 Nov")).toContain("Waiting for an import");
 });

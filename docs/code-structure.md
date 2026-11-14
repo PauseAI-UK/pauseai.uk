@@ -437,6 +437,12 @@ app/(staff)/staff/_components/
                       status and history, what a supporter changed in
                       their draft, finding one in Gmail, the one-off
                       emails, and how a copy of something sent to many went
+  broadcasts/         broadcasts to supporters, by email and WhatsApp:
+                      choosing who from the supporters list, the writer
+                      and its Consent, the list of them, a broadcast's
+                      page, one supporter's copy with its replies and our
+                      answers, the text bubbles, and a supporter's
+                      broadcasts
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -486,6 +492,14 @@ lib/
                       how a copy of something sent to many went. It stands
                       on accounts and asks; politicians, mailings and
                       supporters stand on it
+  broadcasts/         broadcasts to supporters and the rules of when they
+                      go, wait or stop: their drafts, who they're for,
+                      pages, channels, sending, replies and our answers to
+                      them; WhatsApp's templates, texts, stops, webhooks
+                      and verify token. It stands on supporters, mailings
+                      (whose drafts and pages a broadcast's are built on),
+                      letters, and the politicians list's choosing bar,
+                      which its own shares; nothing stands on it
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures

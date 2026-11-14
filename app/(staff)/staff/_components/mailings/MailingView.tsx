@@ -5,7 +5,6 @@ import Tag, { type TagTone } from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks/asks";
 import { checkMailingDoc } from "@/lib/mailings/doc";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { answerLabels, POLITICIAN_FIELDS } from "@/lib/mailings/fields";
 import type { Ask } from "@/lib/asks/records.server";
 import type { MailingState, WrittenMailing } from "@/lib/mailings/drafts.server";
@@ -202,7 +201,7 @@ export function MailingStanding({
 
 /** The quiet line under who a mailing or broadcast is from: their name, if it has one, then what sends it. */
 export function fromDetail(name: string | null | undefined, sentBy: string): string {
-  return [name, staffCopy.broadcastPages.sendFacts.viaDetail(sentBy)].filter(Boolean).join(" · ");
+  return [name, mailingsCopy.mailingPages.sendFacts.viaDetail(sentBy)].filter(Boolean).join(" · ");
 }
 
 /** When it went, or goes, and who sent it, as the band's first fact says it. */
@@ -299,7 +298,7 @@ export default function MailingView({
         {/* One written here went by its account's Gmail, said under who it's from; an imported one's way isn't known. */}
         <BandFact
           label={copy.from}
-          detail={written && fromDetail(written.fromName, staffCopy.broadcastPages.sendBy.names.gmail)}
+          detail={written && fromDetail(written.fromName, mailingsCopy.mailingPages.sendBy.names.gmail)}
         >
           {written
             ? written.sentFrom

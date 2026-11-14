@@ -181,4 +181,6 @@ export const supportersCopy = {
     // Under the title, what the page is.
     intro: "Supporters' bad emails, unblock them here",
   },
+  // Hovering the Consent's chip while the list chooses who a broadcast goes to, where it can't be changed.
+  consentLocked: "To change the consent, go back to the broadcast page.",
 };

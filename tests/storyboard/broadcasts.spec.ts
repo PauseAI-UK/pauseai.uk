@@ -1,8 +1,7 @@
 import type { APIRequestContext, Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { emailSettingsCopy as settingsCopy } from "@/lib/content/email-settings";
-import { SENDING_DAYS } from "@/lib/broadcast-days";
+import { SENDING_DAYS } from "@/lib/broadcasts/days";
 import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-connect";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { connectGmail } from "./gmail-steps";
@@ -13,12 +12,13 @@ import { caretInEmpty } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
-import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
+import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import type { Section } from "./report/frames";
 import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
 
@@ -29,7 +29,7 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 // database as scheduling and sending would make them; and a text sent by the
 // fake WhatsApp, with what its webhook then brings: delivery, a reply, a stop.
 
-const copy = staffCopy.broadcastPages;
+const copy = broadcastsCopy.broadcastPages;
 const stateWords = lettersCopy.copyStates;
 const mailingCopy = mailingsCopy.mailingPages;
 const EMAIL = "contact=email%3Aevents%3Ayes";
@@ -313,7 +313,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await frame(page, "Back on the list, the draft waiting for WhatsApp");
   story("Whoever sent them, and the notification inbox, get the words by email.");
   const sent = newestEmail((one) => one.Cc === staffEmail())!;
-  expect(sent.Subject).toBe(staffCopy.notifications.templateSubmitted.subject("March day: where to meet"));
+  expect(sent.Subject).toBe(broadcastsCopy.notifications.templateSubmitted.subject("March day: where to meet"));
   await emailFrame(page, sent, "The email saying they've gone for approval");
   story("On the draft, a strip at the top says they've gone, and the words are locked till WhatsApp decides.");
   await page.goto(draftPage);
@@ -328,7 +328,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await postWhatsAppWebhook(request, BASE, templateStatus(name, "REJECTED", "INVALID_FORMAT"));
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   await expect(
-    page.getByText(staffCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT, { exact: false }),
+    page.getByText(broadcastsCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT, { exact: false }),
   ).toBeVisible();
   await frame(page, "Rejected, and what to do");
   story("The list says so too, until the words go for approval again or a template is chosen.");
@@ -384,7 +384,7 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
   );
   await postWhatsAppWebhook(request, BASE, templateStatus(name!, "APPROVED"));
   const told = newestEmail(
-    (one) => one.Subject === staffCopy.notifications.templateApproved.subject("PauseCon doors"),
+    (one) => one.Subject === broadcastsCopy.notifications.templateApproved.subject("PauseCon doors"),
   )!;
   await emailFrame(page, told, "The email saying WhatsApp approved them");
   story("The text can be scheduled now.");
@@ -541,8 +541,8 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   story(
     "The Consent is the broadcast's own: its chip has a padlock and doesn't open, as it's changed in the broadcast.",
   );
-  await expect(page.locator(`[title="${copy.consentLocked}"]`).first()).toBeVisible();
-  await page.locator(`[title="${copy.consentLocked}"]`).first().hover();
+  await expect(page.locator(`[title="${supportersCopy.consentLocked}"]`).first()).toBeVisible();
+  await page.locator(`[title="${supportersCopy.consentLocked}"]`).first().hover();
   await frame(page, "The Consent, locked", { window: true });
   story("The orange button keeps them for the draft.");
   await bar.getByRole("button", { name: copy.useThese(EMAILABLE) }).click();
@@ -667,14 +667,14 @@ test("An email that takes more than a day", async ({ page, request, flowDatabase
   runSql(flowDatabase, `UPDATE mailings SET due_at = due_at - interval '${SENDING_DAYS} days' WHERE id = ${id}`);
   await runSending(request);
   const told = newestEmail(
-    (one) => one.Subject === staffCopy.notifications.broadcastGaveUp.subject("Stall on Saturday", "limit"),
+    (one) => one.Subject === broadcastsCopy.notifications.broadcastGaveUp.subject("Stall on Saturday", "limit"),
   )!;
   await emailFrame(page, told, "The email saying it stopped");
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   await expect(page.getByText(copy.gaveUpLimit)).toBeVisible();
   await frame(page, "Stopped");
   story("Resume sending sets it going again, to the one it didn't reach, with its days again to go in.");
-  await page.getByRole("button", { name: copy.resume }).click();
+  await page.getByRole("button", { name: mailingsCopy.mailingPages.resume }).click();
   await expect(page.getByText(copy.gaveUpLimit)).toHaveCount(0);
   await expect(page.getByRole("button", { name: mailingCopy.stopSending })).toBeVisible();
   await frame(page, "Sending again");
@@ -688,7 +688,7 @@ test("A broadcast waiting for CiviCRM", async ({ page, request, flowDatabase }) 
   const id = addDue(flowDatabase, "Social on Friday", staffEmail());
   await runSending(request);
   const told = newestEmail(
-    (one) => one.Subject === staffCopy.notifications.broadcastWaiting.subject("Social on Friday"),
+    (one) => one.Subject === broadcastsCopy.notifications.broadcastWaiting.subject("Social on Friday"),
   )!;
   await emailFrame(page, told, "The email saying it waits");
   story("Its page says why it waits, and the day it will give up if it still can't go.");

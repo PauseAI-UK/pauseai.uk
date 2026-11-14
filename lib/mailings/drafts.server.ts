@@ -4,7 +4,6 @@ import { checkMailingDoc, isBlankMailing, letterFor, type MailingDoc, type Maili
 import { MAX_ATTACHMENT_BYTES } from "./attachments";
 import { scheduleProblems, type ScheduleProblem } from "./schedule";
 import { toHtml, toText } from "@/lib/letters/format";
-import type { BroadcastSendBy } from "@/lib/broadcasts";
 import { now } from "@/lib/now";
 import { sendsAt } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
@@ -58,8 +57,8 @@ export type MailingChanges = Partial<
     title: string;
     /** The WhatsApp template a text goes on. */
     templateId: number | null;
-    /** What sends an email to supporters. */
-    sendBy: BroadcastSendBy;
+    /** What sends an email to supporters: a broadcast's BroadcastSendBy (lib/broadcasts/broadcasts.ts), checked before it's saved. */
+    sendBy: string;
   }
 >;
 

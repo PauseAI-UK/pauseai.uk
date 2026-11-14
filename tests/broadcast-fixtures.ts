@@ -1,6 +1,6 @@
 import { query } from "@/lib/server/db.server";
-import { getWrittenBroadcast } from "@/lib/server/broadcast-drafts.server";
-import { supporterAudience } from "@/lib/server/broadcast-recipients.server";
+import { getWrittenBroadcast } from "@/lib/broadcasts/drafts.server";
+import { supporterAudience } from "@/lib/broadcasts/recipients.server";
 import { refreshSupportersList } from "@/lib/supporters/facts.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
 

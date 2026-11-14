@@ -27,13 +27,13 @@ import {
   type GmailMessageHeaders,
 } from "./outside-services/gmail.server";
 import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "@/lib/letters/replies.server";
-import { copyAnswered, keepBroadcastReply } from "./broadcast-replies.server";
+import { copyAnswered, keepBroadcastReply } from "@/lib/broadcasts/replies.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { describeError, problem } from "./problems.server";
 import { lettersCopy } from "@/lib/letters/copy";
 
 // Reading the connected Gmail accounts, every 5 minutes: the replies to PauseAI's
-// letters and to copies of broadcasts (broadcast-replies.server.ts), and the bounces of them. For each message that arrived since the
+// letters and to copies of broadcasts (lib/broadcasts/replies.server.ts), and the bounces of them. For each message that arrived since the
 // last read, the site fetches only the few headers that say what it
 // answers; it fetches whole only the messages in our letters' threads, and
 // bounces. A politician's reply, or our answer to it, is kept whole

@@ -1,11 +1,11 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db.server";
-import { verifyToken } from "@/lib/server/whatsapp-verify-token.mjs";
+import { verifyToken } from "@/lib/broadcasts/whatsapp-verify-token.mjs";
 import { describeWithDatabase, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { GET, POST } from "./route";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 const SECRET = "test-app-secret";
 const URL = "https://pauseai.uk/api/whatsapp";
@@ -83,6 +83,6 @@ describeWithDatabase("POST /api/whatsapp", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const res = await withDatabaseDown(() => post(stopped));
     expect(res.status).toBe(500);
-    expect(console.error).toHaveBeenCalledWith(staffCopy.problems.logs.whatsAppWebhookNotRecorded, expect.anything());
+    expect(console.error).toHaveBeenCalledWith(broadcastsCopy.problems.whatsAppWebhookNotRecorded, expect.anything());
   });
 });

@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { config } from "@/lib/server/config.server";
 import { parseJsonIfAny } from "@/lib/server/json.server";
 import { signedByMeta } from "@/lib/server/outside-services/whatsapp.server";
 import { problem } from "@/lib/server/problems.server";
-import { recordWhatsAppWebhook, type WhatsAppWebhook } from "@/lib/server/whatsapp-webhooks.server";
-import { verifyToken } from "@/lib/server/whatsapp-verify-token.mjs";
+import { recordWhatsAppWebhook, type WhatsAppWebhook } from "@/lib/broadcasts/whatsapp-webhooks.server";
+import { verifyToken } from "@/lib/broadcasts/whatsapp-verify-token.mjs";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 /**
  * Meta checking the callback URL as it's set in the App Dashboard: it sends
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 /**
  * WhatsApp's webhook, signed with the Meta app's secret: what became of
  * texts, messages to us, stops and resumes, and what it decided of
- * templates (lib/server/whatsapp-webhooks.server.ts). Says how many changes it applied, in the
+ * templates (lib/broadcasts/whatsapp-webhooks.server.ts). Says how many changes it applied, in the
  * answer and the function's log. 500 on a failure to, so Meta sends it again.
  */
 export async function POST(request: Request) {
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     console.info(`WhatsApp webhook: ${applied} applied`);
     return NextResponse.json({ applied });
   } catch (error) {
-    problem(staffCopy.problems.logs.whatsAppWebhookNotRecorded, error);
+    problem(broadcastsCopy.problems.whatsAppWebhookNotRecorded, error);
     return NextResponse.json({ error: "Not recorded" }, { status: 500 });
   }
 }

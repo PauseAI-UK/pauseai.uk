@@ -7,7 +7,6 @@ import { Select, TextInput } from "@/components/ui/Controls";
 import { Field, Hint, Label } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
-import { staffCopy } from "@/lib/content/staff-interface";
 import {
   checkMailingDoc,
   conditionsIn,
@@ -55,7 +54,7 @@ import { mailingsCopy } from "./copy";
 import { politiciansCopy } from "../politicians/copy";
 
 const copy = mailingsCopy.mailingPages;
-const facts = staffCopy.broadcastPages.sendFacts;
+const facts = mailingsCopy.mailingPages.sendFacts;
 
 /** The fields a new letter's greeting can use, the first every recipient has. */
 const GREETING_FIELDS = ["salutation", "name"];
@@ -265,9 +264,9 @@ export default function MailingWriter({
                         <option key={sender.email} value={sender.email}>
                           {/* As a broadcast's: the address, and what sends from it. */}
                           {(sender.connected ? (address: string) => address : copy.senderNotConnected)(
-                            staffCopy.broadcastPages.fromOption(
+                            mailingsCopy.mailingPages.fromOption(
                               sender.email,
-                              staffCopy.broadcastPages.sendBy.names.gmail,
+                              mailingsCopy.mailingPages.sendBy.names.gmail,
                             ),
                           )}
                         </option>
@@ -391,7 +390,7 @@ export default function MailingWriter({
               {values.sentFrom ?? facts.noSender}
             </BandFact>
             {/* A mailing always goes by its account's Gmail. */}
-            <BandFact label={facts.via}>{staffCopy.broadcastPages.sendBy.names.gmail}</BandFact>
+            <BandFact label={facts.via}>{mailingsCopy.mailingPages.sendBy.names.gmail}</BandFact>
             <BandFact label={facts.when}>{values.dueAt ? londonWhen(values.dueAt, "short") : facts.noTime}</BandFact>
           </Facts>
           <div className={styles.send}>

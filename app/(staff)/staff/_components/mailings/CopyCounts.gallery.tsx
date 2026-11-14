@@ -1,11 +1,11 @@
 // CopyCounts in the component gallery (app/(tools)/gallery/), in the staff broadcasts group
 // (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import { broadcastCounts } from "../BroadcastView";
+import { broadcastCounts } from "../broadcasts/BroadcastView";
 import { wentAndGone } from "../letters/CopyStatus";
 import { CountGroups, NeedsAndFine } from "./CopyCounts";
 import { countsOpening } from "../ui/Counts";
-import { exampleBroadcastSummary } from "../BroadcastWriter.examples";
+import { exampleBroadcastSummary } from "../broadcasts/BroadcastWriter.examples";
 
 /** A text that went to 61: most arrived, some read and replied, one to check, two opted out, and some that didn't go. */
 const EXAMPLE_TEXT_SUMMARY = {

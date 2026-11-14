@@ -4,6 +4,7 @@ import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
 import { isLettersInboxAddress } from "@/lib/letters/letters-inbox.server";
 import { listSessions, requireStaff } from "@/lib/accounts/auth.server";
 import { firstOf, type ParamValue } from "@/lib/list-params";
+import { BROADCAST_SENDER } from "@/lib/broadcasts/broadcasts";
 import { disconnectMyGmail } from "../../_components/accounts/actions";
 import MyGmail from "../../_components/accounts/MyGmail";
 import StaffSessions from "../../_components/accounts/StaffSessions";
@@ -30,6 +31,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<R
           outcome={firstOf((await searchParams).gmail)}
           disconnect={disconnectMyGmail}
           keepsThreads={keepsPoliticianThreads(email)}
+          sendsBroadcasts={email === BROADCAST_SENDER.email}
         />
       </Grid>
     </Page>

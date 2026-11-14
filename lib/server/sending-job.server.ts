@@ -4,8 +4,8 @@ import { asRun } from "./import-runs.server";
 import { sendLetterQueue } from "@/lib/letters/queue.server";
 import { uncertainLetters } from "@/lib/letters/sending.server";
 import { sendDueLetters, startDueMailings } from "@/lib/mailings/sending.server";
-import { sendDueBroadcasts, startDueBroadcasts } from "./broadcast-sending.server";
-import { checkTemplates } from "./whatsapp-templates.server";
+import { sendDueBroadcasts, startDueBroadcasts } from "@/lib/broadcasts/sending.server";
+import { checkTemplates } from "@/lib/broadcasts/whatsapp-templates.server";
 
 const JOB = "send-mailings";
 
@@ -16,7 +16,7 @@ const JOB = "send-mailings";
  * (lib/letters/queue.server.ts), then the mailings due and their letters
  * (mailing-sending.ts), then what WhatsApp has decided of our templates
  * (whatsapp-templates.server.ts), then the broadcasts to supporters due and their
- * copies (broadcast-sending.server.ts), for its budget (JOBS) in all, short of what Netlify
+ * copies (lib/broadcasts/sending.server.ts), for its budget (JOBS) in all, short of what Netlify
  * gives a function, so a slow last send still finishes. The background
  * function (netlify/functions/send-mailings-background) runs it again until
  * it's done. `request` is the job's call, for links in alerts; a staff
