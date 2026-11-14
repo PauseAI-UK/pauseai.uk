@@ -8,3 +8,8 @@ import "client-only";
 export function leavePage(href: string): void {
   window.location.assign(href);
 }
+
+/** Loads the page afresh, from the server, as the site's latest build. */
+export function reloadPage(): void {
+  window.location.reload();
+}
