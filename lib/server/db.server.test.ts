@@ -140,6 +140,35 @@ describeWithDatabase("the database", () => {
       // waits up to 5s for the pool to close, which a loaded machine slows.
     }, 30_000);
 
+    it("ends a flow's pool once when closed with a connection still idle", MAKES_DATABASES, async () => {
+      vi.stubEnv("DATA_FIXTURES", "1");
+      copyDatabase(flow, inject("templateDatabase"));
+      requestCookies.set(FLOW_DATABASE_COOKIE, flow);
+      // The usual pool, which each test's setup opens, closed first so only the flow's is ended below.
+      await closeDb();
+      // The pool's idle timer is a fake, so the connection is still idle when
+      // closeDb() ends the pool, however slow the machine.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      const end = vi.spyOn(Pool.prototype, "end");
+      const emit = vi.spyOn(Pool.prototype, "emit");
+      try {
+        expect(await currentDatabase()).toBe(flow);
+        await closeDb();
+        vi.useRealTimers();
+        // The flow's pool says it removed the connection after end() resolves.
+        const [pool] = end.mock.contexts;
+        const removed = () =>
+          emit.mock.calls.filter(([event], i) => event === "remove" && emit.mock.contexts[i] === pool);
+        await vi.waitFor(() => expect(removed()).toHaveLength(1));
+        expect(end).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+        end.mockRestore();
+        emit.mockRestore();
+        dropDatabase(flow);
+      }
+    });
+
     it("ignores a cookie naming any other database", async () => {
       vi.stubEnv("DATA_FIXTURES", "1");
       const usual = await currentDatabase();
