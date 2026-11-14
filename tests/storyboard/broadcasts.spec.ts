@@ -17,6 +17,7 @@ import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import type { Section } from "./report/frames";
 import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
+import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
 
@@ -28,8 +29,8 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 // fake WhatsApp, with what its webhook then brings: delivery, a reply, a stop.
 
 const copy = staffCopy.broadcastPages;
-const stateWords = staffCopy.copyStates;
-const mailingCopy = staffCopy.mailingPages;
+const stateWords = mailingsCopy.copyStates;
+const mailingCopy = mailingsCopy.mailingPages;
 const EMAIL = "contact=email%3Aevents%3Ayes";
 const TEXT = "contact=text%3Aevents%3Ayes";
 /** How many of the fixture's supporters each filter finds. */
@@ -545,7 +546,7 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   story("The orange button keeps them for the draft.");
   await bar.getByRole("button", { name: copy.useThese(EMAILABLE) }).click();
   await expect(page).toHaveURL(draft);
-  await expect(page.getByRole("list", { name: staffCopy.mailingPages.whoLabel })).toContainText("fixture");
+  await expect(page.getByRole("list", { name: mailingsCopy.mailingPages.whoLabel })).toContainText("fixture");
   await frame(page, "The draft, to those found");
   story("Narrowed, the button is Change who. Cancel at the top goes back and changes nothing.");
   await page.getByRole("link", { name: mailingCopy.changeWho }).click();

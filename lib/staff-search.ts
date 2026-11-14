@@ -9,7 +9,7 @@ import type { BlocksFilter } from "@/lib/server/email";
 import type { PoliticianFilter } from "@/lib/politicians/records";
 import type { SentEmailsFilter } from "@/lib/server/sent-emails";
 import { campaignBySlug } from "@/lib/email-your-mp";
-import { LETTER_STATES } from "@/lib/copy-states";
+import { LETTER_STATES } from "@/lib/mailings/copy-states";
 import {
   among,
   anyAndNone,

@@ -14,7 +14,7 @@ import type { Permission } from "@/lib/accounts/permissions";
 import type { Ask } from "@/lib/asks/records";
 import type { DeliveryProblem } from "./server/email";
 import type { ErasureResult } from "@/lib/erasure/erase";
-import type { MailingState } from "./server/mailing-drafts";
+import type { MailingState } from "@/lib/mailings/drafts";
 import type { NoteTarget } from "./server/notes";
 import type { House } from "@/lib/politicians/records";
 

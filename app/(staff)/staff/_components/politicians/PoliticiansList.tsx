@@ -3,10 +3,9 @@ import type { ReactNode } from "react";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Ask } from "@/lib/asks/records";
-import type { Choosing } from "@/lib/server/mailing-drafts";
+import type { Choosing } from "@/lib/politicians/filters";
 import type { Pasted, Politician, PoliticiansPage } from "@/lib/politicians/records";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 import { storedFilter } from "@/lib/staff-search";
@@ -24,7 +23,7 @@ import { politiciansCopy } from "./copy";
 
 const PATH = POLITICIANS_LIST.path;
 const copy = politiciansCopy.politicians;
-const mailingCopy = staffCopy.mailingPages;
+const mailingCopy = politiciansCopy.choosing;
 
 /**
  * The houses, as tabs over the list, each keeping the other filters and the
@@ -61,7 +60,7 @@ export function HouseTabs({ search, choosing }: { search: PoliticiansSearch; cho
 /** A form's action, as a Server Action takes it. */
 type FormAction = (form: FormData) => Promise<void>;
 
-/** What choosing who a mailing is for does (app/(staff)/staff/mailing-actions.ts), which the page hands in. */
+/** What choosing who a mailing is for does (app/(staff)/staff/_components/mailings/actions.ts), which the page hands in. */
 export type ChoosingActions = {
   /** Ticks a politician for the draft, or unticks them. */
   pick: (mailing: number, politician: number, ticked: boolean) => Promise<void>;

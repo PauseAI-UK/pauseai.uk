@@ -7,6 +7,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import LettersTable from "./LettersTable";
 import { exampleLetter } from "./LettersTable.examples";
 import { politiciansCopy } from "./politicians/copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 const [pm] = campaigns;
 
@@ -55,12 +56,12 @@ describe("LettersTable", () => {
     await expect.element(page.getByRole("cell", { name: "62%", exact: true })).toBeInTheDocument();
     expect(document.body.textContent).toContain("odd");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.mailingPages.theLetter }).nth(1))
+      .element(page.getByRole("link", { name: staffVocabulary.theLetter }).nth(1))
       .toHaveAttribute("href", "/staff/letters/2");
     // Its history is on its page; when it was sent, or a dash.
     expect(document.body.textContent).not.toContain("strange");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.mailingPages.theLetter }).first())
+      .element(page.getByRole("link", { name: staffVocabulary.theLetter }).first())
       .toHaveAttribute("href", "/staff/letters/1");
     await expect.element(page.getByRole("cell", { name: staffTime(letter.sentAt!), exact: true })).toBeInTheDocument();
     await expect.element(page.getByRole("cell", { name: "–", exact: true })).toBeInTheDocument();

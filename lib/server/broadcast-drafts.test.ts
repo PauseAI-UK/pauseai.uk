@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db";
-import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailing-doc";
+import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailings/doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
 import { toNotifications } from "@/tests/notifications";
-import { getWrittenMailing, saveDraft } from "./mailing-drafts";
+import { getWrittenMailing, saveDraft } from "@/lib/mailings/drafts";
 import {
   approvedTemplates,
   changeBroadcastConsent,

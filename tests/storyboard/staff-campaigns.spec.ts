@@ -12,13 +12,14 @@ import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { asksCopy } from "@/lib/asks/copy";
+import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 
 export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
 
 // Campaigns, each ask's page and form, and the sent emails. Each flow on its
 // own database.
 
-const copy = staffCopy.campaigns;
+const copy = mailingsCopy.campaigns;
 
 /**
  * Chooses `day` with the date picker the field `label` names: opens it,
@@ -51,11 +52,11 @@ test("Campaigns", async ({ page, flowDatabase }) => {
 
   story("Each count shows only the letters it counts: the sent count, the letters that went.");
   await page
-    .getByRole("link", { name: new RegExp(` ${staffCopy.copyStates.counts.sent}$`) })
+    .getByRole("link", { name: new RegExp(` ${mailingsCopy.copyStates.counts.sent}$`) })
     .first()
     .click();
   await expect(page).toHaveURL(/tab=sent/);
-  await expect(page.getByRole("heading", { name: staffCopy.copyStates.tabs.sent })).toBeVisible();
+  await expect(page.getByRole("heading", { name: mailingsCopy.copyStates.tabs.sent })).toBeVisible();
   await frame(page, "The letters sent");
 });
 
@@ -133,7 +134,7 @@ test("An ask's pages", async ({ page, flowDatabase }) => {
   await page.goto(`${BASE}/staff/asks/our-letter`);
   await frame(page, "The column of those who signed");
   await page.getByRole("link", { name: asksCopy.asks.page.allOf(150) }).click();
-  await expect(page.getByText(staffCopy.campaigns.politicians(150))).toBeVisible();
+  await expect(page.getByText(staffVocabulary.politicians(150))).toBeVisible();
   await frame(page, "The first page");
 
   story("Next shows the rest, and the answer chosen stays chosen.");
@@ -147,7 +148,7 @@ test("An ask's pages", async ({ page, flowDatabase }) => {
 
   story("The other answer's column top chooses that answer instead.");
   await page.getByRole("link", { name: `${staffVocabulary.statuses.declined} 12` }).click();
-  await expect(page.getByText(staffCopy.campaigns.politicians(12))).toBeVisible();
+  await expect(page.getByText(staffVocabulary.politicians(12))).toBeVisible();
   await frame(page, "Those who declined");
 
   story("Under the answers, a link leads to everyone who answered, in office or not, on the politicians list.");

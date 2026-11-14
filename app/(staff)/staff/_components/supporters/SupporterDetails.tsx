@@ -4,7 +4,6 @@ import { Muted } from "@/components/ui/Text";
 import { phoneWords } from "@/lib/phone";
 import Tag from "@/components/ui/Tag";
 import { displayPostcode } from "@/lib/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { UK_MAP_HEIGHT, UK_MAP_WIDTH, ukMapPoint, ukOutline } from "@/lib/uk-map";
@@ -122,7 +121,7 @@ function Subject({ item }: { item: SupporterActivity }) {
               {item.letterId && (
                 <>
                   {" · "}
-                  <StaffLink href={`/staff/letters/${item.letterId}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
+                  <StaffLink href={`/staff/letters/${item.letterId}`}>{staffVocabulary.theLetter}</StaffLink>
                 </>
               )}
             </>
@@ -300,7 +299,7 @@ const letterColumns: ListColumn<SupporterLetter>[] = [
       <>
         {statusOf(l.status)} ·{" "}
         <StaffLink href={`/staff/letters/${l.id}`}>
-          {l.replies ? staffCopy.mailingPages.letterAndReplies(l.replies) : staffCopy.mailingPages.theLetter}
+          {l.replies ? staffVocabulary.letterAndReplies(l.replies) : staffVocabulary.theLetter}
         </StaffLink>
       </>
     ),

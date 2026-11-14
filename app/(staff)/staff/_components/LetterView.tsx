@@ -12,6 +12,7 @@ import Grid, { Card, Column, spanClass } from "./ui/Grid";
 import PageHead from "./ui/PageHead";
 import styles from "./LetterView.module.css";
 import TestTag from "./TestTag";
+import { mailingsCopy } from "./mailings/copy";
 
 type SetStatus = (form: FormData) => void | Promise<void>;
 
@@ -36,7 +37,11 @@ function AskCard({
   if (!ask && letter.kind === "pauseai") return null;
   const campaign = letter.kind === "supporter" && <CampaignName slug={letter.campaign} title={letter.campaignTitle} />;
   return (
-    <Card look="aside" title={ask ? staffCopy.mailings.fields.ask : staffCopy.letters.columns.campaign} id="ask-title">
+    <Card
+      look="aside"
+      title={ask ? mailingsCopy.mailings.fields.ask : staffCopy.letters.columns.campaign}
+      id="ask-title"
+    >
       {ask ? (
         <>
           <AskRows>
@@ -80,7 +85,7 @@ export default function LetterView({
 }) {
   const slug = letter.kind === "supporter" ? letter.campaignAsk : letter.mailingAsk;
   const ask = asks.find((one) => one.slug === slug);
-  const personalised = letter.kind === "pauseai" && letter.personalised && staffCopy.mailings.personalised;
+  const personalised = letter.kind === "pauseai" && letter.personalised && mailingsCopy.mailings.personalised;
   return (
     <>
       <PageHead

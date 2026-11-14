@@ -2,7 +2,7 @@
 
 import { useState, type ComponentProps } from "react";
 import type { Channel } from "@/lib/supporters/contact-permissions";
-import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
+import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
 import BroadcastWriter from "./BroadcastWriter";
 
 /**

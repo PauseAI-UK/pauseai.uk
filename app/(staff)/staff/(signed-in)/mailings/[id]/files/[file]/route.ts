@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { attachmentHeaders } from "@/lib/mailing-attachments";
-import { attachmentFile } from "@/lib/server/mailing-drafts";
+import { attachmentHeaders } from "@/lib/mailings/attachments";
+import { attachmentFile } from "@/lib/mailings/drafts";
 import { requireStaff } from "@/lib/accounts/auth";
 import { mailingId } from "@/lib/staff-search";
 

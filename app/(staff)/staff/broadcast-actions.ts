@@ -10,7 +10,7 @@ import { answerReply, type AnswerResult } from "@/lib/server/broadcast-answers";
 import { redirect } from "next/navigation";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { fakeRecipient } from "@/lib/broadcasts";
-import { addAttachment, deleteDraft, removeAttachment, rescheduleMailing } from "@/lib/server/mailing-drafts";
+import { addAttachment, deleteDraft, removeAttachment, rescheduleMailing } from "@/lib/mailings/drafts";
 import {
   changeBroadcastConsent,
   changeBroadcastFilter,
@@ -28,7 +28,7 @@ import {
   type TemplateSubmitResult,
 } from "@/lib/server/broadcast-drafts";
 import { requireStaff } from "@/lib/accounts/auth";
-import type { SaveResult } from "@/lib/server/mailing-drafts";
+import type { SaveResult } from "@/lib/mailings/drafts";
 import { dueAtFrom, idFrom } from "@/lib/staff-forms";
 import { storedFilter } from "@/lib/staff-search";
 import { filtersPath, type Params } from "@/lib/list-params";

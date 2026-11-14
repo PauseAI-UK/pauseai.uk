@@ -1,4 +1,4 @@
-import type { Choosing } from "@/lib/server/mailing-drafts";
+import type { Choosing } from "@/lib/politicians/filters";
 import type { PastedLine } from "./PoliticiansList";
 import type { Politician, PoliticianChange, PoliticiansPage } from "@/lib/politicians/records";
 import type { PoliticianAliases } from "@/lib/politicians/aliases";

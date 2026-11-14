@@ -3,9 +3,9 @@
 import { useEffect, useRef } from "react";
 import { TextArea } from "@/components/ui/Controls";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { politiciansCopy } from "./copy";
 
-const copy = staffCopy.mailingPages;
+const copy = politiciansCopy.choosing;
 
 /**
  * The box for names to paste, one a line, and Find these, which sends

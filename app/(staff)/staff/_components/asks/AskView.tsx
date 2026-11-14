@@ -3,7 +3,6 @@ import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
 import { askPeriod } from "@/lib/asks/ask-groups";
 import type { AskStatus } from "@/lib/asks/asks";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/asks/records";
@@ -145,7 +144,7 @@ function ChosenAnswer({ ask, answer, path }: { ask: AskPageData; answer: string;
       </nav>
       <section className={styles.chosen} data-tone={ANSWER_TONES[answer]} aria-label={page.answersTitle}>
         <ListFrame
-          count={staffCopy.campaigns.politicians(ask.answersTotal)}
+          count={staffVocabulary.politicians(ask.answersTotal)}
           total={ask.answersTotal}
           page={ask.page}
           pages={ask.pages}

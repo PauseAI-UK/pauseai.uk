@@ -72,10 +72,10 @@ describe("AllLetters", () => {
     expect(page.getByText(copy.intro("policy@example.org")).query()).toBeNull();
     const rows = page.getByRole("row");
     await expect
-      .element(rows.nth(1).getByRole("link", { name: staffCopy.mailingPages.letterAndReplies(2) }))
+      .element(rows.nth(1).getByRole("link", { name: staffVocabulary.letterAndReplies(2) }))
       .toHaveAttribute("href", "/staff/letters/1");
     await expect
-      .element(rows.nth(2).getByRole("link", { name: staffCopy.mailingPages.theLetter }))
+      .element(rows.nth(2).getByRole("link", { name: staffVocabulary.theLetter }))
       .toHaveAttribute("href", "/staff/mailings/3/letters/2");
     await expect.element(link("Jane Smith")).toHaveAttribute("href", "/staff/supporters/9");
     await expect.element(link("About the march")).toHaveAttribute("href", "/staff/mailings/3");

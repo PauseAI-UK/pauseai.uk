@@ -439,7 +439,7 @@ test("A letter writer's page", async ({ page, request, flowDatabase }) => {
   story("Letter → opens her letter's page.");
 
   // The letter's status leads to its page, and back to her.
-  await page.getByRole("link", { name: staffCopy.mailingPages.theLetter }).click();
+  await page.getByRole("link", { name: staffVocabulary.theLetter }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     staffCopy.letters.oneTitle("Jane Smith", "Testy McTestface MP"),
   );

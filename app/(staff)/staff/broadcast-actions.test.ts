@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db";
-import { createDraft, getWrittenMailing, saveDraft } from "@/lib/server/mailing-drafts";
+import { createDraft, getWrittenMailing, saveDraft } from "@/lib/mailings/drafts";
 import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import { createSession } from "@/lib/accounts/auth";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";

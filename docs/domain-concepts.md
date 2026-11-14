@@ -203,7 +203,7 @@ in `app/(site)/campaigns/<slug>/`, and a link in the nav.
 Staff see a campaign as a mailing, from supporters rather than PauseAI.
 `/staff/campaigns` lists them under the month of each one's most recent
 letter, with a mailing's counts. A campaign's page
-(`/staff/campaigns/[slug]`, `lib/server/campaigns.ts`) has:
+(`/staff/campaigns/[slug]`, `lib/mailings/campaigns.ts`) has:
 
 - its header;
 - how many answered its ask;
@@ -260,17 +260,17 @@ row adds what its kind has, joined as notable people are:
   named by `mailings.airtable_field`, or with no box, the dates it was sent
   in (`airtable_sent_between`).
 
-  A mailing written on the site (`lib/server/mailing-drafts.ts`) is a
+  A mailing written on the site (`lib/mailings/drafts.ts`) is a
   draft from the moment New mailing is pressed. A draft holds:
   - The politicians ticked for it on the politicians list, by ID
     (`StoredFilter`'s `picked`). That's a fixed list, which a later
     by-election doesn't change. When everyone a filter found was ticked, the
     draft also keeps that filter, the day and who it found, so the mailing
     can say who it's to as that group, plus or minus a few
-    (`lib/mailing-picks.ts`). A draft made before ticks holds the list's
+    (`lib/mailings/picks.ts`). A draft made before ticks holds the list's
     filter instead, as its URL parameters, until its first tick.
   - Its letter, a document with merge fields and parts only some
-    recipients get (`lib/mailing-doc.ts`).
+    recipients get (`lib/mailings/doc.ts`).
 
   A draft is saved with a version number until it's scheduled. Scheduling
   fixes its recipients: each gets a scheduled PauseAI letter, which keeps
@@ -431,10 +431,10 @@ The principles:
   went (an earlier opt-out, a blocked address, no address) is grey, not
   red. Red is for what this send itself broke or caused.
 
-The states, their colours and their words are one set (`lib/copy-states.ts`,
-`staffCopy.copyStates`), and each copy's tag and the counts come from it
+The states, their colours and their words are one set (`lib/mailings/copy-states.ts`,
+`mailingsCopy.copyStates`), and each copy's tag and the counts come from it
 (`CopyStatus.tsx` and `CopyCounts.tsx` in
-`app/(staff)/staff/_components/`). Each kind adds its own: a broadcast's
+`app/(staff)/staff/_components/mailings/`). Each kind adds its own: a broadcast's
 copies are delivered, read, opted out or to check, worked out in
 `lib/server/broadcast-pages.ts`; a letter is answered or marked spam, and
 has no "to check", as nothing marks a reply to it dealt with. A letter's
@@ -586,7 +586,7 @@ job all leave broadcasts out.
 - **What sends an email** (`mailings.send_by`; `BROADCAST_SEND_BY` in
   `lib/broadcasts.ts`). An email is always from `hello@pauseai.uk`
   (`BROADCAST_SENDER`), where its replies are read. It goes by one of the
-  channels mailings go by (`lib/server/mailing-channels.ts`), through
+  channels mailings go by (`lib/mailings/channels.ts`), through
   `send()`, to its supporter by name, or to their address alone if they
   have none, with its files, its unsubscribe link at its foot and in its
   `List-Unsubscribe` and `List-Unsubscribe-Post` headers:
@@ -703,7 +703,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   most 1,800 a day from an account, counting every mailing
   (`GMAIL_DAILY_LIMIT`). That's under Gmail's 2,000, so the person's own
   email still goes.
-- **Sending** (`lib/server/mailing-sending.ts`): the `send-mailings`
+- **Sending** (`lib/mailings/sending.ts`): the `send-mailings`
   job, at 3, 18, 33 and 48 minutes past every hour, starts each scheduled
   mailing that's due. It starts none before 06:03 UTC. A mailing's time is
   one of those runs, chosen by its hour and minutes (`SENDING` in

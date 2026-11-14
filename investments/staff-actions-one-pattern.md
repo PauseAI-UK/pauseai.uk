@@ -6,7 +6,7 @@ Size: M. Kind: architecture.
 
 Staff Server Actions report back in five ways:
 
-- return nothing and give up silently when the input doesn't parse (about 20 places across `actions.ts`, `mailing-actions.ts`, `saved-filter-actions.ts` and `broadcast-actions.ts`);
+- return nothing and give up silently when the input doesn't parse (about 20 places across `actions.ts`, `mailings/actions.ts`, `saved-filter-actions.ts` and `broadcast-actions.ts`);
 - return a boolean;
 - return a typed result;
 - redirect with `?notice=` for the page to read;

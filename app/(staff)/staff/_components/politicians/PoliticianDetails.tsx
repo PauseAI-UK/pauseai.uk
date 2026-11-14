@@ -117,14 +117,14 @@ function letterEntries({ senders, letters }: PoliticianLetters): Entry[] {
           {" · "}
           {statusOf(letter.status)}
           {" · "}
-          <StaffLink href={`/staff/letters/${letter.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
+          <StaffLink href={`/staff/letters/${letter.id}`}>{staffVocabulary.theLetter}</StaffLink>
         </Muted>
       </>,
       <>
         {copy.history["letter-replied"]} <Sender letter={letter} />
         <Muted>
           {" · "}
-          <StaffLink href={`/staff/letters/${letter.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
+          <StaffLink href={`/staff/letters/${letter.id}`}>{staffVocabulary.theLetter}</StaffLink>
         </Muted>
       </>,
     ),
@@ -149,7 +149,7 @@ function pauseaiEntries(letters: PauseaiLetter[]): Entry[] {
           {statusOf(letter.status)}
           {" · "}
           <StaffLink href={`/staff/mailings/${letter.mailingId}/letters/${letter.id}`}>
-            {staffCopy.mailingPages.theLetter}
+            {staffVocabulary.theLetter}
           </StaffLink>
         </Muted>
       </>

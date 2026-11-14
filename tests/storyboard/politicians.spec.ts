@@ -536,7 +536,7 @@ test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) 
   await openPolitician(page, "Polly Placeholder");
   await page.locator("summary", { hasText: copy.historyTitle }).click();
   const history = page.getByRole("list", { name: copy.historyTitle });
-  await history.getByRole("link", { name: staffCopy.mailingPages.theLetter }).first().click();
+  await history.getByRole("link", { name: staffVocabulary.theLetter }).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     staffCopy.letters.oneTitle(staffCopy.letters.fromPauseai, "Polly Placeholder"),
   );

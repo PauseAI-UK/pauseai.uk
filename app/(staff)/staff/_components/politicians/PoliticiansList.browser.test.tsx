@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   exampleChoosing,
@@ -42,7 +41,7 @@ describe("HouseTabs", () => {
     const choosing = { ...exampleChoosing, ticked: [7, 8] };
     const search = { ...emptyPoliticiansSearch, house: "lords", mailing: "12" };
     const { rerender } = await render(<HouseTabs search={search} choosing={choosing} />);
-    const ticked = page.getByRole("link", { name: `${staffCopy.mailingPages.pickedTab} 2` });
+    const ticked = page.getByRole("link", { name: `${politiciansCopy.choosing.pickedTab} 2` });
     await expect.element(ticked).toHaveAttribute("href", "/staff/politicians?house=lords&mailing=12&tab=ticked");
     await expect.element(ticked).not.toHaveAttribute("aria-current");
     await expect
@@ -54,9 +53,9 @@ describe("HouseTabs", () => {
       .element(page.getByRole("link", { name: staffVocabulary.houses.senedd }))
       .toHaveAttribute("href", "/staff/politicians?house=senedd&mailing=12");
     // Once names are pasted, the paste tab after it.
-    expect(page.getByRole("link", { name: staffCopy.mailingPages.pastedTab }).all()).toHaveLength(0);
+    expect(page.getByRole("link", { name: politiciansCopy.choosing.pastedTab }).all()).toHaveLength(0);
     await rerender(<HouseTabs search={{ ...search, tab: "pasted", pasted: ["Jo"] }} choosing={choosing} />);
-    const pasted = page.getByRole("link", { name: staffCopy.mailingPages.pastedTab });
+    const pasted = page.getByRole("link", { name: politiciansCopy.choosing.pastedTab });
     await expect.element(pasted).toHaveAttribute("aria-current", "page");
     await expect
       .element(ticked)
@@ -65,7 +64,7 @@ describe("HouseTabs", () => {
 });
 
 describe("ChoosingHead", () => {
-  const copy = staffCopy.mailingPages;
+  const copy = politiciansCopy.choosing;
 
   it("is just the title unless the list is choosing who a mailing is for", async () => {
     const { container } = await render(
@@ -112,7 +111,7 @@ describe("ChoosingHead", () => {
 
 describe("PoliticiansList", () => {
   const copy = politiciansCopy.politicians;
-  const mailingCopy = staffCopy.mailingPages;
+  const mailingCopy = politiciansCopy.choosing;
   const search = { ...emptyPoliticiansSearch, q: "pol", page: "2" };
   const actions = () => ({
     pick: vi.fn(async () => {}),
@@ -440,7 +439,7 @@ describe("PoliticiansList", () => {
         actions={act}
       />,
     );
-    await page.getByRole("checkbox", { name: staffCopy.mailingPages.tick("Polly Placeholder") }).click();
+    await page.getByRole("checkbox", { name: politiciansCopy.choosing.tick("Polly Placeholder") }).click();
     await expect.poll(() => act.pick.mock.calls).toEqual([[12, 7, true]]);
     expect(page.getByRole("checkbox").all()).toHaveLength(1);
     await rerender(
@@ -504,20 +503,20 @@ describe("PoliticiansList's examples in the gallery", () => {
 
   it("logs a row ticked or unticked while choosing who a mailing is for", async () => {
     await render(<ChoosingListExample />);
-    await page.getByRole("checkbox", { name: staffCopy.mailingPages.tick("Polly Placeholder") }).click();
+    await page.getByRole("checkbox", { name: politiciansCopy.choosing.tick("Polly Placeholder") }).click();
     await expect.poll(() => log().last().query()?.textContent).toBe("pickPolitician(12, 7, false)");
   });
 
   it("logs names pasted, and ticking everyone they found", async () => {
     const { unmount } = await render(<PasteFormExample />);
-    await page.getByRole("textbox", { name: staffCopy.mailingPages.pasteLabel }).fill("Polly Placeholder");
-    await page.getByRole("button", { name: staffCopy.mailingPages.pasteTick }).click();
+    await page.getByRole("textbox", { name: politiciansCopy.choosing.pasteLabel }).fill("Polly Placeholder");
+    await page.getByRole("button", { name: politiciansCopy.choosing.pasteTick }).click();
     await expect.poll(() => log().last().query()?.textContent).toMatch(/^pasteNames\(/);
     await unmount();
     await render(<ChoosingListExample pasted />);
-    await page.getByRole("checkbox", { name: staffCopy.mailingPages.pastedTickAll(1) }).click();
+    await page.getByRole("checkbox", { name: politiciansCopy.choosing.pastedTickAll(1) }).click();
     await expect.poll(() => log().last().query()?.textContent).toBe("pickMany(12, [7], false)");
-    await page.getByRole("button", { name: staffCopy.mailingPages.untickAll }).click();
+    await page.getByRole("button", { name: politiciansCopy.choosing.untickAll }).click();
     await expect.poll(() => log().last().query()?.textContent).toMatch(/^untickAll\(12/);
   });
 });

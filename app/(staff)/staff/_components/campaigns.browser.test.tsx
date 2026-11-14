@@ -1,5 +1,3 @@
-import { campaigns } from "@/lib/content/email-your-mp";
-import type { CampaignSummary } from "@/lib/server/campaigns";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
@@ -7,29 +5,9 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
 import { staffTime } from "@/lib/staff-time";
-import type { Mailing } from "@/lib/server/mailings";
 import ChangesTable from "./ChangesTable";
-import CampaignLetter from "./CampaignLetter";
-import CampaignsOverview, { CampaignAsk, letterRange } from "./CampaignsOverview";
-import CampaignView from "./CampaignView";
-import {
-  exampleChanged,
-  exampleCampaign,
-  exampleCampaignEmpty,
-  exampleCampaignNoAsk,
-  exampleHiddenOneOff,
-  exampleOneOffs,
-  exampleOneOffThread,
-  exampleForwardThread,
-  exampleSentEmails,
-  exampleVersions,
-} from "./CampaignPages.examples";
 import LetterThread from "./LetterThread";
 import { exampleThread } from "./LetterThread.examples";
-import MailEmail from "./MailEmail";
-import MailingView from "./MailingView";
-import { exampleMailing } from "./MailingsTable.examples";
-import { emptyLettersSearch, exampleLetter } from "./LettersTable.examples";
 import MyGmail from "./accounts/MyGmail";
 import { OneOffTable } from "./OneOffList";
 import OneOffThreadView from "./OneOffThreadView";
@@ -41,197 +19,13 @@ import { exampleRun } from "./RunList.examples";
 import SentEmails from "./SentEmails";
 import StaffNav from "./shell/StaffNav";
 import { shellCopy } from "./shell/copy";
-import { asksCopy } from "@/lib/asks/copy";
+import { exampleForwardThread, exampleHiddenOneOff, exampleOneOffThread, exampleOneOffs } from "./OneOffList.examples";
+import { exampleSentEmails } from "./SentEmails.examples";
 
-const copy = staffCopy.campaigns;
 const NOW = "2026-11-05T09:00:00Z";
 const link = (name: string) => page.getByRole("link", { name, exact: true });
 /** Whether the page says `text`, whichever element it's in and however its line wraps. */
 const says = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
-
-describe("CampaignsOverview", () => {
-  it("files each under the month of its last letter, the rest under their years, those with none first, saying who it's from and its ask", async () => {
-    await render(
-      <CampaignsOverview campaigns={[exampleCampaign, exampleCampaignNoAsk, exampleCampaignEmpty]} now={NOW} />,
-    );
-    // What needs a look, leading to its letters, and the rest folded behind how many are fine.
-    expect(document.querySelector(`a[href="/staff/campaigns/${exampleCampaign.slug}?tab=unreached"]`)).not.toBeNull();
-    expect(document.body.textContent).toContain(staffCopy.copyStates.andFine(11));
-    expect(document.body.textContent).toContain(staffCopy.copyStates.allFine(12));
-    // How many went, after a dot: all but the one that bounced; nothing for one with no letters, which says so.
-    expect(document.body.textContent).toContain(copy.sent(11));
-    expect(document.body.textContent).not.toContain(copy.sent(0));
-    const headings = page
-      .getByRole("heading", { level: 2 })
-      .all()
-      .map((h) => h.element().textContent);
-    expect(headings).toEqual(["October 2026", "2025"]);
-    await expect
-      .element(link(exampleCampaign.title))
-      .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}`);
-    await expect.element(link(exampleCampaign.askTitle!)).toHaveAttribute("href", `/staff/asks/${exampleCampaign.ask}`);
-    expect(document.body.textContent).toContain(`${copy.fromSupporters} · ${copy.lettersTo(12, 9)}`);
-    expect(document.body.textContent).toContain("18 Jun – 22 Oct");
-    expect(document.body.textContent).toContain("20 May – 17 Jun 2025");
-    // Those with no letters come first, under no month.
-    expect(document.querySelector("li")!.textContent).toContain(copy.noLetters);
-    expect(document.body.textContent).toContain(asksCopy.asks.noAsk);
-  });
-
-  it("says there are none", async () => {
-    await render(<CampaignsOverview campaigns={[]} now={NOW} />);
-    await says(copy.none);
-  });
-
-  it("gives letters' days as a range, a year only once, and one day alone", () => {
-    expect(letterRange(new Date("2026-11-01T09:00:00Z"), new Date("2026-11-05T09:00:00Z"), "2026")).toBe(
-      "1 Nov – 5 Nov",
-    );
-    expect(letterRange(new Date("2026-11-05T09:00:00Z"), new Date("2026-11-05T10:00:00Z"), "2026")).toBe("5 Nov");
-    expect(letterRange(new Date("2025-07-23T09:00:00Z"), new Date("2025-09-30T09:00:00Z"), "2026")).toBe(
-      "23 Jul – 30 Sept 2025",
-    );
-    expect(letterRange(new Date("2025-12-01T09:00:00Z"), new Date("2026-01-05T09:00:00Z"), "2026")).toBe(
-      "1 Dec 2025 – 5 Jan",
-    );
-    expect(letterRange(new Date("2025-07-23T09:00:00Z"), new Date("2025-07-23T09:00:00Z"), "2026")).toBe("23 Jul 2025");
-  });
-
-  it("says an ask by its kind", async () => {
-    const { rerender } = await render(<CampaignAsk campaign={exampleCampaign} />);
-    expect(document.body.textContent).toContain(asksCopy.asks.askTo.letter);
-    await rerender(<CampaignAsk campaign={{ ...exampleCampaign, askKind: "event" }} />);
-    expect(document.body.textContent).toContain(asksCopy.asks.askTo.event);
-  });
-});
-
-describe("CampaignLetter", () => {
-  it("leads to those who changed the wording, when anyone did", async () => {
-    const { rerender } = await render(<CampaignLetter changedHref="/changed" versions={exampleVersions} changed={3} />);
-    await expect
-      .element(page.getByRole("link", { name: staffCopy.campaigns.changedLink(3) }))
-      .toHaveAttribute("href", "/changed");
-    await rerender(<CampaignLetter changedHref="/changed" versions={exampleVersions} changed={0} />);
-    expect(page.getByRole("link").query()).toBeNull();
-  });
-
-  it("chooses among versions, each with its subject and text, names as chips", async () => {
-    await render(<CampaignLetter changedHref="/changed" versions={exampleVersions} changed={exampleChanged} />);
-    await says(exampleVersions[0].subject);
-    await says(copy.fields.salutation);
-    await page.getByRole("combobox").selectOptions("older");
-    await says(exampleVersions[1].subject);
-  });
-
-  it("with one version, says how many it has, and with no one changing the wording, no link", async () => {
-    await render(<CampaignLetter changedHref="/changed" versions={exampleVersions.slice(1)} changed={0} />);
-    expect(page.getByRole("combobox").query()).toBeNull();
-    expect(document.body.textContent).toContain(copy.versionLine("18 Jun 2026", 8));
-    const { rerender } = await render(
-      <CampaignLetter
-        changedHref="/changed"
-        versions={[{ ...exampleVersions[0], from: null }]}
-        changed={exampleChanged}
-      />,
-    );
-    expect(document.body.textContent).toContain(copy.versionLine(null, 4));
-    await rerender(<CampaignLetter changedHref="/changed" versions={[]} changed={exampleChanged} />);
-    await says(copy.noText);
-  });
-});
-
-describe("CampaignView's public page", () => {
-  const view = (campaign: CampaignSummary) => (
-    <CampaignView
-      campaign={campaign}
-      versions={exampleVersions}
-      changed={0}
-      letters={{ letters: [], total: 0, pages: 1, pageSize: 100 }}
-      search={emptyLettersSearch}
-    />
-  );
-
-  it("leads to the campaign on the site, else where its letter is kept, else says there's none", async () => {
-    const see = () => page.getByRole("link", { name: staffCopy.campaigns.seePublicPage });
-    const code = campaigns[0];
-    const { rerender } = await render(view({ ...exampleCampaign, slug: code.slug }));
-    await expect.element(see()).toHaveAttribute("href", `/campaigns/${code.slug}`);
-    await rerender(view({ ...exampleCampaign, slug: "gone", url: "https://example.org/letter.pdf" }));
-    await expect.element(see()).toHaveAttribute("href", "https://example.org/letter.pdf");
-    await rerender(view({ ...exampleCampaign, slug: "gone", url: null }));
-    expect(see().query()).toBeNull();
-  });
-});
-
-describe("CampaignView", () => {
-  const letters = [
-    exampleLetter,
-    { ...exampleLetter, id: 2, status: "sent", answer: "signed" as const, constituency: null, party: "" },
-    { ...exampleLetter, id: 3, status: "sent", repliedAt: new Date(NOW), ownWords: null, supporterId: null },
-    { ...exampleLetter, id: 4, status: "sent", autoRepliedAt: new Date(NOW) },
-    { ...exampleLetter, id: 5, status: "not_sent", backend: "postmark" as const },
-    { ...exampleLetter, id: 6, status: "not_sent", backend: "airtable" as const },
-  ];
-  const view = (campaign = exampleCampaign, search = emptyLettersSearch) => (
-    <CampaignView
-      campaign={campaign}
-      versions={exampleVersions}
-      changed={exampleChanged}
-      letters={{ letters, total: 150, pages: 2, pageSize: 100 }}
-      search={search}
-    />
-  );
-
-  it("says who it's from and to, its ask and how many answered, with its letters", async () => {
-    await render(view());
-    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(exampleCampaign.title);
-    await says(copy.supporters(10));
-    await says(copy.politicians(9));
-    await says(staffCopy.mailingPages.answeredBar(3, 9));
-    await expect.element(link(exampleCampaign.askTitle!)).toHaveAttribute("href", `/staff/asks/${exampleCampaign.ask}`);
-    await says(staffVocabulary.statuses.signed);
-    // Each letter's one tag: answered in place of sent; what refused one, where that's known.
-    const tags = staffCopy.copyStates.tags;
-    await says(tags["unreached:bounced"]!);
-    await says(tags.answered!);
-    await says(tags.replied!);
-    await says(tags["error:postmark"]!);
-    await expect.element(page.getByText(tags.error!, { exact: true })).toBeVisible();
-    // One only an automatic reply came back to, which is no reply.
-    await says(tags["sent:auto-reply"]!);
-    // The counts in two groups, each under its total.
-    await expect.element(page.getByRole("group", { name: `11 ${staffCopy.copyStates.groups.went}` })).toBeVisible();
-    await expect
-      .element(page.getByRole("link", { name: `1 ${staffCopy.copyStates.counts.unreached}` }))
-      .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?tab=unreached`);
-    await expect
-      .element(page.getByRole("link", { name: copy.changedLink(exampleChanged) }))
-      .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?tab=changed`);
-    await expect
-      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
-      .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?page=2`);
-  });
-
-  it("with no ask, says so, with no bar and no answers", async () => {
-    const { unmount } = await render(view(exampleCampaignNoAsk));
-    expect(document.body.textContent).toContain(asksCopy.asks.noAsk);
-    expect(document.querySelector("progress")).toBeNull();
-    await expect.element(page.getByText(staffCopy.copyStates.counts.answered!)).not.toBeInTheDocument();
-    await unmount();
-    // A count chosen heads the letters, and pressed again shows them all; so does the changed wording.
-    const { unmount: again } = await render(
-      view(exampleCampaignNoAsk, { ...emptyLettersSearch, tab: "replied", page: "2" }),
-    );
-    await expect.element(page.getByRole("heading", { name: staffCopy.copyStates.tabs.replied })).toBeVisible();
-    await expect
-      .element(page.getByRole("link", { name: `2 ${staffCopy.copyStates.counts.replied}` }))
-      .toHaveAttribute("title", copy.showAll);
-    await expect.element(page.getByRole("link", { name: staffVocabulary.paging.previous })).toBeVisible();
-    await again();
-    await render(view(exampleCampaignEmpty, { ...emptyLettersSearch, tab: "changed" }));
-    await expect.element(page.getByRole("heading", { name: copy.tabs.changed })).toBeVisible();
-  });
-});
 
 describe("ChangesTable, without the supporters permission", () => {
   it("says entries about supporters are left out", async () => {
@@ -468,34 +262,7 @@ describe("SentEmails", () => {
   });
 });
 
-describe("an imported mailing's text", () => {
-  const doc = {
-    type: "doc",
-    content: [{ type: "paragraph", content: [{ type: "field", attrs: { field: "own" } }] }],
-  };
-  const imported = (props: Partial<Mailing>) => (
-    <MailingView mailing={{ ...exampleMailing, ...props }} asks={[]} stop={() => {}} reschedule={() => {}} />
-  );
-
-  it("shows its template, with its fields as chips, saying so if it's approximate", async () => {
-    const { rerender } = await render(
-      imported({
-        importedText: doc,
-        importedSubject: "The subject",
-        sentFrom: "joseph@pauseai.info",
-        askKind: null,
-        ask: null,
-      }),
-    );
-    await says("The subject");
-    await says(staffCopy.mailings.importedFields.own);
-    expect(document.body.textContent).not.toContain(staffCopy.letterThread.approximate);
-    await rerender(imported({ importedText: doc, sentFrom: null, importedTextApproximate: true, askKind: "letter" }));
-    await says(staffCopy.letterThread.approximate);
-    await says(staffCopy.mailings.notRecorded);
-    await says(asksCopy.asks.askTo.letter);
-  });
-
+describe("a letter's imported text", () => {
   it("says a letter's text is approximate on its page", async () => {
     await render(<LetterThread thread={{ ...exampleThread, approximate: true }} />);
     await says(staffCopy.letterThread.approximate);
@@ -523,22 +290,6 @@ describe("the rule over a list", () => {
     const bar = page.getByText("1 row").element().parentElement!.parentElement!;
     expect(getComputedStyle(bar).borderTopWidth).toBe("0px");
     expect(getComputedStyle(page.getByRole("navigation", { name: "Which" }).element()).boxShadow).not.toBe("none");
-  });
-});
-
-describe("MailEmail", () => {
-  it("shows who it's from and to where it's said, always its subject, then its body", async () => {
-    const { rerender } = await render(
-      <MailEmail from="jo@pauseai.uk" to="Each politician" subject="A subject">
-        The letter
-      </MailEmail>,
-    );
-    const terms = () => [...document.querySelectorAll("dt")].map((dt) => dt.textContent);
-    const words = staffCopy.mailingPages;
-    expect(terms()).toEqual([words.from, words.to, words.subject]);
-    await says("The letter");
-    await rerender(<MailEmail subject="A subject">The letter</MailEmail>);
-    expect(terms()).toEqual([words.subject]);
   });
 });
 
@@ -587,12 +338,12 @@ describe("the rest", () => {
     await rerender(<MyGmail {...props} />);
     expect(link(staffCopy.oneOff.title).query()).toBeNull();
     await says(staffCopy.oneOff.notKept.before);
-    await expect.element(link(staffCopy.mailings.title)).toHaveAttribute("href", "/staff/mailings");
+    await expect.element(link(shellCopy.nav.mailings)).toHaveAttribute("href", "/staff/mailings");
     // hello@'s sends the broadcasts too.
     await rerender(<MyGmail {...props} me="hello@pauseai.uk" />);
     await says(staffCopy.oneOff.notKeptBroadcasts.before);
-    await expect.element(link(staffCopy.broadcastPages.title)).toHaveAttribute("href", "/staff/broadcasts");
+    await expect.element(link(shellCopy.nav.broadcasts)).toHaveAttribute("href", "/staff/broadcasts");
     await rerender(<MyGmail {...props} lettersInbox />);
-    expect(link(staffCopy.mailings.title).query()).toBeNull();
+    expect(link(shellCopy.nav.mailings).query()).toBeNull();
   });
 });

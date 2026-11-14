@@ -9,18 +9,12 @@ describe("staff interface copy", () => {
   });
 
   it("puts the number in each list's total", () => {
-    const { letters, mailings, changes } = staffCopy;
-    for (const list of [letters, mailings, changes]) expect(list.total(7)).toContain("7");
+    const { letters, changes } = staffCopy;
+    for (const list of [letters, changes]) expect(list.total(7)).toContain("7");
   });
 
   it("names what each change counts", () => {
     for (const [key, say] of Object.entries(staffCopy.changes.counts)) expect(say(2), key).not.toBe("");
-  });
-
-  it("says who the mailing leaves out, and why", () => {
-    const { leftOut } = staffCopy.mailingPages;
-    expect(leftOut(3, 1, 0)).toContain("filter");
-    expect(leftOut(3, 0, 2, true)).not.toContain("filter");
   });
 
   it("names WhatsApp as what holds back a text, and what sends it for an email", () => {

@@ -3,7 +3,7 @@ import { eventsSearch } from "@/lib/staff-search";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { newRequest } from "@/tests/request-cache";
 import { askToEdit, listAsks } from "@/lib/asks/records";
-import { getCampaignSummary } from "./campaigns";
+import { getCampaignSummary } from "@/lib/mailings/campaigns";
 import { query } from "./db";
 import { getPauseaiLetter, getSupporterLetter } from "./letters";
 import { getPolitician, listParties } from "@/lib/politicians/records";

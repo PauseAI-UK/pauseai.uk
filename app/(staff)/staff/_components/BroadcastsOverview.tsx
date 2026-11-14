@@ -1,8 +1,8 @@
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { MailingGroup } from "@/lib/mailing-groups";
+import type { MailingGroup } from "@/lib/mailings/groups";
 import type { BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { textSender } from "@/lib/broadcasts";
-import MailingsOverview, { type OverviewLook, type Sentence } from "./MailingsOverview";
+import MailingsOverview, { type OverviewLook, type Sentence } from "./mailings/MailingsOverview";
 import { BroadcastChannelMark, broadcastCounts } from "./BroadcastView";
 
 const copy = staffCopy.broadcastPages;

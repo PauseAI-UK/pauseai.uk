@@ -1,7 +1,7 @@
 import type { Topic } from "@/lib/supporters/contact-permissions";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { toText } from "@/lib/letter-format";
-import { fieldsIn, letterFor, type MailingDoc } from "@/lib/mailing-doc";
+import { fieldsIn, letterFor, type MailingDoc } from "@/lib/mailings/doc";
 
 // A text's words as a WhatsApp template: its merge fields as named
 // parameters, which WhatsApp fills in for each person from what a send

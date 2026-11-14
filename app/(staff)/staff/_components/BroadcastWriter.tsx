@@ -22,9 +22,9 @@ import {
   letterFor,
   NOT_CONDITION,
   type MailingDoc,
-} from "@/lib/mailing-doc";
+} from "@/lib/mailings/doc";
 import { named } from "@/lib/email-parsing/addresses";
-import type { ChannelResult } from "@/lib/server/mailing-channels";
+import type { ChannelResult } from "@/lib/mailings/channels";
 import type {
   BroadcastScheduleResult,
   WhatsAppTemplate,
@@ -59,15 +59,15 @@ import {
   TEST_NEEDS,
   useDraftWriter,
   type DraftActions,
-} from "./DraftWriter";
+} from "./mailings/DraftWriter";
 import Alert from "./Alert";
 import { ARMED_FOR } from "./DeleteTwice";
-import { DeleteDraft } from "./MailingButtons";
-import MailingEditor from "./MailingEditor";
-import MailingFiles from "./MailingFiles";
+import { DeleteDraft } from "./mailings/MailingButtons";
+import MailingEditor from "./mailings/MailingEditor";
+import MailingFiles from "./mailings/MailingFiles";
 import BroadcastConsent from "./BroadcastConsent";
 import { othersThanConsent } from "./supporters/SupporterFilters";
-import { MailingLetter } from "./MailingLetter";
+import { MailingLetter } from "./mailings/MailingLetter";
 import TextBubble from "./TextBubble";
 import { BandFact, Facts } from "./ui/Band";
 import Grid, { Card } from "./ui/Grid";
@@ -75,8 +75,9 @@ import NotIcon from "./ui/NotIcon";
 import Strip from "./ui/Strip";
 import Numbered from "./ui/Numbered";
 import { phoneWords } from "@/lib/phone";
-import styles from "./MailingWriter.module.css";
+import styles from "./mailings/MailingWriter.module.css";
 import own from "./Broadcasts.module.css";
+import { mailingsCopy } from "./mailings/copy";
 
 const copy = staffCopy.broadcastPages;
 
@@ -507,7 +508,7 @@ export default function BroadcastWriter({
       <DraftTitle title={title} saveState={blank ? undefined : saveState} />
       {saveState === "conflict" && (
         <Strip tone="red" announce>
-          {staffCopy.mailingPages.saveStates.conflict}
+          {mailingsCopy.mailingPages.saveStates.conflict}
         </Strip>
       )}
       {draft.template?.status === "pending" && (
@@ -549,12 +550,12 @@ export default function BroadcastWriter({
                   }}
                 >
                   {othersThanConsent(data.filter.params, data.choices).length > 0
-                    ? staffCopy.mailingPages.changeWho
+                    ? mailingsCopy.mailingPages.changeWho
                     : copy.narrowDown}
                 </ButtonAnchor>
               </div>
               {data.unknown.length > 0 && (
-                <Strip tone="amber">{staffCopy.mailingPages.unknownFilter(data.unknown.join(", "))}</Strip>
+                <Strip tone="amber">{mailingsCopy.mailingPages.unknownFilter(data.unknown.join(", "))}</Strip>
               )}
               {/* Greyed, it's to no one yet: who the Consent finds once it's chosen. */}
               {!blank && <p className={styles.count}>{copy.willGet(data.count, draft.channel)}</p>}

@@ -10,7 +10,7 @@ import { send } from "./email-sending";
 import { gmailAccount } from "@/lib/accounts/gmail-accounts";
 import { letterEvent, SentUnrecorded, sendLetterVia, transition } from "./letter-lifecycle";
 import { lettersInbox, proxyAddress } from "./letters-inbox";
-import { lettersInboxEmail } from "./mailing-channels";
+import { lettersInboxEmail } from "@/lib/mailings/channels";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mpName, nameLine, proxyLine } from "./proxies";
 import { problem } from "./problems";

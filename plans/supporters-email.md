@@ -311,7 +311,7 @@ sends nothing, as its entries are already there.
 
 **Sending.** A broadcast says what sends it (`mailings.send_by`), and
 goes by that channel, one of those mailings go by
-(`lib/server/mailing-channels.ts`), so another can be added beside them.
+(`lib/mailings/channels.ts`), so another can be added beside them.
 Always from `hello@pauseai.uk`, which is connected as a staff Gmail, so the
 site reads its replies.
 

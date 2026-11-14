@@ -1,12 +1,12 @@
 import { staffCopy } from "@/lib/content/staff-interface";
-import { letterFor } from "@/lib/mailing-doc";
+import { letterFor } from "@/lib/mailings/doc";
 import { named } from "@/lib/email-parsing/addresses";
 import type { MessageCopy } from "@/lib/server/broadcast-pages";
 import Reply, { type ReplyHandlers } from "./CopyReply";
 import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts";
-import { MailingLetter } from "./MailingLetter";
-import { CopyStatus } from "./CopyStatus";
+import { MailingLetter } from "./mailings/MailingLetter";
+import { CopyStatus } from "./mailings/CopyStatus";
 import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
 import { LetterHistory, type HistoryEntry } from "./LetterHistory";
 import { Thread } from "./LetterThread";

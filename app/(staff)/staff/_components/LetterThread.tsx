@@ -8,7 +8,7 @@ import LetterChanges from "./LetterChanges";
 import MailFold from "./MailFold";
 import ThreadEmail from "./ThreadEmail";
 import ThreadText from "./ThreadText";
-import { MailingLetter } from "./MailingLetter";
+import { MailingLetter } from "./mailings/MailingLetter";
 import StaffLink from "./ui/StaffLink";
 import Strip from "./ui/Strip";
 import styles from "./LetterThread.module.css";

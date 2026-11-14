@@ -1,8 +1,8 @@
 import "server-only";
-import type { MailingDoc, MailingRecipientValues } from "@/lib/mailing-doc";
-import { checkMailingDoc } from "@/lib/mailing-doc";
-import type { MailingChoice } from "@/lib/mailing-fields";
-import { mailingGroups, type MailingGroup } from "@/lib/mailing-groups";
+import type { MailingDoc, MailingRecipientValues } from "@/lib/mailings/doc";
+import { checkMailingDoc } from "@/lib/mailings/doc";
+import type { MailingChoice } from "@/lib/mailings/fields";
+import { mailingGroups, type MailingGroup } from "@/lib/mailings/groups";
 import { now } from "@/lib/now";
 import { storedFilter, type StoredFilter } from "@/lib/staff-search";
 import { firstOf, pageNumber, type Params, type ParamValue } from "@/lib/list-params";
@@ -28,7 +28,7 @@ import {
   type WrittenBroadcast,
 } from "./broadcast-drafts";
 import { broadcastChoices, broadcastParts, supporterAudience } from "./broadcast-recipients";
-import type { MailingBase } from "./mailings";
+import type { MailingBase } from "@/lib/mailings/records";
 import { howOptedOutFrom, optedOutFrom } from "@/lib/supporters/opt-outs";
 import { checkStoredFilter, filterProblems } from "./stored-filters";
 import { supporterChoices, type SupporterChoices } from "@/lib/supporters/records";

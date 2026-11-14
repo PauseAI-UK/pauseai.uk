@@ -1,5 +1,5 @@
 import "server-only";
-import { checkMailingDoc, letterFor, type MailingDoc } from "@/lib/mailing-doc";
+import { checkMailingDoc, letterFor, type MailingDoc } from "@/lib/mailings/doc";
 import { toText } from "@/lib/letter-format";
 import { storedFilter } from "@/lib/staff-search";
 import { type Params } from "@/lib/list-params";
@@ -30,7 +30,7 @@ import { now } from "@/lib/now";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
 import { gmailAccount, GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-accounts";
-import type { ChannelResult } from "./mailing-channels";
+import type { ChannelResult } from "@/lib/mailings/channels";
 import {
   getWrittenMailing,
   lockDraft,
@@ -44,7 +44,7 @@ import {
   type MailingChanges,
   type SaveResult,
   type WrittenMailing,
-} from "./mailing-drafts";
+} from "@/lib/mailings/drafts";
 import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./broadcast-channels";
 import { createTemplate, deleteTemplate, sendTemplate, WhatsAppRequestError } from "./outside-services/whatsapp";
 import { problem } from "./problems";

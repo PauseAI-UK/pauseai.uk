@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { addAttachment, createDraft } from "@/lib/server/mailing-drafts";
+import { addAttachment, createDraft } from "@/lib/mailings/drafts";
 import { createSession } from "@/lib/accounts/auth";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";

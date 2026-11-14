@@ -28,3 +28,10 @@ export type PersonStatus = (typeof PERSON_STATUSES)[number];
 export function isPersonStatus(value: string): value is PersonStatus {
   return (PERSON_STATUSES as readonly string[]).includes(value);
 }
+
+/**
+ * The draft mailing the politicians list is choosing for: its ID, its title,
+ * whether nothing's been written in it yet, as a new mailing's, and who's
+ * ticked.
+ */
+export type Choosing = { id: number; title: string; blank: boolean; ticked: number[] };

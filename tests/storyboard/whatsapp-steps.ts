@@ -6,7 +6,7 @@
 import type { Page } from "@playwright/test";
 import { TEXT_SENDER_NAME } from "@/lib/broadcasts";
 import { readTexts, type OutboxText } from "@/lib/server/fixtures/whatsapp-outbox";
-import type { MailingDoc } from "@/lib/mailing-doc";
+import type { MailingDoc } from "@/lib/mailings/doc";
 import { filledTemplate, templateText } from "@/lib/whatsapp-template";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { OUTBOX_DIR } from "../checkout.mjs";

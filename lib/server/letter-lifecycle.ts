@@ -2,7 +2,7 @@ import "server-only";
 import type { LetterEvent, LetterStatus } from "@/lib/letter-status";
 import { query, type Queryable } from "./db";
 import type { Purpose } from "./email";
-import type { ChannelMessage, ChannelResult, MailingChannel } from "./mailing-channels";
+import type { ChannelMessage, ChannelResult, MailingChannel } from "@/lib/mailings/channels";
 import { sql, type Sql } from "./sql";
 
 // Moving letters from one status to another (lib/letter-status.ts), the only

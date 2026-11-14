@@ -1,7 +1,7 @@
 import { staffCopy } from "@/lib/content/staff-interface";
-import { letterState } from "@/lib/copy-states";
-import type { SkipReason } from "@/lib/server/mailings";
-import { CopyStatus } from "./CopyStatus";
+import { letterState } from "@/lib/mailings/copy-states";
+import type { SkipReason } from "@/lib/mailings/records";
+import { CopyStatus } from "./mailings/CopyStatus";
 import styles from "./LetterStatus.module.css";
 
 /** A letter's status, in words. */

@@ -5,7 +5,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { sendingStopsAt, SITE_ACTOR, waitStopsAt } from "@/lib/broadcasts";
 import { londonDate, staffTime } from "@/lib/staff-time";
 import { broadcastCounts, BroadcastWaiting } from "./BroadcastView";
-import { CopyStatus } from "./CopyStatus";
+import { CopyStatus } from "./mailings/CopyStatus";
 import {
   exampleBroadcastAnswers,
   exampleBroadcastEmail,
@@ -22,9 +22,10 @@ import MessageCopyView from "./MessageCopyView";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
 import { supportersCopy } from "./supporters/copy";
+import { mailingsCopy } from "./mailings/copy";
 
 const copy = staffCopy.broadcastPages;
-const stateWords = staffCopy.copyStates;
+const stateWords = mailingsCopy.copyStates;
 const topics = supportersCopy.supporters.detail.permissions.topics;
 const optOut = supportersCopy.supporters.detail.permissions.recordOptOut.open;
 const emailCopy = {
@@ -165,7 +166,7 @@ describe("replies to broadcasts", () => {
     const editor = draft.getByRole("textbox", { name: copy.replies.answerLabel });
     await expect.element(draft.getByText("PauseAI UK <hello@pauseai.uk>")).toBeVisible();
     await expect.element(editor).toHaveFocus();
-    await expect.element(page.getByText(staffCopy.mailingEditor.fieldsHeading)).not.toBeInTheDocument();
+    await expect.element(page.getByText(mailingsCopy.mailingEditor.fieldsHeading)).not.toBeInTheDocument();
     // Nothing to send till it has words.
     await expect.element(draft.getByRole("button", { name: copy.replies.send })).toBeDisabled();
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).not.toBeInTheDocument();

@@ -1,7 +1,7 @@
 import "server-only";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { MailingChoice } from "@/lib/mailing-fields";
-import type { MailingRecipientValues } from "@/lib/mailing-doc";
+import type { MailingChoice } from "@/lib/mailings/fields";
+import type { MailingRecipientValues } from "@/lib/mailings/doc";
 import { supportersSearch, type StoredFilter } from "@/lib/staff-search";
 import { firstNameOf, hasField, BROADCAST_FIELDS, registeredFor, wroteIn, type BroadcastTerms } from "@/lib/broadcasts";
 import type { Topic } from "@/lib/supporters/contact-permissions";

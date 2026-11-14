@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { MailingDoc } from "@/lib/mailing-doc";
+import type { MailingDoc } from "@/lib/mailings/doc";
 import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { allResults, atOnce } from "@/tests/at-once";
 import { recordGmail, stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { query } from "./db";
 import { listRuns } from "./import-runs";
 import { runTidying } from "./log-retention";
-import { createDraft, saveDraft, scheduleMailing } from "./mailing-drafts";
+import { createDraft, saveDraft, scheduleMailing } from "@/lib/mailings/drafts";
 import { runSending } from "./sending-job";
 
 const JO = "jo@pauseai.uk";

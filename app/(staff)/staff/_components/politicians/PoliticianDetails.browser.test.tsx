@@ -7,7 +7,6 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { exampleBlock } from "../EmailBlocksTable.examples";
 import { exampleLetter } from "../LettersTable.examples";
-import { exampleHiddenOneOff, exampleOneOffs } from "../CampaignPages.examples";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import PoliticianDetails from "./PoliticianDetails";
 import { type ThreadMessages, type ThreadStep } from "@/lib/politicians/threads";
@@ -18,6 +17,7 @@ import { politiciansCopy } from "./copy";
 import { PoliticianDetailsExample } from "./PoliticianDetails.gallery.client";
 import { asksCopy } from "@/lib/asks/copy";
 import { exampleAsks } from "../asks/AsksList.examples";
+import { exampleHiddenOneOff, exampleOneOffs } from "../OneOffList.examples";
 
 const [pm] = campaigns;
 
@@ -749,18 +749,18 @@ describe("PoliticianDetails", () => {
       .all();
     const copy = politiciansCopy.politician.history;
     expect(history.map((item) => item.element().textContent)).toEqual([
-      `15 Oct 2026, 09:00${copy["letter-replied"]} Anon Writer · ${pm.title} · ${staffCopy.mailingPages.theLetter}`,
-      `13 Oct 2026, 08:00${copy.letter} Anon Writer · ${pm.title} · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
-      `12 Oct 2026, 09:00${copy.letter} ${exampleLetter.senderName} · ${pm.title} · ${staffCopy.letters.status.bounced} · ${staffCopy.mailingPages.theLetter}`,
-      `3 Oct 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${politiciansCopy.politician.personalised} · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
+      `15 Oct 2026, 09:00${copy["letter-replied"]} Anon Writer · ${pm.title} · ${staffVocabulary.theLetter}`,
+      `13 Oct 2026, 08:00${copy.letter} Anon Writer · ${pm.title} · ${staffCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `12 Oct 2026, 09:00${copy.letter} ${exampleLetter.senderName} · ${pm.title} · ${staffCopy.letters.status.bounced} · ${staffVocabulary.theLetter}`,
+      `3 Oct 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${politiciansCopy.politician.personalised} · ${staffCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
       // Dated the day before it was recorded, so on that day.
       `1 Oct 2026${statusLine(politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed), ask("frontier-ai-letter").title)} · Told us at the march · jo@pauseai.uk`,
-      `2 Sept 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
+      `2 Sept 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
       `1 Sept 2026, 10:00${statusLine(politiciansCopy.politician.statusCleared, "gone")} · jo@pauseai.uk`,
       `15 Aug 2026, 10:00${statusLine(politiciansCopy.politician.statusSet("odd"), pm.title)} · jo@pauseai.uk`,
       `12 Aug 2026, 10:00${statusLine(politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed), "an-old-ask")} · airtable`,
-      `1 Jul 2026, 08:00${copy.letter} Old Writer · Old campaign, from pauseai.info · mislaid · ${staffCopy.mailingPages.theLetter}`,
-      `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffCopy.mailingPages.theLetter}`,
+      `1 Jul 2026, 08:00${copy.letter} Old Writer · Old campaign, from pauseai.info · mislaid · ${staffVocabulary.theLetter}`,
+      `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffVocabulary.theLetter}`,
     ]);
     // What changed their record, with who, apart from the answers.
     const record = page
@@ -793,7 +793,7 @@ describe("PoliticianDetails", () => {
       .toHaveAttribute("href", "/staff/politicians/addresses-to-fix?q=polly%40example.org");
     // Each letter's status leads to it alone on the letters page.
     await expect
-      .element(historyList.getByRole("link", { name: staffCopy.mailingPages.theLetter }).nth(2))
+      .element(historyList.getByRole("link", { name: staffVocabulary.theLetter }).nth(2))
       .toHaveAttribute("href", `/staff/letters/${exampleLetter.id}`);
     // Each campaign it names leads to its page here.
     const list = page.getByRole("list", { name: politiciansCopy.politician.historyTitle });
@@ -865,15 +865,15 @@ describe("PoliticianDetails", () => {
       `15 Oct 2026, 09:00${copy["unsigned-letter-replied"]} · ${pm.title}`,
       `13 Oct 2026, 08:00${copy.unsignedLetter} · ${pm.title} · ${staffCopy.letters.status.sent}`,
       `1 Jul 2026, 08:00${copy.unsignedLetter} · Old campaign, from pauseai.info · mislaid`,
-      `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
-      `1 May 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffCopy.mailingPages.theLetter}`,
+      `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `1 May 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffVocabulary.theLetter}`,
     ]);
     expect(list.element().querySelector('a[href^="/staff/letters"]')).toBeNull();
     // Without `supporters`, whose campaign pages these are, a campaign's name is plain.
     expect(list.getByRole("link", { name: "Old campaign, from pauseai.info" }).query()).toBeNull();
     // PauseAI's letters lead to their pages under their mailing, for anyone.
     await expect
-      .element(list.getByRole("link", { name: staffCopy.mailingPages.theLetter }).last())
+      .element(list.getByRole("link", { name: staffVocabulary.theLetter }).last())
       .toHaveAttribute("href", "/staff/mailings/3/letters/12");
   });
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { gunzipSync } from "node:zlib";
-import { checkMailingDoc, letterFor, type MailingRecipientValues } from "@/lib/mailing-doc";
+import { checkMailingDoc, letterFor, type MailingRecipientValues } from "@/lib/mailings/doc";
 import { docFromMarkup, type LetterDoc } from "@/lib/letter-format";
 import { firstOfType, decodeWords, parseMime, wholeTextOf } from "@/lib/email-parsing/mime";
 import { letterText, replyParts } from "@/lib/email-parsing/reply-text";

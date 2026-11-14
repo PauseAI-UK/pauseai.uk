@@ -8,6 +8,7 @@ import { ListTable, type ListColumn } from "./ui/ListFrame";
 import { Muted } from "@/components/ui/Text";
 import TestTag from "./TestTag";
 import { statusOf } from "./LetterStatus";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 const copy = staffCopy.letters;
 
@@ -30,7 +31,7 @@ const columns: ListColumn<LetterSummary>[] = [
     short: true,
     cell: (l) => (
       <>
-        {statusOf(l.status)} · <StaffLink href={`/staff/letters/${l.id}`}>{staffCopy.mailingPages.theLetter}</StaffLink>
+        {statusOf(l.status)} · <StaffLink href={`/staff/letters/${l.id}`}>{staffVocabulary.theLetter}</StaffLink>
       </>
     ),
   },

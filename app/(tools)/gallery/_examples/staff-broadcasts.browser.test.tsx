@@ -3,9 +3,6 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
-  DraftFootExample,
-  DraftTitleExample,
-  MailingStandingExample,
   MessageCopyViewExample,
   ReplyActionsExample,
   ReplyButtonExample,
@@ -17,6 +14,7 @@ import {
   BroadcastWriterExample,
   ChoosingBroadcastFrameExample,
 } from "./staff-broadcasts.client";
+import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 
 const copy = staffCopy.broadcastPages;
 
@@ -43,8 +41,6 @@ it("draws each kind of writer", async () => {
 it("draws the rest", async () => {
   await render(
     <>
-      <DraftTitleExample />
-      <DraftFootExample />
       <BroadcastConsentExample />
       <BroadcastSupportersExample />
       <ChoosingBroadcastFrameExample />
@@ -58,7 +54,9 @@ it("draws the rest", async () => {
       <ReplyActionsExample />
     </>,
   );
-  await expect.element(page.getByText(staffCopy.mailingPages.states.scheduled, { exact: true }).first()).toBeVisible();
+  await expect
+    .element(page.getByText(mailingsCopy.mailingPages.states.scheduled, { exact: true }).first())
+    .toBeVisible();
 });
 
 it("logs what a reply is recorded as", async () => {
@@ -90,17 +88,4 @@ it("logs an answer sent to a reply", async () => {
   const logged = page.getByRole("list", { name: "Event log" }).getByRole("listitem");
   await expect.element(logged).toBeVisible();
   expect(logged.element().textContent).toMatch(/^answer\(1, "[0-9a-f-]{36}", \{"type":"doc"/);
-});
-
-it("does nothing when an action is pressed", async () => {
-  await render(<MailingStandingExample />);
-  await page.getByRole("button", { name: staffCopy.mailingPages.stopSending }).click();
-  await expect.element(page.getByRole("button", { name: staffCopy.mailingPages.stopSending })).toBeVisible();
-});
-
-it("leaves the draft's foot as it was when Schedule is refused", async () => {
-  await render(<DraftFootExample />);
-  const schedule = page.getByRole("button", { name: "Schedule 412 emails" }).first();
-  await schedule.click();
-  await expect.element(schedule).toBeEnabled();
 });

@@ -3,7 +3,7 @@ import { JOBS, type SendingResult } from "@/lib/import-runs";
 import { asRun } from "./import-runs";
 import { sendLetterQueue } from "./letter-queue";
 import { uncertainLetters } from "./letter-sending";
-import { sendDueLetters, startDueMailings } from "./mailing-sending";
+import { sendDueLetters, startDueMailings } from "@/lib/mailings/sending";
 import { sendDueBroadcasts, startDueBroadcasts } from "./broadcast-sending";
 import { checkTemplates } from "./whatsapp-templates";
 

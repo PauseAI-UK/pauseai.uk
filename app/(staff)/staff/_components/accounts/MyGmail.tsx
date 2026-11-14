@@ -8,6 +8,7 @@ import styles from "./MyGmail.module.css";
 import { Card } from "../ui/Grid";
 import StaffLink from "../ui/StaffLink";
 import { accountsCopy } from "./copy";
+import { shellCopy } from "../shell/copy";
 
 const copy = accountsCopy.gmail;
 
@@ -22,8 +23,8 @@ function KeptNote({ keeps, me }: { keeps: boolean; me: string }) {
     return (
       <p>
         <em>
-          {both.before} <StaffLink href="/staff/mailings">{staffCopy.mailings.title}</StaffLink> {both.and}{" "}
-          <StaffLink href="/staff/broadcasts">{staffCopy.broadcastPages.title}</StaffLink>
+          {both.before} <StaffLink href="/staff/mailings">{shellCopy.nav.mailings}</StaffLink> {both.and}{" "}
+          <StaffLink href="/staff/broadcasts">{shellCopy.nav.broadcasts}</StaffLink>
           {both.after}
         </em>
       </p>
@@ -37,7 +38,7 @@ function KeptNote({ keeps, me }: { keeps: boolean; me: string }) {
         {keeps ? (
           <StaffLink href="/staff/emails?type=one-off">{words.title}</StaffLink>
         ) : (
-          <StaffLink href="/staff/mailings">{staffCopy.mailings.title}</StaffLink>
+          <StaffLink href="/staff/mailings">{shellCopy.nav.mailings}</StaffLink>
         )}
         {after}
       </em>

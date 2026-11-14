@@ -12,22 +12,23 @@ import Strip from "./ui/Strip";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import IconText from "./ui/IconText";
-import MailEmail from "./MailEmail";
-import MailingFiles from "./MailingFiles";
-import { MailingLetter } from "./MailingLetter";
-import { ResumeBroadcast } from "./MailingButtons";
-import { fromDetail, MailingStanding, MailingWhen } from "./MailingView";
+import MailEmail from "./mailings/MailEmail";
+import MailingFiles from "./mailings/MailingFiles";
+import { MailingLetter } from "./mailings/MailingLetter";
+import { ResumeBroadcast } from "./mailings/MailingButtons";
+import { fromDetail, MailingStanding, MailingWhen } from "./mailings/MailingView";
 import TextBubble from "./TextBubble";
 import Band, { BandFact } from "./ui/Band";
 import { countsFiltering, type Count } from "./ui/Counts";
-import { CountGroups } from "./CopyCounts";
-import { CopyStatus, stateCounts, wentAndGone } from "./CopyStatus";
+import { CountGroups } from "./mailings/CopyCounts";
+import { CopyStatus, stateCounts, wentAndGone } from "./mailings/CopyStatus";
 import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import StaffLink from "./ui/StaffLink";
-import view from "./MailingView.module.css";
+import view from "./mailings/MailingView.module.css";
 import styles from "./Broadcasts.module.css";
 import { supportersCopy } from "./supporters/copy";
+import { mailingsCopy } from "./mailings/copy";
 
 const copy = staffCopy.broadcastPages;
 
@@ -165,7 +166,7 @@ function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: 
     <Card span={3} look="aside" title={copy.emailTitle} id="words-title">
       <MailEmail
         from={written.fromName ? `${written.fromName} <${written.sentFrom}>` : written.sentFrom}
-        to={<Muted>{staffCopy.mailingPages.toEach}</Muted>}
+        to={<Muted>{mailingsCopy.mailingPages.toEach}</Muted>}
         subject={written.subject}
       >
         <MailingLetter doc={written.body} fields={FIELD_WORDS} conditions={parts} />
@@ -204,7 +205,9 @@ export default function BroadcastView({
   const { written, summary, tab } = data;
   const path = `/staff/broadcasts/${written.id}`;
   const scheduled = written.state === "scheduled";
-  const groups = wentAndGone(countsFiltering(path, broadcastCounts(summary), tab, staffCopy.mailingPages.showEveryone));
+  const groups = wentAndGone(
+    countsFiltering(path, broadcastCounts(summary), tab, mailingsCopy.mailingPages.showEveryone),
+  );
   return (
     <div className={view.page}>
       <Band
@@ -216,7 +219,7 @@ export default function BroadcastView({
         }
         tag={
           written.state === "sending" ? undefined : (
-            <Tag tone={scheduled ? "blue" : undefined}>{staffCopy.mailingPages.states[written.state]}</Tag>
+            <Tag tone={scheduled ? "blue" : undefined}>{mailingsCopy.mailingPages.states[written.state]}</Tag>
           )
         }
         aside={!scheduled && <CountGroups groups={groups} />}
@@ -232,10 +235,10 @@ export default function BroadcastView({
           {written.channel === "text" ? phoneWords(written.sentFrom!) : written.sentFrom}
         </BandFact>
         {/* To everyone who said yes, how many is said under what they said yes to, with no To of its own. */}
-        <BandFact label={copy.facts.saidYes} detail={!who && staffCopy.campaigns.supporters(summary.to)}>
+        <BandFact label={copy.facts.saidYes} detail={!who && mailingsCopy.campaigns.supporters(summary.to)}>
           {contact}
         </BandFact>
-        <BandFact label={copy.facts.onlyThose} detail={staffCopy.campaigns.supporters(summary.to)}>
+        <BandFact label={copy.facts.onlyThose} detail={mailingsCopy.campaigns.supporters(summary.to)}>
           {who}
         </BandFact>
         <MailingWhen mailing={summary} written={written} />
@@ -257,8 +260,8 @@ export default function BroadcastView({
         <BroadcastWords written={written} parts={data.parts} />
         <Card span={3} as="div">
           <div className={view.recipientsHead}>
-            <h2>{tab === "all" ? copy.recipientsTitle : staffCopy.copyStates.tabs[tab]}</h2>
-            {tab !== "all" && <StaffLink href={path}>{staffCopy.mailingPages.showEveryone}</StaffLink>}
+            <h2>{tab === "all" ? copy.recipientsTitle : mailingsCopy.copyStates.tabs[tab]}</h2>
+            {tab !== "all" && <StaffLink href={path}>{mailingsCopy.mailingPages.showEveryone}</StaffLink>}
           </div>
           {/* Sending finds who it goes to, so one scheduled lists who its filters find now. */}
           {scheduled && <Muted>{copy.recipientsNow}</Muted>}

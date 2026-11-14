@@ -10,8 +10,9 @@ import BroadcastView from "./BroadcastView";
 import ChannelWriter from "./ChannelWriter";
 import type { BroadcastWriterActions } from "./BroadcastWriter";
 import { othersThanConsent } from "./supporters/SupporterFilters";
-import parts from "./MailingParts.module.css";
+import parts from "./mailings/MailingParts.module.css";
 import { supportersCopy } from "./supporters/copy";
+import { mailingsCopy } from "./mailings/copy";
 
 type FormAction = (form: FormData) => void | Promise<void>;
 
@@ -38,7 +39,7 @@ export function BroadcastWho({ params, choices }: { params: Params; choices: Sup
   const words = othersThanConsent(params, choices);
   if (words.length === 0) return <Muted>{staffCopy.broadcastPages.everyoneWhoSaidYes}</Muted>;
   return (
-    <ul className={parts.pills} aria-label={staffCopy.mailingPages.whoLabel}>
+    <ul className={parts.pills} aria-label={mailingsCopy.mailingPages.whoLabel}>
       {words.map((word) => (
         <li key={word}>{word}</li>
       ))}

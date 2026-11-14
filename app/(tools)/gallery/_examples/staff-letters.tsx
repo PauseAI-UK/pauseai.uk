@@ -10,26 +10,10 @@ import LetterLink from "@/app/(staff)/staff/_components/LetterLink";
 import AllLetters from "@/app/(staff)/staff/_components/AllLetters";
 import LettersTable from "@/app/(staff)/staff/_components/LettersTable";
 import ThreadText from "@/app/(staff)/staff/_components/ThreadText";
-import MailEmail from "@/app/(staff)/staff/_components/MailEmail";
-import CampaignLetter from "@/app/(staff)/staff/_components/CampaignLetter";
-import CampaignsOverview, { CampaignAsk } from "@/app/(staff)/staff/_components/CampaignsOverview";
-import CampaignView from "@/app/(staff)/staff/_components/CampaignView";
 import LetterStatus from "@/app/(staff)/staff/_components/LetterStatus";
 import { OneOffTable } from "@/app/(staff)/staff/_components/OneOffList";
 import OneOffThreadView from "@/app/(staff)/staff/_components/OneOffThreadView";
 import {
-  exampleChanged,
-  exampleCampaign,
-  exampleCampaignEmpty,
-  exampleCampaignNoAsk,
-  exampleHiddenOneOff,
-  exampleOneOffs,
-  exampleOneOffThread,
-  exampleForwardThread,
-  exampleVersions,
-} from "@/app/(staff)/staff/_components/CampaignPages.examples";
-import {
-  emptyLettersSearch,
   exampleAutoRepliedLetterDetails,
   exampleLetter,
   examplePauseaiLetterDetails,
@@ -58,6 +42,16 @@ import {
   UnblockBubbleExample,
   UnblockFormExample,
 } from "./staff.client";
+import {
+  exampleForwardThread,
+  exampleHiddenOneOff,
+  exampleOneOffThread,
+  exampleOneOffs,
+} from "@/app/(staff)/staff/_components/OneOffList.examples";
+import { campaignsOverviewGallery } from "@/app/(staff)/staff/_components/mailings/CampaignsOverview.gallery";
+import { mailEmailGallery } from "@/app/(staff)/staff/_components/mailings/MailEmail.gallery";
+import { campaignLetterGallery } from "@/app/(staff)/staff/_components/mailings/CampaignLetter.gallery";
+import { campaignViewGallery } from "@/app/(staff)/staff/_components/mailings/CampaignView.gallery";
 
 const [pm] = campaigns;
 
@@ -379,138 +373,10 @@ export const staffLetters: Group = {
         },
       ],
     },
-    {
-      name: "CampaignsOverview",
-      file: "app/(staff)/staff/_components/CampaignsOverview.tsx",
-      variants: [
-        {
-          label: "Campaigns under the months of their last letters, with and without an ask",
-          render: () => (
-            <StaffPage as="div">
-              <CampaignsOverview
-                campaigns={[exampleCampaign, exampleCampaignNoAsk, exampleCampaignEmpty]}
-                now="2026-11-05T09:00:00Z"
-              />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "With none",
-          render: () => (
-            <StaffPage as="div">
-              <CampaignsOverview campaigns={[]} now="2026-11-05T09:00:00Z" />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "CampaignAsk",
-      file: "app/(staff)/staff/_components/CampaignsOverview.tsx",
-      variants: [
-        {
-          label: "With an ask, and with none",
-          render: () => (
-            <StaffPage as="div">
-              <p>
-                <CampaignAsk campaign={exampleCampaign} />
-              </p>
-              <p>
-                <CampaignAsk campaign={exampleCampaignNoAsk} />
-              </p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "MailEmail",
-      file: "app/(staff)/staff/_components/MailEmail.tsx",
-      variants: [
-        {
-          label: "From and to, and a subject alone",
-          render: () => (
-            <StaffPage as="div">
-              <MailEmail from="jo@pauseai.uk" to="Each politician" subject="A subject">
-                <p>The letter.</p>
-              </MailEmail>
-              <MailEmail subject="Only a subject">
-                <p>The letter.</p>
-              </MailEmail>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "CampaignLetter",
-      file: "app/(staff)/staff/_components/CampaignLetter.tsx",
-      variants: [
-        {
-          label: "Several versions, and how much people changed them",
-          render: () => (
-            <StaffPage as="div">
-              <CampaignLetter changedHref="#changed" versions={exampleVersions} changed={exampleChanged} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "One version, nothing changed",
-          render: () => (
-            <StaffPage as="div">
-              <CampaignLetter changedHref="#changed" versions={exampleVersions.slice(0, 1)} changed={0} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "No text",
-          render: () => (
-            <StaffPage as="div">
-              <CampaignLetter changedHref="#changed" versions={[]} changed={0} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "CampaignView",
-      file: "app/(staff)/staff/_components/CampaignView.tsx",
-      variants: [
-        {
-          label: "With an ask",
-          render: () => (
-            <StaffPage as="div">
-              <CampaignView
-                campaign={exampleCampaign}
-                versions={exampleVersions}
-                changed={exampleChanged}
-                letters={{
-                  letters: [exampleLetter, { ...exampleLetter, id: 2, status: "sent", answer: "signed" }],
-                  total: 150,
-                  pages: 2,
-                  pageSize: 100,
-                }}
-                search={emptyLettersSearch}
-              />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "With no ask",
-          render: () => (
-            <StaffPage as="div">
-              <CampaignView
-                campaign={exampleCampaignNoAsk}
-                versions={[]}
-                changed={exampleChanged}
-                letters={{ letters: [], total: 0, pages: 1, pageSize: 100 }}
-                search={emptyLettersSearch}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...campaignsOverviewGallery,
+    ...mailEmailGallery,
+    ...campaignLetterGallery,
+    ...campaignViewGallery,
     {
       name: "OneOffTable",
       file: "app/(staff)/staff/_components/OneOffList.tsx",

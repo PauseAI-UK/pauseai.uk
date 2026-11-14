@@ -12,7 +12,7 @@ import type { MessageCopy } from "@/lib/server/broadcast-pages";
 import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import { staffTime } from "@/lib/staff-time";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
-import { MailingLetter } from "./MailingLetter";
+import { MailingLetter } from "./mailings/MailingLetter";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "./ThreadEmail";

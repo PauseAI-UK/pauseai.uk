@@ -4,7 +4,7 @@ import { ADDRESS_ACTIONS } from "@/lib/audit-events";
 import { auditActions } from "./audit";
 import { tidyErrorsSeen } from "./errors-seen";
 import { asRun } from "./import-runs";
-import { deleteForgottenDrafts } from "./mailing-drafts";
+import { deleteForgottenDrafts } from "@/lib/mailings/drafts";
 import { query } from "./db";
 
 // How long the import log and the audit log keep what they hold, so neither

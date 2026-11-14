@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { daysInWords, SENDING_DAYS } from "./broadcast-days";
 import { staffCopy } from "./content/staff-interface";
-import { EMPTY_MAILING_DOC, type MailingDoc, type MailingInline } from "./mailing-doc";
+import { EMPTY_MAILING_DOC, type MailingDoc, type MailingInline } from "@/lib/mailings/doc";
 import {
   fakeRecipient,
   firstNameOf,

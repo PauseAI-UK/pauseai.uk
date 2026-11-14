@@ -1,12 +1,9 @@
-import { describe, expect, it, onTestFinished, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
-  ChangeTimeFormExample,
-  DueTimeFieldsExample,
   HeldImportExample,
-  MailingWriterExample,
   NoteChangesExample,
   NoteEntryExample,
   NotesCardExample,
@@ -24,27 +21,8 @@ vi.mock("next/navigation", async (original) => ({
 
 // The staff examples' Server Actions are logged, not sent: pressing each adds its line to the event log.
 const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
-const subject = () => page.getByLabelText(new RegExp(`^${staffCopy.mailingPages.subject}`));
 
 describe("the staff examples", () => {
-  it("picks a mailing's hour and minutes, and logs Change the time's save", async () => {
-    // The example's day, early, as the fixture clock has it, so no hour's too soon whenever this runs.
-    vi.useFakeTimers({ now: new Date("2026-10-16T06:00:00Z"), toFake: ["Date"] });
-    onTestFinished(() => void vi.useRealTimers());
-    const { unmount } = await render(<DueTimeFieldsExample />);
-    const hour = page.getByRole("combobox", { name: staffCopy.mailingPages.hour });
-    const minutes = page.getByRole("combobox", { name: staffCopy.mailingPages.minutes });
-    await expect.element(minutes).toBeDisabled();
-    await hour.selectOptions("15");
-    await expect.element(hour).toHaveValue("15");
-    await minutes.selectOptions("48");
-    await expect.element(minutes).toHaveValue("48");
-    await unmount();
-    await render(<ChangeTimeFormExample />);
-    await page.getByRole("button", { name: staffCopy.mailingPages.saveTime }).click();
-    await expect.element(page.getByText(/^rescheduleMailingNow\(\{"id":"5"/)).toBeVisible();
-  });
-
   it("logs a new note, as each reader sees the notes", async () => {
     const { unmount } = await render(<NotesExample as="admin" />);
     await expect.element(page.getByRole("button", { name: staffCopy.notes.delete }).nth(1)).toBeVisible();
@@ -115,23 +93,5 @@ describe("the staff examples", () => {
     await expect
       .element(log().nth(1))
       .toHaveTextContent('decide({"id":"4","job":"import-parliament","decision":"discard"})');
-  });
-
-  it("logs a draft just made's first save, with its greeting", async () => {
-    await render(<MailingWriterExample draft={false} />);
-    await subject().fill("Hello");
-    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^saveMailing\(12, 1, \{"body"/);
-  });
-
-  it("logs a draft's save", async () => {
-    await render(<MailingWriterExample draft />);
-    await subject().fill("Hello again");
-    await expect.poll(() => log().last().query()?.textContent).toMatch(/^saveMailing\(/);
-  });
-
-  it("logs a file taken off a draft", async () => {
-    await render(<MailingWriterExample draft />);
-    await page.getByRole("button", { name: staffCopy.mailingPages.removeFile("programme.pdf") }).click();
-    await expect.poll(() => log().last().query()?.textContent).toMatch(/^detachFromMailing\(12, /);
   });
 });

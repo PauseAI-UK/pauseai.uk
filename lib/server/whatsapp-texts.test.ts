@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { query } from "@/lib/server/db";
-import type { MailingDoc } from "@/lib/mailing-doc";
+import type { MailingDoc } from "@/lib/mailings/doc";
 import { addFollower, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { createBroadcastDraft } from "./broadcast-drafts";

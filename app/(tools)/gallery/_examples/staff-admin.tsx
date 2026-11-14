@@ -1,5 +1,4 @@
 import SentEmails from "@/app/(staff)/staff/_components/SentEmails";
-import { exampleSentEmails } from "@/app/(staff)/staff/_components/CampaignPages.examples";
 import ErrorsSeen from "@/app/(staff)/staff/_components/ErrorsSeen";
 import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
 // The staff interface's dashboard, imports, audit log, accounts, login and
@@ -68,6 +67,7 @@ import {
   ChangesFiltersExample,
 } from "./staff.client";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { exampleSentEmails } from "@/app/(staff)/staff/_components/SentEmails.examples";
 
 /** A body's import, as its page shows it: what it changed, and what relinking the one-off threads did. */
 const importRun = (job: PoliticianImportJob, label: string): Variant => ({

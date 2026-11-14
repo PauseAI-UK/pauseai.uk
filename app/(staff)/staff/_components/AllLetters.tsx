@@ -16,6 +16,7 @@ import PageHead from "./ui/PageHead";
 import StaffLink from "./ui/StaffLink";
 import Withheld from "./ui/Withheld";
 import { statusOf } from "./LetterStatus";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 const PATH = ALL_EMAILS_LIST.path;
 const copy = staffCopy.allLetters;
@@ -41,7 +42,7 @@ function Status({ letter }: { letter: AnyLetter }) {
     <>
       {statusOf(letter.status)} ·{" "}
       <StaffLink href={href}>
-        {letter.replies ? staffCopy.mailingPages.letterAndReplies(letter.replies) : staffCopy.mailingPages.theLetter}
+        {letter.replies ? staffVocabulary.letterAndReplies(letter.replies) : staffVocabulary.theLetter}
       </StaffLink>
     </>
   );

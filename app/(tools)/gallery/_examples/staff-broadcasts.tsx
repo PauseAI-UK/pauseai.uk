@@ -1,16 +1,11 @@
 // The staff interface's broadcasts to supporters: from the supporters list, the
 // writer, the list of them, each one's page, and one copy as sent.
-import { MailingWhen } from "@/app/(staff)/staff/_components/MailingView";
 import { BroadcastContact, BroadcastWho } from "@/app/(staff)/staff/_components/BroadcastFor";
-import { ResumeBroadcastExample } from "./staff.client";
-import { BroadcastChannelMark, BroadcastWaiting, broadcastCounts } from "@/app/(staff)/staff/_components/BroadcastView";
-import { CopyStatus, wentAndGone } from "@/app/(staff)/staff/_components/CopyStatus";
-import { CountGroups, NeedsAndFine } from "@/app/(staff)/staff/_components/CopyCounts";
-import { countsOpening } from "@/app/(staff)/staff/_components/ui/Counts";
+import { ResumeBroadcastExample } from "@/app/(staff)/staff/_components/mailings/MailingButtons.gallery.client";
+import { BroadcastChannelMark, BroadcastWaiting } from "@/app/(staff)/staff/_components/BroadcastView";
 import {
   exampleBroadcastData,
   exampleBroadcastEmail,
-  exampleBroadcastSent,
   exampleBroadcastSummary,
   exampleSupporterChoices,
   exampleWhatsAppWords,
@@ -19,15 +14,12 @@ import BroadcastsOverview from "@/app/(staff)/staff/_components/BroadcastsOvervi
 import SupporterBroadcasts from "@/app/(staff)/staff/_components/SupporterBroadcasts";
 import TextBubble, { ChatBubble, ChatWall, LinkedText, TextWords } from "@/app/(staff)/staff/_components/TextBubble";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
-import { mailingGroups } from "@/lib/mailing-groups";
+import { mailingGroups } from "@/lib/mailings/groups";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import { optOutFormGallery } from "@/app/(staff)/staff/_components/supporters/OptOutForm.gallery";
 import type { Group } from "../_components/types";
 import {
   ChoosingBroadcastFrameExample,
-  DraftFootExample,
-  DraftTitleExample,
-  MailingStandingExample,
   MessageCopyViewExample,
   AnswerableReplyExample,
   ReplyActionsExample,
@@ -38,6 +30,13 @@ import {
   BroadcastViewExample,
   BroadcastWriterExample,
 } from "./staff-broadcasts.client";
+import { draftWriterGallery } from "@/app/(staff)/staff/_components/mailings/DraftWriter.gallery";
+import { copyCountsGallery } from "@/app/(staff)/staff/_components/mailings/CopyCounts.gallery";
+import { copyStatusGallery } from "@/app/(staff)/staff/_components/mailings/CopyStatus.gallery";
+import { mailingViewGallery } from "@/app/(staff)/staff/_components/mailings/MailingView.gallery";
+
+// MailingView's examples here, after the one the mailings group shows.
+const [, mailingStanding, mailingWhen] = mailingViewGallery;
 
 const now = "2026-11-05T12:00:00Z";
 const groups = mailingGroups(
@@ -88,23 +87,6 @@ const groups = mailingGroups(
   },
   new Date(now),
 );
-
-/** A text that went to 61: most arrived, some read and replied, one to check, two opted out, and some that didn't go. */
-const EXAMPLE_TEXT_SUMMARY = {
-  ...exampleBroadcastSummary,
-  channel: "text" as const,
-  states: {
-    sent: 3,
-    delivered: 21,
-    read: 25,
-    replied: 3,
-    look: 1,
-    "opted-out": 2,
-    error: 1,
-    unreached: 2,
-    "not-sent": 6,
-  },
-};
 
 const [, unsubscribeForm] = optOutFormGallery;
 
@@ -223,62 +205,7 @@ export const staffBroadcasts: Group = {
         },
       ],
     },
-    {
-      name: "DraftTitle",
-      file: "app/(staff)/staff/_components/DraftWriter.tsx",
-      variants: [
-        {
-          label: "With whether it's saved",
-          render: () => (
-            <StaffPage as="div">
-              <DraftTitleExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "ScheduleButton",
-      file: "app/(staff)/staff/_components/DraftWriter.tsx",
-      variants: [
-        {
-          label: "A draft's foot: when it goes, Schedule enabled and refused, and what stops it",
-          render: () => (
-            <StaffPage as="div">
-              <DraftFootExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "ProblemList",
-      file: "app/(staff)/staff/_components/DraftWriter.tsx",
-      variants: [
-        {
-          label: "With what stops it, and with nothing",
-          render: () => (
-            <StaffPage as="div">
-              <DraftFootExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "DueSection",
-      file: "app/(staff)/staff/_components/DraftWriter.tsx",
-      variants: [
-        {
-          label: "No time chosen yet",
-          render: () => (
-            <StaffPage as="div">
-              <DraftFootExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...draftWriterGallery,
     {
       name: "BroadcastsOverview",
       file: "app/(staff)/staff/_components/BroadcastsOverview.tsx",
@@ -316,68 +243,8 @@ export const staffBroadcasts: Group = {
         },
       ],
     },
-    {
-      name: "CountGroups",
-      file: "app/(staff)/staff/_components/CopyCounts.tsx",
-      variants: [
-        {
-          label: "A text's counts, those that went and those that didn't, each under its total",
-          render: () => (
-            <CountGroups
-              groups={wentAndGone(countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY)))}
-            />
-          ),
-        },
-      ],
-    },
-    {
-      name: "NeedsAndFine",
-      file: "app/(staff)/staff/_components/CopyCounts.tsx",
-      variants: [
-        {
-          label: "What needs a look, then the rest folded behind how many are fine; and one with nothing to look at",
-          render: () => (
-            <div style={{ display: "grid", gap: "1rem", justifyItems: "end" }}>
-              <NeedsAndFine counts={countsOpening("/staff/broadcasts/5", broadcastCounts(EXAMPLE_TEXT_SUMMARY))} />
-              <NeedsAndFine
-                counts={countsOpening(
-                  "/staff/broadcasts/6",
-                  broadcastCounts({
-                    ...EXAMPLE_TEXT_SUMMARY,
-                    states: { ...EXAMPLE_TEXT_SUMMARY.states, look: 0, "opted-out": 0, error: 0, unreached: 0 },
-                  }),
-                )}
-              />
-            </div>
-          ),
-        },
-      ],
-    },
-    {
-      name: "CopyStatus",
-      file: "app/(staff)/staff/_components/CopyStatus.tsx",
-      variants: [
-        {
-          label:
-            "Each state, a colour each: sent, delivered, read, replied and answered; a reply to check; opted out because of it; marked as spam; an error; didn't reach; and not sent",
-          render: () => (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              <CopyStatus copyOf={{ state: "sent", why: null }} />
-              <CopyStatus copyOf={{ state: "delivered", why: null }} />
-              <CopyStatus copyOf={{ state: "read", why: null }} />
-              <CopyStatus copyOf={{ state: "replied", why: null }} />
-              <CopyStatus copyOf={{ state: "answered", why: null }} />
-              <CopyStatus copyOf={{ state: "spam", why: null }} />
-              <CopyStatus copyOf={{ state: "look", why: null }} />
-              <CopyStatus copyOf={{ state: "opted-out", why: "whatsapp-reply" }} />
-              <CopyStatus copyOf={{ state: "error", why: "whatsapp" }} />
-              <CopyStatus copyOf={{ state: "unreached", why: "bounced" }} />
-              <CopyStatus copyOf={{ state: "not-sent", why: "suppressed" }} />
-            </div>
-          ),
-        },
-      ],
-    },
+    ...copyCountsGallery,
+    ...copyStatusGallery,
     {
       name: "BroadcastWaiting",
       file: "app/(staff)/staff/_components/BroadcastView.tsx",
@@ -533,34 +400,8 @@ export const staffBroadcasts: Group = {
         },
       ],
     },
-    {
-      name: "MailingStanding",
-      file: "app/(staff)/staff/_components/MailingView.tsx",
-      variants: [
-        {
-          label: "Sending, with Stop sending",
-          render: () => (
-            <StaffPage as="div">
-              <MailingStandingExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "MailingWhen",
-      file: "app/(staff)/staff/_components/MailingView.tsx",
-      variants: [
-        {
-          label: "When it went",
-          render: () => (
-            <dl>
-              <MailingWhen mailing={exampleBroadcastSummary} written={exampleBroadcastSent.written} />
-            </dl>
-          ),
-        },
-      ],
-    },
+    mailingStanding,
+    mailingWhen,
     {
       name: "MessageCopyView",
       file: "app/(staff)/staff/_components/MessageCopyView.tsx",

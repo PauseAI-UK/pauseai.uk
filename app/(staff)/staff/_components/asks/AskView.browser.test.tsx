@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { asksCopy } from "@/lib/asks/copy";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import AskView from "./AskView";
 import { exampleAskPage } from "./AsksList.examples";
@@ -142,7 +141,7 @@ describe("AskView", () => {
 
   it("pages through the answers, keeping the answer chosen", async () => {
     await render(<AskView ask={{ ...exampleAskPage, answersTotal: 150, pages: 2 }} answer="signed" />);
-    await says(staffCopy.campaigns.politicians(150));
+    await says(staffVocabulary.politicians(150));
     await expect
       .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", `${path}?answer=signed&page=2`);

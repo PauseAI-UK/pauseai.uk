@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { politiciansCopy } from "./copy";
 import PasteForm from "./PasteForm";
 
 describe("PasteForm", () => {
@@ -14,7 +14,7 @@ describe("PasteForm", () => {
         <PasteForm action={action} back="/staff/politicians?mailing=12" />
       </div>,
     );
-    const box = page.getByRole("textbox", { name: staffCopy.mailingPages.pasteLabel });
+    const box = page.getByRole("textbox", { name: politiciansCopy.choosing.pasteLabel });
     // Typed into at once when its bubble opens.
     const bubble = document.getElementById("paste-bubble") as HTMLElement;
     bubble.showPopover();
@@ -37,7 +37,7 @@ describe("PasteForm", () => {
     await expect.poll(() => action.mock.calls.length).toBe(2);
     // A form's action empties it once it's sent.
     await box.fill("Mo Example");
-    await page.getByRole("button", { name: staffCopy.mailingPages.pasteTick }).click();
+    await page.getByRole("button", { name: politiciansCopy.choosing.pasteTick }).click();
     await expect.poll(() => action.mock.calls.length).toBe(3);
   });
 });

@@ -1,9 +1,10 @@
 // The words every part of the staff interface (/staff) shares: the page
 // title, the trail above a page, deleting, the houses, statuses, countries
-// and fields, and a list's search, filters, paging and downloads. Each
-// feature's own words are in its copy object.
+// and fields, a list's search, filters, paging and downloads, a link to a
+// letter's page, and how many politicians. Each feature's own words are in
+// its copy object.
 
-import { plural } from "@/lib/content/plural";
+import { count, plural } from "@/lib/content/plural";
 
 export const staffVocabulary = {
   metaTitle: "PauseAI Staff",
@@ -132,4 +133,9 @@ export const staffVocabulary = {
     download: "Download",
     formats: { csv: "CSV, for a spreadsheet", json: "JSON, for an agent", vcf: "vCard, for WhatsApp" },
   },
+  // A link to a letter's page, in a list of letters or of a mailing's recipients, with its replies when there are some.
+  letterAndReplies: (n: number) => plural(n, "Letter and reply →", "Letter and replies →"),
+  theLetter: "Letter →",
+  // How many politicians: those an ask or a mailing was put to.
+  politicians: (n: number) => count(n, "politician", "politicians"),
 };

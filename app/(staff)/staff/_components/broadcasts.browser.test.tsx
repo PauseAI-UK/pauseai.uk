@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { mailingGroups } from "@/lib/mailing-groups";
+import { mailingGroups } from "@/lib/mailings/groups";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
 import type { BroadcastSummary } from "@/lib/server/broadcast-pages";
 import { supportersSearch } from "@/lib/staff-search";
@@ -13,13 +13,13 @@ import { SENDING_DAYS } from "@/lib/broadcast-days";
 import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-connect";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
-import { EMPTY_MAILING_DOC } from "@/lib/mailing-doc";
+import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
 import MessageCopyView from "./MessageCopyView";
 import BroadcastFor, { BroadcastContact, BroadcastWho } from "./BroadcastFor";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "./BroadcastSupporters";
 import BroadcastView, { broadcastCounts } from "./BroadcastView";
-import { CountGroups, NeedsAndFine } from "./CopyCounts";
-import { CopyStatus, copyStatus } from "./CopyStatus";
+import { CountGroups, NeedsAndFine } from "./mailings/CopyCounts";
+import { CopyStatus, copyStatus } from "./mailings/CopyStatus";
 import { countsOpening } from "./ui/Counts";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import BroadcastWriter, { templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
@@ -41,13 +41,14 @@ import BroadcastsOverview from "./BroadcastsOverview";
 import SupporterBroadcasts from "./SupporterBroadcasts";
 import TextBubble, { ChatBubble, LinkedText } from "./TextBubble";
 import { supportersCopy } from "./supporters/copy";
+import { mailingsCopy } from "./mailings/copy";
 
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
 vi.mock("@/lib/leave-page", () => ({ leavePage }));
 afterEach(() => leavePage.mockClear());
 
 const copy = staffCopy.broadcastPages;
-const stateWords = staffCopy.copyStates;
+const stateWords = mailingsCopy.copyStates;
 const WAIT = { timeout: 3000 };
 const nothing = async () => {};
 
@@ -285,7 +286,7 @@ describe("BroadcastWriter's Consent", () => {
     ).not.toBeNull();
     expect(group(copy.consentChannel).element().closest("[inert]")).toBeNull();
     // Nothing saved, so no save state.
-    expect(page.getByText(staffCopy.mailingPages.savePill.saved).query()).toBeNull();
+    expect(page.getByText(mailingsCopy.mailingPages.savePill.saved).query()).toBeNull();
     // Text: its Consents, and the writer greyed below a text's, the choice kept.
     const subject = () => page.getByLabelText(copy.subject, { exact: true }).query();
     expect(subject()).not.toBeNull();
@@ -349,12 +350,12 @@ describe("BroadcastWriter, by email", () => {
       data: { ...exampleBroadcastData, filter: { list: "supporters", params: { contact: "email:newsletter:yes" } } },
     });
     await expect.element(page.getByRole("link", { name: copy.narrowDown })).toBeVisible();
-    expect(page.getByRole("link", { name: staffCopy.mailingPages.changeWho }).query()).toBeNull();
+    expect(page.getByRole("link", { name: mailingsCopy.mailingPages.changeWho }).query()).toBeNull();
   });
 
   it("goes to the list to change who, with the draft's filter and saved first", async () => {
     await renderWriter();
-    await page.getByRole("link", { name: staffCopy.mailingPages.changeWho }).click();
+    await page.getByRole("link", { name: mailingsCopy.mailingPages.changeWho }).click();
     await vi.waitFor(() =>
       expect(leavePage).toHaveBeenCalledWith("/staff/supporters?contact=email%3Anewsletter%3Ayes&near=LS1&broadcast=3"),
     );
@@ -475,7 +476,7 @@ describe("BroadcastWriter, by email", () => {
     );
     await expect.element(button(copy.schedule(412, "email"))).toBeDisabled();
     await page.getByLabelText(copy.subject).fill("Changed");
-    await expect.element(page.getByText(staffCopy.mailingPages.saveStates.conflict)).toBeVisible();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.saveStates.conflict)).toBeVisible();
   });
 
   it("saves what's written and the time chosen", async () => {
@@ -487,7 +488,7 @@ describe("BroadcastWriter, by email", () => {
       .click();
     await userEvent.keyboard("More words");
     await vi.waitFor(() => expect(JSON.stringify(actions.save.mock.calls.at(-1)?.[2])).toContain("More words"), WAIT);
-    await page.getByLabelText(staffCopy.mailingPages.hour, { exact: false }).selectOptions("14");
+    await page.getByLabelText(mailingsCopy.mailingPages.hour, { exact: false }).selectOptions("14");
     await vi.waitFor(() => expect(actions.save.mock.calls.at(-1)?.[2]).toHaveProperty("dueAt"), WAIT);
   });
 
@@ -496,7 +497,7 @@ describe("BroadcastWriter, by email", () => {
     await expect.element(page.getByText(copy.problems["no-time"])).toBeVisible();
     const when = page.getByRole("region", { name: copy.sections.when });
     const soon = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    await chooseDay(when.getByRole("button", { name: staffCopy.mailingPages.day }), soon);
+    await chooseDay(when.getByRole("button", { name: mailingsCopy.mailingPages.day }), soon);
     await expect.element(page.getByText(copy.problems["no-time"])).toBeVisible();
     expect(actions.save).not.toHaveBeenCalled();
   });
@@ -578,11 +579,11 @@ describe("BroadcastWriter, by text", () => {
     await renderWriter({ draft: exampleBroadcastText });
     await pick("new");
     await expect.element(page.getByText(copy.newTemplateHint)).toBeVisible();
-    await expect.element(page.getByText(staffCopy.mailingEditor.partsHeading)).not.toBeInTheDocument();
+    await expect.element(page.getByText(mailingsCopy.mailingEditor.partsHeading)).not.toBeInTheDocument();
     await page.getByLabelText(copy.templateName).fill("March day");
     await page.getByRole("textbox", { name: copy.templateWords }).fill("See you at the march");
     // WhatsApp's formatting: bold, italic, lists and quotes, but no links, by button or by key.
-    const editing = staffCopy.mailingEditor;
+    const editing = mailingsCopy.mailingEditor;
     await expect.element(button(editing.bold)).toBeVisible();
     await expect.element(button(editing.quote)).toBeVisible();
     expect(button(editing.link).query()).toBeNull();
@@ -922,7 +923,7 @@ describe("a broadcast's page", () => {
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=sent");
     await expect.element(page.getByRole("link", { name: stateWords.counts.read })).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.emailTitle)).toBeVisible();
-    await expect.element(page.getByText(staffCopy.campaigns.supporters(290), { exact: true })).toBeVisible();
+    await expect.element(page.getByText(mailingsCopy.campaigns.supporters(290), { exact: true })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: "Jane Example" }))
       .toHaveAttribute("href", "/staff/supporters/7");
@@ -946,7 +947,9 @@ describe("a broadcast's page", () => {
       />,
     );
     await expect.element(page.getByRole("heading", { name: stateWords.tabs.error })).toBeVisible();
-    await expect.element(page.getByRole("link", { name: staffCopy.mailingPages.showEveryone }).first()).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: mailingsCopy.mailingPages.showEveryone }).first())
+      .toBeVisible();
     await expect
       .element(page.getByRole("link", { name: new RegExp(stateWords.counts.error!) }))
       .toHaveAttribute("href", "/staff/broadcasts/5");
@@ -1018,7 +1021,7 @@ describe("a broadcast's page", () => {
     };
     await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
     await expect
-      .element(page.getByText(staffCopy.mailingPages.sends(londonWhen(new Date("2026-11-07T07:18:00Z"), "short"))))
+      .element(page.getByText(mailingsCopy.mailingPages.sends(londonWhen(new Date("2026-11-07T07:18:00Z"), "short"))))
       .toBeVisible();
     await expect.element(page.getByRole("link", { name: stateWords.counts.sent })).not.toBeInTheDocument();
     // Who the filters find now, as sending finds who it goes to.
@@ -1034,7 +1037,7 @@ describe("a broadcast's page", () => {
     };
     await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("heading", { name: copy.untitled })).toBeVisible();
-    await expect.element(button(staffCopy.mailingPages.stopSending)).toBeVisible();
+    await expect.element(button(mailingsCopy.mailingPages.stopSending)).toBeVisible();
   });
 
   it("says who it's from when a name is empty, in a scheduled line", async () => {
@@ -1068,7 +1071,7 @@ describe("a broadcast's page", () => {
     await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(copy.waitingDue)).toBeVisible();
     await expect
-      .element(page.getByText(staffCopy.mailingPages.sends(londonWhen(due, "short"))))
+      .element(page.getByText(mailingsCopy.mailingPages.sends(londonWhen(due, "short"))))
       .not.toBeInTheDocument();
   });
 
@@ -1169,7 +1172,7 @@ describe("BroadcastFor", () => {
     };
     await render(<BroadcastFor data={{ ...exampleBroadcastSent, written }} actions={actions} />);
     const saidYes = page.getByText(copy.facts.saidYes, { exact: true }).element().parentElement!;
-    expect(saidYes.textContent).toContain(staffCopy.campaigns.supporters(exampleBroadcastSent.summary.to));
+    expect(saidYes.textContent).toContain(mailingsCopy.campaigns.supporters(exampleBroadcastSent.summary.to));
     expect(terms()).not.toContain(copy.facts.onlyThose);
     await expect.element(page.getByText(copy.everyoneWhoSaidYes)).not.toBeInTheDocument();
   });
@@ -1197,7 +1200,7 @@ describe("BroadcastFor", () => {
         page.getByText(staffVocabulary.filters.anyOf([supporters["email:newsletter"], supporters["email:events"]])),
       )
       .toBeVisible();
-    const pills = page.getByRole("list", { name: staffCopy.mailingPages.whoLabel }).getByRole("listitem");
+    const pills = page.getByRole("list", { name: mailingsCopy.mailingPages.whoLabel }).getByRole("listitem");
     await expect.element(pills.first()).toBeVisible();
     expect(pills.all().map((pill) => pill.element().textContent)).toHaveLength(1);
     await view.unmount();
@@ -1319,7 +1322,7 @@ describe("BroadcastsOverview", () => {
         now={now}
       />,
     );
-    await expect.element(page.getByText(staffCopy.mailingPages.sendingBar(4, 7)).first()).toBeVisible();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.sendingBar(4, 7)).first()).toBeVisible();
     const need = (words: string) => page.getByRole("link", { name: words, exact: true });
     await expect.element(need(`2 ${stateWords.counts.error}`)).toHaveAttribute("href", "/staff/broadcasts/4?tab=error");
     await expect
@@ -1392,10 +1395,10 @@ describe("BroadcastsOverview", () => {
     // And one whose words it rejected, till they're sent again.
     await expect.element(page.getByText(copy.standing.rejected)).toBeVisible();
     expect(page.getByText(copy.standing.rejected).all()).toHaveLength(1);
-    await expect.element(page.getByText(staffCopy.mailingPages.standing.scheduled(290)).first()).toBeVisible();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.standing.scheduled(290)).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
     // One sent: how many it went to; then what needs a look, the rest folded behind how many are fine.
-    await expect.element(page.getByText(staffCopy.mailingPages.standing.sent(290))).toBeVisible();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.standing.sent(290))).toBeVisible();
     await expect.element(page.getByRole("link", { name: `4 ${stateWords.counts.error}` })).toBeVisible();
     await expect.element(page.getByRole("button", { name: / fine/ }).first()).toBeVisible();
   });
@@ -1435,8 +1438,8 @@ describe("BroadcastsOverview", () => {
     );
     const words = copy.standing;
     for (const said of [
-      staffCopy.mailingPages.standing.sent(5),
-      staffCopy.mailingPages.standing.stopped(3, 5),
+      mailingsCopy.mailingPages.standing.sent(5),
+      mailingsCopy.mailingPages.standing.stopped(3, 5),
       words.gaveUp.limit!(3, 5),
       words.gaveUp.template!(3, 5),
       words.gaveUp.late!(3, 5),

@@ -6,6 +6,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import SupporterDetails from "./SupporterDetails";
 import { exampleMemberDetails, exampleSupporter, exampleSupporterDetails } from "./SupportersTable.examples";
 import { supportersCopy } from "./copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 /** Opens every folded part of the page, such as a supporter's history. */
 function openHistory() {
@@ -86,7 +87,7 @@ describe("SupporterDetails", () => {
       .element(letters.getByRole("link", { name: "Polly Placeholder" }))
       .toHaveAttribute("href", "/staff/politicians/1");
     await expect
-      .element(letters.getByRole("link", { name: staffCopy.mailingPages.letterAndReplies(1) }))
+      .element(letters.getByRole("link", { name: staffVocabulary.letterAndReplies(1) }))
       .toHaveAttribute("href", "/staff/letters/12");
     // So does the same letter in the history.
     expect(document.querySelector('a[href="/staff/letters/99"]')).not.toBeNull();
@@ -401,7 +402,7 @@ describe("SupporterDetails", () => {
     // A letter's status, as stored when it's no status we know, beside the link to its page.
     await expect.element(page.getByText("odd", { exact: false }).first()).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: staffCopy.mailingPages.theLetter }).last())
+      .element(page.getByRole("link", { name: staffVocabulary.theLetter }).last())
       .toHaveAttribute("href", "/staff/letters/5");
   });
 

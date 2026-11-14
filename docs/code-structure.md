@@ -281,7 +281,7 @@ the code should go instead. The rules below say which ones are enforced.
     list typed out.
   - Every letter, a supporter's or a mailing's, is sent by
     `sendLetterVia(channel, letter)`, beside `transition()`, with a
-    `MailingChannel` (`lib/server/mailing-channels.ts`). A new kind of
+    `MailingChannel` (`lib/mailings/channels.ts`). A new kind of
     letter says what it sends and what becomes of one that can't go. A new
     way to send is a channel.
 - **Settings** come from `config` (`lib/server/config.ts`), which reads
@@ -401,6 +401,9 @@ app/(staff)/staff/_components/
                       correspondence, and their answers to asks
   asks/               the asks: their list, an ask's page and its form,
                       and how an ask and an answer to it read
+  mailings/           the list of mailings, writing one: its editor,
+                      files, time and buttons, a mailing's page, how each
+                      copy of one went, and the campaigns' list and pages
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -434,6 +437,12 @@ lib/
                       asks table, and the asks list's groups. Politicians,
                       mailings and letters stand on it, as they record
                       and count answers to asks; it stands on none of them
+  mailings/           mailings: their drafts, the letter and its merge
+                      fields, who they're for, their pages, channels,
+                      schedule, attachments and sending; how each copy of
+                      a mailing or broadcast went; and the campaigns and
+                      their letters' versions. It stands on politicians,
+                      whom it writes to, and asks
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures

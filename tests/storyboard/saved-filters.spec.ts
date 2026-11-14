@@ -10,6 +10,7 @@ import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 
 export const section: Section = { name: "Saved filters", part: "Staff pages", order: 60 };
 
@@ -259,19 +260,19 @@ test("Loading a saved filter while choosing who a mailing goes to", async ({ pag
   addSaved(flowDatabase, "politicians", "Labour MPs", { party: "Labour", house: "commons" });
   await page.goto(POLITICIANS);
   await page.getByRole("button", { name: /New mailing/ }).click();
-  await expect(page.getByText(staffCopy.mailingPages.choosingNew)).toBeVisible();
+  await expect(page.getByText(politiciansCopy.choosing.choosingNew)).toBeVisible();
   await openList(page);
   await frame(page, "Choosing, with the list open");
 
   story("Loading it keeps the mailing: the list is still choosing for it, with its boxes to tick.");
   await page.getByRole("link", { name: /Labour MPs/ }).click();
   await expect(page).toHaveURL(/mailing=\d+.*saved=\d+/);
-  await expect(page.getByText(staffCopy.mailingPages.choosingNew)).toBeVisible();
+  await expect(page.getByText(politiciansCopy.choosing.choosingNew)).toBeVisible();
   await expect(page.getByRole("button", { name: "Labour MPs" })).toBeVisible();
   await frame(page, "Still choosing, the filter loaded");
 
   story("On the tab of those ticked, the filters aren't what's chosen, so the bar and the chip are gone.");
-  await page.getByRole("link", { name: staffCopy.mailingPages.pickedTab }).first().click();
+  await page.getByRole("link", { name: politiciansCopy.choosing.pickedTab }).first().click();
   await expect(page.getByRole("button", { name: "Labour MPs" })).toHaveCount(0);
   await frame(page, "The ticked tab");
 });
@@ -286,7 +287,7 @@ test("Loading a saved filter while choosing who a broadcast goes to", async ({ p
   await page.getByRole("button", { name: broadcasts.broadcastButton(3) }).click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await page.getByLabel(broadcasts.subject).fill("Saved for later");
-  await expect(page.getByRole("status").first()).toHaveText(staffCopy.mailingPages.savePill.saved);
+  await expect(page.getByRole("status").first()).toHaveText(mailingsCopy.mailingPages.savePill.saved);
   await page.getByRole("link", { name: broadcasts.narrowDown }).click();
   await expect(page.getByText(broadcasts.choosing("Saved for later"))).toBeVisible();
   await openList(page);
@@ -304,6 +305,6 @@ test("Loading a saved filter while choosing who a broadcast goes to", async ({ p
   story("Using them takes the draft those the filter found.");
   await bar.getByRole("button", { name: broadcasts.useThese(3) }).click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
-  await expect(page.getByRole("list", { name: staffCopy.mailingPages.whoLabel })).toContainText("fixture");
+  await expect(page.getByRole("list", { name: mailingsCopy.mailingPages.whoLabel })).toContainText("fixture");
   await frame(page, "The draft, to those found");
 });

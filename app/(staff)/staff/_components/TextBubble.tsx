@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { FIELD_WORDS } from "@/lib/broadcasts";
-import type { MailingBlock, MailingInline } from "@/lib/mailing-doc";
-import letter from "./MailingLetter.module.css";
+import type { MailingBlock, MailingInline } from "@/lib/mailings/doc";
+import letter from "./mailings/MailingLetter.module.css";
 import styles from "./Broadcasts.module.css";
 
 /** A bubble in a text conversation: theirs at the left in white, ours at the right in green, each with who and when. */

@@ -2,7 +2,7 @@ import type { BroadcastAnswer } from "@/lib/server/broadcast-answers";
 import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import type { LetterDoc } from "@/lib/letter-format";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { MailingDoc } from "@/lib/mailing-doc";
+import type { MailingDoc } from "@/lib/mailings/doc";
 import { TEMPLATE_FOOTER } from "@/lib/whatsapp-template";
 import type { WhatsAppTemplate, WrittenBroadcast } from "@/lib/server/broadcast-drafts";
 import type {

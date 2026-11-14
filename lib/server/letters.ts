@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { CAMPAIGN_LETTER_STATE } from "./campaigns";
+import { CAMPAIGN_LETTER_STATE } from "@/lib/mailings/campaigns";
 import { config } from "./config";
 import type { AskStatus } from "@/lib/asks/asks";
 import type { Permission } from "@/lib/accounts/permissions";
@@ -19,7 +19,7 @@ import { query } from "./db";
 import { sql, type Sql } from "./sql";
 import { threadMessages, type ThreadMessage } from "./letter-threads";
 import { lettersInbox } from "./letters-inbox";
-import type { SkipReason } from "./mailings";
+import type { SkipReason } from "@/lib/mailings/records";
 import { FLAG_CONDITIONS } from "@/lib/politicians/records";
 
 // Letters, for the staff interface.

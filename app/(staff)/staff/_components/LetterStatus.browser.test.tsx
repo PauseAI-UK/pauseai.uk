@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import LetterStatus from "./LetterStatus";
+import { mailingsCopy } from "./mailings/copy";
 
-const tags = staffCopy.copyStates.tags;
+const tags = mailingsCopy.copyStates.tags;
 const shown = () => [...document.querySelectorAll("span > span")].map((tag) => tag.textContent);
 
 describe("LetterStatus", () => {

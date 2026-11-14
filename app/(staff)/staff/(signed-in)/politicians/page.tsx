@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { listAsks } from "@/lib/asks/records";
-import { politiciansPageData } from "@/lib/server/mailing-pages";
+import { politiciansPageData } from "@/lib/mailings/pages";
 import { listParties } from "@/lib/politicians/records";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 import { requireStaff } from "@/lib/accounts/auth";
@@ -12,7 +12,7 @@ import {
   pickMany,
   pickPolitician,
   untickAll,
-} from "../../mailing-actions";
+} from "../../_components/mailings/actions";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
 import { openSavedList } from "../../saved-lists";
 import PoliticianFilters, { politicianWords } from "../../_components/politicians/PoliticianFilters";

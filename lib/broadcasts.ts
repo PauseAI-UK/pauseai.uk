@@ -9,7 +9,7 @@ import {
   letterFor,
   type MailingDoc,
   type MailingRecipientValues,
-} from "./mailing-doc";
+} from "@/lib/mailings/doc";
 import { SENDING_DAYS, WAIT_DAYS } from "./broadcast-days";
 import { now } from "./now";
 import { phoneWords } from "./phone";
