@@ -4,7 +4,6 @@ import { server } from "@/tests/fixtures/msw";
 import { toNotifications } from "@/tests/notifications";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { copy } from "@/lib/content/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { NIGHTLY, runStatus, type GmailReading } from "@/lib/import-runs";
 import { docFromMarkup } from "./format";
 import { addTestMp, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -24,12 +23,13 @@ import {
   type TestMail,
 } from "@/tests/gmail-sends";
 import { query } from "@/lib/server/db.server";
-import { readGmail } from "@/lib/server/gmail-reading.server";
+import { readGmail } from "@/lib/jobs/gmail-reading.server";
 import { authenticated } from "./letters-inbox-reading.server";
 import { submitLetter, type LetterForm } from "@/lib/server/mp-letters.server";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
 import { RELAY_CAP } from "./relays.server";
 import { lettersCopy } from "./copy";
+import { jobsCopy } from "@/lib/jobs/copy";
 
 const REQUEST = new Request("https://pauseai.uk/api/cron/read-gmail", { method: "POST" });
 const MP = '"Testy McTestface MP" <test-mp@parliament.example>';
@@ -400,7 +400,7 @@ describeWithDatabase("reading the letters inbox", () => {
     );
     // Mail a person has to look at is a problem of the run, told by the alert above.
     expect(runStatus(run)).toBe("problems");
-    expect(run.problems).toEqual([{ what: staffCopy.problems.job.notUnderstood, error: "3", told: true }]);
+    expect(run.problems).toEqual([{ what: jobsCopy.problems.notUnderstood, error: "3", told: true }]);
   });
 
   it("doesn't understand a stranger answering one of our emails at the plain address, or writing to the MP's proxy", async () => {

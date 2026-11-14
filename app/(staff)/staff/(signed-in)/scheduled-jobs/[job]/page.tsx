@@ -4,8 +4,8 @@ import { found } from "@/lib/found";
 import { jobBySlug } from "@/lib/import-runs";
 import { listRuns, runningNow } from "@/lib/server/import-runs.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
-import { decideImport, runJobNow } from "../../../actions";
-import { ImportJobPage } from "../../../_components/ImportJob";
+import { decideImport, runJobNow } from "../../../_components/jobs/actions";
+import { ImportJobPage } from "../../../_components/jobs/ImportJob";
 import Page from "../../../_components/ui/Page";
 
 type Params = { params: Promise<{ job: string }> };

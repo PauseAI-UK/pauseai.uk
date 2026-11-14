@@ -27,6 +27,7 @@ import { scrollSettled } from "./settle";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { erasureCopy } from "@/lib/erasure/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 
 /** As much of Tiptap's editor as a flow drives directly. */
 type EditorHandle = {
@@ -302,7 +303,7 @@ test("Emails that aren't relayed", async ({ page, request, flowDatabase }) => {
   await emailFrame(page, alert, "The email staff get");
   story("On the Gmail import's page, that run had problems, and lists the two emails.");
   await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
-  await expect(page.getByText(staffCopy.runs.status.problems, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.problems, { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail })).toHaveCount(2);
   await frame(page, "The Gmail import's runs");
   story("The dashboard says so too, until a run reads the letters inbox without any.");

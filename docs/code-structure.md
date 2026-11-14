@@ -177,7 +177,7 @@ the code should go instead. The rules below say which ones are enforced.
     error to the log by hand. `console.error` reaches only Netlify's logs.
     `String(error)` drops the error's cause, so a network failure reads
     "fetch failed" and nothing more. `describeError()` keeps the cause.
-  - Every job is run by `lib/server/jobs.server.ts`, as a run of the import log.
+  - Every job is run by `lib/jobs/jobs.server.ts`, as a run of the import log.
   - Three checks enforce these: `tests/checks/caught-errors.test.ts`,
     `problem-reporting.test.ts` and `cron-runs.test.ts`. The first names
     its few exceptions. Each is a catch that answers a question rather
@@ -337,7 +337,7 @@ the code should go instead. The rules below say which ones are enforced.
 - **Scheduled jobs** are Netlify scheduled functions. Each is in its own
   folder in `netlify/functions/`, named after its job, and POSTs to
   `/api/cron/<job>` with `CRON_SECRET` (`netlify/scheduled.ts`).
-  - The work itself stays in the Next app. `lib/server/jobs.server.ts` says what
+  - The work itself stays in the Next app. `lib/jobs/jobs.server.ts` says what
     runs each job, for that route and for the job's button.
   - Every one is a job on `/staff/scheduled-jobs`, whether or not it imports
     anything and despite the page's name, so that staff can see its runs
@@ -443,6 +443,9 @@ app/(staff)/staff/_components/
                       page, one supporter's copy with its replies and our
                       answers, the text bubbles, and a supporter's
                       broadcasts
+  jobs/               the scheduled jobs: the overview of every job, a
+                      job's page and its button, and each run's line, box
+                      and table
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -500,6 +503,17 @@ lib/
                       (whose drafts and pages a broadcast's are built on),
                       letters, and the politicians list's choosing bar,
                       which its own shares; nothing stands on it
+  jobs/               the scheduled jobs: what runs each (the registry),
+                      the schedule's calls, reading Gmail, sending, the
+                      CiviCRM and ControlAI imports, tidying the logs, and
+                      how a job's runs are grouped on its page. It stands
+                      on every feature whose work a job does; nothing
+                      stands on it
+  import-runs.ts      the import log: each job's name, page and schedule,
+                      and what its runs keep. With the log's keeping of
+                      runs (lib/server/import-runs.server.ts), it's below
+                      every feature, as events' Luma import and
+                      politicians' imports keep their runs in it
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures

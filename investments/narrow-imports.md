@@ -6,7 +6,7 @@ Size: M. Kind: architecture.
 
 Ignoring type imports, a staff list page reaches 180 to 280 of the repo's files through what it imports. Most of that is Server Action modules imported for a button or two, which import most of the server:
 
-- `app/(staff)/staff/actions.ts` is imported by 14 components across the staff pages. It imports `lib/server/jobs.server.ts`, the registry of every scheduled job (147 files), and `lib/erasure/erase.server.ts` (103 files, as erasing someone touches every table).
+- `app/(staff)/staff/actions.ts` is imported by 14 components across the staff pages. It imports `lib/jobs/jobs.server.ts`, the registry of every scheduled job (147 files), and `lib/erasure/erase.server.ts` (103 files, as erasing someone touches every table).
 - `supporters/page.tsx` imports `broadcasts/actions.ts`, and through it all of `lib/mailings/drafts.server.ts`.
 - The staff dashboard, where signing in lands, imports 121 files.
 

@@ -139,11 +139,11 @@ export const config = {
   get turnstileSiteKey(): string | undefined {
     return value(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   },
-  /** What our scheduled functions send as a bearer token (lib/server/cron.server.ts). */
+  /** What our scheduled functions send as a bearer token (lib/jobs/cron.server.ts). */
   get cronSecret(): string | undefined {
     return value(process.env.CRON_SECRET);
   },
-  /** What the backup Worker sends as a bearer token (lib/server/cron.server.ts). */
+  /** What the backup Worker sends as a bearer token (lib/jobs/cron.server.ts). */
   get backupSecret(): string | undefined {
     return value(process.env.BACKUP_SECRET);
   },

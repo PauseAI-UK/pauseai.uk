@@ -16,7 +16,7 @@ import {
   exampleHeldImport,
   exampleLumaResult,
   exampleRun,
-} from "@/app/(staff)/staff/_components/RunList.examples";
+} from "../app/(staff)/staff/_components/jobs/RunList.examples";
 
 it("knows the jobs", () => {
   expect(isImportJob("import-parliament")).toBe(true);

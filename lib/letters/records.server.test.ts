@@ -1,7 +1,7 @@
 import { docFromMarkup } from "./format";
 import { deliverToLettersInbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
-import { readGmail } from "@/lib/server/gmail-reading.server";
+import { readGmail } from "@/lib/jobs/gmail-reading.server";
 import { submitLetter } from "@/lib/server/mp-letters.server";
 import { expect, it, vi } from "vitest";
 import {

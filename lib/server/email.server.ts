@@ -125,7 +125,7 @@ export function sentBy(backend: Backend): { backend: Backend["name"]; account?: 
 }
 
 /** A bounce or spam complaint, as any provider reports it. */
-/** What can block an address: a provider's bounce or complaint, or a hold in CiviCRM (lib/server/civicrm-import.server.ts). */
+/** What can block an address: a provider's bounce or complaint, or a hold in CiviCRM (lib/jobs/civicrm-import.server.ts). */
 export type ProblemKind = DeliveryProblem["kind"] | "hold";
 
 export type DeliveryProblem = {

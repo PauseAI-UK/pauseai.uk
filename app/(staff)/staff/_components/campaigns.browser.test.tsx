@@ -10,8 +10,6 @@ import { accountsCopy } from "./accounts/copy";
 import ListFrame from "./ui/ListFrame";
 import Withheld from "./ui/Withheld";
 import Tabs from "./ui/Tabs";
-import Run from "./Run";
-import { exampleRun } from "./RunList.examples";
 import SentEmails from "./SentEmails";
 import StaffNav from "./shell/StaffNav";
 import { shellCopy } from "./shell/copy";
@@ -186,12 +184,6 @@ describe("the rest", () => {
     expect(link.textContent).toContain(shellCopy.nav.draftTag);
     expect(link.textContent).not.toContain(shellCopy.nav.newTag);
     expect(link.querySelector("[aria-hidden='true'] + [aria-hidden='true']")).toBeNull();
-  });
-
-  it("says in a Gmail read how many one-off emails it kept", async () => {
-    const accounts = [{ account: "policy@pauseai.uk", replies: 0, autoReplies: 0, bounces: 0, oneOffs: 2 }];
-    await render(<Run run={exampleRun("read-gmail", { accounts })} open />);
-    await says(staffCopy.gmailReading.oneOffs(2));
   });
 
   it("says when threads with politicians are kept from your Gmail", async () => {

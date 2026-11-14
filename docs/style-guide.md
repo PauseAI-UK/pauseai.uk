@@ -882,7 +882,7 @@ A nightly job shows each run whole, in its box (`RunBox`). The
 newest is tinted by how it ended.
 
 A job that runs every 5 or 15 minutes or hourly has one table a day instead
-(`RunTable.tsx`, `lib/run-log.ts`), so the same number sits in the same
+(`RunTable.tsx`, `lib/jobs/run-log.ts`), so the same number sits in the same
 place. The time comes first, then the job's counts, or what each run
 found. A Gmail read's counts are over every account it read. In the
 table:

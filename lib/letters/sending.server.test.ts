@@ -10,7 +10,7 @@ import { notifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
 import { recordProblem } from "@/lib/server/email.server";
 import { handleDeliveryProblem, unblock } from "@/lib/server/delivery-problems.server";
-import { readGmail } from "@/lib/server/gmail-reading.server";
+import { readGmail } from "@/lib/jobs/gmail-reading.server";
 import { sendLetterQueue } from "./queue.server";
 import { noticeToSender, sendCopy, sendLetter, threading, uncertainLetters } from "./sending.server";
 import { submitLetter, type LetterForm } from "@/lib/server/mp-letters.server";

@@ -3,7 +3,6 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import {
-  HeldImportExample,
   NoteChangesExample,
   NoteEntryExample,
   NotesCardExample,
@@ -11,7 +10,6 @@ import {
   NoteTextExample,
   NoticeExample,
 } from "./staff.client";
-import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", async (original) => ({
@@ -81,17 +79,5 @@ describe("the staff examples", () => {
     await page.getByRole("button", { name: "Close" }).click();
     await page.getByRole("button", { name: "Open it again" }).click();
     await expect.element(page.getByRole("button", { name: "Close" })).toBeVisible();
-  });
-
-  it("logs a held import's apply and discard", async () => {
-    await render(<HeldImportExample />);
-    await page.getByRole("button", { name: politiciansCopy.politicianImports.apply }).click();
-    await expect
-      .element(log().nth(0))
-      .toHaveTextContent('decide({"id":"4","job":"import-parliament","decision":"apply"})');
-    await page.getByRole("button", { name: politiciansCopy.politicianImports.discard }).click();
-    await expect
-      .element(log().nth(1))
-      .toHaveTextContent('decide({"id":"4","job":"import-parliament","decision":"discard"})');
   });
 });

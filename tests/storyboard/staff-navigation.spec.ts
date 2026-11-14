@@ -11,6 +11,7 @@ import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { asksCopy } from "@/lib/asks/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
 
@@ -202,7 +203,7 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
 
   // ControlAI's letter adds several: the tile is everyone who agreed anything, the latest recorded first.
   await page.goto(`${BASE}/staff/scheduled-jobs/controlai`);
-  await page.getByRole("button", { name: staffCopy.controlAi.importNow }).click();
+  await page.getByRole("button", { name: jobsCopy.controlAi.importNow }).click();
   await expect(page.getByText(/6 names/)).toBeVisible();
   await page.goto(`${BASE}/staff`);
   await page
@@ -328,7 +329,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs/controlai`);
 
   // The fixture ControlAI letter is signed by Polly Placeholder MP, so the bill's column says so.
-  await page.getByRole("button", { name: staffCopy.controlAi.importNow }).click();
+  await page.getByRole("button", { name: jobsCopy.controlAi.importNow }).click();
   await expect(page.getByText(/6 names/)).toBeVisible();
   await frame(page, "ControlAI's letter, imported");
   story("The politicians list says she signed ControlAI's letter.");
@@ -341,7 +342,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
 
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
   await page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }).click();
-  await expect(page.getByText(staffCopy.runs.status.unchanged, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.unchanged, { exact: true }).first()).toBeVisible();
   await frame(page, "Parliament's import");
   story("They log out (on a phone, from the menu), and the staff pages ask them to log in again.");
 

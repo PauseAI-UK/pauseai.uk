@@ -6,13 +6,13 @@ import { docFromMarkup } from "@/lib/letters/format";
 import { addTestLetter, addTestMp, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { deliverToLettersInbox, lettersMailbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
-import { readGmail } from "@/lib/server/gmail-reading.server";
+import { readGmail } from "@/lib/jobs/gmail-reading.server";
 import { submitLetter } from "@/lib/server/mp-letters.server";
 import { letterReply, saveLetterReply } from "@/lib/server/outside-services/blobs.server";
 import { eraseSupporter } from "./erase.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { importLuma } from "@/lib/events/luma-import.server";
-import { importCivicrm } from "@/lib/server/civicrm-import.server";
+import { importCivicrm } from "@/lib/jobs/civicrm-import.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
 import { erasureCopy } from "./copy";
 

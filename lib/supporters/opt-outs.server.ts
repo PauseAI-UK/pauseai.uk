@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { hasWay, TOPICS, type Topic, type Way } from "./contact-permissions";
 import { now } from "@/lib/now";
 import { logChange } from "@/lib/server/audit.server";
-import { queueOptOut } from "@/lib/server/civicrm-updates.server";
+import { queueOptOut } from "./civicrm-updates.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 
 // Each time an address or number opted out of a topic by a way, or out of

@@ -4,15 +4,11 @@
 // calls requireStaff() before anything else (tests/checks/staff-auth.test.ts).
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
-import { runJob } from "@/lib/server/jobs.server";
-import { actionRequest } from "@/lib/site-url.server";
 import { idFrom, noteEditFrom, noteFrom, unblockFrom } from "@/lib/staff-forms";
 import { unblock } from "@/lib/server/delivery-problems.server";
 import { isPoliticianAddress } from "@/lib/server/email.server";
 import { setErrorDone } from "@/lib/server/errors-seen.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
-import { decideHeldImport, isPoliticianImport } from "@/lib/politicians/imports.server";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes.server";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 
@@ -46,42 +42,6 @@ export async function deleteNoteNow(form: FormData): Promise<boolean> {
   const target = id && (await deleteNote(id, staff));
   if (target) refreshNotes(target);
   return Boolean(target);
-}
-
-/** Refreshes the pages that show a job's runs: its own, the overview of every job, and the home page's actions. */
-function refreshImport(job: ImportJob): void {
-  revalidatePath(importPath(job));
-  revalidatePath("/staff/scheduled-jobs");
-  revalidatePath("/staff");
-}
-
-/**
- * A job's button, bound to the job's name: runs it as the staff member,
- * unless a run of it is going (lib/server/jobs.server.ts), then refreshes its
- * pages. Any staff member may run any job. A failure is in the import log,
- * shown on its page like a scheduled one, so it's logged rather than
- * crashing the page.
- */
-export async function runJobNow(job: string): Promise<void> {
-  const { email } = await requireStaff();
-  if (!isImportJob(job)) return;
-  try {
-    await runJob(job, email, await actionRequest());
-  } catch (error) {
-    console.error(error);
-  }
-  refreshImport(job);
-}
-
-/** Applies or discards a held import of a body's members, from its job's page. */
-export async function decideImport(form: FormData): Promise<void> {
-  const { email } = await requireStaff();
-  const id = idFrom(form);
-  const decision = form.get("decision");
-  const job = String(form.get("job") ?? "");
-  if (!id || (decision !== "apply" && decision !== "discard") || !isPoliticianImport(job)) return;
-  await decideHeldImport(id, decision, email);
-  refreshImport(job);
 }
 
 /**

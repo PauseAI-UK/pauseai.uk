@@ -6,7 +6,7 @@ import { CONSENTS, type ContactPermission, type Topic, type Way } from "./contac
 import { hold, isNumber, LINK_DAYS, type SettingsChoice, type SettingsView } from "./settings-view";
 import { now } from "@/lib/now";
 import { siteUrl, siteUrlIfKnown } from "@/lib/site-url.server";
-import { queueBulkLift } from "@/lib/server/civicrm-updates.server";
+import { queueBulkLift } from "./civicrm-updates.server";
 import { config } from "@/lib/server/config.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { send } from "@/lib/server/email-sending.server";

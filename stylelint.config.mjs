@@ -28,7 +28,7 @@ const UNCONVERTED_UI_SIZES = [
 /** The CSS that may use vertical-align, as it lines its own things up and has been checked by eye. */
 const VERTICAL_ALIGN_VETTED = [
   "app/(site)/_components/PressMarquee.module.css",
-  "app/(staff)/staff/_components/ImportIcon.module.css",
+  "app/(staff)/staff/_components/jobs/ImportIcon.module.css",
   "app/(staff)/staff/_components/supporters/SignupUpload.module.css",
   "app/(staff)/staff/_components/StackedBars.module.css",
   "app/(staff)/staff/_components/StaffDashboard.module.css",

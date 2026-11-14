@@ -326,5 +326,15 @@ export const supportersCopy = {
     // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
     lumaRemoveFailed:
       "Someone opted out of event emails but is still on the Luma calendar, so Luma will keep emailing them",
+    // On the Luma import's run, so on its page and in the email: looking up where supporters are failed when
+    // postcodes.io did partway. The next run carries on.
+    placesFailed: "Postcodes.io failed: the next run carries on.",
+    // On the CiviCRM import's run, so on its page and in the email: sending our opt-outs to CiviCRM failed, or it
+    // didn't answer some, or said some were wrong. Each is tried again next hour, but a wrong one needs a developer.
+    civicrmUpdatesFailed: "Couldn't send opt-outs to CiviCRM. They'll go next hour",
+    civicrmUpdatesUnanswered: (n: number) =>
+      `${plural(n, "opt-out", "opt-outs")} got no answer from CiviCRM. They'll go again next hour`,
+    civicrmUpdatesInvalid: (n: number) =>
+      `CiviCRM rejected ${plural(n, "opt-out", "opt-outs")}. A developer needs to look at them:`,
   },
 };

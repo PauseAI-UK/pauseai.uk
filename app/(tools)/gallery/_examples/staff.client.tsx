@@ -16,11 +16,8 @@ import {
   exampleComplaint,
   exampleGmailBlock,
 } from "@/app/(staff)/staff/_components/EmailBlocksTable.examples";
-import { ImportJobPage } from "@/app/(staff)/staff/_components/ImportJob";
-import JobActions from "@/app/(staff)/staff/_components/JobActions";
 import ErrorSeenView from "@/app/(staff)/staff/_components/ErrorSeenView";
 import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
-import Run from "@/app/(staff)/staff/_components/Run";
 import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
 import NoteChanges from "@/app/(staff)/staff/_components/NoteChanges";
 import NotesCard from "@/app/(staff)/staff/_components/NotesCard";
@@ -31,22 +28,11 @@ import {
   exampleNotesAt,
   exampleNoteWriter,
 } from "@/app/(staff)/staff/_components/Notes.examples";
-import {
-  exampleFailedRun,
-  exampleHeldImport,
-  exampleImportResult,
-  exampleRun,
-} from "@/app/(staff)/staff/_components/RunList.examples";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { DeleteTwice } from "@/app/(staff)/staff/_components/DeleteTwice";
 import Notice from "@/app/(staff)/staff/_components/ui/Notice";
 import { Logged } from "../_components/wiring";
-
-/** An MP sync held for a decision: apply and discard log what they'd send. */
-export function HeldImportExample() {
-  return <Logged>{(log) => <Run run={exampleHeldImport} decide={log("decide")} />}</Logged>;
-}
 
 /** Blocked addresses, a bounce and a complaint unless told otherwise, their unblocking logged. */
 export function EmailBlocksTableExample({
@@ -174,46 +160,6 @@ export function NotesCardExample({ lines = true, writable = true }: { lines?: bo
 /** A note's text, its addresses links, and its lines kept. */
 export function NoteTextExample() {
   return <NoteText body={exampleNotes[0].body + "\n" + exampleNotes[1].body} />;
-}
-
-/** A job's page, its button and any held import's buttons logged: Parliament's import with three runs, while a run started by a staff member or its schedule is going, or the ControlAI import, never run. */
-export function ImportJobPageExample({
-  never = false,
-  running,
-}: {
-  never?: boolean;
-  /** Who started the run going now, if one is. */
-  running?: string;
-}) {
-  return (
-    <Logged>
-      {(log) =>
-        never ? (
-          <ImportJobPage job="import-controlai" runs={[]} run={log("run")} decide={log("decide")} />
-        ) : (
-          <ImportJobPage
-            job="import-parliament"
-            running={running ? { startedBy: running, startedAt: new Date("2026-11-04T09:00:00Z") } : undefined}
-            runs={[
-              exampleRun("import-parliament", exampleImportResult, { id: 7, at: new Date("2026-11-03T06:21:00Z") }),
-              exampleFailedRun("import-parliament", "Parliament answered 500", {
-                id: 6,
-                at: new Date("2026-11-02T06:21:00Z"),
-              }),
-              exampleRun("import-parliament", exampleImportResult, { id: 5, at: new Date("2026-11-01T06:21:00Z") }),
-            ]}
-            run={log("run")}
-            decide={log("decide")}
-          />
-        )
-      }
-    </Logged>
-  );
-}
-
-/** An import's button, its runs logged. */
-export function JobActionsExample() {
-  return <Logged>{(log) => <JobActions action={log("action")} label="Check now" />}</Logged>;
 }
 
 /** An error's page, its button logged: the examples' errors by their place in the list, or the one marked done. */

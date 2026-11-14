@@ -14,7 +14,7 @@ import { notifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
 import { eraseSupporter } from "@/lib/erasure/erase.server";
 import { addFormEntry } from "@/lib/supporters/form-entries.server";
-import { readGmail } from "@/lib/server/gmail-reading.server";
+import { readGmail } from "@/lib/jobs/gmail-reading.server";
 import {
   deleteOneOffBlobs,
   getOneOffThread,

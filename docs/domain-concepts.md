@@ -166,10 +166,10 @@ refuses any status not in that table, and a new status is a row there.
 Staff set statuses by hand, with a note, for every ask but two, which
 imports set from controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`):
 ControlAI's letter to the Prime Minister, from the names in its PDF
-(`lib/server/controlai-import.server.ts`), and its UK campaign statement, from its
+(`lib/jobs/controlai-import.server.ts`), and its UK campaign statement, from its
 page's links to each supporter's page on their body's site, by the ID their
 body gives them or the name in the page's address
-(`lib/server/controlai-statement-import.server.ts`). As every sitting politician is
+(`lib/jobs/controlai-statement-import.server.ts`). As every sitting politician is
 on our list, a link the statement's import matches to no one is a problem of
 its run. Statuses with `updated_by` `airtable` were copied from Airtable's
 records before the site kept answers itself. Staff change them like any
@@ -742,7 +742,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   letter's own copy in Sent is also known by Gmail's ID for it, and a bounce
   that names no letter we know is matched by the Gmail thread it's in.
   `send()` takes a backend: Postmark, or a connected Gmail.
-- **Reading** (`lib/server/gmail-reading.server.ts`): the `read-gmail` job, every
+- **Reading** (`lib/jobs/gmail-reading.server.ts`): the `read-gmail` job, every
   5 minutes, lists each mailbox's new messages since the last `historyId`,
   and fetches only their reply headers. It fetches whole only the messages
   in our letters' threads, and bounces. What it does with each:
@@ -1260,7 +1260,7 @@ box unticked isn't one, nor is CiviCRM's `not_opted_in`: neither undoes a
 yes from another source.
 
 Each opt-out of ours that CiviCRM takes goes to its `updateSubscriptions`
-too (`lib/server/civicrm-updates.server.ts`), so Global's records and mail honour
+too (`lib/supporters/civicrm-updates.server.ts`), so Global's records and mail honour
 it: the newsletter by email as an unsubscribe from `newsletter`,
 volunteering by email from `volunteer_updates`, and every bulk email as
 `no_bulk_email`. One CiviCRM told us of doesn't go back, and events, or a
@@ -1315,7 +1315,7 @@ email.
 ### CiviCRM
 
 Global's CRM, CiviCRM, is one of our sources (`civicrm_contacts`,
-`lib/server/civicrm-import.server.ts`): every UK chapter contact its chapter
+`lib/jobs/civicrm-import.server.ts`): every UK chapter contact its chapter
 contacts API returns (`lib/server/outside-services/civicrm.server.ts`, with
 `CIVICRM_CHAPTER_KEY`;
 [its spec](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md)
@@ -1469,11 +1469,11 @@ each time it happens, with a link to where to deal with it:
   address of a politician in office (`lib/server/delivery-problems.server.ts`);
 - once a day at most, the politicians in office whose addresses bounced a
   mailing's letter, or complained of it, since the last (`reportMailingBounces`);
-- mail in the letters inbox it can't relay (`lib/server/gmail-reading.server.ts`);
+- mail in the letters inbox it can't relay (`lib/jobs/gmail-reading.server.ts`);
 - a job failing, or having a problem, that its run before didn't (`alertIfNew` in
   `lib/server/import-runs.server.ts`; "Imports", below);
 - a Gmail account the read every 5 minutes couldn't read, after a run that could
-  (`lib/server/gmail-reading.server.ts`); one Google disconnected has its own;
+  (`lib/jobs/gmail-reading.server.ts`); one Google disconnected has its own;
 - a body's import held, when none was (`lib/politicians/imports.server.ts`);
 - Google disconnecting a Gmail account (`lib/accounts/gmail-accounts.server.ts`);
 - letters to MPs waiting over three hours to go, until those it named
@@ -1569,7 +1569,7 @@ body's import that would change too much is.
 
 `/staff/scheduled-jobs` shows each job's newest run on a card. Each job's own
 page (`/staff/scheduled-jobs/<slug>`, `importPath()` in `lib/import-runs.ts`)
-has its button and every run it keeps (`lib/server/log-retention.server.ts`, run
+has its button and every run it keeps (`lib/jobs/log-retention.server.ts`, run
 nightly):
 
 - for a 5-minute, 15-minute or hourly job, a week of runs, and a month of those that
@@ -1578,7 +1578,7 @@ nightly):
 - for every job, its newest run and a held run.
 
 One run of a job goes at a time, whoever starts it, its schedule or a staff
-member's press (`runJob()` in `lib/server/jobs.server.ts`). A run marks the job
+member's press (`runJob()` in `lib/jobs/jobs.server.ts`). A run marks the job
 running (`job_presses`) until it ends, or for 5 minutes if it dies, and the
 job's page says so. A run started meanwhile doesn't go, and keeps no run, as
 it did nothing.
@@ -1587,7 +1587,7 @@ Each run is a request to the site, which Netlify stops at 30 seconds. So a
 job with more to do than that, as the Luma import has, works for its budget
 (`JOBS`) and leaves the rest for the next run.
 
-A job's page shows its runs under a heading for each day (`lib/run-log.ts`).
+A job's page shows its runs under a heading for each day (`lib/jobs/run-log.ts`).
 A job that runs every 5 or 15 minutes or hourly makes many runs a day,
 nearly all alike. So its page shows them in three ways:
 
@@ -1603,7 +1603,7 @@ A new job needs:
 - its name in the `import_runs` CHECK;
 - a result type, and how a run shows (`Run.tsx`);
 - a function that does it inside `asRun()`, which keeps the run, named in
-  `lib/server/jobs.server.ts`;
+  `lib/jobs/jobs.server.ts`;
 - its title (`jobTitles`), icon and description (`ImportJob.tsx`);
 - if it runs on a schedule, a scheduled function in
   `netlify/functions/<job>/` (`netlify/scheduled.ts`), whose schedule a test
@@ -1680,7 +1680,7 @@ a page that threw, the one it shows when a site has none
 (`app/global-error.tsx`): it says only that the page couldn't load, and,
 for an error on the server, Next's digest of it, as Next keeps a server
 error's words from the browser. The nightly tidying
-deletes an error not seen for a month (`lib/server/log-retention.server.ts`), so
+deletes an error not seen for a month (`lib/jobs/log-retention.server.ts`), so
 one that's fixed drops off by itself.
 
 Not covered yet: the site being down, or a scheduled job that stops
@@ -1733,7 +1733,7 @@ searched and filtered by who, what and how recent, and sorted by date, who
 or what. A new kind of change logs itself the same way, inside the same
 transaction as the change. An entry is kept for a month. One that's part of
 a politician's history is kept while the politician is
-(`lib/server/log-retention.server.ts`).
+(`lib/jobs/log-retention.server.ts`).
 
 ### What is logged, and when
 

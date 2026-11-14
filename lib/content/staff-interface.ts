@@ -1,15 +1,12 @@
 // Every word the staff interface (/staff) shows.
 
-import type { AddressSearch, ImportJob } from "@/lib/import-runs";
+import type { ImportJob } from "@/lib/import-runs";
 import { count, plural } from "@/lib/content/plural";
+import { jobsCopy } from "@/lib/jobs/copy";
 import { politiciansCopy } from "@/lib/politicians/copy";
 
 /** After a bounce alert, for a bounce read from a Gmail mailbox: a link to it there; nothing for one Postmark reported. */
 const bounceLine = (link: string | undefined) => (link ? `\n\nThe bounce, in Gmail:\n${link}` : "");
-
-/** What a CiviCRM import run sent CiviCRM before it pulled, at the start of its line. */
-const sentToCivicrm = (u: { sent: number; refused: number; unanswered: number }): string =>
-  `${count(u.sent, "opt-out", "opt-outs")} sent to CiviCRM${u.refused ? `, ${u.refused} refused` : ""}${u.unanswered ? `, ${u.unanswered} to try again` : ""}. `;
 
 export const staffCopy = {
   // The home page: the dashboard.
@@ -154,75 +151,6 @@ export const staffCopy = {
         `An email to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's unblocked here:\n${link}${bounceLine(bounce)}`,
     },
   },
-  // The web imports on the Scheduled jobs page: ControlAI's
-  // letter to the PM, copied nightly into the bill's statuses
-  // (lib/server/controlai-import.server.ts).
-  controlAi: {
-    title: "ControlAI letter to the Prime Minister backing the Sobel bill",
-    intro: {
-      before: "Imports the MPs and peers who signed ",
-      link: "the letter",
-      after: ", marking them as having signed “",
-    },
-    // The ask they're marked as having signed, linked to its page; the quotes around it aren't.
-    introThen: { link: "ControlAI's letter to the Prime Minister", after: "”. This can't be changed by hand." },
-    importNow: "Import ControlAI letter now",
-    never: "Not imported yet.",
-    result: (r: { signatories: number; matched: number; added: number; removed: number }) =>
-      `${r.signatories} names, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
-    columns: { name: "Name", problem: "Problem" },
-    kinds: { nobody: "Nobody here", several: "Could be:" } as Record<string, string>,
-  },
-  // The copy every 5 minutes of the Luma calendar's events, guests and contacts
-  // (lib/events/luma-import.server.ts), on the Scheduled jobs page.
-  luma: {
-    title: "Events, guests and subscriptions from Luma",
-    intro: {
-      before: "Imports the public events on ",
-      link: "our Luma calendar",
-      after:
-        ", who registered for each, who the hosts are and who is subscribed to the calendar (the contacts). Tags new upcoming events on Luma with location and online tags if it can.",
-    },
-    importNow: "Import Luma now",
-    never: "Not imported yet.",
-    columns: {
-      events: "Events",
-      guests: "Guests changed",
-      hosts: "Hosts changed",
-      people: "People",
-      contacts: "Contacts",
-      supporters: "Supporters added",
-    },
-    // The counts of a run, then why it stopped early, if it did.
-    result: (r: {
-      events: number;
-      eventsSynced: number;
-      eventsLeft: number;
-      guestsChanged: number;
-      people: number;
-      contacts: number;
-      supportersAdded: number;
-      linked: number;
-      requests: number;
-    }) =>
-      `${r.events} events changed; ${r.eventsSynced} guest lists read, ${r.eventsLeft} waiting; ${r.guestsChanged} guests, ${r.people} people, ${r.contacts} contacts changed; ${r.supportersAdded} new supporters, ${r.linked} linked; ${r.requests} requests.`,
-    // After the counts, how many hosts were added to or taken off events (runs kept before hosts were copied don't say).
-    hostsChanged: (n: number) => `${count(n, "host", "hosts")} changed.`,
-    // After that, how many pages of contacts the run read (runs kept before this was recorded don't say).
-    contactPages: (pages: number) => `${pages} pages of contacts read.`,
-    // After that, how many upcoming events the run tagged on Luma, when any.
-    eventsTagged: (n: number) => `${count(n, "event", "events")} tagged on Luma.`,
-    // After that, the postcodes and towns looked up at postcodes.io for where supporters are (runs kept before this was recorded don't say).
-    places: (p: { postcodes: number; towns: number }) =>
-      `${count(p.postcodes, "postcode", "postcodes")}, ${count(p.towns, "town", "towns")} looked up.`,
-    // After that, when postcodes.io failed partway: the next run carries on.
-    placesFailed: "Postcodes.io failed: the next run carries on.",
-    stoppedBy: {
-      time: "Stopped: out of time.",
-      "rate-limit": "Stopped: near Luma's rate limit.",
-      running: "Another run was already going.",
-    } as Record<string, string>,
-  },
   // The names our own inboxes go by on the emails the site sends them: the
   // notification inbox, and the policy inbox an MP's reply is forwarded to.
   inboxNames: {
@@ -263,95 +191,6 @@ export const staffCopy = {
       body: (lines: string[], link: string) =>
         `These MPs' addresses bounced letters from a mailing since the last report:\n\n${lines.join("\n")}\n\nNothing more will be sent to them until they're unblocked here:\n${link}`,
     },
-  },
-  // The read every 5 minutes of the connected Gmail accounts for replies to our
-  // letters and bounces (lib/server/gmail-reading.server.ts), on the Scheduled jobs page.
-  gmailReading: {
-    // The columns of the table of a day's reads.
-    columns: {
-      replies: "Replies",
-      autoReplies: "Automatic replies",
-      oneOffs: "One-off emails",
-    },
-    oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
-    // After the totals, in a run that searched for addresses staff added to politicians': what it found, and how many wait.
-    searched: (s: AddressSearch) =>
-      `Searched for ${count(s.searched, "added address", "added addresses")}, keeping ${count(s.kept, "earlier email", "earlier emails")}.` +
-      (s.waiting ? ` ${s.waiting} still to search.` : "") +
-      (s.stopped ? " Stopped as its time ran out." : ""),
-    title: "Replies, bounces and one-off emails from Gmail",
-    intro: {
-      before: "Reads the replies to our letters, and their bounces, in each ",
-      link: "connected Gmail account",
-      after:
-        ". From policy@ and Joseph's, it also imports any threads with politicians as one-off emails. In the letters inbox, it relays mail between supporters and their MPs' offices, both ways, and emails the policy inbox about anything it couldn't place.",
-    },
-    readNow: "Read Gmail now",
-    never: "Not read yet.",
-    // The run's totals, over every account, then a line for each.
-    result: (accounts: { replies: number; autoReplies: number; bounces: number }[]) =>
-      `${count(accounts.length, "account", "accounts")} read: ${accounts.reduce((n, a) => n + a.replies, 0)} replies, ${accounts.reduce((n, a) => n + a.autoReplies, 0)} automatic replies, ${accounts.reduce((n, a) => n + a.bounces, 0)} bounces.`,
-    account: (a: { account: string; replies: number; autoReplies: number; bounces: number }) =>
-      `${a.account}: ${a.replies} replies, ${a.autoReplies} automatic replies, ${a.bounces} bounces.`,
-    // After an account's line: its history had gone, so the last few days were searched instead.
-    restarted: "Searched the last three days again, as Gmail had forgotten where we were up to.",
-    failed: (error: string) => `Couldn't be read: ${error}`,
-    // In place of that, when Google refused the account's access, so the site disconnected it.
-    disconnected:
-      "Google refused our access, so this account has been disconnected. Its owner can connect it again from their account page.",
-  },
-  // The sending every 15 minutes (/api/cron/send-mailings): the letters inbox's queue, then the mailings due.
-  sending: {
-    title: "Sending letters and mailings",
-    intro: {
-      before: "Sends ",
-      link: "campaign",
-      after: ", ",
-    },
-    // The intro goes on, with a second link, then a third.
-    introThen: {
-      link: "mailing",
-      after: " and ",
-    },
-    introLast: {
-      link: "broadcast",
-      after: " messages that are ready to send.",
-    },
-    sendNow: "Send emails now",
-    never: "Nothing sent yet.",
-    result: (r: {
-      started: number[];
-      sent: number;
-      skipped: number;
-      failed: number;
-      left: number;
-      queue: { sent: number; left: number };
-      broadcasts?: { started: number[]; sent: number; skipped: number; failed: number; waiting: number };
-    }) =>
-      `Started ${count(r.started.length, "mailing", "mailings")}; sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}, ${r.left} left. The queue: sent ${r.queue.sent}, ${r.queue.left} left.${r.broadcasts ? ` Broadcasts: started ${r.broadcasts.started.length}; copies sent ${r.broadcasts.sent}, skipped ${r.broadcasts.skipped}, failed ${r.broadcasts.failed}; ${r.broadcasts.waiting} waiting for CiviCRM.` : ""}`,
-  },
-  // The nightly tidying (/api/cron/tidy-logs): this log, the audit log, forgotten drafts and old errors.
-  tidying: {
-    title: "Tidying the logs",
-    intro: {
-      before: "Deletes entries of the ",
-      link: "audit log",
-      after: " over a month old (except politicians' history), empty ",
-    },
-    // The intro goes on, with a second link and a third.
-    introThen: {
-      link: "mailing drafts",
-      after: " unopened for a day, and ",
-    },
-    introLast: {
-      link: "errors",
-      after: " not seen for a month.",
-    },
-    tidyNow: "Tidy logs now",
-    never: "Not tidied yet.",
-    // A run kept from before errors were tidied counts none.
-    result: (r: { importRuns: number; auditEntries: number; drafts: number; errors?: number }) =>
-      `Deleted ${count(r.importRuns, "run", "runs")}, ${r.auditEntries} audit log ${plural(r.auditEntries, "entry", "entries")}, ${count(r.drafts, "draft", "drafts")} and ${count(r.errors ?? 0, "error", "errors")}.`,
   },
   sentEmails: {
     // Under the title.
@@ -492,54 +331,12 @@ export const staffCopy = {
       },
     },
   },
-  // The hourly pull of Global's UK chapter contacts from CiviCRM (lib/server/civicrm-import.server.ts).
-  civicrm: {
-    title: "UK chapter contacts in CiviCRM",
-    intro: {
-      before: "Imports everyone in the UK chapter in Global's ",
-      link: "CiviCRM",
-      after: ", with their details, which UK lists they're on, and their do-not flags and holds.",
-    },
-    importNow: "Import contacts now",
-    never: "Not imported yet.",
-    result: (r: {
-      contacts: number;
-      added: number;
-      changed: number;
-      gone: number;
-      held?: true;
-      optOuts: number;
-      blocked: number;
-      unblocked?: number;
-      supportersAdded?: number;
-      linked?: number;
-      updates?: { sent: number; refused: number; unanswered: number };
-    }) =>
-      `${r.updates ? sentToCivicrm(r.updates) : ""}${count(r.contacts, "contact", "contacts")} read: ${r.added} added, ${r.changed} changed, ${r.held ? "none marked gone, as too few came back" : `${r.gone} gone`}; ${count(r.optOuts, "unsubscribe", "unsubscribes")} changed, ${count(r.blocked, "address", "addresses")} blocked for a hold.${r.unblocked ? ` ${count(r.unblocked, "address", "addresses")} unblocked, as CiviCRM lifted the hold.` : ""}${r.linked ? ` ${count(r.supportersAdded!, "new supporter", "new supporters")}, ${r.linked} linked.` : ""}`,
-  },
   // What went wrong without stopping the work (lib/server/problems.server.ts), by how far each can reach.
   problems: {
     // On a job's run, so on its page and in the email: something the job carried on past.
     job: {
-      // The Gmail read: Gmail errored or refused for a connected account, so its new mail wasn't read this time.
-      couldntRead: (account: string) =>
-        `Gmail gave errors or refused connection, or our internal error, for ${account}`,
-      // The Gmail read: the mailbox was read, but Gmail wouldn't give the account's name.
-      nameUnknown: (account: string) => `Couldn't fetch name of ${account} from Gmail`,
-      // The Gmail read: mail in the letters inbox that couldn't be matched to anything, so a person must look. How many follows.
-      notUnderstood: "Messages in the letters inbox that couldn't be matched, so need a person to look at:",
       // The Gmail read, for a one-off thread's other messages, where they're tried with each new one: messages Gmail wouldn't give, by ID, which follow.
       unreadable: "Messages that Gmail has but refused to give us:",
-      // The CiviCRM import: a pull came back much shorter than the last, so nobody was taken as gone from the
-      // chapter, in case it's CiviCRM's mistake. The counts follow; Global should be told.
-      civicrmTooFew: "CiviCRM returned far fewer contacts than last time, so nobody was marked gone. Tell Global:",
-      // The CiviCRM import: sending our opt-outs to CiviCRM failed, or it didn't answer some, or said some were
-      // wrong. Each is tried again next hour, but a wrong one needs a developer.
-      civicrmUpdatesFailed: "Couldn't send opt-outs to CiviCRM. They'll go next hour",
-      civicrmUpdatesUnanswered: (n: number) =>
-        `${plural(n, "opt-out", "opt-outs")} got no answer from CiviCRM. They'll go again next hour`,
-      civicrmUpdatesInvalid: (n: number) =>
-        `CiviCRM rejected ${plural(n, "opt-out", "opt-outs")}. A developer needs to look at them:`,
     },
     // Can happen in a job or not. In a job, staff see it on the job's page and in the email. Not in a job, such
     // as a visitor sending a letter, it's kept as an error (lib/server/errors-seen.server.ts): on the errors page, and
@@ -601,91 +398,6 @@ export const staffCopy = {
       // An error, or a problem above, that couldn't be kept or emailed about, as the database or the email failed.
       errorNotKept: "An error couldn't be kept or emailed about",
     },
-  },
-  // The line every run in the import log starts with (RunBox): how it
-  // ended, when, who started it, and for a held MP import, who decided it.
-  // A Luma import that left work for later is incomplete in place of done
-  // or unchanged.
-  runs: {
-    status: {
-      ok: "Done",
-      incomplete: "Incomplete",
-      running: "Running",
-      problems: "Problems",
-      failed: "Failed",
-      unchanged: "Unchanged",
-      held: "Held",
-      applied: "Applied",
-      discarded: "Discarded",
-    } as Record<string, string>,
-    by: (who: string) => `by ${who}`,
-    // A failed run's error, as it came.
-    error: (error: string) => `Error: "${error}"`,
-    decidedBy: (who: string) => `decided by ${who}`,
-    // A held run discarded as a newer run of its job came after it, as only the newest list can be applied.
-    replaced: "replaced by a newer run",
-    // A job's frequent runs, in a table: its columns' headings, where a job has
-    // no counts of its own, the time of a stretch of runs, and what a stretch was.
-    time: "Time",
-    found: "What it found",
-    range: (from: string, to: string) => (from === to ? from : `${from}–${to}`),
-    quiet: (n: number) => `${count(n, "run", "runs")}, nothing new`,
-    stretch: (n: number) => `${count(n, "run", "runs")}, no problems`,
-  },
-  // The nightly import of ControlAI's statement's supporters (lib/server/controlai-statement-import.server.ts).
-  controlAiStatement: {
-    title: "ControlAI's UK campaign statement",
-    intro: {
-      before: "Imports the politicians who back ",
-      link: "ControlAI's statement",
-      after: ", marking them as having signed “",
-    },
-    // The ask they're marked as having signed, linked to its page; the quotes around it aren't.
-    introThen: { link: "ControlAI's campaign statement", after: "”. This can't be changed by hand." },
-    importNow: "Import ControlAI statement now",
-    never: "Not imported yet.",
-    result: (r: { supporters: number; matched: number; added: number; removed: number }) =>
-      `${r.supporters} supporters, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
-    // A problem of the run: links on the page to politicians we don't have, which follow.
-    unmatched: "Supporters on ControlAI's page we couldn't find here:",
-  },
-  import: {
-    // The page with every scheduled job: the imports, each body's members,
-    // ControlAI's letter and statement from the web, Luma and CiviCRM, and
-    // the rest, such as reading Gmail, sending mailings and tidying the logs.
-    pageTitle: "Scheduled jobs",
-    // Under the title.
-    pageIntro: "Imports, mail and tidying that run on a timer",
-    // Each job's icon, named for screen readers and on hover: where it reads
-    // from or works on. Then how often it runs, the overview's headings and a
-    // lozenge on the job's page.
-    parliament: "UK Parliament",
-    "scottish-parliament": "Scottish Parliament",
-    senedd: "Welsh Parliament",
-    "ni-assembly": "Northern Ireland Assembly",
-    controlai: "ControlAI",
-    database: "Database",
-    luma: "Luma",
-    civicrm: "CiviCRM",
-    gmail: "Gmail",
-    nightly: "Nightly",
-    // What a job that isn't an import does, a lozenge after its name: compares
-    // with another list, reads mail, sends mail, or keeps the site tidy.
-    kinds: {
-      check: "Check",
-      read: "Reads mail",
-      send: "Sends mail",
-      tidy: "Tidy",
-    },
-    // After that, for the Luma import, which tags Luma's events. Reading Gmail,
-    // which relays mail and emails staff, has "Sends mail" (kinds.send).
-    changesLuma: "Changes Luma",
-    // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.
-    running: (who: string, when: string) => `Running, started by ${who} at ${when}. Can only run one at a time.`,
-    runningScheduled: (when: string) => `Running now, started at ${when}. Can only run one at a time.`,
-    frequent: "Every 5 minutes",
-    "quarter-hour": "Every 15 minutes",
-    hourly: "Hourly",
   },
   // The notes on a supporter's or a politician's page, and the form to add one.
   notes: {
@@ -789,11 +501,11 @@ export const staffCopy = {
 /** Each job in the import log, by the title of its card on the Scheduled jobs page and of its own page. */
 export const jobTitles: Record<ImportJob, string> = {
   ...politiciansCopy.politicianImports.titles,
-  "import-controlai": staffCopy.controlAi.title,
-  "import-controlai-statement": staffCopy.controlAiStatement.title,
-  "import-luma": staffCopy.luma.title,
-  "import-civicrm": staffCopy.civicrm.title,
-  "read-gmail": staffCopy.gmailReading.title,
-  "send-mailings": staffCopy.sending.title,
-  "tidy-logs": staffCopy.tidying.title,
+  "import-controlai": jobsCopy.controlAi.title,
+  "import-controlai-statement": jobsCopy.controlAiStatement.title,
+  "import-luma": jobsCopy.luma.title,
+  "import-civicrm": jobsCopy.civicrm.title,
+  "read-gmail": jobsCopy.gmailReading.title,
+  "send-mailings": jobsCopy.sending.title,
+  "tidy-logs": jobsCopy.tidying.title,
 };

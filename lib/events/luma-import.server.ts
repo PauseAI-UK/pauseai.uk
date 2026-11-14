@@ -489,7 +489,7 @@ async function importContacts(budget: Budget): Promise<{ changed: number; pages:
  * Runs the import, within `budgetMs` of fetching, keeping the run. Each step
  * keeps what it read as it goes, so a run that fails partway keeps what came
  * before, and the next takes up the rest; only one goes at a time
- * (lib/server/jobs.server.ts).
+ * (lib/jobs/jobs.server.ts).
  */
 export async function importLuma(startedBy: string, budgetMs: number = JOBS[JOB].budgetMs): Promise<LumaImportResult> {
   const { result } = await asRun(JOB, startedBy, async () => {

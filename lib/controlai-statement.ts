@@ -2,7 +2,7 @@
 // page names no one in its text: each supporter is a link to their profile
 // on their body's site, by the ID their body gives them (Parliament's and
 // the NI Assembly's) or by their name (the Scottish Parliament's and the
-// Senedd's). lib/server/controlai-statement-import.server.ts copies them in
+// Senedd's). lib/jobs/controlai-statement-import.server.ts copies them in
 // nightly, as the statuses of the statement's ask; this reads the links.
 
 import type { Body } from "@/lib/politicians/import-changes";

@@ -1,4 +1,4 @@
-import { exampleCivicrmResult, exampleLumaResult } from "@/app/(staff)/staff/_components/RunList.examples";
+import { exampleCivicrmResult, exampleLumaResult } from "../../app/(staff)/staff/_components/jobs/RunList.examples";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { type ImportJob, importPath } from "@/lib/import-runs";
@@ -18,6 +18,8 @@ import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
+import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
 
@@ -35,7 +37,7 @@ test("The Luma import", async ({ page, flowDatabase }) => {
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
-  await page.getByRole("button", { name: staffCopy.luma.importNow }).click();
+  await page.getByRole("button", { name: jobsCopy.luma.importNow }).click();
   // The fixture calendar: nine public events and a private one, five guests each over two pages, each event's hosts,
   // one of them no guest, three contacts.
   const first = {
@@ -49,13 +51,13 @@ test("The Luma import", async ({ page, flowDatabase }) => {
     linked: 7,
     requests: 30,
   };
-  await expect(page.getByText(staffCopy.luma.result(first))).toBeVisible();
-  await page.getByRole("heading", { name: staffCopy.luma.title }).scrollIntoViewIfNeeded();
+  await expect(page.getByText(jobsCopy.luma.result(first))).toBeVisible();
+  await page.getByRole("heading", { name: jobsCopy.luma.title }).scrollIntoViewIfNeeded();
   await frame(page, "The first run");
 
   story("Run again within the hour, it finds nothing new.");
   // Within the hour, no event is due again: one page of events, unchanged, and the next pass over the contacts' two pages.
-  await page.getByRole("button", { name: staffCopy.luma.importNow }).click();
+  await page.getByRole("button", { name: jobsCopy.luma.importNow }).click();
   const again = {
     ...first,
     events: 0,
@@ -67,9 +69,9 @@ test("The Luma import", async ({ page, flowDatabase }) => {
     linked: 0,
     requests: 3,
   };
-  await expect(page.getByText(staffCopy.luma.result(again))).toBeVisible();
-  await expect(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
-  await page.getByRole("heading", { name: staffCopy.luma.title }).scrollIntoViewIfNeeded();
+  await expect(page.getByText(jobsCopy.luma.result(again))).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
+  await page.getByRole("heading", { name: jobsCopy.luma.title }).scrollIntoViewIfNeeded();
   await frame(page, "The second run");
 });
 
@@ -80,7 +82,7 @@ test("The CiviCRM import", async ({ page, flowDatabase }) => {
   runSql(flowDatabase, "INSERT INTO civicrm_erased (contact_id) VALUES (199)");
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}${importPath("import-civicrm")}`);
-  await page.getByRole("button", { name: staffCopy.civicrm.importNow }).click();
+  await page.getByRole("button", { name: jobsCopy.civicrm.importNow }).click();
   // The fixture's eleven contacts, one erased; Kit's unsubscribe, and Casey's hold. With nobody here yet, each
   // contact is a new supporter.
   const first = {
@@ -93,17 +95,17 @@ test("The CiviCRM import", async ({ page, flowDatabase }) => {
     supportersAdded: 10,
     linked: 10,
   };
-  await expect(page.getByText(staffCopy.civicrm.result(first))).toBeVisible();
-  await page.getByRole("heading", { name: staffCopy.civicrm.title }).scrollIntoViewIfNeeded();
+  await expect(page.getByText(jobsCopy.civicrm.result(first))).toBeVisible();
+  await page.getByRole("heading", { name: jobsCopy.civicrm.title }).scrollIntoViewIfNeeded();
   await frame(page, "The first run");
 
   story("Run again, it finds nothing new.");
-  await page.getByRole("button", { name: staffCopy.civicrm.importNow }).click();
+  await page.getByRole("button", { name: jobsCopy.civicrm.importNow }).click();
   await expect(
-    page.getByText(staffCopy.civicrm.result({ ...first, added: 0, optOuts: 0, blocked: 0, linked: 0 })),
+    page.getByText(jobsCopy.civicrm.result({ ...first, added: 0, optOuts: 0, blocked: 0, linked: 0 })),
   ).toBeVisible();
-  await expect(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
-  await page.getByRole("heading", { name: staffCopy.civicrm.title }).scrollIntoViewIfNeeded();
+  await expect(page.getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
+  await page.getByRole("heading", { name: jobsCopy.civicrm.title }).scrollIntoViewIfNeeded();
   await frame(page, "The second run");
 });
 
@@ -116,16 +118,16 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   await page.getByRole("link", { name: accountsCopy.gmail.connect }).click();
   await expect(page.getByText(accountsCopy.gmail.outcomes.connected)).toBeVisible();
   await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
-  await expect(page.getByText(staffCopy.gmailReading.never)).toBeVisible();
+  await expect(page.getByText(jobsCopy.gmailReading.never)).toBeVisible();
   await frame(page, "The Gmail import's page");
 
   story("They read it now. It reads their account for replies and bounces, and finds nothing new.");
-  await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
+  await page.getByRole("button", { name: jobsCopy.gmailReading.readNow }).click();
   // The fixture mailbox has nothing new in it.
   const read = { account: staffEmail(), replies: 0, autoReplies: 0, bounces: 0 };
-  await expect(page.getByText(staffCopy.gmailReading.account(read))).toBeVisible();
-  await expect(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
-  await page.getByRole("heading", { name: staffCopy.gmailReading.title }).scrollIntoViewIfNeeded();
+  await expect(page.getByText(jobsCopy.gmailReading.account(read))).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
+  await page.getByRole("heading", { name: jobsCopy.gmailReading.title }).scrollIntoViewIfNeeded();
   await frame(page, "Gmail, read");
 
   story(
@@ -133,9 +135,9 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   );
   // The scheduled read, as far as the press can tell: the job marked running on its schedule's behalf.
   runSql(flowDatabase, "INSERT INTO job_presses (job, started_by) VALUES ('read-gmail', 'nightly')");
-  await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
+  await page.getByRole("button", { name: jobsCopy.gmailReading.readNow }).click();
   // The words either side of the time it started.
-  const [before, after] = staffCopy.import.runningScheduled("\n").split("\n");
+  const [before, after] = jobsCopy.import.runningScheduled("\n").split("\n");
   await expect(page.getByText(before, { exact: false })).toContainText(after);
   expect(runSql(flowDatabase, "SELECT count(*) FROM import_runs WHERE job = 'read-gmail'")).toEqual(["1"]);
   await frame(page, "A read that didn't go, as the scheduled one is going");
@@ -197,7 +199,7 @@ test("The Gmail reading's log", async ({ page, flowDatabase }) => {
   scheduled(flowDatabase, "read-gmail", 1, "0 minutes", replied);
   scheduled(flowDatabase, "read-gmail", 6, "5 minutes", quiet, "unchanged");
   scheduled(flowDatabase, "read-gmail", 1, "35 minutes", refused, "ok", 5, [
-    { what: staffCopy.problems.job.couldntRead("joseph@pauseai.uk"), error: refusal },
+    { what: jobsCopy.problems.couldntRead("joseph@pauseai.uk"), error: refusal },
   ]);
   scheduled(flowDatabase, "read-gmail", 8, "40 minutes", quiet, "unchanged");
   scheduled(flowDatabase, "read-gmail", 3, "80 minutes", replied);
@@ -249,7 +251,7 @@ test("Google disconnects a Gmail", async ({ page, request, flowDatabase }) => {
 
   story("The Gmail import's page shows that run failed, and why.");
   await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
-  await expect(page.getByText(staffCopy.gmailReading.disconnected)).toBeVisible();
+  await expect(page.getByText(jobsCopy.gmailReading.disconnected)).toBeVisible();
   await frame(page, "The Gmail import's page");
 
   story("Their account page offers to connect their Gmail again.");
@@ -277,7 +279,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   // The import, twice: its page lists both runs, under the day's heading, and none of the other bodies'.
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
   const run = page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] });
-  const unchanged = page.getByText(staffCopy.runs.status.unchanged, { exact: true });
+  const unchanged = page.getByText(jobsCopy.runs.status.unchanged, { exact: true });
   await run.click();
   await expect(unchanged).toHaveCount(1);
   await run.click();
@@ -294,13 +296,13 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   );
   await page
     .getByRole("navigation", { name: staffVocabulary.breadcrumb })
-    .getByRole("link", { name: staffCopy.import.pageTitle })
+    .getByRole("link", { name: jobsCopy.import.pageTitle })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs`);
   const card = (job: ImportJob) =>
     page.locator("section").filter({ has: page.getByRole("link", { name: jobTitles[job] }) });
-  await expect(card("import-parliament").getByText(staffCopy.runs.status.unchanged)).toBeVisible();
-  await expect(card("import-controlai").getByText(staffCopy.controlAi.never)).toBeVisible();
+  await expect(card("import-parliament").getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
+  await expect(card("import-controlai").getByText(jobsCopy.controlAi.never)).toBeVisible();
   await frame(page, "The Scheduled jobs page");
 });
 
@@ -321,7 +323,7 @@ test("An import fails", async ({ page, request, flowDatabase }) => {
   expect(notified(words.subject(jobTitles["import-luma"]))!.MessageId).toBe(email.MessageId);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
-  await expect(page.getByText(staffCopy.runs.status.failed, { exact: true })).toHaveCount(2);
+  await expect(page.getByText(jobsCopy.runs.status.failed, { exact: true })).toHaveCount(2);
   await frame(page, "The Luma import's runs");
 });
 
@@ -335,7 +337,7 @@ test("An import has problems", async ({ page, request, flowDatabase }) => {
   expect((await luma()).ok()).toBe(true);
   const words = staffCopy.notifications.importProblems;
   const email = notified(words.subject(jobTitles["import-luma"]))!;
-  expect(email.TextBody).toContain(staffCopy.luma.placesFailed);
+  expect(email.TextBody).toContain(supportersCopy.problems.placesFailed);
   await emailFrame(page, email, "The email to the notification inbox");
 
   story("The next run has the same problem. No second email: there's one until the problem has gone.");
@@ -343,8 +345,8 @@ test("An import has problems", async ({ page, request, flowDatabase }) => {
   expect(notified(words.subject(jobTitles["import-luma"]))!.MessageId).toBe(email.MessageId);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
-  await expect(page.getByText(staffCopy.runs.status.problems, { exact: true })).toHaveCount(2);
-  await expect(page.getByText(staffCopy.luma.placesFailed, { exact: false }).first()).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.problems, { exact: true })).toHaveCount(2);
+  await expect(page.getByText(supportersCopy.problems.placesFailed, { exact: false }).first()).toBeVisible();
   await frame(page, "The Luma import's runs, with the problem under each");
 });
 
@@ -401,7 +403,7 @@ test("A held politician import", async ({ page, request, flowDatabase }) => {
   story("An admin discards it. Nothing changes: all 21 are still in office here.");
   await page.getByRole("button", { name: words.discard }).click();
   await expect(page.getByRole("button", { name: words.apply })).toHaveCount(0);
-  await expect(page.getByText(staffCopy.runs.status.discarded).first()).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.discarded).first()).toBeVisible();
   expect(inOffice()).toBe(21);
   // From the top, where the newest run says how it ended; the button left the page scrolled down its list.
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -413,7 +415,7 @@ test("A held politician import", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: words.importNow["import-parliament"] }).click();
   await page.getByRole("button", { name: words.apply }).click();
   await expect(page.getByRole("button", { name: words.apply })).toHaveCount(0);
-  await expect(page.getByText(staffCopy.runs.decidedBy(staffEmail())).first()).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.decidedBy(staffEmail())).first()).toBeVisible();
   expect(inOffice()).toBe(0);
   await page.evaluate(() => window.scrollTo(0, 0));
   await frame(page, "The import, applied");
@@ -460,7 +462,7 @@ test("Mail that matches nothing", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase, ["supporters", "admin"]);
   runSql(flowDatabase, "INSERT INTO unmatched_mail (account, gmail_message_id) VALUES ('policy@pauseai.uk', '0b02')");
   await page.goto(`${BASE}${importPath("read-gmail")}`);
-  await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
+  await page.getByRole("button", { name: jobsCopy.gmailReading.readNow }).click();
   const subject = lettersCopy.oneOff.unmatchedAlert.subject(1);
   await expect.poll(() => newestEmail((email) => email.Subject === subject)).toBeTruthy();
   const report = newestEmail((email) => email.Subject === subject)!;

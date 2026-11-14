@@ -321,6 +321,7 @@ export const FEATURES = {
   mailings: ["accounts", "asks", "politicians", "letters"],
   letters: ["accounts", "asks"],
   broadcasts: ["accounts", "supporters", "politicians", "letters", "mailings"],
+  jobs: ["accounts", "asks", "events", "supporters", "politicians", "letters", "mailings", "broadcasts"],
 };
 /** Each feature's folder of logic, lib/<feature>, where its server code is, beside lib/server/. */
 export const featureLibFolders = () => Object.keys(FEATURES).map((feature) => `lib/${feature}`);

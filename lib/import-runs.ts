@@ -1,5 +1,5 @@
 // The import log's types, shared by the server (lib/server/import-runs.server.ts)
-// and the staff components that show a run (app/(staff)/staff/_components/Run.tsx).
+// and the staff components that show a run (app/(staff)/staff/_components/jobs/Run.tsx).
 import type { ControlAiMatchProblem } from "./controlai-letter";
 import type { Ending, ImportChanges, OfficialMember } from "@/lib/politicians/import-changes";
 
@@ -16,7 +16,7 @@ export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
  * do than a run can, how long a run works before it stops taking on more,
  * leaving the rest for the next. Every run is a request to the site, which
  * a Netlify function stops at 30 seconds, so a budget leaves room for the
- * run's last steps. What runs a job is lib/server/jobs.server.ts; its title, icon
+ * run's last steps. What runs a job is lib/jobs/jobs.server.ts; its title, icon
  * and description are the staff interface's (jobTitles, ImportJob.tsx). The
  * overview lists them in this order.
  */

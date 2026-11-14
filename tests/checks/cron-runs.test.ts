@@ -8,12 +8,12 @@ import { featureLibFolders } from "../../eslint.config.mjs";
 // (lib/server/import-runs.server.ts), so that a failure is kept as a failed run and
 // emailed about, and what it reports with problem() has a run to go on.
 // Without it, a failure reaches only Netlify's logs. Every job runs through
-// lib/server/jobs.server.ts, so this fails on any server module it imports (from
+// lib/jobs/jobs.server.ts, so this fails on any server module it imports (from
 // lib/server/ or a feature's lib/ folder), but for types and the import
 // log's own, that doesn't call asRun.
 
 const ROOT = join(__dirname, "..", "..");
-const JOBS = "lib/server/jobs.server.ts";
+const JOBS = "lib/jobs/jobs.server.ts";
 const SERVER = ["lib/server", ...featureLibFolders()];
 
 /** The server modules `source`, at `file`, imports, as paths from the root: lib/server's and the features'. */
@@ -39,20 +39,22 @@ describe("jobs", () => {
     const code = `
       import "server-only";
       import { NextResponse } from "next/server";
-      import { isCronRequest } from "@/lib/server/cron.server";
-      import { importLuma } from "./luma-import";
+      import { isCronRequest } from "@/lib/jobs/cron.server";
+      import { readGmail } from "./gmail-reading.server";
+      import { query } from "@/lib/server/db.server";
       import { tagEvents } from "@/lib/events/tagging.server";
       import { NIGHTLY } from "@/lib/import-runs";
       import type { Body } from "@/lib/politicians/import-changes";
       import { found } from "../found";`;
-    expect(serverImports("lib/server/jobs.server.ts", parse("jobs.ts", code))).toEqual([
-      "lib/server/cron.server.ts",
-      "lib/server/luma-import.ts",
+    expect(serverImports("lib/jobs/jobs.server.ts", parse("jobs.ts", code))).toEqual([
+      "lib/jobs/cron.server.ts",
+      "lib/jobs/gmail-reading.server.ts",
+      "lib/server/db.server.ts",
       "lib/events/tagging.server.ts",
     ]);
   });
 
-  it("the cron route runs its job through lib/server/jobs.server.ts", () => {
+  it("the cron route runs its job through lib/jobs/jobs.server.ts", () => {
     const route = "app/api/cron/[job]/route.ts";
     expect(serverImports(route, parse(route, readFileSync(join(ROOT, route), "utf8")))).toContain(JOBS);
   });

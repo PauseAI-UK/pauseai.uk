@@ -13,6 +13,7 @@ import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
@@ -576,8 +577,8 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
 
   story("The next read of Gmail searches policy@ for her Gmail, and says so. Her email is kept, and shows under her.");
   await page.goto(`${BASE}${importPath("read-gmail")}`);
-  await page.getByRole("button", { name: staffCopy.gmailReading.readNow }).click();
-  const read = staffCopy.gmailReading.searched({ searched: 1, kept: 0, waiting: 0 }).split(",")[0];
+  await page.getByRole("button", { name: jobsCopy.gmailReading.readNow }).click();
+  const read = jobsCopy.gmailReading.searched({ searched: 1, kept: 0, waiting: 0 }).split(",")[0];
   await expect(page.getByText(read, { exact: false }).first()).toBeVisible();
   await frame(page, "The read of Gmail, having searched for it");
   await page.goto(`${BASE}/staff/politicians/${polly}`);
@@ -689,7 +690,7 @@ test("ControlAI's statement", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}${importPath("import-controlai-statement")}`);
-  await page.getByRole("button", { name: staffCopy.controlAiStatement.importNow }).click();
+  await page.getByRole("button", { name: jobsCopy.controlAiStatement.importNow }).click();
   await expect(page.getByText(/5 supporters/)).toBeVisible();
   await frame(page, "The import's page");
 

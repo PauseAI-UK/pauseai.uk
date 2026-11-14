@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isBackupRequest } from "@/lib/server/cron.server";
+import { isBackupRequest } from "@/lib/jobs/cron.server";
 import { keptMessage, keptMessageKeys } from "@/lib/server/kept-messages.server";
 
 /**

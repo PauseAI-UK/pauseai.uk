@@ -1059,7 +1059,7 @@ that drives it or why nothing does.
   - `replies`: a reply to an old letter's own address.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
-- `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.server.ts`), Vitest-tested beside it for every job:
+- `/api/cron/[job]`, each scheduled job's run (`lib/jobs/jobs.server.ts`), Vitest-tested beside it for every job:
   - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`: `importPoliticians()` in `tests/storyboard/politician-steps.ts`, at the start of the staff flows that need politicians, which then gives them their Airtable records' details; `imports` runs Parliament's again to hold it.
   - `import-controlai`, `import-controlai-statement`: Not driven. The `staff-navigation` and `politicians` sections run them through their buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
@@ -1182,7 +1182,7 @@ not a mock.
   press on its page) are tested running at once: `atOnce()`
   (`tests/at-once.ts`) starts several runs together on the test file's
   database, and the test checks each letter, guest or message was handled
-  once (`lib/server/sending-job.server.test.ts`, `lib/events/luma-import.server.test.ts`).
+  once (`lib/jobs/sending.server.test.ts`, `lib/events/luma-import.server.test.ts`).
 - **A data migration gets a test while its tables are still changing.** A
   migration that moves or reshapes rows, not only tables, is tested with
   `useDatabaseUpTo()`:

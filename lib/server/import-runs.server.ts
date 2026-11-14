@@ -13,7 +13,7 @@ import { currentRun, inRun } from "./run-store.server";
 // say what went wrong, and so are runs that changed nothing, so it can say
 // when the job last ran. Each job's page lists all of its runs. The types
 // are in lib/import-runs.ts, for the components. What runs each job, one
-// run of it at a time, is lib/server/jobs.server.ts.
+// run of it at a time, is lib/jobs/jobs.server.ts.
 
 const COLUMNS = `id::int AS id, at, job, started_by AS "startedBy", status, error, result, problems, decided_by AS "decidedBy"`;
 

@@ -10,7 +10,7 @@ import {
   type FoundPlace,
 } from "@/lib/server/outside-services/postcodes.server";
 import { problem } from "@/lib/server/problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { supportersCopy } from "./copy";
 
 // Where supporters are (the supporter_place view): each postcode and town
 // they or their events gave, and each postcode's constituency, looked up at
@@ -99,7 +99,7 @@ export async function lookUpPlaces(db?: Queryable): Promise<PlacesLookup> {
       result.towns++;
     }
   } catch (error) {
-    problem(staffCopy.luma.placesFailed, error);
+    problem(supportersCopy.problems.placesFailed, error);
     result.failed = true;
   }
   return result;

@@ -1,7 +1,7 @@
 import { allParts, messageIds, parseHeaders, parseMime, partText, type MimePart } from "./mime.server";
 
 // What a bounce says, wherever it was read from: a connected Gmail
-// (lib/server/gmail-reading.server.ts) or the letters inbox
+// (lib/jobs/gmail-reading.server.ts) or the letters inbox
 // (lib/letters/letters-inbox-reading.server.ts).
 
 /** One address a bounce says failed: what happened, in the server's words and its status code. */
