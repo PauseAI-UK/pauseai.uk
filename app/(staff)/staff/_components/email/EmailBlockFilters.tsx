@@ -1,6 +1,6 @@
 import type { Filter } from "@/lib/staff-list-filters";
 import FilterBar from "../ui/FilterBar";
-import { emailCopy } from "@/lib/email/copy";
+import { emailCopy } from "./copy";
 
 /** The blocked addresses' filter: those that bounced, complained, or are on hold in CiviCRM. */
 export function emailBlockFilters(): Filter[] {

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { page, userEvent } from "vitest/browser";
-import { DEFAULT_SENDER } from "@/lib/accounts/gmail-connect";
+import { DEFAULT_SENDER } from "@/lib/email/gmail-connect";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/mailings/attachments";
 import { navigation } from "@/tests/browser/navigation";
 import MailingWriter, { type MailingWriterActions } from "./MailingWriter";
@@ -12,7 +12,7 @@ import {
   exampleWriterData,
   exampleWrittenMailing,
 } from "./MailingWriter.examples";
-import { accountsCopy } from "../accounts/copy";
+import { emailCopy } from "../email/copy";
 import { mailingsCopy } from "./copy";
 import { MailingWriterExample } from "./MailingWriter.gallery.client";
 import { politiciansCopy } from "../politicians/copy";
@@ -494,7 +494,7 @@ describe("MailingWriter", () => {
     const preview = region(copy.sections.preview);
     await expect.element(preview.getByText("Al Example <al@pauseai.uk>")).toBeVisible();
     await field(copy.fromLegend).selectOptions("samuel.whitlock@pauseai.uk");
-    await expect.element(from.getByText(accountsCopy.gmail.sentToday(120, "1,800"))).toBeVisible();
+    await expect.element(from.getByText(emailCopy.gmail.sentToday(120, "1,800"))).toBeVisible();
     await expect.element(preview.getByText("samuel.whitlock@pauseai.uk", { exact: true })).toBeVisible();
   });
 

@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
-import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-accounts.server";
+import { GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-accounts.server";
 import { gmailEmail, mailingChannel, postmarkBroadcast, postmarkEmail } from "./channels.server";
 import { parseMime } from "@/lib/email-parsing/mime.server";
 

@@ -3,7 +3,7 @@ import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
 import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
 import { config } from "@/lib/server/config.server";
-import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
+import { notifyStaff, staffLink } from "./notifications.server";
 import { decryptToken, encryptToken } from "./gmail-tokens.server";
 import { problem } from "@/lib/server/problems.server";
 import {
@@ -14,7 +14,7 @@ import {
   GmailError,
   revokeGmail,
 } from "@/lib/server/outside-services/gmail.server";
-import { accountsCopy } from "./copy";
+import { emailCopy } from "./copy";
 
 // Staff members' Gmail, connected so mailings to politicians can be sent
 // from it and replies read from it. Each staff member connects their own,
@@ -107,7 +107,7 @@ async function forget(account: string, by: string, why: string): Promise<string 
 export async function disconnectGmail(account: string, by: string): Promise<boolean> {
   const token = await forget(account, by, "disconnected");
   if (token === undefined) return false;
-  await revokeGmail(token).catch((error: unknown) => problem(accountsCopy.problems.tokenNotRevoked(account), error));
+  await revokeGmail(token).catch((error: unknown) => problem(emailCopy.problems.tokenNotRevoked(account), error));
   return true;
 }
 
@@ -153,7 +153,7 @@ const ACCOUNT_PATH = "/staff/me";
  */
 async function forgetRevoked(email: string): Promise<void> {
   if ((await forget(email, "google", "access revoked")) === undefined) return;
-  const words = accountsCopy.notifications.gmailDisconnected;
+  const words = emailCopy.notifications.gmailDisconnected;
   await notifyStaff(
     words.subject(email),
     words.body(email, email === config.lettersInbox, staffLink(ACCOUNT_PATH, undefined)),

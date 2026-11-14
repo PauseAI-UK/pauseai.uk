@@ -125,7 +125,7 @@ export const config = {
   get googleClientSecret(): string | undefined {
     return value(process.env.GOOGLE_CLIENT_SECRET);
   },
-  /** 32 random bytes, in base64, that encrypt the Gmail tokens (lib/accounts/gmail-tokens.server.ts). */
+  /** 32 random bytes, in base64, that encrypt the Gmail tokens (lib/email/gmail-tokens.server.ts). */
   get gmailTokenKey(): string | undefined {
     return value(process.env.GMAIL_TOKEN_KEY);
   },

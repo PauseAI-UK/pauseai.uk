@@ -6,7 +6,7 @@ import type { WhatsAppTemplate } from "@/lib/broadcasts/drafts.server";
 import { staffTime } from "@/lib/staff-time";
 import { textCost } from "@/lib/broadcasts/broadcasts";
 import { SENDING_DAYS } from "@/lib/broadcasts/days";
-import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-connect";
+import { GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-connect";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
 import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import BounceReason, { firstSentence } from "./BounceReason";
-import { emailCopy } from "@/lib/email/copy";
+import { emailCopy } from "./copy";
 
 describe("firstSentence", () => {
   it.each([

@@ -6,9 +6,9 @@ import { config } from "@/lib/server/config.server";
 // site runs, as the repo is public; every proxy is a plus address on it,
 // <local>+<tag>@<domain>, built from the variable, so no address is
 // written in the code. It's connected on /staff/me by someone logged in as
-// it, like a staff member's Gmail (lib/accounts/gmail-accounts.server.ts).
+// it, like a staff member's Gmail (lib/email/gmail-accounts.server.ts).
 
-export { LETTERS_DAILY_LIMIT } from "@/lib/accounts/gmail-connect";
+export { LETTERS_DAILY_LIMIT } from "@/lib/email/gmail-connect";
 
 /** The letters inbox's own address, lowercased; undefined where it isn't set. */
 export function lettersInbox(): string | undefined {

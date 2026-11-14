@@ -24,7 +24,7 @@ import {
   sendWith,
   sentBy,
 } from "./email.server";
-import { send } from "@/lib/accounts/email-sending.server";
+import { send } from "./sending.server";
 import { emailCopy } from "./copy";
 
 const POSTMARK = "https://api.postmarkapp.com/email";

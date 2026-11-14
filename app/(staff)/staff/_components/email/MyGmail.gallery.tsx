@@ -7,7 +7,7 @@ import { MyGmailExample } from "./MyGmail.gallery.client";
 export const myGmailGallery: Example[] = [
   {
     name: "MyGmail",
-    file: "app/(staff)/staff/_components/accounts/MyGmail.tsx",
+    file: "app/(staff)/staff/_components/email/MyGmail.tsx",
     variants: [
       {
         label: "Not connected: what connecting means, and the button",

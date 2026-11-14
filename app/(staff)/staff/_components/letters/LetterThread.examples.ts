@@ -1,5 +1,5 @@
 import type { LetterThread } from "@/lib/letters/threads.server";
-import type { GmailAccount } from "@/lib/accounts/gmail-accounts.server";
+import type { GmailAccount } from "@/lib/email/gmail-accounts.server";
 
 /** Jo's letter to Polly, from Jo's Gmail, which Polly answered and Jo answered back. */
 export const exampleThread: LetterThread = {

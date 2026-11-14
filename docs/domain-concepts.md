@@ -685,7 +685,7 @@ letter at a time, as if they'd written each. It has no unsubscribe link and
 no consent check, as it's to public figures in their public role.
 
 Each staff member connects their own Gmail on their page (`/staff/me`,
-`lib/accounts/gmail-accounts.server.ts`). A mailing's Sent from links there while
+`lib/email/gmail-accounts.server.ts`). A mailing's Sent from links there while
 their Gmail isn't connected. Once a Gmail is connected, any staff member can
 send a mailing from it. The Google Cloud project's consent screen is
 Internal, so only accounts in PauseAI's Google Workspace, pauseai.info's as
@@ -1477,7 +1477,7 @@ each time it happens, with a link to where to deal with it:
 - a Gmail account the read every 5 minutes couldn't read, after a run that could
   (`lib/jobs/gmail-reading.server.ts`); one Google disconnected has its own;
 - a body's import held, when none was (`lib/politicians/imports.server.ts`);
-- Google disconnecting a Gmail account (`lib/accounts/gmail-accounts.server.ts`);
+- Google disconnecting a Gmail account (`lib/email/gmail-accounts.server.ts`);
 - letters to MPs waiting over three hours to go, until those it named
   have gone (`LATE_HOURS` in `lib/letters/sending.server.ts`);
 - once a day at most, a report of the supporters' copies that bounced

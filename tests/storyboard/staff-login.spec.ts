@@ -8,6 +8,7 @@ import { BASE, expect, flowStorageState, frame, story, test } from "./fixtures";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
+import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 
@@ -238,13 +239,13 @@ test("Connecting your Gmail", async ({ page, flowDatabase }) => {
   await expect(page.locator('nav a[href="/staff/me"]').first()).toHaveText(staffEmail());
   await page.goto(`${BASE}/staff/me`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(accountsCopy.me.title);
-  await expect(page.getByRole("link", { name: accountsCopy.gmail.connect })).toBeVisible();
+  await expect(page.getByRole("link", { name: emailCopy.gmail.connect })).toBeVisible();
   await frame(page, "Your account");
   story("Connect Gmail greys, with a spinner, while Google's page comes.");
 
   // Google's page kept from coming, so the button can be seen waiting for it.
   const google = await stayOnPage(page, /\/staff\/api\/gmail\/connect/);
-  const connect = page.getByRole("link", { name: accountsCopy.gmail.connect });
+  const connect = page.getByRole("link", { name: emailCopy.gmail.connect });
   await connect.click();
   // Its spinner shows once it has taken a moment.
   await expect(connect.locator("[aria-hidden]")).toBeVisible();
@@ -253,21 +254,21 @@ test("Connecting your Gmail", async ({ page, flowDatabase }) => {
     "Back from Google, their Gmail is connected. The page says how many emails it has sent today, with Disconnect Gmail.",
   );
   await page.goto(await google.asked());
-  await expect(page.getByText(accountsCopy.gmail.outcomes.connected)).toBeVisible();
-  await expect(page.getByRole("button", { name: accountsCopy.gmail.disconnect })).toBeVisible();
+  await expect(page.getByText(emailCopy.gmail.outcomes.connected)).toBeVisible();
+  await expect(page.getByRole("button", { name: emailCopy.gmail.disconnect })).toBeVisible();
   await frame(page, "Gmail connected");
   story("Disconnect Gmail disconnects it, and the page says so.");
 
-  await page.getByRole("button", { name: accountsCopy.gmail.disconnect }).click();
-  await expect(page.getByText(accountsCopy.gmail.outcomes.disconnected)).toBeVisible();
-  await expect(page.getByText(accountsCopy.gmail.outcomes.connected)).toHaveCount(0);
-  await expect(page.getByRole("link", { name: accountsCopy.gmail.connect })).toBeVisible();
+  await page.getByRole("button", { name: emailCopy.gmail.disconnect }).click();
+  await expect(page.getByText(emailCopy.gmail.outcomes.disconnected)).toBeVisible();
+  await expect(page.getByText(emailCopy.gmail.outcomes.connected)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: emailCopy.gmail.connect })).toBeVisible();
   await frame(page, "Gmail disconnected");
   story("If they choose a Google account other than their staff address, the page says which to choose.");
 
   // Google sending you back having chosen another account, as the callback does.
   await page.goto(`${BASE}/staff/me?gmail=other-account`);
-  await expect(page.getByText(accountsCopy.gmail.otherAccount(staffEmail()))).toBeVisible();
+  await expect(page.getByText(emailCopy.gmail.otherAccount(staffEmail()))).toBeVisible();
   await frame(page, "The wrong Google account");
 });
 

@@ -19,7 +19,7 @@ import {
 } from "@/lib/mailings/doc";
 import { answerLabels } from "@/lib/mailings/fields";
 import StaffLink from "../ui/StaffLink";
-import { DEFAULT_SENDER } from "@/lib/accounts/gmail-connect";
+import { DEFAULT_SENDER } from "@/lib/email/gmail-connect";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { named } from "@/lib/email-parsing/addresses";
 import { leavePage } from "@/lib/leave-page.client";
@@ -38,7 +38,7 @@ import {
   useDraftWriter,
   type DraftActions,
 } from "./DraftWriter";
-import { SentToday } from "../accounts/GmailConnect";
+import { SentToday } from "../email/GmailConnect";
 import { DeleteDraft } from "./MailingButtons";
 import MailingEditor from "./MailingEditor";
 import MailingFiles from "./MailingFiles";

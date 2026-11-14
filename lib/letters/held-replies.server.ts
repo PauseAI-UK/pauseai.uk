@@ -3,7 +3,7 @@ import { copy } from "@/lib/content/email-your-mp";
 import { now } from "@/lib/now";
 import { query } from "@/lib/server/db.server";
 import { isBlocked, sentBy } from "@/lib/email/email.server";
-import { send } from "@/lib/accounts/email-sending.server";
+import { send } from "@/lib/email/sending.server";
 import { letterEvent } from "./lifecycle.server";
 import { cannotSend, lettersBackend, outgoingLetter, threading } from "./sending.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";

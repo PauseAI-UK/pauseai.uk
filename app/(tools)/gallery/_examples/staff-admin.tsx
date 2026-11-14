@@ -3,8 +3,8 @@
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
 import { keepSignedInGallery } from "@/app/(staff)/staff/_components/accounts/KeepSignedIn.gallery";
-import { myGmailGallery } from "@/app/(staff)/staff/_components/accounts/MyGmail.gallery";
-import { gmailConnectGallery } from "@/app/(staff)/staff/_components/accounts/GmailConnect.gallery";
+import { myGmailGallery } from "@/app/(staff)/staff/_components/email/MyGmail.gallery";
+import { gmailConnectGallery } from "@/app/(staff)/staff/_components/email/GmailConnect.gallery";
 import { staffSessionsGallery } from "@/app/(staff)/staff/_components/accounts/StaffSessions.gallery";
 import { staffAccountsTableGallery } from "@/app/(staff)/staff/_components/accounts/StaffAccountsTable.gallery";
 import { accountsNoticeGallery } from "@/app/(staff)/staff/_components/accounts/AccountsNotice.gallery";

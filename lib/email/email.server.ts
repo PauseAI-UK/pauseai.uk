@@ -17,7 +17,7 @@ import { problem } from "@/lib/server/problems.server";
 import { emailCopy } from "./copy";
 
 // Every email the site sends goes through sendWith(), whatever it's for:
-// most by send() (lib/accounts/email-sending.server.ts), staff's notifications by notifyStaff()
+// most by send() (sending.server.ts), staff's notifications by notifyStaff()
 // (notifications.server.ts). A bounce or complaint is about an address, not about
 // the email that found it out: once an address hard-bounces or complains,
 // nothing is sent to it again until staff unblock it. It goes by Postmark
@@ -210,7 +210,7 @@ function withHtml(email: Email): Email {
 /**
  * What sendWith() calls on in the modules above this one, which send
  * through it: how to get a connected Gmail account's access token
- * (gmailAccess in lib/accounts/gmail-accounts.server.ts), needed only to send by Gmail; and what
+ * (gmailAccess in gmail-accounts.server.ts), needed only to send by Gmail; and what
  * to do about an address the provider's refusal just blocked (in
  * notifications.server.ts, which tells staff if it's a politician's).
  */

@@ -8,7 +8,7 @@ import { broadcastsCopy } from "./copy";
 import { now } from "@/lib/now";
 import { textBackend } from "./channels.server";
 import { query, transaction } from "@/lib/server/db.server";
-import { send } from "@/lib/accounts/email-sending.server";
+import { send } from "@/lib/email/sending.server";
 import { sendText } from "@/lib/server/outside-services/whatsapp.server";
 import { emailCopy } from "@/lib/email/copy";
 

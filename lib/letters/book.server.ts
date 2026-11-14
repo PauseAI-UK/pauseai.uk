@@ -3,7 +3,7 @@ import { cache } from "react";
 import { addressForms, type FormPerson, type PoliticianBook } from "./one-off";
 import { auditActions } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
-import { gmailAccounts } from "@/lib/accounts/gmail-accounts.server";
+import { gmailAccounts } from "@/lib/email/gmail-accounts.server";
 
 // Every address a politician has or has had, the domains of their own, and
 // the forms of parliament address their name and seat make: what says a

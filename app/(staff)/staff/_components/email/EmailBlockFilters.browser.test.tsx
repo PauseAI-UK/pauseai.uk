@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import EmailBlockFilters from "./EmailBlockFilters";
 import { chips } from "@/tests/browser/staff";
-import { emailCopy } from "@/lib/email/copy";
+import { emailCopy } from "./copy";
 
 describe("EmailBlockFilters", () => {
   it("searches the addresses on its page, and filters by cause", async () => {

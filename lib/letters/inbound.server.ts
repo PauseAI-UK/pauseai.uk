@@ -6,7 +6,7 @@ import { config } from "@/lib/server/config.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { isBlocked } from "@/lib/email/email.server";
 import { isAutoResponder, type PostmarkProblem } from "@/lib/email/postmark-webhooks.server";
-import { send } from "@/lib/accounts/email-sending.server";
+import { send } from "@/lib/email/sending.server";
 import type { HandlingReason, ReplyHandling } from "./records.server";
 import { lettersDomain, nameLine, notifyDomain, type Attachment } from "@/lib/server/outside-services/postmark.server";
 import { gzipSync } from "node:zlib";

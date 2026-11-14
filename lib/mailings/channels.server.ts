@@ -1,6 +1,6 @@
 import "server-only";
-import { send } from "@/lib/accounts/email-sending.server";
-import { GMAIL_DAILY_LIMIT, sentToday } from "@/lib/accounts/gmail-accounts.server";
+import { send } from "@/lib/email/sending.server";
+import { GMAIL_DAILY_LIMIT, sentToday } from "@/lib/email/gmail-accounts.server";
 import { mailbox, type MailingChannel } from "@/lib/letters/channels.server";
 import { deliveryProblem, type PostmarkProblem } from "@/lib/email/postmark-webhooks.server";
 import { headerName, notifyDomain } from "@/lib/server/outside-services/postmark.server";

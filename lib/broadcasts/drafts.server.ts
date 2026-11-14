@@ -28,7 +28,7 @@ import {
 import { now } from "@/lib/now";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";
-import { gmailAccount, GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-accounts.server";
+import { gmailAccount, GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-accounts.server";
 import type { ChannelResult } from "@/lib/letters/channels.server";
 import {
   getWrittenMailing,

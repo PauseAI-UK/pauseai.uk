@@ -22,7 +22,7 @@ import { ANOTHER_RUNNING, runJob } from "./jobs.server";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
 import { jobsCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
-import { accountsCopy } from "@/lib/accounts/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const JO = "jo@pauseai.uk";
@@ -547,7 +547,7 @@ describeWithDatabase("reading Gmail", () => {
     ]);
     expect(await query("SELECT email FROM staff_accounts WHERE gmail_token IS NOT NULL")).toEqual([{ email: JO }]);
     // Its own email, that it was disconnected, and not the one for an account that can't be read too.
-    expect(sent.map((s) => s.Subject)).toEqual([accountsCopy.notifications.gmailDisconnected.subject("al@pauseai.uk")]);
+    expect(sent.map((s) => s.Subject)).toEqual([emailCopy.notifications.gmailDisconnected.subject("al@pauseai.uk")]);
   });
 
   it("keeps each run in the import log, unchanged when it found nothing, and who started it", async () => {

@@ -14,7 +14,7 @@ import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
-import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
+import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
@@ -116,8 +116,8 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/me`);
-  await page.getByRole("link", { name: accountsCopy.gmail.connect }).click();
-  await expect(page.getByText(accountsCopy.gmail.outcomes.connected)).toBeVisible();
+  await page.getByRole("link", { name: emailCopy.gmail.connect }).click();
+  await expect(page.getByText(emailCopy.gmail.outcomes.connected)).toBeVisible();
   await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
   await expect(page.getByText(jobsCopy.gmailReading.never)).toBeVisible();
   await frame(page, "The Gmail import's page");
@@ -230,8 +230,8 @@ test("Google disconnects a Gmail", async ({ page, request, flowDatabase }) => {
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/me`);
-  await page.getByRole("link", { name: accountsCopy.gmail.connect }).click();
-  await expect(page.getByText(accountsCopy.gmail.outcomes.connected)).toBeVisible();
+  await page.getByRole("link", { name: emailCopy.gmail.connect }).click();
+  await expect(page.getByText(emailCopy.gmail.outcomes.connected)).toBeVisible();
   // Theirs alone: the letters inbox, which every flow has connected, isn't.
   runSql(
     flowDatabase,
@@ -247,7 +247,7 @@ test("Google disconnects a Gmail", async ({ page, request, flowDatabase }) => {
     headers: { Authorization: "Bearer fixture-cron-secret" },
   });
   expect(res.ok()).toBe(true);
-  const words = accountsCopy.notifications.gmailDisconnected;
+  const words = emailCopy.notifications.gmailDisconnected;
   await emailFrame(page, notified(words.subject(staffEmail()))!, "The email to the notification inbox");
 
   story("The Gmail import's page shows that run failed, and why.");
@@ -257,7 +257,7 @@ test("Google disconnects a Gmail", async ({ page, request, flowDatabase }) => {
 
   story("Their account page offers to connect their Gmail again.");
   await page.goto(`${BASE}/staff/me`);
-  await expect(page.getByRole("link", { name: accountsCopy.gmail.connect })).toBeVisible();
+  await expect(page.getByRole("link", { name: emailCopy.gmail.connect })).toBeVisible();
   await frame(page, "Their account page");
 });
 
@@ -267,7 +267,7 @@ test("The letters inbox connects", async ({ page }) => {
   );
   await logInAsStaff(page, BASE, LETTERS_INBOX);
   await page.goto(`${BASE}/staff/me?gmail=connected`);
-  await expect(page.getByRole("status")).toHaveText(accountsCopy.gmail.outcomes.connectedLettersInbox);
+  await expect(page.getByRole("status")).toHaveText(emailCopy.gmail.outcomes.connectedLettersInbox);
   await frame(page, "The letters inbox's account page");
 });
 
@@ -449,8 +449,8 @@ test("Keeping Joseph's threads", async ({ page, flowDatabase }) => {
   addStaffAccount(flowDatabase, "joseph@pauseai.uk");
   await logInAsStaff(page, BASE, "joseph@pauseai.uk");
   await page.goto(`${BASE}/staff/me`);
-  await page.getByRole("link", { name: accountsCopy.gmail.connect }).click();
-  await expect(page.getByText(accountsCopy.gmail.kept.before)).toBeVisible();
+  await page.getByRole("link", { name: emailCopy.gmail.connect }).click();
+  await expect(page.getByText(emailCopy.gmail.kept.before)).toBeVisible();
   await frame(page, "Kept");
 });
 

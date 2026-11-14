@@ -69,8 +69,8 @@ together, and which feature depends on which can be seen and held.
 
 | Feature       | What it is                                                                                                                                                          |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `email`       | The sending layer: sending, blocked addresses, Postmark's bounce and delivery webhooks, the notifications to staff, kept messages                                   |
-| `accounts`    | Staff accounts: login, sessions, permissions, your own page, the connected Gmail accounts, and `send()`                                                             |
+| `email`       | The sending layer: sending, the connected Gmail accounts, blocked addresses, Postmark's bounce and delivery webhooks, the notifications to staff, kept messages     |
+| `accounts`    | Staff accounts: login, sessions, permissions, your own page                                                                                                         |
 | `asks`        | What we ask politicians: the asks, their kinds and the answers each allows                                                                                          |
 | `notes`       | The notes on a supporter's or a politician's page                                                                                                                   |
 | `letters`     | Letters to politicians and their lifecycle: sending, the letters inbox, replies, relays, threads, the one-off emails, and how a copy of something sent to many went |
@@ -87,7 +87,8 @@ together, and which feature depends on which can be seen and held.
 Beside the features, `_components/` has `ui/`, the staff kit (the page
 frame, tables, filters, menus), and `shell/`, the frame every staff page
 sits in (the sidebar, and every page's name in it). `_components/email/`
-has the blocked addresses' parts that need no other feature.
+has the blocked addresses' parts that need no other feature, and the
+connected Gmail's.
 
 ### Which feature uses which
 
@@ -130,10 +131,12 @@ it.
   in: each feature gives its hooks (`DeliveryHooks`), and
   `lib/oversight/delivery-problems.server.ts`, above them all, puts them
   together for the webhook and the Gmail reader.
-- **`send()` is accounts'** (`lib/accounts/email-sending.server.ts`). It's
-  the sending layer's `sendWith()` with the Gmail access of the connected
-  staff accounts, whose tokens are accounts'. Every feature that sends
-  already uses accounts, so nothing that sends sits below it.
+- **The connected Gmail accounts are the sending layer's.** `send()`
+  (`lib/email/sending.server.ts`) is `sendWith()` with their access, so
+  they're beside it, though each is kept on a staff account's row: they
+  read and write that table, and use nothing of accounts'. The Gmail card
+  on your own page (`MyGmail`) is the sending layer's too, and the page,
+  which is accounts', hands it the action that disconnects it.
 - **The audit log and the import log are below every feature.** Every
   feature writes to the audit log (`lib/server/audit.server.ts`,
   `lib/audit-events.ts`, `lib/field-changes.ts`), and events' and
@@ -421,7 +424,7 @@ holds it.
 - **Email** goes out only through `sendWith()` (`lib/email/email.server.ts`),
   which skips blocked addresses and records each send
   (`docs/domain-concepts.md`, "Email"). The site's code calls it as `send()`
-  (`lib/accounts/email-sending.server.ts`), and staff notifications call it
+  (`lib/email/sending.server.ts`), and staff notifications call it
   directly (`lib/email/notifications.server.ts`). ESLint lets only
   `lib/email/email.server.ts` import Postmark's and Gmail's sending.
 - **Reading email** is all in `lib/email-parsing/`: addresses, MIME,

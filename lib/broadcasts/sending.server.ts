@@ -23,7 +23,7 @@ import { broadcastEmailChannel, textBackend } from "./channels.server";
 import { supporterAudience } from "./recipients.server";
 import { query } from "@/lib/server/db.server";
 import { hashOf } from "@/lib/supporters/email-settings.server";
-import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
+import { gmailAccount } from "@/lib/email/gmail-accounts.server";
 import { paced, type ChannelMessage, type ChannelResult } from "@/lib/letters/channels.server";
 import { attachmentsOf, emailFor } from "@/lib/mailings/drafts.server";
 import { newMessageId } from "@/lib/server/mime.server";

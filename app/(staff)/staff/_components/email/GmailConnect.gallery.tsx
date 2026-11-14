@@ -7,7 +7,7 @@ import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
 export const gmailConnectGallery: Example[] = [
   {
     name: "GmailConnect",
-    file: "app/(staff)/staff/_components/accounts/GmailConnect.tsx",
+    file: "app/(staff)/staff/_components/email/GmailConnect.tsx",
     variants: [
       {
         label: "What connecting means, said before going to Google",
@@ -29,7 +29,7 @@ export const gmailConnectGallery: Example[] = [
   },
   {
     name: "SentToday",
-    file: "app/(staff)/staff/_components/accounts/GmailConnect.tsx",
+    file: "app/(staff)/staff/_components/email/GmailConnect.tsx",
     variants: [
       {
         label: "An account's sends against today's limit",
@@ -43,7 +43,7 @@ export const gmailConnectGallery: Example[] = [
   },
   {
     name: "GmailOutcome",
-    file: "app/(staff)/staff/_components/accounts/GmailConnect.tsx",
+    file: "app/(staff)/staff/_components/email/GmailConnect.tsx",
     variants: (["connected", "other-account", "refused", "failed"] as const).map((outcome) => ({
       label: `Back from Google: ${outcome}`,
       render: () => (

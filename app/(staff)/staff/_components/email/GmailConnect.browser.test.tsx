@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { accountsCopy } from "./copy";
+import { emailCopy } from "./copy";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
 
-const gmail = accountsCopy.gmail;
+const gmail = emailCopy.gmail;
 
 describe("GmailConnect, SentToday and GmailOutcome", () => {
   it("says what connecting means, then links to Google's consent, coming back to the page", async () => {

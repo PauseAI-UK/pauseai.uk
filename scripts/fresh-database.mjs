@@ -242,7 +242,7 @@ export function connectBroadcastMailbox(url, key) {
  * Connects the fake Gmail of `email`, the letters inbox of a fixture build
  * (LETTERS_INBOX), as someone logged in as it would on /staff/me: a staff
  * account holding the fixture's refresh token for it, encrypted with `key`
- * (GMAIL_TOKEN_KEY) as lib/accounts/gmail-tokens.server.ts does, read from the fake
+ * (GMAIL_TOKEN_KEY) as lib/email/gmail-tokens.server.ts does, read from the fake
  * mailbox's first history ID, under the name `name`.
  */
 export function connectLettersInbox(url, email, key, name = "Letters") {

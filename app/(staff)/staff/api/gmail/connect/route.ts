@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { backPath, GMAIL_CALLBACK_PATH, GMAIL_STATE_COOKIE } from "@/lib/accounts/gmail-connect";
+import { backPath, GMAIL_CALLBACK_PATH, GMAIL_STATE_COOKIE } from "@/lib/email/gmail-connect";
 import { lettersInbox } from "@/lib/letters/letters-inbox.server";
 import { gmailConsentUrl } from "@/lib/server/outside-services/gmail.server";
 import { requireStaff } from "@/lib/accounts/auth.server";

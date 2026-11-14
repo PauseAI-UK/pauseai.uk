@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { http, HttpResponse } from "msw";
-import { gmailAccounts } from "@/lib/accounts/gmail-accounts.server";
+import { gmailAccounts } from "@/lib/email/gmail-accounts.server";
 import { createSession } from "@/lib/accounts/auth.server";
 import { describeWithDatabase, TEST_GMAIL_TOKEN_KEY, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";

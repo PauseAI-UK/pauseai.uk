@@ -2,7 +2,7 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { emailSettingsCopy as settingsCopy } from "@/lib/content/email-settings";
 import { SENDING_DAYS } from "@/lib/broadcasts/days";
-import { GMAIL_DAILY_LIMIT } from "@/lib/accounts/gmail-connect";
+import { GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-connect";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { connectGmail } from "./gmail-steps";
 import { addStaffAccount, logInAsStaff } from "./login-steps";

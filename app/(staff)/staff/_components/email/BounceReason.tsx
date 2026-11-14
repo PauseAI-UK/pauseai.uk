@@ -1,7 +1,7 @@
 import Tag from "@/components/ui/Tag";
 import Shortened from "../ui/Shortened";
 import styles from "./BounceReason.module.css";
-import { emailCopy } from "@/lib/email/copy";
+import { emailCopy } from "./copy";
 
 /** Where a problem came from: a hold, from CiviCRM; a bounce found in someone's Gmail; else Postmark, which told us. */
 export function problemSource({ kind, foundInGmail }: { kind: string; foundInGmail: boolean }): string {

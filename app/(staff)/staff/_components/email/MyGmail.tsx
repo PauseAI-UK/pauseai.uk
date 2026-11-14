@@ -1,14 +1,14 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import type { GmailAccount } from "@/lib/accounts/gmail-accounts.server";
+import type { GmailAccount } from "@/lib/email/gmail-accounts.server";
 import { staffDate } from "@/lib/staff-time";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
 import styles from "./MyGmail.module.css";
 import { Card } from "../ui/Grid";
 import StaffLink from "../ui/StaffLink";
-import { accountsCopy } from "./copy";
+import { emailCopy } from "./copy";
 import { shellCopy } from "../shell/copy";
 
-const copy = accountsCopy.gmail;
+const copy = emailCopy.gmail;
 
 /**
  * What's kept from this mailbox: all its threads with politicians, or only

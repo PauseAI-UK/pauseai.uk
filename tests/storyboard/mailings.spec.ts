@@ -13,7 +13,7 @@ import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
-import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
+import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
@@ -97,8 +97,8 @@ test("A new mailing", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   // Your Gmail connected, on your account page, so there's one to send from.
   await page.goto(`${BASE}/staff/me`);
-  await page.getByRole("link", { name: accountsCopy.gmail.connect }).click();
-  await expect(page.getByText(accountsCopy.gmail.outcomes.connected)).toBeVisible();
+  await page.getByRole("link", { name: emailCopy.gmail.connect }).click();
+  await expect(page.getByText(emailCopy.gmail.outcomes.connected)).toBeVisible();
   await page.goto(`${BASE}/staff/mailings`);
   await frame(page, "The mailings page");
   story(
@@ -571,8 +571,8 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
 
   // Connected on your account page, it's the one a new mailing is sent from.
   await from.getByRole("link", { name: copy.connectOne }).click();
-  await page.getByRole("link", { name: accountsCopy.gmail.connect }).click();
-  await expect(page.getByText(accountsCopy.gmail.outcomes.connected)).toBeVisible();
+  await page.getByRole("link", { name: emailCopy.gmail.connect }).click();
+  await expect(page.getByText(emailCopy.gmail.outcomes.connected)).toBeVisible();
   await startFromList(page, "nation=scotland", 1);
   await page.getByLabel(copy.subject).fill("See you in Edinburgh");
   await caretAtEnd(page.getByRole("textbox", { name: copy.letter }));
@@ -580,7 +580,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
   await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);
   await expect(page.getByLabel(copy.fromLegend, { exact: false })).toHaveValue(staffEmail());
-  await expect(from.getByText(accountsCopy.gmail.sentToday(0, "1,800"))).toBeVisible();
+  await expect(from.getByText(emailCopy.gmail.sentToday(0, "1,800"))).toBeVisible();
   // Yours connected, there's no link to connect it, and the name is the Gmail's, filled in.
   await expect(from.getByRole("link", { name: copy.connectOne })).toHaveCount(0);
   await expect(page.getByLabel(copy.fromNameLabel, { exact: false })).not.toHaveValue("");

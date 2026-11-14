@@ -27,7 +27,7 @@ export function staffLink(path: string, request: Request | undefined): string {
 /**
  * What sending does about an address the provider's refusal just blocked:
  * tells staff if it's a politician's (alertIfPoliticianBlocked). For every
- * email, notifications' own and those sent by send() (lib/accounts/email-sending.server.ts).
+ * email, notifications' own and those sent by send() (sending.server.ts).
  */
 export const sendHooks: SendHooks = {
   blocked: (address, reason) => alertIfPoliticianBlocked(address, reason, undefined),

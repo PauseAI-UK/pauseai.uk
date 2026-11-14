@@ -1,6 +1,6 @@
 // The words of staff accounts that the server or pure code uses, or both
-// it and the staff pages: the login email, the dev login, the accounts page
-// and its permissions' names, and the problems Gmail's connection reports.
+// it and the staff pages: the login email, the dev login, and the accounts
+// page and its permissions' names.
 // The staff pages' own are in app/(staff)/staff/_components/accounts/copy.ts.
 
 export const accountsCopy = {
@@ -85,20 +85,5 @@ export const accountsCopy = {
     alreadyThere: "They're in the table already.",
     // When a change would leave no admin.
     lastAdmin: "The last administrator can't be removed or lose permissions to administrate.",
-  },
-  // The emails to the notification inbox (lib/email/notifications.server.ts) about a connected Gmail.
-  notifications: {
-    // Google stopped our access to a connected Gmail: whose, what stops, and where to connect it again.
-    gmailDisconnected: {
-      subject: (account: string) => `${account}'s Gmail is disconnected`,
-      body: (account: string, lettersInbox: boolean, link: string) =>
-        `Google stopped our access to ${account}'s Gmail. ${lettersInbox ? "Letters to MPs, and the replies to them, wait until it's connected again." : "Mailings sent using that mailbox, and replies, will be paused until it's connected again."} Log in as ${account} and connect it on its account page:\n\n${link}`,
-    },
-  },
-  // What went wrong without stopping the work (lib/server/problems.server.ts). No job reaches these: each is kept as an
-  // error (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff.
-  problems: {
-    // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission.
-    tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
   },
 };

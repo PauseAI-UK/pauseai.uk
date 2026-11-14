@@ -8,7 +8,7 @@ import { now } from "@/lib/now";
 import { sendsAt } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
-import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
+import { gmailAccount } from "@/lib/email/gmail-accounts.server";
 import { transition } from "@/lib/letters/lifecycle.server";
 import { gmailEmail, mailingChannel, postmarkEmail } from "./channels.server";
 import type { ChannelResult } from "@/lib/letters/channels.server";

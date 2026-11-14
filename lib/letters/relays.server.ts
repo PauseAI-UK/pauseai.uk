@@ -3,7 +3,7 @@ import { gunzipSync } from "node:zlib";
 import type { LetterEvent } from "./status";
 import { query } from "@/lib/server/db.server";
 import { isBlocked, sentBy, type SendResult } from "@/lib/email/email.server";
-import { send } from "@/lib/accounts/email-sending.server";
+import { send } from "@/lib/email/sending.server";
 import {
   cannotSend,
   lettersBackend,

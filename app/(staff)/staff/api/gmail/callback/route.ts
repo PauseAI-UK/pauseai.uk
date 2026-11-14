@@ -5,8 +5,8 @@ import {
   GMAIL_CALLBACK_PATH,
   GMAIL_STATE_COOKIE,
   type GmailConnectOutcome,
-} from "@/lib/accounts/gmail-connect";
-import { connectGmail } from "@/lib/accounts/gmail-accounts.server";
+} from "@/lib/email/gmail-connect";
+import { connectGmail } from "@/lib/email/gmail-accounts.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { siteUrl } from "@/lib/site-url.server";
 

@@ -3,12 +3,12 @@
 import { ButtonAnchor } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
-import { connectPath, GMAIL_DAILY_LIMIT, LETTERS_DAILY_LIMIT } from "@/lib/accounts/gmail-connect";
+import { connectPath, GMAIL_DAILY_LIMIT, LETTERS_DAILY_LIMIT } from "@/lib/email/gmail-connect";
 import Strip from "../ui/Strip";
 import styles from "./GmailConnect.module.css";
-import { accountsCopy } from "./copy";
+import { emailCopy } from "./copy";
 
-const copy = accountsCopy.gmail;
+const copy = emailCopy.gmail;
 const LIMIT = GMAIL_DAILY_LIMIT.toLocaleString("en-GB");
 const LETTERS_LIMIT = LETTERS_DAILY_LIMIT.toLocaleString("en-GB");
 

@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest";
 import { addTestLetter, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import type { SentEmailSort } from "@/lib/staff-lists";
 import { query } from "@/lib/server/db.server";
-import { send } from "@/lib/accounts/email-sending.server";
+import { send } from "@/lib/email/sending.server";
 import { recordProblem } from "@/lib/email/email.server";
 import { listSentEmails } from "./sent-emails.server";
 import { linkSupporters } from "@/lib/supporters/records.server";

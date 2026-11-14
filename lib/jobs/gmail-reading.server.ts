@@ -7,7 +7,7 @@ import { handleDeliveryProblem } from "@/lib/oversight/delivery-problems.server"
 import { lettersInbox } from "@/lib/letters/letters-inbox.server";
 import { readLettersInbox } from "@/lib/letters/letters-inbox-reading.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
-import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "@/lib/accounts/gmail-accounts.server";
+import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "@/lib/email/gmail-accounts.server";
 import { asRun, type Ran } from "@/lib/server/import-runs.server";
 import { keepsPoliticianThreads } from "@/lib/letters/one-off";
 import { keepIfPoliticianThread, reportUnmatchedMail } from "@/lib/letters/one-off-emails.server";

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { keepsPoliticianThreads } from "@/lib/letters/one-off";
-import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
+import { gmailAccount } from "@/lib/email/gmail-accounts.server";
 import { isLettersInboxAddress } from "@/lib/letters/letters-inbox.server";
 import { listSessions, requireStaff } from "@/lib/accounts/auth.server";
 import { firstOf, type ParamValue } from "@/lib/list-params";
 import { BROADCAST_SENDER } from "@/lib/broadcasts/broadcasts";
 import { disconnectMyGmail } from "../../_components/accounts/actions";
-import MyGmail from "../../_components/accounts/MyGmail";
+import MyGmail from "../../_components/email/MyGmail";
 import StaffSessions from "../../_components/accounts/StaffSessions";
 import Grid from "../../_components/ui/Grid";
 import Page from "../../_components/ui/Page";

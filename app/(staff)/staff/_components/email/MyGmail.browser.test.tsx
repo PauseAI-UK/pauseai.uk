@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { exampleGmailAccount } from "../letters/LetterThread.examples";
-import { accountsCopy } from "./copy";
+import { emailCopy } from "./copy";
 import MyGmail from "./MyGmail";
 import { shellCopy } from "../shell/copy";
 
-const gmail = accountsCopy.gmail;
+const gmail = emailCopy.gmail;
 
 describe("MyGmail", () => {
   it("connected: saying so in its heading, since when, today's sends, and Disconnect", async () => {
@@ -58,15 +58,15 @@ describe("MyGmail, on what's kept from your Gmail", () => {
     const account = { email: "jo@pauseai.uk", name: "Jo", connectedAt: new Date(NOW), sentToday: 0, remaining: 1800 };
     const props = { me: "jo@pauseai.uk", account, outcome: "", disconnect: () => {} };
     const { rerender } = await render(<MyGmail {...props} keepsThreads />);
-    await says(accountsCopy.gmail.kept.before);
-    await expect.element(link(accountsCopy.gmail.oneOffEmails)).toHaveAttribute("href", "/staff/emails?type=one-off");
+    await says(emailCopy.gmail.kept.before);
+    await expect.element(link(emailCopy.gmail.oneOffEmails)).toHaveAttribute("href", "/staff/emails?type=one-off");
     await rerender(<MyGmail {...props} />);
-    expect(link(accountsCopy.gmail.oneOffEmails).query()).toBeNull();
-    await says(accountsCopy.gmail.notKept.before);
+    expect(link(emailCopy.gmail.oneOffEmails).query()).toBeNull();
+    await says(emailCopy.gmail.notKept.before);
     await expect.element(link(shellCopy.nav.mailings)).toHaveAttribute("href", "/staff/mailings");
     // hello@'s sends the broadcasts too.
     await rerender(<MyGmail {...props} me="hello@pauseai.uk" sendsBroadcasts />);
-    await says(accountsCopy.gmail.notKeptBroadcasts.before);
+    await says(emailCopy.gmail.notKeptBroadcasts.before);
     await expect.element(link(shellCopy.nav.broadcasts)).toHaveAttribute("href", "/staff/broadcasts");
     await rerender(<MyGmail {...props} lettersInbox />);
     expect(link(shellCopy.nav.mailings).query()).toBeNull();

@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { createSession } from "@/lib/accounts/auth.server";
-import { gmailAccounts } from "@/lib/accounts/gmail-accounts.server";
+import { gmailAccounts } from "@/lib/email/gmail-accounts.server";
 import { saveStaffAccount } from "@/lib/accounts/staff-accounts.server";
 import { query } from "@/lib/server/db.server";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";

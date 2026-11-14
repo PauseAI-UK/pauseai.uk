@@ -7,7 +7,7 @@ import { Muted } from "@/components/ui/Text";
 import type { EmailBlock } from "@/lib/email/email.server";
 import Bubble from "@/components/ui/Bubble";
 import styles from "./UnblockForm.module.css";
-import { emailCopy } from "@/lib/email/copy";
+import { emailCopy } from "./copy";
 
 const copy = emailCopy.emails;
 
