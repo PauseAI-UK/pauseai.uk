@@ -4,7 +4,13 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LETTERS_INBOX } from "./fixture-env.mjs";
 import { historyIdNow } from "./inbox-clock";
-import { deliverToLettersInbox, labelNames, lettersMailbox, resetLettersInbox } from "./letters-inbox";
+import {
+  deliverToLettersInbox,
+  emptyLettersInbox,
+  labelNames,
+  lettersMailbox,
+  resetLettersInbox,
+} from "./letters-inbox";
 import { fixtureResponse } from "./outside-services";
 
 const gmail = (path: string, init: RequestInit = {}, scope?: string, account = LETTERS_INBOX) =>
@@ -123,6 +129,10 @@ describe("the fake letters inbox", () => {
       expect(await gmail("/profile", {}, "flow_a").json()).toMatchObject({
         historyId: String(lettersMailbox("flow_a").messages[1].historyId),
       });
+      // A flow run again, on a database of the same name, starts with its mailbox empty.
+      emptyLettersInbox("flow_a", dir);
+      deliverToLettersInbox("Subject: Three", { scope: "flow_a" });
+      expect(lettersMailbox("flow_a").messages.map((m) => m.raw)).toEqual(["Subject: Three"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

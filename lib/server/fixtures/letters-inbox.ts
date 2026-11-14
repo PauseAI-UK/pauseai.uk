@@ -9,7 +9,8 @@
 // process. Mail from outside, an MP's reply or a bounce, is a file a test
 // writes in LETTERS_INBOX_DIR/<scope>/ (deliverToLettersInbox), which the
 // server picks up the next time it looks, or in Vitest, put straight in.
-// A file whose name ends .spam.eml arrives in Spam.
+// A file whose name ends .spam.eml arrives in Spam; one that ends .empty
+// empties the mailbox (emptyLettersInbox).
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -49,7 +50,8 @@ export function lettersMailbox(scope = "default"): Mailbox {
     for (const file of readdirSync(/*turbopackIgnore: true*/ dir).sort()) {
       if (mailbox.files.has(file)) continue;
       mailbox.files.add(file);
-      receive(mailbox, readFileSync(join(dir, file), "latin1"), file.endsWith(".spam.eml"));
+      if (file.endsWith(".empty")) mailbox.messages = [];
+      else receive(mailbox, readFileSync(join(dir, file), "latin1"), file.endsWith(".spam.eml"));
     }
   }
   return mailbox;
@@ -95,6 +97,18 @@ export function keepSent(raw: string, id: string, toSelf: boolean, scope?: strin
 }
 
 let written = 0;
+
+/**
+ * Empties the mailbox of `scope` in the server that reads `dir`
+ * (LETTERS_INBOX_DIR), by a file it picks up the next time it looks: a
+ * storyboard flow's database is new each run but has the same name, and
+ * mail the server kept from a run before would change the IDs it gives
+ * what arrives now, which the staff pages show.
+ */
+export function emptyLettersInbox(scope: string, dir: string): void {
+  mkdirSync(join(/*turbopackIgnore: true*/ dir, scope), { recursive: true });
+  writeFileSync(join(dir, scope, `${Date.now()}-${process.pid}-${String(++written).padStart(4, "0")}.empty`), "");
+}
 
 /**
  * Delivers `raw`, a whole message, to the letters inbox of `scope`: a
