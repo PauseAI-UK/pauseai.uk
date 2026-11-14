@@ -590,9 +590,16 @@ The map can't see what isn't in the tree: an environment file, or the
 machine's fonts and browser. And it takes a page that Next prefetched,
 which a flow never went on to open, to have changed nothing the flow
 shows: true while rendering a page writes nothing. `investments/storyboard-review-speed.md` has
-how it was checked against what runs in each flow, and
-`investments/narrow-imports.md` the imports that make a change reach many
-flows.
+how it was checked against what runs in each flow.
+
+**Which files reach the most flows.** `npm run reach` lists the site's
+files that reach the most desktop flows, from what the kept flows opened
+(the kept tree with the most of them, in the main checkout's store), so a
+change to one at the top reruns most of the storyboard. Narrowing what
+imports it, so fewer pages reach it, makes those reviews shorter: work
+down the list, and run it again after the next review to see whether it
+helped. `npm run reach -- 100` lists the top hundred, and
+`npm run reach -- lib/email` only the files under that folder.
 
 **Main's frames are main's own.** They come from main's suite, run on
 main's build, in a checkout of main's own: a git worktree in your temp

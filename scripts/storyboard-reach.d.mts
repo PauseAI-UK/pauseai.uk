@@ -1,6 +1,6 @@
 type Graph = Map<string, string[]>;
 type Route = { pattern: RegExp; files: string[] };
-type Context = {
+export type Context = {
   root: string;
   graph: Graph;
   routes: Route[];
