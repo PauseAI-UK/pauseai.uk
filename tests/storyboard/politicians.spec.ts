@@ -670,6 +670,8 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   await expect(bubble.getByRole("button", { name: "Ms Example" })).toBeVisible();
   await frame(page, "The salutations it most likely is", { window: true });
   await bubble.getByRole("button", { name: "Ms Example" }).click();
+  // The bubble closes once it's saved: a reload before then would beat the save.
+  await expect(bubble).toHaveCount(0);
   await page.reload();
   await expect(page.getByText(words.fromName)).toHaveCount(0);
   await expect(page.getByText(words.dear("Ms Example"))).toBeVisible();
