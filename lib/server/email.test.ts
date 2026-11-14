@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import {
+  addTestContact,
   addTestLetter,
   addTestMp,
   addTestPolitician,
@@ -627,13 +628,10 @@ describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
       }),
     ]);
     // A supporter's address names them, as the supporters list does: the newest name they gave.
-    await query(
-      `INSERT INTO airtable_members (id, email, name, joined_at, created_at, keep_informed, share_permission, source_modified_at)
-       VALUES ('recOther', 'other@example.org', 'Olly Other', now(), now(), true, true, now())`,
-    );
+    await addTestContact(1, "other@example.org", { name: "Olly Other" });
     const [{ id: olly }] = await query<{ id: number }>("INSERT INTO supporters DEFAULT VALUES RETURNING id::int");
     await query(
-      `INSERT INTO supporter_links (supporter_id, airtable_member_id, matched_by, matched_value) VALUES ($1, 'recOther', 'email', 'other@example.org')`,
+      `INSERT INTO supporter_links (supporter_id, civicrm_contact_id, matched_by, matched_value) VALUES ($1, 1, 'email', 'other@example.org')`,
       [olly],
     );
     // Linked, as the imports link: the kept supporters list made again.

@@ -11,6 +11,81 @@ export default function Timeline() {
     <section className={styles.timeline}>
       <div className="container">
         <TimelineList>
+          <TimelineEntry
+            id="edinburgh-panel-discussion"
+            month="November"
+            year="2026"
+            title="Edinburgh Panel Discussion"
+          >
+            <EntryText>
+              <p>
+                Who is responsible when AI goes wrong? How are Scottish politicians and technical and policy experts
+                modelling the threats, uncertainties, opportunities and avenues that lie ahead?
+              </p>
+              <p>
+                We convened a panel of experts and politicians at the Playfair Library in Edinburgh to discuss the
+                issues, propose solutions and answer questions from the public, with:
+              </p>
+              <EntryList>
+                <li>
+                  <strong>Luke McNally</strong>, Senior Lecturer at the University of Edinburgh in complex systems and
+                  AI safety.
+                </li>
+                <li>
+                  <strong>Susan Murray MP</strong>, for Mid Dunbartonshire (Liberal Democrats).
+                </li>
+                <li>
+                  <strong>David Kirkwood MSP</strong>, for South Scotland (Reform), on the cross-party group on Science
+                  &amp; Technology.
+                </li>
+                <li>
+                  <strong>Ben Macpherson MSP</strong>, for Edinburgh Northern and Leith (SNP), and former Minister for
+                  Innovation, Technology and Tertiary Education.
+                </li>
+                <li>
+                  <strong>Carol Mochan MSP</strong>, for South Scotland (Labour).
+                </li>
+                <li>
+                  <strong>Councillor Lorenzo Martinico</strong>, for Portobello/Craigmillar on the City of Edinburgh
+                  Council (Green).
+                </li>
+                <li>
+                  <strong>Michael Rovatsos</strong>, Professor of AI at the University of Edinburgh and former director
+                  of the Bayes Centre.
+                </li>
+                <li>
+                  <strong>Jonathan Bostock</strong>, AI alignment researcher at Arcadia Impact.
+                </li>
+              </EntryList>
+            </EntryText>
+            <Photos count={4}>
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-audience.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-audience-thumb.jpg"
+                alt="The audience in the Playfair Library, between its columns and busts, facing the panel and a screen"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-panel.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-panel-thumb.jpg"
+                alt="Three panellists at a table, one of them speaking"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-check-in.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-check-in-thumb.jpg"
+                alt="Volunteers in PauseAI T-shirts checking in a guest at the door"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <Shot
+                href="/images/edinburgh-conference-nov-2026/edinburgh-group.jpg"
+                src="/images/edinburgh-conference-nov-2026/edinburgh-group-thumb.jpg"
+                alt="Speakers, volunteers and guests behind a PauseAI banner in the Playfair Library"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            </Photos>
+          </TimelineEntry>
+
           <TimelineEntry id="oxford-panel-discussion" month="October" year="2026" title={"Oxford Panel Discussion "}>
             <EntryText>
               <p>

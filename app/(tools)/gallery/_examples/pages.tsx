@@ -288,12 +288,14 @@ export const pages: Group = {
           render: () => <Programme days={pausefest.days} />,
         },
         {
-          label: "With who's going to each event",
+          label: "With Luma's times and who's going to each event",
           render: () => (
             <Programme
               days={pausefest.days}
-              going={Object.fromEntries(
-                pausefest.days.flatMap((day) => day.events).map((event) => [event.lumaId, GOING]),
+              live={Object.fromEntries(
+                pausefest.days
+                  .flatMap((day) => day.events)
+                  .map((event) => [event.lumaId, { time: "1–4pm", going: GOING }]),
               )}
             />
           ),

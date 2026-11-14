@@ -1,6 +1,6 @@
 import { pageMetadata } from "@/lib/metadata";
 import { pausefest } from "@/lib/content/pausefest";
-import { getPauseFestGoing } from "@/lib/server/pausefest";
+import { getPauseFestLive } from "@/lib/server/pausefest";
 import Programme from "./_components/Programme";
 import PauseFestHero from "./_components/PauseFestHero";
 
@@ -16,11 +16,11 @@ export const metadata = pageMetadata({
 });
 
 export default async function PauseFestPage() {
-  const going = await getPauseFestGoing();
+  const live = await getPauseFestLive();
   return (
     <main>
       <PauseFestHero />
-      <Programme days={pausefest.days} going={going} />
+      <Programme days={pausefest.days} live={live} />
     </main>
   );
 }

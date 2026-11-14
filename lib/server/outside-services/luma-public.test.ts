@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { getEventGoing } from "./luma-public";
+import { getEventGoing, getPublicEvent } from "./luma-public";
 
 const EVENT = "https://api.lu.ma/event/get";
 
@@ -52,5 +52,29 @@ describe("getEventGoing", () => {
   it("returns null when the request throws", async () => {
     server.use(http.get(EVENT, () => HttpResponse.error()));
     expect(await getEventGoing("evt-x")).toBeNull();
+  });
+});
+
+describe("getPublicEvent", () => {
+  it("gives when the event starts and ends, with who's going", async () => {
+    const event = await getPublicEvent("evt-x");
+    expect(event?.startAt).toBe("2026-11-20T18:00:00.000Z");
+    expect(event?.endAt).toBe("2026-11-20T21:00:00.000Z");
+    expect(event?.going?.count).toBe(1234);
+  });
+
+  it("gives no times, and no one going, where Luma gives none", async () => {
+    server.use(http.get(EVENT, () => HttpResponse.json({ event: { start_at: "", end_at: 7 } })));
+    expect(await getPublicEvent("evt-x")).toEqual({ startAt: null, endAt: null, going: null });
+  });
+
+  it("gives no times when Luma gives no event", async () => {
+    server.use(http.get(EVENT, () => HttpResponse.json({ guest_count: 1 })));
+    expect(await getPublicEvent("evt-x")).toEqual({ startAt: null, endAt: null, going: { count: 1, guests: [] } });
+  });
+
+  it("returns null when Luma errs", async () => {
+    server.use(http.get(EVENT, () => new HttpResponse(null, { status: 500 })));
+    expect(await getPublicEvent("evt-x")).toBeNull();
   });
 });

@@ -13,25 +13,7 @@ async function luma(email: string, since: string | null) {
   ]);
 }
 
-/** A member record: made at `createdAt`, with "Keep me informed" ticked or not, removed or not, and a phone and intent if given. */
-async function member(
-  id: string,
-  email: string,
-  createdAt: string,
-  keepInformed: boolean,
-  removed = false,
-  phone: string | null = null,
-  intent: string | null = null,
-) {
-  await query(
-    `INSERT INTO airtable_members (id, email, name, joined_at, created_at, keep_informed, share_permission, source_modified_at, removed_at, phone, intent)
-     VALUES ($1, $2, 'X', $3, $3, $4, true, $3, $5, $6, $7)`,
-    [id, email, createdAt, keepInformed, removed ? createdAt : null, phone, intent],
-  );
-}
-
 type Civicrm = {
-  airtableId?: string | null;
   phone?: string | null;
   intent?: string | null;
   joined?: string | null;
@@ -55,7 +37,7 @@ async function civicrm(email: string, since: string, contact: Civicrm = {}) {
      VALUES ($1, $2, $3, $4, $11, $5, $11, $6, $11, $7, $11, $8, $11, $9, $11, $10, $11, $11, $12, $13, $14, $15)`,
     [
       ++contactIds,
-      contact.airtableId ?? null,
+      null,
       email,
       flags.on_hold,
       flags.no_bulk_email,
@@ -146,7 +128,11 @@ describeWithDatabase("permissionsFor", () => {
   it("answers each address in the order asked, then each number, a topic at a time, text before call", async () => {
     await luma("b@example.com", "2026-09-01T00:00:00Z");
     await civicrm("a@example.com", "2026-11-01T00:00:00Z", { newsletter: "subscribed", volunteer: "subscribed" });
-    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900030", "Volunteer");
+    await civicrm("v@example.com", "2026-09-12T00:00:00Z", {
+      phone: "+447700900030",
+      intent: "volunteer",
+      joined: "2026-09-12",
+    });
     expect(
       (await permissionsFor([" A@Example.com", "b@example.com", "nobody@example.com"], ["+447700900030"])).map((p) => [
         p.address,
@@ -288,52 +274,16 @@ describeWithDatabase("permissionsFor", () => {
     }
   });
 
-  it("takes Keep me informed for a member CiviCRM has never returned, and nothing from one it no longer returns", async () => {
-    await member("recRobin", "robin@example.com", "2026-07-01T00:00:00Z", true);
-    await member("recLee", "lee@example.com", "2026-07-01T00:00:00Z", false);
-    // Before 30 June 2026 the box was required or not there, so a tick then says nothing.
-    await member("recKit", "kit@example.com", "2026-05-01T00:00:00Z", true);
-    await member("recJane", "jane@example.com", "2026-09-01T00:00:00Z", true);
-    await civicrm("jane@example.com", "2026-11-01T00:00:00Z", { airtableId: "recJane", newsletter: "unsubscribed" });
-    await optOut("jane@example.com", "2026-11-01T00:00:00Z", { list: "newsletter", source: "civicrm" });
-    await member("recGil", "gil@example.com", "2026-08-01T00:00:00Z", true);
+  it("takes nothing from a contact CiviCRM no longer returns", async () => {
     await civicrm("gil@example.com", "2026-11-01T00:00:00Z", {
-      airtableId: "recGil",
       newsletter: "subscribed",
       gone: "2026-11-05T00:00:00Z",
     });
-    await member("recOld", "old@example.com", "2026-08-01T00:00:00Z", true, true);
-    expect(await answer("robin@example.com", "newsletter")).toEqual([
-      "yes",
-      "asked",
-      "2026-07-01T00:00:00.000Z",
-      "airtable",
-    ]);
-    expect(await answer("lee@example.com", "newsletter")).toEqual([
-      "no",
-      "declined",
-      "2026-07-01T00:00:00.000Z",
-      "airtable",
-    ]);
-    expect(await answer("kit@example.com", "newsletter")).toEqual([
-      "no",
-      "not-opted-in",
-      "2026-05-01T00:00:00.000Z",
-      "airtable",
-    ]);
-    // CiviCRM returns Jane, so its list is the answer, not her record's box.
-    expect((await answer("jane@example.com", "newsletter"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
     expect(await answer("gil@example.com", "newsletter")).toEqual([
       "no",
       "left",
       "2026-11-05T00:00:00.000Z",
       "civicrm",
-    ]);
-    expect(await answer("old@example.com", "newsletter")).toEqual([
-      "no",
-      "left",
-      "2026-08-01T00:00:00.000Z",
-      "airtable",
     ]);
   });
 
@@ -469,55 +419,6 @@ describeWithDatabase("permissionsFor", () => {
       "civicrm",
     ]);
 
-    // Numbers from Airtable, for members CiviCRM has never returned.
-    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900040", "Volunteer");
-    await member("recT", "t@example.com", "2025-06-06T00:00:00Z", false, false, "07700 900041", null);
-    await member("recL", "l@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900042", "Lead");
-    await member("recA", "a@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900043", "Act now");
-    await member("recR", "r@example.com", "2026-09-12T00:00:00Z", false, true, "+447700900044", "Volunteer");
-    expect(await phoneAnswer("+447700900040", "volunteering", "call")).toEqual([
-      "yes",
-      "volunteered",
-      "2026-09-12T00:00:00.000Z",
-      "airtable",
-    ]);
-    expect((await phoneAnswer("+447700900041", "volunteering", "call"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
-    expect((await phoneAnswer("+447700900042", "volunteering", "call"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
-    expect(await phoneAnswer("+447700900043", "volunteering", "call")).toEqual([
-      "no",
-      "not-volunteer",
-      "2026-09-12T00:00:00.000Z",
-      "airtable",
-    ]);
-    expect(await phoneAnswer("+447700900044", "volunteering", "call")).toEqual([
-      "no",
-      "left",
-      expect.any(String),
-      "airtable",
-    ]);
-
-    // A member CiviCRM returns has CiviCRM's answer, not Airtable's; one it no longer returns has none.
-    await member("recM", "m@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900045", "Volunteer");
-    await civicrm("m@example.com", "2026-11-01T00:00:00Z", {
-      airtableId: "recM",
-      phone: "+447700900045",
-      intent: "act_now",
-      joined: "2026-09-12",
-    });
-    await member("recG", "g@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900046", "Volunteer");
-    await civicrm("g@example.com", "2026-11-01T00:00:00Z", { airtableId: "recG", gone: "2026-11-02T00:00:00Z" });
-    // Their flags reach the number they gave Airtable, though CiviCRM has none.
-    await member("recP", "p@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900047", "Volunteer");
-    await civicrm("p@example.com", "2026-11-01T00:00:00Z", { airtableId: "recP", flags: { do_not_phone: true } });
-    expect((await phoneAnswer("+447700900045", "volunteering", "call"))?.slice(0, 2)).toEqual(["no", "not-volunteer"]);
-    expect(await phoneAnswer("+447700900046", "volunteering", "call")).toEqual([
-      "no",
-      "left",
-      "2026-11-02T00:00:00.000Z",
-      "civicrm",
-    ]);
-    expect((await phoneAnswer("+447700900047", "volunteering", "call"))?.slice(0, 2)).toEqual(["no", "do-not-phone"]);
-
     // Texts about volunteering go to the same numbers, but for "Do not SMS" rather than "Do not phone".
     expect(await phoneAnswer("+447700900050", "volunteering", "text")).toEqual([
       "yes",
@@ -525,10 +426,8 @@ describeWithDatabase("permissionsFor", () => {
       "2026-09-12T00:00:00.000Z",
       "civicrm",
     ]);
-    expect((await phoneAnswer("+447700900040", "volunteering", "text"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
     expect((await phoneAnswer("+447700900052", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "not-volunteer"]);
     expect((await phoneAnswer("+447700900055", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "left"]);
-    expect((await phoneAnswer("+447700900044", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "left"]);
     expect((await phoneAnswer("+447700900056", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "do-not-sms"]);
     expect((await phoneAnswer("+447700900057", "volunteering", "text"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
   });
@@ -544,7 +443,11 @@ describeWithDatabase("permissionsFor", () => {
       { way: "text", topic: "newsletter", address: "+447700900050", source: "civicrm" },
       { way: "email", topic: "events", address: "gone@example.com", source: "luma-webhook" },
     ]);
-    await member("recV", "v@example.com", "2026-09-12T00:00:00Z", false, false, "+447700900030", "Volunteer");
+    await civicrm("v@example.com", "2026-09-12T00:00:00Z", {
+      phone: "+447700900030",
+      intent: "volunteer",
+      joined: "2026-09-12",
+    });
     const usable = async (number: string) =>
       (await query<{ ok: boolean }>("SELECT phone_usable($1) AS ok", [number]))[0].ok;
     expect(await usable("+447700900030")).toBe(true);
