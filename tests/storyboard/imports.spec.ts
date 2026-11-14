@@ -268,7 +268,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   // The import, twice: its page lists both runs, under the day's heading, and none of the other bodies'.
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  const run = page.getByRole("button", { name: staffCopy.politicianImports.importNow });
+  const run = page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] });
   const unchanged = page.getByText(staffCopy.runs.status.unchanged, { exact: true });
   await run.click();
   await expect(unchanged).toHaveCount(1);
@@ -402,7 +402,7 @@ test("A held politician import", async ({ page, request, flowDatabase }) => {
   story(
     "They run the import again, and it's held again. This time they apply it. The 21 are marked as having retired, as Parliament says, and kept, and the run says who decided.",
   );
-  await page.getByRole("button", { name: words.importNow }).click();
+  await page.getByRole("button", { name: words.importNow["import-parliament"] }).click();
   await page.getByRole("button", { name: words.apply }).click();
   await expect(page.getByRole("button", { name: words.apply })).toHaveCount(0);
   await expect(page.getByText(staffCopy.runs.decidedBy(staffEmail())).first()).toBeVisible();
@@ -425,7 +425,7 @@ test("A held rename", async ({ page, request, flowDatabase }) => {
   runSql(flowDatabase, "UPDATE notable_people SET name = 'Penny Previous' WHERE name = 'Polly Placeholder'");
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  await page.getByRole("button", { name: staffCopy.politicianImports.importNow }).click();
+  await page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] }).click();
   await expect(page.getByRole("button", { name: staffCopy.politicianImports.apply })).toBeVisible();
   await expect(page.getByText("Penny Previous → Polly Placeholder")).toBeVisible();
   await frame(page, "The import, held");

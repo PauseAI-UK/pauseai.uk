@@ -53,7 +53,6 @@ import {
 import Run from "@/app/(staff)/staff/_components/Run";
 import AskRow, { AskRows, PoliticianAsks } from "@/app/(staff)/staff/_components/AskRow";
 import EraseForm from "@/app/(staff)/staff/_components/EraseForm";
-import DeletePolitician from "@/app/(staff)/staff/_components/DeletePolitician";
 import StaffAccountsTable, { AddStaff } from "@/app/(staff)/staff/_components/StaffAccountsTable";
 import type { StaffAccount } from "@/lib/server/staff-accounts";
 import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
@@ -336,7 +335,7 @@ export function AddAliasFormExample({ result }: { result: AddResult }) {
   );
 }
 
-/** The form of how we write to a politician, logged, answering with `result`: a Lord's, with their email too, or an MP's. */
+/** One of how we write to a politician, logged, answering with `result`: a Lord's email, or an MP's salutation. */
 export function EditPoliticianFormExample({ result, lord = false }: { result: EditResult; lord?: boolean }) {
   return (
     <Logged>
@@ -347,7 +346,7 @@ export function EditPoliticianFormExample({ result, lord = false }: { result: Ed
               ? { ...examplePolitician, name: "Lord Seedling", salutation: "Lord Seedling", email: null }
               : examplePolitician
           }
-          ownEmail={lord}
+          field={lord ? "email" : "salutation"}
           action={(form) => {
             log("editDetails")(form);
             return result;
@@ -523,13 +522,7 @@ export function ImportJobPageExample({
     <Logged>
       {(log) =>
         never ? (
-          <ImportJobPage
-            job="import-controlai"
-            runs={[]}
-            run={log("run")}
-            decide={log("decide")}
-            airtableTable="https://airtable.com/"
-          />
+          <ImportJobPage job="import-controlai" runs={[]} run={log("run")} decide={log("decide")} />
         ) : (
           <ImportJobPage
             job="import-parliament"
@@ -544,7 +537,6 @@ export function ImportJobPageExample({
             ]}
             run={log("run")}
             decide={log("decide")}
-            airtableTable="https://airtable.com/"
           />
         )
       }
@@ -619,10 +611,6 @@ export function StaffAccountsTableExample() {
       )}
     </Logged>
   );
-}
-
-export function DeletePoliticianExample() {
-  return <Logged>{(log) => <DeletePolitician politician={{ id: 7 }} action={log("deletePoliticianNow")} />}</Logged>;
 }
 
 export function EraseFormExample() {

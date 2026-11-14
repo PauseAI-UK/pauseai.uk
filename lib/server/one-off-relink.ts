@@ -1,7 +1,10 @@
 import "server-only";
 import { gunzipSync } from "node:zlib";
 import {
+  isSharedInbox,
   isSomeoneElse,
+  lordFor,
+  lordNamed,
   onParliamentDomain,
   politiciansIn,
   politiciansNamed,
@@ -104,17 +107,40 @@ function officeAddresses(
 }
 
 /**
+ * Each thread through the House of Lords' shared inbox whose subject names
+ * the Lord it's for (lordFor), by that Lord, when they're one of the sitting
+ * Lords; one that names no one, or more than one, isn't anyone's by this.
+ */
+function sharedInboxLords(
+  messages: Message[],
+  subjects: { thread: number; subject: string }[],
+  lords: { id: number; name: string }[],
+): Map<number, number> {
+  const shared = new Set(
+    messages.filter((message) => message.addresses.some(isSharedInbox)).map((message) => message.thread),
+  );
+  return new Map(
+    subjects.flatMap(({ thread, subject }) => {
+      const name = shared.has(thread) ? lordFor(subject) : null;
+      const id = name === null ? null : lordNamed(lords, name);
+      return id === null ? [] : [[thread, id] as const];
+    }),
+  );
+}
+
+/**
  * Relinks every one-off thread: reads what it can of the quotes not yet
  * stored, until `until`; finds the offices' addresses, by the book without
  * them, but for those staff rejected; and links each thread to the people
  * the whole book finds in it. A thread with a message whose quotes are still
  * unread gains people but loses none, as what it quotes may be why it has
  * them. Whether each thread has someone else in it (`someone_else`) is worked
- * out again from its senders, as the book says who's a politician.
+ * out again from its senders, as the book says who's a politician. A
+ * thread through the Lords' shared inbox is the Lord's its subject names too.
  */
 export async function relinkOneOffs(until: number): Promise<Relinked> {
   const { read, unread } = await readQuotes(until);
-  const [direct, rows, linked, rejected, connected] = await Promise.all([
+  const [direct, rows, linked, rejected, connected, subjects, lords] = await Promise.all([
     readPoliticianBook(false),
     query<Message & { from: string }>(
       `SELECT thread_id::int AS thread, from_address AS from, addresses, quoted_addresses AS quoted, quoted_names AS names
@@ -127,6 +153,11 @@ export async function relinkOneOffs(until: number): Promise<Relinked> {
       "SELECT address, notable_person_id::int AS id FROM politician_addresses WHERE source = 'rejected'",
     ),
     connectedAccounts(),
+    query<{ thread: number; subject: string }>("SELECT id::int AS thread, subject FROM one_off_threads"),
+    query<{ id: number; name: string }>(
+      `SELECT n.id::int AS id, n.name FROM notable_people n JOIN politicians p ON p.id = n.id
+       WHERE p.house = 'lords' AND n.status = 'in_office'`,
+    ),
   ]);
   const notTheirs = new Set(rejected.map(({ address, id }) => `${address} ${id}`));
   const offices = new Map(
@@ -137,6 +168,9 @@ export async function relinkOneOffs(until: number): Promise<Relinked> {
   const book: PoliticianBook = { ...direct, addresses: new Map(direct.addresses) };
   for (const [address, id] of offices) book.addresses.set(address, [...(book.addresses.get(address) ?? []), id]);
   const people = threadPeople(book, rows);
+  for (const [thread, id] of sharedInboxLords(rows, subjects, lords)) {
+    people.set(thread, new Set([...(people.get(thread) ?? []), id]));
+  }
   const unreadThreads = new Set(rows.filter((row) => row.quoted === null).map((row) => row.thread));
   const had = new Set(linked.map(({ thread, id }) => `${thread} ${id}`));
   const add = [...people].flatMap(([thread, ids]) =>

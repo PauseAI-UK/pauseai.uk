@@ -222,6 +222,7 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
     page.getByText(staffCopy.politician.role(staffCopy.politician.roles.commons, "Testshire", true)),
   ).toBeVisible();
   await expect(page.getByText(staffCopy.politician.sources.test)).toBeVisible();
+  await page.getByRole("heading", { name: staffCopy.politician.historyTitle }).click();
   await expect(page.getByText(staffCopy.politician.noHistory)).toBeVisible();
   await frame(page, "The test MP's page");
   story(
@@ -330,7 +331,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   story("Parliament's import runs again, and finds nothing has changed since the politicians were imported.");
 
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  await page.getByRole("button", { name: staffCopy.politicianImports.importNow }).click();
+  await page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] }).click();
   await expect(page.getByText(staffCopy.runs.status.unchanged, { exact: true }).first()).toBeVisible();
   await frame(page, "Parliament's import");
   story("They log out (on a phone, from the menu), and the staff pages ask them to log in again.");

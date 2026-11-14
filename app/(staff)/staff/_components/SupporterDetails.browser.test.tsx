@@ -523,8 +523,12 @@ describe("SupporterDetails", () => {
     await expect.element(page.getByText(staffCopy.supporters.detail.noLetters)).toBeVisible();
   });
 
-  it("with no history, says so", async () => {
+  it("with no history, still opens it, its count 0, to say so", async () => {
     await render(<SupporterDetails supporter={{ ...exampleSupporterDetails, activity: [] }} />);
+    const title = staffCopy.supporters.detail.activityTitle;
+    const history = page.getByRole("heading", { name: title }).element().closest("details")!;
+    expect(history.querySelector("summary")!.textContent).toBe(`${title} 0`);
+    history.open = true;
     await expect.element(page.getByText(staffCopy.supporters.detail.noActivity)).toBeVisible();
   });
 

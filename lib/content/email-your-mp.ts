@@ -90,7 +90,7 @@ export const campaigns: Campaign[] = [
     subject: "Request to co-sign letter on frontier AI risks",
     // The letter to the MP, drafted for the sender to edit.
     letter: (d) =>
-      `Dear ${d.salutation}
+      `Dear ${d.salutation},
 
 I'm a resident of ${d.constituency} and a supporter of **PauseAI**, a civic movement focused on averting the risks of superhuman AI. I am very concerned that AI development is racing ahead without adequate protection for the public.
 

@@ -519,15 +519,12 @@ CREATE TABLE public.notable_people (
     salutation text DEFAULT ''::text NOT NULL,
     email text,
     status text DEFAULT 'in_office'::text NOT NULL,
-    notes text DEFAULT ''::text NOT NULL,
     important_target boolean DEFAULT false NOT NULL,
     personal_connection boolean DEFAULT false NOT NULL,
     airtable_id text,
-    airtable_removed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     salutation_to_check boolean DEFAULT false NOT NULL,
-    CONSTRAINT notable_people_check CHECK (((airtable_removed_at IS NULL) OR (airtable_id IS NOT NULL))),
     CONSTRAINT notable_people_kind_check CHECK ((kind = 'politician'::text)),
     CONSTRAINT notable_people_not_shared_inbox CHECK ((lower(email) <> 'contactholmember@parliament.uk'::text)),
     CONSTRAINT notable_people_status_check CHECK ((status = ANY (ARRAY['in_office'::text, 'died'::text, 'retired'::text, 'left_office'::text])))
@@ -1762,7 +1759,7 @@ CREATE TABLE public.import_runs (
     decided_at timestamp with time zone,
     problems jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT import_runs_check CHECK (((status = 'failed'::text) = (error IS NOT NULL))),
-    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['sync-politicians'::text, 'import-parliament'::text, 'import-scottish-parliament'::text, 'import-senedd'::text, 'import-ni-assembly'::text, 'import-controlai'::text, 'import-controlai-statement'::text, 'import-luma'::text, 'read-gmail'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
+    CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['import-parliament'::text, 'import-scottish-parliament'::text, 'import-senedd'::text, 'import-ni-assembly'::text, 'import-controlai'::text, 'import-controlai-statement'::text, 'import-luma'::text, 'read-gmail'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
     CONSTRAINT import_runs_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unchanged'::text, 'held'::text, 'applied'::text, 'discarded'::text])))
 );
 

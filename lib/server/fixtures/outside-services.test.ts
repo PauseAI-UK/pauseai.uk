@@ -44,15 +44,6 @@ describe("fixtureResponse", () => {
     expect(contacts.has_more).toBe(true);
   });
 
-  it("serves the UK Parliamentarians table, and nothing for another", async () => {
-    const records = async (table: string) =>
-      (await fixtureResponse(`https://eu.airtable.com/v0/appBInVvIm6opJ1Ob/${table}?x=1`)!.json()).records.map(
-        (r: { id: string }) => r.id,
-      );
-    expect(await records("tblH3ks9wqQHLpYx3")).toContain("recPlaceholder");
-    expect(fixtureResponse("https://eu.airtable.com/v0/appBInVvIm6opJ1Ob/tblOther")).toBeUndefined();
-  });
-
   it("serves CiviCRM's UK chapter contacts a page after a contact ID", async () => {
     const get = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
     const ids = async (response: Response | undefined) =>

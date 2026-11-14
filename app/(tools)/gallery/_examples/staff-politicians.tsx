@@ -34,7 +34,6 @@ import {
   PoliticianMarksExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
-  DeletePoliticianExample,
   AskFormExample,
 } from "./staff.client";
 
@@ -194,20 +193,6 @@ export const staffPoliticians: Group = {
       ],
     },
     {
-      name: "DeletePolitician",
-      file: "app/(staff)/staff/_components/DeletePolitician.tsx",
-      variants: [
-        {
-          label: "At the foot of the page of a politician gone from Airtable",
-          render: () => (
-            <StaffPage as="div">
-              <DeletePoliticianExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
       name: "AskRow",
       file: "app/(staff)/staff/_components/AskRow.tsx",
       variants: [
@@ -311,11 +296,11 @@ export const staffPoliticians: Group = {
       file: "app/(staff)/staff/_components/EditPoliticianForm.tsx",
       variants: [
         {
-          label: "An MP's: only the salutation, saved",
+          label: "A salutation, as a letter starts, saved",
           render: () => <EditPoliticianFormExample result={{ saved: true }} />,
         },
         {
-          label: "A Lord's, with their email, refused as the shared inbox",
+          label: "A Lord's email, refused as the shared inbox",
           render: () => <EditPoliticianFormExample lord result={{ saved: false, why: "shared" }} />,
         },
       ],

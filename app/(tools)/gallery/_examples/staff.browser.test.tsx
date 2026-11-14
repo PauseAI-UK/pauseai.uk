@@ -317,30 +317,40 @@ describe("the staff examples", () => {
     await expect.element(page.getByRole("status")).toHaveTextContent(staffCopy.politician.aliases.added);
   });
 
-  it("logs a politician's salutation and a Lord's email, and says what the server answered", async () => {
+  it("logs a politician's salutation and a Lord's email, a line at a time, and says what the server answered", async () => {
     const { rerender } = await render(<EditPoliticianFormExample lord result={{ saved: false, why: "shared" }} />);
     const words = staffCopy.politician.editDetails;
+    await page.getByRole("button", { name: `${words.edit} ${words.email}` }).click();
+    await expect.element(page.getByText(words.emailHint)).toBeVisible();
     await page.getByLabelText(words.email).fill("contactholmember@parliament.uk");
     await page.getByRole("button", { name: words.save }).click();
-    await expect.element(page.getByRole("status")).toHaveTextContent(words.refused.shared);
+    await expect.element(page.getByRole("status").last()).toHaveTextContent(words.refused.shared);
     await expect
       .element(log().nth(0))
       .toHaveTextContent(
         'editDetails({"politicianId":"7","salutation":"Lord Seedling","email":"contactholmember@parliament.uk"})',
       );
-    await rerender(<EditPoliticianFormExample result={{ saved: true }} />);
+    // Cancel closes the field unsaved.
+    await page.getByRole("button", { name: words.cancel }).click();
     await expect.element(page.getByLabelText(words.email)).not.toBeInTheDocument();
+    // Not a Lord: their email has no Edit; a saved salutation closes its field and says so.
+    await rerender(<EditPoliticianFormExample result={{ saved: true }} />);
+    await expect.element(page.getByRole("button", { name: `${words.edit} ${words.email}` })).not.toBeInTheDocument();
+    await page.getByRole("button", { name: `${words.edit} ${words.salutation}` }).click();
     await page.getByRole("button", { name: words.save }).click();
-    await expect.element(page.getByRole("status").last()).toHaveTextContent(words.saved);
+    await expect.element(page.getByText(words.saved)).toBeVisible();
+    await expect.element(page.getByRole("textbox", { name: words.salutation })).not.toBeInTheDocument();
   });
 
   it("logs a politician's markers and how we write to them, on their page", async () => {
     await render(<PoliticianDetailsExample fromAirtable aliases />);
-    await page.getByRole("button", { name: staffCopy.politician.personalConnection }).click();
+    await page.getByRole("switch", { name: staffCopy.politician.personalConnection }).click();
     await expect
       .element(log().nth(0))
       .toHaveTextContent('setMark({"politicianId":"7","mark":"personalConnection","on":"true"})');
-    await page.getByRole("button", { name: staffCopy.politician.editDetails.save }).click();
+    const words = staffCopy.politician.editDetails;
+    await page.getByRole("button", { name: `${words.edit} ${words.salutation}` }).click();
+    await page.getByRole("button", { name: words.save }).click();
     await expect
       .element(log().nth(1))
       .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder"})');
@@ -348,11 +358,14 @@ describe("the staff examples", () => {
 
   it("logs a marker's press, turning it the other way", async () => {
     await render(<PoliticianMarksExample test />);
-    await page.getByRole("button", { name: staffCopy.politician.personalConnection }).click();
+    await page.getByRole("switch", { name: staffCopy.politician.personalConnection }).click();
     await expect
       .element(log().nth(0))
       .toHaveTextContent('setMark({"politicianId":"7","mark":"personalConnection","on":"true"})');
-    await expect.element(page.getByText(staffCopy.politicians.flags.test)).toBeVisible();
+    // A test politician's switch is on, and can't be moved.
+    const test = page.getByRole("switch", { name: staffCopy.politicians.flags.test });
+    await expect.element(test).toBeChecked();
+    await expect.element(test).toBeDisabled();
   });
 
   it("says when no politician matches", async () => {

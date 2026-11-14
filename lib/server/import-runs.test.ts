@@ -160,25 +160,25 @@ describeWithDatabase("the import log", () => {
 
   it("keeps each run with who started it and what it found, newest first, a job at a time", async () => {
     const id = await recordRun("import-parliament", "nightly", "ok", { problems: [] });
-    await recordRun("sync-politicians", "jo@pauseai.uk", "unchanged", { changes: {} });
-    await recordFailure("sync-politicians", "nightly", new Error("Airtable request failed with status 422"));
-    await recordFailure("sync-politicians", "nightly", "not an Error");
+    await recordRun("import-senedd", "jo@pauseai.uk", "unchanged", { changes: {} });
+    await recordFailure("import-senedd", "nightly", new Error("The Senedd answered 422"));
+    await recordFailure("import-senedd", "nightly", "not an Error");
 
-    expect(await listRuns("sync-politicians")).toMatchObject([
+    expect(await listRuns("import-senedd")).toMatchObject([
       {
-        job: "sync-politicians",
+        job: "import-senedd",
         status: "failed",
         startedBy: "nightly",
         error: "not an Error",
         result: {},
         decidedBy: null,
       },
-      { status: "failed", startedBy: "nightly", error: "Airtable request failed with status 422", result: {} },
+      { status: "failed", startedBy: "nightly", error: "The Senedd answered 422", result: {} },
       { status: "unchanged", startedBy: "jo@pauseai.uk", error: null, result: { changes: {} } },
     ]);
     expect(await listRuns("import-parliament")).toMatchObject([{ id, status: "ok", result: { problems: [] } }]);
     expect(await latestRun("import-parliament")).toMatchObject({ id });
-    expect(await latestRun("sync-politicians")).toMatchObject({ error: "not an Error" });
+    expect(await latestRun("import-senedd")).toMatchObject({ error: "not an Error" });
     expect(await latestRun("import-controlai")).toBeUndefined();
   });
 

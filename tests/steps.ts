@@ -39,22 +39,17 @@ export async function fakeTurnstile(page: Page) {
   );
 }
 
-/** The jobs that bring the fixture politicians in: each body's import, then the copy from Airtable. */
-const POLITICIAN_JOBS = [
-  "import-parliament",
-  "import-scottish-parliament",
-  "import-senedd",
-  "import-ni-assembly",
-  "sync-politicians",
-];
+/** The jobs that bring the fixture politicians in: each body's import. */
+const POLITICIAN_JOBS = ["import-parliament", "import-scottish-parliament", "import-senedd", "import-ni-assembly"];
 
 /**
  * Brings the fixture politicians into the flow's database through the
  * nightly imports' own routes, from the bodies' fixture lists
  * (lib/server/fixtures/politician-lists.ts), which refresh the test MPs too.
  * First it adds two who've left, whom no list has: Rita Retired and Gordon
- * Gone, from before the imports. Then the copy from Airtable gives each
- * their record, their salutation, markers and notes.
+ * Gone, from before the imports. Then it gives each who was in Airtable
+ * their record there and what they had from it: a salutation, markers and
+ * notes.
  */
 export async function importPoliticians(request: APIRequestContext, base: string, database: string) {
   runSql(
@@ -77,6 +72,28 @@ export async function importPoliticians(request: APIRequestContext, base: string
     });
     if (!res.ok()) throw new Error(`${job} on ${base} failed: ${res.status()} ${await res.text()}`);
   }
+  runSql(
+    database,
+    `UPDATE notable_people n
+     SET airtable_id = v.record, salutation = v.salutation, important_target = v.important,
+       personal_connection = v.connection, salutation_to_check = n.salutation_to_check AND n.salutation = v.salutation
+     FROM (VALUES
+       ('recDummy', 'Ms Dora Dummy', 'Ms Dummy', false, false),
+       ('recPlaceholder', 'Polly Placeholder', 'Ms Placeholder', true, false),
+       ('recSeedling', 'Lord Seedling of Example', 'Lord Seedling', false, false),
+       ('recMorag', 'Morag Example', 'Ms Example', false, true),
+       ('recRetired', 'Rita Retired', 'Ms Retired', false, false),
+       ('recGone', 'Gordon Gone', 'Mr Gone', false, false),
+       ('recMo', 'Mo Example', 'Mx Example', false, false)) AS v (record, name, salutation, important, connection)
+     WHERE n.name = v.name AND n.airtable_id IS NULL`,
+  );
+  // Polly's notes from Airtable, as a note in her history.
+  runSql(
+    database,
+    `INSERT INTO notes (notable_person_id, body, written_by, created_at)
+     SELECT id, 'Met at the example fair.', 'Airtable', now() FROM notable_people
+     WHERE airtable_id = 'recPlaceholder' AND NOT EXISTS (SELECT 1 FROM notes WHERE written_by = 'Airtable')`,
+  );
 }
 
 /**

@@ -33,7 +33,7 @@ import { eraseSupporter } from "@/lib/server/erasure";
 import { decideHeldImport, isPoliticianImport } from "@/lib/server/politician-import";
 import { editPoliticianDetails, type EditResult, isMark, setMark } from "@/lib/server/politician-edits";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
-import { deletePolitician, setStatus } from "@/lib/server/politicians";
+import { setStatus } from "@/lib/server/politicians";
 import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@/lib/server/politician-aliases";
 import { canSeeSupporters, requireStaff } from "@/lib/server/staff-auth";
 import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/server/staff-events";
@@ -76,16 +76,6 @@ export async function saveEventNow(form: FormData): Promise<EventSaved> {
   const doc = await setEventDoc(parsed.eventId, parsed.doc, email);
   if (emailed || doc) revalidatePath("/staff/events");
   return { emailed: emailed ?? [], owner: parsed.owner };
-}
-
-/** The button on the page of a politician gone from Airtable: deletes them, and goes back to the list. */
-export async function deletePoliticianNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff();
-  const id = idFrom(form, "politicianId");
-  if (id && (await deletePolitician(id, email))) {
-    revalidatePath("/staff/politicians");
-    redirect("/staff/politicians");
-  }
 }
 
 /** A marker's button in a politician's band: turns it on or off. */

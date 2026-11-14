@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   addressForms,
+  lordFor,
+  lordNamed,
   formOwner,
   type FormPerson,
   nameParts,
@@ -216,5 +218,32 @@ describe("which mailboxes are kept", () => {
     expect(keepsPoliticianThreads("policy@pauseai.uk")).toBe(true);
     expect(keepsPoliticianThreads("Joseph@pauseai.uk")).toBe(true);
     expect(keepsPoliticianThreads("jo@pauseai.uk")).toBe(false);
+  });
+});
+
+describe("threads through the House of Lords' shared inbox", () => {
+  it("finds the Lord a subject is for, after any Re: or Fwd:, or none", () => {
+    expect(lordFor("For Baroness Verma: Request to co-sign")).toBe("Baroness Verma");
+    expect(lordFor("Re: Fwd: For Lord Seedling of Example: Thanks")).toBe("Lord Seedling of Example");
+    expect(lordFor("FW: for the Lord Bishop of Example : a letter")).toBe("the Lord Bishop of Example");
+    expect(lordFor("For your information: a briefing")).toBeNull();
+    expect(lordFor("Request to co-sign, for Baroness Verma")).toBeNull();
+  });
+
+  it("matches a name to one sitting Lord, with or without their territorial part, or to none", () => {
+    const lords = [
+      { id: 1, name: "Baroness Verma" },
+      { id: 2, name: "Lord Seedling of Example" },
+      { id: 3, name: "Lord Smith of Here" },
+      { id: 4, name: "Lord Smith of There" },
+      { id: 5, name: "Baroness Ní Éxample" },
+    ];
+    expect(lordNamed(lords, "Baroness  verma")).toBe(1);
+    expect(lordNamed(lords, "Lord Seedling")).toBe(2);
+    expect(lordNamed(lords, "The Lord Seedling of Example")).toBe(2);
+    expect(lordNamed(lords, "Baroness Ni Example")).toBe(5);
+    // Two Lords Smith: no telling which.
+    expect(lordNamed(lords, "Lord Smith")).toBeNull();
+    expect(lordNamed(lords, "Lord Nobody")).toBeNull();
   });
 });

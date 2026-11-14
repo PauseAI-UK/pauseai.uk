@@ -53,7 +53,7 @@ Running one Vitest project (`npm run test:node`, `npm run test:browser`) or one 
 
 ## Pull request descriptions are short
 
-A title, then a bullet or two per change: what it does and why, in plain words. Leave out what the diff or the commits already say: file lists, and how it was tested beyond "the CI gate passes". Anything left for later gets one line saying so, and no more.
+A title, then what the change does and why, in plain words, as short paragraphs. Use bullets where there's a list, such as the parts of a change or what a reviewer should know, not for everything. Write it fresh for the PR as it ends up, clearly and in the style guide's voice (`docs/style-guide.md`), rather than adding a line per commit. Leave out what the diff or the commits already say: file lists, and how it was tested beyond "the CI gate passes". Anything left for later gets one line saying so, and no more.
 
 ## Migrations are fixed once pushed
 

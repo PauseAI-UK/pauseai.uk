@@ -24,36 +24,30 @@ type Props = {
   search?: Params;
 };
 
-/** Airtable's markers on them, whether their record has gone from it, and whether they're ours for testing, as lozenges. */
+/** The marks on them, and whether they're ours for testing, as lozenges. */
 function Marks({ politician }: { politician: Politician }) {
   const { flags } = staffCopy.politicians;
   return (
     <>
       {politician.importantTarget && <Tag tone="amber">{flags.important}</Tag>}
       {politician.personalConnection && <Tag>{flags.connection}</Tag>}
-      {politician.airtableRemovedAt && <Tag tone="amber">{flags.removed}</Tag>}
       {politician.isTest && <Tag>{flags.test}</Tag>}
     </>
   );
 }
 
-/** Airtable's markers on them, in words, as a download has them. */
+/** The marks on them, in words, as a download has them. */
 const marks = (p: Politician) => {
   const { flags } = staffCopy.politicians;
-  return [
-    p.importantTarget && flags.important,
-    p.personalConnection && flags.connection,
-    p.airtableRemovedAt && flags.removed,
-    p.isTest && flags.test,
-  ]
+  return [p.importantTarget && flags.important, p.personalConnection && flags.connection, p.isTest && flags.test]
     .filter(Boolean)
     .join("; ");
 };
 
 /**
  * The politicians list's columns: who they are (name, house, constituency
- * and party), how they stand (whether they're in office, Airtable's
- * markers, each ask they've answered and their answer beside it, a line
+ * and party), how they stand (whether they're in office, the marks on
+ * them, each ask they've answered and their answer beside it, a line
  * each, a long title cut short), how
  * many emails went to them and came from them, and when they first and
  * last did anything with us. Which show is the filters' doing, not the
@@ -229,7 +223,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
 /**
  * A politician as a contact card (lib/vcard.ts): their name and email,
  * their house and party, their constituency and nation, and in the note
- * whether they're in office, Airtable's markers, how many emails went to
+ * whether they're in office, the marks on them, how many emails went to
  * them and came from them, and their answer to each ask.
  */
 export function politicianContact(asks: Ask[]): (p: Politician) => Contact {

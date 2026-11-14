@@ -38,9 +38,6 @@ function cronSchedule(cron: string): JobSchedule | undefined {
   return /^\d+$/.test(hour) ? "nightly" : undefined;
 }
 
-/** The jobs that run on a schedule: all but those that run only when staff press their button. */
-const SCHEDULED_JOBS = IMPORT_JOBS.filter((job) => jobSchedule(job) !== "manual");
-
 describe("the scheduled functions", () => {
   it("tells a cron's schedule apart", () => {
     expect(cronSchedule("*/5 * * * *")).toBe("frequent");
@@ -55,9 +52,9 @@ describe("the scheduled functions", () => {
     expect(cronSchedule("0 6 * * 1")).toBeUndefined();
   });
 
-  it("are one for each job but those that run only when pressed, named after it, running as often as the job says", () => {
+  it("are one for each job, named after it, running as often as the job says", () => {
     const scheduled = Object.entries(functions).filter(([, module]) => module.config?.schedule);
-    expect(scheduled.map(([folder]) => folder).sort()).toEqual(SCHEDULED_JOBS.sort());
+    expect(scheduled.map(([folder]) => folder).sort()).toEqual([...IMPORT_JOBS].sort());
     for (const [folder, module] of scheduled) {
       expect(isImportJob(folder) && cronSchedule(module.config!.schedule), folder).toBe(
         isImportJob(folder) && jobSchedule(folder),
@@ -74,7 +71,7 @@ describe("the scheduled functions", () => {
       }),
       http.post("https://pauseai.uk/.netlify/functions/:name", () => new HttpResponse(null, { status: 202 })),
     );
-    for (const job of SCHEDULED_JOBS) {
+    for (const job of IMPORT_JOBS) {
       asked.length = 0;
       await functions[job].default(new Request("https://pauseai.uk/"));
       expect(asked, job).toEqual(job === "import-luma" ? [] : [job]);

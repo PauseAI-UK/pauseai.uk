@@ -5,19 +5,17 @@ import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import {
   type AnyImportRun,
   type ControlAiImport,
+  NEWER_RUN,
   type ControlAiStatementImport,
   type PoliticianImport,
-  type PoliticianSync,
 } from "@/lib/import-runs";
 import RunList from "./RunList";
 import RunTable from "./RunTable";
 import {
-  exampleAppliedSync,
   exampleControlAiResult,
   exampleControlAiStatementResult,
   exampleFailedRun,
   exampleHeldImport,
-  exampleHeldSync,
   exampleImportResult,
   exampleLumaResult,
   exampleDisconnectedGmail,
@@ -26,7 +24,6 @@ import {
   exampleCivicrmResult,
   exampleRun,
   exampleSendingResult,
-  exampleSyncedMp,
   exampleTidyingResult,
 } from "./RunList.examples";
 import { action, press } from "@/tests/browser/staff";
@@ -41,10 +38,18 @@ const AT = "15 Oct 2026, 02:00";
 const toRgb = (hex: string) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.trim().slice(i, i + 2), 16)).join(", ")})`;
 
 describe("RunList", () => {
-  const mp = exampleSyncedMp;
-  const held = exampleHeldSync;
   const heldImport = exampleHeldImport;
-  const applied = exampleAppliedSync;
+  // An earlier import someone applied: one MP who left.
+  const applied: PoliticianImport = ran(
+    "import-parliament",
+    {
+      changes: {
+        ...exampleImportResult.changes,
+        left: [{ ...heldImport.result.changes.left[0], name: "Rob Removed" }],
+      },
+    },
+    { id: 2, at: new Date("2026-10-11T06:21:00Z"), status: "applied", decidedBy: "jo@pauseai.uk" },
+  );
   const controlAi = exampleControlAiResult;
 
   it("lists each import's changes, and lets a held one be applied or discarded", async () => {
@@ -65,31 +70,12 @@ describe("RunList", () => {
     await expect.element(page.getByText("Old Seat: Rita Retired")).toBeVisible();
     await expect.element(page.getByText("Polly Placeholder: party")).toBeVisible();
     await expect.element(page.getByText("Polly Placeholder: Polly → Ms Placeholder")).toBeVisible();
-    // The old copy from Airtable's run, applied, has no buttons.
+    // The earlier one, applied, has no buttons.
     await expect.element(page.getByText(staffCopy.runs.decidedBy("jo@pauseai.uk"), { exact: false })).toBeVisible();
     expect(page.getByRole("button", { name: words.apply }).all()).toHaveLength(1);
     await page.getByRole("button", { name: words.discard }).click();
     await vi.waitFor(() => expect(sent).toHaveLength(1));
     expect(sent[0]).toEqual({ id: "4", job: "import-parliament", decision: "discard" });
-  });
-
-  it("lists a held copy from Airtable's changes, from when it copied everyone, with no buttons", async () => {
-    await render(<RunList runs={[held]} none="None" decide={() => {}} />);
-    await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).toBeVisible();
-    await expect.element(page.getByText(`Seat 2: MP 2 (${staffCopy.politicians.noEmail})`)).toBeVisible();
-    await expect.element(page.getByText("MP 6 → Someone New")).toBeVisible();
-    expect(page.getByRole("button").all()).toHaveLength(0);
-  });
-
-  it("lists the records a copy from Airtable found no one for", async () => {
-    const copied: PoliticianSync = ran(
-      "sync-politicians",
-      { changes: { added: [], removed: [], changed: [mp(1)] }, unmatched: ["Rita Retired"] },
-      { status: "applied" },
-    );
-    await render(<RunList runs={[copied]} none="None" />);
-    await expect.element(page.getByText(`${staffCopy.syncs.unmatched} (1)`)).toBeVisible();
-    await expect.element(page.getByText("Rita Retired")).toBeVisible();
   });
 
   it("starts an import with many changes folded to its status line, with the buttons still there", async () => {
@@ -287,8 +273,17 @@ describe("RunList", () => {
   });
 
   it("unfolds only the newest runs, and while a press runs, not the newest one if it's long", async () => {
-    const sync = (id: number, added: number[], at = new Date("2026-10-21T11:00:00Z")): PoliticianSync =>
-      ran("sync-politicians", { changes: { added: added.map((n) => mp(n)), removed: [], changed: [] } }, { id, at });
+    const sync = (id: number, added: number[], at = new Date("2026-10-21T11:00:00Z")): PoliticianImport =>
+      ran(
+        "import-parliament",
+        {
+          changes: {
+            ...exampleImportResult.changes,
+            added: added.map((n) => ({ ...heldImport.result.changes.added[0], name: `MP ${n}` })),
+          },
+        },
+        { id, at },
+      );
     const opens = () =>
       page
         .getByRole("group")
@@ -302,22 +297,31 @@ describe("RunList", () => {
     expect(opens().slice(0, 2)).toEqual([false, true]);
   });
 
-  it("shows a failed or unchanged sync as one line, and a held one without buttons where nothing can be decided", async () => {
-    const unchanged: PoliticianSync = ran(
-      "sync-politicians",
-      { changes: { added: [], removed: [], changed: [] } },
-      { id: 5, status: "unchanged" },
-    );
+  it("shows a failed or unchanged import as one line, and a held one without buttons where nothing can be decided", async () => {
+    const unchanged: PoliticianImport = ran("import-parliament", exampleImportResult, { id: 5, status: "unchanged" });
+    // One held earlier, replaced by the newer run.
+    const replaced = ran("import-parliament", exampleImportResult, {
+      id: 3,
+      status: "discarded",
+      decidedBy: NEWER_RUN,
+    });
     await render(
       <RunList
-        runs={[failed("sync-politicians", "Airtable request failed with status 422", { id: 6 }), unchanged, held]}
+        runs={[
+          failed("import-parliament", "Parliament answered with status 422", { id: 6 }),
+          unchanged,
+          heldImport,
+          replaced,
+        ]}
         none="None"
       />,
     );
+    await expect.element(page.getByText(staffCopy.runs.replaced, { exact: false })).toBeVisible();
     await expect.element(page.getByText(/status 422/)).toBeVisible();
     await expect.element(page.getByText(staffCopy.runs.status.unchanged)).toBeVisible();
     await expect.element(page.getByText(staffCopy.runs.status.held)).toBeVisible();
     await expect.element(page.getByRole("textbox")).not.toBeInTheDocument();
+    expect(page.getByRole("button").all()).toHaveLength(0);
   });
 
   it("says what an import did, the constituencies with no MP, and why one failed", async () => {

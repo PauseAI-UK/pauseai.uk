@@ -83,12 +83,9 @@ describe("each list's download values and contact cards", () => {
       ...rows[0],
       importantTarget: true,
       personalConnection: true,
-      airtableRemovedAt: new Date("2026-10-20"),
       isTest: true,
     };
-    expect(values(columns, marked).marked).toBe(
-      `${flags.important}; ${flags.connection}; ${flags.removed}; ${flags.test}`,
-    );
+    expect(values(columns, marked).marked).toBe(`${flags.important}; ${flags.connection}; ${flags.test}`);
     expect(values(columns, { ...rows[0], importantTarget: false }).marked).toBe("");
     // On the page, the days of their first and last activity; none for one without.
     await render(<PoliticianTable politicians={rows} asks={exampleAsks} search={{ status: "any" }} />);

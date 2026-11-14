@@ -9,7 +9,6 @@ import { importLuma } from "./luma-import";
 import { importCivicrm } from "./civicrm-import";
 import { importControlAiStatement } from "./controlai-statement-import";
 import { importPoliticians } from "./politician-import";
-import { syncPoliticians } from "./politician-sync";
 import { runSending } from "./sending-job";
 
 // What runs each job (lib/import-runs.ts, JOBS), whoever starts it, one run
@@ -36,10 +35,6 @@ const RUNS: Record<ImportJob, RunJob> = {
   "import-scottish-parliament": (by) => importPoliticianCounts("scottish-parliament", by),
   "import-senedd": (by) => importPoliticianCounts("senedd", by),
   "import-ni-assembly": (by) => importPoliticianCounts("ni-assembly", by),
-  "sync-politicians": async (by) => {
-    const { changes, unmatched } = await syncPoliticians(by);
-    return { changed: changes.changed.length, unmatched: unmatched.length };
-  },
   "import-controlai": (by) => importControlAiLetter(by),
   "import-controlai-statement": (by) => importControlAiStatement(by),
   "tidy-logs": (by) => runTidying(by),

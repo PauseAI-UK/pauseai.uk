@@ -10,17 +10,17 @@ import {
   runTone,
 } from "./import-runs";
 import {
-  exampleAppliedSync,
   exampleFailedRun,
   exampleImportResult,
   exampleGmailResult,
-  exampleHeldSync,
+  exampleHeldImport,
   exampleLumaResult,
   exampleRun,
 } from "@/app/(staff)/staff/_components/RunList.examples";
 
 it("knows the jobs", () => {
-  expect(isImportJob("sync-politicians")).toBe(true);
+  expect(isImportJob("import-parliament")).toBe(true);
+  expect(isImportJob("sync-politicians")).toBe(false);
   expect(isImportJob("sync-mps")).toBe(false);
   expect(isImportJob("")).toBe(false);
   expect(isImportJob("sync-peers")).toBe(false);
@@ -31,7 +31,6 @@ it("knows which jobs run on a schedule, and how often", () => {
   expect(jobSchedule("import-luma")).toBe("frequent");
   expect(jobSchedule("import-civicrm")).toBe("hourly");
   expect(jobSchedule("tidy-logs")).toBe("nightly");
-  expect(jobSchedule("sync-politicians")).toBe("manual");
 });
 
 it("lists a job's newest run, or none", () => {
@@ -51,7 +50,7 @@ it("says a run that left work for a later one is incomplete, in place of done or
   expect(runStatus(exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "rate-limit" }))).toBe("incomplete");
   expect(runStatus(exampleRun("import-luma", exampleLumaResult))).toBe("ok");
   expect(runStatus(exampleFailedRun("import-luma", "boom", {}))).toBe("failed");
-  expect(runStatus(exampleHeldSync)).toBe("held");
+  expect(runStatus(exampleHeldImport)).toBe("held");
 });
 
 it("says a run that went wrong along the way had problems, whatever else it did, unless it failed outright", () => {
@@ -71,8 +70,8 @@ it("colours a run by how it ended: green done, applied or unchanged, amber held,
     runTone(exampleRun("import-parliament", exampleImportResult, { problems: [{ what: "Parliament was slow" }] })),
   ).toBe("amber");
   expect(runTone(exampleRun("import-parliament", exampleImportResult))).toBe("green");
-  expect(runTone(exampleAppliedSync)).toBe("green");
-  expect(runTone(exampleHeldSync)).toBe("amber");
+  expect(runTone(exampleRun("import-parliament", exampleImportResult, { status: "applied" }))).toBe("green");
+  expect(runTone(exampleHeldImport)).toBe("amber");
   expect(runTone(exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "time" }))).toBe("amber");
   expect(runTone(exampleRun("import-luma", exampleLumaResult))).toBe("green");
   // postcodes.io failing leaves work for later too.

@@ -276,9 +276,8 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "import-luma",
           "import-parliament",
           "read-gmail",
-          "sync-politicians",
         ]);
-        // Politicians in every state and every body, and two whose records are gone from Airtable.
+        // Politicians in every state and every body.
         expect(runSql(name, "SELECT DISTINCT status FROM notable_people ORDER BY 1")).toEqual([
           "died",
           "in_office",
@@ -292,9 +291,6 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "other",
           "scottish-parliament",
           "senedd",
-        ]);
-        expect(runSql(name, "SELECT count(*) FROM notable_people WHERE airtable_removed_at IS NOT NULL")).toEqual([
-          "2",
         ]);
         // Every answer to every kind of ask, and each import's and staff's.
         expect(runSql(name, "SELECT DISTINCT ask_kind || ' ' || status FROM ask_statuses ORDER BY 1")).toEqual([

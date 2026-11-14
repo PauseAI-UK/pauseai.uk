@@ -16,7 +16,6 @@ import lumaFuture from "./luma-calendar-future.json";
 import lumaPast from "./luma-calendar-past.json";
 import lumaGuests from "./luma-guests.json";
 import lumaContacts from "./luma-contacts.json";
-import airtablePoliticians from "./airtable-politicians.json";
 import civicrmContacts from "./civicrm-contacts.json";
 import controlaiLetter from "./controlai-letter.json";
 import stripeCheckoutSessions from "./stripe-checkout-sessions.json";
@@ -50,7 +49,7 @@ function json(body: unknown): Response {
 }
 
 // The constituencies postcodes.io gives, by name and official code, of the
-// postcodes whose MPs are in airtable-politicians.json: Westminster's, and
+// postcodes whose MPs are in the fixture politicians: Westminster's, and
 // Jane Fixture's in Manchester.
 const POSTCODES: Record<string, { name: string; code: string }> = {
   SW1A1AA: { name: "Cities of London and Westminster", code: "E14001172" },
@@ -269,8 +268,6 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
     }
     return json({ skipped: emails.filter((email) => email.startsWith("luma-skips@")).map((email) => ({ email })) });
   }
-  // The UK Parliamentarians table: a politician of each body, one retired and one who left.
-  if (hostname.endsWith("airtable.com") && pathname.endsWith("/tblH3ks9wqQHLpYx3")) return json(airtablePoliticians);
   if (hostname === "api.postcodes.io" && pathname === "/postcodes" && init?.method === "POST") {
     // A bulk lookup: each postcode with its place, or null.
     const { postcodes } = JSON.parse(String(init.body)) as { postcodes: string[] };

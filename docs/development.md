@@ -334,7 +334,6 @@ service is off, as on a deploy preview.
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Luma              | A few made-up events and guests, and every event's guest counts (1,234 going)                                                                                                                                                                                                                                                                             |
 | postcodes.io      | Places a few postcodes and towns, and knows the constituency of two: SW1A 1AA (Cities of London and Westminster) and M1 1AE (Manchester Central). Any other postcode is "not found". The test postcodes never ask it.                                                                                                                                     |
-| Airtable          | A politician of each body, one retired and one who left, with their salutations, markers and notes; PauseAI's emails to them; the old form's letters                                                                                                                                                                                                      |
 | The bodies' lists | Each body's members (`lib/server/fixtures/politician-lists.ts`): three MPs and a Lord with only the Lords' shared inbox, from Parliament; an MSP, a member of the Senedd and an MLA; why a member left, from Parliament's Members API; the MSP's and the Senedd member's genders, from Wikidata; and ControlAI's statement, linking to five of them       |
 | Turnstile         | Accepts every token                                                                                                                                                                                                                                                                                                                                       |
 | Postmark          | Accepts every email, without needing a token, and writes each one to a mail file (`.eml`) in `OUTBOX_DIR`, or `tmp/outbox/` in the dev server.                                                                                                                                                                                                            |
@@ -442,12 +441,11 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
 
 - **Politicians.** After `npm run db:reset` without `DATA_FIXTURES`, the
   database has only the test MPs. Import the real politicians from each
-  body's list, then, with `AIRTABLE_TOKEN` set, copy their salutations,
-  markers and notes from Airtable:
+  body's list:
 
   ```bash
   # With CRON_SECRET=dev in .env.local:
-  for job in import-parliament import-scottish-parliament import-senedd import-ni-assembly sync-politicians; do
+  for job in import-parliament import-scottish-parliament import-senedd import-ni-assembly; do
     curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/$job
   done
   ```
@@ -467,9 +465,6 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
 - **Staff login.** The link is emailed through Postmark, so with the test
   token it never arrives. Use fixtures to log in, or a real server token and
   your own pauseai.uk address.
-- **Airtable.** `AIRTABLE_TOKEN` needs read access to the UK
-  Parliamentarians base's "UK Parliamentarians" table, for the politician
-  sync.
 - **Global's CiviCRM.** Its chapter contacts API, at
   `https://crm.pauseai.info/`, is specified in
   [a document in PauseAI/pauseai-civicrm](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md).
@@ -531,7 +526,6 @@ call these routes. Locally, with `CRON_SECRET=dev` in `.env.local`:
 
 ```bash
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/import-parliament   # MPs and peers from Parliament's list
-curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/sync-politicians    # salutations, markers and notes from Airtable
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/import-controlai    # ControlAI's letter's signatories
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/import-luma         # the Luma import; with fixtures, the fixture calendar
 curl -X POST -H "Authorization: Bearer dev" localhost:3000/api/cron/tidy-logs           # deletes what the import and audit logs no longer keep, and empty drafts
@@ -707,7 +701,7 @@ Set up outside the code:
 
   Give admin to at least one other person, as the last admin can't be removed. An erasure request is handled as `docs/data-protection.md` says.
 
-- **A new database:** from `/staff/scheduled-jobs`, run each body's import, then the copy from Airtable. Until Parliament's has run, Email your MP finds no MPs.
+- **A new database:** from `/staff/scheduled-jobs`, run each body's import. Until Parliament's has run, Email your MP finds no MPs.
 
   The Luma import fills the supporter pages over its first few runs, and links every letter already written. Run it from `/staff/scheduled-jobs` too, to watch it.
 
@@ -723,7 +717,6 @@ Each is a Netlify scheduled function in `netlify/functions/` that calls its rout
 | `import-ni-assembly`, MLAs                   | 06:24 daily                           | Nothing                                                                                                                                                                                                                                                                                            |
 | `import-controlai`, the letter's signatories | 06:25 daily                           | Nothing                                                                                                                                                                                                                                                                                            |
 | `import-controlai-statement`, its supporters | 06:26 daily                           | Nothing                                                                                                                                                                                                                                                                                            |
-| `sync-politicians`, from Airtable            | only when pressed                     | `AIRTABLE_TOKEN`                                                                                                                                                                                                                                                                                   |
 | `tidy-logs`                                  | 06:27 daily                           | Nothing                                                                                                                                                                                                                                                                                            |
 | `import-luma`                                | every 5 minutes, from 2 past the hour | `LUMA_API_KEY`. Its background function does the work. The first copy of the calendar takes a few runs; after that each run reads what's changed ("Supporters" in `docs/domain-concepts.md`).                                                                                                      |
 | `read-gmail`                                 | every 5 minutes                       | The connected Gmail accounts                                                                                                                                                                                                                                                                       |

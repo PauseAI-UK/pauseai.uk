@@ -1,7 +1,7 @@
 import "server-only";
 import constituencies from "@/lib/constituencies.json";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
-import { importPath, type PoliticianImportJob, type PoliticianImportResult } from "@/lib/import-runs";
+import { importPath, NEWER_RUN, type PoliticianImportJob, type PoliticianImportResult } from "@/lib/import-runs";
 import { ownDomains } from "@/lib/politician-domains";
 import {
   added,
@@ -325,8 +325,14 @@ export async function importPoliticians(body: Body, startedBy: string): Promise<
       const held = ours.length > 0 && holdsImport(changes);
       const count = importChangeCount(changes);
       if (!held) await applyMembers(job, members, endings, db);
-      const [heldBefore] = await query("SELECT 1 FROM import_runs WHERE job = $1 AND status = 'held'", [job], db);
-      newlyHeld = held && !heldBefore;
+      // Only the newest list can be applied, so an earlier one still held is discarded: held, this one replaces it.
+      const replaced = await query(
+        `UPDATE import_runs SET status = 'discarded', decided_by = $2, decided_at = now()
+         WHERE job = $1 AND status = 'held' RETURNING 1`,
+        [job, NEWER_RUN],
+        db,
+      );
+      newlyHeld = held && replaced.length === 0;
       const counts = { job, added: changes.added.length, left: changes.left.length, changed: changes.changed.length };
       if (count > 0) await logChange(job, held ? "hold politician import" : "apply politician import", counts, db);
       return {

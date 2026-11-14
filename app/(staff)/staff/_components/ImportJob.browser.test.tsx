@@ -6,7 +6,6 @@ import { staffTime } from "@/lib/staff-time";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { ImportJobPage, ImportOverview } from "./ImportJob";
 import {
-  exampleAppliedSync,
   exampleFailedRun,
   exampleCivicrmResult,
   exampleHeldImport,
@@ -35,16 +34,13 @@ describe("ImportOverview", () => {
       }),
       undefined,
       undefined,
-      exampleAppliedSync,
       failed("import-controlai", "No PDF linked", { at: new Date("2026-10-21T02:00:00Z") }),
       undefined,
       undefined,
     ];
-    await render(
-      <ImportOverview newest={newest} running={[]} airtableTable="https://airtable.com/app/tblPoliticians" />,
-    );
+    await render(<ImportOverview newest={newest} running={[]} />);
     await expect.element(page.getByRole("heading", { level: 1, name: staffCopy.import.pageTitle })).toBeVisible();
-    // A heading for each schedule, its jobs' cards under it, those that run only when pressed last.
+    // A heading for each schedule, its jobs' cards under it.
     expect(
       page
         .getByRole("heading", { level: 2 })
@@ -55,7 +51,6 @@ describe("ImportOverview", () => {
       staffCopy.import["quarter-hour"],
       staffCopy.import.hourly,
       staffCopy.import.nightly,
-      staffCopy.import.manual,
     ]);
     const cards = [...document.querySelectorAll("section")];
     expect(cards.map((card) => card.querySelector("h3 a")!.getAttribute("href"))).toEqual([
@@ -70,7 +65,6 @@ describe("ImportOverview", () => {
       "/staff/scheduled-jobs/controlai",
       "/staff/scheduled-jobs/controlai-statement",
       "/staff/scheduled-jobs/tidying",
-      "/staff/scheduled-jobs/politicians",
     ]);
     expect(cards.map((card) => card.querySelector("h3 a")!.textContent)).toEqual([
       jobTitles["import-luma"],
@@ -84,31 +78,30 @@ describe("ImportOverview", () => {
       jobTitles["import-controlai"],
       jobTitles["import-controlai-statement"],
       jobTitles["tidy-logs"],
-      jobTitles["sync-politicians"],
     ]);
     // Under the name, how the newest run ended, tinted to match.
     const status = (i: number) => cards[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!;
     expect(status(0).textContent).toBe(`${staffCopy.runs.status.incomplete}21 Oct 2026, 11:17`);
-    expect([0, 1, 3, 4, 5, 8, 11].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
+    expect([0, 1, 3, 4, 5, 8].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
       "amber",
       "green",
       "green",
       "amber",
       "green",
       "red",
-      "green",
     ]);
     expect(status(2).className).not.toMatch(/green|amber|red/);
     expect(status(2).textContent).toBe(staffCopy.sending.never);
     expect(status(6).textContent).toBe(staffCopy.politicianImports.never);
     expect(status(10).textContent).toBe(staffCopy.tidying.never);
-    // Each body's import links its list and says what it holds; the copy from Airtable links the table it reads.
+    // Each body's import links its list and says what it holds.
     const link = (i: number) => cards[i].querySelector(":scope > p a")!.getAttribute("href");
-    expect(link(4)).toContain("data.parliament.uk/membersdataplatform");
-    expect(link(6)).toBe("https://business.senedd.wales/mgwebservice.asmx/GetCouncillorsByWard");
+    expect(link(4)).toBe("https://data.parliament.uk/membersdataplatform/memberquery.aspx");
+    expect(link(5)).toBe("https://data.parliament.scot/#/api-list/");
+    expect(link(6)).toBe("https://business.senedd.wales/mgWebService.asmx");
+    expect(link(7)).toBe("https://data.niassembly.gov.uk/members.asmx");
     expect(cards[4].querySelector(":scope > p")!.textContent).toContain(staffCopy.politicianImports.held);
     expect(link(9)).toBe("https://controlai.org/statement");
-    expect(link(11)).toBe("https://airtable.com/app/tblPoliticians");
     // CiviCRM's card links CiviCRM; Gmail's leads to where it's connected; the sending's to the campaigns' letters
     // and the mailings, the tidying's to the audit log, the mailings and the errors.
     expect(link(3)).toBe("https://crm.pauseai.info/");
@@ -164,40 +157,26 @@ describe("ImportOverview", () => {
   });
 
   it("shows an applied run, and one that changed nothing, in green, and one discarded plainly", async () => {
-    const discarded = ran(
-      "sync-politicians",
-      { changes: { added: [], removed: [], changed: [] } },
-      { status: "discarded" },
-    );
+    const applied = ran("import-parliament", exampleImportResult, { status: "applied" });
+    const discarded = ran("import-parliament", exampleImportResult, { status: "discarded" });
     const unchanged = ran("import-luma", exampleLumaResult, { status: "unchanged" });
     const { rerender } = await render(
-      <ImportOverview
-        running={[]}
-        newest={[unchanged, undefined, undefined, exampleAppliedSync, undefined, undefined]}
-        airtableTable="x"
-      />,
+      <ImportOverview running={[]} newest={[unchanged, undefined, undefined, undefined, applied]} />,
     );
     const status = (i: number) =>
       document.querySelectorAll("section")[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!
         .className;
     expect(status(0)).toMatch(/green/);
-    expect(status(2)).toMatch(/green/);
+    expect(status(4)).toMatch(/green/);
+    await rerender(<ImportOverview running={[]} newest={[undefined, undefined, undefined, undefined, discarded]} />);
+    expect(status(4)).not.toMatch(/green|amber|red/);
     await rerender(
       <ImportOverview
-        running={[]}
-        newest={[undefined, undefined, undefined, discarded, undefined, undefined]}
-        airtableTable="x"
+        newest={[undefined, undefined, undefined, undefined, applied]}
+        running={[undefined, undefined, undefined, undefined, press]}
       />,
     );
-    expect(status(2)).not.toMatch(/green|amber|red/);
-    await rerender(
-      <ImportOverview
-        newest={[undefined, undefined, undefined, exampleAppliedSync, undefined, undefined]}
-        running={[undefined, undefined, undefined, press]}
-        airtableTable="x"
-      />,
-    );
-    expect(status(2)).toMatch(/blue/);
+    expect(status(4)).toMatch(/blue/);
     expect(document.body.textContent).toContain(staffCopy.runs.status.running);
     expect(document.body.textContent).toContain(staffTime(press.startedAt));
   });
@@ -205,7 +184,7 @@ describe("ImportOverview", () => {
 
 describe("ImportJobPage", () => {
   it("says when a run of it is going, a press or one of its schedule's", async () => {
-    const props = { job: "import-parliament" as const, runs: [], run: vi.fn(), decide: vi.fn(), airtableTable: "x" };
+    const props = { job: "import-parliament" as const, runs: [], run: vi.fn(), decide: vi.fn() };
     const { rerender } = await render(<ImportJobPage {...props} running={{ ...press, startedBy: NIGHTLY }} />);
     expect(document.body.textContent).toContain(staffCopy.import.runningScheduled(staffTime(press.startedAt)));
     await rerender(<ImportJobPage {...props} running={press} />);
@@ -225,15 +204,7 @@ describe("ImportJobPage", () => {
         status: "unchanged",
       }),
     ];
-    const { rerender } = await render(
-      <ImportJobPage
-        job="import-parliament"
-        runs={runs}
-        run={run}
-        decide={fn}
-        airtableTable="https://airtable.com/table"
-      />,
-    );
+    const { rerender } = await render(<ImportJobPage job="import-parliament" runs={runs} run={run} decide={fn} />);
     const head = page.getByRole("banner").element();
     expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(jobTitles["import-parliament"]);
     await expect.element(page.getByRole("img", { name: staffCopy.import.parliament })).toBeVisible();
@@ -248,7 +219,7 @@ describe("ImportJobPage", () => {
     expect(head.nextElementSibling!.textContent).toContain(intro.link);
     // No strip under the head: the newest run, in the history, carries the colour.
     expect(head.nextElementSibling!.nextElementSibling!.querySelector(":scope > [data-strip]")).toBeNull();
-    await page.getByRole("button", { name: staffCopy.politicianImports.importNow }).click();
+    await page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] }).click();
     await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
     expect(
       page
@@ -259,14 +230,11 @@ describe("ImportJobPage", () => {
     await page.getByRole("button", { name: staffCopy.politicianImports.apply }).click();
     await vi.waitFor(() => expect(sent).toEqual([{ id: "4", job: "import-parliament", decision: "apply" }]));
 
-    await rerender(<ImportJobPage job="sync-politicians" runs={[]} run={run} decide={fn} airtableTable="x" />);
-    await expect.element(page.getByText(staffCopy.syncs.none)).toBeVisible();
-    await expect.element(page.getByRole("img", { name: staffCopy.import.airtable })).toBeVisible();
-    expect(
-      [...page.getByRole("banner").element().querySelectorAll("h1 ~ span > span")].map((tag) => tag.textContent),
-    ).toEqual([staffCopy.import.manual]);
+    await rerender(<ImportJobPage job="import-controlai-statement" runs={[]} run={run} decide={fn} />);
+    await expect.element(page.getByText(staffCopy.controlAiStatement.never)).toBeVisible();
+    await expect.element(page.getByRole("img", { name: staffCopy.import.controlai })).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: staffCopy.syncs.intro.link }))
+      .element(page.getByRole("link", { name: staffCopy.controlAiStatement.intro.link }))
       .toHaveAttribute("target", "_blank");
   });
 });

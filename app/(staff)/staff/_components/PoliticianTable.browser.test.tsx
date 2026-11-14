@@ -65,7 +65,6 @@ describe("PoliticianTable", () => {
             name: "Nora Nothing",
             statuses: {},
             personalConnection: true,
-            airtableRemovedAt: new Date("2026-10-20T02:00:00Z"),
           },
         ]}
       />,
@@ -89,7 +88,7 @@ describe("PoliticianTable", () => {
     expect(cells("Polly Placeholder").slice(4, 6)).toEqual([staffCopy.personStatuses.in_office, flags.important]);
     expect(cells("Polly Placeholder").slice(7, 9)).toEqual(["4", "1"]);
     // Airtable's markers as lozenges, and a test politician's.
-    expect(cells("Nora Nothing")[5]).toBe(`${flags.connection}${flags.removed}${flags.test}`);
+    expect(cells("Nora Nothing")[5]).toBe(`${flags.connection}${flags.test}`);
     expect(cells("Testy McTestface MP")[5]).toBe(flags.test);
     const answers = (name: string) =>
       page

@@ -239,3 +239,37 @@ export function isRecognisedMail(from: string, labels: readonly string[]): boole
     /^noreply@/.test(from)
   );
 }
+
+/**
+ * The Lord a message to the House of Lords' shared inbox is for, as the
+ * House asks it be named at the start of the subject: "For Baroness Verma:
+ * Request to co-sign…", after any "Re:" or "Fwd:". Null for a subject that
+ * names none.
+ */
+export function lordFor(subject: string): string | null {
+  const match =
+    /^(?:\s*(?:re|fwd?|fw)\s*:)*\s*for\s+((?:the\s+)?(?:lord|baroness|lady|viscount|viscountess|earl|countess|duke|bishop)\b[^:]*?)\s*:/i.exec(
+      subject,
+    );
+  return match ? match[1] : null;
+}
+
+/** A Lord's name for comparing: no accents, case, extra spaces or "The" in front. */
+const lordName = (name: string) =>
+  name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim().replace(/^the /, "");
+
+/**
+ * The one sitting Lord `name` is (lordFor), by their name as we have it, or
+ * that name less its territorial part ("Lord Seedling" for "Lord Seedling of
+ * Example"); null for none, or more than one.
+ */
+export function lordNamed(lords: { id: number; name: string }[], name: string): number | null {
+  const wanted = lordName(name);
+  const ids = lords
+    .filter((lord) => {
+      const theirs = lordName(lord.name);
+      return theirs === wanted || theirs.startsWith(`${wanted} of `);
+    })
+    .map((lord) => lord.id);
+  return ids.length === 1 ? ids[0] : null;
+}

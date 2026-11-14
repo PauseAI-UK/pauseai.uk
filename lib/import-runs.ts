@@ -2,15 +2,13 @@
 // and the staff components that show a run (app/(staff)/staff/_components/Run.tsx).
 import type { ControlAiMatchProblem } from "./controlai-letter";
 import type { Ending, ImportChanges, OfficialMember } from "./politician-import";
-import type { PoliticianChanges, PoliticianRecord, Renamed } from "./politician-sync";
 
 /**
  * How often a job runs on its own: every 5 minutes, every 15, hourly or
  * nightly, each by a scheduled function in netlify/functions/<job>/ whose
- * cron says the same (netlify/scheduled.test.ts); or never, only when staff
- * press its button.
+ * cron says the same (netlify/scheduled.test.ts).
  */
-export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly" | "manual";
+export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
 
 /**
  * Every job, by its name in the import log (`import_runs.job`): its page,
@@ -31,7 +29,6 @@ export const JOBS = {
   "import-scottish-parliament": { slug: "scottish-parliament", schedule: "nightly" },
   "import-senedd": { slug: "senedd", schedule: "nightly" },
   "import-ni-assembly": { slug: "ni-assembly", schedule: "nightly" },
-  "sync-politicians": { slug: "politicians", schedule: "manual" },
   "import-controlai": { slug: "controlai", schedule: "nightly" },
   "import-controlai-statement": { slug: "controlai-statement", schedule: "nightly" },
   "tidy-logs": { slug: "tidying", schedule: "nightly" },
@@ -67,7 +64,10 @@ export function asList<Run>(run: Run | undefined): Run[] {
 /** Who starts the scheduled runs (netlify/functions/), whatever their schedule. Staff runs are started by the staff member's email. */
 export const NIGHTLY = "nightly";
 
-/** ok or failed; a sync-politicians run is instead unchanged, held, applied or discarded. */
+/** Who discarded a held run that a newer run of its job replaced, as only the newest list can be applied. */
+export const NEWER_RUN = "newer run";
+
+/** ok or failed; a body's import is instead unchanged, held, applied or discarded. */
 export type ImportRunStatus = "ok" | "failed" | "unchanged" | "held" | "applied" | "discarded";
 
 /** One thing that went wrong during a run without stopping it: what, in our words, and the error's own, if it came from one; `told` once an alert of its own has gone. */
@@ -81,26 +81,12 @@ export type ImportRun<Job extends ImportJob, Result> = {
   problems: Problem[];
   /** NIGHTLY, a staff member's email, or null for a run kept before 16 Oct 2026, when this wasn't recorded. */
   startedBy: string | null;
-  /** Who applied or discarded a held sync. */
+  /** Who applied or discarded a held import. */
   decidedBy: string | null;
 } & (
   | { status: "failed"; error: string; result: Record<string, never> }
   | { status: Exclude<ImportRunStatus, "failed">; error: null; result: Result }
 );
-
-/**
- * What a sync-politicians run keeps: whose salutation, markers or notes it
- * changed, and the records it matched to no one. Runs kept from when it
- * copied every detail keep who it added and removed, whose names changed,
- * and, held, every record.
- */
-export type PoliticianSyncResult = {
-  changes: PoliticianChanges;
-  unmatched?: string[];
-  renamed?: Renamed[];
-  records?: PoliticianRecord[];
-};
-export type PoliticianSync = ImportRun<"sync-politicians", PoliticianSyncResult>;
 
 /**
  * What relinking the one-off threads did (lib/server/one-off-relink.ts):
@@ -298,7 +284,6 @@ export type TidyingResult = { importRuns: number; auditEntries: number; drafts: 
 export type Tidying = ImportRun<"tidy-logs", TidyingResult>;
 
 export type AnyImportRun =
-  | PoliticianSync
   | PoliticianImport
   | ControlAiImport
   | ControlAiStatementImport

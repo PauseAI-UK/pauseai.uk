@@ -11,16 +11,12 @@ import {
   type PoliticianImport,
   type PoliticianImportJob,
   type PoliticianImportResult,
-  type PoliticianSync,
-  type PoliticianSyncResult,
   type Problem,
   type SendingResult,
   type TidyingResult,
 } from "@/lib/import-runs";
-import type { SyncedPolitician } from "@/lib/politician-sync";
 
 type Results = Record<PoliticianImportJob, PoliticianImportResult> & {
-  "sync-politicians": PoliticianSyncResult;
   "import-controlai": ControlAiImportResult;
   "import-controlai-statement": ControlAiStatementResult;
   "import-luma": LumaImportResult;
@@ -64,61 +60,6 @@ export const exampleFailedRun = <Job extends ImportJob>(
   error: string,
   run: Partial<RunOf<Job>>,
 ): RunOf<Job> => ({ ...exampleRun(job, {} as Results[Job]), status: "failed", error, ...run }) as RunOf<Job>;
-
-/** An MP as a sync copies them from Airtable: "MP 1", of "Seat 1". */
-export const exampleSyncedMp = (id: number, email: string | null = "a@parliament.uk"): SyncedPolitician => ({
-  airtableId: `rec${id}`,
-  name: `MP ${id}`,
-  salutation: "",
-  email,
-  status: "in_office",
-  house: "commons",
-  constituency: `Seat ${id}`,
-  party: "",
-  country: null,
-  notes: "",
-  importantTarget: false,
-  personalConnection: false,
-});
-
-/** A peer as a sync copies them: no constituency. */
-const examplePeer: SyncedPolitician = {
-  ...exampleSyncedMp(5),
-  name: "Lord Example",
-  house: "lords",
-  constituency: null,
-};
-
-/**
- * A sync held for staff to apply or discard: one MP added, one gone from
- * Airtable, a peer added, and one renamed.
- */
-export const exampleHeldSync: PoliticianSync = exampleRun(
-  "sync-politicians",
-  {
-    changes: {
-      added: [exampleSyncedMp(1), examplePeer],
-      removed: [exampleSyncedMp(2, null)],
-      changed: [{ ...exampleSyncedMp(6), name: "Someone New" }],
-    },
-    renamed: [{ airtableId: "rec6", from: "MP 6", to: "Someone New" }],
-    records: [{ politician: exampleSyncedMp(1) }],
-  },
-  { id: 3, at: new Date("2026-10-12T02:00:00Z"), status: "held" },
-);
-
-/** An MP sync someone applied, kept from before the sync read every body: one MP changed. */
-export const exampleAppliedSync: PoliticianSync = exampleRun(
-  "sync-politicians",
-  {
-    changes: {
-      added: [],
-      removed: [],
-      changed: [{ airtableId: "rec4", name: "MP 4", constituency: "Seat 4", email: "a@parliament.uk" }],
-    },
-  } as unknown as PoliticianSyncResult,
-  { id: 2, at: new Date("2026-10-11T02:00:00Z"), status: "applied", decidedBy: "jo@pauseai.uk" },
-);
 
 /** What a body's import did that changed nothing, and what relinking the one-off threads did after. */
 export const exampleImportResult: PoliticianImportResult = {

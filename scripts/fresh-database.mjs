@@ -205,10 +205,17 @@ export function addTestMps(url, email) {
 /**
  * Gives the migrations' admin account the supporters permission too, so a
  * local database opens every staff page to it. Live databases keep the
- * migration's admin alone.
+ * migration's admin alone. And forgets the pages a migration marked it as
+ * having seen, so it starts as a new account does, with only pages that
+ * have just gone live marked new.
  */
 export function giveAdminSupporters(url) {
-  psql(url, "-c", "UPDATE staff_accounts SET permissions = '{admin,supporters}' WHERE email = 'admin@pauseai.uk'");
+  psql(
+    url,
+    "-c",
+    `UPDATE staff_accounts SET permissions = '{admin,supporters}' WHERE email = 'admin@pauseai.uk';
+     DELETE FROM staff_nav_seen WHERE email = 'admin@pauseai.uk'`,
+  );
 }
 
 /**

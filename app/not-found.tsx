@@ -1,15 +1,12 @@
-import Footer from "@/components/layout/Footer";
-import Nav from "@/components/layout/Nav";
 import NotFoundMain from "@/components/layout/NotFoundMain";
+import SiteFrame from "@/components/layout/SiteFrame";
 
-// An address no page has, outside any layout with a header and footer of its
-// own; one a public page says it can't find is app/(site)/not-found.tsx.
+// An address no page has: the site's header and footer around the 404,
+// unless a section's layout already drew them (SiteFrame draws them once).
 export default function NotFound() {
   return (
-    <>
-      <Nav />
+    <SiteFrame>
       <NotFoundMain />
-      <Footer />
-    </>
+    </SiteFrame>
   );
 }

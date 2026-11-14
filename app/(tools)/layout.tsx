@@ -1,18 +1,20 @@
-import Footer from "@/components/layout/Footer";
 import MarchBanner from "@/components/layout/MarchBanner";
-import Nav from "@/components/layout/Nav";
 import NoAnalytics from "@/components/layout/NoAnalytics";
+import SiteFrame from "@/components/layout/SiteFrame";
 
 // Unlisted volunteer tools and trackers (hidden from the sitemap): the site
 // header and footer, and no analytics.
 export default function ToolsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <Nav />
-      <MarchBanner />
-      <NoAnalytics />
+    <SiteFrame
+      after={
+        <>
+          <MarchBanner />
+          <NoAnalytics />
+        </>
+      }
+    >
       {children}
-      <Footer />
-    </>
+    </SiteFrame>
   );
 }

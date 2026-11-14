@@ -1041,7 +1041,7 @@ that drives it or why nothing does.
 - `/api/signatories`: `staff-navigation`: setting a status, then reading the public list.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
 - `/api/cron/[job]`, each scheduled job's run (`lib/server/jobs.ts`), Vitest-tested beside it for every job:
-  - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`, `sync-politicians`: `importPoliticians()` in `tests/steps.ts`, at the start of the staff flows that need politicians; `imports` runs Parliament's again to hold it.
+  - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`: `importPoliticians()` in `tests/steps.ts`, at the start of the staff flows that need politicians, which then gives them their Airtable records' details; `imports` runs Parliament's again to hold it.
   - `import-controlai`, `import-controlai-statement`: Not driven. The `staff-navigation` and `politicians` sections run them through their buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
   - `send-mailings`:
@@ -1219,6 +1219,10 @@ import("@/tests/next-headers"))` and put the session cookie in
   then pictures it in every review.
 - **A page has no branches** (`tests/checks/thin-pages.test.ts`). Put the
   choice in a component or a `lib/` helper with its own tests.
+- **The site's header and footer are drawn only by `SiteFrame`**
+  (`tests/checks/site-frame.test.ts`), which draws them once however many
+  layouts a page is inside, so a 404 inside a section's layout never shows
+  two of each.
 - **A caught error is rethrown or reported** with `problem()`, nothing
   writes an error to the log by hand, and every job runs as a run of
   the import log (`docs/code-structure.md`, "Rules"). Three checks fail

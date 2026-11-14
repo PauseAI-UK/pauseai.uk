@@ -9,13 +9,11 @@ import {
   type CivicrmImport,
   type GmailReading,
   type PoliticianImport,
-  type PoliticianSync,
   type Sending,
   type Tidying,
 } from "@/lib/import-runs";
 import type { House } from "@/lib/politician-filters";
 import { importChangeCount } from "@/lib/politician-import";
-import { changeCount } from "@/lib/politician-sync";
 import RunBox from "./RunBox";
 import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
@@ -82,43 +80,6 @@ function Decision({ run, decision, decide }: { run: PoliticianImport; decision: 
         {staffCopy.politicianImports[decision]}
       </SubmitButton>
     </form>
-  );
-}
-
-/**
- * A copy from Airtable: whose salutation, markers or notes it changed, and
- * the records it found no one for. Runs kept from when it copied every
- * detail also list who it added and removed, and whose names changed.
- */
-function SyncRun({ run, open, bare }: { run: PoliticianSync; open?: boolean; bare?: boolean }) {
-  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
-  const { added, removed, changed } = run.result.changes;
-  const renamed = run.result.renamed ?? [];
-  const unmatched = run.result.unmatched ?? [];
-  const count = changeCount(run.result.changes) + renamed.length + unmatched.length;
-  return (
-    <RunBox
-      run={run}
-      open={open}
-      bare={bare}
-      lines={count}
-      summary={
-        <>
-          {staffCopy.syncs.added} {added.length}, {staffCopy.syncs.removed} {removed.length}, {staffCopy.syncs.changed}{" "}
-          {changed.length}
-        </>
-      }
-    >
-      {count > 0 && (
-        <>
-          <Lines heading={staffCopy.syncs.renamed} lines={renamed.map((r) => `${r.from} → ${r.to}`)} />
-          <Politicians heading={staffCopy.syncs.added} politicians={added} />
-          <Politicians heading={staffCopy.syncs.removed} politicians={removed} />
-          <Politicians heading={staffCopy.syncs.changed} politicians={changed} />
-          <Lines heading={staffCopy.syncs.unmatched} lines={unmatched} />
-        </>
-      )}
-    </RunBox>
   );
 }
 
@@ -371,8 +332,6 @@ export default function Run({
     case "import-senedd":
     case "import-ni-assembly":
       return <PoliticianImportRun run={run} decide={decide} open={open} bare={bare} />;
-    case "sync-politicians":
-      return <SyncRun run={run} open={open} bare={bare} />;
     case "import-controlai":
       return <ControlAiRun run={run} open={open} bare={bare} />;
     case "import-controlai-statement":

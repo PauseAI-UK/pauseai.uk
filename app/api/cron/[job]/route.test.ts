@@ -8,7 +8,6 @@ import { POST } from "./route";
 
 beforeEach(() => {
   vi.stubEnv("CRON_SECRET", "s3cret");
-  vi.stubEnv("AIRTABLE_TOKEN", "token");
   vi.stubEnv("CIVICRM_CHAPTER_KEY", "key");
   vi.stubEnv("LUMA_API_KEY", "k");
 });
@@ -24,23 +23,14 @@ const answer = async (job: string) => (await call(job)).json();
 describeWithDatabase("POST /api/cron/<job>", () => {
   useTestDatabase();
 
-  it("copies what Airtable has to the politicians here, and says what changed and what it found no one for", async () => {
-    expect(await answer("sync-politicians")).toEqual({ changed: 0, unmatched: 7 });
-  });
-
-  it("fails when the politicians do, keeping the run", async () => {
-    server.use(
-      // A Status the sync doesn't know fails it.
-      http.get("https://*.airtable.com/v0/appBInVvIm6opJ1Ob/tblH3ks9wqQHLpYx3", () =>
-        HttpResponse.json({ records: [{ id: "recOdd", fields: { "Full name or Title": "Odd", Status: "Odd" } }] }),
-      ),
-    );
-    await expect(call("sync-politicians")).rejects.toThrow('Unknown Status "Odd"');
+  it("fails when an import does, keeping the run", async () => {
+    server.use(http.get("https://business.senedd.wales/*", () => new HttpResponse(null, { status: 500 })));
+    await expect(call("import-senedd")).rejects.toThrow();
     expect(await query("SELECT job, status FROM import_runs ORDER BY id")).toEqual([
-      { job: "sync-politicians", status: "failed" },
+      { job: "import-senedd", status: "failed" },
     ]);
     // It's no longer going, so the next run goes.
-    expect(await runningNow("sync-politicians")).toBeUndefined();
+    expect(await runningNow("import-senedd")).toBeUndefined();
   });
 
   it("doesn't run a job while a staff member's run of it is going, and says so", async () => {

@@ -1,5 +1,3 @@
-import { SubmitButton } from "@/components/ui/SubmitButton";
-import Tag from "@/components/ui/Tag";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Mark } from "@/lib/server/politician-edits";
 import styles from "./PoliticianMarks.module.css";
@@ -9,10 +7,11 @@ const copy = staffCopy.politician;
 const MARKS: Mark[] = ["importantTarget", "personalConnection"];
 
 /**
- * The markers staff set on a politician, each a button that's pressed while
- * it's on and turns it off or on, each in a form of its own, or without
- * `setMark`, a tag for each that's on; then, for one of our test
- * politicians, a tag no one changes.
+ * The marks staff set on a politician, a row each: its name and a switch,
+ * on or off, that turns it the other way, in a form of its own. Without
+ * `setMark`, the switches show where each stands and can't be pressed.
+ * Last, whether they're one of our test politicians, as a switch no one
+ * can move.
  */
 export default function PoliticianMarks({
   politician,
@@ -22,26 +21,40 @@ export default function PoliticianMarks({
   setMark?: (form: FormData) => void | Promise<void>;
 }) {
   return (
-    <span className={styles.marks}>
-      {MARKS.map((mark) =>
-        setMark ? (
-          <form key={mark} action={setMark}>
+    <ul className={styles.marks}>
+      {MARKS.map((mark) => (
+        <li key={mark} className={styles.mark}>
+          <span id={`mark-${mark}`}>{copy[mark]}</span>
+          <form action={setMark}>
             <input type="hidden" name="politicianId" value={politician.id} />
             <input type="hidden" name="mark" value={mark} />
             <input type="hidden" name="on" value={String(!politician[mark])} />
-            <SubmitButton variant={politician[mark] ? "primary" : "ghost"} size="small" aria-pressed={politician[mark]}>
-              {copy[mark]}
-            </SubmitButton>
+            <button
+              type="submit"
+              role="switch"
+              aria-checked={politician[mark]}
+              aria-labelledby={`mark-${mark}`}
+              disabled={!setMark}
+              className={styles.switch}
+            >
+              <span className={styles.knob} />
+            </button>
           </form>
-        ) : (
-          politician[mark] && (
-            <Tag key={mark} tone={mark === "importantTarget" ? "amber" : undefined}>
-              {copy[mark]}
-            </Tag>
-          )
-        ),
-      )}
-      {politician.isTest && <Tag>{staffCopy.politicians.flags.test}</Tag>}
-    </span>
+        </li>
+      ))}
+      <li className={styles.mark}>
+        <span id="mark-test">{staffCopy.politicians.flags.test}</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={politician.isTest}
+          aria-labelledby="mark-test"
+          disabled
+          className={styles.switch}
+        >
+          <span className={styles.knob} />
+        </button>
+      </li>
+    </ul>
   );
 }

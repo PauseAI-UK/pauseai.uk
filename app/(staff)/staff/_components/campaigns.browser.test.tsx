@@ -421,10 +421,10 @@ describe("ChangesTable, without the supporters permission", () => {
   it("says entries about supporters are left out", async () => {
     const log = { changes: [], total: 0, pages: 1, pageSize: 100 };
     const { rerender } = await render(
-      <ChangesTable search={changesSearch({})} log={log} page={1} airtableTable="x" supporters={false} />,
+      <ChangesTable search={changesSearch({})} log={log} page={1} supporters={false} />,
     );
     await says(staffCopy.changes.withheld);
-    await rerender(<ChangesTable search={changesSearch({})} log={log} page={1} airtableTable="x" />);
+    await rerender(<ChangesTable search={changesSearch({})} log={log} page={1} />);
     expect(document.body.textContent).not.toContain(staffCopy.changes.withheld);
   });
 });

@@ -12,7 +12,14 @@ import { gzipSync } from "node:zlib";
 const LATER = () => Date.now() + 60_000;
 
 /** Keeps a message from `from` to `to` in thread `thread`, its text `text`. */
-async function keep(id: string, from: string, text = "Hello", to = "policy@pauseai.uk", thread = `t-${id}`) {
+async function keep(
+  id: string,
+  from: string,
+  text = "Hello",
+  to = "policy@pauseai.uk",
+  thread = `t-${id}`,
+  subject = "A thread",
+) {
   const message: GmailMessageHeaders = {
     id,
     threadId: thread,
@@ -21,11 +28,11 @@ async function keep(id: string, from: string, text = "Hello", to = "policy@pause
     headers: new Map([
       ["from", from],
       ["to", to],
-      ["subject", "A thread"],
+      ["subject", subject],
       ["message-id", `<${id}@example.org>`],
     ]),
   };
-  const raw = Buffer.from(`Subject: A thread\r\n\r\n${text}`);
+  const raw = Buffer.from(`Subject: ${subject}\r\n\r\n${text}`);
   return (await keepOneOff("policy@pauseai.uk", message, raw, await readPoliticianBook(true), ["policy@pauseai.uk"]))!;
 }
 
@@ -128,6 +135,31 @@ describeWithDatabase("relinking one-off threads", () => {
     );
     await relinkOneOffs(LATER());
     expect(await marked()).toBe(false);
+  });
+
+  it("links a thread through the Lords' shared inbox to the sitting Lord its subject is for, or to no one", async () => {
+    const lord = { house: "lords" as const, constituency: null, party: "Crossbench", email: null };
+    const verma = await addTestPolitician({ ...lord, name: "Baroness Verma", airtableId: "recVerma" });
+    await addTestPolitician({ ...lord, name: "Lord Smith of Here", airtableId: "recSmith1" });
+    await addTestPolitician({ ...lord, name: "Lord Smith of There", airtableId: "recSmith2" });
+    await addTestPolitician({ ...lord, name: "Baroness Gone", airtableId: "recGone", status: "retired" });
+    const shared = "contactholmember@parliament.uk";
+    const hers = await keep(
+      "a",
+      "policy@pauseai.uk",
+      "Hi",
+      shared,
+      "t-a",
+      "Re: For Baroness Verma: Request to co-sign",
+    );
+    // Two Lords Smith, a Lord who has retired, and one for no one: none of them anyone's.
+    await keep("b", "policy@pauseai.uk", "Hi", shared, "t-b", "For Lord Smith: Request to co-sign");
+    await keep("c", "policy@pauseai.uk", "Hi", shared, "t-c", "For Baroness Gone: Request to co-sign");
+    await keep("d", "policy@pauseai.uk", "Hi", shared, "t-d", "A briefing for every Lord");
+    // Not through the shared inbox: the subject alone says nothing.
+    await keep("e", "policy@pauseai.uk", "Hi", "someone@example.org", "t-e", "For Baroness Verma: a copy");
+    await relinkOneOffs(LATER());
+    expect(await linked()).toEqual([{ thread: hers, id: verma }]);
   });
 
   it("reads a kept blob's quotes", async () => {

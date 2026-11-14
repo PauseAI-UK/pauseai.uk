@@ -6,8 +6,8 @@ import { query, transaction } from "./db";
 import { relinkOneOffs } from "./one-off-relink";
 
 // What staff edit on a politician's page: only what no body's list has, as
-// the imports keep the rest (lib/server/politician-import.ts). Airtable's
-// two markers; a salutation the rule got wrong; and a Lord's email, as most
+// the imports keep the rest (lib/server/politician-import.ts). The two
+// marks; a salutation the rule got wrong; and a Lord's email, as most
 // Lords list none of their own. Each edit is logged, by the politician's ID,
 // so their page can tell it.
 

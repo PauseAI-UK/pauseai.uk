@@ -61,7 +61,6 @@ describe("config", () => {
     const settings = {
       SITE_ORIGIN: () => config.siteOrigin,
       OUTBOX_DIR: () => config.outboxDir,
-      AIRTABLE_TOKEN: () => config.airtableToken,
       CIVICRM_CHAPTER_KEY: () => config.civicrmChapterKey,
       LUMA_WEBHOOK_SECRET: () => config.lumaWebhookSecret,
       POSTMARK_SERVER_TOKEN: () => config.postmarkServerToken,

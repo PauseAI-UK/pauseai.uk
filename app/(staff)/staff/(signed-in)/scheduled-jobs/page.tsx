@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { IMPORT_JOBS } from "@/lib/import-runs";
-import { PARLIAMENTARIANS_TABLE_URL } from "@/lib/server/outside-services/airtable";
 import { latestRun, runningNow } from "@/lib/server/import-runs";
 import { requireStaff } from "@/lib/server/staff-auth";
 import { ImportOverview } from "../../_components/ImportJob";
@@ -18,7 +17,7 @@ export default async function ImportPage() {
   ]);
   return (
     <Page kind="board">
-      <ImportOverview newest={newest} running={running} airtableTable={PARLIAMENTARIANS_TABLE_URL} />
+      <ImportOverview newest={newest} running={running} />
     </Page>
   );
 }

@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications } from "@/tests/notifications";
-import { NIGHTLY, type PoliticianImport } from "@/lib/import-runs";
+import { NEWER_RUN, NIGHTLY, type PoliticianImport } from "@/lib/import-runs";
 import { PARLIAMENT_MEMBERS } from "@/lib/server/fixtures/politician-lists";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "./db";
@@ -193,14 +193,28 @@ describeWithDatabase("importPoliticians", () => {
     expect((await importPoliticians("parliament", NIGHTLY)).status).toBe("held");
     const title = staffCopy.politicianImports.titles["import-parliament"];
     expect(sent.filter((n) => n.Subject === staffCopy.notifications.importHeld.subject(title, 21))).toHaveLength(1);
+    // The newer run replaced the older, which can no longer be applied.
     const [newest, oldest] = await runs("import-parliament");
-    expect(await decideHeldImport(oldest.id, "discard", JO)).toBe(true);
+    expect(await decideHeldImport(oldest.id, "apply", JO)).toBe(false);
     expect(await decideHeldImport(newest.id, "apply", JO)).toBe(true);
     expect(await decideHeldImport(newest.id, "apply", JO)).toBe(false);
     expect((await people()).filter((p) => p.name.startsWith("Many"))).toHaveLength(21);
     expect((await runs("import-parliament")).map((r) => [r.status, r.decidedBy])).toEqual([
       ["applied", JO],
-      ["discarded", JO],
+      ["discarded", NEWER_RUN],
+      ["applied", null],
+    ]);
+  });
+
+  it("discards a held run when a newer one isn't held, as its list is out of date", async () => {
+    await importPoliticians("parliament", JO);
+    commonsHas([DORA, POLLY, MO, ...many(21)]);
+    await importPoliticians("parliament", NIGHTLY);
+    commonsHas([DORA, POLLY, MO]);
+    expect((await importPoliticians("parliament", NIGHTLY)).status).toBe("unchanged");
+    expect((await runs("import-parliament")).map((r) => [r.status, r.decidedBy])).toEqual([
+      ["unchanged", null],
+      ["discarded", NEWER_RUN],
       ["applied", null],
     ]);
   });

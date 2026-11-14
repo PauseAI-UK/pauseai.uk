@@ -52,23 +52,23 @@ describe("PoliticianDetails", () => {
     );
     await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(MP.name);
     await expect.element(page.getByText(staffCopy.politician.importantTarget)).toBeVisible();
-    // Their party, status and nation, the party's and the nation's with an icon; how to write to them; their markers.
+    // Their party, status and nation, the party's and the nation's with an icon; how to write to them.
     expect(terms()).toEqual([
       staffCopy.fields.party,
       staffCopy.politician.status,
       staffCopy.politician.country,
       staffCopy.fields.email,
-      staffCopy.politician.salutation,
-      staffCopy.politician.marks,
     ]);
     expect(definitions()).toEqual([
       MP.party,
       staffCopy.personStatuses.in_office,
       staffCopy.countries.england,
       staffCopy.politicians.noEmail,
-      MP.salutation,
-      staffCopy.politician.importantTarget,
     ]);
+    // Their marks, in a card of their own under the notes: without a way to change them, the switches can't be pressed.
+    const marks = page.getByRole("region", { name: staffCopy.politician.marks });
+    await expect.element(marks.getByRole("switch", { name: staffCopy.politician.importantTarget })).toBeChecked();
+    await expect.element(marks.getByRole("switch", { name: staffCopy.politician.personalConnection })).toBeDisabled();
     // Where they came from, quietly, at the top right.
     await expect
       .element(page.getByText(`${staffCopy.politician.source} ${staffCopy.politician.sources.staff}`))
@@ -82,27 +82,29 @@ describe("PoliticianDetails", () => {
     ]);
     // Not PauseAI's emails: they're in the history.
     expect(page.getByRole("link", { name: /from PauseAI/ }).query()).toBeNull();
-    // Airtable's notes keep their lines.
-    const airtable = page.getByRole("region", { name: staffCopy.notes.title });
-    await expect.element(airtable.getByText(staffCopy.politician.notes)).toBeVisible();
-    expect(getComputedStyle(airtable.getByText(/example fair/).element()).whiteSpace).toBe("pre-line");
     await expect.element(page.getByRole("region", { name: staffCopy.politician.statusesTitle })).toBeVisible();
+    // An empty history still opens, its count 0, to say there's nothing yet.
+    const history = page
+      .getByRole("heading", { name: staffCopy.politician.historyTitle })
+      .element()
+      .closest("details")!;
+    expect(history.querySelector("summary")!.textContent).toBe(`${staffCopy.politician.historyTitle} 0`);
+    history.open = true;
     await expect.element(page.getByText(staffCopy.politician.noHistory)).toBeVisible();
     // Without staff's notes, no way to write one.
     await expect.element(page.getByRole("button", { name: staffCopy.notes.write })).not.toBeInTheDocument();
     // A personal connection is a tag too; none of the rest is there for someone without them.
     await rerender(
       <PoliticianDetails
-        politician={{ ...MP, importantTarget: false, personalConnection: true, country: null, notes: "" }}
+        politician={{ ...MP, importantTarget: false, personalConnection: true, country: null }}
         unblock={vi.fn()}
         {...none}
       />,
     );
     await expect.element(page.getByText(staffCopy.politician.personalConnection)).toBeVisible();
-    await expect.element(page.getByText(staffCopy.politician.notes)).not.toBeInTheDocument();
   });
 
-  it("links their address, to write to them, and has no party, country or salutation for someone with none", async () => {
+  it("links their address, to write to them, and has no party or country for someone with none", async () => {
     await render(
       <PoliticianDetails
         politician={{ ...MP, party: "", country: null, status: "retired", salutation: "" }}
@@ -111,26 +113,47 @@ describe("PoliticianDetails", () => {
       />,
     );
     await expect.element(page.getByRole("link", { name: MP.email! })).toHaveAttribute("href", `mailto:${MP.email}`);
-    expect(terms()).toEqual([staffCopy.politician.status, staffCopy.fields.email, staffCopy.politician.marks]);
+    expect(terms()).toEqual([staffCopy.politician.status, staffCopy.fields.email]);
   });
 
-  it("marks a salutation made from the name to check, leading to where it's written", async () => {
+  it("shows a test politician's salutation, as a letter to them starts, with no Edit", async () => {
+    await render(
+      <PoliticianDetails
+        politician={{ ...MP, isTest: true }}
+        unblock={vi.fn()}
+        editDetails={vi.fn()}
+        aliases={exampleAliases}
+        aliasActions={{ add: vi.fn(), remove: vi.fn() }}
+        aliasesOpen
+        {...none}
+      />,
+    );
+    const words = staffCopy.politician.editDetails;
+    await expect.element(page.getByText(words.dear(MP.salutation))).toBeVisible();
+    await expect
+      .element(page.getByRole("button", { name: `${words.edit} ${words.salutation}` }))
+      .not.toBeInTheDocument();
+  });
+
+  it("tags a salutation made from the name to check where it's written", async () => {
     await render(
       <PoliticianDetails
         politician={{ ...MP, salutationToCheck: true, importantTarget: false }}
         unblock={vi.fn()}
+        editDetails={vi.fn()}
+        aliases={exampleAliases}
+        aliasActions={{ add: vi.fn(), remove: vi.fn() }}
+        aliasesOpen
         {...none}
       />,
     );
-    await expect
-      .element(page.getByRole("link", { name: staffCopy.politician.salutationToCheck }))
-      .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open#aliases`);
-    expect(terms()).not.toContain(staffCopy.politician.marks);
+    const writing = page.getByRole("group").filter({ hasText: staffCopy.politician.writing });
+    await expect.element(writing.getByText(staffCopy.politician.salutationToCheck)).toBeVisible();
   });
 
   it("saves how we write to them from Writing to them, saying when the server gave no answer", async () => {
     const editDetails = vi.fn(async () => undefined);
-    await render(
+    const { rerender } = await render(
       <PoliticianDetails
         politician={MP}
         unblock={vi.fn()}
@@ -141,17 +164,35 @@ describe("PoliticianDetails", () => {
         {...none}
       />,
     );
-    await page.getByRole("button", { name: staffCopy.politician.editDetails.save }).click();
+    const words = staffCopy.politician.editDetails;
+    await page.getByRole("button", { name: `${words.edit} ${words.salutation}` }).click();
+    await page.getByRole("button", { name: words.save }).click();
     await vi.waitFor(() => expect(editDetails).toHaveBeenCalledOnce());
-    await expect.element(page.getByText(staffCopy.politician.editDetails.saved)).not.toBeInTheDocument();
+    await expect.element(page.getByText(words.saved)).not.toBeInTheDocument();
+    // With no answer, the field stays open, until Cancel.
+    await expect.element(page.getByRole("textbox", { name: words.salutation })).toBeVisible();
+    await page.getByRole("button", { name: words.cancel }).click();
+    // A salutation not set yet says so.
+    await rerender(
+      <PoliticianDetails
+        politician={{ ...MP, salutation: "" }}
+        unblock={vi.fn()}
+        editDetails={editDetails}
+        aliases={exampleAliases}
+        aliasActions={{ add: vi.fn(), remove: vi.fn() }}
+        aliasesOpen
+        {...none}
+      />,
+    );
+    await expect.element(page.getByText(words.none, { exact: false })).toBeVisible();
   });
 
-  it("turns a marker on or off with its button in the band", async () => {
+  it("turns a marker on or off with its switch in the Marks card", async () => {
     const { fn, sent } = action();
     await render(<PoliticianDetails politician={MP} unblock={vi.fn()} setMark={fn} {...none} />);
-    const important = page.getByRole("button", { name: staffCopy.politician.importantTarget });
-    await expect.element(important).toHaveAttribute("aria-pressed", "true");
-    await page.getByRole("button", { name: staffCopy.politician.personalConnection }).click();
+    const important = page.getByRole("switch", { name: staffCopy.politician.importantTarget });
+    await expect.element(important).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("switch", { name: staffCopy.politician.personalConnection }).click();
     await vi.waitFor(() =>
       expect(sent).toEqual([{ politicianId: String(MP.id), mark: "personalConnection", on: "true" }]),
     );
@@ -181,20 +222,12 @@ describe("PoliticianDetails", () => {
       }
       await unmount();
     }
-    await render(
-      <PoliticianDetails
-        politician={{ ...MP, airtableRemovedAt: new Date("2026-10-20T03:00:00Z") }}
-        unblock={vi.fn()}
-        {...none}
-      />,
-    );
-    await expect.element(page.getByText(staffCopy.politician.airtableRemoved("20 Oct 2026"))).toBeVisible();
   });
 
   it("drafts a note in a notes card with nothing in it yet", async () => {
     await render(
       <PoliticianDetails
-        politician={{ ...MP, notes: "" }}
+        politician={MP}
         unblock={vi.fn()}
         {...none}
         notes={{
@@ -1017,7 +1050,8 @@ describe("PoliticianDetails", () => {
     );
     const { rerender } = await render(details({}));
     // Neither has a row yet, and ControlAI's letter, which its import fills, isn't in the menu.
-    expect(page.getByRole("group").all()).toHaveLength(0);
+    const asksCard = page.getByRole("region", { name: staffCopy.politician.statusesTitle });
+    expect(asksCard.getByRole("group").all()).toHaveLength(0);
     const another = page.getByRole("button", { name: staffCopy.politician.otherAsk });
     const menu = page.getByRole("list", { name: staffCopy.politician.otherAsk });
     await another.click();
@@ -1186,7 +1220,7 @@ describe("PoliticianDetails", () => {
       <PoliticianDetails politician={MP} unblock={vi.fn()} {...none} aliases={exampleAliases} aliasActions={aliases} />,
     );
     await expect
-      .element(page.getByRole("link", { name: words.see }))
+      .element(page.getByRole("link", { name: words.edit }).first())
       .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open#aliases`);
     const fold = document.getElementById("aliases") as HTMLDetailsElement;
     expect(fold.open).toBe(false);
@@ -1202,7 +1236,9 @@ describe("PoliticianDetails", () => {
       />,
     );
     expect(fold.open).toBe(true);
-    const rows = [...fold.querySelectorAll("tbody tr")].map((row) => row.querySelector("td")!.textContent);
+    const rows = [...fold.querySelectorAll("ul li")].map(
+      (row) => row.querySelector(":scope > span > span")!.textContent,
+    );
     expect(rows).toEqual([
       "polly.placeholder.mp@parliament.uk",
       "polly@oldexample.org.uk",
@@ -1238,11 +1274,13 @@ describe("PoliticianDetails", () => {
         aliasActions={aliases}
       />,
     );
-    expect(fold.querySelector("tbody td")!.textContent).toBe("polly@oldexample.org.uk");
+    expect(fold.querySelector("ul li > span > span")!.textContent).toBe("polly@oldexample.org.uk");
+    // And no way to add an address, until they have one letters go to.
+    await expect.element(page.getByRole("button", { name: words.add })).not.toBeInTheDocument();
     // Without what changes them, no aliases at all.
     await rerender(<PoliticianDetails politician={MP} unblock={vi.fn()} {...none} aliases={exampleAliases} />);
     expect(document.getElementById("aliases")).toBeNull();
-    expect(page.getByRole("link", { name: words.see }).query()).toBeNull();
+    expect(page.getByRole("link", { name: words.edit }).query()).toBeNull();
   });
 });
 

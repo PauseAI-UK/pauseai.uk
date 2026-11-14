@@ -169,9 +169,9 @@ test("A note on a politician", async ({ page, request, flowDatabase }) => {
     "href",
     "https://www.example.org/contact",
   );
-  // Airtable's notes stay as the last, the sync's to change.
+  // Airtable's notes are a note of their own, written by Airtable, the oldest.
   await expect(notes.getByRole("listitem").last()).toContainText("Met at the example fair.");
-  await expect(notes.getByRole("listitem").last()).toContainText(copy.notes);
+  await expect(notes.getByRole("listitem").last()).toContainText("Airtable");
   await frame(page, "The note in Polly's notes", { of: notes });
 });
 
@@ -509,32 +509,6 @@ test("Searching politicians", async ({ page, request, flowDatabase }) => {
   await frame(page, "The test MP");
 });
 
-test("Deleting a politician", async ({ page, request, flowDatabase }) => {
-  story("Rita Retired is gone from Airtable, so staff can delete her. Anyone still in Airtable has no Delete button.");
-  await importPoliticians(request, BASE, flowDatabase);
-  runSql(flowDatabase, "UPDATE notable_people SET airtable_removed_at = now() WHERE name = 'Rita Retired'");
-  await logIn(page, flowDatabase);
-  // Anyone still in Airtable can't be.
-  await openPolitician(page, "Polly Placeholder");
-  await expect(page.getByRole("button", { name: copy.delete.button, exact: true })).toHaveCount(0);
-
-  await openPolitician(page, "Rita Retired");
-  await page.getByRole("button", { name: copy.delete.button, exact: true }).scrollIntoViewIfNeeded();
-  await frame(page, "The foot of Rita's page");
-
-  story("Delete asks to be pressed a second time.");
-  await page.getByRole("button", { name: copy.delete.button, exact: true }).click();
-  await expect(page.getByRole("button", { name: staffCopy.deleteIt })).toBeFocused();
-  await frame(page, "Delete, pressed once", { window: true });
-  story("Pressed again, she's deleted, and gone from the list of everyone.");
-
-  await page.getByRole("button", { name: staffCopy.deleteIt }).click();
-  await expect(page).toHaveURL(`${BASE}/staff/politicians`);
-  await page.goto(`${BASE}/staff/politicians?status=any`);
-  await expect(page.getByRole("link", { name: "Rita Retired" })).toHaveCount(0);
-  await frame(page, "The politicians list, without Rita");
-});
-
 test("Who has been mailed", async ({ page, request, flowDatabase }) => {
   story("Staff filter the politicians list by who was mailed about the Edinburgh conference.");
   await importPoliticians(request, BASE, flowDatabase);
@@ -575,7 +549,7 @@ test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) 
 
 test("A politician's own address", async ({ page, request, flowDatabase }) => {
   story(
-    "Polly wrote to policy@ from her own Gmail, which is on no list, so her email matched no one. Staff open her aliases from her email at the top of her page.",
+    "Polly wrote to policy@ from her own Gmail, which is on no list, so her email matched no one. Staff press Edit by her email at the top of her page.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   connectPolicyMailboxes(flowDatabase);
@@ -583,7 +557,7 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
   await page.goto(`${BASE}/staff/politicians/${polly}`);
   const aliases = copy.aliases;
-  await page.getByRole("link", { name: aliases.see }).click();
+  await page.getByRole("link", { name: aliases.edit }).first().click();
   await expect(page).toHaveURL(/\?aliases=open#aliases$/);
   const fold = page.locator("#aliases");
   await expect(fold.getByText(aliases.sources.email)).toBeVisible();
@@ -623,57 +597,62 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
 
 test("Marking a politician", async ({ page, request, flowDatabase }) => {
   story(
-    "Polly Placeholder is an important target. Staff press Personal connection in the band at the top of her page to mark that too, and press Important target to take it off.",
+    "Polly Placeholder is an important target: its switch is on in the Marks card, under her notes. Staff switch Personal connection on, and Important target off.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
-  const important = page.getByRole("button", { name: copy.importantTarget });
-  const connection = page.getByRole("button", { name: copy.personalConnection });
-  await expect(important).toHaveAttribute("aria-pressed", "true");
-  await expect(connection).toHaveAttribute("aria-pressed", "false");
-  await frame(page, "Her page, an important target");
+  const important = page.getByRole("switch", { name: copy.importantTarget });
+  const connection = page.getByRole("switch", { name: copy.personalConnection });
+  await expect(important).toHaveAttribute("aria-checked", "true");
+  await expect(connection).toHaveAttribute("aria-checked", "false");
+  await page.getByRole("heading", { name: copy.marks }).scrollIntoViewIfNeeded();
+  await frame(page, "Her marks, an important target");
   await connection.click();
-  await expect(connection).toHaveAttribute("aria-pressed", "true");
+  await expect(connection).toHaveAttribute("aria-checked", "true");
   await important.click();
-  await expect(important).toHaveAttribute("aria-pressed", "false");
-  await frame(page, "Her page, a personal connection");
+  await expect(important).toHaveAttribute("aria-checked", "false");
+  await frame(page, "Her marks, a personal connection");
 
-  story("Her page's record of changes says who changed each marker.");
-  await page.getByText(copy.recordTitle).click();
+  story("Writing to them, at the foot of her page, ends with what changed her record: who changed each marker.");
+  await page.locator("#aliases summary").click();
+  await page.getByRole("heading", { name: copy.recordTitle }).scrollIntoViewIfNeeded();
   await expect(page.getByRole("cell", { name: staffEmail() }).first()).toBeVisible();
   await frame(page, "The record of changes");
 });
 
 test("Writing to a Lord", async ({ page, request, flowDatabase }) => {
   story(
-    "Lord Seedling lists only the House of Lords' shared inbox, so he has no email. Staff find his own address, and set it under Writing to them at the foot of his page, with a salutation that's better than the rule's.",
+    "Lord Seedling lists only the House of Lords' shared inbox, so he has no email. Staff find his own address, and press Edit by his email at the top of his page, which leads to Writing to them.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await openPolitician(page, "Lord Seedling of Example");
   await expect(page.getByText(staffCopy.politicians.noEmail).first()).toBeVisible();
-  await page.goto(`${BASE}${new URL(page.url()).pathname}?aliases=open#aliases`);
-  const form = page.getByRole("form", { name: copy.editDetails.title });
-  await expect(form).toBeVisible();
+  await page.getByRole("link", { name: copy.aliases.edit }).first().click();
+  const words = copy.editDetails;
+  const writing = page.locator("#aliases");
+  await expect(writing.getByRole("button", { name: `${words.edit} ${words.email}` })).toBeVisible();
   await frame(page, "Writing to him");
 
-  story("They save it. The band at the top shows his new address and salutation.");
-  await form.getByLabel(copy.editDetails.email).fill("seedling@lords.example");
-  await form.getByLabel(copy.editDetails.salutation).fill("Lord Seedling of Example");
-  await form.getByRole("button", { name: copy.editDetails.save }).click();
-  await expect(form.getByText(copy.editDetails.saved)).toBeVisible();
+  story("They press Edit by his email, and the line becomes a field.");
+  await writing.getByRole("button", { name: `${words.edit} ${words.email}` }).click();
+  await writing.getByLabel(words.email).fill("seedling@lords.example");
+  await frame(page, "His new address");
+
+  story("They save it. The line shows it, and so does the band at the top.");
+  await writing.getByRole("button", { name: words.save }).click();
+  await expect(writing.getByText(words.saved)).toBeVisible();
   await frame(page, "Saved");
   await page.evaluate(() => window.scrollTo(0, 0));
-  await expect(page.getByRole("link", { name: "seedling@lords.example" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "seedling@lords.example" }).first()).toBeVisible();
   await frame(page, "His page, with his address");
 
-  story("An MP's address is their body's, so Writing to them has only a salutation to change.");
+  story("An MP's address is their body's, so only their salutation has an Edit.");
   await openPolitician(page, "Polly Placeholder");
   await page.goto(`${BASE}${new URL(page.url()).pathname}?aliases=open#aliases`);
-  await expect(page.getByRole("form", { name: copy.editDetails.title }).getByLabel(copy.editDetails.email)).toHaveCount(
-    0,
-  );
+  await expect(writing.getByRole("button", { name: `${words.edit} ${words.salutation}` })).toBeVisible();
+  await expect(writing.getByRole("button", { name: `${words.edit} ${words.email}` })).toHaveCount(0);
   await frame(page, "Writing to an MP");
 });
 
@@ -688,19 +667,21 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   );
   await logIn(page, flowDatabase);
   await openPolitician(page, "Gwen Example");
-  await expect(page.getByText(copy.salutationToCheck)).toBeVisible();
-  await frame(page, "Her page, her salutation to check");
+  await page.goto(`${BASE}${new URL(page.url()).pathname}?aliases=open#aliases`);
+  const words = copy.editDetails;
+  const writing = page.locator("#aliases");
+  await expect(writing.getByText(copy.salutationToCheck)).toBeVisible();
+  await frame(page, "Her salutation, to check");
 
-  story("The tag leads to Writing to them, where staff correct it, and it's no longer marked.");
-  await page.getByText(copy.salutationToCheck).click();
-  const form = page.getByRole("form", { name: copy.editDetails.title });
-  await form.getByLabel(copy.editDetails.salutation).fill("Ms Example");
-  await form.getByRole("button", { name: copy.editDetails.save }).click();
-  await expect(form.getByText(copy.editDetails.saved)).toBeVisible();
+  story("Staff press Edit by her salutation and correct it, and it's no longer marked.");
+  await writing.getByRole("button", { name: `${words.edit} ${words.salutation}` }).click();
+  await writing.getByLabel(words.salutation).fill("Ms Example");
+  await frame(page, "Her salutation, corrected");
+  await writing.getByRole("button", { name: words.save }).click();
+  await expect(writing.getByText(words.saved)).toBeVisible();
   await page.reload();
   await expect(page.getByText(copy.salutationToCheck)).toHaveCount(0);
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await frame(page, "Her page, her salutation corrected");
+  await frame(page, "Her salutation, corrected and checked");
 });
 
 test("ControlAI's statement", async ({ page, request, flowDatabase }) => {

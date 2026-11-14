@@ -40,8 +40,6 @@ export type Politician = {
   airtableId: string | null;
   /** The ID their body gives them, once an import has matched them to its list. */
   officialId: number | null;
-  /** When their record was no longer in Airtable. */
-  airtableRemovedAt: Date | null;
   house: House;
   name: string;
   salutation: string;
@@ -52,7 +50,6 @@ export type Politician = {
   country: Country | null;
   email: string | null;
   status: PersonStatus;
-  notes: string;
   importantTarget: boolean;
   personalConnection: boolean;
   isTest: boolean;
@@ -127,9 +124,9 @@ const POLITICIAN_ACTIVITY = (which: "first" | "last") => {
 };
 
 const SELECT_POLITICIANS = `
-  SELECT n.id::int AS id, n.airtable_id AS "airtableId", n.airtable_removed_at AS "airtableRemovedAt", p.house,
+  SELECT n.id::int AS id, n.airtable_id AS "airtableId", p.house,
     p.official_id AS "officialId", n.name, n.salutation, n.salutation_to_check AS "salutationToCheck", p.constituency, p.party, p.country, n.email, n.status,
-    n.notes, n.important_target AS "importantTarget", n.personal_connection AS "personalConnection",
+    n.important_target AS "importantTarget", n.personal_connection AS "personalConnection",
     p.is_test AS "isTest",
     EXISTS (SELECT 1 FROM email_blocks b WHERE b.address = lower(n.email)) AS "emailBlocked",
     ${EMAIL_COUNTS.toThem} AS "emailsToThem", ${EMAIL_COUNTS.fromThem} AS "emailsFromThem",
@@ -164,7 +161,7 @@ export type PoliticianWho = {
   status?: PersonStatus | "out";
   /** Those in any of these parties. */
   party?: string[];
-  /** Those with any of these: Airtable's markers, a record no longer in Airtable, or a test politician. */
+  /** Those with any of these: the marks staff set, or a test politician. */
   flags?: PoliticianFlag[];
   /** Those in any of these nations. */
   country?: Country[];
@@ -212,7 +209,6 @@ const POLITICIAN_COLUMNS: Record<PoliticianSort, string> = {
 export const FLAG_CONDITIONS: Record<PoliticianFlag, string> = {
   important: "n.important_target",
   connection: "n.personal_connection",
-  removed: "n.airtable_removed_at IS NOT NULL",
   test: "p.is_test",
 };
 
@@ -580,38 +576,6 @@ export const getPolitician = cache(async function getPolitician(id: number): Pro
   const [row] = await query<Row>(`${SELECT_POLITICIANS} WHERE n.id = $1 GROUP BY n.id, p.id`, [id]);
   return row && toPolitician(row);
 });
-
-/**
- * Whether a politician can be deleted: their record has gone from Airtable
- * (so never a test MP, which has none), and no letter has been written to
- * them, which would lose its politician.
- */
-const DELETABLE = `n.airtable_removed_at IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM letters l WHERE l.notable_person_id = n.id)`;
-
-/** Whether this politician can be deleted (DELETABLE). */
-export async function canDeletePolitician(id: number): Promise<boolean> {
-  const rows = await query(`SELECT 1 FROM ${POLITICIANS} WHERE n.id = $1 AND ${DELETABLE}`, [id]);
-  return rows.length > 0;
-}
-
-/**
- * Deletes a politician whose record has gone from Airtable, with their
- * answers, if they can be deleted, logging who they were. Says whether
- * they were.
- */
-export async function deletePolitician(id: number, staff: string): Promise<boolean> {
-  return transaction(async (db) => {
-    const [gone] = await query<{ id: number; name: string; airtableId: string }>(
-      `DELETE FROM notable_people WHERE id = (SELECT n.id FROM ${POLITICIANS} WHERE n.id = $1 AND ${DELETABLE} FOR UPDATE)
-       RETURNING id::int AS id, name, airtable_id AS "airtableId"`,
-      [id],
-      db,
-    );
-    if (gone) await logChange(staff, "delete politician", gone, db);
-    return Boolean(gone);
-  });
-}
 
 export type StatusChange = { status: AskStatus | null; date: string | null; note: string };
 

@@ -10,7 +10,6 @@ import { signupUploadPath } from "@/lib/signup-upload";
 import type { LoggedChange, Named } from "@/lib/server/audit";
 import CampaignName from "./CampaignName";
 import { DotParts } from "./Logged";
-import ExternalLink from "./ui/ExternalLink";
 
 const copy = staffCopy.changes;
 
@@ -27,12 +26,14 @@ function permissionNames(value: unknown): string {
   return list.length ? list.map((p) => staffCopy.accounts.names[p] ?? p).join(", ") : copy.noPermissions;
 }
 
-/** A value as words: a house, a kind of problem, a status or a campaign by name; anything else as it is. */
+/** A value as words: a house, a kind of problem, a status or a campaign by name, a mark on or off; anything else as it is. */
 function Value({ name, value }: { name: string; value: unknown }) {
   if (value === null) return <Muted>{copy.empty}</Muted>;
   if (name === "house") return <>{staffCopy.houses[value as string] ?? String(value)}</>;
   if (name === "campaign") return <CampaignName slug={String(value)} />;
   if (typeof value === "string") return <>{value}</>;
+  // A mark, on or off.
+  if (typeof value === "boolean") return <>{value ? copy.on : copy.off}</>;
   return <>{JSON.stringify(value)}</>;
 }
 
@@ -56,11 +57,10 @@ function Who({ named, href, name, id }: { named: Named | null; href: string; nam
 }
 
 /**
- * One logged field, labelled, in words: an Airtable ID linked to the
- * record, permissions by name, a count by what it counted, and the rest
- * as they are.
+ * One logged field, labelled, in words: permissions by name, a count by
+ * what it counted, and the rest as they are.
  */
-function Field({ name, value, airtableTable }: { name: string; value: unknown; airtableTable: string }) {
+function Field({ name, value }: { name: string; value: unknown }) {
   if (typeof value === "number") {
     return (
       <>
@@ -69,9 +69,7 @@ function Field({ name, value, airtableTable }: { name: string; value: unknown; a
     );
   }
   let shown: ReactNode;
-  if (name === "airtableId") {
-    shown = <ExternalLink href={`${airtableTable}/${String(value)}`}>{String(value)}</ExternalLink>;
-  } else if (name === "kind") shown = staffCopy.emails.kinds[String(value)] ?? String(value);
+  if (name === "kind") shown = staffCopy.emails.kinds[String(value)] ?? String(value);
   else if (name === "status") shown = staffCopy.statuses[String(value)] ?? String(value);
   else if (name === "from" || name === "to" || name === "permissions") shown = permissionNames(value);
   else if (name === "changed") return <FieldChanges changed={value as Record<string, FieldChange>} />;
@@ -87,9 +85,9 @@ function Field({ name, value, airtableTable }: { name: string; value: unknown; a
  * What an entry of the audit log says, in words: first whom or what it's
  * about, linked where there's a page, then every other field it logged,
  * labelled, leaving out those with nothing in them (a null date, an empty
- * note). `airtableTable` is the table an Airtable ID is a record of.
+ * note).
  */
-export default function AuditDetail({ change, airtableTable }: { change: LoggedChange; airtableTable: string }) {
+export default function AuditDetail({ change }: { change: LoggedChange }) {
   const { fields, parts } = leadOf(change);
   // Leaving out what has nothing in it: an empty note, a null date, a change of nothing. An empty list
   // says something ("No permissions"), so it stays.
@@ -98,14 +96,7 @@ export default function AuditDetail({ change, airtableTable }: { change: LoggedC
     value === "" ||
     (typeof value === "object" && !Array.isArray(value) && Object.keys(value as object).length === 0);
   const rest = Object.entries(change.details).filter(([key, value]) => !fields.includes(key) && !empty(value));
-  return (
-    <DotParts>
-      {[
-        ...parts,
-        ...rest.map(([key, value]) => <Field key={key} name={key} value={value} airtableTable={airtableTable} />),
-      ]}
-    </DotParts>
-  );
+  return <DotParts>{[...parts, ...rest.map(([key, value]) => <Field key={key} name={key} value={value} />)]}</DotParts>;
 }
 
 /** What an entry says first, before the rest of its fields: its parts, and the fields they say. */
@@ -176,15 +167,11 @@ const heldImport: LeadOf<"apply held politician import" | "discard held politici
   fields: ["id", "job"],
 });
 
-/** Logged by the politician sync, or before it read every body, the MP sync. */
+/** Logged by the copy from Airtable, or before it read every body, the MP sync: their runs are gone, so no link. */
 const heldSync: LeadOf<
   "apply held politician sync" | "discard held politician sync" | "apply held MP sync" | "discard held MP sync"
 > = (details) => ({
-  parts: [
-    <StaffLink key="run" href={importPath("sync-politicians")}>
-      {copy.run(String(details.id))}
-    </StaffLink>,
-  ],
+  parts: [copy.run(String(details.id))],
   fields: ["id"],
 });
 

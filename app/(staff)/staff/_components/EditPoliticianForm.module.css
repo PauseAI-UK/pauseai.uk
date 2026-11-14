@@ -1,5 +1,37 @@
-.actions {
+/* What we write with, then its Edit button, or the field with Save and Cancel. */
+.line {
   display: flex;
-  gap: var(--space-3);
+  flex-direction: column;
+}
+
+.value {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
   align-items: center;
+}
+
+/* The field, then Save and Cancel, on one line. */
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Short, as a salutation or an address is a few words. */
+.field {
+  flex: 0 1 18rem;
+  min-width: 10rem;
+}
+
+.status:empty,
+.hint:empty {
+  display: none;
+}
+
+.status,
+.hint {
+  display: block;
+  margin-top: var(--space-1);
 }

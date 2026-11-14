@@ -8,7 +8,6 @@ import type { BroadcastTerms } from "./broadcasts";
 import type { FieldChange } from "./field-changes";
 import type { PoliticianImportJob } from "./import-runs";
 import type { ImportedFields } from "./politician-import";
-import type { SyncedPolitician } from "./politician-sync";
 import type { SavedList } from "./saved-filters";
 import type { DownloadFormat } from "./staff-list";
 import type { Permission } from "./staff-permissions";
@@ -39,6 +38,22 @@ type HandAddedPolitician = {
   email: string | null;
 };
 
+/** A politician as the sync copied them from Airtable, by their record. */
+type SyncedPolitician = {
+  airtableId: string;
+  name: string;
+  salutation: string;
+  email: string | null;
+  status: "in_office" | "died" | "retired" | "left_office";
+  house: "commons" | "lords" | "scottish-parliament" | "senedd" | "ni-assembly" | "other";
+  constituency: string | null;
+  party: string;
+  country: "england" | "scotland" | "wales" | "northern-ireland" | null;
+  notes: string;
+  importantTarget: boolean;
+  personalConnection: boolean;
+};
+
 /** An MP as the MP sync copied them, with their ID. */
 type SyncedMp = {
   id: number;
@@ -67,8 +82,6 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "add politician": { id: number } & ImportedFields;
   /** An import's or a staff member's edit; an import's change of status, with when it happened and why. */
   "edit politician": PoliticianEdit & { date?: string | null; note?: string };
-  "remove politician": { id: number; name: string };
-  "delete politician": { id: number; name: string; airtableId: string };
   "add politician address": { politicianId: number; address: string };
   "remove politician address": { politicianId: number; address: string };
   "apply politician import": ImportCounts;
@@ -119,6 +132,9 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
 
 /** What rows logged earlier may hold beyond AuditDetails: actions no longer logged, and earlier details of some that are. */
 type EarlierAuditDetails = {
+  // From when a politician gone from Airtable was marked so, and staff could delete them.
+  "remove politician": { id: number; name: string };
+  "delete politician": { id: number; name: string; airtableId: string };
   // By campaign, before asks; "supports" was a status then.
   "set status": {
     politicianId: number;
