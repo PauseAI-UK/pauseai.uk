@@ -18,13 +18,14 @@ import {
   type DeliveryProblem,
   isBlocked,
   isPoliticianAddress,
+  liftBlock,
   listBlocks,
   recentProblems,
   recordProblem,
-  send,
+  sendWith,
   sentBy,
-  unblock,
 } from "./email";
+import { send } from "./email-sending";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
@@ -383,6 +384,20 @@ describeWithDatabase("send by Gmail", () => {
     server.use(http.post(SEND, () => HttpResponse.error()));
     expect(await send(EMAIL, "mailing", null, { backend: GMAIL })).toMatchObject({ sent: false, mayHaveGone: true });
   });
+
+  it("fails to be tried again, sending nothing, when its sender has no way to reach Gmail", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail();
+    const blocked = vi.fn();
+    expect(await sendWith({ blocked }, EMAIL, "mailing", null, { backend: GMAIL })).toEqual({
+      sent: false,
+      reason: "failed",
+      retry: true,
+      detail: "No way to reach jo@pauseai.uk's Gmail",
+    });
+    expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.sendFailed("mailing"));
+    expect(await query("SELECT outcome FROM email_sends")).toEqual([{ outcome: "failed" }]);
+  });
 });
 
 describeWithDatabase("recordProblem", () => {
@@ -494,7 +509,7 @@ describeWithDatabase("send to an address with “Do not email”", () => {
   });
 });
 
-describeWithDatabase("unblock", () => {
+describeWithDatabase("liftBlock", () => {
   useTestDatabase();
 
   it("asks Postmark to send to it again, unblocks it, and logs who and why", async () => {
@@ -506,7 +521,7 @@ describeWithDatabase("unblock", () => {
       }),
     );
     await recordProblem(BOUNCE);
-    expect(await unblock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(true);
+    expect(await liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(true);
     expect(asked).toEqual({ Suppressions: [{ EmailAddress: "jo@example.org" }] });
     expect(await isBlocked("jo@example.org")).toBe(false);
     expect((await audit()).at(-1)).toEqual({
@@ -521,16 +536,16 @@ describeWithDatabase("unblock", () => {
   it("refuses a complaint, one Postmark can't reset, and an address that isn't blocked", async () => {
     await recordProblem({ ...BOUNCE, kind: "complaint" });
     await recordProblem({ ...BOUNCE, address: "b@example.org", canReset: false });
-    expect(await unblock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
-    expect(await unblock("b@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
-    expect(await unblock("c@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect(await liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect(await liftBlock("b@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect(await liftBlock("c@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
     expect(await isBlocked("jo@example.org")).toBe(true);
   });
 
   it("leaves it blocked if Postmark can't be reached", async () => {
     server.use(http.post(UNSUPPRESS, () => new HttpResponse(null, { status: 500 })));
     await recordProblem(BOUNCE);
-    await expect(unblock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).rejects.toThrow("500");
+    await expect(liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).rejects.toThrow("500");
     expect(await isBlocked("jo@example.org")).toBe(true);
   });
 
@@ -543,7 +558,7 @@ describeWithDatabase("unblock", () => {
       }),
     );
     await recordProblem(BOUNCE);
-    expect(await unblock("jo@example.org", "samuel.whitlock@pauseai.uk", " ")).toBe(false);
+    expect(await liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", " ")).toBe(false);
     expect(asked).toBe(false);
     expect(await isBlocked("jo@example.org")).toBe(true);
     await expect(
@@ -562,7 +577,7 @@ describeWithDatabase("unblock", () => {
         return HttpResponse.json({ Suppressions: [] });
       }),
     );
-    expect(await unblock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
+    expect(await liftBlock("jo@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
     expect((await audit()).map((a) => a.action)).toEqual(["block address"]);
   });
 });

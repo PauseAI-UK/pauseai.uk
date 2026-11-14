@@ -103,6 +103,11 @@ the code should go instead. The rules below say which ones are enforced.
     fixture build needs is in `lib/server/fixtures/`.
   - Tests may reach across. The component gallery imports every route's
     components, but not `tests/`.
+  - No import cycles: no module imports itself, however far round, type
+    imports aside (`tests/checks/import-cycles.test.ts`). Where a lower
+    module needs something of a higher one, move it down, or have the
+    higher one pass it in, as `send()` passes `sendWith()` its Gmail
+    access (`lib/server/email-sending.ts`).
 - **Redirects are in `next.config.ts`.** A path that only sends people
   elsewhere is an entry in its `redirects()`, never a page that calls
   `redirect()`. On a click within the site, a page that redirects while
@@ -229,10 +234,14 @@ the code should go instead. The rules below say which ones are enforced.
     `eslint.config.mjs`, where a new binding's host goes). Parliament's and
     ControlAI's are left out, as pages link to them too.
 - **Reading email** is all in `lib/email-parsing/`: addresses, MIME and
-  headers, subjects and machine replies, the mail a message quotes, and a
-  plain text's links and bold. `lib/server/mime.ts` only writes email.
-- **Email** goes out only through `send()` (`lib/server/email.ts`), which
-  skips blocked addresses and records each send (`docs/domain-concepts.md`).
+  headers, subjects and machine replies, bounces, the mail a message
+  quotes, and a plain text's links and bold. `lib/server/mime.ts` only writes email.
+- **Email** goes out only through `sendWith()` (`lib/server/email.ts`),
+  which skips blocked addresses and records each send
+  (`docs/domain-concepts.md`). The site's code calls it by `send()`
+  (`lib/server/email-sending.ts`); staff's notifications call it directly
+  (`lib/server/notifications.ts`), as the Gmail accounts `send()` reaches
+  notify staff themselves.
   An ESLint rule lets only that file import `sendEmail` or `unsuppress`
   from Postmark's binding (`lib/server/outside-services/postmark.ts`), or
   `sendGmail` from Gmail's (`gmail.ts` there).

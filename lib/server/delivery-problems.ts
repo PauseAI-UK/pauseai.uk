@@ -1,13 +1,13 @@
 import "server-only";
 import { LETTER_STATUSES } from "@/lib/letter-status";
 import { query } from "./db";
-import { recordProblem, type DeliveryProblem, type Purpose } from "./email";
+import { liftBlock, recordProblem, type DeliveryProblem, type Purpose } from "./email";
 import { letterEvent, transition } from "./letter-lifecycle";
 import { noticeToSender } from "./letter-sending";
 import { alertBouncedMp, alertIfPoliticianBlocked } from "./notifications";
 import { bareAddress } from "@/lib/email-parsing/addresses";
 import { gmailMessageLink } from "@/lib/letter-links";
-import { relayBounced } from "./relays";
+import { relayBounced, resendAfterFix } from "./relays";
 
 // What happens when an email bounces or is complained about: the address is
 // recorded and, for a hard bounce or complaint, blocked (email.ts), then the
@@ -168,4 +168,15 @@ export async function handleDeliveryProblem(problem: DeliveryProblem, request?: 
   if (blocked && !told) {
     await alertIfPoliticianBlocked(bareAddress(problem.address), problem.reason, request, bounceLink(problem));
   }
+}
+
+/**
+ * Unblocks an address for staff (liftBlock, which says when it's refused),
+ * then sends what the letters inbox held for it (resendAfterFix). Returns
+ * whether it was unblocked.
+ */
+export async function unblock(address: string, staff: string, note: string): Promise<boolean> {
+  const unblocked = await liftBlock(address, staff, note);
+  if (unblocked) await resendAfterFix({ address });
+  return unblocked;
 }

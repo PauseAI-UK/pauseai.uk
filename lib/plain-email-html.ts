@@ -4,7 +4,7 @@ import { mailParts, type MailPart } from "@/lib/email-parsing/mail-text";
 // email in whatever it keeps for plain text, often a fixed-width font in
 // lines broken at a set width; one with HTML it shows in its own font,
 // wrapped to its window. So the same words go as HTML beside the text
-// (send() in lib/server/email.ts), in paragraphs and bulleted lists with
+// (sendWith() in lib/server/email.ts), in paragraphs and bulleted lists with
 // nothing else set.
 
 const escape = (text: string) =>

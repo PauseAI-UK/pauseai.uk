@@ -218,6 +218,12 @@ describe("handOvers", () => {
     expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).toContain("lib/server/errors.ts");
     expect(importGraph(join(root, "components")).has("lib/server/problems.ts")).toBe(false);
   });
+
+  it("leaves them out when asked for the imports alone", () => {
+    const graph = importGraph(root, { handedOver: false });
+    expect(graph.get("lib/server/problems.ts")).toEqual([]);
+    expect(graph.get("instrumentation.ts")).toEqual(["lib/server/errors.ts"]);
+  });
 });
 
 describe("importGraph and closure", () => {

@@ -4,7 +4,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { siteUrl } from "@/lib/site-url";
 import { LOGIN_BROWSER_COOKIE, LOGIN_LINK_PATH } from "@/lib/staff-session";
 import { query, transaction } from "./db";
-import { send } from "./email";
+import { send } from "./email-sending";
 import { notifyDomain } from "./outside-services/postmark";
 import { randomId } from "./random-id";
 import { staffAddressLine } from "./staff-address";

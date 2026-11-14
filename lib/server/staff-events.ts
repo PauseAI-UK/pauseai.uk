@@ -7,7 +7,7 @@ import { findEvents, type EventFilter, type EventsFound } from "@/lib/staff-even
 import { londonStart } from "@/lib/staff-time";
 import { logChange } from "./audit";
 import { query, transaction, type Queryable } from "./db";
-import { send } from "./email";
+import { send } from "./email-sending";
 import { notifyDomain } from "./outside-services/postmark";
 import { staffLink } from "./notifications";
 import { staffAddressLine } from "./staff-address";

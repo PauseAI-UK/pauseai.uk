@@ -2,25 +2,25 @@ import "server-only";
 import { bareAddress } from "@/lib/email-parsing/addresses";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
-import { gmailAccess } from "./gmail-accounts";
 import { newMessageId } from "./mime";
-import { alertIfPoliticianBlocked } from "./notifications";
 import { GmailError, gmailMessageId, sendGmail, sendRawGmail } from "./outside-services/gmail";
 import { PostmarkError, sendEmail, unsuppress, type Email, type PostmarkStream } from "./outside-services/postmark";
 import { recordOptOut } from "./opt-outs";
-import { resendAfterFix } from "./relays";
 import { now } from "@/lib/now";
 import { plainAsHtml } from "@/lib/plain-email-html";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
 
-// Every email the site sends goes through send(), whatever it's for. A bounce
-// or complaint is about an address, not about the email that found it out:
-// once an address hard-bounces or complains, nothing is sent to it again
-// until staff unblock it. It goes by Postmark (lib/server/outside-services/postmark.ts),
-// whose webhooks become a DeliveryProblem, or by a staff member's connected
-// Gmail (gmail.ts there), whose bounces are read from the mailbox
-// (gmail-reading.ts).
+// Every email the site sends goes through sendWith(), whatever it's for:
+// most by send() (email-sending.ts), staff's notifications by notifyStaff()
+// (notifications.ts). A bounce or complaint is about an address, not about
+// the email that found it out: once an address hard-bounces or complains,
+// nothing is sent to it again until staff unblock it. It goes by Postmark
+// (lib/server/outside-services/postmark.ts), whose webhooks become a
+// DeliveryProblem, or by a staff member's connected Gmail (gmail.ts there),
+// whose bounces are read from the mailbox (gmail-reading.ts). This module is
+// the bottom of the email code, so it imports none of the modules that send
+// through it.
 
 /** What an email is for. Each has its own way of handling a bounce (delivery-problems.ts). */
 export type Purpose =
@@ -203,16 +203,29 @@ function withHtml(email: Email): Email {
 }
 
 /**
+ * What sendWith() calls on in the modules above this one, which send
+ * through it: how to get a connected Gmail account's access token
+ * (gmailAccess in gmail-accounts.ts), needed only to send by Gmail; and what
+ * to do about an address the provider's refusal just blocked (in
+ * notifications.ts, which tells staff if it's a politician's).
+ */
+export type SendHooks = {
+  gmailAccess?: (account: string) => Promise<string>;
+  blocked: (address: string, reason: string) => Promise<void>;
+};
+
+/**
  * Sends an email, unless its address is blocked. The provider refusing an
- * address it suppressed blocks it here too, and staff are told if it's a
- * politician's. Every try is logged in
+ * address it suppressed blocks it here too, and `hooks.blocked` is told.
+ * Every try is logged in
  * email_sends; a failure is logged to the console as well. Never throws for
  * the provider, nor once the email has gone, as a failure to log it then is
  * reported and the send still returned: so whatever it throws, nothing went,
  * and a caller can put the email back to try again. Callers decide what to
  * tell people.
  */
-export async function send(
+export async function sendWith(
+  hooks: SendHooks,
   written: Email,
   purpose: Purpose,
   letterId: number | null = null,
@@ -252,7 +265,8 @@ export async function send(
   let handed = false;
   try {
     if (backend.name === "gmail") {
-      const token = await gmailAccess(backend.account);
+      if (!hooks.gmailAccess) throw new Error(`No way to reach ${backend.account}'s Gmail`);
+      const token = await hooks.gmailAccess(backend.account);
       const message = raw ? raw(rfcId!, now()) : undefined;
       handed = true;
       const sent = message
@@ -282,7 +296,7 @@ export async function send(
           reason: error.message,
           canReset: true,
         } as const;
-        if (await recordProblem(problem)) await alertIfPoliticianBlocked(each, error.message, undefined);
+        if (await recordProblem(problem)) await hooks.blocked(each, error.message);
       }
       if (inactive.includes(address)) {
         await log("refused");
@@ -374,14 +388,14 @@ export async function recordProblem(problem: DeliveryProblem): Promise<boolean> 
 }
 
 /**
- * Unblocks an address: asks the provider to send to it again, but for a
- * hold in CiviCRM, then deletes
- * its block, and logs who did it and why; then whatever the letters inbox
- * held for it goes (resendAfterFix). Refused without a note of why (the
- * audit log refuses one too), and for a complaint, which only the person
- * can undo. Returns whether it was unblocked.
+ * Lifts an address's block: asks the provider to send to it again, but for
+ * a hold in CiviCRM, then deletes its block, and logs who did it and why.
+ * Refused without a note of why (the audit log refuses one too), and for a
+ * complaint, which only the person can undo. Returns whether it was lifted.
+ * Staff unblock an address with unblock() (delivery-problems.ts), which then
+ * sends what waited for it.
  */
-export async function unblock(address: string, staff: string, note: string): Promise<boolean> {
+export async function liftBlock(address: string, staff: string, note: string): Promise<boolean> {
   if (!note.trim()) return false;
   const [block] = await query<{ canReset: boolean; kind: string }>(
     `SELECT p.can_reset AS "canReset", p.kind FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id
@@ -391,13 +405,11 @@ export async function unblock(address: string, staff: string, note: string): Pro
   if (!block?.canReset) return false;
   // A hold is CiviCRM's, which the provider never suppressed.
   if (block.kind !== "hold") await unsuppress(address);
-  const unblocked = await transaction(async (db) => {
+  return transaction(async (db) => {
     const deleted = await query("DELETE FROM email_blocks WHERE address = $1 RETURNING address", [address], db);
     if (deleted.length) await logChange(staff, "unblock address", { address, note }, db);
     return deleted.length > 0;
   });
-  if (unblocked) await resendAfterFix({ address });
-  return unblocked;
 }
 
 /** A blocked address, for the staff interface. */

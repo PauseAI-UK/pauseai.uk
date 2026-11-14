@@ -9,7 +9,7 @@ import { siteUrl, siteUrlIfKnown } from "@/lib/site-url";
 import { queueBulkLift } from "./civicrm-updates";
 import { config } from "./config";
 import { query, transaction, type Queryable } from "./db";
-import { send } from "./email";
+import { send } from "./email-sending";
 import {
   hasOptedOut,
   liftStopAllNumbers,

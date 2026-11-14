@@ -8,7 +8,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { textBackend } from "./broadcast-channels";
 import { query, transaction } from "./db";
-import { send } from "./email";
+import { send } from "./email-sending";
 import { sendText } from "./outside-services/whatsapp";
 
 // Staff's answers to replies to broadcasts, written on the copy's Thread

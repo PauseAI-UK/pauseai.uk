@@ -5,7 +5,7 @@ import type { GmailRead, NotUnderstoodReason } from "@/lib/import-runs";
 import { query } from "./db";
 import { handleDeliveryProblem } from "./delivery-problems";
 import { sentBy } from "./email";
-import { readBounce } from "./gmail-reading";
+import { readBounce } from "@/lib/email-parsing/bounces";
 import { letterEvent } from "./letter-lifecycle";
 import { isLettersInboxAddress, proxyTag } from "./letters-inbox";
 import { decodeWords, fromAddress, messageIds } from "@/lib/email-parsing/mime";

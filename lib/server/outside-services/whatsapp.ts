@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { parseJsonIfAny } from "../json";
 import { problem } from "../problems";
+import { GRAPH_VERSION } from "./graph-api";
 import { outsideFetch } from "./outside-fetch";
 
 // The only file that talks to WhatsApp, through Meta's Cloud API, with our
@@ -12,8 +13,6 @@ import { outsideFetch } from "./outside-fetch";
 // app's secret (WHATSAPP_APP_SECRET). Meta's docs:
 // https://developers.facebook.com/documentation/business-messaging/whatsapp
 
-/** The Graph API version every call names. Meta supports each for about two years. */
-export const GRAPH_VERSION = "v23.0";
 const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
 /** WhatsApp Manager, where staff see our number and account, opened at our account where its ID is set. */

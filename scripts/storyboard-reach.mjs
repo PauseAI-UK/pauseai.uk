@@ -180,8 +180,12 @@ export function handOvers(root, dirs) {
   return found;
 }
 
-/** Every source file under `root`, each with the repo's files it imports, and what's handed over to it (HANDED_OVER). */
-export function importGraph(root) {
+/**
+ * Every source file under `root`, each with the repo's files it imports,
+ * and what's handed over to it (HANDED_OVER), unless `handedOver` is false:
+ * the imports alone, as a check of import cycles wants them.
+ */
+export function importGraph(root, { handedOver = true } = {}) {
   const graph = new Map();
   for (const path of walk(root, "", [])) {
     const text = readFileSync(join(root, path), "utf8");
@@ -193,6 +197,7 @@ export function importGraph(root) {
       ),
     ]);
   }
+  if (!handedOver) return graph;
   for (const [to, handed] of Object.entries(HANDED_OVER))
     if (graph.has(to)) graph.set(to, [...graph.get(to), ...handed.filter((path) => graph.has(path))]);
   return graph;

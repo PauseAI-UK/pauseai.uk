@@ -2,7 +2,8 @@ import "server-only";
 import { gunzipSync } from "node:zlib";
 import type { LetterEvent } from "@/lib/letter-status";
 import { query } from "./db";
-import { isBlocked, send, sentBy, type SendResult } from "./email";
+import { isBlocked, sentBy, type SendResult } from "./email";
+import { send } from "./email-sending";
 import {
   cannotSend,
   lettersBackend,
@@ -208,7 +209,7 @@ export async function relayBounced(relayId: number, letterId: number): Promise<v
  * that bounced, or waits on the block, goes back in the queue and is sent,
  * to the address the MP has now; the supporter is told once it has gone,
  * if they were told it bounced. Not one that bounced and is past
- * RESEND_DAYS, which never goes again (tellOfNotResent). Copies and relays
+ * RESEND_DAYS, which never goes again (tellOfNotResent in letter-queue.ts). Copies and relays
  * to a supporter at `address` held for the block go too.
  */
 export async function resendAfterFix(fix: { address?: string; politicianId?: number }): Promise<void> {

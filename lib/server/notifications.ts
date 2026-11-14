@@ -3,7 +3,7 @@ import { config } from "./config";
 import { now } from "@/lib/now";
 import { siteUrlIfKnown } from "@/lib/site-url";
 import { query } from "./db";
-import { send, type Purpose } from "./email";
+import { sendWith, type Purpose, type SendHooks } from "./email";
 import { notifyDomain } from "./outside-services/postmark";
 import { problem } from "./problems";
 import { staffCopy } from "@/lib/content/staff-interface";
@@ -28,6 +28,15 @@ export function staffLink(path: string, request: Request | undefined): string {
 }
 
 /**
+ * What sending does about an address the provider's refusal just blocked:
+ * tells staff if it's a politician's (alertIfPoliticianBlocked). For every
+ * email, notifications' own and those sent by send() (email-sending.ts).
+ */
+export const sendHooks: SendHooks = {
+  blocked: (address, reason) => alertIfPoliticianBlocked(address, reason, undefined),
+};
+
+/**
  * Emails the notification inbox `subject` and `text`, as a staff alert or
  * report (`purpose`), logged against `letterId` if it's about one letter,
  * and copied to `cc`, a staff member it's about, if any. Says whether it went.
@@ -44,7 +53,8 @@ export async function notifyStaff(
     problem(staffCopy.problems.anywhere.noInbox);
     return false;
   }
-  const result = await send(
+  const result = await sendWith(
+    sendHooks,
     {
       From: `PauseAI UK <noreply@${notifyDomain()}>`,
       To: nameLine(staffCopy.inboxNames.notifications, inbox),

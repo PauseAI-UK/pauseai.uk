@@ -65,13 +65,13 @@ const SERVICES = [
     name: "Postmark",
     files: ["postmark.ts"],
     host: "api\\.postmarkapp\\.com",
-    why: "and email is sent with send() from lib/server/email.ts",
+    why: "and email is sent with send() from lib/server/email-sending.ts",
   },
   {
     name: "Google's OAuth and Gmail",
     files: ["gmail.ts"],
     host: "(?:oauth2|gmail|openidconnect)\\.googleapis\\.com|accounts\\.google\\.com.o.oauth2",
-    why: "and email is sent with send() from lib/server/email.ts",
+    why: "and email is sent with send() from lib/server/email-sending.ts",
   },
   { name: "postcodes.io", files: ["postcodes.ts"], host: "api\\.postcodes\\.io" },
   // Stripe's API, not the donate links, which are payment pages on donate.stripe.com.
@@ -85,19 +85,20 @@ const hostRule = ({ name, files, host, why }) => ({
   message: `${name} is called only from ${files.join(" and ")}${why ? `, ${why}` : ""}.`,
 });
 
-// Email goes out only through send() in lib/server/email.ts, which skips
+// Email goes out only through sendWith() in lib/server/email.ts, which skips
 // blocked addresses and records each send, so a bounce can be traced to
 // what was sent. Only it uses Postmark's binding to send or unblock.
 const POSTMARK_IMPORT = {
   group: ["**/postmark"],
   importNames: ["sendEmail", "unsuppress"],
   message:
-    "Send email with send() from lib/server/email.ts, which skips blocked addresses and records each send; unblock with unblock().",
+    "Send email with send() from lib/server/email-sending.ts, which skips blocked addresses and records each send; unblock with unblock() from lib/server/delivery-problems.ts.",
 };
 const GMAIL_IMPORT = {
   group: ["**/gmail"],
   importNames: ["sendGmail"],
-  message: "Send email with send() from lib/server/email.ts, which skips blocked addresses and records each send.",
+  message:
+    "Send email with send() from lib/server/email-sending.ts, which skips blocked addresses and records each send.",
 };
 
 // Packages that make their own requests, which a fixture build can't
