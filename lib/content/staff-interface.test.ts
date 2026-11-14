@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { ASK_STATUSES } from "@/lib/asks";
-import { COUNTRIES, PERSON_STATUSES } from "@/lib/server/politicians";
 import { staffCopy } from "./staff-interface";
 
 describe("staff interface copy", () => {
@@ -53,23 +51,6 @@ describe("staff interface copy", () => {
     expect(staffCopy.letters.oneTitle("Jane Smith", "Testy MP")).toContain("Jane Smith");
     expect(staffCopy.letters.oneTitle("Jane Smith", "Testy MP")).toContain("Testy MP");
     expect(staffCopy.letters.fromTitle("Jane Smith")).toContain("Jane Smith");
-  });
-
-  it("names every house and status", () => {
-    expect(Object.keys(staffCopy.houses)).toEqual([
-      "commons",
-      "lords",
-      "scottish-parliament",
-      "senedd",
-      "ni-assembly",
-      "other",
-    ]);
-    // Every status any kind of ask allows, and the words for no answer.
-    expect(Object.keys(staffCopy.statuses).sort()).toEqual(
-      [...new Set(Object.values(ASK_STATUSES).flat()), "noAnswer"].sort(),
-    );
-    expect(Object.keys(staffCopy.personStatuses)).toEqual([...PERSON_STATUSES]);
-    expect(Object.keys(staffCopy.countries)).toEqual([...COUNTRIES]);
   });
 });
 

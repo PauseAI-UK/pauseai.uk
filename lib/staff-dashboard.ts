@@ -1,6 +1,6 @@
 import type { ImportJob, PoliticianImportJob } from "./import-runs";
 import type { Permission } from "./staff-permissions";
-import { staffCopy } from "./content/staff-interface";
+import { staffVocabulary } from "./staff-vocabulary";
 import { now } from "./now";
 import type { SupporterSource } from "./supporters";
 
@@ -26,7 +26,7 @@ export function listWindow(days: string): DashboardWindow | undefined {
 /** A date filter's choices. */
 export const WINDOW_OPTIONS = DASHBOARD_WINDOWS.map((days) => ({
   value: String(days),
-  label: staffCopy.filters.lastDays(days),
+  label: staffVocabulary.filters.lastDays(days),
 }));
 
 const DAY_MS = 24 * 60 * 60 * 1000;

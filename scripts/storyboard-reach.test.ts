@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -386,6 +386,20 @@ describe("changedCopyKeys", () => {
     expect(changedCopyKeys(hunk(2), COPY, COPY)).toEqual(new Set(["*"]));
     expect(changedCopyKeys(hunk(12), COPY, COPY)).toEqual(new Set(["*"]));
     expect(changedCopyKeys(hunk(14), COPY, COPY)).toEqual(new Set(["*"]));
+  });
+
+  it("names each top-level key of the staff copy itself, which the shared words have left", () => {
+    const text = readFileSync(join(__dirname, "..", STAFF_COPY), "utf8");
+    const lines = text.split("\n");
+    const start = lines.findIndex((line) => line.startsWith("export const staffCopy"));
+    const end = lines.findIndex((line, at) => at > start && line.startsWith("};"));
+    const keys = lines.slice(start, end).flatMap((line, at) => {
+      const key = /^ {2}(\w+): /.exec(line)?.[1];
+      return key ? [{ key, line: start + at + 1 }] : [];
+    });
+    expect(keys.map(({ key }) => key)).toContain("login");
+    expect(keys.map(({ key }) => key)).not.toContain("filters");
+    for (const { key, line } of keys) expect(changedCopyKeys(hunk(line), text, text)).toEqual(new Set([key]));
   });
 
   it("says * for a file with no staffCopy, or one that never closes it", () => {

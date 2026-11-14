@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { action } from "@/tests/browser/staff";
 import ErrorSeenView from "./ErrorSeenView";
 import ErrorsSeen from "./ErrorsSeen";
@@ -46,7 +47,7 @@ describe("ErrorsSeen", () => {
   it("leads to the next page of a long list", async () => {
     await render(<ErrorsSeen done={false} errors={exampleErrorsSeen} total={250} pages={3} page={1} pageSize={100} />);
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/errors?page=2");
   });
 
@@ -78,7 +79,7 @@ describe("ErrorsSeen", () => {
       .map((cell) => cell.textContent?.trim());
     expect(heads.slice(-2)).toEqual([copy.columns.doneBy, copy.columns.doneAt]);
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/errors?done=yes&page=2");
 
     await rerender(<ErrorsSeen done errors={[]} total={0} pages={1} page={1} pageSize={100} />);

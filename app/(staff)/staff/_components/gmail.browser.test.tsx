@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import AskForm from "./AskForm";
 import BounceReason, { firstSentence } from "./BounceReason";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
@@ -340,7 +341,7 @@ describe("DeleteTwice", () => {
     const action = vi.fn();
     await render(<DeleteTwice name="id" value="1" fields={{ list: "events" }} label="Delete" action={action} />);
     await page.getByRole("button", { name: "Delete" }).click();
-    await page.getByRole("button", { name: staffCopy.deleteIt }).click();
+    await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
     await expect.poll(() => action.mock.calls.length).toBe(1);
     const sent = action.mock.calls[0][0] as FormData;
     expect(sent.get("id")).toBe("1");
@@ -416,7 +417,7 @@ describe("AskForm", () => {
     await expect.element(page.getByText("winter-reception-dec-2026", { exact: true })).toBeVisible();
     await expect.element(field(copy.byKind.event.title)).toHaveValue("Winter reception");
     await page.getByRole("button", { name: copy.delete }).click();
-    await page.getByRole("button", { name: staffCopy.deleteIt }).click();
+    await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
     await expect.poll(() => remove.mock.calls.length).toBe(1);
     expect((remove.mock.calls[0][0] as FormData).get("slug")).toBe("winter-reception-dec-2026");
   });

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Form from "next/form";
 import { Button } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { chosenValues } from "@/lib/filter-choices";
 import { filtersPath, firstOf, NOT, notValue, valuesOf, type Params } from "@/lib/list-params";
 import { choiceParts, valueWords, type Filter, type FilterOption } from "@/lib/staff-list-filters";
@@ -18,7 +18,7 @@ import NotIcon from "./NotIcon";
 import SavedFilters, { SavedFilterGone, type SavedFiltersProps } from "./SavedFilters";
 import styles from "./FilterBar.module.css";
 
-const copy = staffCopy.filters;
+const copy = staffVocabulary.filters;
 
 /**
  * For a chip of the list's own (FilterBar's `view`), as a filter's look: on,
@@ -71,7 +71,7 @@ function PlaceForm({
       <Select
         name={place.within}
         defaultValue={firstOf(values[place.within]) || place.distances[1].value}
-        aria-label={staffCopy.filters.within}
+        aria-label={staffVocabulary.filters.within}
       >
         {place.distances.map((distance) => (
           <option key={distance.value} value={distance.value}>
@@ -80,7 +80,7 @@ function PlaceForm({
         ))}
       </Select>
       <Button variant="primary" size="small" fit type="submit">
-        {staffCopy.search}
+        {staffVocabulary.search}
       </Button>
       <FormPending />
     </Form>
@@ -405,7 +405,7 @@ export default function FilterBar({
             <input key={`${name}-${value}`} type="hidden" name={name} value={value} />
           ))}
           <Button variant="primary" size="small" fit type="submit">
-            {staffCopy.search}
+            {staffVocabulary.search}
           </Button>
           <FormPending />
         </Form>
@@ -491,7 +491,7 @@ export default function FilterBar({
           {view}
           {(on.length > 0 || values[search.name] || saved?.loaded) && (
             <StaffLink href={filtersPath(path, kept)} className={styles.clearAll}>
-              {staffCopy.resetFilters}
+              {staffVocabulary.resetFilters}
             </StaffLink>
           )}
         </div>

@@ -2,6 +2,7 @@ import AnswerWord from "./AnswerWord";
 import { AskTitle } from "./AskLine";
 import StaffLink from "./ui/StaffLink";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { POLITICIANS_LIST, type PoliticianSort } from "@/lib/staff-lists";
 import type { Ask } from "@/lib/server/asks";
 import type { Politician } from "@/lib/server/politicians";
@@ -65,7 +66,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
   const [parties] = anyAndNone(valuesOf(search.party), (values) => values);
   const [nations, notNations] = anyAndNone(valuesOf(search.nation), (values) => values);
   const show = {
-    house: !Object.hasOwn(staffCopy.houses, house),
+    house: !Object.hasOwn(staffVocabulary.houses, house),
     constituency: house !== "lords",
     nation: Boolean(notNations) || (nations?.length ?? 0) > 1,
     party: parties?.length !== 1,
@@ -90,8 +91,8 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
   const columns: (ListColumn<Politician> | false)[] = [
     {
       key: "name",
-      label: staffCopy.fields.name,
-      heading: heading("name", staffCopy.fields.name),
+      label: staffVocabulary.fields.name,
+      heading: heading("name", staffVocabulary.fields.name),
       words: "name",
       text: (p) => p.name,
       cell: (p) => (
@@ -103,16 +104,16 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
     },
     show.house && {
       key: "house",
-      label: staffCopy.fields.house,
-      heading: heading("house", staffCopy.fields.house),
+      label: staffVocabulary.fields.house,
+      heading: heading("house", staffVocabulary.fields.house),
       short: true,
-      text: (p) => staffCopy.houses[p.house],
-      cell: (p) => staffCopy.houses[p.house],
+      text: (p) => staffVocabulary.houses[p.house],
+      cell: (p) => staffVocabulary.houses[p.house],
     },
     show.constituency && {
       key: "constituency",
-      label: staffCopy.fields.constituency,
-      heading: heading("constituency", staffCopy.fields.constituency),
+      label: staffVocabulary.fields.constituency,
+      heading: heading("constituency", staffVocabulary.fields.constituency),
       words: "name",
       text: (p) => p.constituency,
       cell: (p) => p.constituency,
@@ -121,13 +122,13 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "country",
       label: staffCopy.politician.country,
       short: true,
-      text: (p) => p.country && staffCopy.countries[p.country],
-      cell: (p) => p.country && staffCopy.countries[p.country],
+      text: (p) => p.country && staffVocabulary.countries[p.country],
+      cell: (p) => p.country && staffVocabulary.countries[p.country],
     },
     show.party && {
       key: "party",
-      label: staffCopy.fields.party,
-      heading: heading("party", staffCopy.fields.party),
+      label: staffVocabulary.fields.party,
+      heading: heading("party", staffVocabulary.fields.party),
       short: true,
       text: (p) => p.party,
       cell: (p) => p.party,
@@ -136,12 +137,12 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "status",
       label: staffCopy.politicians.columns.status,
       short: true,
-      text: (p) => staffCopy.personStatuses[p.status],
+      text: (p) => staffVocabulary.personStatuses[p.status],
       cell: (p) =>
         p.status === "in_office" ? (
-          staffCopy.personStatuses[p.status]
+          staffVocabulary.personStatuses[p.status]
         ) : (
-          <Muted>{staffCopy.personStatuses[p.status]}</Muted>
+          <Muted>{staffVocabulary.personStatuses[p.status]}</Muted>
         ),
     },
     {
@@ -160,7 +161,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       heading: heading("asks", staffCopy.politicians.columns.asks),
       text: (p) =>
         answered(p)
-          .map((ask) => `${staffCopy.statuses[p.statuses[ask.slug].status]}: ${ask.title}`)
+          .map((ask) => `${staffVocabulary.statuses[p.statuses[ask.slug].status]}: ${ask.title}`)
           .join("; "),
       cell: (p) =>
         answered(p).length ? (
@@ -231,17 +232,17 @@ export function politicianContact(asks: Ask[]): (p: Politician) => Contact {
     name: p.name,
     emails: p.email ? [p.email] : [],
     phones: [],
-    org: staffCopy.houses[p.house],
+    org: staffVocabulary.houses[p.house],
     title: p.party || null,
-    address: { locality: p.constituency, country: p.country && staffCopy.countries[p.country] },
+    address: { locality: p.constituency, country: p.country && staffVocabulary.countries[p.country] },
     note: [
-      staffCopy.personStatuses[p.status],
+      staffVocabulary.personStatuses[p.status],
       marks(p),
       `${staffCopy.politicians.columns.emailsToThem}: ${p.emailsToThem}`,
       `${staffCopy.politicians.columns.emailsFromThem}: ${p.emailsFromThem}`,
       ...asks
         .filter((ask) => p.statuses[ask.slug])
-        .map((ask) => `${staffCopy.statuses[p.statuses[ask.slug].status]}: ${ask.title}`),
+        .map((ask) => `${staffVocabulary.statuses[p.statuses[ask.slug].status]}: ${ask.title}`),
     ].filter(Boolean),
     url: `/staff/politicians/${p.id}`,
   });

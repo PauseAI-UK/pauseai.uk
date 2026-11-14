@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { mailingGroups } from "@/lib/mailing-groups";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
 import type { BroadcastSummary } from "@/lib/server/broadcast-pages";
@@ -91,7 +92,7 @@ describe("BroadcastWriter's Consent", () => {
     [...document.querySelectorAll("fieldset")]
       .filter((field) => field.querySelector("legend")!.textContent === name)
       .at(-1)
-      ?.textContent!.endsWith(staffCopy.filters.justOne) === true;
+      ?.textContent!.endsWith(staffVocabulary.filters.justOne) === true;
   // Said yes to's toggles are a group inside the field's own group of that name.
   const group = (name: string) =>
     toggled(name)
@@ -107,8 +108,8 @@ describe("BroadcastWriter's Consent", () => {
     group(within)
       .getByRole(toggled(within) ? "button" : "radio", { name })
       .click();
-  const add = () => page.getByRole("button", { name: staffCopy.filters.addChoice }).click();
-  const justOne = () => page.getByRole("button", { name: staffCopy.filters.justOne }).click();
+  const add = () => page.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
+  const justOne = () => page.getByRole("button", { name: staffVocabulary.filters.justOne }).click();
 
   it("asks email or text, then offers that channel's Consents in a row, its own chosen, the other channel shut once it has words", async () => {
     await renderWriter();
@@ -154,7 +155,7 @@ describe("BroadcastWriter's Consent", () => {
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:newsletter:yes"), WAIT);
     await renderWriter();
     await add();
-    await page.getByRole("button", { name: staffCopy.filters.justOne }).last().click();
+    await page.getByRole("button", { name: staffVocabulary.filters.justOne }).last().click();
     expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([true, false, false]);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
   });
@@ -966,7 +967,7 @@ describe("a broadcast's page", () => {
   it("goes through the pages of everyone", async () => {
     await render(<BroadcastView data={{ ...exampleBroadcastSent, pages: 2 }} who={who} contact={null} {...actions} />);
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/broadcasts/5?page=2");
   });
 
@@ -1191,7 +1192,9 @@ describe("BroadcastFor", () => {
     await expect.element(page.getByText(supporters["text:events"])).toBeVisible();
     await expect.element(page.getByText(supporters["email:events"])).toBeVisible();
     await expect
-      .element(page.getByText(staffCopy.filters.anyOf([supporters["email:newsletter"], supporters["email:events"]])))
+      .element(
+        page.getByText(staffVocabulary.filters.anyOf([supporters["email:newsletter"], supporters["email:events"]])),
+      )
       .toBeVisible();
     const pills = page.getByRole("list", { name: staffCopy.mailingPages.whoLabel }).getByRole("listitem");
     await expect.element(pills.first()).toBeVisible();

@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   choosingParams,
   sameParams,
@@ -160,7 +160,7 @@ function nameWithout(name: string, details: string[]): string {
       .replace(/\s+/g, " ")
       .replace(/ ([,:])/g, "$1")
       .replace(/[\s,:·]+$/u, "")
-      .trim() || staffCopy.filters.saved.erasedName
+      .trim() || staffVocabulary.filters.saved.erasedName
   );
 }
 

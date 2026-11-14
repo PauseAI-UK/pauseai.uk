@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { query } from "@/lib/server/db";
 import { createSavedFilter } from "@/lib/server/saved-filters";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -18,17 +19,17 @@ describeWithDatabase("openSavedList", () => {
     expect(log.saved.loaded?.name).toBe("Sync's");
     expect([log.search.actor, log.search.filter.actor]).toEqual([["sync"], ["sync"]]);
     expect(await log.title((search) => [`Who: ${search.actor.join(", ")}`])).toBe(
-      staffCopy.filters.pageTitle(staffCopy.changes.title, "Who: sync"),
+      staffVocabulary.filters.pageTitle(staffCopy.changes.title, "Who: sync"),
     );
   });
 
   it("titles each list's page, with words worked out later or none", async () => {
     const words = async (search: { q: string }) => [search.q];
     expect(await (await openSavedList("politicians", { q: "jo" })).title(words)).toBe(
-      staffCopy.filters.pageTitle(staffCopy.politicians.title, "jo"),
+      staffVocabulary.filters.pageTitle(staffCopy.politicians.title, "jo"),
     );
     expect(await (await openSavedList("supporters", { q: "jo" })).title(words)).toBe(
-      staffCopy.filters.pageTitle(staffCopy.supporters.title, "jo"),
+      staffVocabulary.filters.pageTitle(staffCopy.supporters.title, "jo"),
     );
     expect(await (await openSavedList("events", {})).title(() => [])).toBe(staffCopy.events.title);
   });

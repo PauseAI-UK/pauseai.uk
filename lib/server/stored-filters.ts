@@ -2,6 +2,7 @@ import "server-only";
 import { ASK_STATUSES } from "@/lib/asks";
 import { contactState } from "@/lib/contact-permissions";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politician-filters";
 import type { SavedList } from "@/lib/saved-filters";
@@ -107,7 +108,7 @@ async function supporterValues(params: Params): Promise<Known> {
     event: found.map((row) => row.id),
     campaign: valuesOf(params.campaign).filter((slug) => campaignBySlug(slug)),
     wrote: ["no"],
-    nation: Object.keys(staffCopy.countries),
+    nation: Object.keys(staffVocabulary.countries),
     mp: mps.map((row) => row.id),
     near: "any",
     within: NEAR_MILES.map(String),

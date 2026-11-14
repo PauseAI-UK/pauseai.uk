@@ -295,6 +295,84 @@ const PAGE_REDIRECT = {
   message:
     "Send people elsewhere from next.config.ts's redirects(), or, for a redirect that depends on the request, a lib/ helper the page calls first: a page that redirects while rendering shows the layout empty for a moment on a client-side navigation.",
 };
+
+// The staff interface's features (docs/code-structure.md, "Feature folders").
+// Each has a folder of components, app/(staff)/staff/_components/<feature>/,
+// and a folder of logic, lib/<feature>/, and is listed here with the features
+// it may use. A feature's files may import the staff kit (ui/) and frame
+// (shell/), their own folders, the listed features' folders, and what every
+// feature stands on: lib/'s top-level files, lib/server/, lib/content/ and
+// lib/email-parsing/, and components/. Of the folders beside theirs, they
+// may import only those. Their tests and gallery examples may reach across.
+const STAFF_COMPONENTS = "app/(staff)/staff/_components";
+const FEATURES = {};
+// lib/'s folders that every feature stands on.
+const SHARED_LIB = ["server", "content", "email-parsing"];
+// The staff kit and the staff pages' frame, which every feature's components use.
+const SHARED_COMPONENTS = ["ui", "shell"];
+
+/** A regular expression for any of `names` as a whole folder name. */
+const anyOf = (names) => names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+
+/**
+ * The imports a feature's files may not make: a folder of lib/, or a folder
+ * beside its own, that's neither shared nor one of the features it uses.
+ * lib/'s top-level files, and the top of _components/, are open to all.
+ */
+function featureImports(feature, uses) {
+  const why = `${feature} may use only ${uses.length ? uses.join(", ") : "no other feature"} (FEATURES in eslint.config.mjs). Move what it needs into a folder it may use, or list the feature it needs there.`;
+  const libFolders = anyOf([...SHARED_LIB, feature, ...uses]);
+  return [
+    { regex: `^@/lib/(?!(${libFolders})/)[^/]+/`, message: `That's another feature's lib/ folder. ${why}` },
+    {
+      // A relative path from lib/<feature>/ or _components/<feature>/ to a folder beside it.
+      regex: `^\\.\\./(?!(${anyOf([...SHARED_LIB, ...SHARED_COMPONENTS, ...uses])})/)[^/]+/`,
+      message: `That's another feature's folder. ${why}`,
+    },
+  ];
+}
+
+/**
+ * The blocks that hold each feature to the features it uses: one for its
+ * components and one for its logic. Each repeats the lists of the LAYERS
+ * blocks above it, which it would otherwise replace.
+ */
+export function featureLayers(features) {
+  return Object.entries(features).flatMap(([feature, uses]) => [
+    {
+      files: [`${STAFF_COMPONENTS}/${feature}/**/*.{ts,tsx}`],
+      patterns: [...ROUTE_IMPORTS, ...featureImports(feature, uses)],
+      paths: [STAFF_LINK_IMPORT],
+    },
+    {
+      files: [`lib/${feature}/**/*.{ts,tsx}`],
+      patterns: [...ROUTE_IMPORTS, COMPONENT_IMPORTS, ...featureImports(feature, uses)],
+    },
+  ]);
+}
+
+// A component's gallery examples, beside it (docs/testing.md, "The component gallery"): part of the gallery.
+const GALLERY_BESIDE = "**/*.gallery{,.client}.tsx";
+
+/**
+ * typescript-eslint's no-restricted-imports for each of `layers`, leaving
+ * out tests and the gallery, which may reach across; and the gallery's own.
+ */
+export function importRules(layers) {
+  return layers
+    .map(({ files, ignores = [], patterns, paths = [] }) => ({
+      files,
+      ignores: ["**/*.test.{ts,tsx}", "app/(tools)/gallery/**", GALLERY_BESIDE, ...ignores],
+      rules: {
+        "@typescript-eslint/no-restricted-imports": ["error", { patterns: [...patterns, ...TESTS_IMPORTS], paths }],
+      },
+    }))
+    .concat({
+      files: ["app/(tools)/gallery/**/*.{ts,tsx}", GALLERY_BESIDE],
+      ignores: ["**/*.test.{ts,tsx}"],
+      rules: { "@typescript-eslint/no-restricted-imports": ["error", { patterns: TESTS_IMPORTS }] },
+    });
+}
 const LAYERS = [
   { files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"], patterns: ROUTE_IMPORTS },
   { files: ["app/**/page.tsx"], patterns: ROUTE_IMPORTS, paths: [PAGE_REDIRECT] },
@@ -307,19 +385,9 @@ const LAYERS = [
     paths: [STAFF_LINK_IMPORT],
   },
   { files: ["app/(staff)/**/page.tsx"], patterns: ROUTE_IMPORTS, paths: [PAGE_REDIRECT, STAFF_LINK_IMPORT] },
-]
-  .map(({ files, ignores = [], patterns, paths = [] }) => ({
-    files,
-    ignores: ["**/*.test.{ts,tsx}", "app/(tools)/gallery/**", ...ignores],
-    rules: {
-      "@typescript-eslint/no-restricted-imports": ["error", { patterns: [...patterns, ...TESTS_IMPORTS], paths }],
-    },
-  }))
-  .concat({
-    files: ["app/(tools)/gallery/**/*.{ts,tsx}"],
-    ignores: ["**/*.test.{ts,tsx}"],
-    rules: { "@typescript-eslint/no-restricted-imports": ["error", { patterns: TESTS_IMPORTS }] },
-  });
+  // Each feature's, after all of the above.
+  ...featureLayers(FEATURES),
+];
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -376,7 +444,7 @@ const eslintConfig = defineConfig([
     ignores: ["**/*.test.{ts,tsx}", ...UNCONVERTED_DOM_EDITS],
     rules: { "no-restricted-properties": ["error", ...DIRECT_DOM_EDITS] },
   },
-  ...LAYERS,
+  ...importRules(LAYERS),
   // A promise nobody waits for fails silently: its rejection reaches only the
   // console, where nobody looks. One that's meant to run on its own says so
   // with `void`. Needs the types, which typed linting gives from tsconfig.

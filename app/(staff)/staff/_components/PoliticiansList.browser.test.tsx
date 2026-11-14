@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   exampleAsks,
   exampleChoosing,
@@ -16,14 +17,14 @@ import { downloads } from "@/tests/browser/staff";
 describe("HouseTabs", () => {
   it("is a tab per house and All, keeping the filters but the page, the house chosen marked", async () => {
     await render(<HouseTabs search={{ ...emptyPoliticiansSearch, q: "jo", house: "lords", page: "3" }} />);
-    const tabs = page.getByRole("navigation", { name: staffCopy.fields.house });
+    const tabs = page.getByRole("navigation", { name: staffVocabulary.fields.house });
     await expect
       .element(tabs.getByRole("link", { name: staffCopy.politicians.allHouses }))
       .toHaveAttribute("href", "/staff/politicians?q=jo");
-    const lords = tabs.getByRole("link", { name: staffCopy.houses.lords });
+    const lords = tabs.getByRole("link", { name: staffVocabulary.houses.lords });
     await expect.element(lords).toHaveAttribute("aria-current", "page");
     await expect
-      .element(tabs.getByRole("link", { name: staffCopy.houses.senedd }))
+      .element(tabs.getByRole("link", { name: staffVocabulary.houses.senedd }))
       .toHaveAttribute("href", "/staff/politicians?q=jo&house=senedd");
   });
 
@@ -42,12 +43,12 @@ describe("HouseTabs", () => {
     await expect.element(ticked).toHaveAttribute("href", "/staff/politicians?house=lords&mailing=12&tab=ticked");
     await expect.element(ticked).not.toHaveAttribute("aria-current");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.houses.lords }))
+      .element(page.getByRole("link", { name: staffVocabulary.houses.lords }))
       .toHaveAttribute("aria-current", "page");
     await rerender(<HouseTabs search={{ ...search, tab: "ticked" }} choosing={choosing} />);
     await expect.element(ticked).toHaveAttribute("aria-current", "page");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.houses.senedd }))
+      .element(page.getByRole("link", { name: staffVocabulary.houses.senedd }))
       .toHaveAttribute("href", "/staff/politicians?house=senedd&mailing=12");
     // Once names are pasted, the paste tab after it.
     expect(page.getByRole("link", { name: staffCopy.mailingPages.pastedTab }).all()).toHaveLength(0);
@@ -398,7 +399,7 @@ describe("PoliticiansList", () => {
     await expect.element(page.getByRole("link", { name: "Polly Placeholder" })).toBeVisible();
     expect(await downloads()).toContain("/staff/politicians/download?q=pol&format=vcf");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.previous }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.previous }))
       .toHaveAttribute("href", "/staff/politicians?q=pol");
     await expect
       .element(page.getByRole("link", { name: copy.otherHouses(2) }))
@@ -453,7 +454,7 @@ describe("PoliticiansList", () => {
     await expect.element(page.getByText(copy.total(0))).toBeVisible();
     expect(page.getByRole("button").all()).toHaveLength(0);
     await expect
-      .element(page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }))
+      .element(page.getByRole("table").getByRole("link", { name: staffVocabulary.resetFilters }))
       .toHaveAttribute("href", "/staff/politicians");
     // With nothing on, there's nothing to clear.
     await rerender(
@@ -465,7 +466,7 @@ describe("PoliticiansList", () => {
         actions={actions()}
       />,
     );
-    expect(page.getByRole("link", { name: staffCopy.resetFilters }).all()).toHaveLength(0);
+    expect(page.getByRole("link", { name: staffVocabulary.resetFilters }).all()).toHaveLength(0);
     // Emptied by a filter, the row's way to clear it keeps the house; but there's none while choosing.
     const filtered = { ...emptyPoliticiansSearch, house: "lords", party: ["Green"] };
     await rerender(
@@ -478,7 +479,7 @@ describe("PoliticiansList", () => {
       />,
     );
     await expect
-      .element(page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }))
+      .element(page.getByRole("table").getByRole("link", { name: staffVocabulary.resetFilters }))
       .toHaveAttribute("href", "/staff/politicians?house=lords");
     await rerender(
       <PoliticiansList
@@ -490,6 +491,6 @@ describe("PoliticiansList", () => {
         actions={actions()}
       />,
     );
-    expect(page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }).all()).toHaveLength(0);
+    expect(page.getByRole("table").getByRole("link", { name: staffVocabulary.resetFilters }).all()).toHaveLength(0);
   });
 });

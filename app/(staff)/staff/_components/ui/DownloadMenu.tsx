@@ -1,11 +1,11 @@
 import { useId } from "react";
 import { buttonClass } from "@/components/ui/Button";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { DownloadFormat } from "@/lib/staff-list";
 import Menu from "./Menu";
 import styles from "./DownloadMenu.module.css";
 
-const copy = staffCopy.lists;
+const copy = staffVocabulary.lists;
 
 /**
  * Download, a small button whose menu has a link to each format of every

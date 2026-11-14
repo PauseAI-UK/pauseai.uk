@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   type AnyImportRun,
   type ControlAiImport,
@@ -65,7 +66,7 @@ describe("RunList", () => {
     await expect.element(page.getByText("Manchester Centre: Mo Example")).toBeVisible();
     await expect.element(page.getByText("Ipswich: Sam Newcomer", { exact: true })).toBeVisible();
     await expect
-      .element(page.getByText(`${staffCopy.houses.lords}: Lord Example (${staffCopy.politicians.noEmail})`))
+      .element(page.getByText(`${staffVocabulary.houses.lords}: Lord Example (${staffCopy.politicians.noEmail})`))
       .toBeVisible();
     await expect.element(page.getByText("Old Seat: Rita Retired")).toBeVisible();
     await expect.element(page.getByText("Polly Placeholder: party")).toBeVisible();

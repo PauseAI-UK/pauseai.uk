@@ -38,7 +38,7 @@ import {
 import AccountsNotice from "@/app/(staff)/staff/_components/AccountsNotice";
 import ImportCard, { ImportCards } from "@/app/(staff)/staff/_components/ImportCard";
 import ImportIcon from "@/app/(staff)/staff/_components/ImportIcon";
-import KeepSignedIn from "@/app/(staff)/staff/_components/KeepSignedIn";
+import { keepSignedInGallery } from "@/app/(staff)/staff/_components/KeepSignedIn.gallery";
 import StaffDashboard from "@/app/(staff)/staff/_components/StaffDashboard";
 import StaffHome from "@/app/(staff)/staff/_components/StaffHome";
 import StaffSessions from "@/app/(staff)/staff/_components/StaffSessions";
@@ -659,20 +659,7 @@ export const staffAdmin: Group = {
         },
       ],
     },
-    {
-      name: "KeepSignedIn",
-      file: "app/(staff)/staff/_components/KeepSignedIn.tsx",
-      variants: [
-        {
-          label: "The login form's box, unticked",
-          render: () => (
-            <StaffPage as="div">
-              <KeepSignedIn />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...keepSignedInGallery,
     {
       name: "ImportIcon",
       file: "app/(staff)/staff/_components/ImportIcon.tsx",

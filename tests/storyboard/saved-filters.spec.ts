@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addFilter, changeFilter } from "./list-steps";
 import { lockTable } from "./loading-steps";
@@ -14,7 +15,7 @@ export const section: Section = { name: "Saved filters", part: "Staff pages", or
 // Saved filters on the staff lists: saving what's on, loading it, editing it,
 // finding one, and what happens when part of one has gone.
 
-const copy = staffCopy.filters.saved;
+const copy = staffVocabulary.filters.saved;
 
 const POLITICIANS = `${BASE}/staff/politicians`;
 
@@ -45,14 +46,14 @@ test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase 
   await page.keyboard.press("Escape");
 
   story("Staff choose a party. Save appears as the chip's second half.");
-  await addFilter(page, staffCopy.fields.party, "Labour");
+  await addFilter(page, staffVocabulary.fields.party, "Labour");
   await expect(save(page)).toBeVisible();
   await frame(page, "A filter on, and Save");
 
   story("Save opens a small form, with a name filled in from the filters, ready to type over.");
   await save(page).click();
   const name = page.getByRole("textbox", { name: copy.name });
-  await expect(name).toHaveValue(`${staffCopy.fields.party}: Labour`);
+  await expect(name).toHaveValue(`${staffVocabulary.fields.party}: Labour`);
   await frame(page, "Naming it");
 
   story("Saving loads it, and the chip is named for it, with nothing left to save.");
@@ -69,7 +70,7 @@ test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase 
   await frame(page, "Saved and loaded");
 
   story("Clear filters takes away the filter and unloads it.");
-  await page.getByRole("link", { name: staffCopy.resetFilters }).click();
+  await page.getByRole("link", { name: staffVocabulary.resetFilters }).click();
   await expect(page).toHaveURL(POLITICIANS);
   await expect(page.getByRole("button", { name: copy.chip, exact: true })).toBeVisible();
   await frame(page, "Cleared");
@@ -87,11 +88,11 @@ test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page
   story("Loading it is a link. The chips and the tab are as they were saved.");
   await page.getByRole("link", { name: /Labour MPs/ }).click();
   await expect(page.getByRole("button", { name: "Labour MPs" })).toBeVisible();
-  await expect(page.getByRole("button", { name: `${staffCopy.fields.party}: Labour` })).toBeVisible();
+  await expect(page.getByRole("button", { name: `${staffVocabulary.fields.party}: Labour` })).toBeVisible();
   await frame(page, "Loaded, unchanged");
 
   story("Staff add a filter. The chip says it's edited, and Save comes back, now a menu.");
-  await addFilter(page, staffCopy.politician.country, staffCopy.countries.scotland);
+  await addFilter(page, staffCopy.politician.country, staffVocabulary.countries.scotland);
   await expect(page.getByRole("button", { name: "Labour MPs" })).toContainText(copy.edited);
   await save(page).click();
   await expect(page.getByRole("button", { name: copy.update })).toBeVisible();
@@ -105,7 +106,7 @@ test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page
   story(
     "Staff add the filter again and update it for everyone. It's no longer edited, and loads with that filter from now on.",
   );
-  await addFilter(page, staffCopy.politician.country, staffCopy.countries.scotland);
+  await addFilter(page, staffCopy.politician.country, staffVocabulary.countries.scotland);
   await save(page).click();
   const updating = await lockTable(flowDatabase, "saved_filters");
   const update = page.getByRole("button", { name: copy.update });
@@ -117,12 +118,12 @@ test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page
   await expect(page.getByRole("button", { name: "Labour MPs" })).not.toContainText(copy.edited);
   await expect(save(page)).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: `${staffCopy.politician.country}: ${staffCopy.countries.scotland}` }),
+    page.getByRole("button", { name: `${staffCopy.politician.country}: ${staffVocabulary.countries.scotland}` }),
   ).toBeVisible();
   await frame(page, "Updated for everyone");
 
   story("Editing again, Save as new opens the same form, and loads the new one, leaving the first as it was.");
-  await changeFilter(page, `${staffCopy.politician.country}: ${staffCopy.countries.scotland}`);
+  await changeFilter(page, `${staffCopy.politician.country}: ${staffVocabulary.countries.scotland}`);
   await save(page).click();
   await page.getByRole("button", { name: copy.saveAsNew }).click();
   await page.getByRole("textbox", { name: copy.name }).fill("Labour MPs everywhere");
@@ -183,7 +184,7 @@ test("Renaming and deleting a saved filter", async ({ page, request, flowDatabas
   await page.getByRole("button", { name: copy.deleteForEveryone }).click();
   await frame(page, "Asking again");
   const deleting = await lockTable(flowDatabase, "saved_filters");
-  const deleteIt = page.getByRole("button", { name: staffCopy.deleteIt });
+  const deleteIt = page.getByRole("button", { name: staffVocabulary.deleteIt });
   await deleteIt.click();
   await expect(deleteIt).toHaveAttribute("aria-busy", "true");
   await frame(page, "Deleting, the menu still up", { window: true });
@@ -206,8 +207,8 @@ test("A saved filter naming something that has gone", async ({ page, request, fl
     flag: "important",
   });
   await page.goto(`${POLITICIANS}?party=Reform+Group&flag=important&saved=${id}`);
-  await expect(page.getByText(copy.gone(`${staffCopy.fields.party}: Reform Group`))).toBeVisible();
-  await expect(page.getByRole("button", { name: `${staffCopy.fields.party}: Reform Group` })).toHaveCount(0);
+  await expect(page.getByText(copy.gone(`${staffVocabulary.fields.party}: Reform Group`))).toBeVisible();
+  await expect(page.getByRole("button", { name: `${staffVocabulary.fields.party}: Reform Group` })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Reform Group and important" })).not.toContainText(copy.edited);
   await frame(page, "What has gone, said");
 });

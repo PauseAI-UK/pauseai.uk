@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
 import ChangesTable from "./ChangesTable";
 import { exampleChanges } from "./ChangesTable.examples";
@@ -24,7 +25,7 @@ describe("ChangesTable", () => {
     expect(heading(copy.action)).toBe("/staff/audit-log?actor=sync&sort=action&dir=asc&saved=4");
     expect([...document.querySelectorAll("th a")]).toHaveLength(3);
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/audit-log?actor=sync&sort=actor&dir=asc&saved=4&page=3");
     expect(await downloads()).toContain("/staff/audit-log/download?format=csv&actor=sync&sort=actor&dir=asc");
   });
@@ -89,7 +90,7 @@ describe("ChangesTable", () => {
   it("lists who changed what, the day in a column of its own, and every field each logged, in words, linked where there's a page", async () => {
     await render(<ChangesTable search={changesSearch({})} log={log(exampleChanges)} page={1} />);
     const copy = staffCopy.changes;
-    const fields = staffCopy.fields;
+    const fields = staffVocabulary.fields;
     const labels = copy.labels;
     await expect.element(page.getByText(copy.total(exampleChanges.length))).toBeVisible();
     expect(await downloads()).toEqual([
@@ -105,7 +106,7 @@ describe("ChangesTable", () => {
     expect(rows[0].element().children[1].textContent).toBe("09:59");
     expect(rows[0].element().children[2].textContent).toBe("jo@pauseai.uk");
     const details = rows.map((row) => row.element().children[4].textContent);
-    const signed = staffCopy.politician.statusSet(staffCopy.statuses.signed);
+    const signed = staffCopy.politician.statusSet(staffVocabulary.statuses.signed);
     const cleared = staffCopy.politician.statusCleared;
     const odd = staffCopy.politician.statusSet("odd");
     const count = (n: number, key: string) => `${n} ${copy.counts[key](n)}`;
@@ -113,7 +114,7 @@ describe("ChangesTable", () => {
       `Polly Placeholder · ${signed.before}${pm.title}${signed.after}, 1 Oct 2026 · ${labels.note} By email`,
       `${copy.gone("99")} · ${cleared.before}controlai-letter${cleared.after}`,
       `Polly Placeholder · ${labels.airtableId} recPolly · ${fields.party} Labour → Independent · ${fields.email} ${copy.empty} → polly@example.org`,
-      `Polly Placeholder · ${labels.airtableId} recPolly · ${fields.house} ${staffCopy.houses.commons} · ${fields.salutation} Ms Placeholder · ${fields.constituency} Ipswich · ${fields.party} Labour`,
+      `Polly Placeholder · ${labels.airtableId} recPolly · ${fields.house} ${staffVocabulary.houses.commons} · ${fields.salutation} Ms Placeholder · ${fields.constituency} Ipswich · ${fields.party} Labour`,
       "Old MP",
       `polly@example.org · ${labels.kind} ${staffCopy.emails.kinds.hard}`,
       `polly@example.org · ${labels.note} Fixed in Airtable`,
@@ -125,11 +126,11 @@ describe("ChangesTable", () => {
       `samuel.whitlock@pauseai.uk · ${labels.permissions} ${staffCopy.accounts.names.supporters}, retired`,
       `${count(3, "added")} · ${count(40, "removed")} · ${count(2, "changed")}`,
       copy.run("12"),
-      `${labels.reason} a test · Ids [1,2] · ${fields.house} atlantis · ${labels.status} ${staffCopy.statuses.signed}`,
+      `${labels.reason} a test · Ids [1,2] · ${fields.house} atlantis · ${labels.status} ${staffVocabulary.statuses.signed}`,
       `odd@example.org · ${labels.kind} weird`,
       `Polly Placeholder · ${odd.before}${pm.title}${odd.after}`,
       `2 widgets · ${labels.status} maybe · ${labels.campaign} ${pm.title}`,
-      `Old MP · ${fields.house} ${staffCopy.houses.commons} → ${staffCopy.houses.lords} · ${fields.party} Labour → ${copy.empty} · ${copy.labels.importantTarget} ${copy.off} → ${copy.on}`,
+      `Old MP · ${fields.house} ${staffVocabulary.houses.commons} → ${staffVocabulary.houses.lords} · ${fields.party} Labour → ${copy.empty} · ${copy.labels.importantTarget} ${copy.off} → ${copy.on}`,
       copy.run("13"),
       copy.run("14"),
       copy.run("15"),
@@ -176,7 +177,7 @@ describe("the lists' paging", () => {
       />,
     );
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/audit-log?page=3");
   });
 });

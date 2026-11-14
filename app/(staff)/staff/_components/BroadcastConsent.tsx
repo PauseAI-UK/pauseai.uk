@@ -3,6 +3,7 @@
 import { Segmented, Toggles } from "@/components/ui/Controls";
 import { FieldSet } from "@/components/ui/Field";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { choiceTerms, consentChoice } from "@/lib/broadcasts";
 import { TOPICS, consentKey, type Channel, type Topic } from "@/lib/contact-permissions";
 import ChannelIcon from "@/components/ui/ChannelIcon";
@@ -81,7 +82,7 @@ export default function BroadcastConsent({
                 label={copy.facts.saidYes}
                 options={topics}
                 values={on}
-                joiner={staffCopy.filters.anyOf(["", ""]).trim()}
+                joiner={staffVocabulary.filters.anyOf(["", ""]).trim()}
                 min={1}
                 onChange={choose}
                 busy={pending}
@@ -102,7 +103,7 @@ export default function BroadcastConsent({
                 if (several && on.length > 1) choose(on.slice(0, 1));
               }}
             >
-              {several ? staffCopy.filters.justOne : staffCopy.filters.addChoice}
+              {several ? staffVocabulary.filters.justOne : staffVocabulary.filters.addChoice}
             </LinkButton>
           </div>
         </FieldSet>

@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { runQueue } from "./letters-inbox-steps";
 import { stayOnPage } from "./loading-steps";
@@ -112,7 +113,7 @@ test("A new mailing", async ({ page, request, flowDatabase }) => {
   story(
     "They choose the Scottish Parliament and tick Morag Example. The bar at the foot says how many are ticked, with Write to this one.",
   );
-  await page.getByRole("link", { name: staffCopy.houses["scottish-parliament"] }).click();
+  await page.getByRole("link", { name: staffVocabulary.houses["scottish-parliament"] }).click();
   await expect(page).toHaveURL(/house=scottish-parliament/);
   await page.getByRole("checkbox", { name: copy.tick("Morag Example") }).check();
   const bar = page.getByRole("region", { name: copy.choosingCount(1) });
@@ -212,7 +213,7 @@ test("Changing and deleting a draft", async ({ page, request, flowDatabase }) =>
 
   await page.getByRole("link", { name: staffCopy.politicians.allHouses }).click();
   await page.getByRole("searchbox").fill("Polly");
-  await page.getByRole("button", { name: staffCopy.search }).click();
+  await page.getByRole("button", { name: staffVocabulary.search }).click();
   await expect(page).toHaveURL(/q=Polly/);
   await page.getByRole("checkbox", { name: copy.tick("Polly Placeholder") }).check();
   const two = page.getByRole("region", { name: copy.choosingCount(2) });
@@ -236,10 +237,10 @@ test("Changing and deleting a draft", async ({ page, request, flowDatabase }) =>
   story("Delete draft asks to be pressed again.");
 
   await page.getByRole("button", { name: copy.deleteDraft }).click();
-  await expect(page.getByRole("button", { name: staffCopy.deleteIt })).toBeFocused();
+  await expect(page.getByRole("button", { name: staffVocabulary.deleteIt })).toBeFocused();
   await frame(page, "Delete draft, pressed once", { window: true });
   story("Pressed again, the draft is deleted, and gone from the mailings page.");
-  await page.getByRole("button", { name: staffCopy.deleteIt }).click();
+  await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
   await expect(page).toHaveURL(`${BASE}/staff/mailings`);
   await expect(page.getByRole("link", { name: "Lords only" })).toHaveCount(0);
   await frame(page, "The mailings page");
@@ -718,7 +719,7 @@ test("From a mailing to its ask", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Edinburgh conference");
   await frame(page, "The conference's page");
   story("On its page, each answer's column heading lists those who gave it. One is going.");
-  await page.getByRole("link", { name: new RegExp(`^${staffCopy.statuses.going} \\d`) }).click();
+  await page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.going} \\d`) }).click();
   await expect(page).toHaveURL(/answer=going/);
   await expect(page.getByRole("row").filter({ hasText: "Morag Example" })).toBeVisible();
   await expect(page.getByRole("row")).toHaveCount(2);

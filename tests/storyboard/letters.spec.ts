@@ -10,6 +10,7 @@ import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { TEST_MPS } from "@/lib/test-mps";
 import type { Section } from "./report/frames";
 
@@ -169,7 +170,7 @@ test("A letter's page", async ({ page, flowDatabase }) => {
   const ask = page.getByRole("region", { name: staffCopy.mailings.fields.ask });
   await expect(ask.getByRole("link", { name: campaigns[0].title })).toBeVisible();
   await ask.getByRole("button", { name: staffCopy.politician.edit }).click();
-  await page.getByRole("radio", { name: staffCopy.statuses.signed }).click();
+  await page.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
   const note = page.getByLabel(staffCopy.politician.note);
   await note.fill("Signed, says their reply");
   // The bubble scrolls the page as it opens, and the clicks and typing scroll their fields into view, in an

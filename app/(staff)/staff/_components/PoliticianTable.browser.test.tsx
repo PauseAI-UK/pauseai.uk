@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import PoliticianTable from "./PoliticianTable";
 import { exampleAsks, examplePolitician } from "./PoliticianTable.examples";
 
@@ -14,17 +15,17 @@ describe("PoliticianTable headings", () => {
     await render(
       <PoliticianTable politicians={[MP]} asks={exampleAsks} search={{ q: "x", sort: "party", dir: "asc" }} />,
     );
-    const party = page.getByRole("link", { name: staffCopy.fields.party });
+    const party = page.getByRole("link", { name: staffVocabulary.fields.party });
     await expect.element(party).toHaveAttribute("href", "/staff/politicians?q=x&sort=party&dir=desc");
     expect(party.element().closest("th")!.getAttribute("aria-sort")).toBe("ascending");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.fields.name }))
+      .element(page.getByRole("link", { name: staffVocabulary.fields.name }))
       .toHaveAttribute("href", "/staff/politicians?q=x&sort=name&dir=asc");
   });
 
   it.each(["letters", "replies"])("show the list by name, A to Z, for a sort it doesn't have (%s)", async (sort) => {
     await render(<PoliticianTable politicians={[MP]} asks={exampleAsks} search={{ sort, dir: "desc" }} />);
-    const name = page.getByRole("link", { name: staffCopy.fields.name });
+    const name = page.getByRole("link", { name: staffVocabulary.fields.name });
     expect(name.element().closest("th")!.getAttribute("aria-sort")).toBe("ascending");
     expect(document.querySelectorAll("[aria-sort]")).toHaveLength(1);
     await expect
@@ -74,7 +75,7 @@ describe("PoliticianTable", () => {
       .toHaveAttribute("href", "/staff/politicians/7");
     await expect.element(page.getByText(staffCopy.politicians.flags.test).first()).toBeVisible();
     await expect.element(page.getByText(staffCopy.politicians.emailBlocked).first()).toBeVisible();
-    await expect.element(page.getByRole("cell", { name: staffCopy.houses.lords }).first()).toBeVisible();
+    await expect.element(page.getByRole("cell", { name: staffVocabulary.houses.lords }).first()).toBeVisible();
     const cells = (name: string) =>
       page
         .getByRole("row")
@@ -85,7 +86,7 @@ describe("PoliticianTable", () => {
     // Whether they're in office, the counts of emails to them and from them, each heading a sort, and their answer to each
     // ask they've answered, a line each, in the asks' order, the answer in bold first.
     const flags = staffCopy.politicians.flags;
-    expect(cells("Polly Placeholder").slice(4, 6)).toEqual([staffCopy.personStatuses.in_office, flags.important]);
+    expect(cells("Polly Placeholder").slice(4, 6)).toEqual([staffVocabulary.personStatuses.in_office, flags.important]);
     expect(cells("Polly Placeholder").slice(7, 9)).toEqual(["4", "1"]);
     // Airtable's markers as lozenges, and a test politician's.
     expect(cells("Nora Nothing")[5]).toBe(`${flags.connection}${flags.test}`);
@@ -98,13 +99,13 @@ describe("PoliticianTable", () => {
         .all()
         .map((li) => li.element().textContent);
     expect(answers("Polly Placeholder")).toEqual([
-      `${ask("edinburgh-conference-2026").title} ${staffCopy.statuses.declined}`,
-      `${ask("frontier-ai-letter").title} ${staffCopy.statuses.signed}`,
+      `${ask("edinburgh-conference-2026").title} ${staffVocabulary.statuses.declined}`,
+      `${ask("frontier-ai-letter").title} ${staffVocabulary.statuses.signed}`,
     ]);
     // The answer in bold, a no crossed and a yes ticked in green, each at its ask's right and level with the other.
     const pollys = page.getByRole("row").filter({ hasText: "Polly Placeholder" });
-    const declined = pollys.getByText(staffCopy.statuses.declined).element();
-    const signed = pollys.getByText(staffCopy.statuses.signed).element();
+    const declined = pollys.getByText(staffVocabulary.statuses.declined).element();
+    const signed = pollys.getByText(staffVocabulary.statuses.signed).element();
     expect(declined.closest("strong")).not.toBeNull();
     expect(getComputedStyle(declined, "::before").content).toContain("✕");
     expect(getComputedStyle(signed, "::before").content).toContain("✓");
@@ -117,13 +118,14 @@ describe("PoliticianTable", () => {
     expect(getComputedStyle(title).whiteSpace).toBe("nowrap");
     expect(getComputedStyle(title).textOverflow).toBe("ellipsis");
     expect(answers("Testy McTestface MP")).toEqual([
-      `${ask("controlai-letter").title} ${staffCopy.statuses.signed}`,
-      `${ask("frontier-ai-letter").title} ${staffCopy.statuses.signed}`,
+      `${ask("controlai-letter").title} ${staffVocabulary.statuses.signed}`,
+      `${ask("frontier-ai-letter").title} ${staffVocabulary.statuses.signed}`,
     ]);
-    expect(cells("Testy McTestface MP")[4]).toBe(staffCopy.personStatuses.retired);
+    expect(cells("Testy McTestface MP")[4]).toBe(staffVocabulary.personStatuses.retired);
     expect(cells("Nora Nothing")[6]).toBe(staffCopy.politicians.noAsks);
     expect(
-      getComputedStyle(page.getByRole("cell", { name: staffCopy.personStatuses.retired }).first().element()).whiteSpace,
+      getComputedStyle(page.getByRole("cell", { name: staffVocabulary.personStatuses.retired }).first().element())
+        .whiteSpace,
     ).toBe("nowrap");
     await expect
       .element(page.getByRole("link", { name: staffCopy.politicians.columns.emailsToThem }))
@@ -162,7 +164,7 @@ describe("PoliticianTable", () => {
     // Rows that agree on everything still show every column, with no filter fixing one.
     const rows = [plain, { ...plain, id: 8, name: "Other" }];
     const { rerender } = await render(<PoliticianTable politicians={rows} asks={[]} search={{ status: "any" }} />);
-    const { fields } = staffCopy;
+    const { fields } = staffVocabulary;
     expect(headings()).toEqual([
       fields.name,
       fields.house,

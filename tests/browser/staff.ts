@@ -3,6 +3,7 @@
 import { vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 /** A stand-in Server Action that keeps what it was sent. */
 export function action() {
@@ -18,7 +19,7 @@ export const press = { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-10-
 
 /** Opens a list's Download menu, and gives its links' addresses. */
 export async function downloads() {
-  await page.getByRole("button", { name: staffCopy.lists.download }).click();
+  await page.getByRole("button", { name: staffVocabulary.lists.download }).click();
   const box = document.querySelector<HTMLElement>("[popover]:popover-open")!;
   return [...box.querySelectorAll("a")].map((a) => a.getAttribute("href"));
 }
@@ -32,9 +33,9 @@ export const chips = () =>
     .filter(
       (text) =>
         ![
-          staffCopy.search,
-          staffCopy.filters.add,
-          staffCopy.filters.except,
+          staffVocabulary.search,
+          staffVocabulary.filters.add,
+          staffVocabulary.filters.except,
           staffCopy.supporters.columns.subscriptions,
         ].includes(text!),
     );

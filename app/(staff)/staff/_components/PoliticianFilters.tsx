@@ -1,5 +1,6 @@
 import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Ask } from "@/lib/server/asks";
 import { filteredName, filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
 import type { PoliticiansSearch } from "@/lib/staff-search";
@@ -13,7 +14,7 @@ const copy = staffCopy.politicians;
 /** The list's house, search and filters that are on in `values`, its URL's parameters, in words. */
 function wordsOf(values: Params, parties: string[], asks: Ask[]): string[] {
   return [
-    staffCopy.houses[firstOf(values.house) as keyof typeof staffCopy.houses] ?? "",
+    staffVocabulary.houses[firstOf(values.house) as keyof typeof staffVocabulary.houses] ?? "",
     ...filterWords(POLITICIAN_FILTERS({ ask: firstOf(values.ask), parties, asks }), values, "q"),
   ];
 }

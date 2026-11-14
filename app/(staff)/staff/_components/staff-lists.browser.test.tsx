@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { type DownloadColumn } from "@/lib/staff-list";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { blockColumns } from "./EmailBlocksTable";
 import { exampleBlock, exampleComplaint, exampleGmailBlock } from "./EmailBlocksTable.examples";
 import { politicianWords } from "./PoliticianFilters";
@@ -63,14 +64,14 @@ describe("each list's download values and contact cards", () => {
     const keys = byNation.map((c) => c.key);
     expect(keys.indexOf("country")).toBe(keys.indexOf("constituency") + 1);
     const nation = byNation.find((c) => c.key === "country")!;
-    expect(nation.text!(rows[0])).toBe(staffCopy.countries[examplePolitician.country!]);
-    expect(nation.cell(rows[0])).toBe(staffCopy.countries[examplePolitician.country!]);
+    expect(nation.text!(rows[0])).toBe(staffVocabulary.countries[examplePolitician.country!]);
+    expect(nation.cell(rows[0])).toBe(staffVocabulary.countries[examplePolitician.country!]);
     expect(nation.text!(rows[1])).toBeNull();
     const columns = politicianColumns(exampleAsks, { status: "any" });
     expect(values(columns, rows[0])).toMatchObject({
-      house: staffCopy.houses.commons,
+      house: staffVocabulary.houses.commons,
       party: examplePolitician.party,
-      status: staffCopy.personStatuses.in_office,
+      status: staffVocabulary.personStatuses.in_office,
       constituency: examplePolitician.constituency,
       emailsToThem: 4,
       emailsFromThem: 1,
@@ -133,7 +134,7 @@ describe("each list's download values and contact cards", () => {
     expect(supporterContact({ contact: [] })(placed)).toMatchObject({
       emails: [],
       phones: [],
-      address: { locality: "Leeds", country: staffCopy.countries.england },
+      address: { locality: "Leeds", country: staffVocabulary.countries.england },
     });
   });
 });
@@ -142,7 +143,7 @@ describe("the lists' filters in words, for their titles", () => {
   it("says a supporters search's Near as typed when it wasn't looked up, and each filter by its chip's words", () => {
     const search = supportersSearch({ q: "jo", near: "LS1", activity: "member" });
     expect(supporterWords(search, { events: [], mps: [] })).toEqual([
-      `${staffCopy.search}: jo`,
+      `${staffVocabulary.search}: jo`,
       `${staffCopy.supporters.filters.near}: LS1`,
       `${staffCopy.supporters.columns.badges}: ${staffCopy.supporters.badges.member}`,
     ]);
@@ -151,8 +152,8 @@ describe("the lists' filters in words, for their titles", () => {
   it("says the politicians' house first, or nothing for all of them", () => {
     const parties = ["Labour"];
     expect(politicianWords({ ...emptyPoliticiansSearch, house: "lords", party: ["Labour"] }, parties, [])).toEqual([
-      staffCopy.houses.lords,
-      `${staffCopy.fields.party}: Labour`,
+      staffVocabulary.houses.lords,
+      `${staffVocabulary.fields.party}: Labour`,
     ]);
     expect(politicianWords(emptyPoliticiansSearch, parties, [])).toEqual([""]);
   });

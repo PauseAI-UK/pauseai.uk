@@ -3,6 +3,7 @@ import { longDay } from "@/lib/calendar-days";
 import { DATE_PICKER_WORDS } from "@/lib/content/date-picker";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { sentLetterId } from "./letter-steps";
 import { addFilter } from "./list-steps";
@@ -68,7 +69,7 @@ test("No answer yet", async ({ page, flowDatabase }) => {
     "No answer's column is the whole of who's been written to and hasn't answered. Pressed, it lists them, longest wait first.",
   );
   await frame(page, "The ask's answers");
-  const unanswered = page.getByRole("link", { name: new RegExp(`^${staffCopy.statuses.noAnswer} \\d`) });
+  const unanswered = page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.noAnswer} \\d`) });
   await unanswered.click();
   await expect(page).toHaveURL(/answer=none/);
   await expect(unanswered).toHaveAttribute("aria-current", "true");
@@ -91,7 +92,7 @@ test("Asks", async ({ page, request, flowDatabase }) => {
   await frame(page, "An event's page");
 
   story("Pressing an answer's column lists those who gave it, with when they were last written to.");
-  const going = page.getByRole("link", { name: new RegExp(`^${staffCopy.statuses.going} \\d`) });
+  const going = page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.going} \\d`) });
   await going.click();
   await expect(page).toHaveURL(/answer=going/);
   await expect(going).toHaveAttribute("aria-current", "true");
@@ -135,16 +136,16 @@ test("An ask's pages", async ({ page, flowDatabase }) => {
   await frame(page, "The first page");
 
   story("Next shows the rest, and the answer chosen stays chosen.");
-  await page.getByRole("link", { name: staffCopy.paging.next }).click();
+  await page.getByRole("link", { name: staffVocabulary.paging.next }).click();
   await expect(page).toHaveURL(/page=2/);
-  await expect(page.getByRole("link", { name: `${staffCopy.statuses.signed} 150` })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: `${staffVocabulary.statuses.signed} 150` })).toHaveAttribute(
     "aria-current",
     "true",
   );
   await frame(page, "The second page");
 
   story("The other answer's column top chooses that answer instead.");
-  await page.getByRole("link", { name: `${staffCopy.statuses.declined} 12` }).click();
+  await page.getByRole("link", { name: `${staffVocabulary.statuses.declined} 12` }).click();
   await expect(page.getByText(staffCopy.campaigns.politicians(12))).toBeVisible();
   await frame(page, "Those who declined");
 
@@ -207,9 +208,9 @@ test("A new ask", async ({ page, flowDatabase }) => {
   await page.getByRole("link", { name: "Winter reception" }).click();
   await page.getByRole("link", { name: asks.edit }).click();
   await page.getByRole("button", { name: asks.delete }).click();
-  await expect(page.getByRole("button", { name: staffCopy.deleteIt })).toBeFocused();
+  await expect(page.getByRole("button", { name: staffVocabulary.deleteIt })).toBeFocused();
   await frame(page, "Delete, pressed once", { window: true });
-  await page.getByRole("button", { name: staffCopy.deleteIt }).click();
+  await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
   await expect(page.getByText(asks.notices.deleted)).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "Winter reception" })).toHaveCount(0);
   await frame(page, "The ask, deleted");

@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { site } from "@/lib/content/site";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
@@ -342,14 +343,14 @@ test("In-person events by owner", async ({ page, flowDatabase }) => {
   await frame(page, "Every event to come, by owner");
 
   story("From Except, he leaves out Online. The calls and the welcome go, and the lists stay by owner.");
-  await page.getByRole("button", { name: staffCopy.filters.except }).click();
+  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
   const place = page
     .locator("[popover]:popover-open details")
     .filter({ has: page.locator("summary", { hasText: new RegExp(`^${copy.filters.place}$`) }) });
   await place.locator("summary").click();
   await place.getByRole("link", { name: copy.online, exact: true }).click();
   await expect(
-    page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.place, copy.online) }),
+    page.getByRole("button", { name: staffVocabulary.filters.notChip(copy.filters.place, copy.online) }),
   ).toBeVisible();
   await expect(page).toHaveURL(/group=owner/);
   await expect(page.getByRole("link", { name: "Scotland organisers' call" })).toHaveCount(0);
@@ -361,7 +362,7 @@ test("In-person events by owner", async ({ page, flowDatabase }) => {
   await page.getByRole("link", { name: copy.tabs.past }).click();
   await expect(eventList(page, /^joseph/).getByRole("link", { name: "Yesterday's pub social" })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.place, copy.online) }),
+    page.getByRole("button", { name: staffVocabulary.filters.notChip(copy.filters.place, copy.online) }),
   ).toBeVisible();
   await frame(page, "Past, by owner, without online events");
 });

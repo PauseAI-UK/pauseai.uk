@@ -4,6 +4,7 @@ import Tag from "@/components/ui/Tag";
 import { askPeriod } from "@/lib/ask-groups";
 import type { AskStatus } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/server/asks";
 import { staffDate } from "@/lib/staff-time";
@@ -28,12 +29,12 @@ const page = copy.page;
 /** What a column of answers is called. */
 function groupName(key: string): string {
   if (key === "other") return page.otherAnswers;
-  return staffCopy.statuses[key === "none" ? "noAnswer" : key];
+  return staffVocabulary.statuses[key === "none" ? "noAnswer" : key];
 }
 
 /** An answer's tag: an "other" one says what it was, by its note. */
 function AnswerTag({ status, note }: { status: AskStatus; note: string }) {
-  return <Tag tone={ANSWER_TONES[status]}>{status === "other" && note ? note : staffCopy.statuses[status]}</Tag>;
+  return <Tag tone={ANSWER_TONES[status]}>{status === "other" && note ? note : staffVocabulary.statuses[status]}</Tag>;
 }
 
 const answerColumns: ListColumn<AskAnswer>[] = [
@@ -55,7 +56,7 @@ const answerColumns: ListColumn<AskAnswer>[] = [
     label: page.answer,
     short: true,
     cell: (a) =>
-      a.status ? <AnswerTag status={a.status} note={a.note} /> : <Muted>{staffCopy.statuses.noAnswer}</Muted>,
+      a.status ? <AnswerTag status={a.status} note={a.note} /> : <Muted>{staffVocabulary.statuses.noAnswer}</Muted>,
   },
   {
     key: "lastWrittenTo",

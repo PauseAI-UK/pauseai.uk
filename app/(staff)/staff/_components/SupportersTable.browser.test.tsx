@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { registrationStatus, type SupporterRow } from "@/lib/supporters";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import SupportersTable, { supporterColumns } from "./SupportersTable";
 import { exampleBlockedPermissions, exampleSupporterRows } from "./SupportersTable.examples";
 import { supportersSearch } from "@/lib/staff-search";
@@ -37,10 +38,10 @@ describe("SupportersTable", () => {
     await expect.element(page.getByRole("link", { name: copy.noName })).toHaveAttribute("href", "/staff/supporters/8");
     await expect.element(page.getByRole("cell", { name: "1 Mar 2026" }).first()).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.previous }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.previous }))
       .toHaveAttribute("href", "/staff/supporters?q=j");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/supporters?q=j&page=3");
   });
 
@@ -122,8 +123,8 @@ describe("SupportersTable", () => {
       ...rows[0],
       place: { name: "Cardiff", basis: "city" as const, given: "Cardiff", country: "wales" },
     };
-    expect(nation.text!(cardiff)).toBe(staffCopy.countries.wales);
-    expect(nation.cell(cardiff)).toBe(staffCopy.countries.wales);
+    expect(nation.text!(cardiff)).toBe(staffVocabulary.countries.wales);
+    expect(nation.cell(cardiff)).toBe(staffVocabulary.countries.wales);
     expect(nation.text!({ ...rows[0], place: null })).toBeNull();
   });
 
@@ -151,7 +152,7 @@ describe("SupportersTable", () => {
       />,
     );
     await expect.element(page.getByRole("link", { name: "Jane Example" })).toBeVisible();
-    expect(page.getByRole("link", { name: staffCopy.paging.next }).all()).toHaveLength(0);
+    expect(page.getByRole("link", { name: staffVocabulary.paging.next }).all()).toHaveLength(0);
     await rerender(
       <SupportersTable
         search={supportersSearch({ page: "2" })}
@@ -159,17 +160,17 @@ describe("SupportersTable", () => {
       />,
     );
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.previous }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.previous }))
       .toHaveAttribute("href", "/staff/supporters");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/supporters?page=3");
     const nobody = { supporters: [], total: 0, pages: 1 };
     await rerender(<SupportersTable search={supportersSearch({})} page={nobody} />);
     await expect.element(page.getByRole("table").getByText(staffCopy.supporters.none)).toBeVisible();
     await expect.element(page.getByText(staffCopy.supporters.total(0))).toBeVisible();
     // Nothing is on, so there's nothing to clear.
-    const clear = () => page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters });
+    const clear = () => page.getByRole("table").getByRole("link", { name: staffVocabulary.resetFilters });
     expect(clear().all()).toHaveLength(0);
     // A search that finds nobody has the way to clear it, in the row.
     await rerender(<SupportersTable search={supportersSearch({ q: "nobody", sort: "name" })} page={nobody} />);

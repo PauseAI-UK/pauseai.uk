@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import MailingEditor from "./MailingEditor";
 
 const copy = staffCopy.mailingEditor;
@@ -162,7 +163,7 @@ describe("MailingEditor", () => {
     await page.getByRole("button", { name: copy.addOnlyFor }).click();
     await only.getByRole("menuitem", { name: "Registered for" }).click();
     expect(only.getByRole("menuitem", { name: /Leeds talk/ }).query()).toBeNull();
-    await only.getByRole("searchbox", { name: staffCopy.filters.narrow }).fill("leeds");
+    await only.getByRole("searchbox", { name: staffVocabulary.filters.narrow }).fill("leeds");
     await expect.element(only.getByRole("menuitem", { name: /Leeds talk/ })).toBeVisible();
     await expect.element(only.getByRole("menuitem", { name: /Leeds flyering/ })).toBeVisible();
     expect(only.getByRole("menuitem", { name: /London social/ }).query()).toBeNull();

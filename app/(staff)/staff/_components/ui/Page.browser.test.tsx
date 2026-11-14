@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import Page from "./Page";
 
 /** The trail's steps, as their words. */
 const steps = () =>
   page
-    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("navigation", { name: staffVocabulary.breadcrumb })
     .getByRole("listitem")
     .elements()
     .map((step) => step.textContent);

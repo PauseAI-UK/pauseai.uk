@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { ASK_STATUSES } from "./asks";
 import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "./contact-permissions";
 import { staffCopy } from "./content/staff-interface";
+import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
 import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "./politician-filters";
@@ -121,7 +122,7 @@ function choiceWords(filter: Filter, plain: string): string {
 export function valueWords(filter: Filter, value: string, join: string): string {
   const { value: plain, not } = notValue(value);
   const choice = choiceWords(filter, plain);
-  return not ? staffCopy.filters.notChip(filter.label, choice) : `${filter.label}${join}${choice}`;
+  return not ? staffVocabulary.filters.notChip(filter.label, choice) : `${filter.label}${join}${choice}`;
 }
 
 /**
@@ -130,7 +131,7 @@ export function valueWords(filter: Filter, value: string, join: string): string 
  * repeat goes with it, as its chip's second half does, its default too.
  */
 export function filterWords(filters: Filter[], values: Params, search: string): string[] {
-  const words = values[search] ? [`${staffCopy.search}: ${firstOf(values[search])}`] : [];
+  const words = values[search] ? [`${staffVocabulary.search}: ${firstOf(values[search])}`] : [];
   for (const filter of filters) {
     if (filter.after && !filter.repeat) continue;
     const chosen = valuesOf(values[filter.name]).map(notValue);
@@ -139,8 +140,8 @@ export function filterWords(filters: Filter[], values: Params, search: string): 
     );
     const next = filters.find((f) => f.after === filter.name && !f.repeat);
     const then = next ? `, ${choiceWords(next, firstOf(values[next.name]))}` : "";
-    if (found.length) words.push(`${filter.label}: ${staffCopy.filters.anyOf(found)}${then}`);
-    if (out.length) words.push(staffCopy.filters.notChip(filter.label, staffCopy.filters.anyOf(out)));
+    if (found.length) words.push(`${filter.label}: ${staffVocabulary.filters.anyOf(found)}${then}`);
+    if (out.length) words.push(staffVocabulary.filters.notChip(filter.label, staffVocabulary.filters.anyOf(out)));
   }
   return words;
 }
@@ -153,7 +154,7 @@ export function filteredTitle(title: string, words: string[]): string {
   const filters = words.filter(Boolean).join(", ");
   if (!filters) return title;
   const short = filters.length > TITLE_FILTERS ? `${filters.slice(0, TITLE_FILTERS - 1).trimEnd()}…` : filters;
-  return staffCopy.filters.pageTitle(title, short);
+  return staffVocabulary.filters.pageTitle(title, short);
 }
 
 /**
@@ -189,25 +190,25 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
     nation: {
       label: staffCopy.politician.country,
       oneEach: true,
-      options: COUNTRIES.map((country) => ({ value: country, label: staffCopy.countries[country] })),
+      options: COUNTRIES.map((country) => ({ value: country, label: staffVocabulary.countries[country] })),
     },
     party: {
-      label: staffCopy.fields.party,
+      label: staffVocabulary.fields.party,
       oneEach: true,
       options: parties.map((party) => ({ value: party, label: party })),
     },
     status: {
       label: copy.status,
       options: [
-        { value: "", label: staffCopy.personStatuses.in_office },
-        ...Object.entries(staffCopy.personStatuses)
+        { value: "", label: staffVocabulary.personStatuses.in_office },
+        ...Object.entries(staffVocabulary.personStatuses)
           .filter(([value]) => value !== "in_office")
           .map(([value, label]) => ({ value, label })),
         { value: "any", label: copy.anyStatus },
       ],
     },
     email: {
-      label: staffCopy.fields.email,
+      label: staffVocabulary.fields.email,
       oneEach: true,
       options: EMAIL_STATES.map((state) => ({ value: state, label: copy.emailStates[state] })),
     },
@@ -223,7 +224,7 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
         // With no ask, as a link from the dashboard can have it, any ask's answers.
         ...(ask ? ASK_STATUSES[ask.kind] : [...new Set(Object.values(ASK_STATUSES).flat())]).map((value) => ({
           value,
-          label: staffCopy.statuses[value],
+          label: staffVocabulary.statuses[value],
         })),
         { value: "none", label: copy.noAnswer },
       ],
@@ -278,7 +279,7 @@ export const SUPPORTER_FILTERS = listFilters(
     const copy = staffCopy.supporters.filters;
     const { columns } = staffCopy.supporters;
     return {
-      nation: { label: staffCopy.politician.country, oneEach: true, options: choicesOf(staffCopy.countries) },
+      nation: { label: staffCopy.politician.country, oneEach: true, options: choicesOf(staffVocabulary.countries) },
       near: {
         label: copy.near,
         options: near ? [{ value: near, label: nearWords(near, found) }] : [],

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import StaffLink from "./ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   CHANNELS,
   channelOf,
@@ -83,7 +84,7 @@ function reasonsFound(states: ContactState[], s: SupporterRow): string[] {
 
 /** The nation a supporter's place is in, in words, or null where we don't know it. */
 function nationOf(s: SupporterRow): string | null {
-  return s.place?.country ? staffCopy.countries[s.place.country] : null;
+  return s.place?.country ? staffVocabulary.countries[s.place.country] : null;
 }
 
 /**
@@ -308,7 +309,7 @@ function contactCard(states: ContactState[], s: SupporterRow): Contact {
     address: {
       locality: s.place?.name,
       postcode: s.postcode,
-      country: s.place?.country && staffCopy.countries[s.place.country],
+      country: s.place?.country && staffVocabulary.countries[s.place.country],
     },
     note,
     url: `${PATH}/${s.id}`,

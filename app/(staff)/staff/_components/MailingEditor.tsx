@@ -6,6 +6,7 @@ import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import LinkBar from "@/components/ui/LinkBar";
 import { isLinkKey, letterExtensions } from "@/lib/letter-extensions";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { NOT_CONDITION } from "@/lib/mailing-doc";
 import { partFor, type MailingChoice } from "@/lib/mailing-fields";
 import ChoiceSearch from "./ui/ChoiceSearch";
@@ -275,7 +276,7 @@ function ConditionMenu({
               {copy.backToAsks}
             </button>
             <p className={styles.askTitle}>{ask}</p>
-            {searchable && <ChoiceSearch label={staffCopy.filters.narrow} />}
+            {searchable && <ChoiceSearch label={staffVocabulary.filters.narrow} />}
             <ul
               className={searchable ? filterStyles.choices : undefined}
               data-search={searchable ? "empty" : undefined}

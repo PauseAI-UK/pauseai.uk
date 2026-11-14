@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { menuItemArmedClass, menuItemDangerClass } from "./ui/Menu";
 import MenuSubmit from "./ui/MenuSubmit";
 
@@ -41,7 +41,7 @@ function Press({
     // Two buttons, not one that changes: one turning into submit as it's clicked would send the form on the first press.
     return armed || pending ? (
       <MenuSubmit key="armed" className={menuItemArmedClass} autoFocus onBlur={() => setArmed(false)}>
-        {staffCopy.deleteIt}
+        {staffVocabulary.deleteIt}
       </MenuSubmit>
     ) : (
       <button key="first" type="button" className={menuItemDangerClass} onClick={() => setArmed(true)}>
@@ -51,7 +51,7 @@ function Press({
   }
   return armed || pending ? (
     <SubmitButton variant="danger" size="small" fit autoFocus onBlur={() => setArmed(false)}>
-      {short ? staffCopy.deleteItShort : staffCopy.deleteIt}
+      {short ? staffVocabulary.deleteItShort : staffVocabulary.deleteIt}
     </SubmitButton>
   ) : (
     <Button

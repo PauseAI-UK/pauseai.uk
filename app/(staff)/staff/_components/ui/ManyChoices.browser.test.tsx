@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import type { ComponentProps } from "react";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { navigation } from "@/tests/browser/navigation";
 import type { Filter } from "@/lib/staff-list-filters";
 import FilterBar from "./FilterBar";
@@ -28,7 +28,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const copy = staffCopy.filters;
+const copy = staffVocabulary.filters;
 
 const tag: Filter = {
   name: "tag",

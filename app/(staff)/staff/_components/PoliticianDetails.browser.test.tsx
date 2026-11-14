@@ -4,6 +4,7 @@ import { page, userEvent } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { exampleBlock } from "./EmailBlocksTable.examples";
 import { exampleLetter } from "./LettersTable.examples";
 import { exampleHiddenOneOff, exampleOneOffs } from "./CampaignPages.examples";
@@ -54,15 +55,15 @@ describe("PoliticianDetails", () => {
     await expect.element(page.getByText(staffCopy.politician.importantTarget)).toBeVisible();
     // Their party, status and nation, the party's and the nation's with an icon; how to write to them.
     expect(terms()).toEqual([
-      staffCopy.fields.party,
+      staffVocabulary.fields.party,
       staffCopy.politician.status,
       staffCopy.politician.country,
-      staffCopy.fields.email,
+      staffVocabulary.fields.email,
     ]);
     expect(definitions()).toEqual([
       MP.party,
-      staffCopy.personStatuses.in_office,
-      staffCopy.countries.england,
+      staffVocabulary.personStatuses.in_office,
+      staffVocabulary.countries.england,
       staffCopy.politicians.noEmail,
       // Their salutation, quietly under their email.
       staffCopy.politician.editDetails.dear(MP.salutation),
@@ -115,7 +116,7 @@ describe("PoliticianDetails", () => {
       />,
     );
     await expect.element(page.getByRole("link", { name: MP.email! })).toHaveAttribute("href", `mailto:${MP.email}`);
-    expect(terms()).toEqual([staffCopy.politician.status, staffCopy.fields.email]);
+    expect(terms()).toEqual([staffCopy.politician.status, staffVocabulary.fields.email]);
   });
 
   it("sets a Lord's email from the bubble on it in the band, saying why it's theirs to set while they have none", async () => {
@@ -745,11 +746,11 @@ describe("PoliticianDetails", () => {
       `12 Oct 2026, 09:00${copy.letter} ${exampleLetter.senderName} · ${pm.title} · ${staffCopy.letters.status.bounced} · ${staffCopy.mailingPages.theLetter}`,
       `3 Oct 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.politician.personalised} · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
       // Dated the day before it was recorded, so on that day.
-      `1 Oct 2026${statusLine(staffCopy.politician.statusSet(staffCopy.statuses.signed), ask("frontier-ai-letter").title)} · Told us at the march · jo@pauseai.uk`,
+      `1 Oct 2026${statusLine(staffCopy.politician.statusSet(staffVocabulary.statuses.signed), ask("frontier-ai-letter").title)} · Told us at the march · jo@pauseai.uk`,
       `2 Sept 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${staffCopy.letters.status.sent} · ${staffCopy.mailingPages.theLetter}`,
       `1 Sept 2026, 10:00${statusLine(staffCopy.politician.statusCleared, "gone")} · jo@pauseai.uk`,
       `15 Aug 2026, 10:00${statusLine(staffCopy.politician.statusSet("odd"), pm.title)} · jo@pauseai.uk`,
-      `12 Aug 2026, 10:00${statusLine(staffCopy.politician.statusSet(staffCopy.statuses.signed), "an-old-ask")} · airtable`,
+      `12 Aug 2026, 10:00${statusLine(staffCopy.politician.statusSet(staffVocabulary.statuses.signed), "an-old-ask")} · airtable`,
       `1 Jul 2026, 08:00${copy.letter} Old Writer · Old campaign, from pauseai.info · mislaid · ${staffCopy.mailingPages.theLetter}`,
       `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffCopy.mailingPages.theLetter}`,
     ]);
@@ -762,14 +763,14 @@ describe("PoliticianDetails", () => {
       `${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk30 Sept 2026, 10:00 · samuel.whitlock@pauseai.uk`,
       `${copy["block address"]} polly@example.org · weird10 Aug 2026, 10:00 · postmark`,
       "strange 1 Aug 2026, 10:00 · x",
-      `${copy["edit politician"]} Polly Placeholder · ${staffCopy.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
+      `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
       `${copy["add politician"]} Polly Placeholder15 Jul 2026, 10:00 · import`,
     ]);
     // An answer leads to everyone who gave it, the ask to the letter as in the asks card, PauseAI's email to its
     // mailing, an address to its block.
     const historyList = page.getByRole("list", { name: staffCopy.politician.historyTitle });
     // An answer stays plain words, as the asks card beside it has it.
-    expect(historyList.getByRole("link", { name: staffCopy.statuses.signed }).query()).toBeNull();
+    expect(historyList.getByRole("link", { name: staffVocabulary.statuses.signed }).query()).toBeNull();
     await expect
       .element(historyList.getByRole("link", { name: ask("frontier-ai-letter").title }))
       .toHaveAttribute("href", "/staff/asks/frontier-ai-letter");
@@ -888,7 +889,7 @@ describe("PoliticianDetails", () => {
     const letter = row("frontier-ai-letter");
     // Signed, and when, ticked in green.
     const answer = (group: typeof letter) => group.element().querySelector("[class*=answer]")!;
-    expect(answer(letter).textContent).toBe(`${staffCopy.statuses.signed}1 Oct 2026${staffCopy.politician.edit}`);
+    expect(answer(letter).textContent).toBe(`${staffVocabulary.statuses.signed}1 Oct 2026${staffCopy.politician.edit}`);
     expect(answer(letter).firstElementChild!.className).toMatch(/yes/);
     // The ask's title leads to its page; who asked it and when.
     await expect
@@ -909,7 +910,7 @@ describe("PoliticianDetails", () => {
       .toBeVisible();
     // Declined, from Airtable: crossed, not green, and staff can change it.
     const event = row("edinburgh-conference-2026");
-    expect(answer(event).firstElementChild!.textContent).toBe(staffCopy.statuses.declined);
+    expect(answer(event).firstElementChild!.textContent).toBe(staffVocabulary.statuses.declined);
     expect(answer(event).firstElementChild!.className).not.toMatch(/yes/);
     await expect.element(event.getByText(staffCopy.politician.fromImport.airtable)).toBeVisible();
     await expect
@@ -924,7 +925,7 @@ describe("PoliticianDetails", () => {
     await letter.getByText(staffCopy.politician.edit, { exact: true }).click();
     const choices = letter.getByRole("radiogroup", { name: staffCopy.politician.status });
     await expect
-      .element(choices.getByRole("radio", { name: staffCopy.statuses.signed }))
+      .element(choices.getByRole("radio", { name: staffVocabulary.statuses.signed }))
       .toHaveAttribute("aria-checked", "true");
     expect(
       choices
@@ -932,9 +933,9 @@ describe("PoliticianDetails", () => {
         .all()
         .map((r) => r.element().textContent),
     ).toEqual([
-      staffCopy.statuses.signed,
-      staffCopy.statuses.declined,
-      staffCopy.statuses.other,
+      staffVocabulary.statuses.signed,
+      staffVocabulary.statuses.declined,
+      staffVocabulary.statuses.other,
       staffCopy.politician.clearAnswer,
     ]);
     const clear = choices.getByRole("radio", { name: staffCopy.politician.clearAnswer });
@@ -960,7 +961,7 @@ describe("PoliticianDetails", () => {
     );
     const row = page.getByRole("group", { name: bare.title });
     const answer = row.element().querySelector("[class*=answer]")!;
-    expect(answer.firstElementChild!.textContent).toBe(staffCopy.statuses.other);
+    expect(answer.firstElementChild!.textContent).toBe(staffVocabulary.statuses.other);
     expect(answer.firstElementChild!.className).not.toMatch(/yes/);
     await expect.element(row.getByRole("link")).toHaveAttribute("href", `/staff/asks/${bare.slug}`);
     await expect.element(row.getByText(staffCopy.politician.askedThem("", "event"), { exact: true })).toBeVisible();
@@ -976,7 +977,7 @@ describe("PoliticianDetails", () => {
       .getByRole("button", { name: ask("frontier-ai-letter").title })
       .click();
     const letter = page.getByRole("group", { name: ask("frontier-ai-letter").title });
-    await expect.element(letter.getByText(staffCopy.statuses.noAnswer, { exact: true }).first()).toBeVisible();
+    await expect.element(letter.getByText(staffVocabulary.statuses.noAnswer, { exact: true }).first()).toBeVisible();
     // With no answer yet, there's none to clear, and Save waits for one to be picked.
     const choices = letter.getByRole("radiogroup", { name: staffCopy.politician.status });
     expect(
@@ -984,10 +985,10 @@ describe("PoliticianDetails", () => {
         .getByRole("radio")
         .all()
         .map((r) => r.element().textContent),
-    ).toEqual([staffCopy.statuses.signed, staffCopy.statuses.declined, staffCopy.statuses.other]);
+    ).toEqual([staffVocabulary.statuses.signed, staffVocabulary.statuses.declined, staffVocabulary.statuses.other]);
     const save = letter.getByRole("button", { name: staffCopy.politician.save });
     await expect.element(save).toBeDisabled();
-    await choices.getByRole("radio", { name: staffCopy.statuses.declined }).click();
+    await choices.getByRole("radio", { name: staffVocabulary.statuses.declined }).click();
     await expect.element(save).toBeEnabled();
     // Not without a note of how they know.
     await save.click();
@@ -1012,7 +1013,7 @@ describe("PoliticianDetails", () => {
       .getByRole("group", { name: ask("frontier-ai-letter").title })
       .element()
       .querySelector("[class*=answer]")!;
-    expect(answer.textContent).toBe(`${staffCopy.statuses.declined}1 Oct 2026${staffCopy.politician.edit}`);
+    expect(answer.textContent).toBe(`${staffVocabulary.statuses.declined}1 Oct 2026${staffCopy.politician.edit}`);
     expect(answer.firstElementChild!.className).toMatch(/no/);
   });
 
@@ -1035,10 +1036,10 @@ describe("PoliticianDetails", () => {
     await page.getByRole("button", { name: "Example Event" }).click();
     const row = page.getByRole("group", { name: "Example Event" });
     expect(row.element().querySelector("[class*=answer]")!.textContent).toBe(
-      `${staffCopy.statuses.noAnswer}${staffCopy.politician.edit}`,
+      `${staffVocabulary.statuses.noAnswer}${staffCopy.politician.edit}`,
     );
     expect(row.getByRole("radio", { checked: true }).query()).toBeNull();
-    await row.getByRole("radio", { name: staffCopy.statuses.going }).click();
+    await row.getByRole("radio", { name: staffVocabulary.statuses.going }).click();
     await row.getByLabelText(staffCopy.politician.note).fill("Their office said");
     await row.getByRole("button", { name: staffCopy.politician.save }).click();
     await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -1064,7 +1065,7 @@ describe("PoliticianDetails", () => {
     const going = page.getByRole("group", { name: "Example Event" }).last();
     expect(going.element().querySelector("[class*=answer]")!.firstElementChild!.className).toMatch(/yes/);
     expect(going.element().querySelector("[role=radio][aria-checked=true]")!.textContent).toBe(
-      staffCopy.statuses.going,
+      staffVocabulary.statuses.going,
     );
   });
 
@@ -1100,10 +1101,10 @@ describe("PoliticianDetails", () => {
     await expect.poll(() => menu.query()).toBeNull();
     const row = page.getByRole("group", { name: "Giant Pause Button" });
     expect(row.element().querySelector("[class*=answer]")!.textContent).toBe(
-      `${staffCopy.statuses.noAnswer}${staffCopy.politician.edit}`,
+      `${staffVocabulary.statuses.noAnswer}${staffCopy.politician.edit}`,
     );
     await expect.element(row.getByRole("radiogroup", { name: staffCopy.politician.status })).toBeVisible();
-    await row.getByRole("radio", { name: staffCopy.statuses.signed }).click();
+    await row.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
     await row.getByLabelText(staffCopy.politician.note).fill("At the march");
     await row.getByRole("button", { name: staffCopy.politician.save }).click();
     await vi.waitFor(() => expect(sent).toHaveLength(1));

@@ -155,7 +155,7 @@ export const SUPPORTERS_LIST = defineStaffList({
     /** A campaign's slug; with `wrote` "no", those who didn't write in it. */
     campaign: "one",
     wrote: "one",
-    /** Nations, as staffCopy.countries keys. */
+    /** Nations, as staffVocabulary.countries keys. */
     nation: "many",
     /** MPs' politician IDs. */
     mp: "many",

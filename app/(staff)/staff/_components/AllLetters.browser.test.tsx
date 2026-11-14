@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { AnyLetter } from "@/lib/server/all-letters";
 import AllLetters from "./AllLetters";
 
@@ -126,7 +127,7 @@ describe("AllLetters", () => {
     await expect.element(page.getByText("Jane Smith")).toBeVisible();
     await expect.element(link("Jane Smith")).not.toBeInTheDocument();
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/emails?from=supporter&from=pauseai&sent=30&page=2");
   });
 
@@ -145,7 +146,7 @@ describe("AllLetters", () => {
       .element(page.getByRole("link", { name: copy.from, exact: true }))
       .toHaveAttribute("href", "/staff/emails?replied=yes&sort=from&dir=asc");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/emails?replied=yes&sort=replied&dir=desc&page=2");
   });
 
@@ -154,7 +155,7 @@ describe("AllLetters", () => {
     await expect
       .element(page.getByRole("button", { name: new RegExp(`^${staffCopy.letters.columns.to}: Lord Example`) }))
       .toBeVisible();
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     const group = [...document.querySelectorAll<HTMLElement>("#filter-add details > summary")];
     group.find((summary) => summary.textContent === staffCopy.letters.columns.to)!.click();
     await page.getByRole("searchbox").last().fill("poll");
@@ -180,7 +181,7 @@ describe("AllLetters", () => {
   it("without supporters, says what's left out, and doesn't offer supporters as a choice", async () => {
     await render(<AllLetters {...PROPS} supporters={false} found={found([PAUSEAI])} />);
     await expect.element(page.getByText(copy.withheld)).toBeVisible();
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     await page.getByText(copy.from, { exact: true }).first().click();
     const add = document.querySelector("#filter-add")!;
     expect(add.textContent).toContain(copy.fromKinds.pauseai);

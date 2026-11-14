@@ -1,4 +1,5 @@
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { holdNextPage, loadingLine, lockTable, settled } from "./loading-steps";
 import { logIn, staffEmail } from "./login-steps";
@@ -67,7 +68,7 @@ test("Sorting and searching", async ({ page, flowDatabase }) => {
 
   // A sort heading: its arrow turns at once; the rows stay as they were.
   let next = await holdNextPage(page, /sort=name&dir=desc/);
-  const name = page.getByRole("table").getByRole("link", { name: staffCopy.fields.name });
+  const name = page.getByRole("table").getByRole("link", { name: staffVocabulary.fields.name });
   await name.click();
   await expect(name).toHaveAttribute("data-pending", "true");
   await expect(name).toContainText("▼");
@@ -81,7 +82,7 @@ test("Sorting and searching", async ({ page, flowDatabase }) => {
   // A search, sent from its box without leaving the page.
   next = await holdNextPage(page, /q=Testy/);
   await page.getByRole("searchbox").fill("Testy");
-  await page.getByRole("button", { name: staffCopy.search }).click();
+  await page.getByRole("button", { name: staffVocabulary.search }).click();
   await expect.poll(() => loadingLine(page)).toBe(true);
   await frame(page, "Searching");
   story("Then what it found.");
@@ -178,10 +179,10 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
     .getByRole("button", { name: PM_LETTER })
     .click();
   const letter = page.getByRole("group", { name: PM_LETTER });
-  await letter.getByRole("radio", { name: staffCopy.statuses.signed }).click();
+  await letter.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
   await letter.getByLabel(staffCopy.politician.note).fill("They emailed");
   await letter.getByRole("button", { name: staffCopy.politician.save }).click();
-  await expect(letter.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffCopy.statuses.signed}`));
+  await expect(letter.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.signed}`));
 
   // One signed this week: the tile is their page.
   await page.goto(`${BASE}/staff`);
@@ -233,13 +234,13 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
 
   // The trail above the name leads back; then the list sorted by a heading, and reversed.
   await page
-    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("navigation", { name: staffVocabulary.breadcrumb })
     .getByRole("link", { name: staffCopy.nav.politicians })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
-  await page.getByRole("link", { name: staffCopy.fields.constituency }).click();
+  await page.getByRole("link", { name: staffVocabulary.fields.constituency }).click();
   await expect(page).toHaveURL(/sort=constituency&dir=asc/);
-  await page.getByRole("link", { name: staffCopy.fields.constituency }).click();
+  await page.getByRole("link", { name: staffVocabulary.fields.constituency }).click();
   await expect(page).toHaveURL(/sort=constituency&dir=desc/);
   await frame(page, "The politicians, by constituency");
 });
@@ -281,12 +282,12 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
     .getByRole("list", { name: staffCopy.politician.otherAsk })
     .getByRole("button", { name: PM_LETTER })
     .click();
-  await card.getByRole("radio", { name: staffCopy.statuses.signed }).click();
+  await card.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
   await card.getByLabel(staffCopy.politician.note).fill("Told us at the march");
   await frame(page, "The answer's form");
   story("Saved, her page shows she signed, with the note.");
   await card.getByRole("button", { name: staffCopy.politician.save }).click();
-  await expect(card.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffCopy.statuses.signed}`));
+  await expect(card.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.signed}`));
   await expect(card.getByText(/Told us at the march/)).toBeVisible();
   await frame(page, "Polly Placeholder, signed");
   story("The politicians list shows it too.");

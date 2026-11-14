@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import styles from "./ExternalLink.module.css";
 
 /**
@@ -9,7 +9,7 @@ import styles from "./ExternalLink.module.css";
  */
 export default function ExternalLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className={styles.link} title={staffCopy.opensInNewTab}>
+    <a href={href} target="_blank" rel="noreferrer" className={styles.link} title={staffVocabulary.opensInNewTab}>
       {children}
     </a>
   );

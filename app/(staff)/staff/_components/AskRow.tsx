@@ -7,6 +7,7 @@ import { Segmented, TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
 import { ANSWER_CHOICES } from "@/lib/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { answeredByHand } from "@/lib/email-your-mp";
 import type { Ask } from "@/lib/server/asks";
 import type { Politician } from "@/lib/server/politicians";
@@ -39,7 +40,10 @@ function AnswerForm({ politician, ask, setStatus }: { politician: Politician; as
         <Segmented
           label={copy.status}
           options={[
-            ...ANSWER_CHOICES[ask.kind].map((value) => ({ value: value as string, label: staffCopy.statuses[value] })),
+            ...ANSWER_CHOICES[ask.kind].map((value) => ({
+              value: value as string,
+              label: staffVocabulary.statuses[value],
+            })),
             ...(current ? [{ value: "", label: copy.clearAnswer, quiet: true }] : []),
           ]}
           value={chosen}

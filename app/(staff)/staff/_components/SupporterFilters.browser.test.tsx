@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { CONSENT_ORDER } from "@/lib/staff-list-filters";
 import SupporterFilters from "./SupporterFilters";
 import { CONSENTS, consentKey } from "@/lib/contact-permissions";
@@ -34,7 +35,7 @@ describe("SupporterFilters", () => {
     expect(chips()).toEqual([
       `${label}: ${topics.newsletter}`,
       answers.email.no,
-      staffCopy.filters.notChip(label, topics.events),
+      staffVocabulary.filters.notChip(label, topics.events),
       answers.text.yes,
       `${label}: email:newsletter:asked`,
       `${copy.columns.badges}: ${copy.badges.registered}`,
@@ -52,7 +53,7 @@ describe("SupporterFilters", () => {
     expect(first).toContainEqual([topics.newsletter, `${keeping}&contact=email%3Anewsletter%3Ano`]);
     expect(first).toContainEqual([topics.events, `${keeping}&contact=email%3Aevents%3Ano`]);
     expect(first).toContainEqual([topics.events, `${keeping}&contact=text%3Aevents%3Ano`]);
-    expect(first.at(-1)).toEqual([staffCopy.filters.remove, `/staff/supporters?activity=registered&${others}`]);
+    expect(first.at(-1)).toEqual([staffVocabulary.filters.remove, `/staff/supporters?activity=registered&${others}`]);
     // Under its way's heading, each topic once.
     const box = document.querySelector("[popover]:popover-open")!;
     expect([...box.querySelectorAll("li[class*=choiceGroup]")].map((li) => li.textContent)).toEqual([
@@ -76,7 +77,7 @@ describe("SupporterFilters", () => {
       "/staff/supporters?activity=registered&contact=email%3Anewsletter%3Ano&contact=email%3Anewsletter%3Aasked&contact=%21text%3Aevents%3Ano",
     ]);
     // + Filter doesn't offer it again.
-    const add = await menu(staffCopy.filters.add);
+    const add = await menu(staffVocabulary.filters.add);
     expect(add.map(([words]) => words)).not.toContain(topics.volunteering);
   });
 
@@ -90,7 +91,7 @@ describe("SupporterFilters", () => {
     const label = copy.columns.subscriptions;
     const answers = copy.detail.permissions.answers;
     expect(chips()).toEqual([
-      `${label}: ${staffCopy.filters.anyOf([topics.newsletter, topics.events])}`,
+      `${label}: ${staffVocabulary.filters.anyOf([topics.newsletter, topics.events])}`,
       answers.email.yes,
       `${label}: ${topics.events}`,
       answers.text.yes,
@@ -130,9 +131,9 @@ describe("SupporterFilters", () => {
     ]);
     // Its padlock at the end, in the second half.
     expect(locked.map((chip) => Boolean(chip.querySelector("svg:last-child[class*=lockIcon]")))).toEqual([false, true]);
-    expect((await menu(staffCopy.filters.add)).map(([words]) => words)).not.toContain(label);
+    expect((await menu(staffVocabulary.filters.add)).map(([words]) => words)).not.toContain(label);
     await expect
-      .element(page.getByRole("link", { name: staffCopy.resetFilters }))
+      .element(page.getByRole("link", { name: staffVocabulary.resetFilters }))
       .toHaveAttribute("href", "/staff/supporters?contact=email%3Anewsletter%3Ayes");
   });
 
@@ -157,12 +158,12 @@ describe("SupporterFilters", () => {
     const { filter, ...search } = supportersSearch({ registered: "30" });
     void filter;
     await render(<SupporterFilters search={search} choices={choices} />);
-    const chip = `${copy.filters.registered}: ${staffCopy.filters.lastDays(30)}`;
+    const chip = `${copy.filters.registered}: ${staffVocabulary.filters.lastDays(30)}`;
     const choicesOfChip = await menu(chip);
-    expect(choicesOfChip.map(([text]) => text)).toContain(staffCopy.filters.lastDays(90));
-    expect(choicesOfChip.find(([text]) => text === staffCopy.filters.remove)![1]).toBe("/staff/supporters");
+    expect(choicesOfChip.map(([text]) => text)).toContain(staffVocabulary.filters.lastDays(90));
+    expect(choicesOfChip.find(([text]) => text === staffVocabulary.filters.remove)![1]).toBe("/staff/supporters");
     await page.getByRole("button", { name: chip }).click();
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     const offered = [...document.querySelectorAll("#filter-add details > summary")].map((p) => p.textContent);
     expect(offered).not.toContain(copy.filters.registered);
     expect(offered).not.toContain(copy.filters.unsubscribed);
@@ -172,7 +173,7 @@ describe("SupporterFilters", () => {
     const { filter, ...search } = supportersSearch({});
     void filter;
     await render(<SupporterFilters search={search} choices={choices} />);
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     expect([...document.querySelectorAll("#filter-add details > summary")].map((p) => p.textContent)).toEqual([
       staffCopy.politician.country,
       copy.filters.near,
@@ -185,20 +186,20 @@ describe("SupporterFilters", () => {
     // Consent isn't among them: it has its own button, first, its topics under their channels.
     const consent = await menu(copy.columns.subscriptions);
     expect(consent).toContainEqual([copy.filters.topics["events"], "/staff/supporters?contact=email%3Aevents%3Ayes"]);
-    const links = await menu(staffCopy.filters.add);
+    const links = await menu(staffVocabulary.filters.add);
     expect(links).toContainEqual([
       copy.filters.eventChoice("Oxford talk", "12 Oct 2026"),
       "/staff/supporters?event=evt-2",
     ]);
     // Except offers the filters that repeat, each choice to leave out.
-    await menu(staffCopy.filters.except);
+    await menu(staffVocabulary.filters.except);
     expect([...document.querySelectorAll("#filter-except details > summary")].map((p) => p.textContent)).toEqual([
       staffCopy.politician.country,
       staffCopy.politician.roles.commons,
       copy.columns.badges,
       copy.filters.event,
     ]);
-    expect(await menu(staffCopy.filters.except)).toContainEqual([
+    expect(await menu(staffVocabulary.filters.except)).toContainEqual([
       copy.filters.eventChoice("Oxford talk", "12 Oct 2026"),
       "/staff/supporters?event=%21evt-2",
     ]);
@@ -209,11 +210,11 @@ describe("SupporterFilters", () => {
     const { filter, ...search } = supportersSearch({ mp: ["7", "x"] });
     void filter;
     const { rerender } = await render(<SupporterFilters search={search} choices={choices} />);
-    expect(chips()).toEqual([`${staffCopy.politician.roles.commons}: ${staffCopy.filters.anyOf([mo, "x"])}`]);
+    expect(chips()).toEqual([`${staffCopy.politician.roles.commons}: ${staffVocabulary.filters.anyOf([mo, "x"])}`]);
     const { filter: unused, ...unfiltered } = supportersSearch({});
     void unused;
     await rerender(<SupporterFilters search={unfiltered} choices={choices} />);
-    expect(await menu(staffCopy.filters.add)).toContainEqual([mo, "/staff/supporters?mp=7"]);
+    expect(await menu(staffVocabulary.filters.add)).toContainEqual([mo, "/staff/supporters?mp=7"]);
   });
 
   it("has a chip for the events they're at and one, marked, for those they're not", async () => {
@@ -222,18 +223,21 @@ describe("SupporterFilters", () => {
     await render(<SupporterFilters search={search} choices={choices} />);
     const leeds = copy.filters.eventChoice("Leeds social", "20 Oct 2026");
     const oxford = copy.filters.eventChoice("Oxford talk", "12 Oct 2026");
-    expect(chips()).toEqual([`${copy.filters.event}: ${leeds}`, staffCopy.filters.notChip(copy.filters.event, oxford)]);
+    expect(chips()).toEqual([
+      `${copy.filters.event}: ${leeds}`,
+      staffVocabulary.filters.notChip(copy.filters.event, oxford),
+    ]);
     // A chip turns its choice the other way; a choice in a left-out chip stays left out.
     expect(await menu(`${copy.filters.event}: ${leeds}`)).toContainEqual([
       // Leaving out this one too would leave out every event, so it takes off the filter.
-      staffCopy.filters.exceptThis,
+      staffVocabulary.filters.exceptThis,
       "/staff/supporters",
     ]);
-    const out = await menu(staffCopy.filters.notChip(copy.filters.event, oxford));
-    expect(out).toContainEqual([staffCopy.filters.onlyThis, "/staff/supporters?event=evt-1&event=evt-2"]);
+    const out = await menu(staffVocabulary.filters.notChip(copy.filters.event, oxford));
+    expect(out).toContainEqual([staffVocabulary.filters.onlyThis, "/staff/supporters?event=evt-1&event=evt-2"]);
     // The one it finds isn't offered.
     expect(out.map(([text]) => text)).not.toContain(leeds);
-    expect(out.at(-1)).toEqual([staffCopy.filters.remove, "/staff/supporters?event=evt-1"]);
+    expect(out.at(-1)).toEqual([staffVocabulary.filters.remove, "/staff/supporters?event=evt-1"]);
   });
 
   it("says what Near found, or that it found nothing, or couldn't look", async () => {

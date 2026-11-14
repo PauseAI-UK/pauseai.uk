@@ -1,5 +1,6 @@
 import { exampleCivicrmResult, exampleLumaResult } from "@/app/(staff)/staff/_components/RunList.examples";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { type ImportJob, importPath } from "@/lib/import-runs";
 import { staffDate } from "@/lib/staff-time";
 import { runSql } from "@/scripts/fresh-database.mjs";
@@ -289,7 +290,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
     "The Scheduled jobs page has a card for each job, showing its newest run. Parliament's import is done, and ControlAI's letter hasn't been read yet. The copy from Airtable runs only when someone presses it, so it's last.",
   );
   await page
-    .getByRole("navigation", { name: staffCopy.breadcrumb })
+    .getByRole("navigation", { name: staffVocabulary.breadcrumb })
     .getByRole("link", { name: staffCopy.import.pageTitle })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs`);

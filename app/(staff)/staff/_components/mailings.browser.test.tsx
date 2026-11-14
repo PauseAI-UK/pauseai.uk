@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { chooseDay } from "@/tests/browser/date-picker";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Mailing } from "@/lib/server/mailings";
 import { DeleteDraft, StopMailing } from "./MailingButtons";
 import MailingFor from "./MailingFor";
@@ -89,7 +90,7 @@ describe("FilterPills", () => {
   it("says the filter as the list's chips do, the house first", async () => {
     await render(<FilterPills data={exampleWriterData} />);
     const pills = page.getByRole("list", { name: copy.whoLabel });
-    await expect.element(pills.getByText(staffCopy.houses.commons)).toBeVisible();
+    await expect.element(pills.getByText(staffVocabulary.houses.commons)).toBeVisible();
     await expect.element(pills.getByText("Example Letter to the PM", { exact: false })).toBeVisible();
     expect(pills.getByRole("listitem").all()).toHaveLength(3);
   });
@@ -114,8 +115,8 @@ describe("FilterPills", () => {
         .all()
         .map((item) => item.element().textContent);
     expect(words()).toEqual([
-      staffCopy.houses.commons,
-      staffCopy.filters.notChip(staffCopy.fields.party, "Labour"),
+      staffVocabulary.houses.commons,
+      staffVocabulary.filters.notChip(staffVocabulary.fields.party, "Labour"),
       copy.pickedFrom("3 Nov 2026", 3),
       copy.pickedPlus("Morag Example"),
       copy.pickedExcept("Ned Noaddress"),
@@ -165,8 +166,8 @@ describe("DeleteDraft and StopMailing", () => {
       </>,
     );
     await page.getByRole("button", { name: copy.deleteDraft }).click();
-    await expect.element(page.getByRole("button", { name: staffCopy.deleteIt })).toHaveFocus();
-    await page.getByRole("button", { name: staffCopy.deleteIt }).click();
+    await expect.element(page.getByRole("button", { name: staffVocabulary.deleteIt })).toHaveFocus();
+    await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
     await page.getByRole("button", { name: "Stop" }).click();
     await expect.poll(() => forms.map((form) => form.get("id"))).toEqual(["5", "6"]);
   });
@@ -185,7 +186,7 @@ describe("DeleteDraft and StopMailing", () => {
     vi.useFakeTimers();
     try {
       await page.getByRole("button", { name: copy.deleteDraft }).click();
-      await expect.element(page.getByRole("button", { name: staffCopy.deleteIt })).toBeVisible();
+      await expect.element(page.getByRole("button", { name: staffVocabulary.deleteIt })).toBeVisible();
       await vi.advanceTimersByTimeAsync(5000);
     } finally {
       vi.useRealTimers();
@@ -204,8 +205,8 @@ describe("DeleteDraft and StopMailing", () => {
       </>,
     );
     await page.getByRole("button", { name: copy.deleteDraft }).click();
-    await page.getByRole("button", { name: staffCopy.deleteIt }).click();
-    const pressed = page.getByRole("button", { name: staffCopy.deleteIt });
+    await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
+    const pressed = page.getByRole("button", { name: staffVocabulary.deleteIt });
     await expect.element(pressed).toHaveAttribute("aria-busy", "true");
     await page.getByRole("button", { name: "Elsewhere" }).click();
     vi.useFakeTimers();
@@ -405,7 +406,7 @@ describe("MailingView", () => {
     await expect.element(page.getByText(states.counts["not-sent"]!)).not.toBeInTheDocument();
     // Each recipient: their seat and party, their answer, one tag of how it went, and their letter.
     await expect.element(recipient("Polly")).toMatchTextContent("Cities of London and Westminster · Labour (Co-op)");
-    await expect.element(recipient("Polly")).toMatchTextContent(staffCopy.statuses.going);
+    await expect.element(recipient("Polly")).toMatchTextContent(staffVocabulary.statuses.going);
     await expect.element(recipient("Polly").getByText(states.tags.answered!, { exact: true })).toBeVisible();
     await expect.element(recipient("Polly").getByText(states.tags.sent!, { exact: true })).not.toBeInTheDocument();
     await expect
@@ -482,7 +483,7 @@ describe("MailingView", () => {
       .element(page.getByRole("link", { name: `3 ${states.counts["not-sent"]}` }))
       .toHaveAttribute("href", "/staff/mailings/4");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.previous }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.previous }))
       .toHaveAttribute("href", "/staff/mailings/4?tab=not-sent");
   });
 
@@ -641,7 +642,7 @@ describe("MailingView, for a mailing imported from Airtable", () => {
     await imported({ recipientsTotal: 250, page: 2, pages: 3 });
     await expect.element(page.getByText(mailings.recipientsCount(250))).toBeVisible();
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", `/staff/mailings/${exampleMailing.id}?page=3`);
   });
 });

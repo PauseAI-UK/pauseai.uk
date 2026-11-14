@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
 import { staffTime } from "@/lib/staff-time";
 import type { Mailing } from "@/lib/server/mailings";
@@ -191,7 +192,7 @@ describe("CampaignView", () => {
     await says(copy.politicians(9));
     await says(staffCopy.mailingPages.answeredBar(3, 9));
     await expect.element(link(exampleCampaign.askTitle!)).toHaveAttribute("href", `/staff/asks/${exampleCampaign.ask}`);
-    await says(staffCopy.statuses.signed);
+    await says(staffVocabulary.statuses.signed);
     // Each letter's one tag: answered in place of sent; what refused one, where that's known.
     const tags = staffCopy.copyStates.tags;
     await says(tags["unreached:bounced"]!);
@@ -210,7 +211,7 @@ describe("CampaignView", () => {
       .element(page.getByRole("link", { name: copy.changedLink(exampleChanged) }))
       .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?tab=changed`);
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", `/staff/campaigns/${exampleCampaign.slug}?page=2`);
   });
 
@@ -228,7 +229,7 @@ describe("CampaignView", () => {
     await expect
       .element(page.getByRole("link", { name: `2 ${staffCopy.copyStates.counts.replied}` }))
       .toHaveAttribute("title", copy.showAll);
-    await expect.element(page.getByRole("link", { name: staffCopy.paging.previous })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: staffVocabulary.paging.previous })).toBeVisible();
     await again();
     await render(view(exampleCampaignEmpty, { ...emptyLettersSearch, tab: "changed" }));
     await expect.element(page.getByRole("heading", { name: copy.tabs.changed })).toBeVisible();
@@ -248,11 +249,11 @@ describe("AnswerWord", () => {
         <AnswerWord status={null} />
       </>,
     );
-    expect(mark(staffCopy.statuses.signed)).toContain("✓");
-    expect(mark(staffCopy.statuses.going)).toContain("✓");
-    expect(mark(staffCopy.statuses.declined)).toContain("✕");
-    expect(mark(staffCopy.statuses.other)).toBe("none");
-    expect(mark(staffCopy.statuses.noAnswer)).toBe("none");
+    expect(mark(staffVocabulary.statuses.signed)).toContain("✓");
+    expect(mark(staffVocabulary.statuses.going)).toContain("✓");
+    expect(mark(staffVocabulary.statuses.declined)).toContain("✕");
+    expect(mark(staffVocabulary.statuses.other)).toBe("none");
+    expect(mark(staffVocabulary.statuses.noAnswer)).toBe("none");
   });
 });
 
@@ -293,14 +294,18 @@ describe("AskView", () => {
   it("gives each answer a column, its count leading to all who gave it", async () => {
     const column = (name: string) => page.getByRole("link", { name, exact: true });
     const { rerender } = await render(<AskView ask={exampleAskPage} answer="" />);
-    await expect.element(column(`${staffCopy.statuses.signed} 2`)).toHaveAttribute("href", `${path}?answer=signed`);
-    await expect.element(column(`${staffCopy.statuses.noAnswer} 37`)).toHaveAttribute("href", `${path}?answer=none`);
+    await expect
+      .element(column(`${staffVocabulary.statuses.signed} 2`))
+      .toHaveAttribute("href", `${path}?answer=signed`);
+    await expect
+      .element(column(`${staffVocabulary.statuses.noAnswer} 37`))
+      .toHaveAttribute("href", `${path}?answer=none`);
     // More than it shows: a link to the rest. All shown: none.
     await expect.element(link(words.allOf(37))).toHaveAttribute("href", `${path}?answer=none`);
     await expect.element(link(words.allOf(2))).toHaveAttribute("href", `${path}?answer=signed`);
     expect(link(words.allOf(1)).query()).toBeNull();
     // Nobody in a yes or no column is tagged: the column's name says their answer.
-    expect(page.getByText(staffCopy.statuses.signed, { exact: true }).all()).toHaveLength(1);
+    expect(page.getByText(staffVocabulary.statuses.signed, { exact: true }).all()).toHaveLength(1);
     await rerender(
       <AskView
         ask={{
@@ -327,17 +332,17 @@ describe("AskView", () => {
     // Other answers, each tagged with what it was, and none for one with no note.
     await says(`${words.otherAnswers} 2`);
     await says("Tentatively said yes");
-    expect(page.getByText(staffCopy.statuses.other, { exact: true }).query()).toBeNull();
+    expect(page.getByText(staffVocabulary.statuses.other, { exact: true }).query()).toBeNull();
     // Nobody gave it: no link, and it says so.
-    await says(`${staffCopy.statuses.going} 0`);
-    expect(column(`${staffCopy.statuses.going} 0`).query()).toBeNull();
+    await says(`${staffVocabulary.statuses.going} 0`);
+    expect(column(`${staffVocabulary.statuses.going} 0`).query()).toBeNull();
     await says(words.none);
   });
 
   it("shows those who gave an answer chosen, under the columns' tops, and pressed again, the columns", async () => {
     const pill = (name: string, n: number) => page.getByRole("link", { name: `${name} ${n}`, exact: true });
-    const signed = () => pill(staffCopy.statuses.signed, 2);
-    const none = () => pill(staffCopy.statuses.noAnswer, 37);
+    const signed = () => pill(staffVocabulary.statuses.signed, 2);
+    const none = () => pill(staffVocabulary.statuses.noAnswer, 37);
     const { rerender } = await render(<AskView ask={exampleAskPage} answer="signed" />);
     await expect.element(signed()).toHaveAttribute("href", path);
     await expect.element(signed()).toHaveAttribute("aria-current", "true");
@@ -345,7 +350,7 @@ describe("AskView", () => {
     await expect.element(none()).toHaveAttribute("href", `${path}?answer=none`);
     await expect.element(none()).not.toHaveAttribute("aria-current");
     await says(words.lastWrittenTo);
-    await says(staffCopy.statuses.declined);
+    await says(staffVocabulary.statuses.declined);
     await says("1 Oct 2026");
     await expect
       .element(link(words.everyone))
@@ -362,7 +367,7 @@ describe("AskView", () => {
       />,
     );
     await expect.element(none()).toHaveAttribute("aria-current", "true");
-    await says(staffCopy.statuses.noAnswer);
+    await says(staffVocabulary.statuses.noAnswer);
     expect(signed().query()).toBeNull();
     // Other answers say what each was, or "other" for one with no note.
     await rerender(
@@ -378,14 +383,14 @@ describe("AskView", () => {
       />,
     );
     await says("Responded after event");
-    await says(staffCopy.statuses.other);
+    await says(staffVocabulary.statuses.other);
   });
 
   it("pages through the answers, keeping the answer chosen", async () => {
     await render(<AskView ask={{ ...exampleAskPage, answersTotal: 150, pages: 2 }} answer="signed" />);
     await says(staffCopy.campaigns.politicians(150));
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", `${path}?answer=signed&page=2`);
   });
 
@@ -413,7 +418,7 @@ describe("AskView", () => {
     await says(words.none);
     // Nobody has answered, but some were written to: their column still shows.
     await rerender(<AskView ask={{ ...exampleAskPage, counts: {} }} answer="" />);
-    await expect.element(link(`${staffCopy.statuses.noAnswer} 37`)).toBeVisible();
+    await expect.element(link(`${staffVocabulary.statuses.noAnswer} 37`)).toBeVisible();
   });
 });
 
@@ -604,7 +609,7 @@ describe("SentEmails", () => {
       .element(link(words.campaignLink).first())
       .toHaveAttribute("href", "/staff/campaigns/support-sobel-bill");
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/sent-emails?page=2");
   });
 

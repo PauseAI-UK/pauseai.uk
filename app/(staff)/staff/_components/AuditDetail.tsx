@@ -3,6 +3,7 @@ import { Fragment, type ReactNode } from "react";
 import { Muted } from "@/components/ui/Text";
 import type { AuditAction, AuditEvent, StoredAuditDetails } from "@/lib/audit-events";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { staffDate } from "@/lib/staff-time";
 import type { FieldChange } from "@/lib/field-changes";
 import { importPath } from "@/lib/import-runs";
@@ -16,7 +17,9 @@ const copy = staffCopy.changes;
 /** A field's name, in bold before its value; one with no name in the copy, as logged, with a capital. */
 function label(key: string): string {
   return (
-    staffCopy.fields[key as keyof typeof staffCopy.fields] ?? copy.labels[key] ?? key[0].toUpperCase() + key.slice(1)
+    staffVocabulary.fields[key as keyof typeof staffVocabulary.fields] ??
+    copy.labels[key] ??
+    key[0].toUpperCase() + key.slice(1)
   );
 }
 
@@ -29,7 +32,7 @@ function permissionNames(value: unknown): string {
 /** A value as words: a house, a kind of problem, a status or a campaign by name, a mark on or off; anything else as it is. */
 function Value({ name, value }: { name: string; value: unknown }) {
   if (value === null) return <Muted>{copy.empty}</Muted>;
-  if (name === "house") return <>{staffCopy.houses[value as string] ?? String(value)}</>;
+  if (name === "house") return <>{staffVocabulary.houses[value as string] ?? String(value)}</>;
   if (name === "campaign") return <CampaignName slug={String(value)} />;
   if (typeof value === "string") return <>{value}</>;
   // A mark, on or off.
@@ -70,7 +73,7 @@ function Field({ name, value }: { name: string; value: unknown }) {
   }
   let shown: ReactNode;
   if (name === "kind") shown = staffCopy.emails.kinds[String(value)] ?? String(value);
-  else if (name === "status") shown = staffCopy.statuses[String(value)] ?? String(value);
+  else if (name === "status") shown = staffVocabulary.statuses[String(value)] ?? String(value);
   else if (name === "from" || name === "to" || name === "permissions") shown = permissionNames(value);
   else if (name === "changed") return <FieldChanges changed={value as Record<string, FieldChange>} />;
   else shown = <Value name={name} value={value} />;
@@ -124,7 +127,7 @@ const status: LeadOf<"set status"> = (details, change) => {
   const words =
     details.status === null
       ? staffCopy.politician.statusCleared
-      : staffCopy.politician.statusSet(staffCopy.statuses[details.status] ?? details.status);
+      : staffCopy.politician.statusSet(staffVocabulary.statuses[details.status] ?? details.status);
   return {
     parts: [
       <Who key="about" named={change.politician} href="/staff/politicians" name="" id={details.politicianId} />,

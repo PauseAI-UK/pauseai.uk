@@ -2,6 +2,7 @@ import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { type StaffAccount } from "@/lib/server/staff-accounts";
 import StaffAccountsTable, { AddStaff } from "./StaffAccountsTable";
 import { action } from "@/tests/browser/staff";
@@ -147,7 +148,7 @@ describe("StaffAccountsTable", () => {
     const jo = page.getByRole("row").filter({ hasText: "jo@pauseai.uk" });
     await jo.getByRole("button", { name: copy.remove }).click();
     expect(remove.sent).toHaveLength(0);
-    await jo.getByRole("button", { name: staffCopy.deleteItShort }).click();
+    await jo.getByRole("button", { name: staffVocabulary.deleteItShort }).click();
     await vi.waitFor(() => expect(remove.sent).toHaveLength(1));
     expect(remove.sent[0]).toEqual({ email: "jo@pauseai.uk" });
   });

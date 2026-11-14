@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { site } from "@/lib/content/site";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import EventColumns, { EventsList } from "./EventColumns";
 import type { SaveEvent } from "./EventEdit";
 import EventFilters, { eventWords } from "./EventFilters";
@@ -195,7 +196,7 @@ describe("EventsTable", () => {
       />,
     );
     await expect
-      .element(page.getByRole("link", { name: staffCopy.paging.next }))
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/staff/events?when=past&tag=London&page=2");
   });
 
@@ -510,12 +511,12 @@ describe("EventFilters", () => {
     await expect.element(page.getByRole("searchbox", { name: copy.filters.search })).toBeVisible();
     // A chip each, by its words.
     const bar = document.querySelector("[class*=bar]")!.textContent;
-    for (const words of ["London", staffCopy.filters.notChip(copy.filters.place, copy.online), copy.noOwner]) {
+    for (const words of ["London", staffVocabulary.filters.notChip(copy.filters.place, copy.online), copy.noOwner]) {
       expect(bar).toContain(words);
     }
     // Clearing them keeps the tab and the grouping.
     await expect
-      .element(page.getByRole("link", { name: staffCopy.resetFilters }))
+      .element(page.getByRole("link", { name: staffVocabulary.resetFilters }))
       .toHaveAttribute("href", "/staff/events?when=past&group=owner");
     // + Filter offers every one; a tag only those not chosen.
     const offered = document.getElementById("filter-add")!.textContent;
@@ -528,7 +529,7 @@ describe("EventFilters", () => {
   it("says the search and filters that are on, in words", () => {
     const { search } = exampleEventsTab({ q: "talk", owner: "none", removed: "yes" });
     expect(eventWords(search, choices)).toEqual([
-      `${staffCopy.search}: talk`,
+      `${staffVocabulary.search}: talk`,
       `${copy.owner}: ${copy.noOwner}`,
       `${copy.removed}: ${copy.filters.removed.yes}`,
     ]);
@@ -539,7 +540,7 @@ describe("EventFilters", () => {
     expect(eventWords(search, choices)).toEqual([
       copy.tabs.past,
       copy.group.owner,
-      staffCopy.filters.notChip(copy.filters.place, copy.online),
+      staffVocabulary.filters.notChip(copy.filters.place, copy.online),
     ]);
   });
 });

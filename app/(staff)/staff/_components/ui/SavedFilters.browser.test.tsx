@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { SavedFilter, SavedFiltersState } from "@/lib/server/saved-filters";
 import EventFilters from "../EventFilters";
 import PoliticianFilters from "../PoliticianFilters";
@@ -12,7 +13,7 @@ import { filteredName } from "@/lib/staff-list-filters";
 import FilterBar from "./FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./SavedFilters";
 
-const copy = staffCopy.filters.saved;
+const copy = staffVocabulary.filters.saved;
 
 const actions = (): SavedFilterActions => ({
   save: vi.fn(async () => {}),
@@ -93,7 +94,7 @@ describe("SavedFilters' chip", () => {
     await bar({ house: "commons" });
     await expect.element(chip()).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.save, exact: true })).not.toBeInTheDocument();
-    await expect.element(page.getByRole("link", { name: staffCopy.resetFilters })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: staffVocabulary.resetFilters })).not.toBeInTheDocument();
   });
 
   it("says how to start when none are saved", async () => {
@@ -132,7 +133,7 @@ describe("SavedFilters' chip", () => {
     await expect.element(page.getByRole("button", { name: copy.save, exact: true })).not.toBeInTheDocument();
     // Clear filters unloads it: it isn't in `keep`.
     await expect
-      .element(page.getByRole("link", { name: staffCopy.resetFilters }))
+      .element(page.getByRole("link", { name: staffVocabulary.resetFilters }))
       .toHaveAttribute("href", "/staff/politicians");
     expect(button.element().querySelector("svg")?.getAttribute("fill")).toBe("currentColor");
   });
@@ -224,7 +225,7 @@ describe("SavedFilters' list", () => {
 
     // The first press only asks: nothing's sent, and it asks no more once the focus has gone.
     await page.getByRole("button", { name: copy.deleteForEveryone }).click();
-    const again = page.getByRole("button", { name: staffCopy.deleteIt });
+    const again = page.getByRole("button", { name: staffVocabulary.deleteIt });
     await expect.element(again).toHaveFocus();
     expect(did.remove).not.toHaveBeenCalled();
     (again.element() as HTMLElement).blur();
@@ -232,7 +233,7 @@ describe("SavedFilters' list", () => {
     expect(did.remove).not.toHaveBeenCalled();
 
     await page.getByRole("button", { name: copy.deleteForEveryone }).click();
-    await page.getByRole("button", { name: staffCopy.deleteIt }).click();
+    await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
     await expect.poll(() => (did.remove as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
     const removed = (did.remove as ReturnType<typeof vi.fn>).mock.calls[0][0] as FormData;
     expect(removed.get("id")).toBe("2");
@@ -274,12 +275,12 @@ describe("each list's saved filters", () => {
       />,
     );
     await chip().click();
-    await says(/One/, `${staffCopy.houses.lords} · ${staffCopy.fields.party}: Green`);
+    await says(/One/, `${staffVocabulary.houses.lords} · ${staffVocabulary.fields.party}: Green`);
     await userEvent.keyboard("{Escape}");
     await page.getByRole("button", { name: copy.save, exact: true }).click();
     await expect
       .element(page.getByRole("textbox", { name: copy.name }))
-      .toHaveValue(`${staffCopy.houses.commons}, ${staffCopy.fields.party}: Labour`);
+      .toHaveValue(`${staffVocabulary.houses.commons}, ${staffVocabulary.fields.party}: Labour`);
   });
 
   it("on supporters, are said in its words, without its erased notice", async () => {
@@ -293,7 +294,7 @@ describe("each list's saved filters", () => {
       />,
     );
     await chip().click();
-    await says(/One/, `${staffCopy.search}: jo`);
+    await says(/One/, `${staffVocabulary.search}: jo`);
     expect(page.getByRole("link", { name: /One/ }).element().getAttribute("href")).toBe(
       "/staff/supporters?q=jo&saved=1",
     );
@@ -333,6 +334,6 @@ describe("each list's saved filters", () => {
     await page.getByRole("button", { name: copy.save, exact: true }).click();
     await expect
       .element(page.getByRole("textbox", { name: copy.name }))
-      .toHaveValue(`${staffCopy.events.group.tag}, ${staffCopy.search}: talk`);
+      .toHaveValue(`${staffCopy.events.group.tag}, ${staffVocabulary.search}: talk`);
   });
 });

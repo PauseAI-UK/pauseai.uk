@@ -3,6 +3,7 @@ import { Muted } from "@/components/ui/Text";
 import { ASK_STATUSES, askHref } from "@/lib/asks";
 import { askGroups, askPeriod } from "@/lib/ask-groups";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { AskWithCounts } from "@/lib/server/asks";
 import { askedLine } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
@@ -41,7 +42,7 @@ export function askCounts(ask: AskWithCounts) {
 }
 
 /** An answer's name after its number, as a mailing's counts are: "12 signed". */
-const answerWords = (status: string) => staffCopy.statuses[status]!.toLocaleLowerCase("en-GB");
+const answerWords = (status: string) => staffVocabulary.statuses[status]!.toLocaleLowerCase("en-GB");
 
 /**
  * An ask's lozenges: how many gave each answer its kind allows, then those

@@ -1,14 +1,20 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // The component gallery (app/(tools)/gallery)
 // shows every component, so the storyboard pictures each one. This fails on
 // an exported component that has no example there: a new one isn't done
 // until it's in the gallery. Which variants each needs is judged in review.
+//
+// A component's examples are in a Component.gallery.tsx beside it, or in one
+// of the gallery's own files in _examples/. A component in a staff feature's
+// folder has its beside it. A group in _examples/ imports each file of
+// examples beside a component, as Next can't look for them as the page runs.
 const ROOT = join(__dirname, "..", "..");
 const GALLERY = join(ROOT, "app", "(tools)", "gallery");
 const EXAMPLES = join(GALLERY, "_examples");
+const STAFF_COMPONENTS = join(ROOT, "app", "(staff)", "staff", "_components");
 
 /** Every .tsx under dir, tests left out. */
 function tsxFiles(dir: string): string[] {
@@ -17,6 +23,18 @@ function tsxFiles(dir: string): string[] {
     if (entry.isDirectory()) return tsxFiles(path);
     return entry.name.endsWith(".tsx") && !entry.name.includes(".test.") ? [path] : [];
   });
+}
+
+/** Whether a file is a component's examples, beside it: Component.gallery.tsx, or its client part. */
+const isBeside = (path: string) => /\.gallery(\.client)?\.tsx$/.test(path);
+
+/** The file of examples beside a component's file. */
+const besideOf = (path: string) => path.replace(/\.tsx$/, ".gallery.tsx");
+
+/** Whether a component's file is in a staff feature's folder: any under _components/ but the kit, ui/. */
+function inFeatureFolder(path: string): boolean {
+  const [folder, ...rest] = relative(STAFF_COMPONENTS, path).split(sep);
+  return rest.length > 0 && folder !== ".." && folder !== "ui";
 }
 
 /** The components' files: all of components/, and every _components folder in app/ but the gallery's own. */
@@ -28,7 +46,7 @@ function componentFiles(): string[] {
       if (path === GALLERY) return [];
       return entry.name === "_components" ? tsxFiles(path) : inApp(path);
     });
-  return [...tsxFiles(join(ROOT, "components")), ...inApp(join(ROOT, "app"))];
+  return [...tsxFiles(join(ROOT, "components")), ...inApp(join(ROOT, "app"))].filter((path) => !isBeside(path));
 }
 
 /**
@@ -45,17 +63,38 @@ describe("component gallery", () => {
   const examples = tsxFiles(EXAMPLES)
     .map((file) => readFileSync(file, "utf8"))
     .join("\n");
-  const has = (name: string, file: string) =>
-    new RegExp(`name: "${name}",\\s*file: "${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(examples);
+  const has = (name: string, file: string, text: string) =>
+    new RegExp(`name: "${name}",\\s*file: "${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(text);
 
-  it("has an example of every exported component", () => {
+  it("has an example of every exported component, beside it if it has a file of examples or is in a feature's folder", () => {
     const missing = componentFiles().flatMap((path) => {
       const file = relative(ROOT, path);
+      const beside = existsSync(besideOf(path));
+      if (!beside && inFeatureFolder(path)) return [`${relative(ROOT, besideOf(path))} (none)`];
+      const text = beside ? readFileSync(besideOf(path), "utf8") : examples;
       return exportedComponents(readFileSync(path, "utf8"))
-        .filter((name) => !has(name, file))
+        .filter((name) => !has(name, file, text))
         .map((name) => `${name} (${file})`);
     });
     expect(missing).toEqual([]);
+  });
+
+  it("shows every file of examples beside a component in a group of the gallery", () => {
+    const besides = [...tsxFiles(join(ROOT, "components")), ...tsxFiles(join(ROOT, "app"))].filter(
+      (path) => isBeside(path) && !path.endsWith(".client.tsx"),
+    );
+    expect(besides.length).toBeGreaterThan(0);
+    const unshown = besides
+      .map((path) => relative(ROOT, path).replace(/\.tsx$/, ""))
+      .filter((path) => !examples.includes(`from "@/${path}"`));
+    expect(unshown).toEqual([]);
+  });
+
+  it("finds the staff features' folders: those under _components/ but ui/", () => {
+    expect(inFeatureFolder(join(STAFF_COMPONENTS, "events", "EventRow.tsx"))).toBe(true);
+    expect(inFeatureFolder(join(STAFF_COMPONENTS, "ui", "Band.tsx"))).toBe(false);
+    expect(inFeatureFolder(join(STAFF_COMPONENTS, "Notes.tsx"))).toBe(false);
+    expect(inFeatureFolder(join(ROOT, "components", "ui", "Button.tsx"))).toBe(false);
   });
 
   it("finds components exported as functions and as consts, default or not", () => {

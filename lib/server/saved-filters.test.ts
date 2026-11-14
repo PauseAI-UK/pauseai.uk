@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { recentChanges } from "./audit";
 import { query, transaction } from "./db";
@@ -178,7 +178,7 @@ describeWithDatabase("saved filters", () => {
     expect(await stored(near)).toMatchObject({ name: "Near, can email", params: { q: "Someone else" } });
     expect((await stored(near)).params).not.toHaveProperty("within");
     // Nothing of it is left: it has to be called something.
-    expect((await stored(phone)).name).toBe(staffCopy.filters.saved.erasedName);
+    expect((await stored(phone)).name).toBe(staffVocabulary.filters.saved.erasedName);
     expect((await stored(phone)).params).toEqual({});
     expect((await stored(normalised)).params).toEqual({});
     expect((await stored(nameOnly)).params).toEqual({});

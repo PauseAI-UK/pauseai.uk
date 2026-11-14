@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/Controls";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { chosenValues } from "@/lib/filter-choices";
 import { filtersPath, NOT, type Params } from "@/lib/list-params";
 import Choices from "./Choices";
@@ -15,7 +15,7 @@ import NotIcon from "./NotIcon";
 import StaffLink from "./StaffLink";
 import styles from "./FilterBar.module.css";
 
-const copy = staffCopy.filters;
+const copy = staffVocabulary.filters;
 
 /** The start of a chip that leaves out: its filter's name, then "not", lighter than the choices that follow. */
 export function NotWords({ label }: { label: string }) {

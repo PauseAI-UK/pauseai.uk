@@ -1,4 +1,5 @@
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { pickedWho } from "@/lib/mailing-picks";
 import { type Picked } from "@/lib/staff-search";
 import { firstOf, type Params } from "@/lib/list-params";
@@ -17,7 +18,7 @@ const MOST_NAMES = 10;
 /** A filter's words, as the politicians list's tabs and chips say them: the house first, then the search, then the chips. */
 function filterPills(data: FilterWordsData, params: Params): string[] {
   // The house is the list's tabs, not one of its filters, so it comes first, on its own.
-  const house = staffCopy.houses[firstOf(params.house)];
+  const house = staffVocabulary.houses[firstOf(params.house)];
   // The search in quotes, so it reads as what was typed.
   const search = firstOf(params.q);
   return [

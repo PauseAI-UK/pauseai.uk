@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
 import ChangesFilters, { changeWords } from "./ChangesFilters";
 import { chips } from "@/tests/browser/staff";
@@ -24,13 +25,13 @@ describe("ChangesFilters", () => {
     expect(chips()).toEqual([
       "When: Last 30 days",
       "Who: jo@pauseai.uk or sync",
-      staffCopy.filters.notChip("What", "add note"),
+      staffVocabulary.filters.notChip("What", "add note"),
     ]);
     expect(changeWords(search)).toEqual([
-      `${staffCopy.search}: polly`,
+      `${staffVocabulary.search}: polly`,
       "When: Last 30 days",
       "Who: jo@pauseai.uk or sync",
-      staffCopy.filters.notChip("What", "add note"),
+      staffVocabulary.filters.notChip("What", "add note"),
     ]);
     await page.getByRole("button", { name: "When: Last 30 days" }).click();
     expect(document.querySelector("[popover]:popover-open a")!.getAttribute("href")).toContain("sort=actor");
@@ -53,7 +54,7 @@ describe("ChangesFilters", () => {
         actions={actions}
       />,
     );
-    await page.getByRole("button", { name: staffCopy.filters.saved.chip, exact: true }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.saved.chip, exact: true }).click();
     await expect
       .element(page.getByRole("link", { name: /Sam's notes/ }))
       .toHaveAttribute("href", expect.stringContaining("/staff/audit-log?"));

@@ -32,6 +32,7 @@ import When from "./When";
 import { renderToString } from "react-dom/server";
 import { NAV_FOLD_KEY } from "@/lib/staff-nav";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 describe("ExternalLink", () => {
   it("opens in a new tab with no referrer, with an arrow, and a description saying so", async () => {
@@ -481,9 +482,9 @@ describe("FilterBar", () => {
   it("with nothing on, is the search, its button and + Filter, offering only what needs nothing else", async () => {
     await render(bar({ tab: "t" }));
     await expect.element(page.getByRole("searchbox", { name: "Search" })).toHaveValue("");
-    await expect.element(page.getByRole("link", { name: staffCopy.filters.clearSearch })).not.toBeInTheDocument();
-    await expect.element(page.getByRole("link", { name: staffCopy.resetFilters })).not.toBeInTheDocument();
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await expect.element(page.getByRole("link", { name: staffVocabulary.filters.clearSearch })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: staffVocabulary.resetFilters })).not.toBeInTheDocument();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     expect(links()).toEqual(["/list?tab=t&kind=a", "/list?tab=t&ask=x"]);
     // The search keeps the other values as they are.
     const form = page.getByRole("search").element() as HTMLFormElement;
@@ -493,7 +494,7 @@ describe("FilterBar", () => {
   it("with filters on: a chip each, the one after another its second half; removing one removes what comes after it", async () => {
     await render(bar({ q: "jo", ask: "x", answer: "maybe", page: "3", tab: "t" }));
     await expect
-      .element(page.getByRole("link", { name: staffCopy.filters.clearSearch }))
+      .element(page.getByRole("link", { name: staffVocabulary.filters.clearSearch }))
       .toHaveAttribute("href", "/list?ask=x&answer=maybe&tab=t");
     const form = page.getByRole("search").element() as HTMLFormElement;
     expect(new FormData(form).has("page")).toBe(false);
@@ -512,7 +513,7 @@ describe("FilterBar", () => {
     expect(links()).toEqual(["/list?q=jo&ask=x&tab=t", "/list?q=jo&ask=x&answer=yes&tab=t"]);
     expect(document.querySelector("[popover]:popover-open a[aria-current]")).toBeNull();
     await expect
-      .element(page.getByRole("link", { name: staffCopy.resetFilters }))
+      .element(page.getByRole("link", { name: staffVocabulary.resetFilters }))
       .toHaveAttribute("href", "/list?tab=t");
   });
 
@@ -532,11 +533,13 @@ describe("FilterBar", () => {
 
   it("has no + Filter once every filter is on, and Clear filters for a search alone", async () => {
     const { rerender } = await render(bar({ kind: "a", ask: "x", answer: "yes" }));
-    await expect.element(page.getByRole("button", { name: staffCopy.filters.add })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: staffVocabulary.filters.add })).not.toBeInTheDocument();
     await page.getByRole("button", { name: "Kind: A" }).click();
     expect(document.querySelector("[popover]:popover-open a[aria-current]")!.textContent).toBe("A");
     await rerender(bar({ q: "jo" }));
-    await expect.element(page.getByRole("link", { name: staffCopy.resetFilters })).toHaveAttribute("href", "/list");
+    await expect
+      .element(page.getByRole("link", { name: staffVocabulary.resetFilters }))
+      .toHaveAttribute("href", "/list");
   });
 
   it("lists every other filter in + Filter, a row each, its choices opening under it, one at a time", async () => {
@@ -552,7 +555,7 @@ describe("FilterBar", () => {
         ]}
       />,
     );
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     const rows = [...document.querySelectorAll<HTMLDetailsElement>("[popover]:popover-open details")];
     expect(rows.map((row) => row.querySelector("summary")!.textContent)).toEqual(["Many", "Few"]);
     expect(rows.map((row) => row.open)).toEqual([false, false]);
@@ -640,13 +643,13 @@ describe("FilterBar", () => {
         ]}
       />,
     );
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     await page.getByText("Event", { exact: true }).click();
     const list = document.querySelector<HTMLElement>("[popover]:popover-open ul")!;
     // Before anything's typed, only a choice made shows, and here none is.
     const shown = () => [...list.querySelectorAll("li")].map((li) => getComputedStyle(li).display !== "none");
     expect(shown()).toEqual([false, false]);
-    const box = page.getByRole("searchbox", { name: staffCopy.filters.narrow });
+    const box = page.getByRole("searchbox", { name: staffVocabulary.filters.narrow });
     await box.fill("oxf");
     expect([...list.querySelectorAll("li")].map((li) => li.hidden)).toEqual([true, false]);
     expect(shown()).toEqual([false, true]);
@@ -677,7 +680,7 @@ describe("FilterBar", () => {
         filters={[place, kind]}
       />,
     );
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     await page.getByText("Near", { exact: true }).click();
     const form = document.querySelector<HTMLFormElement>("[popover]:popover-open form")!;
     expect(form.getAttribute("action")).toBe("/list");
@@ -724,7 +727,7 @@ describe("FilterBar's menus", () => {
       <FilterBar path="/list" values={values} search={{ name: "q", label: "Search" }} filters={filters} />
     );
     const { rerender } = await render(bar({}));
-    await page.getByRole("button", { name: staffCopy.filters.add }).click();
+    await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     expect(document.querySelector("[popover]:popover-open")).not.toBeNull();
     await rerender(bar({ kind: "a" }));
     expect(document.querySelector("[popover]:popover-open")).toBeNull();
@@ -764,15 +767,15 @@ describe("ListFrame", () => {
   it("says how many, which these are, and offers every one as CSV or JSON from a Download menu", async () => {
     await render(frame(6, 50));
     await expect.element(page.getByText("250 rows")).toBeVisible();
-    await expect.element(page.getByText(staffCopy.lists.showing(11, 12), { exact: false })).toBeVisible();
-    await page.getByRole("button", { name: staffCopy.lists.download }).click();
+    await expect.element(page.getByText(staffVocabulary.lists.showing(11, 12), { exact: false })).toBeVisible();
+    await page.getByRole("button", { name: staffVocabulary.lists.download }).click();
     const links = [...document.querySelectorAll<HTMLAnchorElement>("[popover]:popover-open a")];
     expect(links.map((a) => [a.textContent, a.getAttribute("href"), a.hasAttribute("download")])).toEqual([
-      [staffCopy.lists.formats.csv, "/list/download?format=csv", true],
-      [staffCopy.lists.formats.json, "/list/download?format=json", true],
+      [staffVocabulary.lists.formats.csv, "/list/download?format=csv", true],
+      [staffVocabulary.lists.formats.json, "/list/download?format=json", true],
     ]);
     await userEvent.keyboard("{Escape}");
-    await expect.element(page.getByText(staffCopy.paging.range(11, 12, 250))).toBeVisible();
+    await expect.element(page.getByText(staffVocabulary.paging.range(11, 12, 250))).toBeVisible();
   });
 
   it("offers vCards too, for a list of people", async () => {
@@ -792,9 +795,9 @@ describe("ListFrame", () => {
         empty="None."
       />,
     );
-    await page.getByRole("button", { name: staffCopy.lists.download }).click();
+    await page.getByRole("button", { name: staffVocabulary.lists.download }).click();
     await expect
-      .element(page.getByRole("link", { name: staffCopy.lists.formats.vcf }))
+      .element(page.getByRole("link", { name: staffVocabulary.lists.formats.vcf }))
       .toHaveAttribute("href", "/people/download?format=vcf");
   });
 
@@ -811,7 +814,7 @@ describe("ListFrame", () => {
 
   it("links to the first, the last and the pages near this one, with a gap between", async () => {
     await render(frame(6, 50));
-    const pages = page.getByRole("navigation", { name: staffCopy.paging.label });
+    const pages = page.getByRole("navigation", { name: staffVocabulary.paging.label });
     expect([...pages.element().querySelectorAll("li")].map((item) => item.textContent)).toEqual([
       "1",
       "…",
@@ -824,29 +827,29 @@ describe("ListFrame", () => {
       "50",
     ]);
     await expect
-      .element(pages.getByRole("link", { name: staffCopy.paging.page(50) }))
+      .element(pages.getByRole("link", { name: staffVocabulary.paging.page(50) }))
       .toHaveAttribute("href", "/list?page=50");
     await expect.element(pages.getByText("6", { exact: true })).toHaveAttribute("aria-current", "page");
     await expect
-      .element(pages.getByRole("link", { name: staffCopy.paging.previous }))
+      .element(pages.getByRole("link", { name: staffVocabulary.paging.previous }))
       .toHaveAttribute("href", "/list?page=5");
     await expect
-      .element(pages.getByRole("link", { name: staffCopy.paging.next }))
+      .element(pages.getByRole("link", { name: staffVocabulary.paging.next }))
       .toHaveAttribute("href", "/list?page=7");
   });
 
   it("has no Previous on the first page, no Next on the last", async () => {
     const { rerender } = await render(frame(1, 3));
-    await expect.element(page.getByRole("link", { name: staffCopy.paging.previous })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: staffVocabulary.paging.previous })).not.toBeInTheDocument();
     await rerender(frame(3, 3));
-    await expect.element(page.getByRole("link", { name: staffCopy.paging.next })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: staffVocabulary.paging.next })).not.toBeInTheDocument();
   });
 
   it("on one page, has no paging nor which these are; without downloads, no buttons", async () => {
     await render(frame(1, 1, false));
     await expect.element(page.getByRole("navigation")).not.toBeInTheDocument();
-    await expect.element(page.getByText(staffCopy.lists.showing(1, 2), { exact: false })).not.toBeInTheDocument();
-    await expect.element(page.getByRole("button", { name: staffCopy.lists.download })).not.toBeInTheDocument();
+    await expect.element(page.getByText(staffVocabulary.lists.showing(1, 2), { exact: false })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: staffVocabulary.lists.download })).not.toBeInTheDocument();
   });
 
   it("keeps its frame with nothing in it: how many, the headings, and one row saying so, with no downloads", async () => {
@@ -880,7 +883,7 @@ describe("ListFrame", () => {
     // Emptied by its filters, the row has the way to clear them.
     await rerender(empty("/list"));
     await expect
-      .element(page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }))
+      .element(page.getByRole("table").getByRole("link", { name: staffVocabulary.resetFilters }))
       .toHaveAttribute("href", "/list");
   });
 
@@ -891,7 +894,7 @@ describe("ListFrame", () => {
     expect(container.querySelector("table")!.getBoundingClientRect().width).toBeGreaterThan(88 * 16);
     await page.viewport(400, 800);
     try {
-      await expect.element(page.getByText(staffCopy.paging.of(6, 50))).toBeVisible();
+      await expect.element(page.getByText(staffVocabulary.paging.of(6, 50))).toBeVisible();
       expect(getComputedStyle(container.querySelector("ol")!).display).toBe("none");
     } finally {
       await page.viewport(1280, 800);
@@ -1068,9 +1071,9 @@ describe("filterWords", () => {
       { name: "near", label: "Near", options: [] },
     ];
     expect(filterWords(filters, { q: ["jo", "x"], kind: ["a", "b", "!a"], near: "LS1" }, "q")).toEqual([
-      `${staffCopy.search}: jo`,
-      `Kind: ${staffCopy.filters.anyOf(["A", "b"])}`,
-      staffCopy.filters.notChip("Kind", "A"),
+      `${staffVocabulary.search}: jo`,
+      `Kind: ${staffVocabulary.filters.anyOf(["A", "b"])}`,
+      staffVocabulary.filters.notChip("Kind", "A"),
       "Near: LS1",
     ]);
   });
@@ -1098,10 +1101,12 @@ describe("filteredTitle", () => {
   it("is the list's title alone with no filter on, and with each one's words after it, cut short when long", () => {
     expect(filteredTitle("People", ["", ""])).toBe("People");
     expect(filteredTitle("People", ["", "Kind A", "Near LS1"])).toBe(
-      staffCopy.filters.pageTitle("People", "Kind A, Near LS1"),
+      staffVocabulary.filters.pageTitle("People", "Kind A, Near LS1"),
     );
     const long = filteredTitle("People", ["Kind ".padEnd(40, "a"), "Near ".padEnd(40, "b")]);
-    expect(long).toBe(staffCopy.filters.pageTitle("People", `${"Kind ".padEnd(40, "a")}, ${"Near ".padEnd(17, "b")}…`));
+    expect(long).toBe(
+      staffVocabulary.filters.pageTitle("People", `${"Kind ".padEnd(40, "a")}, ${"Near ".padEnd(17, "b")}…`),
+    );
   });
 });
 
@@ -1240,13 +1245,13 @@ describe("Progress", () => {
 describe("DownloadMenu", () => {
   it("opens CSV and JSON of every row, or the formats it's given", async () => {
     const { rerender } = await render(<DownloadMenu download={(format) => `/x?format=${format}`} />);
-    await page.getByRole("button", { name: staffCopy.lists.download }).click();
+    await page.getByRole("button", { name: staffVocabulary.lists.download }).click();
     await expect
-      .element(page.getByRole("link", { name: staffCopy.lists.formats.json }))
+      .element(page.getByRole("link", { name: staffVocabulary.lists.formats.json }))
       .toHaveAttribute("href", "/x?format=json");
     await rerender(<DownloadMenu download={(format) => `/x?format=${format}`} formats={["vcf"]} />);
-    await expect.element(page.getByRole("link", { name: staffCopy.lists.formats.vcf })).toBeInTheDocument();
-    await expect.element(page.getByRole("link", { name: staffCopy.lists.formats.csv })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: staffVocabulary.lists.formats.vcf })).toBeInTheDocument();
+    await expect.element(page.getByRole("link", { name: staffVocabulary.lists.formats.csv })).not.toBeInTheDocument();
   });
 });
 

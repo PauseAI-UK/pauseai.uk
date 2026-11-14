@@ -6,6 +6,7 @@ import { addStaffAccount, logIn, staffEmail } from "./login-steps";
 import { newestEmailTo } from "./outbox-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, flowStorageState, frame, story, test } from "./fixtures";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Logging in, and your account", part: "Staff pages", order: 10 };
@@ -209,7 +210,7 @@ test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
   story(
     "Confirmed, the colleague is gone. A note says they can still log in with basic permissions, unless their Gmail is disabled too.",
   );
-  await row.getByRole("button", { name: staffCopy.deleteItShort }).click();
+  await row.getByRole("button", { name: staffVocabulary.deleteItShort }).click();
   await expect(page.getByRole("row").filter({ hasText: colleague })).toHaveCount(0);
   await expect(page.getByRole("status")).toContainText(staffCopy.accounts.removeNote);
   await frame(page, "The colleague, removed");

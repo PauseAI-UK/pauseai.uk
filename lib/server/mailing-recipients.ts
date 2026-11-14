@@ -1,5 +1,6 @@
 import "server-only";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { ASK_STATUSES } from "@/lib/asks";
 import { answerCondition, POLITICIAN_FIELDS, type MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
@@ -37,7 +38,7 @@ function fieldValues(politician: MailingPolitician): Record<string, string> {
     name: politician.name,
     constituency: politician.constituency ?? "",
     party: politician.party,
-    house: staffCopy.houses[politician.house],
+    house: staffVocabulary.houses[politician.house],
   };
 }
 
@@ -70,7 +71,7 @@ export async function politicianAudience(filter: StoredFilter): Promise<Politici
         label: copy.answered(copy.answerWords[status], ask.title),
         covers: covers.get(id) ?? 0,
         group: ask.title,
-        option: staffCopy.statuses[status],
+        option: staffVocabulary.statuses[status],
       };
     }),
   );

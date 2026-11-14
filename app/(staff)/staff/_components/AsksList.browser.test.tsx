@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { exampleAsks, exampleAsksWithCounts } from "./PoliticianTable.examples";
 import AsksList from "./AsksList";
 
@@ -28,13 +29,13 @@ describe("AsksList", () => {
     expect(first).toContain(`20 ${copy.page.replied}`);
     expect(first).toContain(`40 ${copy.page.lettersWord(40)}`);
     expect(first).toContain(
-      `${lozenge(staffCopy.statuses.going, 3)}${lozenge(staffCopy.statuses.other, 1)}${lozenge(staffCopy.statuses.declined, 50)}`,
+      `${lozenge(staffVocabulary.statuses.going, 3)}${lozenge(staffVocabulary.statuses.other, 1)}${lozenge(staffVocabulary.statuses.declined, 50)}`,
     );
     expect(first).toContain("1 Nov 2026");
     expect(first).toContain(`186 ${copy.page.writtenTo}`);
     // No answers, nobody written to, nor any way of asking.
     expect(text(exampleAsks[2].title)).toContain(`0 ${copy.page.replied}`);
-    expect(text(exampleAsks[2].title)).toContain(lozenge(staffCopy.statuses.noAnswer, 4));
+    expect(text(exampleAsks[2].title)).toContain(lozenge(staffVocabulary.statuses.noAnswer, 4));
     expect(text(exampleAsks[1].title)).toContain(`0 ${copy.page.writtenTo}`);
     expect(
       row(exampleAsks[1].title)
@@ -62,10 +63,10 @@ describe("AsksList", () => {
       .element(row(exampleAsks[0].title).getByRole("link", { name: exampleAsks[0].title }))
       .toHaveAttribute("href", `/staff/asks/${exampleAsks[0].slug}`);
     await expect
-      .element(row(exampleAsks[0].title).getByRole("link", { name: lozenge(staffCopy.statuses.other, 1) }))
+      .element(row(exampleAsks[0].title).getByRole("link", { name: lozenge(staffVocabulary.statuses.other, 1) }))
       .toHaveAttribute("href", `/staff/asks/${exampleAsks[0].slug}?answer=other`);
     await expect
-      .element(page.getByRole("link", { name: lozenge(staffCopy.statuses.noAnswer, 132) }))
+      .element(page.getByRole("link", { name: lozenge(staffVocabulary.statuses.noAnswer, 132) }))
       .toHaveAttribute("href", expect.stringMatching(/\?answer=none$/));
     // How far it has gone, a sentence after a dot.
     expect(first).toContain(`186 ${copy.page.writtenTo} · 40 ${copy.page.lettersWord(40)} · 20 ${copy.page.replied}`);

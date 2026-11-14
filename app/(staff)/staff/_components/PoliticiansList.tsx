@@ -4,6 +4,7 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Ask } from "@/lib/server/asks";
 import type { Choosing } from "@/lib/server/mailing-drafts";
 import type { Pasted, Politician, PoliticiansPage } from "@/lib/server/politicians";
@@ -33,7 +34,7 @@ export function HouseTabs({ search, choosing }: { search: PoliticiansSearch; cho
   const filters = { ...search, page: "", tab: "" };
   const tabs = [
     { key: "", label: copy.allHouses, href: filtersPath(PATH, filters, { house: "" }) },
-    ...Object.entries(staffCopy.houses).map(([house, label]) => ({
+    ...Object.entries(staffVocabulary.houses).map(([house, label]) => ({
       key: house,
       label,
       href: filtersPath(PATH, filters, { house }),
@@ -52,8 +53,8 @@ export function HouseTabs({ search, choosing }: { search: PoliticiansSearch; cho
       ? [{ key: "pasted", label: mailingCopy.pastedTab, href: filtersPath(PATH, filters, { tab: "pasted" }) }]
       : []),
   ];
-  const house = Object.hasOwn(staffCopy.houses, search.house) ? search.house : "";
-  return <Tabs label={staffCopy.fields.house} tabs={tabs} current={(choosing && search.tab) || house} />;
+  const house = Object.hasOwn(staffVocabulary.houses, search.house) ? search.house : "";
+  return <Tabs label={staffVocabulary.fields.house} tabs={tabs} current={(choosing && search.tab) || house} />;
 }
 
 /** A form's action, as a Server Action takes it. */

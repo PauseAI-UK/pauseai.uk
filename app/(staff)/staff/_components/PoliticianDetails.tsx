@@ -1,6 +1,7 @@
 import StaffLink from "./ui/StaffLink";
 import type { ReactNode } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { asksAgreed } from "@/lib/asks";
 import type { Ask } from "@/lib/server/asks";
 import { AskTitle } from "./AskLine";
@@ -170,7 +171,7 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
   switch (change.action) {
     case "set status": {
       const ask = asks.find((a) => a.slug === details.ask);
-      const label = staffCopy.statuses[text("status")] ?? text("status");
+      const label = staffVocabulary.statuses[text("status")] ?? text("status");
       const words = details.status === null ? copy.statusCleared : copy.statusSet(ANSWER);
       const [lead, rest = ""] = words.before.split(ANSWER);
       return (
@@ -276,7 +277,7 @@ function PoliticianBand({
         />
       }
     >
-      <BandFact label={staffCopy.fields.party}>
+      <BandFact label={staffVocabulary.fields.party}>
         {politician.party && (
           <span className={styles.withIcon}>
             <Rosette party={politician.party} />
@@ -287,18 +288,18 @@ function PoliticianBand({
       <BandFact label={copy.status}>
         <span className={styles.withIcon}>
           <StatusDot inOffice={inOffice} />
-          {staffCopy.personStatuses[politician.status]}
+          {staffVocabulary.personStatuses[politician.status]}
         </span>
       </BandFact>
       <BandFact label={copy.country}>
         {politician.country && (
           <span className={styles.withIcon}>
             <NationShape country={politician.country} />
-            {staffCopy.countries[politician.country]}
+            {staffVocabulary.countries[politician.country]}
           </span>
         )}
       </BandFact>
-      <BandFact label={staffCopy.fields.email} detail={salutation}>
+      <BandFact label={staffVocabulary.fields.email} detail={salutation}>
         {email}
       </BandFact>
     </Band>

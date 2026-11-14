@@ -1,5 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { gmailMessageLink } from "@/lib/letter-links";
 import {
   type AnyImportRun,
@@ -32,7 +33,7 @@ type Listed = { name?: string; house?: House; constituency?: string | null; emai
  */
 function Politicians({ heading, politicians }: { heading: string; politicians: Listed[] }) {
   if (politicians.length === 0) return null;
-  const where = (p: Listed) => `${p.constituency ?? staffCopy.houses[p.house!]}: ${p.name}`;
+  const where = (p: Listed) => `${p.constituency ?? staffVocabulary.houses[p.house!]}: ${p.name}`;
   // In the order a person reads them, a number in a name as a number: Gone 2 before Gone 10.
   const sorted = [...politicians].sort((a, b) => where(a).localeCompare(where(b), "en-GB", { numeric: true }));
   return (

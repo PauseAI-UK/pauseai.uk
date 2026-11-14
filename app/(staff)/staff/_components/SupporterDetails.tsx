@@ -5,6 +5,7 @@ import { phoneWords } from "@/lib/phone";
 import Tag from "@/components/ui/Tag";
 import { displayPostcode } from "@/lib/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { UK_MAP_HEIGHT, UK_MAP_WIDTH, ukMapPoint, ukOutline } from "@/lib/uk-map";
 import { dayOnly, eventsCounted, eventsOf, registrationStatus } from "@/lib/supporters";
@@ -243,7 +244,7 @@ function SupporterBand({ supporter, counted }: { supporter: Details; counted: Co
     >
       {place?.name && (
         <BandFact label={copy.detail.place} detail={copy.detail.placeFrom[place.basis](place.given)}>
-          {[place.name, staffCopy.countries[place.country ?? ""]].filter(Boolean).join(", ")}
+          {[place.name, staffVocabulary.countries[place.country ?? ""]].filter(Boolean).join(", ")}
         </BandFact>
       )}
       {mp && (

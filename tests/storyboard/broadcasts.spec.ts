@@ -1,5 +1,6 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { emailSettingsCopy as settingsCopy } from "@/lib/content/email-settings";
 import { SENDING_DAYS } from "@/lib/broadcast-days";
 import { GMAIL_DAILY_LIMIT } from "@/lib/gmail-connect";
@@ -775,7 +776,7 @@ test("To more than one topic's yeses", async ({ page, request, flowDatabase }) =
   await logIn(page, flowDatabase);
   await startFromList(page, EMAIL, EMAILABLE);
   const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
-  await saidYes.getByRole("button", { name: staffCopy.filters.addChoice }).click();
+  await saidYes.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
   const newsletter = saidYes.getByRole("button", {
     name: staffCopy.supporters.subscriptions.consents["email:newsletter"],
   });

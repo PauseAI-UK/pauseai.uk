@@ -1,7 +1,7 @@
 // Reads the staff pages' URLs: each filter as typed, for its form, and what
 // it filters by, leaving out anything blank or unknown. lib/staff-forms.ts
 // reads their forms.
-import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { listWindow, type DashboardWindow } from "./staff-dashboard";
 import { contactState } from "@/lib/contact-permissions";
 import type { ChangesFilter } from "@/lib/server/audit";
@@ -297,7 +297,7 @@ export function supportersSearch(params: Partial<Record<string, ParamValue>>): S
   );
   const [events, notEvents] = anyAndNone(search.event, (values) => values);
   const [countries, notCountries] = anyAndNone(search.nation, (values) =>
-    values.filter((value) => Object.hasOwn(staffCopy.countries, value)),
+    values.filter((value) => Object.hasOwn(staffVocabulary.countries, value)),
   );
   const [mps, notMps] = anyAndNone(search.mp, (values) => values.flatMap((value) => politicianId(value) ?? []));
   const miles = NEAR_MILES.find((n) => String(n) === search.within) ?? NEAR_MILES[1];

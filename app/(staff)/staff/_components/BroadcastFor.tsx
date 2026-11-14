@@ -1,4 +1,5 @@
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { BroadcastPageData } from "@/lib/server/broadcast-pages";
 import type { SupporterChoices } from "@/lib/server/supporters";
 import { type Params } from "@/lib/list-params";
@@ -24,7 +25,7 @@ export function BroadcastContact({ params }: { params: Params }) {
   const way = terms.channel === "email" ? "email" : "text";
   return (
     <>
-      {staffCopy.filters.anyOf(
+      {staffVocabulary.filters.anyOf(
         terms.topics.map((topic) => staffCopy.supporters.subscriptions.consents[consentKey({ way, topic })]),
       )}
     </>

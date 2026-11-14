@@ -4,6 +4,7 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { marchSignupCopy } from "@/lib/content/march-signup";
 import { staffCopy } from "@/lib/content/staff-interface";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Reason, Topic } from "@/lib/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
 import { TEST_MPS } from "@/lib/test-mps";
@@ -106,7 +107,7 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
 
   // The search waits for its button; a filter applies as soon as it's chosen, keeping the search.
   await page.getByRole("searchbox", { name: copy.filters.search }).fill("fixture@example");
-  await page.getByRole("button", { name: staffCopy.search }).click();
+  await page.getByRole("button", { name: staffVocabulary.search }).click();
   await expect(page).toHaveURL(/\/staff\/supporters\?q=fixture%40example$/);
   // Every one of them has an address at fixture@example.
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
@@ -137,8 +138,8 @@ test("Filtering supporters", async ({ page, request, flowDatabase }) => {
 
   story("Clear filters, in that row as in the bar over the list, takes away the search, the filters and the sort.");
   // Reset clears every filter, and the sort.
-  await expect(page.getByRole("link", { name: staffCopy.resetFilters })).toHaveCount(2);
-  await page.getByRole("table").getByRole("link", { name: staffCopy.resetFilters }).click();
+  await expect(page.getByRole("link", { name: staffVocabulary.resetFilters })).toHaveCount(2);
+  await page.getByRole("table").getByRole("link", { name: staffVocabulary.resetFilters }).click();
   await expect(page).toHaveURL(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: copy.filters.search })).toHaveValue("");
@@ -165,13 +166,16 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   const march = copy.filters.eventChoice("PauseAI London March", staffDate(new Date("2026-02-14T12:00:00Z")));
-  await page.getByRole("button", { name: staffCopy.filters.except }).click();
-  await expect(page.locator("[popover]:popover-open").getByText(staffCopy.filters.exceptHeading)).toBeVisible();
+  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
+  await expect(page.locator("[popover]:popover-open").getByText(staffVocabulary.filters.exceptHeading)).toBeVisible();
   await frame(page, "Except, open");
   story('They choose Event, and type "march" to find it.');
   await page.locator("[popover]:popover-open summary", { hasText: new RegExp(`^${copy.filters.event}$`) }).click();
   // Its events show once something's typed in its box.
-  await page.locator("[popover]:popover-open").getByRole("searchbox", { name: staffCopy.filters.narrow }).fill("march");
+  await page
+    .locator("[popover]:popover-open")
+    .getByRole("searchbox", { name: staffVocabulary.filters.narrow })
+    .fill("march");
   await expect(page.locator("[popover]:popover-open").getByRole("link", { name: march, exact: true })).toBeVisible();
   await frame(page, "Except's events, narrowed");
   story("Three supporters weren't at the march: Dee, who declined, and Fay and a host, who never registered.");
@@ -185,13 +189,13 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   );
   await frame(page, "Supporters not at the London March");
   story("The filter's chip has a menu. Only this turns the filter round.");
-  await page.getByRole("button", { name: staffCopy.filters.notChip(copy.filters.event, march) }).click();
+  await page.getByRole("button", { name: staffVocabulary.filters.notChip(copy.filters.event, march) }).click();
   await expect(
-    page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyThis }),
+    page.locator("[popover]:popover-open").getByRole("link", { name: staffVocabulary.filters.onlyThis }),
   ).toBeVisible();
   await frame(page, "The chip's menu");
   story("Now the list is the four guests approved for the march, with a column for each one's registration.");
-  await page.locator("[popover]:popover-open").getByRole("link", { name: staffCopy.filters.onlyThis }).click();
+  await page.locator("[popover]:popover-open").getByRole("link", { name: staffVocabulary.filters.onlyThis }).click();
   await expect(page.getByText(copy.total(4), { exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: copy.columns.registrations })).toBeVisible();
   await expect(page.locator("tbody").getByText(copy.detail.registered).first()).toBeVisible();
@@ -209,10 +213,13 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   const mp = staffCopy.politician.roles.commons;
   const mo = copy.filters.mpChoice("Mo Example", "Manchester Central");
-  await page.getByRole("button", { name: staffCopy.filters.add }).click();
+  await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
   await page.locator("[popover]:popover-open summary", { hasText: new RegExp(`^${mp}$`) }).click();
   // The MPs show once something's typed in the box.
-  await page.locator("[popover]:popover-open").getByRole("searchbox", { name: staffCopy.filters.narrow }).fill("manc");
+  await page
+    .locator("[popover]:popover-open")
+    .getByRole("searchbox", { name: staffVocabulary.filters.narrow })
+    .fill("manc");
   await expect(page.locator("[popover]:popover-open").getByRole("link", { name: mo, exact: true })).toBeVisible();
   await frame(page, "The MP filter, narrowed");
   story("Only Jane Fixture's postcode is in Manchester Central. The page's title names the filter.");
@@ -221,7 +228,9 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   // Jane's postcode is the one in Manchester Central.
   await expect(page.getByText(copy.total(1), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Jane Fixture" })).toBeVisible();
-  await expect(page).toHaveTitle(`${staffCopy.filters.pageTitle(copy.title, `${mp}: ${mo}`)} - ${staffCopy.metaTitle}`);
+  await expect(page).toHaveTitle(
+    `${staffVocabulary.filters.pageTitle(copy.title, `${mp}: ${mo}`)} - ${staffVocabulary.metaTitle}`,
+  );
   await frame(page, "Mo Example's constituents");
 });
 
@@ -363,7 +372,7 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
   story("Delete asks to be pressed a second time.");
   await newNote.getByRole("button", { name: staffCopy.notes.delete }).click();
   await frame(page, "Deleting the colleague's note");
-  await newNote.getByRole("button", { name: staffCopy.deleteItShort }).click();
+  await newNote.getByRole("button", { name: staffVocabulary.deleteItShort }).click();
   await expect(notes).toHaveCount(2);
   await frame(page, "The note, deleted");
   story("The audit log records who added, edited and deleted a note on Jane.");
@@ -570,13 +579,13 @@ test("Subscriptions to more than one topic", async ({ page, request, flowDatabas
   const label = copy.columns.subscriptions;
   const menu = page.locator("[popover]:popover-open");
   await page.getByRole("button", { name: `${label}: ${topics.events}` }).click();
-  await menu.getByRole("button", { name: staffCopy.filters.addChoice }).click();
+  await menu.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
   await expect(menu.getByRole("checkbox", { name: topics.events })).toBeChecked();
   await frame(page, "Email's topics, events ticked");
 
   story("Ticking the newsletter changes the list at once. The chip says both, with or between them.");
   await menu.getByRole("checkbox", { name: topics.newsletter }).check();
-  const both = `${label}: ${staffCopy.filters.anyOf([topics.events, topics.newsletter])}`;
+  const both = `${label}: ${staffVocabulary.filters.anyOf([topics.events, topics.newsletter])}`;
   await expect(page.getByRole("button", { name: both })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/contact=.*contact=/);
