@@ -89,6 +89,7 @@ export default defineConfig({
             "next/dist/client/components/is-next-router-error",
             "next/dist/client/components/not-found",
             "next/dist/client/components/redirect",
+            "next/dist/client/components/unrecognized-action-error",
             "vitest-browser-react",
             "d3-geo",
             "topojson-client",

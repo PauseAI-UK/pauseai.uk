@@ -1,5 +1,6 @@
 import { notFound } from "next/dist/client/components/not-found";
 import { getRedirectError } from "next/dist/client/components/redirect";
+import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import type { reportBrowserError } from "@/lib/browser-errors";
@@ -15,8 +16,8 @@ const fromServer = () =>
   Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1234" });
 
 /** What the error page does with what it caught. */
-function Told({ error, report }: { error: unknown; report?: typeof reportBrowserError }) {
-  useErrorTold(error, report);
+function Told({ error, report, reload }: { error: unknown; report?: typeof reportBrowserError; reload?: () => void }) {
+  useErrorTold(error, report, reload);
   return null;
 }
 
@@ -34,6 +35,15 @@ describe("useErrorTold", () => {
       ["browser-page", "a string"],
       ["browser-page", null],
     ]);
+  });
+
+  it("reloads a page older than the site's last deploy, whose Server Actions the server no longer knows, and tells nothing", async () => {
+    const report = reports();
+    const reload = vi.fn();
+    const stale = new UnrecognizedActionError('Server Action "4063" was not found on the server.');
+    await render(<Told error={stale} report={report} reload={reload} />);
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(report).not.toHaveBeenCalled();
   });
 
   it("tells the site itself when nothing else is given to", async () => {
