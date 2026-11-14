@@ -13,3 +13,4 @@ A script that fetches a preview's deploy log through Netlify's API with a read-o
 ## Hits
 
 - 2026-11-13: a preview failed with no log to read, after main gained two migrations the branch lacked; rebasing on a guess fixed it, ~15 min
+- 2026-11-14: a preview of a branch that changes only the storyboard's code and docs failed in 12 seconds, with no log to read and nothing to guess from, ~10 min
