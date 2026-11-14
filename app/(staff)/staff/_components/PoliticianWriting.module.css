@@ -82,6 +82,7 @@
 }
 
 .addresses li {
+  position: relative;
   display: flex;
   gap: var(--space-2);
   align-items: center;
@@ -91,7 +92,13 @@
 
 /* The one just added: one pulse of the accent's tint, then plain
    (docs/style-guide.md, "Drawing the eye"). */
-.addresses li[data-pulse] {
+/* A band behind the row, out to the bubble's edges (its padding, --space-4),
+   so the tint fills its width while the row and its rule stay put. */
+.addresses li[data-pulse]::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 calc(-1 * var(--space-4));
+  content: "";
   animation: added-pulse 1.4s 0.15s ease-in-out;
 }
 
