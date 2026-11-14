@@ -68,7 +68,7 @@ test("Without the Supporters permission", async ({ page, flowDatabase }) => {
     "Staff without the Supporters permission have no Supporters link. Going to the supporters list, or to a supporter's page, takes them to the dashboard.",
   );
   addStaffAccount(flowDatabase, staffEmail());
-  await logInAsStaff(page, BASE, staffEmail());
+  await logInAsStaff(page, BASE, staffEmail(), "/staff");
   await expect(page.getByRole("link", { name: staffCopy.nav.supporters })).toHaveCount(0);
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page).toHaveURL(`${BASE}/staff`);

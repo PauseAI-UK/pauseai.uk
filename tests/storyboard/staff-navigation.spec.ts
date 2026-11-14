@@ -245,7 +245,7 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
 test("An MP signs", async ({ page, request, flowDatabase }) => {
   story("An admin logs in, and lands on the dashboard.");
   await importPoliticians(request, BASE, flowDatabase);
-  await logIn(page, flowDatabase, ["admin"]);
+  await logIn(page, flowDatabase, ["admin"], "/staff");
   // Logging in lands on the home page: the dashboard, with this admin's permission under their address in the sidebar.
   await expect(page).toHaveURL(`${BASE}/staff`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.home.title);
@@ -351,7 +351,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
 
 test("The new tag", { tag: "@desktop-only" }, async ({ page, flowDatabase }) => {
   story("A page someone first saw in the last 3 days is marked new.");
-  await logIn(page, flowDatabase, ["admin", "supporters"]);
+  await logIn(page, flowDatabase, ["admin", "supporters"], "/staff");
   const email = runSql(flowDatabase, "SELECT email FROM staff_sessions ORDER BY created_at DESC LIMIT 1")[0];
   runSql(
     flowDatabase,
@@ -381,7 +381,7 @@ test("The new tag", { tag: "@desktop-only" }, async ({ page, flowDatabase }) => 
 
 test("The new tag on a phone", { tag: "@phone-only" }, async ({ page, flowDatabase }) => {
   story("On a phone, the menu that drops down marks the same pages.");
-  await logIn(page, flowDatabase, ["admin", "supporters"]);
+  await logIn(page, flowDatabase, ["admin", "supporters"], "/staff");
   const email = runSql(flowDatabase, "SELECT email FROM staff_sessions ORDER BY created_at DESC LIMIT 1")[0];
   runSql(
     flowDatabase,

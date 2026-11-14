@@ -29,10 +29,10 @@ export const section: Section = { name: "Permissions", part: "Staff pages", orde
 const staffEmail = () => `staff-${test.info().testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;
 const testy = TEST_MPS[0];
 
-/** Gives this flow's staff member an account with `permissions`, then logs them in. */
-async function logIn(page: Page, database: string, permissions: string[] = []) {
+/** Gives this flow's staff member an account with `permissions`, then logs them in, landing on `to` if given. */
+async function logIn(page: Page, database: string, permissions: string[] = [], to?: string) {
   addStaffAccount(database, staffEmail(), permissions);
-  await logInAsStaff(page, BASE, staffEmail());
+  await logInAsStaff(page, BASE, staffEmail(), to);
 }
 
 /** A letter to the test MP from `sender`, sent through the campaign page. */
@@ -276,7 +276,7 @@ async function otherBrowser(browser: Browser, database: string, email: string): 
 test("Logging out everywhere", async ({ page, browser, flowDatabase }) => {
   story("A staff member is logged in on two browsers. Their address, under Your account, leads to their own page.");
   const other = await otherBrowser(browser, flowDatabase, staffEmail());
-  await logIn(page, flowDatabase);
+  await logIn(page, flowDatabase, [], "/staff");
   // Your address in the sidebar leads to your own page (on a phone, inside the bar's menu).
   const link = page.locator('nav a[href="/staff/me"]').filter({ visible: true });
   if ((await link.count()) === 0) await page.locator("summary").click();

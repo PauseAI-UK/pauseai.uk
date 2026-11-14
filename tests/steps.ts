@@ -5,7 +5,7 @@
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import { copy } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { DEV_LOGIN_PATH } from "@/lib/staff-session";
+import { DEV_LOGIN_PATH, NEXT_PARAM } from "@/lib/staff-session";
 import { TEST_MPS, type TestMp } from "@/lib/test-mps";
 import { OUTBOX_DIR } from "./checkout.mjs";
 import { FIXTURE_NOW } from "@/lib/server/fixtures/fixture-env.mjs";
@@ -273,14 +273,20 @@ export async function askForLoginLink(page: Page, base: string, email: string, k
 /**
  * Logs in on `base` as `email` with the fixture build's dev login
  * (app/(staff)/staff/api/dev-login): a session at once, which the callback
- * of a login link would have given, then the staff home, where a login link
- * lands. The staff-login section logs in with the emailed link itself
- * (logInWithLink).
+ * of a login link would have given. Given `to`, a staff page, the page lands
+ * there, as a login asked for from it does; without, it stays where it was,
+ * for the flow to open the page it's going to. So only the flows about the
+ * staff home open it, and a change to the home reruns only them. The
+ * staff-login section logs in with the emailed link itself (logInWithLink).
  */
-export async function logInAsStaff(page: Page, base: string, email = "staff@pauseai.uk"): Promise<void> {
-  const res = await page.request.post(`${base}${DEV_LOGIN_PATH}`, { form: { email }, maxRedirects: 0 });
+export async function logInAsStaff(page: Page, base: string, email = "staff@pauseai.uk", to?: string): Promise<void> {
+  const form = to ? { email, [NEXT_PARAM]: to } : { email };
+  const res = await page.request.post(`${base}${DEV_LOGIN_PATH}`, { form, maxRedirects: 0 });
   if (res.status() !== 303) throw new Error(`The dev login on ${base} refused ${email}: ${res.status()}`);
-  await page.goto(`${base}/staff`);
+  if (!to) return;
+  const landing = new URL(res.headers().location, base);
+  if (`${landing.pathname}${landing.search}` !== to) throw new Error(`The dev login on ${base} won't land on ${to}`);
+  await page.goto(`${base}${to}`);
 }
 
 /**

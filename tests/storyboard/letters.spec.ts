@@ -283,7 +283,7 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
   await frame(page, "The campaign page, for that MP");
   story("An admin's dashboard says the MP's email is bouncing, with a button to the MP's page.");
 
-  await logIn(page, flowDatabase, ["admin"]);
+  await logIn(page, flowDatabase, ["admin"], "/staff");
   // The home page says the MP's email bounced, first thing, with a button to their page.
   await expect(page.getByText(staffCopy.home.dashboard.actions.blockedMp(bouncy.name))).toBeVisible();
   await frame(page, "The dashboard");
