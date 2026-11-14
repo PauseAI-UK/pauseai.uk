@@ -98,7 +98,8 @@ export default function AskRow({
   useEffect(() => {
     if (!open) return;
     // On the page, the row, then its bubble under it, as much as fits with the row's top in view (BubbleBox's keep).
-    row.current!.scrollIntoView({ block: "nearest" });
+    // At once, as the bubble scrolls (BubbleBox): what's in it is there to be pressed.
+    row.current!.scrollIntoView({ block: "nearest", behavior: "instant" });
     popover.current!.showPopover();
   }, [open]);
   useEffect(() => {

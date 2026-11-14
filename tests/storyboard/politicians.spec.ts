@@ -6,6 +6,7 @@ import { addFilter, changeFilter } from "./list-steps";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, PM_LETTER, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
+import { openBubble } from "./settle";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
 import type { Section } from "./report/frames";
@@ -198,12 +199,12 @@ test("An answer to a new ask", async ({ page, request, flowDatabase }) => {
   await expect(asks.getByRole("group", { name: "Giant pause button" })).toHaveCount(0);
   await frame(page, "Polly's asks");
   story("Add another answer, under her asks, lists the other asks staff can record an answer to.");
-  await asks.getByRole("button", { name: copy.otherAsk }).click();
+  await openBubble(asks.getByRole("button", { name: copy.otherAsk }));
   const menu = page.getByRole("list", { name: copy.otherAsk });
   await expect(menu.getByRole("button", { name: "Giant pause button" })).toBeVisible();
   await frame(page, "The other asks", { window: true });
   story("Choosing one adds a row for it, like the others, with no answer yet. Staff note how they know her answer.");
-  await menu.getByRole("button", { name: "Giant pause button" }).click();
+  await openBubble(menu.getByRole("button", { name: "Giant pause button" }));
   const row = asks.getByRole("group", { name: "Giant pause button" });
   await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.noAnswer}`));
   await row.getByLabel(copy.note).fill("Said yes on the phone");
@@ -225,8 +226,8 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   await expect(asks.getByRole("group", { name: PM_LETTER })).toHaveCount(0);
   await frame(page, "Polly's asks");
   story("Her office says no. Staff add the letter from Add another answer, choose Declined and note how they know.");
-  await asks.getByRole("button", { name: copy.otherAsk }).click();
-  await page.getByRole("list", { name: copy.otherAsk }).getByRole("button", { name: PM_LETTER }).click();
+  await openBubble(asks.getByRole("button", { name: copy.otherAsk }));
+  await openBubble(page.getByRole("list", { name: copy.otherAsk }).getByRole("button", { name: PM_LETTER }));
   const row = asks.getByRole("group", { name: PM_LETTER });
   await row.getByRole("radio", { name: staffVocabulary.statuses.declined }).click();
   await row.getByLabel(copy.note).fill("Their office said no");
@@ -242,7 +243,7 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   story(
     "It was entered by mistake. Staff clear the answer, with a note saying why. The row goes, and her history says the answer was cleared.",
   );
-  await row.getByText(copy.edit, { exact: true }).click();
+  await openBubble(row.getByText(copy.edit, { exact: true }));
   await row.getByRole("radio", { name: copy.clearAnswer }).click();
   await row.getByLabel(copy.note).fill("Entered by mistake");
   await row.getByRole("button", { name: copy.save }).click();

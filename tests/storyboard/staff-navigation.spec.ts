@@ -5,6 +5,7 @@ import { logIn, staffEmail } from "./login-steps";
 import { importPoliticians, PM_LETTER } from "./politician-steps";
 import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
+import { openBubble } from "./settle";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
@@ -179,11 +180,10 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/politicians`);
   await page.getByRole("link", { name: "Polly Placeholder" }).click();
-  await page.getByRole("button", { name: politiciansCopy.politician.otherAsk }).click();
-  await page
-    .getByRole("list", { name: politiciansCopy.politician.otherAsk })
-    .getByRole("button", { name: PM_LETTER })
-    .click();
+  await openBubble(page.getByRole("button", { name: politiciansCopy.politician.otherAsk }));
+  await openBubble(
+    page.getByRole("list", { name: politiciansCopy.politician.otherAsk }).getByRole("button", { name: PM_LETTER }),
+  );
   const letter = page.getByRole("group", { name: PM_LETTER });
   await letter.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
   await letter.getByLabel(politiciansCopy.politician.note).fill("They emailed");
@@ -285,11 +285,10 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await expect(card).toHaveCount(0);
   await frame(page, "Polly Placeholder's page");
   story("Add another answer opens a form for the Frontier AI letter. They choose Signed, with a note of how we know.");
-  await page.getByRole("button", { name: politiciansCopy.politician.otherAsk }).click();
-  await page
-    .getByRole("list", { name: politiciansCopy.politician.otherAsk })
-    .getByRole("button", { name: PM_LETTER })
-    .click();
+  await openBubble(page.getByRole("button", { name: politiciansCopy.politician.otherAsk }));
+  await openBubble(
+    page.getByRole("list", { name: politiciansCopy.politician.otherAsk }).getByRole("button", { name: PM_LETTER }),
+  );
   await card.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
   await card.getByLabel(politiciansCopy.politician.note).fill("Told us at the march");
   await frame(page, "The answer's form");
