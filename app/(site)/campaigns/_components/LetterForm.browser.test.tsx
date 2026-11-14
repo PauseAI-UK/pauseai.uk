@@ -35,7 +35,7 @@ describe("LetterForm", () => {
   it("drafts the letter for the MP, ending with their name, address and postcode, all editable", async () => {
     await render(<LetterForm {...PROPS} />);
     await expect.element(page.getByLabelText(copy.form.subjectLabel)).toHaveValue(letterToPm.subject);
-    await expect.element(editor().getByText("Dear Ms Placeholder")).toBeVisible();
+    await expect.element(editor().getByText("Dear Ms Placeholder,")).toBeVisible();
     await expect
       .element(editor().getByText(/^I'm a resident of Cities of London and Westminster and a supporter of/))
       .toBeVisible();

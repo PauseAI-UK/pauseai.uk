@@ -1956,8 +1956,8 @@ All events: ${link}`,
       none: "None yet",
       // Before the salutation, as a letter to them starts: Letters start "Dear Dame Meg,".
       lettersStart: "Letters start",
-      // Under a salutation made from their name, as their gender isn't known, before a button for each it most likely is.
-      fromName: "Made from their name, as we don't know their gender.",
+      // In the bubble of a salutation made from their name, as their gender isn't known, before Ms and Mr with their surname.
+      fromName: "We don't know their gender, so this is just their name. Pick one:",
       dear: (salutation: string) => `“Dear ${salutation},”`,
       save: "Save",
       saved: "Saved.",
@@ -2100,9 +2100,9 @@ All events: ${link}`,
       // from their email in the band, which opens its bubble. A new address isn't blocked.
       wrong: {
         title: "Address wrong?",
-        before: "⁂ Correct it from ",
-        link: "⁂ their email",
-        after: "⁂, above. The new address isn't blocked.",
+        before: "Correct it from ",
+        link: "their email",
+        after: ", above. The new address isn't blocked.",
       },
       // If the address is right: unblock it, with the note of why.
       right: {

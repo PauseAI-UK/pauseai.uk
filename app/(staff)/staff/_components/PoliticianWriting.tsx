@@ -6,7 +6,7 @@ import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import { TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { ErrorText, Muted } from "@/components/ui/Text";
+import { ErrorText } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { surnameOf } from "@/lib/salutation";
 import type { PoliticianAliases } from "@/lib/server/politician-aliases";
@@ -73,8 +73,8 @@ function SaveField({
 /**
  * A politician's salutation, as a letter to them starts ("Dear Ms
  * Placeholder,"), for the band at the top of their page; given `action`, a
- * Edit that opens a bubble with the field to change it. One made from
- * their name, as their gender isn't known, says so, and its bubble offers
+ * Edit that opens a bubble with the field to change it. For one made from
+ * their name, as their gender isn't known, the bubble says so, and offers
  * the two it most likely is, Ms and Mr with their surname, a press each.
  */
 export function SalutationBubble({ politician, action }: { politician: Politician; action?: EditAction }) {
@@ -83,7 +83,6 @@ export function SalutationBubble({ politician, action }: { politician: Politicia
   return (
     <span className={styles.value}>
       <span>{copy.dear(politician.salutation)}</span>
-      {politician.salutationToCheck && <Muted>{copy.fromName}</Muted>}
       {action && (
         <>
           <button type="button" className={styles.trigger} {...bubbleTrigger(id)}>
@@ -98,6 +97,7 @@ export function SalutationBubble({ politician, action }: { politician: Politicia
               hidden={hidden}
               action={action}
             />
+            {politician.salutationToCheck && <p className={styles.hint}>{copy.fromName}</p>}
             {politician.salutationToCheck && (
               <span className={styles.choices}>
                 {["Ms", "Mr"].map((title) => (

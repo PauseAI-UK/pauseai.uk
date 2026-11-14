@@ -171,14 +171,15 @@ describe("PoliticianDetails", () => {
       />,
     );
     const words = staffCopy.politician.editDetails;
-    await expect.element(page.getByText(words.fromName)).toBeVisible();
     await page.getByRole("button", { name: words.edit }).click();
+    // In its bubble: that it's their name, and the two it most likely is.
+    await expect.element(page.getByText(words.fromName)).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Mr Placeholder" })).toBeVisible();
     await page.getByRole("button", { name: "Ms Placeholder" }).click();
     await vi.waitFor(() => expect(sent).toEqual([{ politicianId: String(MP.id), salutation: "Ms Placeholder" }]));
-    // Without a way to change it, the note alone.
+    // Without a way to change it, the salutation alone.
     await rerender(<PoliticianDetails politician={politician} unblock={vi.fn()} {...none} />);
-    await expect.element(page.getByText(words.fromName)).toBeVisible();
+    await expect.element(page.getByText(words.dear(MP.name))).toBeVisible();
     await expect.element(page.getByRole("button", { name: words.edit })).not.toBeInTheDocument();
   });
 
@@ -728,14 +729,15 @@ describe("PoliticianDetails", () => {
     ]);
     // What changed their record, with who, apart from the answers.
     const record = page.getByRole("heading", { name: staffCopy.politician.recordTitle }).element().closest("details")!;
-    expect([...record.querySelectorAll("tbody tr")].map((row) => row.textContent)).toEqual([
-      `14 Oct 2026, 09:30${copy["unblock address"]} polly.placeholder.mp@parliament.uk · Fixed in Airtablejo@pauseai.uk`,
-      `12 Oct 2026, 09:10${copy["block address"]} polly.placeholder.mp@parliament.uk · ${staffCopy.emails.kinds.hard}postmark`,
-      `30 Sept 2026, 10:00${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uksamuel.whitlock@pauseai.uk`,
-      `10 Aug 2026, 10:00${copy["block address"]} polly@example.org · weirdpostmark`,
-      "1 Aug 2026, 10:00strange x",
-      `20 Jul 2026, 10:00${copy["edit politician"]} Polly Placeholder · ${staffCopy.fields.party} Labour → Labour (Co-op)sync`,
-      `15 Jul 2026, 10:00${copy["add politician"]} Polly Placeholderimport`,
+    // A timeline, newest first: what, then when and who.
+    expect([...record.querySelectorAll("ol li")].map((row) => row.textContent)).toEqual([
+      `${copy["unblock address"]} polly.placeholder.mp@parliament.uk · Fixed in Airtable14 Oct 2026, 09:30 · jo@pauseai.uk`,
+      `${copy["block address"]} polly.placeholder.mp@parliament.uk · ${staffCopy.emails.kinds.hard}12 Oct 2026, 09:10 · postmark`,
+      `${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk30 Sept 2026, 10:00 · samuel.whitlock@pauseai.uk`,
+      `${copy["block address"]} polly@example.org · weird10 Aug 2026, 10:00 · postmark`,
+      "strange1 Aug 2026, 10:00 · x",
+      `${copy["edit politician"]} Polly Placeholder · ${staffCopy.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
+      `${copy["add politician"]} Polly Placeholder15 Jul 2026, 10:00 · import`,
     ]);
     // An answer leads to everyone who gave it, the ask to the letter as in the asks card, PauseAI's email to its
     // mailing, an address to its block.
@@ -1201,7 +1203,7 @@ describe("PoliticianDetails", () => {
     ]);
     await expect
       .element(notice.getByRole("link", { name: copy.wrong.link }))
-      .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open#aliases`);
+      .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open`);
 
     // A complaint can't be unblocked here: no advice on fixing it, and no form.
     await rerender(

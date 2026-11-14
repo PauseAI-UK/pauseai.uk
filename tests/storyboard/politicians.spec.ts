@@ -648,7 +648,7 @@ test("Writing to a Lord", async ({ page, request, flowDatabase }) => {
 
 test("A salutation to check", async ({ page, request, flowDatabase }) => {
   story(
-    "Wikidata was down when the Senedd's import added Gwen Example, so it didn't know her gender, and her salutation is her name. The band says so, under her email.",
+    "Wikidata was down when the Senedd's import added Gwen Example, so it didn't know her gender, and her salutation, under her email in the band, is her name.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   runSql(
@@ -658,12 +658,15 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await openPolitician(page, "Gwen Example");
   const words = copy.editDetails;
-  await expect(page.getByText(words.fromName)).toBeVisible();
+  await expect(page.getByText(words.dear("Gwen Example"))).toBeVisible();
   await frame(page, "Her salutation, made from her name");
 
-  story("Staff press edit by it, and its bubble offers Ms Example and Mr Example. They press Ms Example.");
+  story(
+    "Staff press edit by it. Its bubble says it's just her name, and offers Ms Example and Mr Example. They press Ms Example.",
+  );
   await page.getByRole("button", { name: words.edit }).click();
   const bubble = page.locator("[popover]:popover-open");
+  await expect(bubble.getByText(words.fromName)).toBeVisible();
   await expect(bubble.getByRole("button", { name: "Ms Example" })).toBeVisible();
   await frame(page, "The salutations it most likely is", { window: true });
   await bubble.getByRole("button", { name: "Ms Example" }).click();

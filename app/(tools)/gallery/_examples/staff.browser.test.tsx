@@ -338,7 +338,7 @@ describe("the staff examples", () => {
     await render(<AddressesBubbleExample result={{ saved: true }} />);
     const words = staffCopy.politician.aliases;
     await expect.element(page.getByRole("button", { name: words.more(7) })).toBeVisible();
-    await expect.element(page.getByText("@pollyplaceholder.org.uk")).toBeVisible();
+    expect(document.querySelector("[popover]:popover-open")!.textContent).toContain("@pollyplaceholder.org.uk");
     // An MP's email is their body's: no field for it.
     await expect
       .element(page.getByRole("textbox", { name: staffCopy.politician.editDetails.email }))
@@ -360,10 +360,10 @@ describe("the staff examples", () => {
     await expect
       .element(log().nth(0))
       .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder"})');
-    await expect.element(field).not.toBeVisible();
+    await expect.element(field).not.toBeInTheDocument();
     await rerender(<SalutationBubbleExample fromName result={{ saved: false, why: "salutation" }} />);
-    await expect.element(page.getByText(words.fromName)).toBeVisible();
     await page.getByRole("button", { name: words.edit }).click();
+    await expect.element(page.getByText(words.fromName)).toBeVisible();
     await page.getByRole("button", { name: "Mr Placeholder" }).click();
     await expect
       .element(log().nth(1))
