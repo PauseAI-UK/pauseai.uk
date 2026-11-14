@@ -1,6 +1,6 @@
 import "server-only";
 import { constituencyName } from "@/lib/constituencies";
-import type { Place } from "@/lib/events";
+import type { Place } from "@/lib/site-events";
 import { outsideFetch } from "./outside-fetch";
 import { problem } from "../problems";
 import { staffCopy } from "@/lib/content/staff-interface";

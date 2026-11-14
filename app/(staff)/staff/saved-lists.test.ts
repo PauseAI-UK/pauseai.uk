@@ -5,6 +5,7 @@ import { query } from "@/lib/server/db";
 import { createSavedFilter } from "@/lib/server/saved-filters";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { openSavedList } from "./saved-lists";
+import { eventsCopy } from "@/lib/events/copy";
 
 const JO = "jo@pauseai.uk";
 
@@ -31,6 +32,6 @@ describeWithDatabase("openSavedList", () => {
     expect(await (await openSavedList("supporters", { q: "jo" })).title(words)).toBe(
       staffVocabulary.filters.pageTitle(staffCopy.supporters.title, "jo"),
     );
-    expect(await (await openSavedList("events", {})).title(() => [])).toBe(staffCopy.events.title);
+    expect(await (await openSavedList("events", {})).title(() => [])).toBe(eventsCopy.events.title);
   });
 });

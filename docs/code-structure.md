@@ -326,7 +326,7 @@ the code should go instead. The rules below say which ones are enforced.
   `FlyeringTracker` plus a short config.
 - **Content vs logic.** Data the site displays (people, posts, press, board)
   goes in `lib/content/`. Logic goes next to the feature it serves
-  (`lib/events.ts`, `lib/collateral/`).
+  (`lib/site-events.ts`, `lib/collateral/`).
 - **A post a file.** Each blog post is `lib/content/blog/<slug>.tsx`, and
   each weekly briefing is `lib/content/briefings/<slug>.tsx`. Each
   folder's `index.ts` lists its posts newest first, so a new one is a new
@@ -388,6 +388,8 @@ app/(staff)/staff/_components/
   shell/              the staff pages' frame: the sidebar and its icons,
                       and every page's name in it
   accounts/           logging in, your own page, staff accounts, Gmail
+  events/             the events page: its table, lists and filters, and
+                      an event's edit form
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -400,6 +402,9 @@ lib/
                       logic and components share
   accounts/           staff auth, login and sessions, permissions, staff
                       accounts, Gmail's connection and tokens
+  events/             staff events and their list, tags, owners and
+                      tagging, the Luma import and webhooks, and the
+                      march's and PauseFest's events on Luma
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures
@@ -415,7 +420,9 @@ its words are in `staffCopy`.
   if any code in `lib/` reads it, else to the components' `copy.ts`. The
   components' object spreads the one in `lib/`, so a component imports only
   its own folder's `copy.ts`. A number in words goes through `plural()` or
-  `count()` (`lib/content/plural.ts`).
+  `count()` (`lib/content/plural.ts`). A feature whose components have no
+  words of their own (events) has no components' `copy.ts`: they import
+  `lib/<feature>/copy.ts`.
 - **Its server code.** What holds `lib/server/` holds a feature's folder in
   `lib/` too: the ESLint rules for server code, and the checks that every
   caught error is reported (`tests/checks/caught-errors.test.ts`,

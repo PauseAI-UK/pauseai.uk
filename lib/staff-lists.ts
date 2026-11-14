@@ -207,7 +207,7 @@ export const SUPPORTERS_LIST = defineStaffList({
   },
 });
 
-/** The events list. Its sorts are each tab's (EVENT_SORTS in lib/staff-events-list.ts). */
+/** The events list. Its sorts are each tab's (EVENT_SORTS in lib/events/list.ts). */
 export const EVENTS_LIST = defineStaffList({
   path: "/staff/events",
   needs: "account",

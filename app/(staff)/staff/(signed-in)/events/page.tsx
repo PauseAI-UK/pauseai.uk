@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { eventsPage } from "@/lib/server/staff-events";
+import { eventsPage } from "@/lib/events/staff-events";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
 import { type EventsSearch } from "@/lib/staff-search";
 import { type ParamValue } from "@/lib/list-params";
-import { saveEventNow } from "../../actions";
+import { saveEventNow } from "../../_components/events/actions";
 import { deleteFilter, renameFilter, saveFilter, updateFilter } from "../../saved-filter-actions";
 import { openSavedList } from "../../saved-lists";
-import EventFilters, { eventWords } from "../../_components/EventFilters";
-import { EventsList } from "../../_components/EventColumns";
-import { EventsIntro, EventTabs } from "../../_components/EventsTable";
+import EventFilters, { eventWords } from "../../_components/events/EventFilters";
+import { EventsList } from "../../_components/events/EventColumns";
+import { EventsIntro, EventTabs } from "../../_components/events/EventsTable";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
+import { eventsCopy } from "@/lib/events/copy";
 
 type Params = Partial<EventsSearch> & { view?: ParamValue };
 type Props = { searchParams: Promise<Params> };
@@ -36,7 +36,7 @@ export default async function EventsPage({ searchParams }: Props) {
   const { events, total, pages, removed, staff, tags, cities, now } = await eventsPage(filter, hosts);
   return (
     <Page kind="list">
-      <PageHead intro={<EventsIntro />}>{staffCopy.events.title}</PageHead>
+      <PageHead intro={<EventsIntro />}>{eventsCopy.events.title}</PageHead>
       <EventTabs search={search} />
       <EventFilters
         search={search}

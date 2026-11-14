@@ -1,6 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config";
-import type { LumaEvent } from "@/lib/events";
+import type { LumaEvent } from "@/lib/site-events";
 import { now } from "@/lib/now";
 import { LUMA_PAGE_SIZE, lumaList, lumaPost, type LumaPage } from "./luma-api";
 import { outsideFetch } from "./outside-fetch";

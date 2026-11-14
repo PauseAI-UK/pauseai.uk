@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 
 // Builds requests to the Luma webhook route, signed as Luma signs them
-// (lib/server/luma-webhooks.ts), for its tests and the storyboard.
+// (lib/events/luma-webhooks.ts), for its tests and the storyboard.
 
 /** The secret a fixture build and the tests are configured with. */
 export const LUMA_WEBHOOK_SECRET = "fixture-luma-webhook-secret";

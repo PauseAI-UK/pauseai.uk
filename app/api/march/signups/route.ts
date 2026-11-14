@@ -1,7 +1,7 @@
 // How many are going to the march, for the sign-up's count to keep up with
 // while the page is open (useMarchSignups).
 import { NextResponse } from "next/server";
-import { getMarchSignupCount } from "@/lib/server/march-event";
+import { getMarchSignupCount } from "@/lib/events/march";
 
 /** How long a CDN may serve the answer, the same minute Luma's count is cached for. */
 const MAX_AGE = 60;

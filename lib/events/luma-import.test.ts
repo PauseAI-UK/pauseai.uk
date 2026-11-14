@@ -4,8 +4,8 @@ import { query } from "@/lib/server/db";
 import { allResults, heldAtOnce } from "@/tests/at-once";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
-import { startRunning } from "./import-runs";
-import { ANOTHER_RUNNING, runJob } from "./jobs";
+import { startRunning } from "@/lib/server/import-runs";
+import { ANOTHER_RUNNING, runJob } from "@/lib/server/jobs";
 import { importLuma } from "./luma-import";
 
 const API = "https://public-api.luma.com/v1";

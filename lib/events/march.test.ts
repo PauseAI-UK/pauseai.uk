@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { getMarchGuests, getMarchSignupCount, marchEventId } from "./march-event";
+import { getMarchGuests, getMarchSignupCount, marchEventId } from "./march";
 
 afterEach(() => vi.unstubAllEnvs());
 

@@ -1,4 +1,4 @@
-import type { LumaEvent } from "@/lib/events";
+import type { LumaEvent } from "@/lib/site-events";
 
 /**
  * An event as Luma lists it: "Event n", on a Saturday afternoon in 2030, in

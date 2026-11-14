@@ -4,7 +4,7 @@
 // stays out of the address bar, the browser's history and anything copied.
 
 import type { LocalGroup } from "@/lib/content/local-groups";
-import { ANYWHERE, type EventsWhere } from "@/lib/events";
+import { ANYWHERE, type EventsWhere } from "./site-events";
 
 /** The query parameter, and the id of the events section a link with it scrolls to. */
 export const EVENTS_PARAM = "events";

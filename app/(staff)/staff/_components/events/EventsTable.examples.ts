@@ -1,5 +1,5 @@
-import type { SearchedEvent, StaffEvent } from "@/lib/server/staff-events";
-import { findEvents } from "@/lib/staff-events-list";
+import type { SearchedEvent, StaffEvent } from "@/lib/events/staff-events";
+import { findEvents } from "@/lib/events/list";
 import { eventsSearch } from "@/lib/staff-search";
 
 // Example events for the events page's gallery entries and browser tests:

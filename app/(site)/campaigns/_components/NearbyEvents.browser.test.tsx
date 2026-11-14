@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
-import type { Place } from "@/lib/events";
+import type { Place } from "@/lib/site-events";
 import { markSent, saveLookup } from "./draft";
 import { exampleMp } from "./draft.examples";
 import NearbyEvents from "./NearbyEvents";

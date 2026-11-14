@@ -10,6 +10,7 @@ import { importLuma } from "./supporter-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { eventsCopy } from "@/lib/events/copy";
 
 export const section: Section = { name: "Events and their owners", part: "Staff pages", order: 120 };
 
@@ -19,7 +20,7 @@ export const section: Section = { name: "Events and their owners", part: "Staff 
 // error, until someone is chosen for it, who's emailed too; an event's
 // Google Doc linked; and, for staff who see supporters, each event's hosts.
 
-const copy = staffCopy.events;
+const copy = eventsCopy.events;
 
 /** This flow's own staff address: flows run alongside each other, and share the outbox. */
 const staffEmail = () => `events-${test.info().testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;

@@ -3,8 +3,7 @@ import { Fragment } from "react";
 import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import { site } from "@/lib/content/site";
-import { staffCopy } from "@/lib/content/staff-interface";
-import type { EventHost, StaffEvent } from "@/lib/server/staff-events";
+import type { EventHost, StaffEvent } from "@/lib/events/staff-events";
 import {
   EVENT_SORTS,
   EVENTS_PAGE_SIZE,
@@ -13,25 +12,26 @@ import {
   type EventsFound,
   type EventSort,
   type EventTab,
-} from "@/lib/staff-events-list";
+} from "@/lib/events/list";
 import { type EventsSearch } from "@/lib/staff-search";
 import { among, filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { parseSort, sortHref } from "@/lib/staff-sort";
 import { londonDate } from "@/lib/staff-time";
-import AlertIcon from "./AlertIcon";
+import AlertIcon from "../AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
-import SortHeading from "./SortHeading";
-import { filterChipClass } from "./ui/FilterBar";
-import Choices from "./ui/Choices";
-import ListFrame, { type ListColumn } from "./ui/ListFrame";
-import Menu from "./ui/Menu";
-import StaffLink from "./ui/StaffLink";
-import Tabs from "./ui/Tabs";
+import SortHeading from "../SortHeading";
+import { filterChipClass } from "../ui/FilterBar";
+import Choices from "../ui/Choices";
+import ListFrame, { type ListColumn } from "../ui/ListFrame";
+import Menu from "../ui/Menu";
+import StaffLink from "../ui/StaffLink";
+import Tabs from "../ui/Tabs";
 import styles from "./EventsTable.module.css";
-import ExternalLink from "./ui/ExternalLink";
+import ExternalLink from "../ui/ExternalLink";
+import { eventsCopy } from "@/lib/events/copy";
 
 const PATH = EVENTS_LIST.path;
-const copy = staffCopy.events;
+const copy = eventsCopy.events;
 
 /** Under the page's title: what it lists, and where the events come from, our calendar on Luma, which it links to. */
 export function EventsIntro() {

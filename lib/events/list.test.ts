@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SearchedEvent } from "@/lib/server/staff-events";
+import type { SearchedEvent } from "./staff-events";
 import {
   eventListColumns,
   eventsByOwner,
@@ -10,7 +10,7 @@ import {
   stillToCome,
   type EventFilter,
   type EventList,
-} from "./staff-events-list";
+} from "./list";
 
 const NOW = new Date("2026-11-02T12:00:00.000Z");
 

@@ -11,7 +11,7 @@ import {
   formatEventTime,
   type LumaEvent,
   type Place,
-} from "./events";
+} from "./site-events";
 
 function entry(name: string, geo?: { city?: string; address?: string; region?: string }): LumaEvent {
   return {

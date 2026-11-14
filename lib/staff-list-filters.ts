@@ -16,7 +16,7 @@ import type { EmailChoice } from "./server/all-letters";
 import type { Ask } from "./server/asks";
 import type { SupporterChoices, SupportersPage } from "./server/supporters";
 import { WINDOW_OPTIONS } from "./staff-dashboard";
-import { NO_OWNER, ONLINE } from "./staff-events-list";
+import { NO_OWNER, ONLINE } from "@/lib/events/list";
 import {
   ALL_EMAILS_LIST,
   AUDIT_LOG_LIST,
@@ -29,6 +29,7 @@ import {
 import { EMAIL_SENDERS, EMAIL_TYPES, SENT_EMAIL_LINKS, SENT_EMAILS_WITHOUT_SUPPORTERS } from "./staff-search";
 import { staffDate } from "./staff-time";
 import { NEAR_MILES, SUPPORTER_BADGES } from "./supporters";
+import { eventsCopy } from "@/lib/events/copy";
 
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
@@ -352,7 +353,7 @@ export type EventChoices = { staff: readonly string[]; tags: string[]; cities: s
  * dashboard's tile. Where, tags and owner can be chosen more than once.
  */
 export const EVENT_FILTERS = listFilters(EVENTS_LIST, ({ staff, tags, cities }: EventChoices) => {
-  const copy = staffCopy.events;
+  const copy = eventsCopy.events;
   return {
     place: {
       label: copy.filters.place,

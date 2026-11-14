@@ -1,16 +1,16 @@
 import "server-only";
 import { cache } from "react";
-import { staffCopy } from "@/lib/content/staff-interface";
-import { ruleOwner } from "@/lib/event-owners";
+import { ruleOwner } from "./owners";
 import { now } from "@/lib/now";
-import { findEvents, type EventFilter, type EventsFound } from "@/lib/staff-events-list";
+import { findEvents, type EventFilter, type EventsFound } from "./list";
 import { londonStart } from "@/lib/staff-time";
-import { logChange } from "./audit";
-import { query, transaction, type Queryable } from "./db";
-import { send } from "./email-sending";
-import { notifyDomain } from "./outside-services/postmark";
-import { staffLink } from "./notifications";
+import { logChange } from "@/lib/server/audit";
+import { query, transaction, type Queryable } from "@/lib/server/db";
+import { send } from "@/lib/server/email-sending";
+import { notifyDomain } from "@/lib/server/outside-services/postmark";
+import { staffLink } from "@/lib/server/notifications";
 import { staffAddressLine } from "@/lib/accounts/staff-address";
+import { eventsCopy } from "./copy";
 
 // Our events on Luma, as the Luma import has them (luma-import.ts), for
 // the staff interface's events page, and who on staff owns each
@@ -149,7 +149,7 @@ async function tellOwner(
   const to = owner;
   const cc = previous && previous !== owner ? previous : null;
   const events = await listEvents(ids);
-  const copy = staffCopy.events.ownerEmail;
+  const copy = eventsCopy.events.ownerEmail;
   const filter = events.length === 1 ? ["q", events[0].name] : ["owner", owner];
   const link = staffLink(`/staff/events?${new URLSearchParams([filter])}`, undefined);
   const result = await send(
@@ -235,7 +235,7 @@ const RULES = "sync";
 
 /**
  * Gives each of our events still to come that has no owner its owner by
- * the rules (lib/event-owners.ts), if they have a staff account; one
+ * the rules (lib/events/owners.ts), if they have a staff account; one
  * without stays with none, for staff to see. Returns, for each new owner,
  * the IDs of the events they were given, for ownerEmails() once the
  * transaction is done.

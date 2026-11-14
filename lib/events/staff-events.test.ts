@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { query, transaction } from "./db";
-import { recordProblem } from "./email";
-import { EVENTS_PAGE_SIZE } from "@/lib/staff-events-list";
+import { query, transaction } from "@/lib/server/db";
+import { recordProblem } from "@/lib/server/email";
+import { EVENTS_PAGE_SIZE } from "./list";
 import { eventsSearch } from "@/lib/staff-search";
 import { assignRuleOwners, eventsPage, ownerEmails, setEventDoc, setEventOwner } from "./staff-events";
+import { eventsCopy } from "./copy";
 
 type Sent = { From: string; To: string; Cc?: string; Subject: string; TextBody: string; Tag: string };
 
@@ -198,7 +198,7 @@ describeWithDatabase("staff events", () => {
     await addStaff("jo@pauseai.uk", "sean@pauseai.uk", "joseph@pauseai.uk");
     await addEvent("evt-1", "2026-11-10T18:00:00Z");
     const body = (owner: string, previous: string | null, by: string) =>
-      staffCopy.events.ownerEmail.body({
+      eventsCopy.events.ownerEmail.body({
         events: [{ name: "Event evt-1", when: "Tue 10 Nov 2026, 18:00", url: "https://luma.com/evt-1" }],
         owner,
         previous,
@@ -213,7 +213,7 @@ describeWithDatabase("staff events", () => {
     expect(sent).toEqual([
       expect.objectContaining({
         To: "sean@pauseai.uk",
-        Subject: staffCopy.events.ownerEmail.subject(1, "Event evt-1", "sean@pauseai.uk"),
+        Subject: eventsCopy.events.ownerEmail.subject(1, "Event evt-1", "sean@pauseai.uk"),
         TextBody: body("sean@pauseai.uk", null, "jo@pauseai.uk"),
         Tag: "staff-alert",
       }),
@@ -278,7 +278,7 @@ describeWithDatabase("staff events", () => {
     expect(sent).toEqual([
       expect.objectContaining({
         To: "jo@pauseai.uk",
-        Subject: staffCopy.events.ownerEmail.subject(1, "Event evt-1", "jo@pauseai.uk"),
+        Subject: eventsCopy.events.ownerEmail.subject(1, "Event evt-1", "jo@pauseai.uk"),
       }),
     ]);
     expect(sent[0].TextBody).toContain("You took it on");
@@ -365,8 +365,8 @@ describeWithDatabase("staff events", () => {
 
     await ownerEmails(given);
     expect(sent.map((email) => [email.To, email.Subject])).toEqual([
-      ["joseph@pauseai.uk", staffCopy.events.ownerEmail.subject(2, "Event evt-london", "joseph@pauseai.uk")],
-      ["sean@pauseai.uk", staffCopy.events.ownerEmail.subject(2, "Event evt-oxford", "sean@pauseai.uk")],
+      ["joseph@pauseai.uk", eventsCopy.events.ownerEmail.subject(2, "Event evt-london", "joseph@pauseai.uk")],
+      ["sean@pauseai.uk", eventsCopy.events.ownerEmail.subject(2, "Event evt-oxford", "sean@pauseai.uk")],
     ]);
     expect(sent[0].TextBody).toContain("https://luma.com/evt-london-2");
     // For several, the events page filtered to the owner.

@@ -1,12 +1,12 @@
 // The staff events list's tabs, filters and sorts, applied to our events
-// as lib/server/staff-events.ts lists them. There are few enough events
+// as lib/events/staff-events.ts lists them. There are few enough events
 // to filter and sort them all here, rather than in SQL.
-import { staffCopy } from "@/lib/content/staff-interface";
-import { BIG_EVENTS_TAG, ONLINE_TAG } from "@/lib/event-tags";
-import type { SearchedEvent, StaffEvent } from "@/lib/server/staff-events";
+import { BIG_EVENTS_TAG, ONLINE_TAG } from "./tags";
+import type { SearchedEvent, StaffEvent } from "./staff-events";
 import { windowStart } from "@/lib/staff-dashboard";
 import type { SortColumns, SortSpec } from "@/lib/staff-sort";
 import { londonDayTime } from "@/lib/staff-time";
+import { eventsCopy } from "./copy";
 
 /** The list's tabs: events still to come, and those past. */
 export const EVENT_TABS = ["future", "past"] as const;
@@ -187,7 +187,7 @@ function listsOf(
 
 /** `events` in a list for each owner, by their address, those with none first. */
 export function eventsByOwner(events: readonly StaffEvent[]): EventList[] {
-  const none = staffCopy.events.noOwner;
+  const none = eventsCopy.events.noOwner;
   return listsOf(
     events,
     (event) => [event.owner ?? none],
@@ -201,10 +201,10 @@ export function eventsByOwner(events: readonly StaffEvent[]): EventList[] {
  * goes under Online if it has no city.
  */
 export function eventsByTag(events: readonly StaffEvent[]): EventList[] {
-  const last = [BIG_EVENTS_TAG, ONLINE_TAG, staffCopy.events.lists.noTag];
+  const last = [BIG_EVENTS_TAG, ONLINE_TAG, eventsCopy.events.lists.noTag];
   return listsOf(
     events,
-    (event) => (event.tags.length ? event.tags : [event.city ? staffCopy.events.lists.noTag : ONLINE_TAG]),
+    (event) => (event.tags.length ? event.tags : [event.city ? eventsCopy.events.lists.noTag : ONLINE_TAG]),
     (title) => last.indexOf(title),
   );
 }

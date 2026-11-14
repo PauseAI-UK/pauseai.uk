@@ -10,7 +10,7 @@ import { checkMarchRegistration, type MarchRegisterResult } from "@/lib/march-re
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { sendBulkNotice } from "@/lib/server/email-settings";
 import { addFormEntry } from "@/lib/server/form-entries";
-import { marchEventId } from "@/lib/server/march-event";
+import { marchEventId } from "@/lib/events/march";
 import { addLumaGuest } from "@/lib/server/outside-services/luma-guests";
 import { problem } from "@/lib/server/problems";
 import { staffCopy } from "@/lib/content/staff-interface";

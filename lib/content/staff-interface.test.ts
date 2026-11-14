@@ -62,8 +62,6 @@ it("words the runs' times, problems and results", () => {
   for (const words of [job.couldntRead, job.nameUnknown]) {
     expect(words("jo@pauseai.uk")).toContain("jo@pauseai.uk");
   }
-  expect(job.eventGuests("evt-1")).toContain("evt-1");
-  expect(job.eventHosts("evt-1")).toContain("evt-1");
   expect(anywhere.sendFailed("mailing")).toContain("mailing");
   expect(logs.badBody("Postmark")).toContain("Postmark");
   expect(anywhere.letterNotSent(7)).toContain("7");

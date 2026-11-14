@@ -3,7 +3,7 @@
 // the next is kept in sessionStorage, so it survives a reload or going back,
 // and never goes in a URL: the lookup, then the letter as written, and once
 // it's sent, only the MP's name.
-import type { Place } from "@/lib/events";
+import type { Place } from "@/lib/site-events";
 import type { LetterDoc } from "@/lib/letter-format";
 import type { Mp, MpStatuses } from "@/lib/email-your-mp";
 

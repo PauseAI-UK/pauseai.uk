@@ -1,13 +1,12 @@
 import "server-only";
 import { ASK_STATUSES } from "@/lib/asks";
 import { contactState } from "@/lib/contact-permissions";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politician-filters";
 import type { SavedList } from "@/lib/saved-filters";
 import { DASHBOARD_WINDOWS } from "@/lib/staff-dashboard";
-import { NO_OWNER, ONLINE } from "@/lib/staff-events-list";
+import { NO_OWNER, ONLINE } from "@/lib/events/list";
 import {
   FILTER_LISTS,
   storedFilter,
@@ -21,8 +20,9 @@ import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters";
 import { changeChoices } from "./audit";
 import { query } from "./db";
 import { HOUSES, PERSON_STATUSES } from "./politicians";
-import { eventChoices } from "./staff-events";
+import { eventChoices } from "@/lib/events/staff-events";
 import { MP_CHOICES } from "./supporters";
+import { eventsCopy } from "@/lib/events/copy";
 
 // A mailing's stored filter (StoredFilter, lib/staff-search.ts), or a saved
 // filter's choices, read back strictly: a value the site no longer knows,
@@ -122,7 +122,7 @@ async function eventValues(): Promise<Known> {
     owner: [NO_OWNER, ...staff],
     tag: tags,
     place: [ONLINE, ...cities],
-    removed: Object.keys(staffCopy.events.filters.removed),
+    removed: Object.keys(eventsCopy.events.filters.removed),
   };
 }
 

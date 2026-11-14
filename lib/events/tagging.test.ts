@@ -1,11 +1,11 @@
 import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { notifications } from "@/tests/notifications";
-import { query } from "./db";
-import { tagUpcomingEvents, unclearEventEmails } from "./event-tagging";
+import { query } from "@/lib/server/db";
+import { tagUpcomingEvents, unclearEventEmails } from "./tagging";
+import { eventsCopy } from "./copy";
 
 const API = "https://public-api.luma.com/v1/calendars/event-tags";
 const CALENDAR_TAGS = ["Big events", "London", "Online", "Oxford"];
@@ -153,7 +153,7 @@ describeWithDatabase("tagging upcoming events", () => {
     const first = await tagUpcomingEvents();
     expect(first.tagged).toBe(0);
     expect(first.unclear).toHaveLength(1);
-    expect(errors.mock.calls.flat().join(" ")).toContain(staffCopy.problems.job.lumaTagRefused("Refused"));
+    expect(errors.mock.calls.flat().join(" ")).toContain(eventsCopy.problems.lumaTagRefused("Refused"));
     expect(await kept("refused")).toEqual({ tags: [], checked: false });
     refuse = false;
     expect((await tagUpcomingEvents()).tagged).toBe(1);
@@ -166,7 +166,7 @@ describeWithDatabase("tagging upcoming events", () => {
     server.use(http.get(`${API}/list`, () => new HttpResponse(null, { status: 500 })));
     await addEvent("oxford");
     expect(await tagUpcomingEvents()).toEqual({ tagged: 0, requests: 0, unclear: [] });
-    expect(errors.mock.calls.flat().join(" ")).toContain(staffCopy.problems.job.lumaTagsUnread);
+    expect(errors.mock.calls.flat().join(" ")).toContain(eventsCopy.problems.lumaTagsUnread);
     expect(await kept("oxford")).toEqual({ tags: [], checked: false });
     errors.mockRestore();
   });
@@ -182,10 +182,10 @@ describeWithDatabase("tagging upcoming events", () => {
       },
       { name: "A mystery", startAt: new Date("2030-01-02T18:00:00.000Z"), city: null, url: "https://luma.com/m" },
     ]);
-    const copy = staffCopy.events.unclearTagEmail;
+    const copy = eventsCopy.events.unclearTagEmail;
     expect(sent.map((email) => email.Subject)).toEqual([copy.subject("Kent flyering"), copy.subject("A mystery")]);
     expect(sent[0].TextBody).toContain("Tunbridge Wells");
     expect(sent[0].TextBody).toContain("https://luma.com/k");
-    expect(sent[1].TextBody).toContain(staffCopy.events.online);
+    expect(sent[1].TextBody).toContain(eventsCopy.events.online);
   });
 });

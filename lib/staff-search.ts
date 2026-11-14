@@ -42,7 +42,7 @@ import {
   type SortOf,
 } from "@/lib/staff-lists";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
-import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/staff-events-list";
+import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/events/list";
 import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters";
 
 /** Which of a campaign's letters its counts can show: those in one state, or whose text was changed. */

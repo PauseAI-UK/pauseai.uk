@@ -5,7 +5,7 @@ import { importControlAiLetter } from "./controlai-import";
 import { readGmail } from "./gmail-reading";
 import { startRunning, stopRunning } from "./import-runs";
 import { runTidying } from "./log-retention";
-import { importLuma } from "./luma-import";
+import { importLuma } from "@/lib/events/luma-import";
 import { importCivicrm } from "./civicrm-import";
 import { importControlAiStatement } from "./controlai-statement-import";
 import { importPoliticians } from "./politician-import";

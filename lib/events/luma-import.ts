@@ -1,25 +1,25 @@
 import "server-only";
 import { JOBS, type LumaImportResult } from "@/lib/import-runs";
-import { query, transaction, type Queryable } from "./db";
-import { asRun, type Ran } from "./import-runs";
-import { offCalendar } from "./email-settings";
-import { recordContactsPass, stillOnCalendar } from "./opt-outs";
-import { refreshSupporterFacts, refreshSupportersList } from "./supporter-facts";
-import { lookUpPlaces } from "./supporter-places";
-import { linkSupporters } from "./supporters";
+import { query, transaction, type Queryable } from "@/lib/server/db";
+import { asRun, type Ran } from "@/lib/server/import-runs";
+import { offCalendar } from "@/lib/server/email-settings";
+import { recordContactsPass, stillOnCalendar } from "@/lib/server/opt-outs";
+import { refreshSupporterFacts, refreshSupportersList } from "@/lib/server/supporter-facts";
+import { lookUpPlaces } from "@/lib/server/supporter-places";
+import { linkSupporters } from "@/lib/server/supporters";
 import { assignRuleOwners, ownerEmails } from "./staff-events";
-import { tagUpcomingEvents, unclearEventEmails, type UnclearEvent } from "./event-tagging";
-import { LumaRateLimited, type LumaPage } from "./outside-services/luma-api";
+import { tagUpcomingEvents, unclearEventEmails, type UnclearEvent } from "./tagging";
+import { LumaRateLimited, type LumaPage } from "@/lib/server/outside-services/luma-api";
 import {
   type CalendarEvent,
   listCalendarContacts,
   listCalendarEvents,
   type CalendarContact,
-} from "./outside-services/luma-calendar";
-import { getEventHosts, type EventHost } from "./outside-services/luma-event";
-import { type EventGuest, listEventGuests } from "./outside-services/luma-guests";
-import { describeError, problem } from "./problems";
-import { staffCopy } from "@/lib/content/staff-interface";
+} from "@/lib/server/outside-services/luma-calendar";
+import { getEventHosts, type EventHost } from "@/lib/server/outside-services/luma-event";
+import { type EventGuest, listEventGuests } from "@/lib/server/outside-services/luma-guests";
+import { describeError, problem } from "@/lib/server/problems";
+import { eventsCopy } from "./copy";
 
 // Copies our Luma calendar into luma_events, luma_people, luma_guests and
 // luma_event_hosts: every public event, the guests who registered for each,
@@ -96,7 +96,7 @@ class Budget {
       return page;
     } catch (error) {
       if (!(error instanceof LumaRateLimited)) throw error;
-      problem(staffCopy.problems.job.lumaRefused, error);
+      problem(eventsCopy.problems.lumaRefused, error);
       this.requests++;
       this.stoppedBy = "rate-limit";
       return undefined;
@@ -303,7 +303,7 @@ async function importGuests(eventId: string, budget: Budget): Promise<GuestCount
       cursor = page.nextCursor;
     } while (cursor);
   } catch (error) {
-    problem(staffCopy.problems.job.eventGuests(eventId), error);
+    problem(eventsCopy.problems.eventGuests(eventId), error);
     await query("UPDATE luma_events SET guests_error = $2 WHERE id = $1", [eventId, describeError(error)]);
     return counts;
   }
@@ -357,7 +357,7 @@ async function importHosts(eventId: string, budget: Budget): Promise<HostCounts 
     if (!page) return undefined;
     hosts = [...new Map(page.entries.map((host) => [host.userId, host])).values()];
   } catch (error) {
-    problem(staffCopy.problems.job.eventHosts(eventId), error);
+    problem(eventsCopy.problems.eventHosts(eventId), error);
     await query("UPDATE luma_events SET hosts_error = $2 WHERE id = $1", [eventId, describeError(error)]);
     return { hosts: 0, people: 0 };
   }

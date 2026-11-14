@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_OWNER, ruleOwner } from "./event-owners";
+import { DEFAULT_OWNER, ruleOwner } from "./owners";
 
 describe("ruleOwner", () => {
   it("gives an event in Oxford, by its city or a tag in any case, to Sean, and any other to the default owner", () => {

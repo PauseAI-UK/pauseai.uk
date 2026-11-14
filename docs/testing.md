@@ -1182,7 +1182,7 @@ not a mock.
   press on its page) are tested running at once: `atOnce()`
   (`tests/at-once.ts`) starts several runs together on the test file's
   database, and the test checks each letter, guest or message was handled
-  once (`lib/server/sending-job.test.ts`, `lib/server/luma-import.test.ts`).
+  once (`lib/server/sending-job.test.ts`, `lib/events/luma-import.test.ts`).
 - **A data migration gets a test while its tables are still changing.** A
   migration that moves or reshapes rows, not only tables, is tested with
   `useDatabaseUpTo()`:

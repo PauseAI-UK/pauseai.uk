@@ -1,13 +1,13 @@
 import { EVENTS_LIST } from "@/lib/staff-lists";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { filteredName, filterWords, EVENT_FILTERS, type EventChoices } from "@/lib/staff-list-filters";
-import { EVENT_GROUPINGS } from "@/lib/staff-events-list";
+import { EVENT_GROUPINGS } from "@/lib/events/list";
 import type { SavedFiltersState } from "@/lib/server/saved-filters";
 import { eventsSearch, type EventsSearch } from "@/lib/staff-search";
 import { among } from "@/lib/list-params";
 import { EventGroups, eventFiltersOf } from "./EventsTable";
-import FilterBar from "./ui/FilterBar";
-import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
+import FilterBar from "../ui/FilterBar";
+import { savedFiltersProps, type SavedFilterActions } from "../ui/SavedFilters";
+import { eventsCopy } from "@/lib/events/copy";
 
 /**
  * What the events list shows, in words: the Past tab and the grouping, if
@@ -15,7 +15,7 @@ import { savedFiltersProps, type SavedFilterActions } from "./ui/SavedFilters";
  * page's title and a saved filter's name and summary all say it so.
  */
 export function eventWords(search: EventsSearch, choices: EventChoices): string[] {
-  const copy = staffCopy.events;
+  const copy = eventsCopy.events;
   const past = search.when === "past" ? [copy.tabs.past] : [];
   const [group] = among([search.group], EVENT_GROUPINGS);
   return [
@@ -39,7 +39,7 @@ export default function EventFilters({
     <FilterBar
       path={EVENTS_LIST.path}
       values={eventFiltersOf(search)}
-      search={{ name: "q", label: staffCopy.events.filters.search }}
+      search={{ name: "q", label: eventsCopy.events.filters.search }}
       filters={EVENT_FILTERS(choices)}
       keep={["when", "group"]}
       saved={

@@ -11,9 +11,6 @@ import {
   ChangeTimeFormExample,
   ChoosingListExample,
   DueTimeFieldsExample,
-  EventColumnsExample,
-  EventsListExample,
-  EventsTableExample,
   HeldImportExample,
   MailingWriterExample,
   NoteChangesExample,
@@ -146,65 +143,6 @@ describe("the staff examples", () => {
       .toHaveTextContent(
         'record({"supporterId":"1","choice":"email|newsletter|jane.smith@example.com","how":"At the stall"})',
       );
-  });
-
-  it("logs an event's save in the lists, or says there are none", async () => {
-    const { unmount } = await render(<EventColumnsExample grouping="owner" />);
-    await page
-      .getByRole("listitem")
-      .filter({ hasText: "AI risk talk" })
-      .getByRole("button", { name: staffCopy.events.edit })
-      .click();
-    const form = page.getByRole("form", { name: staffCopy.events.editLabel("AI risk talk") });
-    await form.getByLabelText(staffCopy.events.owner).selectOptions("sean@pauseai.uk");
-    await form.getByRole("button", { name: staffCopy.events.save }).click();
-    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
-    await unmount();
-    await render(<EventColumnsExample grouping="tag" none />);
-    await expect.element(page.getByText(staffCopy.events.noneFound)).toBeVisible();
-  });
-
-  it("logs an event's save in the lists of what the filters find", async () => {
-    await render(<EventsListExample params={{ group: "tag" }} />);
-    await page
-      .getByRole("listitem")
-      .filter({ hasText: "AI risk talk" })
-      .getByRole("button", { name: staffCopy.events.edit })
-      .click();
-    const form = page.getByRole("form", { name: staffCopy.events.editLabel("AI risk talk") });
-    await form.getByLabelText(staffCopy.events.owner).selectOptions("sean@pauseai.uk");
-    await form.getByRole("button", { name: staffCopy.events.save }).click();
-    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
-  });
-
-  it("logs an event's save in the table", async () => {
-    await render(<EventsTableExample />);
-    await page
-      .getByRole("row")
-      .filter({ hasText: "AI risk talk" })
-      .getByRole("button", { name: staffCopy.events.edit })
-      .click();
-    const form = page.getByRole("form", { name: staffCopy.events.editLabel("AI risk talk") });
-    await form.getByLabelText(staffCopy.events.owner).selectOptions("sean@pauseai.uk");
-    await form.getByRole("button", { name: staffCopy.events.save }).click();
-    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
-    expect(document.querySelector("[role=status]")!.textContent).toBe("");
-  });
-
-  it("logs an event's save, and says whom it emailed", async () => {
-    await render(<EventsTableExample emailed />);
-    await page
-      .getByRole("row")
-      .filter({ hasText: "AI risk talk" })
-      .getByRole("button", { name: staffCopy.events.edit })
-      .click();
-    const form = page.getByRole("form", { name: staffCopy.events.editLabel("AI risk talk") });
-    await form.getByLabelText(staffCopy.events.owner).selectOptions("sean@pauseai.uk");
-    await form.getByRole("button", { name: staffCopy.events.save }).click();
-    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
-    await expect
-      .poll(() => document.querySelector("[role=status]")?.textContent)
-      .toContain(staffCopy.events.emailed(["sean@pauseai.uk", "joseph@pauseai.uk"], "sean@pauseai.uk"));
   });
 
   it("closes a Notice with its ×, and opens it again", async () => {

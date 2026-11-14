@@ -5,14 +5,14 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { Label } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { staffCopy } from "@/lib/content/staff-interface";
-import type { EventSaved } from "@/lib/server/staff-events";
+import type { EventSaved } from "@/lib/events/staff-events";
 import { GOOGLE_DOC_PATTERN } from "@/lib/staff-forms";
 import Bubble from "@/components/ui/Bubble";
-import Notice from "./ui/Notice";
+import Notice from "../ui/Notice";
 import styles from "./EventsTable.module.css";
+import { eventsCopy } from "@/lib/events/copy";
 
-const copy = staffCopy.events;
+const copy = eventsCopy.events;
 
 /** The Server Action that saves an event's owner and Google Doc, saying whom it emailed. */
 export type SaveEvent = (form: FormData) => Promise<EventSaved>;

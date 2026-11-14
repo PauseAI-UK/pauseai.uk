@@ -7,7 +7,7 @@ import { Field, FieldError, Label } from "@/components/ui/Field";
 import { FilterForm } from "@/components/ui/Form";
 import { homeEventsCopy as copy } from "@/lib/content/home-events";
 import { localGroups, type LocalGroupName } from "@/lib/content/local-groups";
-import type { EventsWhere } from "@/lib/events";
+import type { EventsWhere } from "@/lib/site-events";
 import styles from "./EventsPlacePicker.module.css";
 
 /** The local groups by name, as a list to read: the list's own order is the map's. */

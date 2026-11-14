@@ -1,7 +1,7 @@
 import EventList from "./EventList";
 import EventsSection from "./EventsSection";
 import { localGroups, type LocalGroupName } from "@/lib/content/local-groups";
-import { filterEventsForLocalGroup } from "@/lib/events";
+import { filterEventsForLocalGroup } from "@/lib/site-events";
 import { getEvents } from "@/lib/server/outside-services/luma-calendar";
 import { site } from "@/lib/content/site";
 

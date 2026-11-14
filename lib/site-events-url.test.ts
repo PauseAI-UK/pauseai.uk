@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { localGroups } from "@/lib/content/local-groups";
-import { ANYWHERE } from "@/lib/events";
-import { eventsFromQuery, eventsQueryValue, withEventsQuery } from "./events-url";
+import { ANYWHERE } from "./site-events";
+import { eventsFromQuery, eventsQueryValue, withEventsQuery } from "./site-events-url";
 
 const oxford = { where: { kind: "group", name: "Oxford" }, onlineOnly: false } as const;
 const online = { where: ANYWHERE, onlineOnly: true } as const;

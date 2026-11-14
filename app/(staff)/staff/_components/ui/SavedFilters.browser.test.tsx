@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { SavedFilter, SavedFiltersState } from "@/lib/server/saved-filters";
-import EventFilters from "../EventFilters";
+import EventFilters from "../events/EventFilters";
 import PoliticianFilters from "../PoliticianFilters";
 import { emptyPoliticiansSearch } from "../PoliticianTable.examples";
 import SupporterFilters from "../SupporterFilters";
@@ -12,6 +11,7 @@ import { eventsSearch, supportersSearch } from "@/lib/staff-search";
 import { filteredName } from "@/lib/staff-list-filters";
 import FilterBar from "./FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "./SavedFilters";
+import { eventsCopy } from "@/lib/events/copy";
 
 const copy = staffVocabulary.filters.saved;
 
@@ -325,15 +325,15 @@ describe("each list's saved filters", () => {
     await chip().click();
     await says(
       /Old talks/,
-      `${staffCopy.events.tabs.past} · ${staffCopy.events.group.owner} · ${staffCopy.events.filters.tag}: Talk`,
+      `${eventsCopy.events.tabs.past} · ${eventsCopy.events.group.owner} · ${eventsCopy.events.filters.tag}: Talk`,
     );
     expect(page.getByRole("link", { name: /New talks/ }).element().textContent).not.toContain(
-      staffCopy.events.tabs.past,
+      eventsCopy.events.tabs.past,
     );
     await userEvent.keyboard("{Escape}");
     await page.getByRole("button", { name: copy.save, exact: true }).click();
     await expect
       .element(page.getByRole("textbox", { name: copy.name }))
-      .toHaveValue(`${staffCopy.events.group.tag}, ${staffVocabulary.search}: talk`);
+      .toHaveValue(`${eventsCopy.events.group.tag}, ${staffVocabulary.search}: talk`);
   });
 });

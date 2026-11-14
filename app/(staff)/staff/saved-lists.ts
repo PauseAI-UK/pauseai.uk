@@ -5,6 +5,7 @@ import type { SavedList } from "@/lib/saved-filters";
 import { savedFiltersState, type SavedFiltersState } from "@/lib/server/saved-filters";
 import { filteredTitle } from "@/lib/staff-list-filters";
 import { changesSearch, eventsSearch, politiciansSearch, supportersSearch } from "@/lib/staff-search";
+import { eventsCopy } from "@/lib/events/copy";
 
 // The lists with saved filters, as their pages open them. A page calls
 // requireStaff() itself, first, as tests/checks/staff-auth.test.ts reads it
@@ -16,7 +17,7 @@ import { changesSearch, eventsSearch, politiciansSearch, supportersSearch } from
 const LISTS = {
   politicians: { parse: politiciansSearch, title: staffCopy.politicians.title },
   supporters: { parse: supportersSearch, title: staffCopy.supporters.title },
-  events: { parse: eventsSearch, title: staffCopy.events.title },
+  events: { parse: eventsSearch, title: eventsCopy.events.title },
   "audit-log": { parse: changesSearch, title: staffCopy.changes.title },
 } satisfies Record<SavedList, { parse: (params: Params) => unknown; title: string }>;
 

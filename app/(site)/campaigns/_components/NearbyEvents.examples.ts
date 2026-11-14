@@ -1,4 +1,4 @@
-import type { LumaEvent, Place } from "@/lib/events";
+import type { LumaEvent, Place } from "@/lib/site-events";
 
 /** Westminster, where the test MPs' postcodes are. */
 export const westminster: Place = { latitude: 51.4995, longitude: -0.1248 };

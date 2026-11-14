@@ -2,25 +2,28 @@ import { readFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { featureLibFolders } from "../../eslint.config.mjs";
 
 // Every job runs as a run of the import log: inside asRun()
 // (lib/server/import-runs.ts), so that a failure is kept as a failed run and
 // emailed about, and what it reports with problem() has a run to go on.
 // Without it, a failure reaches only Netlify's logs. Every job runs through
-// lib/server/jobs.ts, so this fails on any module it imports, other than the
-// import log's own, that doesn't call asRun.
+// lib/server/jobs.ts, so this fails on any server module it imports (from
+// lib/server/ or a feature's lib/ folder), other than the import log's own,
+// that doesn't call asRun.
 
 const ROOT = join(__dirname, "..", "..");
 const JOBS = "lib/server/jobs.ts";
+const SERVER = ["lib/server", ...featureLibFolders()];
 
-/** The lib/server modules `source`, at `file`, imports, as paths from the root. */
+/** The server modules `source`, at `file`, imports, as paths from the root: lib/server's and the features'. */
 export function serverImports(file: string, source: ts.SourceFile): string[] {
   const found: string[] = [];
   for (const statement of source.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
     const from = statement.moduleSpecifier.text;
     const path = from.startsWith("@/") ? from.slice(2) : from.startsWith(".") ? join(dirname(file), from) : "";
-    if (normalize(path).startsWith("lib/server/")) found.push(`${normalize(path)}.ts`);
+    if (SERVER.some((folder) => normalize(path).startsWith(`${folder}/`))) found.push(`${normalize(path)}.ts`);
   }
   return found;
 }
@@ -30,17 +33,19 @@ function parse(file: string, text: string): ts.SourceFile {
 }
 
 describe("jobs", () => {
-  it("reads a module's lib/server imports, by alias or relative to it", () => {
+  it("reads a module's server imports, by alias or relative to it", () => {
     const code = `
       import "server-only";
       import { NextResponse } from "next/server";
       import { isCronRequest } from "@/lib/server/cron";
       import { importLuma } from "./luma-import";
+      import { tagEvents } from "@/lib/events/tagging";
       import { NIGHTLY } from "@/lib/import-runs";
       import { found } from "../found";`;
     expect(serverImports("lib/server/jobs.ts", parse("jobs.ts", code))).toEqual([
       "lib/server/cron.ts",
       "lib/server/luma-import.ts",
+      "lib/events/tagging.ts",
     ]);
   });
 
@@ -51,7 +56,7 @@ describe("jobs", () => {
 
   it("every job runs as a run of the import log", () => {
     const modules = serverImports(JOBS, parse(JOBS, readFileSync(join(ROOT, JOBS), "utf8")));
-    expect(modules).toContain("lib/server/luma-import.ts");
+    expect(modules).toContain("lib/events/luma-import.ts");
     const outside = modules.filter(
       (module) =>
         module !== "lib/server/import-runs.ts" && !readFileSync(join(ROOT, module), "utf8").includes("asRun("),

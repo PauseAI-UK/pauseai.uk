@@ -305,7 +305,7 @@ const PAGE_REDIRECT = {
 // lib/email-parsing/, and components/. Of the folders beside theirs, they
 // may import only those. Their tests and gallery examples may reach across.
 const STAFF_COMPONENTS = "app/(staff)/staff/_components";
-export const FEATURES = { accounts: [] };
+export const FEATURES = { accounts: [], events: ["accounts"] };
 /** Each feature's folder of logic, lib/<feature>, where its server code is, beside lib/server/. */
 export const featureLibFolders = () => Object.keys(FEATURES).map((feature) => `lib/${feature}`);
 // lib/'s folders that every feature stands on.

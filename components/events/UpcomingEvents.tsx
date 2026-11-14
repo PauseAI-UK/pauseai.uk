@@ -1,6 +1,6 @@
 import EventsSection from "./EventsSection";
 import EventList from "./EventList";
-import type { LumaEvent } from "@/lib/events";
+import type { LumaEvent } from "@/lib/site-events";
 import { site } from "@/lib/content/site";
 
 // The next few events from the Luma calendar.

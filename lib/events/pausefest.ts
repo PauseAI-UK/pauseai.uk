@@ -1,7 +1,7 @@
 import "server-only";
 import { pausefest, type FestLive } from "@/lib/content/pausefest";
 import { timeRange } from "@/lib/time-range";
-import { getPublicEvent } from "./outside-services/luma-public";
+import { getPublicEvent } from "@/lib/server/outside-services/luma-public";
 
 /**
  * What Luma says of each of PauseFest's events, by its Luma ID, asked all at

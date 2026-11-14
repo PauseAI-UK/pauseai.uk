@@ -12,7 +12,7 @@ import { submitLetter } from "./mp-letters";
 import { letterReply, saveLetterReply } from "./outside-services/blobs";
 import { eraseSupporter } from "./erasure";
 import { recordOptOut } from "./opt-outs";
-import { importLuma } from "./luma-import";
+import { importLuma } from "@/lib/events/luma-import";
 import { importCivicrm } from "./civicrm-import";
 import { linkSupporters } from "./supporters";
 

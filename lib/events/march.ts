@@ -1,8 +1,8 @@
 import "server-only";
-import { config } from "./config";
+import { config } from "@/lib/server/config";
 import type { FeaturedGuest } from "@/lib/going";
-import { getEventGuestCount } from "./outside-services/luma-guests";
-import { getEventGoing } from "./outside-services/luma-public";
+import { getEventGuestCount } from "@/lib/server/outside-services/luma-guests";
+import { getEventGoing } from "@/lib/server/outside-services/luma-public";
 
 // The march's Luma event: the one the sign-up registers people for, and
 // whose guests it counts.

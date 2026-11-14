@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tagsForEvent } from "./event-tags";
+import { tagsForEvent } from "./tags";
 
 const TAGS = ["Big events", "Cambridge", "London", "Online", "Oxford", "Scotland", "West of England"];
 

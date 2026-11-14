@@ -1,5 +1,4 @@
-import { staffCopy } from "@/lib/content/staff-interface";
-import type { StaffEvent } from "@/lib/server/staff-events";
+import type { StaffEvent } from "@/lib/events/staff-events";
 import {
   EVENT_LIST_SHOWS,
   eventListColumns,
@@ -10,20 +9,21 @@ import {
   type EventGrouping,
   type EventList,
   type EventsFound,
-} from "@/lib/staff-events-list";
+} from "@/lib/events/list";
 import { among } from "@/lib/list-params";
 import type { EventsSearch } from "@/lib/staff-search";
-import AlertIcon from "./AlertIcon";
+import AlertIcon from "../AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
 import EventsTable, { Missing } from "./EventsTable";
-import Empty from "./ui/Empty";
-import ExternalLink from "./ui/ExternalLink";
-import Grid, { Card, Column } from "./ui/Grid";
-import Rows, { Row } from "./ui/Rows";
+import Empty from "../ui/Empty";
+import ExternalLink from "../ui/ExternalLink";
+import Grid, { Card, Column } from "../ui/Grid";
+import Rows, { Row } from "../ui/Rows";
 import { londonDate } from "@/lib/staff-time";
 import styles from "./EventColumns.module.css";
+import { eventsCopy } from "@/lib/events/copy";
 
-const copy = staffCopy.events;
+const copy = eventsCopy.events;
 
 /**
  * What a line says beyond its list's heading. By owner: its tags, or its city,

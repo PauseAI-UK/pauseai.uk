@@ -9,7 +9,7 @@ import { COUNTRIES } from "@/lib/politician-filters";
 import { query } from "@/lib/server/db";
 import type { Backend, ProblemKind, Purpose } from "@/lib/server/email";
 import type { EntryLuma } from "@/lib/server/form-entries";
-import { GUEST_STATUSES, type ImportList } from "@/lib/server/luma-import";
+import { GUEST_STATUSES, type ImportList } from "@/lib/events/luma-import";
 import type { mailingChannel } from "@/lib/server/mailing-channels";
 import type { MailingState } from "@/lib/server/mailing-drafts";
 import type { SkipReason } from "@/lib/server/mailings";

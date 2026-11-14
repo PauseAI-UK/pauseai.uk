@@ -2,15 +2,15 @@
 
 import Image from "next/image";
 import { useEffect, useState, type ReactNode } from "react";
-import type { LumaEvent } from "@/lib/events";
-import { formatEventDate, formatEventTime } from "@/lib/events";
+import type { LumaEvent } from "@/lib/site-events";
+import { formatEventDate, formatEventTime } from "@/lib/site-events";
 import { isAllowedEventImage } from "@/lib/event-image-hosts";
 import { Button } from "@/components/ui/Button";
 import styles from "./EventList.module.css";
 
 function getDateStr(d: Date, tz: string): string {
   // An unrecognised IANA timezone throws RangeError here; fall back rather
-  // than crashing the render (see lib/events.ts formatEventDate).
+  // than crashing the render (see lib/site-events.ts formatEventDate).
   try {
     return d.toLocaleDateString("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
   } catch {

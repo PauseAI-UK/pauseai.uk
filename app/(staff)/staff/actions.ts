@@ -9,16 +9,7 @@ import { runJob } from "@/lib/server/jobs";
 import { actionRequest } from "@/lib/site-url";
 import { now } from "@/lib/now";
 import { erasedPath, staffBack } from "@/lib/staff-search";
-import {
-  askFrom,
-  eraseFrom,
-  eventFrom,
-  idFrom,
-  noteEditFrom,
-  noteFrom,
-  statusFrom,
-  unblockFrom,
-} from "@/lib/staff-forms";
+import { askFrom, eraseFrom, idFrom, noteEditFrom, noteFrom, statusFrom, unblockFrom } from "@/lib/staff-forms";
 import { chosen, optOutChoices } from "@/lib/opt-out-choices";
 import { offCalendarAfter } from "@/lib/server/email-settings";
 import { recordStaffOptOut } from "@/lib/server/opt-outs";
@@ -35,7 +26,6 @@ import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/not
 import { setStatus } from "@/lib/server/politicians";
 import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@/lib/server/politician-aliases";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
-import { type EventSaved, setEventDoc, setEventOwner } from "@/lib/server/staff-events";
 
 /** The form on a politician's page: sets their answer to an ask, dated today, or clears it, with its note of how we know. */
 export async function setAskStatus(form: FormData): Promise<void> {
@@ -53,22 +43,6 @@ export async function setAskStatus(form: FormData): Promise<void> {
   revalidatePath(`/staff/politicians/${parsed.politicianId}`);
   // A mailing's counts, and its letters' pages, where the answer can be set too.
   revalidatePath("/staff/mailings", "layout");
-}
-
-/**
- * An event's edit form on the events page: makes the staff member chosen
- * its owner, which emails them and the owner before, and sets or clears its
- * Google Doc. Any staff member can. Returns whom it emailed, and the new
- * owner, for the page to say so.
- */
-export async function saveEventNow(form: FormData): Promise<EventSaved> {
-  const { email } = await requireStaff();
-  const parsed = eventFrom(form);
-  if (!parsed) return { emailed: [], owner: null };
-  const emailed = parsed.owner ? await setEventOwner(parsed.eventId, parsed.owner, email) : undefined;
-  const doc = await setEventDoc(parsed.eventId, parsed.doc, email);
-  if (emailed || doc) revalidatePath("/staff/events");
-  return { emailed: emailed ?? [], owner: parsed.owner };
 }
 
 /** A marker's button in a politician's band: turns it on or off. */

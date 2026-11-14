@@ -501,7 +501,7 @@ guest. It shows how many Luma has approved beside the hero's button and in
 the form's corner. It needs `LUMA_API_KEY`, from the calendar that owns the
 event (Luma Plus).
 
-The event is `MARCH_EVENT_ID` in `lib/server/march-event.ts`. That's the
+The event is `MARCH_EVENT_ID` in `lib/events/march.ts`. That's the
 event's API ID (`evt-…`). To find one, open the event's manage page on
 Luma: the ID is in the address (`luma.com/event/manage/evt-…`). The live
 site registers people for the march's event. Other deploys register them

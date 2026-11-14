@@ -1,6 +1,6 @@
 import "server-only";
 import { normalisePostcode } from "@/lib/email-your-mp";
-import type { Place } from "@/lib/events";
+import type { Place } from "@/lib/site-events";
 import { TEST_MPS } from "@/lib/test-mps";
 import { findMpInOffice, findTestMp, type FoundMp } from "./politicians";
 import { constituencyForPostcode } from "./outside-services/postcodes";

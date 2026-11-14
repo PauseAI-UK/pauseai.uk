@@ -2,10 +2,10 @@
 // scheduling and viewing a mailing, and the events list and its editing.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
-import { staffCopy } from "@/lib/content/staff-interface";
-import EventFilters from "@/app/(staff)/staff/_components/EventFilters";
-import { EventGroups, EventsIntro, EventTabs, Missing } from "@/app/(staff)/staff/_components/EventsTable";
-import { exampleEventsTab, exampleStaff } from "@/app/(staff)/staff/_components/EventsTable.examples";
+import { eventColumnsGallery } from "@/app/(staff)/staff/_components/events/EventColumns.gallery";
+import { eventEditGallery } from "@/app/(staff)/staff/_components/events/EventEdit.gallery";
+import { eventFiltersGallery } from "@/app/(staff)/staff/_components/events/EventFilters.gallery";
+import { eventsTableGallery } from "@/app/(staff)/staff/_components/events/EventsTable.gallery";
 import { MailingLetter } from "@/app/(staff)/staff/_components/MailingLetter";
 import { FilterPills } from "@/app/(staff)/staff/_components/MailingParts";
 import {
@@ -15,7 +15,6 @@ import {
   exampleWriterData,
 } from "@/app/(staff)/staff/_components/MailingWriter.examples";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
-import PageHead from "@/app/(staff)/staff/_components/ui/PageHead";
 import type { Group } from "../_components/types";
 import {
   MailingEditorExample,
@@ -26,12 +25,13 @@ import {
   MailingFilesExample,
   MailingForExample,
   MailingsOverviewExample,
-  EventColumnsExample,
-  EventsListExample,
-  EventsTableExample,
   MailingViewExample,
   MailingWriterExample,
 } from "./staff.client";
+
+// The events' examples, in the order the group shows them.
+const [eventsTable, eventTabs, eventGroups, missing, eventsIntro] = eventsTableGallery;
+const [eventsList, eventColumns] = eventColumnsGallery;
 
 export const staffMailingsEvents: Group = {
   id: "staff-mailings-events",
@@ -73,238 +73,15 @@ export const staffMailingsEvents: Group = {
         },
       ],
     },
-    {
-      name: "EventsTable",
-      file: "app/(staff)/staff/_components/EventsTable.tsx",
-      variants: [
-        {
-          label:
-            "Future: one with its Google Doc and three hosts, one linked, one not and one with no name; one with no owner or doc, in red",
-          render: () => (
-            <StaffPage as="div">
-              <EventsTableExample />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Past, latest first: one with no owner or doc, said only, and one taken off Luma",
-          render: () => (
-            <StaffPage as="div">
-              <EventsTableExample params={{ when: "past" }} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Past, sorted by how many are going",
-          render: () => (
-            <StaffPage as="div">
-              <EventsTableExample params={{ when: "past", sort: "going", dir: "desc" }} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Searched by a host's email, whose address isn't shown",
-          render: () => (
-            <StaffPage as="div">
-              <EventsTableExample params={{ q: "john.smith@example" }} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Without the supporters permission: no hosts",
-          render: () => (
-            <StaffPage as="div">
-              <EventsTableExample hosts={false} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Filters that find none",
-          render: () => (
-            <StaffPage as="div">
-              <EventsTableExample params={{ q: "nothing like this" }} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EventTabs",
-      file: "app/(staff)/staff/_components/EventsTable.tsx",
-      variants: [
-        {
-          label: "On Past, with a filter on, which Future keeps too",
-          render: () => (
-            <StaffPage as="div">
-              <EventTabs search={exampleEventsTab({ when: "past", tag: "London" }).search} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EventGroups",
-      file: "app/(staff)/staff/_components/EventsTable.tsx",
-      variants: [
-        {
-          label: "As a table",
-          render: () => (
-            <StaffPage as="div">
-              <EventGroups search={exampleEventsTab().search} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "In lists by owner",
-          render: () => (
-            <StaffPage as="div">
-              <EventGroups search={exampleEventsTab({ group: "owner" }).search} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EventsList",
-      file: "app/(staff)/staff/_components/EventColumns.tsx",
-      variants: [
-        {
-          label: "Not online, by owner: what the filters find, in lists, the choice of how at the right of the count",
-          render: () => (
-            <StaffPage as="div">
-              <EventsListExample params={{ group: "owner", place: "!online" }} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Past, by tag: No owner isn't an error once an event's been held",
-          render: () => (
-            <StaffPage as="div">
-              <EventsListExample params={{ when: "past", group: "tag" }} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "Missing",
-      file: "app/(staff)/staff/_components/EventsTable.tsx",
-      variants: [
-        {
-          label: "What an event to come lacks: an error",
-          render: () => (
-            <StaffPage as="div">
-              <Missing needed>{staffCopy.events.noOwner}</Missing>
-            </StaffPage>
-          ),
-        },
-        {
-          label: "What an event past lacks: only said",
-          render: () => (
-            <StaffPage as="div">
-              <Missing needed={false}>{staffCopy.events.noOwner}</Missing>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EventColumns",
-      file: "app/(staff)/staff/_components/EventColumns.tsx",
-      variants: [
-        {
-          label: "By owner: No owner first, in red, each line its tags, or city, or Online; a list folded after five",
-          render: () => (
-            <StaffPage as="div">
-              <EventColumnsExample grouping="owner" />
-            </StaffPage>
-          ),
-        },
-        {
-          label:
-            "By tag: an event in a list for each of its tags, saying its others; places, Big events, Online, No tag",
-          render: () => (
-            <StaffPage as="div">
-              <EventColumnsExample grouping="tag" />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "With no events to come",
-          render: () => (
-            <StaffPage as="div">
-              <EventColumnsExample grouping="owner" none />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EventFilters",
-      file: "app/(staff)/staff/_components/EventFilters.tsx",
-      variants: [
-        {
-          label: "A search typed, a tag, not online, with no owner, and taken off Luma",
-          render: () => (
-            <StaffPage as="div">
-              <EventFilters
-                search={
-                  exampleEventsTab({ q: "social", tag: "Big events", place: "!online", owner: "none", removed: "yes" })
-                    .search
-                }
-                choices={{
-                  staff: exampleStaff,
-                  tags: ["Big events", "London", "Online"],
-                  cities: ["London", "Oxford"],
-                }}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EventsEditing",
-      file: "app/(staff)/staff/_components/EventEdit.tsx",
-      variants: [
-        {
-          label: "In the events table: press an event's Edit for the bubble to change its owner and doc",
-          render: () => (
-            <StaffPage as="div">
-              <EventsTableExample emailed />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EventEdit",
-      file: "app/(staff)/staff/_components/EventEdit.tsx",
-      variants: [
-        {
-          label: "In the events table: press an event's Edit for the bubble to change its owner and doc",
-          render: () => (
-            <StaffPage as="div">
-              <EventsTableExample emailed />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "EventsIntro",
-      file: "app/(staff)/staff/_components/EventsTable.tsx",
-      variants: [
-        {
-          label: "Under the events page's title: what it lists, with our Luma calendar linked",
-          render: () => (
-            <StaffPage as="div">
-              <PageHead intro={<EventsIntro />}>Events</PageHead>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    eventsTable,
+    eventTabs,
+    eventGroups,
+    eventsList,
+    missing,
+    eventColumns,
+    ...eventFiltersGallery,
+    ...eventEditGallery,
+    eventsIntro,
     {
       name: "MailingsOverview",
       file: "app/(staff)/staff/_components/MailingsOverview.tsx",

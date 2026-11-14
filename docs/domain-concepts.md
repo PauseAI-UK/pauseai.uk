@@ -1040,7 +1040,7 @@ their blocked addresses) is an audit log entry.
 
 Where they come from:
 
-- **Luma.** The import (`lib/server/luma-import.ts`) runs every 5 minutes
+- **Luma.** The import (`lib/events/luma-import.ts`) runs every 5 minutes
   and copies:
   - every public event on our calendar, into `luma_events`;
   - each registered guest, into `luma_guests` (phone, a postcode answer,
@@ -1066,7 +1066,7 @@ Where they come from:
 
   The import is the one thing that changes Luma's calendar, and only on
   production. An upcoming event with no tags gets the calendar's tags that
-  its name, city and region clearly say (`lib/event-tags.ts`). Where they
+  its name, city and region clearly say (`lib/events/tags.ts`). Where they
   don't, the notification inbox is asked, once. The import makes no new
   tags.
 
@@ -1152,7 +1152,7 @@ Our events are Luma's, as the import copies them every 5 minutes
 (`luma_events`). The staff interface's events page (`/staff/events`) lists
 our own as a table on two tabs: Future, soonest first, and Past, latest
 first. The table says how many are going, and is sorted and filtered there
-(`lib/staff-events-list.ts`). An event is still to come until midnight in
+(`lib/events/list.ts`). An event is still to come until midnight in
 London on its day, however late it began (`stillToCome()`), so it's on
 Future all that day.
 
@@ -1173,7 +1173,7 @@ it. For a host found on the event's first read, it's dated when the event
 was made on Luma, as Luma doesn't say when someone became a host.
 
 Each event can have one owner on staff
-(`event_owners`, `lib/server/staff-events.ts`), kept apart from
+(`event_owners`, `lib/events/staff-events.ts`), kept apart from
 `luma_events` as only the import writes that. Any staff member can make
 anyone with a staff account an event's owner, from the page, but can't
 take an owner away. One email goes to the new owner, whoever chose them,
@@ -1181,7 +1181,7 @@ copied to the owner before. It says who gave the event to them and from
 whom, and the page says whom it emailed.
 
 At the end of each import, every event still to come with no owner gets one
-by the rules in `lib/event-owners.ts`, written there for now: by the place
+by the rules in `lib/events/owners.ts`, written there for now: by the place
 in its city or Luma tags, or else a default owner. Each owner is emailed
 once, listing the events they were given. Someone the rules name who has no
 staff account gets nothing. The event then stays with no owner, and the page
@@ -1207,7 +1207,7 @@ address has one opt-out in force for each whoever reported it, and its
 source says who did. Three things tell us:
 
 - Luma's `calendar.person.unsubscribed` webhook (`/api/luma/webhook`,
-  `lib/server/luma-webhooks.ts`), at once, keyed by Luma's `Webhook-Id`
+  `lib/events/luma-webhooks.ts`), at once, keyed by Luma's `Webhook-Id`
   so a redelivery changes nothing: a stop to events by email, as the
   calendar's emails are about events. Luma doesn't say whether it was an
   unsubscribe, a block or a spam report. `calendar.person.subscribed`

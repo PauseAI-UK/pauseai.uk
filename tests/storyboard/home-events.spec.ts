@@ -9,7 +9,7 @@ export const section: Section = { name: "Events on the home page", part: "Public
 // The home page's events (app/(site)/_components/HomeEvents.tsx): choosing
 // where to see in-person events near, by postcode, the device's location or
 // a local group, or only the online ones, and a link to a local group's or
-// the online ones (lib/events-url.ts). On the fixture calendar: in person
+// the online ones (lib/site-events-url.ts). On the fixture calendar: in person
 // in London, Manchester, Oxford, Bristol and Leicester, Scotland's with no
 // venue yet, and one online.
 

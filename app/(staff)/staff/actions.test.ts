@@ -25,7 +25,6 @@ import {
   eraseSupporterNow,
   recordOptOutNow,
   setAskStatus,
-  saveEventNow,
   runJobNow,
   setErrorDoneNow,
   unblockAddress,
@@ -78,7 +77,6 @@ describeWithDatabase("staff Server Actions", () => {
       () => addNoteNow(form({ politicianId: String(id), body: "Hi" })),
       () => editNoteNow(form({ id: "1", body: "Hi" })),
       () => deleteNoteNow(form({ id: "1" })),
-      () => saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc: "" })),
       () => addAliasNow(form({ politicianId: String(id), address: "a@example.com" })),
       () => removeAliasNow(form({ politicianId: String(id), address: "a@example.com" })),
       () => recordOptOutNow(form({ supporterId: "1", choice: "email|bulk|a@example.org", how: "Said so" })),
@@ -118,41 +116,6 @@ describeWithDatabase("staff Server Actions", () => {
     expect(await deleteNoteNow(form({ id: "2" }))).toBe(true);
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/supporters/${supporterId}`);
     expect(await bodies()).toEqual([{ body: "Met them twice", written_by: "jo@pauseai.uk" }]);
-  });
-
-  it("saveEventNow sets an event's owner and Google Doc as any staff member, refreshing the page only when either changed", async () => {
-    vi.stubEnv("POSTMARK_SERVER_TOKEN", "server-token");
-    server.use(
-      http.post("https://api.postmarkapp.com/email", () => HttpResponse.json({ ErrorCode: 0, MessageID: "m-1" })),
-    );
-    await query(
-      "INSERT INTO luma_events (id, name, url, start_at, access) VALUES ('evt-1', 'Event', 'evt-1', now() + interval '1 day', 'manage')",
-    );
-    const doc = "https://docs.google.com/document/d/abc/edit";
-    const saved = () => query("SELECT o.owner, d.url FROM event_owners o FULL JOIN event_docs d USING (event_id)");
-    // Jo chose themselves, and is emailed too.
-    expect(await saveEventNow(form({ eventId: "evt-1", owner: "Jo@pauseai.uk", doc }))).toEqual({
-      emailed: ["jo@pauseai.uk"],
-      owner: "jo@pauseai.uk",
-    });
-    expect(await saved()).toEqual([{ owner: "jo@pauseai.uk", url: doc }]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/events");
-
-    // The same again, or a link anywhere else, changes nothing.
-    revalidatePath.mockClear();
-    await saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc }));
-    expect(await saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc: "https://example.com/" }))).toEqual(
-      {
-        emailed: [],
-        owner: null,
-      },
-    );
-    expect(revalidatePath).not.toHaveBeenCalled();
-
-    // Only the doc, cleared, with no owner chosen.
-    await saveEventNow(form({ eventId: "evt-1", owner: "", doc: "" }));
-    expect(await saved()).toEqual([{ owner: "jo@pauseai.uk", url: null }]);
-    expect(revalidatePath).toHaveBeenCalledWith("/staff/events");
   });
 
   it("setAskStatus marks a politician as signed today, with a note, or not, as the logged-in staff member", async () => {

@@ -8,7 +8,7 @@ import { query } from "./db";
 import { getPauseaiLetter, getSupporterLetter } from "./letters";
 import { getPolitician, listParties } from "./politicians";
 import { savedFiltersState } from "./saved-filters";
-import { eventsPage } from "./staff-events";
+import { eventsPage } from "@/lib/events/staff-events";
 import { getSupporter, supporterChoices } from "./supporters";
 
 vi.mock("react", async (original) => ({

@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { site } from "@/lib/content/site";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import EventColumns, { EventsList } from "./EventColumns";
 import type { SaveEvent } from "./EventEdit";
@@ -15,8 +14,11 @@ import {
   exampleEventsToCome,
   exampleStaff,
 } from "./EventsTable.examples";
+import { EventColumnsExample, EventsListExample } from "./EventColumns.gallery.client";
+import { EventsTableExample } from "./EventsTable.gallery.client";
+import { eventsCopy } from "@/lib/events/copy";
 
-const copy = staffCopy.events;
+const copy = eventsCopy.events;
 const noAction: SaveEvent = async () => ({ emailed: [], owner: null });
 
 /** The events table on a tab, with filters as typed (`params`), saving with `save`, its hosts shown only with `hosts`. */
@@ -550,5 +552,61 @@ describe("EventsIntro", () => {
     const { container } = await render(<EventsIntro />);
     expect(container.textContent).toBe(`${copy.intro.before}${copy.intro.link}`);
     await expect.element(page.getByRole("link", { name: copy.intro.link })).toHaveAttribute("href", site.social.luma);
+  });
+});
+
+// The gallery's examples log their Server Actions, not send them: pressing each adds its line to the event log.
+describe("the events' gallery examples", () => {
+  const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
+
+  it("logs an event's save in the lists, or says there are none", async () => {
+    const { unmount } = await render(<EventColumnsExample grouping="owner" />);
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "AI risk talk" })
+      .getByRole("button", { name: copy.edit })
+      .click();
+    const form = page.getByRole("form", { name: copy.editLabel("AI risk talk") });
+    await form.getByLabelText(copy.owner).selectOptions("sean@pauseai.uk");
+    await form.getByRole("button", { name: copy.save }).click();
+    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
+    await unmount();
+    await render(<EventColumnsExample grouping="tag" none />);
+    await expect.element(page.getByText(copy.noneFound)).toBeVisible();
+  });
+
+  it("logs an event's save in the lists of what the filters find", async () => {
+    await render(<EventsListExample params={{ group: "tag" }} />);
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "AI risk talk" })
+      .getByRole("button", { name: copy.edit })
+      .click();
+    const form = page.getByRole("form", { name: copy.editLabel("AI risk talk") });
+    await form.getByLabelText(copy.owner).selectOptions("sean@pauseai.uk");
+    await form.getByRole("button", { name: copy.save }).click();
+    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
+  });
+
+  it("logs an event's save in the table", async () => {
+    await render(<EventsTableExample />);
+    await page.getByRole("row").filter({ hasText: "AI risk talk" }).getByRole("button", { name: copy.edit }).click();
+    const form = page.getByRole("form", { name: copy.editLabel("AI risk talk") });
+    await form.getByLabelText(copy.owner).selectOptions("sean@pauseai.uk");
+    await form.getByRole("button", { name: copy.save }).click();
+    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
+    expect(document.querySelector("[role=status]")!.textContent).toBe("");
+  });
+
+  it("logs an event's save, and says whom it emailed", async () => {
+    await render(<EventsTableExample emailed />);
+    await page.getByRole("row").filter({ hasText: "AI risk talk" }).getByRole("button", { name: copy.edit }).click();
+    const form = page.getByRole("form", { name: copy.editLabel("AI risk talk") });
+    await form.getByLabelText(copy.owner).selectOptions("sean@pauseai.uk");
+    await form.getByRole("button", { name: copy.save }).click();
+    await expect.poll(() => log().nth(0).query()?.textContent).toMatch(/^save\(/);
+    await expect
+      .poll(() => document.querySelector("[role=status]")?.textContent)
+      .toContain(copy.emailed(["sean@pauseai.uk", "joseph@pauseai.uk"], "sean@pauseai.uk"));
   });
 });

@@ -1,16 +1,16 @@
 import "server-only";
-import { config } from "./config";
-import { tagsForEvent, type EventToTag } from "@/lib/event-tags";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { config } from "@/lib/server/config";
+import { tagsForEvent, type EventToTag } from "./tags";
 import { londonStart } from "@/lib/staff-time";
-import { query, type Queryable } from "./db";
-import { notifyStaff, staffLink } from "./notifications";
-import { applyEventTag, listEventTags } from "./outside-services/luma-calendar";
-import { problem } from "./problems";
+import { query, type Queryable } from "@/lib/server/db";
+import { notifyStaff, staffLink } from "@/lib/server/notifications";
+import { applyEventTag, listEventTags } from "@/lib/server/outside-services/luma-calendar";
+import { problem } from "@/lib/server/problems";
+import { eventsCopy } from "./copy";
 
 // Tags our upcoming events on Luma, during the Luma import. Each event is
 // settled once: tagged if it's clear which of the calendar's tags it should
-// have (lib/event-tags.ts), or else the notification inbox is asked to, so a tag
+// have (lib/events/tags.ts), or else the notification inbox is asked to, so a tag
 // someone later takes off stays off. Nothing makes a new tag.
 
 /** The most events a run settles: it has little time, and the next run does the rest. */
@@ -50,7 +50,7 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
     calendarTags = await listEventTags();
     done.requests++;
   } catch (error) {
-    problem(staffCopy.problems.job.lumaTagsUnread, error);
+    problem(eventsCopy.problems.lumaTagsUnread, error);
     return done;
   }
   for (const event of events) {
@@ -64,7 +64,7 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
           await applyEventTag(tag, event.id);
         }
       } catch (error) {
-        problem(staffCopy.problems.job.lumaTagRefused(event.name), error);
+        problem(eventsCopy.problems.lumaTagRefused(event.name), error);
         continue;
       }
       done.tagged++;
@@ -76,14 +76,14 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
 
 /** Asks the notification inbox to tag each event it wasn't clear how to, once. */
 export async function unclearEventEmails(events: UnclearEvent[]): Promise<void> {
-  const copy = staffCopy.events.unclearTagEmail;
+  const copy = eventsCopy.events.unclearTagEmail;
   for (const event of events) {
     await notifyStaff(
       copy.subject(event.name),
       copy.body({
         name: event.name,
         when: londonStart(event.startAt),
-        place: event.city ?? staffCopy.events.online,
+        place: event.city ?? eventsCopy.events.online,
         url: event.url,
         link: staffLink("/staff/events", undefined),
       }),
