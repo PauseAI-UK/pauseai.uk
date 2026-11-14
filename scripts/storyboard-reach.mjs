@@ -67,8 +67,21 @@ export function readByNoFlow(path) {
   return NOTHING.some((re) => re.test(path));
 }
 
-/** Folders of no source: what's built, installed or thrown away. */
-const NOT_SOURCE = new Set(["node_modules", ".git", ".next", ".netlify", "tmp", "test-results", "playwright-report"]);
+/**
+ * Folders of no source: what's built, installed or thrown away. Coverage's
+ * reports among them, which a test run writes and deletes while another
+ * test, such as the import-cycle check, may be reading the repo.
+ */
+const NOT_SOURCE = new Set([
+  "node_modules",
+  ".git",
+  ".next",
+  ".netlify",
+  "tmp",
+  "test-results",
+  "playwright-report",
+  "coverage",
+]);
 const CODE = /\.(tsx?|mts|mjs|jsx?|css|json)$/;
 /** Code that's imported, never read as a file: the rest is data (JSON, pictures, fonts, emails, text). */
 const IMPORTED = /\.(tsx?|mts|mjs|jsx?|css)$/;
