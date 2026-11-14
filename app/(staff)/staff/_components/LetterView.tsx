@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { Ask } from "@/lib/server/asks";
 import type { LetterDetails } from "@/lib/server/letters";
-import type { Politician } from "@/lib/server/politicians";
+import type { Politician } from "@/lib/politicians/records";
 import AskRow, { AskRows } from "./AskRow";
 import CampaignName from "./CampaignName";
 import { historyOf, LetterHistory, letterTitle } from "./LetterHistory";

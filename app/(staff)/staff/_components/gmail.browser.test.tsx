@@ -15,6 +15,7 @@ import {
 } from "./LettersTable.examples";
 import { exampleEditableAsk, exampleImportedThread, exampleThread } from "./LetterThread.examples";
 import { DeleteTwice } from "./DeleteTwice";
+import { politiciansCopy } from "./politicians/copy";
 
 describe("LetterThread", () => {
   const copy = staffCopy.letterThread;
@@ -283,7 +284,9 @@ describe("AskForm", () => {
     await page.getByLabelText(copy.askedBy.supporters).click();
     await page.getByLabelText(copy.askedBy.pauseai).click();
     await expect
-      .element(preview().getByText(`${staffCopy.politician.askedThem(copy.askedBy.supporters, "event")} · 9 Dec 2026`))
+      .element(
+        preview().getByText(`${politiciansCopy.politician.askedThem(copy.askedBy.supporters, "event")} · 9 Dec 2026`),
+      )
       .toBeVisible();
     await expect.element(preview().getByText("Winter reception")).toBeVisible();
     expect(preview().getByRole("link").query()).toBeNull();

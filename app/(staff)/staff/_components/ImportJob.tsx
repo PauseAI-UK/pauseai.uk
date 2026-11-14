@@ -28,6 +28,7 @@ import Tag from "@/components/ui/Tag";
 import Strip from "./ui/Strip";
 import ExternalLink from "./ui/ExternalLink";
 import PageHead from "./ui/PageHead";
+import { politiciansCopy } from "./politicians/copy";
 
 // Every import and check: the overview at /staff/scheduled-jobs, a card each,
 // and each job's own page, with its button and every run it has made.
@@ -93,7 +94,7 @@ const API_DOCS: Record<PoliticianImportJob, string> = {
 
 /** A body's import's description, button and words before its first run, with its API's documentation linked. */
 function politicianImport(job: PoliticianImportJob) {
-  const words = staffCopy.politicianImports;
+  const words = politiciansCopy.politicianImports;
   return {
     intro: words.intros[job],
     href: API_DOCS[job],

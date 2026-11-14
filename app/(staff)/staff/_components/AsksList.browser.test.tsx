@@ -3,8 +3,9 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { exampleAsks, exampleAsksWithCounts } from "./PoliticianTable.examples";
+import { exampleAsks, exampleAsksWithCounts } from "./politicians/PoliticianTable.examples";
 import AsksList from "./AsksList";
+import { politiciansCopy } from "./politicians/copy";
 
 describe("AsksList", () => {
   const lozenge = (status: string, n: number) => `${n} ${status.toLocaleLowerCase("en-GB")}`;
@@ -25,7 +26,7 @@ describe("AsksList", () => {
     const text = (title: string) => row(title).element().textContent;
     // Its date, who asked them to do what, its answers in the kind's order, and how it stands.
     const first = text(exampleAsks[0].title);
-    expect(first).toContain(staffCopy.politician.askedThem(copy.askedBy.pauseai, "event"));
+    expect(first).toContain(politiciansCopy.politician.askedThem(copy.askedBy.pauseai, "event"));
     expect(first).toContain(`20 ${copy.page.replied}`);
     expect(first).toContain(`40 ${copy.page.lettersWord(40)}`);
     expect(first).toContain(
@@ -45,7 +46,7 @@ describe("AsksList", () => {
     ).not.toContain("/staff/campaigns/open-letter");
     // No date; asked by both, and each campaign and mailing that asked it leads to its own page.
     expect(text(exampleAsks[3].title)).toContain(
-      staffCopy.politician.askedThem(`${copy.askedBy.supporters} and ${copy.askedBy.pauseai}`, "letter"),
+      politiciansCopy.politician.askedThem(`${copy.askedBy.supporters} and ${copy.askedBy.pauseai}`, "letter"),
     );
     expect(
       row(exampleAsks[3].title)

@@ -395,6 +395,10 @@ app/(staff)/staff/_components/
                       opt-out, and importing paper sign-ups
   erasure/            erasing a supporter: the link on their page, its
                       form, and the notice after
+  politicians/        the politicians list, its filters, icons and tick
+                      boxes, pasting names, a politician's page: their
+                      details, marks, writing to them, addresses and
+                      correspondence
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -417,6 +421,13 @@ lib/
   erasure/            erasing a supporter, from every table that holds
                       them: above supporters and letters, which it erases
                       from, so neither stands on it
+  politicians/        politicians and staff's edits of them, their
+                      addresses and aliases, correspondence and email
+                      counts, the list's filters, finding an MP by
+                      postcode, the imports of each body's members and
+                      the readers of its list, constituencies, salutations,
+                      Wikidata, official profiles, party colours and the
+                      test MPs
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures

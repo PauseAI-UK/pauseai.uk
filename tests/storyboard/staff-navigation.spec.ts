@@ -8,6 +8,7 @@ import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
 
@@ -111,7 +112,7 @@ test("Following a sidebar link", async ({ page, flowDatabase }) => {
   const release = await lockTable(flowDatabase, "asks");
   await asks.filter({ visible: true }).click();
   await expect(asks.filter({ visible: true })).toHaveAttribute("data-pending", "true");
-  await expect(page.getByRole("heading", { level: 1, name: staffCopy.politicians.title })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: politiciansCopy.politicians.title })).toBeVisible();
   await expect.poll(() => loadingLine(page)).toBe(true);
   await frame(page, "Asks, on its way");
   story("Then the Asks page arrives.");
@@ -174,15 +175,15 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/politicians`);
   await page.getByRole("link", { name: "Polly Placeholder" }).click();
-  await page.getByRole("button", { name: staffCopy.politician.otherAsk }).click();
+  await page.getByRole("button", { name: politiciansCopy.politician.otherAsk }).click();
   await page
-    .getByRole("list", { name: staffCopy.politician.otherAsk })
+    .getByRole("list", { name: politiciansCopy.politician.otherAsk })
     .getByRole("button", { name: PM_LETTER })
     .click();
   const letter = page.getByRole("group", { name: PM_LETTER });
   await letter.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
-  await letter.getByLabel(staffCopy.politician.note).fill("They emailed");
-  await letter.getByRole("button", { name: staffCopy.politician.save }).click();
+  await letter.getByLabel(politiciansCopy.politician.note).fill("They emailed");
+  await letter.getByRole("button", { name: politiciansCopy.politician.save }).click();
   await expect(letter.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.signed}`));
 
   // One signed this week: the tile is their page.
@@ -207,7 +208,9 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
     .filter({ hasText: staffCopy.home.dashboard.metrics.politiciansAgreed(2) })
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians?agreed=7&status=any&sort=asks`);
-  await expect(page.getByRole("button", { name: new RegExp(`^${staffCopy.politicians.agreedIn}`) })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: new RegExp(`^${politiciansCopy.politicians.agreedIn}`) }),
+  ).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Polly Placeholder" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Testy McTestface MP" })).toHaveCount(0);
   await frame(page, "Everyone who agreed");
@@ -221,13 +224,13 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: "Testy McTestface MP" }).click();
   // Their name, tagged as a test MP, and what they are; nothing in their history yet.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Testy McTestface MP");
-  await expect(page.getByText(staffCopy.politicians.flags.test, { exact: true })).toBeVisible();
+  await expect(page.getByText(politiciansCopy.politicians.flags.test, { exact: true })).toBeVisible();
   await expect(
-    page.getByText(staffCopy.politician.role(staffCopy.politician.roles.commons, "Testshire", true)),
+    page.getByText(politiciansCopy.politician.role(politiciansCopy.politician.roles.commons, "Testshire", true)),
   ).toBeVisible();
-  await expect(page.getByText(staffCopy.politician.sources.test)).toBeVisible();
-  await page.getByRole("heading", { name: staffCopy.politician.historyTitle }).click();
-  await expect(page.getByText(staffCopy.politician.noHistory)).toBeVisible();
+  await expect(page.getByText(politiciansCopy.politician.sources.test)).toBeVisible();
+  await page.getByRole("heading", { name: politiciansCopy.politician.historyTitle }).click();
+  await expect(page.getByText(politiciansCopy.politician.noHistory)).toBeVisible();
   await frame(page, "The test MP's page");
   story(
     "The link above their name goes back to the politicians list. Clicking Constituency twice sorts the list by constituency, Z to A.",
@@ -263,7 +266,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   const politicians = page.getByRole("link", { name: shellCopy.nav.politicians, exact: true });
   if (!(await politicians.first().isVisible())) await page.locator("nav details > summary").click();
   await politicians.filter({ visible: true }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.politicians.title);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(politiciansCopy.politicians.title);
   // The test politicians are left out until the Marked filter asks for them.
   await expect(page.getByRole("link", { name: "Polly Placeholder" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Testy McTestface MP" })).toHaveCount(0);
@@ -278,16 +281,16 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await expect(card).toHaveCount(0);
   await frame(page, "Polly Placeholder's page");
   story("Add another answer opens a form for the Frontier AI letter. They choose Signed, with a note of how we know.");
-  await page.getByRole("button", { name: staffCopy.politician.otherAsk }).click();
+  await page.getByRole("button", { name: politiciansCopy.politician.otherAsk }).click();
   await page
-    .getByRole("list", { name: staffCopy.politician.otherAsk })
+    .getByRole("list", { name: politiciansCopy.politician.otherAsk })
     .getByRole("button", { name: PM_LETTER })
     .click();
   await card.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
-  await card.getByLabel(staffCopy.politician.note).fill("Told us at the march");
+  await card.getByLabel(politiciansCopy.politician.note).fill("Told us at the march");
   await frame(page, "The answer's form");
   story("Saved, her page shows she signed, with the note.");
-  await card.getByRole("button", { name: staffCopy.politician.save }).click();
+  await card.getByRole("button", { name: politiciansCopy.politician.save }).click();
   await expect(card.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.signed}`));
   await expect(card.getByText(/Told us at the march/)).toBeVisible();
   await frame(page, "Polly Placeholder, signed");
@@ -335,7 +338,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   story("Parliament's import runs again, and finds nothing has changed since the politicians were imported.");
 
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  await page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] }).click();
+  await page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }).click();
   await expect(page.getByText(staffCopy.runs.status.unchanged, { exact: true }).first()).toBeVisible();
   await frame(page, "Parliament's import");
   story("They log out (on a phone, from the menu), and the staff pages ask them to log in again.");

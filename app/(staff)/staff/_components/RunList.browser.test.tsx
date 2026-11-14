@@ -28,6 +28,7 @@ import {
   exampleTidyingResult,
 } from "./RunList.examples";
 import { action, press } from "@/tests/browser/staff";
+import { politiciansCopy } from "./politicians/copy";
 
 const ran = exampleRun;
 
@@ -55,7 +56,7 @@ describe("RunList", () => {
 
   it("lists each import's changes, and lets a held one be applied or discarded", async () => {
     const { fn, sent } = action();
-    const words = staffCopy.politicianImports;
+    const words = politiciansCopy.politicianImports;
     await render(<RunList runs={[heldImport, applied]} none="None" decide={fn} />);
     await expect.element(page.getByText(staffCopy.runs.status.held)).toBeVisible();
     await expect
@@ -66,7 +67,7 @@ describe("RunList", () => {
     await expect.element(page.getByText("Manchester Centre: Mo Example")).toBeVisible();
     await expect.element(page.getByText("Ipswich: Sam Newcomer", { exact: true })).toBeVisible();
     await expect
-      .element(page.getByText(`${staffVocabulary.houses.lords}: Lord Example (${staffCopy.politicians.noEmail})`))
+      .element(page.getByText(`${staffVocabulary.houses.lords}: Lord Example (${politiciansCopy.politicians.noEmail})`))
       .toBeVisible();
     await expect.element(page.getByText("Old Seat: Rita Retired")).toBeVisible();
     await expect.element(page.getByText("Polly Placeholder: party")).toBeVisible();
@@ -99,9 +100,9 @@ describe("RunList", () => {
     const folds = page.getByRole("group").all();
     expect(folds.map((fold) => (fold.element() as HTMLDetailsElement).open)).toEqual([true, false]);
     await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).not.toBeVisible();
-    await expect.element(page.getByRole("button", { name: staffCopy.politicianImports.apply })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: politiciansCopy.politicianImports.apply })).toBeVisible();
     await page
-      .getByText(staffCopy.politicianImports.result({ added: 6, changed: 0, left: 0 }), { exact: false })
+      .getByText(politiciansCopy.politicianImports.result({ added: 6, changed: 0, left: 0 }), { exact: false })
       .click();
     await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).toBeVisible();
   });
@@ -331,7 +332,7 @@ describe("RunList", () => {
       failed("import-parliament", "Parliament returned 500", { id: 1 }),
     ];
     await render(<RunList runs={runs} none="None" />);
-    const words = staffCopy.politicianImports;
+    const words = politiciansCopy.politicianImports;
     await expect.element(page.getByText(words.vacant(1), { exact: false })).toBeVisible();
     await expect.element(page.getByText(`${words.noMp} (1)`)).toBeVisible();
     await expect.element(page.getByText("Runcorn and Helsby")).toBeVisible();
@@ -340,7 +341,7 @@ describe("RunList", () => {
 
   it("says what relinking the one-off emails did after an import, and the quotes it read and has still to read", async () => {
     const relinked = { read: 0, unread: 0, linked: 3, unlinked: 1, offices: 2 };
-    const words = staffCopy.politicianImports;
+    const words = politiciansCopy.politicianImports;
     const run = (r: typeof relinked) => ran("import-senedd", { changes: exampleImportResult.changes, relinked: r });
     const { rerender } = await render(<RunList none="None" runs={[run(relinked)]} />);
     await expect.element(page.getByText(words.relinked(relinked), { exact: false })).toBeVisible();
@@ -401,7 +402,7 @@ describe("RunList", () => {
       failed("import-parliament", "Parliament answered 503", { id: 1, startedBy: null }),
     ];
     await render(<RunList runs={runs} none="None" />);
-    const did = staffCopy.politicianImports.result({ added: 0, changed: 0, left: 0 });
+    const did = politiciansCopy.politicianImports.result({ added: 0, changed: 0, left: 0 });
     for (const words of [did, staffCopy.runs.error("Parliament answered 503")]) {
       await expect.element(page.getByText(words, { exact: false })).toBeVisible();
     }

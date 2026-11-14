@@ -1,7 +1,7 @@
 // Postmark's webhooks, as they post to a fixture build, and the test MP
 // whose address bounces.
 import { expect, type APIRequestContext } from "@playwright/test";
-import { TEST_MPS } from "@/lib/test-mps";
+import { TEST_MPS } from "@/lib/politicians/test-mps";
 import { BASE } from "./fixtures";
 
 /** Basic auth for the Postmark webhooks, as a fixture build is configured. */

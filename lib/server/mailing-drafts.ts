@@ -21,7 +21,7 @@ import { transition } from "./letter-lifecycle";
 import { gmailEmail, mailingChannel, postmarkEmail, type ChannelResult } from "./mailing-channels";
 import { politicianAudience, type PoliticianRecipient } from "./mailing-recipients";
 import type { Attachment } from "./outside-services/postmark";
-import { mailingPoliticians } from "./politicians";
+import { mailingPoliticians } from "@/lib/politicians/records";
 import { politiciansSearch } from "@/lib/staff-search";
 import { storedFilter, type Picked, type StoredFilter } from "@/lib/staff-search";
 import { type Params } from "@/lib/list-params";

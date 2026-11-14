@@ -1,7 +1,7 @@
 // The import log's types, shared by the server (lib/server/import-runs.ts)
 // and the staff components that show a run (app/(staff)/staff/_components/Run.tsx).
 import type { ControlAiMatchProblem } from "./controlai-letter";
-import type { Ending, ImportChanges, OfficialMember } from "./politician-import";
+import type { Ending, ImportChanges, OfficialMember } from "@/lib/politicians/import-changes";
 
 /**
  * How often a job runs on its own: every 5 minutes, every 15, hourly or
@@ -95,7 +95,7 @@ export type ImportRun<Job extends ImportJob, Result> = {
  */
 export type Relinked = { read: number; unread: number; linked: number; unlinked: number; offices: number };
 
-/** The imports of each body's members (lib/server/politician-import.ts). */
+/** The imports of each body's members (lib/politicians/imports.ts). */
 export type PoliticianImportJob =
   "import-parliament" | "import-scottish-parliament" | "import-senedd" | "import-ni-assembly";
 
@@ -239,7 +239,7 @@ export type NotUnderstood = { gmailMessageId: string; from: string; subject: str
 
 /**
  * What searching the mailboxes for addresses staff added to politicians' did
- * (lib/server/politician-aliases.ts): how many it searched for, the messages
+ * (lib/politicians/aliases.ts): how many it searched for, the messages
  * it kept, how many are left for the next run, and whether it stopped as its
  * time ran out. A failure is a problem of the run (problems.ts).
  */

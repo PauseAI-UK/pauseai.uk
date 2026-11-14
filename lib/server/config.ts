@@ -68,7 +68,7 @@ export const config = {
   get notificationInbox(): string | undefined {
     return address(process.env.NOTIFICATION_INBOX);
   },
-  /** Where the test MPs' letters go (lib/server/politician-import.ts). */
+  /** Where the test MPs' letters go (lib/politicians/imports.ts). */
   get testMpEmail(): string | undefined {
     return address(process.env.TEST_MP_EMAIL);
   },

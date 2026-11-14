@@ -67,6 +67,7 @@ import {
   ErrorSeenViewExample,
   ChangesFiltersExample,
 } from "./staff.client";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 /** A body's import, as its page shows it: what it changed, and what relinking the one-off threads did. */
 const importRun = (job: PoliticianImportJob, label: string): Variant => ({
@@ -769,10 +770,10 @@ export const staffAdmin: Group = {
                 actions={
                   <>
                     <Button variant="primary" size="small" fit>
-                      {staffCopy.politicianImports.apply}
+                      {politiciansCopy.politicianImports.apply}
                     </Button>
                     <Button variant="ghost" size="small" fit>
-                      {staffCopy.politicianImports.discard}
+                      {politiciansCopy.politicianImports.discard}
                     </Button>
                   </>
                 }

@@ -1,7 +1,7 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 import { copy } from "@/lib/content/email-your-mp";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { TEST_MPS } from "@/lib/test-mps";
+import { TEST_MPS } from "@/lib/politicians/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { fillLetter, letterIdOf, lookUpTestMp, sentLetterId } from "./letter-steps";
 import {

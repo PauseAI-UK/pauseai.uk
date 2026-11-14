@@ -395,7 +395,7 @@ bars, but with no ticks. There the filters say who, and the button at the
 foot keeps the filters for the draft (`ChoosingBroadcastFrame` in
 `_components/BroadcastSupporters.tsx`). A new choosing mode uses these two
 bars too, not a design of its own. The mailing's bars are in
-`_components/PoliticiansList.tsx`, and the broadcast's bars share its
+`_components/politicians/PoliticiansList.tsx`, and the broadcast's bars share its
 stylesheet.
 
 **The grid** (`ui/Grid`). The grid has six columns when it's at least

@@ -1,15 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { render } from "vitest-browser-react";
-import { page } from "vitest/browser";
 import { type DownloadColumn } from "@/lib/staff-list";
 import { staffCopy } from "@/lib/content/staff-interface";
-import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { supportersCopy } from "@/lib/supporters/copy";
 import { blockColumns } from "./EmailBlocksTable";
 import { exampleBlock, exampleComplaint, exampleGmailBlock } from "./EmailBlocksTable.examples";
-import { politicianWords } from "./PoliticianFilters";
-import PoliticianTable, { politicianColumns, politicianContact } from "./PoliticianTable";
-import { exampleAsks, examplePolitician, emptyPoliticiansSearch } from "./PoliticianTable.examples";
 
 describe("each list's download values and contact cards", () => {
   const values = <Row,>(columns: DownloadColumn<Row>[], row: Row) =>
@@ -34,75 +28,5 @@ describe("each list's download values and contact cards", () => {
     expect(values(columns, exampleGmailBlock).reason).toBe(
       `${exampleGmailBlock.reason} (${staffCopy.emails.from.gmail})`,
     );
-  });
-
-  it("politicians: every column, and as cards, with what they have", async () => {
-    const rows = [
-      {
-        ...examplePolitician,
-        firstActivityAt: new Date("2026-09-01T00:00:00Z"),
-        lastActivityAt: new Date("2026-10-01T00:00:00Z"),
-      },
-      {
-        ...examplePolitician,
-        id: 8,
-        constituency: null,
-        house: "lords" as const,
-        email: null,
-        party: "",
-        country: null,
-        status: "retired" as const,
-      },
-    ];
-    // The Nation filter leaving one out adds their nation, after the constituency.
-    const byNation = politicianColumns(exampleAsks, { status: "any", nation: ["!scotland"] });
-    const keys = byNation.map((c) => c.key);
-    expect(keys.indexOf("country")).toBe(keys.indexOf("constituency") + 1);
-    const nation = byNation.find((c) => c.key === "country")!;
-    expect(nation.text!(rows[0])).toBe(staffVocabulary.countries[examplePolitician.country!]);
-    expect(nation.cell(rows[0])).toBe(staffVocabulary.countries[examplePolitician.country!]);
-    expect(nation.text!(rows[1])).toBeNull();
-    const columns = politicianColumns(exampleAsks, { status: "any" });
-    expect(values(columns, rows[0])).toMatchObject({
-      house: staffVocabulary.houses.commons,
-      party: examplePolitician.party,
-      status: staffVocabulary.personStatuses.in_office,
-      constituency: examplePolitician.constituency,
-      emailsToThem: 4,
-      emailsFromThem: 1,
-      first: new Date("2026-09-01T00:00:00Z"),
-      active: new Date("2026-10-01T00:00:00Z"),
-    });
-    // The markers in words, each one they have; none for one with none.
-    const { flags } = staffCopy.politicians;
-    const marked = {
-      ...rows[0],
-      importantTarget: true,
-      personalConnection: true,
-      isTest: true,
-    };
-    expect(values(columns, marked).marked).toBe(`${flags.important}; ${flags.connection}; ${flags.test}`);
-    expect(values(columns, { ...rows[0], importantTarget: false }).marked).toBe("");
-    // On the page, the days of their first and last activity; none for one without.
-    await render(<PoliticianTable politicians={rows} asks={exampleAsks} search={{ status: "any" }} />);
-    await expect.element(page.getByRole("cell", { name: "1 Sept 2026" })).toBeVisible();
-    await expect.element(page.getByRole("cell", { name: "1 Oct 2026" })).toBeVisible();
-    expect(String(values(columns, rows[0]).asks)).toContain(": ");
-    const card = politicianContact(exampleAsks);
-    expect(card(rows[0])).toMatchObject({ emails: [examplePolitician.email], title: examplePolitician.party });
-    const { emailsToThem, emailsFromThem } = staffCopy.politicians.columns;
-    expect(card(rows[0]).note).toEqual(expect.arrayContaining([`${emailsToThem}: 4`, `${emailsFromThem}: 1`]));
-    expect(card(rows[1])).toMatchObject({ emails: [], title: null, address: { country: null } });
-  });
-});
-
-describe("the lists' filters in words, for their titles", () => {
-  it("says the politicians' house first, or nothing for all of them", () => {
-    const parties = ["Labour"];
-    expect(politicianWords({ ...emptyPoliticiansSearch, house: "lords", party: ["Labour"] }, parties, [])).toEqual([
-      staffVocabulary.houses.lords,
-      `${staffVocabulary.fields.party}: Labour`,
-    ]);
-    expect(politicianWords(emptyPoliticiansSearch, parties, [])).toEqual([""]);
   });
 });

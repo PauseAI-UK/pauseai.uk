@@ -5,11 +5,12 @@ import type { Ask } from "@/lib/server/asks";
 import { staffDate } from "@/lib/staff-time";
 import AnswerWord from "./AnswerWord";
 import styles from "./Details.module.css";
+import { politiciansCopy } from "./politicians/copy";
 
 /** Who asked and what, as a politician's page says it. */
 export function askedLine(ask: Pick<Ask, "askedBy" | "kind">): string {
   const who = new Intl.ListFormat("en-GB").format(ask.askedBy.map((asker) => staffCopy.asks.askedBy[asker]));
-  return staffCopy.politician.askedThem(who, ask.kind);
+  return politiciansCopy.politician.askedThem(who, ask.kind);
 }
 
 /** Who asked and what, and when, if we know. */

@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { copy } from "@/lib/content/email-your-mp";
 import { recordProblem } from "@/lib/server/email";
-import { setStatus } from "@/lib/server/politicians";
+import { setStatus } from "@/lib/politicians/records";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { POST } from "./route";
 

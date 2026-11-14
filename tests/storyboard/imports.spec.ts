@@ -16,6 +16,7 @@ import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
 
@@ -274,7 +275,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   // The import, twice: its page lists both runs, under the day's heading, and none of the other bodies'.
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  const run = page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] });
+  const run = page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] });
   const unchanged = page.getByText(staffCopy.runs.status.unchanged, { exact: true });
   await run.click();
   await expect(unchanged).toHaveCount(1);
@@ -382,7 +383,7 @@ test("A held politician import", async ({ page, request, flowDatabase }) => {
   story("The import's page shows the run held, with what it would change.");
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  const words = staffCopy.politicianImports;
+  const words = politiciansCopy.politicianImports;
   await expect(page.getByRole("button", { name: words.apply })).toBeVisible();
   await expect(page.getByText(`${words.left} (21)`).first()).toBeVisible();
   await expect(page.getByText("Gone 1: Gone McTestface 1 MP")).toBeAttached();
@@ -431,8 +432,8 @@ test("A held rename", async ({ page, request, flowDatabase }) => {
   runSql(flowDatabase, "UPDATE notable_people SET name = 'Penny Previous' WHERE name = 'Polly Placeholder'");
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  await page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] }).click();
-  await expect(page.getByRole("button", { name: staffCopy.politicianImports.apply })).toBeVisible();
+  await page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }).click();
+  await expect(page.getByRole("button", { name: politiciansCopy.politicianImports.apply })).toBeVisible();
   await expect(page.getByText("Penny Previous → Polly Placeholder")).toBeVisible();
   await frame(page, "The import, held");
 });

@@ -36,7 +36,7 @@ import {
   unlessGone,
   type GmailMessageHeaders,
 } from "./outside-services/gmail";
-import { connectedAccounts, politicianBook } from "./politician-book";
+import { connectedAccounts, politicianBook } from "@/lib/politicians/book";
 import { problem } from "./problems";
 import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "./letter-replies";
 import { isMachineReply } from "@/lib/email-parsing/subjects";

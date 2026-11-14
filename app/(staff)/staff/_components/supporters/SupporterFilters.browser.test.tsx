@@ -10,6 +10,7 @@ import { CONSENTS, consentKey } from "@/lib/supporters/contact-permissions";
 import { supportersSearch } from "@/lib/staff-search";
 import { chips, menu } from "@/tests/browser/staff";
 import { supportersCopy } from "./copy";
+import { politiciansCopy } from "../politicians/copy";
 
 describe("SupporterFilters", () => {
   const copy = supportersCopy.supporters;
@@ -176,9 +177,9 @@ describe("SupporterFilters", () => {
     await render(<SupporterFilters search={search} choices={choices} />);
     await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     expect([...document.querySelectorAll("#filter-add details > summary")].map((p) => p.textContent)).toEqual([
-      staffCopy.politician.country,
+      politiciansCopy.politician.country,
       copy.filters.near,
-      staffCopy.politician.roles.commons,
+      politiciansCopy.politician.roles.commons,
       copy.columns.badges,
       copy.filters.event,
       copy.filters.campaign,
@@ -195,8 +196,8 @@ describe("SupporterFilters", () => {
     // Except offers the filters that repeat, each choice to leave out.
     await menu(staffVocabulary.filters.except);
     expect([...document.querySelectorAll("#filter-except details > summary")].map((p) => p.textContent)).toEqual([
-      staffCopy.politician.country,
-      staffCopy.politician.roles.commons,
+      politiciansCopy.politician.country,
+      politiciansCopy.politician.roles.commons,
       copy.columns.badges,
       copy.filters.event,
     ]);
@@ -211,7 +212,9 @@ describe("SupporterFilters", () => {
     const { filter, ...search } = supportersSearch({ mp: ["7", "x"] });
     void filter;
     const { rerender } = await render(<SupporterFilters search={search} choices={choices} />);
-    expect(chips()).toEqual([`${staffCopy.politician.roles.commons}: ${staffVocabulary.filters.anyOf([mo, "x"])}`]);
+    expect(chips()).toEqual([
+      `${politiciansCopy.politician.roles.commons}: ${staffVocabulary.filters.anyOf([mo, "x"])}`,
+    ]);
     const { filter: unused, ...unfiltered } = supportersSearch({});
     void unused;
     await rerender(<SupporterFilters search={unfiltered} choices={choices} />);

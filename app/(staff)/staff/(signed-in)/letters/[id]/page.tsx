@@ -3,7 +3,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { listAsks } from "@/lib/server/asks";
 import { getSupporterLetter } from "@/lib/server/letters";
-import { getPolitician } from "@/lib/server/politicians";
+import { getPolitician } from "@/lib/politicians/records";
 import { requireStaff } from "@/lib/accounts/auth";
 import { letterId } from "@/lib/staff-search";
 import FindInGmail from "../../../_components/FindInGmail";
@@ -11,7 +11,7 @@ import { letterTitle } from "../../../_components/LetterHistory";
 import { SupporterLetterThread } from "../../../_components/LetterThread";
 import LetterView from "../../../_components/LetterView";
 import Page from "../../../_components/ui/Page";
-import { setAskStatus } from "../../../actions";
+import { setAskStatus } from "../../../_components/politicians/actions";
 
 type Params = { params: Promise<{ id: string }> };
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { copy } from "@/lib/content/email-your-mp";
-import { findMp } from "@/lib/server/find-mp";
-import { statusesOf } from "@/lib/server/politicians";
+import { findMp } from "@/lib/politicians/find-mp";
+import { statusesOf } from "@/lib/politicians/records";
 import { readJsonIfAny } from "@/lib/server/json";
 
 const MESSAGES = {

@@ -9,7 +9,7 @@ import { type ControlAiStatementImport, NIGHTLY } from "@/lib/import-runs";
 import { importControlAiStatement } from "./controlai-statement-import";
 import { query } from "./db";
 import { listRuns } from "./import-runs";
-import { importPoliticians } from "./politician-import";
+import { importPoliticians } from "@/lib/politicians/imports";
 
 const signed = () =>
   query<{ name: string; by: string }>(

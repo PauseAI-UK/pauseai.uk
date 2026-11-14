@@ -156,7 +156,7 @@ This:
   empty;
 - applies every migration in `netlify/database/migrations/`, in order, as
   Netlify does;
-- adds the test MPs (`lib/test-mps.json`), whose letters go to
+- adds the test MPs (`lib/politicians/test-mps.json`), whose letters go to
   `TEST_MP_EMAIL`:
   - Testy McTestface MP, found by postcode ZZ99ZZ;
   - Signy McTestface MP (ZZ99ZS), who has already signed the letter to the

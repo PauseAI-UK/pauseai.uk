@@ -12,7 +12,7 @@ import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "@/
 import { asRun, type Ran } from "./import-runs";
 import { keepsPoliticianThreads } from "@/lib/one-off";
 import { keepIfPoliticianThread, reportUnmatchedMail } from "./one-off-emails";
-import { searchAddedAddresses } from "./politician-aliases";
+import { searchAddedAddresses } from "@/lib/politicians/aliases";
 import { readBounce } from "@/lib/email-parsing/bounces";
 import { fromAddress, messageIds } from "@/lib/email-parsing/mime";
 import {

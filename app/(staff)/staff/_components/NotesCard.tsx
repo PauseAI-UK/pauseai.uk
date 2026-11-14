@@ -10,6 +10,7 @@ import { isSaveKey } from "@/lib/notes";
 import Empty from "./ui/Empty";
 import { Card } from "./ui/Grid";
 import styles from "./Notes.module.css";
+import { politiciansCopy } from "./politicians/copy";
 
 const copy = staffCopy.notes;
 
@@ -88,7 +89,7 @@ export default function NotesCard({
                   </p>
                 )}
                 <div className={styles.meta}>
-                  <Muted>{`${staffCopy.politician.history.note} · ${writer}`}</Muted>
+                  <Muted>{`${politiciansCopy.politician.history.note} · ${writer}`}</Muted>
                   <div className={styles.buttons}>
                     <SubmitButton variant="primary" size="small" fit>
                       {copy.add}

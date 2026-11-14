@@ -20,7 +20,7 @@ import {
 import type { SupporterSource } from "@/lib/supporters/supporters";
 import { query } from "./db";
 import { latestRun } from "./import-runs";
-import { BODY_JOBS } from "./politician-import";
+import { BODY_JOBS } from "@/lib/politicians/imports";
 
 // Fills the staff home's dashboard (lib/staff-dashboard.ts): the counts in
 // the window and the one before it, in one query; the campaign breakdowns,

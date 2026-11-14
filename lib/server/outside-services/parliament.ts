@@ -1,10 +1,10 @@
 import "server-only";
-import { memberUrl, parliamentEnding, parliamentMembers, parliamentMembersUrl } from "@/lib/parliament";
-import type { Ending, OfficialMember } from "@/lib/politician-import";
+import { memberUrl, parliamentEnding, parliamentMembers, parliamentMembersUrl } from "@/lib/politicians/parliament";
+import type { Ending, OfficialMember } from "@/lib/politicians/import-changes";
 import { outsideFetch } from "./outside-fetch";
 
 // Parliament's Members Data Platform and Members API, no key needed.
-// lib/parliament.ts knows their paths and reads their answers; this fetches
+// lib/politicians/parliament.ts knows their paths and reads their answers; this fetches
 // them.
 
 // The Members API answers 429 when asked too much at once. Wait as it says

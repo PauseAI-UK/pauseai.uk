@@ -9,6 +9,7 @@ import { importPoliticians } from "./politician-steps";
 import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Saved filters", part: "Staff pages", order: 60 };
 
@@ -92,7 +93,7 @@ test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page
   await frame(page, "Loaded, unchanged");
 
   story("Staff add a filter. The chip says it's edited, and Save comes back, now a menu.");
-  await addFilter(page, staffCopy.politician.country, staffVocabulary.countries.scotland);
+  await addFilter(page, politiciansCopy.politician.country, staffVocabulary.countries.scotland);
   await expect(page.getByRole("button", { name: "Labour MPs" })).toContainText(copy.edited);
   await save(page).click();
   await expect(page.getByRole("button", { name: copy.update })).toBeVisible();
@@ -106,7 +107,7 @@ test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page
   story(
     "Staff add the filter again and update it for everyone. It's no longer edited, and loads with that filter from now on.",
   );
-  await addFilter(page, staffCopy.politician.country, staffVocabulary.countries.scotland);
+  await addFilter(page, politiciansCopy.politician.country, staffVocabulary.countries.scotland);
   await save(page).click();
   const updating = await lockTable(flowDatabase, "saved_filters");
   const update = page.getByRole("button", { name: copy.update });
@@ -118,12 +119,12 @@ test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page
   await expect(page.getByRole("button", { name: "Labour MPs" })).not.toContainText(copy.edited);
   await expect(save(page)).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: `${staffCopy.politician.country}: ${staffVocabulary.countries.scotland}` }),
+    page.getByRole("button", { name: `${politiciansCopy.politician.country}: ${staffVocabulary.countries.scotland}` }),
   ).toBeVisible();
   await frame(page, "Updated for everyone");
 
   story("Editing again, Save as new opens the same form, and loads the new one, leaving the first as it was.");
-  await changeFilter(page, `${staffCopy.politician.country}: ${staffVocabulary.countries.scotland}`);
+  await changeFilter(page, `${politiciansCopy.politician.country}: ${staffVocabulary.countries.scotland}`);
   await save(page).click();
   await page.getByRole("button", { name: copy.saveAsNew }).click();
   await page.getByRole("textbox", { name: copy.name }).fill("Labour MPs everywhere");

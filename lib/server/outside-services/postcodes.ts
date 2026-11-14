@@ -1,5 +1,5 @@
 import "server-only";
-import { constituencyName } from "@/lib/constituencies";
+import { constituencyName } from "@/lib/politicians/constituencies";
 import type { Place } from "@/lib/site-events";
 import { outsideFetch } from "./outside-fetch";
 import { problem } from "../problems";
@@ -7,13 +7,13 @@ import { staffCopy } from "@/lib/content/staff-interface";
 
 // postcodes.io: the UK's open postcode API, no key needed. It gives the
 // constituency's name and its official code; we take the official name for
-// the code (lib/constituencies.ts), since postcodes.io spells some differently.
+// the code (lib/politicians/constituencies.ts), since postcodes.io spells some differently.
 // And where the postcode is, for suggesting events nearby.
 
 export type ConstituencyResult =
   { ok: true; constituency: string; place?: Place } | { ok: false; reason: "not_found" | "no_constituency" | "failed" };
 
-/** A postcode's constituency in postcodes.io's result: the official name, from its code, else postcodes.io's (lib/constituencies.ts); null for none. */
+/** A postcode's constituency in postcodes.io's result: the official name, from its code, else postcodes.io's (lib/politicians/constituencies.ts); null for none. */
 function constituencyOf(result: Record<string, unknown> | undefined): string | null {
   const name = result?.parliamentary_constituency;
   if (typeof name !== "string" || !name) return null;

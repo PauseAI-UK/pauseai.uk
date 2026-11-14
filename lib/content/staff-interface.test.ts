@@ -9,8 +9,8 @@ describe("staff interface copy", () => {
   });
 
   it("puts the number in each list's total", () => {
-    const { letters, politicians, mailings, changes } = staffCopy;
-    for (const list of [letters, politicians, mailings, changes]) expect(list.total(7)).toContain("7");
+    const { letters, mailings, changes } = staffCopy;
+    for (const list of [letters, mailings, changes]) expect(list.total(7)).toContain("7");
   });
 
   it("names what each change counts", () => {

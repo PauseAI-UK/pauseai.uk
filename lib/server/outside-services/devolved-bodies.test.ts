@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { SENEDD_MEMBERS_URL } from "@/lib/senedd";
+import { SENEDD_MEMBERS_URL } from "@/lib/politicians/senedd";
 import { niAssemblyMembersNow, scottishParliamentMembersNow, seneddMembersNow } from "./devolved-bodies";
 
 it("reads each body's sitting members", async () => {

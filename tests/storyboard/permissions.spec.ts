@@ -1,7 +1,7 @@
 import type { APIRequestContext, Browser, Page } from "@playwright/test";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { IMPORT_JOBS, importPath } from "@/lib/import-runs";
-import { TEST_MPS } from "@/lib/test-mps";
+import { TEST_MPS } from "@/lib/politicians/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { ROUTES } from "../routes";
 import { fillLetter, lookUpTestMp, sendLetter } from "./letter-steps";
@@ -14,6 +14,7 @@ import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } fro
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Permissions", part: "Staff pages", order: 140 };
 
@@ -137,15 +138,15 @@ test("No permissions", async ({ page, request, flowDatabase }) => {
     "The MP's page lists the letter written to them in their correspondence, sealed where it would say who wrote it.",
   );
   await page.goto(`${BASE}/staff/politicians/${testyId}`);
-  const correspondence = page.getByRole("region", { name: staffCopy.politician.correspondence.title });
-  await expect(correspondence.getByText(staffCopy.politician.history.unsignedLetter)).toBeVisible();
+  const correspondence = page.getByRole("region", { name: politiciansCopy.politician.correspondence.title });
+  await expect(correspondence.getByText(politiciansCopy.politician.history.unsignedLetter)).toBeVisible();
   await frame(page, "The MP's page");
   story("Its history says the same, and neither has a link to the letter.");
-  await page.locator("summary", { hasText: staffCopy.politician.historyTitle }).click();
+  await page.locator("summary", { hasText: politiciansCopy.politician.historyTitle }).click();
   await expect(
     page
-      .getByRole("list", { name: staffCopy.politician.historyTitle })
-      .getByText(staffCopy.politician.history.unsignedLetter),
+      .getByRole("list", { name: politiciansCopy.politician.historyTitle })
+      .getByText(politiciansCopy.politician.history.unsignedLetter),
   ).toBeVisible();
   await expect(page.locator(`a[href="/staff/letters/${letterId}"]`)).toHaveCount(0);
   await frame(page, "The MP's history");
@@ -214,7 +215,7 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   }
   story("Addresses to fix, the politicians' page, names the letter that bounced, but doesn't link to it.");
   await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(staffCopy.emails.titles.mps);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(politiciansCopy.addressesToFix.title);
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: "no-such-mailbox@pauseai.uk" });
   await expect(blocked.getByText(`${staffCopy.emails.letterTo} ${bouncy.name}`)).toBeVisible();
   await expect(page.locator('a[href^="/staff/letters"]')).toHaveCount(0);

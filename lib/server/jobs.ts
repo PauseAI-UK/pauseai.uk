@@ -1,6 +1,6 @@
 import "server-only";
 import type { ImportJob } from "@/lib/import-runs";
-import type { Body } from "@/lib/politician-import";
+import type { Body } from "@/lib/politicians/import-changes";
 import { importControlAiLetter } from "./controlai-import";
 import { readGmail } from "./gmail-reading";
 import { startRunning, stopRunning } from "./import-runs";
@@ -8,7 +8,7 @@ import { runTidying } from "./log-retention";
 import { importLuma } from "@/lib/events/luma-import";
 import { importCivicrm } from "./civicrm-import";
 import { importControlAiStatement } from "./controlai-statement-import";
-import { importPoliticians } from "./politician-import";
+import { importPoliticians } from "@/lib/politicians/imports";
 import { runSending } from "./sending-job";
 
 // What runs each job (lib/import-runs.ts, JOBS), whoever starts it, one run

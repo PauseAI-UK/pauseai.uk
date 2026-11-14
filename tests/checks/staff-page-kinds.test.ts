@@ -98,7 +98,8 @@ describe("the kinds of staff page", () => {
   });
 
   it("leaves a page's title to the two heads", () => {
-    const own = files(STAFF, (name) => name.endsWith(".tsx") && !name.includes(".test."))
+    // Tests and gallery examples aren't pages, so their heads are their own.
+    const own = files(STAFF, (name) => name.endsWith(".tsx") && !name.includes(".test.") && !name.includes(".gallery."))
       .filter((file) => /<h1[\s>]/.test(readFileSync(file, "utf8")))
       .map((file) => relative(STAFF, file).split("\\").join("/"));
     expect(own.sort()).toEqual(Object.keys(OWN_TITLE).sort());

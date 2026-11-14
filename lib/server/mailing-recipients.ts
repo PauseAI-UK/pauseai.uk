@@ -5,7 +5,7 @@ import { ASK_STATUSES } from "@/lib/asks";
 import { answerCondition, POLITICIAN_FIELDS, type MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
 import { listAsks } from "./asks";
-import { mailingPoliticians, type MailingPolitician } from "./politicians";
+import { mailingPoliticians, type MailingPolitician } from "@/lib/politicians/records";
 import { politiciansSearch } from "@/lib/staff-search";
 import type { StoredFilter } from "@/lib/staff-search";
 

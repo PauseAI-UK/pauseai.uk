@@ -7,67 +7,16 @@ import { redirect } from "next/navigation";
 import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
 import { runJob } from "@/lib/server/jobs";
 import { actionRequest } from "@/lib/site-url";
-import { now } from "@/lib/now";
 import { staffBack } from "@/lib/staff-search";
-import { askFrom, idFrom, noteEditFrom, noteFrom, statusFrom, unblockFrom } from "@/lib/staff-forms";
+import { askFrom, idFrom, noteEditFrom, noteFrom, unblockFrom } from "@/lib/staff-forms";
 import { addAsk, deleteAsk, editAsk } from "@/lib/server/asks";
 import { unblock } from "@/lib/server/delivery-problems";
 import { isPoliticianAddress } from "@/lib/server/email";
 import { setErrorDone } from "@/lib/server/errors-seen";
 import { ERRORS_LIST } from "@/lib/staff-lists";
-import { decideHeldImport, isPoliticianImport } from "@/lib/server/politician-import";
-import { editPoliticianDetails, type EditResult, isMark, setMark } from "@/lib/server/politician-edits";
+import { decideHeldImport, isPoliticianImport } from "@/lib/politicians/imports";
 import { addNote, deleteNote, editNote, type NoteTarget } from "@/lib/server/notes";
-import { setStatus } from "@/lib/server/politicians";
-import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@/lib/server/politician-aliases";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth";
-
-/** The form on a politician's page: sets their answer to an ask, dated today, or clears it, with its note of how we know. */
-export async function setAskStatus(form: FormData): Promise<void> {
-  const { email } = await requireStaff();
-  const parsed = statusFrom(form);
-  if (!parsed) return;
-  const today = now().toISOString().slice(0, 10);
-  await setStatus(
-    parsed.politicianId,
-    parsed.ask,
-    { status: parsed.status, date: parsed.status ? today : null, note: parsed.note },
-    email,
-  );
-  revalidatePath("/staff/politicians");
-  revalidatePath(`/staff/politicians/${parsed.politicianId}`);
-  // A mailing's counts, and its letters' pages, where the answer can be set too.
-  revalidatePath("/staff/mailings", "layout");
-}
-
-/** A marker's button in a politician's band: turns it on or off. */
-export async function setMarkNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff();
-  const id = idFrom(form, "politicianId");
-  const mark = String(form.get("mark") ?? "");
-  if (!id || !isMark(mark)) return;
-  await setMark(id, mark, form.get("on") === "true", email);
-  revalidatePath(`/staff/politicians/${id}`);
-  revalidatePath("/staff/politicians");
-}
-
-/** The form of a politician's details: saves what staff changed, saying whether it did, or why not. */
-export async function editPoliticianNow(form: FormData): Promise<EditResult | undefined> {
-  const { email } = await requireStaff();
-  const id = idFrom(form, "politicianId");
-  if (!id) return undefined;
-  const given = form.get("email");
-  const result = await editPoliticianDetails(
-    id,
-    {
-      salutation: String(form.get("salutation") ?? ""),
-      ...(given === null ? {} : { email: String(given) }),
-    },
-    email,
-  );
-  if (result.saved) revalidatePath("/staff", "layout");
-  return result;
-}
 
 /** Refreshes the page of whom a note is about. */
 function refreshNotes(target: NoteTarget): void {
@@ -154,29 +103,6 @@ export async function unblockAddress(form: FormData): Promise<void> {
   }
   // The addresses page, the politicians list and their pages all show it.
   revalidatePath("/staff", "layout");
-}
-
-/**
- * The form in a politician's aliases: adds an address to theirs, as the
- * staff member, keeping the mail with it the mailboxes hold. Says what
- * happened, for the form to show.
- */
-export async function addAliasNow(form: FormData): Promise<AddResult | undefined> {
-  const { email } = await requireStaff();
-  const politicianId = idFrom(form, "politicianId");
-  if (!politicianId) return undefined;
-  const result = await addPoliticianAddress(politicianId, String(form.get("address") ?? ""), email);
-  // Their page, and any thread's, which can now show them.
-  if (result.added) revalidatePath("/staff", "layout");
-  return result;
-}
-
-/** The button by an address staff added to a politician's: removes it. */
-export async function removeAliasNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff();
-  const politicianId = idFrom(form, "politicianId");
-  if (politicianId && (await removePoliticianAddress(politicianId, String(form.get("address") ?? ""), email)))
-    revalidatePath("/staff", "layout");
 }
 
 /**

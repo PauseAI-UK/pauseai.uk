@@ -90,6 +90,17 @@ The base PR adds these, and `docs/code-structure.md`, "Feature folders", describ
 - **Left at the top for their owners**: `SupporterBroadcasts` (broadcasts': its gallery group, test and data are), `PermissionTiles` (the dashboard's), `TestTag`, `lib/phone.ts` (STAYS, a small helper), `staffCopy.problems.logs.lumaImportNotStarted` (`lib/server/outside-services/netlify-functions.ts`'s), `staffCopy.luma.placesFailed` (jobs', with `luma`).
 - **`components/ui/ChannelIcon`** and the public contact preferences page import `lib/supporters/contact-permissions`'s types and `email-settings`: the public site stands on supporters there, as their own preferences are supporters'.
 
+## Settled by the politicians PR
+
+- **Names.** `lib/server/politicians.ts` is `lib/politicians/records.ts`, as supporters'. Pure and server files of one name: `lib/politician-import.ts` is `import-changes.ts` (what an import would change) and the server's `imports.ts`; `lib/politician-correspondence.ts` is `threads.ts` and the server's `correspondence.ts`. The rest drop `politician-` (`aliases.ts`, `book.ts`, `edits.ts`, `email-counts.ts`, `domains.ts`, `filters.ts`).
+- **`politicianImports`** is `politiciansCopy.politicianImports`, in `lib/politicians/copy.ts`, as `imports.ts` reads it; `jobTitles` (staffCopy, for jobs) spreads its titles, and jobs' `Run` and `ImportJob` read it there.
+- **The addresses-to-fix page's** title and intro are `politiciansCopy.addressesToFix`, in the components' copy, as supporters' bounced emails page's are; the rest of `staffCopy.emails` stays for oversight.
+- **Left at the top for their owners**: the notes (`Notes`, `NotesCard`, `NoteChanges`, `Notes.examples`, `lib/notes.ts`, `lib/server/notes.ts`), which supporters' and politicians' pages both use, for oversight; the asks' components (`AskRow`, `AskLine` and the rest) and `lib/email-your-mp.ts`, for campaigns. `exampleAsks` is in `politicians/PoliticianTable.examples.ts`, which campaigns' examples import.
+- **`setAskStatus`** is politicians' (it sets a politician's answer, by `setStatus` in `records.ts`); the letter pages of letters and mailings import it from `politicians/actions.ts`.
+- **Supporters uses politicians**: the supporters list's Nation column is `politiciansCopy.politician.country`.
+- **Politicians and letters use each other.** `FEATURES` lists `letters` and `campaigns` for politicians: the address book and its matching (`PoliticianBook`, `addressForms`, `isSharedInbox`, `PARLIAMENT_DOMAINS` in `lib/one-off.ts`), `one-off-emails.ts`, `one-off-relink.ts` and `letter-status.ts` are letters', and `records.ts` reads `lib/asks.ts`'s statuses. Letters uses politicians (`mp-letters.ts`, `letters.ts`, the one-off emails), and campaigns' asks do (`AskRow`). The letters PR moves the address book into `lib/politicians/`, or what politicians needs of letters down; the campaigns PR the same for the asks' statuses. Jobs and oversight aren't listed, as for supporters, though `imports.ts` reports through import runs, the audit log and notifications.
+- **The public site uses politicians**: the email-your-MP lookup (`find-mp.ts`, `records.ts`), the signatories route, the test MPs on the campaign page, and the bodies' bindings in `lib/server/outside-services/` read the bodies' readers there.
+
 ## How each feature PR goes
 
 1. `git mv` the feature's components, tests and examples into its folder, and its `lib/` files into its domain; rewrite imports.

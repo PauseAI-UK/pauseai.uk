@@ -1,12 +1,12 @@
 import type { NextRequest } from "next/server";
-import { politicianWords } from "../../../_components/PoliticianFilters";
-import { politicianColumns, politicianContact } from "../../../_components/PoliticianTable";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { politicianWords } from "../../../_components/politicians/PoliticianFilters";
+import { politicianColumns, politicianContact } from "../../../_components/politicians/PoliticianTable";
 import { listAsks } from "@/lib/server/asks";
-import { listParties, listPoliticians } from "@/lib/server/politicians";
+import { listParties, listPoliticians } from "@/lib/politicians/records";
 import { politiciansSearch } from "@/lib/staff-search";
 import { requireStaff } from "@/lib/accounts/auth";
 import { staffDownload } from "@/lib/server/staff-download";
+import { politiciansCopy } from "../../../_components/politicians/copy";
 
 /** Every politician the list's filters find, in the columns the list shows, named for its house and filters. */
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     ]);
     const filters = { ...search, page: "" };
     return {
-      what: staffCopy.politicians.title,
+      what: politiciansCopy.politicians.title,
       filters: politicianWords(search, parties, asks),
       columns: politicianColumns(asks, filters),
       rows: politicians,

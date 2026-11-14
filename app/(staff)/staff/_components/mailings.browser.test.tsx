@@ -28,7 +28,8 @@ import {
   exampleScheduled,
   exampleSending,
 } from "./MailingsTable.examples";
-import { exampleAsks, examplePolitician } from "./PoliticianTable.examples";
+import { exampleAsks, examplePolitician } from "./politicians/PoliticianTable.examples";
+import { politiciansCopy } from "./politicians/copy";
 
 const copy = staffCopy.mailingPages;
 const states = staffCopy.copyStates;
@@ -708,7 +709,7 @@ describe("LetterView", () => {
       .toHaveTextContent(staffCopy.letters.oneTitle(supporters.senderName, supporters.mpName));
     // It bounced, so says so, though the politician answered.
     await expect.element(page.getByText(states.tags["unreached:bounced"]!, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(staffCopy.politicians.flags.test, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(politiciansCopy.politicians.flags.test, { exact: true })).toBeVisible();
     await expect.element(page.getByRole("heading", { name: staffCopy.mailings.fields.ask, exact: true })).toBeVisible();
     // Under the ask, the campaign it's based on.
     await expect.element(page.getByRole("group", { name: exampleAsks[0]!.title })).toBeVisible();
@@ -732,7 +733,7 @@ describe("LetterView", () => {
       .toBeVisible();
     expect(page.getByRole("group").all()).toHaveLength(0);
     await expect.element(page.getByText(staffCopy.letters.status.bounced, { exact: true }).first()).toBeVisible();
-    expect(page.getByText(staffCopy.politicians.flags.test, { exact: true }).all()).toHaveLength(0);
+    expect(page.getByText(politiciansCopy.politicians.flags.test, { exact: true }).all()).toHaveLength(0);
   });
 });
 

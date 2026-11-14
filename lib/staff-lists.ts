@@ -126,7 +126,7 @@ export const POLITICIANS_LIST = defineStaffList({
   sorts: {
     // The Asks column sorts by when their newest answer was recorded, newest first: the dashboard
     // counts signatures by the same time. First and last activity sort by the times
-    // POLITICIAN_ACTIVITY in lib/server/politicians.ts gives.
+    // POLITICIAN_ACTIVITY in lib/politicians/records.ts gives.
     columns: {
       name: "asc",
       house: "asc",

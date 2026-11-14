@@ -4,7 +4,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { CONTROLAI } from "@/lib/controlai-letter";
 import { nameSlug, statementSupporters, type StatementSupporter } from "@/lib/controlai-statement";
 import type { ControlAiStatementResult } from "@/lib/import-runs";
-import { BODY_HOUSES, type Body } from "@/lib/politician-import";
+import { BODY_HOUSES, type Body } from "@/lib/politicians/import-changes";
 import { logChange } from "./audit";
 import { query, transaction } from "./db";
 import { asRun } from "./import-runs";

@@ -8,7 +8,13 @@ import { gmailAccounts, type GmailAccount } from "@/lib/accounts/gmail-accounts"
 import { mailingChannel } from "./mailing-channels";
 import { choosingFor, getWrittenMailing, openWrittenMailing, type WrittenMailing } from "./mailing-drafts";
 import { politicianAudience, type LeftOut } from "./mailing-recipients";
-import { countPoliticians, findPastedLines, listParties, politicianNames, politiciansPage } from "./politicians";
+import {
+  countPoliticians,
+  findPastedLines,
+  listParties,
+  politicianNames,
+  politiciansPage,
+} from "@/lib/politicians/records";
 import { politiciansSearch, type PoliticiansSearch } from "@/lib/staff-search";
 import type { ParamValue } from "@/lib/list-params";
 import { type StoredFilter } from "@/lib/staff-search";

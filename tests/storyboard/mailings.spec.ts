@@ -15,6 +15,7 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import { scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Mailings", part: "Staff pages", order: 40 };
 
@@ -212,7 +213,7 @@ test("Changing and deleting a draft", async ({ page, request, flowDatabase }) =>
   });
   story("They search for Polly and tick her too: two ticked.");
 
-  await page.getByRole("link", { name: staffCopy.politicians.allHouses }).click();
+  await page.getByRole("link", { name: politiciansCopy.politicians.allHouses }).click();
   await page.getByRole("searchbox").fill("Polly");
   await page.getByRole("button", { name: staffVocabulary.search }).click();
   await expect(page).toHaveURL(/q=Polly/);
@@ -695,9 +696,9 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
   await frame(page, "The invitation's page");
 
   await page.getByRole("link", { name: "Polly Placeholder" }).click();
-  await page.locator("summary", { hasText: staffCopy.politician.historyTitle }).click();
+  await page.locator("summary", { hasText: politiciansCopy.politician.historyTitle }).click();
   await page
-    .getByRole("list", { name: staffCopy.politician.historyTitle })
+    .getByRole("list", { name: politiciansCopy.politician.historyTitle })
     .getByRole("link", { name: invitation })
     .click();
   await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);

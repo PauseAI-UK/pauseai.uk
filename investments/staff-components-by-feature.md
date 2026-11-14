@@ -12,4 +12,4 @@ A folder per feature under `_components/`, holding its components, their tests, 
 
 ## Hits
 
-None yet.
+- 2026-11-14: the politicians' move (feature-folders chain) took two checks fixing for files they'd never seen in a feature folder: a gallery example's `<h1>` counted as a page's own title (staff-page-kinds), and a type import of a feature's lib counted as a job's module (cron-runs)

@@ -6,11 +6,10 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
 import { ANSWER_CHOICES } from "@/lib/asks";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { answeredByHand } from "@/lib/email-your-mp";
 import type { Ask } from "@/lib/server/asks";
-import type { Politician } from "@/lib/server/politicians";
+import type { Politician } from "@/lib/politicians/records";
 import { staffDate } from "@/lib/staff-time";
 import AnswerWord from "./AnswerWord";
 import { AskLead } from "./AskLine";
@@ -18,8 +17,9 @@ import { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import Menu from "./ui/Menu";
 import styles from "./Details.module.css";
+import { politiciansCopy } from "./politicians/copy";
 
-const copy = staffCopy.politician;
+const copy = politiciansCopy.politician;
 
 type SetStatus = (form: FormData) => void | Promise<void>;
 

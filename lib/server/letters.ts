@@ -13,14 +13,14 @@ import {
   type GmailFind,
 } from "@/lib/letter-links";
 import type { LetterSort } from "@/lib/staff-lists";
-import type { PoliticianFlag } from "@/lib/politician-filters";
+import type { PoliticianFlag } from "@/lib/politicians/filters";
 import { checkDoc, toText } from "@/lib/letter-format";
 import { query } from "./db";
 import { sql, type Sql } from "./sql";
 import { threadMessages, type ThreadMessage } from "./letter-threads";
 import { lettersInbox } from "./letters-inbox";
 import type { SkipReason } from "./mailings";
-import { FLAG_CONDITIONS } from "./politicians";
+import { FLAG_CONDITIONS } from "@/lib/politicians/records";
 
 // Letters, for the staff interface.
 

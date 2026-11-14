@@ -21,7 +21,7 @@ import {
   listCampaigns,
 } from "./asks";
 import { query } from "./db";
-import { setStatus } from "./politicians";
+import { setStatus } from "@/lib/politicians/records";
 
 describeWithDatabase("asks and campaigns", () => {
   useTestDatabase();

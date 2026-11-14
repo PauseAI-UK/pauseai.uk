@@ -2,7 +2,7 @@ import type { AskPageData } from "@/lib/server/asks";
 import type { CampaignSummary, CampaignVersion } from "@/lib/server/campaigns";
 import type { OneOffThread, OneOffThreadRow } from "@/lib/server/one-off-emails";
 import type { SentEmail } from "@/lib/server/sent-emails";
-import { exampleAsks } from "./PoliticianTable.examples";
+import { exampleAsks } from "./politicians/PoliticianTable.examples";
 
 // Fake data for the pages of campaigns, asks, sent emails and one-off emails,
 // for their tests and the gallery.

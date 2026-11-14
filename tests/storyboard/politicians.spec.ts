@@ -11,6 +11,7 @@ import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
@@ -19,7 +20,7 @@ export const section: Section = { name: "Politicians", part: "Staff pages", orde
 // the copy from the fixture Airtable adds, their answers to the asks as staff
 // recorded them (recordAnswers) and PauseAI's emails to them.
 
-const copy = staffCopy.politician;
+const copy = politiciansCopy.politician;
 
 /** This flow's own staff address: flows run alongside each other, and share the outbox. */
 const staffEmail = () => `pol-${test.info().testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;
@@ -145,7 +146,7 @@ test("A politician's correspondence", async ({ page, request, flowDatabase }) =>
     Number.parseInt(await page.getByRole("link", { name: label }).innerText(), 10);
   const onHerPage = [await counted(copy.band.emailsToThem), await counted(copy.band.emailsFromThem)];
   expect(onHerPage[1]).toBe(1);
-  const { columns } = staffCopy.politicians;
+  const { columns } = politiciansCopy.politicians;
   const { first, under } = await listSortedBy(page, columns.emailsFromThem, /sort=emailsFromThem&dir=desc/);
   await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
   await expect(under(columns.emailsToThem)).toHaveText(String(onHerPage[0]));
@@ -282,7 +283,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
-  const filters = staffCopy.politicians;
+  const filters = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   // Those in office, to start; + Filter offers the rest, each applying as soon as it's chosen.
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
@@ -338,7 +339,7 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
   await logIn(page, flowDatabase);
-  const filters = staffCopy.politicians;
+  const filters = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   await page.goto(`${BASE}/staff/politicians?ask=edinburgh-conference-2026`);
   await page.getByRole("button", { name: filters.anyAnswer }).click();
@@ -385,7 +386,7 @@ test("The house tabs", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/politicians?status=any`);
   const houses = page.getByRole("navigation", { name: staffVocabulary.fields.house });
   const rows = page.getByRole("row");
-  await expect(houses.getByRole("link", { name: staffCopy.politicians.allHouses })).toHaveAttribute(
+  await expect(houses.getByRole("link", { name: politiciansCopy.politicians.allHouses })).toHaveAttribute(
     "aria-current",
     "page",
   );
@@ -420,7 +421,7 @@ test("Pages of politicians, and Download", async ({ page, flowDatabase }) => {
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians?status=any`);
-  const copy = staffCopy.politicians;
+  const copy = politiciansCopy.politicians;
   await expect(page.getByText(copy.total(250))).toBeVisible();
   await frame(page, "The politicians list");
   story("Download gets every one of them, not only this page, as a spreadsheet, JSON or vCards for WhatsApp.");
@@ -465,7 +466,7 @@ test("Searching politicians", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
-  const copy = staffCopy.politicians;
+  const copy = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   const search = async (text: string) => {
     await page.getByRole("searchbox").fill(text);
@@ -585,7 +586,7 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   story(
     "That email is all we've had to do with her. On the politicians list it's her one email from them, and the day of her first and last activity, so sorting by Last activity puts her first.",
   );
-  const { columns } = staffCopy.politicians;
+  const { columns } = politiciansCopy.politicians;
   const { first, under } = await listSortedBy(page, columns.last, /sort=active&dir=desc/);
   await expect(first.getByRole("link", { name: "Polly Placeholder", exact: true })).toBeVisible();
   await expect(under(columns.emailsFromThem)).toHaveText("1");

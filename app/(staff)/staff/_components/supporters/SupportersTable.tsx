@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import StaffLink from "../ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   CHANNELS,
@@ -33,6 +32,7 @@ import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import type { Contact } from "@/lib/vcard";
 import styles from "./SupportersTable.module.css";
 import { supportersCopy } from "./copy";
+import { politiciansCopy } from "../politicians/copy";
 
 const PATH = SUPPORTERS_LIST.path;
 const copy = supportersCopy.supporters;
@@ -176,7 +176,7 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
     },
     (Boolean(notNations) || (nations?.length ?? 0) > 1) && {
       key: "nation",
-      label: staffCopy.politician.country,
+      label: politiciansCopy.politician.country,
       short: true,
       text: (s) => nationOf(s),
       cell: (s) => nationOf(s),

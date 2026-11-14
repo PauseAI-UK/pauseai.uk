@@ -7,7 +7,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Reason, Topic } from "@/lib/supporters/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
-import { TEST_MPS } from "@/lib/test-mps";
+import { TEST_MPS } from "@/lib/politicians/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { lumaPersonWebhook, lumaWebhookHeaders } from "../luma-webhooks";
 import { fillLetter, lookUpTestMp, sendLetter } from "./letter-steps";
@@ -21,6 +21,7 @@ import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { erasureCopy } from "@/lib/erasure/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Supporters", part: "Staff pages", order: 50 };
 
@@ -214,7 +215,7 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
-  const mp = staffCopy.politician.roles.commons;
+  const mp = politiciansCopy.politician.roles.commons;
   const mo = copy.filters.mpChoice("Mo Example", "Manchester Central");
   await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
   await page.locator("[popover]:popover-open summary", { hasText: new RegExp(`^${mp}$`) }).click();

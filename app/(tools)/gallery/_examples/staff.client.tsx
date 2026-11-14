@@ -5,7 +5,6 @@
 import ChangesFilters from "@/app/(staff)/staff/_components/ChangesFilters";
 import { changesSearch } from "@/lib/staff-search";
 import type { EmailBlock } from "@/lib/server/email";
-import type { Politician } from "@/lib/server/politicians";
 import EmailBlocksTable from "@/app/(staff)/staff/_components/EmailBlocksTable";
 import FilterBar from "@/app/(staff)/staff/_components/ui/FilterBar";
 import Menu, { menuItemsClass } from "@/app/(staff)/staff/_components/ui/Menu";
@@ -21,27 +20,8 @@ import { ImportJobPage } from "@/app/(staff)/staff/_components/ImportJob";
 import JobActions from "@/app/(staff)/staff/_components/JobActions";
 import ErrorSeenView from "@/app/(staff)/staff/_components/ErrorSeenView";
 import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
-import PoliticianCorrespondence from "@/app/(staff)/staff/_components/PoliticianCorrespondence";
-import PoliticianDetails from "@/app/(staff)/staff/_components/PoliticianDetails";
-import AddAliasForm from "@/app/(staff)/staff/_components/AddAliasForm";
-import { AddressesBubble, SalutationBubble } from "@/app/(staff)/staff/_components/PoliticianWriting";
-import PoliticianMarks from "@/app/(staff)/staff/_components/PoliticianMarks";
-import type { EditResult } from "@/lib/server/politician-edits";
-import type { AddResult } from "@/lib/server/politician-aliases";
-import { correspondenceThreads } from "@/lib/politician-correspondence";
-import PoliticianTable from "@/app/(staff)/staff/_components/PoliticianTable";
+import { exampleAsks, examplePolitician } from "@/app/(staff)/staff/_components/politicians/PoliticianTable.examples";
 import {
-  emptyPoliticiansSearch,
-  exampleAsks,
-  exampleChoosing,
-  examplePasted,
-  examplePoliticiansPage,
-  examplePolitician,
-  exampleAliases,
-  examplePoliticianHistory,
-} from "@/app/(staff)/staff/_components/PoliticianTable.examples";
-import {
-  exampleLetter,
   examplePauseaiLetterDetails,
   exampleSupporterLetterDetails,
 } from "@/app/(staff)/staff/_components/LettersTable.examples";
@@ -99,54 +79,13 @@ import {
   exampleScheduled,
   exampleSending,
 } from "@/app/(staff)/staff/_components/MailingsTable.examples";
-import PasteForm from "@/app/(staff)/staff/_components/PasteForm";
-import PickBox from "@/app/(staff)/staff/_components/PickBox";
-import PoliticiansList, { ChoosingHead, type ChoosingActions } from "@/app/(staff)/staff/_components/PoliticiansList";
 import { Controlled, Logged } from "../_components/wiring";
-
-/** The table of politicians: one function for both examples. */
-function LoggedPoliticianTable({ politicians }: { politicians: Politician[] }) {
-  return <PoliticianTable politicians={politicians} asks={exampleAsks} />;
-}
-
-/** An MP who signed the letter to the PM, and a test peer, retired, whose address is blocked, who signed ControlAI's letter. */
-export function PoliticianTableExample() {
-  return (
-    <LoggedPoliticianTable
-      politicians={[
-        examplePolitician,
-        {
-          ...examplePolitician,
-          id: 8,
-          name: "Testy McTestface MP",
-          isTest: true,
-          status: "retired",
-          emailBlocked: true,
-          house: "lords",
-          constituency: null,
-          statuses: {
-            "controlai-letter": { ...examplePolitician.statuses["frontier-ai-letter"], updatedBy: "controlai" },
-          },
-        },
-      ]}
-    />
-  );
-}
-
-/** No politician matches the filter. */
-export function PoliticianTableEmptyExample() {
-  return <LoggedPoliticianTable politicians={[]} />;
-}
 
 /** An MP sync held for a decision: apply and discard log what they'd send. */
 export function HeldImportExample() {
   return <Logged>{(log) => <Run run={exampleHeldImport} decide={log("decide")} />}</Logged>;
 }
 
-/**
- * A politician's page for a signer the policy team added, its saves logged;
- * or one of Airtable's MPs, not editable here, whose address may be blocked.
- */
 /**
  * The asks card's rows: one answered from Airtable, one staff record with
  * no answer yet, or, with `declined`, a letter they declined; then, with
@@ -177,109 +116,6 @@ export function AskRowExample({ others = false, declined = false }: { others?: b
   );
 }
 
-/** Threads of each kind: answered, unanswered, an automatic reply, own words, and past the fold. */
-const exampleThreads = (count = 3) =>
-  correspondenceThreads({
-    letters: {
-      senders: true,
-      letters: Array.from({ length: count }, (_, i) => ({
-        ...exampleLetter,
-        id: 100 + i,
-        ownWords: i === 0 ? 0.14 : 0,
-        repliedAt: null,
-      })),
-    },
-    pauseaiLetters: [
-      {
-        id: 200,
-        mailingId: 3,
-        mailing: "Example Mailing",
-        status: "sent",
-        at: exampleLetter.createdAt,
-        personalised: false,
-      },
-    ],
-    oneOffs: [],
-    messages: {
-      subjects: {},
-      letters: {
-        100: [{ at: exampleLetter.createdAt, who: "them", name: "Polly Placeholder", auto: false }],
-        101: [{ at: exampleLetter.createdAt, who: "them", name: null, auto: true }],
-      },
-      oneOffs: {},
-    },
-  });
-
-export function PoliticianCorrespondenceExample({ count }: { count?: number }) {
-  return <PoliticianCorrespondence threads={exampleThreads(count)} />;
-}
-
-export function PoliticianDetailsExample({
-  fromAirtable = false,
-  blocked = false,
-  senders = true,
-  aliases = false,
-}: {
-  fromAirtable?: boolean;
-  blocked?: boolean;
-  /** Whether the letters say who wrote them, as for staff with the supporters permission. */
-  senders?: boolean;
-  /** Whether their aliases are at the foot of the page, open. */
-  aliases?: boolean;
-}) {
-  const letter = { ...exampleLetter, mpName: examplePolitician.name, politicianId: examplePolitician.id };
-  return (
-    <Logged>
-      {(log) => (
-        <PoliticianDetails
-          politician={
-            fromAirtable ? { ...examplePolitician, emailBlocked: blocked } : { ...examplePolitician, airtableId: null }
-          }
-          asks={exampleAsks}
-          setStatus={log("setStatus")}
-          block={blocked ? { ...exampleBlock, address: examplePolitician.email! } : undefined}
-          letters={
-            senders
-              ? { senders, letters: [letter] }
-              : {
-                  senders,
-                  letters: [
-                    {
-                      id: letter.id,
-                      campaign: letter.campaign,
-                      campaignTitle: letter.campaignTitle,
-                      status: letter.status,
-                      createdAt: letter.createdAt,
-                      repliedAt: letter.repliedAt,
-                    },
-                  ],
-                }
-          }
-          history={examplePoliticianHistory}
-          unblock={log("unblock")}
-          aliases={aliases ? exampleAliases : undefined}
-          aliasesOpen={aliases}
-          aliasActions={{ add: log("addAlias"), remove: log("removeAlias") }}
-          setMark={log("setMark")}
-          editDetails={async (form) => (log("editDetails")(form), { saved: true })}
-          notes={
-            fromAirtable
-              ? undefined
-              : {
-                  notes: exampleNotes,
-                  reader: exampleNoteWriter,
-                  at: exampleNotesAt,
-                  add: log("addNote"),
-                  edit: log("editNote"),
-                  remove: log("deleteNote"),
-                }
-          }
-        />
-      )}
-    </Logged>
-  );
-}
-
 /** Blocked addresses, a bounce and a complaint unless told otherwise, their unblocking logged. */
 export function EmailBlocksTableExample({
   blocks = [exampleBlock, exampleGmailBlock, exampleComplaint],
@@ -290,81 +126,6 @@ export function EmailBlocksTableExample({
 }) {
   return (
     <Logged>{(log) => <EmailBlocksTable blocks={blocks} unblock={log("unblock")} letterLinks={letterLinks} />}</Logged>
-  );
-}
-
-/** The form that adds an address to a politician's, logged, answering with `result`. */
-export function AddAliasFormExample({ result }: { result: AddResult }) {
-  return (
-    <Logged>
-      {(log) => (
-        <AddAliasForm
-          politicianId={examplePolitician.id}
-          action={(form) => {
-            log("addAlias")(form);
-            return result;
-          }}
-        />
-      )}
-    </Logged>
-  );
-}
-
-/** A politician's salutation in the band, each save logged, answering with `result`; one made from their name, with the two it most likely is. */
-export function SalutationBubbleExample({ result, fromName = false }: { result: EditResult; fromName?: boolean }) {
-  return (
-    <Logged>
-      {(log) => (
-        <SalutationBubble
-          politician={
-            fromName
-              ? { ...examplePolitician, salutation: examplePolitician.name, salutationToCheck: true }
-              : examplePolitician
-          }
-          action={(form) => {
-            log("editDetails")(form);
-            return result;
-          }}
-        />
-      )}
-    </Logged>
-  );
-}
-
-/** A politician's email in the band, its bubble of their other addresses open, each change logged; a Lord's with none, to set. */
-export function AddressesBubbleExample({ result, lord = false }: { result: EditResult; lord?: boolean }) {
-  return (
-    <Logged>
-      {(log) => (
-        <AddressesBubble
-          politician={
-            lord
-              ? { ...examplePolitician, name: "Lord Seedling", salutation: "Lord Seedling", email: null }
-              : examplePolitician
-          }
-          aliases={lord ? { ...exampleAliases, email: null } : exampleAliases}
-          actions={{ add: log("addAlias"), remove: log("removeAlias") }}
-          setEmail={
-            lord
-              ? (form) => {
-                  log("editDetails")(form);
-                  return result;
-                }
-              : undefined
-          }
-          open
-        />
-      )}
-    </Logged>
-  );
-}
-
-/** A politician's markers, each button's press logged: on, off, and for a test politician its tag. */
-export function PoliticianMarksExample({ test = false }: { test?: boolean }) {
-  return (
-    <Logged>
-      {(log) => <PoliticianMarks politician={{ ...examplePolitician, isTest: test }} setMark={log("setMark")} />}
-    </Logged>
   );
 }
 
@@ -816,97 +577,6 @@ export function MailingForExample({ kind }: { kind: "draft" | "written" }) {
           }
           actions={mailingActions(log)}
         />
-      )}
-    </Logged>
-  );
-}
-
-/** What choosing who a mailing is for does, each logged. */
-function choosingActions(log: (name: string) => (...args: unknown[]) => void): ChoosingActions {
-  const logged =
-    (name: string) =>
-    async (...args: unknown[]) =>
-      log(name)(...args);
-  return {
-    pick: logged("pickPolitician"),
-    pickFound: logged("pickFound"),
-    paste: logged("pasteNames"),
-    pickMany: logged("pickMany"),
-    untickAll: logged("untickAll"),
-  };
-}
-
-/** The politicians list, New mailing and the ticks logged. */
-export function PoliticiansListExample(props: Omit<Parameters<typeof PoliticiansList>[0], "newMailing" | "actions">) {
-  return (
-    <Logged>
-      {(log) => (
-        <PoliticiansList
-          {...props}
-          newMailing={log("newMailing") as (form: FormData) => Promise<void>}
-          actions={choosingActions(log)}
-        />
-      )}
-    </Logged>
-  );
-}
-
-/** The politicians list choosing who the draft "Edinburgh thank-you" goes to: Polly ticked, of the Commons. */
-export function ChoosingListExample({ pasted = false }: { pasted?: boolean }) {
-  return (
-    <PoliticiansListExample
-      list={examplePoliticiansPage}
-      search={{
-        ...emptyPoliticiansSearch,
-        house: "commons",
-        mailing: "12",
-        ...(pasted && { tab: "pasted", pasted: examplePasted.map((one) => one.line) }),
-      }}
-      asks={exampleAsks}
-      choosing={exampleChoosing}
-      tickedHere={1}
-      pasted={pasted ? examplePasted : []}
-    />
-  );
-}
-
-/** The strip over the list while it's choosing who a mailing is for: a new one's, or a draft's; Cancel logged. */
-export function ChoosingHeadExample({ blank }: { blank: boolean }) {
-  return (
-    <Logged>
-      {(log) => (
-        <ChoosingHead
-          choosing={{ ...exampleChoosing, blank }}
-          cancel={log("deleteMailingDraft") as (form: FormData) => Promise<void>}
-        >
-          <h1>Politicians</h1>
-        </ChoosingHead>
-      )}
-    </Logged>
-  );
-}
-
-/** The box for names to paste, and Find these, logged; Ctrl+Enter or Cmd+Enter sends it too. */
-export function PasteFormExample() {
-  return (
-    <Logged>
-      {(log) => (
-        <PasteForm action={log("pasteNames") as (form: FormData) => void} back="/staff/politicians?mailing=12" />
-      )}
-    </Logged>
-  );
-}
-
-/** A tick box that saves as it's clicked: ticked, not, and part ticked, the click logged. */
-export function PickBoxExample() {
-  return (
-    <Logged>
-      {(log) => (
-        <div style={{ display: "flex", gap: "var(--space-4)" }}>
-          <PickBox ticked label="Ticked" action={async (on) => log("pick")(on)} />
-          <PickBox ticked={false} label="Not ticked" action={async (on) => log("pick")(on)} />
-          <PickBox ticked={false} some label="Some ticked" action={async (on) => log("pick")(on)} />
-        </div>
       )}
     </Logged>
   );

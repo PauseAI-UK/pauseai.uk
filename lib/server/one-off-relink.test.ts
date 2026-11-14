@@ -6,7 +6,7 @@ import { keepOneOff } from "./one-off-emails";
 import { relinkOneOffs } from "./one-off-relink";
 import type { GmailMessageHeaders } from "./outside-services/gmail";
 import { saveLetterReply } from "./outside-services/blobs";
-import { readPoliticianBook } from "./politician-book";
+import { readPoliticianBook } from "@/lib/politicians/book";
 import { gzipSync } from "node:zlib";
 
 const LATER = () => Date.now() + 60_000;

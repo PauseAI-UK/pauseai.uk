@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { memberUrl } from "@/lib/parliament";
+import { memberUrl } from "@/lib/politicians/parliament";
 import { parliamentEndings, parliamentMembersNow } from "./parliament";
 
 const LISTS = "https://data.parliament.uk/membersdataplatform/services/mnis/members/query/:query/Addresses/";

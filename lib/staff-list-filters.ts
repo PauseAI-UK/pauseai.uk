@@ -11,7 +11,7 @@ import { staffCopy } from "./content/staff-interface";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
-import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "./politician-filters";
+import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politicians/filters";
 import type { EmailChoice } from "./server/all-letters";
 import type { Ask } from "./server/asks";
 import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records";
@@ -31,6 +31,7 @@ import { staffDate } from "./staff-time";
 import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
 import { eventsCopy } from "@/lib/events/copy";
 import { supportersCopy } from "@/lib/supporters/copy";
+import { politiciansCopy } from "@/lib/politicians/copy";
 
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
@@ -185,12 +186,12 @@ export type PoliticianChoices = { ask: string; parties: string[]; asks: Ask[] };
  * recently they agreed is only from the dashboard's link.
  */
 export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, parties, asks }: PoliticianChoices) => {
-  const copy = staffCopy.politicians;
+  const copy = politiciansCopy.politicians;
   const ask = asks.find((a) => a.slug === slug);
   const askChoices = asks.map((a) => ({ value: a.slug, label: a.title }));
   return {
     nation: {
-      label: staffCopy.politician.country,
+      label: politiciansCopy.politician.country,
       oneEach: true,
       options: COUNTRIES.map((country) => ({ value: country, label: staffVocabulary.countries[country] })),
     },
@@ -281,7 +282,11 @@ export const SUPPORTER_FILTERS = listFilters(
     const copy = supportersCopy.supporters.filters;
     const { columns } = supportersCopy.supporters;
     return {
-      nation: { label: staffCopy.politician.country, oneEach: true, options: choicesOf(staffVocabulary.countries) },
+      nation: {
+        label: politiciansCopy.politician.country,
+        oneEach: true,
+        options: choicesOf(staffVocabulary.countries),
+      },
       near: {
         label: copy.near,
         options: near ? [{ value: near, label: nearWords(near, found) }] : [],
@@ -292,7 +297,7 @@ export const SUPPORTER_FILTERS = listFilters(
         },
       },
       mp: {
-        label: staffCopy.politician.roles.commons,
+        label: politiciansCopy.politician.roles.commons,
         oneEach: true,
         searchable: true,
         options: mps.map((mp) => ({ value: String(mp.id), label: copy.mpChoice(mp.name, mp.constituency) })),
@@ -454,7 +459,7 @@ export const ALL_EMAIL_FILTERS = listFilters(
       // Test MPs' emails show only with Test politician chosen.
       flag: {
         label: staffCopy.letters.mpFlag,
-        options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: staffCopy.politicians.flags[flag] })),
+        options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: politiciansCopy.politicians.flags[flag] })),
       },
     };
   },

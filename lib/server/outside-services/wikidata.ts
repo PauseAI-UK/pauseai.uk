@@ -7,11 +7,11 @@ import {
   WIKIDATA_IDS,
   WIKIDATA_QUERY,
   type WikidataPerson,
-} from "@/lib/wikidata";
+} from "@/lib/politicians/wikidata";
 import { outsideFetch } from "./outside-fetch";
 
 // Wikidata's query service, and TheyWorkForYou's people data on GitHub, no
-// key needed. lib/wikidata.ts writes the queries and reads the answers; this
+// key needed. lib/politicians/wikidata.ts writes the queries and reads the answers; this
 // fetches them, only when a member's salutation needs their gender.
 
 /** Who we are, as Wikidata asks of every client (https://meta.wikimedia.org/wiki/User-Agent_policy). */

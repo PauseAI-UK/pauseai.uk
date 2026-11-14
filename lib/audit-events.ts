@@ -7,7 +7,7 @@ import type { AskStatus } from "./asks";
 import type { BroadcastTerms } from "./broadcasts";
 import type { FieldChange } from "./field-changes";
 import type { PoliticianImportJob } from "./import-runs";
-import type { ImportedFields } from "./politician-import";
+import type { ImportedFields } from "@/lib/politicians/import-changes";
 import type { SavedList } from "./saved-filters";
 import type { DownloadFormat } from "./staff-list";
 import type { Permission } from "@/lib/accounts/permissions";
@@ -16,7 +16,7 @@ import type { DeliveryProblem } from "./server/email";
 import type { ErasureResult } from "@/lib/erasure/erase";
 import type { MailingState } from "./server/mailing-drafts";
 import type { NoteTarget } from "./server/notes";
-import type { House } from "./server/politicians";
+import type { House } from "@/lib/politicians/records";
 
 /** How many a sync added, removed or changed. */
 type SyncCounts = { added: number; removed: number; changed: number };

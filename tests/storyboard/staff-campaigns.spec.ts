@@ -11,6 +11,7 @@ import { logIn } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
 
@@ -87,7 +88,7 @@ test("Asks", async ({ page, request, flowDatabase }) => {
 
   story("An ask's page says what they were asked, then what they answered, a column each, then how we asked.");
   await page.getByRole("link", { name: "Edinburgh conference" }).first().click();
-  await expect(page.getByText(staffCopy.politician.askedThem("PauseAI", "event"))).toBeVisible();
+  await expect(page.getByText(politiciansCopy.politician.askedThem("PauseAI", "event"))).toBeVisible();
   await expect(page.getByRole("heading", { name: staffCopy.asks.page.howWeAsked })).toBeVisible();
   await frame(page, "An event's page");
 

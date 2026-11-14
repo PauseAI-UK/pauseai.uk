@@ -9,8 +9,8 @@ import { featureLibFolders } from "../../eslint.config.mjs";
 // emailed about, and what it reports with problem() has a run to go on.
 // Without it, a failure reaches only Netlify's logs. Every job runs through
 // lib/server/jobs.ts, so this fails on any server module it imports (from
-// lib/server/ or a feature's lib/ folder), other than the import log's own,
-// that doesn't call asRun.
+// lib/server/ or a feature's lib/ folder), but for types and the import
+// log's own, that doesn't call asRun.
 
 const ROOT = join(__dirname, "..", "..");
 const JOBS = "lib/server/jobs.ts";
@@ -21,6 +21,8 @@ export function serverImports(file: string, source: ts.SourceFile): string[] {
   const found: string[] = [];
   for (const statement of source.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    // A type runs nothing.
+    if (statement.importClause?.isTypeOnly) continue;
     const from = statement.moduleSpecifier.text;
     const path = from.startsWith("@/") ? from.slice(2) : from.startsWith(".") ? join(dirname(file), from) : "";
     if (SERVER.some((folder) => normalize(path).startsWith(`${folder}/`))) found.push(`${normalize(path)}.ts`);
@@ -41,6 +43,7 @@ describe("jobs", () => {
       import { importLuma } from "./luma-import";
       import { tagEvents } from "@/lib/events/tagging";
       import { NIGHTLY } from "@/lib/import-runs";
+      import type { Body } from "@/lib/politicians/import-changes";
       import { found } from "../found";`;
     expect(serverImports("lib/server/jobs.ts", parse("jobs.ts", code))).toEqual([
       "lib/server/cron.ts",

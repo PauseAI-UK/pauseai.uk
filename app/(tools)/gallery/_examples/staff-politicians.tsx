@@ -2,16 +2,22 @@
 // icons, a politician's page, and the asks, on fake politicians.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
-import { NationShape, Rosette, StatusDot } from "@/app/(staff)/staff/_components/PoliticianIcons";
-import PoliticianFilters from "@/app/(staff)/staff/_components/PoliticianFilters";
-import { HouseTabs } from "@/app/(staff)/staff/_components/PoliticiansList";
+import { addAliasFormGallery } from "@/app/(staff)/staff/_components/politicians/AddAliasForm.gallery";
+import { pasteFormGallery } from "@/app/(staff)/staff/_components/politicians/PasteForm.gallery";
+import { pickBoxGallery } from "@/app/(staff)/staff/_components/politicians/PickBox.gallery";
+import { politicianCorrespondenceGallery } from "@/app/(staff)/staff/_components/politicians/PoliticianCorrespondence.gallery";
+import { politicianDetailsGallery } from "@/app/(staff)/staff/_components/politicians/PoliticianDetails.gallery";
+import { politicianFiltersGallery } from "@/app/(staff)/staff/_components/politicians/PoliticianFilters.gallery";
+import { politicianIconsGallery } from "@/app/(staff)/staff/_components/politicians/PoliticianIcons.gallery";
+import { politicianMarksGallery } from "@/app/(staff)/staff/_components/politicians/PoliticianMarks.gallery";
+import { politicianTableGallery } from "@/app/(staff)/staff/_components/politicians/PoliticianTable.gallery";
+import { politicianWritingGallery } from "@/app/(staff)/staff/_components/politicians/PoliticianWriting.gallery";
+import { politiciansListGallery } from "@/app/(staff)/staff/_components/politicians/PoliticiansList.gallery";
 import StaffPage from "@/app/(staff)/staff/_components/ui/StaffPage";
 import {
   exampleAsks,
   exampleAsksWithCounts,
-  examplePolitician,
-  examplePoliticiansPage,
-} from "@/app/(staff)/staff/_components/PoliticianTable.examples";
+} from "@/app/(staff)/staff/_components/politicians/PoliticianTable.examples";
 import AskView from "@/app/(staff)/staff/_components/AskView";
 import { exampleAskPage } from "@/app/(staff)/staff/_components/CampaignPages.examples";
 import AnswerWord from "@/app/(staff)/staff/_components/AnswerWord";
@@ -20,179 +26,19 @@ import AskKindIcon from "@/app/(staff)/staff/_components/AskKindIcon";
 import AsksList from "@/app/(staff)/staff/_components/AsksList";
 import { AskLead, AskPreview, AskTitle } from "@/app/(staff)/staff/_components/AskLine";
 import type { Group } from "../_components/types";
-import {
-  ChoosingHeadExample,
-  ChoosingListExample,
-  PasteFormExample,
-  PickBoxExample,
-  PoliticiansListExample,
-  AskRowExample,
-  PoliticianCorrespondenceExample,
-  PoliticianDetailsExample,
-  AddAliasFormExample,
-  AddressesBubbleExample,
-  SalutationBubbleExample,
-  PoliticianMarksExample,
-  PoliticianTableEmptyExample,
-  PoliticianTableExample,
-  AskFormExample,
-} from "./staff.client";
+import { AskRowExample, AskFormExample } from "./staff.client";
 
-/** The parties a filter of politicians picks from. */
-const parties = ["Conservative", "Green", "Labour", "Liberal Democrat"];
-
-/** The politicians list's filters, none chosen. */
-const EMPTY_POLITICIAN_FILTERS = {
-  q: "",
-  house: "",
-  status: "",
-  party: [] as string[],
-  flag: [] as string[],
-  nation: [] as string[],
-  email: [] as string[],
-  ask: "",
-  answer: [],
-  mailed: [] as string[],
-  agreed: "",
-  sort: "",
-  dir: "",
-  page: "",
-  mailing: "",
-  tab: "",
-  pasted: [] as string[],
-  saved: "",
-};
+const [houseTabs, choosingHead, politiciansList] = politiciansListGallery;
 
 export const staffPoliticians: Group = {
   id: "staff-politicians",
   title: "The staff interface: politicians and asks",
   examples: [
-    {
-      name: "HouseTabs",
-      file: "app/(staff)/staff/_components/PoliticiansList.tsx",
-      variants: [
-        {
-          label: "The Lords chosen",
-          render: () => (
-            <StaffPage as="div">
-              <HouseTabs search={{ ...EMPTY_POLITICIAN_FILTERS, house: "lords" }} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Choosing who a mailing is for: the ticked tab, last, chosen",
-          render: () => (
-            <StaffPage as="div">
-              <HouseTabs
-                search={{ ...EMPTY_POLITICIAN_FILTERS, mailing: "12", tab: "ticked" }}
-                choosing={{ id: 12, title: "Edinburgh thank-you", blank: false, ticked: [1, 2, 3] }}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "ChoosingHead",
-      file: "app/(staff)/staff/_components/PoliticiansList.tsx",
-      variants: [
-        {
-          label: "Choosing who a new mailing is for: what to do, with Cancel, over the title",
-          render: () => (
-            <StaffPage as="div">
-              <ChoosingHeadExample blank />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Choosing who a draft goes to, named, with the way back to it",
-          render: () => (
-            <StaffPage as="div">
-              <ChoosingHeadExample blank={false} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "PasteForm",
-      file: "app/(staff)/staff/_components/PasteForm.tsx",
-      variants: [
-        {
-          label: "The box for names, one a line, and Find these",
-          render: () => (
-            <StaffPage as="div">
-              <PasteFormExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "PickBox",
-      file: "app/(staff)/staff/_components/PickBox.tsx",
-      variants: [
-        {
-          label: "Ticked, not ticked, and part ticked",
-          render: () => (
-            <StaffPage as="div">
-              <PickBoxExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "PoliticiansList",
-      file: "app/(staff)/staff/_components/PoliticiansList.tsx",
-      variants: [
-        {
-          label: "Choosing who a draft goes to: a tick box on each row and over them, Paste names, the bar at the foot",
-          // The bar is fixed to the window's foot; a transform makes this example its window, so it sits at the example's foot.
-          render: () => (
-            <div style={{ transform: "translateZ(0)" }}>
-              <StaffPage as="div">
-                <ChoosingListExample />
-              </StaffPage>
-            </div>
-          ),
-        },
-        {
-          label: "After a paste: a row for each person the lines found, and why",
-          render: () => (
-            <div style={{ transform: "translateZ(0)" }}>
-              <StaffPage as="div">
-                <ChoosingListExample pasted />
-              </StaffPage>
-            </div>
-          ),
-        },
-        {
-          label: "A search's page of politicians, with more in other houses and out of office",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticiansListExample
-                list={{ ...examplePoliticiansPage, total: 150, pages: 2, outOfOffice: 3, otherHouses: 2, tests: 1 }}
-                search={{ ...EMPTY_POLITICIAN_FILTERS, q: "pol" }}
-                asks={exampleAsks}
-              />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A search that finds no one, with the nearest names",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticiansListExample
-                list={{ ...examplePoliticiansPage, politicians: [], total: 0, closest: [examplePolitician] }}
-                search={{ ...EMPTY_POLITICIAN_FILTERS, q: "Polly Plaseholder" }}
-                asks={exampleAsks}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    houseTabs,
+    choosingHead,
+    ...pasteFormGallery,
+    ...pickBoxGallery,
+    politiciansList,
     {
       name: "AskRow",
       file: "app/(staff)/staff/_components/AskRow.tsx",
@@ -216,172 +62,12 @@ export const staffPoliticians: Group = {
         },
       ],
     },
-    {
-      name: "PoliticianCorrespondence",
-      file: "app/(staff)/staff/_components/PoliticianCorrespondence.tsx",
-      variants: [
-        {
-          label: "Threads with a reply, an automatic reply, none, and own words",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianCorrespondenceExample />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Past the newest few, folded",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianCorrespondenceExample count={12} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "PoliticianDetails",
-      file: "app/(staff)/staff/_components/PoliticianDetails.tsx",
-      variants: [
-        {
-          label: "A signer the team added, staff's notes beside their correspondence",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianDetailsExample />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "An MP from Airtable, not editable here",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianDetailsExample fromAirtable />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "An MP whose address bounced, with the form to unblock it",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianDetailsExample fromAirtable blocked />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Without the supporters permission: letters without who wrote them",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianDetailsExample fromAirtable senders={false} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Their aliases open at the foot, as their email's See aliases leads to",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianDetailsExample fromAirtable aliases />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "PoliticianMarks",
-      file: "app/(staff)/staff/_components/PoliticianMarks.tsx",
-      variants: [
-        { label: "One marker on, one off", render: () => <PoliticianMarksExample /> },
-        { label: "A test politician's", render: () => <PoliticianMarksExample test /> },
-      ],
-    },
-    {
-      name: "SalutationBubble",
-      file: "app/(staff)/staff/_components/PoliticianWriting.tsx",
-      variants: [
-        { label: "A salutation, with its Change", render: () => <SalutationBubbleExample result={{ saved: true }} /> },
-        {
-          label: "One made from their name, which says so",
-          render: () => <SalutationBubbleExample fromName result={{ saved: true }} />,
-        },
-      ],
-    },
-    {
-      name: "AddressesBubble",
-      file: "app/(staff)/staff/_components/PoliticianWriting.tsx",
-      variants: [
-        {
-          label: "An MP's email, its bubble of their other addresses open",
-          render: () => (
-            <StaffPage as="div">
-              <AddressesBubbleExample result={{ saved: true }} />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "A Lord with no email, to set one",
-          render: () => (
-            <StaffPage as="div">
-              <AddressesBubbleExample lord result={{ saved: false, why: "shared" }} />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "AddAliasForm",
-      file: "app/(staff)/staff/_components/AddAliasForm.tsx",
-      variants: [
-        {
-          label: "Added: its earlier emails are found soon",
-          render: () => <AddAliasFormExample result={{ added: true }} />,
-        },
-        {
-          label: "Not an email address",
-          render: () => <AddAliasFormExample result={{ added: false, why: "invalid" }} />,
-        },
-        {
-          label: "An address they have already",
-          render: () => <AddAliasFormExample result={{ added: false, why: "exists" }} />,
-        },
-        {
-          label: "The Lords' shared inbox",
-          render: () => <AddAliasFormExample result={{ added: false, why: "shared" }} />,
-        },
-      ],
-    },
-    {
-      name: "PoliticianFilters",
-      file: "app/(staff)/staff/_components/PoliticianFilters.tsx",
-      variants: [
-        {
-          label: "Empty, filled in, and an ask with no answer chosen",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianFilters search={EMPTY_POLITICIAN_FILTERS} asks={exampleAsks} parties={parties} />
-              <PoliticianFilters
-                search={{
-                  ...EMPTY_POLITICIAN_FILTERS,
-                  q: "example",
-                  house: "lords",
-                  status: "in_office",
-                  party: ["Labour", "Green"],
-                  flag: ["important"],
-                  nation: ["wales"],
-                  email: ["blocked"],
-                  ask: "edinburgh-conference-2026",
-                  answer: ["declined", "none"],
-                }}
-                asks={exampleAsks}
-                parties={parties}
-              />
-              <PoliticianFilters
-                search={{ ...EMPTY_POLITICIAN_FILTERS, ask: "edinburgh-conference-2026" }}
-                asks={exampleAsks}
-                parties={parties}
-              />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...politicianCorrespondenceGallery,
+    ...politicianDetailsGallery,
+    ...politicianMarksGallery,
+    ...politicianWritingGallery,
+    ...addAliasFormGallery,
+    ...politicianFiltersGallery,
     {
       name: "AskPreview",
       file: "app/(staff)/staff/_components/AskLine.tsx",
@@ -597,92 +283,7 @@ export const staffPoliticians: Group = {
         },
       ],
     },
-    {
-      name: "PoliticianTable",
-      file: "app/(staff)/staff/_components/PoliticianTable.tsx",
-      variants: [
-        {
-          label: "Signed and not, a test peer no longer sitting",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianTableExample />
-            </StaffPage>
-          ),
-        },
-        {
-          label: "Nobody matches",
-          render: () => (
-            <StaffPage as="div">
-              <PoliticianTableEmptyExample />
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "Rosette",
-      file: "app/(staff)/staff/_components/PoliticianIcons.tsx",
-      variants: [
-        {
-          label: "Each party's colour, and grey for one we don't know",
-          render: () => (
-            <StaffPage as="div">
-              <p style={{ display: "flex", gap: "12px" }}>
-                {[
-                  "Labour",
-                  "Conservative",
-                  "Liberal Democrats",
-                  "Scottish National Party",
-                  "Green",
-                  "Plaid Cymru",
-                  "Reform UK",
-                  "DUP",
-                  "Sinn Féin",
-                  "Alliance",
-                  "Crossbench",
-                ].map((party) => (
-                  <Rosette key={party} party={party} />
-                ))}
-              </p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "StatusDot",
-      file: "app/(staff)/staff/_components/PoliticianIcons.tsx",
-      variants: [
-        {
-          label: "In office, and not",
-          render: () => (
-            <StaffPage as="div">
-              <p style={{ display: "flex", gap: "12px" }}>
-                <StatusDot inOffice />
-                <StatusDot inOffice={false} />
-              </p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
-    {
-      name: "NationShape",
-      file: "app/(staff)/staff/_components/PoliticianIcons.tsx",
-      variants: [
-        {
-          label: "The four nations",
-          render: () => (
-            <StaffPage as="div">
-              <p style={{ display: "flex", gap: "12px" }}>
-                {(["england", "scotland", "wales", "northern-ireland"] as const).map((country) => (
-                  <NationShape key={country} country={country} />
-                ))}
-              </p>
-            </StaffPage>
-          ),
-        },
-      ],
-    },
+    ...politicianTableGallery,
+    ...politicianIconsGallery,
   ],
 };

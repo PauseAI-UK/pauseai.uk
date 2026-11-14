@@ -10,8 +10,9 @@ import EmailBlocksTable from "../../../_components/EmailBlocksTable";
 import EmailProblemsTable from "../../../_components/EmailProblemsTable";
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";
+import { politiciansCopy } from "../../../_components/politicians/copy";
 
-export const metadata: Metadata = { title: staffCopy.emails.titles.mps };
+export const metadata: Metadata = { title: politiciansCopy.addressesToFix.title };
 
 /** Politicians' blocked addresses, and their bounces and complaints. The letters they name lead to them only with `supporters`. */
 export default async function MpEmailsPage({ searchParams }: { searchParams: Promise<{ q?: string; kind?: string }> }) {
@@ -20,7 +21,7 @@ export default async function MpEmailsPage({ searchParams }: { searchParams: Pro
   const [blocks, problems] = await Promise.all([listBlocks("politicians", filter), recentProblems("politicians")]);
   return (
     <Page kind="list">
-      <PageHead intro={staffCopy.emails.intros.mps}>{staffCopy.emails.titles.mps}</PageHead>
+      <PageHead intro={politiciansCopy.addressesToFix.intro}>{politiciansCopy.addressesToFix.title}</PageHead>
       <EmailBlockFilters q={q} kind={kind} action="/staff/politicians/addresses-to-fix" />
       <EmailBlocksTable
         blocks={blocks}

@@ -1,18 +1,18 @@
 import "server-only";
-import { NI_CONTACTS_URL, NI_MEMBERS_URL, niAssemblyMembers } from "@/lib/ni-assembly";
-import type { OfficialMember } from "@/lib/politician-import";
+import { NI_CONTACTS_URL, NI_MEMBERS_URL, niAssemblyMembers } from "@/lib/politicians/ni-assembly";
+import type { OfficialMember } from "@/lib/politicians/import-changes";
 import {
   SCOTTISH_PARLIAMENT_API,
   SCOTTISH_PARLIAMENT_LISTS,
   scottishParliamentMembers,
   type ScottishParliamentLists,
-} from "@/lib/scottish-parliament";
-import { SENEDD_MEMBERS_URL, seneddMembers } from "@/lib/senedd";
+} from "@/lib/politicians/scottish-parliament";
+import { SENEDD_MEMBERS_URL, seneddMembers } from "@/lib/politicians/senedd";
 import { outsideFetch } from "./outside-fetch";
 
 // The Scottish Parliament's, the Senedd's and the Northern Ireland Assembly's
-// open data, no key needed. lib/scottish-parliament.ts, lib/senedd.ts and
-// lib/ni-assembly.ts know their paths and read their answers; this fetches
+// open data, no key needed. lib/politicians/scottish-parliament.ts, lib/politicians/senedd.ts and
+// lib/politicians/ni-assembly.ts know their paths and read their answers; this fetches
 // them.
 
 /**

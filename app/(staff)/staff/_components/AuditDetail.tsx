@@ -13,6 +13,7 @@ import CampaignName from "./CampaignName";
 import { DotParts } from "./Logged";
 import { accountsCopy } from "./accounts/copy";
 import { supportersCopy } from "./supporters/copy";
+import { politiciansCopy } from "./politicians/copy";
 
 const copy = staffCopy.changes;
 
@@ -128,8 +129,8 @@ const politician: LeadOf<"add politician" | "edit politician" | "remove politici
 const status: LeadOf<"set status"> = (details, change) => {
   const words =
     details.status === null
-      ? staffCopy.politician.statusCleared
-      : staffCopy.politician.statusSet(staffVocabulary.statuses[details.status] ?? details.status);
+      ? politiciansCopy.politician.statusCleared
+      : politiciansCopy.politician.statusSet(staffVocabulary.statuses[details.status] ?? details.status);
   return {
     parts: [
       <Who key="about" named={change.politician} href="/staff/politicians" name="" id={details.politicianId} />,

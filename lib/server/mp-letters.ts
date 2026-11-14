@@ -5,13 +5,13 @@ import { campaignBySlug, draftLetter, looksLikeEmail, signatureAddress } from "@
 import { draftHash, ownWords } from "@/lib/letter-changes";
 import { checkDoc, isBlank, toText, type LetterDoc } from "@/lib/letter-format";
 import { query, transaction } from "./db";
-import { findMp } from "./find-mp";
+import { findMp } from "@/lib/politicians/find-mp";
 import { sendLetter, type QueueReason } from "./letter-sending";
 import { isLettersInboxAddress } from "./letters-inbox";
 import { checkNotSpam } from "./outside-services/turnstile";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { sendBulkNotice } from "@/lib/supporters/email-settings";
-import { statusesOf } from "./politicians";
+import { statusesOf } from "@/lib/politicians/records";
 import { politicianProxy, supporterProxy } from "./proxies";
 import { linkSupporters } from "@/lib/supporters/records";
 import { problem } from "./problems";

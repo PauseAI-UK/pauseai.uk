@@ -4,7 +4,7 @@
 // build.
 import { expect, type Page } from "@playwright/test";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
-import { TEST_MPS, type TestMp } from "@/lib/test-mps";
+import { TEST_MPS, type TestMp } from "@/lib/politicians/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { BASE } from "./fixtures";
 import { logIn } from "./login-steps";

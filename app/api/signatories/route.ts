@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { signatories } from "@/lib/server/politicians";
+import { signatories } from "@/lib/politicians/records";
 import { FRONTIER_AI_LETTER_ASK } from "@/lib/asks";
 import { problem } from "@/lib/server/problems";
 import { staffCopy } from "@/lib/content/staff-interface";

@@ -6,7 +6,7 @@ import { storedFilter, type SupportersSearch } from "@/lib/staff-search";
 import { valuesOf } from "@/lib/list-params";
 import { broadcastTerms } from "@/lib/broadcasts";
 import { supporterFiltersOf } from "./supporters/SupportersTable";
-import list from "./PoliticiansList.module.css";
+import list from "./politicians/PoliticiansList.module.css";
 import StaffLink from "./ui/StaffLink";
 import Strip from "./ui/Strip";
 

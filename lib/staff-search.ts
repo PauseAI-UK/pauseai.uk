@@ -6,7 +6,7 @@ import { listWindow, type DashboardWindow } from "./staff-dashboard";
 import { contactState } from "@/lib/supporters/contact-permissions";
 import type { ChangesFilter } from "@/lib/server/audit";
 import type { BlocksFilter } from "@/lib/server/email";
-import type { PoliticianFilter } from "@/lib/server/politicians";
+import type { PoliticianFilter } from "@/lib/politicians/records";
 import type { SentEmailsFilter } from "@/lib/server/sent-emails";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { LETTER_STATES } from "@/lib/copy-states";
@@ -28,7 +28,7 @@ import {
   isPersonStatus,
   POLITICIAN_FLAGS,
   type PoliticianFlag,
-} from "@/lib/politician-filters";
+} from "@/lib/politicians/filters";
 import {
   ACCOUNTS_LIST,
   ALL_EMAILS_LIST,

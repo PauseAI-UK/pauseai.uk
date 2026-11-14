@@ -5,7 +5,7 @@
 // Senedd's). lib/server/controlai-statement-import.ts copies them in
 // nightly, as the statuses of the statement's ask; this reads the links.
 
-import type { Body } from "./politician-import";
+import type { Body } from "@/lib/politicians/import-changes";
 
 export const CONTROLAI_STATEMENT_PAGE = "https://controlai.org/statement";
 

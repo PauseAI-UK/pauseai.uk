@@ -16,7 +16,7 @@ import { parseMime, wholeTextOf } from "@/lib/email-parsing/mime";
 import type { Relinked } from "@/lib/import-runs";
 import { query, transaction } from "./db";
 import { letterReply } from "./outside-services/blobs";
-import { connectedAccounts, readPoliticianBook } from "./politician-book";
+import { connectedAccounts, readPoliticianBook } from "@/lib/politicians/book";
 
 // Relinking: whose each one-off thread is, worked out afresh from its
 // messages' addresses, and the addresses and names they quote, against the

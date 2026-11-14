@@ -49,3 +49,4 @@ Following the flows' runs by coverage to choose them, in place of imports, picke
 
 - 2026-11-12: three full reviews in a row on one branch, five minutes each with the build, as each turned up one failing phone flow and the fix to a shared piece (the bubble) needed every flow run again; the changes after the first touched four files, ~20 min waiting
 - 2026-11-12: a full review took 12 minutes, not 5, with the machine busy with other work, and the staff kit's gallery flow (51 frames) passed its 60 seconds; the review after a one-line fix to a flow's step had to run whole again, ~25 min waiting
+- 2026-11-14: a moved file's path in a comment of the seed data (tests/fixtures/staff-data.sql) reruns every desktop flow, though no SQL changed; a comment-only change to a .sql fixture could reach nothing

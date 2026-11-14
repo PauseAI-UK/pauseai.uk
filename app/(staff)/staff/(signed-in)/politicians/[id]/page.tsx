@@ -4,25 +4,22 @@ import { listAsks } from "@/lib/server/asks";
 import { blockOn } from "@/lib/server/email";
 import { pauseaiLetters, politicianLetters } from "@/lib/server/letters";
 import { notesOn } from "@/lib/server/notes";
-import { getPolitician, politicianHistory } from "@/lib/server/politicians";
+import { getPolitician, politicianHistory } from "@/lib/politicians/records";
 import { requireStaff } from "@/lib/accounts/auth";
 import { now } from "@/lib/now";
 import { politicianId } from "@/lib/staff-search";
-import { politicianAliases } from "@/lib/server/politician-aliases";
+import { politicianAliases } from "@/lib/politicians/aliases";
+import { addNoteNow, deleteNoteNow, editNoteNow, unblockAddress } from "../../../actions";
 import {
   addAliasNow,
-  addNoteNow,
-  deleteNoteNow,
-  editNoteNow,
   editPoliticianNow,
   removeAliasNow,
   setAskStatus,
   setMarkNow,
-  unblockAddress,
-} from "../../../actions";
+} from "../../../_components/politicians/actions";
 import { politicianOneOffs } from "@/lib/server/one-off-emails";
-import { politicianMessages } from "@/lib/server/politician-correspondence";
-import PoliticianDetails from "../../../_components/PoliticianDetails";
+import { politicianMessages } from "@/lib/politicians/correspondence";
+import PoliticianDetails from "../../../_components/politicians/PoliticianDetails";
 import Page from "../../../_components/ui/Page";
 
 type Params = { params: Promise<{ id: string }> };

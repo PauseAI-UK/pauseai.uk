@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // npm run db:reset: makes the local database that NETLIFY_DB_URL names, from
 // scratch, with the migrations applied. If TEST_MP_EMAIL is set, it also adds
-// the test MPs (lib/test-mps.ts) with that inbox. With DATA_FIXTURES set, it
+// the test MPs (lib/politicians/test-mps.ts) with that inbox. With DATA_FIXTURES set, it
 // adds the fake supporters too (tests/fixtures/staff-data.sql), and the test
 // MPs whatever TEST_MP_EMAIL says, since their letters go to the fixture
 // outbox anyway. Reads all three from .env.local, the way `npm run dev` does.

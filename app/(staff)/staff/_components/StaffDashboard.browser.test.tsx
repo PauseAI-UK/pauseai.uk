@@ -9,6 +9,7 @@ import StaffDashboard from "./StaffDashboard";
 import { exampleDashboard, exampleQuietDashboard } from "./StaffDashboard.examples";
 import { shellCopy } from "./shell/copy";
 import { supportersCopy } from "./supporters/copy";
+import { politiciansCopy } from "./politicians/copy";
 
 const [pm, bill] = campaigns;
 
@@ -39,7 +40,7 @@ describe("StaffDashboard", () => {
     const items = list.getByRole("listitem").all();
     expect(items.map((item) => item.element().textContent)).toEqual([
       `${copy.actions.heldImport(jobTitles["import-parliament"], 24)}${copy.actions.heldImportDetail}${copy.actions.decide}`,
-      `${copy.actions.blockedMp("Bouncy McTestface MP")} ${staffCopy.politicians.flags.test}${copy.actions.blockedMpDetail}${copy.actions.openMp}`,
+      `${copy.actions.blockedMp("Bouncy McTestface MP")} ${politiciansCopy.politicians.flags.test}${copy.actions.blockedMpDetail}${copy.actions.openMp}`,
       `${copy.actions.failedImport(jobTitles["import-controlai"])}${copy.actions.failedImportDetail("No PDF linked", "21 Oct 2026, 02:00")}${copy.actions.seeRun}`,
       `${staffCopy.lettersInbox.alert.subject(2, "fixture-letters@pauseai.uk")}${copy.actions.lettersInboxDetail("21 Oct 2026, 03:20")}${copy.actions.lettersInboxButton}`,
     ]);

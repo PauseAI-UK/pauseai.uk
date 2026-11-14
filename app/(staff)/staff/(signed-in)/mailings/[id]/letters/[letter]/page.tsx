@@ -4,7 +4,7 @@ import { found } from "@/lib/found";
 import { letterThread } from "@/lib/server/letter-threads";
 import { listAsks } from "@/lib/server/asks";
 import { getPauseaiLetter } from "@/lib/server/letters";
-import { getPolitician } from "@/lib/server/politicians";
+import { getPolitician } from "@/lib/politicians/records";
 import { requireStaff } from "@/lib/accounts/auth";
 import { letterId, mailingId } from "@/lib/staff-search";
 import FindInGmail from "../../../../../_components/FindInGmail";
@@ -12,7 +12,7 @@ import { letterTitle } from "../../../../../_components/LetterHistory";
 import LetterView from "../../../../../_components/LetterView";
 import LetterThread from "../../../../../_components/LetterThread";
 import Page from "../../../../../_components/ui/Page";
-import { setAskStatus } from "../../../../../actions";
+import { setAskStatus } from "../../../../../_components/politicians/actions";
 
 type Params = { params: Promise<{ id: string; letter: string }> };
 

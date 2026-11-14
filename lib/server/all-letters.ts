@@ -8,9 +8,9 @@ import { query } from "./db";
 import { sql, type Sql } from "./sql";
 import { threadsWithSomeoneElse } from "./one-off-emails";
 import type { AllEmailsSort } from "@/lib/staff-lists";
-import type { PoliticianFlag } from "@/lib/politician-filters";
-import { politicianBook } from "./politician-book";
-import { FLAG_CONDITIONS } from "./politicians";
+import type { PoliticianFlag } from "@/lib/politicians/filters";
+import { politicianBook } from "@/lib/politicians/book";
+import { FLAG_CONDITIONS } from "@/lib/politicians/records";
 import { REPLIES } from "./reply-count";
 
 // The correspondence page: every email with a politician, a row for each

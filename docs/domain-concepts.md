@@ -41,14 +41,14 @@ What a letter said is kept where we need it to do the job:
 
 Everyone we campaign at is a notable person (`notable_people`). For now
 they're all politicians: MPs, peers, MSPs, members of the Senedd and the Northern
-Ireland Assembly, and others (`HOUSES` in `lib/politician-filters.ts`).
+Ireland Assembly, and others (`HOUSES` in `lib/politicians/filters.ts`).
 
 A notable person has what all kinds share:
 
 - a name as they're known in public, with any title that's part of it
   ("Lord McFall of Alcluith");
 - a salutation, which follows "Dear" ("Sir Iain", "Lady Smith", "Bishop"):
-  made by a rule from what their body lists (`lib/salutation.ts`), which
+  made by a rule from what their body lists (`lib/politicians/salutation.ts`), which
   staff can correct. Where the rule can't tell, as for a new MSP or member
   of the Senedd whose gender Wikidata doesn't know yet, it's their name,
   marked to check (`salutation_to_check`), and made again once it can.
@@ -75,7 +75,7 @@ history stays.
 Where they come from:
 
 - **Each body's own list**, imported nightly
-  (`lib/server/politician-import.ts`): Parliament's, both Houses, from its
+  (`lib/politicians/imports.ts`): Parliament's, both Houses, from its
   Members Data Platform; the Scottish Parliament's, the Senedd's and the
   Northern Ireland Assembly's, from their open data. Each politician keeps
   the ID their body gives them (`politicians.official_id`; the Commons and
@@ -99,7 +99,7 @@ Where they come from:
   longer read. Its salutations, markers and notes were copied before then;
   each politician who was in it keeps their record's ID (`airtable_id`).
   Nobody is deleted: a politician who leaves their body is marked as left.
-- **Test MPs** are fixed, each found by a test postcode (`lib/test-mps.json`,
+- **Test MPs** are fixed, each found by a test postcode (`lib/politicians/test-mps.json`,
   ZZ99Z\*) and each standing for one case: an ordinary MP, one who has
   signed, one with no email, one whose email bounces. A new case that a
   person would see gets a new test MP.
@@ -109,7 +109,7 @@ else would need a way to find them (a region for an MSP, a list for peers).
 
 The politicians list and the top of a politician's page count their emails
 each way. Both show the same two numbers, counted in SQL for every
-politician at once (`lib/server/politician-email-counts.ts`):
+politician at once (`lib/politicians/email-counts.ts`):
 
 - **Emails to them**: the letters to them that went, supporters' and
   PauseAI's, and each message on their one-off threads ("One-off emails",
@@ -125,7 +125,7 @@ The list sorts by them as `sort=emailsToThem` and `sort=emailsFromThem`.
 
 The list's First activity and Last activity are the first and last time we
 did something with a politician, or they with us (`POLITICIAN_ACTIVITY` in
-`lib/server/politicians.ts`): a letter written to them, their reply to one,
+`lib/politicians/records.ts`): a letter written to them, their reply to one,
 their answer to an ask, on the day it was given if we know it, or a one-off
 message that counts as an email to them or from them, above. So someone
 whose only contact is a one-off thread has both dates, and the sort by
@@ -826,7 +826,7 @@ else in it.
   - an address on a parliament's domain.
 
   Whose it is, the politicians a thread shows under, goes by the politician book
-  (`lib/server/politician-book.ts`). An address is a politician's if it's:
+  (`lib/politicians/book.ts`). An address is a politician's if it's:
   - their email, or one they had;
   - one in `politician_addresses`: listed for them by their body, added by
     staff (such as a personal Gmail), or their office's;
@@ -1474,7 +1474,7 @@ each time it happens, with a link to where to deal with it:
   `lib/server/import-runs.ts`; "Imports", below);
 - a Gmail account the read every 5 minutes couldn't read, after a run that could
   (`lib/server/gmail-reading.ts`); one Google disconnected has its own;
-- a body's import held, when none was (`lib/server/politician-import.ts`);
+- a body's import held, when none was (`lib/politicians/imports.ts`);
 - Google disconnecting a Gmail account (`lib/accounts/gmail-accounts.ts`);
 - letters to MPs waiting over three hours to go, until those it named
   have gone (`LATE_HOURS` in `lib/server/letter-sending.ts`);
@@ -1740,7 +1740,7 @@ a politician's history is kept while the politician is
 The rule: **every change to a record about a person or a politician is
 logged once, against that record, by whoever or whatever made it**, in the
 same transaction. So the record's own page can tell its history
-(`politicianHistory` in `lib/server/politicians.ts`; a supporter's
+(`politicianHistory` in `lib/politicians/records.ts`; a supporter's
 history comes from the records themselves). A job that changes many
 records logs one summary entry for the run, and one entry per record it
 changed.

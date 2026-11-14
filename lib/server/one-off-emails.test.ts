@@ -27,7 +27,7 @@ import {
   supporterOneOffs,
 } from "./one-off-emails";
 import { gmailMessageHeaders, type GmailMessageHeaders } from "./outside-services/gmail";
-import { politicianBook } from "./politician-book";
+import { politicianBook } from "@/lib/politicians/book";
 
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 const POLLY = "polly.placeholder.mp@parliament.uk";

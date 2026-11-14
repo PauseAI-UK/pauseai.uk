@@ -13,12 +13,13 @@ import {
   type Sending,
   type Tidying,
 } from "@/lib/import-runs";
-import type { House } from "@/lib/politician-filters";
-import { importChangeCount } from "@/lib/politician-import";
+import type { House } from "@/lib/politicians/filters";
+import { importChangeCount } from "@/lib/politicians/import-changes";
 import RunBox from "./RunBox";
 import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
 import ExternalLink from "./ui/ExternalLink";
+import { politiciansCopy } from "./politicians/copy";
 
 /** The Server Action that applies or discards a held import. */
 export type Decide = (formData: FormData) => void | Promise<void>;
@@ -45,7 +46,7 @@ function Politicians({ heading, politicians }: { heading: string; politicians: L
         {sorted.map((p) => (
           <li key={where(p)}>
             {where(p)}
-            {p.email === null ? ` (${staffCopy.politicians.noEmail})` : ""}
+            {p.email === null ? ` (${politiciansCopy.politicians.noEmail})` : ""}
           </li>
         ))}
       </ul>
@@ -78,7 +79,7 @@ function Decision({ run, decision, decide }: { run: PoliticianImport; decision: 
       <input type="hidden" name="job" value={run.job} />
       <input type="hidden" name="decision" value={decision} />
       <SubmitButton variant={decision === "apply" ? "primary" : "ghost"} size="small">
-        {staffCopy.politicianImports[decision]}
+        {politiciansCopy.politicianImports[decision]}
       </SubmitButton>
     </form>
   );
@@ -103,7 +104,7 @@ function PoliticianImportRun({
   bare?: boolean;
 }) {
   if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
-  const words = staffCopy.politicianImports;
+  const words = politiciansCopy.politicianImports;
   const { changes, vacant, relinked } = run.result;
   const { added, changed, left, renamed, unofficial, salutations } = changes;
   const count = importChangeCount(changes) + renamed.length + unofficial.length + salutations.length;

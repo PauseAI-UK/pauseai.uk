@@ -14,6 +14,7 @@ import {
   exampleRun,
 } from "./RunList.examples";
 import { action, press } from "@/tests/browser/staff";
+import { politiciansCopy } from "./politicians/copy";
 
 const ran = exampleRun;
 
@@ -92,7 +93,7 @@ describe("ImportOverview", () => {
     ]);
     expect(status(2).className).not.toMatch(/green|amber|red/);
     expect(status(2).textContent).toBe(staffCopy.sending.never);
-    expect(status(6).textContent).toBe(staffCopy.politicianImports.never);
+    expect(status(6).textContent).toBe(politiciansCopy.politicianImports.never);
     expect(status(10).textContent).toBe(staffCopy.tidying.never);
     // Each body's import links its list and says what it holds.
     const link = (i: number) => cards[i].querySelector(":scope > p a")!.getAttribute("href");
@@ -100,7 +101,7 @@ describe("ImportOverview", () => {
     expect(link(5)).toBe("https://data.parliament.scot/#/api-list/");
     expect(link(6)).toBe("https://business.senedd.wales/mgWebService.asmx");
     expect(link(7)).toBe("https://data.niassembly.gov.uk/members.asmx");
-    expect(cards[4].querySelector(":scope > p")!.textContent).toContain(staffCopy.politicianImports.held);
+    expect(cards[4].querySelector(":scope > p")!.textContent).toContain(politiciansCopy.politicianImports.held);
     expect(link(9)).toBe("https://controlai.org/statement");
     // ControlAI's imports link the ask they mark, the quotes around its name left out of the link.
     const askLinks = (i: number) =>
@@ -220,12 +221,12 @@ describe("ImportJobPage", () => {
     expect(lozenges.map((tag) => tag.textContent)).toEqual([staffCopy.import.nightly]);
     expect(lozenges.map((tag) => tag.className.match(/green|amber|red|blue/))).toEqual([null]);
     // What it does is under the head, not in it.
-    const intro = staffCopy.politicianImports.intros["import-parliament"];
+    const intro = politiciansCopy.politicianImports.intros["import-parliament"];
     expect(head.textContent).not.toContain(intro.link);
     expect(head.nextElementSibling!.textContent).toContain(intro.link);
     // No strip under the head: the newest run, in the history, carries the colour.
     expect(head.nextElementSibling!.nextElementSibling!.querySelector(":scope > [data-strip]")).toBeNull();
-    await page.getByRole("button", { name: staffCopy.politicianImports.importNow["import-parliament"] }).click();
+    await page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }).click();
     await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
     expect(
       page
@@ -233,7 +234,7 @@ describe("ImportJobPage", () => {
         .all()
         .map((h) => h.element().textContent),
     ).toEqual(["13 Oct 2026", "11 Oct 2026"]);
-    await page.getByRole("button", { name: staffCopy.politicianImports.apply }).click();
+    await page.getByRole("button", { name: politiciansCopy.politicianImports.apply }).click();
     await vi.waitFor(() => expect(sent).toEqual([{ id: "4", job: "import-parliament", decision: "apply" }]));
 
     await rerender(<ImportJobPage job="import-controlai-statement" runs={[]} run={run} decide={fn} />);

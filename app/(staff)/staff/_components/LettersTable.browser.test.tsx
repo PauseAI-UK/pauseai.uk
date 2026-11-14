@@ -6,6 +6,7 @@ import { staffTime } from "@/lib/staff-time";
 import { staffCopy } from "@/lib/content/staff-interface";
 import LettersTable from "./LettersTable";
 import { exampleLetter } from "./LettersTable.examples";
+import { politiciansCopy } from "./politicians/copy";
 
 const [pm] = campaigns;
 
@@ -63,7 +64,7 @@ describe("LettersTable", () => {
       .toHaveAttribute("href", "/staff/letters/1");
     await expect.element(page.getByRole("cell", { name: staffTime(letter.sentAt!), exact: true })).toBeInTheDocument();
     await expect.element(page.getByRole("cell", { name: "–", exact: true })).toBeInTheDocument();
-    expect(page.getByText(staffCopy.politicians.flags.test).all()).toHaveLength(1);
+    expect(page.getByText(politiciansCopy.politicians.flags.test).all()).toHaveLength(1);
     await expect.element(page.getByRole("cell", { name: "13 Oct 2026, 09:00", exact: true })).toBeInTheDocument();
     // The written reply's, though an automatic one came first.
     expect(document.body.textContent).not.toContain("12 Oct 2026, 10:00");

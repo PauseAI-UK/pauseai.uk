@@ -5,7 +5,7 @@ import { TOPICS, WAYS, type Topic } from "@/lib/supporters/contact-permissions";
 import { ERROR_KINDS } from "@/lib/error-key";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
 import { RECORDED_LETTER_EVENTS } from "@/lib/letter-status";
-import { COUNTRIES } from "@/lib/politician-filters";
+import { COUNTRIES } from "@/lib/politicians/filters";
 import { query } from "@/lib/server/db";
 import type { Backend, ProblemKind, Purpose } from "@/lib/server/email";
 import type { EntryLuma } from "@/lib/supporters/form-entries";
@@ -14,7 +14,7 @@ import type { mailingChannel } from "@/lib/server/mailing-channels";
 import type { MailingState } from "@/lib/server/mailing-drafts";
 import type { SkipReason } from "@/lib/server/mailings";
 import type { WhatsAppTemplate } from "@/lib/server/broadcast-drafts";
-import type { AddressSource } from "@/lib/server/politician-aliases";
+import type { AddressSource } from "@/lib/politicians/aliases";
 import type { OptOutList, OptOutSource } from "@/lib/supporters/opt-outs";
 import type { BroadcastReply } from "@/lib/server/broadcast-replies";
 import type { BroadcastSendBy } from "@/lib/broadcasts";
@@ -26,7 +26,7 @@ import {
   type SubscriptionResult,
 } from "@/lib/server/outside-services/civicrm";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar";
-import { HOUSES, PERSON_STATUSES } from "@/lib/server/politicians";
+import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/records";
 import type { SignupUploadPerson } from "@/lib/supporters/signup-uploads";
 import { PERMISSIONS } from "@/lib/accounts/permissions";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";

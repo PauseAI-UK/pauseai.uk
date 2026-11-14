@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { THEYWORKFORYOU_PEOPLE, WIKIDATA_QUERY } from "@/lib/wikidata";
+import { THEYWORKFORYOU_PEOPLE, WIKIDATA_QUERY } from "@/lib/politicians/wikidata";
 import { mspPeople, seneddPeople } from "./wikidata";
 
 it("finds Senedd members by their Senedd ID, and only those Wikidata knows", async () => {

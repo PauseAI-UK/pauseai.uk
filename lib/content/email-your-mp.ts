@@ -183,7 +183,7 @@ export const copy = {
     // the rest, with what each MP is for, behind an arrow.
     testPostcodes: "Dev site takes test postcodes only. Expand for more. Default one: ",
     testMpSigned: (ask: string) => `signed “${ask}”`,
-    // The asks the test MPs have signed (lib/test-mps.json), by their titles in the asks table.
+    // The asks the test MPs have signed (lib/politicians/test-mps.json), by their titles in the asks table.
     testMpAsks: {
       [FRONTIER_AI_LETTER_ASK]: "Frontier AI letter to the Prime Minister",
       [CONTROLAI_LETTER_ASK]: "ControlAI's letter to the Prime Minister",

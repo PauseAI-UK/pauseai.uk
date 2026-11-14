@@ -11,7 +11,7 @@
 -- outside-services.ts), and the politicians and members with Airtable IDs
 -- Airtable's (airtable-*.json), by the same IDs, so an import writes the
 -- same rows again rather than doubling them. The rest are made up, with
--- "seed" in their IDs. The letters go to the test MPs (lib/test-mps.json),
+-- "seed" in their IDs. The letters go to the test MPs (lib/politicians/test-mps.json),
 -- which must be in the database already, and most recent ones then to
 -- Airtable's two. Supporters and their links are written once everyone
 -- else is, as the matcher (lib/server/supporters.ts) would make them: one
@@ -148,7 +148,7 @@ WHERE rank <= 162;
 
 -- Statuses: Polly signed the letter to the PM last month; Dora this week;
 -- the peer backs the bill, from ControlAI's letter, the week before; Backy
--- McTestface MP's bill status (lib/test-mps.json) was already there. Then
+-- McTestface MP's bill status (lib/politicians/test-mps.json) was already there. Then
 -- answers from Airtable, as production has them: each letter and the statement, and every answer an event
 -- allows, across the conference and Go to Parliament, all copied with each
 -- ask, 20 days ago, so dated the ask's day, or that day if the ask's is still

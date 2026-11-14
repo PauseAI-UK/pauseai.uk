@@ -10,6 +10,7 @@ import { exampleChanges } from "./ChangesTable.examples";
 import { downloads } from "@/tests/browser/staff";
 import { accountsCopy } from "./accounts/copy";
 import { supportersCopy } from "./supporters/copy";
+import { politiciansCopy } from "./politicians/copy";
 
 const [pm] = campaigns;
 
@@ -108,9 +109,9 @@ describe("ChangesTable", () => {
     expect(rows[0].element().children[1].textContent).toBe("09:59");
     expect(rows[0].element().children[2].textContent).toBe("jo@pauseai.uk");
     const details = rows.map((row) => row.element().children[4].textContent);
-    const signed = staffCopy.politician.statusSet(staffVocabulary.statuses.signed);
-    const cleared = staffCopy.politician.statusCleared;
-    const odd = staffCopy.politician.statusSet("odd");
+    const signed = politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed);
+    const cleared = politiciansCopy.politician.statusCleared;
+    const odd = politiciansCopy.politician.statusSet("odd");
     const count = (n: number, key: string) => `${n} ${copy.counts[key](n)}`;
     expect(details).toEqual([
       `Polly Placeholder · ${signed.before}${pm.title}${signed.after}, 1 Oct 2026 · ${labels.note} By email`,

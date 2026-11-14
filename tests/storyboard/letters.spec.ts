@@ -11,8 +11,9 @@ import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { TEST_MPS } from "@/lib/test-mps";
+import { TEST_MPS } from "@/lib/politicians/test-mps";
 import type { Section } from "./report/frames";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 
 export const section: Section = { name: "Letters and bounces", part: "Staff pages", order: 100 };
 
@@ -169,16 +170,16 @@ test("A letter's page", async ({ page, flowDatabase }) => {
 
   const ask = page.getByRole("region", { name: staffCopy.mailings.fields.ask });
   await expect(ask.getByRole("link", { name: campaigns[0].title })).toBeVisible();
-  await ask.getByRole("button", { name: staffCopy.politician.edit }).click();
+  await ask.getByRole("button", { name: politiciansCopy.politician.edit }).click();
   await page.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
-  const note = page.getByLabel(staffCopy.politician.note);
+  const note = page.getByLabel(politiciansCopy.politician.note);
   await note.fill("Signed, says their reply");
   // The bubble scrolls the page as it opens, and the clicks and typing scroll their fields into view, in an
   // order that differs between runs: the frame is of the bubble, its note in the middle of the window.
   await note.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
   await frame(page, "Editing the MP's answer", { window: true });
   story("Saved, the letter's tag says the MP answered.");
-  await page.getByRole("button", { name: staffCopy.politician.save }).click();
+  await page.getByRole("button", { name: politiciansCopy.politician.save }).click();
   const answered = page.getByText(staffCopy.copyStates.tags.answered!, { exact: true });
   await expect(answered).toBeVisible();
   // The edit form closing shortens the page, and where that leaves the window differs between runs:
@@ -290,7 +291,7 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
 
   await page.goto(`${BASE}/staff/politicians?flag=test`);
   const bouncysRow = page.getByRole("row").filter({ hasText: bouncy.name });
-  await expect(bouncysRow).toContainText(staffCopy.politicians.emailBlocked);
+  await expect(bouncysRow).toContainText(politiciansCopy.politicians.emailBlocked);
   await frame(page, "The politicians list");
 
   story("Addresses to fix lists the address, and leads to the MP.");
@@ -302,7 +303,7 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
 
   await page.getByRole("link", { name: bouncy.name }).click();
   await expect(page.getByRole("heading", { level: 1, name: bouncy.name })).toBeVisible();
-  await expect(page.getByRole("region", { name: staffCopy.politician.blocked.title })).toBeVisible();
+  await expect(page.getByRole("region", { name: politiciansCopy.politician.blocked.title })).toBeVisible();
   await frame(page, "The MP's page");
   story("Staff check with the MP's office, then unblock the address, with a note.");
 

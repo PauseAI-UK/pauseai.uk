@@ -7,6 +7,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { openSavedList } from "./saved-lists";
 import { eventsCopy } from "@/lib/events/copy";
 import { supportersCopy } from "./_components/supporters/copy";
+import { politiciansCopy } from "./_components/politicians/copy";
 
 const JO = "jo@pauseai.uk";
 
@@ -28,7 +29,7 @@ describeWithDatabase("openSavedList", () => {
   it("titles each list's page, with words worked out later or none", async () => {
     const words = async (search: { q: string }) => [search.q];
     expect(await (await openSavedList("politicians", { q: "jo" })).title(words)).toBe(
-      staffVocabulary.filters.pageTitle(staffCopy.politicians.title, "jo"),
+      staffVocabulary.filters.pageTitle(politiciansCopy.politicians.title, "jo"),
     );
     expect(await (await openSavedList("supporters", { q: "jo" })).title(words)).toBe(
       staffVocabulary.filters.pageTitle(supportersCopy.supporters.title, "jo"),

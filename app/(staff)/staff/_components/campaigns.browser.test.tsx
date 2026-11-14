@@ -32,8 +32,6 @@ import { exampleThread } from "./LetterThread.examples";
 import MailEmail from "./MailEmail";
 import MailingView from "./MailingView";
 import { exampleMailing } from "./MailingsTable.examples";
-import PoliticianDetails from "./PoliticianDetails";
-import { examplePolitician } from "./PoliticianTable.examples";
 import { emptyLettersSearch, exampleLetter } from "./LettersTable.examples";
 import MyGmail from "./accounts/MyGmail";
 import { OneOffTable } from "./OneOffList";
@@ -46,6 +44,7 @@ import { exampleRun } from "./RunList.examples";
 import SentEmails from "./SentEmails";
 import StaffNav from "./shell/StaffNav";
 import { shellCopy } from "./shell/copy";
+import { politiciansCopy } from "./politicians/copy";
 
 const copy = staffCopy.campaigns;
 const NOW = "2026-11-05T09:00:00Z";
@@ -264,7 +263,7 @@ describe("AskView", () => {
 
   it("leads with what they were asked, then its answers, then how we asked and its counts", async () => {
     await render(<AskView ask={exampleAskPage} answer="" />);
-    expect(document.body.textContent).toContain(staffCopy.politician.askedThem("PauseAI", "letter").slice(0, 8));
+    expect(document.body.textContent).toContain(politiciansCopy.politician.askedThem("PauseAI", "letter").slice(0, 8));
     await expect.element(link(exampleAskPage.ways[0].title)).toHaveAttribute("href", exampleAskPage.ways[0].href);
     // Each kind under its own heading, with how many letters each sent.
     await says(staffCopy.asks.waysOf.campaign);
@@ -742,31 +741,6 @@ describe("Withheld", () => {
 });
 
 describe("the rest", () => {
-  it("lists a politician's one-off emails in their correspondence, one they can't read said so", async () => {
-    await render(
-      <PoliticianDetails
-        politician={examplePolitician}
-        asks={[]}
-        setStatus={() => {}}
-        block={undefined}
-        unblock={() => {}}
-        letters={{ senders: false, letters: [] }}
-        oneOffs={[exampleOneOffs[0], exampleHiddenOneOff, { ...exampleOneOffs[0], id: 3, subject: "" }]}
-        history={[]}
-      />,
-    );
-    await expect.element(link(exampleOneOffs[0].subject!)).toHaveAttribute("href", "/staff/one-off/1");
-    await expect.element(link(staffCopy.oneOff.noSubject)).toHaveAttribute("href", "/staff/one-off/3");
-    await expect
-      .element(
-        page
-          .getByRole("region", { name: staffCopy.politician.correspondence.title })
-          .getByText(staffCopy.oneOff.hidden),
-      )
-      .toBeVisible();
-    expect(link(staffCopy.oneOff.hidden).query()).toBeNull();
-  });
-
   it("has all emails in the menu, under Politicians", async () => {
     await render(<StaffNav email="jo@pauseai.uk" permissions={[]} />);
     expect(document.querySelector('nav a[href="/staff/emails"]')?.textContent).toContain(shellCopy.nav.emails);
