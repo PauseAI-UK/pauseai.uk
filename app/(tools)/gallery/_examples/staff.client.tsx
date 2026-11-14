@@ -78,7 +78,7 @@ import {
   exampleSending,
 } from "@/app/(staff)/staff/_components/MailingsTable.examples";
 import { Controlled, Logged } from "../_components/wiring";
-import { exampleAsks } from "@/app/(staff)/staff/_components/campaigns/AsksList.examples";
+import { exampleAsks } from "@/app/(staff)/staff/_components/asks/AsksList.examples";
 
 /** An MP sync held for a decision: apply and discard log what they'd send. */
 export function HeldImportExample() {

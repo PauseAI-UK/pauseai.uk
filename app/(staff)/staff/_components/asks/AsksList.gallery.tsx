@@ -8,7 +8,7 @@ import { exampleAsksWithCounts } from "./AsksList.examples";
 export const asksListGallery: Example[] = [
   {
     name: "AsksList",
-    file: "app/(staff)/staff/_components/campaigns/AsksList.tsx",
+    file: "app/(staff)/staff/_components/asks/AsksList.tsx",
     variants: [
       {
         label: "Every ask, with its answers",

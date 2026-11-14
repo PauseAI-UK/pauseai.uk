@@ -1,5 +1,5 @@
 import "server-only";
-import { AGREED_STATUSES } from "@/lib/campaigns/asks";
+import { AGREED_STATUSES } from "@/lib/asks/asks";
 import { campaignForAsk } from "@/lib/email-your-mp";
 import { IMPORT_JOBS, type PoliticianImportJob } from "@/lib/import-runs";
 import { now } from "@/lib/now";

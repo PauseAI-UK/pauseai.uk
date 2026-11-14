@@ -1,10 +1,10 @@
 import "server-only";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { ASK_STATUSES } from "@/lib/campaigns/asks";
+import { ASK_STATUSES } from "@/lib/asks/asks";
 import { answerCondition, POLITICIAN_FIELDS, type MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
-import { listAsks } from "@/lib/campaigns/records";
+import { listAsks } from "@/lib/asks/records";
 import { mailingPoliticians, type MailingPolitician } from "@/lib/politicians/records";
 import { politiciansSearch } from "@/lib/staff-search";
 import type { StoredFilter } from "@/lib/staff-search";

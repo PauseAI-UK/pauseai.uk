@@ -6,7 +6,7 @@ import AskKindIcon from "./AskKindIcon";
 export const askKindIconGallery: Example[] = [
   {
     name: "AskKindIcon",
-    file: "app/(staff)/staff/_components/campaigns/AskKindIcon.tsx",
+    file: "app/(staff)/staff/_components/asks/AskKindIcon.tsx",
     variants: [
       {
         label: "A letter and an event",

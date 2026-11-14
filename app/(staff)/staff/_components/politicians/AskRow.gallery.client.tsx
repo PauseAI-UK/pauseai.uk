@@ -2,7 +2,7 @@
 
 // AskRow's examples, which log the answers set (AskRow.gallery.tsx).
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
-import { exampleAsks } from "../campaigns/AsksList.examples";
+import { exampleAsks } from "../asks/AsksList.examples";
 import AskRow, { AskRows, PoliticianAsks } from "./AskRow";
 import { examplePolitician } from "./PoliticianTable.examples";
 

@@ -9,7 +9,7 @@ import {
   examplePoliticiansPage,
 } from "./PoliticianTable.examples";
 import PoliticiansList, { ChoosingHead, type ChoosingActions } from "./PoliticiansList";
-import { exampleAsks } from "../campaigns/AsksList.examples";
+import { exampleAsks } from "../asks/AsksList.examples";
 
 /** What choosing who a mailing is for does, each logged. */
 function choosingActions(log: (name: string) => (...args: unknown[]) => void): ChoosingActions {

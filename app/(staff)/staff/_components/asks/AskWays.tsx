@@ -1,8 +1,8 @@
 import { Muted } from "@/components/ui/Text";
-import type { AskWay } from "@/lib/campaigns/records";
+import type { AskWay } from "@/lib/asks/records";
 import StaffLink from "../ui/StaffLink";
 import styles from "./AskWays.module.css";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
 /**
  * The campaigns and mailings that put an ask, each kind under its own heading,
@@ -17,12 +17,12 @@ export default function AskWays({ ways, wide = false }: { ways: AskWay[]; wide?:
         return (
           theirs.length > 0 && (
             <div key={kind} className={styles[kind]}>
-              <p className={styles.heading}>{campaignsCopy.asks.waysOf[kind]}</p>
+              <p className={styles.heading}>{asksCopy.asks.waysOf[kind]}</p>
               <ul>
                 {theirs.map((way) => (
                   <li key={way.href}>
                     <StaffLink href={way.href}>{way.title}</StaffLink>
-                    {wide && <Muted>{campaignsCopy.asks.page.letters(way.letters)}</Muted>}
+                    {wide && <Muted>{asksCopy.asks.page.letters(way.letters)}</Muted>}
                   </li>
                 ))}
               </ul>

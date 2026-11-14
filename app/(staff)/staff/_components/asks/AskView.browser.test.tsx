@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import AskView from "./AskView";
@@ -13,17 +13,17 @@ const says = (text: string) => expect.poll(() => document.body.textContent).toCo
 
 describe("AskView", () => {
   const path = `/staff/asks/${exampleAskPage.slug}`;
-  const words = campaignsCopy.asks.page;
+  const words = asksCopy.asks.page;
 
   it("leads with what they were asked, then its answers, then how we asked and its counts", async () => {
     await render(<AskView ask={exampleAskPage} answer="" />);
-    expect(document.body.textContent).toContain(campaignsCopy.asks.askedThem("PauseAI", "letter").slice(0, 8));
+    expect(document.body.textContent).toContain(asksCopy.asks.askedThem("PauseAI", "letter").slice(0, 8));
     await expect.element(link(exampleAskPage.ways[0].title)).toHaveAttribute("href", exampleAskPage.ways[0].href);
     // Each kind under its own heading, with how many letters each sent.
-    await says(campaignsCopy.asks.waysOf.campaign);
-    await says(campaignsCopy.asks.waysOf.mailing);
+    await says(asksCopy.asks.waysOf.campaign);
+    await says(asksCopy.asks.waysOf.mailing);
     expect(document.body.textContent).toContain(`${exampleAskPage.ways[0].title}${words.letters(19)}`);
-    await expect.element(link(campaignsCopy.asks.edit)).toHaveAttribute("href", `${path}/edit`);
+    await expect.element(link(asksCopy.asks.edit)).toHaveAttribute("href", `${path}/edit`);
     await says(`5 ${words.replied}`);
     await says(`40 ${words.lettersWord(40)}`);
     await expect.element(link("Polly Placeholder")).toHaveAttribute("href", "/staff/politicians/1");
@@ -150,7 +150,7 @@ describe("AskView", () => {
 
   it("an event: Edit, a link on our site or another's, and when there's nothing", async () => {
     const { rerender } = await render(<AskView ask={{ ...exampleAskPage, kind: "event", url: "/events" }} answer="" />);
-    await expect.element(link(campaignsCopy.asks.edit)).toHaveAttribute("href", `${path}/edit`);
+    await expect.element(link(asksCopy.asks.edit)).toHaveAttribute("href", `${path}/edit`);
     await expect.element(link(words.theLink.event)).toHaveAttribute("href", "/events");
     await rerender(
       <AskView

@@ -1,15 +1,15 @@
 import StaffLink from "../ui/StaffLink";
-import { askHref } from "@/lib/campaigns/asks";
-import type { Ask } from "@/lib/campaigns/records";
+import { askHref } from "@/lib/asks/asks";
+import type { Ask } from "@/lib/asks/records";
 import { staffDate } from "@/lib/staff-time";
 import AnswerWord from "./AnswerWord";
 import styles from "../Details.module.css";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
 /** Who asked and what, as a politician's page says it. */
 export function askedLine(ask: Pick<Ask, "askedBy" | "kind">): string {
-  const who = new Intl.ListFormat("en-GB").format(ask.askedBy.map((asker) => campaignsCopy.asks.askedBy[asker]));
-  return campaignsCopy.asks.askedThem(who, ask.kind);
+  const who = new Intl.ListFormat("en-GB").format(ask.askedBy.map((asker) => asksCopy.asks.askedBy[asker]));
+  return asksCopy.asks.askedThem(who, ask.kind);
 }
 
 /** Who asked and what, and when, if we know. */

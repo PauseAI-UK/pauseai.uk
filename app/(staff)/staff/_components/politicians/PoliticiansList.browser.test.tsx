@@ -15,7 +15,7 @@ import { downloads } from "@/tests/browser/staff";
 import { politiciansCopy } from "./copy";
 import { ChoosingListExample } from "./PoliticiansList.gallery.client";
 import { PasteFormExample } from "./PasteForm.gallery.client";
-import { exampleAsks } from "../campaigns/AsksList.examples";
+import { exampleAsks } from "../asks/AsksList.examples";
 
 describe("HouseTabs", () => {
   it("is a tab per house and All, keeping the filters but the page, the house chosen marked", async () => {

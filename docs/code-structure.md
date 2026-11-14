@@ -378,7 +378,7 @@ the code should go instead. The rules below say which ones are enforced.
 ## Feature folders
 
 The staff interface is made of features: accounts, events, supporters,
-erasure, politicians, campaigns, mailings, letters, broadcasts, jobs and
+erasure, politicians, asks, mailings, letters, broadcasts, jobs and
 oversight. Each feature's code is in two folders of its own, so the pieces
 of one are found together and what it depends on can be seen and held:
 
@@ -399,7 +399,7 @@ app/(staff)/staff/_components/
                       boxes, pasting names, a politician's page: their
                       details, marks, writing to them, addresses and
                       correspondence, and their answers to asks
-  campaigns/          the asks: their list, an ask's page and its form,
+  asks/               the asks: their list, an ask's page and its form,
                       and how an ask and an answer to it read
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
@@ -430,7 +430,7 @@ lib/
                       the readers of its list, constituencies, salutations,
                       Wikidata, official profiles, party colours and the
                       test MPs
-  campaigns/          asks: their kinds and the answers each allows, the
+  asks/               asks: their kinds and the answers each allows, the
                       asks table, and the asks list's groups. Politicians,
                       mailings and letters stand on it, as they record
                       and count answers to asks; it stands on none of them

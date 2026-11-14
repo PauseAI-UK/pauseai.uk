@@ -30,8 +30,8 @@ import {
 } from "./MailingsTable.examples";
 import { examplePolitician } from "./politicians/PoliticianTable.examples";
 import { politiciansCopy } from "./politicians/copy";
-import { campaignsCopy } from "@/lib/campaigns/copy";
-import { exampleAsks } from "./campaigns/AsksList.examples";
+import { asksCopy } from "@/lib/asks/copy";
+import { exampleAsks } from "./asks/AsksList.examples";
 
 const copy = staffCopy.mailingPages;
 const states = staffCopy.copyStates;
@@ -295,7 +295,7 @@ describe("MailingsOverview", () => {
     // Who it's from, or Airtable, and its ask, leading to who answered it.
     await expect
       .element(row("Nov 26"))
-      .toMatchTextContent(`${staffCopy.mailings.imported} · ${campaignsCopy.asks.askTo.event}`);
+      .toMatchTextContent(`${staffCopy.mailings.imported} · ${asksCopy.asks.askTo.event}`);
     // And who wrote it, as most go from the policy inbox.
     await expect
       .element(row("AI safety conference"))
@@ -330,7 +330,7 @@ describe("MailingsOverview", () => {
     await render(
       <MailingsOverview groups={mailingGroups({ drafts: [], comingUp: [], sent: [lone] }, new Date(now))} now={now} />,
     );
-    await expect.element(row("Ben Lake")).toMatchTextContent(`${campaignsCopy.asks.askTo.letter} Frontier AI letter`);
+    await expect.element(row("Ben Lake")).toMatchTextContent(`${asksCopy.asks.askTo.letter} Frontier AI letter`);
     await expect.element(row("Ben Lake")).not.toMatchTextContent(" · ");
   });
 
@@ -347,7 +347,7 @@ describe("MailingsOverview", () => {
     );
     await expect
       .element(row("Ben Lake"))
-      .toMatchTextContent(`${copy.by("sam@pauseai.uk")} · ${campaignsCopy.asks.askTo.letter}`);
+      .toMatchTextContent(`${copy.by("sam@pauseai.uk")} · ${asksCopy.asks.askTo.letter}`);
   });
 
   it("says when there are none", async () => {

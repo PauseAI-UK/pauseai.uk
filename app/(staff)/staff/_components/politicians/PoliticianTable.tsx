@@ -1,9 +1,9 @@
-import AnswerWord from "../campaigns/AnswerWord";
-import { AskTitle } from "../campaigns/AskLine";
+import AnswerWord from "../asks/AnswerWord";
+import { AskTitle } from "../asks/AskLine";
 import StaffLink from "../ui/StaffLink";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { POLITICIANS_LIST, type PoliticianSort } from "@/lib/staff-lists";
-import type { Ask } from "@/lib/campaigns/records";
+import type { Ask } from "@/lib/asks/records";
 import type { Politician } from "@/lib/politicians/records";
 import { anyAndNone, firstOf, valuesOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";

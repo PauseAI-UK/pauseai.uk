@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CONTROLAI_LETTER_ASK } from "@/lib/campaigns/asks";
+import { CONTROLAI_LETTER_ASK } from "@/lib/asks/asks";
 import { copy } from "@/lib/content/email-your-mp";
 import { campaignForAsk, normalisePostcode } from "@/lib/email-your-mp";
 import { TEST_MPS } from "./test-mps";

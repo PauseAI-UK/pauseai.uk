@@ -5,7 +5,7 @@ import StaffPage from "../ui/StaffPage";
 import { emptyPoliticiansSearch, examplePolitician, examplePoliticiansPage } from "./PoliticianTable.examples";
 import { HouseTabs } from "./PoliticiansList";
 import { ChoosingHeadExample, ChoosingListExample, PoliticiansListExample } from "./PoliticiansList.gallery.client";
-import { exampleAsks } from "../campaigns/AsksList.examples";
+import { exampleAsks } from "../asks/AsksList.examples";
 
 export const politiciansListGallery: Example[] = [
   {

@@ -1,4 +1,4 @@
-import { AGREED_STATUSES, type AskStatus } from "@/lib/campaigns/asks";
+import { AGREED_STATUSES, type AskStatus } from "@/lib/asks/asks";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import styles from "./AnswerWord.module.css";
 

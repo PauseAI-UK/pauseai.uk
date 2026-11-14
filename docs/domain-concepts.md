@@ -134,7 +134,7 @@ either finds them.
 ## Asks
 
 Something we ask notable people to do whose answer we record: sign a
-letter, come to an event (`asks`, `lib/campaigns/asks.ts`). Each has a slug, a title,
+letter, come to an event (`asks`, `lib/asks/asks.ts`). Each has a slug, a title,
 a kind (`letter` or `event`), a date, a link to the letter or the
 event, and who asks it. That's one or more of:
 
@@ -150,7 +150,7 @@ within these rules:
 - The kind is fixed once anyone has answered.
 - An ask can be deleted only while no answer, campaign or mailing refers to
   it.
-- The asks `lib/campaigns/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and
+- The asks `lib/asks/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and
   ControlAI's letter) can be changed there but never deleted, as campaigns,
   the public list of signatories and the ControlAI import depend on them.
 

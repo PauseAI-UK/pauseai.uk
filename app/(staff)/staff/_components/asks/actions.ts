@@ -6,7 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/accounts/auth";
-import { addAsk, deleteAsk, editAsk } from "@/lib/campaigns/records";
+import { addAsk, deleteAsk, editAsk } from "@/lib/asks/records";
 import { askFrom } from "@/lib/staff-forms";
 import { staffBack } from "@/lib/staff-search";
 

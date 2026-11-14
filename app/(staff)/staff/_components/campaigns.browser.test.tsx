@@ -41,7 +41,7 @@ import { exampleRun } from "./RunList.examples";
 import SentEmails from "./SentEmails";
 import StaffNav from "./shell/StaffNav";
 import { shellCopy } from "./shell/copy";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
 const copy = staffCopy.campaigns;
 const NOW = "2026-11-05T09:00:00Z";
@@ -75,7 +75,7 @@ describe("CampaignsOverview", () => {
     expect(document.body.textContent).toContain("20 May – 17 Jun 2025");
     // Those with no letters come first, under no month.
     expect(document.querySelector("li")!.textContent).toContain(copy.noLetters);
-    expect(document.body.textContent).toContain(campaignsCopy.asks.noAsk);
+    expect(document.body.textContent).toContain(asksCopy.asks.noAsk);
   });
 
   it("says there are none", async () => {
@@ -99,9 +99,9 @@ describe("CampaignsOverview", () => {
 
   it("says an ask by its kind", async () => {
     const { rerender } = await render(<CampaignAsk campaign={exampleCampaign} />);
-    expect(document.body.textContent).toContain(campaignsCopy.asks.askTo.letter);
+    expect(document.body.textContent).toContain(asksCopy.asks.askTo.letter);
     await rerender(<CampaignAsk campaign={{ ...exampleCampaign, askKind: "event" }} />);
-    expect(document.body.textContent).toContain(campaignsCopy.asks.askTo.event);
+    expect(document.body.textContent).toContain(asksCopy.asks.askTo.event);
   });
 });
 
@@ -214,7 +214,7 @@ describe("CampaignView", () => {
 
   it("with no ask, says so, with no bar and no answers", async () => {
     const { unmount } = await render(view(exampleCampaignNoAsk));
-    expect(document.body.textContent).toContain(campaignsCopy.asks.noAsk);
+    expect(document.body.textContent).toContain(asksCopy.asks.noAsk);
     expect(document.querySelector("progress")).toBeNull();
     await expect.element(page.getByText(staffCopy.copyStates.counts.answered!)).not.toBeInTheDocument();
     await unmount();
@@ -493,7 +493,7 @@ describe("an imported mailing's text", () => {
     await rerender(imported({ importedText: doc, sentFrom: null, importedTextApproximate: true, askKind: "letter" }));
     await says(staffCopy.letterThread.approximate);
     await says(staffCopy.mailings.notRecorded);
-    await says(campaignsCopy.asks.askTo.letter);
+    await says(asksCopy.asks.askTo.letter);
   });
 
   it("says a letter's text is approximate on its page", async () => {

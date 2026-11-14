@@ -1,9 +1,9 @@
 import Tag, { type TagTone } from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
-import { ASK_STATUSES, askHref } from "@/lib/campaigns/asks";
-import { askGroups, askPeriod } from "@/lib/campaigns/ask-groups";
+import { ASK_STATUSES, askHref } from "@/lib/asks/asks";
+import { askGroups, askPeriod } from "@/lib/asks/ask-groups";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { AskWithCounts } from "@/lib/campaigns/records";
+import type { AskWithCounts } from "@/lib/asks/records";
 import { askedLine } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
 import IconText from "../ui/IconText";
@@ -13,9 +13,9 @@ import Grid, { spanClass } from "../ui/Grid";
 import Strip from "../ui/Strip";
 import StaffLink from "../ui/StaffLink";
 import styles from "./AsksList.module.css";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
-const copy = campaignsCopy.asks;
+const copy = asksCopy.asks;
 
 /** Each answer's colour: green for a yes, red for a no, amber for any other. */
 export const ANSWER_TONES: Record<string, TagTone | undefined> = {

@@ -7,8 +7,8 @@ import { Checkbox, Segmented, TextInput } from "@/components/ui/Controls";
 import DatePicker from "@/components/ui/DatePicker";
 import { Field, FieldError, FieldSet, Hint } from "@/components/ui/Field";
 import { FormStack } from "@/components/ui/Form";
-import { ASK_STATUSES, ASKERS, askSlug, type AskKind, type Asker } from "@/lib/campaigns/asks";
-import type { Ask } from "@/lib/campaigns/records";
+import { ASK_STATUSES, ASKERS, askSlug, type AskKind, type Asker } from "@/lib/asks/asks";
+import type { Ask } from "@/lib/asks/records";
 import { AskPreview } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
 import { DeleteTwice } from "../DeleteTwice";
@@ -16,9 +16,9 @@ import Grid, { Card } from "../ui/Grid";
 import Strip from "../ui/Strip";
 import styles from "./AskForm.module.css";
 import forms from "../StaffForms.module.css";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
-const copy = campaignsCopy.asks;
+const copy = asksCopy.asks;
 
 /** An ask to edit, with whether the code names it, its kind can change, and it can be deleted. */
 export type EditableAsk = Ask & { named: boolean; kindFixed: boolean; deletable: boolean };

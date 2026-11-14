@@ -1,12 +1,12 @@
 import { buttonClass } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
-import { askPeriod } from "@/lib/campaigns/ask-groups";
-import type { AskStatus } from "@/lib/campaigns/asks";
+import { askPeriod } from "@/lib/asks/ask-groups";
+import type { AskStatus } from "@/lib/asks/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/campaigns/records";
+import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/asks/records";
 import { staffDate } from "@/lib/staff-time";
 import { answeredOf, ANSWER_TONES, askCounts } from "./AsksList";
 import Band, { BandFact } from "../ui/Band";
@@ -22,9 +22,9 @@ import AskWays from "./AskWays";
 import styles from "./AskView.module.css";
 import TestTag from "../TestTag";
 import ExternalLink from "../ui/ExternalLink";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
-const copy = campaignsCopy.asks;
+const copy = asksCopy.asks;
 const page = copy.page;
 
 /** What a column of answers is called. */

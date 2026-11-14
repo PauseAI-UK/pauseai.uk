@@ -8,7 +8,7 @@ import { exampleAskPage } from "./AsksList.examples";
 export const askViewGallery: Example[] = [
   {
     name: "AskView",
-    file: "app/(staff)/staff/_components/campaigns/AskView.tsx",
+    file: "app/(staff)/staff/_components/asks/AskView.tsx",
     variants: [
       {
         label: "A letter, asked by a campaign and a mailing, answered",

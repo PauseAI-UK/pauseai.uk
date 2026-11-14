@@ -1,6 +1,6 @@
 import type { AnswerStatus } from "@/lib/server/broadcast-answers";
 import { expect, it } from "vitest";
-import { ASK_STATUSES, ASKERS } from "@/lib/campaigns/asks";
+import { ASK_STATUSES, ASKERS } from "@/lib/asks/asks";
 import { TOPICS, WAYS, type Topic } from "@/lib/supporters/contact-permissions";
 import { ERROR_KINDS } from "@/lib/error-key";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";

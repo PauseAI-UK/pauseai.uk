@@ -7,7 +7,7 @@ import { AskFormExample } from "./AskForm.gallery.client";
 export const askFormGallery: Example[] = [
   {
     name: "AskForm",
-    file: "app/(staff)/staff/_components/campaigns/AskForm.tsx",
+    file: "app/(staff)/staff/_components/asks/AskForm.tsx",
     variants: [
       {
         label: "A new ask",

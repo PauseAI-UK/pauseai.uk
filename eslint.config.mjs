@@ -310,8 +310,8 @@ export const FEATURES = {
   events: ["accounts", "supporters"],
   supporters: ["accounts", "politicians"],
   erasure: ["accounts", "supporters", "letters"],
-  politicians: ["accounts", "letters", "campaigns"],
-  campaigns: ["accounts"],
+  politicians: ["accounts", "letters", "asks"],
+  asks: ["accounts"],
 };
 /** Each feature's folder of logic, lib/<feature>, where its server code is, beside lib/server/. */
 export const featureLibFolders = () => Object.keys(FEATURES).map((feature) => `lib/${feature}`);

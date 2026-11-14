@@ -2,13 +2,13 @@
 // icons, a politician's page, and the asks, on fake politicians.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
-import { answerWordGallery } from "@/app/(staff)/staff/_components/campaigns/AnswerWord.gallery";
-import { askFormGallery } from "@/app/(staff)/staff/_components/campaigns/AskForm.gallery";
-import { askKindIconGallery } from "@/app/(staff)/staff/_components/campaigns/AskKindIcon.gallery";
-import { askLineGallery } from "@/app/(staff)/staff/_components/campaigns/AskLine.gallery";
-import { asksListGallery } from "@/app/(staff)/staff/_components/campaigns/AsksList.gallery";
-import { askViewGallery } from "@/app/(staff)/staff/_components/campaigns/AskView.gallery";
-import { askWaysGallery } from "@/app/(staff)/staff/_components/campaigns/AskWays.gallery";
+import { answerWordGallery } from "@/app/(staff)/staff/_components/asks/AnswerWord.gallery";
+import { askFormGallery } from "@/app/(staff)/staff/_components/asks/AskForm.gallery";
+import { askKindIconGallery } from "@/app/(staff)/staff/_components/asks/AskKindIcon.gallery";
+import { askLineGallery } from "@/app/(staff)/staff/_components/asks/AskLine.gallery";
+import { asksListGallery } from "@/app/(staff)/staff/_components/asks/AsksList.gallery";
+import { askViewGallery } from "@/app/(staff)/staff/_components/asks/AskView.gallery";
+import { askWaysGallery } from "@/app/(staff)/staff/_components/asks/AskWays.gallery";
 import { addAliasFormGallery } from "@/app/(staff)/staff/_components/politicians/AddAliasForm.gallery";
 import { askRowGallery } from "@/app/(staff)/staff/_components/politicians/AskRow.gallery";
 import { pasteFormGallery } from "@/app/(staff)/staff/_components/politicians/PasteForm.gallery";

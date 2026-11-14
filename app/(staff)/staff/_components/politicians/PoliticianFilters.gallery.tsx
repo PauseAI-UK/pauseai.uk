@@ -4,7 +4,7 @@ import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import PoliticianFilters from "./PoliticianFilters";
 import { emptyPoliticiansSearch } from "./PoliticianTable.examples";
-import { exampleAsks } from "../campaigns/AsksList.examples";
+import { exampleAsks } from "../asks/AsksList.examples";
 
 /** The parties a filter of politicians picks from. */
 const parties = ["Conservative", "Green", "Labour", "Liberal Democrat"];

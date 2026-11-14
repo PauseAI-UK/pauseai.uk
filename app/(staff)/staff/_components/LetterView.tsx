@@ -1,7 +1,7 @@
 import StaffLink from "./ui/StaffLink";
 import type { ReactNode } from "react";
 import { staffCopy } from "@/lib/content/staff-interface";
-import type { Ask } from "@/lib/campaigns/records";
+import type { Ask } from "@/lib/asks/records";
 import type { LetterDetails } from "@/lib/server/letters";
 import type { Politician } from "@/lib/politicians/records";
 import AskRow, { AskRows } from "./politicians/AskRow";

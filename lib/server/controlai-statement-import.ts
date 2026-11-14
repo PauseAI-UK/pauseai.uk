@@ -1,5 +1,5 @@
 import "server-only";
-import { CONTROLAI_STATEMENT_ASK } from "@/lib/campaigns/asks";
+import { CONTROLAI_STATEMENT_ASK } from "@/lib/asks/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { CONTROLAI } from "@/lib/controlai-letter";
 import { nameSlug, statementSupporters, type StatementSupporter } from "@/lib/controlai-statement";

@@ -5,7 +5,7 @@ import { count, plural } from "@/lib/content/plural";
 
 /**
  * What can't be done to an ask, said on its form and, the same words, when a
- * save or a delete is refused for it (campaignsCopy.asks).
+ * save or a delete is refused for it (asksCopy.asks).
  */
 const askLimits = {
   kindFixed: "Kind can't be changed now, as politicians have answered it.",
@@ -13,7 +13,7 @@ const askLimits = {
   notDeletable: "Asks can't be deleted while answers, campaigns or mailings refer to them.",
 };
 
-export const campaignsCopy = {
+export const asksCopy = {
   // The asks page: each ask, its kind and date, and how many gave each answer.
   asks: {
     title: "Asks",

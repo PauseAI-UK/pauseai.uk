@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { listAsks } from "@/lib/campaigns/records";
+import { listAsks } from "@/lib/asks/records";
 import { politiciansPageData } from "@/lib/server/mailing-pages";
 import { listParties } from "@/lib/politicians/records";
 import type { PoliticiansSearch } from "@/lib/staff-search";

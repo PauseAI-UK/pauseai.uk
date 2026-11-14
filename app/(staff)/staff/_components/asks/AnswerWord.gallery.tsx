@@ -6,7 +6,7 @@ import AnswerWord from "./AnswerWord";
 export const answerWordGallery: Example[] = [
   {
     name: "AnswerWord",
-    file: "app/(staff)/staff/_components/campaigns/AnswerWord.tsx",
+    file: "app/(staff)/staff/_components/asks/AnswerWord.tsx",
     variants: [
       {
         label: "A yes, a no, one in between, and none",

@@ -23,7 +23,7 @@ export const staffVocabulary = {
     "ni-assembly": "Northern Ireland Assembly",
     other: "Other",
   } as Record<string, string>,
-  // A person's answer to an ask (lib/campaigns/asks.ts): a letter's yes, an event's yes, then either's other answer
+  // A person's answer to an ask (lib/asks/asks.ts): a letter's yes, an event's yes, then either's other answer
   // (what it was is in its note) and no.
   statuses: {
     signed: "Signed",

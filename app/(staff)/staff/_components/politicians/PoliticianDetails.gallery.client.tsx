@@ -7,7 +7,7 @@ import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "@/app/(staff)/s
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import PoliticianDetails from "./PoliticianDetails";
 import { exampleAliases, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
-import { exampleAsks } from "../campaigns/AsksList.examples";
+import { exampleAsks } from "../asks/AsksList.examples";
 
 /**
  * A politician's page for a signer the policy team added, its saves logged;

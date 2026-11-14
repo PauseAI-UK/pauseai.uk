@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { chooseDay } from "@/tests/browser/date-picker";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import AskForm from "./AskForm";
 import { exampleEditableAsk } from "./AsksList.examples";
 
 describe("AskForm", () => {
-  const copy = campaignsCopy.asks;
+  const copy = asksCopy.asks;
   /** A field by the start of its label: a select's name also holds its choice. */
   const field = (label: string) => page.getByLabelText(new RegExp(`^${label}`));
   const preview = () => page.getByRole("region", { name: copy.previewTitle });
@@ -36,7 +36,7 @@ describe("AskForm", () => {
     await page.getByLabelText(copy.askedBy.supporters).click();
     await page.getByLabelText(copy.askedBy.pauseai).click();
     await expect
-      .element(preview().getByText(`${campaignsCopy.asks.askedThem(copy.askedBy.supporters, "event")} · 9 Dec 2026`))
+      .element(preview().getByText(`${asksCopy.asks.askedThem(copy.askedBy.supporters, "event")} · 9 Dec 2026`))
       .toBeVisible();
     await expect.element(preview().getByText("Winter reception")).toBeVisible();
     expect(preview().getByRole("link").query()).toBeNull();

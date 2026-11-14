@@ -1,7 +1,7 @@
 import type { MailingDoc } from "@/lib/mailing-doc";
 import type { WrittenMailing } from "@/lib/server/mailing-drafts";
 import type { WriterData } from "@/lib/server/mailing-pages";
-import { exampleAsks } from "./campaigns/AsksList.examples";
+import { exampleAsks } from "./asks/AsksList.examples";
 
 /** A letter with a salutation, and a thank-you only for those who signed the letter to the PM. */
 export const exampleMailingLetter: MailingDoc = {

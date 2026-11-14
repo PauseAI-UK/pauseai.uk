@@ -11,7 +11,7 @@ import { logIn } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
 export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
 
@@ -63,7 +63,7 @@ test("No answer yet", async ({ page, flowDatabase }) => {
   story("Jane writes to her MP about the letter to the Prime Minister. They haven't answered yet.");
   await sentLetterId(page, flowDatabase, madeUpAddress("Jane Smith", 42));
   await page.goto(`${BASE}/staff/asks/${campaigns[0].ask}`);
-  await expect(page.getByRole("heading", { name: campaignsCopy.asks.page.howWeAsked })).toBeVisible();
+  await expect(page.getByRole("heading", { name: asksCopy.asks.page.howWeAsked })).toBeVisible();
   await expect(page.getByRole("link", { name: campaigns[0].title, exact: true })).toBeVisible();
 
   story(
@@ -88,8 +88,8 @@ test("Asks", async ({ page, request, flowDatabase }) => {
 
   story("An ask's page says what they were asked, then what they answered, a column each, then how we asked.");
   await page.getByRole("link", { name: "Edinburgh conference" }).first().click();
-  await expect(page.getByText(campaignsCopy.asks.askedThem("PauseAI", "event"))).toBeVisible();
-  await expect(page.getByRole("heading", { name: campaignsCopy.asks.page.howWeAsked })).toBeVisible();
+  await expect(page.getByText(asksCopy.asks.askedThem("PauseAI", "event"))).toBeVisible();
+  await expect(page.getByRole("heading", { name: asksCopy.asks.page.howWeAsked })).toBeVisible();
   await frame(page, "An event's page");
 
   story("Pressing an answer's column lists those who gave it, with when they were last written to.");
@@ -105,9 +105,9 @@ test("Asks", async ({ page, request, flowDatabase }) => {
     "INSERT INTO asks (slug, title, kind, asked_by) VALUES ('our-letter', 'Our letter', 'letter', '{pauseai}')",
   );
   await page.goto(`${BASE}/staff/asks/our-letter`);
-  await expect(page.getByText(campaignsCopy.asks.page.noWay)).toBeVisible();
+  await expect(page.getByText(asksCopy.asks.page.noWay)).toBeVisible();
   await frame(page, "A letter's page, with nothing yet");
-  await page.getByRole("link", { name: campaignsCopy.asks.edit }).click();
+  await page.getByRole("link", { name: asksCopy.asks.edit }).click();
   await expect(page).toHaveURL(`${BASE}/staff/asks/our-letter/edit`);
   await frame(page, "Its form");
 });
@@ -132,7 +132,7 @@ test("An ask's pages", async ({ page, flowDatabase }) => {
   await logIn(page, flowDatabase, ["supporters"]);
   await page.goto(`${BASE}/staff/asks/our-letter`);
   await frame(page, "The column of those who signed");
-  await page.getByRole("link", { name: campaignsCopy.asks.page.allOf(150) }).click();
+  await page.getByRole("link", { name: asksCopy.asks.page.allOf(150) }).click();
   await expect(page.getByText(staffCopy.campaigns.politicians(150))).toBeVisible();
   await frame(page, "The first page");
 
@@ -151,7 +151,7 @@ test("An ask's pages", async ({ page, flowDatabase }) => {
   await frame(page, "Those who declined");
 
   story("Under the answers, a link leads to everyone who answered, in office or not, on the politicians list.");
-  await page.getByRole("link", { name: campaignsCopy.asks.page.everyone }).click();
+  await page.getByRole("link", { name: asksCopy.asks.page.everyone }).click();
   await expect(page).toHaveURL(/\/staff\/politicians\?ask=our-letter&status=any/);
   await frame(page, "Those who answered, on the politicians list");
 });
@@ -178,7 +178,7 @@ test("Sent emails", async ({ page, flowDatabase }) => {
 test("A new ask", async ({ page, flowDatabase }) => {
   story("Staff add an ask from the asks page: an event, a winter reception.");
   await logIn(page, flowDatabase);
-  const asks = campaignsCopy.asks;
+  const asks = asksCopy.asks;
   await page.goto(`${BASE}/staff/asks`);
   await frame(page, "The asks");
   await page.getByRole("link", { name: asks.newTitle }).click();

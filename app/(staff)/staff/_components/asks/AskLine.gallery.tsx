@@ -8,7 +8,7 @@ import { exampleAsks } from "./AsksList.examples";
 export const askLineGallery: Example[] = [
   {
     name: "AskPreview",
-    file: "app/(staff)/staff/_components/campaigns/AskLine.tsx",
+    file: "app/(staff)/staff/_components/asks/AskLine.tsx",
     variants: [
       {
         label: "An event, with a date and a link, before it's answered",
@@ -30,7 +30,7 @@ export const askLineGallery: Example[] = [
   },
   {
     name: "AskLead",
-    file: "app/(staff)/staff/_components/campaigns/AskLine.tsx",
+    file: "app/(staff)/staff/_components/asks/AskLine.tsx",
     variants: [
       {
         label: "Who asked them to do what, and when, leading into the ask's title",
@@ -44,7 +44,7 @@ export const askLineGallery: Example[] = [
   },
   {
     name: "AskTitle",
-    file: "app/(staff)/staff/_components/campaigns/AskLine.tsx",
+    file: "app/(staff)/staff/_components/asks/AskLine.tsx",
     variants: [
       {
         label: "Leading to its page",

@@ -8,7 +8,7 @@ import PoliticianTable, { politicianColumns, politicianContact } from "./Politic
 import { emptyPoliticiansSearch, examplePolitician } from "./PoliticianTable.examples";
 import { politiciansCopy } from "./copy";
 import { PoliticianTableEmptyExample, PoliticianTableExample } from "./PoliticianTable.gallery.client";
-import { exampleAsks } from "../campaigns/AsksList.examples";
+import { exampleAsks } from "../asks/AsksList.examples";
 
 const MP = examplePolitician;
 

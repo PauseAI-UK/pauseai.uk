@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { buttonClass } from "@/components/ui/Button";
 import { now } from "@/lib/now";
-import { asksWithCounts } from "@/lib/campaigns/records";
+import { asksWithCounts } from "@/lib/asks/records";
 import { requireStaff } from "@/lib/accounts/auth";
 import { askFormSearch } from "@/lib/staff-search";
 import { firstOf, type ParamValue } from "@/lib/list-params";
-import AsksList from "../../_components/campaigns/AsksList";
+import AsksList from "../../_components/asks/AsksList";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
 import StaffLink from "../../_components/ui/StaffLink";
-import { campaignsCopy } from "@/lib/campaigns/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
-export const metadata: Metadata = { title: campaignsCopy.asks.title };
+export const metadata: Metadata = { title: asksCopy.asks.title };
 
 export default async function AsksPage({ searchParams }: { searchParams: Promise<Record<string, ParamValue>> }) {
   await requireStaff();
@@ -21,14 +21,14 @@ export default async function AsksPage({ searchParams }: { searchParams: Promise
   return (
     <Page kind="month-list">
       <PageHead
-        intro={campaignsCopy.asks.intro}
+        intro={asksCopy.asks.intro}
         action={
           <StaffLink className={buttonClass({ variant: "primary", fit: true })} href="/staff/asks/new">
-            {campaignsCopy.asks.newTitle}
+            {asksCopy.asks.newTitle}
           </StaffLink>
         }
       >
-        {campaignsCopy.asks.title}
+        {asksCopy.asks.title}
       </PageHead>
       <AsksList asks={asks} now={now()} notice={notice} picked={firstOf(params.ask)} />
     </Page>

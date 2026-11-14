@@ -1,5 +1,5 @@
 import "server-only";
-import { ASK_STATUSES } from "@/lib/campaigns/asks";
+import { ASK_STATUSES } from "@/lib/asks/asks";
 import { contactState } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { campaignBySlug } from "@/lib/email-your-mp";

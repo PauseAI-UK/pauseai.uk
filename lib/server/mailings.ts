@@ -1,7 +1,7 @@
 import "server-only";
 import { ARRIVED, MAILING_FAILED, statusIn } from "@/lib/letter-status";
 import { LETTER_STATES, letterStateSql, type CountedLetterState } from "@/lib/copy-states";
-import type { AskStatus } from "@/lib/campaigns/asks";
+import type { AskStatus } from "@/lib/asks/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { mailingGroups, type MailingGroup } from "@/lib/mailing-groups";
 import { now } from "@/lib/now";
