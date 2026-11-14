@@ -4,7 +4,7 @@ import { useState } from "react";
 import { TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { SaveState } from "@/components/ui/SaveState";
+import { ErrorText } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { AddResult } from "@/lib/server/politician-aliases";
 import styles from "./AddAliasForm.module.css";
@@ -47,7 +47,7 @@ export default function AddAliasForm({
         </SubmitButton>
       </FilterForm>
       <p role="status" className={styles.result}>
-        {result && !result.added && <SaveState state="failed">{copy.refused[result.why]}</SaveState>}
+        {result && !result.added && <ErrorText>{copy.refused[result.why]}</ErrorText>}
       </p>
     </>
   );
