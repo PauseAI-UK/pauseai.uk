@@ -16,3 +16,4 @@ Which scaling Chromium uses for a downsized photo, or what Next's image optimise
 ## Hits
 
 - 2026-11-14: a rename-only PR's review showed `/people` (phone) and `PhotoLibrary` as changed against the base branch's run; ~20 min to show the pixels were a photo's edge, the same in two reruns of the branch's build
+- 2026-11-14: the jobs PR's review against ff-broadcasts' run showed `PhotoLibrary` (desktop) changed again, in its thumbnails, though nothing it reaches moved
