@@ -1159,10 +1159,17 @@ pages are noindex.
 
   Drop `--no-main` to see main's beside it. The full review pictures every
   group anyway, so a change to a shared component shows wherever it's used.
-  A component above it that changes height doesn't change its frame: each
-  is moved onto a whole pixel before it's pictured, as text is drawn a
-  shade differently at each fraction of one (`onWholePixels`,
-  `tests/storyboard/frame.ts`).
+  A component above it that changes height doesn't change its frame
+  (`alone`, `tests/storyboard/frame.ts`). Before it's pictured, the page is
+  moved, by padding on its root, so the component starts on a whole pixel,
+  as text and curves are drawn a shade differently at each fraction of one;
+  it's drawn on a layer of its own, as a photo or a gradient drawn as part
+  of the page comes out a shade different at each place on it; and the
+  page is painted afresh (`repaint`), as Chromium keeps what it drew of a
+  fixed bar or a table that scrolls sideways from before the move. Moving
+  the component alone, by `position: relative`, isn't the same: that move
+  is made as Chromium paints, and a pill's edge comes out a shade different
+  with each fraction it makes up.
 
 - Knip leaves the gallery out (`knip.config.ts`): it imports every
   component, so they'd all look used.
