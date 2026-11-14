@@ -11,7 +11,12 @@ export default function Timeline() {
     <section className={styles.timeline}>
       <div className="container">
         <TimelineList>
-          <TimelineEntry id="edinburgh-conference" month="November" year="2026" title="Edinburgh Conference">
+          <TimelineEntry
+            id="edinburgh-panel-discussion"
+            month="November"
+            year="2026"
+            title="Edinburgh Panel Discussion"
+          >
             <EntryText>
               <p>
                 Who is responsible when AI goes wrong? How are Scottish politicians and technical and policy experts
