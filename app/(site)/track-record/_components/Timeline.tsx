@@ -39,7 +39,7 @@ export default function Timeline() {
                   Innovation, Technology and Tertiary Education.
                 </li>
                 <li>
-                  <strong>Lorenzo Martinico</strong>, Portobello/Craigmillar councillor (Green).
+                  <strong>Lorenzo Martinico</strong>, City of Edinburgh councillor for Portobello/Craigmillar (Green).
                 </li>
                 <li>
                   <strong>Luke McNally</strong>, Senior Lecturer at the University of Edinburgh in complex systems and
