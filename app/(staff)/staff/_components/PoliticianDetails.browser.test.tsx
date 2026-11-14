@@ -1341,8 +1341,9 @@ describe("AddAliasForm", () => {
       await page.getByLabelText(words.address).fill(address);
       await page.getByRole("button", { name: words.add }).click();
     };
+    // Added: nothing to say, as the address appears in the list.
     await send("a@example.com");
-    await expect.element(status).toHaveTextContent(words.added);
+    await expect.element(status).toHaveTextContent("");
     await send("b@example.com");
     await expect.element(status).toHaveTextContent(words.refused.invalid);
     await send("c@example.com");

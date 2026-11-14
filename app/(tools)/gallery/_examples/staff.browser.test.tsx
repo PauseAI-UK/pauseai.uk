@@ -308,14 +308,14 @@ describe("the staff examples", () => {
     expect(page.getByRole("button").all()).toHaveLength(0);
   });
 
-  it("logs an address added to a politician's, and says what the server answered", async () => {
+  it("logs an address added to a politician's, saying nothing when it's added", async () => {
     await render(<AddAliasFormExample result={{ added: true }} />);
     await page.getByLabelText(staffCopy.politician.aliases.address).fill("polly@example.com");
     await page.getByRole("button", { name: staffCopy.politician.aliases.add }).click();
     await expect
       .element(log().nth(0))
       .toHaveTextContent('addAlias({"politicianId":"7","address":"polly@example.com"})');
-    await expect.element(page.getByRole("status")).toHaveTextContent(staffCopy.politician.aliases.added);
+    await expect.element(page.getByRole("status")).toHaveTextContent("");
   });
 
   it("sets a Lord's email in its bubble, saying why it's theirs to set, and what the server answered", async () => {

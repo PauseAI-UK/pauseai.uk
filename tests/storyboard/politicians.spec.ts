@@ -562,12 +562,9 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   await expect(bubble.getByRole("heading", { name: aliases.title })).toBeVisible();
   await frame(page, "Her other addresses", { window: true });
 
-  story(
-    "Staff add her Gmail. It appears at the foot of the list, and the bubble says her earlier emails will be found shortly.",
-  );
+  story("Staff add her Gmail. It appears at the foot of the list, and pulses once.");
   await bubble.getByLabel(aliases.address).fill(POLLY_PERSONAL);
   await bubble.getByRole("button", { name: aliases.add }).click();
-  await expect(bubble.getByText(aliases.added)).toBeVisible();
   await expect(bubble.getByText(POLLY_PERSONAL)).toBeVisible();
   await frame(page, "Her Gmail added", { window: true });
 

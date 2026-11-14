@@ -5,7 +5,6 @@ import { TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { SaveState } from "@/components/ui/SaveState";
-import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { AddResult } from "@/lib/server/politician-aliases";
 import styles from "./AddAliasForm.module.css";
@@ -17,9 +16,9 @@ export type AddAliasAction = (form: FormData) => Promise<AddResult | undefined> 
 
 /**
  * The form under a politician's aliases: adds an address to theirs, such as
- * a personal Gmail. Once the server has it, says it's added and that its
- * earlier mail will be found soon, or why it wasn't added; `onAdded` hears
- * the address added, for the list to draw the eye to it.
+ * a personal Gmail. Once the server has it, says why it wasn't added, if it
+ * wasn't. Added, it says nothing: `onAdded` hears the address, for the list
+ * to show it and draw the eye to it.
  */
 export default function AddAliasForm({
   politicianId,
@@ -48,17 +47,7 @@ export default function AddAliasForm({
         </SubmitButton>
       </FilterForm>
       <p role="status" className={styles.result}>
-        {result &&
-          (result.added ? (
-            <>
-              <SaveState state="saved">{copy.added}</SaveState>
-              <span className={styles.next}>
-                <Muted>{copy.addedNext}</Muted>
-              </span>
-            </>
-          ) : (
-            <SaveState state="failed">{copy.refused[result.why]}</SaveState>
-          ))}
+        {result && !result.added && <SaveState state="failed">{copy.refused[result.why]}</SaveState>}
       </p>
     </>
   );

@@ -2065,9 +2065,6 @@ All events: ${link}`,
       // The form under the list.
       address: "New address",
       add: "Add",
-      // Once added: that it was, with the save's green dot, and under it what happens next.
-      added: "⁂ Added",
-      addedNext: "⁂ Their earlier emails from it will show up here within a few minutes.",
       refused: {
         invalid: "That doesn't look like an email address.",
         exists: "That address is already listed.",

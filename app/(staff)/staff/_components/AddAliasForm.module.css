@@ -26,10 +26,3 @@
   flex: none;
   white-space: nowrap;
 }
-
-/* Under Added: what happens next, on a line of its own. */
-.next {
-  display: block;
-  margin-top: var(--space-1);
-  font-size: var(--text-sm);
-}
