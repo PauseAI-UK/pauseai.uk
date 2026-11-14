@@ -5,7 +5,7 @@
 // in nightly, and nobody edits that status by hand. The caller fetches and
 // extracts the text; this is the parsing and the matching.
 
-import { CONTROLAI_LETTER_ASK } from "./asks";
+import { CONTROLAI_LETTER_ASK } from "@/lib/campaigns/asks";
 
 export const CONTROLAI_LETTER_PAGE = "https://controlai.org/uk-pm-letter";
 

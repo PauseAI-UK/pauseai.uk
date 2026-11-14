@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASK_STATUSES } from "@/lib/asks";
+import { ASK_STATUSES } from "@/lib/campaigns/asks";
 import { COUNTRIES, PERSON_STATUSES } from "@/lib/politicians/records";
 import { staffVocabulary } from "./staff-vocabulary";
 

@@ -9,6 +9,7 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { campaignsCopy } from "@/lib/campaigns/copy";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
 
@@ -117,7 +118,7 @@ test("Following a sidebar link", async ({ page, flowDatabase }) => {
   await frame(page, "Asks, on its way");
   story("Then the Asks page arrives.");
   await release();
-  await expect(page.getByRole("heading", { level: 1, name: staffCopy.asks.title })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: campaignsCopy.asks.title })).toBeVisible();
   await frame(page, "The Asks page");
 });
 

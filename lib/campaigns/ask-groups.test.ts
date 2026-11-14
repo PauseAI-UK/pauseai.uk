@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
-import type { AskWithCounts } from "@/lib/server/asks";
+import type { AskWithCounts } from "./records";
 import { askGroups, askPeriod } from "./ask-groups";
+import { campaignsCopy } from "./copy";
 
 const ask = (fields: Partial<AskWithCounts>) =>
   ({ slug: "x", kind: "letter", date: null, firstLetter: null, lastLetter: null, ...fields }) as AskWithCounts;
@@ -39,7 +39,7 @@ describe("askGroups", () => {
         ask({ slug: "later", kind: "event", date: "2027-01-01" }),
         ask({ slug: "today", kind: "event", date: "2026-11-06" }),
       ]),
-    ).toEqual([[staffCopy.asks.comingUp, ["today", "later"]]]);
+    ).toEqual([[campaignsCopy.asks.comingUp, ["today", "later"]]]);
   });
 
   it("puts the rest under the month or year each last moved, those with no day last with no heading", () => {

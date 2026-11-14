@@ -398,7 +398,9 @@ app/(staff)/staff/_components/
   politicians/        the politicians list, its filters, icons and tick
                       boxes, pasting names, a politician's page: their
                       details, marks, writing to them, addresses and
-                      correspondence
+                      correspondence, and their answers to asks
+  campaigns/          the asks: their list, an ask's page and its form,
+                      and how an ask and an answer to it read
   <feature>/          its components, with each one's test, its gallery
                       examples (Component.gallery.tsx), the words only its
                       components use (copy.ts) and its Server Actions
@@ -428,6 +430,10 @@ lib/
                       the readers of its list, constituencies, salutations,
                       Wikidata, official profiles, party colours and the
                       test MPs
+  campaigns/          asks: their kinds and the answers each allows, the
+                      asks table, and the asks list's groups. Politicians,
+                      mailings and letters stand on it, as they record
+                      and count answers to asks; it stands on none of them
   server/             what every feature stands on: the database, sql,
                       settings, problems and runs, random IDs, the outside
                       services and the fixtures

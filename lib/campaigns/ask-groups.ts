@@ -1,7 +1,7 @@
-import { staffCopy } from "@/lib/content/staff-interface";
 import { monthsAndYears, type DatedGroup } from "@/lib/dated-groups";
-import type { AskWithCounts } from "@/lib/server/asks";
+import type { AskWithCounts } from "./records";
 import { staffDate } from "@/lib/staff-time";
+import { campaignsCopy } from "./copy";
 
 const month = (day: string, year: boolean) =>
   new Date(day).toLocaleDateString("en-GB", { month: "short", year: year ? "numeric" : undefined, timeZone: "UTC" });
@@ -34,7 +34,7 @@ export function askGroups(asks: AskWithCounts[], now: Date): DatedGroup<AskWithC
   const isComing = (ask: AskWithCounts) => ask.kind === "event" && Boolean(ask.date) && ask.date! >= today;
   const coming = asks.filter(isComing).sort((a, b) => a.date!.localeCompare(b.date!));
   return [
-    ...(coming.length > 0 ? [{ key: "coming", heading: staffCopy.asks.comingUp, items: coming }] : []),
+    ...(coming.length > 0 ? [{ key: "coming", heading: campaignsCopy.asks.comingUp, items: coming }] : []),
     ...monthsAndYears(
       asks.filter((ask) => !isComing(ask)),
       lastDay,

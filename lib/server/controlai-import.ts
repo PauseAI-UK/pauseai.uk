@@ -1,5 +1,5 @@
 import "server-only";
-import { CONTROLAI_LETTER_ASK } from "@/lib/asks";
+import { CONTROLAI_LETTER_ASK } from "@/lib/campaigns/asks";
 import { CONTROLAI, matchSignatories, signatoriesIn, type Candidate } from "@/lib/controlai-letter";
 import type { ControlAiImportResult } from "@/lib/import-runs";
 import { logChange } from "./audit";

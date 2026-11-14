@@ -1,10 +1,10 @@
 import "server-only";
 import { cache } from "react";
-import { ASK_STATUSES, askSlug, NAMED_ASKS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
-import { logChange } from "./audit";
-import { query, transaction, type Queryable } from "./db";
+import { ASK_STATUSES, askSlug, NAMED_ASKS, type Asker, type AskKind, type AskStatus } from "./asks";
+import { logChange } from "@/lib/server/audit";
+import { query, transaction, type Queryable } from "@/lib/server/db";
 
-// The asks and campaigns in the database (lib/asks.ts), for the staff
+// The asks and campaigns in the database (lib/campaigns/asks.ts), for the staff
 // interface. Staff add, change and delete asks; a migration adds each
 // campaign, and the asks the code names.
 

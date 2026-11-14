@@ -1,6 +1,5 @@
 import type { LetterThread } from "@/lib/server/letter-threads";
 import type { GmailAccount } from "@/lib/accounts/gmail-accounts";
-import type { EditableAsk } from "./AskForm";
 
 /** Jo's letter to Polly, from Jo's Gmail, which Polly answered and Jo answered back. */
 export const exampleThread: LetterThread = {
@@ -67,17 +66,4 @@ export const exampleGmailAccount: GmailAccount = {
   connectedAt: new Date("2026-10-01T09:00:00Z"),
   sentToday: 120,
   remaining: 1680,
-};
-
-/** An ask staff added, which nobody has answered. */
-export const exampleEditableAsk: EditableAsk = {
-  slug: "winter-reception-dec-2026",
-  title: "Winter reception",
-  kind: "event",
-  date: "2026-12-09",
-  url: null,
-  askedBy: ["pauseai"],
-  named: false,
-  kindFixed: false,
-  deletable: true,
 };

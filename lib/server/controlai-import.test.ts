@@ -3,7 +3,7 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { addTestMp, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { CONTROLAI_LETTER_ASK } from "@/lib/asks";
+import { CONTROLAI_LETTER_ASK } from "@/lib/campaigns/asks";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
 import { NIGHTLY } from "@/lib/import-runs";
 import { importControlAiLetter } from "./controlai-import";

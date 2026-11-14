@@ -7,9 +7,7 @@ import { redirect } from "next/navigation";
 import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
 import { runJob } from "@/lib/server/jobs";
 import { actionRequest } from "@/lib/site-url";
-import { staffBack } from "@/lib/staff-search";
-import { askFrom, idFrom, noteEditFrom, noteFrom, unblockFrom } from "@/lib/staff-forms";
-import { addAsk, deleteAsk, editAsk } from "@/lib/server/asks";
+import { idFrom, noteEditFrom, noteFrom, unblockFrom } from "@/lib/staff-forms";
 import { unblock } from "@/lib/server/delivery-problems";
 import { isPoliticianAddress } from "@/lib/server/email";
 import { setErrorDone } from "@/lib/server/errors-seen";
@@ -119,42 +117,4 @@ export async function setErrorDoneNow(form: FormData): Promise<void> {
   // Its page, and both tabs of the list.
   revalidatePath(ERRORS_LIST.path, "layout");
   if (done) redirect(ERRORS_LIST.path);
-}
-
-/**
- * Where an ask's form goes after a save: `back`, or the asks page; or the
- * form again, saying why not; or, the ask deleted meanwhile, the asks page
- * saying so, as its form is gone too.
- */
-function afterAsk(slug: string, back: string, result: { saved: boolean; reason?: string }, saved: string): never {
-  revalidatePath("/staff/asks");
-  if (result.reason === "gone") redirect("/staff/asks?notice=gone");
-  const form = slug ? `/staff/asks/${slug}/edit` : "/staff/asks/new";
-  const [path, query = ""] = (result.saved ? back : form).split("?");
-  const params = new URLSearchParams(query);
-  params.set("notice", result.saved ? saved : result.reason!);
-  if (!result.saved) params.set("back", back);
-  redirect(`${path}?${params}`);
-}
-
-/** An ask's form: adds the ask, or with its slug, saves it; then goes back to where it was opened from. */
-export async function saveAskNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff();
-  const slug = String(form.get("slug") ?? "");
-  const back = staffBack(String(form.get("back") ?? ""), "/staff/asks");
-  const parsed = askFrom(form);
-  if (!parsed) afterAsk(slug, back, { saved: false, reason: "invalid" }, "");
-  afterAsk(
-    slug,
-    back,
-    slug ? await editAsk(slug, parsed, email) : await addAsk(parsed, email),
-    slug ? "saved" : "added",
-  );
-}
-
-/** An ask's Delete: deletes it, while nothing refers to it, then goes to the asks page. */
-export async function deleteAskNow(form: FormData): Promise<void> {
-  const { email } = await requireStaff();
-  const slug = String(form.get("slug") ?? "");
-  afterAsk(slug, "/staff/asks", await deleteAsk(slug, email), "deleted");
 }

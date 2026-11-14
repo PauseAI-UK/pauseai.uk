@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { CAMPAIGN_LETTER_STATE } from "./campaigns";
 import { config } from "./config";
-import type { AskStatus } from "@/lib/asks";
+import type { AskStatus } from "@/lib/campaigns/asks";
 import type { Permission } from "@/lib/accounts/permissions";
 import type { LetterBackend, LetterFilter, LetterTab } from "@/lib/staff-search";
 import {

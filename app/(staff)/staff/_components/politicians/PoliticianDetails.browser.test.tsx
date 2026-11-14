@@ -12,10 +12,12 @@ import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import PoliticianDetails from "./PoliticianDetails";
 import { type ThreadMessages, type ThreadStep } from "@/lib/politicians/threads";
 import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "../Notes.examples";
-import { exampleAliases, exampleAsks, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
+import { exampleAliases, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
 import { action } from "@/tests/browser/staff";
 import { politiciansCopy } from "./copy";
 import { PoliticianDetailsExample } from "./PoliticianDetails.gallery.client";
+import { campaignsCopy } from "@/lib/campaigns/copy";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 const [pm] = campaigns;
 
@@ -909,8 +911,8 @@ describe("PoliticianDetails", () => {
     await expect
       .element(
         letter.getByText(
-          politiciansCopy.politician.askedThem(
-            `${staffCopy.asks.askedBy.supporters} and ${staffCopy.asks.askedBy.pauseai}`,
+          campaignsCopy.asks.askedThem(
+            `${campaignsCopy.asks.askedBy.supporters} and ${campaignsCopy.asks.askedBy.pauseai}`,
             "letter",
           ),
         ),
@@ -926,9 +928,7 @@ describe("PoliticianDetails", () => {
     await expect.element(event.getByText(politiciansCopy.politician.fromImport.airtable)).toBeVisible();
     await expect
       .element(
-        event.getByText(
-          `${politiciansCopy.politician.askedThem(staffCopy.asks.askedBy.pauseai, "event")} · 1 Nov 2026`,
-        ),
+        event.getByText(`${campaignsCopy.asks.askedThem(campaignsCopy.asks.askedBy.pauseai, "event")} · 1 Nov 2026`),
       )
       .toBeVisible();
     await expect.element(event.getByRole("button", { name: politiciansCopy.politician.edit })).toBeVisible();
@@ -977,9 +977,7 @@ describe("PoliticianDetails", () => {
     expect(answer.firstElementChild!.textContent).toBe(staffVocabulary.statuses.other);
     expect(answer.firstElementChild!.className).not.toMatch(/yes/);
     await expect.element(row.getByRole("link")).toHaveAttribute("href", `/staff/asks/${bare.slug}`);
-    await expect
-      .element(row.getByText(politiciansCopy.politician.askedThem("", "event"), { exact: true }))
-      .toBeVisible();
+    await expect.element(row.getByText(campaignsCopy.asks.askedThem("", "event"), { exact: true })).toBeVisible();
   });
 
   it("has no row for a letter they haven't answered, and records a decline from Add another answer", async () => {

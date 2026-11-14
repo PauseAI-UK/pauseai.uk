@@ -4,7 +4,6 @@ import { page } from "vitest/browser";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
-  exampleAsks,
   exampleChoosing,
   examplePasted,
   examplePolitician,
@@ -16,6 +15,7 @@ import { downloads } from "@/tests/browser/staff";
 import { politiciansCopy } from "./copy";
 import { ChoosingListExample } from "./PoliticiansList.gallery.client";
 import { PasteFormExample } from "./PasteForm.gallery.client";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 describe("HouseTabs", () => {
   it("is a tab per house and All, keeping the filters but the page, the house chosen marked", async () => {

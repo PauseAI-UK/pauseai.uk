@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { eventsSearch } from "@/lib/staff-search";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { newRequest } from "@/tests/request-cache";
-import { askToEdit, listAsks } from "./asks";
+import { askToEdit, listAsks } from "@/lib/campaigns/records";
 import { getCampaignSummary } from "./campaigns";
 import { query } from "./db";
 import { getPauseaiLetter, getSupporterLetter } from "./letters";

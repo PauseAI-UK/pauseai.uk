@@ -20,13 +20,12 @@ import { ImportJobPage } from "@/app/(staff)/staff/_components/ImportJob";
 import JobActions from "@/app/(staff)/staff/_components/JobActions";
 import ErrorSeenView from "@/app/(staff)/staff/_components/ErrorSeenView";
 import { exampleErrorDone, exampleErrorsSeen } from "@/app/(staff)/staff/_components/ErrorsSeen.examples";
-import { exampleAsks, examplePolitician } from "@/app/(staff)/staff/_components/politicians/PoliticianTable.examples";
+import { examplePolitician } from "@/app/(staff)/staff/_components/politicians/PoliticianTable.examples";
 import {
   examplePauseaiLetterDetails,
   exampleSupporterLetterDetails,
 } from "@/app/(staff)/staff/_components/LettersTable.examples";
 import Run from "@/app/(staff)/staff/_components/Run";
-import AskRow, { AskRows, PoliticianAsks } from "@/app/(staff)/staff/_components/AskRow";
 import UnblockForm, { UnblockBubble } from "@/app/(staff)/staff/_components/UnblockForm";
 import NoteChanges from "@/app/(staff)/staff/_components/NoteChanges";
 import NotesCard from "@/app/(staff)/staff/_components/NotesCard";
@@ -53,8 +52,7 @@ import { ChangeTimeForm, DueTimeFields } from "@/app/(staff)/staff/_components/D
 import { SENDING } from "@/lib/staff-time";
 import { DeleteDraft, ResumeBroadcast, StopMailing } from "@/app/(staff)/staff/_components/MailingButtons";
 import { DeleteTwice } from "@/app/(staff)/staff/_components/DeleteTwice";
-import AskForm from "@/app/(staff)/staff/_components/AskForm";
-import { exampleEditableAsk, exampleThread } from "@/app/(staff)/staff/_components/LetterThread.examples";
+import { exampleThread } from "@/app/(staff)/staff/_components/LetterThread.examples";
 import MailingFiles from "@/app/(staff)/staff/_components/MailingFiles";
 import MailingFor from "@/app/(staff)/staff/_components/MailingFor";
 import { FilterPills } from "@/app/(staff)/staff/_components/MailingParts";
@@ -80,40 +78,11 @@ import {
   exampleSending,
 } from "@/app/(staff)/staff/_components/MailingsTable.examples";
 import { Controlled, Logged } from "../_components/wiring";
+import { exampleAsks } from "@/app/(staff)/staff/_components/campaigns/AsksList.examples";
 
 /** An MP sync held for a decision: apply and discard log what they'd send. */
 export function HeldImportExample() {
   return <Logged>{(log) => <Run run={exampleHeldImport} decide={log("decide")} />}</Logged>;
-}
-
-/**
- * The asks card's rows: one answered from Airtable, one staff record with
- * no answer yet, or, with `declined`, a letter they declined; then, with
- * `others`, the button whose menu adds another.
- */
-export function AskRowExample({ others = false, declined = false }: { others?: boolean; declined?: boolean }) {
-  const decline = { ...examplePolitician.statuses["frontier-ai-letter"]!, status: "declined" as const };
-  const politician = {
-    ...examplePolitician,
-    airtableId: null,
-    statuses: declined
-      ? { ...examplePolitician.statuses, [exampleAsks[4]!.slug]: decline }
-      : examplePolitician.statuses,
-  };
-  return (
-    <Logged>
-      {(log) =>
-        others ? (
-          <PoliticianAsks politician={politician} asks={exampleAsks} setStatus={log("setStatus")} />
-        ) : (
-          <AskRows>
-            <AskRow politician={politician} ask={exampleAsks[0]!} setStatus={log("setStatus")} />
-            <AskRow politician={politician} ask={exampleAsks[4]!} setStatus={log("setStatus")} />
-          </AskRows>
-        )
-      }
-    </Logged>
-  );
 }
 
 /** Blocked addresses, a bounce and a complaint unless told otherwise, their unblocking logged. */
@@ -597,30 +566,6 @@ export function MailingFilesExample({ editable }: { editable: boolean }) {
           onAdd={editable ? log("onAdd") : undefined}
           onRemove={editable ? log("onRemove") : undefined}
         />
-      )}
-    </Logged>
-  );
-}
-
-/** An ask's form: a new one, one staff added, one answered, or one the code names; saves and deletes logged. */
-export function AskFormExample({ ask, notice = "" }: { ask: "new" | "added" | "answered" | "named"; notice?: string }) {
-  const asks = {
-    new: null,
-    added: exampleEditableAsk,
-    answered: { ...exampleEditableAsk, kindFixed: true, deletable: false },
-    named: {
-      ...exampleEditableAsk,
-      slug: "frontier-ai-letter",
-      title: "Frontier AI letter",
-      named: true,
-      kindFixed: true,
-      deletable: false,
-    },
-  };
-  return (
-    <Logged>
-      {(log) => (
-        <AskForm ask={asks[ask]} back="/staff/asks" notice={notice} save={log("save")} remove={log("delete")} />
       )}
     </Logged>
   );

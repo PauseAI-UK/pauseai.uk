@@ -1,10 +1,8 @@
-import type { AskPageData } from "@/lib/server/asks";
 import type { CampaignSummary, CampaignVersion } from "@/lib/server/campaigns";
 import type { OneOffThread, OneOffThreadRow } from "@/lib/server/one-off-emails";
 import type { SentEmail } from "@/lib/server/sent-emails";
-import { exampleAsks } from "./politicians/PoliticianTable.examples";
 
-// Fake data for the pages of campaigns, asks, sent emails and one-off emails,
+// Fake data for the pages of campaigns, sent emails and one-off emails,
 // for their tests and the gallery.
 
 /** A campaign with an ask, a letter that bounced, and its letters over several months. */
@@ -70,109 +68,6 @@ export const exampleVersions: CampaignVersion[] = [
 ];
 
 export const exampleChanged = 6;
-
-/** An ask a campaign and a mailing put, signed and declined. */
-export const exampleAskPage: AskPageData = {
-  ...exampleAsks[3],
-  counts: { signed: 2, declined: 1 },
-  firstLetter: "2026-06-18",
-  lastLetter: "2026-11-04",
-  writtenTo: 40,
-  replied: 5,
-  campaigns: 1,
-  mailings: 1,
-  noAnswer: 37,
-  answersTotal: 3,
-  page: 1,
-  pages: 1,
-  pageSize: 100,
-  ways: [
-    {
-      kind: "campaign",
-      href: "/staff/campaigns/pauseai-info-deepmind",
-      title: "Call DeepMind to honour AI Safety Summit pledges",
-      letters: 19,
-    },
-    {
-      kind: "mailing",
-      href: "/staff/mailings/3",
-      title: "DeepMind: ten of your colleagues",
-      letters: 21,
-    },
-  ],
-  groups: [
-    {
-      key: "signed",
-      total: 2,
-      people: [
-        {
-          politicianId: 1,
-          name: "Polly Placeholder",
-          isTest: false,
-          constituency: "Seat One",
-          party: "Example Party",
-          status: "signed",
-          note: "",
-          lastWrittenTo: new Date("2026-10-01T09:00:00Z"),
-        },
-      ],
-    },
-    {
-      key: "declined",
-      total: 1,
-      people: [
-        {
-          politicianId: 2,
-          name: "Dee Dummy",
-          isTest: false,
-          constituency: null,
-          party: null,
-          status: "declined",
-          note: "",
-          lastWrittenTo: null,
-        },
-      ],
-    },
-    {
-      key: "none",
-      total: 37,
-      people: [
-        {
-          politicianId: 3,
-          name: "Nia Nobody",
-          isTest: false,
-          constituency: null,
-          party: "Example Party",
-          status: null,
-          note: "",
-          lastWrittenTo: null,
-        },
-      ],
-    },
-  ],
-  answers: [
-    {
-      politicianId: 1,
-      name: "Polly Placeholder",
-      isTest: false,
-      constituency: "Seat One",
-      party: "Example Party",
-      status: "signed",
-      note: "",
-      lastWrittenTo: new Date("2026-10-01T09:00:00Z"),
-    },
-    {
-      politicianId: 2,
-      name: "Dee Dummy",
-      isTest: true,
-      constituency: null,
-      party: null,
-      status: "declined",
-      note: "",
-      lastWrittenTo: null,
-    },
-  ],
-};
 
 /** A thread only with PauseAI, and one with someone else in it. */
 export const exampleOneOffs: OneOffThreadRow[] = [

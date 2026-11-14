@@ -3,11 +3,11 @@ import type { ReactNode } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import Tag, { type TagTone } from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
-import { askHref } from "@/lib/asks";
+import { askHref } from "@/lib/campaigns/asks";
 import { checkMailingDoc } from "@/lib/mailing-doc";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { answerLabels, POLITICIAN_FIELDS } from "@/lib/mailing-fields";
-import type { Ask } from "@/lib/server/asks";
+import type { Ask } from "@/lib/campaigns/records";
 import type { MailingState, WrittenMailing } from "@/lib/server/mailing-drafts";
 import type { Mailing, MailingRecipient } from "@/lib/server/mailings";
 import { filtersPath, pageParam } from "@/lib/list-params";
@@ -27,10 +27,11 @@ import Progress from "./ui/Progress";
 import Strip from "./ui/Strip";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import Bubble from "@/components/ui/Bubble";
-import AnswerWord from "./AnswerWord";
+import AnswerWord from "./campaigns/AnswerWord";
 import LetterStatus from "./LetterStatus";
 import styles from "./MailingView.module.css";
 import TestTag from "./TestTag";
+import { campaignsCopy } from "@/lib/campaigns/copy";
 
 const copy = staffCopy.mailingPages;
 
@@ -300,7 +301,7 @@ export default function MailingView({
         <BandFact label={copy.to} detail={who && staffCopy.campaigns.politicians(mailing.to)}>
           {who ?? staffCopy.campaigns.politicians(mailing.to)}
         </BandFact>
-        <BandFact label={mailing.askKind ? staffCopy.asks.askTo[mailing.askKind] : staffCopy.mailings.fields.ask}>
+        <BandFact label={mailing.askKind ? campaignsCopy.asks.askTo[mailing.askKind] : staffCopy.mailings.fields.ask}>
           {mailing.ask && <StaffLink href={askHref(mailing.ask)}>{mailing.askTitle}</StaffLink>}
         </BandFact>
         <MailingWhen mailing={mailing} written={written} />

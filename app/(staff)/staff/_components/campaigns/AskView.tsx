@@ -1,29 +1,30 @@
 import { buttonClass } from "@/components/ui/Button";
 import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
-import { askPeriod } from "@/lib/ask-groups";
-import type { AskStatus } from "@/lib/asks";
+import { askPeriod } from "@/lib/campaigns/ask-groups";
+import type { AskStatus } from "@/lib/campaigns/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/server/asks";
+import type { AskAnswer, AskAnswerGroup, AskPageData } from "@/lib/campaigns/records";
 import { staffDate } from "@/lib/staff-time";
 import { answeredOf, ANSWER_TONES, askCounts } from "./AsksList";
-import Band, { BandFact } from "./ui/Band";
-import Counts from "./ui/Counts";
-import Empty from "./ui/Empty";
-import Grid, { Card } from "./ui/Grid";
-import ListFrame, { type ListColumn } from "./ui/ListFrame";
-import StaffLink from "./ui/StaffLink";
+import Band, { BandFact } from "../ui/Band";
+import Counts from "../ui/Counts";
+import Empty from "../ui/Empty";
+import Grid, { Card } from "../ui/Grid";
+import ListFrame, { type ListColumn } from "../ui/ListFrame";
+import StaffLink from "../ui/StaffLink";
 import { askedLine } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
-import IconText from "./ui/IconText";
+import IconText from "../ui/IconText";
 import AskWays from "./AskWays";
 import styles from "./AskView.module.css";
-import TestTag from "./TestTag";
-import ExternalLink from "./ui/ExternalLink";
+import TestTag from "../TestTag";
+import ExternalLink from "../ui/ExternalLink";
+import { campaignsCopy } from "@/lib/campaigns/copy";
 
-const copy = staffCopy.asks;
+const copy = campaignsCopy.asks;
 const page = copy.page;
 
 /** What a column of answers is called. */

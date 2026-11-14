@@ -1,6 +1,6 @@
 import StaffLink from "./ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
-import { askHref } from "@/lib/asks";
+import { askHref } from "@/lib/campaigns/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import type { ReactNode } from "react";
 import type { MailingGroup } from "@/lib/mailing-groups";
@@ -16,6 +16,7 @@ import IconText from "./ui/IconText";
 import Grid, { spanClass } from "./ui/Grid";
 import Progress from "./ui/Progress";
 import styles from "./MailingsOverview.module.css";
+import { campaignsCopy } from "@/lib/campaigns/copy";
 
 const copy = staffCopy.mailingPages;
 
@@ -165,7 +166,7 @@ function Row<T extends MailingBase>({
           {mailing.ask && (
             <>
               {from || by ? " · " : ""}
-              {staffCopy.asks.askTo[mailing.askKind!]}{" "}
+              {campaignsCopy.asks.askTo[mailing.askKind!]}{" "}
               <StaffLink href={askHref(mailing.ask)}>{mailing.askTitle}</StaffLink>
             </>
           )}

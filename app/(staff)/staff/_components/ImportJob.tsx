@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { site } from "@/lib/content/site";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
-import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/asks";
+import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/campaigns/asks";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
 import type { RunningJob } from "@/lib/server/import-runs";
 import {

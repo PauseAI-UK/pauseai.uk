@@ -79,9 +79,6 @@ export const politiciansCopy = {
   },
   politician: {
     statusesTitle: "Asks",
-    // Over an ask's title, leading into it: who asked them, by staffCopy.asks.askedBy, if we know, and to do what.
-    askedThem: (who: string, kind: string) =>
-      `${who ? `${who} asked` : "Asked"} them to ${kind === "letter" ? "sign" : "attend"}`,
     // At the top right of their page, before where they came from.
     source: "Source:",
     sources: {

@@ -5,9 +5,10 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { type DownloadColumn } from "@/lib/staff-list";
 import { politicianWords } from "./PoliticianFilters";
 import PoliticianTable, { politicianColumns, politicianContact } from "./PoliticianTable";
-import { emptyPoliticiansSearch, exampleAsks, examplePolitician } from "./PoliticianTable.examples";
+import { emptyPoliticiansSearch, examplePolitician } from "./PoliticianTable.examples";
 import { politiciansCopy } from "./copy";
 import { PoliticianTableEmptyExample, PoliticianTableExample } from "./PoliticianTable.gallery.client";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 const MP = examplePolitician;
 

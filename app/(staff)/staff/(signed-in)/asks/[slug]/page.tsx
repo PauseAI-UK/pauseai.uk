@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { askPageData, askTitle } from "@/lib/server/asks";
+import { askPageData, askTitle } from "@/lib/campaigns/records";
 import { requireStaff } from "@/lib/accounts/auth";
 import { firstOf, pageNumber, type ParamValue } from "@/lib/list-params";
-import AskView from "../../../_components/AskView";
+import AskView from "../../../_components/campaigns/AskView";
 import Page from "../../../_components/ui/Page";
 
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ answer?: ParamValue; page?: ParamValue }> };

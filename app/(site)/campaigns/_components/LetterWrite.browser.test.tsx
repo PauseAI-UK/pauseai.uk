@@ -1,4 +1,4 @@
-import { CONTROLAI_LETTER_ASK } from "@/lib/asks";
+import { CONTROLAI_LETTER_ASK } from "@/lib/campaigns/asks";
 import { afterEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";

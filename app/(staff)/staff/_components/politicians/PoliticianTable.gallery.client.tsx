@@ -3,7 +3,8 @@
 // PoliticianTable's examples (PoliticianTable.gallery.tsx).
 import type { Politician } from "@/lib/politicians/records";
 import PoliticianTable from "./PoliticianTable";
-import { exampleAsks, examplePolitician } from "./PoliticianTable.examples";
+import { examplePolitician } from "./PoliticianTable.examples";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 /** The table of politicians: one function for both examples. */
 function LoggedPoliticianTable({ politicians }: { politicians: Politician[] }) {

@@ -1,6 +1,6 @@
 // Reads the staff interface's forms. Anything that doesn't fit is refused
 // (undefined) rather than guessed at.
-import { ASK_STATUSES, ASKERS, type Asker, type AskKind, type AskStatus } from "@/lib/asks";
+import { ASK_STATUSES, ASKERS, type Asker, type AskKind, type AskStatus } from "@/lib/campaigns/asks";
 import { answeredByHand } from "@/lib/email-your-mp";
 import { SAVED, SAVED_LISTS, type SavedList } from "@/lib/saved-filters";
 import { PERMISSIONS, type Permission } from "@/lib/accounts/permissions";

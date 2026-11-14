@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { CONTROLAI_STATEMENT_ASK } from "@/lib/asks";
+import { CONTROLAI_STATEMENT_ASK } from "@/lib/campaigns/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
 import { type ControlAiStatementImport, NIGHTLY } from "@/lib/import-runs";

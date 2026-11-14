@@ -4,12 +4,12 @@
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import {
   emptyPoliticiansSearch,
-  exampleAsks,
   exampleChoosing,
   examplePasted,
   examplePoliticiansPage,
 } from "./PoliticianTable.examples";
 import PoliticiansList, { ChoosingHead, type ChoosingActions } from "./PoliticiansList";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 /** What choosing who a mailing is for does, each logged. */
 function choosingActions(log: (name: string) => (...args: unknown[]) => void): ChoosingActions {

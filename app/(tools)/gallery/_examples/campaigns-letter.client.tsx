@@ -4,7 +4,7 @@
 // holds functions, so can't come from the server) or what the tool keeps in
 // the browser: client components with no props, so the server-rendered
 // gallery can place them.
-import { CONTROLAI_LETTER_ASK } from "@/lib/asks";
+import { CONTROLAI_LETTER_ASK } from "@/lib/campaigns/asks";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { docFromMarkup, toText } from "@/lib/letter-format";

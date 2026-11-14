@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { ASK_STATUSES } from "@/lib/asks";
+import { ASK_STATUSES } from "@/lib/campaigns/asks";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import PoliticianFilters from "./PoliticianFilters";
-import { exampleAsks, emptyPoliticiansSearch } from "./PoliticianTable.examples";
+import { emptyPoliticiansSearch } from "./PoliticianTable.examples";
 import { chips, menu } from "@/tests/browser/staff";
 import { politiciansCopy } from "./copy";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 const ask = (slug: string) => exampleAsks.find((a) => a.slug === slug)!;
 

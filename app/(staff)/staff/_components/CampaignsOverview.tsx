@@ -1,5 +1,5 @@
 import { Muted } from "@/components/ui/Text";
-import { askHref } from "@/lib/asks";
+import { askHref } from "@/lib/campaigns/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { monthsAndYears } from "@/lib/dated-groups";
 import type { CampaignSummary } from "@/lib/server/campaigns";
@@ -11,6 +11,7 @@ import Empty from "./ui/Empty";
 import Grid, { spanClass } from "./ui/Grid";
 import StaffLink from "./ui/StaffLink";
 import styles from "./MailingsOverview.module.css";
+import { campaignsCopy } from "@/lib/campaigns/copy";
 
 const copy = staffCopy.campaigns;
 
@@ -24,10 +25,11 @@ const went = ({ states }: CampaignSummary) => states.sent + states.replied + sta
 
 /** A campaign's ask, as its row and its page lead into it: "Ask to sign" and its title. */
 export function CampaignAsk({ campaign }: { campaign: CampaignSummary }) {
-  if (!campaign.ask) return <>{staffCopy.asks.noAsk}</>;
+  if (!campaign.ask) return <>{campaignsCopy.asks.noAsk}</>;
   return (
     <>
-      {staffCopy.asks.askTo[campaign.askKind!]} <StaffLink href={askHref(campaign.ask)}>{campaign.askTitle}</StaffLink>
+      {campaignsCopy.asks.askTo[campaign.askKind!]}{" "}
+      <StaffLink href={askHref(campaign.ask)}>{campaign.askTitle}</StaffLink>
     </>
   );
 }

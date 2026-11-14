@@ -3,7 +3,8 @@
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import PoliticianFilters from "./PoliticianFilters";
-import { emptyPoliticiansSearch, exampleAsks } from "./PoliticianTable.examples";
+import { emptyPoliticiansSearch } from "./PoliticianTable.examples";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 /** The parties a filter of politicians picks from. */
 const parties = ["Conservative", "Green", "Labour", "Liberal Democrat"];

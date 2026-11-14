@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { AskKind } from "@/lib/asks";
+import type { AskKind } from "@/lib/campaigns/asks";
 
 const PATHS: Record<AskKind, ReactNode> = {
   // A pen on a page.

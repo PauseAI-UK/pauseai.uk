@@ -2,14 +2,10 @@
 // (app/(tools)/gallery/_examples/staff-politicians.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
-import {
-  emptyPoliticiansSearch,
-  exampleAsks,
-  examplePolitician,
-  examplePoliticiansPage,
-} from "./PoliticianTable.examples";
+import { emptyPoliticiansSearch, examplePolitician, examplePoliticiansPage } from "./PoliticianTable.examples";
 import { HouseTabs } from "./PoliticiansList";
 import { ChoosingHeadExample, ChoosingListExample, PoliticiansListExample } from "./PoliticiansList.gallery.client";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 export const politiciansListGallery: Example[] = [
   {

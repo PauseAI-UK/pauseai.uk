@@ -3,7 +3,7 @@ import { isLettersInboxAddress } from "./letters-inbox";
 import { RECIPIENT_TABS, getMailing, type Mailing, type RecipientTab } from "./mailings";
 import type { MailingChoice } from "@/lib/mailing-fields";
 import type { MailingRecipientValues } from "@/lib/mailing-doc";
-import { listAsks, type Ask } from "./asks";
+import { listAsks, type Ask } from "@/lib/campaigns/records";
 import { gmailAccounts, type GmailAccount } from "@/lib/accounts/gmail-accounts";
 import { mailingChannel } from "./mailing-channels";
 import { choosingFor, getWrittenMailing, openWrittenMailing, type WrittenMailing } from "./mailing-drafts";

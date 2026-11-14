@@ -1,5 +1,5 @@
 import { Muted } from "@/components/ui/Text";
-import { askHref } from "@/lib/asks";
+import { askHref } from "@/lib/campaigns/asks";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { campaignBySlug, campaignPath } from "@/lib/email-your-mp";
 import type { CampaignSummary, CampaignVersion } from "@/lib/server/campaigns";
@@ -16,12 +16,13 @@ import Grid, { Card } from "./ui/Grid";
 import ListFrame, { type ListColumn } from "./ui/ListFrame";
 import Progress from "./ui/Progress";
 import StaffLink from "./ui/StaffLink";
-import AnswerWord from "./AnswerWord";
+import AnswerWord from "./campaigns/AnswerWord";
 import LetterStatus from "./LetterStatus";
 import styles from "./MailingView.module.css";
 import TestTag from "./TestTag";
 import ExternalLink from "./ui/ExternalLink";
 import When from "./ui/When";
+import { campaignsCopy } from "@/lib/campaigns/copy";
 
 const copy = staffCopy.campaigns;
 const words = staffCopy.letters;
@@ -128,7 +129,7 @@ export default function CampaignView({ campaign, versions, changed, letters, sea
       <Band title={campaign.title} aside={<CountGroups groups={wentAndGone(counts)} />}>
         <BandFact label={copy.from}>{copy.supporters(campaign.supporters)}</BandFact>
         <BandFact label={copy.to}>{copy.politicians(campaign.politicians)}</BandFact>
-        <BandFact label={campaign.ask ? staffCopy.asks.askTo[campaign.askKind!] : staffCopy.mailings.fields.ask}>
+        <BandFact label={campaign.ask ? campaignsCopy.asks.askTo[campaign.askKind!] : staffCopy.mailings.fields.ask}>
           {campaign.ask ? (
             <StaffLink href={askHref(campaign.ask)}>{campaign.askTitle}</StaffLink>
           ) : (

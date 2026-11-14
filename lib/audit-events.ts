@@ -3,7 +3,7 @@
 // log's pages read StoredAuditDetails, which adds what rows logged earlier
 // may still hold, as the log keeps a politician's history while they're here
 // and everything else for a month (lib/server/log-retention.ts).
-import type { AskStatus } from "./asks";
+import type { AskStatus } from "@/lib/campaigns/asks";
 import type { BroadcastTerms } from "./broadcasts";
 import type { FieldChange } from "./field-changes";
 import type { PoliticianImportJob } from "./import-runs";
@@ -11,7 +11,7 @@ import type { ImportedFields } from "@/lib/politicians/import-changes";
 import type { SavedList } from "./saved-filters";
 import type { DownloadFormat } from "./staff-list";
 import type { Permission } from "@/lib/accounts/permissions";
-import type { Ask } from "./server/asks";
+import type { Ask } from "@/lib/campaigns/records";
 import type { DeliveryProblem } from "./server/email";
 import type { ErasureResult } from "@/lib/erasure/erase";
 import type { MailingState } from "./server/mailing-drafts";

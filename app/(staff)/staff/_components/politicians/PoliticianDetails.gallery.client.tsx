@@ -6,7 +6,8 @@ import { exampleLetter } from "@/app/(staff)/staff/_components/LettersTable.exam
 import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "@/app/(staff)/staff/_components/Notes.examples";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import PoliticianDetails from "./PoliticianDetails";
-import { exampleAliases, exampleAsks, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
+import { exampleAliases, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
+import { exampleAsks } from "../campaigns/AsksList.examples";
 
 /**
  * A politician's page for a signer the policy team added, its saves logged;

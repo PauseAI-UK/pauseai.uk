@@ -1,6 +1,6 @@
 import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { Ask } from "@/lib/server/asks";
+import type { Ask } from "@/lib/campaigns/records";
 import { filteredName, filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 import { firstOf, type Params } from "@/lib/list-params";

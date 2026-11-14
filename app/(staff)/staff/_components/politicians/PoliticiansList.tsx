@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import type { Ask } from "@/lib/server/asks";
+import type { Ask } from "@/lib/campaigns/records";
 import type { Choosing } from "@/lib/server/mailing-drafts";
 import type { Pasted, Politician, PoliticiansPage } from "@/lib/politicians/records";
 import type { PoliticiansSearch } from "@/lib/staff-search";

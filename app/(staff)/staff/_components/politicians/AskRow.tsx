@@ -5,19 +5,19 @@ import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
-import { ANSWER_CHOICES } from "@/lib/asks";
+import { ANSWER_CHOICES } from "@/lib/campaigns/asks";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { answeredByHand } from "@/lib/email-your-mp";
-import type { Ask } from "@/lib/server/asks";
+import type { Ask } from "@/lib/campaigns/records";
 import type { Politician } from "@/lib/politicians/records";
 import { staffDate } from "@/lib/staff-time";
-import AnswerWord from "./AnswerWord";
-import { AskLead } from "./AskLine";
+import AnswerWord from "../campaigns/AnswerWord";
+import { AskLead } from "../campaigns/AskLine";
 import { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
-import Menu from "./ui/Menu";
-import styles from "./Details.module.css";
-import { politiciansCopy } from "./politicians/copy";
+import Menu from "../ui/Menu";
+import styles from "../Details.module.css";
+import { politiciansCopy } from "./copy";
 
 const copy = politiciansCopy.politician;
 

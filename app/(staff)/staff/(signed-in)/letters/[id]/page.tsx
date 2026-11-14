@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
-import { listAsks } from "@/lib/server/asks";
+import { listAsks } from "@/lib/campaigns/records";
 import { getSupporterLetter } from "@/lib/server/letters";
 import { getPolitician } from "@/lib/politicians/records";
 import { requireStaff } from "@/lib/accounts/auth";

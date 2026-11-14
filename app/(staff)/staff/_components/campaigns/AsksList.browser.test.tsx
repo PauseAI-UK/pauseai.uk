@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { exampleAsks, exampleAsksWithCounts } from "./politicians/PoliticianTable.examples";
 import AsksList from "./AsksList";
-import { politiciansCopy } from "./politicians/copy";
+import { campaignsCopy } from "@/lib/campaigns/copy";
+import { exampleAsks, exampleAsksWithCounts } from "./AsksList.examples";
 
 describe("AsksList", () => {
   const lozenge = (status: string, n: number) => `${n} ${status.toLocaleLowerCase("en-GB")}`;
@@ -20,13 +19,13 @@ describe("AsksList", () => {
   });
 
   it("lists each ask: who asked them to do what, how many replied, title linked to its page, each answer's count, the campaigns and mailings linked, and who asks it", async () => {
-    const copy = staffCopy.asks;
+    const copy = campaignsCopy.asks;
     await render(<AsksList now={new Date("2026-11-06T12:00:00Z")} asks={exampleAsksWithCounts} />);
     const row = (title: string) => page.getByRole("listitem").filter({ hasText: title }).first();
     const text = (title: string) => row(title).element().textContent;
     // Its date, who asked them to do what, its answers in the kind's order, and how it stands.
     const first = text(exampleAsks[0].title);
-    expect(first).toContain(politiciansCopy.politician.askedThem(copy.askedBy.pauseai, "event"));
+    expect(first).toContain(campaignsCopy.asks.askedThem(copy.askedBy.pauseai, "event"));
     expect(first).toContain(`20 ${copy.page.replied}`);
     expect(first).toContain(`40 ${copy.page.lettersWord(40)}`);
     expect(first).toContain(
@@ -46,7 +45,7 @@ describe("AsksList", () => {
     ).not.toContain("/staff/campaigns/open-letter");
     // No date; asked by both, and each campaign and mailing that asked it leads to its own page.
     expect(text(exampleAsks[3].title)).toContain(
-      politiciansCopy.politician.askedThem(`${copy.askedBy.supporters} and ${copy.askedBy.pauseai}`, "letter"),
+      campaignsCopy.asks.askedThem(`${copy.askedBy.supporters} and ${copy.askedBy.pauseai}`, "letter"),
     );
     expect(
       row(exampleAsks[3].title)
@@ -75,7 +74,7 @@ describe("AsksList", () => {
   });
 
   it("puts events to come under a heading, the rest under their months, and those with no day under none", async () => {
-    const copy = staffCopy.asks;
+    const copy = campaignsCopy.asks;
     const undated = { ...exampleAsksWithCounts[2], date: null };
     await render(
       <AsksList
@@ -93,7 +92,7 @@ describe("AsksList", () => {
 
   it("says how a save or delete went, and marks the one a link picked", async () => {
     const added = { ...exampleAsksWithCounts[0], slug: "winter-reception-dec-2026", title: "Winter reception" };
-    const copy = staffCopy.asks;
+    const copy = campaignsCopy.asks;
     const row = () => page.getByRole("listitem").filter({ hasText: "Winter reception" }).first();
     const { rerender } = await render(
       <AsksList now={new Date("2026-11-06T12:00:00Z")} asks={[added]} notice="deleted" />,

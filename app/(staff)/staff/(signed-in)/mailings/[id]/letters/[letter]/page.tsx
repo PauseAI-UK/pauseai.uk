@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { staffCopy } from "@/lib/content/staff-interface";
 import { found } from "@/lib/found";
 import { letterThread } from "@/lib/server/letter-threads";
-import { listAsks } from "@/lib/server/asks";
+import { listAsks } from "@/lib/campaigns/records";
 import { getPauseaiLetter } from "@/lib/server/letters";
 import { getPolitician } from "@/lib/politicians/records";
 import { requireStaff } from "@/lib/accounts/auth";

@@ -5,7 +5,7 @@
 // gives its bar (`choices`) is what comes from the database or the page,
 // such as the parties, the events, or who's in the log.
 import type { ReactNode } from "react";
-import { ASK_STATUSES } from "./asks";
+import { ASK_STATUSES } from "@/lib/campaigns/asks";
 import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
 import { staffCopy } from "./content/staff-interface";
 import { staffVocabulary } from "./staff-vocabulary";
@@ -13,7 +13,7 @@ import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
 import { COUNTRIES, EMAIL_STATES, POLITICIAN_FLAGS } from "@/lib/politicians/filters";
 import type { EmailChoice } from "./server/all-letters";
-import type { Ask } from "./server/asks";
+import type { Ask } from "@/lib/campaigns/records";
 import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records";
 import { WINDOW_OPTIONS } from "./staff-dashboard";
 import { NO_OWNER, ONLINE } from "@/lib/events/list";

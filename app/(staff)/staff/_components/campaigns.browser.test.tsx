@@ -8,14 +8,11 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
 import { staffTime } from "@/lib/staff-time";
 import type { Mailing } from "@/lib/server/mailings";
-import AnswerWord from "./AnswerWord";
-import AskView from "./AskView";
 import ChangesTable from "./ChangesTable";
 import CampaignLetter from "./CampaignLetter";
 import CampaignsOverview, { CampaignAsk, letterRange } from "./CampaignsOverview";
 import CampaignView from "./CampaignView";
 import {
-  exampleAskPage,
   exampleChanged,
   exampleCampaign,
   exampleCampaignEmpty,
@@ -44,7 +41,7 @@ import { exampleRun } from "./RunList.examples";
 import SentEmails from "./SentEmails";
 import StaffNav from "./shell/StaffNav";
 import { shellCopy } from "./shell/copy";
-import { politiciansCopy } from "./politicians/copy";
+import { campaignsCopy } from "@/lib/campaigns/copy";
 
 const copy = staffCopy.campaigns;
 const NOW = "2026-11-05T09:00:00Z";
@@ -78,7 +75,7 @@ describe("CampaignsOverview", () => {
     expect(document.body.textContent).toContain("20 May – 17 Jun 2025");
     // Those with no letters come first, under no month.
     expect(document.querySelector("li")!.textContent).toContain(copy.noLetters);
-    expect(document.body.textContent).toContain(staffCopy.asks.noAsk);
+    expect(document.body.textContent).toContain(campaignsCopy.asks.noAsk);
   });
 
   it("says there are none", async () => {
@@ -102,9 +99,9 @@ describe("CampaignsOverview", () => {
 
   it("says an ask by its kind", async () => {
     const { rerender } = await render(<CampaignAsk campaign={exampleCampaign} />);
-    expect(document.body.textContent).toContain(staffCopy.asks.askTo.letter);
+    expect(document.body.textContent).toContain(campaignsCopy.asks.askTo.letter);
     await rerender(<CampaignAsk campaign={{ ...exampleCampaign, askKind: "event" }} />);
-    expect(document.body.textContent).toContain(staffCopy.asks.askTo.event);
+    expect(document.body.textContent).toContain(campaignsCopy.asks.askTo.event);
   });
 });
 
@@ -217,7 +214,7 @@ describe("CampaignView", () => {
 
   it("with no ask, says so, with no bar and no answers", async () => {
     const { unmount } = await render(view(exampleCampaignNoAsk));
-    expect(document.body.textContent).toContain(staffCopy.asks.noAsk);
+    expect(document.body.textContent).toContain(campaignsCopy.asks.noAsk);
     expect(document.querySelector("progress")).toBeNull();
     await expect.element(page.getByText(staffCopy.copyStates.counts.answered!)).not.toBeInTheDocument();
     await unmount();
@@ -233,192 +230,6 @@ describe("CampaignView", () => {
     await again();
     await render(view(exampleCampaignEmpty, { ...emptyLettersSearch, tab: "changed" }));
     await expect.element(page.getByRole("heading", { name: copy.tabs.changed })).toBeVisible();
-  });
-});
-
-describe("AnswerWord", () => {
-  const mark = (name: string) => getComputedStyle(page.getByText(name).element(), "::before").content;
-
-  it("ticks a yes, crosses a no, and marks nothing else", async () => {
-    await render(
-      <>
-        <AnswerWord status="signed" />
-        <AnswerWord status="going" />
-        <AnswerWord status="declined" />
-        <AnswerWord status="other" />
-        <AnswerWord status={null} />
-      </>,
-    );
-    expect(mark(staffVocabulary.statuses.signed)).toContain("✓");
-    expect(mark(staffVocabulary.statuses.going)).toContain("✓");
-    expect(mark(staffVocabulary.statuses.declined)).toContain("✕");
-    expect(mark(staffVocabulary.statuses.other)).toBe("none");
-    expect(mark(staffVocabulary.statuses.noAnswer)).toBe("none");
-  });
-});
-
-describe("AskView", () => {
-  const path = `/staff/asks/${exampleAskPage.slug}`;
-  const words = staffCopy.asks.page;
-
-  it("leads with what they were asked, then its answers, then how we asked and its counts", async () => {
-    await render(<AskView ask={exampleAskPage} answer="" />);
-    expect(document.body.textContent).toContain(politiciansCopy.politician.askedThem("PauseAI", "letter").slice(0, 8));
-    await expect.element(link(exampleAskPage.ways[0].title)).toHaveAttribute("href", exampleAskPage.ways[0].href);
-    // Each kind under its own heading, with how many letters each sent.
-    await says(staffCopy.asks.waysOf.campaign);
-    await says(staffCopy.asks.waysOf.mailing);
-    expect(document.body.textContent).toContain(`${exampleAskPage.ways[0].title}${words.letters(19)}`);
-    await expect.element(link(staffCopy.asks.edit)).toHaveAttribute("href", `${path}/edit`);
-    await says(`5 ${words.replied}`);
-    await says(`40 ${words.lettersWord(40)}`);
-    await expect.element(link("Polly Placeholder")).toHaveAttribute("href", "/staff/politicians/1");
-  });
-
-  it("gives a letter the months of its letters, or with none the month typed, and an event its day", async () => {
-    const { rerender } = await render(<AskView ask={exampleAskPage} answer="" />);
-    await expect
-      .element(link(words.everyone))
-      .toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}&status=any`);
-    await says(words.when);
-    await says("Jun–Nov 2026");
-    await rerender(
-      <AskView ask={{ ...exampleAskPage, date: "2026-06-01", firstLetter: null, lastLetter: null }} answer="" />,
-    );
-    await says("Jun 2026");
-    await rerender(<AskView ask={{ ...exampleAskPage, kind: "event", date: "2026-11-01" }} answer="" />);
-    await says(words.on);
-    await says("1 Nov 2026");
-  });
-
-  it("gives each answer a column, its count leading to all who gave it", async () => {
-    const column = (name: string) => page.getByRole("link", { name, exact: true });
-    const { rerender } = await render(<AskView ask={exampleAskPage} answer="" />);
-    await expect
-      .element(column(`${staffVocabulary.statuses.signed} 2`))
-      .toHaveAttribute("href", `${path}?answer=signed`);
-    await expect
-      .element(column(`${staffVocabulary.statuses.noAnswer} 37`))
-      .toHaveAttribute("href", `${path}?answer=none`);
-    // More than it shows: a link to the rest. All shown: none.
-    await expect.element(link(words.allOf(37))).toHaveAttribute("href", `${path}?answer=none`);
-    await expect.element(link(words.allOf(2))).toHaveAttribute("href", `${path}?answer=signed`);
-    expect(link(words.allOf(1)).query()).toBeNull();
-    // Nobody in a yes or no column is tagged: the column's name says their answer.
-    expect(page.getByText(staffVocabulary.statuses.signed, { exact: true }).all()).toHaveLength(1);
-    await rerender(
-      <AskView
-        ask={{
-          ...exampleAskPage,
-          kind: "event",
-          counts: { other: 2, declined: 1 },
-          noAnswer: 0,
-          groups: [
-            { key: "going", total: 0, people: [] },
-            {
-              key: "other",
-              total: 2,
-              people: [
-                { ...exampleAskPage.groups[0].people[0], status: "other", note: "Tentatively said yes" },
-                { ...exampleAskPage.groups[2].people[0], status: "other", note: "" },
-              ],
-            },
-            { key: "declined", total: 1, people: exampleAskPage.groups[1].people },
-          ],
-        }}
-        answer=""
-      />,
-    );
-    // Other answers, each tagged with what it was, and none for one with no note.
-    await says(`${words.otherAnswers} 2`);
-    await says("Tentatively said yes");
-    expect(page.getByText(staffVocabulary.statuses.other, { exact: true }).query()).toBeNull();
-    // Nobody gave it: no link, and it says so.
-    await says(`${staffVocabulary.statuses.going} 0`);
-    expect(column(`${staffVocabulary.statuses.going} 0`).query()).toBeNull();
-    await says(words.none);
-  });
-
-  it("shows those who gave an answer chosen, under the columns' tops, and pressed again, the columns", async () => {
-    const pill = (name: string, n: number) => page.getByRole("link", { name: `${name} ${n}`, exact: true });
-    const signed = () => pill(staffVocabulary.statuses.signed, 2);
-    const none = () => pill(staffVocabulary.statuses.noAnswer, 37);
-    const { rerender } = await render(<AskView ask={exampleAskPage} answer="signed" />);
-    await expect.element(signed()).toHaveAttribute("href", path);
-    await expect.element(signed()).toHaveAttribute("aria-current", "true");
-    await expect.element(signed()).toHaveAttribute("title", words.showAll);
-    await expect.element(none()).toHaveAttribute("href", `${path}?answer=none`);
-    await expect.element(none()).not.toHaveAttribute("aria-current");
-    await says(words.lastWrittenTo);
-    await says(staffVocabulary.statuses.declined);
-    await says("1 Oct 2026");
-    await expect
-      .element(link(words.everyone))
-      .toHaveAttribute("href", `/staff/politicians?ask=${exampleAskPage.slug}&status=any`);
-    // Those with no answer, and an answer nobody gave isn't a link.
-    await rerender(
-      <AskView
-        ask={{
-          ...exampleAskPage,
-          answers: [{ ...exampleAskPage.answers[0], status: null }],
-          groups: [{ ...exampleAskPage.groups[0], total: 0 }, exampleAskPage.groups[2]],
-        }}
-        answer="none"
-      />,
-    );
-    await expect.element(none()).toHaveAttribute("aria-current", "true");
-    await says(staffVocabulary.statuses.noAnswer);
-    expect(signed().query()).toBeNull();
-    // Other answers say what each was, or "other" for one with no note.
-    await rerender(
-      <AskView
-        ask={{
-          ...exampleAskPage,
-          answers: [
-            { ...exampleAskPage.answers[0], status: "other", note: "Responded after event" },
-            { ...exampleAskPage.answers[1], status: "other", note: "" },
-          ],
-        }}
-        answer="other"
-      />,
-    );
-    await says("Responded after event");
-    await says(staffVocabulary.statuses.other);
-  });
-
-  it("pages through the answers, keeping the answer chosen", async () => {
-    await render(<AskView ask={{ ...exampleAskPage, answersTotal: 150, pages: 2 }} answer="signed" />);
-    await says(staffCopy.campaigns.politicians(150));
-    await expect
-      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
-      .toHaveAttribute("href", `${path}?answer=signed&page=2`);
-  });
-
-  it("an event: Edit, a link on our site or another's, and when there's nothing", async () => {
-    const { rerender } = await render(<AskView ask={{ ...exampleAskPage, kind: "event", url: "/events" }} answer="" />);
-    await expect.element(link(staffCopy.asks.edit)).toHaveAttribute("href", `${path}/edit`);
-    await expect.element(link(words.theLink.event)).toHaveAttribute("href", "/events");
-    await rerender(
-      <AskView
-        ask={{
-          ...exampleAskPage,
-          url: "https://example.org/letter",
-          counts: {},
-          noAnswer: 0,
-          ways: [],
-          groups: [],
-          answers: [],
-          writtenTo: 0,
-        }}
-        answer=""
-      />,
-    );
-    await expect.element(link(words.theLink.letter)).toHaveAttribute("target", "_blank");
-    await says(words.noWay);
-    await says(words.none);
-    // Nobody has answered, but some were written to: their column still shows.
-    await rerender(<AskView ask={{ ...exampleAskPage, counts: {} }} answer="" />);
-    await expect.element(link(`${staffVocabulary.statuses.noAnswer} 37`)).toBeVisible();
   });
 });
 
@@ -682,7 +493,7 @@ describe("an imported mailing's text", () => {
     await rerender(imported({ importedText: doc, sentFrom: null, importedTextApproximate: true, askKind: "letter" }));
     await says(staffCopy.letterThread.approximate);
     await says(staffCopy.mailings.notRecorded);
-    await says(staffCopy.asks.askTo.letter);
+    await says(campaignsCopy.asks.askTo.letter);
   });
 
   it("says a letter's text is approximate on its page", async () => {

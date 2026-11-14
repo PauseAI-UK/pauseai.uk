@@ -19,8 +19,8 @@ import {
   editAsk,
   listAsks,
   listCampaigns,
-} from "./asks";
-import { query } from "./db";
+} from "./records";
+import { query } from "@/lib/server/db";
 import { setStatus } from "@/lib/politicians/records";
 
 describeWithDatabase("asks and campaigns", () => {
