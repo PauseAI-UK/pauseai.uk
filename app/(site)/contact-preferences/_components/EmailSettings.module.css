@@ -123,6 +123,14 @@
   justify-items: start;
 }
 
+/*
+ * A held box that's a form keeps the form's gap (FormStack's), which would
+ * otherwise turn on which of the two stylesheets the build loads last.
+ */
+.held.buttonForm {
+  gap: var(--form-gap);
+}
+
 /* An email's unsubscribe, first on its page. */
 .unsubscribe {
   margin: 0 0 var(--space-6);
