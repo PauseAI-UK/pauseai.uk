@@ -284,6 +284,8 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "left_office",
           "retired",
         ]);
+        // One whose salutation is her name, to check.
+        expect(runSql(name, "SELECT name FROM notable_people WHERE salutation_to_check")).toEqual(["Siân Enghraifft"]);
         expect(runSql(name, "SELECT DISTINCT house FROM politicians ORDER BY 1")).toEqual([
           "commons",
           "lords",

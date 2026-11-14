@@ -219,10 +219,10 @@ export const staffCopy = {
       actionsTitle: "Needs a person",
       actions: {
         // A body's import held, as it would change too much: which, and how many politicians.
-        heldImport: (job: string, changes: number) => `⁂ ${job} would change ${changes} politicians`,
+        heldImport: (job: string, changes: number) => `${job} would change ${changes} politicians`,
         // Why it's held, and what to do.
         heldImportDetail:
-          "⁂ That's a lot of politicians, or someone's name has changed, so please check it, and apply or discard it.",
+          "That's a lot of politicians, or someone's name has changed, so please check it, and apply or discard it.",
         decide: "Review import",
         blockedMp: (name: string) => `${name}'s email is bouncing`,
         blockedMpDetail: "Find a working email for this MP if it has changed, or unblock if working now.",
@@ -1937,26 +1937,30 @@ All events: ${link}`,
       senedd: "the Welsh Parliament",
       "ni-assembly": "the Northern Ireland Assembly",
     },
-    // The band's fact of the markers staff set, and the test tag; each marker a button that turns it on or off.
+    // The card of the marks staff set, under their notes, each a switch.
     marks: "Marks",
-    // Beside a salutation made from the name alone, to check.
-    salutationToCheck: "⁂ To check",
-    // The form in Writing to them that changes what staff keep by hand.
+    // What staff keep by hand, in the band's bubbles: their salutation, and a Lord's email.
     editDetails: {
       salutation: "Salutation",
-      email: "⁂ Email",
-      // Under the email field, for a Lord: why it's theirs to set.
-      emailHint: "⁂ Most Lords list no address of their own, so set one here if you find it.",
+      email: "Email",
+      // Where a Lord's email would be, when they have none: why it's theirs to set.
+      emailHint: "Most Lords have no public email, so set one you find here",
       // Each line's button, which opens its field, and the one that closes it unsaved.
-      edit: "Edit",
+      edit: "edit",
+      // Over a Lord's email field in the band's bubble: the address letters go to.
+      mainEmail: "Main address",
+      // In the band, for a Lord with no email: opens the bubble to set one.
+      add: "add email",
       cancel: "Cancel",
       // A salutation that's empty.
-      none: "⁂ None yet",
+      none: "None yet",
       // Before the salutation, as a letter to them starts: Letters start "Dear Dame Meg,".
       lettersStart: "Letters start",
+      // Under a salutation made from their name, as their gender isn't known, before a button for each it most likely is.
+      fromName: "Made from their name, as we don't know their gender.",
       dear: (salutation: string) => `“Dear ${salutation},”`,
       save: "Save",
-      saved: "⁂ Saved.",
+      saved: "Saved.",
       refused: {
         salutation: "A salutation can't be empty.",
         email: "That doesn't look like an email address.",
@@ -1981,8 +1985,6 @@ All events: ${link}`,
     // The fields of the box at the top.
     status: "Status",
     country: "Nation",
-    // The section at the foot of their page on how to write to them: their salutation, a Lord's email, and every address of theirs.
-    writing: "Writing to them",
     // The marks staff set, by their name.
     importantTarget: "Important target",
     personalConnection: "Personal connection",
@@ -2044,10 +2046,10 @@ All events: ${link}`,
     // At the foot of their page, folded: every address and domain that says an
     // email is theirs, where each came from, and the form to add one by hand.
     aliases: {
-      // After their email and their salutation at the top of the page, leading
-      // down to how we write to them, where they're changed.
-      edit: "Edit",
-      title: "Email addresses",
+      // After their email at the top of the page, opening the bubble of every
+      // other address that links their emails, where they're changed.
+      more: (n: number) => `+${n} more`,
+      title: "Other addresses",
       intro: "Policy emails referencing these addresses will be linked to this politician.",
       columns: { address: "Address", from: "Source" },
       sources: {
@@ -2069,7 +2071,7 @@ All events: ${link}`,
         invalid: "That doesn't look like an email address.",
         exists: "That address is already listed.",
         // The House of Lords' shared inbox, which forwards to the Lord a message names: no one's own.
-        shared: "⁂ That's the House of Lords' shared inbox, which isn't anyone's own address.",
+        shared: "That's the House of Lords' shared inbox, which would be confusing to link to.",
       },
     },
     // On an ask that isn't set by hand: where its statuses come from.
@@ -2095,13 +2097,13 @@ All events: ${link}`,
         before: "Email to ",
         after: (reason: string, since: string) => ` bounced on ${since} with the error: ${reason.replace(/\.+$/, "")}.`,
       },
-      // Under it, two things to do, side by side. If the address is wrong: correct it in
-      // Writing to them, at the foot of the page. A new address isn't blocked.
+      // Under it, two things to do, side by side. If the address is wrong: correct it
+      // from their email in the band, which opens its bubble. A new address isn't blocked.
       wrong: {
         title: "Address wrong?",
-        before: "⁂ Correct it in ",
-        link: "⁂ Writing to them",
-        after: "⁂, below. The new address isn't blocked.",
+        before: "⁂ Correct it from ",
+        link: "⁂ their email",
+        after: "⁂, above. The new address isn't blocked.",
       },
       // If the address is right: unblock it, with the note of why.
       right: {
@@ -2120,7 +2122,7 @@ All events: ${link}`,
     },
     // Under each title, what the page is.
     intros: {
-      mps: "⁂ Politicians' bad emails: unblock them here, or correct a Lord's on their page",
+      mps: "Politicians' bad emails: unblock them here, or correct a Lord's on their page",
       supporters: "Supporters' bad emails, unblock them here",
     },
     // Over the list: how many are blocked, of those the filters find.
@@ -2181,12 +2183,12 @@ All events: ${link}`,
     // The mail server's reason quoted after its own sentence, and the link on a line of its own; then, for a
     // bounce read from a Gmail mailbox, a link to it there.
     body: (mp: string, address: string, reason: string, link: string, bounce?: string) =>
-      `⁂ A letter to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's unblocked here:\n${link}${bounceLine(bounce)}`,
+      `A letter to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's unblocked here:\n${link}${bounceLine(bounce)}`,
     // An email to an MP that wasn't a letter or a relay, or one the site can't place.
     notALetter: {
       subject: (mp: string) => `An email to ${mp} bounced`,
       body: (mp: string, address: string, reason: string, link: string, bounce?: string) =>
-        `⁂ An email to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's unblocked here:\n${link}${bounceLine(bounce)}`,
+        `An email to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's unblocked here:\n${link}${bounceLine(bounce)}`,
     },
   },
   // The web imports on the Scheduled jobs page: ControlAI's
@@ -2197,10 +2199,10 @@ All events: ${link}`,
     intro: {
       before: "Imports the MPs and peers who signed ",
       link: "the letter",
-      after: ", marking them as having signed ",
+      after: ", marking them as having signed “",
     },
-    // The ask they're marked as having signed, linked to it on the asks page.
-    introThen: { link: "“ControlAI's letter to the Prime Minister”", after: ". This can't be changed by hand." },
+    // The ask they're marked as having signed, linked to its page; the quotes around it aren't.
+    introThen: { link: "ControlAI's letter to the Prime Minister", after: "”. This can't be changed by hand." },
     importNow: "Import ControlAI letter now",
     never: "Not imported yet.",
     result: (r: { signatories: number; matched: number; added: number; removed: number }) =>
@@ -2320,9 +2322,9 @@ All events: ${link}`,
     },
     // A body's import is held, as it would change too much: which import, how many politicians, and its page.
     importHeld: {
-      subject: (job: string, changes: number) => `⁂ ${job} would change ${changes} politicians`,
+      subject: (job: string, changes: number) => `${job} would change ${changes} politicians`,
       body: (job: string, changes: number, link: string) =>
-        `⁂ ${job} would change ${changes} politicians, so it's held until someone checks it. Review it, then apply or discard it:\n\n${link}`,
+        `${job} would change ${changes} politicians, so it's held until someone checks it. Review it, then apply or discard it:\n\n${link}`,
     },
     // Google stopped our access to a connected Gmail: whose, what stops, and where to connect it again.
     gmailDisconnected: {
@@ -2334,7 +2336,7 @@ All events: ${link}`,
     mailingBounces: {
       subject: (n: number) => `${count(n, "MP's address", "MPs' addresses")} bounced a mailing`,
       body: (lines: string[], link: string) =>
-        `⁂ These MPs' addresses bounced letters from a mailing since the last report:\n\n${lines.join("\n")}\n\nNothing more will be sent to them until they're unblocked here:\n${link}`,
+        `These MPs' addresses bounced letters from a mailing since the last report:\n\n${lines.join("\n")}\n\nNothing more will be sent to them until they're unblocked here:\n${link}`,
     },
     // Once a day at most: the supporters' copies that bounced since the last, so their MP's replies can't be
     // passed on; how many replies are held; each address's domain and what its server said.
@@ -2952,7 +2954,7 @@ All events: ${link}`,
     error: (error: string) => `Error: "${error}"`,
     decidedBy: (who: string) => `decided by ${who}`,
     // A held run discarded as a newer run of its job came after it, as only the newest list can be applied.
-    replaced: "⁂ replaced by a newer run",
+    replaced: "replaced by a newer run",
     // A job's frequent runs, in a table: its columns' headings, where a job has
     // no counts of its own, the time of a stretch of runs, and what a stretch was.
     time: "Time",
@@ -3005,17 +3007,17 @@ All events: ${link}`,
     result: (r: { added: number; changed: number; left: number }) =>
       `${r.added} added, ${r.changed} changed, ${r.left} left.`,
     added: "Added",
-    changed: "⁂ Changed",
-    left: "⁂ Left",
+    changed: "Changed",
+    left: "Left",
     // Someone whose name changed, which may be a mistake in matching: from, to.
-    renamed: "⁂ Renamed",
+    renamed: "Renamed",
     // An MP whose constituency isn't spelt as the official list has it, so no postcode would find them.
-    unofficial: "⁂ Constituency names no postcode would find",
+    unofficial: "Constituency names no postcode would find",
     // Politicians linked to their body's list for the first time whose salutation by rule isn't ours: ours, then the rule's.
-    salutations: "⁂ Salutations unlike the rule's",
+    salutations: "Salutations unlike the rule's",
     // Parliament's: constituencies with no MP in office, as before a by-election.
     vacant: (n: number) => `${count(n, "constituency", "constituencies")} with no MP.`,
-    noMp: "⁂ Constituencies with no MP",
+    noMp: "Constituencies with no MP",
     // After an import, the one-off emails are linked again to the politicians
     // their addresses now match: what that did.
     relinked: (r: { read: number; unread: number; linked: number; unlinked: number; offices: number }) =>
@@ -3027,10 +3029,9 @@ All events: ${link}`,
     apply: "Apply",
     discard: "Discard",
     // A problem of the run: Wikidata couldn't be asked, so new MSPs' or MSs' salutations are their names until the next run.
-    genderLookupFailed:
-      "⁂ Couldn't ask Wikidata for new members' genders, so their salutations are their names for now",
+    genderLookupFailed: "Couldn't ask Wikidata for new members' genders, so their salutations are their names for now",
     // A problem of Parliament's import: constituencies with two MPs in office, which follow, so a postcode there finds the wrong one.
-    twoMps: "⁂ Constituencies with two MPs in office:",
+    twoMps: "Constituencies with two MPs in office:",
   },
   // The nightly import of ControlAI's statement's supporters (lib/server/controlai-statement-import.ts).
   controlAiStatement: {
@@ -3038,16 +3039,16 @@ All events: ${link}`,
     intro: {
       before: "Imports the politicians who back ",
       link: "ControlAI's statement",
-      after: ", marking them as having signed ",
+      after: ", marking them as having signed “",
     },
-    // The ask they're marked as having signed, linked to it on the asks page.
-    introThen: { link: "“ControlAI's campaign statement”", after: ". This can't be changed by hand." },
+    // The ask they're marked as having signed, linked to its page; the quotes around it aren't.
+    introThen: { link: "ControlAI's campaign statement", after: "”. This can't be changed by hand." },
     importNow: "Import ControlAI statement now",
     never: "Not imported yet.",
     result: (r: { supporters: number; matched: number; added: number; removed: number }) =>
       `${r.supporters} supporters, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
     // A problem of the run: links on the page to politicians we don't have, which follow.
-    unmatched: "⁂ Supporters on ControlAI's page we couldn't find here:",
+    unmatched: "Supporters on ControlAI's page we couldn't find here:",
   },
   import: {
     // The page with every scheduled job: the imports, each body's members,
@@ -3060,9 +3061,9 @@ All events: ${link}`,
     // from or works on. Then how often it runs, the overview's headings and a
     // lozenge on the job's page.
     parliament: "UK Parliament",
-    "scottish-parliament": "⁂ Scottish Parliament",
-    senedd: "⁂ Senedd",
-    "ni-assembly": "⁂ Northern Ireland Assembly",
+    "scottish-parliament": "Scottish Parliament",
+    senedd: "Welsh Parliament",
+    "ni-assembly": "Northern Ireland Assembly",
     controlai: "ControlAI",
     database: "Database",
     luma: "Luma",

@@ -895,11 +895,10 @@ that drives it or why nothing does.
   - the house tabs;
   - paging through many;
   - searching by each word, for those not in office and the nearest to a typo;
-  - deleting one gone from Airtable;
   - the politicians mailed about an ask, and those not yet;
-  - Airtable's two markers turned on and off in the band;
-  - a Lord's email and salutation set in Writing to them, and an MP's, with no email to set;
-  - a salutation marked to check, corrected;
+  - the two marks switched on and off in their card;
+  - a Lord's email set from the bubble on it in the band, and an MP's, with no email to set;
+  - a salutation made from the name, set to Ms from its bubble's choices;
   - ControlAI's statement imported, and its ask's page;
   - several answers to an ask, ticked in the chip's second half;
   - PauseAI's email to one, from her history, and its Gmail search copied;

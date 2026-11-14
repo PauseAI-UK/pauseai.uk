@@ -75,6 +75,8 @@ SELECT p.id, s.house, s.constituency, s.party, s.country FROM people p JOIN seed
 -- Their notes from Airtable, as a note each in their history, written by Airtable.
 INSERT INTO notes (notable_person_id, body, written_by, created_at)
 SELECT n.id, s.notes, 'Airtable', now() - s.updated FROM notable_people n JOIN seed_politicians s USING (name) WHERE s.notes <> '';
+-- One whose gender the import couldn't find, so her salutation is her name, to check.
+UPDATE notable_people SET salutation = name, salutation_to_check = true WHERE name = 'Siân Enghraifft';
 DROP TABLE seed_politicians;
 
 -- Made-up politicians, enough for 250 with the test MPs, so the list has

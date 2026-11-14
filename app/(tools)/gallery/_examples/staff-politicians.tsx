@@ -30,7 +30,8 @@ import {
   PoliticianCorrespondenceExample,
   PoliticianDetailsExample,
   AddAliasFormExample,
-  EditPoliticianFormExample,
+  AddressesBubbleExample,
+  SalutationBubbleExample,
   PoliticianMarksExample,
   PoliticianTableEmptyExample,
   PoliticianTableExample,
@@ -292,16 +293,35 @@ export const staffPoliticians: Group = {
       ],
     },
     {
-      name: "EditPoliticianForm",
-      file: "app/(staff)/staff/_components/EditPoliticianForm.tsx",
+      name: "SalutationBubble",
+      file: "app/(staff)/staff/_components/PoliticianWriting.tsx",
+      variants: [
+        { label: "A salutation, with its Change", render: () => <SalutationBubbleExample result={{ saved: true }} /> },
+        {
+          label: "One made from their name, which says so",
+          render: () => <SalutationBubbleExample fromName result={{ saved: true }} />,
+        },
+      ],
+    },
+    {
+      name: "AddressesBubble",
+      file: "app/(staff)/staff/_components/PoliticianWriting.tsx",
       variants: [
         {
-          label: "A salutation, as a letter starts, saved",
-          render: () => <EditPoliticianFormExample result={{ saved: true }} />,
+          label: "An MP's email, its bubble of their other addresses open",
+          render: () => (
+            <StaffPage as="div">
+              <AddressesBubbleExample result={{ saved: true }} />
+            </StaffPage>
+          ),
         },
         {
-          label: "A Lord's email, refused as the shared inbox",
-          render: () => <EditPoliticianFormExample lord result={{ saved: false, why: "shared" }} />,
+          label: "A Lord with no email, to set one",
+          render: () => (
+            <StaffPage as="div">
+              <AddressesBubbleExample lord result={{ saved: false, why: "shared" }} />
+            </StaffPage>
+          ),
         },
       ],
     },

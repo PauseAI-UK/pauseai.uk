@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { site } from "@/lib/content/site";
 import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
-import { CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/asks";
+import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/asks";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
 import type { RunningJob } from "@/lib/server/import-runs";
 import {
@@ -130,14 +130,14 @@ const ABOUT: Record<
   "import-controlai": {
     intro: staffCopy.controlAi.intro,
     href: CONTROLAI_LETTER_PAGE,
-    then: [{ ...staffCopy.controlAi.introThen, href: `/staff/asks#${CONTROLAI_LETTER_ASK}` }],
+    then: [{ ...staffCopy.controlAi.introThen, href: askHref(CONTROLAI_LETTER_ASK) }],
     button: staffCopy.controlAi.importNow,
     none: staffCopy.controlAi.never,
   },
   "import-controlai-statement": {
     intro: staffCopy.controlAiStatement.intro,
     href: CONTROLAI_STATEMENT_PAGE,
-    then: [{ ...staffCopy.controlAiStatement.introThen, href: `/staff/asks#${CONTROLAI_STATEMENT_ASK}` }],
+    then: [{ ...staffCopy.controlAiStatement.introThen, href: askHref(CONTROLAI_STATEMENT_ASK) }],
     button: staffCopy.controlAiStatement.importNow,
     none: staffCopy.controlAiStatement.never,
   },

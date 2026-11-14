@@ -64,6 +64,8 @@ describe("PoliticianDetails", () => {
       staffCopy.personStatuses.in_office,
       staffCopy.countries.england,
       staffCopy.politicians.noEmail,
+      // Their salutation, quietly under their email.
+      staffCopy.politician.editDetails.dear(MP.salutation),
     ]);
     // Their marks, in a card of their own under the notes: without a way to change them, the switches can't be pressed.
     const marks = page.getByRole("region", { name: staffCopy.politician.marks });
@@ -107,7 +109,7 @@ describe("PoliticianDetails", () => {
   it("links their address, to write to them, and has no party or country for someone with none", async () => {
     await render(
       <PoliticianDetails
-        politician={{ ...MP, party: "", country: null, status: "retired", salutation: "" }}
+        politician={{ ...MP, party: "", country: null, status: "retired" }}
         unblock={vi.fn()}
         {...none}
       />,
@@ -116,7 +118,29 @@ describe("PoliticianDetails", () => {
     expect(terms()).toEqual([staffCopy.politician.status, staffCopy.fields.email]);
   });
 
-  it("shows a test politician's salutation, as a letter to them starts, with no Edit", async () => {
+  it("sets a Lord's email from the bubble on it in the band, saying why it's theirs to set while they have none", async () => {
+    const lord = (email: string | null) => (
+      <PoliticianDetails
+        politician={{ ...MP, house: "lords", constituency: null, email }}
+        unblock={vi.fn()}
+        editDetails={vi.fn()}
+        aliases={{ ...exampleAliases, email }}
+        aliasActions={{ add: vi.fn(), remove: vi.fn() }}
+        aliasesOpen
+        {...none}
+      />
+    );
+    const words = staffCopy.politician.editDetails;
+    const { rerender } = await render(lord(null));
+    await expect.element(page.getByRole("button", { name: words.add })).toBeVisible();
+    await expect.element(page.getByText(words.emailHint)).toBeVisible();
+    await expect.element(page.getByRole("textbox", { name: words.email })).toBeVisible();
+    await rerender(lord("lord.example@parliament.uk"));
+    await expect.element(page.getByRole("button", { name: staffCopy.politician.aliases.more(7) })).toBeVisible();
+    await expect.element(page.getByText(words.emailHint)).not.toBeInTheDocument();
+  });
+
+  it("shows a test politician's salutation, as a letter to them starts, with no edit", async () => {
     await render(
       <PoliticianDetails
         politician={{ ...MP, isTest: true }}
@@ -124,67 +148,48 @@ describe("PoliticianDetails", () => {
         editDetails={vi.fn()}
         aliases={exampleAliases}
         aliasActions={{ add: vi.fn(), remove: vi.fn() }}
-        aliasesOpen
         {...none}
       />,
     );
     const words = staffCopy.politician.editDetails;
     await expect.element(page.getByText(words.dear(MP.salutation))).toBeVisible();
-    await expect
-      .element(page.getByRole("button", { name: `${words.edit} ${words.salutation}` }))
-      .not.toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: words.edit })).not.toBeInTheDocument();
   });
 
-  it("tags a salutation made from the name to check where it's written", async () => {
-    await render(
-      <PoliticianDetails
-        politician={{ ...MP, salutationToCheck: true, importantTarget: false }}
-        unblock={vi.fn()}
-        editDetails={vi.fn()}
-        aliases={exampleAliases}
-        aliasActions={{ add: vi.fn(), remove: vi.fn() }}
-        aliasesOpen
-        {...none}
-      />,
-    );
-    const writing = page.getByRole("group").filter({ hasText: staffCopy.politician.writing });
-    await expect.element(writing.getByText(staffCopy.politician.salutationToCheck)).toBeVisible();
-  });
-
-  it("saves how we write to them from Writing to them, saying when the server gave no answer", async () => {
-    const editDetails = vi.fn(async () => undefined);
+  it("says a salutation made from the name is so, and sets Ms or Mr with their surname from its bubble", async () => {
+    const { fn, sent } = action();
+    const politician = { ...MP, salutation: MP.name, salutationToCheck: true, importantTarget: false };
     const { rerender } = await render(
       <PoliticianDetails
-        politician={MP}
+        politician={politician}
         unblock={vi.fn()}
-        editDetails={editDetails}
-        aliases={exampleAliases}
-        aliasActions={{ add: vi.fn(), remove: vi.fn() }}
-        aliasesOpen
+        editDetails={async (form) => {
+          fn(form);
+          return { saved: true };
+        }}
         {...none}
       />,
     );
     const words = staffCopy.politician.editDetails;
-    await page.getByRole("button", { name: `${words.edit} ${words.salutation}` }).click();
+    await expect.element(page.getByText(words.fromName)).toBeVisible();
+    await page.getByRole("button", { name: words.edit }).click();
+    await expect.element(page.getByRole("button", { name: "Mr Placeholder" })).toBeVisible();
+    await page.getByRole("button", { name: "Ms Placeholder" }).click();
+    await vi.waitFor(() => expect(sent).toEqual([{ politicianId: String(MP.id), salutation: "Ms Placeholder" }]));
+    // Without a way to change it, the note alone.
+    await rerender(<PoliticianDetails politician={politician} unblock={vi.fn()} {...none} />);
+    await expect.element(page.getByText(words.fromName)).toBeVisible();
+    await expect.element(page.getByRole("button", { name: words.edit })).not.toBeInTheDocument();
+  });
+
+  it("saves a salutation from its bubble, which stays open when the server gives no answer", async () => {
+    const editDetails = vi.fn(async () => undefined);
+    await render(<PoliticianDetails politician={MP} unblock={vi.fn()} editDetails={editDetails} {...none} />);
+    const words = staffCopy.politician.editDetails;
+    await page.getByRole("button", { name: words.edit }).click();
     await page.getByRole("button", { name: words.save }).click();
     await vi.waitFor(() => expect(editDetails).toHaveBeenCalledOnce());
-    await expect.element(page.getByText(words.saved)).not.toBeInTheDocument();
-    // With no answer, the field stays open, until Cancel.
     await expect.element(page.getByRole("textbox", { name: words.salutation })).toBeVisible();
-    await page.getByRole("button", { name: words.cancel }).click();
-    // A salutation not set yet says so.
-    await rerender(
-      <PoliticianDetails
-        politician={{ ...MP, salutation: "" }}
-        unblock={vi.fn()}
-        editDetails={editDetails}
-        aliases={exampleAliases}
-        aliasActions={{ add: vi.fn(), remove: vi.fn() }}
-        aliasesOpen
-        {...none}
-      />,
-    );
-    await expect.element(page.getByText(words.none, { exact: false })).toBeVisible();
   });
 
   it("turns a marker on or off with its switch in the Marks card", async () => {
@@ -1211,50 +1216,41 @@ describe("PoliticianDetails", () => {
     await expect.element(notice.getByText(staffCopy.emails.cantReset)).toBeVisible();
   });
 
-  it("leads from their email to their aliases, folded at the foot, open when led there, with a way to remove one staff added", async () => {
-    const add = vi.fn();
+  it("opens their other addresses from their email in the band, with a Remove by those staff can take off, the newest added last", async () => {
     const remove = action();
+    const add = vi.fn(async () => ({ added: true as const }));
     const aliases = { add, remove: remove.fn };
     const words = staffCopy.politician.aliases;
-    const { rerender } = await render(
-      <PoliticianDetails politician={MP} unblock={vi.fn()} {...none} aliases={exampleAliases} aliasActions={aliases} />,
-    );
-    await expect
-      .element(page.getByRole("link", { name: words.edit }).first())
-      .toHaveAttribute("href", `/staff/politicians/${MP.id}?aliases=open#aliases`);
-    const fold = document.getElementById("aliases") as HTMLDetailsElement;
-    expect(fold.open).toBe(false);
-    expect(fold.querySelector("summary")!.textContent).toBe(`${staffCopy.politician.writing} 8`);
-    await rerender(
+    const details = (props: Partial<Parameters<typeof PoliticianDetails>[0]> = {}) => (
       <PoliticianDetails
         politician={MP}
         unblock={vi.fn()}
         {...none}
         aliases={exampleAliases}
-        aliasesOpen
         aliasActions={aliases}
-      />,
+        {...props}
+      />
     );
-    expect(fold.open).toBe(true);
-    const rows = [...fold.querySelectorAll("ul li")].map(
-      (row) => row.querySelector(":scope > span > span")!.textContent,
-    );
-    expect(rows).toEqual([
-      "polly.placeholder.mp@parliament.uk",
+    const { rerender } = await render(details());
+    const more = page.getByRole("button", { name: words.more(7) });
+    await expect.element(more).toBeVisible();
+    await more.click();
+    const bubble = document.querySelector("[popover]:popover-open")!;
+    const rows = () =>
+      [...bubble.querySelectorAll("li")].map((row) => row.querySelector(":scope > span")!.firstChild!.textContent);
+    expect(rows()).toEqual([
       "polly@oldexample.org.uk",
       "placeholderp@parliament.uk",
       "jane.smith@parliament.uk",
-      "polly.placeholder@example.com",
       "@pollyplaceholder.org.uk",
       "polly.placeholder.mp@parliament.uk",
       "citiesoflondonandwestminster.mp@parliament.uk",
+      "polly.placeholder@example.com",
     ]);
-    await expect.element(page.getByText(words.sources.office, { exact: false })).toBeVisible();
     await expect
-      .element(page.getByText(words.addedBy("jo@pauseai.uk", staffDate(exampleAliases.added[0].at)), { exact: false }))
+      .element(page.getByText(words.addedBy("jo@pauseai.uk", staffDate(exampleAliases.added[0].at))))
       .toBeVisible();
     const removes = page.getByRole("button", { name: words.remove });
-    await expect.element(removes.nth(1)).toBeVisible();
     await removes.nth(0).click();
     await removes.nth(1).click();
     await vi.waitFor(() =>
@@ -1263,24 +1259,32 @@ describe("PoliticianDetails", () => {
         { politicianId: String(MP.id), address: "polly.placeholder@example.com" },
       ]),
     );
-    // With no email, the list starts at what they had before.
+    // One just added comes last, and pulses once to draw the eye.
+    await page.getByLabelText(words.address).fill("Polly.New@example.com");
+    await page.getByRole("button", { name: words.add }).click();
+    await vi.waitFor(() => expect(add).toHaveBeenCalledOnce());
+    const later = new Date(exampleAliases.added[0].at.getTime() + 60_000);
     await rerender(
-      <PoliticianDetails
-        politician={{ ...MP, email: null }}
-        unblock={vi.fn()}
-        {...none}
-        aliases={{ ...exampleAliases, email: null }}
-        aliasesOpen
-        aliasActions={aliases}
-      />,
+      details({
+        aliases: {
+          ...exampleAliases,
+          added: [{ address: "polly.new@example.com", addedBy: "jo@pauseai.uk", at: later }, ...exampleAliases.added],
+        },
+      }),
     );
-    expect(fold.querySelector("ul li > span > span")!.textContent).toBe("polly@oldexample.org.uk");
-    // And no way to add an address, until they have one letters go to.
+    const newest = [...bubble.querySelectorAll("li")].at(-1)!;
+    expect(newest.textContent).toContain("polly.new@example.com");
+    expect(newest.hasAttribute("data-pulse")).toBe(true);
+    // Led here, as from the blocked address's strip, it opens at once.
+    await rerender(<div />);
+    await rerender(details({ aliasesOpen: true }));
+    expect(document.querySelector("[popover]:popover-open")).not.toBeNull();
+    // With no email, nothing to list or add, but for a Lord their email to set.
+    await rerender(details({ politician: { ...MP, email: null }, aliases: { ...exampleAliases, email: null } }));
     await expect.element(page.getByRole("button", { name: words.add })).not.toBeInTheDocument();
-    // Without what changes them, no aliases at all.
+    // Without what changes them, the email alone.
     await rerender(<PoliticianDetails politician={MP} unblock={vi.fn()} {...none} aliases={exampleAliases} />);
-    expect(document.getElementById("aliases")).toBeNull();
-    expect(page.getByRole("link", { name: words.edit }).query()).toBeNull();
+    expect(page.getByRole("button", { name: words.more(7) }).query()).toBeNull();
   });
 });
 

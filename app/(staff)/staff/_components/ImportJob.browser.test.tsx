@@ -102,6 +102,12 @@ describe("ImportOverview", () => {
     expect(link(7)).toBe("https://data.niassembly.gov.uk/members.asmx");
     expect(cards[4].querySelector(":scope > p")!.textContent).toContain(staffCopy.politicianImports.held);
     expect(link(9)).toBe("https://controlai.org/statement");
+    // ControlAI's imports link the ask they mark, the quotes around its name left out of the link.
+    const askLinks = (i: number) =>
+      [...cards[i].querySelectorAll(":scope > p a")].slice(1).map((a) => [a.getAttribute("href"), a.textContent]);
+    expect(askLinks(8)).toEqual([["/staff/asks/controlai-letter", "ControlAI's letter to the Prime Minister"]]);
+    expect(askLinks(9)).toEqual([["/staff/asks/controlai-statement", "ControlAI's campaign statement"]]);
+    expect(cards[9].querySelector(":scope > p")!.textContent).toContain("“ControlAI's campaign statement”.");
     // CiviCRM's card links CiviCRM; Gmail's leads to where it's connected; the sending's to the campaigns' letters
     // and the mailings, the tidying's to the audit log, the mailings and the errors.
     expect(link(3)).toBe("https://crm.pauseai.info/");

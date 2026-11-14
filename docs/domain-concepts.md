@@ -859,10 +859,10 @@ else in it.
   `lordNamed` in `lib/one-off.ts`); a name that's no one's, or more than one
   Lord's, links no one.
 
-- **Aliases.** A politician's page lists, folded at its foot, every address and
-  domain that's theirs and where each came from, with the forms their name and
-  seat make; their email at the top leads there. Staff add an address there by
-  hand: it's logged and every thread relinked at once. The next regular read of
+- **Aliases.** A politician's email, in the band at the top of their page,
+  opens a bubble of every other address and domain that's theirs and where each
+  came from, with the forms their name and seat make, those staff added last.
+  A Lord's own email is set there too. Staff add an address there by hand: it's logged and every thread relinked at once. The next regular read of
   Gmail searches policy@ and joseph@ for it (up to 50 messages each) and keeps
   what it would have kept, as it passed over that mail before the address was
   known (`searched_at`). That's done at the start of the read, before the

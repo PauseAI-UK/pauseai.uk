@@ -500,12 +500,13 @@
   font-size: var(--text-sm);
 }
 
-/* What changed their record, a dot each on a line down the left. */
+/* What changed their record, newest first, a dot each on a line down the
+   left: the line runs on above the newest, fading, as the record goes on,
+   and stops at the oldest's dot, where it began. */
 .timeline {
-  margin: var(--space-3) 0 0;
+  margin: var(--space-4) 0 0;
   padding: 0 0 0 var(--space-4);
   list-style: none;
-  border-left: 2px solid var(--border);
 }
 
 .timeline li {
@@ -516,9 +517,48 @@
   padding-bottom: var(--space-4);
 }
 
+/* The line beside each change, down to the next. */
+.timeline li::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--space-4) - 2px);
+  width: 2px;
+  background: var(--border);
+  content: "";
+}
+
+/* Above the newest, the line fades up into what's still to come. */
+.timeline li:first-child::after {
+  top: calc(-1 * var(--space-4));
+  background: linear-gradient(to bottom, transparent, var(--border) var(--space-4));
+}
+
+/* The oldest: the line stops at its dot, the middle of its first line. */
+.timeline li:last-child::after {
+  bottom: auto;
+  height: calc(1lh / 2);
+}
+
+.timeline li:first-child:last-child::after {
+  height: calc(var(--space-4) + 1lh / 2);
+}
+
+/* Out of office, their record has ended: the line starts at the newest's dot too. */
+.ended li:first-child::after {
+  top: calc(1lh / 2);
+  background: var(--border);
+}
+
+.ended li:first-child:last-child::after {
+  display: none;
+}
+
+/* Each change's dot, centred on its first line ("Edited …"). */
 .timeline li::before {
   position: absolute;
-  top: 5px;
+  z-index: 1;
+  top: calc(1lh / 2 - 6px);
   left: calc(-1 * var(--space-4) - 7px);
   width: 8px;
   height: 8px;

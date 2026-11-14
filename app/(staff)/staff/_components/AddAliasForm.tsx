@@ -11,20 +11,30 @@ import styles from "./AddAliasForm.module.css";
 
 const copy = staffCopy.politician.aliases;
 
+/** Adds an address to a politician's, saying how it went. */
+export type AddAliasAction = (form: FormData) => Promise<AddResult | undefined> | AddResult | undefined | void;
+
 /**
  * The form under a politician's aliases: adds an address to theirs, such as
  * a personal Gmail. Once the server has it, says it's added and that its
- * earlier mail will be found soon, or why it wasn't added.
+ * earlier mail will be found soon, or why it wasn't added; `onAdded` hears
+ * the address added, for the list to draw the eye to it.
  */
 export default function AddAliasForm({
   politicianId,
   action,
+  onAdded,
 }: {
   politicianId: number;
-  action: (form: FormData) => Promise<AddResult | undefined> | AddResult | undefined | void;
+  action: AddAliasAction;
+  onAdded?: (address: string) => void;
 }) {
   const [result, setResult] = useState<AddResult | undefined>();
-  const send = async (form: FormData) => setResult((await action(form)) ?? undefined);
+  const send = async (form: FormData) => {
+    const answer = (await action(form)) ?? undefined;
+    setResult(answer);
+    if (answer?.added) onAdded?.(String(form.get("address")).trim().toLowerCase());
+  };
   return (
     <>
       <FilterForm action={send} aria-label={copy.add} className={styles.form}>
