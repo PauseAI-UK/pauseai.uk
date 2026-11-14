@@ -4,7 +4,13 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LETTERS_INBOX } from "./fixture-env.mjs";
 import { historyIdNow } from "./inbox-clock";
-import { deliverToLettersInbox, labelNames, lettersMailbox, resetLettersInbox } from "./letters-inbox";
+import {
+  deliverToLettersInbox,
+  emptyLettersInbox,
+  labelNames,
+  lettersMailbox,
+  resetLettersInbox,
+} from "./letters-inbox";
 import { fixtureResponse } from "./outside-services";
 
 const gmail = (path: string, init: RequestInit = {}, scope?: string, account = LETTERS_INBOX) =>
@@ -59,6 +65,19 @@ describe("the fake letters inbox", () => {
     expect(await gmail(`/history?startHistoryId=${third}`).json()).toEqual({ historyId: third });
   });
 
+  it("keeps one message under an ID: the newest sent with it, as a flow run again on one server sends its letter again", async () => {
+    const [local, domain] = LETTERS_INBOX.split("@");
+    const letter = (messageId: string) =>
+      `Message-ID: <${messageId}>\r\nTo: ${local}+mp@${domain}\r\nSubject: Letter\r\n\r\nHi`;
+    const { id } = await send(letter("00000000-0000-4000-8000-000000000001@pauseai.uk")).json();
+    expect((await send(letter("00000000-0000-4000-8000-000000000002@pauseai.uk")).json()).id).toBe(id);
+    expect(lettersMailbox().messages.map((m) => m.id)).toEqual([id]);
+    const headers = await gmail(`/messages/${id}?format=metadata&metadataHeaders=Message-ID`).json();
+    expect(headers).toMatchObject({
+      payload: { headers: [{ name: "Message-ID", value: "<00000000-0000-4000-8000-000000000002@pauseai.uk>" }] },
+    });
+  });
+
   it("serves a message's headers asked for, and whole; labels it, makes labels, and trashes it", async () => {
     deliverToLettersInbox("From: a@example.org\r\nSubject: Hi\r\nDate: Fri, 16 Oct 2026 12:00:00 +0000\r\n\r\nBody");
     deliverToLettersInbox("From: b@example.org", { spam: true });
@@ -110,6 +129,10 @@ describe("the fake letters inbox", () => {
       expect(await gmail("/profile", {}, "flow_a").json()).toMatchObject({
         historyId: String(lettersMailbox("flow_a").messages[1].historyId),
       });
+      // A flow run again, on a database of the same name, starts with its mailbox empty.
+      emptyLettersInbox("flow_a", dir);
+      deliverToLettersInbox("Subject: Three", { scope: "flow_a" });
+      expect(lettersMailbox("flow_a").messages.map((m) => m.raw)).toEqual(["Subject: Three"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

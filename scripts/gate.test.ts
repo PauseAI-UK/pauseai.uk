@@ -89,6 +89,19 @@ describe("slowPlan", () => {
     expect(lanes[3].map((step) => step.cwd)).toEqual(["backup", "backup", "backup"]);
   });
 
+  it("runs the determinism check after the storyboard when a file that decides how frames are pictured changed", () => {
+    const [[types]] = slowPlan({ storyboard: true }, ["lib/a.ts", "tests/storyboard/frame.ts"]);
+    expect(types.map((step) => step.label)).toEqual([
+      "npm run typecheck",
+      "npm run storyboard -- --no-open",
+      "npm run storyboard:determinism",
+    ]);
+    const [[others]] = slowPlan({ storyboard: true }, ["lib/a.ts"]);
+    expect(others.map((step) => step.id)).toEqual(["typecheck", "storyboard"]);
+    const [[without]] = slowPlan({ storyboard: false }, ["playwright.config.ts"]);
+    expect(without.map((step) => step.id)).toEqual(["typecheck"]);
+  });
+
   it("leaves out the storyboard when asked", () => {
     const [[types]] = slowPlan({ storyboard: false });
     expect(types.map((step) => step.id)).toEqual(["typecheck"]);

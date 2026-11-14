@@ -29,6 +29,7 @@
     "test:storyboard": "playwright test",
     "storyboard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/storyboard.mjs",
     "storyboard:changed": "node scripts/storyboard-changed.mjs",
+    "storyboard:determinism": "node scripts/storyboard-determinism.mjs",
     "copy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/copy.mjs",
     "placeholders": "node scripts/placeholders.mjs",
     "test:report": "playwright show-report",

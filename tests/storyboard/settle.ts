@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 // What the flows wait for, rather than a fixed time: the page has
 // hydrated and its console has gone quiet, a smooth scroll has come to rest,
@@ -63,6 +63,24 @@ export async function scrollSettled(page: Page): Promise<number> {
     delete (window as typeof window & { __settle?: unknown }).__settle;
   });
   return page.evaluate(() => window.scrollY);
+}
+
+/**
+ * Presses `trigger`, which opens a bubble (components/ui/Bubble.tsx), and
+ * waits for the page to come to rest. Once open, the bubble scrolls the page
+ * to show itself, on its toggle event, a task after the press returns; on a
+ * busy machine that lands while a press inside it is under way, which then
+ * lands where its button was, outside the bubble, and closes it.
+ */
+export async function openBubble(trigger: Locator): Promise<void> {
+  const page = trigger.page();
+  await trigger.click();
+  await expect(page.locator(":popover-open").first()).toBeVisible();
+  // The toggle event's task, and the frame after it.
+  await page.evaluate(
+    () => new Promise<void>((done) => setTimeout(() => requestAnimationFrame(() => setTimeout(done)))),
+  );
+  await scrollSettled(page);
 }
 
 /**

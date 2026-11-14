@@ -147,17 +147,35 @@ export function fastPlan(files) {
 }
 
 /**
- * What CI runs, as one phase of lanes run at once.
+ * The files that decide how a frame is pictured, rather than what it
+ * shows: a change to one runs the determinism check (DETERMINISM).
+ */
+export const PICTURING = [
+  "playwright.config.ts",
+  "tests/storyboard/frame.ts",
+  "tests/storyboard/gallery.spec.ts",
+  "scripts/storyboard-determinism.mjs",
+];
+
+/**
+ * What CI runs, as one phase of lanes run at once; and, after the
+ * storyboard, when `files` (those changed) include one of PICTURING, the
+ * check that no gallery frame depends on where it's drawn
+ * (scripts/storyboard-determinism.mjs). CI doesn't run that: it takes no
+ * pictures.
  *
  * @param {{ storyboard: boolean }} options
+ * @param {string[]} [files]
  * @returns {Step[][][]}
  */
-export function slowPlan({ storyboard }) {
+export function slowPlan({ storyboard }, files = []) {
+  const picturing = files.some((file) => PICTURING.includes(file));
   return [
     [
       [
         npm("typecheck", ["run", "typecheck"], 5, { required: true }),
         ...(storyboard ? [npm("storyboard", ["run", "storyboard", "--", "--no-open"], 20)] : []),
+        ...(storyboard && picturing ? [npm("determinism", ["run", "storyboard:determinism"], 20)] : []),
       ],
       [npm("test", ["test"], 15)],
       [
@@ -252,11 +270,12 @@ export function groupState(states) {
 /**
  * The group a command is in: the two long ones each their own, and the
  * rest, quick, together. The gate's storyboard is "flows": it checks that
- * every flow works, through the review (`npm run storyboard`).
+ * every flow works, through the review (`npm run storyboard`), and with it
+ * the determinism check, which runs the gallery's flows again.
  *
  * @param {string} id
  */
-const groupOf = (id) => (id === "storyboard" ? "flows" : id === "test" ? "test" : "checks");
+const groupOf = (id) => (id === "storyboard" || id === "determinism" ? "flows" : id === "test" ? "test" : "checks");
 
 /**
  * Keeps `file` saying how each of `steps` stands, and each group of them
@@ -415,7 +434,7 @@ async function main(args) {
   const beat = setInterval(heartbeat, MINUTE);
 
   const fast = fastPlan(files);
-  const slow = options.fast ? [] : slowPlan(options);
+  const slow = options.fast ? [] : slowPlan(options, files);
   const status = statusWriter([...fast, ...slow].flat(2), git("rev-parse", "HEAD").trim());
 
   console.log(`Gate: the fast checks, on ${files.length} files changed since origin/main`);

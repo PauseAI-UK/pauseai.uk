@@ -14,9 +14,10 @@ import {
   type Request,
 } from "@playwright/test";
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
-import { FLOW_DATABASES, LOCAL_URL, REQUESTS_DIR, TEMPLATE_DATABASE } from "../checkout.mjs";
+import { FLOW_DATABASES, LETTERS_INBOX_DIR, LOCAL_URL, REQUESTS_DIR, TEMPLATE_DATABASE } from "../checkout.mjs";
 import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
 import { historyIdNow } from "@/lib/server/fixtures/inbox-clock";
+import { emptyLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 
 export { expect } from "@playwright/test";
 export { frame, story } from "./frame";
@@ -191,8 +192,9 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
       copyDatabase(name, TEMPLATE_DATABASE);
       // The fixed clock's now() first, before Postgres's own (global-setup.ts).
       runSql("postgres", `ALTER DATABASE "${name}" SET search_path = fixture, pg_catalog, public`);
-      // The letters inbox read from now: the build's fake keeps a database's mail by its name, and
+      // The letters inbox empty, and read from now: the build's fake keeps a database's mail by its name, and
       // this name's may have some from a run before (lib/server/fixtures/letters-inbox.ts).
+      emptyLettersInbox(name, LETTERS_INBOX_DIR);
       runSql(name, `UPDATE staff_accounts SET gmail_history_id = '${historyIdNow()}' WHERE gmail_token IS NOT NULL`);
       await provide(name);
       dropDatabase(name);
