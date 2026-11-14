@@ -142,7 +142,8 @@ export function misplaced(path: string, text: string): string[] {
   return found;
 }
 
-describe("where code runs", () => {
+// Reading every module takes over Vitest's five seconds on a loaded CI runner.
+describe("where code runs", { timeout: 60_000 }, () => {
   it("every module's name says where it runs", () => {
     const files = DIRS.flatMap((dir) => codeFiles(dir));
     expect(files.length).toBeGreaterThan(100);
