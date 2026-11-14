@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications, toNotifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
@@ -16,6 +15,8 @@ import {
   tidyErrorsSeen,
 } from "./errors-seen.server";
 import { registerProblemKeeper } from "@/lib/server/problems.server";
+import { serverCopy } from "@/lib/server/copy";
+import { oversightCopy } from "./copy";
 
 // Next's after() only works inside a request. Here it runs what it's given, or throws as it does outside one.
 const held = vi.hoisted(() => ({ work: [] as unknown[], outside: false }));
@@ -27,7 +28,7 @@ vi.mock("next/server", async (importActual) => ({
   },
 }));
 
-const copy = staffCopy.errorsSeen;
+const copy = oversightCopy.errorsSeen;
 const FIREFOX = "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0";
 
 /** What Next hands onRequestError besides the error. */
@@ -234,7 +235,7 @@ describeWithDatabase("errors the server throws", () => {
     vi.stubEnv("NETLIFY_DB_URL", "");
     await thrown(new Error("With no database"));
     vi.unstubAllEnvs();
-    expect(logged.mock.calls).toEqual([[staffCopy.problems.logs.errorNotKept, "NETLIFY_DB_URL is not set"]]);
+    expect(logged.mock.calls).toEqual([[serverCopy.problems.logs.errorNotKept, "NETLIFY_DB_URL is not set"]]);
     expect(held.work).toEqual([]);
     expect(await rows()).toEqual([]);
   });

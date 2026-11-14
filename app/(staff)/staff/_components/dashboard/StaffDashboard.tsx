@@ -1,6 +1,5 @@
 import { campaigns } from "@/lib/content/email-your-mp";
 import { importPath } from "@/lib/import-runs";
-import { jobTitles } from "@/lib/content/staff-interface";
 import {
   type CampaignMetric,
   type Count,
@@ -33,6 +32,7 @@ import { shellCopy } from "../shell/copy";
 import { supportersCopy } from "../supporters/copy";
 import { lettersCopy } from "../letters/copy";
 import { dashboardCopy } from "./copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 const copy = dashboardCopy.home.dashboard;
 
@@ -42,7 +42,7 @@ function Action({ action }: { action: DashboardAction }) {
   const [title, detail, button, href] =
     action.kind === "held-import"
       ? [
-          words.heldImport(jobTitles[action.job], action.added + action.left + action.changed),
+          words.heldImport(importRunsCopy.jobTitles[action.job], action.added + action.left + action.changed),
           words.heldImportDetail,
           words.decide,
           importPath(action.job),
@@ -72,7 +72,7 @@ function Action({ action }: { action: DashboardAction }) {
                 `/staff/broadcasts/${action.broadcastId}?tab=look`,
               ]
             : [
-                words.failedImport(jobTitles[action.job]),
+                words.failedImport(importRunsCopy.jobTitles[action.job]),
                 words.failedImportDetail(action.error, staffTime(action.at)),
                 words.seeRun,
                 importPath(action.job),

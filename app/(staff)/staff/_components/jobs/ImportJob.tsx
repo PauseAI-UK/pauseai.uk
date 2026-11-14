@@ -1,6 +1,5 @@
 import { Fragment, type ReactNode } from "react";
 import { site } from "@/lib/content/site";
-import { jobTitles } from "@/lib/content/staff-interface";
 import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/asks/asks";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
 import type { RunningJob } from "@/lib/server/import-runs.server";
@@ -30,6 +29,7 @@ import ExternalLink from "../ui/ExternalLink";
 import PageHead from "../ui/PageHead";
 import { politiciansCopy } from "../politicians/copy";
 import { jobsCopy } from "./copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 // Every import and check: the overview at /staff/scheduled-jobs, a card each,
 // and each job's own page, with its button and every run it has made.
@@ -247,7 +247,7 @@ export function ImportOverview({
               jobSchedule(job) === schedule ? (
                 <ImportCard
                   key={job}
-                  title={jobTitles[job]}
+                  title={importRunsCopy.jobTitles[job]}
                   href={importPath(job)}
                   icon={<ImportIcon source={SOURCES[job]} />}
                   tags={<JobTags job={job} />}
@@ -297,7 +297,7 @@ export function ImportJobPage({
           </>
         }
       >
-        {jobTitles[job]}
+        {importRunsCopy.jobTitles[job]}
       </PageHead>
       <div className={styles.about}>
         <p>

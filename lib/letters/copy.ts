@@ -5,6 +5,7 @@
 // sending letters. The staff pages' own are in
 // app/(staff)/staff/_components/letters/copy.ts.
 import { count, plural } from "@/lib/content/plural";
+import { emailCopy } from "@/lib/email/copy";
 
 export const lettersCopy = {
   letters: {
@@ -356,9 +357,28 @@ export const lettersCopy = {
     letterOf: (id: number) => `Letter ${id}`,
     letterCopyOf: (id: number) => `The supporter's copy of letter ${id}`,
     relayOf: (id: number) => `Relay ${id}`,
+    // On a job's run, so on its page and in the email: something the job carried on past. The Gmail read, for a
+    // one-off thread's other messages, where they're tried with each new one: messages Gmail wouldn't give, by ID,
+    // which follow.
+    unreadable: "Messages that Gmail has but refused to give us:",
+  },
+  // The email staff get when a letter hard-bounces or is complained about (lib/letters/bounces.server.ts).
+  // Postmark's reason sometimes ends in a full stop and sometimes doesn't.
+  alert: {
+    subject: (mp: string) => `A letter to ${mp} bounced`,
+    // The mail server's reason quoted after its own sentence, and the link on a line of its own; then, for a
+    // bounce read from a Gmail mailbox, a link to it there.
+    body: (mp: string, address: string, reason: string, link: string, bounce?: string) =>
+      `A letter to ${mp} (${address}) didn't arrive. The mail server said: “${reason.replace(/\.+$/, "")}.”\n\nNothing more will be sent to that address until it's unblocked here:\n${link}${emailCopy.alert.bounceLine(bounce)}`,
   },
   // The emails to staff (lib/email/notifications.server.ts).
   notifications: {
+    // Once a day at most: each MP whose address bounced a mailing's letter since the last, and what its server said.
+    mailingBounces: {
+      subject: (n: number) => `${count(n, "MP's address", "MPs' addresses")} bounced a mailing`,
+      body: (lines: string[], link: string) =>
+        `These MPs' addresses bounced letters from a mailing since the last report:\n\n${lines.join("\n")}\n\nNothing more will be sent to them until they're unblocked here:\n${link}`,
+    },
     // Once a day at most: the supporters' copies that bounced since the last, so their MP's replies can't be
     // passed on; how many replies are held; each address's domain and what its server said.
     supporterBounces: {

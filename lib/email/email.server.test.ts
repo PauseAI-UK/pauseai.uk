@@ -1,4 +1,3 @@
-import { staffCopy } from "@/lib/content/staff-interface";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
@@ -26,6 +25,7 @@ import {
   sentBy,
 } from "./email.server";
 import { send } from "@/lib/accounts/email-sending.server";
+import { emailCopy } from "./copy";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
@@ -108,7 +108,7 @@ describeWithDatabase("send", () => {
       }),
     );
     expect(await send({ ...EMAIL, To: email }, "mailing")).toEqual({ sent: false, reason: "blocked" });
-    expect(alerts).toEqual([staffCopy.alert.notALetter.subject("Testy McTestface MP")]);
+    expect(alerts).toEqual([emailCopy.alert.notALetter.subject("Testy McTestface MP")]);
     expect(await send({ ...EMAIL, To: email }, "mailing")).toEqual({ sent: false, reason: "blocked" });
     expect(alerts).toHaveLength(1);
   });
@@ -151,7 +151,7 @@ describeWithDatabase("send", () => {
     server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 300, Message: "Invalid" }, { status: 422 })));
     // What Postmark said, kept for the copy's tag.
     expect(await send(EMAIL, "staff-alert")).toEqual({ sent: false, reason: "failed", detail: expect.any(String) });
-    expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.sendFailed("staff-alert"));
+    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("staff-alert"));
     expect(await sends()).toMatchObject([{ outcome: "failed", messageId: null }]);
     expect(await isBlocked("jo@example.org")).toBe(false);
   });
@@ -352,7 +352,7 @@ describeWithDatabase("send by Gmail", () => {
       reason: "failed",
       detail: expect.any(String),
     });
-    expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.sendFailed("mailing, by Gmail as jo@pauseai.uk"));
+    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("mailing, by Gmail as jo@pauseai.uk"));
     expect(await query("SELECT outcome, backend, sender, rfc_message_id FROM email_sends")).toEqual([
       { outcome: "failed", backend: "gmail", sender: "jo@pauseai.uk", rfc_message_id: null },
     ]);
@@ -395,7 +395,7 @@ describeWithDatabase("send by Gmail", () => {
       retry: true,
       detail: "No way to reach jo@pauseai.uk's Gmail",
     });
-    expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.sendFailed("mailing"));
+    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("mailing"));
     expect(await query("SELECT outcome FROM email_sends")).toEqual([{ outcome: "failed" }]);
   });
 });

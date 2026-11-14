@@ -175,7 +175,7 @@ export const supportersCopy = {
     },
   },
   // The page of supporters' blocked addresses (/staff/supporters/bounced-emails), titled as the navigation names
-  // it; the rest of its words are every blocked address's (staffCopy.emails).
+  // it; the rest of its words are every blocked address's (emailCopy.emails).
   bouncedEmails: {
     title: "Bounced emails",
     // Under the title, what the page is.

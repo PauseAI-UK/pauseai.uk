@@ -34,11 +34,6 @@ export const politiciansCopy = {
       blocked: "Address blocked",
     } as Record<string, string>,
     flag: "Marked",
-    flags: {
-      important: "Important target",
-      connection: "Personal connection",
-      test: "Test politician",
-    } as Record<string, string>,
     ask: "Answered ask",
     // An answer to the ask chosen, in the second half of the ask's chip, its menu named after the ask. With no
     // ask, as a link from the dashboard can have it, its own chip.
@@ -334,6 +329,22 @@ export const politiciansCopy = {
     // A problem of an import: a salutation staff set by hand, which the import keeps, unlike the one the title their body records makes.
     keptSalutation: (name: string, ours: string, body: Body, theirs: string) =>
       `${name}: staff set ${ours}; ${bodyNames[body]} records ${theirs}`,
+  },
+  // Whether a notable person is in office.
+  personStatuses: {
+    in_office: "In office",
+    died: "Died",
+    retired: "Retired",
+    left_office: "No longer in office",
+  } as Record<string, string>,
+  // The emails to the notification inbox (lib/email/notifications.server.ts) about a body's import.
+  notifications: {
+    // A body's import is held, as it would change too much: which import, how many politicians, and its page.
+    importHeld: {
+      subject: (job: string, changes: number) => `${job} would change ${changes} politicians`,
+      body: (job: string, changes: number, link: string) =>
+        `${job} would change ${changes} politicians, so it's held until someone checks it. Review it, then apply or discard it:\n\n${link}`,
+    },
   },
   // What went wrong without stopping the work (lib/server/problems.server.ts).
   problems: {

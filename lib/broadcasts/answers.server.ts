@@ -4,13 +4,13 @@ import { answerSubject } from "@/lib/email-parsing/subjects";
 import { checkDoc, isBlank, toHtml, toText, type LetterDoc } from "@/lib/letters/format";
 import { logChange } from "@/lib/server/audit.server";
 import { problem } from "@/lib/server/problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { broadcastsCopy } from "./copy";
 import { now } from "@/lib/now";
 import { textBackend } from "./channels.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { send } from "@/lib/accounts/email-sending.server";
 import { sendText } from "@/lib/server/outside-services/whatsapp.server";
+import { emailCopy } from "@/lib/email/copy";
 
 // Staff's answers to replies to broadcasts, written on the copy's Thread
 // page (broadcast_answers). An answer to an email goes by Gmail from the
@@ -150,7 +150,7 @@ export async function answerReply(replyId: number, draftId: string, body: unknow
     [replyId, draftId, by.toLowerCase(), JSON.stringify(doc)],
   );
   if (!answer) return { sent: true };
-  const words = staffCopy.problems.anywhere;
+  const words = emailCopy.problems;
   let result: AnswerSend;
   try {
     result = await (reply.text ? textAnswer : emailAnswer)(reply, doc);

@@ -3,15 +3,15 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffDate } from "@/lib/staff-time";
-import { jobTitles } from "@/lib/content/staff-interface";
 import { spanClass } from "../ui/Grid";
 import StaffDashboard from "./StaffDashboard";
 import { exampleDashboard, exampleQuietDashboard } from "./StaffDashboard.examples";
 import { shellCopy } from "../shell/copy";
 import { supportersCopy } from "../supporters/copy";
-import { politiciansCopy } from "../politicians/copy";
 import { lettersCopy } from "../letters/copy";
 import { dashboardCopy } from "./copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 const [pm, bill] = campaigns;
 
@@ -41,9 +41,9 @@ describe("StaffDashboard", () => {
     const list = page.getByRole("list", { name: copy.actionsTitle });
     const items = list.getByRole("listitem").all();
     expect(items.map((item) => item.element().textContent)).toEqual([
-      `${copy.actions.heldImport(jobTitles["import-parliament"], 24)}${copy.actions.heldImportDetail}${copy.actions.decide}`,
-      `${copy.actions.blockedMp("Bouncy McTestface MP")} ${politiciansCopy.politicians.flags.test}${copy.actions.blockedMpDetail}${copy.actions.openMp}`,
-      `${copy.actions.failedImport(jobTitles["import-controlai"])}${copy.actions.failedImportDetail("No PDF linked", "21 Oct 2026, 02:00")}${copy.actions.seeRun}`,
+      `${copy.actions.heldImport(importRunsCopy.jobTitles["import-parliament"], 24)}${copy.actions.heldImportDetail}${copy.actions.decide}`,
+      `${copy.actions.blockedMp("Bouncy McTestface MP")} ${staffVocabulary.politicianFlags.test}${copy.actions.blockedMpDetail}${copy.actions.openMp}`,
+      `${copy.actions.failedImport(importRunsCopy.jobTitles["import-controlai"])}${copy.actions.failedImportDetail("No PDF linked", "21 Oct 2026, 02:00")}${copy.actions.seeRun}`,
       `${lettersCopy.lettersInbox.alert.subject(2, "fixture-letters@pauseai.uk")}${copy.actions.lettersInboxDetail("21 Oct 2026, 03:20")}${copy.actions.lettersInboxButton}`,
     ]);
     await expect

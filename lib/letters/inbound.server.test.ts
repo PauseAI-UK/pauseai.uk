@@ -10,10 +10,10 @@ import { gunzipSync } from "node:zlib";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
 import { threadMessages } from "./threads.server";
 import { stubBlobsEnv } from "@/tests/gmail-sends";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { emailCopy } from "@/lib/email/copy";
 
 /** The policy inbox as a forward to it is addressed. */
-const POLICY = `"${staffCopy.inboxNames.policy}" <replies@pauseai.uk>`;
+const POLICY = `"${emailCopy.inboxNames.policy}" <replies@pauseai.uk>`;
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 

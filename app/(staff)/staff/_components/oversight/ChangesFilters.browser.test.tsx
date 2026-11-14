@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
 import ChangesFilters, { changeWords } from "./ChangesFilters";
 import { chips } from "@/tests/browser/staff";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 describe("ChangesFilters", () => {
   const choices = { actors: ["jo@pauseai.uk", "sync"], actions: ["add note", "edit event"] };
@@ -21,7 +21,7 @@ describe("ChangesFilters", () => {
       sort: "actor",
     });
     await render(<ChangesFilters search={search} choices={choices} actions={actions} />);
-    await expect.element(page.getByRole("searchbox", { name: staffCopy.changes.search })).toHaveValue("polly");
+    await expect.element(page.getByRole("searchbox", { name: oversightCopy.changes.search })).toHaveValue("polly");
     expect(chips()).toEqual([
       "When: Last 30 days",
       "Who: jo@pauseai.uk or sync",

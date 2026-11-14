@@ -4,7 +4,7 @@ import { deliveryProblem, isPostmark, recordDelivery } from "@/lib/email/postmar
 import { recordAutoResponder } from "@/lib/letters/inbound.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
 import { problem } from "@/lib/server/problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { serverCopy } from "@/lib/server/copy";
 
 /**
  * Postmark's bounce, spam complaint and delivery webhooks, the bounce one
@@ -14,7 +14,7 @@ import { staffCopy } from "@/lib/content/staff-interface";
 export async function POST(request: Request) {
   if (!isPostmark(request)) return NextResponse.json({ error: "Not allowed" }, { status: 401 });
   const payload = await readJsonIfAny(request);
-  if (payload === undefined) problem(staffCopy.problems.logs.badBody("Postmark"));
+  if (payload === undefined) problem(serverCopy.problems.logs.badBody("Postmark"));
   if (await recordDelivery(payload ?? {})) return NextResponse.json({ recorded: true });
   if (await recordAutoResponder(payload ?? {})) return NextResponse.json({ recorded: true });
   const found = deliveryProblem(payload ?? {});

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import BounceReason, { firstSentence } from "./email/BounceReason";
 import { DeleteTwice } from "./DeleteTwice";
+import { emailCopy } from "@/lib/email/copy";
 
 describe("firstSentence", () => {
   it.each([
@@ -46,16 +46,16 @@ describe("BounceReason", () => {
     await expect.element(more).not.toBeVisible();
     await whole.click();
     await expect.element(more).toBeVisible();
-    await expect.element(page.getByText(staffCopy.emails.from.postmark)).toBeVisible();
+    await expect.element(page.getByText(emailCopy.emails.from.postmark)).toBeVisible();
   });
 
   it("names who told us after the reason: Postmark, someone's Gmail, or CiviCRM for a hold", async () => {
     const { rerender } = await render(<BounceReason reason="Unknown user" kind="hard" foundInGmail={false} />);
-    await expect.element(page.getByText(staffCopy.emails.from.postmark)).toBeVisible();
+    await expect.element(page.getByText(emailCopy.emails.from.postmark)).toBeVisible();
     await rerender(<BounceReason reason="Unknown user" kind="hard" foundInGmail />);
-    await expect.element(page.getByText(staffCopy.emails.from.gmail)).toBeVisible();
+    await expect.element(page.getByText(emailCopy.emails.from.gmail)).toBeVisible();
     await rerender(<BounceReason reason="On hold" kind="hold" foundInGmail={false} />);
-    await expect.element(page.getByText(staffCopy.emails.from.civicrm)).toBeVisible();
+    await expect.element(page.getByText(emailCopy.emails.from.civicrm)).toBeVisible();
   });
 });
 

@@ -2,7 +2,7 @@
 // pages share with it: each job's title, description, button and result,
 // and the problems a run of a job reports. The import log's own words, its
 // jobs' titles and its emails about failed runs, are below every feature
-// (jobTitles and notifications in lib/content/staff-interface.ts).
+// (importRunsCopy, in lib/import-runs-copy.ts).
 
 import type { AddressSearch } from "@/lib/import-runs";
 import { count, plural } from "@/lib/content/plural";

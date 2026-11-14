@@ -1,7 +1,6 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { CONSENTS, type ContactPermission, type Topic, type Way } from "./contact-permissions";
 import { hold, isNumber, LINK_DAYS, type SettingsChoice, type SettingsView } from "./settings-view";
 import { now } from "@/lib/now";
@@ -28,6 +27,7 @@ import { randomId } from "@/lib/server/random-id.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
 import { problem } from "@/lib/server/problems.server";
 import { supportersCopy } from "./copy";
+import { emailCopy } from "@/lib/email/copy";
 
 // The contact preferences page (/contact-preferences), where anyone sees and changes
 // what PauseAI UK sends an address, and why. It opens only from a link
@@ -513,7 +513,7 @@ export async function sendBulkNotice(entryId: number, where: string, request?: R
   try {
     return await bulkNotice(entryId, where, request);
   } catch (error) {
-    problem(staffCopy.problems.anywhere.sendFailed("bulk-notice"), error);
+    problem(emailCopy.problems.sendFailed("bulk-notice"), error);
     return false;
   }
 }

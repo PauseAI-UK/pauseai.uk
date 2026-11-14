@@ -3,7 +3,6 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import type { Instrumentation } from "next";
 import { after } from "next/server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { BrowserErrorBody } from "@/lib/browser-errors";
 import { type ErrorKind, isBrowserKind, steadyPath, steadyWords } from "./error-key";
 import { ERRORS_LIST } from "@/lib/staff-lists";
@@ -12,6 +11,8 @@ import { config } from "@/lib/server/config.server";
 import { query } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { describeError, problem } from "@/lib/server/problems.server";
+import { serverCopy } from "@/lib/server/copy";
+import { oversightCopy } from "./copy";
 
 // What goes wrong on the site outside a job's run, kept so that it reaches
 // someone: an error the server throws in a page, a route handler, a Server
@@ -186,13 +187,13 @@ async function tell(id: number, happening: Happening): Promise<void> {
   const browser = isBrowserKind(happening.kind);
   const limit = browser ? BROWSER_EMAILS_AN_HOUR : SERVER_EMAILS_AN_HOUR;
   if (taken.hour > limit) return;
-  const copy = staffCopy.errorsSeen.email;
+  const copy = oversightCopy.errorsSeen.email;
   if (taken.hour === limit) {
     const many = browser ? copy.manyBrowser : copy.many;
     await notifyStaff(many.subject, many.body(staffLink(ERRORS_LIST.path, undefined)));
     return;
   }
-  const where = [staffCopy.errorsSeen.kinds[happening.kind], happening.route].filter(Boolean).join(" ");
+  const where = [oversightCopy.errorsSeen.kinds[happening.kind], happening.route].filter(Boolean).join(" ");
   const link = staffLink(`${ERRORS_LIST.path}/${id}`, undefined);
   const { first, since, count: total } = taken;
   const { words } = happening;
@@ -217,7 +218,7 @@ async function keep(happening: Happening): Promise<void> {
       const id = await count(happening);
       if (id !== undefined) await tell(id, happening);
     } catch (error) {
-      problem(staffCopy.problems.logs.errorNotKept, error);
+      problem(serverCopy.problems.logs.errorNotKept, error);
     }
   });
 }

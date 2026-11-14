@@ -1,4 +1,3 @@
-import { staffCopy } from "@/lib/content/staff-interface";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
@@ -8,6 +7,7 @@ import { createSession } from "@/lib/accounts/auth.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { decideImport, runJobNow } from "./actions";
+import { emailCopy } from "@/lib/email/copy";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 // revalidatePath needs a Next request; here it only needs to have been asked.
@@ -57,7 +57,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     await runJobNow("import-controlai");
     // The failure, and that nobody could be emailed about it, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(2);
-    expect(error).toHaveBeenCalledWith(staffCopy.problems.anywhere.noInbox);
+    expect(error).toHaveBeenCalledWith(emailCopy.problems.noInbox);
     expect(await runs()).toEqual([
       { job: "import-controlai", status: "ok", startedBy: "jo@pauseai.uk" },
       { job: "import-controlai", status: "failed", startedBy: "jo@pauseai.uk" },
@@ -102,7 +102,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     await runJobNow("import-senedd");
     // The failure, and that nobody could be emailed about it, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(2);
-    expect(error).toHaveBeenCalledWith(staffCopy.problems.anywhere.noInbox);
+    expect(error).toHaveBeenCalledWith(emailCopy.problems.noInbox);
     expect(await runs()).toEqual([{ job: "import-senedd", status: "failed", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });

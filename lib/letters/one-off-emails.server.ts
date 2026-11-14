@@ -18,7 +18,6 @@ import {
   quotedNames,
   type PoliticianBook,
 } from "./one-off";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { gmailMessageLink } from "@/lib/email/gmail-links";
 import { now } from "@/lib/now";
 import type { Permission } from "@/lib/accounts/permissions";
@@ -243,7 +242,7 @@ async function keepThreadMate(
     if (!(await isHeld(account, mate)))
       await keepOneOff(account, mate, await gmailRawMessage(token, id), book, connected);
   } catch (error) {
-    if (error instanceof GmailError && error.status === 400) problem(staffCopy.problems.job.unreadable, id);
+    if (error instanceof GmailError && error.status === 400) problem(lettersCopy.problems.unreadable, id);
     else unlessGone(error);
   }
 }

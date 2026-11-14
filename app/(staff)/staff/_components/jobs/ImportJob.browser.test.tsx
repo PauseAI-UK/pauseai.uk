@@ -3,7 +3,6 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { NIGHTLY, type AnyImportRun } from "@/lib/import-runs";
 import { staffTime } from "@/lib/staff-time";
-import { jobTitles } from "@/lib/content/staff-interface";
 import { ImportJobPage, ImportOverview } from "./ImportJob";
 import {
   exampleFailedRun,
@@ -16,6 +15,7 @@ import {
 import { action, press } from "@/tests/browser/staff";
 import { politiciansCopy } from "../politicians/copy";
 import { jobsCopy } from "./copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 const ran = exampleRun;
 
@@ -69,17 +69,17 @@ describe("ImportOverview", () => {
       "/staff/scheduled-jobs/tidying",
     ]);
     expect(cards.map((card) => card.querySelector("h3 a")!.textContent)).toEqual([
-      jobTitles["import-luma"],
-      jobTitles["read-gmail"],
-      jobTitles["send-mailings"],
-      jobTitles["import-civicrm"],
-      jobTitles["import-parliament"],
-      jobTitles["import-scottish-parliament"],
-      jobTitles["import-senedd"],
-      jobTitles["import-ni-assembly"],
-      jobTitles["import-controlai"],
-      jobTitles["import-controlai-statement"],
-      jobTitles["tidy-logs"],
+      importRunsCopy.jobTitles["import-luma"],
+      importRunsCopy.jobTitles["read-gmail"],
+      importRunsCopy.jobTitles["send-mailings"],
+      importRunsCopy.jobTitles["import-civicrm"],
+      importRunsCopy.jobTitles["import-parliament"],
+      importRunsCopy.jobTitles["import-scottish-parliament"],
+      importRunsCopy.jobTitles["import-senedd"],
+      importRunsCopy.jobTitles["import-ni-assembly"],
+      importRunsCopy.jobTitles["import-controlai"],
+      importRunsCopy.jobTitles["import-controlai-statement"],
+      importRunsCopy.jobTitles["tidy-logs"],
     ]);
     // Under the name, how the newest run ended, tinted to match.
     const status = (i: number) => cards[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!;
@@ -149,17 +149,21 @@ describe("ImportOverview", () => {
     // After its name, what it does, unless it's an import; then, for the Luma import and reading Gmail, what they
     // change outside the site. Every lozenge plain.
     const kinds = jobsCopy.import.kinds;
-    expect(cards[0].querySelector("h3")!.textContent).toBe(`${jobTitles["import-luma"]}${jobsCopy.import.changesLuma}`);
-    expect(cards[1].querySelector("h3")!.textContent).toBe(`${jobTitles["read-gmail"]}${kinds.read}${kinds.send}`);
-    expect(cards[3].querySelector("h3")!.textContent).toBe(jobTitles["import-civicrm"]);
+    expect(cards[0].querySelector("h3")!.textContent).toBe(
+      `${importRunsCopy.jobTitles["import-luma"]}${jobsCopy.import.changesLuma}`,
+    );
+    expect(cards[1].querySelector("h3")!.textContent).toBe(
+      `${importRunsCopy.jobTitles["read-gmail"]}${kinds.read}${kinds.send}`,
+    );
+    expect(cards[3].querySelector("h3")!.textContent).toBe(importRunsCopy.jobTitles["import-civicrm"]);
     expect(
       cards
         .flatMap((card) => [...card.querySelectorAll("h3 > span")])
         .some((tag) => /green|amber|red|blue/.test(tag.className)),
     ).toBe(false);
-    expect(cards[2].querySelector("h3")!.textContent).toBe(`${jobTitles["send-mailings"]}${kinds.send}`);
-    expect(cards[4].querySelector("h3")!.textContent).toBe(jobTitles["import-parliament"]);
-    expect(cards[10].querySelector("h3")!.textContent).toBe(`${jobTitles["tidy-logs"]}${kinds.tidy}`);
+    expect(cards[2].querySelector("h3")!.textContent).toBe(`${importRunsCopy.jobTitles["send-mailings"]}${kinds.send}`);
+    expect(cards[4].querySelector("h3")!.textContent).toBe(importRunsCopy.jobTitles["import-parliament"]);
+    expect(cards[10].querySelector("h3")!.textContent).toBe(`${importRunsCopy.jobTitles["tidy-logs"]}${kinds.tidy}`);
   });
 
   it("shows an applied run, and one that changed nothing, in green, and one discarded plainly", async () => {
@@ -212,7 +216,9 @@ describe("ImportJobPage", () => {
     ];
     const { rerender } = await render(<ImportJobPage job="import-parliament" runs={runs} run={run} decide={fn} />);
     const head = page.getByRole("banner").element();
-    expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(jobTitles["import-parliament"]);
+    expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(
+      importRunsCopy.jobTitles["import-parliament"],
+    );
     await expect.element(page.getByRole("img", { name: jobsCopy.import.parliament })).toBeVisible();
     // The schedule's lozenge is plain, and alone, as an import has none for what it does: only a run's ending is in
     // colour.

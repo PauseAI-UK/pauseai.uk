@@ -5,12 +5,12 @@ import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/test
 import { notifications } from "@/tests/notifications";
 import { NEWER_RUN, NIGHTLY, type PoliticianImport } from "@/lib/import-runs";
 import { PARLIAMENT_MEMBERS } from "@/lib/server/fixtures/politician-lists";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db.server";
 import { listRuns } from "@/lib/server/import-runs.server";
 import { editPoliticianDetails } from "./edits.server";
 import { decideHeldImport, importPoliticians, isPoliticianImport } from "./imports.server";
 import { politiciansCopy } from "./copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 const JO = "jo@pauseai.uk";
 
@@ -194,7 +194,9 @@ describeWithDatabase("importPoliticians", () => {
     expect((await people()).filter((p) => p.name.startsWith("Many"))).toEqual([]);
     expect((await importPoliticians("parliament", NIGHTLY)).status).toBe("held");
     const title = politiciansCopy.politicianImports.titles["import-parliament"];
-    expect(sent.filter((n) => n.Subject === staffCopy.notifications.importHeld.subject(title, 21))).toHaveLength(1);
+    expect(sent.filter((n) => n.Subject === politiciansCopy.notifications.importHeld.subject(title, 21))).toHaveLength(
+      1,
+    );
     // The newer run replaced the older, which can no longer be applied.
     const [newest, oldest] = await runs("import-parliament");
     expect(await decideHeldImport(oldest.id, "apply", JO)).toBe(false);
@@ -358,7 +360,9 @@ describeWithDatabase("importPoliticians", () => {
     expect([newest.problems, before.problems]).toEqual([[{ what: kept }], [{ what: kept }]]);
     // Staff are emailed about it once, not each night it stays.
     const title = politiciansCopy.politicianImports.titles["import-parliament"];
-    expect(sent.filter((n) => n.Subject === staffCopy.notifications.importProblems.subject(title))).toHaveLength(1);
+    expect(sent.filter((n) => n.Subject === importRunsCopy.notifications.importProblems.subject(title))).toHaveLength(
+      1,
+    );
   });
 
   it("adds the test MPs with no email when TEST_MP_EMAIL isn't set", async () => {

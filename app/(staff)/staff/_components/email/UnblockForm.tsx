@@ -4,12 +4,12 @@ import { Field } from "@/components/ui/Field";
 import { FilterForm } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { EmailBlock } from "@/lib/email/email.server";
 import Bubble from "@/components/ui/Bubble";
 import styles from "./UnblockForm.module.css";
+import { emailCopy } from "@/lib/email/copy";
 
-const copy = staffCopy.emails;
+const copy = emailCopy.emails;
 
 type Props = {
   block: Pick<EmailBlock, "address" | "canReset">;

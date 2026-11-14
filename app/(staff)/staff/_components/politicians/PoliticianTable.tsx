@@ -27,7 +27,7 @@ type Props = {
 
 /** The marks on them, and whether they're ours for testing, as lozenges. */
 function Marks({ politician }: { politician: Politician }) {
-  const { flags } = politiciansCopy.politicians;
+  const flags = staffVocabulary.politicianFlags;
   return (
     <>
       {politician.importantTarget && <Tag tone="amber">{flags.important}</Tag>}
@@ -39,7 +39,7 @@ function Marks({ politician }: { politician: Politician }) {
 
 /** The marks on them, in words, as a download has them. */
 const marks = (p: Politician) => {
-  const { flags } = politiciansCopy.politicians;
+  const flags = staffVocabulary.politicianFlags;
   return [p.importantTarget && flags.important, p.personalConnection && flags.connection, p.isTest && flags.test]
     .filter(Boolean)
     .join("; ");
@@ -137,12 +137,12 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       key: "status",
       label: politiciansCopy.politicians.columns.status,
       short: true,
-      text: (p) => staffVocabulary.personStatuses[p.status],
+      text: (p) => politiciansCopy.personStatuses[p.status],
       cell: (p) =>
         p.status === "in_office" ? (
-          staffVocabulary.personStatuses[p.status]
+          politiciansCopy.personStatuses[p.status]
         ) : (
-          <Muted>{staffVocabulary.personStatuses[p.status]}</Muted>
+          <Muted>{politiciansCopy.personStatuses[p.status]}</Muted>
         ),
     },
     {
@@ -236,7 +236,7 @@ export function politicianContact(asks: Ask[]): (p: Politician) => Contact {
     title: p.party || null,
     address: { locality: p.constituency, country: p.country && staffVocabulary.countries[p.country] },
     note: [
-      staffVocabulary.personStatuses[p.status],
+      politiciansCopy.personStatuses[p.status],
       marks(p),
       `${politiciansCopy.politicians.columns.emailsToThem}: ${p.emailsToThem}`,
       `${politiciansCopy.politicians.columns.emailsFromThem}: ${p.emailsFromThem}`,

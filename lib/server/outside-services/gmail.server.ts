@@ -5,8 +5,8 @@ import { toMime, type MimeEmail } from "../mime.server";
 import { decodedText, messageIds } from "@/lib/email-parsing/mime.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { problem } from "../problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { readJsonIfAny } from "../json.server";
+import { serverCopy } from "@/lib/server/copy";
 
 // The only file that talks to Google: the OAuth consent that connects a
 // staff member's Gmail, and the Gmail API, over HTTP through outsideFetch,
@@ -327,7 +327,7 @@ export async function gmailMessageId(accessToken: string, id: string): Promise<s
     const message = await gmailMessageHeaders(accessToken, id, ["Message-ID"]);
     return messageIds(message.headers.get("message-id"))[0];
   } catch (error) {
-    problem(staffCopy.problems.anywhere.messageIdUnknown, error);
+    problem(serverCopy.problems.anywhere.messageIdUnknown, error);
     return undefined;
   }
 }

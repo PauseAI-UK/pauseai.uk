@@ -8,7 +8,6 @@ import {
   describeWithDatabase,
   useTestDatabase,
 } from "@/tests/database";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { notifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
@@ -472,7 +471,7 @@ describeWithDatabase("one-off emails", () => {
         expect(await josephs("m3")).toBe("kept");
         expect(await keptIds()).toEqual(["m3"]);
         expect(logged).toHaveBeenCalledTimes(1);
-        expect(logged).toHaveBeenCalledWith(staffCopy.problems.job.unreadable, "m2");
+        expect(logged).toHaveBeenCalledWith(lettersCopy.problems.unreadable, "m2");
         failing("m1", 500);
         await expect(josephs("m3")).rejects.toThrow();
         logged.mockRestore();

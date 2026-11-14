@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import EmailBlocksTable from "./EmailBlocksTable";
 import { exampleBlock, exampleComplaint } from "./EmailBlocksTable.examples";
 import { action } from "@/tests/browser/staff";
 import { supportersCopy } from "../supporters/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 describe("EmailBlocksTable", () => {
   it("lists each blocked address: why, since when, whose, the letter, emails not sent, and unblocks one", async () => {
@@ -36,22 +36,22 @@ describe("EmailBlocksTable", () => {
       />,
     );
     const bounced = page.getByRole("row").filter({ hasText: exampleBlock.address });
-    await expect.element(bounced.getByText(staffCopy.emails.kinds.hard)).toBeVisible();
+    await expect.element(bounced.getByText(emailCopy.emails.kinds.hard)).toBeVisible();
     // The reason, then who told us.
     await expect
-      .element(bounced.getByRole("cell", { name: `${exampleBlock.reason} ${staffCopy.emails.from.postmark}` }))
+      .element(bounced.getByRole("cell", { name: `${exampleBlock.reason} ${emailCopy.emails.from.postmark}` }))
       .toBeVisible();
     // Whose it is, linked to their page; and the letter that found it out, by whom it was to, linked to it alone.
     await expect
       .element(bounced.getByRole("link", { name: "Bouncy McTestface MP", exact: true }))
       .toHaveAttribute("href", "/staff/politicians/5");
     await expect
-      .element(bounced.getByRole("link", { name: `${staffCopy.emails.letterTo} Bouncy McTestface MP` }))
+      .element(bounced.getByRole("link", { name: `${emailCopy.emails.letterTo} Bouncy McTestface MP` }))
       .toHaveAttribute("href", "/staff/letters/17");
     await expect.element(bounced.getByRole("cell", { name: "2", exact: true })).toBeVisible();
     // A complaint can't be unblocked; two politicians share its address, and a supporter, after them, linked too.
     const complained = page.getByRole("row").filter({ hasText: exampleComplaint.address });
-    await expect.element(complained.getByText(staffCopy.emails.cantReset)).toBeVisible();
+    await expect.element(complained.getByText(emailCopy.emails.cantReset)).toBeVisible();
     await expect.element(complained.getByText("A, B, Jane Example")).toBeVisible();
     await expect
       .element(complained.getByRole("link", { name: "Jane Example" }))
@@ -63,17 +63,17 @@ describe("EmailBlocksTable", () => {
       .element(two.getByRole("link", { name: supportersCopy.supporters.noName }))
       .toHaveAttribute("href", "/staff/supporters/8");
     // What the email was: a letter, another of ours, or one the site has no record of.
-    await expect.element(complained.getByText(staffCopy.emails.purposes["forwarded-reply"])).toBeVisible();
+    await expect.element(complained.getByText(emailCopy.emails.purposes["forwarded-reply"])).toBeVisible();
     const unknown = page.getByRole("row").filter({ hasText: "unknown@example.org" });
-    await expect.element(unknown.getByText(staffCopy.emails.notRecorded)).toBeVisible();
+    await expect.element(unknown.getByText(emailCopy.emails.notRecorded)).toBeVisible();
     // The row holds a button alone; it opens a bubble that asks why, which Cancel closes.
-    const note = bounced.getByLabelText(staffCopy.emails.note);
-    const open = bounced.getByRole("button", { name: staffCopy.emails.unblockOpen });
-    const unblock = bounced.getByRole("button", { name: staffCopy.emails.unblock, exact: true });
+    const note = bounced.getByLabelText(emailCopy.emails.note);
+    const open = bounced.getByRole("button", { name: emailCopy.emails.unblockOpen });
+    const unblock = bounced.getByRole("button", { name: emailCopy.emails.unblock, exact: true });
     await expect.element(note).not.toBeVisible();
     await open.click();
     await expect.element(note).toBeVisible();
-    await bounced.getByRole("button", { name: staffCopy.emails.cancel }).click();
+    await bounced.getByRole("button", { name: emailCopy.emails.cancel }).click();
     await expect.element(note).not.toBeVisible();
     // Without a note the browser won't send it; with one, it does.
     await open.click();
@@ -88,12 +88,12 @@ describe("EmailBlocksTable", () => {
 
   it("names the letter without linking to it, without letter links", async () => {
     await render(<EmailBlocksTable blocks={[exampleBlock]} unblock={vi.fn()} letterLinks={false} />);
-    await expect.element(page.getByText(`${staffCopy.emails.letterTo} Bouncy McTestface MP`)).toBeVisible();
+    await expect.element(page.getByText(`${emailCopy.emails.letterTo} Bouncy McTestface MP`)).toBeVisible();
     expect(document.querySelector('a[href^="/staff/letters"]')).toBeNull();
   });
 
   it("says when there are none", async () => {
     await render(<EmailBlocksTable blocks={[]} unblock={vi.fn()} letterLinks />);
-    await expect.element(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
+    await expect.element(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
   });
 });

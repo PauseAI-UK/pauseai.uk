@@ -1,7 +1,6 @@
 import "server-only";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { copy } from "@/lib/content/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { now } from "@/lib/now";
 import { config } from "@/lib/server/config.server";
 import { query, transaction } from "@/lib/server/db.server";
@@ -14,6 +13,7 @@ import { gzipSync } from "node:zlib";
 import { messageIds } from "@/lib/email-parsing/mime.server";
 import { claimOneOffs, hasMessage } from "./replies.server";
 import { saveLetterReply } from "@/lib/server/outside-services/blobs.server";
+import { emailCopy } from "@/lib/email/copy";
 
 // Replies to letters, by Postmark's inbound webhook, and the automatic
 // replies its bounce webhook brings: each kept on its letter, and a
@@ -275,7 +275,7 @@ export async function forwardReply(email: InboundEmail): Promise<string[]> {
     const result = await send(
       {
         From: `PauseAI UK <noreply@${notifyDomain()}>`,
-        To: nameLine(to === letter.senderEmail ? letter.senderName : staffCopy.inboxNames.policy, to),
+        To: nameLine(to === letter.senderEmail ? letter.senderName : emailCopy.inboxNames.policy, to),
         // Answering it reaches whoever wrote, and the letter's address, so it's kept with the letter: each
         // named, whoever wrote as their email named them, the letter's address as the letter's From did.
         ReplyTo: [

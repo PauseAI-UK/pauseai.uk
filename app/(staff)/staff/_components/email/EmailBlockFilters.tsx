@@ -1,10 +1,10 @@
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { Filter } from "@/lib/staff-list-filters";
 import FilterBar from "../ui/FilterBar";
+import { emailCopy } from "@/lib/email/copy";
 
 /** The blocked addresses' filter: those that bounced, complained, or are on hold in CiviCRM. */
 export function emailBlockFilters(): Filter[] {
-  const { columns, kinds } = staffCopy.emails;
+  const { columns, kinds } = emailCopy.emails;
   return [
     {
       name: "kind",
@@ -24,7 +24,7 @@ export default function EmailBlockFilters({ q, kind, action }: { q: string; kind
     <FilterBar
       path={action}
       values={{ q, kind }}
-      search={{ name: "q", label: staffCopy.emails.columns.address }}
+      search={{ name: "q", label: emailCopy.emails.columns.address }}
       filters={emailBlockFilters()}
     />
   );

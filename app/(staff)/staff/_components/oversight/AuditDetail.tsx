@@ -1,7 +1,6 @@
 import StaffLink from "../ui/StaffLink";
 import { Fragment, type ReactNode } from "react";
 import type { AuditAction, AuditEvent, StoredAuditDetails } from "@/lib/audit-events";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { staffDate } from "@/lib/staff-time";
 import type { FieldChange } from "@/lib/field-changes";
@@ -14,8 +13,10 @@ import { DotParts } from "../Logged";
 import { accountsCopy } from "../accounts/copy";
 import { supportersCopy } from "../supporters/copy";
 import { politiciansCopy } from "../politicians/copy";
+import { emailCopy } from "@/lib/email/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
-const copy = staffCopy.changes;
+const copy = oversightCopy.changes;
 
 /** Permissions as their names, or that there are none. */
 function permissionNames(value: unknown): string {
@@ -42,7 +43,7 @@ function Field({ name, value }: { name: string; value: unknown }) {
     );
   }
   let shown: ReactNode;
-  if (name === "kind") shown = staffCopy.emails.kinds[String(value)] ?? String(value);
+  if (name === "kind") shown = emailCopy.emails.kinds[String(value)] ?? String(value);
   else if (name === "status") shown = staffVocabulary.statuses[String(value)] ?? String(value);
   else if (name === "from" || name === "to" || name === "permissions") shown = permissionNames(value);
   else if (name === "changed") return <FieldChanges changed={value as Record<string, FieldChange>} />;

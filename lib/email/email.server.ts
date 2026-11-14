@@ -14,7 +14,7 @@ import {
 import { now } from "@/lib/now";
 import { plainAsHtml } from "./plain-email-html";
 import { problem } from "@/lib/server/problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { emailCopy } from "./copy";
 
 // Every email the site sends goes through sendWith(), whatever it's for:
 // most by send() (lib/accounts/email-sending.server.ts), staff's notifications by notifyStaff()
@@ -311,7 +311,7 @@ export async function sendWith(
       return { sent: false, reason: "failed", detail: error.message };
     }
     problem(
-      staffCopy.problems.anywhere.sendFailed(error instanceof GmailError ? `${purpose}, by Gmail as ${from}` : purpose),
+      emailCopy.problems.sendFailed(error instanceof GmailError ? `${purpose}, by Gmail as ${from}` : purpose),
       error,
     );
     await log("failed");
@@ -330,7 +330,7 @@ export async function sendWith(
   }
   // It went: a failure to log it is reported, never thrown, so no caller takes it for one that didn't.
   await log("sent", id, threadId).catch((error) =>
-    problem(staffCopy.problems.anywhere.sentUnrecorded(`An email of type '${purpose}' to ${address}`), error),
+    problem(emailCopy.problems.sentUnrecorded(`An email of type '${purpose}' to ${address}`), error),
   );
   return { sent: true, id, messageId: rfcId, threadId, backend };
 }

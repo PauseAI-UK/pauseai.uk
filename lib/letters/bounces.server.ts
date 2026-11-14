@@ -7,7 +7,7 @@ import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { letterEvent, transition } from "./lifecycle.server";
 import { noticeToSender } from "./sending.server";
 import { relayBounced } from "./relays.server";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { lettersCopy } from "./copy";
 
 // What a bounce or complaint of a letter's email does (each purpose's hook,
 // which the sending layer calls once it has recorded the problem:
@@ -22,8 +22,8 @@ async function alertBouncedMp(
   bounce?: string,
 ): Promise<void> {
   await notifyStaff(
-    staffCopy.alert.subject(mpName),
-    staffCopy.alert.body(mpName, address, reason, staffLink("/staff/politicians/addresses-to-fix", request), bounce),
+    lettersCopy.alert.subject(mpName),
+    lettersCopy.alert.body(mpName, address, reason, staffLink("/staff/politicians/addresses-to-fix", request), bounce),
   );
 }
 

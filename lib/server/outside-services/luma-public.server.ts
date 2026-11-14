@@ -1,9 +1,9 @@
 import "server-only";
 import { isAllowedEventImage } from "@/lib/event-image-hosts";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { problem } from "../problems.server";
 import type { EventGoing } from "@/lib/going";
 import { outsideFetch } from "./outside-fetch.server";
+import { serverCopy } from "@/lib/server/copy";
 
 // An event as its page on luma.com shows anyone, from the data that page
 // loads: when it starts and ends, how many are going, and the few guests
@@ -68,7 +68,7 @@ export async function getPublicEvent(eventId: string): Promise<PublicEvent | nul
     const data = (await res.json()) as ApiEvent;
     return { startAt: timestamp(data.event?.start_at), endAt: timestamp(data.event?.end_at), going: going(data) };
   } catch (error) {
-    problem(staffCopy.problems.logs.lumaGuestsDown, error);
+    problem(serverCopy.problems.logs.lumaGuestsDown, error);
     return null;
   }
 }

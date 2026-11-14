@@ -1,6 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 import { copy } from "@/lib/content/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { TEST_MPS } from "@/lib/politicians/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { fillLetter, letterIdOf, lookUpTestMp, sentLetterId } from "./letter-steps";
@@ -28,6 +27,7 @@ import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy"
 import { erasureCopy } from "@/lib/erasure/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 /** As much of Tiptap's editor as a flow drives directly. */
 type EditorHandle = {
@@ -319,7 +319,7 @@ test("Jane's letter bounces", async ({ page, request, flowDatabase }) => {
   deliver(flowDatabase, bounceOf(sentIds(flowDatabase, id, "letter")[0], BOUNCY_ADDRESS));
   expect(await readInbox(request)).toMatchObject({ bounces: 1, notUnderstood: [] });
   const alert = newestEmail(
-    (email) => email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.alert.subject(bouncy.name),
+    (email) => email.To === TO_NOTIFICATIONS && email.Subject === lettersCopy.alert.subject(bouncy.name),
   )!;
   await emailFrame(page, alert, "The email staff get");
   story("Jane is told, in the thread of her copy, that her letter hasn't reached her MP.");
@@ -334,9 +334,9 @@ test("Jane's letter bounces", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await page.getByRole("link", { name: bouncy.name, exact: true }).first().click();
   await expect(page.getByRole("heading", { level: 1, name: bouncy.name })).toBeVisible();
-  await page.getByLabel(staffCopy.emails.note).fill("Their office gave us the right address");
-  await page.getByRole("button", { name: staffCopy.emails.unblock }).click();
-  await expect(page.getByLabel(staffCopy.emails.note)).not.toBeVisible();
+  await page.getByLabel(emailCopy.emails.note).fill("Their office gave us the right address");
+  await page.getByRole("button", { name: emailCopy.emails.unblock }).click();
+  await expect(page.getByLabel(emailCopy.emails.note)).not.toBeVisible();
   // It went again, and Jane is told.
   expect(sentIds(flowDatabase, id, "letter")).toHaveLength(2);
   const resent = sentEmail(flowDatabase, id, "supporter-notice");
@@ -367,9 +367,9 @@ test("A bounced letter isn't sent after a week", async ({ page, request, flowDat
   await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await page.getByRole("link", { name: bouncy.name, exact: true }).first().click();
   await expect(page.getByRole("heading", { level: 1, name: bouncy.name })).toBeVisible();
-  await page.getByLabel(staffCopy.emails.note).fill("Their office gave us the right address");
-  await page.getByRole("button", { name: staffCopy.emails.unblock }).click();
-  await expect(page.getByLabel(staffCopy.emails.note)).not.toBeVisible();
+  await page.getByLabel(emailCopy.emails.note).fill("Their office gave us the right address");
+  await page.getByRole("button", { name: emailCopy.emails.unblock }).click();
+  await expect(page.getByLabel(emailCopy.emails.note)).not.toBeVisible();
   expect(sentIds(flowDatabase, id, "letter")).toHaveLength(1);
   const entries = await openLetter(page, id);
   await expect(entries.first()).toContainText(history.notices.notResent);

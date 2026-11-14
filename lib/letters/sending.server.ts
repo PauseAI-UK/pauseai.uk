@@ -11,11 +11,11 @@ import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
 import { letterEvent, SentUnrecorded, sendLetterVia, transition } from "./lifecycle.server";
 import { lettersInbox, proxyAddress } from "./letters-inbox.server";
 import { lettersInboxEmail } from "./channels.server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { lettersCopy } from "./copy";
 import { mpName, proxyLine } from "./proxies.server";
 import { nameLine } from "@/lib/server/outside-services/postmark.server";
 import { problem } from "@/lib/server/problems.server";
+import { emailCopy } from "@/lib/email/copy";
 
 // Supporters' letters to MPs, sent from the letters inbox
 // (lib/letters/letters-inbox.server.ts): the letter, from the supporter's proxy to
@@ -125,7 +125,7 @@ export async function sendLetter(id: number): Promise<{ sent: true } | { sent: f
   try {
     return await sendTaken(id);
   } catch (error) {
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     if (error instanceof SentUnrecorded) {
       // It went: it stays sending, for uncertainLetters to mark uncertain, so it isn't sent twice. The run goes on.
       problem(words.sentUnrecorded(lettersCopy.problems.letterOf(id)), error.cause);
@@ -195,7 +195,7 @@ export async function sendCopy(id: number): Promise<void> {
   if (!taken) return;
   const state = async (copyState: string) =>
     query("UPDATE letters_from_supporters SET copy_state = $2 WHERE id = $1", [id, copyState]);
-  const words = staffCopy.problems.anywhere;
+  const words = emailCopy.problems;
   let sent: Awaited<ReturnType<typeof sendTakenCopy>>;
   try {
     sent = await sendTakenCopy(id, state);

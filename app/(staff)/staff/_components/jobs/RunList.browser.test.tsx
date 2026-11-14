@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { jobTitles } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   type AnyImportRun,
@@ -32,6 +31,7 @@ import { politiciansCopy } from "../politicians/copy";
 import { lettersCopy } from "../letters/copy";
 import { supportersCopy } from "../supporters/copy";
 import { jobsCopy } from "./copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 const ran = exampleRun;
 
@@ -629,7 +629,7 @@ describe("RunList", () => {
     ).toEqual(["3 Nov 2026", "2 Nov 2026"]);
     // The page is one job's, so no run is labelled with it.
     await expect
-      .element(page.getByText(`${jobTitles["import-parliament"]} ·`, { exact: false }))
+      .element(page.getByText(`${importRunsCopy.jobTitles["import-parliament"]} ·`, { exact: false }))
       .not.toBeInTheDocument();
     await rerender(<RunList runs={[]} none="Nothing here" />);
     const before = ran(

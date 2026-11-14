@@ -1,6 +1,7 @@
 import type { Mark } from "@/lib/politicians/edits.server";
 import styles from "./PoliticianMarks.module.css";
 import { politiciansCopy } from "./copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 const copy = politiciansCopy.politician;
 
@@ -43,7 +44,7 @@ export default function PoliticianMarks({
         </li>
       ))}
       <li className={styles.mark}>
-        <span id="mark-test">{politiciansCopy.politicians.flags.test}</span>
+        <span id="mark-test">{staffVocabulary.politicianFlags.test}</span>
         <button
           type="button"
           role="switch"

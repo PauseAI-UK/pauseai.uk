@@ -77,7 +77,7 @@ describe("PoliticianTable", () => {
     await expect
       .element(page.getByRole("link", { name: "Polly Placeholder" }))
       .toHaveAttribute("href", "/staff/politicians/7");
-    await expect.element(page.getByText(politiciansCopy.politicians.flags.test).first()).toBeVisible();
+    await expect.element(page.getByText(staffVocabulary.politicianFlags.test).first()).toBeVisible();
     await expect.element(page.getByText(politiciansCopy.politicians.emailBlocked).first()).toBeVisible();
     await expect.element(page.getByRole("cell", { name: staffVocabulary.houses.lords }).first()).toBeVisible();
     const cells = (name: string) =>
@@ -89,8 +89,8 @@ describe("PoliticianTable", () => {
         .map((c) => c.element().textContent);
     // Whether they're in office, the counts of emails to them and from them, each heading a sort, and their answer to each
     // ask they've answered, a line each, in the asks' order, the answer in bold first.
-    const flags = politiciansCopy.politicians.flags;
-    expect(cells("Polly Placeholder").slice(4, 6)).toEqual([staffVocabulary.personStatuses.in_office, flags.important]);
+    const flags = staffVocabulary.politicianFlags;
+    expect(cells("Polly Placeholder").slice(4, 6)).toEqual([politiciansCopy.personStatuses.in_office, flags.important]);
     expect(cells("Polly Placeholder").slice(7, 9)).toEqual(["4", "1"]);
     // Airtable's markers as lozenges, and a test politician's.
     expect(cells("Nora Nothing")[5]).toBe(`${flags.connection}${flags.test}`);
@@ -125,10 +125,10 @@ describe("PoliticianTable", () => {
       `${ask("controlai-letter").title} ${staffVocabulary.statuses.signed}`,
       `${ask("frontier-ai-letter").title} ${staffVocabulary.statuses.signed}`,
     ]);
-    expect(cells("Testy McTestface MP")[4]).toBe(staffVocabulary.personStatuses.retired);
+    expect(cells("Testy McTestface MP")[4]).toBe(politiciansCopy.personStatuses.retired);
     expect(cells("Nora Nothing")[6]).toBe(politiciansCopy.politicians.noAsks);
     expect(
-      getComputedStyle(page.getByRole("cell", { name: staffVocabulary.personStatuses.retired }).first().element())
+      getComputedStyle(page.getByRole("cell", { name: politiciansCopy.personStatuses.retired }).first().element())
         .whiteSpace,
     ).toBe("nowrap");
     await expect
@@ -252,7 +252,7 @@ describe("the politicians list in words: its downloads, cards and filters", () =
     expect(values(columns, rows[0])).toMatchObject({
       house: staffVocabulary.houses.commons,
       party: examplePolitician.party,
-      status: staffVocabulary.personStatuses.in_office,
+      status: politiciansCopy.personStatuses.in_office,
       constituency: examplePolitician.constituency,
       emailsToThem: 4,
       emailsFromThem: 1,
@@ -260,7 +260,7 @@ describe("the politicians list in words: its downloads, cards and filters", () =
       active: new Date("2026-10-01T00:00:00Z"),
     });
     // The markers in words, each one they have; none for one with none.
-    const { flags } = politiciansCopy.politicians;
+    const flags = staffVocabulary.politicianFlags;
     const marked = {
       ...rows[0],
       importantTarget: true,

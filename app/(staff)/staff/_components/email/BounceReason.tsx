@@ -1,11 +1,11 @@
 import Tag from "@/components/ui/Tag";
-import { staffCopy } from "@/lib/content/staff-interface";
 import Shortened from "../ui/Shortened";
 import styles from "./BounceReason.module.css";
+import { emailCopy } from "@/lib/email/copy";
 
 /** Where a problem came from: a hold, from CiviCRM; a bounce found in someone's Gmail; else Postmark, which told us. */
 export function problemSource({ kind, foundInGmail }: { kind: string; foundInGmail: boolean }): string {
-  return staffCopy.emails.from[kind === "hold" ? "civicrm" : foundInGmail ? "gmail" : "postmark"];
+  return emailCopy.emails.from[kind === "hold" ? "civicrm" : foundInGmail ? "gmail" : "postmark"];
 }
 
 /**

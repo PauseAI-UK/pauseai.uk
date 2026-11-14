@@ -11,7 +11,6 @@ import {
   type BroadcastTerms,
 } from "./broadcasts";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { Topic } from "@/lib/supporters/contact-permissions";
 import { checkMailingDoc, type MailingRecipientValues } from "@/lib/mailings/doc";
 import { now } from "@/lib/now";
@@ -42,6 +41,7 @@ import { problem } from "@/lib/server/problems.server";
 import { recordWhatsAppStop } from "./whatsapp-stops.server";
 import { markUnreachable, templateParams, textResult, textsLeftToday, unreachable } from "./whatsapp-texts.server";
 import { broadcastsCopy } from "./copy";
+import { emailCopy } from "@/lib/email/copy";
 
 // Sending broadcasts to supporters, in the send-mailings run every 15 minutes, as
 // mailings to politicians go. A broadcast that's due starts: who it goes to
@@ -508,7 +508,7 @@ async function withCare(taken: Copy[], send: (went: (id: number) => void) => Pro
   } catch (error) {
     const left = taken.filter((copy) => !went.has(copy.id));
     await putBack(left);
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     // Named by the batch's first, which is always there.
     problem(words.notSentYet(broadcastsCopy.problems.copyOf(taken[0].id)), error);
     return false;
@@ -529,7 +529,7 @@ async function keep(copy: Copy, result: ChannelResult, run: BroadcastRun, went: 
     await keepSent(copy, result, run);
   } catch (error) {
     if (!mayHaveGone) throw error;
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     problem(words.sentUnrecorded(broadcastsCopy.problems.copyOf(copyId)), error);
   }
 }
@@ -815,7 +815,7 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
         );
       } catch (error) {
         // The send broke off, and WhatsApp may have taken it by then: failed, as an email is, never sent twice.
-        problem(staffCopy.problems.anywhere.sendFailed("broadcast"), error);
+        problem(emailCopy.problems.sendFailed("broadcast"), error);
         return { sent: false, reason: "failed", mayHaveGone: true };
       }
     },

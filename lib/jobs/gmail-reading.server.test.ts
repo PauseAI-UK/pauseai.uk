@@ -4,7 +4,6 @@ import { gunzipSync } from "node:zlib";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { NIGHTLY } from "@/lib/import-runs";
 import { notifications } from "@/tests/notifications";
 import {
@@ -22,6 +21,8 @@ import { listRuns, latestRun, startRunning, stopRunning } from "@/lib/server/imp
 import { ANOTHER_RUNNING, runJob } from "./jobs.server";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
 import { jobsCopy } from "./copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
+import { accountsCopy } from "@/lib/accounts/copy";
 
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const JO = "jo@pauseai.uk";
@@ -491,8 +492,8 @@ describeWithDatabase("reading Gmail", () => {
         failing ? new HttpResponse(null, { status: 500 }) : HttpResponse.json({ historyId: "9" }),
       ),
     );
-    const words = staffCopy.notifications.importProblems;
-    const title = jobTitles["read-gmail"];
+    const words = importRunsCopy.notifications.importProblems;
+    const title = importRunsCopy.jobTitles["read-gmail"];
     const told = words.body(
       title,
       [`- ${jobsCopy.problems.couldntRead("al@pauseai.uk")} Gmail answered 500 for /history`],
@@ -546,7 +547,7 @@ describeWithDatabase("reading Gmail", () => {
     ]);
     expect(await query("SELECT email FROM staff_accounts WHERE gmail_token IS NOT NULL")).toEqual([{ email: JO }]);
     // Its own email, that it was disconnected, and not the one for an account that can't be read too.
-    expect(sent.map((s) => s.Subject)).toEqual([staffCopy.notifications.gmailDisconnected.subject("al@pauseai.uk")]);
+    expect(sent.map((s) => s.Subject)).toEqual([accountsCopy.notifications.gmailDisconnected.subject("al@pauseai.uk")]);
   });
 
   it("keeps each run in the import log, unchanged when it found nothing, and who started it", async () => {

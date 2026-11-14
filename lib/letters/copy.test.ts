@@ -18,3 +18,11 @@ it("says which inbox the one-off emails are copied to", () => {
 it("names the letter a problem is about", () => {
   expect(lettersCopy.problems.letterNotSent(7)).toContain("7");
 });
+
+it("ends a bounced letter's reason with one full stop, whether Postmark's has one or not", () => {
+  for (const reason of ["Mailbox not found.", "Mailbox not found"]) {
+    expect(lettersCopy.alert.body("Testy MP", "testy@example.org", reason, "https://example.org")).toContain(
+      "The mail server said: “Mailbox not found.”",
+    );
+  }
+});

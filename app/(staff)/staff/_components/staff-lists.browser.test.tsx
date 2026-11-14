@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { type DownloadColumn } from "@/lib/staff-list";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { supportersCopy } from "@/lib/supporters/copy";
 import { blockColumns } from "./oversight/EmailBlocksTable";
 import { exampleBlock, exampleComplaint, exampleGmailBlock } from "./oversight/EmailBlocksTable.examples";
+import { emailCopy } from "@/lib/email/copy";
 
 describe("each list's download values and contact cards", () => {
   const values = <Row,>(columns: DownloadColumn<Row>[], row: Row) =>
@@ -13,9 +13,9 @@ describe("each list's download values and contact cards", () => {
     const columns = blockColumns(false);
     expect(values(columns, exampleBlock)).toMatchObject({
       whose: "Bouncy McTestface MP",
-      sent: `${staffCopy.emails.letterTo} Bouncy McTestface MP`,
+      sent: `${emailCopy.emails.letterTo} Bouncy McTestface MP`,
     });
-    expect(values(columns, exampleComplaint).sent).toBe(staffCopy.emails.purposes["forwarded-reply"]);
+    expect(values(columns, exampleComplaint).sent).toBe(emailCopy.emails.purposes["forwarded-reply"]);
     expect(values(columns, { ...exampleComplaint, politicians: exampleBlock.politicians }).whose).toBe(
       "Bouncy McTestface MP; Jane Example",
     );
@@ -24,9 +24,9 @@ describe("each list's download values and contact cards", () => {
     );
     expect(values(columns, { ...exampleComplaint, purpose: null }).sent).toBeNull();
     // After its reason, in brackets, who told us.
-    expect(values(columns, exampleBlock).reason).toBe(`${exampleBlock.reason} (${staffCopy.emails.from.postmark})`);
+    expect(values(columns, exampleBlock).reason).toBe(`${exampleBlock.reason} (${emailCopy.emails.from.postmark})`);
     expect(values(columns, exampleGmailBlock).reason).toBe(
-      `${exampleGmailBlock.reason} (${staffCopy.emails.from.gmail})`,
+      `${exampleGmailBlock.reason} (${emailCopy.emails.from.gmail})`,
     );
   });
 });

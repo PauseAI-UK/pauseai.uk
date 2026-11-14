@@ -7,7 +7,6 @@
 import type { ReactNode } from "react";
 import { ASK_STATUSES } from "@/lib/asks/asks";
 import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
-import { staffCopy } from "./content/staff-interface";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
@@ -34,6 +33,7 @@ import { eventsCopy } from "@/lib/events/copy";
 import { supportersCopy } from "@/lib/supporters/copy";
 import { politiciansCopy } from "@/lib/politicians/copy";
 import { lettersCopy } from "@/lib/letters/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
@@ -205,8 +205,8 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
     status: {
       label: copy.status,
       options: [
-        { value: "", label: staffVocabulary.personStatuses.in_office },
-        ...Object.entries(staffVocabulary.personStatuses)
+        { value: "", label: politiciansCopy.personStatuses.in_office },
+        ...Object.entries(politiciansCopy.personStatuses)
           .filter(([value]) => value !== "in_office")
           .map(([value, label]) => ({ value, label })),
         { value: "any", label: copy.anyStatus },
@@ -217,7 +217,10 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
       oneEach: true,
       options: EMAIL_STATES.map((state) => ({ value: state, label: copy.emailStates[state] })),
     },
-    flag: { label: copy.flag, options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: copy.flags[flag] })) },
+    flag: {
+      label: copy.flag,
+      options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: staffVocabulary.politicianFlags[flag] })),
+    },
     ask: { label: copy.ask, options: askChoices },
     agreed: { label: copy.agreedIn, options: WINDOW_OPTIONS, linkedOnly: true },
     mailed: { label: copy.mailed, options: askChoices },
@@ -384,7 +387,7 @@ export type ChangeChoices = { actors: string[]; actions: string[] };
 
 /** The audit log's filters, in its columns' order: how recent; who and what, each of which can be chosen more than once. */
 export const CHANGE_FILTERS = listFilters(AUDIT_LOG_LIST, ({ actors, actions }: ChangeChoices) => {
-  const copy = staffCopy.changes;
+  const copy = oversightCopy.changes;
   return {
     when: { label: copy.at, options: WINDOW_OPTIONS },
     actor: { label: copy.actor, oneEach: true, options: actors.map((value) => ({ value, label: value })) },
@@ -394,7 +397,7 @@ export const CHANGE_FILTERS = listFilters(AUDIT_LOG_LIST, ({ actors, actions }: 
 
 /** The send log's filters, their kinds of email only those a staff member without `supporters` may see. */
 export const SENT_EMAIL_FILTERS = listFilters(SENT_EMAILS_LIST, ({ supporters }: { supporters: boolean }) => {
-  const copy = staffCopy.sentEmails;
+  const copy = oversightCopy.sentEmails;
   return {
     purpose: {
       label: copy.filters.purpose,
@@ -461,7 +464,7 @@ export const ALL_EMAIL_FILTERS = listFilters(
       // Test MPs' emails show only with Test politician chosen.
       flag: {
         label: lettersCopy.letters.mpFlag,
-        options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: politiciansCopy.politicians.flags[flag] })),
+        options: POLITICIAN_FLAGS.map((flag) => ({ value: flag, label: staffVocabulary.politicianFlags[flag] })),
       },
     };
   },

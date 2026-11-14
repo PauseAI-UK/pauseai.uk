@@ -1,5 +1,4 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications } from "@/tests/notifications";
 import { query } from "./db.server";
@@ -14,6 +13,7 @@ import {
   startRunning,
   stopRunning,
 } from "./import-runs.server";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 /** A run's work that ends as it says, with nothing to say of what it found. */
 const ended = (status: "ok" | "unchanged" = "ok") => ({ status, result: {} });
@@ -32,8 +32,8 @@ describeWithDatabase("the import log", () => {
     await fail("Luma is still down");
     await asRun("import-luma", "nightly", async () => ended("unchanged"));
     await fail("Luma is down again");
-    const words = staffCopy.notifications.importFailed;
-    const luma = jobTitles["import-luma"];
+    const words = importRunsCopy.notifications.importFailed;
+    const luma = importRunsCopy.jobTitles["import-luma"];
     expect(sent.map((email) => [email.Subject, email.TextBody])).toEqual([
       [words.subject(luma), words.body(luma, "Luma is down", "https://pauseai.uk/staff/scheduled-jobs/luma")],
       [words.subject(luma), words.body(luma, "Luma is down again", "https://pauseai.uk/staff/scheduled-jobs/luma")],
@@ -74,8 +74,8 @@ describeWithDatabase("the import log", () => {
       status: "ok",
       problems: [{ what: "An event wouldn't load" }],
     });
-    const words = staffCopy.notifications.importProblems;
-    const luma = jobTitles["import-luma"];
+    const words = importRunsCopy.notifications.importProblems;
+    const luma = importRunsCopy.jobTitles["import-luma"];
     const link = "https://pauseai.uk/staff/scheduled-jobs/luma";
     expect(sent.map((email) => [email.Subject, email.TextBody])).toEqual([
       [words.subject(luma), words.body(luma, ["- An event wouldn't load 503", "- Postcodes.io failed"], link)],
@@ -104,9 +104,9 @@ describeWithDatabase("the import log", () => {
       problem("Parliament was slow");
       return ended();
     });
-    const title = jobTitles["import-parliament"];
+    const title = importRunsCopy.jobTitles["import-parliament"];
     expect(sent.map((email) => email.TextBody)).toEqual([
-      staffCopy.notifications.importProblems.body(
+      importRunsCopy.notifications.importProblems.body(
         title,
         ["- Parliament was slow"],
         "https://pauseai.uk/staff/scheduled-jobs/parliament",
@@ -138,9 +138,9 @@ describeWithDatabase("the import log", () => {
       { status: "ok", problems: [{ what: "Parliament was slow" }] },
     ]);
     expect(sent.map((email) => email.Subject)).toEqual([
-      staffCopy.notifications.importProblems.subject(jobTitles["import-parliament"]),
-      staffCopy.notifications.importFailed.subject(jobTitles["import-parliament"]),
-      staffCopy.notifications.importProblems.subject(jobTitles["import-parliament"]),
+      importRunsCopy.notifications.importProblems.subject(importRunsCopy.jobTitles["import-parliament"]),
+      importRunsCopy.notifications.importFailed.subject(importRunsCopy.jobTitles["import-parliament"]),
+      importRunsCopy.notifications.importProblems.subject(importRunsCopy.jobTitles["import-parliament"]),
     ]);
   });
 

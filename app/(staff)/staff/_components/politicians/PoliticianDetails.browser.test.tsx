@@ -3,7 +3,6 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffDate, staffTime } from "@/lib/staff-time";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { exampleBlock } from "../oversight/EmailBlocksTable.examples";
 import { exampleLetter } from "../letters/LettersTable.examples";
@@ -20,6 +19,7 @@ import { exampleAsks } from "../asks/AsksList.examples";
 import { exampleHiddenOneOff, exampleOneOffs } from "../letters/OneOffList.examples";
 import { lettersCopy } from "../letters/copy";
 import { notesCopy } from "../notes/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 const [pm] = campaigns;
 
@@ -67,7 +67,7 @@ describe("PoliticianDetails", () => {
     ]);
     expect(definitions()).toEqual([
       MP.party,
-      staffVocabulary.personStatuses.in_office,
+      politiciansCopy.personStatuses.in_office,
       staffVocabulary.countries.england,
       politiciansCopy.politicians.noEmail,
       // Their salutation, quietly under their email.
@@ -772,7 +772,7 @@ describe("PoliticianDetails", () => {
     // A timeline, newest first: what, then when and who.
     expect([...record.querySelectorAll("ol li")].map((row) => row.textContent)).toEqual([
       `${copy["unblock address"]} polly.placeholder.mp@parliament.uk · Fixed in Airtable14 Oct 2026, 09:30 · jo@pauseai.uk`,
-      `${copy["block address"]} polly.placeholder.mp@parliament.uk · ${staffCopy.emails.kinds.hard}12 Oct 2026, 09:10 · postmark`,
+      `${copy["block address"]} polly.placeholder.mp@parliament.uk · ${emailCopy.emails.kinds.hard}12 Oct 2026, 09:10 · postmark`,
       `${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk30 Sept 2026, 10:00 · samuel.whitlock@pauseai.uk`,
       `${copy["block address"]} polly@example.org · weird10 Aug 2026, 10:00 · postmark`,
       "strange 1 Aug 2026, 10:00 · x",
@@ -1218,8 +1218,8 @@ describe("PoliticianDetails", () => {
         .all()
         .map((el) => el.element().tagName),
     ).toEqual(["A", "STRONG"]);
-    await page.getByLabelText(staffCopy.emails.note).fill("Fixed in Airtable");
-    await page.getByRole("button", { name: staffCopy.emails.unblock }).click();
+    await page.getByLabelText(emailCopy.emails.note).fill("Fixed in Airtable");
+    await page.getByRole("button", { name: emailCopy.emails.unblock }).click();
     await vi.waitFor(() => expect(sent).toEqual([{ address: MP.email, note: "Fixed in Airtable" }]));
 
     // An MP's address is their body's, so there's nowhere to correct it here; a Lord's is staff's, in Writing to them.
@@ -1252,7 +1252,7 @@ describe("PoliticianDetails", () => {
       />,
     );
     expect(notice.element().textContent).not.toContain(copy.wrong.before);
-    await expect.element(notice.getByText(staffCopy.emails.cantReset)).toBeVisible();
+    await expect.element(notice.getByText(emailCopy.emails.cantReset)).toBeVisible();
   });
 
   it("opens their other addresses from their email in the band, with a Remove by those staff can take off, the newest added last", async () => {

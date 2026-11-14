@@ -5,7 +5,7 @@ import { now } from "@/lib/now";
 import { LUMA_PAGE_SIZE, lumaList, lumaPost, type LumaPage } from "./luma-api.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { problem } from "../problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { serverCopy } from "@/lib/server/copy";
 
 /** The two halves of the calendar: from today on, and before today. */
 export type EventPeriod = "future" | "past";
@@ -78,7 +78,7 @@ export async function getEvents(period: EventPeriod = "future"): Promise<LumaEve
       return [toLumaEvent(event, event.url, event.start_at)];
     });
   } catch (error) {
-    problem(staffCopy.problems.logs.lumaEventsDown, error);
+    problem(serverCopy.problems.logs.lumaEventsDown, error);
     return [];
   }
 }

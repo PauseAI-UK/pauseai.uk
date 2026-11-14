@@ -398,7 +398,7 @@ committed or not.
 A sidebar lists every piece of copy in clusters, in the diff's order. A
 piece's cluster is its file, or for `lib/content/` the set of strings it's
 in (the copy object's top-level key, such as
-`staff-interface.ts › notifications`). Clicking a piece (or <kbd>j</kbd>
+`email-your-mp.ts › lookup`). Clicking a piece (or <kbd>j</kbd>
 and <kbd>k</kbd>) shows it alone:
 
 - the copy as written;
@@ -547,11 +547,6 @@ files reach more:
 - **No flow:** docs, plans, investments, unit tests, the review page's own
   code, and the settings of the tools that don't build the site
   (`NOTHING`), unless a flow imports one.
-- **`staffCopy`:** a change to `lib/content/staff-interface.ts` reaches the
-  files that read the top-level keys it changed (`staffCopy.letters`, or
-  `const { letters } = staffCopy`), and any that import the file without
-  naming a key. A line outside the object reaches every file that imports
-  it.
 - **The gallery:** each group's flow reaches its own examples
   (`_examples/forms.tsx` and `forms.client.tsx`), though the index it picks
   them from imports every group's. A plain stylesheet (not a

@@ -1,4 +1,3 @@
-import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { holdNextPage, loadingLine, lockTable, settled } from "./loading-steps";
@@ -13,6 +12,7 @@ import { asksCopy } from "@/lib/asks/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 export const section: Section = { name: "Dashboard and getting around", part: "Staff pages", order: 20 };
 
@@ -228,7 +228,7 @@ test("A test MP's page", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: "Testy McTestface MP" }).click();
   // Their name, tagged as a test MP, and what they are; nothing in their history yet.
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Testy McTestface MP");
-  await expect(page.getByText(politiciansCopy.politicians.flags.test, { exact: true })).toBeVisible();
+  await expect(page.getByText(staffVocabulary.politicianFlags.test, { exact: true })).toBeVisible();
   await expect(
     page.getByText(politiciansCopy.politician.role(politiciansCopy.politician.roles.commons, "Testshire", true)),
   ).toBeVisible();
@@ -316,7 +316,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/audit-log`);
   await expect(page.getByRole("cell", { name: "set status" }).first()).toBeVisible();
   await frame(page, "The audit log");
-  await page.getByRole("button", { name: staffCopy.changes.json }).first().click();
+  await page.getByRole("button", { name: staffVocabulary.logged.json }).first().click();
   await expect(page.locator(":popover-open")).toBeVisible();
   await frame(page, "What was logged", { window: true });
   await page.keyboard.press("Escape");
@@ -326,7 +326,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/scheduled-jobs`);
   await frame(page, "The Scheduled jobs page");
   story("ControlAI's import reads the signatures on their letter, which Polly Placeholder has signed.");
-  await page.getByRole("link", { name: jobTitles["import-controlai"] }).click();
+  await page.getByRole("link", { name: importRunsCopy.jobTitles["import-controlai"] }).click();
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs/controlai`);
 
   // The fixture ControlAI letter is signed by Polly Placeholder MP, so the bill's column says so.

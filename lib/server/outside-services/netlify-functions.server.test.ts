@@ -1,8 +1,8 @@
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { server } from "@/tests/fixtures/msw";
 import { startLumaImport } from "./netlify-functions.server";
+import { serverCopy } from "@/lib/server/copy";
 
 const BACKGROUND = "https://pauseai.uk/.netlify/functions/import-luma-background";
 
@@ -43,7 +43,7 @@ describe("startLumaImport", () => {
     vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
     vi.stubEnv("CRON_SECRET", "secret");
     await startLumaImport();
-    expect(error).toHaveBeenCalledWith(staffCopy.problems.logs.lumaImportNotStarted, "It answered 401");
+    expect(error).toHaveBeenCalledWith(serverCopy.problems.logs.lumaImportNotStarted, "It answered 401");
   });
 
   it("never throws when it can't start it, as the next scheduled run does it anyway", async () => {

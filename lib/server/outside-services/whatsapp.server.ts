@@ -1,10 +1,10 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { parseJsonIfAny } from "../json.server";
 import { problem } from "../problems.server";
 import { GRAPH_VERSION } from "./graph-api";
 import { outsideFetch } from "./outside-fetch.server";
+import { serverCopy } from "@/lib/server/copy";
 
 // The only file that talks to WhatsApp, through Meta's Cloud API, with our
 // WhatsApp account's permanent token (WHATSAPP_TOKEN) and its ID
@@ -101,7 +101,7 @@ async function messagingLimit(keys: WhatsAppKeys, numberId: string): Promise<str
       ? data.whatsapp_business_manager_messaging_limit
       : "";
   } catch (error) {
-    problem(staffCopy.problems.anywhere.whatsAppLimitUnknown, error);
+    problem(serverCopy.problems.anywhere.whatsAppLimitUnknown, error);
     return "";
   }
 }

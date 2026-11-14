@@ -1,30 +1,27 @@
 import { Fragment, type ReactNode } from "react";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { FieldChange } from "@/lib/field-changes";
 import CampaignName from "../CampaignName";
 import { DotParts } from "../Logged";
 
-const copy = staffCopy.changes;
-
 /** A field's name, in bold before its value; one with no name in the copy, as logged, with a capital. */
 export function fieldLabel(key: string): string {
   return (
     staffVocabulary.fields[key as keyof typeof staffVocabulary.fields] ??
-    copy.labels[key] ??
+    staffVocabulary.logged.labels[key] ??
     key[0].toUpperCase() + key.slice(1)
   );
 }
 
 /** A value as words: a house, a kind of problem, a status or a campaign by name, a mark on or off; anything else as it is. */
 function Value({ name, value }: { name: string; value: unknown }) {
-  if (value === null) return <Muted>{copy.empty}</Muted>;
+  if (value === null) return <Muted>{staffVocabulary.logged.empty}</Muted>;
   if (name === "house") return <>{staffVocabulary.houses[value as string] ?? String(value)}</>;
   if (name === "campaign") return <CampaignName slug={String(value)} />;
   if (typeof value === "string") return <>{value}</>;
   // A mark, on or off.
-  if (typeof value === "boolean") return <>{value ? copy.on : copy.off}</>;
+  if (typeof value === "boolean") return <>{value ? staffVocabulary.logged.on : staffVocabulary.logged.off}</>;
   return <>{JSON.stringify(value)}</>;
 }
 

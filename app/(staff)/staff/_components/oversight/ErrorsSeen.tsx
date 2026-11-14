@@ -1,4 +1,3 @@
-import { staffCopy } from "@/lib/content/staff-interface";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import type { ErrorSeen } from "@/lib/oversight/errors-seen.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
@@ -8,9 +7,10 @@ import PageHead from "../ui/PageHead";
 import StaffLink from "../ui/StaffLink";
 import Tabs from "../ui/Tabs";
 import { shellCopy } from "../shell/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 const PATH = ERRORS_LIST.path;
-const copy = staffCopy.errorsSeen;
+const copy = oversightCopy.errorsSeen;
 
 const columns: ListColumn<ErrorSeen>[] = [
   { key: "last", label: copy.columns.last, short: true, cell: (error) => staffTime(error.lastSeen) },

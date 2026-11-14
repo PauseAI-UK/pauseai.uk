@@ -1,11 +1,11 @@
 import Table from "@/components/ui/Table";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { ProblemSummary } from "@/lib/email/email.server";
 import LetterLink from "../letters/LetterLink";
 import Reason from "../email/BounceReason";
 import When from "../ui/When";
 import styles from "./EmailProblemsTable.module.css";
+import { emailCopy } from "@/lib/email/copy";
 
 /** The latest bounces and complaints, soft bounces too, and what each email was: a letter, linked to it with `letterLinks`. */
 export default function EmailProblemsTable({
@@ -15,8 +15,8 @@ export default function EmailProblemsTable({
   problems: ProblemSummary[];
   letterLinks: boolean;
 }) {
-  if (problems.length === 0) return <p>{staffCopy.emails.noProblems}</p>;
-  const columns = staffCopy.emails.columns;
+  if (problems.length === 0) return <p>{emailCopy.emails.noProblems}</p>;
+  const columns = emailCopy.emails.columns;
   return (
     <Table>
       <thead>
@@ -35,7 +35,7 @@ export default function EmailProblemsTable({
               <When at={problem.at} />
             </td>
             <td>{problem.address}</td>
-            <td className={styles.short}>{staffCopy.emails.kinds[problem.kind]}</td>
+            <td className={styles.short}>{emailCopy.emails.kinds[problem.kind]}</td>
             <td>
               <Reason reason={problem.reason} kind={problem.kind} foundInGmail={problem.foundInGmail} />
             </td>
@@ -43,9 +43,9 @@ export default function EmailProblemsTable({
               {problem.letter ? (
                 <LetterLink letter={problem.letter} linked={letterLinks} />
               ) : problem.purpose ? (
-                staffCopy.emails.purposes[problem.purpose]
+                emailCopy.emails.purposes[problem.purpose]
               ) : (
-                <Muted>{staffCopy.emails.notRecorded}</Muted>
+                <Muted>{emailCopy.emails.notRecorded}</Muted>
               )}
             </td>
           </tr>

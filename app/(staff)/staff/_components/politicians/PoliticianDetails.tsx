@@ -1,6 +1,5 @@
 import StaffLink from "../ui/StaffLink";
 import type { ReactNode } from "react";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { asksAgreed } from "@/lib/asks/asks";
 import type { Ask } from "@/lib/asks/records.server";
@@ -39,6 +38,7 @@ import type { EditResult } from "@/lib/politicians/edits.server";
 import { politiciansCopy } from "./copy";
 import { lettersCopy } from "../letters/copy";
 import { notesCopy } from "../notes/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 const copy = politiciansCopy.politician;
 
@@ -206,7 +206,7 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
       );
     case "block address":
     case "unblock address": {
-      const kind = staffCopy.emails.kinds[text("kind")] ?? text("kind");
+      const kind = emailCopy.emails.kinds[text("kind")] ?? text("kind");
       // An unblock has a note, and a block the kind of problem.
       return (
         <>
@@ -291,7 +291,7 @@ function PoliticianBand({
       <BandFact label={copy.status}>
         <span className={styles.withIcon}>
           <StatusDot inOffice={inOffice} />
-          {staffVocabulary.personStatuses[politician.status]}
+          {politiciansCopy.personStatuses[politician.status]}
         </span>
       </BandFact>
       <BandFact label={copy.country}>

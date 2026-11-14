@@ -1,8 +1,9 @@
-// The words every part of the staff interface (/staff) shares: the page
-// title, the trail above a page, deleting, the houses, statuses, countries
-// and fields, a list's search, filters, paging and downloads, a link to a
-// letter's page, and how many politicians. Each feature's own words are in
-// its copy object.
+// The staff interface's shared words. The kit's (ui/): the page title, the
+// trail above a page, deleting, and a list's search, filters, paging and
+// downloads. And the domain's words several features read: the houses,
+// answers' statuses, countries, fields, the politicians' markers, a logged
+// entry's fields, a link to a letter's page, and how many politicians. Each
+// feature's own words are in its copy object.
 
 import { count, plural } from "@/lib/content/plural";
 
@@ -34,12 +35,12 @@ export const staffVocabulary = {
     // No answer to an ask, of any kind.
     noAnswer: "No answer",
   } as Record<string, string>,
-  // Whether a notable person is in office.
-  personStatuses: {
-    in_office: "In office",
-    died: "Died",
-    retired: "Retired",
-    left_office: "No longer in office",
+  // The politicians' markers (lib/politician-flags.ts), which the politicians', letters' and every email's lists
+  // filter by, and a test politician's tag beside their name.
+  politicianFlags: {
+    important: "Important target",
+    connection: "Personal connection",
+    test: "Test politician",
   } as Record<string, string>,
   countries: {
     england: "England",
@@ -138,4 +139,37 @@ export const staffVocabulary = {
   theLetter: "Letter →",
   // How many politicians: those an ask or a mailing was put to.
   politicians: (n: number) => count(n, "politician", "politicians"),
+  // A logged entry's fields, in the audit log and a politician's history.
+  logged: {
+    // The details as they were logged.
+    json: "JSON",
+    // A field with nothing in it, before or after an edit.
+    empty: "(none)",
+    // A mark, on or off, before or after an edit.
+    on: "on",
+    off: "off",
+    // Each logged field's name, before its value, where the politician fields' names don't cover it.
+    labels: {
+      airtableId: "Airtable",
+      importantTarget: "Important target",
+      personalConnection: "Personal connection",
+      address: "Address",
+      note: "Note",
+      reference: "Request",
+      reason: "Reason",
+      kind: "Kind",
+      status: "Status",
+      campaign: "Campaign",
+      date: "Date",
+      from: "Before",
+      to: "Permissions",
+      permissions: "Permissions",
+      pdfUrl: "PDF",
+      error: "Error",
+      eventId: "Event",
+      owner: "Owner",
+      previous: "Before",
+      url: "Google Doc",
+    } as Record<string, string>,
+  },
 };

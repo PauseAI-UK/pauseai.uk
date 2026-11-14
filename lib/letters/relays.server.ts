@@ -20,10 +20,10 @@ import { isLettersInboxAddress } from "./letters-inbox.server";
 import { relayMime } from "@/lib/server/mime.server";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
 import { problem } from "@/lib/server/problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { lettersCopy } from "./copy";
 import { mpName, proxyLine } from "./proxies.server";
 import { nameLine } from "@/lib/server/outside-services/postmark.server";
+import { emailCopy } from "@/lib/email/copy";
 
 // Relays: each message the MP's office or the supporter sends through a
 // proxy, kept whole (letter_replies), sent on to the other side from the
@@ -95,7 +95,7 @@ export async function sendRelay(relayId: number): Promise<{ sent: boolean; reaso
     [relayId],
   );
   if (!relay) return { sent: false };
-  const words = staffCopy.problems.anywhere;
+  const words = emailCopy.problems;
   let sent: Awaited<ReturnType<typeof sendTakenRelay>>;
   try {
     sent = await sendTakenRelay(relayId, relay);

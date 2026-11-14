@@ -5,7 +5,6 @@ import { docFromMarkup } from "./format";
 import { addTestMp, connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
 import { deliverToLettersInbox, resetLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 import { LETTERS_INBOX, recordGmail, stubLettersInboxEnv, testMail, testProxy } from "@/tests/gmail-sends";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { notifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
 import { recordProblem } from "@/lib/email/email.server";
@@ -16,6 +15,7 @@ import { noticeToSender, sendCopy, sendLetter, threading, uncertainLetters } fro
 import { submitLetter, type LetterForm } from "../../app/api/email-your-mp/letters/mp-letters.server";
 import { relay, resendAfterFix, sendRelay, uncertainRelays } from "./relays.server";
 import { lettersCopy } from "./copy";
+import { emailCopy } from "@/lib/email/copy";
 
 const JANE = "jane@example.com";
 /** Jane as every email to her is addressed: her name and her own address. */
@@ -167,7 +167,7 @@ describeWithDatabase("the letters inbox's queue", () => {
     expect(await sendLetter(id)).toEqual({ sent: true });
     expect(sent).toHaveLength(1);
     expect(await statusOf()).toBe("sending");
-    expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.sentUnrecorded(lettersCopy.problems.letterOf(id)));
+    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sentUnrecorded(lettersCopy.problems.letterOf(id)));
   });
 
   it("queues a letter when Gmail refuses the MP's address as blocked", async () => {
@@ -246,7 +246,7 @@ describeWithDatabase("the letters inbox's queue", () => {
 
   it("puts a copy back when something goes wrong before it goes, and leaves one that went for a person", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     await submitLetter(FORM);
     const id = (await query<{ id: number }>("SELECT id::int AS id FROM letters"))[0].id;
     await query("UPDATE letters_from_supporters SET copy_state = 'queued'");
@@ -269,7 +269,7 @@ describeWithDatabase("the letters inbox's queue", () => {
 
   it("puts a relay back when something goes wrong before it goes, and leaves one that went for a person", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     await replied();
     await query("UPDATE letter_relays SET status = 'queued'");
     const [{ relayId }] = await query<{ relayId: number }>(

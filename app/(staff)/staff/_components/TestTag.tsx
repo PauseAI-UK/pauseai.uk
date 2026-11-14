@@ -1,5 +1,5 @@
 import Tag from "@/components/ui/Tag";
-import { politiciansCopy } from "./politicians/copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 /** After a politician's name: a space and a lozenge if they're one of ours for testing, or nothing. */
 export default function TestTag({ isTest }: { isTest: boolean }) {
@@ -7,7 +7,7 @@ export default function TestTag({ isTest }: { isTest: boolean }) {
     isTest && (
       <>
         {" "}
-        <Tag>{politiciansCopy.politicians.flags.test}</Tag>
+        <Tag>{staffVocabulary.politicianFlags.test}</Tag>
       </>
     )
   );

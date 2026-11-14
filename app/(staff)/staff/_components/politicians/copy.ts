@@ -7,7 +7,7 @@ import { politiciansCopy as wordsTheServerUses } from "@/lib/politicians/copy";
 export const politiciansCopy = {
   ...wordsTheServerUses,
   // The page of politicians' blocked addresses (/staff/politicians/addresses-to-fix), titled as the navigation
-  // names it; the rest of its words are every blocked address's (staffCopy.emails).
+  // names it; the rest of its words are every blocked address's (emailCopy.emails).
   addressesToFix: {
     title: "Addresses to fix",
     // Under the title, what the page is.

@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { action } from "@/tests/browser/staff";
 import ErrorSeenView from "./ErrorSeenView";
 import ErrorsSeen from "./ErrorsSeen";
 import { exampleErrorDone, exampleErrorsSeen } from "./ErrorsSeen.examples";
 import { shellCopy } from "../shell/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
-const copy = staffCopy.errorsSeen;
+const copy = oversightCopy.errorsSeen;
 const [inPage, problem, inBrowser] = exampleErrorsSeen;
 const setDone = vi.fn();
 

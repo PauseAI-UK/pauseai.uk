@@ -1,10 +1,10 @@
 import "server-only";
-import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { importPath, type AnyImportRun, type ImportJob, type ImportRunStatus } from "@/lib/import-runs";
 import { query } from "./db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { describeError } from "./problems.server";
 import { currentRun, inRun } from "./run-store.server";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 // One log of every run of every job (lib/import-runs.ts, JOBS). Each run is
 // a row: when, who started it, how it ended, why it failed, what went wrong
@@ -98,14 +98,14 @@ async function alertIfNew(job: ImportJob, id: number): Promise<void> {
   const wrong = wentWrong(run);
   const already = new Set(wentWrong(before));
   if (!wrong.length || wrong.every((what) => already.has(what))) return;
-  const title = jobTitles[job];
+  const title = importRunsCopy.jobTitles[job];
   const link = staffLink(importPath(job), undefined);
   if (run.status === "failed") {
-    const words = staffCopy.notifications.importFailed;
+    const words = importRunsCopy.notifications.importFailed;
     await notifyStaff(words.subject(title), words.body(title, run.error, link));
     return;
   }
-  const words = staffCopy.notifications.importProblems;
+  const words = importRunsCopy.notifications.importProblems;
   await notifyStaff(
     words.subject(title),
     words.body(

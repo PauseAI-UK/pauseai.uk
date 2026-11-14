@@ -1,5 +1,4 @@
 import { AUDIT_LOG_LIST } from "@/lib/staff-lists";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import { filteredName, filterWords, CHANGE_FILTERS, type ChangeChoices } from "@/lib/staff-list-filters";
 import { changesSearch, type ChangesSearch } from "@/lib/staff-search";
@@ -7,8 +6,9 @@ import { type Params } from "@/lib/list-params";
 import { changeFiltersOf } from "./ChangesTable";
 import FilterBar from "../ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "../ui/SavedFilters";
+import { oversightCopy } from "@/lib/oversight/copy";
 
-const copy = staffCopy.changes;
+const copy = oversightCopy.changes;
 const PATH = AUDIT_LOG_LIST.path;
 
 /** The log's search and filters that are on, in words, as their chips say them; who and what say themselves, so need no choices. */

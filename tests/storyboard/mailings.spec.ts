@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { runQueue } from "./letters-inbox-steps";
@@ -464,7 +463,7 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
   }
   const [[, , name]] = letters;
   expect(
-    newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.alert.subject(name)),
+    newestEmail((email) => email.To === TO_NOTIFICATIONS && email.Subject === lettersCopy.alert.subject(name)),
   ).toBeUndefined();
   story("The dashboard already shows both, waiting for someone to fix their addresses.");
 
@@ -476,7 +475,7 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
   );
 
   await runQueue(request);
-  const words = staffCopy.notifications.mailingBounces;
+  const words = lettersCopy.notifications.mailingBounces;
   const report = newestEmail(
     (email) =>
       email.To === TO_NOTIFICATIONS && email.Subject === words.subject(2) && email.TextBody.includes(`- ${name} (`),

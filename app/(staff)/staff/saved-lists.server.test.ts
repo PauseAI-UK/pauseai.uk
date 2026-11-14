@@ -1,5 +1,4 @@
 import { expect, it } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { query } from "@/lib/server/db.server";
 import { createSavedFilter } from "@/lib/server/saved-filters.server";
@@ -8,6 +7,7 @@ import { openSavedList } from "./saved-lists.server";
 import { eventsCopy } from "@/lib/events/copy";
 import { supportersCopy } from "./_components/supporters/copy";
 import { politiciansCopy } from "./_components/politicians/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 const JO = "jo@pauseai.uk";
 
@@ -22,7 +22,7 @@ describeWithDatabase("openSavedList", () => {
     expect(log.saved.loaded?.name).toBe("Sync's");
     expect([log.search.actor, log.search.filter.actor]).toEqual([["sync"], ["sync"]]);
     expect(await log.title((search) => [`Who: ${search.actor.join(", ")}`])).toBe(
-      staffVocabulary.filters.pageTitle(staffCopy.changes.title, "Who: sync"),
+      staffVocabulary.filters.pageTitle(oversightCopy.changes.title, "Who: sync"),
     );
   });
 

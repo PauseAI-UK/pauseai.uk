@@ -1,6 +1,5 @@
 import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { SentEmail, SentPerson } from "@/lib/oversight/sent-emails.server";
 import type { SentEmailsSearch } from "@/lib/staff-search";
 import { SENT_EMAIL_FILTERS } from "@/lib/staff-list-filters";
@@ -16,9 +15,10 @@ import Shortened, { cutAtWord } from "../ui/Shortened";
 import StaffLink from "../ui/StaffLink";
 import Withheld from "../ui/Withheld";
 import { shellCopy } from "../shell/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 const PATH = SENT_EMAILS_LIST.path;
-const copy = staffCopy.sentEmails;
+const copy = oversightCopy.sentEmails;
 
 /** Someone an email is to or from: their name, linked if it can be, over their address; or the address alone. */
 function Person({ person, address }: { person: SentPerson | null; address: string | null }) {

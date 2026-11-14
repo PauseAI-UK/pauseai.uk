@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
 import ChangesTable from "./oversight/ChangesTable";
@@ -14,6 +13,7 @@ import SentEmails from "./oversight/SentEmails";
 import StaffNav from "./shell/StaffNav";
 import { shellCopy } from "./shell/copy";
 import { exampleSentEmails } from "./oversight/SentEmails.examples";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 const NOW = "2026-11-05T09:00:00Z";
 const link = (name: string) => page.getByRole("link", { name, exact: true });
@@ -26,9 +26,9 @@ describe("ChangesTable, without the supporters permission", () => {
     const { rerender } = await render(
       <ChangesTable search={changesSearch({})} log={log} page={1} supporters={false} />,
     );
-    await says(staffCopy.changes.withheld);
+    await says(oversightCopy.changes.withheld);
     await rerender(<ChangesTable search={changesSearch({})} log={log} page={1} />);
-    expect(document.body.textContent).not.toContain(staffCopy.changes.withheld);
+    expect(document.body.textContent).not.toContain(oversightCopy.changes.withheld);
   });
 });
 
@@ -38,7 +38,7 @@ describe("SentEmails", () => {
   it("says emails to and from supporters are left out, and offers only the kinds shown, without the permission", async () => {
     const props = { emails: [], total: 0, pages: 1, page: 1, pageSize: 100, search: NO_SEARCH };
     await render(<SentEmails {...props} supporters={false} />);
-    await says(staffCopy.sentEmails.withheld);
+    await says(oversightCopy.sentEmails.withheld);
   });
 
   it("sorts by each column but its links, keeping the filters, newest first unless another is chosen", async () => {
@@ -52,7 +52,7 @@ describe("SentEmails", () => {
         search={{ ...NO_SEARCH, ...search }}
       />
     );
-    const words = staffCopy.sentEmails.columns;
+    const words = oversightCopy.sentEmails.columns;
     const heading = (name: string) => page.getByRole("link", { name, exact: false });
     const { rerender } = await render(list({ q: "x" }));
     await expect.element(heading(words.when)).toHaveAttribute("href", "/staff/sent-emails?q=x&sort=when&dir=asc");
@@ -69,7 +69,7 @@ describe("SentEmails", () => {
       <SentEmails emails={exampleSentEmails} total={150} pages={2} page={1} pageSize={100} search={NO_SEARCH} />,
     );
     await expect.element(page.getByRole("heading", { level: 1, name: shellCopy.nav.sentEmails })).toBeVisible();
-    const words = staffCopy.sentEmails;
+    const words = oversightCopy.sentEmails;
     expect([...document.querySelectorAll("th")].map((th) => th.textContent!.replace(/[ ▲▼]+$/, ""))).toEqual(
       Object.values(words.columns),
     );

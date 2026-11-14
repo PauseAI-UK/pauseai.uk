@@ -1,6 +1,5 @@
 import "server-only";
 import type { ParamValue, Params } from "@/lib/list-params";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { SavedList } from "@/lib/saved-filters";
 import { savedFiltersState, type SavedFiltersState } from "@/lib/server/saved-filters.server";
 import { filteredTitle } from "@/lib/staff-list-filters";
@@ -8,6 +7,7 @@ import { changesSearch, eventsSearch, politiciansSearch, supportersSearch } from
 import { eventsCopy } from "@/lib/events/copy";
 import { supportersCopy } from "./_components/supporters/copy";
 import { politiciansCopy } from "./_components/politicians/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 // The lists with saved filters, as their pages open them. A page calls
 // requireStaff() itself, first, as tests/checks/staff-auth.test.ts reads it
@@ -20,7 +20,7 @@ const LISTS = {
   politicians: { parse: politiciansSearch, title: politiciansCopy.politicians.title },
   supporters: { parse: supportersSearch, title: supportersCopy.supporters.title },
   events: { parse: eventsSearch, title: eventsCopy.events.title },
-  "audit-log": { parse: changesSearch, title: staffCopy.changes.title },
+  "audit-log": { parse: changesSearch, title: oversightCopy.changes.title },
 } satisfies Record<SavedList, { parse: (params: Params) => unknown; title: string }>;
 
 type Search<L extends SavedList> = ReturnType<(typeof LISTS)[L]["parse"]>;

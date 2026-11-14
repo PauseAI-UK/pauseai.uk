@@ -1,6 +1,5 @@
 import "server-only";
 import constituencies from "./constituencies.json";
-import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { importPath, NEWER_RUN, type PoliticianImportJob, type PoliticianImportResult } from "@/lib/import-runs";
 import { ownDomains } from "./domains";
 import {
@@ -39,6 +38,7 @@ import { mspPeople, seneddPeople } from "@/lib/server/outside-services/wikidata.
 import { addPolitician } from "./records.server";
 import { problem } from "@/lib/server/problems.server";
 import { politiciansCopy } from "./copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 // Imports each body's members from its own list, nightly
 // (/api/cron/import-<body>) or when staff ask: Parliament's, both Houses;
@@ -355,9 +355,9 @@ export async function importPoliticians(body: Body, startedBy: string): Promise<
       };
     });
     if (newlyHeld) {
-      const words = staffCopy.notifications.importHeld;
+      const words = politiciansCopy.notifications.importHeld;
       const count = importChangeCount(outcome.result.changes);
-      const title = jobTitles[job];
+      const title = importRunsCopy.jobTitles[job];
       await notifyStaff(words.subject(title, count), words.body(title, count, staffLink(importPath(job), undefined)));
     }
     if (outcome.status !== "held") {

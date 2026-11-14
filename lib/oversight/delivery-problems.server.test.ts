@@ -2,11 +2,12 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { toNotifications } from "@/tests/notifications";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
 import { handleDeliveryProblem, unblock } from "./delivery-problems.server";
 import type { DeliveryProblem, Purpose } from "@/lib/email/email.server";
+import { emailCopy } from "@/lib/email/copy";
+import { lettersCopy } from "@/lib/letters/copy";
 
 /** Postmark's webhook call, which on Netlify arrives on the netlify.app host. */
 const REQUEST = new Request("https://main--pauseaiuk.netlify.app/api/postmark/bounce", { method: "POST" });
@@ -86,7 +87,7 @@ describeWithDatabase("handleDeliveryProblem", () => {
         { ...BOUNCE, ...gmail, address: `"Test" <${BOUNCE.address.toUpperCase()}>` },
         REQUEST,
       );
-      const words = staffCopy.alert.notALetter;
+      const words = emailCopy.alert.notALetter;
       expect(sent).toMatchObject([{ Subject: words.subject("Testy McTestface MP") }]);
       expect(sent[0].TextBody).toBe(
         words.body(
@@ -156,8 +157,8 @@ describeWithDatabase("handleDeliveryProblem", () => {
     expect(sent).toEqual([
       expect.objectContaining({
         To: toNotifications("notifications@pauseai.uk"),
-        Subject: staffCopy.alert.subject("Testy McTestface MP"),
-        TextBody: staffCopy.alert.body(
+        Subject: lettersCopy.alert.subject("Testy McTestface MP"),
+        TextBody: lettersCopy.alert.body(
           "Testy McTestface MP",
           "test-mp@parliament.example",
           "Unknown user",

@@ -1,12 +1,10 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   appRoutes,
-  changedCopyKeys,
   closure,
-  copyKeysRead,
   flowReach,
   flowsToRun,
   folderPattern,
@@ -20,7 +18,6 @@ import {
   reachedFlows,
   resolveImport,
   routeFiles,
-  STAFF_COPY,
   unresolvedImports,
 } from "./storyboard-reach.mjs";
 
@@ -136,7 +133,6 @@ const phoneHome = { ...home, key: "phone|home|The home page" };
 const runs = [home, post, sitemap, letters, events, jobs, broken, galleryUi, galleryStaff, galleryIndex, upload];
 const keysOf = (...some: { key: string }[]) => new Set(some.map((r) => r.key));
 const everyRun = keysOf(...runs);
-const staffRuns = keysOf(letters, events, jobs, broken, upload);
 
 describe("importsOf", () => {
   it("lists the imports that run, not those of types alone", () => {
@@ -376,53 +372,8 @@ describe("flowReach", () => {
   });
 });
 
-describe("changedCopyKeys", () => {
-  const hunk = (line: number, added = 1) => `@@ -${line} +${line},${added} @@\n`;
-
-  it("names the top-level keys of staffCopy whose lines a diff changed, before and after", () => {
-    expect(changedCopyKeys(hunk(7) + hunk(10, 2), COPY, COPY)).toEqual(new Set(["events", "filters"]));
-    expect(changedCopyKeys("@@ -4,0 +4 @@\n", COPY, COPY)).toEqual(new Set(["nav"]));
-  });
-
-  it("says * for a line outside the object: before it, its last line, or after it, another export's", () => {
-    expect(changedCopyKeys(hunk(1), COPY, COPY)).toEqual(new Set(["*"]));
-    expect(changedCopyKeys(hunk(2), COPY, COPY)).toEqual(new Set(["*"]));
-    expect(changedCopyKeys(hunk(12), COPY, COPY)).toEqual(new Set(["*"]));
-    expect(changedCopyKeys(hunk(14), COPY, COPY)).toEqual(new Set(["*"]));
-  });
-
-  it("names each top-level key of the staff copy itself, which the shared words have left", () => {
-    const text = readFileSync(join(__dirname, "..", STAFF_COPY), "utf8");
-    const lines = text.split("\n");
-    const start = lines.findIndex((line) => line.startsWith("export const staffCopy"));
-    const end = lines.findIndex((line, at) => at > start && line.startsWith("};"));
-    const keys = lines.slice(start, end).flatMap((line, at) => {
-      const key = /^ {2}(\w+): /.exec(line)?.[1];
-      return key ? [{ key, line: start + at + 1 }] : [];
-    });
-    expect(keys.map(({ key }) => key)).toContain("problems");
-    expect(keys.map(({ key }) => key)).not.toContain("filters");
-    for (const { key, line } of keys) expect(changedCopyKeys(hunk(line), text, text)).toEqual(new Set([key]));
-  });
-
-  it("says * for a file with no staffCopy, or one that never closes it", () => {
-    expect(changedCopyKeys(hunk(1), "", "export const other = {\n  nav: 1,\n};")).toEqual(new Set(["*"]));
-    expect(changedCopyKeys(hunk(2), "", "export const staffCopy = {\n  nav: 1,")).toEqual(new Set(["*"]));
-  });
-});
-
-describe("copyKeysRead", () => {
-  it("reads staffCopy.key and destructured keys, and * where the object is used whole", () => {
-    expect(copyKeysRead(FILES["app/(staff)/staff/events/page.tsx"])).toEqual(new Set(["events", "filters"]));
-    expect(copyKeysRead(`import { staffCopy } from "x";\nshow(staffCopy);`)).toEqual(new Set(["*"]));
-    expect(copyKeysRead(`const { } = staffCopy;`)).toEqual(new Set());
-    expect(copyKeysRead(FILES["app/(staff)/staff/jobs/page.tsx"])).toEqual(new Set());
-  });
-});
-
 describe("reachedFlows", () => {
-  const reached = (files: string[], copyKeys?: Set<string>) =>
-    reachedFlows({ files, runs, context: reachContext(root), copyKeys });
+  const reached = (files: string[]) => reachedFlows({ files, runs, context: reachContext(root) });
 
   it("reruns the flows whose reach has a changed file, and none for code no flow reaches", () => {
     expect(reached(["components/Letters.tsx"]).keys).toEqual(
@@ -509,17 +460,6 @@ describe("reachedFlows", () => {
     expect(reachedFlows({ files: ["settings.ts"], runs, context: imported }).unknown).toEqual([]);
   });
 
-  it("reruns a change to the staff copy for the flows reaching a reader of the keys changed, or one that names no key", () => {
-    expect(reached([STAFF_COPY], new Set(["events"])).keys).toEqual(keysOf(events, jobs));
-    expect(reached([STAFF_COPY], new Set(["filters", "none-reads-this"])).keys).toEqual(keysOf(events, jobs));
-    expect(reached([STAFF_COPY], new Set(["nav"])).keys).toEqual(staffRuns);
-  });
-
-  it("reruns every flow that reaches the staff copy when a line outside a key changed, or the keys aren't known", () => {
-    expect(reached([STAFF_COPY], new Set(["*", "events"])).keys).toEqual(staffRuns);
-    expect(reached([STAFF_COPY]).keys).toEqual(staffRuns);
-  });
-
   it("reruns the flows that opened a route whose page or layout was added or deleted", () => {
     expect(reached(["app/(staff)/staff/new/page.tsx"]).keys).toEqual(new Set());
     expect(reached(["app/(staff)/staff/letters/page.tsx"]).keys).toEqual(keysOf(letters, broken, upload));
@@ -580,7 +520,6 @@ describe("flowsToRun", () => {
       phoneTagged,
       context: reachContext(root),
       changedSince,
-      copyKeysSince: () => undefined,
     });
 
   it("runs the flows new to the suite, and those a change since their tree reaches", () => {
@@ -627,7 +566,6 @@ describe("flowsToRun", () => {
       phoneTagged: new Set([phoneHome.key]),
       context: reachContext(root),
       changedSince: () => since(["netlify/database/schema.sql"]),
-      copyKeysSince: () => undefined,
     });
     expect(chosen.run).toEqual(suite);
     expect(chosen).toMatchObject({ swept: 4, reached: 0, everything: ["netlify/database/schema.sql"] });
@@ -641,7 +579,6 @@ describe("flowsToRun", () => {
       phoneTagged: new Set(),
       context: reachContext(root),
       changedSince: () => since(["postcss.config.mjs"]),
-      copyKeysSince: () => undefined,
     });
     expect(chosen.run).toEqual(new Set([...suite, untagged.key]));
     expect(chosen.unknown).toEqual(["postcss.config.mjs"]);
@@ -678,7 +615,6 @@ describe("flowsToRun", () => {
       context: reachContext(root),
       setup: "now",
       changedSince: () => ({ files: ["app/(site)/new/page.tsx"], addedOrDeleted: ["app/(site)/new/page.tsx"] }),
-      copyKeysSince: () => undefined,
     });
     expect(chosen.run).toEqual(new Set([home.key, sitemap.key]));
     expect(chosen).toMatchObject({ fresh: 1, reached: 1 });
@@ -694,18 +630,6 @@ describe("flowsToRun", () => {
       [{ ...passed(home, "t1"), seen: "t5" }, passed(letters, "t1"), passed(events, "t5"), passed(phoneHome, "t5")],
     );
     expect(asked).toEqual(["t5", "t1"]);
-  });
-
-  it("asks for the staff copy's changed keys by tree", () => {
-    const chosen = flowsToRun({
-      suite,
-      carried,
-      phoneTagged: new Set(),
-      context: reachContext(root),
-      changedSince: () => since([STAFF_COPY]),
-      copyKeysSince: (tree) => (tree === "t1" ? new Set(["events"]) : undefined),
-    });
-    expect(chosen.run).toEqual(new Set([fresh, events.key]));
   });
 });
 

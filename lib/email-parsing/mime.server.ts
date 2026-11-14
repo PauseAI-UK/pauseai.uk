@@ -1,6 +1,6 @@
 import "server-only";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { problem } from "@/lib/server/problems.server";
+import { serverCopy } from "@/lib/server/copy";
 
 // Reading a message from a mailbox, a reply or a bounce: its MIME parts and
 // headers, and its text. Only as much of MIME as those need.
@@ -94,7 +94,7 @@ export function decodedText(body: Buffer, contentType: string | undefined): stri
   try {
     text = new TextDecoder(charset).decode(body);
   } catch (error) {
-    problem(staffCopy.problems.anywhere.charsetUnknown(charset), error);
+    problem(serverCopy.problems.anywhere.charsetUnknown(charset), error);
     text = body.toString("utf8");
   }
   return text.includes("\uFFFD") ? body.toString("latin1") : text;

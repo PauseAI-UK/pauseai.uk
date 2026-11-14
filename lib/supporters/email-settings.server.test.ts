@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import { afterEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
@@ -28,6 +27,7 @@ import { recordOptOut } from "./opt-outs.server";
 import { inRun } from "@/lib/server/run-store.server";
 import { settingsTopics } from "./settings-view";
 import { supportersCopy } from "./copy";
+import { emailCopy } from "@/lib/email/copy";
 
 const JANE = "jane.smith@example.com";
 const REMOVE = "https://public-api.luma.com/v1/calendars/contacts/remove";
@@ -455,7 +455,7 @@ describeWithDatabase("the contact preferences page", () => {
     await inRun(async (run) => {
       // An entry ID the database can't read, so its query fails.
       expect(await sendBulkNotice("x" as unknown as number, "the march")).toBe(false);
-      expect(run.problems.map((p) => p.what)).toEqual([staffCopy.problems.anywhere.sendFailed("bulk-notice")]);
+      expect(run.problems.map((p) => p.what)).toEqual([emailCopy.problems.sendFailed("bulk-notice")]);
     });
   });
 

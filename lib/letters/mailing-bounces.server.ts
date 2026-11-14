@@ -3,7 +3,7 @@ import { now } from "@/lib/now";
 import { query } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { gmailMessageLink } from "@/lib/email/gmail-links";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { lettersCopy } from "./copy";
 
 // The day's report to staff of the MPs whose addresses bounced a mailing's
 // letters, which the letters inbox's hourly run sends (queue.server.ts).
@@ -42,7 +42,7 @@ export async function reportMailingBounces(request: Request | undefined): Promis
     [last ?? dayAgo],
   );
   if (!bounced.length) return;
-  const words = staffCopy.notifications.mailingBounces;
+  const words = lettersCopy.notifications.mailingBounces;
   const told = await notifyStaff(
     words.subject(bounced.length),
     words.body(

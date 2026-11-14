@@ -6,7 +6,7 @@ import { describeWithDatabase, MAKES_DATABASES, useTestDatabase, withDatabaseDow
 import { requestCookies } from "@/tests/next-headers";
 import { FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
 import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { serverCopy } from "./copy";
 
 // A copy of the stand-in, so one test can make cookies() throw as it does
 // outside a request.
@@ -93,7 +93,7 @@ describeWithDatabase("the database", () => {
       await closeDb();
       terminate(await pid());
       await vi.waitFor(() =>
-        expect(warning).toHaveBeenCalledWith(staffCopy.problems.logs.connectionDropped, expect.any(String)),
+        expect(warning).toHaveBeenCalledWith(serverCopy.problems.logs.connectionDropped, expect.any(String)),
       );
       expect(await query("SELECT 1 AS one")).toEqual([{ one: 1 }]);
     } finally {

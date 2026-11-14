@@ -2,7 +2,7 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { problem } from "../problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { serverCopy } from "@/lib/server/copy";
 
 /** The key of the question every donate link's checkout asks, "Are you happy to be named on our wall of thanks?". */
 export const WALL_OF_THANKS_FIELD = "areyouhappytobenamedonourwallofthanks";
@@ -48,7 +48,7 @@ export async function getThankedDonors(): Promise<ThankedDonor[]> {
     const payments = (await list<PaymentIntent>(key, "payment_intents", {})) ?? [];
     return thanked(sessions, monthlyPayments(payments));
   } catch (error) {
-    problem(staffCopy.problems.logs.stripeDown, error);
+    problem(serverCopy.problems.logs.stripeDown, error);
     return [];
   }
 }

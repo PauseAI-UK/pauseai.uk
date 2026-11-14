@@ -363,14 +363,16 @@ the code should go instead. The rules below say which ones are enforced.
 - **Where the words go.** A page's own text is written in the page. A
   tool's words (labels, messages, errors, the emails it sends) go in one
   copy object in `lib/content/<feature>.ts`, such as `copy` in
-  `lib/content/email-your-mp.ts` and `staffCopy` in
-  `lib/content/staff-interface.ts`. A staff feature in its folders has its
-  own copy objects ("Feature folders", below), and the words every staff
-  feature shares are `staffVocabulary` (`lib/staff-vocabulary.ts`): the
-  page title, the trail, deleting, houses, statuses, countries, fields, and
-  a list's search, filters, paging and downloads. That way the wording can be changed in
-  one file without touching the code. Components and tests refer to it by
-  name (`staffCopy.syncs.syncNow`), so changing it breaks nothing. Words
+  `lib/content/email-your-mp.ts`. Each staff feature has its own copy
+  objects ("Feature folders", below), and the words several staff features
+  share are `staffVocabulary` (`lib/staff-vocabulary.ts`): the kit's (the
+  page title, the trail, deleting, and a list's search, filters, paging and
+  downloads) and the domain's (houses, statuses, countries, fields, the
+  politicians' markers). The import log's words are `importRunsCopy`
+  (`lib/import-runs-copy.ts`), and those the server's own code reports
+  `serverCopy` (`lib/server/copy.ts`). That way the wording can be changed
+  in one file without touching the code. Components and tests refer to it
+  by name (`jobsCopy.runs.replaced`), so changing it breaks nothing. Words
   not written yet are placeholders: a draft in English, starting with the
   asterism (U+2042), so that it can't be mistaken for real copy.
   `npm run placeholders` fails while any placeholder is left, in CI and in
@@ -546,9 +548,8 @@ lib/
                       services and the fixtures
 ```
 
-Features move into their folders one at a time. Until a feature has moved,
-its files are at the top of `_components/`, `lib/` and `lib/server/`, and
-its words are in `staffCopy`.
+Every feature is in its folders: at the top of `_components/`, `lib/` and
+`lib/server/` is only what every feature stands on (`STAYS`, below).
 
 - **Its words.** Each copy file exports one object named for the feature
   (`accountsCopy`), and components and tests refer to its words by name. A

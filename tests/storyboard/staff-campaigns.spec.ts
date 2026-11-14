@@ -2,7 +2,6 @@ import type { Page } from "@playwright/test";
 import { longDay } from "@/lib/calendar-days";
 import { DATE_PICKER_WORDS } from "@/lib/content/date-picker";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { sentLetterId } from "./letter-steps";
@@ -14,6 +13,7 @@ import type { Section } from "./report/frames";
 import { asksCopy } from "@/lib/asks/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 export const section: Section = { name: "Campaigns, asks and sent emails", part: "Staff pages", order: 80 };
 
@@ -167,7 +167,7 @@ test("Sent emails", async ({ page, flowDatabase }) => {
   await frame(page, "The sent emails");
 
   story("Staff can search by address or subject, and filter by kind.");
-  await addFilter(page, staffCopy.sentEmails.filters.purpose, staffCopy.sentEmails.purposes.letter);
+  await addFilter(page, oversightCopy.sentEmails.filters.purpose, oversightCopy.sentEmails.purposes.letter);
   await expect(page).toHaveURL(/purpose=letter/);
   await frame(page, "Only letters");
 

@@ -1,9 +1,9 @@
 import "server-only";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { config } from "@/lib/server/config.server";
 import { problem } from "@/lib/server/problems.server";
 import { siteUrlIfKnown } from "@/lib/site-url.server";
 import { outsideFetch } from "./outside-fetch.server";
+import { serverCopy } from "@/lib/server/copy";
 
 /**
  * Starts the Luma import in its background function on Netlify
@@ -22,8 +22,8 @@ export async function startLumaImport(): Promise<void> {
       headers: { Authorization: `Bearer ${config.cronSecret}` },
     });
     // A background function answers 202 as it starts.
-    if (res.status !== 202) problem(staffCopy.problems.logs.lumaImportNotStarted, `It answered ${res.status}`);
+    if (res.status !== 202) problem(serverCopy.problems.logs.lumaImportNotStarted, `It answered ${res.status}`);
   } catch (error) {
-    problem(staffCopy.problems.logs.lumaImportNotStarted, error);
+    problem(serverCopy.problems.logs.lumaImportNotStarted, error);
   }
 }

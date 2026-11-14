@@ -1,6 +1,5 @@
 import StaffLink from "../ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { EmailBlock } from "@/lib/email/email.server";
 import type { DownloadFormat } from "@/lib/staff-list";
 import { staffTime } from "@/lib/staff-time";
@@ -10,8 +9,9 @@ import { UnblockBubble } from "../email/UnblockForm";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import TestTag from "../TestTag";
 import { supportersCopy } from "../supporters/copy";
+import { emailCopy } from "@/lib/email/copy";
 
-const copy = staffCopy.emails;
+const copy = emailCopy.emails;
 
 /** A supporter's name, or that they have none. */
 const supporterName = (s: EmailBlock["supporters"][number]) => s.name ?? supportersCopy.supporters.noName;

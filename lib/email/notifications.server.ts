@@ -5,8 +5,8 @@ import { query } from "@/lib/server/db.server";
 import { sendWith, type Purpose, type SendHooks } from "./email.server";
 import { nameLine, notifyDomain } from "@/lib/server/outside-services/postmark.server";
 import { problem } from "@/lib/server/problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffAddressLine } from "./staff-address.server";
+import { emailCopy } from "./copy";
 
 // Emails to the notification inbox (NOTIFICATION_INBOX): something on the
 // site needs a person. An MP's address bouncing, mail in the letters inbox
@@ -47,14 +47,14 @@ export async function notifyStaff(
 ): Promise<boolean> {
   const inbox = config.notificationInbox;
   if (!inbox) {
-    problem(staffCopy.problems.anywhere.noInbox);
+    problem(emailCopy.problems.noInbox);
     return false;
   }
   const result = await sendWith(
     sendHooks,
     {
       From: `PauseAI UK <noreply@${notifyDomain()}>`,
-      To: nameLine(staffCopy.inboxNames.notifications, inbox),
+      To: nameLine(emailCopy.inboxNames.notifications, inbox),
       ...(cc && { Cc: await staffAddressLine(cc) }),
       Subject: subject,
       TextBody: text,
@@ -81,7 +81,7 @@ export async function alertIfPoliticianBlocked(
     "SELECT name FROM notable_people WHERE lower(email) = $1 AND status = 'in_office' ORDER BY id",
     [address],
   );
-  const words = staffCopy.alert.notALetter;
+  const words = emailCopy.alert.notALetter;
   const link = staffLink("/staff/politicians/addresses-to-fix", request);
   for (const { name } of politicians) {
     await notifyStaff(words.subject(name), words.body(name, address, reason, link, bounce));

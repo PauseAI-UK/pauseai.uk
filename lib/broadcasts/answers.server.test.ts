@@ -1,5 +1,4 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { broadcastsCopy } from "./copy";
 import { http, HttpResponse } from "msw";
 import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
@@ -7,6 +6,7 @@ import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
 import { answerReply, answersTo } from "./answers.server";
 import { recordProblem } from "@/lib/email/email.server";
+import { emailCopy } from "@/lib/email/copy";
 
 const HELLO = "hello@pauseai.uk";
 const JO = "jo@pauseai.uk";
@@ -133,7 +133,7 @@ describeWithDatabase("answers to replies", () => {
 
   it("are forgotten when something goes wrong before they go, and kept as they are once they went", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     await connectTestGmail(HELLO);
     const { reply } = await replied();
     // Gmail refusing it, then logging that failing: nothing went, so it can be sent again.

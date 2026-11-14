@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, it, onTestFinished, vi } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { lettersCopy } from "@/lib/letters/copy";
 import {
   addTestPolitician,
@@ -15,6 +14,7 @@ import type { ChannelMessage, MailingChannel } from "@/lib/letters/channels.serv
 import { uncertainLetters } from "@/lib/letters/sending.server";
 import { createDraft, saveDraft, scheduleMailing } from "./drafts.server";
 import { sendDueLetters, startDueMailings } from "./sending.server";
+import { emailCopy } from "@/lib/email/copy";
 
 const JO = "jo@pauseai.uk";
 const LETTER: MailingDoc = {
@@ -212,7 +212,7 @@ describeWithDatabase("sending mailings", () => {
     expect(await sendDueLetters({ until: Infinity, gap: 0, channel })).toMatchObject({ sent: 0, failed: 0, left: 2 });
     expect((await letters()).map((letter) => letter.status)).toEqual(["scheduled", "scheduled"]);
     const [{ first }] = await query<{ first: number }>("SELECT min(id)::int AS first FROM letters_from_pauseai");
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(lettersCopy.problems.letterOf(first)));
   });
 

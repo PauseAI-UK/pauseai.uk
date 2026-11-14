@@ -1,5 +1,4 @@
 import "server-only";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { CivicrmImportResult } from "@/lib/import-runs";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";
@@ -16,6 +15,7 @@ import { resendAfterFix } from "@/lib/letters/relays.server";
 import { refreshSupporterFacts, refreshSupportersList } from "@/lib/supporters/facts.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
 import { jobsCopy } from "./copy";
+import { emailCopy } from "@/lib/email/copy";
 
 // Copies Global's UK chapter contacts from CiviCRM into civicrm_contacts:
 // hourly (/api/cron/import-civicrm) or when staff ask, each run in the
@@ -139,7 +139,7 @@ async function applyContacts(db: Queryable): Promise<{ optOuts: number; blocked:
          VALUES ($1, 'hold', $2, true, jsonb_build_object('contactId', $3::bigint)) RETURNING id)
        INSERT INTO email_blocks (address, problem_id) SELECT $1, id FROM problem
        ON CONFLICT (address) DO NOTHING RETURNING address`,
-      [hold.email, staffCopy.emails.holdReason, hold.contactId],
+      [hold.email, emailCopy.emails.holdReason, hold.contactId],
       db,
     );
     blocked += made.length;

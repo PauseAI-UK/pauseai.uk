@@ -1,5 +1,4 @@
 import type { APIRequestContext, Browser, Page } from "@playwright/test";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { IMPORT_JOBS, importPath } from "@/lib/import-runs";
 import { TEST_MPS } from "@/lib/politicians/test-mps";
 import { runSql } from "@/scripts/fresh-database.mjs";
@@ -16,6 +15,8 @@ import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { emailCopy } from "@/lib/email/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 export const section: Section = { name: "Permissions", part: "Staff pages", order: 140 };
 
@@ -172,12 +173,12 @@ test("An admin without Supporters", async ({ page, request, flowDatabase }) => {
 
   story("Sent emails says those to and from supporters aren't shown.");
   await page.goto(`${BASE}/staff/sent-emails`);
-  await expect(page.getByText(staffCopy.sentEmails.withheld)).toBeVisible();
+  await expect(page.getByText(oversightCopy.sentEmails.withheld)).toBeVisible();
   await frame(page, "The sent emails");
 
   story("The audit log says the same of its entries about supporters.");
   await page.goto(`${BASE}/staff/audit-log`);
-  await expect(page.getByText(staffCopy.changes.withheld)).toBeVisible();
+  await expect(page.getByText(oversightCopy.changes.withheld)).toBeVisible();
   await frame(page, "The audit log");
 });
 
@@ -218,7 +219,7 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(politiciansCopy.addressesToFix.title);
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: "no-such-mailbox@pauseai.uk" });
-  await expect(blocked.getByText(`${staffCopy.emails.letterTo} ${bouncy.name}`)).toBeVisible();
+  await expect(blocked.getByText(`${emailCopy.emails.letterTo} ${bouncy.name}`)).toBeVisible();
   await expect(page.locator('a[href^="/staff/letters"]')).toHaveCount(0);
   await frame(page, "Addresses to fix");
 
@@ -226,7 +227,7 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   // With supporters, the same page links to the letter.
   addStaffAccount(flowDatabase, staffEmail(), ["supporters"]);
   await page.reload();
-  await blocked.getByRole("link", { name: `${staffCopy.emails.letterTo} ${bouncy.name}` }).click();
+  await blocked.getByRole("link", { name: `${emailCopy.emails.letterTo} ${bouncy.name}` }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     lettersCopy.letters.oneTitle("Jane Smith", bouncy.name),
   );
@@ -243,22 +244,22 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   await logIn(page, flowDatabase, ["supporters"]);
 
   await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
-  await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
+  await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Addresses to fix, empty");
 
   story("Bounced emails lists her address.");
   await page.goto(`${BASE}/staff/supporters/bounced-emails`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(supportersCopy.bouncedEmails.title);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "jane.fixture@example.com" });
-  await expect(row).toContainText(staffCopy.emails.kinds.hard);
+  await expect(row).toContainText(emailCopy.emails.kinds.hard);
   await frame(page, "Bounced emails");
 
   story("Staff unblock it. Its row's button asks why first, for the audit log.");
-  await row.getByRole("button", { name: staffCopy.emails.unblockOpen }).click();
-  await row.getByLabel(staffCopy.emails.note).fill("She gave us a new one");
+  await row.getByRole("button", { name: emailCopy.emails.unblockOpen }).click();
+  await row.getByLabel(emailCopy.emails.note).fill("She gave us a new one");
   await frame(page, "Why they're unblocking it");
-  await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
-  await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
+  await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
+  await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Bounced emails, empty");
 });
 

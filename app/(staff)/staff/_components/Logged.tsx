@@ -1,10 +1,10 @@
 import { Fragment, type ReactNode } from "react";
 import IconButton from "@/components/ui/IconButton";
 import { Muted } from "@/components/ui/Text";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import styles from "./Logged.module.css";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 /** Parts of a line, between middle dots. */
 export function DotParts({ children }: { children: ReactNode[] }) {
@@ -27,7 +27,7 @@ export function DotParts({ children }: { children: ReactNode[] }) {
 export function LoggedJson({ id, details }: { id: string; details: unknown }) {
   return (
     <>
-      <IconButton look="outline" size={28} aria-label={staffCopy.changes.json} {...bubbleTrigger(id)}>
+      <IconButton look="outline" size={28} aria-label={staffVocabulary.logged.json} {...bubbleTrigger(id)}>
         {"{}"}
       </IconButton>
       <BubbleBox id={id} className={styles.bubble}>

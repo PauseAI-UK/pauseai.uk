@@ -1,7 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { server } from "@/tests/fixtures/msw";
 import {
   businessNumber,
@@ -14,6 +13,7 @@ import {
   signedByMeta,
   WhatsAppRequestError,
 } from "./whatsapp.server";
+import { serverCopy } from "@/lib/server/copy";
 
 const KEYS = { token: "token", accountId: "account" };
 const GRAPH = "https://graph.facebook.com/v23.0";
@@ -56,7 +56,7 @@ describe("our number", () => {
     // Refused, as by an API version without the field: the lowest, reported.
     server.use(http.get(`${GRAPH}/p1`, () => HttpResponse.json({ error: { code: 100 } }, { status: 400 })));
     expect((await businessNumber(KEYS)).dailyLimit).toBe(250);
-    expect(error.mock.calls[0][0]).toBe(staffCopy.problems.anywhere.whatsAppLimitUnknown);
+    expect(error.mock.calls[0][0]).toBe(serverCopy.problems.anywhere.whatsAppLimitUnknown);
   });
 
   it("refuses an account with no number, or a refusal, with Meta's code", async () => {

@@ -294,16 +294,16 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   await frame(page, "The filters");
   story("Staff pick those who retired. The filter becomes a chip above the list.");
   await page.keyboard.press("Escape");
-  await addFilter(page, filters.status, staffVocabulary.personStatuses.retired);
+  await addFilter(page, filters.status, politiciansCopy.personStatuses.retired);
   await expect(page).toHaveURL(/status=retired/);
   await expect(rows.filter({ hasText: "Rita Retired" })).toBeVisible();
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
   await frame(page, "The politicians who retired");
 
   story("They take that filter off, and filter by a marker: personal connections.");
-  await changeFilter(page, `${filters.status}: ${staffVocabulary.personStatuses.retired}`);
+  await changeFilter(page, `${filters.status}: ${politiciansCopy.personStatuses.retired}`);
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
-  await addFilter(page, filters.flag, filters.flags.connection);
+  await addFilter(page, filters.flag, staffVocabulary.politicianFlags.connection);
   await expect(page).toHaveURL(/flag=connection/);
   await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
   await expect(rows).toHaveCount(2);
@@ -311,14 +311,18 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
 
   story("Except this, in the chip's menu, turns it round: everyone but the personal connections.");
   // A chip's menu turns its choice to one the list leaves out.
-  await changeFilter(page, `${filters.flag}: ${filters.flags.connection}`, staffVocabulary.filters.exceptThis);
+  await changeFilter(
+    page,
+    `${filters.flag}: ${staffVocabulary.politicianFlags.connection}`,
+    staffVocabulary.filters.exceptThis,
+  );
   await expect(page).toHaveURL(/flag=%21connection/);
   await expect(rows.filter({ hasText: "Morag Example" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
   await frame(page, "Everyone but the personal connections");
 
   story("Next, an ask: the Edinburgh conference. Its chip has a second half, for the answer.");
-  await changeFilter(page, staffVocabulary.filters.notChip(filters.flag, filters.flags.connection));
+  await changeFilter(page, staffVocabulary.filters.notChip(filters.flag, staffVocabulary.politicianFlags.connection));
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   await addFilter(page, filters.ask, "Edinburgh conference");
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026$/);

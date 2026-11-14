@@ -9,13 +9,13 @@ import { isBlocked, sentBy } from "@/lib/email/email.server";
 import { gmailAccount } from "@/lib/accounts/gmail-accounts.server";
 import { SentUnrecorded, sendLetterVia, transition } from "@/lib/letters/lifecycle.server";
 import { problem } from "@/lib/server/problems.server";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { lettersCopy } from "@/lib/letters/copy";
 import { attachmentsOf, emailFor } from "./drafts.server";
 import { mailingChannel } from "./channels.server";
 import { paced, type MailingChannel } from "@/lib/letters/channels.server";
 import type { SkipReason } from "@/lib/letters/copy-states";
 import { sql } from "@/lib/server/sql.server";
+import { emailCopy } from "@/lib/email/copy";
 
 // Sending the mailings that are due: the send-mailings job starts each
 // scheduled one whose time has come, then sends its letters one at a
@@ -198,7 +198,7 @@ export async function sendDueLetters({
           },
         });
       } catch (error) {
-        const words = staffCopy.problems.anywhere;
+        const words = emailCopy.problems;
         if (error instanceof SentUnrecorded) {
           // It went: it stays sending, for uncertainLetters to mark uncertain, so it isn't sent twice.
           problem(words.sentUnrecorded(lettersCopy.problems.letterOf(letter.id)), error.cause);

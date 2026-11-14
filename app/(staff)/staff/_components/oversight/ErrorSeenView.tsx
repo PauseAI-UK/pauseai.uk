@@ -1,13 +1,13 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { ErrorSeen } from "@/lib/oversight/errors-seen.server";
 import { staffTime } from "@/lib/staff-time";
 import Band, { BandFact } from "../ui/Band";
 import Empty from "../ui/Empty";
 import Grid, { Card } from "../ui/Grid";
 import styles from "./ErrorSeenView.module.css";
+import { oversightCopy } from "@/lib/oversight/copy";
 
-const copy = staffCopy.errorsSeen;
+const copy = oversightCopy.errorsSeen;
 
 /**
  * One error's page: its words with what varies taken out, where and what it

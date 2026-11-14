@@ -1,6 +1,5 @@
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { lookUpTestMp, openLookup, sentLetterId } from "./letter-steps";
 import { bounceLetter, postReply, sentEmail } from "./letters-inbox-steps";
 import { logIn } from "./login-steps";
@@ -17,6 +16,7 @@ import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/cop
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 export const section: Section = { name: "Letters and bounces", part: "Staff pages", order: 100 };
 
@@ -219,7 +219,7 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   await bounceLetter(request, flowDatabase, letterId, BOUNCY_ADDRESS);
 
   const alert = newestEmail(
-    (email) => email.To === TO_NOTIFICATIONS && email.Subject === staffCopy.alert.subject(bouncy.name),
+    (email) => email.To === TO_NOTIFICATIONS && email.Subject === lettersCopy.alert.subject(bouncy.name),
   );
   expect(alert?.TextBody).toContain(`${BASE}/staff/politicians/addresses-to-fix`);
   await emailFrame(page, alert!, "The email staff get");
@@ -229,12 +229,12 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   // The blocked addresses, above the recent problems.
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: BOUNCY_ADDRESS });
   await expect(blocked.getByRole("link", { name: bouncy.name, exact: true })).toBeVisible();
-  await expect(blocked).toContainText(staffCopy.emails.kinds.hard);
+  await expect(blocked).toContainText(emailCopy.emails.kinds.hard);
   await frame(page, "Addresses to fix");
   story("The letter leads to its own page, which says it bounced, and links to Jane as a supporter.");
 
   // The letter, by whom it was to, leads to its own page.
-  await blocked.getByRole("link", { name: `${staffCopy.emails.letterTo} ${bouncy.name}` }).click();
+  await blocked.getByRole("link", { name: `${emailCopy.emails.letterTo} ${bouncy.name}` }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     lettersCopy.letters.oneTitle("Jane Smith", bouncy.name),
   );
@@ -310,9 +310,9 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
   await frame(page, "The MP's page");
   story("Staff check with the MP's office, then unblock the address, with a note.");
 
-  await page.getByLabel(staffCopy.emails.note).fill("Checked with their office");
-  await page.getByRole("button", { name: staffCopy.emails.unblock }).click();
-  await expect(page.getByLabel(staffCopy.emails.note)).not.toBeVisible();
+  await page.getByLabel(emailCopy.emails.note).fill("Checked with their office");
+  await page.getByRole("button", { name: emailCopy.emails.unblock }).click();
+  await expect(page.getByLabel(emailCopy.emails.note)).not.toBeVisible();
   // The blocked box goes from above where the button was, and where that leaves the window varied
   // between runs: at the top, the frame is of the whole page.
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));

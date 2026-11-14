@@ -1,5 +1,4 @@
 import "server-only";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { GMAIL_DAILY_LIMIT } from "./gmail-connect";
 import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
@@ -154,7 +153,7 @@ const ACCOUNT_PATH = "/staff/me";
  */
 async function forgetRevoked(email: string): Promise<void> {
   if ((await forget(email, "google", "access revoked")) === undefined) return;
-  const words = staffCopy.notifications.gmailDisconnected;
+  const words = accountsCopy.notifications.gmailDisconnected;
   await notifyStaff(
     words.subject(email),
     words.body(email, email === config.lettersInbox, staffLink(ACCOUNT_PATH, undefined)),

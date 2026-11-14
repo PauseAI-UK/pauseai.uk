@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks, recentProblems } from "@/lib/email/email.server";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 import { emailsSearch } from "@/lib/staff-search";
@@ -11,6 +10,7 @@ import EmailProblemsTable from "../../../_components/oversight/EmailProblemsTabl
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";
 import { politiciansCopy } from "../../../_components/politicians/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 export const metadata: Metadata = { title: politiciansCopy.addressesToFix.title };
 
@@ -30,7 +30,7 @@ export default async function MpEmailsPage({ searchParams }: { searchParams: Pro
         download={(format) => filtersPath("/staff/politicians/addresses-to-fix/download", { q, kind, format })}
         clear={clearedTo("/staff/politicians/addresses-to-fix", { q, kind })}
       />
-      <h2>{staffCopy.emails.problemsTitle}</h2>
+      <h2>{emailCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks={letterLinks} />
     </Page>
   );

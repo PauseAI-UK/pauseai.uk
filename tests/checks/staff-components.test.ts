@@ -62,12 +62,15 @@ const STAYS: Record<string, string[]> = {
     "storyRender",
     "trackers",
     // The import log, which every job keeps its runs in, whichever feature's it is: each job's name, page and
-    // schedule, and what its runs found.
+    // schedule, and what its runs found, and its words.
     "import-runs",
+    "import-runs-copy",
   ],
   "lib/server": [
-    // The database, settings, problems and runs, the import log they're kept in, and what a fixture build adds.
+    // The database, settings, problems and runs, the import log they're kept in, what a fixture build adds, and the
+    // words of the problems this folder's own code reports.
     "config",
+    "copy",
     "db",
     "fixtures-only",
     "flow-database",

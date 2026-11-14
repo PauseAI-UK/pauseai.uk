@@ -1,4 +1,3 @@
-import { staffCopy } from "@/lib/content/staff-interface";
 import { AUDIT_LOG_LIST, clearedPath, type ChangeSort } from "@/lib/staff-lists";
 import { type ChangesSearch } from "@/lib/staff-search";
 import { filtersPath, pageParam, type Params } from "@/lib/list-params";
@@ -11,8 +10,10 @@ import SortHeading from "../SortHeading";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import Withheld from "../ui/Withheld";
 import styles from "./ChangesTable.module.css";
+import { oversightCopy } from "@/lib/oversight/copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
-const copy = staffCopy.changes;
+const copy = oversightCopy.changes;
 const PATH = "/staff/audit-log";
 
 /**
@@ -29,10 +30,10 @@ export function changeColumns(): ListColumn<LoggedChange>[] {
     { key: "details", label: copy.details, cell: (c) => <AuditDetail change={c} /> },
     {
       key: "json",
-      label: copy.json,
+      label: staffVocabulary.logged.json,
       heading: (
         <th key="json">
-          <span className={styles.hidden}>{copy.json}</span>
+          <span className={styles.hidden}>{staffVocabulary.logged.json}</span>
         </th>
       ),
       text: (c) => JSON.stringify(c.details),

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { SITE_ACTOR } from "@/lib/broadcasts/broadcasts";
 import { staffTime } from "@/lib/staff-time";
 import { broadcastCounts } from "./BroadcastView";
@@ -24,6 +23,7 @@ import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { lettersCopy } from "../letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 const copy = broadcastsCopy.broadcastPages;
 const stateWords = lettersCopy.copyStates;
@@ -55,7 +55,7 @@ describe("replies to broadcasts", () => {
     const entry = (label: string) => history.getByText(label, { exact: true }).element().closest("li")!.textContent;
     expect(entry(copy.replies.historyNothing)).toContain(`${lettersCopy.letters.detail.fields.by}jo@pauseai.uk`);
     // Too little recorded to open as JSON, as a letter's can be.
-    expect(history.getByRole("button", { name: staffCopy.changes.json }).query()).toBeNull();
+    expect(history.getByRole("button", { name: staffVocabulary.logged.json }).query()).toBeNull();
     // Jo's answer, after the reply it answers, and in the History.
     await expect.element(page.getByText("Hi Jane, it's on 6 December. See you there!")).toBeVisible();
     await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();

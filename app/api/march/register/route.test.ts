@@ -4,7 +4,7 @@ import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { POST } from "./route";
-import { staffCopy } from "@/lib/content/staff-interface";
+import { serverCopy } from "@/lib/server/copy";
 
 /** Posts a body, JSON unless it's a string already, and reads the answer. */
 async function registerForMarch(body: unknown) {
@@ -98,7 +98,7 @@ describeWithDatabase("POST /api/march/register", () => {
 
   it("still says it worked when the sign-up can't be kept, as Luma has them", async () => {
     expect(await withDatabaseDown(() => registerForMarch(person))).toEqual({ ok: true });
-    expect(console.error).toHaveBeenCalledWith(staffCopy.problems.logs.signUpNotKept, expect.any(String));
+    expect(console.error).toHaveBeenCalledWith(serverCopy.problems.logs.signUpNotKept, expect.any(String));
   });
 
   it("says why it won't take a name or email", async () => {
@@ -136,7 +136,7 @@ describeWithDatabase("POST /api/march/register", () => {
       reason: "luma-failed",
     });
     expect(await entries()).toEqual([expect.objectContaining({ email: "luma-skips@example.org", status: "skipped" })]);
-    expect(console.error).toHaveBeenCalledWith(staffCopy.problems.logs.lumaSkippedGuest);
+    expect(console.error).toHaveBeenCalledWith(serverCopy.problems.logs.lumaSkippedGuest);
   });
 
   it("fails when Luma does", async () => {
@@ -145,7 +145,7 @@ describeWithDatabase("POST /api/march/register", () => {
       reason: "luma-failed",
     });
     expect(console.error).toHaveBeenCalledWith(
-      staffCopy.problems.logs.lumaRefusedGuest,
+      serverCopy.problems.logs.lumaRefusedGuest,
       'Luma responded 500: {"message":"Fixture failure"}',
     );
   });
@@ -153,7 +153,7 @@ describeWithDatabase("POST /api/march/register", () => {
   it("fails, rather than pretending, when there's no Luma key", async () => {
     vi.stubEnv("LUMA_API_KEY", undefined);
     expect(await registerForMarch(person)).toEqual({ ok: false, reason: "luma-failed" });
-    expect(console.error).toHaveBeenCalledWith(staffCopy.problems.logs.lumaNotConfigured);
+    expect(console.error).toHaveBeenCalledWith(serverCopy.problems.logs.lumaNotConfigured);
     expect(await entries()).toEqual([expect.objectContaining({ status: "not-configured" })]);
   });
 });

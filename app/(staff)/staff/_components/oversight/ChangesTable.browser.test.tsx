@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { changesSearch } from "@/lib/staff-search";
 import ChangesTable from "./ChangesTable";
@@ -11,6 +10,8 @@ import { downloads } from "@/tests/browser/staff";
 import { accountsCopy } from "../accounts/copy";
 import { supportersCopy } from "../supporters/copy";
 import { politiciansCopy } from "../politicians/copy";
+import { emailCopy } from "@/lib/email/copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 const [pm] = campaigns;
 
@@ -20,7 +21,7 @@ describe("ChangesTable", () => {
   it("sorts by date, who and what, keeping the filters, and pages and downloads what they find", async () => {
     const search = changesSearch({ actor: ["sync"], sort: "actor", dir: "asc", page: "2", saved: "4" });
     await render(<ChangesTable search={search} log={{ ...log(exampleChanges), pages: 3 }} page={2} />);
-    const copy = staffCopy.changes;
+    const copy = oversightCopy.changes;
     const heading = (name: string) =>
       [...document.querySelectorAll("th a")].find((a) => a.textContent!.includes(name))!.getAttribute("href");
     expect(heading(copy.day)).toBe("/staff/audit-log?actor=sync&sort=day&dir=desc&saved=4");
@@ -48,7 +49,7 @@ describe("ChangesTable", () => {
       />,
     );
     const cell = page.getByRole("row").nth(1).getByRole("cell").nth(4);
-    const copy = staffCopy.changes;
+    const copy = oversightCopy.changes;
     expect(cell.element().textContent).toBe(
       `${supportersCopy.signupUpload.uploads.title} · 5 ${copy.counts.imported(5)} · 2 ${copy.counts.heldBack(2)}`,
     );
@@ -78,7 +79,7 @@ describe("ChangesTable", () => {
     await render(<ChangesTable search={changesSearch({})} log={log(entries)} page={1} />);
     const details = (n: number) => page.getByRole("row").nth(n).getByRole("cell").nth(4);
     expect(details(1).element().textContent).toBe("Polly Placeholder · polly@example.com");
-    expect(details(2).element().textContent).toBe(`${staffCopy.changes.gone("7")} · polly@example.com`);
+    expect(details(2).element().textContent).toBe(`${oversightCopy.changes.gone("7")} · polly@example.com`);
   });
 
   it("leaves a change of nothing out of an entry's fields", async () => {
@@ -92,9 +93,9 @@ describe("ChangesTable", () => {
 
   it("lists who changed what, the day in a column of its own, and every field each logged, in words, linked where there's a page", async () => {
     await render(<ChangesTable search={changesSearch({})} log={log(exampleChanges)} page={1} />);
-    const copy = staffCopy.changes;
+    const copy = oversightCopy.changes;
     const fields = staffVocabulary.fields;
-    const labels = copy.labels;
+    const labels = staffVocabulary.logged.labels;
     await expect.element(page.getByText(copy.total(exampleChanges.length))).toBeVisible();
     expect(await downloads()).toEqual([
       "/staff/audit-log/download?format=csv",
@@ -116,10 +117,10 @@ describe("ChangesTable", () => {
     expect(details).toEqual([
       `Polly Placeholder · ${signed.before}${pm.title}${signed.after}, 1 Oct 2026 · ${labels.note} By email`,
       `${copy.gone("99")} · ${cleared.before}controlai-letter${cleared.after}`,
-      `Polly Placeholder · ${labels.airtableId} recPolly · ${fields.party} Labour → Independent · ${fields.email} ${copy.empty} → polly@example.org`,
+      `Polly Placeholder · ${labels.airtableId} recPolly · ${fields.party} Labour → Independent · ${fields.email} ${staffVocabulary.logged.empty} → polly@example.org`,
       `Polly Placeholder · ${labels.airtableId} recPolly · ${fields.house} ${staffVocabulary.houses.commons} · ${fields.salutation} Ms Placeholder · ${fields.constituency} Ipswich · ${fields.party} Labour`,
       "Old MP",
-      `polly@example.org · ${labels.kind} ${staffCopy.emails.kinds.hard}`,
+      `polly@example.org · ${labels.kind} ${emailCopy.emails.kinds.hard}`,
       `polly@example.org · ${labels.note} Fixed in Airtable`,
       "Jane Example",
       copy.gone("4"),
@@ -133,7 +134,7 @@ describe("ChangesTable", () => {
       `odd@example.org · ${labels.kind} weird`,
       `Polly Placeholder · ${odd.before}${pm.title}${odd.after}`,
       `2 widgets · ${labels.status} maybe · ${labels.campaign} ${pm.title}`,
-      `Old MP · ${fields.house} ${staffVocabulary.houses.commons} → ${staffVocabulary.houses.lords} · ${fields.party} Labour → ${copy.empty} · ${copy.labels.importantTarget} ${copy.off} → ${copy.on}`,
+      `Old MP · ${fields.house} ${staffVocabulary.houses.commons} → ${staffVocabulary.houses.lords} · ${fields.party} Labour → ${staffVocabulary.logged.empty} · ${staffVocabulary.logged.labels.importantTarget} ${staffVocabulary.logged.off} → ${staffVocabulary.logged.on}`,
       copy.run("13"),
       copy.run("14"),
       copy.run("15"),
@@ -164,7 +165,7 @@ describe("ChangesTable", () => {
     await render(<ChangesTable search={changesSearch({})} log={log(exampleChanges.slice(4, 5))} page={1} />);
     const json = page.getByText('"name": "Old MP"', { exact: false });
     await expect.element(json).not.toBeVisible();
-    await page.getByRole("button", { name: staffCopy.changes.json }).click();
+    await page.getByRole("button", { name: staffVocabulary.logged.json }).click();
     await expect.element(json).toBeVisible();
     expect(json.element().textContent).toBe(JSON.stringify(exampleChanges[4].details, null, 2));
   });

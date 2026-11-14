@@ -1,5 +1,4 @@
 import { exampleCivicrmResult, exampleLumaResult } from "../../app/(staff)/staff/_components/jobs/RunList.examples";
-import { jobTitles, staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { type ImportJob, importPath } from "@/lib/import-runs";
 import { staffDate } from "@/lib/staff-time";
@@ -21,6 +20,7 @@ import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
+import { importRunsCopy } from "@/lib/import-runs-copy";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
 
@@ -247,7 +247,7 @@ test("Google disconnects a Gmail", async ({ page, request, flowDatabase }) => {
     headers: { Authorization: "Bearer fixture-cron-secret" },
   });
   expect(res.ok()).toBe(true);
-  const words = staffCopy.notifications.gmailDisconnected;
+  const words = accountsCopy.notifications.gmailDisconnected;
   await emailFrame(page, notified(words.subject(staffEmail()))!, "The email to the notification inbox");
 
   story("The Gmail import's page shows that run failed, and why.");
@@ -301,7 +301,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
     .click();
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs`);
   const card = (job: ImportJob) =>
-    page.locator("section").filter({ has: page.getByRole("link", { name: jobTitles[job] }) });
+    page.locator("section").filter({ has: page.getByRole("link", { name: importRunsCopy.jobTitles[job] }) });
   await expect(card("import-parliament").getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
   await expect(card("import-controlai").getByText(jobsCopy.controlAi.never)).toBeVisible();
   await frame(page, "The Scheduled jobs page");
@@ -315,13 +315,13 @@ test("An import fails", async ({ page, request, flowDatabase }) => {
   const luma = () =>
     request.post(`${BASE}/api/cron/import-luma`, { headers: { Authorization: "Bearer fixture-cron-secret" } });
   expect((await luma()).ok()).toBe(false);
-  const words = staffCopy.notifications.importFailed;
-  const email = notified(words.subject(jobTitles["import-luma"]))!;
+  const words = importRunsCopy.notifications.importFailed;
+  const email = notified(words.subject(importRunsCopy.jobTitles["import-luma"]))!;
   await emailFrame(page, email, "The email to the notification inbox");
 
   story("An hour later it fails again. No second email: there's one until the import has worked.");
   expect((await luma()).ok()).toBe(false);
-  expect(notified(words.subject(jobTitles["import-luma"]))!.MessageId).toBe(email.MessageId);
+  expect(notified(words.subject(importRunsCopy.jobTitles["import-luma"]))!.MessageId).toBe(email.MessageId);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
   await expect(page.getByText(jobsCopy.runs.status.failed, { exact: true })).toHaveCount(2);
@@ -336,14 +336,14 @@ test("An import has problems", async ({ page, request, flowDatabase }) => {
   const luma = () =>
     request.post(`${BASE}/api/cron/import-luma`, { headers: { Authorization: "Bearer fixture-cron-secret" } });
   expect((await luma()).ok()).toBe(true);
-  const words = staffCopy.notifications.importProblems;
-  const email = notified(words.subject(jobTitles["import-luma"]))!;
+  const words = importRunsCopy.notifications.importProblems;
+  const email = notified(words.subject(importRunsCopy.jobTitles["import-luma"]))!;
   expect(email.TextBody).toContain(supportersCopy.problems.placesFailed);
   await emailFrame(page, email, "The email to the notification inbox");
 
   story("The next run has the same problem. No second email: there's one until the problem has gone.");
   expect((await luma()).ok()).toBe(true);
-  expect(notified(words.subject(jobTitles["import-luma"]))!.MessageId).toBe(email.MessageId);
+  expect(notified(words.subject(importRunsCopy.jobTitles["import-luma"]))!.MessageId).toBe(email.MessageId);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
   await expect(page.getByText(jobsCopy.runs.status.problems, { exact: true })).toHaveCount(2);
@@ -377,10 +377,10 @@ test("A held politician import", async ({ page, request, flowDatabase }) => {
   // The nightly import, which holds it.
   expect((await parliament()).ok()).toBe(true);
   story("The notification inbox gets an email about it, once.");
-  const title = jobTitles["import-parliament"];
+  const title = importRunsCopy.jobTitles["import-parliament"];
   await emailFrame(
     page,
-    notified(staffCopy.notifications.importHeld.subject(title, 21))!,
+    notified(politiciansCopy.notifications.importHeld.subject(title, 21))!,
     "The email to the notification inbox",
   );
 

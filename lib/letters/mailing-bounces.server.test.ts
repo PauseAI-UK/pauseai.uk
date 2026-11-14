@@ -1,16 +1,16 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { NOTIFICATIONS, notifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
 import { reportMailingBounces } from "./mailing-bounces.server";
+import { lettersCopy } from "./copy";
 
 afterEach(() => vi.unstubAllEnvs());
 describeWithDatabase("reportMailingBounces", () => {
   useTestDatabase();
 
   const LINK = "https://pauseai.uk/staff/politicians/addresses-to-fix";
-  const words = staffCopy.notifications.mailingBounces;
+  const words = lettersCopy.notifications.mailingBounces;
   const ADDRESS = "test-mp@parliament.example";
   const NAME = "Testy McTestface MP";
   let messages = 0;

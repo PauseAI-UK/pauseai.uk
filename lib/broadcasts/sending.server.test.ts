@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { query } from "@/lib/server/db.server";
 import { staffTime } from "@/lib/staff-time";
 import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/broadcast-fixtures";
@@ -16,6 +15,7 @@ import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { recordProblem } from "@/lib/email/email.server";
 import { inRun } from "@/lib/server/run-store.server";
 import { broadcastsCopy } from "./copy";
+import { emailCopy } from "@/lib/email/copy";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 const HELLO = "hello@pauseai.uk";
@@ -694,7 +694,7 @@ describeWithDatabase("sending broadcasts", () => {
     expect((await copies()).map((copy) => copy.status)).toEqual(["scheduled", "scheduled"]);
     expect(gmail).toEqual([]);
     const [{ first }] = await query<{ first: number }>("SELECT min(id)::int AS first FROM broadcast_messages");
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(broadcastsCopy.problems.copyOf(first)));
     vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
     expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 2, left: 0 });
@@ -712,7 +712,7 @@ describeWithDatabase("sending broadcasts", () => {
     expect(gmail).toHaveLength(1);
     expect((await copies()).map((copy) => copy.status)).toEqual(["sending"]);
     const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM broadcast_messages");
-    const words = staffCopy.problems.anywhere;
+    const words = emailCopy.problems;
     expect(error.mock.calls.map(([what]) => what)).toContain(words.sentUnrecorded(broadcastsCopy.problems.copyOf(id)));
   });
 
@@ -1179,7 +1179,7 @@ describeWithDatabase("sending texts", () => {
     const { run, problems } = await inRun(async (r) => ({ run: await sendDueBroadcasts(LATER), problems: r.problems }));
     expect(run).toMatchObject({ sent: 0, failed: 1, left: 0 });
     expect(await copies()).toMatchObject([{ address: "+447700900123", status: "failed" }]);
-    expect(problems.map((p) => p.what)).toEqual([staffCopy.problems.anywhere.sendFailed("broadcast")]);
+    expect(problems.map((p) => p.what)).toEqual([emailCopy.problems.sendFailed("broadcast")]);
     // Kept as cut off, so Resume never sends it again.
     expect(await query("SELECT details FROM broadcast_message_events WHERE kind = 'failed'")).toEqual([
       { details: { unfinished: true } },

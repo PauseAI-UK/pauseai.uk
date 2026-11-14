@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { notifications } from "@/tests/notifications";
 import { connectTestGmail, describeWithDatabase, TEST_GMAIL_TOKEN_KEY, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
@@ -156,7 +155,7 @@ describeWithDatabase("connected Gmail accounts", () => {
     await connectTestGmail("al@pauseai.uk");
     server.use(http.post(TOKEN, () => HttpResponse.json({ error: "invalid_grant" }, { status: 400 })));
     await expect(gmailAccess("al@pauseai.uk")).rejects.toMatchObject({ revoked: true });
-    const words = staffCopy.notifications.gmailDisconnected;
+    const words = accountsCopy.notifications.gmailDisconnected;
     expect(sent.map((email) => [email.Subject, email.TextBody])).toEqual([
       [words.subject("al@pauseai.uk"), words.body("al@pauseai.uk", false, "https://pauseai.uk/staff/me")],
     ]);
@@ -190,7 +189,7 @@ describeWithDatabase("connected Gmail accounts", () => {
     server.use(http.post(TOKEN, () => HttpResponse.json({ error: "invalid_grant" }, { status: 400 })));
     await expect(gmailAccess("letters@pauseai.uk")).rejects.toMatchObject({ revoked: true });
     expect(sent[0].TextBody).toBe(
-      staffCopy.notifications.gmailDisconnected.body("letters@pauseai.uk", true, "https://pauseai.uk/staff/me"),
+      accountsCopy.notifications.gmailDisconnected.body("letters@pauseai.uk", true, "https://pauseai.uk/staff/me"),
     );
   });
 

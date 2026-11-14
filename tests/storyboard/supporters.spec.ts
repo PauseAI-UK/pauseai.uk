@@ -3,7 +3,6 @@ import { campaigns } from "@/lib/content/email-your-mp";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { marchSignupCopy } from "@/lib/content/march-signup";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Reason, Topic } from "@/lib/supporters/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
@@ -24,6 +23,7 @@ import { erasureCopy } from "@/lib/erasure/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { notesCopy } from "@/app/(staff)/staff/_components/notes/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 export const section: Section = { name: "Supporters", part: "Staff pages", order: 50 };
 
@@ -735,13 +735,13 @@ test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters/bounced-emails`);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "casey.chapter@example.com" });
-  await expect(row).toContainText(staffCopy.emails.kinds.hold);
+  await expect(row).toContainText(emailCopy.emails.kinds.hold);
   await frame(page, "Bounced emails");
   story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
-  await row.getByRole("button", { name: staffCopy.emails.unblockOpen }).click();
-  await row.getByLabel(staffCopy.emails.note).fill("Global say the address works again");
-  await row.getByRole("button", { name: staffCopy.emails.unblock, exact: true }).click();
-  await expect(page.getByText(staffCopy.emails.noBlocks)).toBeVisible();
+  await row.getByRole("button", { name: emailCopy.emails.unblockOpen }).click();
+  await row.getByLabel(emailCopy.emails.note).fill("Global say the address works again");
+  await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
+  await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Bounced emails, empty");
 });
 

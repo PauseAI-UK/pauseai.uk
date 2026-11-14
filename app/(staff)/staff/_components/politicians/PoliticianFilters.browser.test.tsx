@@ -39,7 +39,7 @@ describe("PoliticianFilters", () => {
     const edinburgh = ask("edinburgh-conference-2026").title;
     expect(chips()).toEqual([
       `${staffVocabulary.fields.party}: Labour`,
-      `${copy.status}: ${staffVocabulary.personStatuses.retired}`,
+      `${copy.status}: ${politiciansCopy.personStatuses.retired}`,
       edinburgh,
       staffVocabulary.statuses.declined,
     ]);
@@ -54,8 +54,8 @@ describe("PoliticianFilters", () => {
       "/staff/politicians?q=blake&house=lords&status=retired&party=Labour&ask=frontier-ai-letter&sort=asks&dir=asc",
     );
     // Status goes back to those in office by its blank choice.
-    expect((await menu(`${copy.status}: ${staffVocabulary.personStatuses.retired}`))[0]).toEqual([
-      staffVocabulary.personStatuses.in_office,
+    expect((await menu(`${copy.status}: ${politiciansCopy.personStatuses.retired}`))[0]).toEqual([
+      politiciansCopy.personStatuses.in_office,
       "/staff/politicians?q=blake&house=lords&party=Labour&ask=edinburgh-conference-2026&answer=declined&sort=asks&dir=asc",
     ]);
     // The party can be chosen again, from those not chosen; the other filters not on are there too.
@@ -64,7 +64,7 @@ describe("PoliticianFilters", () => {
       ...Object.values(staffVocabulary.countries),
       "Green",
       ...Object.values(copy.emailStates),
-      ...Object.values(copy.flags),
+      ...Object.values(staffVocabulary.politicianFlags),
       // Those mailed about each ask.
       ...exampleAsks.map((ask) => ask.title),
     ]);
@@ -119,7 +119,7 @@ describe("PoliticianFilters, chosen more than once", () => {
     await render(
       <PoliticianFilters search={{ ...emptyPoliticiansSearch, flag: ["important"] }} asks={exampleAsks} parties={[]} />,
     );
-    const chip = `${politiciansCopy.politicians.flag}: ${politiciansCopy.politicians.flags.important}`;
+    const chip = `${politiciansCopy.politicians.flag}: ${staffVocabulary.politicianFlags.important}`;
     expect((await menu(chip)).find(([text]) => text === staffVocabulary.filters.remove)![1]).toBe("/staff/politicians");
   });
 });

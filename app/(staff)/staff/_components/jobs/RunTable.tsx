@@ -1,5 +1,4 @@
 import { Fragment } from "react";
-import { staffCopy } from "@/lib/content/staff-interface";
 import type { AnyImportRun, GmailRead, GmailReading, ImportJob, LumaImport } from "@/lib/import-runs";
 import type { LogEntry } from "@/lib/jobs/run-log";
 import { staffClock } from "@/lib/staff-time";
@@ -9,6 +8,7 @@ import Table from "@/components/ui/Table";
 import styles from "./RunTable.module.css";
 import { lettersCopy } from "../letters/copy";
 import { jobsCopy } from "./copy";
+import { oversightCopy } from "@/lib/oversight/copy";
 
 /** What a run's table has: a heading and a cell for each column. */
 type Column<Run> = { heading: string; cell: (run: Run) => string | number };
@@ -30,7 +30,7 @@ const gmailWords = jobsCopy.gmailReading.columns;
 const GMAIL: Column<GmailReading>[] = [
   { heading: gmailWords.replies, cell: (run) => overAccounts(run, (a) => a.replies) },
   { heading: gmailWords.autoReplies, cell: (run) => overAccounts(run, (a) => a.autoReplies) },
-  { heading: staffCopy.sentEmails.outcomes.bounced, cell: (run) => overAccounts(run, (a) => a.bounces) },
+  { heading: oversightCopy.sentEmails.outcomes.bounced, cell: (run) => overAccounts(run, (a) => a.bounces) },
   { heading: gmailWords.oneOffs, cell: (run) => overAccounts(run, (a) => a.oneOffs) },
   { heading: lettersCopy.lettersInbox.labels.relayed, cell: (run) => overAccounts(run, (a) => a.relayed) },
   { heading: lettersCopy.lettersInbox.labels.spam, cell: (run) => overAccounts(run, (a) => a.spam) },

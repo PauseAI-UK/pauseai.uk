@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, type Locator } from "vitest/browser";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { historyOf, LetterHistory } from "./LetterHistory";
 import {
   exampleOlderRepliedLetterDetails,
@@ -10,6 +9,7 @@ import {
   exampleSupporterLetterDetails,
 } from "./LettersTable.examples";
 import { lettersCopy } from "./copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 describe("LetterHistory", () => {
   const copy = lettersCopy.letters;
@@ -26,7 +26,7 @@ describe("LetterHistory", () => {
     // A hard bounce says no more than its status; the {} has what Postmark said.
     expect(bounced.element().querySelector("strong")!.textContent).toBe(copy.status.bounced);
     expect(bounced.element().querySelector("dl")).toBeNull();
-    await bounced.getByRole("button", { name: staffCopy.changes.json }).click();
+    await bounced.getByRole("button", { name: staffVocabulary.logged.json }).click();
     await expect.element(page.getByText('"type": "HardBounce"', { exact: false })).toBeVisible();
   });
 

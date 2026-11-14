@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { staffCopy } from "@/lib/content/staff-interface";
 import { listBlocks, recentProblems } from "@/lib/email/email.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { emailsSearch } from "@/lib/staff-search";
@@ -11,6 +10,7 @@ import EmailProblemsTable from "../../../_components/oversight/EmailProblemsTabl
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";
 import { supportersCopy } from "../../../_components/supporters/copy";
+import { emailCopy } from "@/lib/email/copy";
 
 export const metadata: Metadata = { title: supportersCopy.bouncedEmails.title };
 
@@ -34,7 +34,7 @@ export default async function SupporterEmailsPage({
         download={(format) => filtersPath("/staff/supporters/bounced-emails/download", { q, kind, format })}
         clear={clearedTo("/staff/supporters/bounced-emails", { q, kind })}
       />
-      <h2>{staffCopy.emails.problemsTitle}</h2>
+      <h2>{emailCopy.emails.problemsTitle}</h2>
       <EmailProblemsTable problems={problems} letterLinks />
     </Page>
   );
