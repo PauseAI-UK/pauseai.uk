@@ -19,7 +19,7 @@ export default function Timeline() {
               </p>
               <p>
                 We convened a panel of experts and politicians at the Playfair Library in Edinburgh to discuss the
-                issues, propose solutions and answer questions from the public.
+                issues, propose solutions and answer questions from the public, with:
               </p>
               <EntryList>
                 <li>
@@ -62,7 +62,7 @@ export default function Timeline() {
               <Shot
                 href="/images/edinburgh-conference-nov-2026/edinburgh-panel.jpg"
                 src="/images/edinburgh-conference-nov-2026/edinburgh-panel-thumb.jpg"
-                alt="Four panellists at a table, one of them speaking"
+                alt="Three panellists at a table, one of them speaking"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
               <Shot
