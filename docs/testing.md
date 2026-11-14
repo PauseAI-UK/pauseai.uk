@@ -1171,6 +1171,25 @@ pages are noindex.
   is made as Chromium paints, and a pill's edge comes out a shade different
   with each fraction it makes up.
 
+- **No frame depends on where it's drawn**, and a check keeps it so:
+
+  ```bash
+  npm run storyboard:determinism                        # every group, both viewports
+  npm run storyboard:determinism -- -g 'gallery: ui$'   # anything else goes to `playwright test`
+  ```
+
+  It pictures every group twice, the second time with 3.37 pixels, a
+  sliver of one and a few whole ones, put above the first component
+  (`STORYBOARD_SPACER`, `gallery.spec.ts`), and fails naming each frame
+  that differs by a single pixel, with both pictures, in
+  `test-results/storyboard-determinism/`. It uses the server on this
+  checkout's port, or builds one. The gate runs it after the storyboard
+  when a file that decides how frames are pictured has changed
+  (`PICTURING`, `scripts/gate.mjs`: `frame.ts`, `playwright.config.ts`,
+  `gallery.spec.ts` and the check's own script). CI doesn't, as it takes no
+  pictures. Run it on main now and then too: a new Chromium can find a new
+  way for a picture to depend on its place.
+
 - Knip leaves the gallery out (`knip.config.ts`): it imports every
   component, so they'd all look used.
 
@@ -1334,6 +1353,7 @@ npm run test:browser      # Vitest browser project
 npm run test:watch        # Vitest in watch mode
 npm run test:storyboard   # Playwright: every flow, without screenshots, as CI runs them
 npm run storyboard        # Playwright: the flows a change can reach, with screenshots, against main (--full: every flow)
+npm run storyboard:determinism  # the gallery pictured twice, once with space above, failing if any frame differs
 npm run test:report       # open the last Playwright report
 ```
 

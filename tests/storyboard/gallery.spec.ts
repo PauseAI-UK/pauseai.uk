@@ -83,6 +83,18 @@ for (const group of GROUPS) {
   test(`gallery: ${group}`, async ({ page }) => {
     await open(page, `/gallery/${group}`);
     await expect(page.locator(`[data-gallery-group="${group}"]`)).toBeVisible();
+    // STORYBOARD_SPACER, a height in pixels, put above the first component: npm run storyboard:determinism
+    // pictures every group with it and without, to check that no frame depends on where it's drawn.
+    if (process.env.STORYBOARD_SPACER) {
+      await page
+        .locator(`[data-gallery-group="${group}"] > section`)
+        .first()
+        .evaluate((first, height) => {
+          const spacer = document.createElement("div");
+          spacer.style.height = `${height}px`;
+          first.before(spacer);
+        }, Number(process.env.STORYBOARD_SPACER));
+    }
     // The attachments' example PDF isn't there to draw, so each ends as a sheet, a blank canvas until pdf.js has found that.
     if (group === "staff-mailings-events") await expect(page.locator("canvas")).toHaveCount(0);
     const sections = page.locator(`[data-gallery-group="${group}"] > section`);
