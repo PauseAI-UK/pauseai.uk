@@ -256,6 +256,7 @@ describeWithDatabase("importPoliticians", () => {
     const [run] = await runs("import-senedd");
     expect(run.problems).toEqual([
       expect.objectContaining({ what: politiciansCopy.politicianImports.genderLookupFailed }),
+      expect.objectContaining({ what: politiciansCopy.politicianImports.honourLookupFailed }),
     ]);
     server.resetHandlers();
     await importPoliticians("senedd", JO);
@@ -266,8 +267,9 @@ describeWithDatabase("importPoliticians", () => {
     await importPoliticians("senedd", JO);
     let asked = 0;
     server.use(
-      http.post("https://query.wikidata.org/sparql", () => {
-        asked++;
+      http.post("https://query.wikidata.org/sparql", async ({ request }) => {
+        // Who's Sir or Dame is asked every time; genders only for those who need them.
+        if (new URLSearchParams(await request.text()).get("query")?.includes("wdt:P21")) asked++;
         return HttpResponse.json({
           results: {
             bindings: [{ id: { value: "92002" }, gender: { value: "http://www.wikidata.org/entity/Q6581097" } }],
@@ -302,8 +304,9 @@ describeWithDatabase("importPoliticians", () => {
     expect(logged.details.note).toBe("");
   });
 
-  it("uses Wikidata's surname only where the member's name ends with it", async () => {
+  it("uses Wikidata's surname only where the member's name ends with it, and it's longer than the name's own", async () => {
     const female = { value: "http://www.wikidata.org/entity/Q6581072" };
+    const male = { value: "http://www.wikidata.org/entity/Q6581097" };
     server.use(
       http.post("https://query.wikidata.org/sparql", () =>
         HttpResponse.json({
@@ -311,6 +314,7 @@ describeWithDatabase("importPoliticians", () => {
             bindings: [
               { id: { value: "92004" }, gender: female, surname: { value: "Cooper" } },
               { id: { value: "92005" }, gender: female, surname: { value: "Long Bailey" } },
+              { id: { value: "92006" }, gender: male, surname: { value: "Iorwerth" } },
             ],
           },
         }),
@@ -320,6 +324,7 @@ describeWithDatabase("importPoliticians", () => {
           `<wards><ward><wardtitle>Ynys Môn</wardtitle>` +
             `<councillor><councillorid>92004</councillorid><fullusername>Sarah Cooper-Lesadd MS</fullusername></councillor>` +
             `<councillor><councillorid>92005</councillorid><fullusername>Jane Long Bailey MS</fullusername></councillor>` +
+            `<councillor><councillorid>92006</councillorid><fullusername>Rhun ap Iorwerth MS</fullusername></councillor>` +
             `</ward></wards>`,
         ),
       ),
@@ -327,6 +332,7 @@ describeWithDatabase("importPoliticians", () => {
     await importPoliticians("senedd", JO);
     expect((await people()).map((p) => [p.name, p.salutation])).toEqual([
       ["Jane Long Bailey", "Ms Long Bailey"],
+      ["Rhun ap Iorwerth", "Mr ap Iorwerth"],
       ["Sarah Cooper-Lesadd", "Ms Cooper-Lesadd"],
     ]);
   });
@@ -363,6 +369,38 @@ describeWithDatabase("importPoliticians", () => {
     expect(sent.filter((n) => n.Subject === importRunsCopy.notifications.importProblems.subject(title))).toHaveLength(
       1,
     );
+  });
+
+  it("reports a salutation that doesn't spell the name, and one without the Sir or Dame Wikidata records, peers aside", async () => {
+    await importPoliticians("parliament", JO);
+    const [dora] = await query<{ id: number }>("SELECT id::int AS id FROM notable_people WHERE name = 'Ms Dora Dummy'");
+    await editPoliticianDetails(dora.id, { salutation: "Ms Dumy", note: "A slip" }, JO);
+    let asked = "";
+    const dame = { value: "http://www.wikidata.org/entity/Q901407" };
+    server.use(
+      http.post("https://query.wikidata.org/sparql", async ({ request }) => {
+        asked = new URLSearchParams(await request.text()).get("query") ?? "";
+        return HttpResponse.json({
+          results: {
+            bindings: [
+              { id: { value: "90002" }, honour: dame },
+              { id: { value: "90101" }, honour: dame },
+            ],
+          },
+        });
+      }),
+    );
+    await importPoliticians("parliament", NIGHTLY);
+    // A peer's title outranks a knighthood, so Wikidata isn't asked about Lord Seedling.
+    expect(asked).toContain('"90002"');
+    expect(asked).not.toContain('"90101"');
+    const words = politiciansCopy.politicianImports;
+    const [run] = await runs("import-parliament");
+    expect(run.problems).toEqual([
+      { what: words.keptSalutation("Ms Dora Dummy", "Ms Dumy", "parliament", "Ms Dummy") },
+      { what: words.misspeltSalutation("Ms Dora Dummy", "Ms Dumy") },
+      { what: words.missingHonour("Polly Placeholder", "Ms Placeholder", "Dame") },
+    ]);
   });
 
   it("adds the test MPs with no email when TEST_MP_EMAIL isn't set", async () => {

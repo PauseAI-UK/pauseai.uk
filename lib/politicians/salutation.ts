@@ -55,14 +55,15 @@ const LADIES = /^(?:The\s+)?(?:Baroness|Lady|Viscountess|Countess|Marchioness)\s
 /**
  * A peer's, from the name Parliament displays: their rank as Lord or Lady
  * and their title's name without its place ("Baroness Smith of Basildon" is
- * Lady Smith; "The Earl of Kinnoull" is Lord Kinnoull); a bishop is Bishop,
- * an archbishop Archbishop, and a duke Duke.
+ * Lady Smith; "The Earl of Kinnoull" is Lord Kinnoull); as Parliament's
+ * guide to addressing its members has them, an archbishop is Archbishop, a
+ * bishop Lord Bishop, and a duke Duke of his title ("Duke of Wellington").
  */
 export function peerSalutation(displayAs: string): string | null {
   const name = displayAs.trim();
   if (/^(?:The\s+)?(?:Lord\s+)?Archbishop\b/i.test(name)) return "Archbishop";
-  if (/^(?:The\s+)?(?:Lord\s+)?Bishop\b/i.test(name)) return "Bishop";
-  if (/^(?:The\s+)?Duke\b/i.test(name)) return "Duke";
+  if (/^(?:The\s+)?(?:Lord\s+)?Bishop\b/i.test(name)) return "Lord Bishop";
+  if (/^(?:The\s+)?Duke\b/i.test(name)) return name.replace(/^The\s+/i, "");
   const rank = LADIES.test(name) ? "Lady" : LORDS.test(name) ? "Lord" : undefined;
   if (!rank) return null;
   return `${rank} ${name.replace(rank === "Lady" ? LADIES : LORDS, "").replace(/\s+of\s+.*$/i, "")}`;

@@ -1,13 +1,16 @@
 // Members' genders, and surnames where it has them, from Wikidata
 // (https://query.wikidata.org/, no key needed), for the salutations of
 // MSPs and Senedd members, whose bodies give neither a title nor a gender
-// (lib/politicians/salutation.ts). A member is found by an ID, never by name: a Senedd
-// member by their Senedd ID (P4651), the ID the Senedd gives them; an MSP by
-// their TheyWorkForYou ID (P2171), which TheyWorkForYou's people data links
-// to the ID the Scottish Parliament gives them. Gender is read to choose Mr
+// (lib/politicians/salutation.ts); and which members of every body are Sir
+// or Dame, which no body's list says, for the imports to check their
+// salutations by. A member is found by an ID, never by name: the ID their
+// body gives them, as Wikidata keeps it (WIKIDATA_IDS); an MSP by their
+// TheyWorkForYou ID (P2171), which TheyWorkForYou's people data links to
+// the ID the Scottish Parliament gives them. Gender is read to choose Mr
 // or Ms, and never kept. The caller fetches:
 // lib/server/outside-services/wikidata.server.ts.
 
+import type { Honour } from "./import-changes";
 import type { Gender } from "./salutation";
 
 export const WIKIDATA_QUERY = "https://query.wikidata.org/sparql";
@@ -15,8 +18,13 @@ export const WIKIDATA_QUERY = "https://query.wikidata.org/sparql";
 /** TheyWorkForYou's people, each with the IDs other sources give them (mySociety's parlparse). */
 export const THEYWORKFORYOU_PEOPLE = "https://raw.githubusercontent.com/mysociety/parlparse/master/members/people.json";
 
-/** Wikidata's properties for the IDs a member is found by. */
-export const WIKIDATA_IDS = { senedd: "P4651", theyWorkForYou: "P2171" } as const;
+/** Wikidata's properties for the IDs a member is found by: the ID each body gives them, or for an MSP, TheyWorkForYou's. */
+export const WIKIDATA_IDS = {
+  parliament: "P10428",
+  senedd: "P4651",
+  "ni-assembly": "P5870",
+  theyWorkForYou: "P2171",
+} as const;
 
 /** A member's gender and surname, as Wikidata has them. */
 export type WikidataPerson = { gender: Gender; surname?: string };
@@ -56,6 +64,35 @@ export function peopleIn(data: unknown): Map<string, WikidataPerson> {
     });
   }
   return people;
+}
+
+/** Wikidata's items for the honorific prefixes (P511) a salutation takes: Sir and Dame. */
+const HONOURS: Record<string, Honour> = { Q209690: "Sir", Q901407: "Dame" };
+
+/** The SPARQL that finds which of the people with these IDs Wikidata calls Sir or Dame. */
+export function honoursQuery(property: string, ids: string[]): string {
+  const values = ids.map((id) => JSON.stringify(id)).join(" ");
+  const honours = Object.keys(HONOURS)
+    .map((item) => `wd:${item}`)
+    .join(" ");
+  return `SELECT ?id ?honour WHERE {
+  VALUES ?id { ${values} }
+  VALUES ?honour { ${honours} }
+  ?person wdt:${property} ?id ; wdt:P511 ?honour .
+}`;
+}
+
+/** Each honour in a query's answer (honoursQuery), by the ID its holder was found by. */
+export function honoursIn(data: unknown): Map<string, Honour> {
+  const bindings = (data as { results?: { bindings?: { id: { value: string }; honour?: { value: string } }[] } } | null)
+    ?.results?.bindings;
+  if (!Array.isArray(bindings)) throw new Error("Wikidata's answer has no results");
+  return new Map(
+    bindings.flatMap((b) => {
+      const honour = HONOURS[b.honour?.value.split("/").pop() ?? ""];
+      return honour ? [[b.id.value, honour] as const] : [];
+    }),
+  );
 }
 
 type TheyWorkForYouPerson = { id: string; identifiers?: { scheme: string; identifier: string }[] };

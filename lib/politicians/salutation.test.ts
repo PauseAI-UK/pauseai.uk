@@ -54,10 +54,11 @@ describe("peerSalutation", () => {
     expect(peerSalutation("The Countess of Mar")).toBe("Lady Mar");
   });
 
-  it("calls a bishop Bishop, an archbishop Archbishop and a duke Duke", () => {
-    expect(peerSalutation("The Lord Bishop of Chelmsford")).toBe("Bishop");
+  it("calls a bishop Lord Bishop, an archbishop Archbishop and a duke Duke of his title, as Parliament's guide does", () => {
+    expect(peerSalutation("The Lord Bishop of Chelmsford")).toBe("Lord Bishop");
     expect(peerSalutation("The Lord Archbishop of York")).toBe("Archbishop");
-    expect(peerSalutation("The Duke of Norfolk")).toBe("Duke");
+    expect(peerSalutation("The Duke of Wellington")).toBe("Duke of Wellington");
+    expect(peerSalutation("Duke of Norfolk")).toBe("Duke of Norfolk");
   });
 
   it("is nothing for a name with no rank it knows", () => {

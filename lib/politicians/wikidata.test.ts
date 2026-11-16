@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { THEYWORKFORYOU_PEOPLE_DATA, wikidataAnswer } from "@/lib/server/fixtures/politician-lists";
-import { peopleIn, peopleQuery, theyWorkForYouIds } from "./wikidata";
+import { honoursIn, honoursQuery, peopleIn, peopleQuery, theyWorkForYouIds } from "./wikidata";
 
 describe("Wikidata's people", () => {
   it("asks for the people with each ID, by its property", () => {
@@ -35,6 +35,34 @@ describe("Wikidata's people", () => {
     expect(people.get("3")).toEqual({ gender: undefined, surname: "Later" });
     expect(() => peopleIn({})).toThrow("no results");
     expect(() => peopleIn(null)).toThrow("no results");
+  });
+});
+
+describe("Wikidata's honours", () => {
+  it("asks which of the people with each ID are Sir or Dame, by its property", () => {
+    const query = honoursQuery("P10428", ["1446"]);
+    expect(query).toContain('VALUES ?id { "1446" }');
+    expect(query).toContain("VALUES ?honour { wd:Q209690 wd:Q901407 }");
+    expect(query).toContain("?person wdt:P10428 ?id ; wdt:P511 ?honour");
+  });
+
+  it("reads each Sir and Dame by their ID, and nothing else", () => {
+    const binding = (id: string, honour?: string) => ({
+      id: { value: id },
+      ...(honour && { honour: { value: `http://www.wikidata.org/entity/${honour}` } }),
+    });
+    expect(
+      honoursIn({
+        results: { bindings: [binding("1", "Q209690"), binding("2", "Q901407"), binding("3", "Q1"), binding("4")] },
+      }),
+    ).toEqual(
+      new Map([
+        ["1", "Sir"],
+        ["2", "Dame"],
+      ]),
+    );
+    expect(() => honoursIn({})).toThrow("no results");
+    expect(() => honoursIn(null)).toThrow("no results");
   });
 });
 

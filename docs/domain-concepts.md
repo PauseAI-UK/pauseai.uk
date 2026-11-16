@@ -48,17 +48,21 @@ A notable person has what all kinds share:
 
 - a name as they're known in public, with any title that's part of it
   ("Lord McFall of Alcluith");
-- a salutation, which follows "Dear" ("Sir Iain", "Lady Smith", "Bishop"):
+- a salutation, which follows "Dear" ("Sir Iain", "Lady Smith", "Lord Bishop"):
   made by a rule from what their body lists (`lib/politicians/salutation.ts`), which
   staff can correct, saying why. Where the rule can't tell, as for a new MSP or member
   of the Senedd whose gender Wikidata doesn't know yet, it's their name,
   marked to check (`salutation_to_check`), and made again once it can.
   Where their body records their title (an MP's in Parliament's list name,
-  as "Badenoch, Mrs Kemi"; every MLA's), that's how they asked to be
-  addressed, so each import makes their salutation from it, over ours,
-  unless staff have set ours by hand. Then it keeps ours, and reports the
-  difference as a problem on the run, for staff to check. Gender is read
-  only to choose Mr or Ms, never kept;
+  as "Badenoch, Mrs Kemi"; a peer's, which is their displayed name; every
+  MLA's), that's how they asked to be addressed, so each import makes their
+  salutation from it, over ours, unless staff have set ours by hand. Then it
+  keeps ours, and reports the difference as a problem on the run, for staff
+  to check. Each import also reports a salutation that doesn't spell the
+  name as it's written, case and all ("Mr Mckee" for Ivan McKee), and one
+  without the Sir or Dame Wikidata records, which no body's list shows
+  (peers aside, whose title outranks it). Gender is read only to choose Mr
+  or Ms, never kept;
 - an email, if we know it;
 - notes;
 - Airtable's markers (important target, personal connection), which staff

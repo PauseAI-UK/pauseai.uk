@@ -7,7 +7,10 @@ import {
   keptSalutations,
   matchMembers,
   MAX_UNCHECKED_IMPORT_CHANGES,
+  missingHonours,
+  misspeltSalutations,
   nextEmail,
+  spellsName,
   sharedAddresses,
   updated,
   type OfficialMember,
@@ -238,6 +241,53 @@ describe("updated and added", () => {
       salutationToCheck: true,
       email: null,
     });
+  });
+});
+
+describe("salutations to check", () => {
+  it("spells a name when the words after the title are words of the name, case and all", () => {
+    expect(spellsName("Mr McKee", "Ivan McKee")).toBe(true);
+    expect(spellsName("Mr ap Iorwerth", "Rhun ap Iorwerth")).toBe(true);
+    expect(spellsName("Lady Smith", "Baroness Smith of Basildon")).toBe(true);
+    expect(spellsName("Archbishop", "The Lord Archbishop of York")).toBe(true);
+    expect(spellsName("Mr Mckee", "Ivan McKee")).toBe(false);
+    expect(spellsName("Mr Kee", "Ivan McKee")).toBe(false);
+    expect(spellsName("Mr Iorwerth ap", "Rhun ap Iorwerth")).toBe(false);
+  });
+
+  it("finds the salutations, kept or new, that don't spell their name", () => {
+    const pairs = matchMembers(
+      [
+        ours(1, "Ivan McKee", { officialId: 10, salutation: "Mr Mckee" }),
+        ours(2, "Pat Fine", { officialId: 20, salutation: "Mx Fine" }),
+      ],
+      [member(10, "Ivan McKee"), member(20, "Pat Fine")],
+    );
+    const newcomer = member(30, "Sam McNew", { salutation: "Mx Mcnew" });
+    expect(misspeltSalutations(pairs, [newcomer])).toEqual([
+      { name: "Ivan McKee", salutation: "Mr Mckee" },
+      { name: "Sam McNew", salutation: "Mx Mcnew" },
+    ]);
+  });
+
+  it("finds the salutations, kept or new, without the Sir or Dame Wikidata records", () => {
+    const pairs = matchMembers(
+      [
+        ours(1, "Chris Bryant", { officialId: 10, salutation: "Mr Bryant" }),
+        ours(2, "Jackie Baillie", { officialId: 20, salutation: "Dame Jackie" }),
+        ours(3, "Pat Plain", { officialId: 30 }),
+      ],
+      [member(10, "Chris Bryant"), member(20, "Jackie Baillie"), member(30, "Pat Plain")],
+    );
+    const honours = new Map([
+      [10, "Sir" as const],
+      [20, "Dame" as const],
+      [40, "Dame" as const],
+    ]);
+    expect(missingHonours(pairs, [member(40, "Rebecca Harris")], honours)).toEqual([
+      { name: "Chris Bryant", salutation: "Mr Bryant", honour: "Sir" },
+      { name: "Rebecca Harris", salutation: "Mx Harris", honour: "Dame" },
+    ]);
   });
 });
 
