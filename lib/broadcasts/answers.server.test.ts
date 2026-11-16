@@ -82,7 +82,16 @@ describeWithDatabase("answers to replies", () => {
       { outcome: "answered", dealt_by: JO },
     ]);
     expect(await answersTo(copy)).toEqual([
-      { id: expect.any(Number), replyId: reply, sentBy: JO, sentAt: expect.any(Date), body: words("Thanks, Jane.") },
+      {
+        id: expect.any(Number),
+        replyId: reply,
+        sentBy: JO,
+        sentAt: expect.any(Date),
+        body: words("Thanks, Jane."),
+        // Gmail's ID for it, as it went by Gmail.
+        providerId: "g-answer",
+        events: [],
+      },
     ]);
     expect(await query("SELECT gmail_message_id, rfc_message_id IS NOT NULL AS named FROM broadcast_answers")).toEqual([
       { gmail_message_id: "g-answer", named: true },
@@ -239,6 +248,26 @@ describeWithDatabase("answers to replies to texts", () => {
       await query("SELECT status, provider_message_id AS id, gmail_message_id AS gmail FROM broadcast_answers"),
     ).toEqual([{ status: "sent", id: "wamid.answer", gmail: null }]);
     expect(await query("SELECT outcome FROM broadcast_replies")).toEqual([{ outcome: "answered" }]);
+  });
+
+  it("come with what WhatsApp said became of each, newest first, and none of the copy's", async () => {
+    keys();
+    whatsAppTakes();
+    const reply = await textReplied();
+    await answerReply(reply, DRAFT, words("Saturday at 11."), JO);
+    const [{ copy, answer }] = await query<{ copy: number; answer: number }>(
+      "SELECT r.message_id::int AS copy, a.id::int AS answer FROM broadcast_answers a JOIN broadcast_replies r ON r.id = a.reply_id",
+    );
+    await query(
+      `INSERT INTO broadcast_message_events (message_id, answer_id, kind, at) VALUES
+         (NULL, $2, 'delivered', '2026-11-02T10:00:00Z'), (NULL, $2, 'read', '2026-11-02T10:05:00Z'),
+         ($1, NULL, 'replied', '2026-11-02T09:00:00Z')`,
+      [copy, answer],
+    );
+    expect((await answersTo(copy))[0].events).toEqual([
+      { at: new Date("2026-11-02T10:05:00Z"), kind: "read", details: {} },
+      { at: new Date("2026-11-02T10:00:00Z"), kind: "delivered", details: {} },
+    ]);
   });
 
   it("aren't sent more than a day after their reply, nor where WhatsApp doesn't send, nor when it refuses", async () => {

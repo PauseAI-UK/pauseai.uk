@@ -1,0 +1,10 @@
+/* The box around the staff pages that says whether the sidebar is folded:
+   no box of its own, so the pages lay out as if it weren't there. */
+.staff {
+  display: contents;
+}
+
+/* The page fills the window's height, as base.css has body > main do, which this box is between. */
+.staff > :global(main) {
+  flex: 1 0 auto;
+}

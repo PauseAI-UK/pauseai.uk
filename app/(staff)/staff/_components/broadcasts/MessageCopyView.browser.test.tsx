@@ -3,7 +3,9 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffTime } from "@/lib/staff-time";
 import MessageCopyView from "./MessageCopyView";
-import { exampleMessageCopy } from "./BroadcastWriter.examples";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { exampleMessageCopy, exampleTextAnswers, exampleTextReplies } from "./BroadcastWriter.examples";
+import { SITE_ACTOR } from "@/lib/broadcasts/broadcasts";
 import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { lettersCopy } from "../letters/copy";
@@ -77,6 +79,157 @@ describe("MessageCopyView", () => {
     const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
     await expect.element(history.getByText(copy.events.read)).toBeVisible();
     await expect.element(history.getByText(copy.events.sent)).toBeVisible();
+    // Its ticks, as far as WhatsApp said it got.
+    await expect
+      .element(page.getByLabelText(copy.threadTitle).getByRole("img", { name: copy.events.read }))
+      .toBeVisible();
+  });
+
+  /** The history as a tree: each line's words, its fields, and the lines under it, newest first. */
+  type Line = [string, string[], Line[]];
+  const tree = (list: Element): Line[] =>
+    [...list.children].map((item) => [
+      item.querySelector(":scope > p strong")!.textContent!,
+      [...item.querySelectorAll(":scope > dl > dd")].map((field) => field.textContent!),
+      item.querySelector(":scope > ol") ? tree(item.querySelector(":scope > ol")!) : [],
+    ]);
+  const history = () => tree(page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle }).element());
+  const at = (time: string) => new Date(`2026-11-07T${time}:00Z`);
+
+  it("nests what WhatsApp said under Sent, and under each of our replies; the rest on lines of their own", async () => {
+    await render(
+      <MessageCopyView
+        one={{
+          ...exampleMessageCopy,
+          events: [
+            { at: at("11:00"), kind: "opted-out", details: {} },
+            { at: at("07:48"), kind: "replied", details: {} },
+            ...exampleMessageCopy.events,
+          ],
+          replies: [
+            { ...exampleTextReplies[0], receivedAt: at("07:48") },
+            // Dealt with as nothing to do.
+            {
+              ...exampleTextReplies[1],
+              receivedAt: at("08:00"),
+              outcome: "nothing",
+              dealtBy: "sam@pauseai.uk",
+              dealtAt: at("09:10"),
+            },
+            // STOP, which the site recorded and answered itself.
+            {
+              ...exampleTextReplies[1],
+              id: 14,
+              receivedAt: at("11:00"),
+              text: "STOP",
+              outcome: "opted-out",
+              dealtBy: SITE_ACTOR,
+              dealtAt: at("11:00"),
+            },
+          ],
+          answers: [
+            {
+              ...exampleTextAnswers[0],
+              sentAt: at("07:58"),
+              events: [
+                { at: at("08:03"), kind: "read", details: {} },
+                { at: at("07:59"), kind: "delivered", details: {} },
+              ],
+            },
+            // One whose send never finished, so it's no line.
+            { ...exampleTextAnswers[0], id: 12, sentAt: null, events: [] },
+            // The site's answer to a STOP, with no message ID kept.
+            {
+              ...exampleTextAnswers[0],
+              id: 15,
+              replyId: 14,
+              sentBy: SITE_ACTOR,
+              sentAt: at("11:00"),
+              providerId: null,
+              events: [],
+            },
+          ],
+        }}
+      />,
+    );
+    const ours = copy.replies.historyAnswered;
+    // Who each was from and to, ours as staff pages write a number: the IDs are in its {}.
+    const [us, jane] = ["07700 900000", "07700 900001"];
+    expect(history()).toEqual([
+      // WhatsApp's opt-out, the STOP and the site's answer to it, at the same moment, in the order they were recorded.
+      [copy.events["opted-out"], [], []],
+      [copy.events.replied, [jane, us], []],
+      [ours, [us, jane, copy.replies.automatically], []],
+      [copy.replies.historyNothing, ["sam@pauseai.uk"], []],
+      [copy.events.replied, [jane, us], []],
+      [
+        ours,
+        [us, jane, "jo@pauseai.uk"],
+        [
+          [copy.replies.historyOurs.read!, [], []],
+          [copy.replies.historyOurs.delivered!, [], []],
+        ],
+      ],
+      [copy.events.replied, [jane, us], []],
+      [
+        copy.events.sent,
+        [us, jane],
+        [
+          [copy.events.read, [], []],
+          [copy.events.delivered, [], []],
+        ],
+      ],
+    ]);
+    // Sent, each of their three replies and each of our two say what they went by, as a letter's do.
+    const list = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
+    expect(list.getByText(mailingsCopy.mailingPages.sendFacts.whatsApp, { exact: true }).elements()).toHaveLength(6);
+    // What's kept of it beside, IDs and all, opens as JSON.
+    expect(list.getByRole("button", { name: staffVocabulary.logged.json }).elements().length).toBeGreaterThan(0);
+  });
+
+  it("keeps what its provider said on lines of their own when no Sent was recorded, with WhatsApp's why", async () => {
+    await render(
+      <MessageCopyView
+        one={{
+          ...exampleMessageCopy,
+          providerId: null,
+          events: [{ at: at("07:18"), kind: "failed", details: { code: 131026, title: "Message undeliverable" } }],
+          replies: [
+            {
+              ...exampleTextReplies[1]!,
+              receivedAt: at("07:30"),
+              outcome: "opted-out",
+              dealtBy: "jo@pauseai.uk",
+              dealtAt: at("07:40"),
+            },
+          ],
+          answers: [],
+        }}
+      />,
+    );
+    expect(history()).toEqual([
+      [copy.replies.historyOptedOut, ["jo@pauseai.uk", copy.replies.how], []],
+      [copy.events.replied, ["07700 900001", "07700 900000"], []],
+      [copy.events.failed, ["131026", "Message undeliverable"], []],
+    ]);
+    const fields = lettersCopy.letters.detail.fields;
+    await expect.element(page.getByText(fields.code!, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(fields.title!, { exact: true })).toBeVisible();
+  });
+
+  it("tags an email's Sent with what sent it", async () => {
+    await render(
+      <MessageCopyView
+        one={{ ...exampleMessageCopy, channel: "email", sendBy: "postmark", address: "jane@example.com" }}
+      />,
+    );
+    await expect
+      .element(
+        page
+          .getByRole("list", { name: lettersCopy.letters.detail.historyTitle })
+          .getByText(mailingsCopy.mailingPages.sendBy.names.postmark, { exact: true }),
+      )
+      .toBeVisible();
   });
 
   it("shows an email as a mail app does", async () => {

@@ -22,7 +22,8 @@ import { emailCopy } from "@/lib/email/copy";
 // WhatsApp, as words of our own, which it takes only within a day of the
 // person's message; a reply to it joins the copy's thread too
 // (whatsapp-webhooks.server.ts). Sending one settles the reply, unless it was
-// recorded as an opt-out.
+// recorded as an opt-out; WhatsApp saying later it couldn't deliver one puts
+// the reply back for staff (whatsapp-webhooks.server.ts).
 
 /** Where an answer is: recorded before it goes, and sent once Gmail has it. */
 export type AnswerStatus = "sending" | "sent";
@@ -35,17 +36,36 @@ export type BroadcastAnswer = {
   /** When it went; null while it's being sent, or if the run sending it stopped. */
   sentAt: Date | null;
   body: LetterDoc;
+  /** What sent it calls it, once it went: WhatsApp's message ID, or Gmail's. */
+  providerId: string | null;
+  /** What WhatsApp said became of one to a text (delivered, read, failed), newest first; none for an email. */
+  events: AnswerEvent[];
 };
+
+/** Something WhatsApp said became of our answer, with its why for a failure. */
+export type AnswerEvent = { at: Date; kind: string; details: Record<string, unknown> };
 
 /** The answers to a copy's replies, oldest first. */
 export async function answersTo(copyId: number): Promise<BroadcastAnswer[]> {
-  const rows = await query<Omit<BroadcastAnswer, "body"> & { body: unknown }>(
-    `SELECT a.id::int AS id, a.reply_id::int AS "replyId", a.sent_by AS "sentBy", a.sent_at AS "sentAt", a.body
+  const rows = await query<Omit<BroadcastAnswer, "body" | "events"> & { body: unknown }>(
+    `SELECT a.id::int AS id, a.reply_id::int AS "replyId", a.sent_by AS "sentBy", a.sent_at AS "sentAt", a.body,
+       coalesce(a.provider_message_id, a.gmail_message_id) AS "providerId"
      FROM broadcast_answers a JOIN broadcast_replies r ON r.id = a.reply_id
      WHERE r.message_id = $1 ORDER BY a.created_at, a.id`,
     [copyId],
   );
-  return rows.map((row) => ({ ...row, body: checkDoc(row.body)! }));
+  const events = await query<AnswerEvent & { answerId: number }>(
+    `SELECT answer_id::int AS "answerId", at, kind, details FROM broadcast_message_events
+     WHERE answer_id = ANY($1::bigint[]) ORDER BY at DESC, id DESC`,
+    [rows.map((row) => row.id)],
+  );
+  return rows.map((row) => ({
+    ...row,
+    body: checkDoc(row.body)!,
+    events: events
+      .filter((event) => event.answerId === row.id)
+      .map((event) => ({ at: event.at, kind: event.kind, details: event.details })),
+  }));
 }
 
 /**

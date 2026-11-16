@@ -64,6 +64,18 @@
   text-align: right;
 }
 
+/* A text's ticks after its time, as WhatsApp shows them: grey sent or delivered, blue read. */
+.read {
+  color: var(--chat-read);
+}
+
+/* Under a bubble WhatsApp couldn't deliver: why. */
+.undelivered {
+  margin: var(--space-1) 0 0;
+  color: var(--status-red);
+  font-size: var(--text-xs);
+}
+
 /* The Stop button under a marketing text. */
 /* A text's footer: the grey line under its words, saying how to stop. */
 .footer {

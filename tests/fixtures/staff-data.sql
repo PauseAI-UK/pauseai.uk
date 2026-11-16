@@ -1286,7 +1286,9 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
     -- has already failed one and skipped Grace, who no longer follows the
     -- calendar, so the list shows them under its bar.
     ('Thank you for marching', 'usr-seed-12', 'failed', NULL, 'failed', false, false),
-    ('Thank you for marching', 'usr-seed-11', 'skipped', 'no-permission', NULL, false, false)
+    ('Thank you for marching', 'usr-seed-11', 'skipped', 'no-permission', NULL, false, false),
+    -- Omar's, after the rest for the same reason, whose reply Jo answered and WhatsApp couldn't deliver.
+    ('PauseCon room change', 'usr-seed-7', 'delivered', NULL, 'delivered', true, false)
   ) v (title, luma_user, status, reason, report, was_read, stopped)) c
   JOIN mailings m ON m.audience = 'supporters' AND m.title = c.title
   LEFT JOIN supporter_links k ON k.luma_user_id = c.luma_user
@@ -1367,12 +1369,15 @@ JOIN luma_people l ON l.user_id = r.luma_user;
 -- Replies to texts, by WhatsApp: their words, as its webhook gave them.
 -- Jane's to PauseCon room change is days old, so WhatsApp takes no answer
 -- now; the one to Our next event is on Saturday came 40 minutes ago, so
--- staff can answer it.
+-- staff can answer it. Jane's to Our next event is on Saturday and Omar's
+-- to PauseCon room change, Jo answered (below).
 INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
 SELECT s.id, s.due_at + r.after, c.address, '', r.id, r.words, false
 FROM (VALUES
   ('PauseCon room change', 'usr-fixture-1', interval '30 minutes', 'seed-text-reply', 'Thanks! Is it still the same building?'),
-  ('Our next event is on Saturday.', 'usr-seed-7', interval '20 minutes', 'seed-text-reply-recent', 'Can I bring my kids along?')
+  ('Our next event is on Saturday.', 'usr-seed-7', interval '20 minutes', 'seed-text-reply-recent', 'Can I bring my kids along?'),
+  ('Our next event is on Saturday.', 'usr-fixture-1', interval '10 minutes', 'seed-text-reply-read', 'Is it the same place as last time?'),
+  ('PauseCon room change', 'usr-seed-7', interval '15 minutes', 'seed-text-reply-failed', 'Which hall is the Main Hall?')
 ) r (title, luma_user, after, id, words)
 JOIN mailings m ON m.title = r.title AND m.channel = 'text'
 JOIN seed_copies s ON s.mailing_id = m.id AND s.luma_user = r.luma_user
@@ -1411,6 +1416,29 @@ SELECT id, '00000000-0000-4000-8000-000000000001', dealt_by,
   '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Thank you for coming, Jane! The next march is on 6 December."}]}]}',
   'sent', dealt_at, dealt_at, 'seed-answer-thanks', 'seed-answer-thanks@pauseai.uk'
 FROM broadcast_replies WHERE gmail_message_id = 'seed-reply-thanks';
+-- Jo answered two replies to texts ten minutes after each came, by
+-- WhatsApp: Jane's, which WhatsApp delivered and she read; and Omar's,
+-- which WhatsApp then said it couldn't deliver, so his reply is back for
+-- staff to check, though it's too old for WhatsApp to take another.
+UPDATE broadcast_replies SET outcome = 'answered', dealt_by = 'jo@pauseai.uk', dealt_at = received_at + interval '10 minutes'
+WHERE provider_message_id IN ('seed-text-reply-read', 'seed-text-reply-failed');
+INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, provider_message_id)
+SELECT r.id, gen_random_uuid(), r.dealt_by,
+  jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content',
+    jsonb_build_array(jsonb_build_object('type', 'text', 'text', CASE r.provider_message_id
+      WHEN 'seed-text-reply-read' THEN 'Yes, the Friends Meeting House, by the station.'
+      ELSE 'It''s the big room on the ground floor, through the main doors.' END))))),
+  'sent', r.dealt_at, r.dealt_at, 'answer-' || r.provider_message_id
+FROM broadcast_replies r WHERE r.provider_message_id IN ('seed-text-reply-read', 'seed-text-reply-failed');
+INSERT INTO broadcast_message_events (answer_id, at, kind, details)
+SELECT a.id, a.sent_at + e.after, e.kind, e.details
+FROM broadcast_answers a JOIN (VALUES
+  ('answer-seed-text-reply-read', interval '1 minute', 'delivered', '{}'::jsonb),
+  ('answer-seed-text-reply-read', interval '5 minutes', 'read', '{}'::jsonb),
+  ('answer-seed-text-reply-failed', interval '1 minute', 'failed', '{"code": 131026, "title": "Message undeliverable"}'::jsonb)
+) e (answer, after, kind, details) ON e.answer = a.provider_message_id;
+UPDATE broadcast_replies SET outcome = NULL, dealt_by = NULL, dealt_at = NULL
+WHERE provider_message_id = 'seed-text-reply-failed';
 
 -- ------------------------------------------------------ contact preferences
 

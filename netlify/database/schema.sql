@@ -1236,10 +1236,12 @@ ALTER TABLE public.broadcast_answers ALTER COLUMN id ADD GENERATED ALWAYS AS IDE
 
 CREATE TABLE public.broadcast_message_events (
     id bigint NOT NULL,
-    message_id bigint NOT NULL,
+    message_id bigint,
     at timestamp with time zone DEFAULT now() NOT NULL,
     kind text NOT NULL,
     details jsonb DEFAULT '{}'::jsonb NOT NULL,
+    answer_id bigint,
+    CONSTRAINT broadcast_message_events_copy_or_answer CHECK ((num_nonnulls(message_id, answer_id) = 1)),
     CONSTRAINT broadcast_message_events_kind_check CHECK ((kind = ANY (ARRAY['sent'::text, 'delivered'::text, 'read'::text, 'failed'::text, 'bounced'::text, 'opted-out'::text, 'replied'::text])))
 );
 
@@ -3308,6 +3310,12 @@ CREATE INDEX broadcast_answers_reply ON public.broadcast_answers USING btree (re
 CREATE INDEX broadcast_answers_rfc ON public.broadcast_answers USING btree (rfc_message_id);
 
 --
+-- Name: broadcast_message_events_answer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX broadcast_message_events_answer ON public.broadcast_message_events USING btree (answer_id, at);
+
+--
 -- Name: broadcast_message_events_message; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3758,6 +3766,13 @@ ALTER TABLE ONLY public.ask_statuses
 
 ALTER TABLE ONLY public.broadcast_answers
     ADD CONSTRAINT broadcast_answers_reply_id_fkey FOREIGN KEY (reply_id) REFERENCES public.broadcast_replies(id) ON DELETE CASCADE;
+
+--
+-- Name: broadcast_message_events broadcast_message_events_answer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_message_events
+    ADD CONSTRAINT broadcast_message_events_answer_id_fkey FOREIGN KEY (answer_id) REFERENCES public.broadcast_answers(id) ON DELETE CASCADE;
 
 --
 -- Name: broadcast_message_events broadcast_message_events_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

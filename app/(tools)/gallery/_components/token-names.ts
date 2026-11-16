@@ -64,6 +64,7 @@ export const COLOUR_TOKENS = [
   "--chat-our-name",
   "--chat-their-name",
   "--chat-link",
+  "--chat-read",
   "--brand-gmail-green",
   "--brand-gmail-yellow",
   "--brand-gmail-red",

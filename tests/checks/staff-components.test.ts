@@ -55,6 +55,7 @@ const STAYS: Record<string, string[]> = {
     "staff-time",
     "time-range",
     "user-agent",
+    "uuid",
     // The public site's own.
     "analytics",
     "calendar-days",

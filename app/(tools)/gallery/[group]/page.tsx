@@ -16,7 +16,13 @@ export async function generateMetadata({ params }: { params: Promise<{ group: st
   };
 }
 
-// One group of the gallery: its components and their variants.
+// One group of the gallery: its components and their variants, in a box
+// saying the staff sidebar is open, as the staff layout's does, for the
+// sidebar's fold button to fold.
 export default async function GalleryGroupPage({ params }: { params: Promise<{ group: string }> }) {
-  return <GalleryGroup group={galleryGroup(GROUPS, (await params).group)} />;
+  return (
+    <div data-staff-nav="open">
+      <GalleryGroup group={galleryGroup(GROUPS, (await params).group)} />
+    </div>
+  );
 }

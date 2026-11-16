@@ -100,6 +100,8 @@ export type BroadcastReply = {
   outcome: "opted-out" | "nothing" | "answered" | null;
   dealtBy: string | null;
   dealtAt: Date | null;
+  /** What brought it calls it: WhatsApp's message ID, or Gmail's. */
+  providerId: string;
   /** Whether its sender has "Do not email", which an answer to them still goes despite, as it answers what they wrote. */
   doNotEmail: boolean;
   /** Whether it can be answered now: an email's always can; a text's only within a day, as WhatsApp allows. */
@@ -113,6 +115,7 @@ export async function repliesTo(copyId: number): Promise<BroadcastReply[]> {
   >(
     `SELECT id::int AS id, received_at AS "receivedAt", from_address AS from, subject, automatic, outcome,
        dealt_by AS "dealtBy", dealt_at AS "dealtAt", blob_key AS "blobKey", body,
+       coalesce(provider_message_id, gmail_message_id) AS "providerId",
        EXISTS (SELECT 1 FROM contact_permission('newsletter', 'email', from_address) d WHERE d.reason = 'do-not-email')
          AS "doNotEmail"
      FROM broadcast_replies WHERE message_id = $1 ORDER BY received_at, id`,

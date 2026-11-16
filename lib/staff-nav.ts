@@ -1,9 +1,14 @@
-// Whether the staff navigation's sidebar is folded: remembered in this
-// browser, and set on <html> as data-staff-nav="folded" before the page
-// draws, so a folded sidebar doesn't open and shut on each page.
+// Whether the staff navigation's sidebar is folded: remembered in a cookie
+// for the staff pages alone, which the staff layout reads, so the server
+// draws a folded sidebar folded, with no script to fold it after.
 
-/** The key in localStorage. */
+/** The cookie's name, and the attribute the staff layout sets from it. */
 export const NAV_FOLD_KEY = "staff-nav";
 
-/** Run in the page's head, before it draws: sets <html>'s attribute from localStorage, if the browser lets us read it. */
-export const NAV_FOLD_SCRIPT = `try{if(localStorage.getItem(${JSON.stringify(NAV_FOLD_KEY)})==="folded")document.documentElement.dataset.staffNav="folded"}catch(e){}`;
+/** Whether the sidebar is folded, by its cookie, if this request has one: the staff layout's attribute. */
+export const navFoldOf = (cookie: { value: string } | undefined): "folded" | "open" =>
+  cookie?.value === "folded" ? "folded" : "open";
+
+/** The cookie that remembers the sidebar folded, for a year; or, unfolded, ends it. */
+export const navFoldCookie = (folded: boolean) =>
+  `${NAV_FOLD_KEY}=folded; path=/staff; max-age=${folded ? 60 * 60 * 24 * 365 : 0}; samesite=lax`;

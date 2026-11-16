@@ -18,7 +18,12 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+// The staff layout's box that says whether the sidebar is folded
+// (app/(staff)/layout.tsx), open, for its fold button: on <body> here.
+document.body.dataset.staffNav = "open";
+
 afterEach(() => {
+  document.body.dataset.staffNav = "open";
   navigation.pathname = "/";
   navigation.pushed = [];
   navigation.replaced = [];

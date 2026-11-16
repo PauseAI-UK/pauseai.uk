@@ -908,8 +908,9 @@ The table keeps a width for its counts, and scrolls sideways on a phone
 its name. On wider screens, a round button at the top of the sidebar's
 edge (`ui/NavFold`) folds the sidebar to a rail of the icons. On the rail,
 a short rule stands for each section's heading, and a page's name shows
-beside its icon on hover or focus. The browser remembers whether the
-sidebar is folded (`lib/staff-nav.ts`).
+beside its icon on hover or focus. A cookie for the staff pages remembers
+whether the sidebar is folded, and the server draws it so
+(`lib/staff-nav.ts`).
 
 **A thing's name leads to it.** Wherever the name of something with a page
 of its own is shown, such as a campaign, an ask or a politician, the name

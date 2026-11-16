@@ -485,12 +485,18 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   sends a text, but for a fixture build, the dev server's too, which uses
   the fake's keys and needs none. The webhook is `/api/whatsapp`: in the App Dashboard, the
   use case's "Configure Webhooks" takes its callback URL and the verify
-  token `WHATSAPP_APP_SECRET=… npm run whatsapp:verify-token` prints, then
-  "Subscribe webhooks" on the WhatsApp account, with the `messages`,
-  `user_preferences`, `message_template_status_update`,
-  `template_category_update`, `phone_number_quality_update`,
-  `message_template_quality_update` and `account_update` fields. The app
-  must be published (Live) for WhatsApp to send real webhooks. Fixture
+  token `WHATSAPP_APP_SECRET=… npm run whatsapp:verify-token` prints, and
+  subscribes it to the `messages`, `user_preferences`,
+  `message_template_status_update`, `template_category_update`,
+  `phone_number_quality_update`, `message_template_quality_update` and
+  `account_update` fields. The app must be published (Live), and subscribed
+  to our WhatsApp account, which the webhook settings don't do: in the
+  [Graph API Explorer](https://developers.facebook.com/tools/explorer/), with
+  the app chosen, `POST /<WHATSAPP_ACCOUNT_ID>/subscribed_apps`, and
+  `GET` on the same path lists the app once it's done
+  ([Meta's guide](https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks)).
+  Without it, the dashboard's "Test" button still reaches the webhook, but
+  WhatsApp sends nothing real: no receipts, replies or stops. Fixture
   builds talk to a fake (`lib/server/fixtures/whatsapp.ts`), and the
   storyboard posts its webhooks itself, signed with the fixture's secret.
 

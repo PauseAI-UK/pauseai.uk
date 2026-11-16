@@ -1,7 +1,7 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { NAV_FOLD_KEY } from "@/lib/staff-nav";
+import { useRef, useSyncExternalStore } from "react";
+import { navFoldCookie } from "@/lib/staff-nav";
 import styles from "./NavFold.module.css";
 import { shellCopy } from "../shell/copy";
 
@@ -12,30 +12,32 @@ const subscribe = (change: () => void) => {
   window.addEventListener(EVENT, change);
   return () => window.removeEventListener(EVENT, change);
 };
-const isFolded = () => document.documentElement.dataset.staffNav === "folded";
+/** The box around the staff pages, from the button in it, that says whether the sidebar is folded (app/(staff)/layout.tsx). */
+const staffBox = (button: HTMLElement | null) => button?.closest<HTMLElement>("[data-staff-nav]");
 
 /**
  * The round button on the staff sidebar's edge, by its title, that folds it
- * to a rail of icons, and unfolds it: on <html>, and remembered in this
- * browser (lib/staff-nav.ts). A chevron, pointing the way the sidebar will
- * go. Wider screens only; a phone has the bar instead.
+ * to a rail of icons, and unfolds it: on the box around the staff pages,
+ * and remembered in a cookie the next page is drawn from (lib/staff-nav.ts).
+ * A chevron, pointing the way the sidebar will go. Wider screens only; a
+ * phone has the bar instead.
  */
 export default function NavFold() {
-  const folded = useSyncExternalStore(subscribe, isFolded, () => false);
+  const button = useRef<HTMLButtonElement>(null);
+  // Before it's drawn there's no box to read, so it says open, and React reads it again once it is.
+  const folded = useSyncExternalStore(
+    subscribe,
+    () => staffBox(button.current)?.dataset.staffNav === "folded",
+    () => false,
+  );
   const toggle = () => {
-    const root = document.documentElement;
-    if (folded) delete root.dataset.staffNav;
-    else root.dataset.staffNav = "folded";
-    try {
-      if (folded) localStorage.removeItem(NAV_FOLD_KEY);
-      else localStorage.setItem(NAV_FOLD_KEY, "folded");
-    } catch {
-      // A browser that won't store it folds this page only.
-    }
+    staffBox(button.current)!.dataset.staffNav = folded ? "open" : "folded";
+    document.cookie = navFoldCookie(!folded);
     window.dispatchEvent(new Event(EVENT));
   };
   return (
     <button
+      ref={button}
       type="button"
       className={styles.fold}
       aria-expanded={!folded}

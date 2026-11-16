@@ -210,6 +210,88 @@ describeWithDatabase("WhatsApp's webhook", () => {
     ]);
   });
 
+  it("keeps our reply delivered, read and failed, each once, in its own history and not the copy's", async () => {
+    const copy = await sentCopy();
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+       VALUES ($1, now(), '+447700900123', '', 'wamid.in-0', 'When is it?', false) RETURNING id::int AS reply`,
+      [copy],
+    );
+    const [{ answer }] = await query<{ answer: number }>(
+      `INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, sent_at, provider_message_id)
+       VALUES ($1, gen_random_uuid(), 'jo@pauseai.uk', '{}', 'sent', now(), 'wamid.answer') RETURNING id::int AS answer`,
+      [reply],
+    );
+    const ours = () =>
+      query("SELECT kind, details FROM broadcast_message_events WHERE answer_id = $1 ORDER BY id", [answer]);
+    expect(await recordWhatsAppWebhook(status("wamid.answer", "sent"))).toBe(0);
+    // Read before delivered, as webhooks can come out of order: read is delivered too.
+    expect(await recordWhatsAppWebhook(status("wamid.answer", "read"))).toBe(1);
+    expect(await recordWhatsAppWebhook(status("wamid.answer", "delivered"))).toBe(1);
+    expect(await recordWhatsAppWebhook(status("wamid.answer", "read"))).toBe(1);
+    const failed = status("wamid.answer", "failed", { errors: [{ code: 131047, title: "Re-engagement message" }] });
+    expect(await recordWhatsAppWebhook(failed)).toBe(1);
+    expect(await recordWhatsAppWebhook(failed)).toBe(1);
+    expect(await recordWhatsAppWebhook(status("wamid.answer", "failed"))).toBe(1);
+    expect(await ours()).toEqual([
+      { kind: "delivered", details: {} },
+      { kind: "read", details: {} },
+      { kind: "failed", details: { code: 131047, title: "Re-engagement message" } },
+    ]);
+    expect(await copyOf(copy)).toMatchObject({ status: "sent", events: [] });
+  });
+
+  it("puts a reply back for staff when our newest reply to it fails, but not an opt-out, nor for an older reply", async () => {
+    const copy = await sentCopy();
+    /** Their reply, dealt with as `outcome`, and our replies to it, sent `ago` each; theirs, and ours' IDs. */
+    const replied = async (wamid: string, outcome: string, ago: string[]) => {
+      const [{ reply }] = await query<{ reply: number }>(
+        `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body,
+           automatic, outcome, dealt_by, dealt_at)
+         VALUES ($1, now(), '+447700900123', '', $2, 'When is it?', false, $3, 'jo@pauseai.uk', now())
+         RETURNING id::int AS reply`,
+        [copy, wamid, outcome],
+      );
+      for (const [i, interval] of ago.entries()) {
+        await query(
+          `INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, sent_at, provider_message_id)
+           VALUES ($1, gen_random_uuid(), 'jo@pauseai.uk', '{}', 'sent', now() - $2::interval, $3)`,
+          [reply, interval, `${wamid}.ours-${i}`],
+        );
+      }
+      return reply;
+    };
+    const outcome = async (reply: number) =>
+      (await query("SELECT outcome, dealt_by, dealt_at FROM broadcast_replies WHERE id = $1", [reply]))[0];
+    const answered = await replied("wamid.in-1", "answered", ["1 hour", "5 minutes"]);
+    // The older of our two replies failing: the newer went, so the reply stays answered.
+    expect(await recordWhatsAppWebhook(status("wamid.in-1.ours-0", "failed"))).toBe(1);
+    expect(await outcome(answered)).toMatchObject({ outcome: "answered" });
+    expect(await recordWhatsAppWebhook(status("wamid.in-1.ours-1", "failed"))).toBe(1);
+    expect(await outcome(answered)).toEqual({ outcome: null, dealt_by: null, dealt_at: null });
+    const stop = await replied("wamid.in-2", "opted-out", ["1 minute"]);
+    expect(await recordWhatsAppWebhook(status("wamid.in-2.ours-0", "failed"))).toBe(1);
+    expect(await outcome(stop)).toMatchObject({ outcome: "opted-out" });
+  });
+
+  it("keeps a failure of our reply with no why given", async () => {
+    const copy = await sentCopy();
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+       VALUES ($1, now(), '+447700900123', '', 'wamid.in-0', 'When is it?', false) RETURNING id::int AS reply`,
+      [copy],
+    );
+    await query(
+      `INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, sent_at, provider_message_id)
+       VALUES ($1, gen_random_uuid(), 'jo@pauseai.uk', '{}', 'sent', now(), 'wamid.answer')`,
+      [reply],
+    );
+    expect(await recordWhatsAppWebhook(status("wamid.answer", "failed"))).toBe(1);
+    expect(await query("SELECT kind, details FROM broadcast_message_events WHERE answer_id IS NOT NULL")).toEqual([
+      { kind: "failed", details: { code: null, title: null } },
+    ]);
+  });
+
   it("takes a reply saying stop, whatever its case, as a stop of the copy it answers, kept as an opt-out", async () => {
     const id = await sentCopy();
     expect(await recordWhatsAppWebhook(message({ text: { body: " STOP " }, context: { id: "wamid.out-1" } }))).toBe(1);

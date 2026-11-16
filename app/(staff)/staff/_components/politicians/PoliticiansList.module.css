@@ -44,7 +44,7 @@
     left: calc(14rem + var(--space-5));
   }
 
-  :global(:root[data-staff-nav="folded"]) .bar {
+  :global(:root:has([data-staff-nav="folded"])) .bar {
     left: calc(4rem + var(--space-5));
   }
 }
