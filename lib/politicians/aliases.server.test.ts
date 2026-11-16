@@ -86,7 +86,7 @@ describeWithDatabase("a politician's aliases", () => {
     expect(none.parliament).toHaveLength(2);
   });
 
-  it("says where their email came from: the staff edit that set it last, with its note, else their body's list, else nothing", async () => {
+  it("says where their email came from: staff who set it last, with why, else their body's list, else Airtable, else nothing", async () => {
     const polly = await politician();
     const source = async (email: string | null) => (await politicianAliases({ ...polly, email })).emailSource;
     const edit = (actor: string, email: [string | null, string | null], note?: string) =>
@@ -94,8 +94,28 @@ describeWithDatabase("a politician's aliases", () => {
         actor,
         JSON.stringify({ id: polly.id, name: "Polly", changed: { email }, ...(note && { note }) }),
       ]);
-    // Neither set by staff nor listed: from Airtable, say.
+    const fromAirtable = (on: boolean) =>
+      query("UPDATE notable_people SET airtable_id = $2 WHERE id = $1", [polly.id, on ? "rec123" : null]);
+    // Nothing logged and not from Airtable: nothing to say; nor with no email.
+    await fromAirtable(false);
     expect(await source("polly@example.org")).toBeNull();
+    // Copied from Airtable before the audit log: no entry, but their record is Airtable's.
+    await fromAirtable(true);
+    expect(await source("polly@example.org")).toEqual({ by: "airtable" });
+    expect(await source(null)).toBeNull();
+    // Added by Airtable's sync, with that email.
+    await query("INSERT INTO audit_log (actor, action, details) VALUES ('sync', 'add politician', $1)", [
+      JSON.stringify({ id: polly.id, airtableId: "rec123", name: "Polly", email: "Polly@example.org" }),
+    ]);
+    await fromAirtable(false);
+    expect(await source("polly@example.org")).toEqual({ by: "airtable" });
+    // Their body's list says more than Airtable did.
+    await query(
+      "INSERT INTO politician_addresses (address, notable_person_id, source) VALUES ('polly@example.org', $1, 'parliament')",
+      [polly.id],
+    );
+    expect(await source("polly@example.org")).toEqual({ by: "body" });
+    await query("DELETE FROM politician_addresses");
     await edit("jo@pauseai.uk", [null, "polly@example.org"], "Her office asked");
     await edit("sam@pauseai.uk", ["polly@example.org", "other@example.org"], "Wrong one");
     expect(await source("Polly@example.org")).toEqual({
@@ -108,7 +128,8 @@ describeWithDatabase("a politician's aliases", () => {
     await query("ALTER TABLE audit_log DROP CONSTRAINT audit_log_edit_note");
     await edit("sam@pauseai.uk", ["other@example.org", "polly@example.org"]);
     expect(await source("polly@example.org")).toMatchObject({ by: "staff", staff: "sam@pauseai.uk", note: "" });
-    // An import that set it since, of an address their body doesn't list: nothing to say.
+    // An import that set it since, of an address their body doesn't list, on a record that isn't Airtable's: nothing
+    // to say.
     await edit("import-parliament", ["x@example.org", "polly@example.org"]);
     expect(await source("polly@example.org")).toBeNull();
   });

@@ -103,6 +103,8 @@ export const politiciansCopy = {
       // One their body lists says so in the words of the other addresses' sources.
       setBy: (who: string, when: string, note: string) =>
         note ? `⁂ Set by ${who} on ${when}: ${note}` : `⁂ Set by ${who} on ${when}`,
+      // One that came from Airtable's UK Parliamentarians, which the policy team kept, and no body lists.
+      fromAirtable: "⁂ From Airtable",
       // In the band, for a Lord with no email: opens the bubble to set one.
       add: "add email",
       cancel: "Cancel",

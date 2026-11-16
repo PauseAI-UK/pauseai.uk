@@ -144,9 +144,10 @@ export function SalutationBubble({ politician, action }: { politician: Politicia
   );
 }
 
-/** Where their email came from, in words: the staff member who set it, when, and why; or their body's list. */
+/** Where their email came from, in words: the staff member who set it, when, and why; their body's list; or Airtable. */
 function sourceLine(source: NonNullable<EmailSource>): string {
-  return source.by === "staff" ? copy.setBy(source.staff, staffDate(source.at), source.note) : words.sources.parliament;
+  if (source.by === "staff") return copy.setBy(source.staff, staffDate(source.at), source.note);
+  return source.by === "body" ? words.sources.parliament : copy.fromAirtable;
 }
 
 /** The changes a politician's addresses can take: adding one, and removing one staff added or guessed. */
@@ -254,16 +255,18 @@ export function AddressesBubble({
                 action={setEmail}
               />
             ) : (
-              <span className={styles.value}>
-                <span>{politician.email}</span>
+              <div className={styles.main}>
+                <span className={styles.address}>
+                  {politician.email}
+                  {aliases.emailSource && <span className={styles.from}>{sourceLine(aliases.emailSource)}</span>}
+                </span>
                 {setEmail && (
-                  <button type="button" className={styles.trigger} onClick={() => setEditing(true)}>
+                  <Button type="button" variant="ghost" size="small" fit onClick={() => setEditing(true)}>
                     {copy.edit}
-                  </button>
+                  </Button>
                 )}
-              </span>
+              </div>
             )}
-            {aliases.emailSource && <p className={styles.hint}>{sourceLine(aliases.emailSource)}</p>}
             {!politician.email && politician.house === "lords" && <p className={styles.hint}>{copy.emailHint}</p>}
           </div>
         )}

@@ -26,12 +26,13 @@ export type AddressSource = "parliament" | "office" | "staff" | "rejected";
 export type AddedAddress = { address: string; addedBy: string; at: Date };
 
 /**
- * Where a politician's email came from: the staff member whose edit set it
- * last, when, and their note of why (empty for an edit from before notes);
- * or else their body's list, which has it; or null for neither, such as one
- * carried over from Airtable.
+ * Where a politician's email came from: the staff member who set it last,
+ * when, and their note of why (empty for one from before notes); or else
+ * their body's list, which has it; or else Airtable, which the policy team
+ * kept, for one its sync set or copied over; or null for none of those.
  */
-export type EmailSource = { by: "staff"; staff: string; at: Date; note: string } | { by: "body" } | null;
+export type EmailSource =
+  { by: "staff"; staff: string; at: Date; note: string } | { by: "body" } | { by: "airtable" } | null;
 
 /** Every address and domain that's a politician's, by where it came from. */
 export type PoliticianAliases = {
@@ -85,14 +86,19 @@ export async function politicianAliases(politician: {
   constituency: string | null;
   email: string | null;
 }): Promise<PoliticianAliases> {
-  const [[setBy], past, listed, domains, book] = await Promise.all([
-    // The last edit that made their email what it is: a staff member's, logged by their email, or an import's.
+  const [[setBy], [record], past, listed, domains, book] = await Promise.all([
+    // The last entry that made their email what it is, adding them or editing them: a staff member's, logged by
+    // their email, Airtable's sync's, or an import's.
     query<{ actor: string; at: Date; note: string | null }>(
       `SELECT actor, at, details->>'note' AS note FROM audit_log
-       WHERE action = ${auditActions("edit politician")} AND (details->>'id')::bigint = $1
-         AND lower(details->'changed'->'email'->>1) = lower($2)
+       WHERE action IN (${auditActions("edit politician", "add politician")}) AND (details->>'id')::bigint = $1
+         AND lower(coalesce(details->'changed'->'email'->>1, details->>'email')) = lower($2)
        ORDER BY id DESC LIMIT 1`,
       [politician.id, politician.email],
+    ),
+    query<{ fromAirtable: boolean }>(
+      `SELECT airtable_id IS NOT NULL AS "fromAirtable" FROM notable_people WHERE id = $1`,
+      [politician.id],
     ),
     query<{ address: string }>(
       `SELECT DISTINCT address FROM (
@@ -119,7 +125,10 @@ export async function politicianAliases(politician: {
     ? { by: "staff", staff: setBy.actor, at: setBy.at, note: setBy.note ?? "" }
     : listed.some((row) => row.source === "parliament" && row.address === email)
       ? { by: "body" }
-      : null;
+      : // Airtable's sync logged as "sync"; a politician copied from Airtable before the audit log has no entry.
+        email && (setBy ? setBy.actor === "sync" : record?.fromAirtable)
+        ? { by: "airtable" }
+        : null;
   return {
     email: politician.email,
     emailSource,

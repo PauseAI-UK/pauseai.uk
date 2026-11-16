@@ -88,6 +88,8 @@ describe("PoliticianWriting's examples in the gallery", () => {
     await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
     expect(part()).toContain(examplePolitician.email);
     expect(part()).toContain(words.sources.parliament);
+    await rerender(bubble({ by: "airtable" }));
+    expect(part()).toContain(edit.fromAirtable);
     await rerender(bubble(null));
     expect(part()).toBe(`${edit.mainEmail}${edit.mainIntro}${examplePolitician.email}`);
   });
