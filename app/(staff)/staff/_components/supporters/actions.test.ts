@@ -28,6 +28,8 @@ function form(fields: Record<string, string>) {
 }
 
 const input = {
+  kind: "paper" as const,
+  town: "",
   csv: "Name,Email\nJo,jo@example.com",
   filename: "f.csv",
   eventId: null,

@@ -19,7 +19,8 @@ export const signupUploadPreviewGallery: Example[] = [
         render: () => <SignupPlanViewExample />,
       },
       {
-        label: "A WhatsApp group: a new member, one with no profile name known by their number, one already uploaded, one forgotten",
+        label:
+          "A WhatsApp group: a new member, one with no profile name known by their number, one already uploaded, one forgotten",
         render: () => <WhatsappPlanViewExample />,
       },
     ],

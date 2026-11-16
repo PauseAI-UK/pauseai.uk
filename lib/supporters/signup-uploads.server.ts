@@ -144,7 +144,18 @@ function signed(plan: Omit<SignupPlan, "signature">): SignupPlan {
   return {
     ...plan,
     signature: createHash("sha256")
-      .update(JSON.stringify([input.kind, input.csv, input.eventId, input.eventColumn, input.signedOn, input.note.trim().toLowerCase(), input.town, rows]))
+      .update(
+        JSON.stringify([
+          input.kind,
+          input.csv,
+          input.eventId,
+          input.eventColumn,
+          input.signedOn,
+          input.note.trim().toLowerCase(),
+          input.town,
+          rows,
+        ]),
+      )
       .digest("hex"),
   };
 }

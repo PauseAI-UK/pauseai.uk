@@ -4,11 +4,18 @@ import { page } from "vitest/browser";
 import { longDay } from "@/lib/calendar-days";
 import { MAX_SIGNUP_FILE_BYTES, type SignupPlan, type SignupUploadInput } from "@/lib/supporters/signup-csv";
 import { staffDate, staffTime } from "@/lib/staff-time";
-import { exampleSignupPlan, exampleSignupUpload, exampleSignupUploadPeople } from "./SignupUpload.examples";
+import {
+  exampleSignupPlan,
+  exampleSignupUpload,
+  exampleSignupUploadPeople,
+  exampleWhatsappPlan,
+  exampleWhatsappUpload,
+} from "./SignupUpload.examples";
 import SignupUploadForm from "./SignupUploadForm";
 import SignupUploadPreview, { SignupPlanView, type SignupUploadActions } from "./SignupUploadPreview";
 import SignupUploadResult, { SignupUploadHead, SignupUploadsList } from "./SignupUploadResult";
 import { SignupUploadHelpExample } from "./SignupUploadHelp.gallery.client";
+import { SignupColumnNames } from "./SignupUploadHelp";
 import { SignupPlanViewExample, SignupUploadPreviewExample } from "./SignupUploadPreview.gallery.client";
 import { supportersCopy } from "./copy";
 
@@ -99,12 +106,14 @@ describe("SignupUploadForm", () => {
     await note();
     await expect.element(importButton()).toBeEnabled();
     expect(preview).toHaveBeenLastCalledWith({
+      kind: "paper",
       csv: CSV,
       filename: "f.csv",
       eventId: null,
       eventColumn: null,
       signedOn: "2026-10-31",
       note: "Camden",
+      town: "",
     });
     await importButton().click();
     await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/import/previous/9"]);
@@ -242,6 +251,7 @@ describe("SignupUploadPreview", () => {
   const show = (actions: Partial<SignupUploadActions>, of: typeof input | null = input, blockers: string[] = []) =>
     render(
       <SignupUploadPreview
+        step={4}
         input={of}
         blockers={blockers}
         preview={actions.preview ?? (async () => exampleSignupPlan)}
@@ -283,6 +293,7 @@ describe("SignupUploadPreview", () => {
     await expect.element(button()).toBeEnabled();
     await view.rerender(
       <SignupUploadPreview
+        step={4}
         input={{ ...input, note: "Changed" }}
         blockers={[]}
         preview={async () => exampleSignupPlan}
@@ -487,5 +498,125 @@ describe("the upload's examples in the gallery", () => {
     await expect.element(importNow).toBeEnabled();
     await importNow.click();
     await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/import/previous/6"]);
+  });
+});
+
+describe("a WhatsApp group's upload", () => {
+  const said = copy.preview.happens;
+  const kindButton = (kind: "paper" | "whatsapp") => page.getByRole("radio", { name: copy.kind[kind] });
+
+  it("asks for the group's name and town in place of the date and note, with no event, and sends them", async () => {
+    const { view, preview } = showForm();
+    await view;
+    await kindButton("whatsapp").click();
+    await expect.element(kindButton("whatsapp")).toHaveAttribute("aria-checked", "true");
+    const titles = () =>
+      page
+        .getByRole("heading", { level: 2 })
+        .all()
+        .map((heading) => heading.element().textContent);
+    expect(titles()).toEqual([
+      `1${copy.form.groupTitle}`,
+      `2${copy.steps.file}`,
+      copy.help.title,
+      `3${copy.steps.check}`,
+    ]);
+    await expect.element(page.getByText(copy.help.short.whatsapp[0])).toBeVisible();
+    await expect.element(page.getByText(words.blockers.group)).toBeVisible();
+    await choose(csvFile("Name,Phone,Email\nJo,07700900123,jo@example.com\n"));
+    await expect.element(page.getByRole("cell", { name: copy.columns.ignored })).toBeVisible();
+    await page.getByRole("textbox", { name: copy.form.group }).fill("Oxford group");
+    await page.getByRole("textbox", { name: copy.form.town }).fill("Oxford");
+    await expect
+      .poll(() => preview.mock.calls.at(-1)?.[0])
+      .toEqual({
+        kind: "whatsapp",
+        csv: "Name,Phone,Email\nJo,07700900123,jo@example.com\n",
+        filename: "f.csv",
+        eventId: null,
+        eventColumn: null,
+        signedOn: "2026-10-31",
+        note: "Oxford group",
+        town: "Oxford",
+      });
+  });
+
+  it("reads the file again as paper when paper's chosen, clearing a column chosen before", async () => {
+    const { view } = showForm();
+    await view;
+    await choose(csvFile(CSV));
+    await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOptions("March");
+    await kindButton("whatsapp").click();
+    await expect.element(page.getByText(/no Phone column/)).toBeVisible();
+    await kindButton("paper").click();
+    await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toHaveValue("");
+    await expect.element(page.getByRole("cell", { name: "Colour" })).toBeVisible();
+  });
+
+  it("previews each member by name and number, with what will happen", async () => {
+    await render(<SignupPlanView plan={exampleWhatsappPlan} />);
+    await expect.element(page.getByRole("table")).toBeVisible();
+    expect([...document.querySelectorAll("thead th")].map((cell) => cell.textContent)).toEqual([
+      words.table.row,
+      copy.help.fields.name.label,
+      copy.help.fields.phone.label,
+      words.table.happens,
+    ]);
+    const lines = page
+      .getByRole("row")
+      .all()
+      .slice(1)
+      .map((row) => row.element().lastElementChild!.textContent);
+    expect(lines).toEqual([
+      `${said.notImported}${words.problems.erased}`,
+      said.texts,
+      `${said.known.mobile}${said.texts}`,
+      said.alreadyImported,
+    ]);
+  });
+
+  it("lists a group's columns, the phone needed", async () => {
+    await render(<SignupColumnNames kind="whatsapp" />);
+    expect(
+      page
+        .getByRole("row")
+        .all()
+        .slice(1)
+        .map((row) => [row.element().firstElementChild!.textContent, Boolean(row.element().querySelector("span"))]),
+    ).toEqual([
+      [copy.help.whatsappFields.name.label, false],
+      [copy.help.whatsappFields.phone.label, true],
+    ]);
+  });
+
+  it("titles a group's upload with its name and town, and shows each member with newsletter texts", async () => {
+    await render(
+      <>
+        <SignupUploadHead upload={exampleWhatsappUpload} />
+        <SignupUploadResult upload={exampleWhatsappUpload} />
+      </>,
+    );
+    expect(page.getByRole("banner").element().querySelector("p")!.textContent).toBe(
+      [
+        copy.result.summary(2, 1),
+        copy.result.by(exampleWhatsappUpload.uploadedBy, staffTime(exampleWhatsappUpload.uploadedAt)),
+        copy.result.group("PauseAI UK Oxford"),
+        copy.result.town("Oxford"),
+      ].join(" · "),
+    );
+    await expect
+      .element(page.getByRole("link", { name: supportersCopy.supporters.noName }))
+      .toHaveAttribute("href", "/staff/supporters/6");
+    const lines = page
+      .getByRole("row")
+      .all()
+      .slice(1)
+      .map((row) => row.element().lastElementChild!.textContent);
+    expect(lines).toEqual([said.texts, `${said.known.mobile}${said.texts}`]);
+  });
+
+  it("marks a group's upload in the list", async () => {
+    await render(<SignupUploadsList now="2026-11-20T12:00:00Z" uploads={[exampleWhatsappUpload]} />);
+    await expect.element(page.getByText(new RegExp(`^${copy.uploads.whatsapp} · oxford-group\\.csv`))).toBeVisible();
   });
 });

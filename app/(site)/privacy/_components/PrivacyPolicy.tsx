@@ -69,6 +69,7 @@ export default function PrivacyPolicy() {
         keep you updated on our campaigns if you said yes (legal basis: legitimate interest in running the event, and
         your consent).
       </p>
+      <p>If you join our WhatsApp community, we keep your profile name and number, and which groups you joined.</p>
 
       <h2>Events and Luma</h2>
       <p>

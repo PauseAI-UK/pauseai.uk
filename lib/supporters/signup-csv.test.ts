@@ -7,6 +7,7 @@ import {
   signupHeading,
   signupPileCounts,
   signupRows,
+  whatsappRows,
   type SignupFileRead,
   type SignupPlan,
   type SignupPlanRow,
@@ -210,7 +211,16 @@ Fine,fine@example.com,07700900123,no`,
 });
 
 const plan = (eventColumn: string | null, ...planRows: Partial<SignupPlanRow>[]): SignupPlan => ({
-  input: { csv: "", filename: "f.csv", eventId: null, eventColumn, signedOn: "2026-10-31", note: "" },
+  input: {
+    kind: "paper",
+    csv: "",
+    filename: "f.csv",
+    eventId: null,
+    eventColumn,
+    signedOn: "2026-10-31",
+    note: "",
+    town: "",
+  },
   eventName: null,
   signature: "",
   rows: planRows.map(
@@ -240,5 +250,53 @@ describe("signupPileCounts", () => {
       none: 2,
       done: 0,
     });
+  });
+});
+
+describe("a WhatsApp group's file", () => {
+  const group = (text: string) => {
+    const file = readSignupFile(text, "whatsapp");
+    if (!file.ok) throw new Error(`Refused: ${file.reason}`);
+    return file;
+  };
+
+  it("needs only a phone column, and finds its headings under titles by it", () => {
+    expect(readSignupFile("Name,Email\nJo,jo@example.com", "whatsapp")).toEqual({
+      ok: false,
+      reason: "missing",
+      missing: ["phone"],
+      headings: ["Name", "Email"],
+    });
+    const file = group("Oxford group\nName,Phone,Email,Postcode\nJo,07700900123,jo@example.com,SE15");
+    expect(file.columns.map((c) => [c.heading, c.field])).toEqual([
+      ["Name", "name"],
+      ["Phone", "phone"],
+      ["Email", null],
+      ["Postcode", null],
+    ]);
+  });
+
+  it("reads each member's number and profile name, holding back what can't be a number", () => {
+    expect(
+      whatsappRows(
+        group(
+          `Name,Phone\nJane  🌻,‪+44 7700 900123‬\n,7700900456\nNone,\nWords,call me\n${"x".repeat(101)},07700900789`,
+        ),
+      ).map((row) => [row.name.length > 20 ? "long" : row.name, row.phone, row.problem?.kind ?? null]),
+    ).toEqual([
+      ["Jane 🌻", "+44 7700 900123", null],
+      ["", "07700900456", null],
+      ["None", null, "no-phone"],
+      ["Words", null, "bad-phone"],
+      ["long", "07700900789", "long-name"],
+    ]);
+  });
+
+  it("takes a member with no name column by their number", () => {
+    expect(whatsappRows(group("Phone\n07700900123")).map((row) => [row.name, row.email, row.postcode])).toEqual([
+      ["", "", null],
+    ]);
+    // A row cut short has no name.
+    expect(whatsappRows(group("Phone,Name\n07700900123")).map((row) => row.name)).toEqual([""]);
   });
 });

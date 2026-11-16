@@ -288,52 +288,56 @@ export default function SignupUploadForm({
 
       {/* A paper upload's event, which its yes column signs people up for. */}
       {!whatsapp && (
-      <Card span={6} title={<Numbered n={3}>{copy.form.eventTitle}</Numbered>} id="upload-event">
-        <div className={styles.fields}>
-          <Field label={copy.form.eventColumn}>
-            <Select value={column} disabled={choices.length === 0} onChange={(event) => setColumn(event.target.value)}>
-              <option value="">{copy.form.noColumn}</option>
-              {choices.map((heading) => (
-                <option key={heading} value={heading}>
-                  {heading}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          {read && choices.length === 0 && <Strip tone="amber">{copy.form.noEventColumn}</Strip>}
-          {/* The event, greyed out until there's a column saying who's going to it. */}
-          <FieldSet label={copy.form.event} disabled={!column}>
-            {chosenEvent ? (
-              <p className={styles.chosen}>
-                <span>
-                  <strong>
-                    <ExternalLink href={chosenEvent.url}>{chosenEvent.name}</ExternalLink>
-                  </strong>{" "}
-                  {staffDate(chosenEvent.startAt)}
-                </span>
-                <LinkButton onClick={() => setEventId("")}>{copy.form.removeEvent}</LinkButton>
-              </p>
-            ) : (
-              <div>
-                <Choices
-                  search={copy.form.findEvent}
-                  current={[]}
-                  options={events.map((event) => ({
-                    value: event.id,
-                    label: event.name,
-                    detail: staffDate(event.startAt),
-                  }))}
-                  row={(option) => (
-                    <button type="button" className={styles.choice} onClick={() => setEventId(option.value)}>
-                      {option.label} <span>{option.detail}</span>
-                    </button>
-                  )}
-                />
-              </div>
-            )}
-          </FieldSet>
-        </div>
-      </Card>
+        <Card span={6} title={<Numbered n={3}>{copy.form.eventTitle}</Numbered>} id="upload-event">
+          <div className={styles.fields}>
+            <Field label={copy.form.eventColumn}>
+              <Select
+                value={column}
+                disabled={choices.length === 0}
+                onChange={(event) => setColumn(event.target.value)}
+              >
+                <option value="">{copy.form.noColumn}</option>
+                {choices.map((heading) => (
+                  <option key={heading} value={heading}>
+                    {heading}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {read && choices.length === 0 && <Strip tone="amber">{copy.form.noEventColumn}</Strip>}
+            {/* The event, greyed out until there's a column saying who's going to it. */}
+            <FieldSet label={copy.form.event} disabled={!column}>
+              {chosenEvent ? (
+                <p className={styles.chosen}>
+                  <span>
+                    <strong>
+                      <ExternalLink href={chosenEvent.url}>{chosenEvent.name}</ExternalLink>
+                    </strong>{" "}
+                    {staffDate(chosenEvent.startAt)}
+                  </span>
+                  <LinkButton onClick={() => setEventId("")}>{copy.form.removeEvent}</LinkButton>
+                </p>
+              ) : (
+                <div>
+                  <Choices
+                    search={copy.form.findEvent}
+                    current={[]}
+                    options={events.map((event) => ({
+                      value: event.id,
+                      label: event.name,
+                      detail: staffDate(event.startAt),
+                    }))}
+                    row={(option) => (
+                      <button type="button" className={styles.choice} onClick={() => setEventId(option.value)}>
+                        {option.label} <span>{option.detail}</span>
+                      </button>
+                    )}
+                  />
+                </div>
+              )}
+            </FieldSet>
+          </div>
+        </Card>
       )}
 
       <SignupUploadPreview step={whatsapp ? 3 : 4} input={input} blockers={blockers} {...actions} />

@@ -408,7 +408,7 @@ describe("SupporterDetails", () => {
 
   it("says where they are and what it's from, and nothing when we don't know", async () => {
     const copy = supportersCopy.supporters;
-    const place = (basis: "postcode" | "city" | "event", given: string) => ({
+    const place = (basis: "postcode" | "city" | "event" | "group", given: string) => ({
       ...exampleSupporterDetails,
       summary: { ...exampleSupporter, place: { name: "Leicester", basis, given, country: "england" } },
     });
@@ -421,6 +421,10 @@ describe("SupporterDetails", () => {
       .toBeVisible();
     await rerender(<SupporterDetails supporter={place("city", "Leicester")} />);
     await expect.element(page.getByText(copy.detail.placeFrom.city(""), { exact: true })).toBeVisible();
+    await rerender(<SupporterDetails supporter={place("group", "PauseAI UK Leicester")} />);
+    await expect
+      .element(page.getByText(copy.detail.placeFrom.group("PauseAI UK Leicester"), { exact: true }))
+      .toBeVisible();
     await rerender(
       <SupporterDetails
         supporter={{
@@ -669,5 +673,46 @@ describe("SupporterDetails, a member", () => {
       `10 Jul 2026${copy.detail.kinds["member-joined"]} `,
       `10 Jul 2026, 00:00${copy.detail.kinds["member-left"]} `,
     ]);
+  });
+});
+
+describe("SupporterDetails, a WhatsApp member", () => {
+  const copy = supportersCopy.supporters;
+
+  it("holds no email for them, and says the group they're in, linked to its upload", async () => {
+    await render(
+      <SupporterDetails
+        supporter={{
+          ...exampleMemberDetails,
+          identities: [
+            { source: "whatsapp-community", email: null, name: "Jane 🌻", seenAt: new Date("2026-11-16T10:00:00Z") },
+          ],
+          contacts: [],
+          activity: [
+            {
+              source: "whatsapp-community",
+              at: new Date("2026-11-16T10:00:00Z"),
+              kind: "whatsapp-joined",
+              title: "whatsapp-community",
+              campaignTitle: null,
+              detail: "Oxford",
+              href: "/staff/supporters/import/previous/2",
+              status: null,
+            },
+          ],
+        }}
+      />,
+    );
+    openHistory();
+    await expect
+      .element(page.getByRole("link", { name: "Oxford" }))
+      .toHaveAttribute("href", "/staff/supporters/import/previous/2");
+    expect(page.getByRole("listitem").all().at(-1)!.element().textContent).toContain(
+      `${copy.detail.kinds["whatsapp-joined"]} Oxford`,
+    );
+    const held = [...document.getElementById("everything")!.closest("details")!.querySelectorAll("tbody tr")].map(
+      (tr) => (tr as HTMLTableRowElement).cells[1].textContent,
+    );
+    expect(held).toEqual([copy.detail.held.name]);
   });
 });

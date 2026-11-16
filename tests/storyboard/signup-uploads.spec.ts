@@ -13,7 +13,7 @@ import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy"
 
 export const section: Section = { name: "Import sign-ups", part: "Staff pages", order: 55 };
 
-// Uploading a CSV of paper sign-ups, on files written different ways
+// Uploading a CSV of paper sign-ups, or of a WhatsApp group, on files written different ways
 // (tests/fixtures/signup-uploads/) and the fixture Luma calendar, whose five
 // guests are at every event. Each flow on its own database.
 
@@ -301,4 +301,44 @@ test("Someone with “No bulk emails” signs up", async ({ page, flowDatabase, 
     (one) => one.To === "rhea.member@example.com" && /Leeds Christmas market/.test(one.TextBody),
   )!;
   await emailFrame(page, email, "The email to Rhea");
+});
+
+test("A local WhatsApp group", async ({ page, flowDatabase }) => {
+  story(
+    "An admin of our WhatsApp community exports the Oxford group's members: profile names and numbers. Staff choose WhatsApp community at the top of Import sign-ups.",
+  );
+  await openUpload(page, flowDatabase);
+  await page.getByRole("radio", { name: copy.kind.whatsapp }).click();
+  await frame(page, "Importing a WhatsApp group: its name and town");
+
+  story("They give the group's name and its town, and drop in the file: names and phone numbers.");
+  await page.getByRole("textbox", { name: copy.form.group }).fill("PauseAI UK Oxford");
+  await page.getByRole("textbox", { name: copy.form.town }).fill("Oxford");
+  await page.getByLabel(copy.drop.label).setInputFiles({
+    name: "oxford-whatsapp.csv",
+    mimeType: "text/csv",
+    buffer: readFileSync(join(FILES, "oxford-whatsapp.csv")),
+  });
+  await previewWorkedOut(page);
+  await frame(page, "The group's file read");
+
+  story(
+    "Everyone with a number goes in, as a yes to newsletter texts, which they agreed to on joining. A row with no number, or one already on another row, is held back.",
+  );
+  await expect(page.getByRole("button", { name: copy.preview.importOnly(3) })).toBeVisible();
+  await atFoot(page);
+  await frame(page, "What will happen to each member");
+
+  story("Importing makes a supporter of each, known by their number.");
+  await page.getByRole("button", { name: copy.preview.importOnly(3) }).click();
+  await expect(page.getByRole("heading", { name: copy.result.title("oxford-whatsapp.csv") })).toBeVisible();
+  await frame(page, "What the group's upload did");
+
+  story("A member's page has their WhatsApp name, no email, the group in their history, and newsletter texts.");
+  await page.getByRole("link", { name: "Marie" }).click();
+  await page
+    .locator("summary", { has: page.getByRole("heading", { name: supportersCopy.supporters.detail.activityTitle }) })
+    .click();
+  await expect(page.getByRole("link", { name: "PauseAI UK Oxford" })).toBeVisible();
+  await frame(page, "A WhatsApp member's page");
 });

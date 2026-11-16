@@ -130,7 +130,16 @@ export const exampleWhatsappPlan: SignupPlan = {
   eventName: null,
   signature: "example",
   rows: [
-    { ...person, line: 2, name: "Jane 🌻", email: "", phone: "+447700900123", pile: "none", known: null, newEntry: true },
+    {
+      ...person,
+      line: 2,
+      name: "Jane 🌻",
+      email: "",
+      phone: "+447700900123",
+      pile: "none",
+      known: null,
+      newEntry: true,
+    },
     { ...person, line: 3, name: "", email: "", phone: "+33612345678", pile: "none", known: "mobile", newEntry: true },
     { ...person, line: 4, name: "Tom", email: "", phone: "+447700900456", pile: "done", known: null, newEntry: false },
     {
@@ -162,7 +171,27 @@ export const exampleWhatsappUpload: NonNullable<Awaited<ReturnType<typeof getSig
   heldBack: 1,
   lumaReading: false,
   people: [
-    { entryId: 1, name: "Jane 🌻", email: null, phone: "+447700900123", postcode: null, newEntry: true, known: null, luma: null, supporterId: 5 },
-    { entryId: 2, name: "", email: null, phone: "+33612345678", postcode: null, newEntry: true, known: "mobile", luma: null, supporterId: 6 },
+    {
+      entryId: 1,
+      name: "Jane 🌻",
+      email: null,
+      phone: "+447700900123",
+      postcode: null,
+      newEntry: true,
+      known: null,
+      luma: null,
+      supporterId: 5,
+    },
+    {
+      entryId: 2,
+      name: "",
+      email: null,
+      phone: "+33612345678",
+      postcode: null,
+      newEntry: true,
+      known: "mobile",
+      luma: null,
+      supporterId: 6,
+    },
   ],
 };

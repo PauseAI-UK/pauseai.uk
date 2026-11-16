@@ -939,7 +939,9 @@ One person filling in one of our forms once (`form_entries`): their name,
 email, phone, address, city and postcode as they gave them, the box to hear
 from us (`contact_consent`), where they came from (`utm_source`) and when.
 `form` says which form: `email-your-mp`, `march-2026-11`, `paper-signup`
-("Paper sign-ups", below), or `web-form` for pauseai.info's old letter form.
+("Paper sign-ups", below), `whatsapp-community` ("WhatsApp groups", below),
+or `web-form` for pauseai.info's old letter form. Every entry has an email
+but a WhatsApp member's, which has a number instead.
 What only some forms make hangs off the entry, one to one. A letter's sender,
 for one, is the entry its `letters_from_supporters` row points at.
 
@@ -996,13 +998,31 @@ before it's imported. A row is held back, with nothing kept, if it has:
 The entry is dated midday on the date collected. That date is also what makes an
 import safe to repeat: an email with a paper entry of that date gets no other.
 Every entry has its box ticked, as signing the paper form is joining the mailing
-list. So it's a yes to PauseAI UK by email, and to calls and texts for a number
+list. So it's a yes to the newsletter by email, and by text for a number
 given. The form has no mailing list box, and a file's column for one is ignored.
 
 Staff may link one column of yes and blank to one event to come. A yes then
 registers the person on Luma, who emails them, unless they're already going. The
 preview shows what importing will do for each person, and importing checks
 that's still so.
+
+**WhatsApp groups** (`whatsapp-community`) come from a CSV of the members of
+our WhatsApp community, or of one of its local groups, which an admin exports
+and staff upload on the same page, choosing WhatsApp community at its top.
+An upload is a row of `signup_uploads` of the kind `whatsapp`, with the
+group's name as its note and, for a local group, its town. Each member is an
+entry with their number, their WhatsApp profile name or `''`, and no email,
+dated when it was uploaded. A row is held back for a number that's missing,
+can't be made international (`phone_number()`), is on another row, or is of
+someone erased (`whatsapp_erased`, "Erasure", below). A number already
+uploaded under the group's name, in any case, gets no other entry, so an
+upload only adds people: nobody is marked as having left a group.
+
+Joining the community goes through a waiting room, where a person talks to
+an admin and agrees to be messaged. So an entry is a yes to the newsletter
+by text, and to nothing else. It's older than any opt-out, whenever it was
+uploaded: a stop of newsletter texts in force always wins. The group's name
+is the entry's line in a supporter's history, linked to its upload.
 
 ## Supporters
 
@@ -1011,9 +1031,13 @@ supporter to each record about them in a source: a Luma user
 (`luma_user_id`), a form entry (`form_entry_id`) or a CiviCRM contact
 (`civicrm_contact_id`).
 Records are matched by trimmed, lowercased email and nothing more, so
-`jane+luma@` and `jane@` are two people. The supporter holds no
+`jane+luma@` and `jane@` are two people. A WhatsApp member's entry, which has
+no email, is matched by its number (`matched_by` `phone`): to a supporter who
+gave the number anywhere, or else to a new one, known by the number alone.
+The supporter holds no
 name, email, phone or place of its own: those come from the linked
-records, newest first.
+records, newest first. A WhatsApp profile name is theirs only when no other
+record gives one.
 
 `linkSupporters()` (`lib/supporters/records.server.ts`) only adds links. It runs at
 the end of each Luma and CiviCRM import and when a form entry is kept, and
@@ -1023,7 +1047,9 @@ one person, whatever their emails. `merge_supporters_by_phone()` moves the
 newer supporter's links, messages and notes to the older, and deletes the
 newer. `supporter_merges` keeps the deleted one's ID, so its old page,
 `/staff/supporters/<id>`, redirects to the supporter it went into. Landlines
-and numbers abroad aren't matched, as households and offices share them.
+and numbers abroad aren't matched, as households and offices share them,
+unless either supporter gave the number in a WhatsApp entry: a WhatsApp
+account is a phone one person carries, wherever its number is from.
 
 Each source (`lib/supporters/sources.server.ts`) gives three views in one
 shape, made in the migrations:
@@ -1117,7 +1143,9 @@ they have:
 1. their newest postcode;
 2. the newest city they gave themselves (never Luma's, whose cities are its
    events');
-3. the newest event they registered for that isn't a big day or online.
+3. the newest event they registered for that isn't a big day or online;
+4. the town of the newest local WhatsApp group they were uploaded from, as
+   people join a group near them, not always where they live.
 
 Each postcode and town is looked up at postcodes.io once, at the end of each
 Luma import (`lib/supporters/places.server.ts`), and a big import catches up
@@ -1152,6 +1180,9 @@ doesn't come back:
 - Their CiviCRM contact IDs go in `civicrm_erased`, in the same way.
 - A one-off email's Gmail ID and hashed Message-ID go in `one_off_erased`,
   so that reading its thread again doesn't keep it again.
+- Each number they gave, from any source, goes hashed in `whatsapp_erased`
+  (`whatsapp_number_hash()`), so a WhatsApp group's next upload holds it
+  back rather than add them again.
 
 The audit log entry carries the supporter's ID and the reference, never a
 name or address.
@@ -1418,8 +1449,9 @@ or a call to a number. The topics:
 - **Newsletter**, the PauseAI UK newsletter, which includes events: a box
   ticked on one of our forms, for email, and for texts on the march's,
   which says "by email, text and phone"; a paper sign-up, where writing an
-  address or a number down is joining; and CiviCRM's `newsletter` list, for
-  email.
+  address or a number down is joining; a WhatsApp member's number, for texts,
+  unless a stop of newsletter texts is in force, however old; and CiviCRM's
+  `newsletter` list, for email.
 - **Events only**: following the Luma calendar, which registering for an
   event does too, for email. A number given at a Luma registration has the
   answer of the account that gave it, for texts; a number given on a form
