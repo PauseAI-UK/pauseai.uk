@@ -257,7 +257,7 @@ export default function SignupUploadPreview({
     });
   }
 
-  // What's in step 3: why there's nothing yet, what went wrong, or the plan, the last one while a change is worked out.
+  // What's in the last step: why there's nothing yet, what went wrong, or the plan, the last one while a change is worked out.
   const shown = !input ? (
     <p>{words.needsFile}</p>
   ) : !outcome ? (

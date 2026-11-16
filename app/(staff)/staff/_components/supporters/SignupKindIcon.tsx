@@ -4,14 +4,15 @@ import type { SignupKind } from "@/lib/supporters/signup-csv";
 /**
  * What an upload's sign-ups are, as a line icon (ChannelIcon's style): a page
  * of a form, with lines on it, for paper sign-ups, or a text's speech bubble
- * for a WhatsApp group. Decoration: the kind's words go beside it.
+ * for a WhatsApp group. Decoration: the kind's words go beside it. `size` is
+ * its width and height in pixels.
  */
-export default function SignupKindIcon({ kind }: { kind: SignupKind }) {
-  if (kind === "whatsapp") return <ChannelIcon channel="text" />;
+export default function SignupKindIcon({ kind, size = 12 }: { kind: SignupKind; size?: number }) {
+  if (kind === "whatsapp") return <ChannelIcon channel="text" size={size} />;
   return (
     <svg
-      width={12}
-      height={12}
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

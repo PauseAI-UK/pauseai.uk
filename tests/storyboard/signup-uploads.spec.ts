@@ -69,7 +69,7 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   if (!(await navLink.first().isVisible())) await page.locator("nav details > summary").click();
   await navLink.filter({ visible: true }).click();
   await expect(page.getByRole("heading", { name: copy.title, level: 1 })).toBeVisible();
-  await frame(page, "Before a file: its four steps");
+  await frame(page, "Before a file: its five steps");
 
   story("Every column name it understands, and the values each can hold, open in a section of their own.");
   await page.getByRole("button", { name: copy.help.more }).click();

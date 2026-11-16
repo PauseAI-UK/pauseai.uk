@@ -128,6 +128,48 @@
   font-size: var(--text-sm);
 }
 
+/* The choice of what an upload is of (SignupKindChoice): large buttons side by side, each its icon at the left. */
+.kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+}
+
+.kindChoice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-lg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.kindChoice svg {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.kindChoice:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.kindChoice[aria-checked="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  font-weight: 600;
+}
+
+.kindChoice[aria-checked="true"] svg {
+  color: var(--accent);
+}
+
 /* An upload's kind in its row, the icon centred on the words. */
 .kind {
   display: inline-flex;

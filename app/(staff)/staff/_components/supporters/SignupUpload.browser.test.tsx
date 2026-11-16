@@ -62,18 +62,19 @@ async function event() {
 const importButton = () => page.getByRole("button", { name: /^Import \d+ people/ });
 
 describe("SignupUploadForm", () => {
-  it("shows its four steps in order before a file, the event greyed out, and what stops the import", async () => {
+  it("shows its five steps in order before a file, the event greyed out, and what stops the import", async () => {
     await showForm().view;
     const titles = page
       .getByRole("heading", { level: 2 })
       .all()
       .map((heading) => heading.element().textContent);
     expect(titles).toEqual([
-      `1${copy.form.formsTitle}`,
-      `2${copy.steps.file}`,
+      `1${copy.kind.label}`,
+      `2${copy.form.formsTitle}`,
+      `3${copy.steps.file}`,
       copy.help.title,
-      `3${copy.form.eventTitle}`,
-      `4${copy.steps.check}`,
+      `4${copy.form.eventTitle}`,
+      `5${copy.steps.check}`,
     ]);
     await expect.element(page.getByText(copy.help.short.paper[0])).toBeVisible();
     await expect.element(page.getByText(words.needsFile)).toBeVisible();
@@ -251,7 +252,7 @@ describe("SignupUploadPreview", () => {
   const show = (actions: Partial<SignupUploadActions>, of: typeof input | null = input, blockers: string[] = []) =>
     render(
       <SignupUploadPreview
-        step={4}
+        step={5}
         input={of}
         blockers={blockers}
         preview={actions.preview ?? (async () => exampleSignupPlan)}
@@ -293,7 +294,7 @@ describe("SignupUploadPreview", () => {
     await expect.element(button()).toBeEnabled();
     await view.rerender(
       <SignupUploadPreview
-        step={4}
+        step={5}
         input={{ ...input, note: "Changed" }}
         blockers={[]}
         preview={async () => exampleSignupPlan}
@@ -516,10 +517,11 @@ describe("a WhatsApp group's upload", () => {
         .all()
         .map((heading) => heading.element().textContent);
     expect(titles()).toEqual([
-      `1${copy.form.groupTitle}`,
-      `2${copy.steps.file}`,
+      `1${copy.kind.label}`,
+      `2${copy.form.groupTitle}`,
+      `3${copy.steps.file}`,
       copy.help.title,
-      `3${copy.steps.check}`,
+      `4${copy.steps.check}`,
     ]);
     await expect.element(page.getByText(copy.help.short.whatsapp[0])).toBeVisible();
     await expect.element(page.getByText(words.blockers.group)).toBeVisible();

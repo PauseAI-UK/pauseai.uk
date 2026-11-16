@@ -7,6 +7,6 @@ export const signupUploadFormGallery: Example[] = [
   {
     name: "SignupUploadForm",
     file: "app/(staff)/staff/_components/supporters/SignupUploadForm.tsx",
-    variants: [{ label: "Before a file: its four steps", render: () => <SignupUploadFormExample /> }],
+    variants: [{ label: "Before a file: its five steps", render: () => <SignupUploadFormExample /> }],
   },
 ];

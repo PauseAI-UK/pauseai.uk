@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type DragEvent } from "react";
-import { FileInput, Segmented, Select, TextInput } from "@/components/ui/Controls";
+import { FileInput, Select, TextInput } from "@/components/ui/Controls";
 import DatePicker from "@/components/ui/DatePicker";
 import { Field, FieldSet } from "@/components/ui/Field";
 import LinkButton from "@/components/ui/LinkButton";
@@ -19,7 +19,7 @@ import {
   type SignupUploadInput,
 } from "@/lib/supporters/signup-csv";
 import { staffDate } from "@/lib/staff-time";
-import SignupKindIcon from "./SignupKindIcon";
+import SignupKindChoice from "./SignupKindChoice";
 import SignupUploadHelp, { SignupColumnNames } from "./SignupUploadHelp";
 import SignupUploadPreview, { type SignupUploadActions } from "./SignupUploadPreview";
 import Choices from "../ui/Choices";
@@ -50,12 +50,12 @@ function refusedWords(read: Exclude<SignupFileRead, { ok: true }>): string {
 type Chosen = { name: string; text: string };
 
 /**
- * Uploading sign-ups, under the choice of what they are: paper forms or a
- * WhatsApp group. For paper, four numbered steps always shown: the date and
- * note; the file, beside what it should look like, and once read, what each
- * of its columns will do; an event; and what importing will do, worked out as
- * soon as there's enough to go on, with the button that does it. A WhatsApp
- * group has its name and town in place of the date and note, and no event.
+ * Uploading sign-ups, in numbered steps always shown. For paper, five: what
+ * they are, paper forms or a WhatsApp group; the date and note; the file,
+ * beside what it should look like, and once read, what each of its columns
+ * will do; an event; and what importing will do, worked out as soon as
+ * there's enough to go on, with the button that does it. A WhatsApp group has
+ * its name and town in place of the date and note, and no event.
  * The file is read in the browser, and sent to the server only to preview
  * and import it.
  */
@@ -137,14 +137,8 @@ export default function SignupUploadForm({
   // Even, so the file's card and what it needs are as tall as each other; every other card has a row to itself.
   return (
     <Grid even>
-      <Card span={6} id="upload-kind">
-        <Segmented<SignupKind>
-          label={copy.kind.label}
-          options={(["paper", "whatsapp"] as const).map((value) => ({
-            value,
-            label: copy.kind[value],
-            icon: <SignupKindIcon kind={value} />,
-          }))}
+      <Card span={6} title={<Numbered n={1}>{copy.kind.label}</Numbered>} id="upload-kind">
+        <SignupKindChoice
           value={kind}
           onChange={(chosenKind) => {
             setKind(chosenKind);
@@ -153,7 +147,7 @@ export default function SignupUploadForm({
         />
       </Card>
       {whatsapp ? (
-        <Card span={6} title={<Numbered n={1}>{copy.form.groupTitle}</Numbered>} id="upload-forms">
+        <Card span={6} title={<Numbered n={2}>{copy.form.groupTitle}</Numbered>} id="upload-forms">
           <div className={styles.fields}>
             <Field label={<Required>{copy.form.group}</Required>}>
               <TextInput
@@ -173,7 +167,7 @@ export default function SignupUploadForm({
           </div>
         </Card>
       ) : (
-        <Card span={6} title={<Numbered n={1}>{copy.form.formsTitle}</Numbered>} id="upload-forms">
+        <Card span={6} title={<Numbered n={2}>{copy.form.formsTitle}</Numbered>} id="upload-forms">
           <div className={styles.fields}>
             <Field label={<Required>{copy.form.signedOn}</Required>}>
               <DatePicker value={signedOn} onChange={setSignedOn} />
@@ -191,7 +185,7 @@ export default function SignupUploadForm({
       )}
       <Card
         span={3}
-        title={<Numbered n={2}>{read ? chosen!.name : copy.steps.file}</Numbered>}
+        title={<Numbered n={3}>{read ? chosen!.name : copy.steps.file}</Numbered>}
         id="upload-file"
         action={read && <LinkButton onClick={startAgain}>{copy.drop.another}</LinkButton>}
       >
@@ -264,7 +258,7 @@ export default function SignupUploadForm({
 
       {/* A paper upload's event, which its yes column signs people up for. */}
       {!whatsapp && (
-        <Card span={6} title={<Numbered n={3}>{copy.form.eventTitle}</Numbered>} id="upload-event">
+        <Card span={6} title={<Numbered n={4}>{copy.form.eventTitle}</Numbered>} id="upload-event">
           <div className={styles.fields}>
             <Field label={copy.form.eventColumn}>
               <Select
@@ -316,7 +310,7 @@ export default function SignupUploadForm({
         </Card>
       )}
 
-      <SignupUploadPreview step={whatsapp ? 3 : 4} input={input} blockers={blockers} {...actions} />
+      <SignupUploadPreview step={whatsapp ? 4 : 5} input={input} blockers={blockers} {...actions} />
     </Grid>
   );
 }
