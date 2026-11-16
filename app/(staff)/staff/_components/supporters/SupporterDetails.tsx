@@ -16,6 +16,7 @@ import type {
 } from "@/lib/supporters/supporters";
 import CampaignName from "../CampaignName";
 import PermissionTiles from "./PermissionTiles";
+import SupporterBadges, { supporterBadgeWords } from "./SupporterBadges";
 import Band, { BandFact } from "../ui/Band";
 import Counts from "../ui/Counts";
 import Empty from "../ui/Empty";
@@ -46,13 +47,19 @@ function held(supporter: Details, usable: Set<string>): Held[] {
   const names = identities
     .filter((i) => i.name)
     .map((i, n) => ({ key: `name-${n}`, what: d.held.name, value: i.name, from: from(i.source), at: i.seenAt }));
-  const emails = identities.map((i, n) => ({
-    key: `email-${n}`,
-    what: d.emails,
-    value: <a href={`mailto:${i.email}`}>{i.email}</a>,
-    from: from(i.source),
-    at: i.seenAt,
-  }));
+  const emails = identities.flatMap((i, n) =>
+    i.email === null
+      ? []
+      : [
+          {
+            key: `email-${n}`,
+            what: d.emails,
+            value: <a href={`mailto:${i.email}`}>{i.email}</a>,
+            from: from(i.source),
+            at: i.seenAt,
+          },
+        ],
+  );
   const contacts = [...supporter.contacts].sort(byTime);
   const each = (what: string, value: (c: (typeof contacts)[number]) => ReactNode | null) =>
     contacts.flatMap((c, n) => {
@@ -177,6 +184,10 @@ function Subject({ item }: { item: SupporterActivity }) {
       </>
     );
   }
+  if (item.kind === "whatsapp-joined") {
+    // The group's name, as staff typed it, linked to the upload, which every WhatsApp entry has.
+    return <StaffLink href={item.href!}>{item.detail}</StaffLink>;
+  }
   if (item.kind === "member-joined") {
     // What they chose on the join form, if it says anything.
     const intent = copy.detail.intents[item.title ?? ""];
@@ -220,7 +231,8 @@ type Counted = { events: number; letters: number; broadcasts: number; notes: num
 /**
  * The band at the top of their page: where they are on a map; their name;
  * then where they are and what it's from, their MP, when they were active
- * and how they first came, each when known; and how many events they
+ * and how they first came, and their activities as the list's lozenges, each
+ * when known; and how many events they
  * registered for, letters they wrote, broadcasts they were sent and notes
  * staff wrote, the tables and cards of which are below, only those there
  * are any of.
@@ -253,6 +265,11 @@ function SupporterBand({ supporter, counted }: { supporter: Details; counted: Co
         </BandFact>
       )}
       <Active first={summary.firstSeenAt} last={summary.lastActiveAt} source={first?.source} />
+      {supporterBadgeWords(summary) && (
+        <BandFact label={copy.columns.badges}>
+          <SupporterBadges supporter={summary} />
+        </BandFact>
+      )}
     </Band>
   );
 }

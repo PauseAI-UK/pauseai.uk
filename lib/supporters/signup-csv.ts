@@ -3,9 +3,29 @@
 // encodings, spellings of a heading, ways of saying yes) and has no opinion on
 // what a column means beyond the names here: any other column is ignored.
 
+/**
+ * What a file is of: paper sign-up forms, each with a name and an email; or
+ * a group of our WhatsApp community, each with a number and, if their profile
+ * has one, a name.
+ */
+export const SIGNUP_KINDS = ["paper", "whatsapp"] as const;
+export type SignupKind = (typeof SIGNUP_KINDS)[number];
+
+/** The columns a file of each kind can't go in without. */
+export const REQUIRED: Record<SignupKind, readonly ("name" | "email" | "phone")[]> = {
+  paper: ["name", "email"],
+  whatsapp: ["phone"],
+};
+
 /** What a column of a file can go into. */
 export const SIGNUP_FIELDS = ["name", "email", "phone", "postcode"] as const;
 export type SignupField = (typeof SIGNUP_FIELDS)[number];
+
+/** What each kind of file takes: a WhatsApp member is known by their number alone, so their group's file has no more. */
+export const KIND_FIELDS: Record<SignupKind, readonly SignupField[]> = {
+  paper: SIGNUP_FIELDS,
+  whatsapp: ["name", "phone"],
+};
 
 /** The headings each field goes by, as signupHeading() writes them. */
 export const SIGNUP_FIELD_NAMES: Record<SignupField, readonly string[]> = {
@@ -165,37 +185,43 @@ export type SignupColumn = { heading: string; index: number; field: SignupField 
 
 export type SignupFileRead =
   | { ok: true; columns: SignupColumn[]; rows: SignupRecord[] }
-  /** Nothing in it, or no heading for a name or an email, the two a person can't go in without. */
+  /** Nothing in it, or no heading for what a person can't go in without: a name and an email, or a number. */
   | { ok: false; reason: "empty" }
-  | { ok: false; reason: "missing"; missing: ("name" | "email")[]; headings: string[] }
+  | { ok: false; reason: "missing"; missing: ("name" | "email" | "phone")[]; headings: string[] }
   /** Two columns that could each be the one thing, so reading either might be wrong. */
   | { ok: false; reason: "clash"; field: SignupField; headings: string[] };
 
-/** Reads a file's headings and rows, or says why it can't be read. Titles over the headings are skipped. */
-export function readSignupFile(text: string): SignupFileRead {
+/**
+ * Reads a file's headings and rows, or says why it can't be read. Titles over
+ * the headings are skipped: the headings are the first row with the column
+ * the kind can't go in without, its email or its number.
+ */
+export function readSignupFile(text: string, kind: SignupKind = "paper"): SignupFileRead {
   const records = parseSignupCsv(text);
   if (records.length === 0) return { ok: false, reason: "empty" };
+  const fields = KIND_FIELDS[kind];
+  const fieldOf = (heading: string) => {
+    const field = FIELD_OF_HEADING.get(signupHeading(heading));
+    return field && fields.includes(field) ? field : null;
+  };
+  const key = kind === "paper" ? "email" : "phone";
   const found = records
     .slice(0, ROWS_TO_FIND_HEADINGS)
-    .findIndex((record) => record.cells.some((cell) => FIELD_OF_HEADING.get(signupHeading(cell)) === "email"));
+    .findIndex((record) => record.cells.some((cell) => fieldOf(cell) === key));
   const at = Math.max(found, 0);
   const headings = records[at].cells;
   const rows = records.slice(at + 1);
 
-  const fieldOf = (heading: string) => FIELD_OF_HEADING.get(signupHeading(heading)) ?? null;
   const columns = headings.flatMap((heading, index): SignupColumn[] => {
     if (!heading) return [];
     return [{ heading, index, field: fieldOf(heading), filled: rows.filter((row) => row.cells[index]).length }];
   });
 
-  for (const field of SIGNUP_FIELDS) {
+  for (const field of fields) {
     const same = columns.filter((column) => column.field === field);
     if (same.length > 1) return { ok: false, reason: "clash", field, headings: same.map((column) => column.heading) };
   }
-  const has = (field: SignupField) => columns.some((column) => column.field === field);
-  const missing: ("name" | "email")[] = [];
-  if (!has("name")) missing.push("name");
-  if (!has("email")) missing.push("email");
+  const missing = REQUIRED[kind].filter((field) => !columns.some((column) => column.field === field));
   if (missing.length > 0) return { ok: false, reason: "missing", missing, headings: columns.map((c) => c.heading) };
   return { ok: true, columns, rows };
 }
@@ -241,13 +267,27 @@ function cleanEmail(cell: string): string {
 
 /** Why a row can't go in. `value` and `column` are the cell that says so, for a yes or no it can't read. */
 export type SignupRowProblem =
-  | { kind: "no-name" | "long-name" | "no-email" | "bad-email" | "bad-phone" | "same-email" | "blocked" }
+  | {
+      kind:
+        | "no-name"
+        | "long-name"
+        | "no-email"
+        | "bad-email"
+        | "bad-phone"
+        | "same-email"
+        | "blocked"
+        | "no-phone"
+        | "same-phone"
+        | "erased";
+    }
   | { kind: "unread-yes-no"; value: string; column: string };
 
 /** A person as a row of the file gives them. */
 export type SignupRow = {
   line: number;
+  /** A WhatsApp member's profile name, or '' if they have none. */
   name: string;
+  /** '' for a WhatsApp member. */
   email: string;
   phone: string | null;
   postcode: string | null;
@@ -310,15 +350,45 @@ export function signupRows(file: Extract<SignupFileRead, { ok: true }>, eventCol
   });
 }
 
+/**
+ * The people in a WhatsApp group's file: each a number, and the profile name
+ * if there is one. A row is held back for a number that's missing or can't be
+ * one; the server, which writes each number in full, holds back one on
+ * another row too (planSignupUpload()).
+ */
+export function whatsappRows(file: Extract<SignupFileRead, { ok: true }>): SignupRow[] {
+  const cell = (row: SignupRecord, field: SignupField) => {
+    const found = file.columns.find((c) => c.field === field);
+    return found ? (row.cells[found.index] ?? "") : "";
+  };
+  return file.rows.map((row) => {
+    const name = cell(row, "name").replace(/\s+/g, " ");
+    // WhatsApp's export marks a number's direction with invisible characters.
+    const given = cell(row, "phone").replace(/\p{Cf}/gu, "");
+    const phone = given ? cleanPhone(given) : null;
+    const problem = ((): SignupRowProblem | null => {
+      if (phone === null) return { kind: "no-phone" };
+      if (phone === undefined) return { kind: "bad-phone" };
+      if (name.length > MAX_NAME_LENGTH) return { kind: "long-name" };
+      return null;
+    })();
+    return { line: row.line, name, email: "", phone: phone ?? null, postcode: null, going: false, problem };
+  });
+}
+
 /** What the page sends to preview and import a file: the file itself, and what staff chose. */
 export type SignupUploadInput = {
+  kind: SignupKind;
   csv: string;
   filename: string;
   eventId: string | null;
   eventColumn: string | null;
-  /** The date on the forms, YYYY-MM-DD. */
+  /** The date on the forms, YYYY-MM-DD; for a WhatsApp group, the day it's uploaded. */
   signedOn: string;
+  /** Where the forms were collected, or the WhatsApp group's name. */
   note: string;
+  /** A local WhatsApp group's town; '' for none, as for the whole community, and for paper. */
+  town: string;
 };
 
 /** Where the uploads so far are listed, and each upload's own page, under that. */

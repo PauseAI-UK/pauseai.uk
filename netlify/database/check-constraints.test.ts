@@ -28,6 +28,7 @@ import {
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar.server";
 import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/records.server";
 import type { SignupUploadPerson } from "@/lib/supporters/signup-uploads.server";
+import { SIGNUP_KINDS } from "@/lib/supporters/signup-csv";
 import { PERMISSIONS } from "@/lib/accounts/permissions";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 
@@ -142,6 +143,7 @@ const LISTED: Record<string, readonly string[]> = {
     "failed",
     "not-configured",
   ]),
+  "signup_uploads.kind": SIGNUP_KINDS,
   "staff_accounts.permissions": PERMISSIONS,
 };
 
@@ -156,6 +158,7 @@ const UNLISTED = [
   "letters.kind",
   "letters_from_supporters.copy_state",
   "mailings.audience",
+  "supporter_links.matched_by",
 ];
 
 /** The values a CHECK lists for its column: `col = ANY (ARRAY[…])`, as Postgres writes `col IN (…)`, or `col <@ ARRAY[…]` for an array. */

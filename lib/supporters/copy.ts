@@ -81,6 +81,8 @@ export const supportersCopy = {
       letter: "Wrote to MP",
       member: "Member",
       march: "March sign-up",
+      paper: "Paper sign-up",
+      whatsapp: "WhatsApp group",
     },
     // In the list, a lozenge per consent we'd contact them by, a topic by a way.
     subscriptions: {
@@ -100,6 +102,7 @@ export const supportersCopy = {
       "web-form": "pauseai.info letter",
       "march-2026-11": "March sign-up",
       "paper-signup": "Paper sign-up",
+      "whatsapp-community": "WhatsApp community",
       civicrm: "Member",
     } as Record<string, string>,
     // In a supporter's history, what an opt-out was from.
@@ -155,6 +158,7 @@ export const supportersCopy = {
         reasons: {
           asked: (when: string, source: string) => `Ticked the box on ${source}, ${when}`,
           "signed-up": (when: string) => `Signed up on a paper form, ${when}`,
+          "joined-whatsapp": (when: string) => `In our WhatsApp community, uploaded ${when}`,
           subscribed: (when: string, _source: string, topic?: Topic) =>
             topic === "volunteering"
               ? `On volunteer list in CiviCRM, ${when}`
@@ -185,6 +189,7 @@ export const supportersCopy = {
           "web-form": "their pauseai.info letter",
           "march-2026-11": "the march sign-up",
           "paper-signup": "a paper sign-up form",
+          "whatsapp-community": "our WhatsApp community",
           luma: "Luma",
           "luma-webhook": "Luma",
           "luma-contacts": "Luma",
@@ -249,6 +254,7 @@ export const supportersCopy = {
         postcode: (given: string) => `from their postcode, ${given}`,
         city: () => "from the city they gave",
         event: (given: string) => `from where ${given} was`,
+        group: (given: string) => `from the WhatsApp group ${given}`,
       } as Record<string, (given: string) => string>,
       // In the band at the top: their MP, linked to their page, how they first came, under when they were active,
       // and how many events they registered for and letters they wrote, each linked to its table.
@@ -261,6 +267,7 @@ export const supportersCopy = {
         luma: "first came through Luma",
         "march-2026-11": "first came by signing up for the march",
         "paper-signup": "first came on a paper sign-up form",
+        "whatsapp-community": "first came via WhatsApp community",
       } as Record<string, string>,
       eventsCounted: (n: number) => plural(n, "event", "events"),
       lettersCounted: (n: number) => plural(n, "letter to an MP", "letters to MPs"),
@@ -296,6 +303,7 @@ export const supportersCopy = {
         letter: "Wrote to",
         "letter-replied": "Letter answered by",
         "form-entry": "Filled in",
+        "whatsapp-joined": "In the WhatsApp group",
         "member-joined": "Joined PauseAI",
         "member-left": "Left PauseAI UK",
         "opted-out": "Unsubscribed from",

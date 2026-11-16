@@ -134,6 +134,15 @@ WITH
       AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
         OR (for_way = 'text' AND phone_number(f.phone) = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
     UNION ALL
+    -- In our WhatsApp community, unless they've opted out since, or before.
+    SELECT 'yes', 'joined-whatsapp', min(f.created_at), 'whatsapp-community'
+    FROM form_entries f
+    WHERE for_topic = 'newsletter' AND for_way = 'text' AND f.form = 'whatsapp-community'
+      AND phone_number(f.phone) = for_address
+      AND NOT EXISTS (SELECT 1 FROM opt_outs o WHERE o.way = 'text' AND o.address = for_address
+        AND o.list = 'newsletter' AND o.resubscribed_at IS NULL)
+    HAVING count(*) > 0
+    UNION ALL
     -- A box ticked on the email settings page.
     SELECT 'yes', 'chose', p.chosen_at, 'preferences'
     FROM preference_choices p
@@ -227,36 +236,40 @@ $$;
 
 CREATE FUNCTION public.merge_supporters_by_phone(only_for bigint[] DEFAULT NULL::bigint[]) RETURNS SETOF bigint
     LANGUAGE plpgsql ROWS 10
-    AS $_$
+    AS $$
 DECLARE
   numbers text[];
-  pairs text;
   pair record;
   merged boolean;
 BEGIN
   IF only_for IS NOT NULL THEN
     numbers := (SELECT array_agg(DISTINCT phone_number(c.phone)) FROM supporter_contact c
-                WHERE c.supporter_id = ANY(only_for) AND phone_number(c.phone) LIKE '+447%');
+                WHERE c.supporter_id = ANY(only_for) AND phone_number(c.phone) IS NOT NULL);
     IF numbers IS NULL THEN
       RETURN;
     END IF;
   END IF;
-  pairs := format(
-    $sql$WITH numbers AS (
-      SELECT k.supporter_id, phone_number(g.phone) AS phone FROM luma_guests g
-        JOIN supporter_links k ON k.luma_user_id = g.user_id WHERE phone_number(g.phone) %1$s
-      UNION SELECT k.supporter_id, phone_number(f.phone) FROM form_entries f
-        JOIN supporter_links k ON k.form_entry_id = f.id WHERE phone_number(f.phone) %1$s
-      UNION SELECT k.supporter_id, phone_number(c.phone) FROM civicrm_contacts c
-        JOIN supporter_links k ON k.civicrm_contact_id = c.contact_id WHERE phone_number(c.phone) %1$s)
-    SELECT a.supporter_id AS from_id, min(b.supporter_id) AS into_id
-    FROM numbers a JOIN numbers b ON b.phone = a.phone AND b.supporter_id < a.supporter_id
-    GROUP BY a.supporter_id ORDER BY a.supporter_id DESC$sql$,
-    CASE WHEN numbers IS NULL THEN $sql$LIKE '+447%'$sql$ ELSE '= ANY($1)' END
-  );
   LOOP
     merged := false;
-    FOR pair IN EXECUTE pairs USING numbers LOOP
+    FOR pair IN
+      WITH given AS (
+        SELECT k.supporter_id, phone_number(g.phone) AS phone, false AS whatsapp FROM luma_guests g
+          JOIN supporter_links k ON k.luma_user_id = g.user_id
+        UNION SELECT k.supporter_id, phone_number(f.phone), f.form = 'whatsapp-community' FROM form_entries f
+          JOIN supporter_links k ON k.form_entry_id = f.id
+        UNION SELECT k.supporter_id, phone_number(c.phone), false FROM civicrm_contacts c
+          JOIN supporter_links k ON k.civicrm_contact_id = c.contact_id
+      ),
+      held AS (
+        SELECT g.supporter_id, g.phone, bool_or(g.whatsapp) AS whatsapp FROM given g
+        WHERE g.phone IS NOT NULL AND (numbers IS NULL OR g.phone = ANY(numbers))
+        GROUP BY g.supporter_id, g.phone
+      )
+      SELECT a.supporter_id AS from_id, min(b.supporter_id) AS into_id
+      FROM held a JOIN held b ON b.phone = a.phone AND b.supporter_id < a.supporter_id
+      WHERE a.phone LIKE '+447%' OR a.whatsapp OR b.whatsapp
+      GROUP BY a.supporter_id ORDER BY a.supporter_id DESC
+    LOOP
       UPDATE supporter_links SET supporter_id = pair.into_id WHERE supporter_id = pair.from_id;
       UPDATE broadcast_messages m SET supporter_id = NULL, address = NULL, merge_values = NULL
       WHERE m.supporter_id = pair.from_id
@@ -272,7 +285,7 @@ BEGIN
     EXIT WHEN NOT merged;
   END LOOP;
 END
-$_$;
+$$;
 
 --
 -- Name: phone_number(text); Type: FUNCTION; Schema: public; Owner: -
@@ -356,7 +369,7 @@ CREATE TABLE public.form_entries (
     form text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     name text NOT NULL,
-    email text NOT NULL,
+    email text,
     phone text,
     address text,
     city text,
@@ -364,7 +377,8 @@ CREATE TABLE public.form_entries (
     contact_consent boolean NOT NULL,
     utm_source text,
     bulk_notice_at timestamp with time zone,
-    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'paper-signup'::text])))
+    CONSTRAINT form_entries_email_check CHECK (((email IS NOT NULL) OR ((form = 'whatsapp-community'::text) AND (phone IS NOT NULL)))),
+    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text])))
 );
 
 --
@@ -601,9 +615,13 @@ CREATE TABLE public.signup_uploads (
     held_back integer NOT NULL,
     uploaded_by text NOT NULL,
     uploaded_at timestamp with time zone NOT NULL,
+    kind text DEFAULT 'paper'::text NOT NULL,
+    town text,
     CONSTRAINT signup_uploads_held_back_check CHECK ((held_back >= 0)),
     CONSTRAINT signup_uploads_imported_check CHECK ((imported >= 0)),
-    CONSTRAINT signup_uploads_note_check CHECK ((btrim(note) <> ''::text))
+    CONSTRAINT signup_uploads_kind_check CHECK ((kind = ANY (ARRAY['paper'::text, 'whatsapp'::text]))),
+    CONSTRAINT signup_uploads_note_check CHECK ((btrim(note) <> ''::text)),
+    CONSTRAINT signup_uploads_town_check CHECK ((btrim(town) <> ''::text))
 );
 
 --
@@ -661,7 +679,10 @@ UNION ALL
 UNION ALL
  SELECT f.id AS source_id,
     f.created_at AS at,
-    'form-entry'::text AS kind,
+        CASE
+            WHEN (f.form = 'whatsapp-community'::text) THEN 'whatsapp-joined'::text
+            ELSE 'form-entry'::text
+        END AS kind,
     f.form AS title,
     COALESCE(u.note, f.utm_source) AS detail,
     ('/staff/supporters/import/previous/'::text || u.id) AS href,
@@ -688,7 +709,7 @@ CREATE TABLE public.supporter_links (
     form_entry_id bigint,
     civicrm_contact_id bigint,
     CONSTRAINT supporter_links_check CHECK ((num_nonnulls(luma_user_id, form_entry_id, civicrm_contact_id) = 1)),
-    CONSTRAINT supporter_links_matched_by_check CHECK ((matched_by = 'email'::text)),
+    CONSTRAINT supporter_links_matched_by_check CHECK ((matched_by = ANY (ARRAY['email'::text, 'phone'::text]))),
     CONSTRAINT supporter_links_matched_value_check CHECK ((matched_value = lower(matched_value)))
 );
 
@@ -965,7 +986,7 @@ CREATE VIEW public.supporter_place AS
             n.longitude,
             n.place,
             n.country,
-            'city'::text,
+            'city'::text AS text,
             c.city
            FROM (public.supporter_contact c
              JOIN public.named_places n ON ((n.name = lower(TRIM(BOTH FROM c.city)))))
@@ -978,13 +999,29 @@ CREATE VIEW public.supporter_place AS
             e.longitude,
             COALESCE(n.place, e.city) AS "coalesce",
             n.country,
-            'event'::text,
+            'event'::text AS text,
             e.name
            FROM (((public.luma_guests g
              JOIN public.supporter_links k ON ((k.luma_user_id = g.user_id)))
              JOIN public.luma_events e ON ((e.id = g.event_id)))
              LEFT JOIN public.named_places n ON ((n.name = lower(TRIM(BOTH FROM e.city)))))
           WHERE ((e.latitude IS NOT NULL) AND (g.approval_status <> 'declined'::text) AND (NOT (e.tags && ARRAY['Big events'::text, 'Online'::text])))
+        UNION ALL
+         SELECT k.supporter_id,
+            4,
+            f.created_at,
+            n.latitude,
+            n.longitude,
+            n.place,
+            n.country,
+            'group'::text AS text,
+            u.note
+           FROM ((((public.form_entries f
+             JOIN public.supporter_links k ON ((k.form_entry_id = f.id)))
+             JOIN public.signup_upload_entries e ON ((e.entry_id = f.id)))
+             JOIN public.signup_uploads u ON ((u.id = e.upload_id)))
+             JOIN public.named_places n ON ((n.name = lower(TRIM(BOTH FROM u.town)))))
+          WHERE (n.latitude IS NOT NULL)
         )
  SELECT DISTINCT ON (supporter_id) supporter_id,
     latitude,
@@ -1014,8 +1051,8 @@ CREATE TABLE public.supporters (
 CREATE VIEW public.supporters_summary AS
  WITH ident AS (
          SELECT supporter_identity.supporter_id,
-            (array_agg(supporter_identity.name ORDER BY supporter_identity.seen_at DESC NULLS LAST, supporter_identity.name) FILTER (WHERE (supporter_identity.name <> ''::text)))[1] AS name,
-            array_agg(DISTINCT supporter_identity.email ORDER BY supporter_identity.email) AS emails,
+            (array_agg(supporter_identity.name ORDER BY (supporter_identity.source = 'whatsapp-community'::text), supporter_identity.seen_at DESC NULLS LAST, supporter_identity.name) FILTER (WHERE (supporter_identity.name <> ''::text)))[1] AS name,
+            array_agg(DISTINCT supporter_identity.email ORDER BY supporter_identity.email) FILTER (WHERE (supporter_identity.email IS NOT NULL)) AS emails,
             array_agg(DISTINCT supporter_identity.source ORDER BY supporter_identity.source) AS sources
            FROM public.supporter_identity
           GROUP BY supporter_identity.supporter_id
@@ -1102,6 +1139,7 @@ CREATE MATERIALIZED VIEW public.supporters_list AS
      LEFT JOIN ( SELECT DISTINCT ON (i.supporter_id) i.supporter_id,
             i.email
            FROM public.supporter_identity i
+          WHERE (i.email IS NOT NULL)
           ORDER BY i.supporter_id, i.seen_at DESC NULLS LAST, i.email) newest ON ((newest.supporter_id = s.id)))
   WITH NO DATA;
 
@@ -1119,7 +1157,7 @@ BEGIN
   FOR added IN SELECT n.id FROM supporters n WHERE n.id > newest_kept ORDER BY n.id LOOP
     RETURN QUERY
     SELECT s.id, s.name, s.emails,
-      (SELECT i.email FROM supporter_identity i WHERE i.supporter_id = s.id
+      (SELECT i.email FROM supporter_identity i WHERE i.supporter_id = s.id AND i.email IS NOT NULL
        ORDER BY i.seen_at DESC NULLS LAST, i.email LIMIT 1),
       s.phone, s.postcode, s.sources, s.luma_follows, s.first_seen_at, s.last_active_at, s.events, s.letters, s.member,
       sp.place, sp.basis, sp.given, sp.country, sp.latitude, sp.longitude, s.phones
@@ -1127,6 +1165,16 @@ BEGIN
     WHERE s.id = added;
   END LOOP;
 END
+$$;
+
+--
+-- Name: whatsapp_number_hash(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.whatsapp_number_hash(number text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    AS $$
+SELECT encode(sha256(convert_to(phone_number(number), 'UTF8')), 'hex')
 $$;
 
 --
@@ -1498,7 +1546,7 @@ CREATE VIEW public.phone_permissions AS
             'text'::text AS way,
             public.phone_number(form_entries.phone) AS address
            FROM public.form_entries
-          WHERE ((form_entries.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text])) AND (public.phone_number(form_entries.phone) IS NOT NULL))
+          WHERE ((form_entries.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text])) AND (public.phone_number(form_entries.phone) IS NOT NULL))
         UNION
          SELECT 'events'::text,
             'text'::text,
@@ -2497,6 +2545,14 @@ CREATE TABLE public.unmatched_mail (
 );
 
 --
+-- Name: whatsapp_erased; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.whatsapp_erased (
+    number_hash text NOT NULL
+);
+
+--
 -- Name: whatsapp_templates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3240,6 +3296,13 @@ ALTER TABLE ONLY public.supporters
 
 ALTER TABLE ONLY public.unmatched_mail
     ADD CONSTRAINT unmatched_mail_pkey PRIMARY KEY (account, gmail_message_id);
+
+--
+-- Name: whatsapp_erased whatsapp_erased_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whatsapp_erased
+    ADD CONSTRAINT whatsapp_erased_pkey PRIMARY KEY (number_hash);
 
 --
 -- Name: whatsapp_templates whatsapp_templates_meta_id_key; Type: CONSTRAINT; Schema: public; Owner: -

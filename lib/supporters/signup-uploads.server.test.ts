@@ -22,6 +22,8 @@ const BY = "jo@pauseai.uk";
 
 /** An upload of `csv`, with no event, and forms dated the same day. */
 const input = (csv: string, more: Partial<SignupUploadInput> = {}): SignupUploadInput => ({
+  kind: "paper",
+  town: "",
   csv,
   filename: "flyering.csv",
   eventId: null,
@@ -340,5 +342,166 @@ Bad,bad,,,,,Y`,
     const upload = (await getSignupUpload(id))!;
     expect(upload.people).toEqual([]);
     expect(upload.imported).toBe(1);
+  });
+});
+
+/** A WhatsApp group's upload of `csv`, with the group's name and town. */
+const group = (csv: string, more: Partial<SignupUploadInput> = {}): SignupUploadInput =>
+  input(csv, { kind: "whatsapp", filename: "oxford.csv", signedOn: "2026-11-16", note: "Oxford", town: "", ...more });
+
+/** Where a town is, as postcodes.io would have said, so nothing's looked up. */
+async function place(name: string) {
+  await query(
+    `INSERT INTO named_places (name, latitude, longitude, place, country) VALUES ($1, 51.75, -1.25, initcap($1), 'England')`,
+    [name],
+  );
+}
+
+describeWithDatabase("uploading a WhatsApp group", () => {
+  useTestDatabase();
+
+  it("refuses an event for a group, and a town for paper", async () => {
+    await event(EVENT);
+    const refused = { ok: false, reason: "bad-choice" };
+    expect(await planSignupUpload(group("Phone\n07700900123", { eventId: EVENT, eventColumn: "Phone" }))).toEqual(
+      refused,
+    );
+    expect(await planSignupUpload(input("Name,Email\na,a@example.com", { town: "Oxford" }))).toEqual(refused);
+  });
+
+  it("holds back a number that's missing, bad, repeated or forgotten, and knows one we hold", async () => {
+    await event(EVENT);
+    await guest("luma@example.com", "approved", null, "+33 6 12 34 56 78");
+    await linkSupporters();
+    await query("INSERT INTO whatsapp_erased (number_hash) VALUES (whatsapp_number_hash('07700 900999'))");
+    const plan = await planOf(
+      group(`Name,Phone,Email
+Jane 🌻,‪+44 7700 900123‬,ignored@example.com
+,+33612345678,
+No number,,
+Words,call me,
+Local,612345678,
+Twice,07700 900555,
+Again,+447700900555,
+Gone,07700900999,
+${"x".repeat(101)},07700900444,`),
+    );
+    expect(
+      plan.rows.map((row) => [row.name.slice(0, 10), row.phone, row.pile, row.problem?.kind ?? row.known]),
+    ).toEqual([
+      ["Jane 🌻", "+447700900123", "none", null],
+      ["", "+33612345678", "none", "mobile"],
+      ["No number", null, "held", "no-phone"],
+      ["Words", null, "held", "bad-phone"],
+      ["Local", "612345678", "held", "bad-phone"],
+      ["Twice", "+447700900555", "held", "same-phone"],
+      ["Again", "+447700900555", "held", "same-phone"],
+      ["Gone", "+447700900999", "held", "erased"],
+      ["xxxxxxxxxx", "+447700900444", "held", "long-name"],
+    ]);
+    expect(plan.rows.every((row) => row.email === "" && !row.going && row.notice === null)).toBe(true);
+  });
+
+  it("imports each number as a supporter, linked to whoever gave it, with a yes to newsletter texts", async () => {
+    await place("oxford");
+    await event(EVENT);
+    await guest("luma@example.com", "approved", null, "+33 6 12 34 56 78");
+    await query("UPDATE luma_people SET name = 'Marie Dupont' WHERE user_id = 'luma@example.com'");
+    await linkSupporters();
+    const [{ id: lumaSupporter }] = await query<{ id: number }>("SELECT id::int AS id FROM supporters");
+    const id = await imported(
+      group("Name,Phone\nJane 🌻,07700 900123\nMarie,+33 6 12 34 56 78\n,07700 900456\nBad,", {
+        note: " Oxford ",
+        town: " Oxford ",
+      }),
+    );
+    const upload = (await getSignupUpload(id))!;
+    expect(upload).toMatchObject({ kind: "whatsapp", town: "Oxford", note: "Oxford", imported: 3, heldBack: 1 });
+    expect(upload.people.map((p) => [p.name, p.email, p.phone, p.known, p.newEntry])).toEqual([
+      ["Jane 🌻", null, "+447700900123", null, true],
+      ["Marie", null, "+33612345678", "mobile", true],
+      ["", null, "+447700900456", null, true],
+    ]);
+    // Marie joins the Luma guest who gave her number, abroad as it is, and keeps her Luma name.
+    expect(upload.people[1].supporterId).toBe(lumaSupporter);
+    const [marie] = await query<{ name: string; emails: string[]; sources: string[] }>(
+      "SELECT name, emails, sources FROM supporters_summary WHERE id = $1",
+      [lumaSupporter],
+    );
+    expect(marie).toEqual({
+      name: "Marie Dupont",
+      emails: ["luma@example.com"],
+      sources: ["luma", "whatsapp-community"],
+    });
+    // Jane is known by her number alone: no email, her profile name, and Oxford, from the group.
+    const [jane] = await query<{
+      name: string;
+      emails: string[] | null;
+      email: string | null;
+      basis: string;
+      place: string;
+    }>("SELECT name, emails, email, basis, place FROM supporters_listed WHERE id = $1", [upload.people[0].supporterId]);
+    expect(jane).toEqual({ name: "Jane 🌻", emails: null, email: null, basis: "group", place: "Oxford" });
+    const [nameless] = await query<{ name: string | null }>("SELECT name FROM supporters_summary WHERE id = $1", [
+      upload.people[2].supporterId,
+    ]);
+    expect(nameless.name).toBeNull();
+
+    const [permission] = await query<{ send: string; reason: string; source: string }>(
+      "SELECT send, reason, source FROM contact_permission('newsletter', 'text', '+447700900123')",
+    );
+    expect(permission).toEqual({ send: "yes", reason: "joined-whatsapp", source: "whatsapp-community" });
+    const [line] = await query<{ kind: string; detail: string; href: string }>(
+      `SELECT a.kind, a.detail, a.href FROM supporter_activity_form a JOIN form_entries f ON f.id = a.source_id
+       WHERE f.phone = '+447700900123'`,
+    );
+    expect(line).toEqual({
+      kind: "whatsapp-joined",
+      detail: "Oxford",
+      href: `/staff/supporters/import/previous/${id}`,
+    });
+  });
+
+  it("lets any opt-out of newsletter texts win, whenever it was", async () => {
+    await query(
+      `INSERT INTO opt_outs (address, way, list, source, source_ref, unsubscribed_at)
+       VALUES ('+447700900123', 'text', 'newsletter', 'whatsapp', 'stop-1', '2026-01-01T00:00:00Z')`,
+    );
+    await imported(group("Phone\n07700900123"));
+    const [permission] = await query<{ send: string; reason: string }>(
+      "SELECT send, reason FROM contact_permission('newsletter', 'text', '+447700900123')",
+    );
+    expect(permission).toEqual({ send: "no", reason: "unsubscribed" });
+  });
+
+  it("enters a number once a group, by its name, and again for another group", async () => {
+    await imported(group("Phone\n07700900123", { note: "Oxford" }));
+    expect(piles(await planOf(group("Phone\n+447700900123", { note: " oxford " })))).toEqual(["done"]);
+    const plan = await planOf(group("Phone\n07700900123", { note: "Whole community" }));
+    expect(plan.rows.map((row) => [row.pile, row.known])).toEqual([["none", "mobile"]]);
+    const other = await imported(group("Phone\n07700900123", { note: "Whole community" }));
+    const [{ supporters }] = await query<{ supporters: number }>("SELECT count(*)::int AS supporters FROM supporters");
+    expect(supporters).toBe(1);
+    expect((await getSignupUpload(other))!.town).toBeNull();
+  });
+
+  it("merges a WhatsApp number abroad with a later Luma guest's, but not two forms' numbers abroad", async () => {
+    await imported(group("Phone\n+33612345678"));
+    await event(EVENT);
+    await guest("later@example.com", "approved", null, "+33612345678");
+    await query(
+      `INSERT INTO form_entries (form, name, email, phone, contact_consent) VALUES
+         ('email-your-mp', 'A', 'a@example.com', '+12025550100', false),
+         ('email-your-mp', 'B', 'b@example.com', '+12025550100', false)`,
+    );
+    await linkSupporters();
+    const [{ supporters }] = await query<{ supporters: number }>("SELECT count(*)::int AS supporters FROM supporters");
+    expect(supporters).toBe(3);
+  });
+
+  it("keeps an erased supporter's numbers hashed, which the next upload holds back", async () => {
+    const id = await imported(group("Phone\n07700900123"));
+    await eraseSupporter((await getSignupUpload(id))!.people[0].supporterId!, "REQ-1", BY);
+    expect(piles(await planOf(group("Phone\n+44 7700 900123", { note: "Another" })))).toEqual(["held"]);
   });
 });

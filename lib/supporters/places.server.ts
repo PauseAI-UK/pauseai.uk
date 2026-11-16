@@ -77,6 +77,7 @@ export async function lookUpPlaces(db?: Queryable): Promise<PlacesLookup> {
     await query<{ name: string }>(
       `SELECT DISTINCT lower(trim(city)) AS name FROM (
          SELECT city FROM supporter_contact WHERE source <> 'luma' UNION SELECT city FROM luma_events
+         UNION SELECT town FROM signup_uploads
        ) c
        WHERE c.city IS NOT NULL AND trim(c.city) <> ''
          AND NOT EXISTS (SELECT 1 FROM named_places n WHERE n.name = lower(trim(c.city)))

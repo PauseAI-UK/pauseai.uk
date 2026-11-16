@@ -53,6 +53,7 @@ export const REASONS = [
   "asked",
   "chose",
   "signed-up",
+  "joined-whatsapp",
   "subscribed",
   "following",
   "gave-number",

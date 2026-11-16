@@ -330,6 +330,8 @@ FROM (VALUES
   no_phone, no_sms, newsletter, newsletter_ago, volunteer, gone_ago)
 CROSS JOIN (SELECT now() - interval '2 days' AS f) first;
 INSERT INTO civicrm_erased (contact_id, erased_at) VALUES (199, now() - interval '15 days');
+-- The number of someone erased, which a WhatsApp group's upload holds back.
+INSERT INTO whatsapp_erased (number_hash) VALUES (whatsapp_number_hash('+447700900999'));
 -- Sasha pressed Stop everything on the contact preferences page
 -- (stopEverything): every bulk email, and every text and call to her
 -- number, one group, which Restart undoes.

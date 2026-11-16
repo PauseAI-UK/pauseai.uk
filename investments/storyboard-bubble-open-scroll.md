@@ -29,3 +29,8 @@ scroll not depend on it.
 - 2026-11-16: the flow's two phone frames differed from main's on a branch
   that doesn't reach it; the same build gave 171px in 1 of 4 runs, then
   128px in 30 runs with logging on, ~40 min
+- 2026-11-16: on whatsapp-community-import, served from the main checkout
+  (`/pauseai.uk`), both phone frames landed at 171px in 4 runs out of 4
+  (the review, then `-g "Writing to a Lord"` three times), against main's
+  128px, made in the main worktree: a checkout where it reproduces every
+  time, ~10 min

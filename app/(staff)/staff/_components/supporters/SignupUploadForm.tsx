@@ -15,9 +15,11 @@ import {
   signupEventColumns,
   signupFileText,
   type SignupFileRead,
+  type SignupKind,
   type SignupUploadInput,
 } from "@/lib/supporters/signup-csv";
 import { staffDate } from "@/lib/staff-time";
+import SignupKindChoice from "./SignupKindChoice";
 import SignupUploadHelp, { SignupColumnNames } from "./SignupUploadHelp";
 import SignupUploadPreview, { type SignupUploadActions } from "./SignupUploadPreview";
 import Choices from "../ui/Choices";
@@ -45,20 +47,43 @@ function refusedWords(read: Exclude<SignupFileRead, { ok: true }>): string {
   );
 }
 
-type Chosen = { name: string; text: string; read: SignupFileRead };
+type Chosen = { name: string; text: string };
 
 /**
- * Uploading sign-ups, in four numbered steps always shown: the file, beside
- * what it should look like, and once read, what each of its columns will do;
- * the date and note; an event; and what importing will do, worked out as soon
- * as there's enough to go on, with the button that does it. The file is read
- * in the browser, and sent to the server only to preview and import it.
+ * Uploading sign-ups, in numbered steps always shown. For paper, five: what
+ * they are, paper forms or a WhatsApp group; the date and note; the file,
+ * beside what it should look like, and once read, what each of its columns
+ * will do; an event; and what importing will do, worked out as soon as
+ * there's enough to go on, with the button that does it. A WhatsApp group has
+ * its name and town in place of the date and note, and no event.
+ * The file is read in the browser, and sent to the server only to preview
+ * and import it.
  */
-export default function SignupUploadForm({
+export default function SignupUploadForm(props: {
+  events: SignupEventChoice[];
+  today: string;
+  actions: SignupUploadActions;
+}) {
+  const [kind, setKind] = useState<SignupKind | null>(null);
+  // Even, so the file's card and what it needs are as tall as each other; every other card has a row to itself.
+  return (
+    <Grid even>
+      <Card span={6} title={<Numbered n={1}>{copy.kind.label}</Numbered>} id="upload-kind">
+        <SignupKindChoice value={kind} onChange={setKind} />
+      </Card>
+      {kind && <SignupSteps kind={kind} {...props} />}
+    </Grid>
+  );
+}
+
+/** The steps after the kind, as that kind has them. Choosing the other kind keeps what's in them but the event column. */
+function SignupSteps({
+  kind,
   events,
   today,
   actions,
 }: {
+  kind: SignupKind;
   events: SignupEventChoice[];
   today: string;
   actions: SignupUploadActions;
@@ -67,10 +92,17 @@ export default function SignupUploadForm({
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [eventId, setEventId] = useState("");
-  const [column, setColumn] = useState("");
+  // The event column, kept with the kind it was chosen under: choosing the other kind clears it, for good, as
+  // React adjusts state when a prop changes.
+  const [picked, setPicked] = useState({ kind, column: "" });
+  if (picked.kind !== kind) setPicked({ kind, column: "" });
+  const column = picked.kind === kind ? picked.column : "";
+  const setColumn = (heading: string) => setPicked({ kind, column: heading });
   const [signedOn, setSignedOn] = useState(today);
   const [note, setNote] = useState("");
+  const [town, setTown] = useState("");
   const [allNames, setAllNames] = useState(false);
+  const whatsapp = kind === "whatsapp";
 
   async function choose(file: File) {
     setChosen(null);
@@ -79,8 +111,11 @@ export default function SignupUploadForm({
     if (file.size > MAX_SIGNUP_FILE_BYTES) return setFileError(copy.drop.tooBig);
     const text = signupFileText(await file.arrayBuffer());
     setFileError(null);
-    setChosen({ name: file.name, text, read: readSignupFile(text) });
+    setChosen({ name: file.name, text });
   }
+
+  // The file as the kind reads it, so choosing the other kind reads it again.
+  const fileRead = useMemo(() => chosen && readSignupFile(chosen.text, kind), [chosen, kind]);
 
   function startAgain() {
     setChosen(null);
@@ -95,51 +130,76 @@ export default function SignupUploadForm({
     if (file) void choose(file);
   }
 
-  const read = chosen?.read.ok ? chosen.read : null;
-  const choices = read ? signupEventColumns(read) : [];
+  const read = fileRead?.ok ? fileRead : null;
+  // A WhatsApp group signs nobody up for an event, so has no column for one.
+  const choices = read && !whatsapp ? signupEventColumns(read) : [];
   const chosenEvent = events.find((event) => event.id === eventId);
   // A column chosen, and then an event, are the upload's event sign-up; either alone is none.
   const eventColumn = column && eventId ? column : "";
   // What stops the import, though not the preview: each a line under the button.
   const blockers = [
     ...(read ? [] : [copy.preview.blockers.file]),
-    ...(note.trim() ? [] : [copy.preview.blockers.note]),
+    ...(note.trim() ? [] : [whatsapp ? copy.preview.blockers.group : copy.preview.blockers.note]),
     ...(column && !eventId ? [copy.preview.blockers.event] : []),
   ];
   // What the preview is sent, as text, so it's the same object, and the preview isn't worked out again, until something in it changes.
   const sent = !read
     ? null
     : JSON.stringify({
+        kind,
         csv: chosen!.text,
         filename: chosen!.name,
         eventId: eventColumn ? eventId : null,
         eventColumn: eventColumn || null,
-        signedOn,
+        // A WhatsApp group is uploaded as it is today.
+        signedOn: whatsapp ? today : signedOn,
         note,
+        town: whatsapp ? town : "",
       } satisfies SignupUploadInput);
   const input = useMemo(() => (sent === null ? null : (JSON.parse(sent) as SignupUploadInput)), [sent]);
 
-  // Even, so the file's card and what it needs are as tall as each other; every other card has a row to itself.
   return (
-    <Grid even>
-      <Card span={6} title={<Numbered n={1}>{copy.form.formsTitle}</Numbered>} id="upload-forms">
-        <div className={styles.fields}>
-          <Field label={<Required>{copy.form.signedOn}</Required>}>
-            <DatePicker value={signedOn} onChange={setSignedOn} />
-          </Field>
-          <Field label={<Required>{copy.form.note}</Required>}>
-            <TextInput
-              value={note}
-              required
-              placeholder={copy.form.noteHint}
-              onChange={(event) => setNote(event.target.value)}
-            />
-          </Field>
-        </div>
-      </Card>
+    <>
+      {whatsapp ? (
+        <Card span={6} title={<Numbered n={2}>{copy.form.groupTitle}</Numbered>} id="upload-forms">
+          <div className={styles.fields}>
+            <Field label={<Required>{copy.form.group}</Required>}>
+              <TextInput
+                value={note}
+                required
+                placeholder={copy.form.groupHint}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </Field>
+            <Field label={copy.form.town}>
+              <TextInput
+                value={town}
+                placeholder={copy.form.townHint}
+                onChange={(event) => setTown(event.target.value)}
+              />
+            </Field>
+          </div>
+        </Card>
+      ) : (
+        <Card span={6} title={<Numbered n={2}>{copy.form.formsTitle}</Numbered>} id="upload-forms">
+          <div className={styles.fields}>
+            <Field label={<Required>{copy.form.signedOn}</Required>}>
+              <DatePicker value={signedOn} onChange={setSignedOn} />
+            </Field>
+            <Field label={<Required>{copy.form.note}</Required>}>
+              <TextInput
+                value={note}
+                required
+                placeholder={copy.form.noteHint}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </Field>
+          </div>
+        </Card>
+      )}
       <Card
         span={3}
-        title={<Numbered n={2}>{read ? chosen!.name : copy.steps.file}</Numbered>}
+        title={<Numbered n={3}>{read ? chosen!.name : copy.steps.file}</Numbered>}
         id="upload-file"
         action={read && <LinkButton onClick={startAgain}>{copy.drop.another}</LinkButton>}
       >
@@ -197,67 +257,74 @@ export default function SignupUploadForm({
               />
             </label>
             {fileError && <Strip tone="red">{fileError}</Strip>}
-            {chosen && !chosen.read.ok && <Strip tone="red">{refusedWords(chosen.read)}</Strip>}
+            {fileRead && !fileRead.ok && <Strip tone="red">{refusedWords(fileRead)}</Strip>}
           </>
         )}
       </Card>
       <Card span={3} look="aside" title={copy.help.title} id="upload-help">
-        <SignupUploadHelp open={allNames} onToggle={() => setAllNames(!allNames)} />
+        <SignupUploadHelp kind={kind} open={allNames} onToggle={() => setAllNames(!allNames)} />
       </Card>
       {allNames && (
         <Card span={6} look="aside" title={copy.help.more} id="upload-names">
-          <SignupColumnNames />
+          <SignupColumnNames kind={kind} />
         </Card>
       )}
 
-      <Card span={6} title={<Numbered n={3}>{copy.form.eventTitle}</Numbered>} id="upload-event">
-        <div className={styles.fields}>
-          <Field label={copy.form.eventColumn}>
-            <Select value={column} disabled={choices.length === 0} onChange={(event) => setColumn(event.target.value)}>
-              <option value="">{copy.form.noColumn}</option>
-              {choices.map((heading) => (
-                <option key={heading} value={heading}>
-                  {heading}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          {read && choices.length === 0 && <Strip tone="amber">{copy.form.noEventColumn}</Strip>}
-          {/* The event, greyed out until there's a column saying who's going to it. */}
-          <FieldSet label={copy.form.event} disabled={!column}>
-            {chosenEvent ? (
-              <p className={styles.chosen}>
-                <span>
-                  <strong>
-                    <ExternalLink href={chosenEvent.url}>{chosenEvent.name}</ExternalLink>
-                  </strong>{" "}
-                  {staffDate(chosenEvent.startAt)}
-                </span>
-                <LinkButton onClick={() => setEventId("")}>{copy.form.removeEvent}</LinkButton>
-              </p>
-            ) : (
-              <div>
-                <Choices
-                  search={copy.form.findEvent}
-                  current={[]}
-                  options={events.map((event) => ({
-                    value: event.id,
-                    label: event.name,
-                    detail: staffDate(event.startAt),
-                  }))}
-                  row={(option) => (
-                    <button type="button" className={styles.choice} onClick={() => setEventId(option.value)}>
-                      {option.label} <span>{option.detail}</span>
-                    </button>
-                  )}
-                />
-              </div>
-            )}
-          </FieldSet>
-        </div>
-      </Card>
+      {/* A paper upload's event, which its yes column signs people up for. */}
+      {!whatsapp && (
+        <Card span={6} title={<Numbered n={4}>{copy.form.eventTitle}</Numbered>} id="upload-event">
+          <div className={styles.fields}>
+            <Field label={copy.form.eventColumn}>
+              <Select
+                value={column}
+                disabled={choices.length === 0}
+                onChange={(event) => setColumn(event.target.value)}
+              >
+                <option value="">{copy.form.noColumn}</option>
+                {choices.map((heading) => (
+                  <option key={heading} value={heading}>
+                    {heading}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {read && choices.length === 0 && <Strip tone="amber">{copy.form.noEventColumn}</Strip>}
+            {/* The event, greyed out until there's a column saying who's going to it. */}
+            <FieldSet label={copy.form.event} disabled={!column}>
+              {chosenEvent ? (
+                <p className={styles.chosen}>
+                  <span>
+                    <strong>
+                      <ExternalLink href={chosenEvent.url}>{chosenEvent.name}</ExternalLink>
+                    </strong>{" "}
+                    {staffDate(chosenEvent.startAt)}
+                  </span>
+                  <LinkButton onClick={() => setEventId("")}>{copy.form.removeEvent}</LinkButton>
+                </p>
+              ) : (
+                <div>
+                  <Choices
+                    search={copy.form.findEvent}
+                    current={[]}
+                    options={events.map((event) => ({
+                      value: event.id,
+                      label: event.name,
+                      detail: staffDate(event.startAt),
+                    }))}
+                    row={(option) => (
+                      <button type="button" className={styles.choice} onClick={() => setEventId(option.value)}>
+                        {option.label} <span>{option.detail}</span>
+                      </button>
+                    )}
+                  />
+                </div>
+              )}
+            </FieldSet>
+          </div>
+        </Card>
+      )}
 
-      <SignupUploadPreview input={input} blockers={blockers} {...actions} />
-    </Grid>
+      <SignupUploadPreview step={whatsapp ? 4 : 5} input={input} blockers={blockers} {...actions} />
+    </>
   );
 }

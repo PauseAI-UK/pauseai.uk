@@ -7,9 +7,11 @@ import {
   readSignupFile,
   signupEventColumns,
   signupRows,
+  whatsappRows,
   type SignupFileRead,
   type SignupPlan,
   type SignupPlanRow,
+  type SignupKind,
   type SignupRow,
   type SignupUploadInput,
 } from "./signup-csv";
@@ -22,10 +24,10 @@ import { refreshSupportersList } from "./facts.server";
 import { lookUpPlaces } from "./places.server";
 import { linkSupporters } from "./records.server";
 
-// Uploading a CSV of paper sign-ups: what it would do, for the preview, and
-// doing it. Each person becomes a form entry, and with a yes for the upload's
-// event, a guest on Luma. Nothing is kept of the file but its name.
-// docs/domain-concepts.md, "Form entries".
+// Uploading a CSV of paper sign-ups, or of a WhatsApp group's members: what
+// it would do, for the preview, and doing it. Each person becomes a form
+// entry, and with a yes for a paper upload's event, a guest on Luma. Nothing
+// is kept of the file but its name. docs/domain-concepts.md, "Form entries".
 
 /** An event a file can sign people up for: one to come, on a calendar we manage. */
 export type SignupEventChoice = { id: string; name: string; startAt: Date; url: string };
@@ -100,12 +102,15 @@ async function whatWeHold(rows: SignupRow[], input: SignupUploadInput) {
  * so a later row on the same one is known by it, as is any on a number we hold.
  */
 export async function planSignupUpload(input: SignupUploadInput): Promise<SignupPlan | SignupUploadRefused> {
-  const file = readSignupFile(input.csv);
+  const file = readSignupFile(input.csv, input.kind);
   if (!file.ok) return file;
   const fits =
     /^\d{4}-\d{2}-\d{2}$/.test(input.signedOn) &&
     !Number.isNaN(Date.parse(input.signedOn)) &&
+    // A WhatsApp group signs nobody up for an event, and only it has a town.
+    (input.kind === "whatsapp" ? !input.eventId : !input.town) &&
     (input.eventId ? Boolean(input.eventColumn && signupEventColumns(file).includes(input.eventColumn)) : true);
+  if (fits && input.kind === "whatsapp") return planWhatsappUpload(input, file);
   const events = input.eventId ? await signupEventChoices() : [];
   const event = events.find((choice) => choice.id === input.eventId);
   if (!fits || (input.eventId && !event)) return { ok: false, reason: "bad-choice" };
@@ -130,13 +135,118 @@ export async function planSignupUpload(input: SignupUploadInput): Promise<Signup
       notice: !problem && !entered ? (held.notices.get(row.email) ?? null) : null,
     };
   });
-  const plan = { input, eventName: event?.name ?? null, rows };
+  return signed({ input, eventName: event?.name ?? null, rows });
+}
+
+/** A plan's fingerprint, which importing checks is the same as the preview's. */
+function signed(plan: Omit<SignupPlan, "signature">): SignupPlan {
+  const { input, rows } = plan;
   return {
     ...plan,
     signature: createHash("sha256")
-      .update(JSON.stringify([input.csv, input.eventId, input.eventColumn, input.signedOn, rows]))
+      .update(
+        JSON.stringify([
+          input.kind,
+          input.csv,
+          input.eventId,
+          input.eventColumn,
+          input.signedOn,
+          input.note.trim().toLowerCase(),
+          input.town,
+          rows,
+        ]),
+      )
       .digest("hex"),
   };
+}
+
+/**
+ * What a WhatsApp group's file would do. Each number is written in full, as
+ * phone_number() does, and held back if it can't be, if it's on another row,
+ * or if its supporter asked to be forgotten. One already uploaded under the
+ * same group's name is done. Any number a supporter gave makes them known.
+ */
+async function planWhatsappUpload(
+  input: SignupUploadInput,
+  file: Extract<SignupFileRead, { ok: true }>,
+): Promise<SignupPlan> {
+  const read = whatsappRows(file);
+  const held = await query<{ given: string; number: string; known: boolean; erased: boolean; uploaded: boolean }>(
+    `SELECT given, phone_number(given) AS number,
+       EXISTS (SELECT 1 FROM supporter_contact c WHERE phone_number(c.phone) = phone_number(given)) AS known,
+       EXISTS (SELECT 1 FROM whatsapp_erased e WHERE e.number_hash = whatsapp_number_hash(given)) AS erased,
+       EXISTS (
+         SELECT 1 FROM form_entries f JOIN signup_upload_entries x ON x.entry_id = f.id
+           JOIN signup_uploads u ON u.id = x.upload_id
+         WHERE f.form = 'whatsapp-community' AND phone_number(f.phone) = phone_number(given)
+           AND lower(btrim(u.note)) = lower(btrim($2))
+       ) AS uploaded
+     FROM unnest($1::text[]) given`,
+    [read.flatMap((row) => (row.phone ? [row.phone] : [])), input.note],
+  );
+  const of = new Map(held.map((h) => [h.given, h]));
+  const times = new Map<string, number>();
+  for (const h of held) times.set(h.number, (times.get(h.number) ?? 0) + 1);
+  const rows = read.map((row): SignupPlanRow => {
+    const h = row.phone ? of.get(row.phone) : undefined;
+    const problem =
+      row.problem ??
+      (!h!.number.startsWith("+")
+        ? ({ kind: "bad-phone" } as const)
+        : times.get(h!.number)! > 1
+          ? ({ kind: "same-phone" } as const)
+          : h!.erased
+            ? ({ kind: "erased" } as const)
+            : null);
+    const newEntry = !problem && !h!.uploaded;
+    return {
+      ...row,
+      phone: h?.number ?? row.phone,
+      problem,
+      pile: problem ? "held" : newEntry ? "none" : "done",
+      known: newEntry && h!.known ? "mobile" : null,
+      newEntry,
+      notice: null,
+    };
+  });
+  return signed({ input, eventName: null, rows });
+}
+
+/**
+ * Does what a WhatsApp group's preview said: an upload, and a form entry for
+ * each new number, dated now, with its profile name, and their supporters,
+ * linked by number. Then the town's place.
+ */
+async function finishWhatsappUpload(plan: SignupPlan, by: string): Promise<{ uploadId: number }> {
+  const { input } = plan;
+  const fresh = plan.rows.filter((row) => row.newEntry);
+  const heldBack = plan.rows.filter((row) => row.pile === "held").length;
+  const uploadId = await transaction(async (db) => {
+    const [{ id }] = await query<{ id: number }>(
+      `INSERT INTO signup_uploads (kind, filename, signed_on, note, town, imported, held_back, uploaded_by, uploaded_at)
+       VALUES ('whatsapp', $1, $2, $3, NULLIF(btrim($4), ''), $5, $6, $7, $8) RETURNING id::int AS id`,
+      [input.filename, input.signedOn, input.note.trim(), input.town, fresh.length, heldBack, by, now()],
+      db,
+    );
+    await query(
+      `WITH added AS (
+         INSERT INTO form_entries (form, created_at, name, phone, contact_consent)
+         SELECT 'whatsapp-community', $1, name, phone, true FROM unnest($2::text[], $3::text[]) AS p (name, phone)
+         RETURNING id, phone)
+       INSERT INTO signup_upload_entries (entry_id, upload_id, new_entry, known)
+       SELECT a.id, $4, true, k.known FROM added a JOIN unnest($3::text[], $5::text[]) AS k (phone, known) USING (phone)`,
+      [now(), fresh.map((row) => row.name), fresh.map((row) => row.phone), id, fresh.map((row) => row.known)],
+      db,
+    );
+    await linkSupporters(db);
+    await refreshSupportersList(db);
+    await logChange(by, "import sign-ups", { uploadId: id, imported: fresh.length, heldBack }, db);
+    return id;
+  });
+  // The town's place now, rather than at the next Luma import.
+  await lookUpPlaces();
+  await refreshSupportersList();
+  return { uploadId };
 }
 
 /** What finishing a file came to: its upload's ID; or that it can no longer go in as shown, with what it would do now. */
@@ -155,9 +265,10 @@ export async function finishSignupUpload(
 ): Promise<SignupUploadFinished> {
   const plan = await planSignupUpload(input);
   if ("ok" in plan) return plan;
-  // The note says where the forms came from, on everyone's history, so nothing goes in without one.
+  // The note says where the forms came from, or which group, on everyone's history, so nothing goes in without one.
   if (!input.note.trim()) return { ok: false, reason: "bad-choice" };
   if (plan.signature !== signature) return { changed: plan };
+  if (input.kind === "whatsapp") return finishWhatsappUpload(plan, by);
 
   const fresh = plan.rows.filter((row) => row.newEntry);
   const registering = plan.rows.filter((row) => row.pile === "register");
@@ -255,6 +366,9 @@ export async function finishSignupUpload(
 /** An upload, in the list of them. */
 export type SignupUploadSummary = {
   id: number;
+  kind: SignupKind;
+  /** A local WhatsApp group's town; null for any other upload. */
+  town: string | null;
   filename: string;
   signedOn: string;
   note: string | null;
@@ -270,8 +384,10 @@ export type SignupUploadSummary = {
 /** A person an upload added. */
 export type SignupUploadPerson = {
   entryId: number;
+  /** '' for a WhatsApp member without a profile name. */
   name: string;
-  email: string;
+  /** Null for a WhatsApp member. */
+  email: string | null;
   phone: string | null;
   postcode: string | null;
   /** Whether the upload made their form entry, rather than finding it there from an earlier one of the same day's forms. */
@@ -283,7 +399,7 @@ export type SignupUploadPerson = {
   supporterId: number | null;
 };
 
-const UPLOAD_COLUMNS = `u.id::int AS id, u.filename, u.signed_on::text AS "signedOn", u.note, e.name AS "eventName", e.url AS "eventUrl",
+const UPLOAD_COLUMNS = `u.id::int AS id, u.kind, u.town, u.filename, u.signed_on::text AS "signedOn", u.note, e.name AS "eventName", e.url AS "eventUrl",
   u.imported, u.held_back AS "heldBack", u.uploaded_by AS "uploadedBy", u.uploaded_at AS "uploadedAt"`;
 
 /** How many uploads the page lists: there's little reason to look further back. */

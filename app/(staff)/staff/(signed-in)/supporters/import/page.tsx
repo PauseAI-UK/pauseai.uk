@@ -24,7 +24,7 @@ export default async function SignupUploadPage() {
       <PageHead
         intro={copy.intro}
         action={
-          <StaffLink className={buttonClass({ variant: "ghost", fit: true })} href={SIGNUP_UPLOADS_PATH}>
+          <StaffLink className={buttonClass({ variant: "primary", fit: true })} href={SIGNUP_UPLOADS_PATH}>
             {copy.uploads.see}
           </StaffLink>
         }

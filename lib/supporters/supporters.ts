@@ -6,7 +6,7 @@ import type { ContactPermission, ContactState } from "./contact-permissions";
 import type { SortDirection } from "@/lib/staff-sort";
 import { supportersCopy } from "./copy";
 
-/** Where a supporter came from: Luma, CiviCRM's UK chapter contacts (the members), or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, or the march sign-up. */
+/** Where a supporter came from: Luma, CiviCRM's UK chapter contacts (the members), or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, the march sign-up, a paper sign-up, or an upload of our WhatsApp community. */
 export const SUPPORTER_SOURCES = [
   "luma",
   "civicrm",
@@ -14,14 +14,27 @@ export const SUPPORTER_SOURCES = [
   "web-form",
   "march-2026-11",
   "paper-signup",
+  "whatsapp-community",
 ] as const;
 export type SupporterSource = (typeof SUPPORTER_SOURCES)[number];
 
 /** What a supporter_links row points at (lib/supporters/sources.server.ts): a Luma user, a form entry or a CiviCRM contact. */
 export type SupporterLinkSource = "luma" | "form" | "civicrm";
 
-/** The lozenges in the list's Activities column, in its order: a member, a contact of the Luma calendar, registered for events, wrote to their MP, signed up for the march. */
-export const SUPPORTER_BADGES = ["member", "lumaContact", "registered", "letter", "march"] as const;
+/**
+ * The lozenges in the list's Activities column, in its order: a member, a
+ * contact of the Luma calendar, registered for events, wrote to their MP,
+ * signed up for the march, on a paper sign-up form, in our WhatsApp community.
+ */
+export const SUPPORTER_BADGES = [
+  "member",
+  "lumaContact",
+  "registered",
+  "letter",
+  "march",
+  "paper",
+  "whatsapp",
+] as const;
 export type SupporterBadge = (typeof SUPPORTER_BADGES)[number];
 
 export function isSupporterBadge(value: string): value is SupporterBadge {
@@ -55,10 +68,10 @@ export type SupporterSummary = {
   place?: SupporterPlaceName | null;
 };
 
-/** A supporter's place: its name, what it's from and what that was (a postcode, a city, an event's name), its nation, and where it is. */
+/** A supporter's place: its name, what it's from and what that was (a postcode, a city, an event's name, a local WhatsApp group's name), its nation, and where it is. */
 export type SupporterPlaceName = {
   name: string | null;
-  basis: "postcode" | "city" | "event";
+  basis: "postcode" | "city" | "event" | "group";
   given: string;
   country: string | null;
   /** Where it is; left out where it isn't needed, as in a list's row. */
@@ -86,6 +99,7 @@ export type SupporterActivity = {
     | "letter"
     | "letter-replied"
     | "form-entry"
+    | "whatsapp-joined"
     | "member-joined"
     | "member-left"
     | "opted-out"
@@ -117,8 +131,8 @@ export function dayOnly(item: Pick<SupporterActivity, "source" | "kind">): boole
   return item.source === "civicrm" && item.kind === "member-joined";
 }
 
-/** A name and email one source gave, and when the person was first seen there. */
-export type SupporterIdentity = { source: SupporterSource; email: string; name: string; seenAt: Date | null };
+/** A name and email one source gave, and when the person was first seen there. A WhatsApp member gives no email, and a profile name or ''. */
+export type SupporterIdentity = { source: SupporterSource; email: string | null; name: string; seenAt: Date | null };
 
 /** A phone, postcode, city or place one source gave, and when. */
 export type SupporterContact = {

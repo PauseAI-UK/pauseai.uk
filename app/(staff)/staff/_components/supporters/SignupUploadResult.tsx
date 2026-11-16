@@ -10,6 +10,7 @@ import Empty from "../ui/Empty";
 import Grid, { Card, spanClass } from "../ui/Grid";
 import ExternalLink from "../ui/ExternalLink";
 import PageHead from "../ui/PageHead";
+import SignupKindIcon from "./SignupKindIcon";
 import { LumaReading } from "./SignupUploadPreview";
 import StaffLink from "../ui/StaffLink";
 import styles from "./SignupUpload.module.css";
@@ -22,9 +23,10 @@ const words = copy.result;
 /**
  * What an import did for a person, kept as it did it, in the preview's
  * lozenges: already imported or already a supporter, what came of the event,
- * and their permission to contact them, which a new entry gives.
+ * and their permission to contact them, which a new entry gives: a WhatsApp
+ * member's to newsletter texts alone.
  */
-function Happened({ person }: { person: SignupUploadPerson }) {
+function Happened({ person, whatsapp }: { person: SignupUploadPerson; whatsapp: boolean }) {
   const said = copy.preview.happens;
   return (
     <span className={styles.lozenges}>
@@ -34,26 +36,33 @@ function Happened({ person }: { person: SignupUploadPerson }) {
       {person.luma && person.luma !== "going" && (
         <Tag tone={person.luma === "added" ? "green" : "red"}>{words.luma[person.luma]}</Tag>
       )}
-      {person.newEntry && <Tag tone="green">{said.mailing}</Tag>}
-      {person.newEntry && person.phone && <Tag tone="green">{said.phone}</Tag>}
+      {person.newEntry && whatsapp && <Tag tone="green">{said.texts}</Tag>}
+      {person.newEntry && !whatsapp && <Tag tone="green">{said.mailing}</Tag>}
+      {person.newEntry && !whatsapp && person.phone && <Tag tone="green">{said.phone}</Tag>}
     </span>
   );
 }
 
-/** The head of an upload's page: its file, and under it what came of it, who did it, and what it was. */
+/**
+ * The head of an upload's page: its file, and under it what came of it, who
+ * did it, and what it was: when and where the forms were collected and their
+ * event, or the WhatsApp group and its town.
+ */
 export function SignupUploadHead({ upload }: { upload: SignupUploadSummary }) {
+  const whatsapp = upload.kind === "whatsapp";
   return (
     <PageHead
       facts={[
         words.summary(upload.imported, upload.heldBack),
         words.by(upload.uploadedBy, staffTime(upload.uploadedAt)),
-        words.signedOn(staffDate(new Date(upload.signedOn))),
+        !whatsapp && words.signedOn(staffDate(new Date(upload.signedOn))),
         upload.eventName && (
           <>
             {words.event} <ExternalLink href={upload.eventUrl!}>{upload.eventName}</ExternalLink>
           </>
         ),
-        upload.note && words.note(upload.note),
+        upload.note && (whatsapp ? words.group(upload.note) : words.note(upload.note)),
+        upload.town && words.town(upload.town),
       ]}
     >
       {words.title(upload.filename)}
@@ -61,12 +70,13 @@ export function SignupUploadHead({ upload }: { upload: SignupUploadSummary }) {
   );
 }
 
-/** What an upload did: each person still held from it, with what Luma said. */
+/** What an upload did: each person still held from it, with what Luma said; a WhatsApp member by their name and number alone. */
 export default function SignupUploadResult({
   upload,
 }: {
   upload: NonNullable<Awaited<ReturnType<typeof getSignupUpload>>>;
 }) {
+  const whatsapp = upload.kind === "whatsapp";
   return (
     <Grid>
       <Card span={6}>
@@ -78,9 +88,9 @@ export default function SignupUploadResult({
             <thead>
               <tr>
                 <th>{words.columns.person}</th>
-                <th>{copy.help.fields.email.label}</th>
+                {!whatsapp && <th>{copy.help.fields.email.label}</th>}
                 <th>{words.columns.phone}</th>
-                <th>{words.columns.postcode}</th>
+                {!whatsapp && <th>{words.columns.postcode}</th>}
                 <th>{words.columns.happened}</th>
               </tr>
             </thead>
@@ -89,16 +99,18 @@ export default function SignupUploadResult({
                 <tr key={person.entryId}>
                   <td>
                     {person.supporterId ? (
-                      <StaffLink href={`/staff/supporters/${person.supporterId}`}>{person.name}</StaffLink>
+                      <StaffLink href={`/staff/supporters/${person.supporterId}`}>
+                        {person.name || supportersCopy.supporters.noName}
+                      </StaffLink>
                     ) : (
                       person.name
                     )}
                   </td>
-                  <td className={styles.email}>{person.email}</td>
+                  {!whatsapp && <td className={styles.email}>{person.email}</td>}
                   <td className={styles.nowrap}>{person.phone && phoneWords(person.phone)}</td>
-                  <td>{person.postcode}</td>
+                  {!whatsapp && <td>{person.postcode}</td>}
                   <td className={styles.happens}>
-                    <Happened person={person} />
+                    <Happened person={person} whatsapp={whatsapp} />
                   </td>
                 </tr>
               ))}
@@ -145,6 +157,11 @@ export function SignupUploadsList({ uploads, now }: { uploads: SignupUploadSumma
                         {upload.note ?? upload.filename}
                       </StaffLink>
                       <Muted>
+                        <span className={styles.kind}>
+                          <SignupKindIcon kind={upload.kind} />
+                          {copy.kind[upload.kind]}
+                        </span>
+                        {" · "}
                         {upload.filename}
                         {upload.eventName && (
                           <>

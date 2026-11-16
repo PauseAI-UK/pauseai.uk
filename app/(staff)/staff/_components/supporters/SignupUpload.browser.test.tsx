@@ -2,13 +2,25 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { longDay } from "@/lib/calendar-days";
-import { MAX_SIGNUP_FILE_BYTES, type SignupPlan, type SignupUploadInput } from "@/lib/supporters/signup-csv";
+import {
+  MAX_SIGNUP_FILE_BYTES,
+  type SignupKind,
+  type SignupPlan,
+  type SignupUploadInput,
+} from "@/lib/supporters/signup-csv";
 import { staffDate, staffTime } from "@/lib/staff-time";
-import { exampleSignupPlan, exampleSignupUpload, exampleSignupUploadPeople } from "./SignupUpload.examples";
+import {
+  exampleSignupPlan,
+  exampleSignupUpload,
+  exampleSignupUploadPeople,
+  exampleWhatsappPlan,
+  exampleWhatsappUpload,
+} from "./SignupUpload.examples";
 import SignupUploadForm from "./SignupUploadForm";
 import SignupUploadPreview, { SignupPlanView, type SignupUploadActions } from "./SignupUploadPreview";
 import SignupUploadResult, { SignupUploadHead, SignupUploadsList } from "./SignupUploadResult";
 import { SignupUploadHelpExample } from "./SignupUploadHelp.gallery.client";
+import { SignupColumnNames } from "./SignupUploadHelp";
 import { SignupPlanViewExample, SignupUploadPreviewExample } from "./SignupUploadPreview.gallery.client";
 import { supportersCopy } from "./copy";
 
@@ -38,11 +50,14 @@ async function choose(file: File) {
 
 const csvFile = (text: string, name = "f.csv") => new File([text], name, { type: "text/csv" });
 
-/** The form, with actions that answer with the example plan, and what they were asked. */
-function showForm() {
+const kindButton = (kind: SignupKind) => page.getByRole("radio", { name: copy.kind[kind] });
+
+/** The form with paper sign-ups picked, its actions answering with the example plan, and what they were asked. */
+async function showForm() {
   const preview = vi.fn(async (input: SignupUploadInput) => ({ ...exampleSignupPlan, input }));
   const finish = vi.fn(async () => ({ uploadId: 9 }));
-  const view = render(<SignupUploadForm events={EVENTS} today="2026-10-31" actions={{ preview, finish }} />);
+  const view = await render(<SignupUploadForm events={EVENTS} today="2026-10-31" actions={{ preview, finish }} />);
+  await kindButton("paper").click();
   return { view, preview, finish };
 }
 
@@ -55,20 +70,35 @@ async function event() {
 const importButton = () => page.getByRole("button", { name: /^Import \d+ people/ });
 
 describe("SignupUploadForm", () => {
-  it("shows its four steps in order before a file, the event greyed out, and what stops the import", async () => {
-    await showForm().view;
+  it("asks what's being imported first, with nothing picked and no other step", async () => {
+    await render(
+      <SignupUploadForm events={EVENTS} today="2026-10-31" actions={{ preview: vi.fn(), finish: vi.fn() }} />,
+    );
+    await expect.element(kindButton("paper")).toHaveAttribute("aria-checked", "false");
+    await expect.element(kindButton("whatsapp")).toHaveAttribute("aria-checked", "false");
+    expect(
+      page
+        .getByRole("heading", { level: 2 })
+        .all()
+        .map((heading) => heading.element().textContent),
+    ).toEqual([`1${copy.kind.label}`]);
+  });
+
+  it("shows its five steps in order before a file, the event greyed out, and what stops the import", async () => {
+    await showForm();
     const titles = page
       .getByRole("heading", { level: 2 })
       .all()
       .map((heading) => heading.element().textContent);
     expect(titles).toEqual([
-      `1${copy.form.formsTitle}`,
-      `2${copy.steps.file}`,
+      `1${copy.kind.label}`,
+      `2${copy.form.formsTitle}`,
+      `3${copy.steps.file}`,
       copy.help.title,
-      `3${copy.form.eventTitle}`,
-      `4${copy.steps.check}`,
+      `4${copy.form.eventTitle}`,
+      `5${copy.steps.check}`,
     ]);
-    await expect.element(page.getByText(copy.help.short[0])).toBeVisible();
+    await expect.element(page.getByText(copy.help.short.paper[0])).toBeVisible();
     await expect.element(page.getByText(words.needsFile)).toBeVisible();
     await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toBeDisabled();
     await expect.element(page.getByRole("searchbox", { name: copy.form.findEvent })).toBeDisabled();
@@ -78,7 +108,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("opens every column name in a section of its own, and closes it", async () => {
-    await showForm().view;
+    await showForm();
     await page.getByRole("button", { name: copy.help.more }).click();
     await expect.element(page.getByRole("heading", { name: copy.help.more })).toBeVisible();
     await expect.element(page.getByText(copy.help.fields.postcode.values)).toBeVisible();
@@ -87,7 +117,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("previews a file without a note, but imports only with one", async () => {
-    const { view, preview, finish } = showForm();
+    const { view, preview, finish } = await showForm();
     await view;
     await choose(csvFile(CSV));
     await expect.element(page.getByRole("heading", { name: /f\.csv/ })).toBeVisible();
@@ -99,12 +129,14 @@ describe("SignupUploadForm", () => {
     await note();
     await expect.element(importButton()).toBeEnabled();
     expect(preview).toHaveBeenLastCalledWith({
+      kind: "paper",
       csv: CSV,
       filename: "f.csv",
       eventId: null,
       eventColumn: null,
       signedOn: "2026-10-31",
       note: "Camden",
+      town: "",
     });
     await importButton().click();
     await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/import/previous/9"]);
@@ -112,7 +144,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("takes the column first, then the event, and lets the event go again", async () => {
-    const { view, preview } = showForm();
+    const { view, preview } = await showForm();
     await view;
     await choose(csvFile("Name,Email,March,Stall\nJo,jo@example.com,Y,Y\n"));
     await note();
@@ -135,14 +167,14 @@ describe("SignupUploadForm", () => {
   });
 
   it("says when a file has no column to link an event to", async () => {
-    await showForm().view;
+    await showForm();
     await choose(csvFile("Name,Email\nJo,jo@example.com\n"));
     await expect.element(page.getByText(copy.form.noEventColumn)).toBeVisible();
     await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toBeDisabled();
   });
 
   it("says why it can't read a file", async () => {
-    await showForm().view;
+    await showForm();
     await choose(csvFile(""));
     await expect.element(page.getByText(copy.refused.empty)).toBeVisible();
     await choose(csvFile("Comment\nHello\n"));
@@ -155,7 +187,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("refuses a spreadsheet's own file and one too big, and the next good file clears it", async () => {
-    await showForm().view;
+    await showForm();
     await choose(new File(["PK"], "list.XLSX"));
     await expect.element(page.getByText(copy.drop.notCsv("list.XLSX"))).toBeVisible();
     await choose(csvFile("x".repeat(MAX_SIGNUP_FILE_BYTES + 1)));
@@ -166,7 +198,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("takes a file dropped on the box, lit while one's over it, and ignores a drop of nothing", async () => {
-    await showForm().view;
+    await showForm();
     const box = fileInput().closest("label")!;
     const plain = box.className;
     const transfer = new DataTransfer();
@@ -182,14 +214,14 @@ describe("SignupUploadForm", () => {
   });
 
   it("does nothing when choosing a file is cancelled", async () => {
-    await showForm().view;
+    await showForm();
     fileInput().dispatchEvent(new Event("change", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 50));
     await expect.element(page.getByText(words.needsFile)).toBeVisible();
   });
 
   it("sets the date from the calendar", async () => {
-    const { view, preview } = showForm();
+    const { view, preview } = await showForm();
     await view;
     await choose(csvFile(CSV));
     await page.getByRole("button", { name: copy.form.signedOn }).click();
@@ -242,6 +274,7 @@ describe("SignupUploadPreview", () => {
   const show = (actions: Partial<SignupUploadActions>, of: typeof input | null = input, blockers: string[] = []) =>
     render(
       <SignupUploadPreview
+        step={5}
         input={of}
         blockers={blockers}
         preview={actions.preview ?? (async () => exampleSignupPlan)}
@@ -283,6 +316,7 @@ describe("SignupUploadPreview", () => {
     await expect.element(button()).toBeEnabled();
     await view.rerender(
       <SignupUploadPreview
+        step={5}
         input={{ ...input, note: "Changed" }}
         blockers={[]}
         preview={async () => exampleSignupPlan}
@@ -310,12 +344,12 @@ describe("SignupUploadPreview", () => {
     await expect.element(page.getByText(words.changed)).toBeVisible();
     // The page refreshed after the import: new actions, the same file.
     const again = vi.fn(async () => changed);
-    await view.rerender(<SignupUploadPreview input={input} blockers={[]} preview={again} finish={finish} />);
+    await view.rerender(<SignupUploadPreview step={4} input={input} blockers={[]} preview={again} finish={finish} />);
     await expect.poll(() => again.mock.calls.length).toBe(1);
     await expect.element(page.getByText(words.changed)).toBeVisible();
     // Another file.
     const other = { ...input, filename: "other.csv" };
-    await view.rerender(<SignupUploadPreview input={other} blockers={[]} preview={again} finish={finish} />);
+    await view.rerender(<SignupUploadPreview step={4} input={other} blockers={[]} preview={again} finish={finish} />);
     await expect.poll(() => again.mock.calls.length).toBe(2);
     await expect.element(page.getByText(words.changed)).not.toBeInTheDocument();
   });
@@ -487,5 +521,128 @@ describe("the upload's examples in the gallery", () => {
     await expect.element(importNow).toBeEnabled();
     await importNow.click();
     await expect.poll(() => push.mock.calls.at(-1)).toEqual(["/staff/supporters/import/previous/6"]);
+  });
+});
+
+describe("a WhatsApp group's upload", () => {
+  const said = copy.preview.happens;
+
+  it("asks for the group's name and town in place of the date and note, with no event, and sends them", async () => {
+    const { preview } = await showForm();
+    await kindButton("whatsapp").click();
+    await expect.element(kindButton("whatsapp")).toHaveAttribute("aria-checked", "true");
+    const titles = () =>
+      page
+        .getByRole("heading", { level: 2 })
+        .all()
+        .map((heading) => heading.element().textContent);
+    expect(titles()).toEqual([
+      `1${copy.kind.label}`,
+      `2${copy.form.groupTitle}`,
+      `3${copy.steps.file}`,
+      copy.help.title,
+      `4${copy.steps.check}`,
+    ]);
+    await expect.element(page.getByText(copy.help.short.whatsapp[0])).toBeVisible();
+    await expect.element(page.getByText(words.blockers.group)).toBeVisible();
+    await choose(csvFile("Name,Phone,Email\nJo,07700900123,jo@example.com\n"));
+    await expect.element(page.getByRole("cell", { name: copy.columns.ignored })).toBeVisible();
+    await page.getByRole("textbox", { name: copy.form.group }).fill("Oxford group");
+    await page.getByRole("textbox", { name: copy.form.town }).fill("Oxford");
+    await expect
+      .poll(() => preview.mock.calls.at(-1)?.[0])
+      .toEqual({
+        kind: "whatsapp",
+        csv: "Name,Phone,Email\nJo,07700900123,jo@example.com\n",
+        filename: "f.csv",
+        eventId: null,
+        eventColumn: null,
+        signedOn: "2026-10-31",
+        note: "Oxford group",
+        town: "Oxford",
+      });
+  });
+
+  it("reads the file again as paper when paper's chosen, clearing a column chosen before", async () => {
+    await showForm();
+    await choose(csvFile(CSV));
+    await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOptions("March");
+    await kindButton("whatsapp").click();
+    await expect.element(page.getByText(/no Phone column/)).toBeVisible();
+    await kindButton("paper").click();
+    await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toHaveValue("");
+    await expect.element(page.getByRole("cell", { name: "Colour" })).toBeVisible();
+  });
+
+  it("previews each member by name and number, with what will happen", async () => {
+    await render(<SignupPlanView plan={exampleWhatsappPlan} />);
+    await expect.element(page.getByRole("table")).toBeVisible();
+    expect([...document.querySelectorAll("thead th")].map((cell) => cell.textContent)).toEqual([
+      words.table.row,
+      copy.help.fields.name.label,
+      copy.help.fields.phone.label,
+      words.table.happens,
+    ]);
+    const lines = page
+      .getByRole("row")
+      .all()
+      .slice(1)
+      .map((row) => row.element().lastElementChild!.textContent);
+    expect(lines).toEqual([
+      `${said.notImported}${words.problems.erased}`,
+      said.texts,
+      `${said.known.mobile}${said.texts}`,
+      said.alreadyImported,
+    ]);
+  });
+
+  it("lists a group's columns, the phone needed", async () => {
+    await render(<SignupColumnNames kind="whatsapp" />);
+    expect(
+      page
+        .getByRole("row")
+        .all()
+        .slice(1)
+        .map((row) => [row.element().firstElementChild!.textContent, Boolean(row.element().querySelector("span"))]),
+    ).toEqual([
+      [copy.help.whatsappFields.name.label, false],
+      [copy.help.whatsappFields.phone.label, true],
+    ]);
+  });
+
+  it("titles a group's upload with its name and town, and shows each member with newsletter texts", async () => {
+    await render(
+      <>
+        <SignupUploadHead upload={exampleWhatsappUpload} />
+        <SignupUploadResult upload={exampleWhatsappUpload} />
+      </>,
+    );
+    expect(page.getByRole("banner").element().querySelector("p")!.textContent).toBe(
+      [
+        copy.result.summary(2, 1),
+        copy.result.by(exampleWhatsappUpload.uploadedBy, staffTime(exampleWhatsappUpload.uploadedAt)),
+        copy.result.group("PauseAI UK Oxford"),
+        copy.result.town("Oxford"),
+      ].join(" · "),
+    );
+    await expect
+      .element(page.getByRole("link", { name: supportersCopy.supporters.noName }))
+      .toHaveAttribute("href", "/staff/supporters/6");
+    const lines = page
+      .getByRole("row")
+      .all()
+      .slice(1)
+      .map((row) => row.element().lastElementChild!.textContent);
+    expect(lines).toEqual([said.texts, `${said.known.mobile}${said.texts}`]);
+  });
+
+  it("says each upload's kind in the list", async () => {
+    await render(
+      <SignupUploadsList now="2026-11-20T12:00:00Z" uploads={[exampleWhatsappUpload, exampleSignupUpload]} />,
+    );
+    await expect.element(page.getByText(new RegExp(`^${copy.kind.whatsapp} · oxford-group\\.csv`))).toBeVisible();
+    await expect
+      .element(page.getByText(new RegExp(`^${copy.kind.paper} · ${exampleSignupUpload.filename}`)))
+      .toBeVisible();
   });
 });
