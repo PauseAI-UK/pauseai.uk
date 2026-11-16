@@ -74,20 +74,21 @@ const MAILINGS_LOOK: OverviewLook<MailingSummary> = {
 
 /**
  * When, at a row's left: when a draft was last saved; how long till one
- * scheduled goes, in blue, as it's going out, over when; when one sending
- * started, in blue; the day one went, with its year when that's not `year`.
+ * scheduled goes, or that one is sending now, in blue, as it's going out,
+ * over when; the day one went, with its year when that's not `year`.
  */
 function When({ mailing, year, now }: { mailing: MailingBase; year: string; now: Date }) {
   if (mailing.state === "draft") return <Muted>{copy.savedAt(staffDate(mailing.updatedAt))}</Muted>;
-  if (mailing.state === "scheduled") {
+  if (mailing.state === "scheduled" || mailing.state === "sending") {
     return (
       <span className={styles.dueIn}>
-        <strong className={styles.due}>{dueIn(mailing.dueAt!, now)}</strong>
+        <strong className={styles.due}>
+          {mailing.state === "sending" ? copy.sendingNow : dueIn(mailing.dueAt!, now)}
+        </strong>
         <span>{londonWhenShort(mailing.dueAt!)}</span>
       </span>
     );
   }
-  if (mailing.state === "sending") return <strong className={styles.due}>{londonWhenShort(mailing.dueAt!)}</strong>;
   const day = staffDate(mailingWhen(mailing));
   return <>{day.endsWith(year) ? day.slice(0, -5) : day}</>;
 }

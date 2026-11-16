@@ -68,9 +68,10 @@ describe("MailingsOverview", () => {
     expect(row("Edinburgh: one week to go").element().querySelector("i[data-tone=blue]")).not.toBeNull();
     // Sent, to how many.
     await expect.element(row("AI safety conference")).toMatchTextContent(copy.standing.sent(12));
-    // Sending: its bar, leading to it.
+    // Sending: that it's sending now, over when it started; its bar, leading to it.
     await expect.element(page.getByRole("progressbar", { name: copy.sentLabel })).toHaveAttribute("value", "214");
     await expect.element(page.getByText(copy.sendingBar(209, 650))).toBeVisible();
+    await expect.element(page.getByText(copy.sendingNow, { exact: true })).toBeVisible();
     // Sent: every count, each opening it with that tab chosen, none folded behind how many are fine; the day without
     // this year. One with no letters has no counts.
     await expect

@@ -207,6 +207,8 @@ export const mailingsCopy = {
     // How long till one scheduled sends (staffVocabulary.dueIn), large, over when and what it is (dueLine).
     sendsIn: (inWords: string) => `Sends ${inWords}`,
     dueLine: (when: string, line: string) => `${when} · ${line}`,
+    // In a list, in place of how long till it goes, for one going out now.
+    sendingNow: "Sending now",
     scheduledLine: (n: number, from: string) => `${count(n, "email", "emails")} from ${from}.`,
     changeTime: "Change the time",
     saveTime: "Change it",
