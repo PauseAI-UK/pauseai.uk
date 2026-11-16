@@ -12,12 +12,6 @@
   font-size: var(--table-font-size);
 }
 
-/* Columns as wide as the first row sets them, whatever's in the rest. */
-.fixed {
-  table-layout: fixed;
-  min-width: var(--table-min-width, 0);
-}
-
 /* Striped: every other row tinted, so the eye keeps to a row across. A row
    that sets --row-bg is tinted that instead, striped or not. */
 .table td {

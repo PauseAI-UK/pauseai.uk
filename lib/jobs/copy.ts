@@ -118,7 +118,7 @@ export const jobsCopy = {
   // The sending every 15 minutes (/api/cron/send-mailings): the letters inbox's queue, the mailings due, then the
   // broadcasts due, by email or WhatsApp.
   sending: {
-    title: "Sending letters, mailings and broadcasts",
+    title: "Sending messages with Gmail, Postmark and WhatsApp",
     intro: {
       before: "Sends ",
       link: "campaign",

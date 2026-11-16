@@ -17,7 +17,7 @@ import type {
   SupporterSummary,
 } from "./supporters";
 import { SUPPORTERS_PAGE_SIZE } from "./supporters";
-import { channelOf, type Channel } from "./contact-permissions";
+import { channelOf, type Channel, type ContactPermission } from "./contact-permissions";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { permissionsFor } from "./permissions-for.server";
 import { optedOutOfLuma } from "./opt-outs.server";
@@ -319,11 +319,17 @@ export async function listSupporters(
     rows.flatMap((row) => row.emails),
     rows.flatMap((row) => row.phones),
   );
-  // Each address's answers, looked up rather than searched for: a broadcast's rows are thousands.
-  const byAddress = Map.groupBy(permissions, (p) => `${p.channel} ${p.address}`);
-  const answers = (channel: string, addresses: string[]) =>
-    [...new Set(addresses)].flatMap((address) => byAddress.get(`${channel} ${address}`) ?? []);
-  const theirs = (row: SupporterSummary) => [...answers("email", row.emails), ...answers("phone", row.phones)];
+  // Each address's answers, looked up rather than searched for: a broadcast's rows are thousands. Every address
+  // has its place, as permissionsFor() writes it, so each answer, which is for one of them, has its own.
+  const keys = (row: SupporterSummary) => [
+    ...new Set([
+      ...row.emails.map((address) => `email ${address.trim().toLowerCase()}`),
+      ...row.phones.map((number) => `phone ${number}`),
+    ]),
+  ];
+  const byAddress = new Map(rows.flatMap(keys).map((key) => [key, [] as ContactPermission[]]));
+  for (const p of permissions) byAddress.get(`${p.channel} ${p.address}`)!.push(p);
+  const theirs = (row: SupporterSummary) => keys(row).flatMap((key) => byAddress.get(key)!);
   const ids = rows.map((row) => row.id);
   // For the columns the Event and Campaign filters add: the page's registrations for the events chosen, and when
   // each first wrote in the campaign.
