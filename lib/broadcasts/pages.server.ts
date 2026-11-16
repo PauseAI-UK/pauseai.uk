@@ -19,7 +19,6 @@ import { answersTo, type BroadcastAnswer } from "./answers.server";
 import { repliesTo, type BroadcastReply } from "./replies.server";
 import { query } from "@/lib/server/db.server";
 import { channelSends, textSenderNumber } from "./channels.server";
-import { stopwatch } from "@/lib/server/stopwatch.server";
 import {
   approvedTemplates,
   broadcastSender,
@@ -244,21 +243,16 @@ export type BroadcastPageData =
       pageSize: number;
     };
 
-/**
- * What a draft's writer shows, each part asked for at once; how long each
- * took is logged, as changing its Consent waits for it all.
- */
+/** What a draft's writer shows, each part asked for at once, as changing its Consent waits for it all. */
 async function writerData(draft: WrittenBroadcast, me: string): Promise<BroadcastWriterData> {
-  const watch = stopwatch(`Broadcast ${draft.id}'s writer`);
   const [audience, unknown, choices, sender, templates, textNumber] = await Promise.all([
-    watch.time("audience", supporterAudience(draft.filter, draft)),
-    watch.time("filter problems", filterProblems(draft.filter)),
-    watch.time("choices", supporterChoices()),
-    watch.time("sender", broadcastSender(draft)),
-    watch.time("templates", approvedTemplates()),
-    watch.time("WhatsApp number", textSenderNumber()),
+    supporterAudience(draft.filter, draft),
+    filterProblems(draft.filter),
+    supporterChoices(),
+    broadcastSender(draft),
+    approvedTemplates(),
+    textSenderNumber(),
   ]);
-  watch.log();
   return {
     filter: draft.filter,
     choices,
