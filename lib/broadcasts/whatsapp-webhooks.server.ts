@@ -65,14 +65,43 @@ async function copyByMessage(messageId: string): Promise<{ id: number; status: s
   return copy;
 }
 
-/** Adds an event to a copy's history, once of each kind but a failure. */
-async function addEvent(copyId: number, kind: string, at: Date, details: object = {}): Promise<void> {
-  await query(
-    `INSERT INTO broadcast_message_events (message_id, kind, at, details)
-     SELECT $1, $2, $3, $4 WHERE NOT EXISTS (
-       SELECT 1 FROM broadcast_message_events WHERE message_id = $1 AND kind = $2 AND kind <> 'failed')`,
-    [copyId, kind, at, JSON.stringify(details)],
+/** Our reply to a reply to a text (broadcast_answers), by WhatsApp's ID for it. */
+async function answerByMessage(messageId: string): Promise<number | undefined> {
+  const [answer] = await query<{ id: number }>(
+    "SELECT id::int AS id FROM broadcast_answers WHERE provider_message_id = $1",
+    [messageId],
   );
+  return answer?.id;
+}
+
+/** Whose history an event is in: a copy's, or one of our replies'. */
+type Owner = { copy: number } | { answer: number };
+
+/** Adds an event to a copy's or our reply's history, once of each kind but a copy's failure. */
+async function addEvent(owner: Owner, kind: string, at: Date, details: object = {}): Promise<void> {
+  const column = "copy" in owner ? "message_id" : "answer_id";
+  const id = "copy" in owner ? owner.copy : owner.answer;
+  await query(
+    `INSERT INTO broadcast_message_events (${column}, kind, at, details)
+     SELECT $1, $2, $3, $4 WHERE NOT EXISTS (
+       SELECT 1 FROM broadcast_message_events WHERE ${column} = $1 AND kind = $2
+         AND (kind <> 'failed' OR answer_id IS NOT NULL))`,
+    [id, kind, at, JSON.stringify(details)],
+  );
+}
+
+/** What became of our reply to a reply to a text: delivered, read, or failed, with WhatsApp's why. */
+async function applyAnswerStatus(answerId: number, status: Status): Promise<boolean> {
+  const at = timeOf(status.timestamp);
+  if (status.status === "read") await addEvent({ answer: answerId }, "delivered", at);
+  if (status.status === "delivered" || status.status === "read") {
+    await addEvent({ answer: answerId }, status.status, at);
+    return true;
+  }
+  if (status.status !== "failed") return false;
+  const [error] = status.errors ?? [];
+  await addEvent({ answer: answerId }, "failed", at, { code: error?.code ?? null, title: error?.title ?? null });
+  return true;
 }
 
 /**
@@ -80,16 +109,20 @@ async function addEvent(copyId: number, kind: string, at: Date, details: object 
  * or failed, as the number isn't on WhatsApp, which then skips it; as the
  * person stopped marketing messages, a stop; as they'd had enough lately,
  * held a day, while its broadcast is still sending; or anything else, a
- * failure.
+ * failure. A text that's no copy may be our reply to a reply, whose history
+ * keeps the same.
  */
 async function applyStatus(status: Status): Promise<boolean> {
   const copy = await copyByMessage(status.id);
-  if (!copy) return false;
+  if (!copy) {
+    const answerId = await answerByMessage(status.id);
+    return answerId !== undefined && applyAnswerStatus(answerId, status);
+  }
   const at = timeOf(status.timestamp);
   if (status.status === "delivered" || status.status === "read") {
     await query("UPDATE broadcast_messages SET status = 'delivered' WHERE id = $1 AND status = 'sent'", [copy.id]);
-    if (status.status === "read") await addEvent(copy.id, "delivered", at);
-    await addEvent(copy.id, status.status, at);
+    if (status.status === "read") await addEvent({ copy: copy.id }, "delivered", at);
+    await addEvent({ copy: copy.id }, status.status, at);
     return true;
   }
   if (status.status !== "failed") return false;
@@ -112,7 +145,7 @@ async function applyStatus(status: Status): Promise<boolean> {
   } else {
     await query("UPDATE broadcast_messages SET status = 'failed' WHERE id = $1", [copy.id]);
   }
-  await addEvent(copy.id, "failed", at, { code: error?.code ?? null, title: error?.title ?? null });
+  await addEvent({ copy: copy.id }, "failed", at, { code: error?.code ?? null, title: error?.title ?? null });
   return true;
 }
 

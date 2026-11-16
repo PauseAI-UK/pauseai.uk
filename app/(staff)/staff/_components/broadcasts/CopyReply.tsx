@@ -18,6 +18,7 @@ import ThreadEmail from "../letters/ThreadEmail";
 import { SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import styles from "./MessageCopyView.module.css";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { receiptOf } from "@/lib/broadcasts/receipts";
 
 const copy = broadcastsCopy.broadcastPages;
 
@@ -37,7 +38,12 @@ function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: Broadc
     // Who sent it on the line with the time, as a chat app puts what it says of a message there.
     return (
       <ChatWall>
-        <ChatBubble who={TEXT_SENDER_NAME} when={answer.sentAt ? `${sentBy} · ${staffTime(answer.sentAt)}` : ""} ours>
+        <ChatBubble
+          who={TEXT_SENDER_NAME}
+          when={answer.sentAt ? `${sentBy} · ${staffTime(answer.sentAt)}` : ""}
+          ours
+          receipt={answer.sentAt ? receiptOf(answer.events) : undefined}
+        >
           <TextWords words={answer.body} />
           {!answer.sentAt && <p className={styles.dealt}>{copy.replies.stillSending(one.sentFrom)}</p>}
         </ChatBubble>

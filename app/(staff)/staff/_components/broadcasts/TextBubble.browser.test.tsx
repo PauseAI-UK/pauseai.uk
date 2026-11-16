@@ -4,6 +4,8 @@ import { page } from "vitest/browser";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import { exampleWhatsAppWords } from "./BroadcastWriter.examples";
 import TextBubble, { ChatBubble, LinkedText } from "./TextBubble";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import type { Receipt } from "@/lib/broadcasts/receipts";
 
 describe("LinkedText", () => {
   it("makes each web address a link, as WhatsApp does, leaving a sentence's end out of it", async () => {
@@ -50,5 +52,39 @@ describe("ChatBubble", () => {
     );
     const colour = (who: string) => getComputedStyle(page.getByText(who).element()).color;
     expect(colour("Theirs")).not.toBe(colour("Answer"));
+  });
+
+  it("ticks ours after its time as WhatsApp does: one sent, two delivered, two blue read; or says why it failed", async () => {
+    const events = broadcastsCopy.broadcastPages.events;
+    const bubble = (receipt?: Receipt) => (
+      <ChatBubble who="Ours" when="07:45" ours receipt={receipt}>
+        Yes
+      </ChatBubble>
+    );
+    const { rerender } = await render(bubble());
+    await expect.element(page.getByText("07:45", { exact: true })).toBeVisible();
+    expect(page.getByRole("img").elements()).toEqual([]);
+    const ticks = () => page.getByRole("img").element().querySelectorAll("path").length;
+    const colour = () => getComputedStyle(page.getByRole("img").element()).color;
+    await rerender(bubble({ kind: "sent" }));
+    await expect.element(page.getByRole("img", { name: events.sent })).toBeVisible();
+    expect(ticks()).toBe(1);
+    const grey = colour();
+    await rerender(bubble({ kind: "delivered" }));
+    await expect.element(page.getByRole("img", { name: events.delivered })).toBeVisible();
+    expect(ticks()).toBe(2);
+    expect(colour()).toBe(grey);
+    await rerender(bubble({ kind: "read" }));
+    await expect.element(page.getByRole("img", { name: events.read })).toBeVisible();
+    expect(colour()).not.toBe(grey);
+    await expect.element(page.getByText("07:45", { exact: true })).toBeVisible();
+    // Failed: no ticks, but why, under its words.
+    await rerender(bubble({ kind: "failed", why: "Re-engagement message" }));
+    expect(page.getByRole("img").elements()).toEqual([]);
+    await expect
+      .element(page.getByText(broadcastsCopy.broadcastPages.replies.undelivered("Re-engagement message")))
+      .toBeVisible();
+    await rerender(bubble({ kind: "failed", why: null }));
+    await expect.element(page.getByText(broadcastsCopy.broadcastPages.replies.undelivered(null))).toBeVisible();
   });
 });

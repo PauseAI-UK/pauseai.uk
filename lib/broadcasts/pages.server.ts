@@ -67,6 +67,11 @@ const STOPPED_VIA = howOptedOutFrom("c.id");
 const REPLIED = "EXISTS (SELECT 1 FROM broadcast_replies r WHERE r.message_id = c.id AND NOT r.automatic)";
 const TO_LOOK_AT =
   "EXISTS (SELECT 1 FROM broadcast_replies r WHERE r.message_id = c.id AND NOT r.automatic AND r.outcome IS NULL)";
+// Our newest reply to their replies that went: by email, or by WhatsApp, which may say later it failed.
+const OUR_NEWEST_REPLY = `(SELECT a.id FROM broadcast_answers a JOIN broadcast_replies r ON r.id = a.reply_id
+  WHERE r.message_id = c.id AND a.status = 'sent' ORDER BY a.sent_at DESC, a.id DESC LIMIT 1)`;
+const OUR_REPLY_FAILED = `EXISTS (SELECT 1 FROM broadcast_message_events e
+  WHERE e.answer_id = ${OUR_NEWEST_REPLY} AND e.kind = 'failed')`;
 // A text's number WhatsApp said isn't on it when this copy went, rather than known before.
 const FOUND_UNREACHABLE = "EXISTS (SELECT 1 FROM whatsapp_unreachable u WHERE u.message_id = c.id)";
 // Its send cut off, so it may have gone (fail in broadcast-sending.server.ts).
@@ -75,19 +80,23 @@ const UNFINISHED = `EXISTS (SELECT 1 FROM broadcast_message_events e
 
 /**
  * Where a copy stands, one state each, the first that applies: a reply to
- * check; they opted out because of it; something broke (its provider
- * refused it, its send cut off, its broadcast gave up); it didn't reach them
- * (a bounce, or a number found not on WhatsApp); not sent, as expected (they'd
- * opted out before, their consent ended, an address already blocked, we
- * cancelled); replied; read; delivered; sent. Still to go: scheduled, or
- * sending. Each count and tab on a broadcast's page is one of these.
+ * check; they opted out because of it; our newest reply to them failed;
+ * something broke (its provider refused it, its send cut off, its broadcast
+ * gave up); it didn't reach them (a bounce, or a number found not on
+ * WhatsApp); not sent, as expected (they'd opted out before, their consent
+ * ended, an address already blocked, we cancelled); they replied and we
+ * replied to them; they replied; read; delivered; sent. Still to go:
+ * scheduled, or sending. Each count and tab on a broadcast's page is one of
+ * these.
  */
 export const COPY_STATES = [
   "look",
   "opted-out",
+  "reply-failed",
   "error",
   "unreached",
   "not-sent",
+  "we-replied",
   "replied",
   "read",
   "delivered",
@@ -99,9 +108,11 @@ const COPY_STATE = `CASE
   WHEN ${TO_LOOK_AT} THEN 'look'
   WHEN c.status IN ('scheduled', 'sending') THEN c.status
   WHEN c.status IN ('sent', 'delivered') AND ${OPTED_OUT} THEN 'opted-out'
+  WHEN ${OUR_REPLY_FAILED} THEN 'reply-failed'
   WHEN (c.status = 'failed' AND NOT ${BOUNCED}) OR (c.status = 'cancelled' AND ${STOPPED_BY} IS NOT NULL) THEN 'error'
   WHEN c.status = 'failed' OR (c.skip_reason = 'not-on-whatsapp' AND ${FOUND_UNREACHABLE}) THEN 'unreached'
   WHEN c.status IN ('skipped', 'cancelled') THEN 'not-sent'
+  WHEN ${OUR_NEWEST_REPLY} IS NOT NULL THEN 'we-replied'
   WHEN ${REPLIED} THEN 'replied'
   WHEN ${WAS_READ} THEN 'read'
   WHEN c.status = 'delivered' THEN 'delivered'

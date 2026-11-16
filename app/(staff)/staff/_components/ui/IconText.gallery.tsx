@@ -29,6 +29,18 @@ export const iconTextGallery: Example[] = [
           </StaffPage>
         ),
       },
+      {
+        label: "An icon after words",
+        render: () => (
+          <StaffPage as="div">
+            <p>
+              <IconText icon={<ChannelIcon channel="phone" />} after>
+                Text
+              </IconText>
+            </p>
+          </StaffPage>
+        ),
+      },
     ],
   },
 ];

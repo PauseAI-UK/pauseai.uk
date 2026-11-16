@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffTime } from "@/lib/staff-time";
 import MessageCopyView from "./MessageCopyView";
-import { exampleMessageCopy } from "./BroadcastWriter.examples";
+import { exampleMessageCopy, exampleTextAnswers, exampleTextReplies } from "./BroadcastWriter.examples";
 import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { lettersCopy } from "../letters/copy";
@@ -77,6 +77,33 @@ describe("MessageCopyView", () => {
     const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
     await expect.element(history.getByText(copy.events.read)).toBeVisible();
     await expect.element(history.getByText(copy.events.sent)).toBeVisible();
+    // Its ticks, as far as WhatsApp said it got.
+    await expect
+      .element(page.getByLabelText(copy.threadTitle).getByRole("img", { name: copy.events.read }))
+      .toBeVisible();
+  });
+
+  it("keeps in a text's history what WhatsApp said became of our replies", async () => {
+    await render(
+      <MessageCopyView
+        one={{
+          ...exampleMessageCopy,
+          replies: exampleTextReplies,
+          answers: [
+            {
+              ...exampleTextAnswers[0],
+              events: [
+                { at: new Date("2026-11-07T07:50:00Z"), kind: "failed", details: { code: 131047, title: null } },
+                { at: new Date("2026-11-07T07:46:00Z"), kind: "delivered", details: {} },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+    const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
+    await expect.element(history.getByText(copy.replies.historyOurs.delivered!)).toBeVisible();
+    await expect.element(history.getByText(copy.replies.historyOurs.failed!)).toBeVisible();
   });
 
   it("shows an email as a mail app does", async () => {

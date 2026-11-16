@@ -1,26 +1,67 @@
 import { Fragment, type ReactNode } from "react";
 import { FIELD_WORDS } from "@/lib/broadcasts/broadcasts";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import type { Receipt } from "@/lib/broadcasts/receipts";
 import type { MailingBlock, MailingInline } from "@/lib/mailings/doc";
+import IconText from "../ui/IconText";
 import letter from "../mailings/MailingLetter.module.css";
 import styles from "./Broadcasts.module.css";
 
-/** A bubble in a text conversation: theirs at the left in white, ours at the right in green, each with who and when. */
+const words = broadcastsCopy.broadcastPages;
+
+/** One tick, or two; each a check mark drawn in the colour of the words around it. */
+function Ticks({ receipt }: { receipt: "sent" | "delivered" | "read" }) {
+  const label = words.events[receipt];
+  return (
+    <svg
+      width="16"
+      height="11"
+      viewBox="0 0 16 11"
+      role="img"
+      aria-label={label}
+      className={receipt === "read" ? styles.read : undefined}
+    >
+      <title>{label}</title>
+      <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1.5 6l3 3 6-6.5" />
+        {receipt !== "sent" && <path d="M8 9l6-6.5" />}
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * A bubble in a text conversation: theirs at the left in white, ours at the
+ * right in green, each with who and when; ours with its ticks, or, under its
+ * words, that WhatsApp couldn't deliver it.
+ */
 export function ChatBubble({
   who,
   when,
   ours = false,
+  receipt,
   children,
 }: {
   who: string;
   when: string;
   ours?: boolean;
+  receipt?: Receipt;
   children: ReactNode;
 }) {
   return (
     <div className={ours ? `${styles.bubble} ${styles.ours}` : styles.bubble}>
       <span className={ours ? `${styles.name} ${styles.ourName}` : styles.name}>{who}</span>
       {children}
-      <span className={styles.time}>{when}</span>
+      {receipt?.kind === "failed" && <p className={styles.undelivered}>{words.replies.undelivered(receipt.why)}</p>}
+      <span className={styles.time}>
+        {receipt && receipt.kind !== "failed" ? (
+          <IconText icon={<Ticks receipt={receipt.kind} />} after>
+            <span>{when}</span>
+          </IconText>
+        ) : (
+          when
+        )}
+      </span>
     </div>
   );
 }

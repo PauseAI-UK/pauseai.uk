@@ -58,8 +58,10 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
     "delivered",
     "read",
     "replied",
+    "we-replied",
     "look",
     "opted-out",
+    "reply-failed",
     // Those that didn't go: not sent, as expected, first; then what went wrong.
     "not-sent",
     "error",
