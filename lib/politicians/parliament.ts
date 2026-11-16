@@ -84,7 +84,7 @@ export function parliamentMembers(data: unknown): OfficialMember[] {
 export const memberUrl = (id: number) => `${MEMBERS_API}/Members/${id}`;
 
 /** A member's photo, by their ID: the Members API's, which it has for each of them. */
-export const parliamentPhoto = (id: number) => `${memberUrl(id)}/Thumbnail`;
+const parliamentPhoto = (id: number) => `${memberUrl(id)}/Thumbnail`;
 
 /**
  * Why a membership ended, from the Members API's answer (memberUrl): died,
