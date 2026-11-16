@@ -8,7 +8,7 @@ import { logChange } from "@/lib/server/audit.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { send } from "@/lib/email/sending.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
-import { staffLink } from "@/lib/email/notifications.server";
+import { replyToAll, staffLink } from "@/lib/email/notifications.server";
 import { staffAddressLine } from "@/lib/email/staff-address.server";
 import { eventsCopy } from "./copy";
 
@@ -135,7 +135,7 @@ export async function eventChoices(): Promise<{ staff: string[]; tags: string[];
 /**
  * Emails `owner` that they own `ids` now, whoever chose them, copied to
  * `previous`, the owner before, saying `by` gave it to them; or with no
- * `by`, that the rules did. It links to the staff events page: for one
+ * `by`, that the rules did. A reply goes to them both. It links to the staff events page: for one
  * event, searched for it, which also suits the owner before, Cc'd; for
  * several, filtered to the owner. Returns whom it emailed, none if it
  * wasn't sent.
@@ -152,11 +152,14 @@ async function tellOwner(
   const copy = eventsCopy.events.ownerEmail;
   const filter = events.length === 1 ? ["q", events[0].name] : ["owner", owner];
   const link = staffLink(`/staff/events?${new URLSearchParams([filter])}`, undefined);
+  const toLine = await staffAddressLine(to);
+  const ccLine = cc && (await staffAddressLine(cc));
   const result = await send(
     {
       From: `PauseAI UK <noreply@${notifyDomain()}>`,
-      To: await staffAddressLine(to),
-      ...(cc ? { Cc: await staffAddressLine(cc) } : {}),
+      To: toLine,
+      ...(ccLine ? { Cc: ccLine } : {}),
+      ReplyTo: replyToAll(toLine, ccLine),
       Subject: copy.subject(events.length, events[0].name, owner),
       TextBody: copy.body({
         events: events.map((event) => ({ name: event.name, when: londonStart(event.startAt), url: event.url })),

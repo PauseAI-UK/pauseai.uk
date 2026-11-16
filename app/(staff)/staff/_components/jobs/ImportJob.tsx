@@ -9,6 +9,7 @@ import {
   jobSchedule,
   type ImportJob,
   importPath,
+  nextRun,
   type PoliticianImportJob,
   NIGHTLY,
   runStatus,
@@ -230,11 +231,14 @@ const SCHEDULES = ["frequent", "quarter-hour", "hourly", "nightly"] as const;
 export function ImportOverview({
   newest,
   running,
+  now,
 }: {
   /** Each job's newest run, in IMPORT_JOBS order; undefined for one that has never run. */
   newest: (AnyImportRun | undefined)[];
   /** Each job's run going now, in the same order. */
   running: (RunningJob | undefined)[];
+  /** The time the page shows, which each job's next run is after. */
+  now: Date;
 }) {
   return (
     <>
@@ -252,6 +256,7 @@ export function ImportOverview({
                   icon={<ImportIcon source={SOURCES[job]} />}
                   tags={<JobTags job={job} />}
                   intro={<Intro job={job} />}
+                  next={words.nextRun(staffTime(nextRun(job, now)))}
                 >
                   <NewestRun job={job} run={newest[i]} running={running[i]} />
                 </ImportCard>

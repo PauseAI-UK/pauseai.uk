@@ -89,7 +89,14 @@ export const PARLIAMENT_ENDING = {
 /** The Scottish Parliament's lists, by their path under its API. */
 export const SCOTTISH_PARLIAMENT: Record<string, unknown[]> = {
   members: [
-    { PersonID: 91001, ParliamentaryName: "Example, Morag", PreferredName: "Morag", GenderTypeID: 3, IsCurrent: true },
+    {
+      PersonID: 91001,
+      ParliamentaryName: "Example, Morag",
+      PreferredName: "Morag",
+      GenderTypeID: 3,
+      IsCurrent: true,
+      PhotoURL: "https://scottishparliament.chorus-mk.thirdlight.com/file/24/Example91001/_Morag%20Example.jpg",
+    },
     { PersonID: 91002, ParliamentaryName: "Former, Fiona", PreferredName: "Fiona", GenderTypeID: 3, IsCurrent: false },
   ],
   emailaddresses: [
@@ -126,6 +133,8 @@ export const SENEDD_MEMBERS = `<?xml version="1.0" encoding="utf-8"?>
           <fullusername>Gwen Example MS</fullusername>
           <politicalpartytitle>Example Party</politicalpartytitle>
           <workaddress><email>Gwen.Example-MS@senedd.wales</email></workaddress>
+          <photosmallurl>https://business.senedd.wales/UserData/1/0/0/Info00092001/smallpic.jpg</photosmallurl>
+          <photobigurl>https://business.senedd.wales/UserData/1/0/0/Info00092001/bigpic.jpg</photobigurl>
         </councillor>
       </councillors>
     </ward>
@@ -144,6 +153,7 @@ export const NI_ASSEMBLY = {
           MemberPrefix: "Ms",
           PartyName: "Example Party",
           ConstituencyName: "Example Glens",
+          MemberImgUrl: "http://aims.niassembly.gov.uk/images/mla/93001_s.jpg",
         },
       ],
     },

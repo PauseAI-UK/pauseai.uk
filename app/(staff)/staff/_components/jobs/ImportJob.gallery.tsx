@@ -25,6 +25,7 @@ export const importJobGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <ImportOverview
+              now={new Date("2026-10-21T11:50:00Z")}
               running={[undefined, { startedBy: "jo@pauseai.uk", startedAt: new Date("2026-10-21T11:47:00Z") }]}
               newest={[
                 exampleRun(

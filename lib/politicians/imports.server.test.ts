@@ -4,7 +4,7 @@ import { server } from "@/tests/fixtures/msw";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications } from "@/tests/notifications";
 import { NEWER_RUN, NIGHTLY, type PoliticianImport } from "@/lib/import-runs";
-import { PARLIAMENT_MEMBERS } from "@/lib/server/fixtures/politician-lists";
+import { PARLIAMENT_MEMBERS, SENEDD_MEMBERS } from "@/lib/server/fixtures/politician-lists";
 import { query } from "@/lib/server/db.server";
 import { listRuns } from "@/lib/server/import-runs.server";
 import { editPoliticianDetails } from "./edits.server";
@@ -122,6 +122,35 @@ describeWithDatabase("importPoliticians", () => {
     // Every constituency but the fixture's three has no MP.
     expect(run.result.vacant).toHaveLength(647);
     expect((await importPoliticians("parliament", JO)).status).toBe("unchanged");
+  });
+
+  it("keeps each member's photo as their body lists it, made secure, and none where it lists none", async () => {
+    for (const body of ["parliament", "scottish-parliament", "senedd", "ni-assembly"] as const) {
+      await importPoliticians(body, NIGHTLY);
+    }
+    const photos = () =>
+      query<{ name: string; photo: string | null }>(
+        `SELECT n.name, p.photo_url AS photo FROM notable_people n JOIN politicians p ON p.id = n.id
+         WHERE NOT p.is_test AND n.name IN ('Aoife Example', 'Gwen Example', 'Morag Example', 'Polly Placeholder')
+         ORDER BY n.name`,
+      );
+    expect(await photos()).toEqual([
+      { name: "Aoife Example", photo: "https://aims.niassembly.gov.uk/images/mla/93001_s.jpg" },
+      { name: "Gwen Example", photo: "https://business.senedd.wales/UserData/1/0/0/Info00092001/bigpic.jpg" },
+      {
+        name: "Morag Example",
+        photo: "https://scottishparliament.chorus-mk.thirdlight.com/file/24/Example91001/_Morag%20Example.jpg",
+      },
+      { name: "Polly Placeholder", photo: "https://members-api.parliament.uk/api/Members/90002/Thumbnail" },
+    ]);
+    // A body that stops listing one: none, and the run changes nothing else.
+    server.use(
+      http.get("https://business.senedd.wales/mgwebservice.asmx/GetCouncillorsByWard", () =>
+        HttpResponse.text(SENEDD_MEMBERS.replace(/<photo\w+>[^<]*<\/photo\w+>/g, "")),
+      ),
+    );
+    expect((await importPoliticians("senedd", JO)).status).toBe("unchanged");
+    expect((await photos())[1]).toEqual({ name: "Gwen Example", photo: null });
   });
 
   it("links the politicians we have by name, keeping their emails, and lists salutations unlike the rule's once", async () => {

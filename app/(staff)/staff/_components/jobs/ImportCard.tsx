@@ -20,14 +20,16 @@ type Props = {
   intro: ReactNode;
   /** How its newest run ended: under the name. */
   children: ReactNode;
+  /** When it next runs on its own, if it does: under how its newest run ended. */
+  next?: ReactNode;
 };
 
 /**
  * One import or check on the Scheduled jobs page: a card with its icon, name and lozenges,
- * how its newest run ended, and what it does. The whole card opens the job's page;
+ * how its newest run ended, when it next runs, and what it does. The whole card opens the job's page;
  * the links in its description still open where it reads from.
  */
-export default function ImportCard({ title, href, icon, tags, intro, children }: Props) {
+export default function ImportCard({ title, href, icon, tags, intro, children, next }: Props) {
   return (
     <Card span={2} className={styles.card}>
       <div className={styles.head}>
@@ -39,7 +41,10 @@ export default function ImportCard({ title, href, icon, tags, intro, children }:
           {tags}
         </h3>
       </div>
-      <div className={styles.status}>{children}</div>
+      <div className={styles.status}>
+        {children}
+        {next && <p className={styles.next}>{next}</p>}
+      </div>
       <p className={styles.intro}>{intro}</p>
     </Card>
   );

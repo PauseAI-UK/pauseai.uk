@@ -4,7 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { Field, Hint } from "@/components/ui/Field";
@@ -372,6 +372,8 @@ export default function BroadcastWriter({
   const { id } = draft;
   const start = BROADCAST_START;
   const [picking, setPicking] = useState(false);
+  // Fetching the page again after a Consent changed, its counts with it: the pick isn't done till they're here.
+  const [refreshing, startRefresh] = useTransition();
   // The channel whose Consents show: the draft's, or on New broadcast the one picked, if any.
   const [shown, setShown] = useState<Channel | "">(chosen ?? (email ? "email" : "phone"));
   const show = (channel: Channel) => {
@@ -463,7 +465,7 @@ export default function BroadcastWriter({
     try {
       if (creating) return await actions.create(consent);
       await saveNow();
-      if (await actions.changeConsent(id, consent)) router.refresh();
+      if (await actions.changeConsent(id, consent)) startRefresh(() => router.refresh());
     } finally {
       setPicking(false);
     }
@@ -525,7 +527,7 @@ export default function BroadcastWriter({
             value={blank ? "" : consentChoice(draft)}
             channel={draft.channel === "email" ? "email" : "phone"}
             written={hasOwnWords}
-            pending={picking}
+            pending={picking || refreshing}
             pick={pickConsent}
             shown={shown}
             show={show}

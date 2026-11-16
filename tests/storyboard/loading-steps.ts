@@ -30,6 +30,26 @@ export async function lockTable(database: string, table: string): Promise<() => 
 }
 
 /**
+ * Holds every Server Action the page calls until `release`, so a flow can
+ * picture what shows while one is on its way, such as a spinner.
+ */
+export async function holdActions(page: Page): Promise<{ release: () => Promise<void> }> {
+  let open = () => {};
+  const held = new Promise<void>((done) => (open = done));
+  const hold = async (route: Route) => {
+    if (route.request().method() === "POST" && route.request().headers()["next-action"]) await held;
+    await route.fallback();
+  };
+  await page.route("**/*", hold);
+  return {
+    release: async () => {
+      open();
+      await page.unroute("**/*", hold);
+    },
+  };
+}
+
+/**
  * Holds the next request for the page at a URL matching `target` (a
  * navigation's, not a prefetch: a link hovered fetches its page whole
  * ahead), so a flow can picture the page while it waits; `release` lets it

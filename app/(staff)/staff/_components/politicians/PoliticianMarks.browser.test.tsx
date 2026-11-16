@@ -20,4 +20,16 @@ describe("PoliticianMarks's examples in the gallery", () => {
     await expect.element(test).toBeChecked();
     await expect.element(test).toBeDisabled();
   });
+
+  it("names each mark that's on in its tag, as the politicians list does, an important target amber", async () => {
+    await render(<PoliticianMarksExample test />);
+    const tag = (name: string) => document.getElementById(name)!.firstElementChild;
+    // On: an important target, and a test politician.
+    expect(tag("mark-importantTarget")!.textContent).toBe(politiciansCopy.politician.importantTarget);
+    expect(tag("mark-importantTarget")!.className).toMatch(/amber/);
+    expect(tag("mark-test")!.textContent).toBe(staffVocabulary.politicianFlags.test);
+    expect(tag("mark-test")!.className).not.toMatch(/amber/);
+    // Off: its name alone.
+    expect(tag("mark-personalConnection")).toBeNull();
+  });
 });

@@ -75,12 +75,16 @@ export function parliamentMembers(data: unknown): OfficialMember[] {
       websites: addresses.flatMap((a) => (/^https?:\/\//i.test(a.Address1 ?? "") ? [a.Address1!.trim()] : [])),
       salutation,
       ...(titled ? { titled: true as const } : {}),
+      photo: parliamentPhoto(Number(m["@Member_Id"])),
     };
   });
 }
 
 /** Where the Members API says why someone's membership ended. */
 export const memberUrl = (id: number) => `${MEMBERS_API}/Members/${id}`;
+
+/** A member's photo, by their ID: the Members API's, which it has for each of them. */
+export const parliamentPhoto = (id: number) => `${memberUrl(id)}/Thumbnail`;
 
 /**
  * Why a membership ended, from the Members API's answer (memberUrl): died,

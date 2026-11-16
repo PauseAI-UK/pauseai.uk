@@ -385,6 +385,18 @@
   stroke-width: 0.6;
 }
 
+/* A politician's photo, as tall as the supporter's map, a portrait's
+   shape, its top kept when their body's is another shape. */
+.photo {
+  display: block;
+  flex: none;
+  height: 9rem;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  object-position: top;
+}
+
 /* Under the cards, the page's full width: the history, then
    everything we hold, each folded, above the erase button. */
 /* At least a window tall, so the band's links can bring Correspondence and Asks up to the top of it. */

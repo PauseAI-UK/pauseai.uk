@@ -4,7 +4,7 @@
 // keyed by the member's PersonID. The caller fetches:
 // lib/server/outside-services/scottish-parliament.ts.
 
-import type { OfficialMember } from "./import-changes";
+import { photoAddress, type OfficialMember } from "./import-changes";
 
 export const SCOTTISH_PARLIAMENT_API = "https://data.parliament.scot/api";
 
@@ -25,7 +25,13 @@ export type ScottishParliamentLists = Record<(typeof SCOTTISH_PARLIAMENT_LISTS)[
 /** A member's page on the Scottish Parliament's site, by the name in it ("emma-roddick"). */
 export const MSP_PAGES = "https://www.parliament.scot/msps/current-and-previous-msps/";
 
-type Member = { PersonID: number; ParliamentaryName: string; PreferredName?: string | null; IsCurrent: boolean };
+type Member = {
+  PersonID: number;
+  ParliamentaryName: string;
+  PreferredName?: string | null;
+  IsCurrent: boolean;
+  PhotoURL?: string | null;
+};
 type Email = { PersonID: number; Address?: string | null; IsDefault?: boolean };
 type Website = { PersonID: number; WebURL?: string | null };
 type Dated = { PersonID: number; ValidUntilDate?: string | null };
@@ -86,6 +92,7 @@ export function scottishParliamentMembers(lists: ScottishParliamentLists, now: D
         emails: [...new Set(theirEmails.map((e) => e.Address!.trim().toLowerCase()))],
         websites: websites.flatMap((w) => (w.PersonID === m.PersonID && w.WebURL?.trim() ? [w.WebURL.trim()] : [])),
         salutation: null,
+        photo: photoAddress(m.PhotoURL),
       } satisfies OfficialMember;
     });
 }

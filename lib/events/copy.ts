@@ -80,18 +80,21 @@ export const eventsCopy = {
     // To the notification inbox: an upcoming event the Luma import couldn't tell the tags of, sent once.
     unclearTagEmail: {
       subject: (name: string) => `Which Luma tag for ${name}?`,
-      // `url`: the event on Luma, where its tags are set; `link`: the events page.
+      // `url`: the event on Luma, where its tags are set; `calendar`: the calendar's management page on Luma; `link`: the
+      // events page.
       body: ({
         name,
         when,
         place,
         url,
+        calendar,
         link,
       }: {
         name: string;
         when: string;
         place: string;
         url: string;
+        calendar: string;
         link: string;
       }) =>
         `The Luma import couldn't tell which tag this event should have, so it left it untagged. Set it by hand in Luma.
@@ -101,6 +104,7 @@ ${when}
 ${place}
 ${url}
 
+Manage the calendar on Luma: ${calendar}
 All events: ${link}`,
     },
     ownerEmail: {

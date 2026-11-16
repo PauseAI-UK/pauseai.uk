@@ -33,6 +33,7 @@ export const examplePolitician: Politician = {
   id: 7,
   airtableId: "rec90002",
   officialId: 90002,
+  photoUrl: null,
   house: "commons",
   name: "Polly Placeholder",
   salutation: "Ms Placeholder",

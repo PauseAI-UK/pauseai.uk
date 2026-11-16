@@ -41,7 +41,20 @@ export type OfficialMember = {
   titled?: true;
   /** Their surname, where their body gives it apart, to make their salutation when it can't. */
   surname?: string;
+  /** The address of their photo on their body's site, where it has one (photoAddress). */
+  photo?: string;
 };
+
+/**
+ * A photo's address as a body lists it, made secure, as a page served over
+ * https can only show a picture that is: http becomes https, which each
+ * body's site serves too. Undefined for none, or one that isn't a web
+ * address.
+ */
+export function photoAddress(listed: string | null | undefined): string | undefined {
+  const address = listed?.trim().replace(/^http:\/\//i, "https://");
+  return address && /^https:\/\/\S+$/i.test(address) ? address : undefined;
+}
 
 /** One of our politicians in a body, as an import compares them. */
 export type OurPolitician = {

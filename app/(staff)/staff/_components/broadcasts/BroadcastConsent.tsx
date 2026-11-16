@@ -57,7 +57,12 @@ export default function BroadcastConsent({
     value: topic,
     label: supportersCopy.supporters.subscriptions.consents[consentKey({ way, topic })],
   }));
-  const choose = (chosen: Topic[]) => pick(consentChoice({ channel: way, topics: chosen }));
+  // The topic last pressed: while its change is on its way, it shows a spinner.
+  const [pressed, setPressed] = useState<Topic>();
+  const choose = (chosen: Topic[]) => {
+    setPressed(chosen.find((topic) => !on.includes(topic)) ?? on.find((topic) => !chosen.includes(topic)));
+    pick(consentChoice({ channel: way, topics: chosen }));
+  };
   return (
     <div className={className}>
       <FieldSet label={copy.consentChannel}>
@@ -87,6 +92,7 @@ export default function BroadcastConsent({
                 min={1}
                 onChange={choose}
                 busy={pending}
+                waiting={pressed}
               />
             ) : (
               <Segmented<Topic>
@@ -96,6 +102,7 @@ export default function BroadcastConsent({
                 value={on[0] as Topic}
                 onChange={(topic) => topic !== on[0] && choose([topic])}
                 busy={pending}
+                waiting={pressed}
               />
             )}
             <LinkButton

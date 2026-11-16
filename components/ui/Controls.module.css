@@ -137,6 +137,11 @@
   font-weight: 600;
 }
 
+/* The one a change is on its way from: its spinner over its words, as a pending button's (Button.module.css). */
+.segment[aria-busy="true"] {
+  position: relative;
+}
+
 /* The word between Toggles' buttons, lighter, so the eye finds the choices. */
 .joiner {
   align-self: center;

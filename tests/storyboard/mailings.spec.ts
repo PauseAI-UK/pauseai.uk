@@ -485,7 +485,7 @@ test("A mailing's letters bounce", async ({ page, request, flowDatabase }) => {
 
 test("A stopped mailing", async ({ page, request, flowDatabase }) => {
   story(
-    "A mailing was stopped part-way through. On the mailings page, its row shows the one letter Gmail refused, and folds the rest away as fine.",
+    "A mailing was stopped part-way through. On the mailings page, its row shows how many of its letters are in each state, the one Gmail refused among them.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
@@ -500,7 +500,7 @@ test("A stopped mailing", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/mailings`);
   const row = page.getByRole("listitem").filter({ hasText: "Briefing on the bill" });
   await expect(row.getByRole("link", { name: `1 ${stateWords.counts.error}` })).toBeVisible();
-  await expect(row).toContainText(stateWords.andFine(5));
+  await expect(row).not.toContainText(stateWords.andFine(5));
   await row.scrollIntoViewIfNeeded();
   await frame(page, "The stopped mailing, on the mailings page", { window: true });
   story(

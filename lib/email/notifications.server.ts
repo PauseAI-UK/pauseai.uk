@@ -34,9 +34,17 @@ export const sendHooks: SendHooks = {
 };
 
 /**
+ * The Reply-To of a staff email from noreply: everyone it went to, `lines`
+ * as its To and Cc have them, so a reply reaches them all, as staff talk it
+ * over, rather than an address no one reads.
+ */
+export const replyToAll = (...lines: (string | null | undefined)[]) => lines.filter(Boolean).join(", ");
+
+/**
  * Emails the notification inbox `subject` and `text`, as a staff alert or
  * report (`purpose`), logged against `letterId` if it's about one letter,
- * and copied to `cc`, a staff member it's about, if any. Says whether it went.
+ * and copied to `cc`, a staff member it's about, if any. A reply goes to
+ * them all. Says whether it went.
  */
 export async function notifyStaff(
   subject: string,
@@ -50,12 +58,15 @@ export async function notifyStaff(
     problem(emailCopy.problems.noInbox);
     return false;
   }
+  const to = nameLine(emailCopy.inboxNames.notifications, inbox);
+  const copied = cc && (await staffAddressLine(cc));
   const result = await sendWith(
     sendHooks,
     {
       From: `PauseAI UK <noreply@${notifyDomain()}>`,
-      To: nameLine(emailCopy.inboxNames.notifications, inbox),
-      ...(cc && { Cc: await staffAddressLine(cc) }),
+      To: to,
+      ...(copied && { Cc: copied }),
+      ReplyTo: replyToAll(to, copied),
       Subject: subject,
       TextBody: text,
       Tag: purpose,

@@ -61,7 +61,7 @@ async function listSortedBy(page: Page, heading: string, sorted: RegExp) {
 
 test("A politician's page", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff open Polly Placeholder's page. It shows her markers, the notes kept on her in Airtable, her answers to the asks and the emails PauseAI has sent her.",
+    "Staff open Polly Placeholder's page. It shows her photo, from Parliament's site, her markers, the notes kept on her in Airtable, her answers to the asks and the emails PauseAI has sent her.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
@@ -69,6 +69,8 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   addPauseaiEmails(flowDatabase);
   await openPolitician(page, "Polly Placeholder");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Polly Placeholder");
+  const photo = page.locator("img[src^='https://members-api.parliament.uk/']");
+  await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   await expect(page.getByText(copy.importantTarget, { exact: true })).toBeVisible();
   await expect(
     page.getByRole("region", { name: notesCopy.notes.title }).getByText("Met at the example fair."),

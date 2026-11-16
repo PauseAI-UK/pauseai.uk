@@ -21,6 +21,9 @@ const ran = exampleRun;
 
 const failed = exampleFailedRun;
 
+/** The time the overview is shown at. */
+const NOW = new Date("2026-10-21T11:50:00Z");
+
 describe("ImportOverview", () => {
   it("is a card per job, each a link to its page, with how its newest run ended, or that it never ran", async () => {
     // In the order of IMPORT_JOBS.
@@ -40,7 +43,7 @@ describe("ImportOverview", () => {
       undefined,
       undefined,
     ];
-    await render(<ImportOverview newest={newest} running={[]} />);
+    await render(<ImportOverview newest={newest} running={[]} now={NOW} />);
     await expect.element(page.getByRole("heading", { level: 1, name: jobsCopy.import.pageTitle })).toBeVisible();
     // A heading for each schedule, its jobs' cards under it.
     expect(
@@ -55,6 +58,11 @@ describe("ImportOverview", () => {
       jobsCopy.import.nightly,
     ]);
     const cards = [...document.querySelectorAll("section")];
+    // Each says when it next runs: Luma's at 2 minutes past each five, sending's at 3 past each quarter, Parliament's
+    // tomorrow morning.
+    expect(cards[0].textContent).toContain(jobsCopy.import.nextRun(staffTime(new Date("2026-10-21T11:52:00Z"))));
+    expect(cards[2].textContent).toContain(jobsCopy.import.nextRun(staffTime(new Date("2026-10-21T12:03:00Z"))));
+    expect(cards[4].textContent).toContain(jobsCopy.import.nextRun(staffTime(new Date("2026-10-22T06:21:00Z"))));
     expect(cards.map((card) => card.querySelector("h3 a")!.getAttribute("href"))).toEqual([
       "/staff/scheduled-jobs/luma",
       "/staff/scheduled-jobs/gmail",
@@ -171,17 +179,20 @@ describe("ImportOverview", () => {
     const discarded = ran("import-parliament", exampleImportResult, { status: "discarded" });
     const unchanged = ran("import-luma", exampleLumaResult, { status: "unchanged" });
     const { rerender } = await render(
-      <ImportOverview running={[]} newest={[unchanged, undefined, undefined, undefined, applied]} />,
+      <ImportOverview running={[]} newest={[unchanged, undefined, undefined, undefined, applied]} now={NOW} />,
     );
     const status = (i: number) =>
       document.querySelectorAll("section")[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!
         .className;
     expect(status(0)).toMatch(/green/);
     expect(status(4)).toMatch(/green/);
-    await rerender(<ImportOverview running={[]} newest={[undefined, undefined, undefined, undefined, discarded]} />);
+    await rerender(
+      <ImportOverview running={[]} newest={[undefined, undefined, undefined, undefined, discarded]} now={NOW} />,
+    );
     expect(status(4)).not.toMatch(/green|amber|red/);
     await rerender(
       <ImportOverview
+        now={NOW}
         newest={[undefined, undefined, undefined, undefined, applied]}
         running={[undefined, undefined, undefined, undefined, press]}
       />,

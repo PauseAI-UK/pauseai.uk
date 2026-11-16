@@ -43,6 +43,8 @@ export const jobsCopy = {
     pageTitle: "Scheduled jobs",
     // Under the title.
     pageIntro: "Imports, mail and tidying that run on a timer",
+    // On each job's card, under how its newest run ended: when it next runs on its own.
+    nextRun: (when: string) => `⁂ Next run ${when}`,
     // Each job's icon, named for screen readers and on hover: where it reads
     // from or works on. Then how often it runs, the overview's headings and a
     // lozenge on the job's page.

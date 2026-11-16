@@ -477,6 +477,16 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await contacts()).toEqual(["Jane"]);
   });
 
+  it("finds them by their proxy, its tag or the whole address, in any case", async () => {
+    vi.stubEnv("LETTERS_INBOX", "letters@example.org");
+    await people();
+    await query("INSERT INTO proxies (tag, supporter_email) VALUES ('jane.smith', 'jane@example.com')");
+    expect(await names({ search: "smith" })).toEqual(["Jane"]);
+    expect(await names({ search: "Letters+Jane.Smith@example.org" })).toEqual(["Jane"]);
+    expect(await names({ search: "letters+nobody@example.org" })).toEqual([]);
+    vi.unstubAllEnvs();
+  });
+
   it("filters by name, email or phone, activities, subscriptions, first sign-up and postcode, and sorts", async () => {
     await people();
     expect(await names({ search: "JANE" })).toEqual(["Jane"]);

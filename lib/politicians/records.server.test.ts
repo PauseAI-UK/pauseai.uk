@@ -197,6 +197,25 @@ describeWithDatabase("politicians", () => {
     expect(await countPoliticians({})).toBe(2);
   });
 
+  it("finds them by their other addresses, but not one staff said isn't theirs, and by their proxy", async () => {
+    vi.stubEnv("LETTERS_INBOX", "letters@example.org");
+    const mp = await addTestPolitician();
+    await addTestPolitician({ name: "Other Placeholder", airtableId: "recOther" });
+    await query(
+      `INSERT INTO politician_addresses (address, notable_person_id, source, added_by) VALUES
+       ('caseworker@example.org', $1, 'office', NULL), ('wrong.person@example.org', $1, 'rejected', 'jo@pauseai.uk')`,
+      [mp],
+    );
+    await query("INSERT INTO proxies (tag, notable_person_id) VALUES ('polly.mp', $1)", [mp]);
+    const found = async (search: string) => (await listPoliticians({ search })).map((p) => p.id);
+    expect(await found("caseworker@")).toEqual([mp]);
+    expect(await found("wrong.person")).toEqual([]);
+    expect(await found("polly.mp")).toEqual([mp]);
+    expect(await found("Letters+Polly.MP@example.org")).toEqual([mp]);
+    expect(await found("letters+nobody@example.org")).toEqual([]);
+    vi.unstubAllEnvs();
+  });
+
   it("offers those whose name or constituency is nearest a search that finds no one, nearest first", async () => {
     const mp = await addTestPolitician({ name: "Tristan Osborne", constituency: "Chatham and Aylesford" });
     const other = await addTestPolitician({ name: "Tristram Hunt", constituency: "Stoke", airtableId: "recHunt" });
@@ -323,6 +342,7 @@ describeWithDatabase("politicians", () => {
       id: mp,
       airtableId: "recPlaceholder",
       officialId: null,
+      photoUrl: null,
       house: "commons",
       name: "Polly Placeholder",
       salutation: "Ms Placeholder",

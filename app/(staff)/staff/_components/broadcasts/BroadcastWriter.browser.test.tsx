@@ -201,6 +201,35 @@ describe("BroadcastWriter's Consent", () => {
     expect(navigation.refreshes).toBe(before);
   });
 
+  it("shows a spinner on the topic pressed, chosen, added or taken off, till its change is done", async () => {
+    let done = () => {};
+    const slow = () => new Promise((resolve) => (done = () => resolve(true)));
+    const busy = () =>
+      [...group(copy.facts.saidYes).element().querySelectorAll("[aria-busy=true]")].map((one) => one.textContent);
+    const one = await renderWriter();
+    one.changeConsent.mockImplementation(slow);
+    await choose(copy.facts.saidYes, consents["email:events"]);
+    await vi.waitFor(() => expect(busy()).toEqual([consents["email:events"]]), WAIT);
+    done();
+    await vi.waitFor(() => expect(busy()).toEqual([]), WAIT);
+    const actions = await renderWriter({
+      draft: {
+        ...exampleBroadcastEmail,
+        topics: ["newsletter", "events"],
+        filter: { list: "supporters", params: { contact: ["email:newsletter:yes", "email:events:yes"] } },
+      },
+    });
+    actions.changeConsent.mockImplementation(slow);
+    await choose(copy.facts.saidYes, consents["email:volunteering"]);
+    await vi.waitFor(() => expect(busy()).toEqual([consents["email:volunteering"]]), WAIT);
+    done();
+    await vi.waitFor(() => expect(busy()).toEqual([]), WAIT);
+    await choose(copy.facts.saidYes, consents["email:newsletter"]);
+    await vi.waitFor(() => expect(busy()).toEqual([consents["email:newsletter"]]), WAIT);
+    done();
+    await vi.waitFor(() => expect(busy()).toEqual([]), WAIT);
+  });
+
   it("on a draft, shows the other channel's form greyed till a Consent by it is chosen, which changes the draft", async () => {
     const actions = fakeActions();
     await render(

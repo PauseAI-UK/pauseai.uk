@@ -5,6 +5,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
+import { ButtonInside } from "./Button";
 import DatePicker from "./DatePicker";
 import styles from "./Controls.module.css";
 
@@ -116,8 +117,9 @@ export function Radio({
  * under. Each says whether it's pressed. `values` are those on; one change
  * gives them all, in the options' order. `min` of them stay on: the last
  * one on can't be turned off. `disabled`, none can be changed; `busy`,
- * a change is on its way, so clicks do nothing, but nothing looks
- * different, as a cursor that flickers to "not allowed" on each click would.
+ * a change is on its way, so clicks do nothing, and the button it came
+ * from (`waiting`) shows a spinner. Nothing else looks different, as a
+ * cursor that flickers to "not allowed" on each click would.
  */
 export function Toggles<T extends string>({
   label,
@@ -128,6 +130,7 @@ export function Toggles<T extends string>({
   min = 0,
   disabled = false,
   busy = false,
+  waiting,
 }: {
   label: string;
   options: { value: T; label: string }[];
@@ -137,6 +140,7 @@ export function Toggles<T extends string>({
   min?: number;
   disabled?: boolean;
   busy?: boolean;
+  waiting?: T;
 }) {
   const toggle = (value: T) => {
     const on = values.includes(value);
@@ -157,9 +161,10 @@ export function Toggles<T extends string>({
             aria-pressed={values.includes(o.value)}
             className={styles.segment}
             disabled={disabled}
+            aria-busy={(busy && o.value === waiting) || undefined}
             onClick={() => toggle(o.value)}
           >
-            {o.label}
+            <ButtonInside pending={busy && o.value === waiting}>{o.label}</ButtonInside>
           </button>
         </Fragment>
       ))}
@@ -172,8 +177,9 @@ export function Toggles<T extends string>({
  * icon before its words if it has one. One `quiet` is set apart from the
  * rest, dashed and grey, for a choice of nothing, such as no answer.
  * `disabled`, none can be picked; an option's own, just it. `busy`, a
- * pick is on its way, so clicks do nothing, but nothing looks different,
- * as a cursor that flickers to "not allowed" on each click would.
+ * pick is on its way, so clicks do nothing, and the option picked
+ * (`waiting`) shows a spinner. Nothing else looks different, as a cursor
+ * that flickers to "not allowed" on each click would.
  */
 export function Segmented<T extends string | boolean>({
   label,
@@ -182,6 +188,7 @@ export function Segmented<T extends string | boolean>({
   onChange,
   disabled = false,
   busy = false,
+  waiting,
 }: {
   label: string;
   options: { value: T; label: string; icon?: ReactNode; quiet?: boolean; disabled?: boolean }[];
@@ -189,6 +196,7 @@ export function Segmented<T extends string | boolean>({
   onChange: (value: T) => void;
   disabled?: boolean;
   busy?: boolean;
+  waiting?: T;
 }) {
   return (
     <div className={styles.segmented} role="radiogroup" aria-label={label} aria-busy={busy || undefined}>
@@ -200,10 +208,13 @@ export function Segmented<T extends string | boolean>({
           aria-checked={o.value === value}
           className={o.quiet ? `${styles.segment} ${styles.quiet}` : styles.segment}
           disabled={disabled || o.disabled}
+          aria-busy={(busy && o.value === waiting) || undefined}
           onClick={() => !busy && onChange(o.value)}
         >
-          {o.icon}
-          {o.label}
+          <ButtonInside pending={busy && o.value === waiting}>
+            {o.icon}
+            {o.label}
+          </ButtonInside>
         </button>
       ))}
     </div>

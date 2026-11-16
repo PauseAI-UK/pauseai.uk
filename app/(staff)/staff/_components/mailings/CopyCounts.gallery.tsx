@@ -2,7 +2,7 @@
 // (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { wentAndGone } from "../letters/CopyStatus";
-import { CountGroups, NeedsAndFine } from "./CopyCounts";
+import { CountGroups, EveryCount, NeedsAndFine } from "./CopyCounts";
 import { countsOpening } from "../ui/Counts";
 import { mailingCounts } from "./MailingsOverview";
 import { exampleMailings } from "./MailingsTable.examples";
@@ -36,6 +36,20 @@ export const copyCountsGallery: Example[] = [
                 mailingCounts({ ...sent, id: 7, states: { ...sent.states, unreached: 0 } }),
               )}
             />
+          </div>
+        ),
+      },
+    ],
+  },
+  {
+    name: "EveryCount",
+    file: "app/(staff)/staff/_components/mailings/CopyCounts.tsx",
+    variants: [
+      {
+        label: "Every count, none folded, as the mailings page shows them",
+        render: () => (
+          <div style={{ display: "grid", justifyItems: "end" }}>
+            <EveryCount counts={countsOpening("/staff/mailings/4", mailingCounts(sent))} />
           </div>
         ),
       },

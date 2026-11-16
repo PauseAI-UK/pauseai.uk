@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IMPORT_JOBS } from "@/lib/import-runs";
 import { latestRun, runningNow } from "@/lib/server/import-runs.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
+import { now } from "@/lib/now";
 import { ImportOverview } from "../../_components/jobs/ImportJob";
 import Page from "../../_components/ui/Page";
 import { jobsCopy } from "../../_components/jobs/copy";
@@ -17,7 +18,7 @@ export default async function ImportPage() {
   ]);
   return (
     <Page kind="board">
-      <ImportOverview newest={newest} running={running} />
+      <ImportOverview newest={newest} running={running} now={now()} />
     </Page>
   );
 }

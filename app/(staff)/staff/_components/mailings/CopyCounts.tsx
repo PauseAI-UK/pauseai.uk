@@ -4,7 +4,8 @@
 // in each state, two ways (docs/style-guide.md, "Status colours"): on its
 // page, in two groups, those that went and those that didn't, each its
 // total over its counts; in a list of them, only those that need a look, and
-// the rest folded behind how many are fine. A count of none isn't shown.
+// the rest folded behind how many are fine, or every count, none folded. A
+// count of none isn't shown.
 // Each count is in the colour of its recipients' tags, and leads to its tab.
 import { useState } from "react";
 import Tag from "@/components/ui/Tag";
@@ -51,6 +52,19 @@ export function CountGroups({ groups }: { groups: CountGroup[] }) {
           </fieldset>
         ))}
     </div>
+  );
+}
+
+/** Every count of more than none, a tag each, none folded. */
+export function EveryCount({ counts }: { counts: Count[] }) {
+  return (
+    <span className={styles.needs}>
+      {counts
+        .filter((count) => count.n)
+        .map((count) => (
+          <CountTag key={count.key} count={count} />
+        ))}
+    </span>
   );
 }
 
