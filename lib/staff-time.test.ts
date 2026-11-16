@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   datesHeldTogether,
+  dueIn,
   earliestRun,
   fromLondon,
   notTooSoon,
@@ -16,6 +17,7 @@ import {
   staffDay,
   staffTime,
 } from "./staff-time";
+import { staffVocabulary } from "./staff-vocabulary";
 
 it("names the day, in UTC", () => {
   expect(staffDate(new Date("2026-11-03T10:34:56Z"))).toBe("3 Nov 2026");
@@ -118,4 +120,18 @@ it("says the day something happens, in London, with its year", () => {
 it("says when something starts, in London, with its year", () => {
   expect(londonStart(new Date("2026-11-10T18:00:00Z"))).toBe("Tue 10 Nov 2026, 18:00");
   expect(londonStart(new Date("2026-07-02T18:00:00Z"))).toBe("Thu 2 Jul 2026, 19:00");
+});
+
+it("says how long till something: minutes within the hour, hours within two days, then days; or that it's due", () => {
+  const from = new Date("2026-11-16T12:00:00Z");
+  const at = (minutes: number) => dueIn(new Date(from.getTime() + minutes * 60_000), from);
+  const words = staffVocabulary.dueIn;
+  expect(at(-5)).toBe(words.now);
+  expect(at(0)).toBe(words.now);
+  expect(at(0.5)).toBe(words.minutes(1));
+  expect(at(40)).toBe("in 40 minutes");
+  expect(at(60)).toBe("in 1 hour");
+  expect(at(150)).toBe("in 3 hours");
+  expect(at(47 * 60)).toBe("in 47 hours");
+  expect(at(69 * 60)).toBe(words.days(3));
 });

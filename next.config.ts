@@ -51,8 +51,9 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   // next/font self-hosts both Lato and Inter at build time, so no font CDN.
   "font-src 'self' data:",
-  // blob:/data: cover next/image; EVENT_IMAGE_HOSTS are the Luma event covers.
-  `img-src 'self' data: blob: ${[...EVENT_IMAGE_HOSTS.map((host) => `https://${host}`), ...GA, ...GOOGLE_ADS].join(" ")}`,
+  // blob:/data: cover next/image; EVENT_IMAGE_HOSTS are the Luma event covers, POLITICIAN_PHOTO_HOSTS politicians'
+  // photos on their bodies' sites. next/image serves both from this site, but they're listed in case it doesn't.
+  `img-src 'self' data: blob: ${[...[...EVENT_IMAGE_HOSTS, ...POLITICIAN_PHOTO_HOSTS].map((host) => `https://${host}`), ...GA, ...GOOGLE_ADS].join(" ")}`,
   `connect-src 'self' ${[...GA_COLLECT, ...GOOGLE_ADS, TURNSTILE].join(" ")}`,
   // The MP-email and onboarding embeds, the Tally story form, and Turnstile's
   // widget. GTM's <noscript> iframe is in app/layout.tsx; td.doubleclick.net

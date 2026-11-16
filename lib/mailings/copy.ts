@@ -74,14 +74,14 @@ export const mailingsCopy = {
     saveStates: {
       // A draft changed elsewhere: by someone else, by you in another tab, or by being scheduled.
       conflict:
-        "⁂ This draft changed somewhere else since you opened it, so your last change wasn't saved. Reload the page to see it as it is now.",
+        "This draft changed somewhere else since you opened it, so your last change wasn't saved. Reload the page to see it as it is now.",
     } as Record<string, string>,
     // In the window's corner, whether the draft is saved.
     savePill: {
       saving: "Saving…",
       saved: "Saved",
       failed: "Couldn't save. Make another change to try saving again.",
-      conflict: "⁂ Not saved: changed elsewhere",
+      conflict: "Not saved: changed elsewhere",
     } as Record<string, string>,
     deleteDraft: "Delete draft",
     // The numbered sections of a new mailing.
@@ -204,7 +204,9 @@ export const mailingsCopy = {
       sent: "Sent",
       cancelled: "Stopped",
     } as Record<string, string>,
-    sends: (when: string) => `Sends on ${when}`,
+    // How long till one scheduled sends (staffVocabulary.dueIn), large, over when and what it is (dueLine).
+    sendsIn: (inWords: string) => `Sends ${inWords}`,
+    dueLine: (when: string, line: string) => `${when} · ${line}`,
     scheduledLine: (n: number, from: string) => `${count(n, "email", "emails")} from ${from}.`,
     changeTime: "Change the time",
     saveTime: "Change it",

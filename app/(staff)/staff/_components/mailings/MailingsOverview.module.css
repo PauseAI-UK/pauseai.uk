@@ -45,6 +45,22 @@
   color: var(--status-blue);
 }
 
+/* How long till one scheduled goes, over when, smaller: how long is what's
+   looked for. As a sentence starts, with a capital. */
+.dueIn {
+  display: grid;
+  gap: 2px;
+  font-size: var(--text-xs);
+}
+
+.dueIn .due {
+  font-size: var(--text-md);
+}
+
+.dueIn .due::first-letter {
+  text-transform: uppercase;
+}
+
 /* The title, and under it who it's from and its ask. */
 .what {
   display: grid;
