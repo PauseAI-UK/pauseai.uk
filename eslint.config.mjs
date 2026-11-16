@@ -10,6 +10,17 @@ const DATABASE_URL_RULE = {
 };
 const PG_IMPORT = { name: "pg", message: "Only lib/server/db.server.ts connects to the database. Query through it." };
 
+// A test runs on the schema the migrations make, so what it proves holds for
+// the site's. Changing the schema to force an error proves only that a
+// changed schema errs, and can leave the change behind for the next test.
+const SCHEMA_CHANGE = String.raw`/\b(?:ALTER|DROP|CREATE)\s+(?:TABLE|CONSTRAINT|INDEX|TRIGGER|FUNCTION|VIEW)\b|DISABLE\s+TRIGGER|session_replication_role/i`;
+const SCHEMA_CHANGE_MESSAGE =
+  "Tests use the schema the migrations make. To reach a failure, inject it at a seam (mock the module with the real functions passed through); for old data, use an entry the schema allows.";
+const SCHEMA_CHANGE_RULES = [
+  { selector: `Literal[value=${SCHEMA_CHANGE}]`, message: SCHEMA_CHANGE_MESSAGE },
+  { selector: `TemplateElement[value.raw=${SCHEMA_CHANGE}]`, message: SCHEMA_CHANGE_MESSAGE },
+];
+
 // The site's settings are read from the environment only in
 // lib/server/config.server.ts, which gives each one shape for every caller. The
 // database's connection string has its own rule, above.
@@ -435,9 +446,28 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-  // Component tests link to example.org to exercise a component, not to send
-  // anyone there. Only .tsx has JSX, so .ts tests keep the rules above.
-  { files: ["**/*.test.tsx"], rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE] } },
+  // Tests keep to the schema. Component tests link to example.org to exercise
+  // a component, not to send anyone there. Only .tsx has JSX, so .ts tests
+  // keep the link rules.
+  {
+    files: ["**/*.test.ts"],
+    rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...EXTERNAL_LINK_RULES, ...SCHEMA_CHANGE_RULES] },
+  },
+  { files: ["**/*.test.tsx"], rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...SCHEMA_CHANGE_RULES] } },
+  // The tests whose subject is a schema, not the site's: the backup's, which
+  // fill throwaway databases to back up; the migration runner's check, which
+  // makes the ledger it reads; and the checks on migration files and the
+  // schema's dump, whose SQL is only text. lib/server/db.server.test.ts, the
+  // runner's own, has every rule off, below.
+  {
+    files: [
+      "backup/container/*.test.ts",
+      "lib/server/migrations-check.server.test.ts",
+      "netlify/database/schema.test.ts",
+      "scripts/migrations-unchanged.test.ts",
+    ],
+    rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...EXTERNAL_LINK_RULES] },
+  },
   // The bindings' tests, which call outsideFetch and Postmark's binding directly.
   { files: [`${OUTSIDE}/**/*.test.ts`], rules: { "no-restricted-imports": ["error", { paths: [PG_IMPORT] }] } },
   // The database's one connection, the test helper that gives each test

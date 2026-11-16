@@ -18,7 +18,14 @@ import { query } from "@/lib/server/db.server";
 import { recordProblem } from "@/lib/email/email.server";
 import { recentLetters } from "@/lib/letters/records.server";
 import { LETTERS_DAILY_LIMIT } from "@/lib/letters/letters-inbox.server";
+import { supporterProxy } from "@/lib/letters/proxies.server";
 import { mayWriteTo, parseLetterForm, submitLetter, type LetterForm } from "./mp-letters.server";
+
+// The real proxies, which a test can make fail once to see a letter's saving rolled back.
+vi.mock("@/lib/letters/proxies.server", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/letters/proxies.server")>();
+  return { ...real, supporterProxy: vi.fn(real.supporterProxy) };
+});
 
 /** The draft the form gives Jane for the test MP and the letter to the PM: what the server rebuilds. */
 function testDraft(): string {
@@ -336,7 +343,8 @@ describeWithDatabase("submitLetter", () => {
 
   it("says it failed, and keeps nothing, if the letter can't be saved", async () => {
     const sent = recordGmail();
-    await query("DROP TABLE proxies CASCADE");
+    // Saving fails after the letter's row is written, so finding none proves it was rolled back.
+    vi.mocked(supporterProxy).mockRejectedValueOnce(new Error("the database went away"));
     expect(await submitLetter(FORM)).toMatchObject({ status: 500, message: copy.errors.failed });
     expect(sent).toEqual([]);
     expect(await query("SELECT id FROM letters")).toEqual([]);

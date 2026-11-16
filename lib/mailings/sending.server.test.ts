@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, onTestFinished, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { lettersCopy } from "@/lib/letters/copy";
 import {
   addTestPolitician,
@@ -214,21 +214,6 @@ describeWithDatabase("sending mailings", () => {
     const [{ first }] = await query<{ first: number }>("SELECT min(id)::int AS first FROM letters_from_pauseai");
     const words = emailCopy.problems;
     expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(lettersCopy.problems.letterOf(first)));
-  });
-
-  it("puts back a letter it took but couldn't read, so it goes next run rather than being left sending", async () => {
-    await addTestPolitician({ airtableId: null, name: "Polly", email: "polly@example.org" });
-    await scheduled();
-    vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
-    await startDueMailings();
-    // Reading the letter after taking it fails, as the politicians' table is briefly missing.
-    await query("ALTER TABLE notable_people RENAME TO notable_people_gone");
-    onTestFinished(
-      async () => void (await query("ALTER TABLE IF EXISTS notable_people_gone RENAME TO notable_people")),
-    );
-    await expect(sendDueLetters({ until: Infinity, gap: 0, channel: recording(SENT).channel })).rejects.toThrow();
-    await query("ALTER TABLE notable_people_gone RENAME TO notable_people");
-    expect((await letters()).map((letter) => letter.status)).toEqual(["scheduled"]);
   });
 
   it("counts a letter that went as sent when marking it fails, reporting it, and goes on to the rest", async () => {

@@ -7,7 +7,7 @@ import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
 import { isBlocked, sentBy } from "@/lib/email/email.server";
 import { gmailAccount } from "@/lib/email/gmail-accounts.server";
-import { SentUnrecorded, sendLetterVia, transition } from "@/lib/letters/lifecycle.server";
+import { SentUnrecorded, sendLetterVia, transition, transitionReading } from "@/lib/letters/lifecycle.server";
 import { problem } from "@/lib/server/problems.server";
 import { lettersCopy } from "@/lib/letters/copy";
 import { attachmentsOf, emailFor } from "./drafts.server";
@@ -63,27 +63,16 @@ type Letter = {
 
 /** Takes the next letter of a mailing to send, marking it sending, so no other run sends it too. */
 async function nextLetter(mailingId: number): Promise<Letter | undefined> {
-  const [id] = await transition(
+  const [letter] = await transitionReading<Letter>(
     sql`SELECT l.id FROM letters l JOIN letters_from_pauseai p USING (id)
         WHERE p.mailing_id = ${mailingId} AND l.status = 'scheduled' ORDER BY l.id LIMIT 1 FOR UPDATE SKIP LOCKED`,
     ["scheduled"],
     "sending",
     { stamp: "taken_at" },
+    sql`SELECT l.id::int AS id, n.name, n.email, n.status = 'in_office' AS "inOffice", p.merge_values AS "mergeValues"
+        FROM moved JOIN letters l USING (id) JOIN letters_from_pauseai p USING (id) JOIN notable_people n ON n.id = l.notable_person_id`,
   );
-  if (!id) return undefined;
-  try {
-    const [letter] = await query<Letter>(
-      `SELECT l.id::int AS id, n.name, n.email, n.status = 'in_office' AS "inOffice", p.merge_values AS "mergeValues"
-       FROM letters l JOIN letters_from_pauseai p USING (id) JOIN notable_people n ON n.id = l.notable_person_id
-       WHERE l.id = $1`,
-      [id],
-    );
-    return letter;
-  } catch (error) {
-    // Taken but not read, so never sent: back to go next run, rather than left sending.
-    await transition(id, ["sending"], "scheduled");
-    throw error;
-  }
+  return letter;
 }
 
 async function skip(letterId: number, reason: SkipReason): Promise<void> {
