@@ -20,7 +20,7 @@ export const supportersCopy = {
   // Uploading a CSV of paper sign-ups (/staff/supporters/import).
   signupUpload: {
     title: "Import sign-ups",
-    intro: "⁂ Import people from a spreadsheet: paper sign-up forms, or a WhatsApp group",
+    intro: "Import people from a spreadsheet",
     // At the top, what the file is of, a button each, with an icon; with the same icon, each past import's kind.
     kind: {
       label: "⁂ What are you importing?",
