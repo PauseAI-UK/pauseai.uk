@@ -67,8 +67,9 @@ function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: Broadc
 /**
  * A reply under our email or text, as it came, a text's as a bubble; then
  * what to record it as, or what was, but nothing for an automatic one; then
- * our answers to it, and one to write (`answer`), but to an automatic reply,
- * or to a text's more than a day old, which WhatsApp takes no answer to.
+ * our answers to it, and, under their latest that isn't automatic, one to
+ * write (`answer`), but to a text's more than a day old, which WhatsApp
+ * takes no answer to.
  */
 export default function Reply({
   reply,
@@ -119,7 +120,7 @@ export default function Reply({
   // why it can't be answered now: only under their latest message, while it's unanswered, as an earlier one, or
   // one we answered, needs no answer now.
   const answered = one.answers.some((answer) => answer.replyId === reply.id);
-  const latest = one.replies.at(-1)?.id === reply.id;
+  const latest = one.replies.findLast((each) => !each.automatic)?.id === reply.id;
   const textReply = (write?: () => void) => {
     const closed = !reply.answerable && actions && latest && !answered;
     const done = dealt(write);
@@ -151,7 +152,8 @@ export default function Reply({
   const answers = one.answers
     .filter((answer) => answer.replyId === reply.id)
     .map((answer) => <Answer key={answer.id} answer={answer} reply={reply} one={one} />);
-  return reply.automatic || !actions || !reply.answerable ? (
+  // Only their latest is answered, so ours is written at the foot of the thread, after all they said.
+  return reply.automatic || !actions || !reply.answerable || !latest ? (
     <>
       {email()}
       {answers}

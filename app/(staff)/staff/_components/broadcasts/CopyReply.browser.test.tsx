@@ -60,16 +60,35 @@ describe("replies to broadcasts", () => {
     await expect.element(page.getByText("Hi Jane, it's on 6 December. See you there!")).toBeVisible();
     await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
     expect(entry(copy.replies.historyAnswered)).toContain(`${lettersCopy.letters.detail.fields.by}jo@pauseai.uk`);
-    // The answered reply can still be an opt-out, but has no need of Nothing to do; any but the automatic one, answered.
+    // The answered reply can still be an opt-out, but has no need of Nothing to do; only their latest, answered.
     await expect.element(page.getByRole("button", { name: optOut })).toHaveLength(2);
     await expect.element(page.getByRole("button", { name: copy.replies.nothing })).toHaveLength(1);
-    await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(3);
+    await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(1);
+    await expect.element(page.getByRole("button", { name: copy.replies.followUp })).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.replies.nothing }).click();
     await vi.waitFor(() => expect(deal).toHaveBeenCalledOnce());
     expect(Object.fromEntries((deal.mock.calls[0][0] as FormData).entries())).toEqual({
       replyId: "1",
       decision: "nothing",
     });
+  });
+
+  it("offer Follow up under their latest, once we've answered it, and nothing to write under any before it", async () => {
+    await render(
+      <MessageCopyView
+        one={{ ...emailCopy, replies: exampleBroadcastReplies.slice(0, 3) }}
+        actions={{ deal: vi.fn(), answer: vi.fn() }}
+      />,
+    );
+    await expect.element(page.getByRole("button", { name: copy.replies.followUp })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: copy.replies.reply })).not.toBeInTheDocument();
+    // Opened after our answer, at the foot of the thread.
+    await page.getByRole("button", { name: copy.replies.followUp }).click();
+    const thread = page.getByLabelText(copy.threadTitle).element();
+    const ours = page.getByText("Hi Jane, it's on 6 December. See you there!").element();
+    const draft = page.getByRole("textbox", { name: copy.replies.answerLabel }).element();
+    expect(ours.compareDocumentPosition(draft) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(thread.contains(draft)).toBe(true);
   });
 
   it("say when there are no words to show, or an answer may not have gone, and offer no buttons without a way to record", async () => {
@@ -242,7 +261,7 @@ describe("replies to broadcasts", () => {
 
   it("to a text show as bubbles, with our answer, and no Reply to one more than a day old", async () => {
     const answer = vi.fn<AnswerAction>(async () => ({ sent: false, reason: "window" }));
-    await render(
+    const { rerender } = await render(
       <MessageCopyView
         one={{
           ...exampleMessageCopy,
@@ -268,21 +287,29 @@ describe("replies to broadcasts", () => {
     expect(ours.elements()[1].parentElement!.parentElement!.querySelector("svg")).toBeNull();
     // Their name, as their copy had it.
     await expect.element(page.getByText("Jane Example", { exact: true }).first()).toBeVisible();
-    // The one too old for WhatsApp says so, and has no Reply; the others do, the answered one and the one waiting.
+    // Their latest, too old for WhatsApp, says so, and has no Reply, nor has any before it.
     await expect.element(page.getByText(copy.replies.windowClosed)).toBeVisible();
-    await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(2);
+    await expect.element(page.getByRole("button", { name: copy.replies.reply })).not.toBeInTheDocument();
+    // With the one waiting their latest, it alone has Reply.
+    await rerender(
+      <MessageCopyView
+        one={{ ...exampleMessageCopy, replies: exampleTextReplies, answers: exampleTextAnswers }}
+        actions={{ deal: vi.fn(), answer }}
+      />,
+    );
+    await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(1);
+    // The answer is written as a bubble of ours, not an email: no subject.
+    await page.getByRole("button", { name: copy.replies.reply }).click();
+    await expect.element(page.getByRole("article")).not.toBeInTheDocument();
+    await page.getByRole("textbox", { name: copy.replies.answerLabel }).fill("Thanks!");
+    await page.getByRole("button", { name: copy.replies.send }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.replies.notSent.window);
     // An opt-out of a reply to a text is of every text.
     await page.getByRole("button", { name: optOut }).last().click();
     const words = supportersCopy.supporters.detail.permissions.recordOptOut;
     await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
     await expect.element(page.getByRole("button", { name: copy.replies.allTexts })).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.replies.topicsText(topics.events) })).toBeVisible();
-    // The answer is written as a bubble of ours, not an email: no subject.
-    await page.getByRole("button", { name: copy.replies.reply }).last().click();
-    await expect.element(page.getByRole("article")).not.toBeInTheDocument();
-    await page.getByRole("textbox", { name: copy.replies.answerLabel }).fill("Thanks!");
-    await page.getByRole("button", { name: copy.replies.send }).click();
-    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.replies.notSent.window);
   });
 
   it("to a text say WhatsApp won't take an answer only under their latest message, while it's unanswered", async () => {
