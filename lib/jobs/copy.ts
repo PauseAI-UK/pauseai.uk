@@ -118,7 +118,7 @@ export const jobsCopy = {
   // The sending every 15 minutes (/api/cron/send-mailings): the letters inbox's queue, the mailings due, then the
   // broadcasts due, by email or WhatsApp.
   sending: {
-    title: "Sending messages with Gmail, Postmark and WhatsApp",
+    title: "Outgoing messages by Gmail, Postmark and WhatsApp",
     intro: {
       before: "Sends ",
       link: "campaign",
@@ -148,7 +148,7 @@ export const jobsCopy = {
   },
   // The nightly tidying (/api/cron/tidy-logs): this log, the audit log, forgotten drafts and old errors.
   tidying: {
-    title: "Tidying the logs",
+    title: "Old logs, drafts and errors",
     intro: {
       before: "Deletes entries of the ",
       link: "audit log",
