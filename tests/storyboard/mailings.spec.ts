@@ -324,7 +324,7 @@ test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
   story("Its page says when it sends, and to whom.");
 
   await page.getByRole("link", { name: "Edinburgh reminder" }).click();
-  await expect(page.getByText(copy.dueLine("Fri 30 Oct at 09:03", "").trim())).toBeVisible();
+  await expect(page.getByText("Fri 30 Oct at 09:03", { exact: true })).toBeVisible();
   await frame(page, "The scheduled mailing");
   story("Change the time opens a calendar to choose another day.");
 
@@ -347,7 +347,7 @@ test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
   await frame(page, "A new day and time", { window: true });
   story("Change it saves the new time. Then Unschedule makes the mailing a draft again, to change and schedule later.");
   await page.getByRole("button", { name: copy.saveTime }).click();
-  await expect(page.getByText(copy.dueLine("Mon 2 Nov at 14:33", "").trim())).toBeVisible();
+  await expect(page.getByText("Mon 2 Nov at 14:33", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: copy.unschedule }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Edinburgh reminder");
@@ -610,7 +610,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
 
   await page.getByLabel(copy.hour, { exact: false }).selectOption("14");
   await page.getByRole("button", { name: copy.schedule(1) }).click();
-  await expect(page.getByText(copy.dueLine("Fri 16 Oct at 14:03", "").trim())).toBeVisible();
+  await expect(page.getByText("Fri 16 Oct at 14:03", { exact: true })).toBeVisible();
   await frame(page, "The scheduled mailing");
   story("When its time comes, the sending job sends it from their Gmail.");
 
@@ -628,7 +628,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
 
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("See you in Edinburgh");
-  await expect(page.getByText(copy.dueLine("Fri 16 Oct at 14:03", "").trim())).not.toBeVisible();
+  await expect(page.getByText("Fri 16 Oct at 14:03", { exact: true })).not.toBeVisible();
   await frame(page, "The sent mailing");
   story("Morag's letter's page shows it as it went, with no replies yet.");
 

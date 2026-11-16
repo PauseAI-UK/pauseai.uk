@@ -125,7 +125,8 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
 /**
  * Where a mailing stands, under its band, each in the same white card:
  * how long till one scheduled sends, large and blue, as it's going out,
- * over when, with Change the time and Unschedule; how far one sending has got, with Stop
+ * over what goes (when is in the band above), with Change the time and
+ * Unschedule; how far one sending has got, with Stop
  * sending; once sent, how many of everyone it went to have answered its ask.
  * Nothing for one with no ask. `due` replaces how long till one scheduled
  * sends, as for a broadcast past its time that waits.
@@ -152,12 +153,7 @@ export function MailingStanding({
           <div className={styles.standing}>
             <div className={styles.due}>
               <strong>{due ?? copy.sendsIn(dueIn(written.dueAt!, now()))}</strong>
-              <span>
-                {copy.dueLine(
-                  londonWhen(written.dueAt!, "short"),
-                  line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!),
-                )}
-              </span>
+              <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
             </div>
             <div className={styles.actions}>
               <ChangeTime mailing={written} action={reschedule} />

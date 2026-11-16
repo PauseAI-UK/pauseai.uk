@@ -142,8 +142,8 @@ describe("a broadcast's page", () => {
     };
     await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
     await expect
-      .poll(() => document.body.textContent)
-      .toContain(mailingsCopy.mailingPages.dueLine(londonWhen(new Date("2026-11-07T07:18:00Z"), "short"), ""));
+      .element(page.getByText(londonWhen(new Date("2026-11-07T07:18:00Z"), "short"), { exact: true }))
+      .toBeVisible();
     await expect.element(page.getByRole("link", { name: stateWords.counts.sent })).not.toBeInTheDocument();
     // Who the filters find now, as sending finds who it goes to.
     await expect.element(page.getByText(copy.recipientsNow)).toBeVisible();
@@ -191,9 +191,8 @@ describe("a broadcast's page", () => {
     };
     await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(copy.waitingDue)).toBeVisible();
-    // In place of how long till it sends; when it was due stays, under it.
-    await expect.element(page.getByText(mailingsCopy.mailingPages.sendsIn("").trim())).not.toBeInTheDocument();
-    expect(document.body.textContent).toContain(mailingsCopy.mailingPages.dueLine(londonWhen(due, "short"), ""));
+    // In place of how long till it sends.
+    expect(document.body.textContent).not.toContain(mailingsCopy.mailingPages.sendsIn("").trim());
   });
 
   it("says the rest of one sending go tomorrow, once what sends it can send no more today", async () => {

@@ -204,9 +204,8 @@ export const mailingsCopy = {
       sent: "Sent",
       cancelled: "Stopped",
     } as Record<string, string>,
-    // How long till one scheduled sends (staffVocabulary.dueIn), large, over when and what it is (dueLine).
+    // How long till one scheduled sends (staffVocabulary.dueIn), large, over what goes (scheduledLine).
     sendsIn: (inWords: string) => `Sends ${inWords}`,
-    dueLine: (when: string, line: string) => `${when} · ${line}`,
     // In a list, in place of how long till it goes, for one going out now.
     sendingNow: "Sending now",
     scheduledLine: (n: number, from: string) => `${count(n, "email", "emails")} from ${from}.`,
