@@ -246,7 +246,7 @@ export const broadcastsCopy = {
       } as Record<string, string>,
       // Under a text's bubble, ours or the broadcast's, that WhatsApp said it couldn't deliver, with its why if it gave one.
       undelivered: (why: string | null) =>
-        why ? `WhatsApp couldn't deliver this: ${why}` : "⁂ WhatsApp couldn't deliver this",
+        why ? `WhatsApp couldn't deliver this: ${why}` : "WhatsApp couldn't deliver this",
       noText: "No text to show. Open it in Gmail.",
       // A reply to a text with no words, such as a photo or a voice note, which only WhatsApp shows: what it is.
       notWords: (type: string) => `[A ${type} message, which only the WhatsApp app shows]`,
@@ -357,7 +357,7 @@ export const broadcastsCopy = {
       "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
     // What a problem names a supporter's copy of a broadcast as, and our answer to a reply.
     copyOf: (id: number) => `Broadcast copy ${id}`,
-    answerTo: (id: number) => `⁂ Our reply to reply ${id}`,
+    answerTo: (id: number) => `Our reply to reply ${id}`,
     // WhatsApp gets an error, so it sends the webhook again.
     whatsAppWebhookNotRecorded: "A WhatsApp webhook couldn't be recorded",
   },
