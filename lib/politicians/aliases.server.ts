@@ -137,7 +137,15 @@ export async function politicianAliases(politician: {
   return {
     email: politician.email,
     emailSource,
-    past: past.map((row) => row.address).filter((address) => address !== email && address.includes("@")),
+    // Only those not listed otherwise, as by their body, which says more.
+    past: past
+      .map((row) => row.address)
+      .filter(
+        (address) =>
+          address !== email &&
+          address.includes("@") &&
+          !listed.some((row) => row.address === address && row.source !== "rejected"),
+      ),
     parliament: from("parliament"),
     office: from("office"),
     added: listed

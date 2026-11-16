@@ -740,7 +740,7 @@ describe("PoliticianDetails", () => {
             at: new Date("2026-07-22T10:00:00Z"),
             actor: "jo@pauseai.uk",
             action: "add politician address",
-            details: { politicianId: 7, address: "polly.home@example.org" },
+            details: { politicianId: 7, address: "polly.home@example.org", note: "She writes from it" },
           },
           {
             id: 9,
@@ -802,8 +802,8 @@ describe("PoliticianDetails", () => {
       "strange 1 Aug 2026, 10:00 · x",
       // A change of email, with why.
       `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.email} a@example.org → b@example.org · Her office asked25 Jul 2026, 10:00 · jo@pauseai.uk`,
-      // An address added, by which.
-      `${copy["add politician address"]} polly.home@example.org22 Jul 2026, 10:00 · jo@pauseai.uk`,
+      // An address added, by which, and why.
+      `${copy["add politician address"]} polly.home@example.org · She writes from it22 Jul 2026, 10:00 · jo@pauseai.uk`,
       `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
       `${copy["add politician"]} Polly Placeholder15 Jul 2026, 10:00 · import`,
     ]);
@@ -1356,7 +1356,8 @@ describe("PoliticianDetails", () => {
         aliases: {
           ...exampleAliases,
           added: [
-            { address: "polly.new@example.com", addedBy: "jo@pauseai.uk", at: later, note: "Her new Gmail" },
+            // Without a note, as one added before notes: who and when alone.
+            { address: "polly.new@example.com", addedBy: "jo@pauseai.uk", at: later, note: "" },
             ...exampleAliases.added,
           ],
         },
@@ -1364,6 +1365,7 @@ describe("PoliticianDetails", () => {
     );
     const newest = [...bubble.querySelectorAll("li")].at(-1)!;
     expect(newest.textContent).toContain("polly.new@example.com");
+    expect(newest.textContent).toContain(`polly.new@example.com${words.addedBy("jo@pauseai.uk", staffDate(later))}`);
     expect(newest.hasAttribute("data-pulse")).toBe(true);
     // Led here, as from the blocked address's strip, it opens at once.
     await rerender(<div />);

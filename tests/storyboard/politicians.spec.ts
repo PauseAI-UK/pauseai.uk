@@ -678,12 +678,13 @@ test("Changing an MP's email", async ({ page, request, flowDatabase }) => {
   await frame(page, "Her new address, and why", { window: true });
 
   story(
-    "Saved, the bubble stays open on the new address: why, who set it and when. Her old address is under her other addresses, so her emails from it are still linked to her.",
+    "Saved, the bubble stays open on the new address: why, who set it and when. Her old address is among her linked addresses, as Parliament still lists it, so her emails from it are still linked to her.",
   );
   await bubble.getByRole("button", { name: words.save }).click();
   await expect(bubble.getByText("Her office asked us to write here", { exact: false })).toBeVisible();
   await expect(bubble.getByRole("textbox", { name: words.email })).toHaveCount(0);
-  await expect(bubble.getByText(old, { exact: true })).toBeVisible();
+  // Her body still lists it, so it's listed once, as Parliament's.
+  await expect(bubble.getByRole("listitem").filter({ hasText: old })).toHaveCount(1);
   await frame(page, "Her new main address, set by staff", { window: true });
 
   story("The change, with why, is in what changed her record, folded at the foot of her page.");

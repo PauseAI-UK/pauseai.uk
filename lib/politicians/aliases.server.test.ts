@@ -51,8 +51,14 @@ describeWithDatabase("a politician's aliases", () => {
     const polly = await politician();
     await query(
       `INSERT INTO audit_log (actor, action, details)
-       VALUES ('sync', 'edit politician', $1), ('sync', 'edit politician', $2), ('sync', 'edit politician', $3)`,
+       VALUES ('sync', 'edit politician', $1), ('sync', 'edit politician', $2), ('sync', 'edit politician', $3),
+         ('sync', 'edit politician', $4)`,
       [
+        // A past address their body still lists: listed as theirs, not as past.
+        JSON.stringify({
+          id: polly.id,
+          changed: { email: ["placeholderp@parliament.uk", "old.polly@example.com"] },
+        }),
         JSON.stringify({
           id: polly.id,
           changed: { email: ["old.polly@example.com", "polly.placeholder.mp@parliament.uk"] },
@@ -124,13 +130,10 @@ describeWithDatabase("a politician's aliases", () => {
       at: expect.any(Date),
       note: "Her office asked",
     });
-    // An edit from before notes, logged with the check set aside, then put back as it was, as other tests share it.
-    const [{ check }] = await query<{ check: string }>(
-      "SELECT pg_get_constraintdef(oid) AS check FROM pg_constraint WHERE conname = 'audit_log_edit_note'",
-    );
-    await query("ALTER TABLE audit_log DROP CONSTRAINT audit_log_edit_note");
-    await edit("sam@pauseai.uk", ["other@example.org", "polly@example.org"]);
-    await query(`ALTER TABLE audit_log ADD CONSTRAINT audit_log_edit_note ${check}`);
+    // A staff member who added them by hand, with that email, says no why: who and when alone.
+    await query("INSERT INTO audit_log (actor, action, details) VALUES ('sam@pauseai.uk', 'add politician', $1)", [
+      JSON.stringify({ id: polly.id, name: "Polly", email: "polly@example.org" }),
+    ]);
     expect(await source("polly@example.org")).toMatchObject({ by: "staff", staff: "sam@pauseai.uk", note: "" });
     // An import that set it since, of an address their body doesn't list, on a record that isn't Airtable's: nothing
     // to say.
