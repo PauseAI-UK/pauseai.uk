@@ -1,12 +1,13 @@
-import { briefings } from "@/lib/content/briefings";
-import { BASE, expect, frame, test } from "./fixtures";
+import { findBriefing } from "@/lib/content/briefings";
+import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Briefings", part: "Public site", order: 30 };
 
-// The briefings: posts like the blog's, under the campaigns. The page is
-// the first briefing, with its charts and its numbered sources.
-const briefing = briefings[0];
+// The briefings: posts like the blog's, under the campaigns. A briefing's
+// page has its charts, diagrams and numbered sources.
+const briefing = findBriefing("ai-news-weekly-briefing-23rd-30th-october")!;
+const november = findBriefing("ai-news-weekly-briefing-6th-13th-november")!;
 
 test("The menu to briefings", { tag: "@desktop-only" }, async ({ page }) => {
   await page.goto(`${BASE}/`);
@@ -51,4 +52,34 @@ test("Read a briefing", async ({ page }) => {
   await page.getByRole("link", { name: "← All briefings" }).click();
   await expect(page).toHaveURL(`${BASE}/campaigns/briefings`);
   await frame(page, "back at the briefings");
+});
+
+test("A briefing's diagrams and table", async ({ page }) => {
+  story("A briefing whose stories have a diagram, a table and flags.");
+  await page.goto(`${BASE}/campaigns/briefings/${november.slug}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(november.title);
+  await frame(page, "the 6th–13th November briefing");
+
+  const diagram = page.getByRole("region", { name: /chip pathway/ });
+  await diagram.scrollIntoViewIfNeeded();
+  await frame(page, "the diagram of Nvidia's chips");
+  if (test.info().project.name === "phone") {
+    story("On a phone the diagram keeps a width its words can be read at, and scrolls sideways.");
+    await diagram.evaluate((region) => region.scrollTo({ left: region.scrollWidth }));
+    await expect.poll(() => diagram.evaluate((region) => region.scrollLeft)).toBeGreaterThan(0);
+    await frame(page, "the diagram's far side, scrolled to");
+  }
+
+  const table = page.getByRole("table", { name: "What each AI text covers" });
+  await table.scrollIntoViewIfNeeded();
+  await expect(table.locator("tbody tr")).toHaveCount(8);
+  await frame(page, "what each text covers");
+
+  const lawsuit = page.getByRole("heading", { name: /US lawsuit/ });
+  await lawsuit.scrollIntoViewIfNeeded();
+  await frame(page, "the US lawsuit, set apart");
+
+  const pace = page.getByRole("region", { name: /METR figure/ });
+  await pace.scrollIntoViewIfNeeded();
+  await frame(page, "the pace of AI research at Anthropic");
 });

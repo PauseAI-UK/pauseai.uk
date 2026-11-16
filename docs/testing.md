@@ -830,7 +830,7 @@ that drives it or why nothing does.
   - each campaign, and the nav's links to them;
   - the campaign pages in search and the sitemap, and the old `/campaigns-v2` links redirecting;
   - the special test MPs.
-- `briefings.spec.ts`: The briefings: the Campaigns menu's link to them, the index of cards, a briefing on its sheet with its calendar, budget and signatories charts, a source from its mark, and back.
+- `briefings.spec.ts`: The briefings: the Campaigns menu's link to them, the index of cards, a briefing on its sheet with its calendar, budget and signatories charts, a source from its mark, and back; a briefing's diagrams, which scroll sideways on a phone, its table of what each text covers and a story set apart.
 - `replies.spec.ts`: Letters through the letters inbox. Every email, both ways, is pictured, and the letter's history after each:
   - the letter sent from the supporter's proxy, and her copy, a reply to which goes to the MP's proxy;
   - the MP's reply relayed to her, and her answer relayed to the MP;

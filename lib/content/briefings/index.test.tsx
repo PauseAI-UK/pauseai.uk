@@ -11,6 +11,8 @@ const html = (briefing: (typeof briefings)[number]) =>
     </>,
   );
 
+const october = findBriefing("ai-news-weekly-briefing-23rd-30th-october")!;
+
 describe("briefings", () => {
   it("finds a briefing by slug, or nothing", () => {
     expect(findBriefing(briefings[0].slug)).toBe(briefings[0]);
@@ -21,8 +23,13 @@ describe("briefings", () => {
     expect(BRIEFINGS.path).toBe("/campaigns/briefings");
   });
 
+  it("are listed newest first", () => {
+    const dates = briefings.map((briefing) => briefing.date);
+    expect(dates).toEqual([...dates].sort().reverse());
+  });
+
   it("are summed up by their key stories' headlines", () => {
-    expect(briefings[0].tldr).toBe("Monday: Anthropic files to go public. Wednesday: Budget released. £700m for AI");
+    expect(october.tldr).toBe("Monday: Anthropic files to go public. Wednesday: Budget released. £700m for AI");
   });
 
   it("cite only sources they list, and list only sources they cite", () => {
@@ -39,7 +46,7 @@ describe("briefings", () => {
   });
 
   it("separate the sources of one mark with commas", () => {
-    expect(html(briefings[0])).toContain(
+    expect(html(october)).toContain(
       '<a href="#source-2" aria-label="Source 2">2</a>,<a href="#source-3" aria-label="Source 3">3</a>',
     );
   });

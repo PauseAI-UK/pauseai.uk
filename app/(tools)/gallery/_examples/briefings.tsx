@@ -6,6 +6,9 @@ import Briefing from "@/components/briefings/Briefing";
 import BriefingBox from "@/components/briefings/BriefingBox";
 import BriefingCard from "@/components/briefings/BriefingCard";
 import BriefingColumns from "@/components/briefings/BriefingColumns";
+import BriefingFigure from "@/components/briefings/BriefingFigure";
+import BriefingFlags from "@/components/briefings/BriefingFlags";
+import BriefingInset from "@/components/briefings/BriefingInset";
 import BriefingList from "@/components/briefings/BriefingList";
 import BriefingMasthead from "@/components/briefings/BriefingMasthead";
 import BriefingPicture from "@/components/briefings/BriefingPicture";
@@ -14,6 +17,7 @@ import BriefingSheet from "@/components/briefings/BriefingSheet";
 import BriefingSources from "@/components/briefings/BriefingSources";
 import { Accent, Aside, Flag, Subhead } from "@/components/briefings/BriefingText";
 import BudgetChart from "@/components/briefings/BudgetChart";
+import CommitmentsTable from "@/components/briefings/CommitmentsTable";
 import KeyStories from "@/components/briefings/KeyStories";
 import SignatoriesChart from "@/components/briefings/SignatoriesChart";
 import WeekCalendar from "@/components/briefings/WeekCalendar";
@@ -317,6 +321,107 @@ export const briefingsKit: Group = {
                   alt="A pencil drawing of a chest X-ray"
                   width={300}
                   height={320}
+                />
+              </BriefingBox>,
+            ),
+        },
+      ],
+    },
+    {
+      name: "BriefingFigure",
+      file: "components/briefings/BriefingFigure.tsx",
+      variants: [
+        {
+          label: "A diagram across a box",
+          render: () =>
+            onSheet(
+              <BriefingBox title="Risks, incidents & security" tone="risk">
+                <p>A story the diagram explains.</p>
+                <BriefingFigure
+                  src="/images/briefings/nvidia-chip-network.png"
+                  alt="A diagram of a network of companies"
+                  width={2048}
+                  height={753}
+                  cite={
+                    <sup>
+                      <a href="#source-1">1</a>
+                    </sup>
+                  }
+                />
+              </BriefingBox>,
+            ),
+        },
+      ],
+    },
+    {
+      name: "BriefingFlags",
+      file: "components/briefings/BriefingFlags.tsx",
+      variants: [
+        {
+          label: "Under a story's heading",
+          render: () =>
+            onSheet(
+              <BriefingBox title="International & Cooperation" tone="international">
+                <h3>Mon 9th Nov - A joint statement</h3>
+                <BriefingFlags
+                  countries={[
+                    { code: "fr", name: "France" },
+                    { code: "ca", name: "Canada" },
+                    { code: "gb", name: "United Kingdom" },
+                  ]}
+                />
+                <p>Three governments agree on something.</p>
+              </BriefingBox>,
+            ),
+        },
+      ],
+    },
+    {
+      name: "BriefingInset",
+      file: "components/briefings/BriefingInset.tsx",
+      variants: [
+        {
+          label: "A story set apart",
+          render: () =>
+            onSheet(
+              <BriefingBox title="International & Cooperation" tone="international">
+                <p>The box’s main story.</p>
+                <BriefingInset>
+                  <h3>Thurs 12th Nov - A story apart</h3>
+                  <p>Something else that happened.</p>
+                </BriefingInset>
+              </BriefingBox>,
+            ),
+        },
+      ],
+    },
+    {
+      name: "CommitmentsTable",
+      file: "components/briefings/CommitmentsTable.tsx",
+      variants: [
+        {
+          label: "Three texts",
+          render: () =>
+            onSheet(
+              <BriefingBox title="International & Cooperation" tone="international">
+                <CommitmentsTable
+                  label="What each text covers"
+                  texts={[
+                    { name: "A call", date: "9 Nov", verdict: { label: "UK: NOT SIGNED", tone: "risk", dashed: true } },
+                    { name: "A law", date: "10 Nov", verdict: { label: "NATIONAL LAW", tone: "diary" } },
+                    { name: "A statement", date: "12 Nov", verdict: { label: "UK: SIGNED", tone: "good" } },
+                  ]}
+                  rows={[
+                    { name: "Incident reporting", commitments: ["yes", "yes", "part"] },
+                    { name: "Shutdown mechanisms", commitments: ["yes", "no", "no"] },
+                  ]}
+                  meanings={{ yes: "in the text", part: "in part", no: "not in the text" }}
+                  caption="Tick: in the text · half: in part · dash: not in the text"
+                  cite={
+                    <sup>
+                      <a href="#source-1">1</a>
+                    </sup>
+                  }
                 />
               </BriefingBox>,
             ),

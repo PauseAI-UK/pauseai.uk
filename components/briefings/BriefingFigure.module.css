@@ -1,0 +1,24 @@
+/* A drawing across a briefing's box (BriefingFigure). */
+
+.figure {
+  margin: var(--space-2) 0 0;
+}
+.scroller {
+  overflow-x: auto;
+}
+.picture {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.cite {
+  margin: 0;
+  text-align: right;
+}
+
+@media (max-width: 820px) {
+  .picture {
+    width: 720px;
+    max-width: none;
+  }
+}
