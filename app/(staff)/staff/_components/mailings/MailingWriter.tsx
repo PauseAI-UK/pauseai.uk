@@ -35,6 +35,7 @@ import {
   ProblemList,
   ScheduleButton,
   TEST_NEEDS,
+  TestSent,
   useDraftWriter,
   type DraftActions,
 } from "./DraftWriter";
@@ -545,9 +546,7 @@ function Preview({
           </Button>
         </div>
         <Muted>{copy.testVia(data.senders.some((sender) => sender.email === sentFrom) ? sentFrom : null)}</Muted>
-        <Muted>
-          <span role="status">{sent && (sent.to ? copy.testSent(sent.to) : copy.testFailed)}</span>
-        </Muted>
+        <TestSent line={sent && (sent.to ? copy.testSent(sent.to) : copy.testFailed)} sent={Boolean(sent?.to)} />
         <ProblemList problems={needs} />
       </div>
     </>

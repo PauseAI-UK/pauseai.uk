@@ -1,4 +1,5 @@
 import { now } from "./now";
+import { staffVocabulary } from "./staff-vocabulary";
 
 /** The day something happened, for a heading over that day's runs: "3 Nov 2026", in UTC. */
 export function staffDate(at: Date): string {
@@ -151,4 +152,18 @@ export function earliestRun(): Date {
 export function notTooSoon(time: LondonTime, earliest: LondonTime): LondonTime {
   const at = (t: LondonTime) => `${t.day} ${String(t.hour * 60 + t.minute).padStart(4, "0")}`;
   return at(time) < at(earliest) ? earliest : time;
+}
+
+/**
+ * How long from `from` till `at`, in words (staffVocabulary.dueIn): "in 40
+ * minutes", up to an hour, rounded up; "in 5 hours", up to two days; then
+ * "in 3 days", each to the nearest. Once `at` has come, that it's due.
+ */
+export function dueIn(at: Date, from: Date): string {
+  const words = staffVocabulary.dueIn;
+  const minutes = Math.ceil((at.getTime() - from.getTime()) / 60_000);
+  if (minutes <= 0) return words.now;
+  if (minutes < 60) return words.minutes(minutes);
+  if (minutes < 48 * 60) return words.hours(Math.round(minutes / 60));
+  return words.days(Math.round(minutes / (24 * 60)));
 }

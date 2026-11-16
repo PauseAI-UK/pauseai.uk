@@ -10,7 +10,8 @@ import type { Ask } from "@/lib/asks/records.server";
 import type { MailingState, WrittenMailing } from "@/lib/mailings/drafts.server";
 import type { Mailing, MailingRecipient } from "@/lib/mailings/records.server";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
+import { dueIn, londonWhen, staffDate, staffTime } from "@/lib/staff-time";
+import { now } from "@/lib/now";
 import { ChangeTimeForm } from "./DueTime";
 import { StopMailing } from "./MailingButtons";
 import MailEmail from "./MailEmail";
@@ -123,11 +124,12 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
 
 /**
  * Where a mailing stands, under its band, each in the same white card:
- * when one scheduled sends, large and blue, as it's going out, with Change
- * the time and Unschedule; how far one sending has got, with Stop
+ * how long till one scheduled sends, large and blue, as it's going out,
+ * over what goes (when is in the band above), with Change the time and
+ * Unschedule; how far one sending has got, with Stop
  * sending; once sent, how many of everyone it went to have answered its ask.
- * Nothing for one with no ask. `due` replaces when one scheduled sends, as
- * for a broadcast past its time that waits.
+ * Nothing for one with no ask. `due` replaces how long till one scheduled
+ * sends, as for a broadcast past its time that waits.
  */
 export function MailingStanding({
   mailing,
@@ -150,7 +152,7 @@ export function MailingStanding({
         <Card span={6} as="div">
           <div className={styles.standing}>
             <div className={styles.due}>
-              <strong>{due ?? copy.sends(londonWhen(written.dueAt!, "short"))}</strong>
+              <strong>{due ?? copy.sendsIn(dueIn(written.dueAt!, now()))}</strong>
               <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
             </div>
             <div className={styles.actions}>

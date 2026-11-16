@@ -5,6 +5,7 @@ import { IMPORT_JOBS, jobSchedule, NIGHTLY, type AnyImportRun, type ImportJob } 
 
 const SCHEDULE_ORDER = ["frequent", "quarter-hour", "hourly", "nightly"];
 import { staffTime } from "@/lib/staff-time";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { ImportJobPage, ImportOverview } from "./ImportJob";
 import {
   exampleFailedRun,
@@ -63,10 +64,10 @@ describe("ImportOverview", () => {
     // Each ends with when it next runs, in UTC as the staff pages' times are: Luma's at 2 minutes past each five,
     // sending's at 3 past each quarter, Parliament's tomorrow morning; and not what it does, which its own page says.
     const words = jobsCopy.import;
-    expect(cards[0].lastElementChild!.textContent).toBe(words.runsAgain(words.inMinutes(2), "11:52"));
-    expect(cards[2].lastElementChild!.textContent).toBe(words.runsAgain(words.inMinutes(13), "12:03"));
-    expect(cards[4].lastElementChild!.textContent).toBe(words.runsAgain(words.inHours(19), "06:21"));
-    expect(cards[1].textContent).toContain(words.runsAgain(words.inMinutes(5), "11:55"));
+    expect(cards[0].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.minutes(2), "11:52"));
+    expect(cards[2].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.minutes(13), "12:03"));
+    expect(cards[4].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.hours(19), "06:21"));
+    expect(cards[1].textContent).toContain(words.runsAgain(staffVocabulary.dueIn.minutes(5), "11:55"));
     expect(document.body.textContent).not.toContain(politiciansCopy.politicianImports.intros["import-parliament"].link);
     expect(cards.map((card) => card.querySelector("h3 a")!.getAttribute("href"))).toEqual([
       "/staff/scheduled-jobs/luma",
@@ -94,18 +95,13 @@ describe("ImportOverview", () => {
       importRunsCopy.jobTitles["import-controlai-statement"],
       importRunsCopy.jobTitles["tidy-logs"],
     ]);
-    // Under the name, how the newest run ended, tinted to match.
+    // Under the name, its newest run on a line: how it ended, after a dot of its colour, when, and what it found.
     const status = (i: number) => cards[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!;
-    expect(status(0).textContent).toBe(`${jobsCopy.runs.status.incomplete}21 Oct 2026, 11:17`);
-    expect([0, 1, 3, 4, 5, 8].map((i) => status(i).className.match(/green|amber|red/)?.[0])).toEqual([
-      "amber",
-      "green",
-      "green",
-      "amber",
-      "green",
-      "red",
-    ]);
-    expect(status(2).className).not.toMatch(/green|amber|red/);
+    const tone = (i: number) => status(i).querySelector("[data-tone]")?.getAttribute("data-tone");
+    expect(status(0).textContent).toMatch(new RegExp(`^${jobsCopy.runs.status.incomplete}21 Oct 2026, 11:17.`));
+    expect([0, 1, 3, 4, 5, 8].map(tone)).toEqual(["amber", "green", "green", "amber", "green", "red"]);
+    expect(status(8).textContent).toContain(jobsCopy.runs.error("No PDF linked"));
+    expect(tone(2)).toBeUndefined();
     expect(status(2).textContent).toBe(jobsCopy.sending.never);
     expect(status(6).textContent).toBe(politiciansCopy.politicianImports.never);
     expect(status(10).textContent).toBe(jobsCopy.tidying.never);
@@ -115,22 +111,21 @@ describe("ImportOverview", () => {
     expect(cards.some((card) => card.querySelector("h3 [class*=tag]"))).toBe(false);
   });
 
-  it("shows an applied run, and one that changed nothing, in green, and one discarded plainly", async () => {
+  it("shows an applied run, and one that changed nothing, in green, one discarded plainly, and one going in blue", async () => {
     const applied = ran("import-parliament", exampleImportResult, { status: "applied" });
     const discarded = ran("import-parliament", exampleImportResult, { status: "discarded" });
     const unchanged = ran("import-luma", exampleLumaResult, { status: "unchanged" });
     const { rerender } = await render(
       <ImportOverview running={[]} newest={[unchanged, undefined, undefined, undefined, applied]} now={NOW} />,
     );
-    const status = (i: number) =>
-      document.querySelectorAll("section")[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!
-        .className;
-    expect(status(0)).toMatch(/green/);
-    expect(status(4)).toMatch(/green/);
+    const tone = (i: number) =>
+      document.querySelectorAll("section")[i].querySelector("[data-tone], [class*=state]")!.getAttribute("data-tone");
+    expect(tone(0)).toBe("green");
+    expect(tone(4)).toBe("green");
     await rerender(
       <ImportOverview running={[]} newest={[undefined, undefined, undefined, undefined, discarded]} now={NOW} />,
     );
-    expect(status(4)).not.toMatch(/green|amber|red/);
+    expect(tone(4)).toBeNull();
     await rerender(
       <ImportOverview
         now={NOW}
@@ -138,7 +133,7 @@ describe("ImportOverview", () => {
         running={[undefined, undefined, undefined, undefined, press]}
       />,
     );
-    expect(status(4)).toMatch(/blue/);
+    expect(tone(4)).toBe("blue");
     expect(document.body.textContent).toContain(jobsCopy.runs.status.running);
     expect(document.body.textContent).toContain(staffTime(press.startedAt));
   });
@@ -156,12 +151,12 @@ describe("ImportJobPage", () => {
   });
 
   it("says what each job does, linking where it reads from", async () => {
-    /** The paragraph under the head of `job`'s page. */
+    /** The paragraph under the title of `job`'s page. */
     const about = async (job: ImportJob) => {
       const { container } = await render(
         <ImportJobPage job={job} runs={[]} run={vi.fn()} decide={vi.fn()} now={NOW} />,
       );
-      return container.querySelector("header")!.nextElementSibling!.querySelector("p")!;
+      return container.querySelector<HTMLParagraphElement>("[class*=subtitle]")!;
     };
     // In the overview's order, by schedule, as the checks below were written for its cards.
     const order = [...IMPORT_JOBS].sort(
@@ -221,7 +216,7 @@ describe("ImportJobPage", () => {
     );
   });
 
-  it("names the job with its icons and schedule, runs it, and lists every run by day", async () => {
+  it("names the job with its icon, says how it stands and when it runs, runs it, and lists every run by day", async () => {
     const run = vi.fn();
     const { fn, sent } = action();
     const runs: AnyImportRun[] = [
@@ -235,19 +230,29 @@ describe("ImportJobPage", () => {
     const { rerender } = await render(
       <ImportJobPage job="import-parliament" runs={runs} run={run} decide={fn} now={NOW} />,
     );
-    const head = page.getByRole("banner").element();
+    const band = () => document.querySelector("h1")!.closest("[class*=band]")!;
+    // The band's facts, each its label and value.
+    const facts = () =>
+      [...band().querySelectorAll("dt")].map((dt) => [dt.textContent, dt.nextElementSibling!.textContent]);
+    const head = band();
     expect(page.getByRole("heading", { level: 1 }).element().textContent).toBe(
       importRunsCopy.jobTitles["import-parliament"],
     );
     await expect.element(page.getByRole("img", { name: jobsCopy.import.parliament })).toBeVisible();
-    // No lozenges: how often it runs is with its next run, below.
     expect(head.querySelector("[class*=tag]")).toBeNull();
-    // What it does is under the head, not in it.
-    const intro = politiciansCopy.politicianImports.intros["import-parliament"];
-    expect(head.textContent).not.toContain(intro.link);
-    expect(head.nextElementSibling!.textContent).toContain(intro.link);
-    // No strip under the head: the newest run, in the history, carries the colour.
-    expect(head.nextElementSibling!.nextElementSibling!.querySelector(":scope > [data-strip]")).toBeNull();
+    // Under the title, what it does; then how it stands, when it last ran, when it runs again, tomorrow morning, and
+    // how often.
+    expect(head.textContent).toContain(politiciansCopy.politicianImports.intros["import-parliament"].link);
+    expect(head.querySelector("dd [data-tone]")!.getAttribute("data-tone")).toBe("amber");
+    const said = jobsCopy.import.facts;
+    expect(facts()).toEqual([
+      [said.now, jobsCopy.runs.status.held],
+      [said.lastRun, staffTime(exampleHeldImport.at)],
+      [said.nextRun, jobsCopy.import.nextRunAt(staffVocabulary.dueIn.hours(19), "06:21")],
+      [said.runs, jobsCopy.import.nightly],
+    ]);
+    // No strip under the band, with nothing running.
+    expect(head.nextElementSibling?.querySelector("[data-strip]") ?? null).toBeNull();
     await page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }).click();
     await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
     expect(
@@ -255,20 +260,17 @@ describe("ImportJobPage", () => {
         .getByRole("heading", { level: 2 })
         .all()
         .map((h) => h.element().textContent),
-    ).toEqual([jobsCopy.import.comingUp, "13 Oct 2026", "11 Oct 2026"]);
-    // The run to come, over those it has made: tomorrow morning's.
-    expect(document.body.textContent).toContain(
-      jobsCopy.import.nextRunOn(
-        staffTime(new Date("2026-10-22T06:21:00Z")),
-        jobsCopy.import.inHours(19),
-        jobsCopy.import.nightly,
-      ),
-    );
+    ).toEqual(["13 Oct 2026", "11 Oct 2026"]);
     await page.getByRole("button", { name: politiciansCopy.politicianImports.apply }).click();
     await vi.waitFor(() => expect(sent).toEqual([{ id: "4", job: "import-parliament", decision: "apply" }]));
 
     await rerender(<ImportJobPage job="import-controlai-statement" runs={[]} run={run} decide={fn} now={NOW} />);
     await expect.element(page.getByText(jobsCopy.controlAiStatement.never)).toBeVisible();
+    // Never run: nothing to say of how it stands or when it last ran.
+    expect(facts()).toEqual([
+      [jobsCopy.import.facts.nextRun, jobsCopy.import.nextRunAt(staffVocabulary.dueIn.hours(19), "06:26")],
+      [jobsCopy.import.facts.runs, jobsCopy.import.nightly],
+    ]);
     await expect.element(page.getByRole("img", { name: jobsCopy.import.controlai })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: jobsCopy.controlAiStatement.intro.link }))

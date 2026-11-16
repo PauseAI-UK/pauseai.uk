@@ -17,16 +17,19 @@ import {
 } from "@/lib/import-runs";
 import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
 import { ERRORS_LIST } from "@/lib/staff-lists";
-import { staffClock, staffTime } from "@/lib/staff-time";
+import { dueIn, staffClock, staffTime } from "@/lib/staff-time";
 import styles from "./ImportJob.module.css";
 import ImportCard, { ImportCards } from "./ImportCard";
 import ImportIcon, { type ImportSource } from "./ImportIcon";
 import JobActions from "./JobActions";
-import type { Decide } from "./Run";
+import Run, { type Decide } from "./Run";
+import { RunState } from "./RunBox";
+import boxes from "./RunBox.module.css";
 import RunList from "./RunList";
 import Strip from "../ui/Strip";
 import ExternalLink from "../ui/ExternalLink";
 import PageHead from "../ui/PageHead";
+import Band, { BandFact } from "../ui/Band";
 import { politiciansCopy } from "../politicians/copy";
 import { jobsCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
@@ -49,7 +52,7 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "import-controlai-statement": "controlai",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
-  "send-mailings": "gmail",
+  "send-mailings": "sending",
   "tidy-logs": "database",
 };
 
@@ -164,42 +167,29 @@ function Intro({ job }: { job: ImportJob }) {
   );
 }
 
-/** That a run of the job is going, or how its newest run ended, and when, in a strip tinted to match (ui/Strip); or that it has never run. */
+/** That a run of the job is going, and since when; or its newest run on a line (RunBox); or that it has never run. */
 function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | undefined; running?: RunningJob }) {
   if (running)
     return (
-      <Strip tone="blue" icon={false}>
-        <span className={styles.line}>
-          {jobsCopy.runs.status.running}
-          <span className={styles.when}>{staffTime(running.startedAt)}</span>
-        </span>
-      </Strip>
+      <p className={boxes.line}>
+        <RunState tone="blue">{jobsCopy.runs.status.running}</RunState>
+        <span className={boxes.when}>{staffTime(running.startedAt)}</span>
+      </p>
     );
-  if (!run)
-    return (
-      // A job that has never run: that's how it stands, so a strip, said plainly, not as a status in bold.
-      <Strip>{ABOUT[job].none}</Strip>
-    );
-  return (
-    <Strip tone={runTone(run) ?? "plain"} icon={false}>
-      <span className={styles.line}>
-        {jobsCopy.runs.status[runStatus(run)]}
-        <span className={styles.when}>{staffTime(run.at)}</span>
-      </span>
-    </Strip>
-  );
+  if (!run) return <p className={styles.never}>{ABOUT[job].none}</p>;
+  return <Run run={run} variant="line" />;
 }
 
-/** How long from `now` till `next`, in words: "in 4 minutes", or from an hour on, "in 3 hours". */
-function until(next: Date, now: Date): string {
-  const minutes = Math.ceil((next.getTime() - now.getTime()) / 60_000);
-  return minutes < 60 ? words.inMinutes(minutes) : words.inHours(Math.round(minutes / 60));
+/** How the job stands, as its page's first fact: running, or how its newest run ended; nothing before its first. */
+function jobState(run: AnyImportRun | undefined, running: RunningJob | undefined): ReactNode {
+  if (running) return <RunState tone="blue">{jobsCopy.runs.status.running}</RunState>;
+  return run && <RunState tone={runTone(run)}>{jobsCopy.runs.status[runStatus(run)]}</RunState>;
 }
 
 /** When a job next runs after `now`, as the overview's cards end: "Runs again in 4 minutes · 11:15". */
 function untilNext(job: ImportJob, now: Date): string {
   const next = nextRun(job, now);
-  return words.runsAgain(until(next, now), staffClock(next));
+  return words.runsAgain(dueIn(next, now), staffClock(next));
 }
 
 /** /staff/scheduled-jobs: a card per job, each a link to its page, with how its newest run ended. */
@@ -247,9 +237,9 @@ export function ImportOverview({
 }
 
 /**
- * One job's page: its icon and name; under them, what it does in words, as
- * the page's first paragraph, and under that, at the left, its button; then
- * when it next runs, and how often, and every run it has made, newest first.
+ * One job's page: its icon and name, what it does under them, and its
+ * button; then in a line, how it stands, when it last ran, when it runs
+ * again and how often; and every run it has made, a row each, newest first.
  */
 export function ImportJobPage({
   job,
@@ -270,15 +260,21 @@ export function ImportJobPage({
   /** The time the page shows, which its next run is after. */
   now: Date;
 }): ReactNode {
+  const next = nextRun(job, now);
   return (
     <>
-      <PageHead lead={<ImportIcon source={SOURCES[job]} />}>{importRunsCopy.jobTitles[job]}</PageHead>
-      <div className={styles.about}>
-        <p>
-          <Intro job={job} />
-        </p>
-        <JobActions action={run} label={ABOUT[job].button} />
-      </div>
+      <Band
+        lead={<ImportIcon source={SOURCES[job]} large />}
+        title={importRunsCopy.jobTitles[job]}
+        subtitle={<Intro job={job} />}
+        aside={<JobActions action={run} label={ABOUT[job].button} />}
+      >
+        {/* One never run has neither: the list under it says so. */}
+        <BandFact label={words.facts.now}>{jobState(runs[0], running)}</BandFact>
+        <BandFact label={words.facts.lastRun}>{runs[0] && staffTime(runs[0].at)}</BandFact>
+        <BandFact label={words.facts.nextRun}>{words.nextRunAt(dueIn(next, now), staffClock(next))}</BandFact>
+        <BandFact label={words.facts.runs}>{words[jobSchedule(job)]}</BandFact>
+      </Band>
       {running && (
         <div className={styles.running}>
           <Strip tone="blue">
@@ -290,10 +286,6 @@ export function ImportJobPage({
           </Strip>
         </div>
       )}
-      <h2>{words.comingUp}</h2>
-      <p className={styles.coming}>
-        {words.nextRunOn(staffTime(nextRun(job, now)), until(nextRun(job, now), now), words[jobSchedule(job)])}
-      </p>
       <RunList runs={runs} none={ABOUT[job].none} decide={decide} running={running} />
     </>
   );

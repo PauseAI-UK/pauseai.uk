@@ -1,8 +1,10 @@
 // Hosts the bodies serve their members' photos from, which a politician's
-// page loads straight from them (PoliticianDetails): Parliament's Members
-// API, the Scottish Parliament's picture library, the Senedd's and the NI
-// Assembly's own sites. next.config.ts allows them in the CSP's img-src. A
-// fixture build shows a stand-in instead (STAND_IN_PHOTO).
+// page shows by way of next/image (PoliticianDetails), so the image CDN
+// keeps a copy at the size shown: Parliament's Members API, the Scottish
+// Parliament's picture library, the Senedd's and the NI Assembly's own
+// sites. next.config.ts lets next/image fetch from them, and lists them in
+// the CSP's img-src. A fixture build
+// shows a stand-in instead (STAND_IN_PHOTO).
 export const POLITICIAN_PHOTO_HOSTS = [
   "members-api.parliament.uk",
   "scottishparliament.chorus-mk.thirdlight.com",

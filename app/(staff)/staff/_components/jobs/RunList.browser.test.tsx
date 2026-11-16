@@ -10,7 +10,6 @@ import {
   type PoliticianImport,
 } from "@/lib/import-runs";
 import RunList from "./RunList";
-import RunTable from "./RunTable";
 import {
   exampleControlAiResult,
   exampleControlAiStatementResult,
@@ -37,10 +36,15 @@ const ran = exampleRun;
 
 const failed = exampleFailedRun;
 
-const AT = "15 Oct 2026, 02:00";
-
 /** A colour token's hex as the browser computes it. */
 const toRgb = (hex: string) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.trim().slice(i, i + 2), 16)).join(", ")})`;
+
+/** Each run's row, as its words read: the time, how it ended, then what it found. */
+const rowsText = () =>
+  [...document.querySelectorAll("section")].map((run) => run.querySelector("[class*=row]")!.textContent);
+
+/** The colour of each run's dot, by how it ended. */
+const tones = () => [...document.querySelectorAll("section [data-tone]")].map((dot) => dot.getAttribute("data-tone"));
 
 describe("RunList", () => {
   const heldImport = exampleHeldImport;
@@ -110,43 +114,39 @@ describe("RunList", () => {
     await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).toBeVisible();
   });
 
-  it("lays out a job that runs often as a table a day: rows, a row for quiet runs, and older rows folded", async () => {
-    const columns = jobsCopy.luma.columns;
+  it("lays out a job that runs often a row a run, quiet runs in a row, and routine runs further down folded", async () => {
     const minutes = (n: number) => new Date(`2026-11-03T12:${String(59 - n).padStart(2, "0")}:00Z`);
     // The newest stopped short, so has more to do.
-    const row = (id: number) =>
-      ran(
-        "import-luma",
-        { ...exampleLumaResult, events: 100 + id, ...(id === 0 && { stoppedBy: "time" as const }) },
-        { id, at: minutes(id) },
-      );
+    const result = (id: number) => ({
+      ...exampleLumaResult,
+      events: 100 + id,
+      ...(id === 0 && { stoppedBy: "time" as const }),
+    });
+    const row = (id: number) => ran("import-luma", result(id), { id, at: minutes(id) });
     const quiet = (id: number) => ran("import-luma", exampleLumaResult, { id, at: minutes(id), status: "unchanged" });
     const { rerender } = await render(<RunList runs={Array.from({ length: 16 }, (_, i) => row(i))} none="None" />);
-    // The newest is a tinted row of the day's table (amber: it has more to do), with nothing to fold; the rest are rows under one header.
-    expect(document.querySelectorAll("section")).toHaveLength(1);
-    expect(document.querySelector("section")!.closest("tr")!.className).toMatch(/amber/);
-    expect(document.querySelector("section details")).toBeNull();
-    const headings = () => [...document.querySelectorAll("th")].map((th) => th.textContent);
-    expect(headings().filter((h) => h === columns.events)).toHaveLength(1);
-    await expect.element(page.getByRole("cell", { name: "101", exact: true })).toBeVisible();
-    const fold = page.getByText(`${jobsCopy.runs.range("12:44", "12:46")}: ${jobsCopy.runs.stretch(3)}`);
+    // The newest and the twelve after it a row each, the three further down folded into one.
+    const fold = page.getByText(jobsCopy.runs.stretch(3));
     await expect.element(fold).toBeVisible();
-    await expect.element(page.getByText("115", { exact: true })).not.toBeVisible();
+    expect(fold.element().closest("summary")!.textContent).toBe(
+      `${jobsCopy.runs.range("12:44", "12:46")}${jobsCopy.runs.stretch(3)}`,
+    );
+    const folded = page.getByText(jobsCopy.luma.result(result(15)), { exact: false });
+    await expect.element(page.getByText(jobsCopy.luma.result(result(12)), { exact: false })).toBeVisible();
+    await expect.element(folded).not.toBeVisible();
     await fold.click();
-    await expect.element(page.getByText("115", { exact: true })).toBeVisible();
-    // The opened stretch is a table of the same columns, with no header of its own.
-    expect(document.querySelectorAll("table")).toHaveLength(2);
-    expect(headings()).toHaveLength(7);
+    await expect.element(folded).toBeVisible();
     await rerender(<RunList runs={[quiet(0), quiet(1), quiet(2)]} none="None" />);
-    const range = page.getByRole("cell", { name: jobsCopy.runs.range("12:57", "12:58") });
+    // The newest, though it found nothing, is the job's state: a row of its own.
+    const range = page.getByText(jobsCopy.runs.range("12:57", "12:58"), { exact: true });
     await expect.element(range).toBeVisible();
-    await expect.element(page.getByRole("cell", { name: jobsCopy.runs.quiet(2) })).toBeVisible();
+    await expect.element(page.getByText(jobsCopy.runs.quiet(2))).toBeVisible();
     expect(getComputedStyle(range.element()).color).toBe(
       toRgb(getComputedStyle(document.body).getPropertyValue("--muted")),
     );
   });
 
-  it("puts a problem in the table as a tinted row of its counts with its words under them, a failure as one row", async () => {
+  it("marks each run by how it ended, a dot of its colour, and says why a run stopped short or failed", async () => {
     const luma = exampleLumaResult;
     const at = (n: number) => new Date(`2026-11-03T12:${String(50 - n * 5).padStart(2, "0")}:00Z`);
     await render(
@@ -160,32 +160,17 @@ describe("RunList", () => {
         none="None"
       />,
     );
-    const rows = page.getByRole("row").all();
-    // The header, the newest's counts and its words, the problem's, the failure, the routine run.
-    expect(rows).toHaveLength(7);
-    const token = (name: string) => toRgb(getComputedStyle(document.body).getPropertyValue(name));
-    const tint = (row: Element) => getComputedStyle(row.querySelector("td")!).backgroundColor;
-    expect(rows.slice(1, 7).map((row) => tint(row.element()))).toEqual([
-      token("--status-green-bg"),
-      token("--status-green-bg"),
-      token("--status-amber-bg"),
-      token("--status-amber-bg"),
-      token("--status-red-bg"),
-      token("--table-stripe"),
+    expect(tones()).toEqual(["green", "amber", "red", "green"]);
+    expect(rowsText().slice(1, 3)).toEqual([
+      `12:45${jobsCopy.runs.status.incomplete}${jobsCopy.luma.result(luma)} ${jobsCopy.luma.stoppedBy["rate-limit"]}`,
+      `12:40${jobsCopy.runs.status.failed}${jobsCopy.runs.error("Luma answered 500")}`,
     ]);
-    await expect.element(rows[3].getByRole("cell", { name: "12:45" })).toBeVisible();
-    // Its words leave out the time and the schedule, which the row says.
-    expect(rows[4].element().textContent).toBe(
-      `${jobsCopy.runs.status.incomplete} · ${jobsCopy.luma.result(luma)} ${jobsCopy.luma.stoppedBy["rate-limit"]}`,
-    );
-    expect(rows[5].element().textContent).toBe(
-      `12:40${jobsCopy.runs.status.failed} · ${jobsCopy.runs.error("Luma answered 500")}`,
-    );
-    expect(rows[4].element().querySelector("section")).not.toBeNull();
-    expect(getComputedStyle(rows[4].element().querySelector("section")!).borderLeftWidth).toBe("0px");
+    const dot = (i: number) => getComputedStyle(document.querySelectorAll("section [data-tone]")[i]).color;
+    const token = (name: string) => toRgb(getComputedStyle(document.body).getPropertyValue(name));
+    expect([0, 1, 2].map(dot)).toEqual([token("--status-green"), token("--status-amber"), token("--status-red")]);
   });
 
-  it("tables an hourly job without counts under Time and what it found, saying who pressed it, and heads a day whose first rows are folded", async () => {
+  it("says who pressed a run, and folds routine runs counted across days, a day starting with a fold", async () => {
     const at = (day: number, hour: number) => new Date(`2026-11-0${day}T${String(hour).padStart(2, "0")}:00:00Z`);
     const { rerender } = await render(
       <RunList
@@ -197,17 +182,9 @@ describe("RunList", () => {
         none="None"
       />,
     );
-    expect([...document.querySelectorAll("th")].map((th) => th.textContent)).toEqual([
-      jobsCopy.runs.time,
-      jobsCopy.runs.found,
-    ]);
-    const pressed = page.getByRole("row").all()[2];
-    expect(pressed.element().textContent).toBe(
-      `11:00${jobsCopy.runs.status.ok} · ${jobsCopy.runs.by("jo@pauseai.uk")} · ${jobsCopy.civicrm.result(exampleCivicrmResult)}`,
+    expect(rowsText()[1]).toBe(
+      `11:00${jobsCopy.runs.status.ok}${jobsCopy.civicrm.result(exampleCivicrmResult)} · ${jobsCopy.runs.by("jo@pauseai.uk")}`,
     );
-    expect(pressed.element().className).toBe("");
-
-    // Rows are counted across days, so a day can start with a folded stretch: the header goes on its first table shown.
     const luma = (id: number, at: Date) =>
       ran("import-luma", exampleLumaResult, { id, at, status: id === 99 ? "unchanged" : "ok" });
     await rerender(
@@ -221,85 +198,28 @@ describe("RunList", () => {
         none="None"
       />,
     );
-    const tables = [...document.querySelectorAll("table")];
-    expect(tables.map((t) => t.querySelectorAll("th").length)).toEqual([7, 0, 0, 7, 0]);
+    // One fold at the end of the first day, and the second day's two either side of its quiet run.
     expect(document.querySelectorAll("details")).toHaveLength(3);
+    expect(document.querySelectorAll("h2 + * > :first-child")[1].tagName).toBe("DETAILS");
   });
 
-  it("keeps a failure plain further down on a job that runs rarely", async () => {
-    await render(
-      <RunList
-        runs={[
-          ran("import-parliament", exampleImportResult, { id: 1 }),
-          failed("import-parliament", "boom", { id: 2 }),
-        ]}
-        none="None"
-      />,
-    );
-    const [, second] = page.getByRole("status").all();
-    expect(second.element().closest("section")!.parentElement!.className).toBe("");
-    expect(getComputedStyle(second.element().closest("section")!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
-  });
-
-  it("shows Luma's and Gmail's routine runs as rows, a Gmail read's counts over every account", async () => {
-    const luma = ran("import-luma", { ...exampleLumaResult, hostsChanged: undefined, guestsChanged: 77 }, { id: 1 });
-    const rows = (...runs: AnyImportRun[]) => [{ shape: "rows" as const, runs }];
-    const { rerender } = await render(<RunTable header entries={rows(luma)} />);
-    await expect.element(page.getByRole("cell", { name: "77", exact: true })).toBeVisible();
-    await rerender(
-      <RunTable header entries={rows(ran("import-luma", { ...exampleLumaResult, hostsChanged: 55 }, { id: 2 }))} />,
-    );
-    await expect.element(page.getByRole("cell", { name: "55", exact: true })).toBeVisible();
-    const account = (email: string, extra = {}) => ({
-      account: email,
-      replies: 0,
-      autoReplies: 0,
-      bounces: 0,
-      ...extra,
-    });
-    const accounts = [
-      account("silent@pauseai.uk"),
-      account("joseph@pauseai.uk", { replies: 1 }),
-      account("policy@pauseai.uk", { oneOffs: 2 }),
-      account("write.to@pauseai.uk", { relayed: 3, spam: 0, uncertain: 0 }),
-    ];
-    await rerender(<RunTable header entries={rows(ran("read-gmail", { accounts }, { id: 3 }))} />);
-    const cells = () => [...document.querySelectorAll("tbody td")].map((td) => td.textContent);
-    expect(document.body.textContent).not.toContain("silent@pauseai.uk");
-    // Replies, automatic replies, bounces, one-offs, relayed, spam: over the accounts, a count missing as 0.
-    expect(cells().slice(1)).toEqual(["1", "0", "0", "2", "3", "0"]);
-    // A table of counts keeps a width, scrolling on a phone; one column of words needs none.
-    const table = () => page.getByRole("table").element() as HTMLElement;
-    expect(getComputedStyle(table()).minWidth).not.toBe("0px");
-    await rerender(
-      <RunTable header entries={[{ shape: "run", runs: [ran("import-civicrm", exampleCivicrmResult, { id: 4 })] }]} />,
-    );
-    expect(getComputedStyle(table()).minWidth).toBe("0px");
-  });
-
-  it("unfolds only the newest runs, and while a press runs, not the newest one if it's long", async () => {
-    const sync = (id: number, added: number[], at = new Date("2026-10-21T11:00:00Z")): PoliticianImport =>
+  it("unfolds only the newest run, and none while a press runs", async () => {
+    const sync = (id: number): PoliticianImport =>
       ran(
         "import-parliament",
-        {
-          changes: {
-            ...exampleImportResult.changes,
-            added: added.map((n) => ({ ...heldImport.result.changes.added[0], name: `MP ${n}` })),
-          },
-        },
-        { id, at },
+        { changes: { ...exampleImportResult.changes, added: [{ ...heldImport.result.changes.added[0], name: "MP" }] } },
+        { id, at: new Date("2026-10-21T11:00:00Z") },
       );
     const opens = () =>
       page
         .getByRole("group")
         .all()
         .map((fold) => (fold.element() as HTMLDetailsElement).open);
-    const short = [1, 2, 3, 4, 5, 6].map((id) => sync(id, [id]));
-    const { rerender } = await render(<RunList runs={short} none="None" />);
-    expect(opens()).toEqual([true, true, true, true, true, false]);
-    const long = sync(7, [1, 2, 3, 4, 5, 6]);
-    await rerender(<RunList runs={[long, ...short]} none="None" running={press} />);
-    expect(opens().slice(0, 2)).toEqual([false, true]);
+    const runs = [1, 2, 3].map(sync);
+    const { rerender } = await render(<RunList runs={runs} none="None" />);
+    expect(opens()).toEqual([true, false, false]);
+    await rerender(<RunList runs={runs} none="None" running={press} />);
+    expect(opens()).toEqual([false, false, false]);
   });
 
   it("shows a failed or unchanged import as one line, and a held one without buttons where nothing can be decided", async () => {
@@ -374,9 +294,7 @@ describe("RunList", () => {
     await render(<RunList runs={runs} none="None" />);
     await expect.element(page.getByText(/86 names/)).toBeVisible();
     await expect.element(page.getByRole("table")).not.toBeInTheDocument();
-    expect(page.getByText(jobsCopy.runs.status.failed).element().closest("section")).toHaveTextContent(
-      `${jobsCopy.runs.status.failed} ${AT} · ${jobsCopy.import.nightly} · ${jobsCopy.runs.error("No PDF linked")}`,
-    );
+    expect(rowsText()[1]).toBe(`02:00${jobsCopy.runs.status.failed}${jobsCopy.runs.error("No PDF linked")}`);
   });
 
   it("lists the names a ControlAI read couldn't place", async () => {
@@ -440,13 +358,10 @@ describe("RunList", () => {
         none="None"
       />,
     );
-    const [first, second] = page.getByRole("status").all();
-    await expect
-      .element(first)
-      .toHaveTextContent(`${jobsCopy.runs.status.ok} · ${jobsCopy.civicrm.result(exampleCivicrmResult)}`);
-    await expect
-      .element(second)
-      .toHaveTextContent(`${jobsCopy.runs.status.failed} · ${jobsCopy.runs.error("CiviCRM answered 503")}`);
+    expect(rowsText()).toEqual([
+      `02:00${jobsCopy.runs.status.ok}${jobsCopy.civicrm.result(exampleCivicrmResult)}`,
+      `02:00${jobsCopy.runs.status.failed}${jobsCopy.runs.error("CiviCRM answered 503")}`,
+    ]);
   });
 
   it("shows a Gmail read's totals, then each account, with one searched afresh and one that couldn't be read", async () => {
@@ -506,9 +421,7 @@ describe("RunList", () => {
   it("says a Gmail read stopped as another was reading, and no totals", async () => {
     const stopped = { accounts: [], stoppedBy: "running" as const };
     await render(<RunList runs={[ran("read-gmail", stopped, { status: "unchanged" })]} none="None" />);
-    await expect
-      .element(page.getByRole("status"))
-      .toHaveTextContent(`${jobsCopy.runs.status.unchanged} · ${jobsCopy.luma.stoppedBy.running}`);
+    expect(rowsText()).toEqual([`02:00${jobsCopy.runs.status.unchanged}${jobsCopy.luma.stoppedBy.running}`]);
     expect(page.getByText(jobsCopy.gmailReading.result([]), { exact: false }).query()).toBeNull();
   });
 
@@ -548,11 +461,11 @@ describe("RunList", () => {
         none="None"
       />,
     );
-    const [run] = page.getByRole("status").all();
-    expect(run.element().textContent).toContain(
+    const [run] = rowsText();
+    expect(run).toContain(
       `${jobsCopy.luma.result(exampleLumaResult)} ${jobsCopy.luma.hostsChanged(3)} ${jobsCopy.luma.contactPages(10)} ${jobsCopy.luma.eventsTagged(2)}`,
     );
-    expect(run.element().textContent).toMatch(new RegExp(`^${jobsCopy.runs.status.ok} `));
+    expect(run).toMatch(new RegExp(`^02:00${jobsCopy.runs.status.ok}`));
   });
 
   it("says how many postcodes and towns a Luma run looked up, and when postcodes.io failed", async () => {
@@ -571,14 +484,16 @@ describe("RunList", () => {
         none="None"
       />,
     );
-    const [found, failed] = page.getByRole("status").all();
-    expect(found.element().textContent).toContain(
-      `${jobsCopy.luma.result(exampleLumaResult)} ${jobsCopy.luma.places(places)}`,
+    const [found, failed] = rowsText();
+    expect(found).toContain(`${jobsCopy.luma.result(exampleLumaResult)} ${jobsCopy.luma.places(places)}`);
+    expect(found).not.toContain(supportersCopy.problems.placesFailed);
+    // What went wrong is under the words, in amber, with the error's own words muted after it.
+    expect(failed).toMatch(new RegExp(`^02:00${jobsCopy.runs.status.problems}`));
+    const problem = page.getByText(`${postcodesDown.what} ${postcodesDown.error}`);
+    await expect.element(problem).toBeVisible();
+    expect(getComputedStyle(problem.element()).color).toBe(
+      toRgb(getComputedStyle(document.body).getPropertyValue("--status-amber")),
     );
-    expect(found.element().textContent).not.toContain(supportersCopy.problems.placesFailed);
-    // What went wrong is under the line, with the error's own words muted after it.
-    expect(failed.element().textContent).toMatch(new RegExp(`^${jobsCopy.runs.status.problems} `));
-    await expect.element(page.getByText(`${postcodesDown.what} ${postcodesDown.error}`)).toBeVisible();
   });
 
   it("shows a Luma import's counts, or its error", async () => {
@@ -589,29 +504,21 @@ describe("RunList", () => {
         none="None"
       />,
     );
-    const [first, second] = page.getByRole("status").all();
-    await expect.element(first).toHaveTextContent(`${jobsCopy.runs.status.ok} · ${jobsCopy.luma.result(luma)}`);
-    expect(first.element().textContent).not.toContain(jobsCopy.luma.stoppedBy.time);
-    expect(first.element().textContent).not.toContain(jobsCopy.runs.status.incomplete);
-    await expect
-      .element(second)
-      .toHaveTextContent(`${jobsCopy.runs.status.failed} · ${jobsCopy.runs.error("Luma answered 500")}`);
-    // The newest run is tinted by how it ended; a failure further down stays tinted on a job that runs this often.
-    expect(first.element().closest("tr")!.className).toMatch(/green/);
-    expect(second.element().closest("tr")!.className).toMatch(/red/);
+    expect(rowsText()).toEqual([
+      `02:00${jobsCopy.runs.status.ok}${jobsCopy.luma.result(luma)}`,
+      `02:00${jobsCopy.runs.status.failed}${jobsCopy.runs.error("Luma answered 500")}`,
+    ]);
+    expect(tones()).toEqual(["green", "red"]);
   });
 
-  it("says why a Luma import stopped early, as incomplete in place of done, tinted amber as the newest run", async () => {
+  it("says why a Luma import stopped early, as incomplete in place of done, its dot amber", async () => {
     await render(
       <RunList runs={[ran("import-luma", { ...exampleLumaResult, stoppedBy: "rate-limit" })]} none="None" />,
     );
-    const [only] = page.getByRole("status").all();
-    await expect
-      .element(only)
-      .toHaveTextContent(
-        `${jobsCopy.runs.status.incomplete} · ${jobsCopy.luma.result(exampleLumaResult)} ${jobsCopy.luma.stoppedBy["rate-limit"]}`,
-      );
-    expect(only.element().closest("tr")!.className).toMatch(/amber/);
+    expect(rowsText()).toEqual([
+      `02:00${jobsCopy.runs.status.incomplete}${jobsCopy.luma.result(exampleLumaResult)} ${jobsCopy.luma.stoppedBy["rate-limit"]}`,
+    ]);
+    expect(tones()).toEqual(["amber"]);
   });
 
   it("heads each day's runs with its date, and says when there are none", async () => {
@@ -632,13 +539,6 @@ describe("RunList", () => {
       .element(page.getByText(`${importRunsCopy.jobTitles["import-parliament"]} ·`, { exact: false }))
       .not.toBeInTheDocument();
     await rerender(<RunList runs={[]} none="Nothing here" />);
-    const before = ran(
-      "import-luma",
-      { ...exampleLumaResult, stoppedBy: "time" },
-      { id: 1, at: new Date("2026-10-21T11:00:00Z") },
-    );
-    const during = ran("import-luma", exampleLumaResult, { id: 2, at: new Date("2026-10-21T11:48:00Z") });
-    await rerender(<RunList runs={[before, during]} none="Nothing here" running={press} />);
-    expect(document.querySelector("section")!.parentElement!.className).not.toMatch(/amber/);
+    await expect.element(page.getByText("Nothing here")).toBeVisible();
   });
 });

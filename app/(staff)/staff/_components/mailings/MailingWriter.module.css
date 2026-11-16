@@ -123,6 +123,26 @@
   justify-items: start;
 }
 
+/* How the test copy went: in the words' own colour and weight, not a note's
+   grey, as it's what was being waited for; nothing, taking no room, before
+   one is sent. */
+.testSent {
+  margin: 0;
+  font-weight: 600;
+}
+
+.testSent:empty {
+  display: none;
+}
+
+.testTick {
+  color: var(--status-green);
+}
+
+.testFailed {
+  color: var(--status-red);
+}
+
 /* The address and its button, as tall as each other: the button stretches to the field's height. */
 .testRow {
   display: flex;

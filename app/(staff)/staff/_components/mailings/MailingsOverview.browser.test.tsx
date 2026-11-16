@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { dueIn } from "@/lib/staff-time";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { mailingGroups } from "@/lib/mailings/groups";
@@ -58,15 +59,19 @@ describe("MailingsOverview", () => {
     await expect.element(row("Meet us in Westminster").first()).toMatchTextContent(copy.savedAt("28 Oct 2026"));
     await expect.element(row("Meet us in Westminster").first()).toMatchTextContent(copy.standing.draft(412));
     await expect.element(page.getByRole("link", { name: copy.untitled })).toHaveAttribute("href", "/staff/mailings/7");
-    // Scheduled: when it goes, and how many it's to, its dot blue.
+    // Scheduled: how long till it goes, over when, and how many it's to, its dot blue.
     await expect.element(row("Edinburgh: one week to go")).toMatchTextContent("Fri 30 Oct, 09:03");
+    await expect
+      .element(row("Edinburgh: one week to go"))
+      .toMatchTextContent(dueIn(new Date("2026-10-30T09:03:00Z"), new Date(now)));
     await expect.element(row("Edinburgh: one week to go")).toMatchTextContent(copy.standing.scheduled(72));
     expect(row("Edinburgh: one week to go").element().querySelector("i[data-tone=blue]")).not.toBeNull();
     // Sent, to how many.
     await expect.element(row("AI safety conference")).toMatchTextContent(copy.standing.sent(12));
-    // Sending: its bar, leading to it.
+    // Sending: that it's sending now, over when it started; its bar, leading to it.
     await expect.element(page.getByRole("progressbar", { name: copy.sentLabel })).toHaveAttribute("value", "214");
     await expect.element(page.getByText(copy.sendingBar(209, 650))).toBeVisible();
+    await expect.element(page.getByText(copy.sendingNow, { exact: true })).toBeVisible();
     // Sent: every count, each opening it with that tab chosen, none folded behind how many are fine; the day without
     // this year. One with no letters has no counts.
     await expect

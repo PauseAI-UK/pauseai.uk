@@ -1,68 +1,103 @@
 import type { ReactNode } from "react";
-import { type AnyImportRun, jobSchedule, NEWER_RUN, NIGHTLY, runStatus } from "@/lib/import-runs";
-import { staffTime } from "@/lib/staff-time";
-import ResultBox from "./ResultBox";
+import { type AnyImportRun, NEWER_RUN, NIGHTLY, runStatus, runTone } from "@/lib/import-runs";
+import { staffClock, staffTime } from "@/lib/staff-time";
+import Actions from "@/components/ui/Actions";
 import { Muted } from "@/components/ui/Text";
+import IconText from "../ui/IconText";
 import styles from "./RunBox.module.css";
 import { jobsCopy } from "./copy";
+
+/**
+ * How a run ended, or that one is going, in words after a dot of its
+ * colour: green done, amber held or with problems, red failed, blue
+ * running, grey for none, such as a discarded run.
+ */
+export function RunState({
+  tone,
+  children,
+}: {
+  tone: "green" | "amber" | "red" | "blue" | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <span className={styles.state} data-tone={tone}>
+      {/* Centred on the words' lowercase letters, so its words sit on the line the words beside them do. */}
+      <IconText icon={<span className={styles.dot} aria-hidden="true" />}>{children}</IconText>
+    </span>
+  );
+}
 
 type Props = {
   run: AnyImportRun;
   /** The job's own summary of what the run found. Not shown for a failed run, whose error is. */
   summary: ReactNode;
-  lines?: number;
-  /** Whether it starts unfolded, whatever its detail's length; left out, it goes by `lines` (ResultBox). */
+  /** Whether its detail starts unfolded. */
   open?: boolean;
+  /** Buttons that stay outside the fold, such as apply and discard. */
   actions?: ReactNode;
-  /** In a row of a table: without the box, and without the time or the schedule, which the row says. */
-  bare?: boolean;
+  /** `line`: the run on one line, as a job's card has its newest, without what went wrong, its detail or its buttons. */
+  variant?: "row" | "line";
+  /** The detail, folded under the row: lists or a table. None, and there's nothing to fold. */
   children?: ReactNode;
 };
 
 /**
- * One run from the import log, in a ResultBox: how it ended, when, who
- * started it, and what it found, or why it failed, on the line; what went
- * wrong along the way under it, never folded; the job's detail folded under
- * that. Bare, for a row of a table, the line leaves out what the row says.
+ * One run from the import log, a row of its job's page: the time, how it
+ * ended, then what it found or why it failed, who started it if a person
+ * did, and who decided it if it was held; what went wrong along the way
+ * under that, in amber, never folded; and the job's detail folded under the
+ * row, opened by the arrow at its end. A held run's buttons come under it.
  */
-export default function RunBox({ run, summary, lines, open, actions, bare, children }: Props) {
+export default function RunBox({ run, summary, open, actions, variant = "row", children }: Props) {
   const failed = run.status === "failed";
-  const line = (
+  const state = <RunState tone={runTone(run)}>{jobsCopy.runs.status[runStatus(run)]}</RunState>;
+  const said = failed ? jobsCopy.runs.error(run.error) : summary;
+  if (variant === "line")
+    return (
+      <p className={styles.line}>
+        {state}
+        <span className={styles.when}>{staffTime(run.at)}</span>
+        <span className={styles.said}>{said}</span>
+      </p>
+    );
+  const head = (
     <>
-      <strong>{jobsCopy.runs.status[runStatus(run)]}</strong>
-      {!bare && <Muted> {staffTime(run.at)}</Muted>}
-      {run.startedBy && run.startedBy !== NIGHTLY && <Muted> · {jobsCopy.runs.by(run.startedBy)}</Muted>}
-      {run.startedBy === NIGHTLY && !bare && <Muted> · {jobsCopy.import[jobSchedule(run.job)]}</Muted>}
-      {run.decidedBy && (
-        <Muted>
-          {" "}
-          · {run.decidedBy === NEWER_RUN ? jobsCopy.runs.replaced : jobsCopy.runs.decidedBy(run.decidedBy)}
-        </Muted>
-      )}
-      {failed ? <> · {jobsCopy.runs.error(run.error)}</> : <Muted> · {summary}</Muted>}
+      <span className={styles.time}>{staffClock(run.at)}</span>
+      {state}
+      <span className={styles.text}>
+        {said}
+        {run.startedBy && run.startedBy !== NIGHTLY && <Muted> · {jobsCopy.runs.by(run.startedBy)}</Muted>}
+        {run.decidedBy && (
+          <Muted>
+            {" "}
+            · {run.decidedBy === NEWER_RUN ? jobsCopy.runs.replaced : jobsCopy.runs.decidedBy(run.decidedBy)}
+          </Muted>
+        )}
+        {run.problems.map((p, i) => (
+          <span key={i} className={styles.problem}>
+            {p.what}
+            {p.error && <Muted> {p.error}</Muted>}
+          </span>
+        ))}
+      </span>
     </>
   );
-  const problems = run.problems.length > 0 && (
-    <ul className={styles.problems}>
-      {run.problems.map((p, i) => (
-        <li key={i}>
-          {p.what}
-          {p.error && <Muted> {p.error}</Muted>}
-        </li>
-      ))}
-    </ul>
-  );
+  const detail = failed ? undefined : children;
   return (
-    <ResultBox
-      summary={line}
-      lines={lines}
-      open={open}
-      problems={problems}
-      actions={actions}
-      bare={bare}
-      aria-label={String(run.at)}
-    >
-      {failed ? undefined : children}
-    </ResultBox>
+    <section className={styles.run} aria-label={String(run.at)}>
+      {detail ? (
+        <details open={open}>
+          <summary className={styles.row}>{head}</summary>
+          <div className={styles.under}>{detail}</div>
+        </details>
+      ) : (
+        <div className={styles.row}>{head}</div>
+      )}
+      {actions && (
+        <div className={styles.under}>
+          <Actions>{actions}</Actions>
+        </div>
+      )}
+    </section>
   );
 }

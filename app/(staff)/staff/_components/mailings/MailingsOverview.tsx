@@ -6,7 +6,7 @@ import type { MailingGroup } from "@/lib/mailings/groups";
 import { mailingWhen } from "@/lib/mailings/groups";
 import type { MailingBase, MailingSummary } from "@/lib/mailings/records.server";
 import { named } from "@/lib/email-parsing/addresses";
-import { londonWhenShort, staffDate } from "@/lib/staff-time";
+import { dueIn, londonWhenShort, staffDate } from "@/lib/staff-time";
 import { countsOpening, type Count } from "../ui/Counts";
 import { EveryCount, NeedsAndFine } from "./CopyCounts";
 import { stateCounts } from "../letters/CopyStatus";
@@ -73,14 +73,21 @@ const MAILINGS_LOOK: OverviewLook<MailingSummary> = {
 };
 
 /**
- * When, at a row's left: when a draft was last saved; when one scheduled
- * goes, or one sending started, in blue, as it's going out; the day one
- * went, with its year when that's not `year`.
+ * When, at a row's left: when a draft was last saved; how long till one
+ * scheduled goes, or that one is sending now, in blue, as it's going out,
+ * over when; the day one went, with its year when that's not `year`.
  */
-function When({ mailing, year }: { mailing: MailingBase; year: string }) {
+function When({ mailing, year, now }: { mailing: MailingBase; year: string; now: Date }) {
   if (mailing.state === "draft") return <Muted>{copy.savedAt(staffDate(mailing.updatedAt))}</Muted>;
   if (mailing.state === "scheduled" || mailing.state === "sending") {
-    return <strong className={styles.due}>{londonWhenShort(mailing.dueAt!)}</strong>;
+    return (
+      <span className={styles.dueIn}>
+        <strong className={styles.due}>
+          {mailing.state === "sending" ? copy.sendingNow : dueIn(mailing.dueAt!, now)}
+        </strong>
+        <span>{londonWhenShort(mailing.dueAt!)}</span>
+      </span>
+    );
   }
   const day = staffDate(mailingWhen(mailing));
   return <>{day.endsWith(year) ? day.slice(0, -5) : day}</>;
@@ -127,11 +134,13 @@ function Standing<T extends MailingBase>({ mailing, href, look }: { mailing: T; 
 function Row<T extends MailingBase>({
   mailing,
   year,
+  now,
   look,
   pulse,
 }: {
   mailing: T;
   year: string;
+  now: Date;
   look: OverviewLook<T>;
   pulse: boolean;
 }) {
@@ -154,7 +163,7 @@ function Row<T extends MailingBase>({
   return (
     <li className={styles.row} data-pulse={pulse || undefined}>
       <span className={styles.when}>
-        <When mailing={mailing} year={year} />
+        <When mailing={mailing} year={year} now={now} />
       </span>
       <span className={styles.what}>
         {/* A list with a mark has it before each title, as an icon is before words (IconText). */}
@@ -223,7 +232,14 @@ export default function MailingsOverview<T extends MailingBase = MailingSummary>
             <h2 id={`mailings-${group.key}`}>{group.heading}</h2>
             <ul className={styles.rows}>
               {group.mailings.map((mailing) => (
-                <Row key={mailing.id} mailing={mailing} year={year} look={look} pulse={mailing.id === pulse} />
+                <Row
+                  key={mailing.id}
+                  mailing={mailing}
+                  year={year}
+                  now={new Date(now)}
+                  look={look}
+                  pulse={mailing.id === pulse}
+                />
               ))}
             </ul>
           </section>

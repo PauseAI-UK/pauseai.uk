@@ -1,3 +1,4 @@
+import Image from "next/image";
 import StaffLink from "../ui/StaffLink";
 import type { ReactNode } from "react";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -269,10 +270,10 @@ function PoliticianBand({
       className={styles.band}
       lead={
         politician.photoUrl && (
-          // From their body's site, as it gives it (lib/politicians/import-changes.ts, photoAddress). Unnamed, as
-          // their name is the title beside it.
-          // eslint-disable-next-line @next/next/no-img-element -- their body's own picture, loaded from its site
-          <img className={styles.photo} src={politician.photoUrl} alt="" />
+          // From their body's site, as it gives it (lib/politicians/import-changes.ts, photoAddress), by way of the
+          // image CDN, which keeps a copy at the size shown: some bodies' are big and slow to come. Unnamed, as
+          // their name is the title beside it. Its box is the CSS's, 4 by 5.
+          <Image className={styles.photo} src={politician.photoUrl} alt="" width={116} height={145} loading="eager" />
         )
       }
       title={politician.name}

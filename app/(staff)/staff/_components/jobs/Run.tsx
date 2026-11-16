@@ -25,6 +25,9 @@ import { jobsCopy } from "./copy";
 /** The Server Action that applies or discards a held import. */
 export type Decide = (formData: FormData) => void | Promise<void>;
 
+/** A run as a row of its job's page, or on one line, as its card has it (RunBox). */
+type Variant = "row" | "line";
+
 /** Who a politician is, as a run lists them: where they sit and their name. */
 type Listed = { name?: string; house?: House; constituency?: string | null; email?: string | null };
 
@@ -97,14 +100,14 @@ function PoliticianImportRun({
   run,
   decide,
   open,
-  bare,
+  variant,
 }: {
   run: PoliticianImport;
   decide?: Decide;
   open?: boolean;
-  bare?: boolean;
+  variant?: Variant;
 }) {
-  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
+  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} variant={variant} />;
   const words = politiciansCopy.politicianImports;
   const { changes, vacant, relinked } = run.result;
   const { added, changed, left, renamed, unofficial, salutations } = changes;
@@ -116,8 +119,7 @@ function PoliticianImportRun({
     <RunBox
       run={run}
       open={open}
-      bare={bare}
-      lines={count + (vacant?.length ?? 0)}
+      variant={variant}
       summary={summary.join(" ")}
       actions={
         run.status === "held" &&
@@ -148,29 +150,31 @@ function PoliticianImportRun({
 }
 
 /** A copy of ControlAI's statement's supporters: what it did. Links it couldn't match are a problem of the run. */
-function ControlAiStatementRun({ run, open, bare }: { run: ControlAiStatementImport; open?: boolean; bare?: boolean }) {
+function ControlAiStatementRun({
+  run,
+  open,
+  variant,
+}: {
+  run: ControlAiStatementImport;
+  open?: boolean;
+  variant?: Variant;
+}) {
   return (
     <RunBox
       run={run}
       summary={run.status === "failed" ? null : jobsCopy.controlAiStatement.result(run.result)}
       open={open}
-      bare={bare}
+      variant={variant}
     />
   );
 }
 
 /** A copy of ControlAI's letter's signatories: what it did, and the names it couldn't place. */
-function ControlAiRun({ run, open, bare }: { run: ControlAiImport; open?: boolean; bare?: boolean }) {
-  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
+function ControlAiRun({ run, open, variant }: { run: ControlAiImport; open?: boolean; variant?: Variant }) {
+  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} variant={variant} />;
   const { result } = run;
   return (
-    <RunBox
-      run={run}
-      summary={jobsCopy.controlAi.result(result)}
-      lines={result.problems.length}
-      open={open}
-      bare={bare}
-    >
+    <RunBox run={run} summary={jobsCopy.controlAi.result(result)} open={open} variant={variant}>
       {result.problems.length > 0 && (
         <Table>
           <thead>
@@ -197,14 +201,14 @@ function ControlAiRun({ run, open, bare }: { run: ControlAiImport; open?: boolea
 }
 
 /** A copy of the Luma calendar: the counts, the hosts changed, the places looked up, and why it stopped early if it did. */
-function LumaRun({ run, open, bare }: { run: LumaImport; open?: boolean; bare?: boolean }) {
-  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
+function LumaRun({ run, open, variant }: { run: LumaImport; open?: boolean; variant?: Variant }) {
+  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} variant={variant} />;
   const { stoppedBy, hostsChanged, contactPages, eventsTagged, places } = run.result;
   return (
     <RunBox
       run={run}
       open={open}
-      bare={bare}
+      variant={variant}
       summary={
         <>
           {jobsCopy.luma.result(run.result)}
@@ -220,13 +224,13 @@ function LumaRun({ run, open, bare }: { run: LumaImport; open?: boolean; bare?: 
 }
 
 /** A pull from CiviCRM: the counts, and why nobody was marked gone, if no one was. */
-function CivicrmRun({ run, open, bare }: { run: CivicrmImport; open?: boolean; bare?: boolean }) {
+function CivicrmRun({ run, open, variant }: { run: CivicrmImport; open?: boolean; variant?: Variant }) {
   return (
     <RunBox
       run={run}
       summary={run.status === "failed" ? null : jobsCopy.civicrm.result(run.result)}
       open={open}
-      bare={bare}
+      variant={variant}
     />
   );
 }
@@ -239,23 +243,21 @@ function CivicrmRun({ run, open, bare }: { run: CivicrmImport; open?: boolean; b
  * found. One that stopped as another was reading says so, as the Luma
  * import's does.
  */
-function GmailRun({ run, open, bare }: { run: GmailReading; open?: boolean; bare?: boolean }) {
-  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} bare={bare} />;
+function GmailRun({ run, open, variant }: { run: GmailReading; open?: boolean; variant?: Variant }) {
+  if (run.status === "failed") return <RunBox run={run} summary={null} open={open} variant={variant} />;
   if (run.result.stoppedBy) {
-    return <RunBox run={run} summary={jobsCopy.luma.stoppedBy[run.result.stoppedBy]} open={open} bare={bare} />;
+    return <RunBox run={run} summary={jobsCopy.luma.stoppedBy[run.result.stoppedBy]} open={open} variant={variant} />;
   }
   const words = jobsCopy.gmailReading;
   const inbox = lettersCopy.lettersInbox;
   const { accounts, searched } = run.result;
-  const lines = accounts.reduce((n, a) => n + 1 + (a.notUnderstood?.length ?? 0), 0);
   const summary = words.result(accounts);
   return (
     <RunBox
       run={run}
       summary={searched ? `${summary.replace(/\.?$/, ".")} ${words.searched(searched)}` : summary}
-      lines={lines}
       open={open}
-      bare={bare}
+      variant={variant}
     >
       <ul>
         {accounts.map((a) => (
@@ -290,64 +292,64 @@ function GmailRun({ run, open, bare }: { run: GmailReading; open?: boolean; bare
 }
 
 /** An hour's sending: the counts. */
-function SendingRun({ run, open, bare }: { run: Sending; open?: boolean; bare?: boolean }) {
+function SendingRun({ run, open, variant }: { run: Sending; open?: boolean; variant?: Variant }) {
   return (
     <RunBox
       run={run}
       summary={run.status === "failed" ? null : jobsCopy.sending.result(run.result)}
       open={open}
-      bare={bare}
+      variant={variant}
     />
   );
 }
 
 /** A night's tidying: the counts. */
-function TidyingRun({ run, open, bare }: { run: Tidying; open?: boolean; bare?: boolean }) {
+function TidyingRun({ run, open, variant }: { run: Tidying; open?: boolean; variant?: Variant }) {
   return (
     <RunBox
       run={run}
       summary={run.status === "failed" ? null : jobsCopy.tidying.result(run.result)}
       open={open}
-      bare={bare}
+      variant={variant}
     />
   );
 }
 
 /**
- * One run from the import log, as its job's page shows it; `open` says
- * whether its detail starts unfolded, and left out, its length does.
- * `bare`: in a row of a table, without the box (RunBox).
+ * One run from the import log, as a row of its job's page, `open` saying
+ * whether its detail starts unfolded; or as `variant` "line", on one line,
+ * as its job's card has it (RunBox).
  */
 export default function Run({
   run,
   decide,
   open,
-  bare,
+  variant,
 }: {
   run: AnyImportRun;
   decide?: Decide;
   open?: boolean;
-  bare?: boolean;
+  variant?: Variant;
 }) {
   switch (run.job) {
     case "import-parliament":
     case "import-scottish-parliament":
     case "import-senedd":
     case "import-ni-assembly":
-      return <PoliticianImportRun run={run} decide={decide} open={open} bare={bare} />;
+      return <PoliticianImportRun run={run} decide={decide} open={open} variant={variant} />;
     case "import-controlai":
-      return <ControlAiRun run={run} open={open} bare={bare} />;
+      return <ControlAiRun run={run} open={open} variant={variant} />;
     case "import-controlai-statement":
-      return <ControlAiStatementRun run={run} open={open} bare={bare} />;
+      return <ControlAiStatementRun run={run} open={open} variant={variant} />;
     case "import-luma":
-      return <LumaRun run={run} open={open} bare={bare} />;
+      return <LumaRun run={run} open={open} variant={variant} />;
     case "import-civicrm":
-      return <CivicrmRun run={run} open={open} bare={bare} />;
+      return <CivicrmRun run={run} open={open} variant={variant} />;
     case "read-gmail":
-      return <GmailRun run={run} open={open} bare={bare} />;
+      return <GmailRun run={run} open={open} variant={variant} />;
     case "send-mailings":
-      return <SendingRun run={run} open={open} bare={bare} />;
+      return <SendingRun run={run} open={open} variant={variant} />;
     case "tidy-logs":
-      return <TidyingRun run={run} open={open} bare={bare} />;
+      return <TidyingRun run={run} open={open} variant={variant} />;
   }
 }

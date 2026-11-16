@@ -17,7 +17,7 @@ import type {
   SupporterSummary,
 } from "./supporters";
 import { SUPPORTERS_PAGE_SIZE } from "./supporters";
-import { channelOf, type Channel } from "./contact-permissions";
+import { channelOf, type Channel, type ContactPermission } from "./contact-permissions";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { permissionsFor } from "./permissions-for.server";
 import { optedOutOfLuma } from "./opt-outs.server";
@@ -309,16 +309,27 @@ export async function listSupporters(
   // The page's rows first, then their columns: worked out before the sort, the columns were for everyone.
   const page = sql`SELECT ${sql.raw(SUMMARY_COLUMNS)} FROM (SELECT s.* ${filtered}
      ORDER BY ${order} LIMIT ${limit} OFFSET ${(filter.page - 1) * (limit ?? 0)}) s ORDER BY ${order}`;
-  const [rows, [{ total }]] = await Promise.all([
+  // With no limit, every row is read, so they're the count.
+  const [rows, counted] = await Promise.all([
     query<SupporterSummary>(page),
-    query<{ total: number }>(sql`SELECT count(*)::int AS total ${filtered}`),
+    limit === null ? undefined : query<{ total: number }>(sql`SELECT count(*)::int AS total ${filtered}`),
   ]);
+  const total = counted ? counted[0].total : rows.length;
   const permissions = await permissionsFor(
     rows.flatMap((row) => row.emails),
     rows.flatMap((row) => row.phones),
   );
-  const theirs = (row: SupporterSummary) =>
-    permissions.filter((p) => (p.channel === "email" ? row.emails : row.phones).includes(p.address));
+  // Each address's answers, looked up rather than searched for: a broadcast's rows are thousands. Every address
+  // has its place, as permissionsFor() writes it, so each answer, which is for one of them, has its own.
+  const keys = (row: SupporterSummary) => [
+    ...new Set([
+      ...row.emails.map((address) => `email ${address.trim().toLowerCase()}`),
+      ...row.phones.map((number) => `phone ${number}`),
+    ]),
+  ];
+  const byAddress = new Map(rows.flatMap(keys).map((key) => [key, [] as ContactPermission[]]));
+  for (const p of permissions) byAddress.get(`${p.channel} ${p.address}`)!.push(p);
+  const theirs = (row: SupporterSummary) => keys(row).flatMap((key) => byAddress.get(key)!);
   const ids = rows.map((row) => row.id);
   // For the columns the Event and Campaign filters add: the page's registrations for the events chosen, and when
   // each first wrote in the campaign.

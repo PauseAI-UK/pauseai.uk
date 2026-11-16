@@ -15,6 +15,7 @@ import { action } from "@/tests/browser/staff";
 import { politiciansCopy } from "./copy";
 import { PoliticianDetailsExample } from "./PoliticianDetails.gallery.client";
 import { asksCopy } from "@/lib/asks/copy";
+import { STAND_IN_PHOTO } from "@/lib/politicians/photo-hosts";
 import { exampleAsks } from "../asks/AsksList.examples";
 import { exampleHiddenOneOff, exampleOneOffs } from "../letters/OneOffList.examples";
 import { lettersCopy } from "../letters/copy";
@@ -48,13 +49,17 @@ describe("PoliticianDetails", () => {
       .map((dt) => dt.element().textContent);
   const openFolds = () => document.querySelectorAll("details").forEach((fold) => (fold.open = true));
 
-  it("shows their photo from their body's site first in the band, if it has one", async () => {
+  it("shows their photo from their body's site first in the band, if it has one, by way of the image CDN", async () => {
     const { rerender } = await render(<PoliticianDetails politician={MP} unblock={vi.fn()} {...none} />);
     expect(document.querySelector("h1")!.closest("div")!.parentElement!.querySelector("img")).toBeNull();
-    await rerender(
-      <PoliticianDetails politician={{ ...MP, photoUrl: "/images/bristol-launch.jpeg" }} unblock={vi.fn()} {...none} />,
-    );
-    const photo = document.querySelector<HTMLImageElement>("img[src='/images/bristol-launch.jpeg']")!;
+    const theirs = "https://members-api.parliament.uk/api/Members/1/Portrait";
+    await rerender(<PoliticianDetails politician={{ ...MP, photoUrl: theirs }} unblock={vi.fn()} {...none} />);
+    const cdn = document.querySelector<HTMLImageElement>("img")!;
+    expect(new URL(cdn.src).pathname).toBe("/_next/image");
+    expect(new URL(cdn.src).searchParams.get("url")).toBe(theirs);
+    // A picture of the site's own, to see it load here, where there's no image CDN: an SVG goes as it is.
+    await rerender(<PoliticianDetails politician={{ ...MP, photoUrl: STAND_IN_PHOTO }} unblock={vi.fn()} {...none} />);
+    const photo = document.querySelector<HTMLImageElement>(`img[src='${STAND_IN_PHOTO}']`)!;
     // Unnamed, as their name is the title beside it.
     expect(photo.alt).toBe("");
     await expect.poll(() => photo.complete && photo.naturalWidth > 0).toBe(true);

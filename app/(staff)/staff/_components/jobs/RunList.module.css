@@ -1,25 +1,33 @@
-/* A run tinted by how it ended, the newest or a problem further down: its box keeps the ordinary border. */
-.green > section {
-  background: var(--status-green-bg);
+/* A day's heading, small, over its rows, a rule over the first of them. */
+.day {
+  margin: var(--space-6) 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
-.amber > section {
-  background: var(--status-amber-bg);
+.rows {
+  border-top: 1px solid var(--border);
 }
 
-.red > section {
-  background: var(--status-red-bg);
+/* Runs that found nothing, or folded away: muted, smaller. */
+.quiet {
+  color: var(--muted);
+  font-size: var(--text-sm);
 }
 
-/* Rows too far down to show, a line until opened, between the day's tables. */
-.stretch {
-  margin-block: var(--space-3);
+/* Their row's time too. */
+.quiet > :first-child > span {
+  color: inherit;
 }
 
-.stretch summary {
-  cursor: pointer;
+/* Folded runs, opened: their rows indented under the line that folds them. */
+.folded {
+  padding-left: var(--space-5);
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--text-md);
 }
 
-.stretch[open] summary {
-  margin-bottom: var(--space-2);
+.folded > :last-child {
+  border-bottom: 0;
 }

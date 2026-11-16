@@ -184,7 +184,7 @@ describe("BroadcastWriter's Consent", () => {
     expect(actions.changeConsent).not.toHaveBeenCalled();
   });
 
-  it("saves what's typed, changes the Consent, and shows the draft as it is then", async () => {
+  it("changes the Consent, whose action brings the page back, so it isn't fetched again", async () => {
     const actions = await renderWriter();
     const refreshes = navigation.refreshes;
     // The only one it has: it stays.
@@ -192,13 +192,11 @@ describe("BroadcastWriter's Consent", () => {
     await choose(copy.facts.saidYes, consents["email:events"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:events:yes"), WAIT);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
-    await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
-    // Refused, nothing to show again.
+    // Refused, nothing changes either.
     actions.changeConsent.mockResolvedValue(false);
-    const before = navigation.refreshes;
     await choose(copy.facts.saidYes, consents["email:events"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledTimes(2), WAIT);
-    expect(navigation.refreshes).toBe(before);
+    expect(navigation.refreshes).toBe(refreshes);
   });
 
   it("shows a spinner on the topic pressed, chosen, added or taken off, till its change is done", async () => {
@@ -318,7 +316,8 @@ describe("BroadcastWriter, by email", () => {
     expect(page.getByText(/About [$£]/).query()).toBeNull();
     await button(copy.schedule(412, "email")).click();
     await vi.waitFor(() => expect(actions.schedule).toHaveBeenCalledWith(3, 4), WAIT);
-    expect(navigation.refreshes).toBeGreaterThan(0);
+    // Pending till the action brings the scheduled page back.
+    await expect.element(button(copy.schedule(412, "email"))).toHaveAttribute("aria-busy", "true");
   });
 
   it("keeps the button if scheduling is refused", async () => {
@@ -439,6 +438,19 @@ describe("BroadcastWriter, by email", () => {
     await page.getByLabelText(copy.fromAccount, { exact: false }).selectOptions("postmark");
     await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
     expect(actions.save.mock.calls.at(-1)?.[2]).toMatchObject({ sendBy: "postmark" });
+  });
+
+  it("says nothing of a Gmail just chosen till the page has checked it, nor that it stops it", async () => {
+    await renderWriter({
+      draft: { ...exampleBroadcastEmail, sendBy: "postmark" },
+      data: { ...exampleBroadcastData, sender: { byGmail: false, connected: false, remaining: null, daily: null } },
+    });
+    await page.getByLabelText(copy.fromAccount, { exact: false }).selectOptions("gmail");
+    await expect.element(page.getByText(copy.sendBy.postmark)).not.toBeInTheDocument();
+    const said = document.body.textContent!;
+    expect(said).not.toContain(copy.sendBy.notConnected("hello@pauseai.uk"));
+    expect(said).not.toContain(copy.testVia.emailGmail("hello@pauseai.uk"));
+    expect(said).not.toContain(copy.problems["not-connected"]);
   });
 
   it("is from PauseAI UK with no name of its own: Send has the address, the name under it, then by what", async () => {

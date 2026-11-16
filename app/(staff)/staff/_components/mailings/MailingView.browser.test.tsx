@@ -163,7 +163,8 @@ describe("MailingView", () => {
     const forms: FormData[] = [];
     const action = async (form: FormData) => void forms.push(form);
     await view({ written: { ...written, state: "scheduled" }, stop: action, reschedule: action });
-    await expect.element(page.getByText(copy.sends("Tue 1 Dec at 09:03"))).toBeVisible();
+    await expect.element(page.getByText("Tue 1 Dec at 09:03", { exact: true })).toBeVisible();
+    await expect.element(page.getByText(copy.sendsIn(staffVocabulary.dueIn.days(33)), { exact: true })).toBeVisible();
     expect(page.getByText(copy.states.scheduled, { exact: true }).all()).toHaveLength(2);
     await expect.element(page.getByRole("link", { name: `5 ${states.counts.sent}` })).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.changeTime }).click();
@@ -261,7 +262,7 @@ describe("MailingView", () => {
         reschedule={noAction}
       />,
     );
-    await expect.element(page.getByText(copy.scheduledLine(mailing.to, "jo@pauseai.uk"))).toBeVisible();
+    await expect.poll(() => document.body.textContent).toContain(copy.scheduledLine(mailing.to, "jo@pauseai.uk"));
   });
 
   it("sending: how far it's got, when it started, and Stop sending", async () => {

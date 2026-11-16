@@ -885,7 +885,7 @@ that drives it or why nothing does.
   - an import held for a renamed politician;
   - the Luma import run twice from its page;
   - the CiviCRM import, skipping an erased contact;
-  - the logs of Luma, the Gmail reading and CiviCRM, a table a day, with the newest run's tinted row, rows, a row for quiet runs, a problem's tinted rows and a folded stretch;
+  - the logs of Luma, the Gmail reading and CiviCRM, a row a run under each day, with the newest opened, a row for quiet runs, a problem's amber line and a folded stretch;
   - the connected Gmail read from its page, and the button pressed again while the scheduled read is going;
   - an import failing, with Luma down for the flow (`lib/server/fixtures/failing-services.ts`), and one with problems, with postcodes.io down: the notification inbox is emailed once, though the import fails twice;
   - a Gmail that Google disconnects, with the notification inbox emailed;

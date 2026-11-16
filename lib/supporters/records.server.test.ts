@@ -387,6 +387,16 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     vi.unstubAllEnvs();
   });
 
+  it("lists everyone at once, for a download or a broadcast, counting them as it reads them", async () => {
+    await people();
+    const all = await listSupporters({ sort: "name", dir: "asc", page: 1 }, null);
+    expect(all.total).toBe(4);
+    expect(all.supporters.map((s) => s.name)).toEqual(["Jane", "Old", "Pat", "Sam"]);
+    // Each with the answers of their own addresses, and only theirs.
+    const jane = all.supporters.find((s) => s.name === "Jane")!;
+    expect(jane.permissions.map((p) => p.address)).toEqual(["jane@example.com", "+447700900001"]);
+  });
+
   it("lists everyone newest activity first, with what's known of each, and pages", async () => {
     await people();
     const page = await listSupporters({ sort: "active", dir: "desc", page: 1 });

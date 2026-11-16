@@ -1,7 +1,7 @@
 // The words of the scheduled jobs' pages that only they show: the
 // overview of every job, and the line each run starts with, with those the
 // server uses too (lib/jobs/copy.ts).
-import { count, plural } from "@/lib/content/plural";
+import { count } from "@/lib/content/plural";
 import { jobsCopy as wordsTheServerUses } from "@/lib/jobs/copy";
 
 export const jobsCopy = {
@@ -28,10 +28,8 @@ export const jobsCopy = {
     decidedBy: (who: string) => `decided by ${who}`,
     // A held run discarded as a newer run of its job came after it, as only the newest list can be applied.
     replaced: "replaced by a newer run",
-    // A job's frequent runs, in a table: its columns' headings, where a job has
-    // no counts of its own, the time of a stretch of runs, and what a stretch was.
-    time: "Time",
-    found: "What it found",
+    // A job's runs that found nothing, gathered into a row, and its routine runs further down, folded into one:
+    // the time of the first and the last, and what they were.
     range: (from: string, to: string) => (from === to ? from : `${from}–${to}`),
     quiet: (n: number) => `${count(n, "run", "runs")}, nothing new`,
     stretch: (n: number) => `${count(n, "run", "runs")}, no problems`,
@@ -42,15 +40,18 @@ export const jobsCopy = {
     // the rest, such as reading Gmail, sending mailings and tidying the logs.
     pageTitle: "Scheduled jobs",
     // Under the title.
-    pageIntro: "Imports, mail and tidying that run on a timer",
-    // At the foot of each job's card: how long till it next runs on its own (inMinutes or inHours), and the time.
+    pageIntro: "Imports, sending and tidying that run on their own",
+    // At the foot of each job's card: how long till it next runs on its own (staffVocabulary.dueIn), and the time.
     runsAgain: (inWords: string, at: string) => `Runs again ${inWords} · ${at}`,
-    inMinutes: (n: number) => plural(n, "in 1 minute", `in ${n} minutes`),
-    inHours: (n: number) => plural(n, "in 1 hour", `in ${n} hours`),
-    // On a job's page, over its runs: the next, when, how long till then (inMinutes or inHours), and how often it
-    // runs (frequent, nightly and so on).
-    comingUp: "Coming up",
-    nextRunOn: (when: string, inWords: string, schedule: string) => `Next run ${when} (${inWords}) · ${schedule}`,
+    // On a job's page, the facts in its band: how it stands now; when it last ran; when it
+    // runs again, how long till then (staffVocabulary.dueIn) and the time; and how often (frequent, nightly and so on).
+    facts: {
+      now: "Now",
+      lastRun: "Last run",
+      nextRun: "Next run",
+      runs: "Runs",
+    },
+    nextRunAt: (inWords: string, at: string) => `${inWords} · ${at}`,
     // Each job's icon, named for screen readers and on hover: where it reads
     // from or works on. Then how often it runs, the overview's headings and
     // after its next run on the job's page.
@@ -60,6 +61,7 @@ export const jobsCopy = {
     "ni-assembly": "Northern Ireland Assembly",
     controlai: "ControlAI",
     database: "Database",
+    sending: "Gmail, Postmark and WhatsApp",
     luma: "Luma",
     civicrm: "CiviCRM",
     gmail: "Gmail",

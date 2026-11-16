@@ -33,6 +33,7 @@ import { emptyGallery } from "@/app/(staff)/staff/_components/ui/Empty.gallery";
 import { rowsGallery } from "@/app/(staff)/staff/_components/ui/Rows.gallery";
 import { iconTextGallery } from "@/app/(staff)/staff/_components/ui/IconText.gallery";
 import { lockIconGallery } from "@/app/(staff)/staff/_components/ui/LockIcon.gallery";
+import { tickIconGallery } from "@/app/(staff)/staff/_components/ui/TickIcon.gallery";
 import { notIconGallery } from "@/app/(staff)/staff/_components/ui/NotIcon.gallery";
 import { noticeGallery } from "@/app/(staff)/staff/_components/ui/Notice.gallery";
 import { sortHeadingGallery } from "@/app/(staff)/staff/_components/ui/SortHeading.gallery";
@@ -89,6 +90,7 @@ export const staffKit: Group = {
     ...rowsGallery,
     ...iconTextGallery,
     ...lockIconGallery,
+    ...tickIconGallery,
     ...notIconGallery,
     ...noticeGallery,
     ...sortHeadingGallery,
