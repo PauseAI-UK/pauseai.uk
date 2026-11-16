@@ -257,11 +257,9 @@ const summary: BroadcastSummary = {
   states: {
     look: 0,
     "opted-out": 1,
-    "reply-failed": 0,
     error: 4,
     unreached: 2,
     "not-sent": 8,
-    "we-replied": 0,
     replied: 0,
     read: 0,
     delivered: 0,

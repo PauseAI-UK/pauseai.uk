@@ -90,7 +90,11 @@ async function addEvent(owner: Owner, kind: string, at: Date, details: object = 
   );
 }
 
-/** What became of our reply to a reply to a text: delivered, read, or failed, with WhatsApp's why. */
+/**
+ * What became of our reply to a reply to a text: delivered, read, or failed,
+ * with WhatsApp's why. A failure of our newest reply to it puts their reply
+ * back for staff to deal with, as no one has, unless it was an opt-out.
+ */
 async function applyAnswerStatus(answerId: number, status: Status): Promise<boolean> {
   const at = timeOf(status.timestamp);
   if (status.status === "read") await addEvent({ answer: answerId }, "delivered", at);
@@ -101,6 +105,13 @@ async function applyAnswerStatus(answerId: number, status: Status): Promise<bool
   if (status.status !== "failed") return false;
   const [error] = status.errors ?? [];
   await addEvent({ answer: answerId }, "failed", at, { code: error?.code ?? null, title: error?.title ?? null });
+  await query(
+    `UPDATE broadcast_replies r SET outcome = NULL, dealt_by = NULL, dealt_at = NULL
+     FROM broadcast_answers a
+     WHERE a.id = $1 AND r.id = a.reply_id AND r.outcome = 'answered' AND NOT EXISTS (
+       SELECT 1 FROM broadcast_answers b WHERE b.reply_id = a.reply_id AND b.status = 'sent' AND b.sent_at > a.sent_at)`,
+    [answerId],
+  );
   return true;
 }
 

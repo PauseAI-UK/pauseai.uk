@@ -518,10 +518,6 @@ test("Our answer to a text, read", async ({ page, request, flowDatabase }) => {
   await page.reload();
   await expect(page.getByRole("img", { name: copy.events.read })).toHaveCount(2);
   await frame(page, "The text and our answer, both read");
-  story("On the text's page, the copy is counted as one we replied to.");
-  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
-  await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
-  await frame(page, "The text, its copy counted as replied to by us");
 });
 
 test("Our answer to a text fails", async ({ page, request, flowDatabase }) => {
@@ -534,17 +530,16 @@ test("Our answer to a text fails", async ({ page, request, flowDatabase }) => {
     BASE,
     statusOf(sent.answer, sent.number, "failed", 30, { code: 131026, title: "Message undeliverable" }),
   );
+  story(
+    "Their reply is back for staff to deal with, as no one has: under it, its buttons again, and under our answer, why it didn't go.",
+  );
   await page.reload();
   await expect(page.getByText(copy.replies.undelivered("Message undeliverable"))).toBeVisible();
-  await frame(page, "Our answer, which WhatsApp couldn't deliver");
-  story("On the text's page, the copy is red, under its own count, so staff can find it.");
+  await frame(page, "Our answer, which WhatsApp couldn't deliver, and their reply to deal with again");
+  story("On the text's page, the copy is to check again, so staff can find it.");
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
-  await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
-  await frame(page, "The text, with our reply that failed counted");
-  story("Its count lists the copies whose reply from us failed.");
-  await page.getByRole("link", { name: `1 ${lettersCopy.copyStates.counts["reply-failed"]}` }).click();
-  await expect(page.getByRole("heading", { name: lettersCopy.copyStates.tabs["reply-failed"] })).toBeVisible();
-  await frame(page, "The copies whose reply from us failed");
+  await expect(page.getByRole("link", { name: `1 ${lettersCopy.copyStates.counts.look}` })).toBeVisible();
+  await frame(page, "The text, its copy to check again");
 });
 
 test("Stop, replied in WhatsApp", async ({ page, request, flowDatabase }) => {
