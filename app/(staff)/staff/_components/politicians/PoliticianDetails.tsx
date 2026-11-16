@@ -267,6 +267,14 @@ function PoliticianBand({
   return (
     <Band
       className={styles.band}
+      lead={
+        politician.photoUrl && (
+          // From their body's site, as it gives it (lib/politicians/import-changes.ts, photoAddress). Unnamed, as
+          // their name is the title beside it.
+          // eslint-disable-next-line @next/next/no-img-element -- their body's own picture, loaded from its site
+          <img className={styles.photo} src={politician.photoUrl} alt="" />
+        )
+      }
       title={politician.name}
       subtitle={copy.role(copy.roles[politician.house], politician.constituency, inOffice)}
       corner={

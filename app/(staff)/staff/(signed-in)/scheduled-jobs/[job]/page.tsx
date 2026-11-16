@@ -3,6 +3,7 @@ import { found } from "@/lib/found";
 import { jobBySlug } from "@/lib/import-runs";
 import { listRuns, runningNow } from "@/lib/server/import-runs.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
+import { now } from "@/lib/now";
 import { decideImport, runJobNow } from "../../../_components/jobs/actions";
 import { ImportJobPage } from "../../../_components/jobs/ImportJob";
 import Page from "../../../_components/ui/Page";
@@ -22,7 +23,14 @@ export default async function ImportJobRoute({ params }: Params) {
   const [runs, running] = await Promise.all([listRuns(job), runningNow(job)]);
   return (
     <Page kind="item" under="import" here={importRunsCopy.jobTitles[job]}>
-      <ImportJobPage job={job} runs={runs} running={running} run={runJobNow.bind(null, job)} decide={decideImport} />
+      <ImportJobPage
+        job={job}
+        runs={runs}
+        running={running}
+        run={runJobNow.bind(null, job)}
+        decide={decideImport}
+        now={now()}
+      />
     </Page>
   );
 }

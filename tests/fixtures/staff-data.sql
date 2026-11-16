@@ -123,6 +123,11 @@ SELECT p.id, m.house,
 FROM people p JOIN made_politicians m USING (airtable_id);
 UPDATE notable_people SET airtable_id = NULL WHERE airtable_id IN (SELECT airtable_id FROM made_politicians);
 DROP TABLE made_politicians;
+-- Photos, as an import keeps them, for all but every third, which shows a page without one, and those no import
+-- reads, such as a mayor. A fixture build shows
+-- a stand-in for each (STAND_IN_PHOTO in lib/politicians/photo-hosts.ts), as these are at made-up IDs.
+UPDATE politicians SET photo_url = 'https://members-api.parliament.uk/api/Members/' || id || '/Thumbnail'
+WHERE NOT is_test AND house <> 'other' AND id % 3 <> 0;
 
 -- Two asks staff added: one no one has answered, so it can be changed or
 -- deleted; and one Polly and Dora have, so its kind is fixed and it can't

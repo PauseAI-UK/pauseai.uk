@@ -2221,10 +2221,12 @@ CREATE TABLE public.politicians (
     kind text DEFAULT 'politician'::text NOT NULL,
     country text,
     official_id integer,
+    photo_url text,
     CONSTRAINT politicians_country_check CHECK ((country = ANY (ARRAY['england'::text, 'scotland'::text, 'wales'::text, 'northern-ireland'::text]))),
     CONSTRAINT politicians_house_check CHECK ((house = ANY (ARRAY['commons'::text, 'lords'::text, 'scottish-parliament'::text, 'senedd'::text, 'ni-assembly'::text, 'other'::text]))),
     CONSTRAINT politicians_kind_check CHECK ((kind = 'politician'::text)),
     CONSTRAINT politicians_official_id CHECK (((official_id IS NULL) OR ((house <> 'other'::text) AND (NOT is_test)))),
+    CONSTRAINT politicians_photo_url_check CHECK ((photo_url ~ '^https://'::text)),
     CONSTRAINT politicians_test_postcode CHECK ((is_test = (test_postcode IS NOT NULL)))
 );
 

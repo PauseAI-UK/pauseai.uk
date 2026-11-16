@@ -20,4 +20,22 @@ describe("PoliticianMarks's examples in the gallery", () => {
     await expect.element(test).toBeChecked();
     await expect.element(test).toBeDisabled();
   });
+
+  it("shows each mark that's on filled, as the politicians list's tag, an important target amber; one off empty", async () => {
+    await render(<PoliticianMarksExample test />);
+    const lozenge = (name: string) => page.getByRole("switch", { name }).element().firstElementChild!;
+    // On: an important target, in amber, and a test politician, plain.
+    expect(lozenge(politiciansCopy.politician.importantTarget).className).toMatch(/tag.*amber/);
+    expect(lozenge(staffVocabulary.politicianFlags.test).className).toMatch(/tag/);
+    expect(lozenge(staffVocabulary.politicianFlags.test).className).not.toMatch(/amber/);
+    // Off: empty, dashed.
+    expect(lozenge(politiciansCopy.politician.personalConnection).className).toMatch(/off/);
+    expect(getComputedStyle(lozenge(politiciansCopy.politician.personalConnection)).outlineStyle).toBe("dashed");
+  });
+
+  it("leaves out the test politicians' tag for one who isn't", async () => {
+    await render(<PoliticianMarksExample />);
+    await expect.element(page.getByRole("switch", { name: politiciansCopy.politician.importantTarget })).toBeVisible();
+    expect(page.getByRole("switch", { name: staffVocabulary.politicianFlags.test }).query()).toBeNull();
+  });
 });

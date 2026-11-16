@@ -6,6 +6,7 @@ import {
   isImportJob,
   jobBySlug,
   jobSchedule,
+  nextRun,
   runStatus,
   runTone,
 } from "./import-runs";
@@ -31,6 +32,12 @@ it("knows which jobs run on a schedule, and how often", () => {
   expect(jobSchedule("import-luma")).toBe("frequent");
   expect(jobSchedule("import-civicrm")).toBe("hourly");
   expect(jobSchedule("tidy-logs")).toBe("nightly");
+});
+
+it("knows when a job next runs, by its cron", () => {
+  const now = new Date("2026-11-16T10:20:00Z");
+  expect(nextRun("send-mailings", now)).toEqual(new Date("2026-11-16T10:33:00Z"));
+  expect(nextRun("import-parliament", now)).toEqual(new Date("2026-11-17T06:21:00Z"));
 });
 
 it("lists a job's newest run, or none", () => {

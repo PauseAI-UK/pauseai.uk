@@ -14,6 +14,9 @@ import { auditActions, type AuditEntry, logChange } from "@/lib/server/audit.ser
 import { ADDRESS_ACTIONS } from "@/lib/audit-events";
 import { EMAIL_COUNTS } from "./email-counts.server";
 import { CLOSE_ENOUGH, closeness, contains, everyWord } from "@/lib/server/search.server";
+import { proxyTag } from "@/lib/letters/letters-inbox.server";
+import { config } from "@/lib/server/config.server";
+import { STAND_IN_PHOTO } from "./photo-hosts";
 import { sql, type Sql } from "@/lib/server/sql.server";
 
 // Politicians, the notable people who are in a parliament or were, and
@@ -41,6 +44,8 @@ export type Politician = {
   airtableId: string | null;
   /** The ID their body gives them, once an import has matched them to its list. */
   officialId: number | null;
+  /** Their photo on their body's site, as its list gives it, if it does. */
+  photoUrl: string | null;
   house: House;
   name: string;
   salutation: string;
@@ -126,7 +131,7 @@ const POLITICIAN_ACTIVITY = (which: "first" | "last") => {
 
 const SELECT_POLITICIANS = `
   SELECT n.id::int AS id, n.airtable_id AS "airtableId", p.house,
-    p.official_id AS "officialId", n.name, n.salutation, n.salutation_to_check AS "salutationToCheck", p.constituency, p.party, p.country, n.email, n.status,
+    p.official_id AS "officialId", p.photo_url AS "photoUrl", n.name, n.salutation, n.salutation_to_check AS "salutationToCheck", p.constituency, p.party, p.country, n.email, n.status,
     n.important_target AS "importantTarget", n.personal_connection AS "personalConnection",
     p.is_test AS "isTest",
     EXISTS (SELECT 1 FROM email_blocks b WHERE b.address = lower(n.email)) AS "emailBlocked",
@@ -145,7 +150,8 @@ function toPolitician({ statuses, ...row }: Row): Politician {
     ask,
     { ...record, updatedAt: new Date(record.updatedAt) },
   ]);
-  return { ...row, statuses: Object.fromEntries(records) };
+  const photoUrl = row.photoUrl && config.fixtures ? STAND_IN_PHOTO : row.photoUrl;
+  return { ...row, photoUrl, statuses: Object.fromEntries(records) };
 }
 
 /** The filters that repeat, which can leave out as well as find. */
@@ -254,10 +260,21 @@ function politicianConditions(filter: PoliticianWho, closest = false): Sql[] {
   const where: Sql[] = [];
   if (filter.ids) where.push(sql`n.id = ANY(${filter.ids}::bigint[])`);
   if (filter.search && !closest) {
+    // A word is also found among their other addresses, all but those staff said aren't theirs, and in the tag of
+    // their proxy, the address letters to them go from: jane.smith.
+    const words = everyWord(filter.search, (like) =>
+      sql.or([
+        ...["n.name", "p.constituency", "p.party", "n.email"].map((column) => contains(column, like)),
+        sql`EXISTS (SELECT 1 FROM politician_addresses a WHERE a.notable_person_id = n.id AND a.source <> 'rejected' AND a.address ILIKE ${like})`,
+        sql`EXISTS (SELECT 1 FROM proxies x WHERE x.notable_person_id = n.id AND x.tag ILIKE ${like})`,
+      ]),
+    );
+    // Their whole proxy, letters+jane.smith@example.org, finds them by its tag.
+    const tag = proxyTag(filter.search);
     where.push(
-      everyWord(filter.search, (like) =>
-        sql.or(["n.name", "p.constituency", "p.party", "n.email"].map((column) => contains(column, like))),
-      ),
+      tag
+        ? sql.or([words, sql`EXISTS (SELECT 1 FROM proxies x WHERE x.notable_person_id = n.id AND x.tag = ${tag})`])
+        : words,
     );
   }
   if (filter.house) where.push(sql`p.house = ${filter.house}`);

@@ -67,12 +67,18 @@ describe("MailingsOverview", () => {
     // Sending: its bar, leading to it.
     await expect.element(page.getByRole("progressbar", { name: copy.sentLabel })).toHaveAttribute("value", "214");
     await expect.element(page.getByText(copy.sendingBar(209, 650))).toBeVisible();
-    // Sent: what needs a look, opening it with that tab chosen, and the rest folded behind how many are fine; the
-    // day without this year. One with no letters has no counts.
+    // Sent: every count, each opening it with that tab chosen, none folded behind how many are fine; the day without
+    // this year. One with no letters has no counts.
     await expect
       .element(row("AI safety conference").getByRole("link", { name: `2 ${states.counts.unreached}` }))
       .toHaveAttribute("href", "/staff/mailings/4?tab=unreached");
-    await expect.element(row("AI safety conference")).toMatchTextContent(states.andFine(10));
+    await expect
+      .element(row("AI safety conference").getByRole("link", { name: `2 ${states.counts.replied}` }))
+      .toHaveAttribute("href", "/staff/mailings/4?tab=replied");
+    await expect
+      .element(row("AI safety conference").getByRole("link", { name: `3 ${states.counts.answered}` }))
+      .toBeVisible();
+    await expect.element(row("AI safety conference")).not.toMatchTextContent(states.andFine(10));
     await expect.element(row("AI safety conference")).toMatchTextContent("20 Oct");
     await expect.element(row("AI safety conference")).not.toMatchTextContent("20 Oct 2026");
     await expect.element(row("Ben Lake").first()).not.toMatchTextContent(states.allFine(0));
@@ -96,14 +102,8 @@ describe("MailingsOverview", () => {
     await expect
       .element(page.getByRole("link", { name: "Edinburgh conference" }).first())
       .toHaveAttribute("href", "/staff/asks/edinburgh-conference-2026");
-    // Nothing on it changes a mailing: its only buttons unfold how many are fine.
-    expect(page.getByRole("button").all().length).toBeGreaterThan(0);
-    expect(
-      page
-        .getByRole("button")
-        .all()
-        .every((button) => button.element().hasAttribute("aria-expanded")),
-    ).toBe(true);
+    // Nothing on it changes a mailing: it has no buttons.
+    expect(page.getByRole("button").all()).toEqual([]);
   });
 
   it("an ask with no sender says only the ask", async () => {

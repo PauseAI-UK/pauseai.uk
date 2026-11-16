@@ -918,7 +918,7 @@ that drives it or why nothing does.
   - paging through many;
   - searching by each word, for those not in office and the nearest to a typo;
   - the politicians mailed about an ask, and those not yet;
-  - the two marks switched on and off in their card;
+  - the two marks filled and emptied in their card;
   - a Lord's email set from the bubble on it in the band, with why;
   - an MP's email changed there, from its edit, with why: where her main address came from, before and after, her old one among her linked addresses, and the change in her record;
   - a salutation made from the name, set to Ms from its bubble's choices, with why;

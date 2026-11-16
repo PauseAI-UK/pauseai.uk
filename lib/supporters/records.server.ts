@@ -24,6 +24,7 @@ import { optedOutOfLuma } from "./opt-outs.server";
 import { refreshSupporterFacts, refreshSupportersList } from "./facts.server";
 import { SUPPORTER_SOURCES } from "./sources.server";
 import { contains, everyWord, phoneSearch } from "@/lib/server/search.server";
+import { proxyTag } from "@/lib/letters/letters-inbox.server";
 import { sql, type Sql } from "@/lib/server/sql.server";
 import { placeFor, type FoundPlace } from "@/lib/server/outside-services/postcodes.server";
 import { REPLIES } from "@/lib/letters/reply-count.server";
@@ -241,17 +242,26 @@ export async function listSupporters(
 ): Promise<SupportersPage> {
   const where: Sql[] = [];
   if (filter.search) {
+    // A word is also found in the tag of their proxy, the address their letters go from: jane.smith.
     const words = everyWord(
       filter.search,
       (like) =>
         sql`${contains("s.name", like)} OR EXISTS (SELECT 1 FROM unnest(s.phones) n WHERE n ILIKE ${like})
-         OR EXISTS (SELECT 1 FROM unnest(s.emails) e WHERE e ILIKE ${like})`,
+         OR EXISTS (SELECT 1 FROM unnest(s.emails) e WHERE e ILIKE ${like})
+         OR EXISTS (SELECT 1 FROM unnest(s.emails) e JOIN proxies x ON x.supporter_email = lower(e) WHERE x.tag ILIKE ${like})`,
     );
+    const ways = [words];
     // A number typed as people write them, 07700 900001, is found among the numbers as they're stored, +447700900001.
     const phone = phoneSearch(filter.search);
-    where.push(
-      phone ? sql.or([words, sql`EXISTS (SELECT 1 FROM unnest(s.phones) n WHERE n LIKE ${`%${phone}%`})`]) : words,
-    );
+    if (phone) ways.push(sql`EXISTS (SELECT 1 FROM unnest(s.phones) n WHERE n LIKE ${`%${phone}%`})`);
+    // Their whole proxy, letters+jane.smith@example.org, finds them by its tag.
+    const tag = proxyTag(filter.search);
+    if (tag) {
+      ways.push(
+        sql`EXISTS (SELECT 1 FROM unnest(s.emails) e JOIN proxies x ON x.supporter_email = lower(e) WHERE x.tag = ${tag})`,
+      );
+    }
+    where.push(ways.length > 1 ? sql.or(ways) : words);
   }
   where.push(...anyOf(filter));
   // What's left out: a filter's condition not true, so one with no value, such as no nation, is kept.

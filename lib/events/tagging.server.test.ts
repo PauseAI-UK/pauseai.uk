@@ -4,7 +4,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { notifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
-import { tagUpcomingEvents, unclearEventEmails } from "./tagging.server";
+import { LUMA_CALENDAR_MANAGE_URL, tagUpcomingEvents, unclearEventEmails } from "./tagging.server";
 import { eventsCopy } from "./copy";
 
 const API = "https://public-api.luma.com/v1/calendars/event-tags";
@@ -186,6 +186,7 @@ describeWithDatabase("tagging upcoming events", () => {
     expect(sent.map((email) => email.Subject)).toEqual([copy.subject("Kent flyering"), copy.subject("A mystery")]);
     expect(sent[0].TextBody).toContain("Tunbridge Wells");
     expect(sent[0].TextBody).toContain("https://luma.com/k");
+    expect(sent[0].TextBody).toContain(LUMA_CALENDAR_MANAGE_URL);
     expect(sent[1].TextBody).toContain(eventsCopy.events.online);
   });
 });

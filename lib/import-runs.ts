@@ -2,6 +2,7 @@
 // and the staff components that show a run (app/(staff)/staff/_components/jobs/Run.tsx).
 import type { ControlAiMatchProblem } from "./controlai-letter";
 import type { Ending, ImportChanges, OfficialMember } from "@/lib/politicians/import-changes";
+import { nextCronRun } from "./cron";
 
 /**
  * How often a job runs on its own: every 5 minutes, every 15, hourly or
@@ -12,7 +13,10 @@ export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
 
 /**
  * Every job, by its name in the import log (`import_runs.job`): its page,
- * /staff/scheduled-jobs/<slug>, how often it runs, and, for one with more to
+ * /staff/scheduled-jobs/<slug>, how often it runs, its cron (the same as its
+ * scheduled function's, which Netlify reads without running the code, so
+ * it's written out there too; netlify/scheduled.test.ts checks they agree),
+ * and, for one with more to
  * do than a run can, how long a run works before it stops taking on more,
  * leaving the rest for the next. Every run is a request to the site, which
  * a Netlify function stops at 30 seconds, so a budget leaves room for the
@@ -21,18 +25,18 @@ export type JobSchedule = "frequent" | "quarter-hour" | "hourly" | "nightly";
  * overview lists them in this order.
  */
 export const JOBS = {
-  "import-luma": { slug: "luma", schedule: "frequent", budgetMs: 20_000 },
-  "import-civicrm": { slug: "civicrm", schedule: "hourly" },
-  "read-gmail": { slug: "gmail", schedule: "frequent" },
-  "send-mailings": { slug: "sending", schedule: "quarter-hour", budgetMs: 8_000 },
-  "import-parliament": { slug: "parliament", schedule: "nightly" },
-  "import-scottish-parliament": { slug: "scottish-parliament", schedule: "nightly" },
-  "import-senedd": { slug: "senedd", schedule: "nightly" },
-  "import-ni-assembly": { slug: "ni-assembly", schedule: "nightly" },
-  "import-controlai": { slug: "controlai", schedule: "nightly" },
-  "import-controlai-statement": { slug: "controlai-statement", schedule: "nightly" },
-  "tidy-logs": { slug: "tidying", schedule: "nightly" },
-} as const satisfies Record<string, { slug: string; schedule: JobSchedule; budgetMs?: number }>;
+  "import-luma": { slug: "luma", schedule: "frequent", cron: "2-59/5 * * * *", budgetMs: 20_000 },
+  "import-civicrm": { slug: "civicrm", schedule: "hourly", cron: "49 * * * *" },
+  "read-gmail": { slug: "gmail", schedule: "frequent", cron: "*/5 * * * *" },
+  "send-mailings": { slug: "sending", schedule: "quarter-hour", cron: "3,18,33,48 * * * *", budgetMs: 8_000 },
+  "import-parliament": { slug: "parliament", schedule: "nightly", cron: "21 6 * * *" },
+  "import-scottish-parliament": { slug: "scottish-parliament", schedule: "nightly", cron: "22 6 * * *" },
+  "import-senedd": { slug: "senedd", schedule: "nightly", cron: "23 6 * * *" },
+  "import-ni-assembly": { slug: "ni-assembly", schedule: "nightly", cron: "24 6 * * *" },
+  "import-controlai": { slug: "controlai", schedule: "nightly", cron: "25 6 * * *" },
+  "import-controlai-statement": { slug: "controlai-statement", schedule: "nightly", cron: "26 6 * * *" },
+  "tidy-logs": { slug: "tidying", schedule: "nightly", cron: "27 6 * * *" },
+} as const satisfies Record<string, { slug: string; schedule: JobSchedule; cron: string; budgetMs?: number }>;
 
 export type ImportJob = keyof typeof JOBS;
 export const IMPORT_JOBS = Object.keys(JOBS) as ImportJob[];
@@ -44,6 +48,11 @@ export function isImportJob(value: string): value is ImportJob {
 /** How often a job runs on its own. */
 export function jobSchedule(job: ImportJob): JobSchedule {
   return JOBS[job].schedule;
+}
+
+/** When a job next runs on its own, after `now`. */
+export function nextRun(job: ImportJob, now: Date): Date {
+  return nextCronRun(JOBS[job].cron, now);
 }
 
 /** Where a job's page is. */

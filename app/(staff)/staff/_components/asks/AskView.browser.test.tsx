@@ -14,6 +14,19 @@ describe("AskView", () => {
   const path = `/staff/asks/${exampleAskPage.slug}`;
   const words = asksCopy.asks.page;
 
+  it("sizes its kind's picture as its title's words, at whatever size they are", async () => {
+    // Words larger than the page's own: the title, a heading of 2em, grows with them, and its picture with it.
+    await render(
+      <div style={{ fontSize: "24px" }}>
+        <AskView ask={exampleAskPage} answer="" />
+      </div>,
+    );
+    const title = page.getByRole("heading", { level: 1 }).element();
+    const picture = title.querySelector("svg")!;
+    expect(picture.getBoundingClientRect().height).toBeCloseTo(parseFloat(getComputedStyle(title).fontSize));
+    expect(parseFloat(getComputedStyle(title).fontSize)).toBe(48);
+  });
+
   it("leads with what they were asked, then its answers, then how we asked and its counts", async () => {
     await render(<AskView ask={exampleAskPage} answer="" />);
     expect(document.body.textContent).toContain(asksCopy.asks.askedThem("PauseAI", "letter").slice(0, 8));

@@ -16,6 +16,7 @@ describe("parliamentMembers", () => {
       websites: [],
       salutation: "Ms Dummy",
       titled: true,
+      photo: "https://members-api.parliament.uk/api/Members/90001/Thumbnail",
     });
     expect(polly).toMatchObject({ websites: ["https://www.polly.example"], salutation: "Ms Placeholder" });
     expect(polly).not.toHaveProperty("titled");
@@ -45,6 +46,7 @@ describe("parliamentMembers", () => {
         websites: [],
         salutation: "Lord Seedling",
         titled: true,
+        photo: "https://members-api.parliament.uk/api/Members/90101/Thumbnail",
       },
     ]);
   });

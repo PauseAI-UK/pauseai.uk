@@ -5,6 +5,9 @@ import { ImportJobPage } from "./ImportJob";
 import { exampleFailedRun, exampleImportResult, exampleRun } from "./RunList.examples";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 
+/** The time the examples are shown at, after their runs. */
+const NOW = new Date("2026-11-04T09:30:00Z");
+
 /** A job's page, its button and any held import's buttons logged: Parliament's import with three runs, while a run started by a staff member or its schedule is going, or the ControlAI import, never run. */
 export function ImportJobPageExample({
   never = false,
@@ -18,9 +21,10 @@ export function ImportJobPageExample({
     <Logged>
       {(log) =>
         never ? (
-          <ImportJobPage job="import-controlai" runs={[]} run={log("run")} decide={log("decide")} />
+          <ImportJobPage job="import-controlai" runs={[]} run={log("run")} decide={log("decide")} now={NOW} />
         ) : (
           <ImportJobPage
+            now={NOW}
             job="import-parliament"
             running={running ? { startedBy: running, startedAt: new Date("2026-11-04T09:00:00Z") } : undefined}
             runs={[

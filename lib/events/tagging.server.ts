@@ -74,6 +74,9 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
   return done;
 }
 
+/** Where staff manage the PauseAI UK calendar on Luma, its events' tags among them. */
+export const LUMA_CALENDAR_MANAGE_URL = "https://luma.com/calendar/manage/cal-Z327EhtiFdHuVie";
+
 /** Asks the notification inbox to tag each event it wasn't clear how to, once. */
 export async function unclearEventEmails(events: UnclearEvent[]): Promise<void> {
   const copy = eventsCopy.events.unclearTagEmail;
@@ -85,6 +88,7 @@ export async function unclearEventEmails(events: UnclearEvent[]): Promise<void> 
         when: londonStart(event.startAt),
         place: event.city ?? eventsCopy.events.online,
         url: event.url,
+        calendar: LUMA_CALENDAR_MANAGE_URL,
         link: staffLink("/staff/events", undefined),
       }),
     );

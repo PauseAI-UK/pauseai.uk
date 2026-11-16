@@ -10,6 +10,7 @@ import { newestEmail } from "./outbox-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
 import { caretInEmpty } from "./editor-steps";
 import { emailFrame } from "./email-frame";
+import { holdActions } from "./loading-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
@@ -856,4 +857,18 @@ test("To more than one topic's yeses", async ({ page, request, flowDatabase }) =
     saidYes.getByRole("button", { name: supportersCopy.supporters.subscriptions.consents["email:events"] }),
   ).toHaveAttribute("aria-pressed", "true");
   await frame(page, "Newsletter or events");
+  story(
+    "Each change waits on the site, which works out again who the broadcast goes to. Till it has, the topic pressed shows a spinner.",
+  );
+  // The site's answer held back, so the spinner stays to be seen.
+  const actions = await holdActions(page);
+  const volunteering = saidYes.getByRole("button", {
+    name: supportersCopy.supporters.subscriptions.consents["email:volunteering"],
+  });
+  await volunteering.click();
+  await expect(volunteering).toHaveAttribute("aria-busy", "true");
+  await frame(page, "Waiting for the site, after pressing Volunteering");
+  await actions.release();
+  await expect(volunteering).not.toHaveAttribute("aria-busy");
+  await expect(volunteering).toHaveAttribute("aria-pressed", "true");
 });

@@ -48,6 +48,23 @@ describe("PoliticianDetails", () => {
       .map((dt) => dt.element().textContent);
   const openFolds = () => document.querySelectorAll("details").forEach((fold) => (fold.open = true));
 
+  it("shows their photo from their body's site first in the band, if it has one", async () => {
+    const { rerender } = await render(<PoliticianDetails politician={MP} unblock={vi.fn()} {...none} />);
+    expect(document.querySelector("h1")!.closest("div")!.parentElement!.querySelector("img")).toBeNull();
+    await rerender(
+      <PoliticianDetails politician={{ ...MP, photoUrl: "/images/bristol-launch.jpeg" }} unblock={vi.fn()} {...none} />,
+    );
+    const photo = document.querySelector<HTMLImageElement>("img[src='/images/bristol-launch.jpeg']")!;
+    // Unnamed, as their name is the title beside it.
+    expect(photo.alt).toBe("");
+    await expect.poll(() => photo.complete && photo.naturalWidth > 0).toBe(true);
+    // First in the band: at its left, or on a narrow screen, above their name.
+    expect(
+      photo.compareDocumentPosition(page.getByRole("heading", { level: 1 }).element()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("heads the page with a band of who they are, beside counts, then their correspondence beside their asks and notes", async () => {
     const { rerender } = await render(
       <PoliticianDetails
@@ -73,7 +90,7 @@ describe("PoliticianDetails", () => {
       // Their salutation, quietly under their email.
       politiciansCopy.politician.editDetails.dear(MP.salutation),
     ]);
-    // Their marks, in a card of their own under the notes: without a way to change them, the switches can't be pressed.
+    // Their marks, in a card of their own under the notes: without a way to change them, they can't be pressed.
     const marks = page.getByRole("region", { name: politiciansCopy.politician.marks });
     await expect.element(marks.getByRole("switch", { name: politiciansCopy.politician.importantTarget })).toBeChecked();
     await expect

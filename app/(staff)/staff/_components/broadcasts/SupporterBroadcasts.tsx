@@ -21,7 +21,7 @@ const COLUMNS: ListColumn<SupporterBroadcastRow>[] = [
     cell: (m) => (
       <span className={styles.stack}>
         {/* Its channel's picture before its name, as on the list of broadcasts; the line under says it in words. */}
-        <IconText icon={<ChannelIcon channel={m.channel} size={16} />}>
+        <IconText tall icon={<ChannelIcon channel={m.channel} size={16} />}>
           <StaffLink href={`/staff/broadcasts/${m.messageId}`}>{m.title || copy.untitled}</StaffLink>
         </IconText>
         <Muted>

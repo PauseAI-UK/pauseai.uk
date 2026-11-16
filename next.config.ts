@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { EVENT_IMAGE_HOSTS } from "@/lib/event-image-hosts";
+import { POLITICIAN_PHOTO_HOSTS } from "@/lib/politicians/photo-hosts";
 import { FIRST_CAMPAIGN_SLUG, MARCH_PATH, MARCH_SHORT_PATH } from "@/lib/content/redirect-addresses";
 import { CHECKOUT_HEADER } from "@/lib/server/fixtures/fixture-env.mjs";
 
@@ -50,8 +51,9 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   // next/font self-hosts both Lato and Inter at build time, so no font CDN.
   "font-src 'self' data:",
-  // blob:/data: cover next/image; EVENT_IMAGE_HOSTS are the Luma event covers.
-  `img-src 'self' data: blob: ${[...EVENT_IMAGE_HOSTS.map((host) => `https://${host}`), ...GA, ...GOOGLE_ADS].join(" ")}`,
+  // blob:/data: cover next/image; EVENT_IMAGE_HOSTS are the Luma event covers, POLITICIAN_PHOTO_HOSTS politicians'
+  // photos on their bodies' sites.
+  `img-src 'self' data: blob: ${[...[...EVENT_IMAGE_HOSTS, ...POLITICIAN_PHOTO_HOSTS].map((host) => `https://${host}`), ...GA, ...GOOGLE_ADS].join(" ")}`,
   `connect-src 'self' ${[...GA_COLLECT, ...GOOGLE_ADS, TURNSTILE].join(" ")}`,
   // The MP-email and onboarding embeds, the Tally story form, and Turnstile's
   // widget. GTM's <noscript> iframe is in app/layout.tsx; td.doubleclick.net

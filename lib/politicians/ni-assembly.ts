@@ -3,7 +3,7 @@
 // sitting now, and their addresses, in two lists keyed by the member's
 // PersonId. The caller fetches: lib/server/outside-services/ni-assembly.ts.
 
-import type { OfficialMember } from "./import-changes";
+import { photoAddress, type OfficialMember } from "./import-changes";
 import { personalSalutation } from "./salutation";
 
 const NI_ASSEMBLY_API = "https://data.niassembly.gov.uk/members.asmx";
@@ -20,6 +20,7 @@ type Member = {
   MemberPrefix?: string | null;
   PartyName?: string | null;
   ConstituencyName?: string | null;
+  MemberImgUrl?: string | null;
 };
 
 /** The field is spelt so in the Assembly's data. */
@@ -51,6 +52,7 @@ export function niAssemblyMembers(membersData: unknown, contactsData: unknown): 
       country: "northern-ireland",
       emails: [...new Set(emails)],
       websites: [],
+      photo: photoAddress(m.MemberImgUrl),
       salutation: personalSalutation({ title, first: m.MemberFirstName.trim(), surname }, undefined),
       // The Assembly records every MLA's title, as its Official Report uses it.
       ...(title ? { titled: true as const } : {}),

@@ -5,7 +5,7 @@
 // lib/server/outside-services/senedd.ts, with a User-Agent of our own, as the
 // Senedd refuses some others.
 
-import type { OfficialMember } from "./import-changes";
+import { photoAddress, type OfficialMember } from "./import-changes";
 
 export const SENEDD_MEMBERS_URL = "https://business.senedd.wales/mgwebservice.asmx/GetCouncillorsByWard";
 
@@ -52,6 +52,7 @@ export function seneddMembers(xml: string): OfficialMember[] {
         emails: email.includes("@") ? [email] : [],
         websites: [],
         salutation: null,
+        photo: photoAddress(field(member, "photobigurl")),
       };
     });
   });

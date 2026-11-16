@@ -10,7 +10,7 @@ import { eventsSearch } from "@/lib/staff-search";
 import { assignRuleOwners, eventsPage, ownerEmails, setEventDoc, setEventOwner } from "./staff-events.server";
 import { eventsCopy } from "./copy";
 
-type Sent = { From: string; To: string; Cc?: string; Subject: string; TextBody: string; Tag: string };
+type Sent = { From: string; To: string; Cc?: string; ReplyTo?: string; Subject: string; TextBody: string; Tag: string };
 
 /** Records each email sent through Postmark. */
 function postmark() {
@@ -219,6 +219,8 @@ describeWithDatabase("staff events", () => {
       }),
     ]);
     expect(sent[0].Cc).toBeUndefined();
+    // To them alone: no one else for a reply to reach.
+    expect(sent[0].ReplyTo).toBeUndefined();
     expect(sent[0].TextBody).toContain("jo@pauseai.uk");
 
     // The same owner again changes nothing.
@@ -233,6 +235,8 @@ describeWithDatabase("staff events", () => {
     expect(sent[1]).toMatchObject({
       To: "joseph@pauseai.uk",
       Cc: "sean@pauseai.uk",
+      // A reply reaches them both, not noreply.
+      ReplyTo: "joseph@pauseai.uk, sean@pauseai.uk",
       TextBody: body("joseph@pauseai.uk", "sean@pauseai.uk", "jo@pauseai.uk"),
     });
 

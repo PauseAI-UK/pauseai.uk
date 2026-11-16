@@ -309,7 +309,21 @@ async function applyMembers(
     );
   }
   await saveListed(body, people, db);
+  await savePhotos(people, db);
   return changes;
+}
+
+/**
+ * Keeps each member's photo as the list gives it, or none where it gives
+ * none. Not a change to their record, so it isn't in the import's changes.
+ */
+async function savePhotos(people: { id: number; member: OfficialMember }[], db: Queryable): Promise<void> {
+  await query(
+    `UPDATE politicians p SET photo_url = l.photo FROM unnest($1::bigint[], $2::text[]) AS l (id, photo)
+     WHERE p.id = l.id AND p.photo_url IS DISTINCT FROM l.photo`,
+    [people.map(({ id }) => id), people.map(({ member }) => member.photo ?? null)],
+    db,
+  );
 }
 
 /**

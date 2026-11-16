@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { IMPORT_JOBS, type JobSchedule, isImportJob, jobSchedule } from "@/lib/import-runs";
+import { IMPORT_JOBS, JOBS, type JobSchedule, isImportJob, jobSchedule } from "@/lib/import-runs";
 import { callSite, fromSchedule, runsJob, startBackground } from "./scheduled";
 
 beforeEach(() => {
@@ -52,10 +52,11 @@ describe("the scheduled functions", () => {
     expect(cronSchedule("0 6 * * 1")).toBeUndefined();
   });
 
-  it("are one for each job, named after it, running as often as the job says", () => {
+  it("are one for each job, named after it, running when the job says, as often as it says", () => {
     const scheduled = Object.entries(functions).filter(([, module]) => module.config?.schedule);
     expect(scheduled.map(([folder]) => folder).sort()).toEqual([...IMPORT_JOBS].sort());
     for (const [folder, module] of scheduled) {
+      expect(isImportJob(folder) && module.config!.schedule, folder).toBe(isImportJob(folder) && JOBS[folder].cron);
       expect(isImportJob(folder) && cronSchedule(module.config!.schedule), folder).toBe(
         isImportJob(folder) && jobSchedule(folder),
       );

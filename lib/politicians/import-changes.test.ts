@@ -10,6 +10,7 @@ import {
   missingHonours,
   misspeltSalutations,
   nextEmail,
+  photoAddress,
   spellsName,
   sharedAddresses,
   updated,
@@ -312,5 +313,19 @@ describe("sharedAddresses", () => {
         { emails: ["office@parliament.uk", "b@parliament.uk"] },
       ]),
     ).toEqual(new Set(["office@parliament.uk"]));
+  });
+});
+
+describe("photoAddress", () => {
+  it("makes a photo's address secure, and gives none for none, or one that isn't a web address", () => {
+    expect(photoAddress(" http://aims.niassembly.gov.uk/images/mla/1_s.jpg ")).toBe(
+      "https://aims.niassembly.gov.uk/images/mla/1_s.jpg",
+    );
+    expect(photoAddress("https://business.senedd.wales/bigpic.jpg")).toBe("https://business.senedd.wales/bigpic.jpg");
+    expect(photoAddress(null)).toBeUndefined();
+    expect(photoAddress(undefined)).toBeUndefined();
+    expect(photoAddress("")).toBeUndefined();
+    expect(photoAddress("javascript:alert(1)")).toBeUndefined();
+    expect(photoAddress("https://example.org/a photo.jpg")).toBeUndefined();
   });
 });

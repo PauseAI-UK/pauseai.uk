@@ -22,6 +22,7 @@ describe("the Scottish Parliament's members", () => {
         emails: ["morag.example.msp@parliament.example"],
         websites: ["https://www.parliament.scot/msps/current-and-previous-msps/morag-example"],
         salutation: null,
+        photo: "https://scottishparliament.chorus-mk.thirdlight.com/file/24/Example91001/_Morag%20Example.jpg",
       },
     ]);
   });
@@ -84,6 +85,8 @@ describe("the Senedd's members", () => {
         emails: ["gwen.example-ms@senedd.wales"],
         websites: [],
         salutation: null,
+        // The larger of the two it lists.
+        photo: "https://business.senedd.wales/UserData/1/0/0/Info00092001/bigpic.jpg",
       },
     ]);
   });
@@ -112,6 +115,8 @@ describe("the NI Assembly's members", () => {
         websites: [],
         salutation: "Ms Example",
         titled: true,
+        // Secure, though it lists it as http.
+        photo: "https://aims.niassembly.gov.uk/images/mla/93001_s.jpg",
       },
     ]);
   });

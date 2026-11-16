@@ -18,8 +18,12 @@ const PATHS: Record<AskKind, ReactNode> = {
   ),
 };
 
-/** An ask's kind as a picture, in strokes of the text's colour; hidden from screen readers, which have its words. */
-export default function AskKindIcon({ kind, size = 28 }: { kind: AskKind; size?: number }) {
+/**
+ * An ask's kind as a picture, in strokes of the text's colour; hidden from
+ * screen readers, which have its words. `size` in pixels, or in `em`
+ * ("1.25em") beside words, so it grows with them.
+ */
+export default function AskKindIcon({ kind, size = 28 }: { kind: AskKind; size?: number | `${number}em` }) {
   return (
     <svg
       width={size}

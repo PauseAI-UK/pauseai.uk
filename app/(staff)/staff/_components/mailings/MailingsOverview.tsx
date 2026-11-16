@@ -8,7 +8,7 @@ import type { MailingBase, MailingSummary } from "@/lib/mailings/records.server"
 import { named } from "@/lib/email-parsing/addresses";
 import { londonWhenShort, staffDate } from "@/lib/staff-time";
 import { countsOpening, type Count } from "../ui/Counts";
-import { NeedsAndFine } from "./CopyCounts";
+import { EveryCount, NeedsAndFine } from "./CopyCounts";
 import { stateCounts } from "../letters/CopyStatus";
 import Empty from "../ui/Empty";
 import IconText from "../ui/IconText";
@@ -46,6 +46,8 @@ export type OverviewLook<T extends MailingBase> = {
   from?: (mailing: T) => string | undefined;
   /** Where one stands, as a sentence after a dot in its colour, where it has more to say than a mailing does. */
   sentence?: (mailing: T) => Sentence | undefined;
+  /** Every count shows, none folded behind how many are fine: a mailing's replies and answers are what staff look for. */
+  unfolded?: boolean;
 };
 
 /** Where one stands in a list, as a sentence after a dot in its colour: red for something wrong, blue for going out, grey for normal. */
@@ -67,6 +69,7 @@ const MAILINGS_LOOK: OverviewLook<MailingSummary> = {
   counts: mailingCounts,
   untitled: copy.untitled,
   none: mailingsCopy.mailings.none,
+  unfolded: true,
 };
 
 /**
@@ -86,8 +89,9 @@ function When({ mailing, year }: { mailing: MailingBase; year: string }) {
 /**
  * How it stands, at a row's right: its sentence after its dot; while
  * sending, the sentence over the bar of how far it's got, no dot, as the bar
- * says it, the bar leading to it; and once any went, what needs a look, the
- * rest folded behind how many are fine.
+ * says it, the bar leading to it; and once any went, its counts: every one,
+ * where the look says so, or what needs a look, the rest folded behind how
+ * many are fine.
  */
 function Standing<T extends MailingBase>({ mailing, href, look }: { mailing: T; href: string; look: OverviewLook<T> }) {
   const { tone, text } = look.sentence?.(mailing) ?? mailingSentence(mailing);
@@ -105,9 +109,13 @@ function Standing<T extends MailingBase>({ mailing, href, look }: { mailing: T; 
           {text}
         </span>
       )}
-      {mailing.state !== "draft" && mailing.state !== "scheduled" && (
-        <NeedsAndFine counts={countsOpening(href, look.counts(mailing))} />
-      )}
+      {mailing.state !== "draft" &&
+        mailing.state !== "scheduled" &&
+        (look.unfolded ? (
+          <EveryCount counts={countsOpening(href, look.counts(mailing))} />
+        ) : (
+          <NeedsAndFine counts={countsOpening(href, look.counts(mailing))} />
+        ))}
     </span>
   );
 }
@@ -151,7 +159,13 @@ function Row<T extends MailingBase>({
       <span className={styles.what}>
         {/* A list with a mark has it before each title, as an icon is before words (IconText). */}
         <span className={styles.head}>
-          {look.mark ? <IconText icon={look.mark(mailing)}>{title}</IconText> : title}
+          {look.mark ? (
+            <IconText tall icon={look.mark(mailing)}>
+              {title}
+            </IconText>
+          ) : (
+            title
+          )}
         </span>
         <Muted>
           {look.lead?.(mailing)}

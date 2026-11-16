@@ -21,7 +21,15 @@ describeWithDatabase("notifyStaff", () => {
   it("emails the notification inbox, logged as a staff alert, and nothing where it isn't set", async () => {
     const sent = notifications();
     expect(await notifyStaff("Subject", "Body")).toBe(true);
-    expect(sent).toEqual([expect.objectContaining({ To: toNotifications(), Subject: "Subject", TextBody: "Body" })]);
+    // A reply goes to the inbox, not noreply.
+    expect(sent).toEqual([
+      expect.objectContaining({
+        To: toNotifications(),
+        ReplyTo: toNotifications(),
+        Subject: "Subject",
+        TextBody: "Body",
+      }),
+    ]);
     expect(await query("SELECT purpose, address, letter_id FROM email_sends")).toEqual([
       { purpose: "staff-alert", address: NOTIFICATIONS, letter_id: null },
     ]);
@@ -35,6 +43,13 @@ describeWithDatabase("notifyStaff", () => {
     await saveStaffAccount("jo@pauseai.uk", [], "test");
     await query("UPDATE staff_accounts SET gmail_name = 'Jo Bloggs'");
     await notifyStaff("Subject", "Body", null, "staff-alert", "jo@pauseai.uk");
-    expect(sent).toEqual([expect.objectContaining({ To: toNotifications(), Cc: `"Jo Bloggs" <jo@pauseai.uk>` })]);
+    // A reply goes to them both.
+    expect(sent).toEqual([
+      expect.objectContaining({
+        To: toNotifications(),
+        Cc: `"Jo Bloggs" <jo@pauseai.uk>`,
+        ReplyTo: `${toNotifications()}, "Jo Bloggs" <jo@pauseai.uk>`,
+      }),
+    ]);
   });
 });
