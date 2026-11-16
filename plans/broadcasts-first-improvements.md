@@ -2,12 +2,8 @@
 
 Broadcasts (`/staff/broadcasts`) sends email by Gmail or Postmark and
 texts by WhatsApp, takes replies and handles unsubscribes, all tested in
-production. What's left is below.
-
-## First send to the real list
-
-Once it's gone well, UK staff stop sending from CiviCRM, and all UK bulk
-email goes from pauseai.uk.
+production. WhatsApp lets us message 2,000 people a day. What's left is
+below.
 
 ## More people saying yes
 
@@ -50,14 +46,6 @@ specified yet. Then the weekly is scheduled automatically each week.
 
 ## WhatsApp
 
-- **The daily limit.** Raise it from 250 to 2,000
-  ([limits](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits)).
-  Send a few small texts first, under 200 each (staff, then volunteers,
-  then one local group), then ask again in WhatsApp Manager, or have an
-  admin confirm their ID in the
-  [Security Centre](https://www.facebook.com/business/help/587323819101032).
-  Watch the templates' quality rating
-  ([quality](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality)).
 - **The Marketing Messages API.** Move from the Cloud API's `/messages`
   before it stops sending marketing messages on 13 October 2027
   ([overview](https://developers.facebook.com/documentation/business-messaging/whatsapp/marketing-messages/overview.md)).
