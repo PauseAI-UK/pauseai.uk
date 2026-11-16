@@ -85,7 +85,7 @@ const LISTED: Record<string, readonly string[]> = {
   "luma_events.access": every<CalendarEvent["access"]>()(["manage", "view"]),
   "luma_guests.approval_status": GUEST_STATUSES,
   "luma_import_state.list": every<ImportList>()(["events", "contacts"]),
-  "mailings.channel": every<Parameters<typeof mailingChannel>[0]>()(["email", "text", "whatsapp"]),
+  "mailings.channel": every<Parameters<typeof mailingChannel>[0]>()(["email", "text"]),
   "mailings.state": every<MailingState>()(["draft", "scheduled", "sending", "sent", "cancelled"]),
   "mailings.topic": TOPICS,
   "mailings.also_topics": TOPICS,

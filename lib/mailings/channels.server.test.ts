@@ -122,9 +122,8 @@ const MESSAGE_TO_POLLY = {
 };
 
 describe("mailingChannel", () => {
-  it("sends email by Gmail, and has nothing yet for texts or WhatsApp", () => {
+  it("sends email by Gmail, and has nothing for texts", () => {
     expect(mailingChannel("email")).toBe(gmailEmail);
     expect(mailingChannel("text")).toBeUndefined();
-    expect(mailingChannel("whatsapp")).toBeUndefined();
   });
 });

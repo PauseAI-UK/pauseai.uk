@@ -2004,7 +2004,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),
     CONSTRAINT mailings_box_or_dates CHECK (((airtable_field IS NULL) OR (airtable_sent_between IS NULL))),
-    CONSTRAINT mailings_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'text'::text, 'whatsapp'::text]))),
+    CONSTRAINT mailings_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'text'::text]))),
     CONSTRAINT mailings_created_by_check CHECK ((created_by = lower(created_by))),
     CONSTRAINT mailings_failed_in_a_row_check CHECK ((failed_in_a_row >= 0)),
     CONSTRAINT mailings_gave_up CHECK (((NOT gave_up) OR ((state = 'cancelled'::text) AND (wait_reason IS NOT NULL)))),
