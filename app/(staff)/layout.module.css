@@ -3,3 +3,8 @@
 .staff {
   display: contents;
 }
+
+/* The page fills the window's height, as base.css has body > main do, which this box is between. */
+.staff > :global(main) {
+  flex: 1 0 auto;
+}

@@ -364,10 +364,11 @@ export const exampleMessageCopy: MessageCopy = {
   footer: TEMPLATE_FOOTER,
   place: "Leeds",
   sentAt: new Date("2026-11-07T07:18:00Z"),
+  providerId: "wamid.example",
   events: [
     { at: new Date("2026-11-07T07:40:00Z"), kind: "read", details: {} },
     { at: new Date("2026-11-07T07:18:30Z"), kind: "delivered", details: {} },
-    { at: new Date("2026-11-07T07:18:00Z"), kind: "sent", details: { id: "wamid.example" } },
+    { at: new Date("2026-11-07T07:18:00Z"), kind: "sent", details: {} },
   ],
   topics: ["events"],
   replies: [],
@@ -378,6 +379,7 @@ export const exampleMessageCopy: MessageCopy = {
 export const exampleBroadcastReplies: BroadcastReply[] = [
   {
     id: 3,
+    providerId: "wamid.example-3",
     receivedAt: new Date("2026-11-07T07:19:00Z"),
     from: "jane@example.com",
     subject: "Automatic reply: Thank you for marching",
@@ -391,6 +393,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
   },
   {
     id: 2,
+    providerId: "wamid.example-2",
     receivedAt: new Date("2026-11-07T08:10:00Z"),
     from: "jane@example.com",
     subject: "Re: Thank you for marching",
@@ -404,6 +407,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
   },
   {
     id: 4,
+    providerId: "wamid.example-4",
     receivedAt: new Date("2026-11-07T08:40:00Z"),
     from: "jane@example.com",
     subject: "Re: Thank you for marching",
@@ -417,6 +421,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
   },
   {
     id: 1,
+    providerId: "wamid.example-1",
     receivedAt: new Date("2026-11-07T09:30:00Z"),
     from: "jane@example.com",
     subject: "Re: Thank you for marching",
@@ -434,6 +439,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
 export const exampleBroadcastAnswers: BroadcastAnswer[] = [
   {
     id: 1,
+    providerId: "wamid.example-1",
     replyId: 4,
     sentBy: "jo@pauseai.uk",
     sentAt: new Date("2026-11-07T10:05:00Z"),
@@ -455,6 +461,7 @@ export const exampleBroadcastAnswers: BroadcastAnswer[] = [
 export const exampleTextReplies: BroadcastReply[] = [
   {
     id: 11,
+    providerId: "wamid.example-11",
     receivedAt: new Date("2026-11-07T07:30:00Z"),
     from: "+447700900001",
     subject: "",
@@ -468,6 +475,7 @@ export const exampleTextReplies: BroadcastReply[] = [
   },
   {
     id: 12,
+    providerId: "wamid.example-12",
     receivedAt: new Date("2026-11-07T08:00:00Z"),
     from: "+447700900001",
     subject: "",
@@ -485,6 +493,7 @@ export const exampleTextReplies: BroadcastReply[] = [
 export const exampleTextAnswers: BroadcastAnswer[] = [
   {
     id: 11,
+    providerId: "wamid.example-11",
     replyId: 11,
     sentBy: "jo@pauseai.uk",
     sentAt: new Date("2026-11-07T07:45:00Z"),

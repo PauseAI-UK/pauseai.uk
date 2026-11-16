@@ -54,8 +54,8 @@ describe("replies to broadcasts", () => {
     const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
     const entry = (label: string) => history.getByText(label, { exact: true }).element().closest("li")!.textContent;
     expect(entry(copy.replies.historyNothing)).toContain(`${lettersCopy.letters.detail.fields.by}jo@pauseai.uk`);
-    // Too little recorded to open as JSON, as a letter's can be.
-    expect(history.getByRole("button", { name: staffVocabulary.logged.json }).query()).toBeNull();
+    // What each recorded opens as JSON, as a letter's can.
+    expect(history.getByRole("button", { name: staffVocabulary.logged.json }).elements().length).toBeGreaterThan(0);
     // Jo's answer, after the reply it answers, and in the History.
     await expect.element(page.getByText("Hi Jane, it's on 6 December. See you there!")).toBeVisible();
     await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
@@ -304,7 +304,9 @@ describe("replies to broadcasts", () => {
     // From a number the copy didn't go to: named by it, as a staff page writes it.
     await rerender(view([{ ...exampleTextReplyPastDay, from: "+447700900999" }]));
     await expect.element(page.getByText(copy.replies.windowClosed)).toBeVisible();
-    await expect.element(page.getByText("07700 900999", { exact: true })).toBeVisible();
+    await expect
+      .element(page.getByLabelText(copy.threadTitle).getByText("07700 900999", { exact: true }))
+      .toBeVisible();
   });
 
   it("are counted on an email's or a text's page, each count the colour of its tags, the same boxes either way, and tagged on each recipient", async () => {

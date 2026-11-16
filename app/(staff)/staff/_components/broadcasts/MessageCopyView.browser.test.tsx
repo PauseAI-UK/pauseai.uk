@@ -3,12 +3,8 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffTime } from "@/lib/staff-time";
 import MessageCopyView from "./MessageCopyView";
-import {
-  exampleBroadcastReplies,
-  exampleMessageCopy,
-  exampleTextAnswers,
-  exampleTextReplies,
-} from "./BroadcastWriter.examples";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { exampleMessageCopy, exampleTextAnswers, exampleTextReplies } from "./BroadcastWriter.examples";
 import { SITE_ACTOR } from "@/lib/broadcasts/broadcasts";
 import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
@@ -142,43 +138,53 @@ describe("MessageCopyView", () => {
             },
             // One whose send never finished, so it's no line.
             { ...exampleTextAnswers[0], id: 12, sentAt: null, events: [] },
-            { ...exampleTextAnswers[0], id: 15, replyId: 14, sentBy: SITE_ACTOR, sentAt: at("11:00"), events: [] },
+            // The site's answer to a STOP, with no message ID kept.
+            {
+              ...exampleTextAnswers[0],
+              id: 15,
+              replyId: 14,
+              sentBy: SITE_ACTOR,
+              sentAt: at("11:00"),
+              providerId: null,
+              events: [],
+            },
           ],
         }}
       />,
     );
     const ours = copy.replies.historyAnswered;
+    // Who each was from and to, ours as staff pages write a number: the IDs are in its {}.
+    const [us, jane] = ["07700 900000", "07700 900001"];
     expect(history()).toEqual([
-      // WhatsApp's opt-out and the site's answer to the STOP, at the same moment, in the order they were recorded.
+      // WhatsApp's opt-out, the STOP and the site's answer to it, at the same moment, in the order they were recorded.
       [copy.events["opted-out"], [], []],
-      [ours, [copy.replies.automatically], []],
+      [copy.events.replied, [jane, us], []],
+      [ours, [us, jane, copy.replies.automatically], []],
       [copy.replies.historyNothing, ["sam@pauseai.uk"], []],
+      [copy.events.replied, [jane, us], []],
       [
         ours,
-        ["jo@pauseai.uk"],
+        [us, jane, "jo@pauseai.uk"],
         [
           [copy.replies.historyOurs.read!, [], []],
           [copy.replies.historyOurs.delivered!, [], []],
         ],
       ],
-      [copy.events.replied, [], []],
+      [copy.events.replied, [jane, us], []],
       [
         copy.events.sent,
-        ["wamid.example"],
+        [us, jane],
         [
           [copy.events.read, [], []],
           [copy.events.delivered, [], []],
         ],
       ],
     ]);
-    // Sent says what sent it.
-    await expect
-      .element(
-        page
-          .getByRole("list", { name: lettersCopy.letters.detail.historyTitle })
-          .getByText(mailingsCopy.mailingPages.sendFacts.whatsApp, { exact: true }),
-      )
-      .toBeVisible();
+    // Sent, each of their three replies and each of our two say what they went by, as a letter's do.
+    const list = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
+    expect(list.getByText(mailingsCopy.mailingPages.sendFacts.whatsApp, { exact: true }).elements()).toHaveLength(6);
+    // What's kept of it beside, IDs and all, opens as JSON.
+    expect(list.getByRole("button", { name: staffVocabulary.logged.json }).elements().length).toBeGreaterThan(0);
   });
 
   it("keeps what its provider said on lines of their own when no Sent was recorded, with WhatsApp's why", async () => {
@@ -186,10 +192,11 @@ describe("MessageCopyView", () => {
       <MessageCopyView
         one={{
           ...exampleMessageCopy,
+          providerId: null,
           events: [{ at: at("07:18"), kind: "failed", details: { code: 131026, title: "Message undeliverable" } }],
           replies: [
             {
-              ...exampleBroadcastReplies[1]!,
+              ...exampleTextReplies[1]!,
               receivedAt: at("07:30"),
               outcome: "opted-out",
               dealtBy: "jo@pauseai.uk",
@@ -202,6 +209,7 @@ describe("MessageCopyView", () => {
     );
     expect(history()).toEqual([
       [copy.replies.historyOptedOut, ["jo@pauseai.uk", copy.replies.how], []],
+      [copy.events.replied, ["07700 900001", "07700 900000"], []],
       [copy.events.failed, ["131026", "Message undeliverable"], []],
     ]);
     const fields = lettersCopy.letters.detail.fields;

@@ -88,6 +88,8 @@ describeWithDatabase("answers to replies", () => {
         sentBy: JO,
         sentAt: expect.any(Date),
         body: words("Thanks, Jane."),
+        // Gmail's ID for it, as it went by Gmail.
+        providerId: "g-answer",
         events: [],
       },
     ]);

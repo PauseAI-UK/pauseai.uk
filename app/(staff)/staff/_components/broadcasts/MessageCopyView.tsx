@@ -1,6 +1,7 @@
 import { letterFor } from "@/lib/mailings/doc";
 import { named } from "@/lib/email-parsing/addresses";
 import type { MessageCopy } from "@/lib/broadcasts/pages.server";
+import { phoneWords } from "@/lib/phone";
 import Reply, { type ReplyHandlers } from "./CopyReply";
 import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
@@ -90,13 +91,14 @@ const under = (entries: HistoryEntry[]) => (entries.length ? { under: newestFirs
 const RECEIPTS = new Set(["delivered", "read", "failed", "bounced"]);
 
 /**
- * A copy's history, as a letter's shows it, newest first, in words, who did
- * it on a line under it (By): what its provider reported, Sent tagged with
+ * A copy's history, as a letter's shows it, newest first, in words, with
+ * who it was from and to, and who did it (By), on lines under it, and what
+ * else it recorded in its {}: what its provider reported, Sent tagged with
  * what sent it and what it then said of it under it (delivered, read,
  * failed, bounced), or on lines of their own with no Sent recorded; each
- * reply dealt with; and each of our replies, with what WhatsApp said became
- * of it under it. Our reply is its own line, so a reply's being answered
- * isn't another.
+ * reply, and each dealt with; and each of our replies, with what WhatsApp
+ * said became of it under it. Our reply is its own line, so a reply's being
+ * answered isn't another.
  */
 function historyOf(one: MessageCopy): HistoryEntry[] {
   const entry = (event: MessageCopy["events"][number]): HistoryEntry => ({
@@ -105,12 +107,43 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
     details: event.details,
     label: copy.events[event.kind as keyof typeof copy.events],
   });
+  // A number as staff pages write it; an address as it is.
+  const shown = (address: string) => (one.channel === "text" ? phoneWords(address) : address);
+  const ourAddress = shown(one.sentFrom);
+  // What a reply came back by, and ours went by: WhatsApp for a text, and for an email the mailbox's Gmail; and its tag.
+  const replyBackend = one.channel === "text" ? "whatsapp" : "gmail";
+  const replyTag =
+    one.channel === "text"
+      ? mailingsCopy.mailingPages.sendFacts.whatsApp
+      : mailingsCopy.mailingPages.sendBy.names.gmail;
   const sent = one.events.find((event) => event.kind === "sent");
-  const own = one.events.filter((event) => event.kind !== "sent" && !(sent && RECEIPTS.has(event.kind)));
+  // Each reply is its own line, from the reply itself, so its event isn't another.
+  const own = one.events.filter(
+    (event) => event.kind !== "sent" && event.kind !== "replied" && !(sent && RECEIPTS.has(event.kind)),
+  );
   const tag =
     one.channel === "text"
       ? mailingsCopy.mailingPages.sendFacts.whatsApp
       : mailingsCopy.mailingPages.sendBy.names[one.sendBy];
+  const sentDetails = {
+    from: ourAddress,
+    ...(one.address && { to: shown(one.address) }),
+    backend: one.channel === "text" ? "whatsapp" : one.sendBy,
+    ...(one.providerId && { messageId: one.providerId }),
+  };
+  const replies = one.replies.flatMap((reply): HistoryEntry[] =>
+    reply.automatic
+      ? []
+      : [
+          {
+            at: reply.receivedAt,
+            status: "replied",
+            label: copy.events.replied,
+            tag: replyTag,
+            details: { from: shown(reply.from), to: ourAddress, backend: replyBackend, messageId: reply.providerId },
+          },
+        ],
+  );
   // A STOP the site recorded is already there, as WhatsApp's opt-out.
   const dealt = one.replies.flatMap((reply): HistoryEntry[] =>
     reply.dealtAt && reply.outcome !== "answered" && reply.dealtBy !== SITE_ACTOR
@@ -130,8 +163,16 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
           {
             at: answer.sentAt,
             status: "answered",
-            details: { by: answer.sentBy === SITE_ACTOR ? copy.replies.automatically : answer.sentBy },
+            details: {
+              by: answer.sentBy === SITE_ACTOR ? copy.replies.automatically : answer.sentBy,
+              from: ourAddress,
+              // Every answer is to one of this copy's replies.
+              to: shown(one.replies.find((reply) => reply.id === answer.replyId)!.from),
+              backend: replyBackend,
+              ...(answer.providerId && { messageId: answer.providerId }),
+            },
             label: copy.replies.historyAnswered,
+            tag: replyTag,
             ...under(
               answer.events.map((event) => ({
                 at: event.at,
@@ -146,9 +187,17 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
   );
   return newestFirst([
     ...(sent
-      ? [{ ...entry(sent), tag, ...under(one.events.filter((event) => RECEIPTS.has(event.kind)).map(entry)) }]
+      ? [
+          {
+            ...entry(sent),
+            details: sentDetails,
+            tag,
+            ...under(one.events.filter((event) => RECEIPTS.has(event.kind)).map(entry)),
+          },
+        ]
       : []),
     ...own.map(entry),
+    ...replies,
     ...dealt,
     ...ours,
   ]);
@@ -187,7 +236,7 @@ export default function MessageCopyView({ one, actions }: { one: MessageCopy; ac
         </Column>
         <Column span={3}>
           <Card look="log" title={lettersCopy.letters.detail.historyTitle} id="letter-history">
-            <LetterHistory events={historyOf(one)} logged={false} />
+            <LetterHistory events={historyOf(one)} />
           </Card>
         </Column>
       </Grid>

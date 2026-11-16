@@ -36,6 +36,8 @@ export type BroadcastAnswer = {
   /** When it went; null while it's being sent, or if the run sending it stopped. */
   sentAt: Date | null;
   body: LetterDoc;
+  /** What sent it calls it, once it went: WhatsApp's message ID, or Gmail's. */
+  providerId: string | null;
   /** What WhatsApp said became of one to a text (delivered, read, failed), newest first; none for an email. */
   events: AnswerEvent[];
 };
@@ -46,7 +48,8 @@ export type AnswerEvent = { at: Date; kind: string; details: Record<string, unkn
 /** The answers to a copy's replies, oldest first. */
 export async function answersTo(copyId: number): Promise<BroadcastAnswer[]> {
   const rows = await query<Omit<BroadcastAnswer, "body" | "events"> & { body: unknown }>(
-    `SELECT a.id::int AS id, a.reply_id::int AS "replyId", a.sent_by AS "sentBy", a.sent_at AS "sentAt", a.body
+    `SELECT a.id::int AS id, a.reply_id::int AS "replyId", a.sent_by AS "sentBy", a.sent_at AS "sentAt", a.body,
+       coalesce(a.provider_message_id, a.gmail_message_id) AS "providerId"
      FROM broadcast_answers a JOIN broadcast_replies r ON r.id = a.reply_id
      WHERE r.message_id = $1 ORDER BY a.created_at, a.id`,
     [copyId],
