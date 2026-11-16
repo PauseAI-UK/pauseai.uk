@@ -348,10 +348,11 @@ export async function broadcastSender(
 async function scheduleProblems(
   broadcast: WrittenBroadcast,
 ): Promise<{ problems: BroadcastScheduleProblem[]; recipients: number }> {
-  const [audience, unknown, sender] = await Promise.all([
+  const [audience, unknown, sender, number] = await Promise.all([
     supporterAudience(broadcast.filter, broadcast),
     filterProblems(broadcast.filter),
     broadcastSender(broadcast),
+    textSenderNumber(),
   ]);
   const problems = broadcastScheduleProblems({
     ...broadcast,
@@ -359,7 +360,7 @@ async function scheduleProblems(
     unknown,
     ...sender,
     approved: broadcast.template?.status === "approved",
-    numbered: Boolean(await textSenderNumber()),
+    numbered: Boolean(number),
     sends: channelSends(broadcast.channel, broadcast.sendBy),
   });
   return { problems, recipients: audience.recipients.length };
