@@ -35,17 +35,12 @@ a broadcast that has started stops, and whoever scheduled it is emailed
 why. Each broadcast goes once per address.
 
 We send from pauseai.uk, not CiviCRM, as we also email people who
-aren't CRM contacts: by `hello@`'s Gmail for now, and by Postmark once it
-approves us (phase 4, "Sending"). Once phase 4 is done, UK staff stop sending from
+aren't CRM contacts: by `hello@`'s Gmail or by Postmark (phase 4,
+"Sending"). Once phase 4 is done, UK staff stop sending from
 CiviCRM, and all UK bulk email goes from pauseai.uk.
 
 ## Outstanding outside the code
 
-- Postmark: approval for broadcast sending on the `broadcast` stream,
-  and its unsubscribe handling set to Custom. Asked of Postmark's
-  support on 11 November (ticket 11645689); they warned of longer
-  waits than usual. pauseai.uk's DKIM and Return-Path were verified
-  on 11 November.
 - Postmark: the broadcast stream's webhooks (bounce, spam complaint,
   delivery), once the code is merged.
 - DMARC reports (`rua=`) and Google Postmaster Tools, before the first
@@ -327,9 +322,22 @@ site reads its replies.
   Postmark server, beside the transactional stream's `outbound`, for about
   $200–300 a year ([pricing](https://postmarkapp.com/pricing)). pauseai.uk
   is a verified sending domain in Postmark, beside `letters.` and `notify.`
-  (`docs/development.md`, "Postmark"). It's in the writer's choice, greyed
-  out, until Postmark approves broadcast sending: turning it on is
-  `available` in `BROADCAST_SEND_BY` (`lib/broadcasts/broadcasts.ts`).
+  (`docs/development.md`, "Postmark"), with its DKIM and Return-Path
+  verified. It's a working choice in the writer: `available` in
+  `BROADCAST_SEND_BY` (`lib/broadcasts/broadcasts.ts`), checked end to
+  end against the stream before the first real send.
+
+The broadcast stream is set to "Manage unsubscribes on your own", so
+Postmark adds no `List-Unsubscribe` headers and keeps no unsubscribe
+list of its own. Every message must carry a visible, working
+unsubscribe link and the headers, and never go to anyone who has
+unsubscribed ([managing your own unsubscribe
+process](https://postmarkapp.com/support/article/1300-managing-your-own-unsubscribe-process)).
+Opt-outs covers all three, and each message carries our own
+`List-Unsubscribe` and `List-Unsubscribe-Post` headers
+(`lib/broadcasts/sending.server.ts`). Postmark also asks that
+broadcasts go only to people who opted in, which the sending rule
+keeps.
 
 The broadcast stream has the webhooks the site's own emails have
 (`lib/email/postmark-webhooks.server.ts`): delivery, for the delivered count;
