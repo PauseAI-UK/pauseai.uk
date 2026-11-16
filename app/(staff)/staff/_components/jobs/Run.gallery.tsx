@@ -32,12 +32,14 @@ const importRun = (job: PoliticianImportJob, label: string): Variant => ({
           changes: { ...exampleHeldImport.result.changes, renamed: [], unofficial: [] },
           relinked: { read: 0, unread: 0, linked: 2, unlinked: 0, offices: 1 },
         })}
+        open
       />
     </StaffPage>
   ),
 });
 
-// A run of each job, as its job's page shows it. A held import, with its buttons, is in the client file.
+// A run of each job, a row of its job's page, those with detail opened. A held import, with its buttons, is in the
+// client file.
 const RUNS: Record<ImportJob, Variant> = {
   "import-parliament": {
     label: "Parliament's import, held for a decision",
@@ -70,6 +72,7 @@ const RUNS: Record<ImportJob, Variant> = {
               { name: "Lord Sample", kind: "several", candidates: ["Lord Sample", "Lord Sample of Elsewhere"] },
             ],
           })}
+          open
         />
       </StaffPage>
     ),

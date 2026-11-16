@@ -281,14 +281,14 @@ its `page.tsx` returns `ui/Page` with its `kind`
 laid out, so a new page starts from the kind it is, not from a design of
 its own. The gallery's staff kit has a skeleton of each.
 
-| Kind         | What it is                                                 | It starts with                                 | Then                                                                     | Such as                                          |
-| ------------ | ---------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------ |
-| `list`       | Everything of a kind, to search and filter                 | the head                                       | tabs if it has views, the filter bar, the list frame, the window's width | Supporters, Politicians, Sent emails             |
-| `month-list` | Things we made, newest first under their months            | the head, with the button for a new one        | a row for each, with its counts                                          | Mailings, Campaigns, Asks, Past imports          |
-| `record`     | A main thing, which other pages lead to and count          | the trail, then the band                       | cards on the grid                                                        | a supporter, a politician, a mailing, an ask     |
-| `item`       | A lesser thing, a part of a record or one run of something | the trail, then the head with a line of facts  | cards on the grid                                                        | a letter, a one-off thread, a scheduled job      |
-| `form`       | Something to fill in                                       | the trail, if it's under a page; then the head | one card with help beside it, or numbered cards for steps                | New ask, a draft mailing, Import sign-ups, Erase |
-| `board`      | Cards or tiles of a kind, side by side                     | the head                                       | an `even` grid                                                           | the dashboard, Scheduled jobs, Your account      |
+| Kind         | What it is                                                 | It starts with                                 | Then                                                                     | Such as                                                       |
+| ------------ | ---------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `list`       | Everything of a kind, to search and filter                 | the head                                       | tabs if it has views, the filter bar, the list frame, the window's width | Supporters, Politicians, Sent emails                          |
+| `month-list` | Things we made, newest first under their months            | the head, with the button for a new one        | a row for each, with its counts                                          | Mailings, Campaigns, Asks, Past imports                       |
+| `record`     | A main thing, which other pages lead to and count          | the trail, then the band                       | cards on the grid                                                        | a supporter, a politician, a mailing, an ask, a scheduled job |
+| `item`       | A lesser thing, a part of a record or one run of something | the trail, then the head with a line of facts  | cards on the grid                                                        | a letter, a one-off thread, a broadcast's copy                |
+| `form`       | Something to fill in                                       | the trail, if it's under a page; then the head | one card with help beside it, or numbered cards for steps                | New ask, a draft mailing, Import sign-ups, Erase              |
+| `board`      | Cards or tiles of a kind, side by side                     | the head                                       | an `even` grid                                                           | the dashboard, Scheduled jobs, Your account                   |
 
 A draft mailing or broadcast is at its record's address, so its page says
 `record`, and is laid out as a form until it's sent.

@@ -22,7 +22,7 @@ export default async function ImportJobRoute({ params }: Params) {
   const job = found(jobBySlug((await params).job));
   const [runs, running] = await Promise.all([listRuns(job), runningNow(job)]);
   return (
-    <Page kind="item" under="import" here={importRunsCopy.jobTitles[job]}>
+    <Page kind="record" under="import" here={importRunsCopy.jobTitles[job]}>
       <ImportJobPage
         job={job}
         runs={runs}

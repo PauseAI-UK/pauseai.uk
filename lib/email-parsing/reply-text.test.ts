@@ -165,6 +165,11 @@ describe("replyText", () => {
       text: "Thanks.\n\n--\nJane Smith",
       quoted: "https://example.com\n07700 900123",
     });
+    // A last line starting "On" isn't a quote's header with nothing under it.
+    expect(replyParts("Thanks.\n\n--\nJane Smith\nOn the march")).toEqual({
+      text: "Thanks.\n\n--\nJane Smith",
+      quoted: "On the march",
+    });
     const long = Array.from({ length: 11 }, (_, n) => `Point ${n + 1} of what I think, at length, about it all.`);
     const whole = ["Some thoughts.", "", "--", ...long].join("\n");
     expect(replyText(whole)).toBe(whole);

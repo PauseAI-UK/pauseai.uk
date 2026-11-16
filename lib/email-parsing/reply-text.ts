@@ -139,7 +139,7 @@ function startsQuote(lines: string[], i: number): boolean {
  * too many for a signature.
  */
 function dashedSignature(lines: string[], at: number): string[] | undefined {
-  if (!SEPARATOR_LINE.test(lines[at] ?? "")) return undefined;
+  if (!SEPARATOR_LINE.test(lines[at]!)) return undefined;
   const quote = lines.findIndex((_, j) => j > at && startsQuote(lines, j));
   const under = lines.slice(at + 1, quote === -1 ? undefined : quote).filter((line) => line.trim());
   return under.length && under.length <= DASHED_SIGNATURE_LINES ? under : undefined;

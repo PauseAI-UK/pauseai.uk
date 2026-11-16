@@ -29,10 +29,8 @@ import { importIconGallery } from "@/app/(staff)/staff/_components/jobs/ImportIc
 import { importCardGallery } from "@/app/(staff)/staff/_components/jobs/ImportCard.gallery";
 import { importJobGallery } from "@/app/(staff)/staff/_components/jobs/ImportJob.gallery";
 import { jobActionsGallery } from "@/app/(staff)/staff/_components/jobs/JobActions.gallery";
-import { resultBoxGallery } from "@/app/(staff)/staff/_components/jobs/ResultBox.gallery";
 import { runGallery } from "@/app/(staff)/staff/_components/jobs/Run.gallery";
 import { runBoxGallery } from "@/app/(staff)/staff/_components/jobs/RunBox.gallery";
-import { runTableGallery } from "@/app/(staff)/staff/_components/jobs/RunTable.gallery";
 import { runListGallery } from "@/app/(staff)/staff/_components/jobs/RunList.gallery";
 
 export const staffAdmin: Group = {
@@ -65,10 +63,8 @@ export const staffAdmin: Group = {
     ...loggedGallery,
     ...changesFiltersGallery,
     ...changesTableGallery,
-    ...resultBoxGallery,
     ...runGallery,
     ...runBoxGallery,
-    ...runTableGallery,
     ...runListGallery,
   ],
 };

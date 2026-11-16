@@ -71,7 +71,7 @@ test("The Luma import", async ({ page, flowDatabase }) => {
     requests: 3,
   };
   await expect(page.getByText(jobsCopy.luma.result(again))).toBeVisible();
-  await expect(page.getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.unchanged).first()).toBeVisible();
   await page.getByRole("heading", { name: jobsCopy.luma.title }).scrollIntoViewIfNeeded();
   await frame(page, "The second run");
 });
@@ -105,7 +105,7 @@ test("The CiviCRM import", async ({ page, flowDatabase }) => {
   await expect(
     page.getByText(jobsCopy.civicrm.result({ ...first, added: 0, optOuts: 0, blocked: 0, linked: 0 })),
   ).toBeVisible();
-  await expect(page.getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.unchanged).first()).toBeVisible();
   await page.getByRole("heading", { name: jobsCopy.civicrm.title }).scrollIntoViewIfNeeded();
   await frame(page, "The second run");
 });
@@ -127,7 +127,7 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   // The fixture mailbox has nothing new in it.
   const read = { account: staffEmail(), replies: 0, autoReplies: 0, bounces: 0 };
   await expect(page.getByText(jobsCopy.gmailReading.account(read))).toBeVisible();
-  await expect(page.getByText(jobsCopy.runs.status.unchanged)).toBeVisible();
+  await expect(page.getByText(jobsCopy.runs.status.unchanged).first()).toBeVisible();
   await page.getByRole("heading", { name: jobsCopy.gmailReading.title }).scrollIntoViewIfNeeded();
   await frame(page, "Gmail, read");
 
@@ -164,7 +164,7 @@ const scheduled = (
 
 test("The Luma import's log", async ({ page, flowDatabase }) => {
   story(
-    "Luma is copied every 5 minutes, and each day is one table. The newest run is a green row. Runs that found nothing gather into a row, those that did are a row each, and one that stopped short is amber, its words under its counts.",
+    "Luma is copied every 5 minutes, and each run is a row under its day, with a dot for how it ended. The newest is opened. Runs that found nothing gather into a row, those that did are a row each, one that stopped short has an amber dot, and older runs fold into one row.",
   );
   await logIn(page, flowDatabase);
   scheduled(flowDatabase, "import-luma", 1, "0 minutes", exampleLumaResult);
@@ -185,7 +185,7 @@ test("The Luma import's log", async ({ page, flowDatabase }) => {
 
 test("The Gmail reading's log", async ({ page, flowDatabase }) => {
   story(
-    "Gmail is read every 5 minutes too, its counts over every account it read. A mailbox that couldn't be read is an amber row, saying which under its counts.",
+    "Gmail is read every 5 minutes too. A mailbox that couldn't be read is a problem: its run's dot is amber, and an amber line under its words says which.",
   );
   await logIn(page, flowDatabase);
   const account = (email: string, extra = {}) => ({ account: email, replies: 0, autoReplies: 0, bounces: 0, ...extra });
@@ -280,11 +280,12 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   // The import, twice: its page lists both runs, under the day's heading, and none of the other bodies'.
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
   const run = page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] });
+  // One a run, and one in the line under the title, saying how it stands.
   const unchanged = page.getByText(jobsCopy.runs.status.unchanged, { exact: true });
   await run.click();
-  await expect(unchanged).toHaveCount(1);
-  await run.click();
   await expect(unchanged).toHaveCount(2);
+  await run.click();
+  await expect(unchanged).toHaveCount(3);
   // One day's heading over every run: the fixture clock's day.
   const day = page.getByRole("heading", { level: 2, name: staffDate(new Date(FIXTURE_NOW)) });
   await expect(day).toHaveCount(1);
@@ -324,13 +325,14 @@ test("An import fails", async ({ page, request, flowDatabase }) => {
   expect(notified(words.subject(importRunsCopy.jobTitles["import-luma"]))!.MessageId).toBe(email.MessageId);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
-  await expect(page.getByText(jobsCopy.runs.status.failed, { exact: true })).toHaveCount(2);
+  // Each run, and the line under the title, saying how it stands.
+  await expect(page.getByText(jobsCopy.runs.status.failed, { exact: true })).toHaveCount(3);
   await frame(page, "The Luma import's runs");
 });
 
 test("An import has problems", async ({ page, request, flowDatabase }) => {
   story(
-    "postcodes.io is down. The Luma import still runs, but can't place the new supporters, so it says so under its line, and the notification inbox gets an email saying what went wrong.",
+    "postcodes.io is down. The Luma import still runs, but can't place the new supporters, so it says so in amber under its words, and the notification inbox gets an email saying what went wrong.",
   );
   failService(flowDatabase, "api.postcodes.io", FAILING_DIR);
   const luma = () =>
@@ -346,7 +348,8 @@ test("An import has problems", async ({ page, request, flowDatabase }) => {
   expect(notified(words.subject(importRunsCopy.jobTitles["import-luma"]))!.MessageId).toBe(email.MessageId);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
-  await expect(page.getByText(jobsCopy.runs.status.problems, { exact: true })).toHaveCount(2);
+  // Each run, and the line under the title, saying how it stands.
+  await expect(page.getByText(jobsCopy.runs.status.problems, { exact: true })).toHaveCount(3);
   await expect(page.getByText(supportersCopy.problems.placesFailed, { exact: false }).first()).toBeVisible();
   await frame(page, "The Luma import's runs, with the problem under each");
 });

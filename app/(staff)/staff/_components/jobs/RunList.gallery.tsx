@@ -4,6 +4,11 @@ import RunList from "./RunList";
 import { exampleControlAiResult, exampleImportResult, exampleLumaResult, exampleRun } from "./RunList.examples";
 import StaffPage from "../ui/StaffPage";
 
+const AT = new Date("2026-11-03T12:00:00Z").getTime();
+/** A Luma run `minutes` before noon. */
+const luma = (id: number, minutes: number, run = {}, result = {}) =>
+  exampleRun("import-luma", { ...exampleLumaResult, ...result }, { id, at: new Date(AT - minutes * 60_000), ...run });
+
 export const runListGallery: Example[] = [
   {
     name: "RunList",
@@ -11,17 +16,18 @@ export const runListGallery: Example[] = [
     variants: [
       {
         label:
-          "A job that runs often: the day's table, the newest run green, a row for runs that found nothing and an amber one for a problem",
+          "A job that runs often: the newest opened, runs that found nothing in a row, one that stopped short, and routine runs further down folded",
         render: () => (
           <StaffPage as="div">
             <RunList
               none="None"
               runs={[
-                exampleRun("import-luma", exampleLumaResult, { id: 31 }),
-                exampleRun("import-luma", exampleLumaResult, { id: 32 }),
-                exampleRun("import-luma", exampleLumaResult, { id: 33, status: "unchanged" }),
-                exampleRun("import-luma", exampleLumaResult, { id: 34, status: "unchanged" }),
-                exampleRun("import-luma", { ...exampleLumaResult, stoppedBy: "time" }, { id: 35 }),
+                luma(31, 0),
+                luma(32, 5),
+                luma(33, 10, { status: "unchanged" }),
+                luma(34, 15, { status: "unchanged" }),
+                luma(35, 20, {}, { stoppedBy: "time" }),
+                ...Array.from({ length: 14 }, (_, i) => luma(40 + i, 25 + 5 * i)),
               ]}
             />
           </StaffPage>
