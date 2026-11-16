@@ -404,8 +404,8 @@ export async function liftNoBulk(address: string): Promise<boolean> {
 /**
  * Opts the address out of every bulk email, which CiviCRM is told of, and
  * each of its numbers out of every text and every call (`all`), whatever it
- * has a yes for now or later, which CiviCRM is told of as "Do not SMS" and
- * "Do not phone"; and takes the address off our Luma calendar. The stops are one group, by
+ * has a yes for now or later, which stays ours; and takes the address off
+ * our Luma calendar. The stops are one group, by
  * their source reference (STOP_ALL), so Restart can undo them all. Nothing
  * for a number's page, which doesn't offer it.
  */

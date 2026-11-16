@@ -1275,12 +1275,11 @@ Each opt-out of ours that CiviCRM takes goes to its `updateSubscriptions`
 too (`lib/supporters/civicrm-updates.server.ts`), so Global's records and mail honour
 it: the newsletter by email as an unsubscribe from `newsletter`,
 volunteering by email from `volunteer_updates`, and every bulk email as
-`no_bulk_email`. One CiviCRM told us of doesn't go back, and events go
-nowhere. A stop by text or call goes only from Stop everything, as "Do not
-SMS" and "Do not phone" for the number: those are CiviCRM's flags for the
-whole number, which nothing of ours can lift, so a stop of a topic, even a
-number's last, or WhatsApp's own stop of our marketing messages, stays
-ours. Each is queued with the opt-out, in `civicrm_updates`, and sent by
+`no_bulk_email`. One CiviCRM told us of doesn't go back, and events, or
+any stop by text or call, go nowhere. We never set "Do not email", "Do
+not SMS" or "Do not phone": those are a person's word to Global, which we
+honour ("Whether we'd contact someone", below), and nothing of ours could
+lift them again. Each is queued with the opt-out, in `civicrm_updates`, and sent by
 the hourly CiviCRM import before it pulls, oldest first, tried again each
 hour until CiviCRM answers it.
 

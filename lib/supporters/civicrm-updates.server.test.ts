@@ -284,59 +284,17 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
   });
 });
 
-describeWithDatabase("our stops of a number sent to CiviCRM", () => {
+describeWithDatabase("our stops of a number, kept from CiviCRM", () => {
   useTestDatabase();
 
-  it("sends nothing for a stop of every topic one by one, nor of every text by WhatsApp", async () => {
-    const stop = (list: OptOut["list"], way: "text" | "call", ref: string) =>
-      recordOptOut(
-        optOut({
-          address: "+447700900001",
-          list,
-          way,
-          source: "staff",
-          sourceRef: ref,
-          recordedBy: JO,
-          how: "Told us",
-        }),
-      );
-    for (const list of ["events", "newsletter", "volunteering"] as const) await stop(list, "text", list);
-    await stop("volunteering", "call", "call");
-    await recordOptOut(
-      optOut({ address: "+447700900002", list: "all", way: "text", source: "whatsapp", sourceRef: "setting all" }),
-    );
-    expect(await query("SELECT 1 FROM civicrm_updates")).toEqual([]);
-  });
-
-  it("sends Stop everything's stops of a number as Do not SMS and Do not phone", async () => {
-    const stop = (way: "text" | "call") =>
-      recordOptOut(
-        optOut({
-          address: "+447700900001",
-          list: "all",
-          way,
-          source: "preferences",
-          sourceRef: `${STOP_ALL} group-1 ${way} all +447700900001`,
-        }),
-      );
-    await stop("text");
-    await stop("call");
-    expect(await query("SELECT change, phone, email FROM civicrm_updates ORDER BY id")).toEqual([
-      { change: "do_not_sms", phone: "+447700900001", email: null },
-      { change: "do_not_phone", phone: "+447700900001", email: null },
-    ]);
-    const calls = serve();
-    expect(await sendCivicrmUpdates("key")).toEqual({ sent: 2, refused: 0, unanswered: 0 });
-    expect(calls[0]).toEqual([
-      expect.objectContaining({ phone: "+447700900001", change: "do_not_sms", source: "pauseai.uk:preferences" }),
-      expect.objectContaining({ phone: "+447700900001", change: "do_not_phone" }),
-    ]);
-    expect(calls[0][0]).not.toHaveProperty("email");
-  });
-
-  it("sends nothing for a number's stop CiviCRM told us of", async () => {
+  it("sends nothing for a stop of texts or calls: by topic, by WhatsApp, or by Stop everything", async () => {
+    const stop = (fields: Partial<OptOut>) => recordOptOut(optOut({ address: "+447700900001", ...fields }));
     for (const list of ["events", "newsletter", "volunteering"] as const) {
-      await recordOptOut(optOut({ address: "+447700900001", list, way: "text", source: "civicrm", sourceRef: list }));
+      await stop({ list, way: "text", source: "staff", sourceRef: list, recordedBy: JO, how: "Told us" });
+    }
+    await stop({ list: "all", way: "text", source: "whatsapp", sourceRef: "setting all" });
+    for (const way of ["text", "call"] as const) {
+      await stop({ list: "all", way, source: "preferences", sourceRef: `${STOP_ALL} group-1 ${way}` });
     }
     expect(await query("SELECT 1 FROM civicrm_updates")).toEqual([]);
   });

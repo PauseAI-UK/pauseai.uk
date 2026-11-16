@@ -10,14 +10,16 @@ import {
 import { problem } from "@/lib/server/problems.server";
 import { supportersCopy } from "./copy";
 
-// Our opt-outs sent to CiviCRM's updateSubscriptions, so Global's records
-// and mail honour them too: of email by address, and Stop everything's
-// stops of a number as its "Do not SMS" and "Do not phone"; and the opt-ins a person makes on the contact preferences page
-// that CiviCRM takes: a lift of "No bulk emails", and a box ticked for the
+// Our opt-outs of email sent to CiviCRM's updateSubscriptions, so Global's
+// records and mail honour them too, and the opt-ins a person makes on the
+// contact preferences page that CiviCRM takes: a lift of "No bulk emails", and a box ticked for the
 // newsletter or volunteering by email, as a resubscribe to its list. Each
 // is queued in civicrm_updates in the transaction that records it, then
 // sent by the hourly CiviCRM import, before it pulls, oldest first, so an
-// opt-in goes after the opt-out it undoes, and the pull sees both.
+// opt-in goes after the opt-out it undoes, and the pull sees both. A stop by
+// text or call stays ours, as a stop of email never goes as "Do not email":
+// CiviCRM's "Do not SMS" and "Do not phone" are a person's word to Global,
+// which we honour (contact_permission()) and never set.
 
 /** What an opt-out of ours is to CiviCRM, if it's anything: the newsletter or volunteering by email, or every bulk email. */
 export function civicrmChange(list: string, way: string): Pick<SubscriptionEvent, "change" | "list"> | undefined {
@@ -37,45 +39,16 @@ export function civicrmResubscribe(topic: string, way: string): Pick<Subscriptio
 /** Where a person did it, as CiviCRM is told: our name for the source, as from pauseai.uk. */
 const sourceName = (source: string): string => `pauseai.uk:${source}`;
 
-/**
- * An opt-out of ours, as queued for CiviCRM: for a number, whether it's
- * one of a Stop everything's (`stopsAll`).
- */
-type Queued = { id: number; address: string; list: string; way: string; source: string; at: Date; stopsAll: boolean };
-
-/**
- * Queues "Do not SMS" or "Do not phone" for a number's stop of every text,
- * or every call, by Stop everything on the contact preferences page. Those
- * are CiviCRM's flags for the whole number, which nothing of ours can lift,
- * so any other stop stays ours: of a topic, even the last one the number
- * had, or WhatsApp's own stop of our marketing messages, which the person
- * can lift there. Returns whether it queued it.
- */
-async function queueNumberStop(optOut: Queued, db?: Queryable): Promise<boolean> {
-  if (!optOut.stopsAll) return false;
-  await query(
-    `INSERT INTO civicrm_updates (opt_out_id, change, phone, occurred_at, source) VALUES ($1, $2, $3, $4, $5)`,
-    [
-      optOut.id,
-      optOut.way === "text" ? "do_not_sms" : "do_not_phone",
-      optOut.address,
-      optOut.at,
-      sourceName(optOut.source),
-    ],
-    db,
-  );
-  return true;
-}
+/** An opt-out of ours, as queued for CiviCRM. */
+type Queued = { id: number; address: string; list: string; way: string; source: string; at: Date };
 
 /**
  * Queues an opt-out of ours for CiviCRM, if it's one it takes (civicrmChange)
  * and not one CiviCRM told us of, with the contact ID of the address's
- * contact in the last pull, if it has one; or, for a number, a Stop
- * everything's (queueNumberStop). Returns whether it queued it.
+ * contact in the last pull, if it has one. Returns whether it queued it.
  */
 export async function queueOptOut(optOut: Queued, db?: Queryable): Promise<boolean> {
   if (optOut.source === "civicrm" || optOut.source === "civicrm-check") return false;
-  if (optOut.way !== "email") return queueNumberStop(optOut, db);
   const change = civicrmChange(optOut.list, optOut.way);
   if (!change) return false;
   await query(

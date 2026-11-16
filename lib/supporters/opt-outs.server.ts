@@ -119,7 +119,6 @@ export async function recordOptOut(optOut: OptOut, db?: Queryable): Promise<bool
       way,
       source: optOut.source,
       at: optOut.unsubscribedAt,
-      stopsAll: way !== "email" && optOut.sourceRef.startsWith(`${STOP_ALL} `),
     },
     db,
   );
