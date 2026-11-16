@@ -33,7 +33,7 @@
   border-top: 1px solid var(--border);
 }
 
-/* A field, then Save, on one line, what the server said under them. */
+/* A field, then the note and Save on one line, what the server said under them. */
 .form {
   display: flex;
   flex-wrap: wrap;
@@ -46,7 +46,7 @@
   min-width: 0;
 }
 
-/* A field with a note under it: a line of its own. */
+/* The field, or the choices for it, each on a line of its own above the note and Save. */
 .wholeField {
   flex-basis: 100%;
   min-width: 0;
@@ -122,7 +122,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Under a Lord's email field while they have none: why it's theirs to set, ghosted. */
+/* Ghosted lines under a field: where their email came from, why a Lord's is theirs to set, why choices are offered. */
 .hint {
   margin: var(--space-2) 0 0;
   color: var(--muted);

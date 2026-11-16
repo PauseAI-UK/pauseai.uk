@@ -2580,11 +2580,11 @@ ALTER TABLE ONLY public.asks
     ADD CONSTRAINT asks_slug_kind_key UNIQUE (slug, kind);
 
 --
--- Name: audit_log audit_log_email_edit_note; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+-- Name: audit_log audit_log_edit_note; Type: CHECK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE public.audit_log
-    ADD CONSTRAINT audit_log_email_edit_note CHECK (((action <> 'edit politician'::text) OR (NOT ((details -> 'changed'::text) ? 'email'::text)) OR (actor !~~ '%@%'::text) OR (btrim(COALESCE((details ->> 'note'::text), ''::text)) <> ''::text))) NOT VALID;
+    ADD CONSTRAINT audit_log_edit_note CHECK (((action <> 'edit politician'::text) OR (NOT (((details -> 'changed'::text) ? 'email'::text) OR ((details -> 'changed'::text) ? 'salutation'::text))) OR (actor !~~ '%@%'::text) OR (btrim(COALESCE((details ->> 'note'::text), ''::text)) <> ''::text))) NOT VALID;
 
 --
 -- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -

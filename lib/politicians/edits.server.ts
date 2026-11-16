@@ -7,8 +7,9 @@ import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 
 // What staff edit on a politician's page, which the imports
 // (lib/politicians/imports.server.ts) then keep: the two marks; a
-// salutation the rule got wrong; and their email, with a note of why. Each
-// edit is logged, by the politician's ID, so their page can tell it.
+// salutation the rule got wrong; and their email; each of those two with a
+// note of why. Each edit is logged, by the politician's ID, so their page
+// can tell it.
 
 /** The markers staff set by hand, by their names in a form. */
 export const MARKS = { importantTarget: "important_target", personalConnection: "personal_connection" } as const;
@@ -46,7 +47,7 @@ export type PoliticianDetailsEdit = {
   salutation: string;
   /** Kept through the imports unless their body listed it and stopped (nextEmail). */
   email?: string;
-  /** Why the email changed: needed for any change of it. */
+  /** Why the salutation or email changed: needed for any change of them. */
   note?: string;
 };
 
@@ -58,7 +59,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Saves a politician's details as staff edited them: their salutation,
- * which is then checked, and their email, with a note of why it changed.
+ * which is then checked, and their email, with a note of why they changed.
  * Says whether it saved, or why not.
  */
 export async function editPoliticianDetails(
@@ -83,19 +84,14 @@ export async function editPoliticianDetails(
     const after = { salutation, email: edit.email !== undefined ? email || null : was.email };
     const changed = changedFields({ salutation: was.salutation, email: was.email }, after);
     if (Object.keys(changed).length === 0) return { saved: true };
-    // The audit log refuses a staff member's change of email without a note too (audit_log_email_edit_note).
-    if (changed.email && !note) return { saved: false, why: "note" };
+    // The audit log refuses a staff member's change of either without a note too (audit_log_edit_note).
+    if (!note) return { saved: false, why: "note" };
     await query(
       "UPDATE notable_people SET salutation = $2, salutation_to_check = false, email = $3, updated_at = now() WHERE id = $1",
       [politicianId, after.salutation, after.email],
       db,
     );
-    await logChange(
-      staff,
-      "edit politician",
-      { id: politicianId, name: was.name, changed, ...(changed.email && { note }) },
-      db,
-    );
+    await logChange(staff, "edit politician", { id: politicianId, name: was.name, changed, note }, db);
     return { saved: true };
   });
   // A new email says whose more threads are.

@@ -658,14 +658,16 @@ test("Changing an MP's email", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
   const words = copy.editDetails;
-  const old = await page.getByRole("link", { name: /@/ }).first().textContent();
   await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
   const bubble = page.locator("[popover]:popover-open");
   await expect(bubble.getByText(copy.aliases.sources.parliament).first()).toBeVisible();
   await frame(page, "Her main address, from Parliament", { window: true });
 
-  story("They type the new address. Save won't send it until they say why.");
-  await bubble.getByRole("textbox", { name: words.email }).fill("polly.office@example.org");
+  story("They press edit by it, and type the new address. Save won't send it until they say why.");
+  await bubble.getByRole("button", { name: words.edit }).click();
+  const field = bubble.getByRole("textbox", { name: words.email });
+  const old = await field.inputValue();
+  await field.fill("polly.office@example.org");
   await bubble.getByRole("textbox", { name: words.note }).fill("Her office asked us to write here");
   await frame(page, "Her new address, and why", { window: true });
 
@@ -676,7 +678,7 @@ test("Changing an MP's email", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("link", { name: "polly.office@example.org" }).first()).toBeVisible();
   await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
   await expect(bubble.getByText("Her office asked us to write here", { exact: false })).toBeVisible();
-  await expect(bubble.getByText(old!, { exact: true })).toBeVisible();
+  await expect(bubble.getByText(old, { exact: true })).toBeVisible();
   await frame(page, "Her new main address, set by staff", { window: true });
 
   story("The change, with why, is in what changed her record, folded at the foot of her page.");
@@ -704,7 +706,7 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   await frame(page, "Her salutation, made from her name");
 
   story(
-    "Staff press edit by it. Its bubble says it's just her name, and offers Ms Example and Mr Example. They press Ms Example.",
+    "Staff press edit by it. Its bubble says it's just her name, and offers Ms Example and Mr Example. They press Ms Example, which puts it in the field, and say why.",
   );
   await page.getByRole("button", { name: words.edit }).click();
   const bubble = page.locator("[popover]:popover-open");
@@ -712,6 +714,10 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   await expect(bubble.getByRole("button", { name: "Ms Example" })).toBeVisible();
   await frame(page, "The salutations it most likely is", { window: true });
   await bubble.getByRole("button", { name: "Ms Example" }).click();
+  await bubble.getByRole("textbox", { name: words.note }).fill("Her page on the Senedd's site");
+  await expect(bubble.getByRole("textbox", { name: words.salutation })).toHaveValue("Ms Example");
+  await frame(page, "Ms Example, and why", { window: true });
+  await bubble.getByRole("button", { name: words.save }).click();
   // The bubble closes once it's saved: a reload before then would beat the save.
   await expect(bubble).toHaveCount(0);
   await page.reload();

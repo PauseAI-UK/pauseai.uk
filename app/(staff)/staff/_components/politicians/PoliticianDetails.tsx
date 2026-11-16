@@ -198,7 +198,7 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
             <>
               <Muted> · </Muted>
               <FieldChanges changed={details.changed as Record<string, FieldChange>} />
-              {/* A change of email says why. */}
+              {/* A staff member's change of salutation or email says why. */}
               {text("note") && <Muted> · {text("note")}</Muted>}
             </>
           ) : (

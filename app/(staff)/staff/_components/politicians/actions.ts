@@ -51,7 +51,8 @@ export async function editPoliticianNow(form: FormData): Promise<EditResult | un
     id,
     {
       salutation: String(form.get("salutation") ?? ""),
-      ...(given === null ? {} : { email: String(given), note: String(form.get("note") ?? "") }),
+      note: String(form.get("note") ?? ""),
+      ...(given === null ? {} : { email: String(given) }),
     },
     email,
   );

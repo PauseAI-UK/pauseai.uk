@@ -37,6 +37,9 @@ describe("PoliticianWriting's examples in the gallery", () => {
     expect(document.querySelector("[popover]:popover-open")!.textContent).toContain("@pollyplaceholder.org.uk");
     // The hint is a Lord's: an MP's body lists their email.
     await expect.element(page.getByText(edit.emailHint)).not.toBeInTheDocument();
+    // Their email, with its edit, which opens the field.
+    await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
+    await page.getByRole("button", { name: edit.edit }).click();
     await page.getByRole("textbox", { name: edit.email }).fill("polly@example.org");
     await page.getByRole("button", { name: edit.save }).click();
     // The note is required, so the form isn't sent without it.
@@ -48,9 +51,11 @@ describe("PoliticianWriting's examples in the gallery", () => {
       .toHaveTextContent(
         'editDetails({"politicianId":"7","salutation":"Ms Placeholder","email":"polly@example.org","note":"Her office asked"})',
       );
-    // Saved, the bubble closes; it opens again from its button.
+    // Saved, the bubble closes; it opens again from its button, with the field folded.
     await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
     await page.getByRole("button", { name: words.more(7) }).click();
+    await expect.element(page.getByRole("button", { name: edit.edit })).toBeVisible();
+    await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
     await page.getByRole("button", { name: words.remove }).first().click();
     await expect
       .element(log().nth(1))
@@ -87,24 +92,31 @@ describe("PoliticianWriting's examples in the gallery", () => {
     expect(part()).toBe(`${edit.mainEmail}${edit.mainIntro}${examplePolitician.email}`);
   });
 
-  it("changes a salutation in its bubble, closing it once saved, and offers Ms or Mr for one made from the name", async () => {
+  it("changes a salutation in its bubble, with why, closing it once saved, and offers Ms or Mr for one made from the name", async () => {
     const words = politiciansCopy.politician.editDetails;
     const { rerender } = await render(<SalutationBubbleExample result={{ saved: true }} />);
     await page.getByRole("button", { name: words.edit }).click();
     const field = page.getByRole("textbox", { name: words.salutation });
     await expect.element(field).toBeVisible();
+    await page.getByRole("textbox", { name: words.note }).fill("Her letters");
     await page.getByRole("button", { name: words.save }).click();
     await expect
       .element(log().nth(0))
-      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder"})');
+      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder","note":"Her letters"})');
     await expect.element(field).not.toBeInTheDocument();
     await rerender(<SalutationBubbleExample fromName result={{ saved: false, why: "salutation" }} />);
     await page.getByRole("button", { name: words.edit }).click();
     await expect.element(page.getByText(words.fromName)).toBeVisible();
+    // A choice puts itself in the field and leads on to why, sending nothing yet.
     await page.getByRole("button", { name: "Mr Placeholder" }).click();
+    await expect.element(field).toHaveValue("Mr Placeholder");
+    await expect.element(page.getByRole("textbox", { name: words.note })).toHaveFocus();
+    expect(log().elements()).toHaveLength(1);
+    await page.getByRole("textbox", { name: words.note }).fill("His website");
+    await page.getByRole("button", { name: words.save }).click();
     await expect
       .element(log().nth(1))
-      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Mr Placeholder"})');
+      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Mr Placeholder","note":"His website"})');
     // Refused, the bubble stays open.
     await expect.element(page.getByRole("button", { name: "Ms Placeholder" })).toBeVisible();
   });

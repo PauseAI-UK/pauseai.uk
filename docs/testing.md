@@ -920,8 +920,8 @@ that drives it or why nothing does.
   - the politicians mailed about an ask, and those not yet;
   - the two marks switched on and off in their card;
   - a Lord's email set from the bubble on it in the band, with why;
-  - an MP's email changed there, with why: where her main address came from, before and after, her old one among her other addresses, and the change in her record;
-  - a salutation made from the name, set to Ms from its bubble's choices;
+  - an MP's email changed there, from its edit, with why: where her main address came from, before and after, her old one among her other addresses, and the change in her record;
+  - a salutation made from the name, set to Ms from its bubble's choices, with why;
   - ControlAI's statement imported, and its ask's page;
   - several answers to an ask, ticked in the chip's second half;
   - PauseAI's email to one, from her history, and its Gmail search copied;

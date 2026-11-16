@@ -105,7 +105,7 @@ describeWithDatabase("a politician's aliases", () => {
       note: "Her office asked",
     });
     // An edit from before notes.
-    await query("ALTER TABLE audit_log DROP CONSTRAINT audit_log_email_edit_note");
+    await query("ALTER TABLE audit_log DROP CONSTRAINT audit_log_edit_note");
     await edit("sam@pauseai.uk", ["other@example.org", "polly@example.org"]);
     expect(await source("polly@example.org")).toMatchObject({ by: "staff", staff: "sam@pauseai.uk", note: "" });
     // An import that set it since, of an address their body doesn't list: nothing to say.

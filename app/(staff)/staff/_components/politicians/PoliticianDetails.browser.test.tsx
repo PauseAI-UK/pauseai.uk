@@ -164,7 +164,7 @@ describe("PoliticianDetails", () => {
     await expect.element(page.getByRole("button", { name: words.edit })).not.toBeInTheDocument();
   });
 
-  it("says a salutation made from the name is so, and sets Ms or Mr with their surname from its bubble", async () => {
+  it("says a salutation made from the name is so, and sets Ms or Mr with their surname from its bubble, with why", async () => {
     const { fn, sent } = action();
     const politician = { ...MP, salutation: MP.name, salutationToCheck: true, importantTarget: false };
     const { rerender } = await render(
@@ -184,7 +184,11 @@ describe("PoliticianDetails", () => {
     await expect.element(page.getByText(words.fromName)).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Mr Placeholder" })).toBeVisible();
     await page.getByRole("button", { name: "Ms Placeholder" }).click();
-    await vi.waitFor(() => expect(sent).toEqual([{ politicianId: String(MP.id), salutation: "Ms Placeholder" }]));
+    await page.getByRole("textbox", { name: words.note }).fill("Her website");
+    await page.getByRole("button", { name: words.save }).click();
+    await vi.waitFor(() =>
+      expect(sent).toEqual([{ politicianId: String(MP.id), salutation: "Ms Placeholder", note: "Her website" }]),
+    );
     // Without a way to change it, the salutation alone.
     await rerender(<PoliticianDetails politician={politician} unblock={vi.fn()} {...none} />);
     await expect.element(page.getByText(words.dear(MP.name))).toBeVisible();
@@ -196,6 +200,7 @@ describe("PoliticianDetails", () => {
     await render(<PoliticianDetails politician={MP} unblock={vi.fn()} editDetails={editDetails} {...none} />);
     const words = politiciansCopy.politician.editDetails;
     await page.getByRole("button", { name: words.edit }).click();
+    await page.getByRole("textbox", { name: words.note }).fill("Her letters");
     await page.getByRole("button", { name: words.save }).click();
     await vi.waitFor(() => expect(editDetails).toHaveBeenCalledOnce());
     await expect.element(page.getByRole("textbox", { name: words.salutation })).toBeVisible();
@@ -1417,9 +1422,10 @@ describe("PoliticianDetails's examples in the gallery", () => {
       .toHaveTextContent('setMark({"politicianId":"7","mark":"personalConnection","on":"true"})');
     const words = politiciansCopy.politician.editDetails;
     await page.getByRole("button", { name: words.edit }).click();
+    await page.getByRole("textbox", { name: words.note }).fill("Her letters");
     await page.getByRole("button", { name: words.save }).click();
     await expect
       .element(log().nth(1))
-      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder"})');
+      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder","note":"Her letters"})');
   });
 });

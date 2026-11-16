@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BubbleBox } from "@/components/ui/Bubble";
+import { Button } from "@/components/ui/Button";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import { TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
@@ -33,11 +34,13 @@ type Politician = {
 /** Closes the bubble a form is in. */
 const closeBubble = (inside: HTMLElement | null) => inside?.closest<HTMLElement>("[popover]")?.hidePopover();
 
+/** Values a field likely takes, each a button that puts it in the field, with a line saying why they're offered. */
+type Choices = { hint: string; values: string[] };
+
 /**
- * A field and its Save, sent with `hidden`; with `withNote`, a field under
- * it, before Save, for the note of why it changed, which must be filled;
- * and, once the server has it, that it's saved, closing the bubble, or why
- * not.
+ * A field, sent with `hidden`; any `choices` for it; then a field for the
+ * note of why it changed, which must be filled, and Save; and, once the
+ * server has it, that it's saved, closing the bubble, or why not.
  */
 function SaveField({
   label,
@@ -46,7 +49,7 @@ function SaveField({
   value,
   hidden,
   action,
-  withNote = false,
+  choices,
 }: {
   label: string;
   name: string;
@@ -54,7 +57,7 @@ function SaveField({
   value: string;
   hidden: Record<string, string | number>;
   action: EditAction;
-  withNote?: boolean;
+  choices?: Choices;
 }) {
   const form = useRef<HTMLFormElement>(null);
   const [result, setResult] = useState<EditResult | undefined>();
@@ -63,19 +66,35 @@ function SaveField({
     setResult(answer);
     if (answer?.saved) closeBubble(form.current);
   };
+  // A choice fills the field, and leads on to the note.
+  const choose = (choice: string) => {
+    const fields = form.current!.elements;
+    (fields.namedItem(name) as HTMLInputElement).value = choice;
+    (fields.namedItem("note") as HTMLInputElement).focus();
+  };
   return (
     <form ref={form} action={send} aria-label={label} className={styles.form}>
       {Object.entries(hidden).map(([key, v]) => (
         <input key={key} type="hidden" name={key} value={v} />
       ))}
-      <span className={withNote ? styles.wholeField : styles.field}>
+      <span className={styles.wholeField}>
         <TextInput name={name} type={type} required={name === "salutation"} defaultValue={value} aria-label={label} />
       </span>
-      {withNote && (
-        <span className={styles.field}>
-          <TextInput name="note" required placeholder={copy.notePlaceholder} aria-label={copy.note} />
+      {choices && (
+        <span className={styles.wholeField}>
+          <p className={styles.hint}>{choices.hint}</p>
+          <span className={styles.choices}>
+            {choices.values.map((choice) => (
+              <Button key={choice} type="button" variant="ghost" size="small" fit onClick={() => choose(choice)}>
+                {choice}
+              </Button>
+            ))}
+          </span>
         </span>
       )}
+      <span className={styles.field}>
+        <TextInput name="note" required placeholder={copy.notePlaceholder} aria-label={copy.note} />
+      </span>
       <SubmitButton variant="primary" size="small" fit>
         {copy.save}
       </SubmitButton>
@@ -89,13 +108,13 @@ function SaveField({
 /**
  * A politician's salutation, as a letter to them starts ("Dear Ms
  * Placeholder,"), for the band at the top of their page; given `action`, a
- * Edit that opens a bubble with the field to change it. For one made from
- * their name, as their gender isn't known, the bubble says so, and offers
- * the two it most likely is, Ms and Mr with their surname, a press each.
+ * Edit that opens a bubble with the field to change it, and why. For one
+ * made from their name, as their gender isn't known, the bubble says so,
+ * and offers the two it most likely is, Ms and Mr with their surname, each
+ * a press that puts it in the field.
  */
 export function SalutationBubble({ politician, action }: { politician: Politician; action?: EditAction }) {
   const id = `salutation-${politician.id}`;
-  const hidden = { politicianId: politician.id };
   return (
     <span className={styles.value}>
       <span>{copy.dear(politician.salutation)}</span>
@@ -110,55 +129,18 @@ export function SalutationBubble({ politician, action }: { politician: Politicia
               label={copy.salutation}
               name="salutation"
               value={politician.salutation}
-              hidden={hidden}
+              hidden={{ politicianId: politician.id }}
               action={action}
+              choices={
+                politician.salutationToCheck
+                  ? { hint: copy.fromName, values: ["Ms", "Mr"].map((t) => `${t} ${surnameOf(politician.name)}`) }
+                  : undefined
+              }
             />
-            {politician.salutationToCheck && <p className={styles.hint}>{copy.fromName}</p>}
-            {politician.salutationToCheck && (
-              <span className={styles.choices}>
-                {["Ms", "Mr"].map((title) => (
-                  <SaveChoice
-                    key={title}
-                    value={`${title} ${surnameOf(politician.name)}`}
-                    hidden={hidden}
-                    action={action}
-                  />
-                ))}
-              </span>
-            )}
           </BubbleBox>
         </>
       )}
     </span>
-  );
-}
-
-/** A button that saves `value` as the salutation, closing the bubble. */
-function SaveChoice({
-  value,
-  hidden,
-  action,
-}: {
-  value: string;
-  hidden: Record<string, string | number>;
-  action: EditAction;
-}) {
-  const form = useRef<HTMLFormElement>(null);
-  return (
-    <form
-      ref={form}
-      action={async (data) => {
-        if ((await action(data))?.saved) closeBubble(form.current);
-      }}
-    >
-      {Object.entries(hidden).map(([key, v]) => (
-        <input key={key} type="hidden" name={key} value={v} />
-      ))}
-      <input type="hidden" name="salutation" value={value} />
-      <SubmitButton variant="ghost" size="small" fit>
-        {value}
-      </SubmitButton>
-    </form>
   );
 }
 
@@ -178,8 +160,10 @@ type Line = { key: string; address: string; from: ReactNode; removable?: boolean
  * it a button opening a bubble of every other address that says an email
  * is theirs, with where each came from, a Remove by each staff added or
  * guessed was their office's, and the form to add one, once they have an
- * email. Their email can be changed there too (`setEmail`), with a note of
- * why. `open` opens it at once, as a link to it does.
+ * email. Their email heads it, with where it came from, and, given
+ * `setEmail`, an edit that opens the field to change it, with a note of
+ * why; open at once while they have none. `open` opens the bubble at once,
+ * as a link to it does.
  */
 export function AddressesBubble({
   politician,
@@ -198,7 +182,9 @@ export function AddressesBubble({
   const bubble = useRef<HTMLDivElement>(null);
   // The address just added, which pulses once at the foot of the list.
   const [justAdded, setJustAdded] = useState<string | null>(null);
-  // A fresh start for the add form, and what it said, after a remove or a close.
+  // Whether their email's field is open, from its edit; while they have none, it always is.
+  const [editing, setEditing] = useState(false);
+  // A fresh start for the add form, and what it said, after a remove or a close; a close folds the email's field too.
   const [round, setRound] = useState(0);
   const freshStart = () => {
     setRound((r) => r + 1);
@@ -208,7 +194,10 @@ export function AddressesBubble({
     const box = bubble.current!;
     if (open) box.showPopover();
     const toggled = (event: Event) => {
-      if ((event as ToggleEvent).newState === "closed") freshStart();
+      if ((event as ToggleEvent).newState === "closed") {
+        freshStart();
+        setEditing(false);
+      }
     };
     box.addEventListener("toggle", toggled);
     return () => box.removeEventListener("toggle", toggled);
@@ -255,7 +244,7 @@ export function AddressesBubble({
           <div className={styles.part}>
             <h3 className={styles.heading}>{copy.mainEmail}</h3>
             <p className={styles.intro}>{copy.mainIntro}</p>
-            {setEmail ? (
+            {setEmail && (editing || !politician.email) ? (
               <SaveField
                 label={copy.email}
                 name="email"
@@ -263,10 +252,16 @@ export function AddressesBubble({
                 value={politician.email ?? ""}
                 hidden={{ politicianId: politician.id, salutation: politician.salutation }}
                 action={setEmail}
-                withNote
               />
             ) : (
-              <span className={styles.address}>{politician.email}</span>
+              <span className={styles.value}>
+                <span>{politician.email}</span>
+                {setEmail && (
+                  <button type="button" className={styles.trigger} onClick={() => setEditing(true)}>
+                    {copy.edit}
+                  </button>
+                )}
+              </span>
             )}
             {aliases.emailSource && <p className={styles.hint}>{sourceLine(aliases.emailSource)}</p>}
             {!politician.email && politician.house === "lords" && <p className={styles.hint}>{copy.emailHint}</p>}

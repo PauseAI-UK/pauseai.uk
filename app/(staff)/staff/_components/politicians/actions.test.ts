@@ -100,15 +100,15 @@ describeWithDatabase("the politician pages' Server Actions", () => {
         form({ politicianId: String(lord), salutation: "Lord X", email: "x@example.org", note: "On his website" }),
       ),
     ).toEqual({ saved: true });
-    expect(await editPoliticianNow(form({ politicianId: String(lord), salutation: "Lord Y" }))).toEqual({
-      saved: true,
-    });
+    expect(
+      await editPoliticianNow(form({ politicianId: String(lord), salutation: "Lord Y", note: "His letters say so" })),
+    ).toEqual({ saved: true });
     expect(await query("SELECT salutation, email FROM notable_people")).toEqual([
       { salutation: "Lord Y", email: "x@example.org" },
     ]);
     expect(
       await query("SELECT details->>'note' AS note FROM audit_log WHERE action = 'edit politician' ORDER BY id"),
-    ).toEqual([{ note: "On his website" }, { note: null }]);
+    ).toEqual([{ note: "On his website" }, { note: "His letters say so" }]);
   });
 
   it("addAliasNow and removeAliasNow add and remove a politician's address as the staff member, refreshing the staff pages", async () => {
