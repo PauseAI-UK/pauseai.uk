@@ -3,6 +3,7 @@ import { type AnyImportRun, NEWER_RUN, NIGHTLY, runStatus, runTone } from "@/lib
 import { staffClock, staffTime } from "@/lib/staff-time";
 import Actions from "@/components/ui/Actions";
 import { Muted } from "@/components/ui/Text";
+import IconText from "../ui/IconText";
 import styles from "./RunBox.module.css";
 import { jobsCopy } from "./copy";
 
@@ -20,8 +21,8 @@ export function RunState({
 }) {
   return (
     <span className={styles.state} data-tone={tone}>
-      <span className={styles.dot} aria-hidden="true" />
-      {children}
+      {/* Centred on the words' lowercase letters, so its words sit on the line the words beside them do. */}
+      <IconText icon={<span className={styles.dot} aria-hidden="true" />}>{children}</IconText>
     </span>
   );
 }

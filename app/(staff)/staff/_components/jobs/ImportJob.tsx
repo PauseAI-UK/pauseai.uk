@@ -30,7 +30,6 @@ import Strip from "../ui/Strip";
 import ExternalLink from "../ui/ExternalLink";
 import PageHead from "../ui/PageHead";
 import Band, { BandFact } from "../ui/Band";
-import IconText from "../ui/IconText";
 import { politiciansCopy } from "../politicians/copy";
 import { jobsCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
@@ -265,11 +264,8 @@ export function ImportJobPage({
   return (
     <>
       <Band
-        title={
-          <IconText tall icon={<ImportIcon source={SOURCES[job]} />}>
-            {importRunsCopy.jobTitles[job]}
-          </IconText>
-        }
+        lead={<ImportIcon source={SOURCES[job]} large />}
+        title={importRunsCopy.jobTitles[job]}
         subtitle={<Intro job={job} />}
         aside={<JobActions action={run} label={ABOUT[job].button} />}
       >

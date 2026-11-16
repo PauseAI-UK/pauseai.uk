@@ -1,7 +1,9 @@
-/* A run, a row of its job's page: the time, how it ended and what it found
-   in columns, every row's lined up with the others', a rule under each. Its
-   detail and buttons come under its words, in their column. */
+/* A run, a row of its job's page: the arrow that unfolds its detail, if it
+   has any, then the time, how it ended and what it found, in columns, every
+   row's lined up with the others', a rule under each. Its detail and buttons
+   come under its words, in their column. */
 .run {
+  --fold-column: 1rem;
   --time-column: 5.5rem;
   --state-column: 7.5rem;
 
@@ -10,19 +12,24 @@
 
 .row {
   display: grid;
-  grid-template-columns: var(--time-column) var(--state-column) minmax(0, 1fr) 1rem;
+  grid-template-columns: var(--fold-column) var(--time-column) var(--state-column) minmax(0, 1fr);
   gap: var(--space-1) var(--space-3);
   align-items: baseline;
   padding-block: var(--space-3);
 }
 
 .time {
+  grid-column: 2;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
-.text {
+.row > .state {
   grid-column: 3;
+}
+
+.text {
+  grid-column: 4;
   min-width: 0;
 }
 
@@ -33,7 +40,9 @@
   color: var(--status-amber);
 }
 
-/* A row with detail folds it: the whole row is the handle, the arrow at its end turned down while it's open. */
+/* A row with detail folds it: the whole row is the handle, the chevron at
+   its start pointing to the words, turned down while it's open, darker
+   while the pointer is on the row. */
 summary.row {
   cursor: pointer;
   list-style: none;
@@ -43,21 +52,33 @@ summary.row::-webkit-details-marker {
   display: none;
 }
 
-summary.row::after {
-  grid-column: 4;
-  justify-self: end;
-  color: var(--muted);
-  content: "▸";
+summary.row::before {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: start;
+  justify-self: center;
+  /* On the first line's middle, however many lines the words take. */
+  margin-top: calc((1lh - 0.5rem) / 2);
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--text-secondary);
+  border-bottom: 2px solid var(--text-secondary);
+  content: "";
+  transform: rotate(-45deg);
   transition: transform 0.15s ease;
 }
 
-details[open] > summary.row::after {
-  transform: rotate(90deg);
+summary.row:hover::before {
+  border-color: var(--text);
+}
+
+details[open] > summary.row::before {
+  transform: rotate(45deg);
 }
 
 /* The detail and buttons, in the words' column. */
 .under {
-  margin-inline-start: calc(var(--time-column) + var(--state-column) + 2 * var(--space-3));
+  margin-inline-start: calc(var(--fold-column) + var(--time-column) + var(--state-column) + 3 * var(--space-3));
   padding-bottom: var(--space-3);
 }
 
@@ -69,18 +90,16 @@ details[open] > summary.row::after {
   margin-bottom: 0;
 }
 
-/* How it ended: small and bold after a dot, in its colour. */
+/* How it ended: small and bold after a dot, in its colour, inline, so it
+   shares a baseline with the words beside it. */
 .state {
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: center;
   color: var(--muted);
   font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .dot {
-  flex: none;
+  display: block;
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
@@ -126,25 +145,20 @@ details[open] > summary.row::after {
 /* On a phone: the time and how it ended on a line, the words under them, the whole width. */
 @media (max-width: 720px) {
   .row {
-    grid-template-columns: var(--time-column) minmax(0, 1fr) 1rem;
+    grid-template-columns: var(--fold-column) var(--time-column) minmax(0, 1fr);
   }
 
   .text {
-    grid-column: 1 / 3;
-  }
-
-  summary.row::after {
-    grid-row: 1;
-    grid-column: 3;
+    grid-column: 2 / 4;
   }
 
   .under {
-    margin-inline-start: 0;
+    margin-inline-start: calc(var(--fold-column) + var(--space-3));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  summary.row::after {
+  summary.row::before {
     transition: none;
   }
 }

@@ -81,10 +81,10 @@ const MARKS: Record<ImportSource, ReactNode> = {
 };
 
 /** Where an import reads from, as its mark on a tile, named for screen readers and on hover. */
-export default function ImportIcon({ source }: { source: ImportSource }) {
+export default function ImportIcon({ source, large = false }: { source: ImportSource; large?: boolean }) {
   const label = jobsCopy.import[source];
   return (
-    <span className={styles.tile} title={label} role="img" aria-label={label}>
+    <span className={styles.tile} data-large={large || undefined} title={label} role="img" aria-label={label}>
       <span className={styles.mark} aria-hidden="true">
         {MARKS[source]}
       </span>
