@@ -508,9 +508,10 @@ async function textAnswered(page: Page, request: APIRequestContext, database: st
 
 test("Our answer to a text, read", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff answer a reply to a text from its thread, as in the flow before. WhatsApp's webhook says the answer was delivered, then read, as it does for the text.",
+    "Staff answer a reply to a text from its thread, as in the flow before. WhatsApp's webhook says the text was read, and then that the answer was delivered and read too.",
   );
   const sent = await textAnswered(page, request, flowDatabase);
+  await postWhatsAppWebhook(request, BASE, statusOf(sent.wamid, sent.number, "read", 20));
   await postWhatsAppWebhook(request, BASE, statusOf(sent.answer, sent.number, "delivered", 30));
   await postWhatsAppWebhook(request, BASE, statusOf(sent.answer, sent.number, "read", 40));
   story("Each bubble of ours has its ticks, as WhatsApp shows them: two blue ones once read.");
