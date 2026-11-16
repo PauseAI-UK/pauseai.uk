@@ -48,6 +48,7 @@ Following the flows' runs by coverage to choose them, in place of imports, picke
 ## Hits
 
 - 2026-11-12: three full reviews in a row on one branch, five minutes each with the build, as each turned up one failing phone flow and the fix to a shared piece (the bubble) needed every flow run again; the changes after the first touched four files, ~20 min waiting
+- 2026-11-16: the gate's storyboard in a new sandbox had no frames to carry, so it ran all 626 branch flows (7 min) and then main's whole suite, and stopped at its 20-minute limit before comparing; the gate failed for that alone, ~25 min waiting
 - 2026-11-12: a full review took 12 minutes, not 5, with the machine busy with other work, and the staff kit's gallery flow (51 frames) passed its 60 seconds; the review after a one-line fix to a flow's step had to run whole again, ~25 min waiting
 - 2026-11-14: a moved file's path in a comment of the seed data (tests/fixtures/staff-data.sql) reruns every desktop flow, though no SQL changed; a comment-only change to a .sql fixture could reach nothing
 - 2026-11-14: a rename-only PR (names that say where code runs) added one marker package to `package.json`, and `package.json` reruns every desktop flow; with a kept tree 1,505 files back, the plan alone took about ten minutes of CPU before the build began
