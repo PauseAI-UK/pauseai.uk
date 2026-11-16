@@ -21,6 +21,17 @@ const groups = mailingGroups(
         sentFrom: "+447700900000",
         fromName: "PauseAI UK",
       },
+      {
+        ...exampleBroadcastSummary,
+        id: 8,
+        state: "draft" as const,
+        channel: "text" as const,
+        title: "PauseCon doors",
+        to: 96,
+        approved: true,
+        sentFrom: "+447700900000",
+        fromName: "PauseAI UK",
+      },
     ],
     comingUp: [
       {

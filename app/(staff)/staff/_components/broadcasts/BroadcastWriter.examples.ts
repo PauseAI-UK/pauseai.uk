@@ -251,6 +251,7 @@ const summary: BroadcastSummary = {
   channel: "email",
   sendBy: "gmail",
   waiting: false,
+  approved: false,
   rejected: false,
   gaveUp: false,
   waitReason: null,

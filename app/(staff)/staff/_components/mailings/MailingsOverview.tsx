@@ -50,8 +50,8 @@ export type OverviewLook<T extends MailingBase> = {
   unfolded?: boolean;
 };
 
-/** Where one stands in a list, as a sentence after a dot in its colour: red for something wrong, blue for going out, grey for normal. */
-export type Sentence = { tone: "red" | "blue" | "grey"; text: string };
+/** Where one stands in a list, as a sentence after a dot in its colour: red for something wrong, blue for going out or waiting, green for ready to go, grey for normal. */
+export type Sentence = { tone: "red" | "blue" | "green" | "grey"; text: string };
 
 /** Where a mailing or a broadcast stands: a draft, scheduled, sending, stopped and how far it got, or sent, and to how many. */
 function mailingSentence(mailing: MailingBase): Sentence {

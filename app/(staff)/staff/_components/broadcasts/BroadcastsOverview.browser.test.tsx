@@ -83,11 +83,19 @@ describe("BroadcastsOverview", () => {
       title: "Turned down",
       rejected: true,
     };
+    const ready = {
+      ...exampleBroadcastSummary,
+      id: 10,
+      state: "draft" as const,
+      channel: "text" as const,
+      title: "Ready",
+      approved: true,
+    };
     await render(
       <BroadcastsOverview
         groups={mailingGroups<BroadcastSummary>(
           {
-            drafts: [held, turnedDown],
+            drafts: [held, turnedDown, ready],
             comingUp: [waiting, plain],
             // By Postmark, so it counts what arrived.
             sent: [
@@ -119,6 +127,10 @@ describe("BroadcastsOverview", () => {
     // And one whose words it rejected, till they're sent again.
     await expect.element(page.getByText(copy.standing.rejected)).toBeVisible();
     expect(page.getByText(copy.standing.rejected).all()).toHaveLength(1);
+    // And one whose words it approved, ready to schedule, with a green dot.
+    const approved = page.getByText(copy.standing.approved(ready.to));
+    await expect.element(approved).toBeVisible();
+    expect(approved.element().querySelector("[data-tone]")!.getAttribute("data-tone")).toBe("green");
     await expect.element(page.getByText(mailingsCopy.mailingPages.standing.scheduled(290)).first()).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.untitled }).first()).toBeVisible();
     // One sent: how many it went to; then what needs a look, the rest folded behind how many are fine.
