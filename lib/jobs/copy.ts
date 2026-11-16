@@ -115,7 +115,8 @@ export const jobsCopy = {
     disconnected:
       "Google refused our access, so this account has been disconnected. Its owner can connect it again from their account page.",
   },
-  // The sending every 15 minutes (/api/cron/send-mailings): the letters inbox's queue, then the mailings due.
+  // The sending every 15 minutes (/api/cron/send-mailings): the letters inbox's queue, the mailings due, then the
+  // broadcasts due, by email or WhatsApp.
   sending: {
     title: "Sending letters, mailings and broadcasts",
     intro: {
