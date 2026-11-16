@@ -353,7 +353,10 @@ test("A local WhatsApp group", async ({ page, flowDatabase }) => {
   await frame(page, "A WhatsApp member's page");
 });
 
-test("A big WhatsApp group", async ({ page, flowDatabase }) => {
+test("A big WhatsApp group", async ({ page, flowDatabase, request }) => {
+  // Mara, a member, from CiviCRM; and the number of someone erased who's still in the group.
+  await importCivicrm(request, BASE);
+  runSql(flowDatabase, "INSERT INTO whatsapp_erased (number_hash) VALUES (whatsapp_number_hash('+447700900999'))");
   story(
     "The whole community's export, a hundred members, with no town: profile names with emoji and WhatsApp's hidden marks, numbers written every way, some from abroad, a member already known, one who asked to be forgotten, and numbers that can't be used. Those held back are at the top.",
   );

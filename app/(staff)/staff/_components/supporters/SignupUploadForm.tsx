@@ -92,8 +92,10 @@ function SignupSteps({
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [eventId, setEventId] = useState("");
-  // The event column, kept with the kind it was chosen under, so choosing the other kind clears it.
+  // The event column, kept with the kind it was chosen under: choosing the other kind clears it, for good, as
+  // React adjusts state when a prop changes.
   const [picked, setPicked] = useState({ kind, column: "" });
+  if (picked.kind !== kind) setPicked({ kind, column: "" });
   const column = picked.kind === kind ? picked.column : "";
   const setColumn = (heading: string) => setPicked({ kind, column: heading });
   const [signedOn, setSignedOn] = useState(today);

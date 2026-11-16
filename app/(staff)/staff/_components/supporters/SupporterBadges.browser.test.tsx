@@ -15,9 +15,15 @@ describe("SupporterBadges", () => {
     expect(document.body.textContent!.trim()).toBe("");
   });
 
-  it("marks a march sign-up", async () => {
-    await render(<SupporterBadges supporter={{ ...exampleSupporter, sources: ["march-2026-11"] }} />);
+  it("marks a march sign-up, a paper sign-up and a WhatsApp member", async () => {
+    await render(
+      <SupporterBadges
+        supporter={{ ...exampleSupporter, sources: ["march-2026-11", "paper-signup", "whatsapp-community"] }}
+      />,
+    );
     await expect.element(page.getByText(supportersCopy.supporters.badges.march)).toBeVisible();
+    await expect.element(page.getByText(supportersCopy.supporters.badges.paper)).toBeVisible();
+    await expect.element(page.getByText(supportersCopy.supporters.badges.whatsapp, { exact: true })).toBeVisible();
   });
 
   it("marks a member, but not a member no longer", async () => {

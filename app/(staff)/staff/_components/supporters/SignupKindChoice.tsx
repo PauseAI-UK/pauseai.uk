@@ -8,7 +8,9 @@ const copy = supportersCopy.signupUpload.kind;
 /**
  * What an upload is of, paper sign-ups or a WhatsApp group: a large button
  * each: its icon at the left, and beside it its name and, under that, what the file is.
- * `value` is null until one is picked.
+ * `value` is null until one is picked. Each button is named by its name
+ * alone, what the file is its description; there's one choice on a page, so
+ * the ids are fixed.
  */
 export default function SignupKindChoice({
   value,
@@ -25,12 +27,18 @@ export default function SignupKindChoice({
           type="button"
           role="radio"
           aria-checked={kind === value}
+          aria-labelledby={`signup-kind-${kind}`}
+          aria-describedby={`signup-kind-${kind}-about`}
           className={styles.kindChoice}
           onClick={() => onChange(kind)}
         >
           <SignupKindIcon kind={kind} size={40} />
-          <span className={styles.kindName}>{copy[kind]}</span>
-          <span className={styles.kindAbout}>{copy.about[kind]}</span>
+          <span className={styles.kindName} id={`signup-kind-${kind}`}>
+            {copy[kind]}
+          </span>
+          <span className={styles.kindAbout} id={`signup-kind-${kind}-about`}>
+            {copy.about[kind]}
+          </span>
         </button>
       ))}
     </div>

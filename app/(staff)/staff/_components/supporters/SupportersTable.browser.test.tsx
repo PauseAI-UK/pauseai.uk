@@ -282,7 +282,7 @@ describe("the supporters list in words: its downloads, cards and filters", () =>
         lumaContact: true,
         events: 1,
         letters: 1,
-        sources: [...sam.sources, "march-2026-11"],
+        sources: [...sam.sources, "march-2026-11", "paper-signup", "whatsapp-community"],
       }),
     ).toBe(
       Object.values({
@@ -291,6 +291,8 @@ describe("the supporters list in words: its downloads, cards and filters", () =>
         r: supportersCopy.supporters.badges.registered,
         l: supportersCopy.supporters.badges.letter,
         march: supportersCopy.supporters.badges.march,
+        paper: supportersCopy.supporters.badges.paper,
+        whatsapp: supportersCopy.supporters.badges.whatsapp,
       }).join("; "),
     );
     expect(subscriptionWords(sam.permissions)).toBe(

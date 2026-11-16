@@ -21,8 +21,20 @@ export type SupporterSource = (typeof SUPPORTER_SOURCES)[number];
 /** What a supporter_links row points at (lib/supporters/sources.server.ts): a Luma user, a form entry or a CiviCRM contact. */
 export type SupporterLinkSource = "luma" | "form" | "civicrm";
 
-/** The lozenges in the list's Activities column, in its order: a member, a contact of the Luma calendar, registered for events, wrote to their MP, signed up for the march. */
-export const SUPPORTER_BADGES = ["member", "lumaContact", "registered", "letter", "march"] as const;
+/**
+ * The lozenges in the list's Activities column, in its order: a member, a
+ * contact of the Luma calendar, registered for events, wrote to their MP,
+ * signed up for the march, on a paper sign-up form, in our WhatsApp community.
+ */
+export const SUPPORTER_BADGES = [
+  "member",
+  "lumaContact",
+  "registered",
+  "letter",
+  "march",
+  "paper",
+  "whatsapp",
+] as const;
 export type SupporterBadge = (typeof SUPPORTER_BADGES)[number];
 
 export function isSupporterBadge(value: string): value is SupporterBadge {

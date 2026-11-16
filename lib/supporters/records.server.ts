@@ -214,6 +214,8 @@ const BADGE_CONDITIONS: Record<SupporterBadge, string> = {
   registered: "s.events > 0",
   letter: "s.letters > 0",
   march: "'march-2026-11' = ANY(s.sources)",
+  paper: "'paper-signup' = ANY(s.sources)",
+  whatsapp: "'whatsapp-community' = ANY(s.sources)",
 };
 
 export type SupportersPage = {

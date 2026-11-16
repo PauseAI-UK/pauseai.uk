@@ -81,6 +81,8 @@ export const supportersCopy = {
       letter: "Wrote to MP",
       member: "Member",
       march: "March sign-up",
+      paper: "Paper sign-up",
+      whatsapp: "WhatsApp group",
     },
     // In the list, a lozenge per consent we'd contact them by, a topic by a way.
     subscriptions: {
