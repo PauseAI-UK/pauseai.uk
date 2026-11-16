@@ -160,12 +160,4 @@ describe("StaffNav's marks", () => {
     expect(tagged.map((a) => a.getAttribute("href"))).toContain("/staff/campaigns");
     expect(tagged.map((a) => a.getAttribute("href"))).not.toContain("/staff/supporters");
   });
-
-  it("marks a draft page as a draft, however new, with no dot", async () => {
-    await render(<StaffNav email="jo@pauseai.uk" permissions={["supporters"]} fresh={["broadcasts"]} />);
-    const link = document.querySelector('nav a[href="/staff/broadcasts"]')!;
-    expect(link.textContent).toContain(shellCopy.nav.draftTag);
-    expect(link.textContent).not.toContain(shellCopy.nav.newTag);
-    expect(link.querySelector("[aria-hidden='true'] + [aria-hidden='true']")).toBeNull();
-  });
 });

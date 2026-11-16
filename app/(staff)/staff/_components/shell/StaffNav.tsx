@@ -48,7 +48,7 @@ type Props = {
  * name showing beside its icon on hover. Under Log out, with
  * more than one session open, a faint link to them. Each page shows
  * only to those with its permission (lib/staff-sections.ts); one they first
- * saw in the last few days has a "new" tag, a dot on the folded rail, unless it's a draft, which says that instead. The pause symbol and name at the top are the
+ * saw in the last few days has a "new" tag, a dot on the folded rail. The pause symbol and name at the top are the
  * way to the home page. It's drawn once, by the signed-in pages' layout, and
  * stays as they change, marking the page the URL is; the phone's dropdown
  * closes when it does.
@@ -96,19 +96,13 @@ export default function StaffNav({ email, permissions = [], current: shown, fres
               <NavIcon id={page.id} />
               <span className={styles.label}>
                 {shellCopy.nav[page.id]}
-                {page.draft ? (
-                  <span className={styles.draft} data-beside="lowercase">
-                    {shellCopy.nav.draftTag}
+                {fresh.includes(page.id) && (
+                  <span className={styles.new} data-beside="lowercase">
+                    {shellCopy.nav.newTag}
                   </span>
-                ) : (
-                  fresh.includes(page.id) && (
-                    <span className={styles.new} data-beside="lowercase">
-                      {shellCopy.nav.newTag}
-                    </span>
-                  )
                 )}
               </span>
-              {!page.draft && fresh.includes(page.id) && <span className={styles.newDot} aria-hidden="true" />}
+              {fresh.includes(page.id) && <span className={styles.newDot} aria-hidden="true" />}
             </StaffLink>
           </li>
         ))}
