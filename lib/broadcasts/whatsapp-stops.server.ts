@@ -9,8 +9,8 @@ import { recordOptOut, recordSourceResume } from "@/lib/supporters/opt-outs.serv
 // texts its footer means (TEMPLATE_FOOTER); WhatsApp's setting is for the
 // whole number, so it and a refusal stop every text: one opt-out of `all`
 // by text, whatever topics texts go under now or later. Each is an opt-out
-// (source whatsapp), and one that leaves no text topic open queues "Do not
-// SMS" for CiviCRM (civicrm-updates.server.ts). A resume in
+// (source whatsapp), and stays ours, as every stop by text does
+// (civicrm-updates.server.ts). A resume in
 // WhatsApp's setting closes only the stops the setting made, leaving any
 // other in force.
 

@@ -21,7 +21,8 @@ In order of what each would save:
 1. Picture only the gallery's sections whose example reaches a changed file: each section's heading names its example file, and a gallery frame doesn't depend on the ones before it, so it can be carried on its own. A change to one component is then a page load and a picture or two.
 2. Have CI picture main on each push to it and keep the frames as an artifact, for a review to fetch. First compare one run of CI's with one made locally: fonts and the machine may make the pictures differ.
 3. Show the review as it fills: open the page at once, and add main's side as it arrives.
-4. An audit of the map that can be run again, after a change to how the site is built (a new Next, another bundler): the check below was made with scripts that weren't kept.
+4. Place a migration by what it touches: read the tables, views and functions it alters, and rerun the flows whose code queries them, and every flow only for one that changes a view or function many pages read (`contact_permission()`, `supporters_list`). Most migrations add a column or a constraint to one table.
+5. An audit of the map that can be run again, after a change to how the site is built (a new Next, another bundler): the check below was made with scripts that weren't kept.
 
 ## How the map was checked
 
@@ -57,4 +58,5 @@ Following the flows' runs by coverage to choose them, in place of imports, picke
 - 2026-11-14: the gate's import-cycle check failed reading a coverage file the backup's tests, run beside it, had just deleted; the repo's walk now skips coverage/
 - 2026-11-14: the oversight feature-folders PR, stacked on eight, planned for about fifteen minutes with no output against a kept tree 1,968 files back, past the gate's twenty-minute limit for the storyboard once the run was added, then ran every flow (626); telling its own 87 changed frames from the 368 against main took a script comparing with the base branch's kept tree (tmp/vsbase.mjs)
 - 2026-11-14: the Gmail-sending feature-folders PR, stacked on the docs PR, planned for about eleven minutes of CPU with no output before its build began, against a kept tree some 1,300 files back; a `--plan` alone took as long
+- 2026-11-16: a migration that only widened the CHECKs of `civicrm_updates`, a table no page shows, reran every desktop flow in the gate's review, though the change could reach none
 - 2026-11-16: a new worktree's keeping of main's frames failed at once (`lib/test-mps.json` not found), so the gate's review planned for about eleven minutes against a kept tree 2,023 files back, chose every flow, and stopped at its 20-minute limit, ~35 min

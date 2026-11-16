@@ -246,8 +246,14 @@ describeWithDatabase("the contact preferences page", () => {
       { address: JANE, list: "newsletter", way: "email", source: "preferences", open: true },
       { address: "+447700900123", list: "newsletter", way: "text", source: "preferences", open: true },
     ]);
-    expect(await query("SELECT change, list FROM civicrm_updates")).toEqual([
-      { change: "unsubscribe", list: "newsletter" },
+    // The tick of volunteering by email puts Jane back on CiviCRM's list too. The untick of the newsletter stays
+    // ours, as CiviCRM doesn't have her on its list.
+    expect(await query("SELECT change, list, wording FROM civicrm_updates ORDER BY id")).toEqual([
+      {
+        change: "resubscribe",
+        list: "volunteer_updates",
+        wording: emailSettingsCopy.wording("volunteering", "email"),
+      },
     ]);
     const answers = (await settingsFor(JANE)).answers;
     expect(answers.find((a) => a.topic === "volunteering" && a.way === "email")).toMatchObject({
@@ -359,7 +365,7 @@ describeWithDatabase("the contact preferences page", () => {
     expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk" });
   });
 
-  it("stops everything: every bulk email, every text and call to each number, for CiviCRM, and the Luma calendar", async () => {
+  it("stops everything: every bulk email, for CiviCRM too, every text and call to each number, and the Luma calendar", async () => {
     const removed = lumaRemoves();
     vi.stubEnv("DEPLOY_CONTEXT", "production");
     vi.stubEnv("LUMA_API_KEY", "k");
@@ -370,11 +376,8 @@ describeWithDatabase("the contact preferences page", () => {
       { address: "+447700900123", list: "all", way: "text", source: "preferences", open: true },
       { address: "+447700900123", list: "all", way: "call", source: "preferences", open: true },
     ]);
-    expect(await query("SELECT change FROM civicrm_updates ORDER BY id")).toEqual([
-      { change: "no_bulk_email" },
-      { change: "do_not_sms" },
-      { change: "do_not_phone" },
-    ]);
+    // The stops of texts and calls stay ours, so Restart can lift them all.
+    expect(await query("SELECT change FROM civicrm_updates ORDER BY id")).toEqual([{ change: "no_bulk_email" }]);
     // Every text and call, those it had no yes for too, and any yes that comes later.
     await query(
       "INSERT INTO preference_choices (address, way, topic, wording) VALUES ('+447700900123', 'text', 'volunteering', 'w')",

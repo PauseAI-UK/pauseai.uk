@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { hasWay, TOPICS, type Topic, type Way } from "./contact-permissions";
+import type { Topic, Way } from "./contact-permissions";
 import { now } from "@/lib/now";
 import { logChange } from "@/lib/server/audit.server";
 import { queueOptOut } from "./civicrm-updates.server";
@@ -119,23 +119,10 @@ export async function recordOptOut(optOut: OptOut, db?: Queryable): Promise<bool
       way,
       source: optOut.source,
       at: optOut.unsubscribedAt,
-      every: way !== "email" && (optOut.list === "all" || (await stopsEvery(address, way, db))),
     },
     db,
   );
   return true;
-}
-
-/** Whether a number has an open stop of every topic that goes by `way`, text or call. */
-async function stopsEvery(address: string, way: Exclude<Way, "email">, db: Queryable): Promise<boolean> {
-  const topics = TOPICS.filter((topic) => hasWay(topic, way));
-  const [{ every }] = await query<{ every: boolean }>(
-    `SELECT count(DISTINCT list) = $3 AS every FROM opt_outs
-     WHERE address = $1 AND way = $2 AND list = ANY($4::text[]) AND resubscribed_at IS NULL`,
-    [address, way, topics.length, topics],
-    db,
-  );
-  return every;
 }
 
 /**

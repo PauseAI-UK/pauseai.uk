@@ -1275,13 +1275,30 @@ Each opt-out of ours that CiviCRM takes goes to its `updateSubscriptions`
 too (`lib/supporters/civicrm-updates.server.ts`), so Global's records and mail honour
 it: the newsletter by email as an unsubscribe from `newsletter`,
 volunteering by email from `volunteer_updates`, and every bulk email as
-`no_bulk_email`. One CiviCRM told us of doesn't go back, and events, or a
-topic by text or call, go nowhere. Each is queued with the opt-out, in
-`civicrm_updates`, and sent by the hourly CiviCRM import before it pulls,
-tried again each hour until CiviCRM answers it. Only opt-outs go, and the
-one opt-in the person makes themselves: lifting "No bulk emails" on the
-contact preferences page, as `allow_bulk_email`, beside its words. A yes on our
-side stays ours.
+`no_bulk_email`. An unsubscribe goes only for an address the last pull has
+on that list: CiviCRM would mark one never on it unsubscribed, which
+nothing could undo. One CiviCRM told us of doesn't go back, and events, or
+any stop by text or call, go nowhere. We never set "Do not email", "Do
+not SMS" or "Do not phone": those are a person's word to Global, which we
+honour ("Whether we'd contact someone", below), and nothing of ours could
+lift them again. Each is queued with the opt-out, in `civicrm_updates`, and sent by
+the hourly CiviCRM import before it pulls, oldest first, tried again each
+hour until CiviCRM answers it.
+
+The opt-ins the person makes themselves on the contact preferences page go
+too, beside the words they ticked: lifting "No bulk emails", as
+`allow_bulk_email`, and ticking the newsletter or volunteering by email, as
+a resubscribe to its list. CiviCRM refuses a resubscribe while "No bulk
+emails" is set, after a newer unsubscribe, or for a contact who never
+opted in to the list there, which only Global's own pages can change; the
+yes stays ours either way. A yes by text or call, or for events, stays
+ours.
+
+When CiviCRM accepts an unsubscribe or a resubscribe, the contact's list is
+kept as it made it, from when the person did it, before the pull sees it.
+So the stop the pull brings in ("CiviCRM", below) is as old as the
+person's own, and a box they've ticked since still wins, even within the
+hour, before the run.
 
 A new source is a name in the `CHECK` on `source`, and whatever records it.
 
@@ -1359,7 +1376,7 @@ API has no way to lift a hold, so staff lifting a block leaves the hold
 there.
 
 Two more of its actions are used: `updateSubscriptions`, for our opt-outs
-("Opt-outs", above), and `checkSuppression`, which says whether PauseAI may
+and the opt-ins made on our page ("Opt-outs", above), and `checkSuppression`, which says whether PauseAI may
 email each of some addresses at all, whoever has them, just before a
 broadcast's copies go ("Broadcasts to supporters", above).
 

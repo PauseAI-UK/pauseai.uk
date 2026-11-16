@@ -5,7 +5,7 @@ import { CONSENTS, type ContactPermission, type Topic, type Way } from "./contac
 import { hold, isNumber, LINK_DAYS, type SettingsChoice, type SettingsView } from "./settings-view";
 import { now } from "@/lib/now";
 import { siteUrl, siteUrlIfKnown } from "@/lib/site-url.server";
-import { queueBulkLift } from "./civicrm-updates.server";
+import { queueBulkLift, queueResubscribe } from "./civicrm-updates.server";
 import { config } from "@/lib/server/config.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { send } from "@/lib/email/sending.server";
@@ -320,14 +320,22 @@ async function optOut(
   );
 }
 
-/** A yes from the page, with the words beside its box; it closes any opt-out of the same before it. */
+/**
+ * A yes from the page, with the words beside its box; it closes any opt-out
+ * of the same before it, and puts the address back on CiviCRM's list for it,
+ * if CiviCRM has one (queueResubscribe).
+ */
 async function chooseYes(address: string, way: Way, topic: Topic, db: Queryable): Promise<void> {
-  await query(
-    "INSERT INTO preference_choices (address, way, topic, wording) VALUES ($1, $2, $3, $4)",
-    [address, way, topic, copy.wording(topic, way)],
+  const wording = copy.wording(topic, way);
+  const at = now();
+  const [{ id }] = await query<{ id: number }>(
+    `INSERT INTO preference_choices (address, way, topic, wording, chosen_at) VALUES ($1, $2, $3, $4, $5)
+     RETURNING id::int AS id`,
+    [address, way, topic, wording, at],
     db,
   );
-  await recordResubscribe(address, topic, now(), db, way);
+  await recordResubscribe(address, topic, at, db, way);
+  await queueResubscribe({ id, address, topic, way, at, wording }, db);
 }
 
 /**
@@ -396,8 +404,8 @@ export async function liftNoBulk(address: string): Promise<boolean> {
 /**
  * Opts the address out of every bulk email, which CiviCRM is told of, and
  * each of its numbers out of every text and every call (`all`), whatever it
- * has a yes for now or later, which CiviCRM is told of as "Do not SMS" and
- * "Do not phone"; and takes the address off our Luma calendar. The stops are one group, by
+ * has a yes for now or later, which stays ours; and takes the address off
+ * our Luma calendar. The stops are one group, by
  * their source reference (STOP_ALL), so Restart can undo them all. Nothing
  * for a number's page, which doesn't offer it.
  */
