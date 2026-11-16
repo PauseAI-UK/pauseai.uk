@@ -16,6 +16,7 @@ import type {
 } from "@/lib/supporters/supporters";
 import CampaignName from "../CampaignName";
 import PermissionTiles from "./PermissionTiles";
+import SupporterBadges, { supporterBadgeWords } from "./SupporterBadges";
 import Band, { BandFact } from "../ui/Band";
 import Counts from "../ui/Counts";
 import Empty from "../ui/Empty";
@@ -230,7 +231,8 @@ type Counted = { events: number; letters: number; broadcasts: number; notes: num
 /**
  * The band at the top of their page: where they are on a map; their name;
  * then where they are and what it's from, their MP, when they were active
- * and how they first came, each when known; and how many events they
+ * and how they first came, and their activities as the list's lozenges, each
+ * when known; and how many events they
  * registered for, letters they wrote, broadcasts they were sent and notes
  * staff wrote, the tables and cards of which are below, only those there
  * are any of.
@@ -263,6 +265,11 @@ function SupporterBand({ supporter, counted }: { supporter: Details; counted: Co
         </BandFact>
       )}
       <Active first={summary.firstSeenAt} last={summary.lastActiveAt} source={first?.source} />
+      {supporterBadgeWords(summary) && (
+        <BandFact label={copy.columns.badges}>
+          <SupporterBadges supporter={summary} />
+        </BandFact>
+      )}
     </Band>
   );
 }

@@ -1,5 +1,6 @@
 import Tag from "@/components/ui/Tag";
 import type { SupporterSummary } from "@/lib/supporters/supporters";
+import styles from "./SupporterBadges.module.css";
 import { supportersCopy } from "./copy";
 
 /** What a supporter is to us, in words, as a download has them. */
@@ -28,7 +29,7 @@ export function supporterBadgeWords(supporter: SupporterSummary): string {
 export default function SupporterBadges({ supporter }: { supporter: SupporterSummary }) {
   const badges = supportersCopy.supporters.badges;
   return (
-    <>
+    <span className={styles.badges}>
       {supporter.member && <Tag tone="green">{badges.member}</Tag>}
       {supporter.lumaContact && <Tag>{badges.lumaContact}</Tag>}
       {supporter.events > 0 && <Tag tone="blue">{badges.registered}</Tag>}
@@ -36,6 +37,6 @@ export default function SupporterBadges({ supporter }: { supporter: SupporterSum
       {supporter.sources.includes("march-2026-11") && <Tag>{badges.march}</Tag>}
       {supporter.sources.includes("paper-signup") && <Tag>{badges.paper}</Tag>}
       {supporter.sources.includes("whatsapp-community") && <Tag>{badges.whatsapp}</Tag>}
-    </>
+    </span>
   );
 }

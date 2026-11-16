@@ -497,6 +497,22 @@ describe("SupporterDetails", () => {
     expect(document.body.textContent).toContain(copy.detail.firstCame.civicrm);
   });
 
+  it("shows their activities in the band, as the list's lozenges, and no Activities when they have none", async () => {
+    const copy = supportersCopy.supporters;
+    const band = () => document.querySelector("dl")!.textContent!;
+    const shown = (summary: typeof exampleSupporter) => (
+      <SupporterDetails supporter={{ ...exampleSupporterDetails, summary }} />
+    );
+    const { rerender } = await render(shown({ ...exampleSupporter, sources: ["whatsapp-community"] }));
+    await expect.element(page.getByText(copy.columns.badges, { exact: true })).toBeVisible();
+    expect(band()).toContain(copy.badges.whatsapp);
+    expect(band()).toContain(copy.badges.registered);
+    await rerender(
+      shown({ ...exampleSupporter, member: false, lumaContact: false, events: 0, letters: 0, sources: [] }),
+    );
+    expect(band()).not.toContain(copy.columns.badges);
+  });
+
   it("says each year when we've known them across two, and one day when it's all they were seen", async () => {
     const known = (first: string, last: string) => (
       <SupporterDetails

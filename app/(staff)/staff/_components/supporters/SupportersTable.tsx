@@ -185,11 +185,7 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
       key: "badges",
       label: copy.columns.badges,
       text: supporterBadgeWords,
-      cell: (s) => (
-        <div className={styles.badges}>
-          <SupporterBadges supporter={s} />
-        </div>
-      ),
+      cell: (s) => <SupporterBadges supporter={s} />,
     },
     {
       key: "subscriptions",

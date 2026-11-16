@@ -1,0 +1,6 @@
+/* A supporter's lozenges in a row, with room between them, in the list and in the band of their page. */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
