@@ -615,8 +615,13 @@ describe("a WhatsApp group's upload", () => {
     expect(lines).toEqual([said.texts, `${said.known.mobile}${said.texts}`]);
   });
 
-  it("marks a group's upload in the list", async () => {
-    await render(<SignupUploadsList now="2026-11-20T12:00:00Z" uploads={[exampleWhatsappUpload]} />);
-    await expect.element(page.getByText(new RegExp(`^${copy.uploads.whatsapp} · oxford-group\\.csv`))).toBeVisible();
+  it("says each upload's kind in the list", async () => {
+    await render(
+      <SignupUploadsList now="2026-11-20T12:00:00Z" uploads={[exampleWhatsappUpload, exampleSignupUpload]} />,
+    );
+    await expect.element(page.getByText(new RegExp(`^${copy.kind.whatsapp} · oxford-group\\.csv`))).toBeVisible();
+    await expect
+      .element(page.getByText(new RegExp(`^${copy.kind.paper} · ${exampleSignupUpload.filename}`)))
+      .toBeVisible();
   });
 });

@@ -10,6 +10,7 @@ import Empty from "../ui/Empty";
 import Grid, { Card, spanClass } from "../ui/Grid";
 import ExternalLink from "../ui/ExternalLink";
 import PageHead from "../ui/PageHead";
+import SignupKindIcon from "./SignupKindIcon";
 import { LumaReading } from "./SignupUploadPreview";
 import StaffLink from "../ui/StaffLink";
 import styles from "./SignupUpload.module.css";
@@ -156,7 +157,11 @@ export function SignupUploadsList({ uploads, now }: { uploads: SignupUploadSumma
                         {upload.note ?? upload.filename}
                       </StaffLink>
                       <Muted>
-                        {upload.kind === "whatsapp" && `${heads.whatsapp} · `}
+                        <span className={styles.kind}>
+                          <SignupKindIcon kind={upload.kind} />
+                          {copy.kind[upload.kind]}
+                        </span>
+                        {" · "}
                         {upload.filename}
                         {upload.eventName && (
                           <>

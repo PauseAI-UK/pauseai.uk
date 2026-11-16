@@ -21,11 +21,11 @@ export const supportersCopy = {
   signupUpload: {
     title: "Import sign-ups",
     intro: "⁂ Import people from a spreadsheet: paper sign-up forms, or a WhatsApp group",
-    // At the top, what the file is of, a button each, with an icon.
+    // At the top, what the file is of, a button each, with an icon; with the same icon, each past import's kind.
     kind: {
       label: "⁂ What are you importing?",
-      paper: "⁂ Paper sign-ups",
-      whatsapp: "⁂ WhatsApp community",
+      paper: "Paper sign-ups",
+      whatsapp: "WhatsApp community",
     },
     steps: { file: "Choose a file", check: "What will happen" },
     drop: {
@@ -205,8 +205,6 @@ export const supportersCopy = {
       imported: "imported",
       heldBack: "held back",
       by: (who: string) => `imported by ${who}`,
-      // Before a WhatsApp group's file.
-      whatsapp: "⁂ WhatsApp",
     },
   },
   // The page of supporters' blocked addresses (/staff/supporters/bounced-emails), titled as the navigation names

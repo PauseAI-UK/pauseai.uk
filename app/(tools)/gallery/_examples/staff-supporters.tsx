@@ -7,6 +7,7 @@ import { eraseLinkGallery } from "@/app/(staff)/staff/_components/erasure/EraseL
 import { erasedNoticeGallery } from "@/app/(staff)/staff/_components/erasure/ErasedNotice.gallery";
 import { devPreferencesGallery } from "@/app/(staff)/staff/_components/supporters/DevPreferences.gallery";
 import { optOutFormGallery } from "@/app/(staff)/staff/_components/supporters/OptOutForm.gallery";
+import { signupKindIconGallery } from "@/app/(staff)/staff/_components/supporters/SignupKindIcon.gallery";
 import { signupUploadFormGallery } from "@/app/(staff)/staff/_components/supporters/SignupUploadForm.gallery";
 import { signupUploadHelpGallery } from "@/app/(staff)/staff/_components/supporters/SignupUploadHelp.gallery";
 import { signupUploadPreviewGallery } from "@/app/(staff)/staff/_components/supporters/SignupUploadPreview.gallery";
@@ -46,6 +47,7 @@ export const staffSupporters: Group = {
     optOutForm,
     ...devPreferencesGallery,
     noteText,
+    ...signupKindIconGallery,
     ...signupUploadFormGallery,
     ...signupUploadHelpGallery,
     ...signupUploadPreviewGallery,

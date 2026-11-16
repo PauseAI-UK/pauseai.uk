@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, type DragEvent } from "react";
-import ChannelIcon from "@/components/ui/ChannelIcon";
 import { FileInput, Segmented, Select, TextInput } from "@/components/ui/Controls";
 import DatePicker from "@/components/ui/DatePicker";
 import { Field, FieldSet } from "@/components/ui/Field";
@@ -20,6 +19,7 @@ import {
   type SignupUploadInput,
 } from "@/lib/supporters/signup-csv";
 import { staffDate } from "@/lib/staff-time";
+import SignupKindIcon from "./SignupKindIcon";
 import SignupUploadHelp, { SignupColumnNames } from "./SignupUploadHelp";
 import SignupUploadPreview, { type SignupUploadActions } from "./SignupUploadPreview";
 import Choices from "../ui/Choices";
@@ -48,30 +48,6 @@ function refusedWords(read: Exclude<SignupFileRead, { ok: true }>): string {
 }
 
 type Chosen = { name: string; text: string };
-
-/** A page of a form, with lines on it, for paper sign-ups, in the line icons' style (ChannelIcon). */
-const PAPER_ICON = (
-  <svg
-    width={12}
-    height={12}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden
-  >
-    <path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-    <path d="M9 11h6M9 15h6" />
-  </svg>
-);
-
-/** Each kind's icon: a paper form, or a text's speech bubble for WhatsApp. */
-const KIND_ICONS: Record<SignupKind, React.ReactNode> = {
-  paper: PAPER_ICON,
-  whatsapp: <ChannelIcon channel="text" />,
-};
 
 /**
  * Uploading sign-ups, under the choice of what they are: paper forms or a
@@ -167,7 +143,7 @@ export default function SignupUploadForm({
           options={(["paper", "whatsapp"] as const).map((value) => ({
             value,
             label: copy.kind[value],
-            icon: KIND_ICONS[value],
+            icon: <SignupKindIcon kind={value} />,
           }))}
           value={kind}
           onChange={(chosenKind) => {
