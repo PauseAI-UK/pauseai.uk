@@ -61,6 +61,9 @@ export function parliamentMembers(data: unknown): OfficialMember[] {
     const commons = m.House === "Commons";
     const addresses = list(m.Addresses?.Address);
     const constituency = commons ? (m.MemberFrom?.trim() ?? null) : null;
+    const salutation = commons ? mpSalutation(m.ListAs, GENDERS[m.Gender ?? ""]) : peerSalutation(m.DisplayAs);
+    // A peer's displayed name is their title, so the salutation it makes is recorded as an MP's title is.
+    const titled = commons ? mpTitled(m.ListAs) : salutation !== null;
     return {
       officialId: Number(m["@Member_Id"]),
       house: commons ? "commons" : "lords",
@@ -70,8 +73,8 @@ export function parliamentMembers(data: unknown): OfficialMember[] {
       country: (constituency && constituencyCountry(constituency)) || null,
       emails: emailsOf(addresses),
       websites: addresses.flatMap((a) => (/^https?:\/\//i.test(a.Address1 ?? "") ? [a.Address1!.trim()] : [])),
-      salutation: commons ? mpSalutation(m.ListAs, GENDERS[m.Gender ?? ""]) : peerSalutation(m.DisplayAs),
-      ...(commons && mpTitled(m.ListAs) ? { titled: true as const } : {}),
+      salutation,
+      ...(titled ? { titled: true as const } : {}),
     };
   });
 }

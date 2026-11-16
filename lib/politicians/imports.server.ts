@@ -10,10 +10,13 @@ import {
   importChangeCount,
   keptSalutations,
   matchMembers,
+  misspeltSalutations,
+  missingHonours,
   sharedAddresses,
   updated,
   type Body,
   type Ending,
+  type Honour,
   type ImportChanges,
   type OfficialMember,
   type OurPolitician,
@@ -34,7 +37,7 @@ import {
   seneddMembersNow,
 } from "@/lib/server/outside-services/devolved-bodies.server";
 import { parliamentEndings, parliamentMembersNow } from "@/lib/server/outside-services/parliament.server";
-import { mspPeople, seneddPeople } from "@/lib/server/outside-services/wikidata.server";
+import { memberHonours, mspPeople, seneddPeople } from "@/lib/server/outside-services/wikidata.server";
 import { addPolitician } from "./records.server";
 import { problem } from "@/lib/server/problems.server";
 import { politiciansCopy } from "./copy";
@@ -137,11 +140,30 @@ async function withSalutations(
     const person = people.get(m.officialId);
     if (!person) return m;
     const first = m.name.split(/\s+/)[0];
-    // Wikidata's surname can be part of theirs ("Cooper" for Sarah Cooper-Lesadd), so it's used only where their name ends with it.
-    const wikidata = person.surname && m.name.endsWith(` ${person.surname}`) ? person.surname : undefined;
-    const surname = m.surname ?? wikidata ?? surnameOf(m.name);
+    // Wikidata's surname can be part of theirs ("Cooper" for Sarah Cooper-Lesadd, "Iorwerth" for Rhun ap Iorwerth),
+    // so it's used only where their name ends with it, and is longer than the surname the name gives.
+    const own = surnameOf(m.name);
+    const wikidata = person.surname && m.name.endsWith(` ${person.surname}`) ? person.surname : "";
+    const surname = m.surname ?? (wikidata.length > own.length ? wikidata : own);
     return { ...m, salutation: personalSalutation({ first, surname }, person.gender) };
   });
+}
+
+/**
+ * Which members Wikidata calls Sir or Dame, by the ID their body gives them,
+ * peers aside, as a peer's title outranks a knighthood. If Wikidata can't be
+ * asked, no one, and the run says so.
+ */
+async function honoursOf(body: Body, members: OfficialMember[]): Promise<Map<number, Honour>> {
+  try {
+    return await memberHonours(
+      body,
+      members.filter((m) => m.house !== "lords").map((m) => m.officialId),
+    );
+  } catch (error) {
+    problem(politiciansCopy.politicianImports.honourLookupFailed, error);
+    return new Map();
+  }
 }
 
 /**
@@ -327,6 +349,7 @@ export async function importPoliticians(body: Body, startedBy: string): Promise<
     );
     const endings = body === "parliament" && ids.length > 0 ? await parliamentEndings(ids) : new Map<number, Ending>();
     const members = await withSalutations(body, fetched, before);
+    const honours = await honoursOf(body, members);
     let newlyHeld = false;
     const outcome = await transaction(async (db): Promise<PoliticianImportOutcome> => {
       if (body === "parliament") await ensureTestMps(db);
@@ -334,6 +357,12 @@ export async function importPoliticians(body: Body, startedBy: string): Promise<
       const { pairs, ...changes } = compareMembers(ours, members, endings);
       for (const kept of keptSalutations(pairs)) {
         problem(politiciansCopy.politicianImports.keptSalutation(kept.name, kept.ours, body, kept.theirs));
+      }
+      for (const slip of misspeltSalutations(pairs, changes.added)) {
+        problem(politiciansCopy.politicianImports.misspeltSalutation(slip.name, slip.salutation));
+      }
+      for (const missing of missingHonours(pairs, changes.added, honours)) {
+        problem(politiciansCopy.politicianImports.missingHonour(missing.name, missing.salutation, missing.honour));
       }
       // The very first import of a body fills it from nothing, so there's nothing to check it against.
       const held = ours.length > 0 && holdsImport(changes);

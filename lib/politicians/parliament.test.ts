@@ -22,6 +22,16 @@ describe("parliamentMembers", () => {
     expect(mo).toMatchObject({ salutation: "Mx Example", titled: true });
   });
 
+  it("records a peer's title, which their displayed name is, unless it has no rank the rule knows", () => {
+    const [lord] = parliamentMembers(PARLIAMENT_MEMBERS.Lords);
+    expect(lord).toMatchObject({ salutation: "Lord Seedling", titled: true });
+    const [unknown] = parliamentMembers({
+      Members: { Member: { ...PARLIAMENT_MEMBERS.Lords.Members.Member, DisplayAs: "Sam Example" } },
+    });
+    expect(unknown.salutation).toBeNull();
+    expect(unknown).not.toHaveProperty("titled");
+  });
+
   it("reads a Lord, alone in their House's answer, without a seat or nation", () => {
     expect(parliamentMembers(PARLIAMENT_MEMBERS.Lords)).toEqual([
       {
@@ -34,6 +44,7 @@ describe("parliamentMembers", () => {
         emails: ["contactholmember@parliament.uk"],
         websites: [],
         salutation: "Lord Seedling",
+        titled: true,
       },
     ]);
   });

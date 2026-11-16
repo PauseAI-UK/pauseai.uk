@@ -303,6 +303,56 @@ export function keptSalutations(pairs: ReadonlyMap<OfficialMember, OurPolitician
   );
 }
 
+/** An honour whose holder's salutation takes their first name ("Sir Chris"). */
+export type Honour = "Sir" | "Dame";
+
+/** A salutation an import leaves as it is but reports for staff to check: whose, and what it is. */
+export type SalutationToCheck = { name: string; salutation: string };
+
+/** Each member in a body's list, with the salutation they'll have once the import is applied. */
+function salutationsAfter(
+  pairs: ReadonlyMap<OfficialMember, OurPolitician>,
+  newMembers: OfficialMember[],
+): { member: OfficialMember; salutation: string }[] {
+  return [
+    ...[...pairs].map(([member, ourOne]) => ({ member, salutation: updated(ourOne, member).salutation })),
+    ...newMembers.map((member) => ({ member, salutation: added(member).salutation })),
+  ];
+}
+
+/**
+ * Whether a salutation's words after its first are words of the name, written
+ * as the name writes them, case and all: "Mr McKee" for Ivan McKee, not "Mr
+ * Mckee"; "Lady Smith" for Baroness Smith of Basildon. A salutation of one
+ * word ("Archbishop") has nothing to check.
+ */
+export function spellsName(salutation: string, name: string): boolean {
+  const [, ...rest] = salutation.trim().split(/\s+/);
+  return rest.length === 0 || ` ${name.trim().split(/\s+/).join(" ")} `.includes(` ${rest.join(" ")} `);
+}
+
+/** The salutations that don't spell their name as it's written (spellsName): a slip in typing or in case. */
+export function misspeltSalutations(
+  pairs: ReadonlyMap<OfficialMember, OurPolitician>,
+  newMembers: OfficialMember[],
+): SalutationToCheck[] {
+  return salutationsAfter(pairs, newMembers).flatMap(({ member, salutation }) =>
+    spellsName(salutation, member.name) ? [] : [{ name: member.name, salutation }],
+  );
+}
+
+/** The salutations without the honour Wikidata records for their member, by the ID their body gives them. */
+export function missingHonours(
+  pairs: ReadonlyMap<OfficialMember, OurPolitician>,
+  newMembers: OfficialMember[],
+  honours: ReadonlyMap<number, Honour>,
+): (SalutationToCheck & { honour: Honour })[] {
+  return salutationsAfter(pairs, newMembers).flatMap(({ member, salutation }) => {
+    const honour = honours.get(member.officialId);
+    return honour && !salutation.startsWith(`${honour} `) ? [{ name: member.name, salutation, honour }] : [];
+  });
+}
+
 /**
  * More changes than this in one run is held for a person to check. A
  * by-election changes one or two politicians; an election, a body changing
