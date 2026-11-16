@@ -641,19 +641,51 @@ test("Writing to a Lord", async ({ page, request, flowDatabase }) => {
   const bubble = page.locator("[popover]:popover-open");
   await expect(bubble.getByText(words.emailHint)).toBeVisible();
   await bubble.getByRole("textbox", { name: words.email }).fill("seedling@lords.example");
-  await frame(page, "His new address", { window: true });
+  await bubble.getByRole("textbox", { name: words.note }).fill("On his website");
+  await frame(page, "His new address, and why", { window: true });
 
   story("They save it. The bubble closes, and the band shows his address.");
   await bubble.getByRole("button", { name: words.save }).click();
   await expect(page.getByRole("link", { name: "seedling@lords.example" }).first()).toBeVisible();
   await frame(page, "His page, with his address");
+});
 
-  story("An MP's address is their body's, so her bubble lists her other addresses, with no field for her email.");
+test("Changing an MP's email", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly Placeholder's email is the one Parliament lists. Her office asks PauseAI to write to another. Staff open the bubble by her email at the top of her page; it says where her main address came from.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
+  const words = copy.editDetails;
+  const old = await page.getByRole("link", { name: /@/ }).first().textContent();
   await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
-  await expect(page.locator("[popover]:popover-open").getByRole("heading", { name: copy.aliases.title })).toBeVisible();
-  await expect(page.locator("[popover]:popover-open").getByRole("textbox", { name: words.email })).toHaveCount(0);
-  await frame(page, "An MP's other addresses", { window: true });
+  const bubble = page.locator("[popover]:popover-open");
+  await expect(bubble.getByText(copy.aliases.sources.parliament).first()).toBeVisible();
+  await frame(page, "Her main address, from Parliament", { window: true });
+
+  story("They type the new address. Save won't send it until they say why.");
+  await bubble.getByRole("textbox", { name: words.email }).fill("polly.office@example.org");
+  await bubble.getByRole("textbox", { name: words.note }).fill("Her office asked us to write here");
+  await frame(page, "Her new address, and why", { window: true });
+
+  story(
+    "Saved, the band shows the new address. Its bubble says who set it, when and why, and her old address is under her other addresses, so her emails from it are still linked to her.",
+  );
+  await bubble.getByRole("button", { name: words.save }).click();
+  await expect(page.getByRole("link", { name: "polly.office@example.org" }).first()).toBeVisible();
+  await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
+  await expect(bubble.getByText("Her office asked us to write here", { exact: false })).toBeVisible();
+  await expect(bubble.getByText(old!, { exact: true })).toBeVisible();
+  await frame(page, "Her new main address, set by staff", { window: true });
+
+  story("The change, with why, is in what changed her record, folded at the foot of her page.");
+  await page.keyboard.press("Escape");
+  await page.getByRole("heading", { name: copy.recordTitle }).click();
+  const record = page.locator("details").filter({ has: page.getByRole("heading", { name: copy.recordTitle }) });
+  await expect(record.getByText("Her office asked us to write here", { exact: false })).toBeVisible();
+  await page.getByRole("heading", { name: copy.recordTitle }).scrollIntoViewIfNeeded();
+  await frame(page, "The change in her record");
 });
 
 test("A salutation to check", async ({ page, request, flowDatabase }) => {

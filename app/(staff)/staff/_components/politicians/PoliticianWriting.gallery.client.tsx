@@ -27,7 +27,11 @@ export function SalutationBubbleExample({ result, fromName = false }: { result: 
   );
 }
 
-/** A politician's email in the band, its bubble of their other addresses open, each change logged; a Lord's with none, to set. */
+/**
+ * A politician's email in the band, its bubble open with the field to change
+ * it and their other addresses, each change logged, answering with `result`;
+ * a Lord's with none, to set.
+ */
 export function AddressesBubbleExample({ result, lord = false }: { result: EditResult; lord?: boolean }) {
   return (
     <Logged>
@@ -35,19 +39,21 @@ export function AddressesBubbleExample({ result, lord = false }: { result: EditR
         <AddressesBubble
           politician={
             lord
-              ? { ...examplePolitician, name: "Lord Seedling", salutation: "Lord Seedling", email: null }
+              ? {
+                  ...examplePolitician,
+                  name: "Lord Seedling",
+                  salutation: "Lord Seedling",
+                  email: null,
+                  house: "lords",
+                }
               : examplePolitician
           }
-          aliases={lord ? { ...exampleAliases, email: null } : exampleAliases}
+          aliases={lord ? { ...exampleAliases, email: null, emailSource: null } : exampleAliases}
           actions={{ add: log("addAlias"), remove: log("removeAlias") }}
-          setEmail={
-            lord
-              ? (form) => {
-                  log("editDetails")(form);
-                  return result;
-                }
-              : undefined
-          }
+          setEmail={(form) => {
+            log("editDetails")(form);
+            return result;
+          }}
           open
         />
       )}

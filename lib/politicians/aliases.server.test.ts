@@ -72,6 +72,8 @@ describeWithDatabase("a politician's aliases", () => {
     await query("INSERT INTO politician_domains (domain, notable_person_id) VALUES ('polly.example', $1)", [polly.id]);
     expect(await politicianAliases({ ...polly, email: "Polly.Placeholder.MP@parliament.uk" })).toEqual({
       email: "Polly.Placeholder.MP@parliament.uk",
+      // An import set it, and their body lists it.
+      emailSource: { by: "body" },
       past: ["old.polly@example.com"],
       parliament: ["placeholderp@parliament.uk"],
       office: ["jane.smith@parliament.uk"],
@@ -79,7 +81,36 @@ describeWithDatabase("a politician's aliases", () => {
       domains: ["polly.example"],
       forms: ["citiesoflondonandwestminster.mp@parliament.uk"],
     });
-    expect((await politicianAliases({ ...polly, email: null })).parliament).toHaveLength(2);
+    const none = await politicianAliases({ ...polly, email: null });
+    expect(none.emailSource).toBeNull();
+    expect(none.parliament).toHaveLength(2);
+  });
+
+  it("says where their email came from: the staff edit that set it last, with its note, else their body's list, else nothing", async () => {
+    const polly = await politician();
+    const source = async (email: string | null) => (await politicianAliases({ ...polly, email })).emailSource;
+    const edit = (actor: string, email: [string | null, string | null], note?: string) =>
+      query("INSERT INTO audit_log (actor, action, details) VALUES ($1, 'edit politician', $2)", [
+        actor,
+        JSON.stringify({ id: polly.id, name: "Polly", changed: { email }, ...(note && { note }) }),
+      ]);
+    // Neither set by staff nor listed: from Airtable, say.
+    expect(await source("polly@example.org")).toBeNull();
+    await edit("jo@pauseai.uk", [null, "polly@example.org"], "Her office asked");
+    await edit("sam@pauseai.uk", ["polly@example.org", "other@example.org"], "Wrong one");
+    expect(await source("Polly@example.org")).toEqual({
+      by: "staff",
+      staff: "jo@pauseai.uk",
+      at: expect.any(Date),
+      note: "Her office asked",
+    });
+    // An edit from before notes.
+    await query("ALTER TABLE audit_log DROP CONSTRAINT audit_log_email_edit_note");
+    await edit("sam@pauseai.uk", ["other@example.org", "polly@example.org"]);
+    expect(await source("polly@example.org")).toMatchObject({ by: "staff", staff: "sam@pauseai.uk", note: "" });
+    // An import that set it since, of an address their body doesn't list: nothing to say.
+    await edit("import-parliament", ["x@example.org", "polly@example.org"]);
+    expect(await source("polly@example.org")).toBeNull();
   });
 
   /** The fake Gmail for policy@: searches find m1, from Polly's Gmail, one gone, and m2, from nobody; `refuse` answers a fetch of m2 as past the limit. */

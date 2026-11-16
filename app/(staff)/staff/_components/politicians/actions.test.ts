@@ -84,16 +84,21 @@ describeWithDatabase("the politician pages' Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/politicians/${id}`);
   });
 
-  it("editPoliticianNow saves a salutation and a Lord's email, says why not, and ignores a bad form", async () => {
+  it("editPoliticianNow saves a salutation and an email with its note, says why not, and ignores a bad form", async () => {
     const lord = await addTestPolitician({ house: "lords", email: null });
     expect(await editPoliticianNow(form({ politicianId: "x", salutation: "Lord X" }))).toBeUndefined();
     expect(await editPoliticianNow(form({ politicianId: String(lord) }))).toEqual({
       saved: false,
       why: "salutation",
     });
-    expect(revalidatePath).not.toHaveBeenCalled();
     expect(
       await editPoliticianNow(form({ politicianId: String(lord), salutation: "Lord X", email: "x@example.org" })),
+    ).toEqual({ saved: false, why: "note" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(
+      await editPoliticianNow(
+        form({ politicianId: String(lord), salutation: "Lord X", email: "x@example.org", note: "On his website" }),
+      ),
     ).toEqual({ saved: true });
     expect(await editPoliticianNow(form({ politicianId: String(lord), salutation: "Lord Y" }))).toEqual({
       saved: true,
@@ -101,6 +106,9 @@ describeWithDatabase("the politician pages' Server Actions", () => {
     expect(await query("SELECT salutation, email FROM notable_people")).toEqual([
       { salutation: "Lord Y", email: "x@example.org" },
     ]);
+    expect(
+      await query("SELECT details->>'note' AS note FROM audit_log WHERE action = 'edit politician' ORDER BY id"),
+    ).toEqual([{ note: "On his website" }, { note: null }]);
   });
 
   it("addAliasNow and removeAliasNow add and remove a politician's address as the staff member, refreshing the staff pages", async () => {

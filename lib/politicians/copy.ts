@@ -88,7 +88,7 @@ export const politiciansCopy = {
     },
     // The card of the marks staff set, under their notes, each a switch.
     marks: "Marks",
-    // What staff keep by hand, in the band's bubbles: their salutation, and a Lord's email.
+    // What staff keep by hand, in the band's bubbles: their salutation and email.
     editDetails: {
       salutation: "Salutation",
       email: "Email",
@@ -96,8 +96,13 @@ export const politiciansCopy = {
       emailHint: "Most Lords have no public email, so set one you find here",
       // Each line's button, which opens its field, and the one that closes it unsaved.
       edit: "edit",
-      // Over a Lord's email field in the band's bubble: the address letters go to.
+      // Over the email field in the band's bubble: the address letters go to, and what that means, ghosted.
       mainEmail: "Main address",
+      mainIntro: "⁂ We send letters and emails to them here.",
+      // Under the field, ghosted, when a staff member set it: who, when, and their note of why (none on an old edit).
+      // One their body lists says so in the words of the other addresses' sources.
+      setBy: (who: string, when: string, note: string) =>
+        note ? `⁂ Set by ${who} on ${when}: ${note}` : `⁂ Set by ${who} on ${when}`,
       // In the band, for a Lord with no email: opens the bubble to set one.
       add: "add email",
       cancel: "Cancel",
@@ -108,12 +113,16 @@ export const politiciansCopy = {
       // In the bubble of a salutation made from their name, as their gender isn't known, before Ms and Mr with their surname.
       fromName: "We don't know their gender, so this is just their name. Pick one:",
       dear: (salutation: string) => `“Dear ${salutation},”`,
+      // The field under the email, which must say why it's being changed: its name, and what it asks.
+      note: "⁂ Why",
+      notePlaceholder: "⁂ Why are you changing it?",
       save: "Save",
       saved: "Saved.",
       refused: {
         salutation: "A salutation can't be empty.",
         email: "That doesn't look like an email address.",
         shared: "That's the House of Lords' shared inbox.",
+        note: "⁂ Say why you're changing their email.",
         gone: "This politician can't be edited.",
       },
     },

@@ -95,7 +95,10 @@ Where they come from:
   the one the body lists only once the body stops listing it. The House of
   Lords' shared inbox, which most Lords list as their only address, is never
   anyone's: a check constraint refuses it (`SHARED_INBOXES` in
-  `lib/letters/one-off.ts`). Staff set a Lord's email by hand.
+  `lib/letters/one-off.ts`). Staff can set anyone's email by hand, saying
+  why: the audit log refuses a staff member's change of email without a note
+  (`audit_log_email_edit_note`). The old address stays theirs, for linking
+  emails, as a previous main address.
 - **Airtable's UK Parliamentarians**, which the policy team kept, is no
   longer read. Its salutations, markers and notes were copied before then;
   each politician who was in it keeps their record's ID (`airtable_id`).
@@ -855,7 +858,7 @@ else in it.
   politicians afresh from its messages' addresses, the addresses and names they
   quote, and the book as it is, and whether it has someone else in it. It runs
   at the end of each body's import (and its button), and when staff add or
-  remove an address, or set a Lord's email. A message's quotes are stored as it's kept (`quoted_addresses`,
+  remove an address, or set a politician's email. A message's quotes are stored as it's kept (`quoted_addresses`,
   `quoted_names`); for one kept before, relinking reads them from its blob, as
   many as it can in its time, and a thread with any still unread loses no one.
   Outlook quotes a colleague in Parliament by name alone ("HILLIER, Meg"), so a

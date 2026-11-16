@@ -719,6 +719,18 @@ describe("PoliticianDetails", () => {
           },
           { id: 5, at: new Date("2026-08-01T10:00:00Z"), actor: "x", action: "strange", details: {} },
           {
+            id: 10,
+            at: new Date("2026-07-25T10:00:00Z"),
+            actor: "jo@pauseai.uk",
+            action: "edit politician",
+            details: {
+              id: 7,
+              name: "Polly Placeholder",
+              changed: { email: ["a@example.org", "b@example.org"] },
+              note: "Her office asked",
+            },
+          },
+          {
             id: 9,
             at: new Date("2026-07-20T10:00:00Z"),
             actor: "sync",
@@ -776,6 +788,8 @@ describe("PoliticianDetails", () => {
       `${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk30 Sept 2026, 10:00 · samuel.whitlock@pauseai.uk`,
       `${copy["block address"]} polly@example.org · weird10 Aug 2026, 10:00 · postmark`,
       "strange 1 Aug 2026, 10:00 · x",
+      // A change of email, with why.
+      `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.email} a@example.org → b@example.org · Her office asked25 Jul 2026, 10:00 · jo@pauseai.uk`,
       `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
       `${copy["add politician"]} Polly Placeholder15 Jul 2026, 10:00 · import`,
     ]);
@@ -1203,7 +1217,7 @@ describe("PoliticianDetails", () => {
     const strip = notice.element().firstElementChild!;
     expect(strip.firstElementChild!.tagName.toLowerCase()).toBe("svg");
     expect(strip.className).toMatch(/red/);
-    // An MP's address is their body's, so the only choice here is that it's right.
+    // Without a way to edit their email, the only choice here is that it's right.
     expect([...notice.element().querySelectorAll("h3")].map((h) => h.textContent)).toEqual([copy.right.title]);
     expect(notice.element().querySelector("p")!.textContent).toBe(
       `${copy.why.before}${MP.email}${copy.why.after(exampleBlock.reason, "12 Oct 2026, 09:10")}`,
@@ -1222,18 +1236,28 @@ describe("PoliticianDetails", () => {
     await page.getByRole("button", { name: emailCopy.emails.unblock }).click();
     await vi.waitFor(() => expect(sent).toEqual([{ address: MP.email, note: "Fixed in Airtable" }]));
 
-    // An MP's address is their body's, so there's nowhere to correct it here; a Lord's is staff's, in Writing to them.
+    // Without a way to edit their email, there's nowhere to correct it here, nor for a test politician.
     expect(notice.element().textContent).not.toContain(copy.wrong.before);
     await rerender(
       <PoliticianDetails
-        politician={{ ...MP, house: "lords", emailBlocked: true }}
+        politician={{ ...MP, isTest: true, emailBlocked: true }}
         block={{ ...exampleBlock, address: MP.email! }}
         unblock={fn}
         editDetails={vi.fn()}
         {...none}
       />,
     );
-    // A Lord's: their two choices side by side, the address wrong, corrected in Writing to them, or right.
+    expect(notice.element().textContent).not.toContain(copy.wrong.before);
+    await rerender(
+      <PoliticianDetails
+        politician={{ ...MP, emailBlocked: true }}
+        block={{ ...exampleBlock, address: MP.email! }}
+        unblock={fn}
+        editDetails={vi.fn()}
+        {...none}
+      />,
+    );
+    // With one: their two choices side by side, the address wrong, corrected from their email in the band, or right.
     expect([...notice.element().querySelectorAll("h3")].map((h) => h.textContent)).toEqual([
       copy.wrong.title,
       copy.right.title,

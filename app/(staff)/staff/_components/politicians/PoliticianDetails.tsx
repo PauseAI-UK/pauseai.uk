@@ -198,6 +198,8 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
             <>
               <Muted> · </Muted>
               <FieldChanges changed={details.changed as Record<string, FieldChange>} />
+              {/* A change of email says why. */}
+              {text("note") && <Muted> · {text("note")}</Muted>}
             </>
           ) : (
             text("email") && <Muted> · {text("email")}</Muted>
@@ -308,9 +310,6 @@ function PoliticianBand({
     </Band>
   );
 }
-
-/** Whether staff keep their email: a Lord's, as most Lords list none of their own. */
-const ownEmail = (politician: Politician) => politician.house === "lords";
 
 const NO_MESSAGES: ThreadMessages = { subjects: {}, letters: {}, oneOffs: {} };
 
@@ -462,7 +461,7 @@ export default function PoliticianDetails({
               politician={politician}
               aliases={aliases}
               actions={aliasActions}
-              setEmail={editDetails && !politician.isTest && ownEmail(politician) ? editDetails : undefined}
+              setEmail={editDetails && !politician.isTest ? editDetails : undefined}
               open={aliasesOpen}
             />
           ) : politician.email ? (
@@ -483,7 +482,7 @@ export default function PoliticianDetails({
               {copy.blocked.why.after(block.reason, staffTime(block.since))}
             </p>
             <div className={styles.fixes}>
-              {block.canReset && editDetails && ownEmail(politician) && (
+              {block.canReset && editDetails && !politician.isTest && (
                 <div>
                   <h3>{copy.blocked.wrong.title}</h3>
                   <p>

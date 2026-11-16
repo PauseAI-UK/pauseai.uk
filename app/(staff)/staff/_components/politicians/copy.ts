@@ -11,7 +11,7 @@ export const politiciansCopy = {
   addressesToFix: {
     title: "Addresses to fix",
     // Under the title, what the page is.
-    intro: "Politicians' bad emails: unblock them here, or correct a Lord's on their page",
+    intro: "⁂ Politicians' bad emails: unblock them here, or correct them on their page",
   },
   // Choosing who a mailing is for, on the politicians list, and starting one there; the mailings' pages
   // name a new mailing and one with no one ticked the same way.

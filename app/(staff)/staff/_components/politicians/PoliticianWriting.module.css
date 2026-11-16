@@ -46,6 +46,12 @@
   min-width: 0;
 }
 
+/* A field with a note under it: a line of its own. */
+.wholeField {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
 .status {
   flex-basis: 100%;
 }

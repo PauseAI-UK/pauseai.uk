@@ -25,10 +25,20 @@ export type AddressSource = "parliament" | "office" | "staff" | "rejected";
 /** An address staff added: who and when. */
 export type AddedAddress = { address: string; addedBy: string; at: Date };
 
+/**
+ * Where a politician's email came from: the staff member whose edit set it
+ * last, when, and their note of why (empty for an edit from before notes);
+ * or else their body's list, which has it; or null for neither, such as one
+ * carried over from Airtable.
+ */
+export type EmailSource = { by: "staff"; staff: string; at: Date; note: string } | { by: "body" } | null;
+
 /** Every address and domain that's a politician's, by where it came from. */
 export type PoliticianAliases = {
   /** Their email, which letters go to. */
   email: string | null;
+  /** Where their email came from, if known (EmailSource). */
+  emailSource: EmailSource;
   /** Emails they had before, from the audit log's edits. */
   past: string[];
   /** Those Parliament's Members API lists. */
@@ -75,7 +85,15 @@ export async function politicianAliases(politician: {
   constituency: string | null;
   email: string | null;
 }): Promise<PoliticianAliases> {
-  const [past, listed, domains, book] = await Promise.all([
+  const [[setBy], past, listed, domains, book] = await Promise.all([
+    // The last edit that made their email what it is: a staff member's, logged by their email, or an import's.
+    query<{ actor: string; at: Date; note: string | null }>(
+      `SELECT actor, at, details->>'note' AS note FROM audit_log
+       WHERE action = ${auditActions("edit politician")} AND (details->>'id')::bigint = $1
+         AND lower(details->'changed'->'email'->>1) = lower($2)
+       ORDER BY id DESC LIMIT 1`,
+      [politician.id, politician.email],
+    ),
     query<{ address: string }>(
       `SELECT DISTINCT address FROM (
          SELECT lower(jsonb_array_elements_text(details->'changed'->'email')) AS address
@@ -97,8 +115,14 @@ export async function politicianAliases(politician: {
   const email = politician.email?.toLowerCase() ?? null;
   const from = (source: AddressSource) =>
     listed.filter((row) => row.source === source && row.address !== email).map((row) => row.address);
+  const emailSource: EmailSource = setBy?.actor.includes("@")
+    ? { by: "staff", staff: setBy.actor, at: setBy.at, note: setBy.note ?? "" }
+    : listed.some((row) => row.source === "parliament" && row.address === email)
+      ? { by: "body" }
+      : null;
   return {
     email: politician.email,
+    emailSource,
     past: past.map((row) => row.address).filter((address) => address !== email && address.includes("@")),
     parliament: from("parliament"),
     office: from("office"),

@@ -8,7 +8,7 @@ import { FilterForm } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ErrorText } from "@/components/ui/Text";
 import { surnameOf } from "@/lib/politicians/salutation";
-import type { PoliticianAliases } from "@/lib/politicians/aliases.server";
+import type { EmailSource, PoliticianAliases } from "@/lib/politicians/aliases.server";
 import type { EditResult } from "@/lib/politicians/edits.server";
 import { staffDate } from "@/lib/staff-time";
 import AddAliasForm, { type AddAliasAction } from "./AddAliasForm";
@@ -18,17 +18,26 @@ import { politiciansCopy } from "./copy";
 const copy = politiciansCopy.politician.editDetails;
 const words = politiciansCopy.politician.aliases;
 
-/** Saves a salutation or a Lord's email, saying how it went. */
+/** Saves a salutation or an email, saying how it went. */
 export type EditAction = (form: FormData) => Promise<EditResult | undefined> | EditResult | undefined | void;
 
-type Politician = { id: number; name: string; salutation: string; salutationToCheck: boolean; email: string | null };
+type Politician = {
+  id: number;
+  name: string;
+  salutation: string;
+  salutationToCheck: boolean;
+  email: string | null;
+  house?: string;
+};
 
 /** Closes the bubble a form is in. */
 const closeBubble = (inside: HTMLElement | null) => inside?.closest<HTMLElement>("[popover]")?.hidePopover();
 
 /**
- * A field and its Save, sent with `hidden`; and, once the server has it,
- * that it's saved, closing the bubble, or why not.
+ * A field and its Save, sent with `hidden`; with `withNote`, a field under
+ * it, before Save, for the note of why it changed, which must be filled;
+ * and, once the server has it, that it's saved, closing the bubble, or why
+ * not.
  */
 function SaveField({
   label,
@@ -37,6 +46,7 @@ function SaveField({
   value,
   hidden,
   action,
+  withNote = false,
 }: {
   label: string;
   name: string;
@@ -44,6 +54,7 @@ function SaveField({
   value: string;
   hidden: Record<string, string | number>;
   action: EditAction;
+  withNote?: boolean;
 }) {
   const form = useRef<HTMLFormElement>(null);
   const [result, setResult] = useState<EditResult | undefined>();
@@ -57,9 +68,14 @@ function SaveField({
       {Object.entries(hidden).map(([key, v]) => (
         <input key={key} type="hidden" name={key} value={v} />
       ))}
-      <span className={styles.field}>
+      <span className={withNote ? styles.wholeField : styles.field}>
         <TextInput name={name} type={type} required={name === "salutation"} defaultValue={value} aria-label={label} />
       </span>
+      {withNote && (
+        <span className={styles.field}>
+          <TextInput name="note" required placeholder={copy.notePlaceholder} aria-label={copy.note} />
+        </span>
+      )}
       <SubmitButton variant="primary" size="small" fit>
         {copy.save}
       </SubmitButton>
@@ -146,6 +162,11 @@ function SaveChoice({
   );
 }
 
+/** Where their email came from, in words: the staff member who set it, when, and why; or their body's list. */
+function sourceLine(source: NonNullable<EmailSource>): string {
+  return source.by === "staff" ? copy.setBy(source.staff, staffDate(source.at), source.note) : words.sources.parliament;
+}
+
 /** The changes a politician's addresses can take: adding one, and removing one staff added or guessed. */
 export type AliasActions = { add: AddAliasAction; remove: (form: FormData) => void | Promise<void> };
 
@@ -157,8 +178,8 @@ type Line = { key: string; address: string; from: ReactNode; removable?: boolean
  * it a button opening a bubble of every other address that says an email
  * is theirs, with where each came from, a Remove by each staff added or
  * guessed was their office's, and the form to add one, once they have an
- * email. A Lord's email can be set there too (`setEmail`), as most Lords
- * list none of their own. `open` opens it at once, as a link to it does.
+ * email. Their email can be changed there too (`setEmail`), with a note of
+ * why. `open` opens it at once, as a link to it does.
  */
 export function AddressesBubble({
   politician,
@@ -230,18 +251,25 @@ export function AddressesBubble({
         {politician.email ? words.more(lines.length) : copy.add}
       </button>
       <BubbleBox id={id} ref={bubble} className={styles.bubble}>
-        {setEmail && (
+        {(setEmail || politician.email) && (
           <div className={styles.part}>
             <h3 className={styles.heading}>{copy.mainEmail}</h3>
-            <SaveField
-              label={copy.email}
-              name="email"
-              type="email"
-              value={politician.email ?? ""}
-              hidden={{ politicianId: politician.id, salutation: politician.salutation }}
-              action={setEmail}
-            />
-            {!politician.email && <p className={styles.hint}>{copy.emailHint}</p>}
+            <p className={styles.intro}>{copy.mainIntro}</p>
+            {setEmail ? (
+              <SaveField
+                label={copy.email}
+                name="email"
+                type="email"
+                value={politician.email ?? ""}
+                hidden={{ politicianId: politician.id, salutation: politician.salutation }}
+                action={setEmail}
+                withNote
+              />
+            ) : (
+              <span className={styles.address}>{politician.email}</span>
+            )}
+            {aliases.emailSource && <p className={styles.hint}>{sourceLine(aliases.emailSource)}</p>}
+            {!politician.email && politician.house === "lords" && <p className={styles.hint}>{copy.emailHint}</p>}
           </div>
         )}
         {politician.email && (

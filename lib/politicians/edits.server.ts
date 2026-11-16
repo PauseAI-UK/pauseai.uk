@@ -5,11 +5,10 @@ import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 
-// What staff edit on a politician's page: only what no body's list has, as
-// the imports keep the rest (lib/politicians/imports.server.ts). The two
-// marks; a salutation the rule got wrong; and a Lord's email, as most
-// Lords list none of their own. Each edit is logged, by the politician's ID,
-// so their page can tell it.
+// What staff edit on a politician's page, which the imports
+// (lib/politicians/imports.server.ts) then keep: the two marks; a
+// salutation the rule got wrong; and their email, with a note of why. Each
+// edit is logged, by the politician's ID, so their page can tell it.
 
 /** The markers staff set by hand, by their names in a form. */
 export const MARKS = { importantTarget: "important_target", personalConnection: "personal_connection" } as const;
@@ -45,20 +44,22 @@ export async function setMark(politicianId: number, mark: Mark, on: boolean, sta
 /** What staff can change on a politician's page. */
 export type PoliticianDetailsEdit = {
   salutation: string;
-  /** Only a Lord's, as the imports keep everyone else's. */
+  /** Kept through the imports unless their body listed it and stopped (nextEmail). */
   email?: string;
+  /** Why the email changed: needed for any change of it. */
+  note?: string;
 };
 
 /** Why an edit wasn't saved. */
-export type EditRefusal = "salutation" | "email" | "shared" | "gone";
+export type EditRefusal = "salutation" | "email" | "shared" | "note" | "gone";
 export type EditResult = { saved: true } | { saved: false; why: EditRefusal };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Saves a politician's details as staff edited them: their salutation,
- * which is then checked, and a Lord's email. Says whether it saved, or why
- * not.
+ * which is then checked, and their email, with a note of why it changed.
+ * Says whether it saved, or why not.
  */
 export async function editPoliticianDetails(
   politicianId: number,
@@ -70,26 +71,31 @@ export async function editPoliticianDetails(
   const email = edit.email?.trim().toLowerCase();
   if (email && !EMAIL.test(email)) return { saved: false, why: "email" };
   if (email && isSharedInbox(email)) return { saved: false, why: "shared" };
+  const note = edit.note?.trim() ?? "";
   const result = await transaction(async (db): Promise<EditResult> => {
-    const [was] = await query<{ name: string; salutation: string; email: string | null; house: string }>(
-      `SELECT n.name, n.salutation, n.email, p.house FROM notable_people n JOIN politicians p ON p.id = n.id
+    const [was] = await query<{ name: string; salutation: string; email: string | null }>(
+      `SELECT n.name, n.salutation, n.email FROM notable_people n JOIN politicians p ON p.id = n.id
        WHERE n.id = $1 AND NOT p.is_test FOR UPDATE OF n`,
       [politicianId],
       db,
     );
     if (!was) return { saved: false, why: "gone" };
-    const after = {
-      salutation,
-      email: was.house === "lords" && edit.email !== undefined ? email || null : was.email,
-    };
+    const after = { salutation, email: edit.email !== undefined ? email || null : was.email };
     const changed = changedFields({ salutation: was.salutation, email: was.email }, after);
     if (Object.keys(changed).length === 0) return { saved: true };
+    // The audit log refuses a staff member's change of email without a note too (audit_log_email_edit_note).
+    if (changed.email && !note) return { saved: false, why: "note" };
     await query(
       "UPDATE notable_people SET salutation = $2, salutation_to_check = false, email = $3, updated_at = now() WHERE id = $1",
       [politicianId, after.salutation, after.email],
       db,
     );
-    await logChange(staff, "edit politician", { id: politicianId, name: was.name, changed }, db);
+    await logChange(
+      staff,
+      "edit politician",
+      { id: politicianId, name: was.name, changed, ...(changed.email && { note }) },
+      db,
+    );
     return { saved: true };
   });
   // A new email says whose more threads are.
