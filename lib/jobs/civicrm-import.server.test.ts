@@ -134,7 +134,8 @@ describeWithDatabase("importCivicrm", () => {
   });
 
   it("sends our opt-outs first, so the pull has them, and the run says so", async () => {
-    serve([contact(1, "kit@example.com")]);
+    serve([contact(1, "kit@example.com", {}, { newsletter: "subscribed" })]);
+    await importCivicrm("nightly");
     await recordOptOut({
       address: "kit@example.com",
       list: "newsletter",
@@ -392,17 +393,16 @@ describeWithDatabase("an unsubscribe, then a box ticked again on the contact pre
     expect(await answer()).toBe("yes");
   });
 
-  it("leaves someone never on Global's list a yes, though CiviCRM refuses to put them on it", async () => {
+  it("leaves someone never on Global's list off it, and a yes, though CiviCRM refuses to put them on it", async () => {
     const got = civicrm("not_opted_in");
     await importCivicrm("nightly");
     await unsubscribeAndTickAgain();
-    expect(got.map((event) => event.change)).toEqual(["unsubscribe", "resubscribe"]);
+    // No unsubscribe from a list Kit was never on; the resubscribe goes, as the pull may be an hour old.
+    expect(got.map((event) => event.change)).toEqual(["resubscribe"]);
     expect(await query("SELECT status, reason FROM civicrm_updates ORDER BY id")).toEqual([
-      { status: "accepted", reason: null },
       { status: "refused", reason: "not_opted_in" },
     ]);
-    expect(await kept()).toEqual([expect.objectContaining({ newsletter: "unsubscribed" })]);
-    // CiviCRM's unsubscribe is the one Kit made by the link, older than the box they ticked.
+    expect(await kept()).toEqual([expect.objectContaining({ newsletter: "not_opted_in" })]);
     expect(await answer()).toBe("yes");
     await importCivicrm("nightly");
     expect(await answer()).toBe("yes");

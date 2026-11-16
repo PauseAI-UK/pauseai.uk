@@ -51,6 +51,20 @@ const updates = () =>
        answered_at IS NOT NULL AS answered FROM civicrm_updates ORDER BY id`,
   );
 
+/** Contacts with `emails`, on both of CiviCRM's lists in the last pull, numbered from 1000. */
+async function onLists(...emails: string[]) {
+  for (const [n, email] of emails.entries()) {
+    await query(
+      `INSERT INTO civicrm_contacts (contact_id, email, on_hold, no_bulk_email, do_not_email, do_not_phone, do_not_sms,
+         newsletter, volunteer_updates, on_hold_since, no_bulk_email_since, do_not_email_since, do_not_phone_since,
+         do_not_sms_since, newsletter_since, volunteer_updates_since)
+       VALUES ($1, $2, false, false, false, false, false, 'subscribed', 'subscribed',
+         now(), now(), now(), now(), now(), now(), now())`,
+      [1000 + n, email],
+    );
+  }
+}
+
 it("sends only the opt-outs CiviCRM takes: the newsletter or volunteering by email, or every bulk email", () => {
   expect(civicrmChange("newsletter", "email")).toEqual({ change: "unsubscribe", list: "newsletter" });
   expect(civicrmChange("volunteering", "email")).toEqual({ change: "unsubscribe", list: "volunteer_updates" });
@@ -111,8 +125,27 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
     expect(await updates()).toEqual([]);
   });
 
+  it("queues an unsubscribe only from a list the last pull has the address on, and every bulk email always", async () => {
+    await query(
+      `INSERT INTO civicrm_contacts (contact_id, email, on_hold, no_bulk_email, do_not_email, do_not_phone, do_not_sms,
+         newsletter, volunteer_updates, on_hold_since, no_bulk_email_since, do_not_email_since, do_not_phone_since,
+         do_not_sms_since, newsletter_since, volunteer_updates_since, gone_at)
+       VALUES (1, 'jane@example.com', false, false, false, false, false, 'not_opted_in', 'unsubscribed',
+         now(), now(), now(), now(), now(), now(), now(), NULL),
+         (2, 'jane@example.com', false, false, false, false, false, 'subscribed', 'not_on_list',
+         now(), now(), now(), now(), now(), now(), now(), now())`,
+    );
+    // Contact 2, the only one on the newsletter, is gone; nobody has sam@.
+    expect(await recordOptOut(optOut())).toBe(true);
+    expect(await recordOptOut(optOut({ list: "volunteering", sourceRef: "ref-2" }))).toBe(true);
+    expect(await recordOptOut(optOut({ address: "sam@example.com", sourceRef: "ref-3" }))).toBe(true);
+    expect(await recordOptOut(optOut({ list: "bulk", sourceRef: "ref-4" }))).toBe(true);
+    expect(await updates()).toEqual([expect.objectContaining({ change: "no_bulk_email", email: "jane@example.com" })]);
+  });
+
   it("sends what's waiting, oldest first, and keeps each result; one answered isn't sent again", async () => {
     const calls = serve();
+    await onLists("jane@example.com");
     await recordOptOut(optOut());
     await recordOptOut(optOut({ list: "volunteering", sourceRef: "ref-2" }));
     const [{ id }] = await query<{ id: number }>(
@@ -135,7 +168,6 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
         },
       ],
     ]);
-    expect(calls[0][0]).not.toHaveProperty("contact_id");
     expect(await updates()).toEqual(
       Array(3).fill(expect.objectContaining({ tries: 1, status: "accepted", answered: true })),
     );
@@ -236,6 +268,7 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
         ? { event_id: event.event_id, status: "invalid", error: "unknown list" }
         : undefined,
     );
+    await onLists("jane@example.com", "wrong@example.com");
     await recordOptOut(optOut());
     await recordOptOut(optOut({ address: "wrong@example.com", sourceRef: "ref-2" }));
     const { counts, problems } = await inRun(async (run) => ({
@@ -269,6 +302,7 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
         return HttpResponse.json({ values: events.map((event) => ({ event_id: event.event_id, status: "accepted" })) });
       }),
     );
+    await onLists(...Array.from({ length: 150 }, (_, n) => `p${n}@example.com`));
     for (let n = 0; n < 150; n++) await recordOptOut(optOut({ address: `p${n}@example.com`, sourceRef: `r${n}` }));
     const { counts, problems } = await inRun(async (run) => ({
       counts: await sendCivicrmUpdates("key"),

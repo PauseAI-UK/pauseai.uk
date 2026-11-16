@@ -246,9 +246,9 @@ describeWithDatabase("the contact preferences page", () => {
       { address: JANE, list: "newsletter", way: "email", source: "preferences", open: true },
       { address: "+447700900123", list: "newsletter", way: "text", source: "preferences", open: true },
     ]);
-    // The tick of volunteering by email puts Jane back on CiviCRM's list too.
+    // The tick of volunteering by email puts Jane back on CiviCRM's list too. The untick of the newsletter stays
+    // ours, as CiviCRM doesn't have her on its list.
     expect(await query("SELECT change, list, wording FROM civicrm_updates ORDER BY id")).toEqual([
-      { change: "unsubscribe", list: "newsletter", wording: null },
       {
         change: "resubscribe",
         list: "volunteer_updates",

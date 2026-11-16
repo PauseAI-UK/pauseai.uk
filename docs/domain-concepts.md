@@ -1275,7 +1275,9 @@ Each opt-out of ours that CiviCRM takes goes to its `updateSubscriptions`
 too (`lib/supporters/civicrm-updates.server.ts`), so Global's records and mail honour
 it: the newsletter by email as an unsubscribe from `newsletter`,
 volunteering by email from `volunteer_updates`, and every bulk email as
-`no_bulk_email`. One CiviCRM told us of doesn't go back, and events, or
+`no_bulk_email`. An unsubscribe goes only for an address the last pull has
+on that list: CiviCRM would mark one never on it unsubscribed, which
+nothing could undo. One CiviCRM told us of doesn't go back, and events, or
 any stop by text or call, go nowhere. We never set "Do not email", "Do
 not SMS" or "Do not phone": those are a person's word to Global, which we
 honour ("Whether we'd contact someone", below), and nothing of ours could

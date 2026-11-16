@@ -45,20 +45,28 @@ type Queued = { id: number; address: string; list: string; way: string; source: 
 /**
  * Queues an opt-out of ours for CiviCRM, if it's one it takes (civicrmChange)
  * and not one CiviCRM told us of, with the contact ID of the address's
- * contact in the last pull, if it has one. Returns whether it queued it.
+ * contact in the last pull, if it has one. An unsubscribe from a list goes
+ * only for an address the last pull has on it: CiviCRM would mark one never
+ * on the list unsubscribed from it, which nothing could undo. Returns
+ * whether it queued it.
  */
 export async function queueOptOut(optOut: Queued, db?: Queryable): Promise<boolean> {
   if (optOut.source === "civicrm" || optOut.source === "civicrm-check") return false;
   const change = civicrmChange(optOut.list, optOut.way);
   if (!change) return false;
-  await query(
+  const queued = await query(
     `INSERT INTO civicrm_updates (opt_out_id, change, list, email, contact_id, occurred_at, source)
-     VALUES ($1, $2, $3, $4,
-       (SELECT min(contact_id) FROM civicrm_contacts WHERE email = $4 AND gone_at IS NULL), $5, $6)`,
+     SELECT $1, $2, $3, $4,
+       (SELECT min(contact_id) FROM civicrm_contacts WHERE email = $4 AND gone_at IS NULL), $5, $6
+     WHERE $3::text IS NULL OR EXISTS (
+       SELECT 1 FROM civicrm_contacts c
+       WHERE c.email = $4 AND c.gone_at IS NULL
+         AND CASE WHEN $3 = 'newsletter' THEN c.newsletter ELSE c.volunteer_updates END = 'subscribed')
+     RETURNING id`,
     [optOut.id, change.change, change.list ?? null, optOut.address, optOut.at, sourceName(optOut.source)],
     db,
   );
-  return true;
+  return queued.length > 0;
 }
 
 /** Queues a lift of "No bulk emails", chosen on the contact preferences page beside `wording`. */
