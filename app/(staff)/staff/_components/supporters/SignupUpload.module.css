@@ -128,17 +128,21 @@
   font-size: var(--text-sm);
 }
 
-/* The choice of what an upload is of (SignupKindChoice): large buttons side by side, each its icon at the left. */
+/* The choice of what an upload is of (SignupKindChoice): side by side, each at most 22rem however wide
+   the window, stacked when two don't fit. */
 .kinds {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 22rem));
   gap: var(--space-3);
 }
 
+/* Its icon at the left, beside both its name and the words under that, which sit at the top. */
 .kindChoice {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  align-items: start;
+  gap: var(--space-1) var(--space-4);
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -151,7 +155,7 @@
 }
 
 .kindChoice svg {
-  flex: none;
+  grid-row: span 2;
   color: var(--text-secondary);
 }
 
@@ -163,7 +167,15 @@
 .kindChoice[aria-checked="true"] {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
+}
+
+.kindName {
   font-weight: 600;
+}
+
+.kindAbout {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 .kindChoice[aria-checked="true"] svg {

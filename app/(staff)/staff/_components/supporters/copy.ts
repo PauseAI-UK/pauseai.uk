@@ -23,9 +23,15 @@ export const supportersCopy = {
     intro: "Import people from a spreadsheet",
     // At the top, what the file is of, a button each, with an icon; with the same icon, each past import's kind.
     kind: {
-      label: "⁂ What are you importing?",
+      label: "Where they signed up",
       paper: "Paper sign-ups",
       whatsapp: "WhatsApp community",
+      // Under each button's name, what that kind of file is.
+      about: {
+        paper: "Forms from canvasing, which you've already photographed, OCRd into a spreadsheet, and checked.",
+        whatsapp:
+          "Exports of people in WhatsApp groups, just name and phone number, already converted to a spreadsheet.",
+      },
     },
     steps: { file: "Choose a file", check: "What will happen" },
     drop: {
@@ -56,11 +62,11 @@ export const supportersCopy = {
           "Other columns are ignored",
         ],
         whatsapp: [
-          "⁂ The group's members, exported by an admin",
-          "⁂ One row per person, with column names in the first row",
-          "⁂ A Phone column (required), with country codes",
-          "⁂ A Name column for their WhatsApp names (optional)",
-          "⁂ Other columns are ignored",
+          "The group's members, exported by an admin",
+          "One row per person, with column names in the first row",
+          "Phone column (required), with country codes",
+          "Name column (optional)",
+          "Other columns are ignored",
         ],
       },
       more: "All column names and values",
@@ -79,8 +85,8 @@ export const supportersCopy = {
       } as Record<string, { label: string; values: string }>,
       // A WhatsApp group's columns, where they differ.
       whatsappFields: {
-        name: { label: "Name", values: "⁂ Their WhatsApp profile name. Can be blank." },
-        phone: { label: "Phone", values: "⁂ Any format, with the country code for a number outside the UK" },
+        name: { label: "Name", values: "Their WhatsApp profile name. Can be blank." },
+        phone: { label: "Phone", values: "Any format, with the country code for a number outside the UK" },
       } as Record<string, { label: string; values: string }>,
       event: { label: "Event sign-up", names: "Any name. You choose it after uploading.", values: "yes" },
       yes: (words: string) => `Yes: ${words}.`,
@@ -106,11 +112,11 @@ export const supportersCopy = {
       note: "Where collected",
       noteHint: "Camden Town flyering",
       // A WhatsApp group's: its name, and the town of a local group.
-      groupTitle: "⁂ About this group",
-      group: "⁂ Group name",
-      groupHint: "⁂ PauseAI UK Oxford",
-      town: "⁂ Town, for a local group",
-      townHint: "⁂ Oxford",
+      groupTitle: "About this group",
+      group: "Group name",
+      groupHint: "PauseAI UK Oxford",
+      town: "Town (optional), for a local group; blank for the whole community",
+      townHint: "Oxford",
     },
     preview: {
       title: "Preview import",
@@ -120,7 +126,7 @@ export const supportersCopy = {
       blockers: {
         file: "Choose a file",
         note: "Add where collected",
-        group: "⁂ Add the group's name",
+        group: "Add the group's name",
         event: "Choose the event, or set the column to None",
       },
       loading: "Working out what will happen…",
@@ -147,9 +153,9 @@ export const supportersCopy = {
         known: { email: "Existing (same email)", mobile: "Existing (same mobile)" },
         register: "Register on Luma",
         going: "Already on Luma",
-        mailing: "Mailing list",
-        phone: "Calls and texts",
-        texts: "⁂ Newsletter texts",
+        mailing: "Newsletter emails",
+        phone: "Newsletter texts",
+        texts: "Newsletter texts",
         notice: "Emailed: “No bulk emails”",
         noEmail: "“Do not email”",
       },
@@ -161,9 +167,9 @@ export const supportersCopy = {
         "bad-phone": "Invalid phone number",
         "same-email": "Email used on another row",
         blocked: "Email blocked after a bounce or complaint",
-        "no-phone": "⁂ No phone number",
-        "same-phone": "⁂ Number on another row",
-        erased: "⁂ Asked to be forgotten",
+        "no-phone": "No phone number",
+        "same-phone": "Phone number used on another row",
+        erased: "Asked to be forgotten",
       } as Record<string, string>,
       unread: (value: string, column: string) => `Unclear answer in ${column}: "${value}"`,
       importNow: (people: number, luma: number) => `Import ${people} people and register ${luma} on Luma`,
@@ -180,8 +186,8 @@ export const supportersCopy = {
       // Before the event's name, which links to it on Luma.
       event: "Event signed-up to:",
       note: (note: string) => `Where collected: ${note}`,
-      group: (name: string) => `⁂ WhatsApp group: ${name}`,
-      town: (town: string) => `⁂ Town: ${town}`,
+      group: (name: string) => `WhatsApp group: ${name}`,
+      town: (town: string) => `Town: ${town}`,
       columns: {
         person: "Name",
         phone: "Phone",

@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { longDay } from "@/lib/calendar-days";
-import { MAX_SIGNUP_FILE_BYTES, type SignupPlan, type SignupUploadInput } from "@/lib/supporters/signup-csv";
+import {
+  MAX_SIGNUP_FILE_BYTES,
+  type SignupKind,
+  type SignupPlan,
+  type SignupUploadInput,
+} from "@/lib/supporters/signup-csv";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import {
   exampleSignupPlan,
@@ -45,11 +50,14 @@ async function choose(file: File) {
 
 const csvFile = (text: string, name = "f.csv") => new File([text], name, { type: "text/csv" });
 
-/** The form, with actions that answer with the example plan, and what they were asked. */
-function showForm() {
+const kindButton = (kind: SignupKind) => page.getByRole("radio", { name: copy.kind[kind] });
+
+/** The form with paper sign-ups picked, its actions answering with the example plan, and what they were asked. */
+async function showForm() {
   const preview = vi.fn(async (input: SignupUploadInput) => ({ ...exampleSignupPlan, input }));
   const finish = vi.fn(async () => ({ uploadId: 9 }));
-  const view = render(<SignupUploadForm events={EVENTS} today="2026-10-31" actions={{ preview, finish }} />);
+  const view = await render(<SignupUploadForm events={EVENTS} today="2026-10-31" actions={{ preview, finish }} />);
+  await kindButton("paper").click();
   return { view, preview, finish };
 }
 
@@ -62,8 +70,22 @@ async function event() {
 const importButton = () => page.getByRole("button", { name: /^Import \d+ people/ });
 
 describe("SignupUploadForm", () => {
+  it("asks what's being imported first, with nothing picked and no other step", async () => {
+    await render(
+      <SignupUploadForm events={EVENTS} today="2026-10-31" actions={{ preview: vi.fn(), finish: vi.fn() }} />,
+    );
+    await expect.element(kindButton("paper")).toHaveAttribute("aria-checked", "false");
+    await expect.element(kindButton("whatsapp")).toHaveAttribute("aria-checked", "false");
+    expect(
+      page
+        .getByRole("heading", { level: 2 })
+        .all()
+        .map((heading) => heading.element().textContent),
+    ).toEqual([`1${copy.kind.label}`]);
+  });
+
   it("shows its five steps in order before a file, the event greyed out, and what stops the import", async () => {
-    await showForm().view;
+    await showForm();
     const titles = page
       .getByRole("heading", { level: 2 })
       .all()
@@ -86,7 +108,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("opens every column name in a section of its own, and closes it", async () => {
-    await showForm().view;
+    await showForm();
     await page.getByRole("button", { name: copy.help.more }).click();
     await expect.element(page.getByRole("heading", { name: copy.help.more })).toBeVisible();
     await expect.element(page.getByText(copy.help.fields.postcode.values)).toBeVisible();
@@ -95,7 +117,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("previews a file without a note, but imports only with one", async () => {
-    const { view, preview, finish } = showForm();
+    const { view, preview, finish } = await showForm();
     await view;
     await choose(csvFile(CSV));
     await expect.element(page.getByRole("heading", { name: /f\.csv/ })).toBeVisible();
@@ -122,7 +144,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("takes the column first, then the event, and lets the event go again", async () => {
-    const { view, preview } = showForm();
+    const { view, preview } = await showForm();
     await view;
     await choose(csvFile("Name,Email,March,Stall\nJo,jo@example.com,Y,Y\n"));
     await note();
@@ -145,14 +167,14 @@ describe("SignupUploadForm", () => {
   });
 
   it("says when a file has no column to link an event to", async () => {
-    await showForm().view;
+    await showForm();
     await choose(csvFile("Name,Email\nJo,jo@example.com\n"));
     await expect.element(page.getByText(copy.form.noEventColumn)).toBeVisible();
     await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toBeDisabled();
   });
 
   it("says why it can't read a file", async () => {
-    await showForm().view;
+    await showForm();
     await choose(csvFile(""));
     await expect.element(page.getByText(copy.refused.empty)).toBeVisible();
     await choose(csvFile("Comment\nHello\n"));
@@ -165,7 +187,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("refuses a spreadsheet's own file and one too big, and the next good file clears it", async () => {
-    await showForm().view;
+    await showForm();
     await choose(new File(["PK"], "list.XLSX"));
     await expect.element(page.getByText(copy.drop.notCsv("list.XLSX"))).toBeVisible();
     await choose(csvFile("x".repeat(MAX_SIGNUP_FILE_BYTES + 1)));
@@ -176,7 +198,7 @@ describe("SignupUploadForm", () => {
   });
 
   it("takes a file dropped on the box, lit while one's over it, and ignores a drop of nothing", async () => {
-    await showForm().view;
+    await showForm();
     const box = fileInput().closest("label")!;
     const plain = box.className;
     const transfer = new DataTransfer();
@@ -192,14 +214,14 @@ describe("SignupUploadForm", () => {
   });
 
   it("does nothing when choosing a file is cancelled", async () => {
-    await showForm().view;
+    await showForm();
     fileInput().dispatchEvent(new Event("change", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 50));
     await expect.element(page.getByText(words.needsFile)).toBeVisible();
   });
 
   it("sets the date from the calendar", async () => {
-    const { view, preview } = showForm();
+    const { view, preview } = await showForm();
     await view;
     await choose(csvFile(CSV));
     await page.getByRole("button", { name: copy.form.signedOn }).click();
@@ -504,11 +526,9 @@ describe("the upload's examples in the gallery", () => {
 
 describe("a WhatsApp group's upload", () => {
   const said = copy.preview.happens;
-  const kindButton = (kind: "paper" | "whatsapp") => page.getByRole("radio", { name: copy.kind[kind] });
 
   it("asks for the group's name and town in place of the date and note, with no event, and sends them", async () => {
-    const { view, preview } = showForm();
-    await view;
+    const { preview } = await showForm();
     await kindButton("whatsapp").click();
     await expect.element(kindButton("whatsapp")).toHaveAttribute("aria-checked", "true");
     const titles = () =>
@@ -544,8 +564,7 @@ describe("a WhatsApp group's upload", () => {
   });
 
   it("reads the file again as paper when paper's chosen, clearing a column chosen before", async () => {
-    const { view } = showForm();
-    await view;
+    await showForm();
     await choose(csvFile(CSV));
     await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOptions("March");
     await kindButton("whatsapp").click();

@@ -5,12 +5,16 @@ import { supportersCopy } from "./copy";
 
 const copy = supportersCopy.signupUpload.kind;
 
-/** What an upload is of, paper sign-ups or a WhatsApp group: a large button each, its icon at the left. */
+/**
+ * What an upload is of, paper sign-ups or a WhatsApp group: a large button
+ * each: its icon at the left, and beside it its name and, under that, what the file is.
+ * `value` is null until one is picked.
+ */
 export default function SignupKindChoice({
   value,
   onChange,
 }: {
-  value: SignupKind;
+  value: SignupKind | null;
   onChange: (kind: SignupKind) => void;
 }) {
   return (
@@ -24,8 +28,9 @@ export default function SignupKindChoice({
           className={styles.kindChoice}
           onClick={() => onChange(kind)}
         >
-          <SignupKindIcon kind={kind} size={32} />
-          {copy[kind]}
+          <SignupKindIcon kind={kind} size={40} />
+          <span className={styles.kindName}>{copy[kind]}</span>
+          <span className={styles.kindAbout}>{copy.about[kind]}</span>
         </button>
       ))}
     </div>

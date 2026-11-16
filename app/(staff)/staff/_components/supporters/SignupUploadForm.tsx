@@ -59,21 +59,43 @@ type Chosen = { name: string; text: string };
  * The file is read in the browser, and sent to the server only to preview
  * and import it.
  */
-export default function SignupUploadForm({
-  events,
-  today,
-  actions,
-}: {
+export default function SignupUploadForm(props: {
   events: SignupEventChoice[];
   today: string;
   actions: SignupUploadActions;
 }) {
-  const [kind, setKind] = useState<SignupKind>("paper");
+  const [kind, setKind] = useState<SignupKind | null>(null);
+  // Even, so the file's card and what it needs are as tall as each other; every other card has a row to itself.
+  return (
+    <Grid even>
+      <Card span={6} title={<Numbered n={1}>{copy.kind.label}</Numbered>} id="upload-kind">
+        <SignupKindChoice value={kind} onChange={setKind} />
+      </Card>
+      {kind && <SignupSteps kind={kind} {...props} />}
+    </Grid>
+  );
+}
+
+/** The steps after the kind, as that kind has them. Choosing the other kind keeps what's in them but the event column. */
+function SignupSteps({
+  kind,
+  events,
+  today,
+  actions,
+}: {
+  kind: SignupKind;
+  events: SignupEventChoice[];
+  today: string;
+  actions: SignupUploadActions;
+}) {
   const [chosen, setChosen] = useState<Chosen | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [eventId, setEventId] = useState("");
-  const [column, setColumn] = useState("");
+  // The event column, kept with the kind it was chosen under, so choosing the other kind clears it.
+  const [picked, setPicked] = useState({ kind, column: "" });
+  const column = picked.kind === kind ? picked.column : "";
+  const setColumn = (heading: string) => setPicked({ kind, column: heading });
   const [signedOn, setSignedOn] = useState(today);
   const [note, setNote] = useState("");
   const [town, setTown] = useState("");
@@ -110,7 +132,7 @@ export default function SignupUploadForm({
   // A WhatsApp group signs nobody up for an event, so has no column for one.
   const choices = read && !whatsapp ? signupEventColumns(read) : [];
   const chosenEvent = events.find((event) => event.id === eventId);
-  // A column chosen, and then an event, are the upload's event sign-up; either alone is none. Choosing a kind clears the column.
+  // A column chosen, and then an event, are the upload's event sign-up; either alone is none.
   const eventColumn = column && eventId ? column : "";
   // What stops the import, though not the preview: each a line under the button.
   const blockers = [
@@ -134,18 +156,8 @@ export default function SignupUploadForm({
       } satisfies SignupUploadInput);
   const input = useMemo(() => (sent === null ? null : (JSON.parse(sent) as SignupUploadInput)), [sent]);
 
-  // Even, so the file's card and what it needs are as tall as each other; every other card has a row to itself.
   return (
-    <Grid even>
-      <Card span={6} title={<Numbered n={1}>{copy.kind.label}</Numbered>} id="upload-kind">
-        <SignupKindChoice
-          value={kind}
-          onChange={(chosenKind) => {
-            setKind(chosenKind);
-            setColumn("");
-          }}
-        />
-      </Card>
+    <>
       {whatsapp ? (
         <Card span={6} title={<Numbered n={2}>{copy.form.groupTitle}</Numbered>} id="upload-forms">
           <div className={styles.fields}>
@@ -311,6 +323,6 @@ export default function SignupUploadForm({
       )}
 
       <SignupUploadPreview step={whatsapp ? 4 : 5} input={input} blockers={blockers} {...actions} />
-    </Grid>
+    </>
   );
 }

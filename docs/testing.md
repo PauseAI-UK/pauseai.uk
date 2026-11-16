@@ -1028,7 +1028,8 @@ that drives it or why nothing does.
   - what changes before importing;
   - Past imports, and an import's page;
   - someone with "No bulk emails" marked in the preview, with the email they'll get, and someone with "Do not email".
-  - a local WhatsApp group's members, by profile name and number, and a member's page.
+  - a local WhatsApp group's members, by profile name and number, and a member's page;
+  - a hundred WhatsApp members at once, with no town.
 - `errors.spec.ts`: What goes wrong outside an import:
   - a staff page that throws: Next's error page in its place and Reload, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
   - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`): the email that quotes none of it, and a click that throws, kept without an email;

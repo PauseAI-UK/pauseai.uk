@@ -21,10 +21,19 @@ const copy = supportersCopy.signupUpload;
 const EVENT = /PauseAI London: Protest at Parliament/;
 const FILES = join(__dirname, "..", "fixtures", "signup-uploads");
 
-/** Opens the page, as a staff member with the supporters permission. */
-async function openUpload(page: Page, database: string) {
-  await logIn(page, database, ["supporters"]);
+type Kind = keyof typeof SIGNUP_KIND_NAMES;
+const SIGNUP_KIND_NAMES = { paper: copy.kind.paper, whatsapp: copy.kind.whatsapp };
+
+/** Goes to the page and picks what's being imported, paper sign-ups unless it's a WhatsApp group. */
+async function openImport(page: Page, kind: Kind = "paper") {
   await page.goto(`${BASE}/staff/supporters/import`);
+  await page.getByRole("radio", { name: SIGNUP_KIND_NAMES[kind] }).click();
+}
+
+/** Opens the page, as a staff member with the supporters permission, and picks what's being imported. */
+async function openUpload(page: Page, database: string, kind: Kind = "paper") {
+  await logIn(page, database, ["supporters"]);
+  await openImport(page, kind);
 }
 
 /** Chooses one of the fixture files, and gives the note any upload needs. */
@@ -59,9 +68,7 @@ async function atFoot(page: Page) {
 
 test("A flyering file, linked to an event", async ({ page, flowDatabase, request }) => {
   await importLuma(request, BASE);
-  story(
-    "Staff open Import sign-ups, under Supporters in the navigation. Before any file, the page says what it needs.",
-  );
+  story("Staff open Import sign-ups, under Supporters in the navigation. First it asks where the people signed up.");
   await logIn(page, flowDatabase, ["supporters"]);
   await page.goto(`${BASE}/staff/supporters`);
   // On a phone the navigation is behind the bar's menu.
@@ -69,6 +76,10 @@ test("A flyering file, linked to an event", async ({ page, flowDatabase, request
   if (!(await navLink.first().isVisible())) await page.locator("nav details > summary").click();
   await navLink.filter({ visible: true }).click();
   await expect(page.getByRole("heading", { name: copy.title, level: 1 })).toBeVisible();
+  await frame(page, "Where they signed up");
+
+  story("They choose paper sign-ups. Before any file, the page says what it needs.");
+  await page.getByRole("radio", { name: copy.kind.paper }).click();
   await frame(page, "Before a file: its five steps");
 
   story("Every column name it understands, and the values each can hold, open in a section of their own.");
@@ -186,7 +197,7 @@ test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) 
   await frame(page, "One imported, seven held back");
 
   story("Fixed, the whole file goes in again. The person already in isn't added twice.");
-  await page.goto(`${BASE}/staff/supporters/import`);
+  await openImport(page);
   await chooseFile(page, "fixed.csv");
   await expect(page.getByRole("button", { name: copy.preview.importOnly(5) })).toBeVisible();
   await expect(page.getByText(copy.preview.happens.alreadyImported)).toBeVisible();
@@ -195,7 +206,7 @@ test("Rows held back, fixed and uploaded again", async ({ page, flowDatabase }) 
   story("Uploaded a third time, there's nothing left to do.");
   await page.getByRole("button", { name: copy.preview.importOnly(5) }).click();
   await expect(page.getByRole("heading", { name: copy.result.title("fixed.csv") })).toBeVisible();
-  await page.goto(`${BASE}/staff/supporters/import`);
+  await openImport(page);
   await chooseFile(page, "fixed.csv");
   await expect(page.getByText(copy.preview.nothing)).toBeVisible();
   await frame(page, "Nothing to import");
@@ -239,7 +250,7 @@ test("What Luma says", async ({ page, flowDatabase, request }) => {
   await frame(page, "Luma skips one");
 
   story("When Luma fails, the person is kept, and the page says to upload again to retry.");
-  await page.goto(`${BASE}/staff/supporters/import`);
+  await openImport(page);
   await chooseFile(page, "luma-fails.csv");
   await chooseEvent(page, "Going");
   await page.getByRole("button", { name: copy.preview.importNow(1, 1) }).click();
@@ -247,7 +258,7 @@ test("What Luma says", async ({ page, flowDatabase, request }) => {
   await frame(page, "Luma fails");
 
   story("Uploading again tries Luma again, without adding them twice.");
-  await page.goto(`${BASE}/staff/supporters/import`);
+  await openImport(page);
   await chooseFile(page, "luma-fails.csv");
   await chooseEvent(page, "Going");
   await expect(page.getByRole("button", { name: copy.preview.importNow(0, 1) })).toBeVisible();
@@ -307,8 +318,7 @@ test("A local WhatsApp group", async ({ page, flowDatabase }) => {
   story(
     "An admin of our WhatsApp community exports the Oxford group's members: profile names and numbers. Staff choose WhatsApp community at the top of Import sign-ups.",
   );
-  await openUpload(page, flowDatabase);
-  await page.getByRole("radio", { name: copy.kind.whatsapp }).click();
+  await openUpload(page, flowDatabase, "whatsapp");
   await frame(page, "Importing a WhatsApp group: its name and town");
 
   story("They give the group's name and its town, and drop in the file: names and phone numbers.");
@@ -341,4 +351,29 @@ test("A local WhatsApp group", async ({ page, flowDatabase }) => {
     .click();
   await expect(page.getByRole("link", { name: "PauseAI UK Oxford" })).toBeVisible();
   await frame(page, "A WhatsApp member's page");
+});
+
+test("A big WhatsApp group", async ({ page, flowDatabase }) => {
+  story(
+    "The whole community's export, a hundred members, with no town: profile names with emoji and WhatsApp's hidden marks, numbers written every way, some from abroad, a member already known, one who asked to be forgotten, and numbers that can't be used. Those held back are at the top.",
+  );
+  await openUpload(page, flowDatabase, "whatsapp");
+  await page.getByRole("textbox", { name: copy.form.group }).fill("PauseAI UK community");
+  await page.getByLabel(copy.drop.label).setInputFiles({
+    name: "squeak-chat.csv",
+    mimeType: "text/csv",
+    buffer: readFileSync(join(FILES, "squeak-chat.csv")),
+  });
+  const importNow = page.getByRole("button", { name: /^Import \d+ people$/ });
+  await expect(importNow).toBeEnabled();
+  await previewWorkedOut(page);
+  await page
+    .getByRole("heading", { name: copy.steps.check })
+    .evaluate((heading) => heading.scrollIntoView({ block: "center", behavior: "instant" }));
+  await frame(page, "What will happen to the group, those held back first");
+
+  story("Importing them all.");
+  await importNow.click();
+  await expect(page.getByRole("heading", { name: copy.result.title("squeak-chat.csv") })).toBeVisible();
+  await frame(page, "The group imported");
 });
