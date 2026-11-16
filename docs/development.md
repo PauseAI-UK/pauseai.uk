@@ -668,7 +668,7 @@ Set up outside the code:
   - two message streams: `outbound`, the transactional stream, which every email but a broadcast's copies goes on; and `broadcast`, a broadcast stream, for the copies of broadcasts to supporters (both `STREAMS` in `lib/server/outside-services/postmark.server.ts`), set to "Manage unsubscribes on your own" (its Settings tab), as each copy carries its own link and `List-Unsubscribe` headers ([managing your own unsubscribe process](https://postmarkapp.com/support/article/1300-managing-your-own-unsubscribe-process)). Postmark's support has to enable that option for the account first.
   - webhooks that carry basic auth in the URL, e.g. `https://postmark:<password>@pauseai.uk/api/postmark/bounce`. On each stream, Bounce and Spam complaint go to `/api/postmark/bounce`, and on the broadcast stream Delivery does too. Inbound goes to `/api/postmark/inbound`.
 - **hello@pauseai.uk:** a staff account with its Gmail connected on `/staff/me`, so the read of Gmail every 5 minutes keeps the replies to the broadcasts it sends.
-- **Before the first broadcast:** Google Postmaster Tools for pauseai.uk, and DMARC reports (`rua=`), to see the spam rate, which Google wants below 0.1% (https://support.google.com/a/answer/81126).
+- **Spam rate:** Google Postmaster Tools for pauseai.uk, and DMARC reports (`rua=`), to see the spam rate, which Google wants below 0.1% (https://support.google.com/a/answer/81126).
 - **Luma's webhook:** in Luma, open the PauseAI UK calendar, then Settings → Developer → Webhooks.
   1. Add a webhook for `https://pauseai.uk/api/luma/webhook`, with the event types Calendar Person Unsubscribed and Calendar Person Subscribed.
   2. Put its secret (`whsec_…`) into Netlify as `LUMA_WEBHOOK_SECRET`.
