@@ -1,6 +1,6 @@
 import Tag from "@/components/ui/Tag";
 import type React from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { TextInput } from "@/components/ui/Controls";
@@ -30,7 +30,7 @@ import Shortened, { cutAtWord } from "./Shortened";
 import When from "./When";
 
 import { renderToString } from "react-dom/server";
-import { NAV_FOLD_KEY } from "@/lib/staff-nav";
+import { navFoldCookie } from "@/lib/staff-nav";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { shellCopy } from "../shell/copy";
 
@@ -1024,43 +1024,27 @@ describe("When", () => {
 });
 
 describe("NavFold", () => {
-  afterEach(() => {
-    delete document.documentElement.dataset.staffNav;
-    localStorage.removeItem(NAV_FOLD_KEY);
-  });
-
-  it("folds the sidebar and unfolds it, on <html> and remembered in this browser", async () => {
+  it("folds the sidebar and unfolds it, on the staff pages' box and remembered in its cookie", async () => {
+    // The cookie is for /staff, which the test's page isn't, so what's set is watched rather than read back.
+    const set = vi.spyOn(document, "cookie", "set");
     await render(<NavFold />);
     const fold = page.getByRole("button", { name: shellCopy.nav.fold });
     await expect.element(fold).toHaveAttribute("aria-expanded", "true");
     await fold.click();
-    expect(document.documentElement.dataset.staffNav).toBe("folded");
-    expect(localStorage.getItem(NAV_FOLD_KEY)).toBe("folded");
+    expect(document.body.dataset.staffNav).toBe("folded");
+    expect(set).toHaveBeenLastCalledWith(navFoldCookie(true));
     const unfold = page.getByRole("button", { name: shellCopy.nav.unfold });
     await expect.element(unfold).toHaveAttribute("aria-expanded", "false");
     await unfold.click();
-    expect(document.documentElement.dataset.staffNav).toBeUndefined();
-    expect(localStorage.getItem(NAV_FOLD_KEY)).toBeNull();
+    expect(document.body.dataset.staffNav).toBe("open");
+    expect(set).toHaveBeenLastCalledWith(navFoldCookie(false));
+    set.mockRestore();
   });
 
-  it("starts folded when the page already is, and still folds a browser that won't store it", async () => {
-    document.documentElement.dataset.staffNav = "folded";
+  it("starts folded when the page was drawn folded", async () => {
+    document.body.dataset.staffNav = "folded";
     await render(<NavFold />);
     await expect.element(page.getByRole("button", { name: shellCopy.nav.unfold })).toBeVisible();
-    const setItem = Storage.prototype.setItem;
-    const removeItem = Storage.prototype.removeItem;
-    Storage.prototype.setItem = Storage.prototype.removeItem = () => {
-      throw new Error("no storage");
-    };
-    try {
-      await page.getByRole("button", { name: shellCopy.nav.unfold }).click();
-      expect(document.documentElement.dataset.staffNav).toBeUndefined();
-      await page.getByRole("button", { name: shellCopy.nav.fold }).click();
-      expect(document.documentElement.dataset.staffNav).toBe("folded");
-    } finally {
-      Storage.prototype.setItem = setItem;
-      Storage.prototype.removeItem = removeItem;
-    }
   });
 });
 

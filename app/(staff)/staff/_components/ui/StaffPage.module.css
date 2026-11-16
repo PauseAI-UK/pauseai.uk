@@ -120,11 +120,11 @@
   }
 
   /* Folded (NavFold): a strip as wide as the pause symbol, with room for the fold button beside it. */
-  :global(:root[data-staff-nav="folded"]) .withNav {
+  :global(:root:has([data-staff-nav="folded"])) .withNav {
     grid-template-columns: 4rem minmax(0, 1fr);
   }
 
-  :global(:root[data-staff-nav="folded"]) .side {
+  :global(:root:has([data-staff-nav="folded"])) .side {
     --side-inline: var(--space-2);
   }
 }

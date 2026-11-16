@@ -237,18 +237,18 @@ button.page:hover {
    showing a short rule instead of its words. Each page's name is still read out, and shows beside its icon on
    hover or focus. */
 @media (min-width: 721px) {
-  :global(:root[data-staff-nav="folded"]) .name {
+  :global(:root:has([data-staff-nav="folded"])) .name {
     display: none;
   }
 
-  :global(:root[data-staff-nav="folded"]) .group h2 {
+  :global(:root:has([data-staff-nav="folded"])) .group h2 {
     visibility: hidden;
     position: relative;
     overflow: hidden;
     white-space: nowrap;
   }
 
-  :global(:root[data-staff-nav="folded"]) .group h2::after {
+  :global(:root:has([data-staff-nav="folded"])) .group h2::after {
     content: "";
     position: absolute;
     inset: 50% 20% auto;
@@ -257,32 +257,32 @@ button.page:hover {
   }
 
   /* The pause symbol in the middle of the rail, as the icons are. */
-  :global(:root[data-staff-nav="folded"]) .nav {
+  :global(:root:has([data-staff-nav="folded"])) .nav {
     align-items: center;
   }
 
-  :global(:root[data-staff-nav="folded"]) .sidebar,
-  :global(:root[data-staff-nav="folded"]) .foot {
+  :global(:root:has([data-staff-nav="folded"])) .sidebar,
+  :global(:root:has([data-staff-nav="folded"])) .foot {
     justify-items: center;
   }
 
-  :global(:root[data-staff-nav="folded"]) .sidebar .group {
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .group {
     width: 100%;
   }
 
   /* The current page's tint reaches past the icon without taking room. */
-  :global(:root[data-staff-nav="folded"]) .sidebar .page {
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .page {
     margin-inline: auto;
     border-radius: var(--radius-sm);
   }
 
-  :global(:root[data-staff-nav="folded"]) .sidebar .page[aria-current="page"],
-  :global(:root[data-staff-nav="folded"]) .sidebar .page[data-pending] {
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .page[aria-current="page"],
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .page[data-pending] {
     background: rgb(var(--text-rgb) / 0.08);
     box-shadow: 0 0 0 var(--space-1) rgb(var(--text-rgb) / 0.08);
   }
 
-  :global(:root[data-staff-nav="folded"])
+  :global(:root:has([data-staff-nav="folded"]))
     .nav:has(a[data-pending])
     .sidebar
     .page[aria-current="page"]:not([data-pending]) {
@@ -290,7 +290,7 @@ button.page:hover {
     box-shadow: none;
   }
 
-  :global(:root[data-staff-nav="folded"]) .sidebar .label {
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -299,8 +299,8 @@ button.page:hover {
     white-space: nowrap;
   }
 
-  :global(:root[data-staff-nav="folded"]) .sidebar .page:hover .label,
-  :global(:root[data-staff-nav="folded"]) .sidebar .page:focus-visible .label {
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .page:hover .label,
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .page:focus-visible .label {
     left: calc(100% + var(--space-2));
     z-index: 3;
     width: auto;
@@ -341,11 +341,11 @@ button.page:hover {
 
 @media (min-width: 861px) {
   /* The icon's page is what the dot sits on the corner of. */
-  :global(:root[data-staff-nav="folded"]) .sidebar .page:has(.newDot) {
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .page:has(.newDot) {
     position: relative;
   }
 
-  :global(:root[data-staff-nav="folded"]) .sidebar .newDot {
+  :global(:root:has([data-staff-nav="folded"])) .sidebar .newDot {
     display: block;
     position: absolute;
     top: var(--space-1);

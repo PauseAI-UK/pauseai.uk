@@ -7,6 +7,7 @@ import { ErrorText } from "@/components/ui/Text";
 import { answerSubject } from "@/lib/email-parsing/subjects";
 import { hasWords } from "@/lib/letters/format";
 import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
+import { uuid } from "@/lib/uuid";
 import type { AnswerResult } from "@/lib/broadcasts/answers.server";
 import Alert from "../ui/Alert";
 import MailingEditor from "../mailings/MailingEditor";
@@ -21,7 +22,7 @@ const copy = broadcastsCopy.broadcastPages.replies;
 export type AnswerAction = (replyId: number, draftId: string, body: JSONContent) => Promise<AnswerResult>;
 
 /** A draft not yet written: its own ID, which sends it once however often Send is pressed, and no words. */
-const newDraft = () => ({ id: crypto.randomUUID(), doc: EMPTY_MAILING_DOC as JSONContent });
+const newDraft = () => ({ id: uuid(), doc: EMPTY_MAILING_DOC as JSONContent });
 
 /** Whether Cmd+Enter, or Ctrl+Enter off a Mac, was pressed, as Gmail sends with. */
 const isSendKey = (event: KeyboardEvent) => event.key === "Enter" && (event.metaKey || event.ctrlKey);

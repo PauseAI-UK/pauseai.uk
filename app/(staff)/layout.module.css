@@ -1,0 +1,5 @@
+/* The box around the staff pages that says whether the sidebar is folded:
+   no box of its own, so the pages lay out as if it weren't there. */
+.staff {
+  display: contents;
+}

@@ -237,7 +237,7 @@ export const broadcastsCopy = {
       // Each with who, on a line under it.
       historyOptedOut: "Recorded as an opt-out",
       historyNothing: "Marked as nothing to do",
-      historyAnswered: "⁂ We replied",
+      historyAnswered: "We replied",
       // What WhatsApp said became of our reply to a text, in the copy's history.
       historyOurs: {
         delivered: "Our reply delivered",
