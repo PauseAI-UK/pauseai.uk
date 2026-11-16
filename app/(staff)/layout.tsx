@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import NoAnalytics from "@/components/layout/NoAnalytics";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { NAV_FOLD_KEY } from "@/lib/staff-nav";
+import { NAV_FOLD_KEY, navFoldOf } from "@/lib/staff-nav";
 import styles from "./layout.module.css";
 
 // The staff interface (/staff): no site header or footer, no analytics,
@@ -17,11 +17,10 @@ export const metadata: Metadata = {
 };
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
-  const folded = (await cookies()).get(NAV_FOLD_KEY)?.value === "folded";
   return (
     <>
       <NoAnalytics />
-      <div className={styles.staff} data-staff-nav={folded ? "folded" : "open"}>
+      <div className={styles.staff} data-staff-nav={navFoldOf((await cookies()).get(NAV_FOLD_KEY))}>
         {children}
       </div>
     </>

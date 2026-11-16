@@ -80,59 +80,78 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
   );
 }
 
+/** Entries newest first, as a history lists them. */
+const newestFirst = (entries: HistoryEntry[]) => entries.sort((a, b) => b.at.getTime() - a.at.getTime());
+
+/** Entries to go under another, if there are any. */
+const under = (entries: HistoryEntry[]) => (entries.length ? { under: newestFirst(entries) } : {});
+
+/** What its provider said became of a sent copy, which goes under Sent. */
+const RECEIPTS = new Set(["delivered", "read", "failed", "bounced"]);
+
 /**
- * A copy's history, as a letter's shows it: each thing its provider
- * reported, each reply dealt with, and each answer, newest first, in words,
- * who did it on a line under it (By). An answer is its own line, so a reply's being answered isn't
- * another.
+ * A copy's history, as a letter's shows it, newest first, in words, who did
+ * it on a line under it (By): what its provider reported, Sent tagged with
+ * what sent it and what it then said of it under it (delivered, read,
+ * failed, bounced), or on lines of their own with no Sent recorded; each
+ * reply dealt with; and each of our replies, with what WhatsApp said became
+ * of it under it. Our reply is its own line, so a reply's being answered
+ * isn't another.
  */
 function historyOf(one: MessageCopy): HistoryEntry[] {
+  const entry = (event: MessageCopy["events"][number]): HistoryEntry => ({
+    at: event.at,
+    status: event.kind,
+    details: event.details,
+    label: copy.events[event.kind as keyof typeof copy.events],
+  });
+  const sent = one.events.find((event) => event.kind === "sent");
+  const own = one.events.filter((event) => event.kind !== "sent" && !(sent && RECEIPTS.has(event.kind)));
+  const tag =
+    one.channel === "text"
+      ? mailingsCopy.mailingPages.sendFacts.whatsApp
+      : mailingsCopy.mailingPages.sendBy.names[one.sendBy];
   // A STOP the site recorded is already there, as WhatsApp's opt-out.
-  const dealt = one.replies.flatMap((reply) =>
+  const dealt = one.replies.flatMap((reply): HistoryEntry[] =>
     reply.dealtAt && reply.outcome !== "answered" && reply.dealtBy !== SITE_ACTOR
       ? [
           {
             at: reply.dealtAt,
             status: "dealt",
-            details: {
-              by: reply.dealtBy!,
-              ...(reply.outcome === "opted-out" && { how: copy.replies.how }),
-            },
+            details: { by: reply.dealtBy!, ...(reply.outcome === "opted-out" && { how: copy.replies.how }) },
             label: reply.outcome === "opted-out" ? copy.replies.historyOptedOut : copy.replies.historyNothing,
           },
         ]
       : [],
   );
-  return [
-    ...one.events.map((event) => ({
-      at: event.at,
-      status: event.kind,
-      details: event.details,
-      label: copy.events[event.kind as keyof typeof copy.events],
-    })),
+  const ours = one.answers.flatMap((answer): HistoryEntry[] =>
+    answer.sentAt
+      ? [
+          {
+            at: answer.sentAt,
+            status: "answered",
+            details: { by: answer.sentBy === SITE_ACTOR ? copy.replies.automatically : answer.sentBy },
+            label: copy.replies.historyAnswered,
+            ...under(
+              answer.events.map((event) => ({
+                at: event.at,
+                status: event.kind,
+                details: event.details,
+                label: copy.replies.historyOurs[event.kind]!,
+              })),
+            ),
+          },
+        ]
+      : [],
+  );
+  return newestFirst([
+    ...(sent
+      ? [{ ...entry(sent), tag, ...under(one.events.filter((event) => RECEIPTS.has(event.kind)).map(entry)) }]
+      : []),
+    ...own.map(entry),
     ...dealt,
-    // What WhatsApp said became of our replies to a text.
-    ...one.answers.flatMap((answer) =>
-      answer.events.map((event) => ({
-        at: event.at,
-        status: event.kind,
-        details: event.details,
-        label: copy.replies.historyOurs[event.kind]!,
-      })),
-    ),
-    ...one.answers.flatMap((answer) =>
-      answer.sentAt
-        ? [
-            {
-              at: answer.sentAt,
-              status: "answered",
-              details: { by: answer.sentBy === SITE_ACTOR ? copy.replies.automatically : answer.sentBy },
-              label: copy.replies.historyAnswered,
-            },
-          ]
-        : [],
-    ),
-  ].sort((a, b) => b.at.getTime() - a.at.getTime());
+    ...ours,
+  ]);
 }
 
 /**

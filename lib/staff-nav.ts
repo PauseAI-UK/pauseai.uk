@@ -5,6 +5,10 @@
 /** The cookie's name, and the attribute the staff layout sets from it. */
 export const NAV_FOLD_KEY = "staff-nav";
 
+/** Whether the sidebar is folded, by its cookie, if this request has one: the staff layout's attribute. */
+export const navFoldOf = (cookie: { value: string } | undefined): "folded" | "open" =>
+  cookie?.value === "folded" ? "folded" : "open";
+
 /** The cookie that remembers the sidebar folded, for a year; or, unfolded, ends it. */
 export const navFoldCookie = (folded: boolean) =>
   `${NAV_FOLD_KEY}=folded; path=/staff; max-age=${folded ? 60 * 60 * 24 * 365 : 0}; samesite=lax`;

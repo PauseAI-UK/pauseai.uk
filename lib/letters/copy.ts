@@ -61,6 +61,9 @@ export const lettersCopy = {
         // Who did it: a staff member, on a copy of a broadcast's history; and how they told us, of an opt-out.
         by: "By",
         how: "How they told us",
+        // Why WhatsApp couldn't deliver a text, as it said it.
+        code: "WhatsApp's code",
+        title: "WhatsApp said",
       } as Record<string, string>,
       // The value of uncertain: the reply named none of the supporter's letters to the MP, so it was put with the newest.
       uncertainLetter: "A guess: their newest to this MP, as the reply didn't say which it answers",
