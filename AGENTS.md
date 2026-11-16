@@ -32,7 +32,10 @@ When Francis asks for a branch to be served, run `npm run serve -- <branch or PR
 npm run gate                      # the fast checks on the files you changed, then everything CI runs
 npm run gate -- --fast            # the fast checks alone: Prettier, ESLint and Stylelint on the changed files, the types, and the migrations' order
 npm run gate -- --no-storyboard   # everything but the storyboard
+npm run gate -- --only test       # one group or more of checks, test and flows, nothing else
 ```
+
+To rerun part of the gate, such as the tests after a fix, use `--only` rather than `npm test` or a linter by itself: the gate's status (`tmp/gate/status.json`, which Francis's status line shows) records only what runs through the gate, and `--only` keeps the other groups' results from the last gate on the same commit.
 
 The branch isn't done until `npm run gate` exits 0. It takes the files changed since the branch left `origin/main`, committed or not, formats them with Prettier and checks them, and stops there if a check fails. Then it runs what CI runs (`.github/workflows/ci.yml`) in parallel, as CI's jobs do:
 

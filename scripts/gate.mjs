@@ -4,6 +4,7 @@
 //   npm run gate                      # the fast checks, then everything CI runs
 //   npm run gate -- --fast            # the fast checks alone
 //   npm run gate -- --no-storyboard   # everything but the storyboard
+//   npm run gate -- --only test       # one group or more: checks, test, flows
 //
 // The fast checks look at the files changed since this branch left
 // origin/main, committed or not, and untracked ones: Prettier formats them,
@@ -51,13 +52,26 @@ const MINUTE = 60_000;
 /** Files ESLint checks. */
 const SCRIPT = /\.[cm]?[jt]sx?$/;
 
+/** The groups of commands the status shows, and `--only` picks from (`groupOf`). */
+export const GROUPS = ["checks", "test", "flows"];
+
 /** @param {string[]} args */
 export function parseArgs(args) {
+  /** @type {{ fast: boolean, storyboard: boolean, only?: string[] }} */
   const options = { fast: false, storyboard: true };
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg === "--fast") options.fast = true;
     else if (arg === "--no-storyboard") options.storyboard = false;
-    else throw new Error(`Unknown option ${arg}. Usage: npm run gate [-- --fast] [--no-storyboard]`);
+    else if (arg === "--only") {
+      options.only = (args[++i] ?? "").split(",");
+      const unknown = options.only.filter((group) => !GROUPS.includes(group));
+      if (unknown.length) throw new Error(`--only takes ${GROUPS.join(", ")}, not "${unknown.join(",")}"`);
+    } else {
+      throw new Error(
+        `Unknown option ${arg}. Usage: npm run gate [-- --fast] [--no-storyboard] [--only ${GROUPS.join(",")}]`,
+      );
+    }
   }
   return options;
 }
@@ -278,27 +292,64 @@ export function groupState(states) {
 const groupOf = (id) => (id === "storyboard" || id === "determinism" ? "flows" : id === "test" ? "test" : "checks");
 
 /**
+ * `phases` with only the steps in `groups`, leaving out the lanes and
+ * phases that empties. A lane's required step goes too when its group isn't
+ * picked: `--only flows` runs the storyboard without the types first.
+ *
+ * @param {Step[][][]} phases
+ * @param {string[]} groups
+ * @returns {Step[][][]}
+ */
+export function onlyGroups(phases, groups) {
+  return phases
+    .map((lanes) =>
+      lanes.map((lane) => lane.filter((step) => groups.includes(groupOf(step.id)))).filter((lane) => lane.length),
+    )
+    .filter((lanes) => lanes.length);
+}
+
+/**
+ * How each step stood in the last gate's `file`, to keep beside a run of
+ * only some groups: nothing unless that gate ended, on `commit`.
+ *
+ * @param {string} commit
+ * @returns {Record<string, State>}
+ */
+export function keptStates(commit, file = join(LOG_DIR, "status.json")) {
+  try {
+    const last = JSON.parse(readFileSync(file, "utf8"));
+    return last.ended && last.commit === commit ? last.steps : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Keeps `file` saying how each of `steps` stands, and each group of them
- * (`groups`: checks, test and flows, those the gate is running): every
- * step waiting to begin with, then as `set` is told, and `ended` once `end`
- * is called. `commit` is the one the gate started on, so a reader can tell
+ * (`groups`: checks, test and flows, those the gate is running or has
+ * `kept`): every step waiting to begin with, then as `set` is told, and
+ * `ended` once `end` is called. `kept` is how other steps stood in the last
+ * gate on the same commit (`keptStates`), when this one runs only some
+ * groups. `commit` is the one the gate started on, so a reader can tell
  * whether its result is of the code as it is now. `pid` is the gate's
  * process, so a reader can tell a gate that was killed, which never says it
  * ended, from one still going.
  *
  * @param {Step[]} steps
  * @param {string} commit
+ * @param {Record<string, State>} [kept]
  */
-export function statusWriter(steps, commit, file = join(LOG_DIR, "status.json")) {
+export function statusWriter(steps, commit, file = join(LOG_DIR, "status.json"), kept = {}) {
   const startedAt = new Date().toISOString();
   /** @type {Record<string, State>} */
-  const states = Object.fromEntries(steps.map((step) => [step.id, "waiting"]));
+  const states = { ...kept, ...Object.fromEntries(steps.map((step) => [step.id, "waiting"])) };
   let ended = false;
   // Written beside the file and moved over it, so a reader never sees half of one.
   const write = () => {
+    const ids = Object.keys(states);
     const groups = {};
-    for (const group of new Set(steps.map((step) => groupOf(step.id)))) {
-      groups[group] = groupState(steps.filter((step) => groupOf(step.id) === group).map((step) => states[step.id]));
+    for (const group of new Set(ids.map(groupOf))) {
+      groups[group] = groupState(ids.filter((id) => groupOf(id) === group).map((id) => states[id]));
     }
     const status = {
       pid: process.pid,
@@ -422,7 +473,10 @@ async function main(args) {
   const git = (...gitArgs) => execFileSync("git", gitArgs, { encoding: "utf8" });
   const base = git("merge-base", "origin/main", "HEAD").trim();
   const files = changedFiles([git("diff", "--name-only", base), git("ls-files", "--others", "--exclude-standard")]);
-  rmSync(LOG_DIR, { recursive: true, force: true });
+  const commit = git("rev-parse", "HEAD").trim();
+  const kept = options.only ? keptStates(commit) : {};
+  // The logs of the steps kept stay with them.
+  if (!Object.keys(kept).length) rmSync(LOG_DIR, { recursive: true, force: true });
   mkdirSync(LOG_DIR, { recursive: true });
 
   for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -433,11 +487,13 @@ async function main(args) {
   }
   const beat = setInterval(heartbeat, MINUTE);
 
-  const fast = fastPlan(files);
-  const slow = options.fast ? [] : slowPlan(options, files);
-  const status = statusWriter([...fast, ...slow].flat(2), git("rev-parse", "HEAD").trim());
+  const pick = (phases) => (options.only ? onlyGroups(phases, options.only) : phases);
+  const fast = pick(fastPlan(files));
+  const slow = pick(options.fast ? [] : slowPlan(options, files));
+  const status = statusWriter([...fast, ...slow].flat(2), commit, undefined, kept);
 
-  console.log(`Gate: the fast checks, on ${files.length} files changed since origin/main`);
+  if (options.only) console.log(`Gate: only ${options.only.join(", ")}`);
+  if (fast.length) console.log(`Gate: the fast checks, on ${files.length} files changed since origin/main`);
   const results = await runPlan(fast, LOG_DIR, console.log, status.set);
   if (!options.fast && passed(results)) {
     console.log(`\nGate: what CI runs${options.storyboard ? "" : ", but the storyboard"}`);
