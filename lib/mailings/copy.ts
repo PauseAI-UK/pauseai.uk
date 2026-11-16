@@ -208,7 +208,7 @@ export const mailingsCopy = {
     sendsIn: (inWords: string) => `Sends ${inWords}`,
     // In a list, in place of how long till it goes, for one going out now.
     sendingNow: "Sending now",
-    scheduledLine: (n: number, from: string) => `${count(n, "email", "emails")} from ${from}.`,
+    scheduledLine: (n: number, from: string) => `${count(n, "email", "emails")} from ${from}`,
     changeTime: "Change the time",
     saveTime: "Change it",
     // Takes a scheduled mailing back to a draft, sending nothing.

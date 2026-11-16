@@ -180,7 +180,7 @@ export const broadcastsCopy = {
     } as Record<string, string>,
     // Its page.
     scheduledLine: (n: number, channel: "email" | "text", from: string) =>
-      `${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")} from ${from}.`,
+      `${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")} from ${from}`,
     textTitle: "The text",
     emailTitle: "The email",
     // In the list of broadcasts, where each stands, where a broadcast has more to say than a mailing
