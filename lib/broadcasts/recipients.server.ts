@@ -87,6 +87,21 @@ async function partsOf(ids: number[]): Promise<Map<number, string[]>> {
   return parts;
 }
 
+/**
+ * Each of these supporters' email addresses, the one we saw most recently
+ * first: where their email goes when more than one said yes.
+ */
+async function newestEmails(ids: number[]): Promise<Map<number, string[]>> {
+  const rows = await query<{ id: number; emails: string[] }>(
+    `SELECT supporter_id::int AS id, array_agg(email ORDER BY seen DESC NULLS LAST, email) AS emails
+     FROM (SELECT supporter_id, lower(trim(email)) AS email, max(seen_at) AS seen FROM supporter_identity
+       WHERE supporter_id = ANY($1) GROUP BY 1, 2) e
+     GROUP BY supporter_id`,
+    [ids],
+  );
+  return new Map(rows.map((row) => [row.id, row.emails]));
+}
+
 /** A supporter's merge values, each field's fallback for those without it, and the conditions they meet: a field they have, or a part they're in. */
 function recipientValues(row: SupporterRow, parts: string[]): MailingRecipientValues {
   const given: Record<(typeof BROADCAST_FIELDS)[number], string | null | undefined> = {
@@ -107,17 +122,20 @@ function recipientValues(row: SupporterRow, parts: string[]): MailingRecipientVa
  */
 export async function supporterAudience(filter: StoredFilter, terms: BroadcastTerms): Promise<SupporterAudience> {
   const { supporters } = await listSupporters(supportersSearch(filter.params).filter, null);
-  const [parts, inParts] = await Promise.all([broadcastParts(), partsOf(supporters.map((row) => row.id))]);
+  const ids = supporters.map((row) => row.id);
+  const [parts, inParts, emails] = await Promise.all([broadcastParts(), partsOf(ids), newestEmails(ids)]);
   const recipients: SupporterRecipient[] = [];
   const { topics } = terms;
   for (const row of supporters) {
     const name = row.name?.trim() || null;
-    // A text goes to a number that said yes by text, never by call; of their yeses, the first address's.
+    // A text goes to a number that said yes by text, never by call.
     const yeses = row.permissions.filter(
       (one) => one.way === terms.channel && topics.includes(one.topic) && one.send === "yes",
     );
     if (!yeses.length) continue;
-    const address = yeses[0].address;
+    // One copy each, to the newest of their addresses or numbers that said yes: the list has their numbers newest first.
+    const newestFirst = terms.channel === "email" ? emails.get(row.id)! : row.phones;
+    const address = newestFirst.find((one) => yeses.some((yes) => yes.address === one))!;
     const values = recipientValues(row, inParts.get(row.id) ?? []);
     const theirs = topics.filter((topic) => yeses.some((one) => one.address === address && one.topic === topic));
     recipients.push({ id: row.id, name, address, place: row.place?.name ?? null, topics: theirs, ...values });

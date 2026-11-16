@@ -86,6 +86,19 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
     ]);
   });
 
+  it("goes once to someone with two addresses that said yes, at the one we saw most recently", async () => {
+    const jane = await addFollower("usr-1", "zed@example.com", "Jane Smith");
+    await addFollower("usr-2", "abe@example.com", "Jane Smith");
+    // The first address alphabetically, from before the other.
+    await query(
+      `UPDATE luma_people SET contact_since = '2026-08-01T00:00:00Z' WHERE user_id = 'usr-2';
+       UPDATE supporter_links SET supporter_id = ${jane} WHERE luma_user_id = 'usr-2'`,
+    );
+    await refreshSupportersList();
+    const { recipients } = await supporterAudience(FILTER, EMAIL);
+    expect(recipients.map((one) => [one.id, one.address])).toEqual([[jane, "zed@example.com"]]);
+  });
+
   it("uses a number that said yes, for a text", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const { recipients } = await supporterAudience(FILTER, { channel: "text", topics: ["events"] });
