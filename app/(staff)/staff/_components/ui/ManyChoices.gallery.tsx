@@ -1,6 +1,7 @@
 // ManyChoices in the component gallery (app/(tools)/gallery/), in the staff interface: its kit (app/(tools)/gallery/_examples/staff-kit.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import ManyChoices, { NotWords } from "./ManyChoices";
+import ChannelIcon from "@/components/ui/ChannelIcon";
+import ManyChoices from "./ManyChoices";
 import StaffPage from "./StaffPage";
 
 const EXAMPLE_NATIONS = [
@@ -43,17 +44,25 @@ export const manyChoicesGallery: Example[] = [
           </StaffPage>
         ),
       },
-    ],
-  },
-  {
-    name: "NotWords",
-    file: "app/(staff)/staff/_components/ui/ManyChoices.tsx",
-    variants: [
       {
-        label: "A chip's words that leave out, before its choices",
+        label: "Leaving out, with an icon before its name, as a Consent chip has",
         render: () => (
           <StaffPage as="div">
-            <NotWords label="Nation" />
+            <ManyChoices
+              path="#"
+              values={{}}
+              name="contact"
+              label="Text consent"
+              all={["!text:events:yes"]}
+              here={["text:events:yes"]}
+              not
+              oneEach={false}
+              options={[{ value: "text:events:yes", label: "Events only" }]}
+              every={[]}
+              turns
+              half={false}
+              icon={<ChannelIcon channel="text" />}
+            />
           </StaffPage>
         ),
       },
