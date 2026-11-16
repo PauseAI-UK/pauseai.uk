@@ -242,7 +242,7 @@ export default function FilterBar({
       </Menu>
     );
   };
-  // A filter in groups' chips: one for each group it finds, and one for each it leaves out, in the order they
+  // A filter in groups' chips: one for each group it finds, then one for each it leaves out, each in the order they
   // first come, the group's icon before the choices; a value it doesn't know, alone. Each offers its group's
   // choices to tick, and to swap to, any choice no other chip has. What a locked one finds doesn't open.
   const grouped = (filter: Filter) => {
@@ -255,44 +255,47 @@ export default function FilterBar({
       chips.set(key, [...(chips.get(key) ?? []), one]);
     }
     const taken = chosen(filter.name).map((one) => notValue(one).value);
-    return [...chips.values()].map((ones) => {
-      const { not } = notValue(ones[0]);
-      const here = ones.map((one) => notValue(one).value);
-      const first = choice(here[0]);
-      if (!first?.group) return chip(filter, ones[0], valueWords(filter, ones[0], ": "));
-      const { label: group, icon } = first.group;
-      if (filter.locked && !not) {
-        const named = <IconText icon={icon}>{copy.anyOf(here.map((one) => choice(one)!.label))}</IconText>;
-        return chip(
-          filter,
-          ones[0],
-          <>
-            {filter.label}: {named}
-          </>,
+    const finding = (ones: string[]) => !notValue(ones[0]).not;
+    return [...chips.values()]
+      .sort((a, b) => Number(finding(b)) - Number(finding(a)))
+      .map((ones) => {
+        const { not } = notValue(ones[0]);
+        const here = ones.map((one) => notValue(one).value);
+        const first = choice(here[0]);
+        if (!first?.group) return chip(filter, ones[0], valueWords(filter, ones[0], ": "));
+        const { label: group, icon } = first.group;
+        const name = first.group.chip ?? filter.label;
+        if (filter.locked && !not) {
+          return chip(
+            filter,
+            ones[0],
+            <IconText icon={icon}>
+              {name}: {copy.anyOf(here.map((one) => choice(one)!.label))}
+            </IconText>,
+          );
+        }
+        const options = filter.options.filter((option) => here.includes(option.value) || !taken.includes(option.value));
+        return (
+          <ManyChoices
+            key={`${filter.name}-${ones.join(" ")}`}
+            id={`filter-${filter.name}-${ones.join("-")}`}
+            path={path}
+            values={values}
+            name={filter.name}
+            label={name}
+            all={chosen(filter.name)}
+            here={here}
+            not={not}
+            oneEach={false}
+            options={options}
+            boxOptions={options.filter((option) => option.group?.label === group)}
+            every={everyChoice(filter)}
+            turns={!filter.locked}
+            half={false}
+            icon={icon}
+          />
         );
-      }
-      const options = filter.options.filter((option) => here.includes(option.value) || !taken.includes(option.value));
-      return (
-        <ManyChoices
-          key={`${filter.name}-${ones.join(" ")}`}
-          id={`filter-${filter.name}-${ones.join("-")}`}
-          path={path}
-          values={values}
-          name={filter.name}
-          label={filter.label}
-          all={chosen(filter.name)}
-          here={here}
-          not={not}
-          oneEach={false}
-          options={options}
-          boxOptions={options.filter((option) => option.group?.label === group)}
-          every={everyChoice(filter)}
-          turns={!filter.locked}
-          half={false}
-          icon={icon}
-        />
-      );
-    });
+      });
   };
   // A repeating filter's chip for all it finds, or all it leaves out, if any; as a lozenge's second half, `half`,
   // always.

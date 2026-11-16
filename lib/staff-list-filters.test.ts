@@ -45,11 +45,12 @@ describe("SUPPORTER_FILTERS", () => {
   it("puts each topic of the Consent filter under its way, with its channel's icon when it's given one", () => {
     const contact = (channelIcon?: (channel: string) => string) =>
       SUPPORTER_FILTERS({ events: [], mps: [], near: "", channelIcon }).find((filter) => filter.name === "contact")!;
-    expect(contact().options[0].group).toEqual({ label: copy.ways.email, icon: undefined });
+    const { ways, wayChips } = copy;
+    expect(contact().options[0].group).toEqual({ label: ways.email, icon: undefined, chip: wayChips.email });
     expect(contact((channel) => `icon of ${channel}`).options.map((option) => option.group)).toEqual([
-      ...[1, 2, 3].map(() => ({ label: copy.ways.email, icon: "icon of email" })),
-      ...[1, 2, 3].map(() => ({ label: copy.ways.text, icon: "icon of text" })),
-      { label: copy.ways.call, icon: "icon of call" },
+      ...[1, 2, 3].map(() => ({ label: ways.email, icon: "icon of email", chip: wayChips.email })),
+      ...[1, 2, 3].map(() => ({ label: ways.text, icon: "icon of text", chip: wayChips.text })),
+      { label: ways.call, icon: "icon of call", chip: wayChips.call },
     ]);
     // Each a yes, and chosen more than once, a chip for each way.
     expect(contact().options.map((option) => option.value)).toContain("text:events:yes");

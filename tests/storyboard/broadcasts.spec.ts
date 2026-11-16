@@ -622,7 +622,7 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await except.getByText(supportersCopy.supporters.columns.subscriptions, { exact: true }).click();
   await except.getByRole("link", { name: topics.events, exact: true }).click();
   await expect(page).toHaveURL(/contact=%21text%3Aevents%3Ayes/);
-  const leftOut = staffVocabulary.filters.notChip(supportersCopy.supporters.columns.subscriptions, topics.events);
+  const leftOut = staffVocabulary.filters.notChip(supportersCopy.supporters.filters.wayChips.text, topics.events);
   await expect(page.getByRole("button", { name: leftOut })).toBeVisible();
   await frame(page, "Those we can text about events, left out", { window: true });
   story("The orange button keeps them for the draft.");
@@ -630,12 +630,7 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await expect(page).toHaveURL(draft);
   const who = page.getByRole("list", { name: mailingsCopy.mailingPages.whoLabel });
   await expect(who).toContainText("fixture");
-  await expect(who).toContainText(
-    staffVocabulary.filters.notChip(
-      supportersCopy.supporters.columns.subscriptions,
-      `${supportersCopy.supporters.filters.ways.text}, ${topics.events}`,
-    ),
-  );
+  await expect(who).toContainText(leftOut);
   await frame(page, "The draft, to those found");
   story("Narrowed, the button is Change who. Cancel at the top goes back and changes nothing.");
   await page.getByRole("link", { name: mailingCopy.changeWho }).click();

@@ -778,9 +778,9 @@ are:
 - A choice list can have headings (an option's `group`, its icon once)
   and a quiet `detail` after a choice. A repeating filter whose choices
   are in groups has a chip for each group it finds, and one for each it
-  leaves out, the group's icon before the choices: "Consent: ✉ Newsletter
-  or Events only" and "Consent: not 💬 Events only". "+ Add" ticks the
-  group's choices alone. The Consent filter is one: its topics come under
+  leaves out, the group's icon first. A group can name its chip (its
+  `chip`): "✉ Email consent: Newsletter or Events only" and "💬 Text
+  consent: not Events only". "+ Add" ticks the group's choices alone. The Consent filter is one: its topics come under
   Email, Text and Call, each finding those we can contact about it that
   way. Its values are each a parameter: `contact=email:newsletter:yes`,
   `contact=!text:events:yes`. Leaving out every consent still finds those

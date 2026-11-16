@@ -561,7 +561,7 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   // Another topic from the chip: the newsletter by email, the first of its three.
   await changeTopic(
     page,
-    `${copy.columns.subscriptions}: ${copy.filters.topics.events}`,
+    `${copy.filters.wayChips.email}: ${copy.filters.topics.events}`,
     copy.filters.topics.newsletter,
   );
   await expect(page).toHaveURL(/contact=email%3Anewsletter%3Ayes/);
@@ -577,7 +577,7 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(/contact=%21email%3Aevents%3Ayes/);
   await expect(
     page.getByRole("button", {
-      name: staffVocabulary.filters.notChip(copy.columns.subscriptions, copy.filters.topics.events),
+      name: staffVocabulary.filters.notChip(copy.filters.wayChips.email, copy.filters.topics.events),
     }),
   ).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
@@ -590,7 +590,7 @@ test("Subscriptions to more than one topic", async ({ page, request, flowDatabas
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters?contact=email:events:yes`);
   const { topics } = copy.filters;
-  const label = copy.columns.subscriptions;
+  const label = copy.filters.wayChips.email;
   const menu = page.locator("[popover]:popover-open");
   await page.getByRole("button", { name: `${label}: ${topics.events}` }).click();
   await menu.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();

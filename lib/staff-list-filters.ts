@@ -37,13 +37,13 @@ import { oversightCopy } from "@/lib/oversight/copy";
 
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
- * the group named on the chip too; a `detail` is said quietly after the
- * words.
+ * the group named on the chip too, or the chip named `chip` for it in place
+ * of the filter's name; a `detail` is said quietly after the words.
  */
 export type FilterOption = {
   value: string;
   label: string;
-  group?: { label: string; icon: ReactNode };
+  group?: { label: string; icon: ReactNode; chip?: string };
   detail?: string;
 };
 
@@ -113,17 +113,26 @@ export function isGrouped(filter: Filter): boolean {
   return filter.options.some((option) => option.group);
 }
 
-/** A choice of `filter` in words: its group and its words; or as typed, when it's none of its choices. */
-function choiceWords(filter: Filter, plain: string): string {
-  const choice = choiceOf(filter, plain);
-  return choice ? [choice.group?.label, choice.label].filter(Boolean).join(", ") : plain;
+/** What the chip of a choice of `filter` is named: its group's chip's name, or the filter's. */
+export function chipName(filter: Filter, plain: string): string {
+  return choiceOf(filter, plain)?.group?.chip ?? filter.label;
 }
 
-/** A value of `filter` in words: its name and choice, joined by `join`, or that it's left out. */
+/**
+ * A choice of `filter` in words: its group, unless its chip names it, and
+ * its words; or as typed, when it's none of its choices.
+ */
+function choiceWords(filter: Filter, plain: string): string {
+  const choice = choiceOf(filter, plain);
+  if (!choice) return plain;
+  return [choice.group?.chip ? undefined : choice.group?.label, choice.label].filter(Boolean).join(", ");
+}
+
+/** A value of `filter` in words: its chip's name and choice, joined by `join`, or that it's left out. */
 export function valueWords(filter: Filter, value: string, join: string): string {
   const { value: plain, not } = notValue(value);
-  const choice = choiceWords(filter, plain);
-  return not ? staffVocabulary.filters.notChip(filter.label, choice) : `${filter.label}${join}${choice}`;
+  const [name, choice] = [chipName(filter, plain), choiceWords(filter, plain)];
+  return not ? staffVocabulary.filters.notChip(name, choice) : `${name}${join}${choice}`;
 }
 
 /**
@@ -136,13 +145,20 @@ export function filterWords(filters: Filter[], values: Params, search: string): 
   for (const filter of filters) {
     if (filter.after && !filter.repeat) continue;
     const chosen = valuesOf(values[filter.name]).map(notValue);
-    const [found, out] = [false, true].map((not) =>
-      chosen.filter((one) => one.not === not).map((one) => choiceWords(filter, one.value)),
-    );
+    // Those it finds, then those it leaves out, by the name of their chip.
+    const [found, out] = [false, true].map((not) => {
+      const named = new Map<string, string[]>();
+      for (const one of chosen.filter((one) => one.not === not)) {
+        const name = chipName(filter, one.value);
+        named.set(name, [...(named.get(name) ?? []), choiceWords(filter, one.value)]);
+      }
+      return [...named];
+    });
     const next = filters.find((f) => f.after === filter.name && !f.repeat);
     const then = next ? `, ${choiceWords(next, firstOf(values[next.name]))}` : "";
-    if (found.length) words.push(`${filter.label}: ${staffVocabulary.filters.anyOf(found)}${then}`);
-    if (out.length) words.push(staffVocabulary.filters.notChip(filter.label, staffVocabulary.filters.anyOf(out)));
+    for (const [name, ones] of found) words.push(`${name}: ${staffVocabulary.filters.anyOf(ones)}${then}`);
+    for (const [name, ones] of out)
+      words.push(staffVocabulary.filters.notChip(name, staffVocabulary.filters.anyOf(ones)));
   }
   return words;
 }
@@ -315,7 +331,7 @@ export const SUPPORTER_FILTERS = listFilters(
         options: CONSENT_ORDER.map(({ topic, way }) => ({
           value: stateValue({ way, topic, send: "yes" }),
           label: copy.topics[topic],
-          group: { label: copy.ways[way], icon: channelIcon?.(way) },
+          group: { label: copy.ways[way], icon: channelIcon?.(way), chip: copy.wayChips[way] },
         })),
       },
       event: {
