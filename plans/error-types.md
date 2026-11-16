@@ -1,45 +1,64 @@
-# Real error types across the whole site
+# Real error types
 
-A briefing for the agent doing this. It's high level on purpose: think hard about the design, and show
-it to Francis, with a few converted call sites, before converting the rest. Read `AGENTS.md` and
-`docs/code-structure.md`, "Rules" first.
+What went wrong is often carried around as one of our sentences, so code
+can only tell failures apart by comparing or parsing text. Failures should
+be typed values instead, with their words looked up only where a person
+reads them.
 
-## The problem
+## Where it goes wrong now
 
-Everywhere on the site, not only in the imports, what went wrong is carried around as an English sentence
-or an untyped value. Code can't tell one failure from another except by comparing or parsing text. We want
-a structure that makes this hard to do: actual error types passed around.
+- `problem(what, error?)` (`lib/server/problems.server.ts`) keeps our
+  finished sentence as `what`, and `alertIfNew` in
+  `lib/server/import-runs.server.ts` compares those sentences with the run
+  before's. So rewording a problem's copy alerts staff to a "new" problem.
+  It's called in about 80 places, its second argument sometimes a caught
+  error, sometimes a value we built.
+- `inactiveAddresses()` in `lib/email/email.server.ts` gets the addresses
+  by parsing Postmark's error message.
+- `addLumaGuest` in `lib/server/outside-services/luma-guests.server.ts`
+  casts `error as Error`, and returns its failure as a sentence in
+  `reason`.
+- `turnstile.server.ts` and `app/api/email-your-mp/letters/mp-letters.server.ts`
+  return finished copy (`copy.errors.*`) as their result.
+- `describeError()` flattens an error to text, kept in `import_runs.error`
+  and `luma_events.guests_error` and `hosts_error`.
 
-Examples, not a complete list:
+Already done well, to copy: `QueueReason`, `ScheduleResult`,
+`MarchRegisterResult`, `GmailError`, `EraseLeftover` with `leftOver()`,
+and `WHATSAPP_ERRORS` (`lib/broadcasts/whatsapp-texts.server.ts`), which
+sorts WhatsApp's error codes. The errors page (`errors_seen`) keys a
+Postgres error by its code, not its words.
 
-- `problem(what: string, error?: unknown)` (`lib/server/problems.server.ts`) stores the finished sentence on the run,
-  and `lib/server/import-runs.server.ts` compares sentences to decide whether a problem is new. So a rewording looks
-  like a new problem.
-- `problem()`'s second argument is sometimes a caught error, sometimes a list we built ourselves.
-- `inactiveAddresses()` in `lib/email/email.server.ts` gets addresses by parsing a Postmark error's message.
-- `luma-guests.server.ts` does `error as Error` and returns sentences as `reason`.
-- `turnstile.server.ts`, `mp-letters.server.ts` and `/api/email-your-mp/lookup` return finished copy as data.
-- `describeError()` flattens errors to text, which is stored in several columns.
+## How
 
-## Structural aims
+- An expected failure is a discriminated union with a code and typed
+  values, so the compiler checks each is handled. One that callers tell
+  apart when it's thrown is an error class with fields.
+- The words come from the code where a person reads them: the alert
+  email, the run's page, the form. Nothing stores, compares or parses our
+  sentences.
+- A caught `unknown` becomes something typed at the catch.
+- What's stored is a code, its values, and an outside service's own error
+  text, if any. Rows kept in the old shape (migrations `0078`–`0080`
+  onwards) still show, by their sentence.
+- Don't type what nothing tells apart, and let the truly unexpected throw.
 
-- **Failures are types.** Expected failures are discriminated unions with codes and typed values, so the
-  compiler checks each is handled. Failures that callers tell apart are error classes with fields.
-- **Words only at the edge.** Whatever a person reads looks up its words from a code at that point. Nothing
-  stores, compares, parses or passes our sentences around.
-- **`unknown` stops at the catch.** TypeScript forces it there. The caught value becomes something typed at
-  once, and `unknown` goes no further.
-- **What's stored is structured:** a code, its values, and an outside service's raw error text, if any.
-- **It stays enforced**, by types first and by checks in `tests/checks/` where types can't reach.
+## Steps
 
-Existing code to learn from: `QueueReason`, `ScheduleResult`, `MarchRegisterResult`, `GmailError`, and `EraseLeftover`
-(`lib/staff-search.ts`) with `leftOver()` in `lib/erasure/erase.server.ts`.
+Each is its own PR and passes the gate. Show Francis the first's design,
+with a few call sites converted, before converting the rest. Moving a
+group of reviewed problem strings is checked with him first; new wording
+is a placeholder.
 
-Don't type what nothing distinguishes, and let truly unexpected errors throw.
-
-## Limits
-
-- New wording is a placeholder (`AGENTS.md`). The problem strings (each feature's `problems` in `lib/<feature>/copy.ts`, and `serverCopy` in `lib/server/copy.ts`) have been
-  reviewed, so check with Francis before moving groups of them.
-- Migrations `0078`–`0080` are pushed and can't be edited. Say how rows already stored in the old shape are handled.
-- Ask Francis about branching, and propose small steps that each pass the gate in `AGENTS.md`.
+1. **Problems by code.** `problem()` takes a code and its values; a run
+   keeps those, and `alertIfNew` compares codes. This fixes the false
+   alerts.
+2. **Outside services.** Luma's guest adding, Turnstile and Postmark's
+   inactive addresses return typed failures, Postmark's message parsed
+   in one place inside its backend.
+3. **Letters' API.** `mp-letters.server.ts` and the lookup return codes;
+   the route or the form looks up the words.
+4. **Stored errors.** `luma_events`' errors and `import_runs.error` keep
+   a code and the raw text, not `describeError()`'s sentence.
+5. **A check** in `tests/checks/` against `as Error` on a caught value,
+   where types can't reach (`email.server.ts` has one too).

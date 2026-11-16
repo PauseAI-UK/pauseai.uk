@@ -103,6 +103,6 @@ export const postmarkBroadcast: MailingChannel = {
 };
 
 /** The channel a mailing is sent by. */
-export function mailingChannel(channel: "email" | "text" | "whatsapp"): MailingChannel | undefined {
+export function mailingChannel(channel: "email" | "text"): MailingChannel | undefined {
   return channel === "email" ? gmailEmail : undefined;
 }

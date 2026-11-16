@@ -523,7 +523,8 @@ test("Our answer to a text, read", async ({ page, request, flowDatabase }) => {
   await postWhatsAppWebhook(request, BASE, statusOf(sent.answer, sent.number, "delivered", 30));
   await postWhatsAppWebhook(request, BASE, statusOf(sent.answer, sent.number, "read", 40));
   story("Each bubble of ours has its ticks, as WhatsApp shows them: two blue ones once read.");
-  await page.reload();
+  // A fresh load, not a reload: a reload puts back the scroll from answering, wherever the page has got to by then.
+  await page.goto(page.url());
   await expect(page.getByRole("img", { name: copy.events.read })).toHaveCount(2);
   await frame(page, "The text and our answer, both read");
 });
