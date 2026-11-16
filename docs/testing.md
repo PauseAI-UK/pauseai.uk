@@ -1340,6 +1340,7 @@ import("@/tests/next-headers"))` and put the session cookie in
 ```bash
 npm run gate              # the CI gate: the fast checks on the changed files, then everything CI runs (below)
 npm run gate -- --fast    # the fast checks alone
+npm run gate -- --only test   # one group of the gate's commands or more (checks, test, flows), kept in its status
 npm run typecheck         # types (also runs in npm run build)
 npm test                  # both Vitest projects, with the coverage gate (what CI runs)
 npm run test:changed      # the tests for the files changed since origin/main, and those files' uncovered lines and branches
@@ -1448,6 +1449,15 @@ gate is running are there, so `--no-storyboard` has no flows. `commit` is
 the one the gate started on: its result is of the code as it is now only
 while that's still the checkout's commit. Like the storyboard's file, the
 gate is going while `ended` is false and `pid` is alive.
+
+**Running part of the gate.** `--only` runs one group or more
+(`--only test`, `--only checks,flows`) and nothing else: the fast checks
+are in `checks`, and `flows` runs the storyboard without the types first.
+If the last gate ended on the same commit, the status keeps how its other
+steps stood, and their logs, so the groups not run still show; otherwise
+they're left out, as never run on this commit. Running `npm test` or a
+linter by itself leaves the status alone, so run it this way when it
+should show.
 
 ### Long runs in the background
 

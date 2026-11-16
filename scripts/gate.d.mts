@@ -13,7 +13,8 @@ type State = "waiting" | "running" | "passed" | "failed" | "skipped";
 type Changed = (step: Step, state: State) => void;
 
 export const LOG_DIR: string;
-export function parseArgs(args: string[]): { fast: boolean; storyboard: boolean };
+export const GROUPS: string[];
+export function parseArgs(args: string[]): { fast: boolean; storyboard: boolean; only?: string[] };
 export function changedFiles(outputs: string[], exists?: (file: string) => boolean): string[];
 export function fastPlan(files: string[]): Step[][][];
 export const PICTURING: string[];
@@ -22,7 +23,14 @@ export function formatDuration(ms: number): string;
 export function formatTable(results: Result[]): string;
 export function tail(file: string, count: number): string;
 export function groupState(states: State[]): "waiting" | "running" | "passed" | "failed";
-export function statusWriter(steps: Step[], commit: string, file?: string): { set: Changed; end: () => void };
+export function onlyGroups(phases: Step[][][], groups: string[]): Step[][][];
+export function keptStates(commit: string, file?: string): Record<string, State>;
+export function statusWriter(
+  steps: Step[],
+  commit: string,
+  file?: string,
+  kept?: Record<string, State>,
+): { set: Changed; end: () => void };
 export function runStep(
   step: Step,
   logDir?: string,

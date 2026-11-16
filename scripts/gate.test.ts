@@ -8,6 +8,8 @@ import {
   formatDuration,
   formatTable,
   groupState,
+  keptStates,
+  onlyGroups,
   parseArgs,
   passed,
   runPlan,
@@ -34,8 +36,63 @@ describe("parseArgs", () => {
     expect(parseArgs(["--no-storyboard"])).toEqual({ fast: false, storyboard: false });
   });
 
+  it("runs only the groups --only names", () => {
+    expect(parseArgs(["--only", "test,checks"])).toEqual({ fast: false, storyboard: true, only: ["test", "checks"] });
+  });
+
+  it("refuses --only with options that leave none of its groups to run", () => {
+    expect(() => parseArgs(["--only", "test,flows", "--fast"])).toThrow("Nothing to run");
+    expect(() => parseArgs(["--no-storyboard", "--only", "flows"])).toThrow("Nothing to run");
+    expect(parseArgs(["--fast", "--only", "checks,test"]).only).toEqual(["checks", "test"]);
+    expect(parseArgs(["--no-storyboard", "--only", "flows,test"]).only).toEqual(["flows", "test"]);
+  });
+
+  it("refuses a group it doesn't know, or none", () => {
+    expect(() => parseArgs(["--only", "test,lint"])).toThrow('--only takes checks, test, flows, not "lint"');
+    expect(() => parseArgs(["--only"])).toThrow('not ""');
+  });
+
   it("refuses anything else", () => {
     expect(() => parseArgs(["--slow"])).toThrow("Unknown option --slow");
+  });
+});
+
+describe("onlyGroups", () => {
+  it("keeps only the steps in the groups named, dropping the lanes and phases left empty", () => {
+    const plan = [...fastPlan(["lib/a.ts"]), ...slowPlan({ storyboard: true })];
+    const ids = (phases: ReturnType<typeof onlyGroups>) =>
+      phases.map((lanes) => lanes.map((lane) => lane.map((step) => step.id)));
+    expect(ids(onlyGroups(plan, ["test"]))).toEqual([[["test"]]]);
+    expect(ids(onlyGroups(plan, ["flows"]))).toEqual([[["storyboard"]]]);
+    expect(ids(onlyGroups(plan, ["checks"]))).toEqual([
+      [["prettier"]],
+      [["tsc"], ["eslint"], ["stylelint"], ["migration-order"]],
+      [
+        ["typecheck"],
+        ["lint", "lint-css", "lint-unused", "format-check", "placeholders"],
+        ["backup-install", "backup-test", "backup-typecheck"],
+      ],
+    ]);
+  });
+});
+
+describe("keptStates", () => {
+  const file = (status: object | string) => {
+    const path = join(mkdtempSync(join(tmpdir(), "gate-")), "status.json");
+    writeFileSync(path, typeof status === "string" ? status : JSON.stringify(status));
+    return path;
+  };
+  const steps = { lint: "passed", test: "failed" };
+
+  it("gives how each step stood in the last gate, if it ended on this commit", () => {
+    expect(keptStates("abc123", file({ commit: "abc123", ended: true, steps }))).toEqual(steps);
+  });
+
+  it("gives nothing for another commit, a gate that never ended, or no file to read", () => {
+    expect(keptStates("abc123", file({ commit: "def456", ended: true, steps }))).toEqual({});
+    expect(keptStates("abc123", file({ commit: "abc123", ended: false, steps }))).toEqual({});
+    expect(keptStates("abc123", file("{"))).toEqual({});
+    expect(keptStates("abc123", join(tmpdir(), "no-such-gate", "status.json"))).toEqual({});
   });
 });
 
@@ -191,6 +248,18 @@ describe("statusWriter", () => {
     const file = join(mkdtempSync(join(tmpdir(), "gate-")), "status.json");
     statusWriter(steps.slice(0, 2), "abc123", file);
     expect(JSON.parse(readFileSync(file, "utf8")).groups).toEqual({ checks: "waiting" });
+  });
+
+  it("keeps how the steps it isn't running stood, in their groups, and runs its own afresh", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "gate-")), "status.json");
+    const status = statusWriter([steps[3]], "abc123", file, { lint: "passed", storyboard: "failed", test: "failed" });
+    const said = () => JSON.parse(readFileSync(file, "utf8"));
+    expect(said()).toMatchObject({
+      groups: { checks: "passed", flows: "failed", test: "waiting" },
+      steps: { lint: "passed", storyboard: "failed", test: "waiting" },
+    });
+    status.set(steps[3], "passed");
+    expect(said().groups.test).toBe("passed");
   });
 });
 
