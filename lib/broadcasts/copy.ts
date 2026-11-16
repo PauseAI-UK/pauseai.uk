@@ -106,7 +106,7 @@ export const broadcastsCopy = {
           : `${address} can send ${remaining.toLocaleString("en-GB")} more emails today, so this broadcast will take ${days} days.`,
       notConnected: (address: string) => `${address}'s Gmail isn't connected. Log in as ${address} to connect it.`,
       // Under the choice, by Postmark, which has no daily limit.
-      postmark: "⁂ Postmark has no daily limit, so this broadcast goes in one go.",
+      postmark: "Postmark has no daily limit, so this will go in one go.",
     },
     fromName: "Name",
     noNumber: "No WhatsApp number is configured yet",
