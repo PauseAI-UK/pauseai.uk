@@ -10,13 +10,11 @@ import {
   type BroadcastSendBy,
   type BroadcastTerms,
 } from "./broadcasts";
-import { emailSettingsCopy } from "@/lib/content/email-settings";
 import type { Topic } from "@/lib/supporters/contact-permissions";
 import { checkMailingDoc, type MailingRecipientValues } from "@/lib/mailings/doc";
 import { now } from "@/lib/now";
 import type { StoredFilter } from "@/lib/staff-search";
 import { SENDING, staffTime } from "@/lib/staff-time";
-import { siteUrl } from "@/lib/site-url.server";
 import { logChange } from "@/lib/server/audit.server";
 import { SEND_AGAIN, TOPICS_OF } from "./drafts.server";
 import { broadcastEmailChannel, textBackend } from "./channels.server";
@@ -25,7 +23,8 @@ import { query } from "@/lib/server/db.server";
 import { hashOf } from "@/lib/supporters/email-settings.server";
 import { gmailAccount } from "@/lib/email/gmail-accounts.server";
 import { paced, type ChannelMessage, type ChannelResult } from "@/lib/letters/channels.server";
-import { attachmentsOf, emailFor } from "@/lib/mailings/drafts.server";
+import { attachmentsOf } from "@/lib/mailings/drafts.server";
+import { broadcastEmail, copyLinks } from "./email-message.server";
 import { newMessageId } from "@/lib/server/mime.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { recordOptOut, type OptOut } from "@/lib/supporters/opt-outs.server";
@@ -333,26 +332,15 @@ async function suppressions(values: string[], of: "email" | "phone"): Promise<Su
  * and its files, its unsubscribe link at its foot and in its headers.
  */
 function copyMessage(broadcast: Sending, copy: Copy, linkToken: string, attachments: Attachment[]): ChannelMessage {
-  const { html, text } = emailFor(
-    { subject: broadcast.subject, body: checkMailingDoc(broadcast.body)! },
-    copy.mergeValues,
-  );
-  const settings = siteUrl(`/contact-preferences/m/${linkToken}`, undefined).toString();
-  const oneClick = siteUrl(`/api/unsubscribe/${linkToken}`, undefined).toString();
-  const footer = emailSettingsCopy.footer;
   return {
-    from: { name: broadcast.fromName, address: broadcast.sentFrom },
-    to: { name: copy.mergeValues.name, address: copy.address },
-    subject: broadcast.subject,
-    text: `${text}\n\n--\n${footer.text(settings)}`,
-    html: `${html}<hr><p style="font-size:13px;color:#666">${footer.html(settings)}</p>`,
-    attachments,
+    ...broadcastEmail(
+      broadcast,
+      { address: copy.address, values: copy.mergeValues },
+      copyLinks(linkToken),
+      attachments,
+    ),
     copyId: copy.id,
     messageId: copy.rfcMessageId,
-    headers: [
-      { Name: "List-Unsubscribe", Value: `<${oneClick}>` },
-      { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" },
-    ],
   };
 }
 

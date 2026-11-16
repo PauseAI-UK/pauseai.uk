@@ -4,6 +4,7 @@ import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
 import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailings/doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { recordGmail } from "@/tests/gmail-sends";
 import { TEMPLATE_FOOTER } from "./whatsapp-template";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
 import { toNotifications } from "@/tests/notifications";
@@ -743,6 +744,7 @@ describeWithDatabase("broadcasts to supporters", () => {
   });
 
   it("tests an email by Postmark, and a text by its backend only on an approved template", async () => {
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const email = (await getWrittenBroadcast(await draftOf(EMAIL_FILTER)))!;
     // A test copy is for someone made up, as the writer's preview is.
@@ -763,6 +765,54 @@ describeWithDatabase("broadcasts to supporters", () => {
     vi.stubEnv("DATA_FIXTURES", "");
     vi.stubEnv("WHATSAPP_TOKEN", "");
     expect(await sendBroadcastTest(approved, textTo, "+447700900002")).toBeUndefined();
+  });
+
+  it("tests an email by what the broadcast goes by, with an unsubscribe link and headers that change nothing", async () => {
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
+    vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
+    // Postmark and Gmail as their APIs get it, not the fixture build's fakes.
+    vi.stubEnv("DATA_FIXTURES", "");
+    await connectTestGmail(HELLO);
+    const postmark: Record<string, unknown>[] = [];
+    server.use(
+      http.post("https://api.postmarkapp.com/email", async ({ request }) => {
+        postmark.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ ErrorCode: 0, MessageID: "pm-test" });
+      }),
+    );
+    const gmail = recordGmail();
+    const draft = (await getWrittenBroadcast(await draftOf(EMAIL_FILTER)))!;
+    const email = { ...draft, subject: "Hi", body: EVENT_WORDS };
+    const to = fakeRecipient([], "email");
+    const oneClick = "<https://pauseai.uk/api/unsubscribe/test-copy>";
+
+    // By Postmark's broadcast stream, from hello@, though hello@'s Gmail is connected.
+    expect(email.sendBy).toBe("postmark");
+    await expect(sendBroadcastTest(email, to, "me@pauseai.uk")).resolves.toMatchObject({ sent: true });
+    expect(gmail).toEqual([]);
+    expect(postmark).toEqual([
+      expect.objectContaining({
+        From: `"PauseAI UK" <${HELLO}>`,
+        Subject: "Hi",
+        MessageStream: "broadcast",
+        Headers: [
+          { Name: "List-Unsubscribe", Value: oneClick },
+          { Name: "List-Unsubscribe-Post", Value: "List-Unsubscribe=One-Click" },
+        ],
+      }),
+    ]);
+    // The link at its foot is the contact preferences page itself, and its one click unsubscribes no one.
+    expect(postmark[0].TextBody).toMatch(/ https:\/\/pauseai\.uk\/contact-preferences$/);
+
+    // By the Gmail, when that's what it goes by.
+    await expect(sendBroadcastTest({ ...email, sendBy: "gmail" }, to, "me@pauseai.uk")).resolves.toMatchObject({
+      sent: true,
+    });
+    expect(postmark).toHaveLength(1);
+    expect(gmail).toHaveLength(1);
+    expect(gmail[0].account).toBe(HELLO);
+    expect(gmail[0].headers.get("list-unsubscribe")).toBe(oneClick);
+    expect(gmail[0].text.trim()).toMatch(/ https:\/\/pauseai\.uk\/contact-preferences$/);
   });
 
   it("leaves a saved draft's filter alone for saveDraft", async () => {
