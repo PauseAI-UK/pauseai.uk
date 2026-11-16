@@ -40,7 +40,7 @@ export const jobsCopy = {
     // the rest, such as reading Gmail, sending mailings and tidying the logs.
     pageTitle: "Scheduled jobs",
     // Under the title.
-    pageIntro: "⁂ What runs by itself, from every few minutes to nightly",
+    pageIntro: "Imports, sending and tidying that run on their own",
     // At the foot of each job's card: how long till it next runs on its own (staffVocabulary.dueIn), and the time.
     runsAgain: (inWords: string, at: string) => `Runs again ${inWords} · ${at}`,
     // On a job's page, the facts in its band: how it stands now; when it last ran; when it
