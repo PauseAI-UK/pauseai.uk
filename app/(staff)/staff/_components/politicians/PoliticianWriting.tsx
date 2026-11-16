@@ -144,9 +144,15 @@ export function SalutationBubble({ politician, action }: { politician: Politicia
   );
 }
 
-/** Where their email came from, in words: the staff member who set it, when, and why; their body's list; or Airtable. */
+/**
+ * Where their email came from, in words: why, then who set it and when, as an
+ * ask's answer says; their body's list; or Airtable.
+ */
 function sourceLine(source: NonNullable<EmailSource>): string {
-  if (source.by === "staff") return copy.setBy(source.staff, staffDate(source.at), source.note);
+  if (source.by === "staff") {
+    const setBy = politiciansCopy.politician.setBy(source.staff, staffDate(source.at));
+    return source.note ? `${source.note} · ${setBy}` : setBy;
+  }
   return source.by === "body" ? words.sources.parliament : copy.fromAirtable;
 }
 

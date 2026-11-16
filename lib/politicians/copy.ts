@@ -99,11 +99,9 @@ export const politiciansCopy = {
       // Over the email field in the band's bubble: the address letters go to, and what that means, ghosted.
       mainEmail: "Main address",
       mainIntro: "⁂ We send letters and emails to them here.",
-      // Under the field, ghosted, when a staff member set it: who, when, and their note of why (none on an old edit).
-      // One their body lists says so in the words of the other addresses' sources.
-      setBy: (who: string, when: string, note: string) =>
-        note ? `⁂ Set by ${who} on ${when}: ${note}` : `⁂ Set by ${who} on ${when}`,
-      // One that came from Airtable's UK Parliamentarians, which the policy team kept, and no body lists.
+      // Under it, ghosted, where it came from. Set by staff, it says why and who, as an ask's answer does (setBy);
+      // one their body lists says so in the words of the other addresses' sources; and one that came from
+      // Airtable's UK Parliamentarians, which the policy team kept, and no body lists.
       fromAirtable: "⁂ From Airtable",
       // In the band, for a Lord with no email: opens the bubble to set one.
       add: "add email",

@@ -79,10 +79,12 @@ describe("PoliticianWriting's examples in the gallery", () => {
     const at = new Date("2026-11-03T10:00:00Z");
     const { rerender } = await render(bubble({ by: "staff", staff: "jo@pauseai.uk", at, note: "Asked" }, vi.fn()));
     expect(part()).toContain(edit.mainIntro);
-    expect(part()).toContain(edit.setBy("jo@pauseai.uk", staffDate(at), "Asked"));
+    expect(part()).toContain(`Asked · ${politiciansCopy.politician.setBy("jo@pauseai.uk", staffDate(at))}`);
     // An edit from before notes: who and when alone.
     await rerender(bubble({ by: "staff", staff: "jo@pauseai.uk", at, note: "" }, vi.fn()));
-    expect(part()).toContain(edit.setBy("jo@pauseai.uk", staffDate(at), ""));
+    expect(part()).toContain(
+      `${examplePolitician.email}${politiciansCopy.politician.setBy("jo@pauseai.uk", staffDate(at))}`,
+    );
     // Without a way to change it, the address alone, and where it came from.
     await rerender(bubble({ by: "body" }));
     await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
