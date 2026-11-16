@@ -19,6 +19,7 @@ import {
   restsUntil,
   termsValues,
   BROADCAST_SENDER,
+  DEFAULT_SEND_BY,
   TEXT_SENDER_NAME,
   type BroadcastChannel,
   type BroadcastScheduleProblem,
@@ -178,8 +179,9 @@ export async function createBroadcastDraft(by: string, params: Params): Promise<
   const { sentFrom, fromName } = await senderOf(terms.channel);
   return transaction(async (db) => {
     const [{ id }] = await query<{ id: number }>(
-      `INSERT INTO mailings (title, audience, channel, topic, also_topics, filter, body, created_by, sent_from, from_name, state)
-       VALUES ('', 'supporters', $1, $2, $8, $3, $4, $5, $6, $7, 'draft') RETURNING id::int AS id`,
+      `INSERT INTO mailings (title, audience, channel, topic, also_topics, filter, body, created_by, sent_from, from_name, state,
+         send_by)
+       VALUES ('', 'supporters', $1, $2, $8, $3, $4, $5, $6, $7, 'draft', $9) RETURNING id::int AS id`,
       [
         terms.channel,
         topicColumns(terms)[0],
@@ -189,6 +191,7 @@ export async function createBroadcastDraft(by: string, params: Params): Promise<
         sentFrom,
         fromName,
         topicColumns(terms)[1],
+        DEFAULT_SEND_BY,
       ],
       db,
     );

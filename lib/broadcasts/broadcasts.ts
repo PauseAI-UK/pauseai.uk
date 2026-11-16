@@ -121,13 +121,17 @@ export function waitEndsAt(waitingSince: Date, sending: { dueAt: Date } | null):
 }
 
 /**
- * What can send an email to supporters, and whether it can yet: the
- * connected Gmail of the address it's from (BROADCAST_SENDER), or Postmark's
- * broadcast stream, which Postmark hasn't approved us for.
+ * What can send an email to supporters, and whether it can yet: Postmark's
+ * broadcast stream, or the connected Gmail of the address it's from
+ * (BROADCAST_SENDER). The stream manages no unsubscribes of its own: each
+ * copy carries ours (sending.server.ts).
  */
-export const BROADCAST_SEND_BY = { gmail: { available: true }, postmark: { available: false } } as const;
+export const BROADCAST_SEND_BY = { postmark: { available: true }, gmail: { available: true } } as const;
 
 export type BroadcastSendBy = keyof typeof BROADCAST_SEND_BY;
+
+/** What a new email to supporters is sent by, until its writer chooses another. */
+export const DEFAULT_SEND_BY: BroadcastSendBy = "postmark";
 
 /** Whether `value` is a way of sending an email to supporters that can be chosen now. */
 export function isAvailableSendBy(value: unknown): value is BroadcastSendBy {

@@ -573,7 +573,12 @@ export default function BroadcastWriter({
                     <Field label={copy.fromAccount} className={own.accountChoice}>
                       <Select
                         value={values.sendBy}
-                        onChange={(event) => change({ sendBy: event.target.value as BroadcastSendBy })}
+                        onChange={async (event) => {
+                          change({ sendBy: event.target.value as BroadcastSendBy });
+                          // Saved at once, so the page has what the new choice can send.
+                          await saveNow();
+                          router.refresh();
+                        }}
                       >
                         {SEND_BY.map((one) => (
                           <option key={one} value={one} disabled={!BROADCAST_SEND_BY[one].available}>
@@ -591,13 +596,17 @@ export default function BroadcastWriter({
                       <p className={own.fixed}>{fromName}</p>
                     </div>
                   </div>
-                  {/* By Gmail: how many more its account can send today, and so how long this takes; or that it isn't connected. */}
-                  {byGmail &&
-                    (data.sender.connected ? (
+                  {/* By Gmail: how many more its account can send today, and so how long this takes; or that it isn't
+                      connected. By Postmark: that it has no limit. */}
+                  {byGmail ? (
+                    data.sender.connected ? (
                       <Muted>{copy.sendBy.room(draft.sentFrom!, remaining!, days)}</Muted>
                     ) : (
                       <Strip tone="amber">{copy.sendBy.notConnected(draft.sentFrom!)}</Strip>
-                    ))}
+                    )
+                  ) : (
+                    <Muted>{copy.sendBy.postmark}</Muted>
+                  )}
                 </div>
               ) : (
                 <div className={own.account}>

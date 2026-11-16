@@ -8,6 +8,7 @@ import { storedFilter, type StoredFilter } from "@/lib/staff-search";
 import { firstOf, pageNumber, type Params, type ParamValue } from "@/lib/list-params";
 import {
   BROADCAST_SENDER,
+  DEFAULT_SEND_BY,
   termsValues,
   type BroadcastChannel,
   type BroadcastSendBy,
@@ -274,7 +275,7 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
 export async function newBroadcastPageData(
   me: string,
 ): Promise<{ draft: WrittenBroadcast; data: BroadcastWriterData }> {
-  const start = { channel: "email", sendBy: "gmail", sentFrom: BROADCAST_SENDER.email } as const;
+  const start = { channel: "email", sendBy: DEFAULT_SEND_BY, sentFrom: BROADCAST_SENDER.email } as const;
   const [choices, sender, templates, parts] = await Promise.all([
     supporterChoices(),
     broadcastSender(start),
