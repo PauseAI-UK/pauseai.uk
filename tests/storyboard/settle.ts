@@ -36,6 +36,20 @@ export async function hydrated(page: Page): Promise<void> {
   }
 }
 
+/**
+ * React has taken over `element`: hydration has given it its handlers, which
+ * React keeps on the element under a `__reactProps$` key. Before then a press
+ * gets the browser's own behaviour, or none, as a Next link's does while its
+ * page hydrates around it.
+ */
+export async function handled(element: Locator): Promise<void> {
+  await expect
+    .poll(() => element.evaluate((el) => Object.keys(el).some((key) => key.startsWith("__reactProps$"))), {
+      timeout: POLL.timeout,
+    })
+    .toBe(true);
+}
+
 /** Polls `ready` on the test side until it's true, or `timeoutMs` has passed (then carries on). */
 async function quiet(page: Page, ready: () => boolean, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;

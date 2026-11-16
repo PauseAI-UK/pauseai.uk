@@ -7,6 +7,7 @@ import { newestEmail } from "./outbox-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { importLuma } from "./supporter-steps";
 import { emailFrame } from "./email-frame";
+import { handled } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { eventsCopy } from "@/lib/events/copy";
@@ -232,11 +233,13 @@ const listHeadings = (page: Page) => page.locator("section:not(nav section) h2")
 
 /** Shows what's found as `choice` says, from the Group by chip's menu. */
 async function groupBy(page: Page, choice: keyof typeof copy.group.choices) {
+  // The menu opens before the page has hydrated, and a choice pressed then goes nowhere.
   await page.getByRole("button", { name: new RegExp(`^${copy.group.chip}`) }).click();
-  await page
+  const link = page
     .locator("[popover]:popover-open")
-    .getByRole("link", { name: copy.group.choices[choice], exact: true })
-    .click();
+    .getByRole("link", { name: copy.group.choices[choice], exact: true });
+  await handled(link);
+  await link.click();
 }
 
 /** A list by owner or by tag, by its heading's words. */
