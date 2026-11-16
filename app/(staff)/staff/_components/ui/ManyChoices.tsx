@@ -18,7 +18,7 @@ import styles from "./FilterBar.module.css";
 const copy = staffVocabulary.filters;
 
 /** The start of a chip that leaves out: its filter's name, then "not", lighter than the choices that follow. */
-export function NotWords({ label }: { label: string }) {
+function NotWords({ label }: { label: string }) {
   return (
     <>
       {label}: <span className={styles.joining}>{copy.not}</span>{" "}
@@ -39,8 +39,8 @@ export function NotWords({ label }: { label: string }) {
  * the chip's words change. As a lozenge's second half (`half`) it's there with
  * none chosen too, named for its blank choice, and has nothing to turn round or
  * remove. `turns` offers turning what it has the other way. `icon`, before
- * its choices, says what they all are, so its words leave out their group
- * (a Consent lozenge's way). `boxOptions`, if given, are those "+ Add" offers
+ * its name, says what its choices all are, so its words leave out their
+ * group (a Consent chip's way). `boxOptions`, if given, are those "+ Add" offers
  * to tick, where they're fewer than the menu offers to pick one of. `id`
  * tells its menu from another of the filter's.
  */
@@ -121,6 +121,12 @@ export default function ManyChoices({
           words(value),
         ],
   );
+  const named = (
+    <>
+      {not ? <NotWords label={label} /> : `${label}: `}
+      {chosenWords}
+    </>
+  );
   return (
     <Menu
       id={id}
@@ -135,8 +141,7 @@ export default function ManyChoices({
         ) : (
           <>
             {not && <NotIcon />}
-            {not ? <NotWords label={label} /> : `${label}: `}
-            {icon ? <IconText icon={icon}>{chosenWords}</IconText> : chosenWords}
+            {icon ? <IconText icon={icon}>{named}</IconText> : named}
           </>
         )
       }

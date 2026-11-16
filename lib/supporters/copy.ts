@@ -37,9 +37,14 @@ export const supportersCopy = {
       campaign: "Campaign",
       wrote: { "": "Wrote", no: "Didn't write" } as Record<string, string>,
       // The other filters are named after their columns.
-      // The Consent filter: its topics under their way's heading; then in its chip's second half, its answer, as a
-      // supporter's page words it.
+      // The Consent filter: its topics under their way's heading; each way's chip named for it, before the topics it
+      // finds or "not" and those it leaves out.
       ways: { email: "Email", text: "Text", call: "Call" } as Record<Way, string>,
+      wayChips: {
+        email: "Email consent",
+        text: "Text consent",
+        call: "Call consent",
+      } as Record<Way, string>,
       topics: {
         newsletter: "Newsletter",
         events: "Events only",

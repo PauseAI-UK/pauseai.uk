@@ -243,6 +243,10 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       params: { ...other, contact: EMAIL_FILTER.contact },
     });
     expect(await withChoosing(other, undefined)).toEqual({ choosing: undefined, params: other });
+    // What the list leaves out stays, as the draft's Consent doesn't fix it.
+    expect(await withChoosing({ contact: ["text:newsletter:yes", "!text:events:yes"] }, String(id))).toMatchObject({
+      params: { contact: [EMAIL_FILTER.contact, "!text:events:yes"] },
+    });
     await query("UPDATE mailings SET title = '' WHERE id = $1", [id]);
     expect(await choosingBroadcast(String(id))).toMatchObject({
       title: broadcastsCopy.broadcastPages.newTitle.email,

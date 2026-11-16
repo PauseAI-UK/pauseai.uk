@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { page, userEvent } from "vitest/browser";
+import { page } from "vitest/browser";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { CONSENT_ORDER } from "@/lib/staff-list-filters";
@@ -21,130 +21,116 @@ describe("SupporterFilters", () => {
   const choices = { events, mps };
   const none = { events: [], mps: [] };
 
-  it("has a chip for each filter on, a contact one in two halves, its topic then its answer", async () => {
+  it("has a chip for each way Consent finds and each it leaves out, the way's icon before its topics", async () => {
     const { filter, ...search } = supportersSearch({
       activity: "registered",
-      contact: ["email:newsletter:no", "!text:events:yes", "email:newsletter:asked"],
+      contact: ["email:newsletter:yes", "!text:events:yes", "email:events:yes", "email:newsletter:asked"],
       erased: "1",
     });
     void filter;
     await render(<SupporterFilters search={search} choices={choices} />);
-    const { topics, ways } = copy.filters;
+    const { topics, wayChips } = copy.filters;
     const label = copy.columns.subscriptions;
-    const answers = copy.detail.permissions.answers;
-    // Consent's chips first, in its own place.
+    // Consent's chips first, in its own place, each named for its way: those it finds, then those it leaves out; a
+    // value it doesn't know, alone, by the filter's name.
     expect(chips()).toEqual([
-      `${label}: ${topics.newsletter}`,
-      answers.email.no,
-      staffVocabulary.filters.notChip(label, topics.events),
-      answers.text.yes,
+      `${wayChips.email}: ${staffVocabulary.filters.anyOf([topics.newsletter, topics.events])}`,
       `${label}: email:newsletter:asked`,
+      staffVocabulary.filters.notChip(wayChips.text, topics.events),
       `${copy.columns.badges}: ${copy.badges.registered}`,
     ]);
-    // The way's icon in its chip, before its topic's name.
-    const topicChip = [...document.querySelectorAll("button")].find(
-      (b) => b.textContent === `${label}: ${topics.newsletter}`,
-    )!;
-    expect(topicChip.querySelector("svg")).not.toBeNull();
-    // A lozenge each, for a way and an answer, found or left out. The first half: each consent with its answer,
-    // choosing one keeps the other lozenges; then Remove, taking off only that one; the erased notice goes.
-    const others = "contact=%21text%3Aevents%3Ayes&contact=email%3Anewsletter%3Aasked";
-    const first = await menu(new RegExp(`^${label}:\\s+${topics.newsletter}`));
-    const keeping = `/staff/supporters?activity=registered&${others}`;
-    expect(first).toContainEqual([topics.newsletter, `${keeping}&contact=email%3Anewsletter%3Ano`]);
-    expect(first).toContainEqual([topics.events, `${keeping}&contact=email%3Aevents%3Ano`]);
-    expect(first).toContainEqual([topics.events, `${keeping}&contact=text%3Aevents%3Ano`]);
-    expect(first.at(-1)).toEqual([staffVocabulary.filters.remove, `/staff/supporters?activity=registered&${others}`]);
-    // Under its way's heading, each topic once.
-    const box = document.querySelector("[popover]:popover-open")!;
-    expect([...box.querySelectorAll("li[class*=choiceGroup]")].map((li) => li.textContent)).toEqual([
-      ways.email,
-      ways.text,
-      ways.call,
-    ]);
-    await userEvent.keyboard("{Escape}");
-    // The second: yes or no, in the words of its way; no Remove.
-    const second = await menu(answers.email.no);
-    expect(second.map(([words]) => words)).toEqual([answers.email.yes, answers.email.no]);
-    expect(second[0]).toEqual([
-      answers.email.yes,
-      `/staff/supporters?activity=registered&${others}&contact=email%3Anewsletter%3Ayes`,
-    ]);
-    // A number's, kept left out.
-    const texts = await menu(answers.text.yes);
-    expect(texts.map(([words]) => words)).toEqual([answers.text.yes, answers.text.no]);
-    expect(texts[1]).toEqual([
-      answers.text.no,
-      "/staff/supporters?activity=registered&contact=email%3Anewsletter%3Ano&contact=email%3Anewsletter%3Aasked&contact=%21text%3Aevents%3Ano",
-    ]);
-    // + Filter doesn't offer it again.
-    const add = await menu(staffVocabulary.filters.add);
-    expect(add.map(([words]) => words)).not.toContain(topics.volunteering);
-  });
-
-  it("puts Consents of one way and one answer in one lozenge, or between them, + Add offering that way's alone, its answer changing them all", async () => {
-    const { filter, ...search } = supportersSearch({
-      contact: ["email:newsletter:yes", "text:events:yes", "email:events:yes", "email:volunteering:no"],
-    });
-    void filter;
-    await render(<SupporterFilters search={search} choices={none} />);
-    const { topics } = copy.filters;
-    const label = copy.columns.subscriptions;
-    const answers = copy.detail.permissions.answers;
-    expect(chips()).toEqual([
-      `${label}: ${staffVocabulary.filters.anyOf([topics.newsletter, topics.events])}`,
-      answers.email.yes,
-      `${label}: ${topics.events}`,
-      answers.text.yes,
-      `${label}: ${topics.volunteering}`,
-      answers.email.no,
-    ]);
-    // Several, so its menu opens as boxes: email's topics alone.
-    await menu(new RegExp(`^${label}:\\s+${topics.newsletter} or`));
+    const emails = [...document.querySelectorAll("button")].find((b) => b.textContent?.startsWith(wayChips.email))!;
+    expect(emails.querySelector("svg")).not.toBeNull();
+    // Several, so its menu opens as boxes: email's topics alone. It can turn them all to left out.
+    const found = await menu(new RegExp(`^${wayChips.email}:\\s+${topics.newsletter} or`));
     const box = document.querySelector("[popover]:popover-open")!;
     expect(
       [...box.querySelectorAll("input[type=checkbox]")].map((input) => (input as HTMLInputElement).checked),
     ).toEqual([true, true, false]);
-    await userEvent.keyboard("{Escape}");
-    // Its answer changes both.
-    const second = await menu(answers.email.yes);
-    expect(second[1]).toEqual([
-      answers.email.no,
-      "/staff/supporters?contact=text%3Aevents%3Ayes&contact=email%3Avolunteering%3Ano&contact=email%3Anewsletter%3Ano&contact=email%3Aevents%3Ano",
+    expect(found).toContainEqual([
+      staffVocabulary.filters.exceptThese,
+      "/staff/supporters?activity=registered&contact=%21text%3Aevents%3Ayes&contact=email%3Anewsletter%3Aasked&contact=%21email%3Anewsletter%3Ayes&contact=%21email%3Aevents%3Ayes",
+    ]);
+    // The one left out swaps to any consent no other chip has, still left out, and can turn to found.
+    const out = await menu(staffVocabulary.filters.notChip(wayChips.text, topics.events));
+    const keeping =
+      "/staff/supporters?activity=registered&contact=email%3Anewsletter%3Ayes&contact=email%3Aevents%3Ayes&contact=email%3Anewsletter%3Aasked";
+    expect(out).toContainEqual([topics.newsletter, `${keeping}&contact=%21text%3Anewsletter%3Ayes`]);
+    expect(out.map(([words]) => words)).toContain(staffVocabulary.filters.onlyThis);
+    expect(out.at(-1)).toEqual([staffVocabulary.filters.remove, keeping]);
+    // + Filter doesn't offer it; Except does, but for those it has.
+    expect((await menu(staffVocabulary.filters.add)).map(([words]) => words)).not.toContain(topics.volunteering);
+    const except = await menu(staffVocabulary.filters.except);
+    expect(except).toContainEqual([
+      topics.volunteering,
+      `${keeping}&contact=%21text%3Aevents%3Ayes&contact=%21email%3Avolunteering%3Ayes`,
     ]);
   });
 
-  it("while choosing who a broadcast goes to, shows its Consent locked: no menu, never offered, kept by Clear filters", async () => {
-    const { topics } = copy.filters;
+  it("keeps Consent's own button while it only leaves out, a consent chosen there keeping those", async () => {
+    const { filter, ...search } = supportersSearch({ contact: "!text:events:yes" });
+    void filter;
+    await render(<SupporterFilters search={search} choices={none} />);
     const label = copy.columns.subscriptions;
-    const { filter, ...search } = supportersSearch({ contact: "email:newsletter:yes", near: "LS1", broadcast: "3" });
+    expect(chips()).toEqual([staffVocabulary.filters.notChip(copy.filters.wayChips.text, copy.filters.topics.events)]);
+    expect(await menu(new RegExp(`^${label}$`))).toContainEqual([
+      copy.filters.topics.newsletter,
+      "/staff/supporters?contact=%21text%3Aevents%3Ayes&contact=email%3Anewsletter%3Ayes",
+    ]);
+  });
+
+  it("puts what Consent finds before what it leaves out, whichever came first", async () => {
+    const { filter, ...search } = supportersSearch({ contact: ["!text:events:yes", "email:newsletter:yes"] });
+    void filter;
+    await render(<SupporterFilters search={search} choices={none} />);
+    const { topics, wayChips } = copy.filters;
+    expect(chips()).toEqual([
+      `${wayChips.email}: ${topics.newsletter}`,
+      staffVocabulary.filters.notChip(wayChips.text, topics.events),
+    ]);
+  });
+
+  it("while choosing who a broadcast goes to, locks the consents it finds, not those it leaves out", async () => {
+    const { topics, wayChips } = copy.filters;
+    const { filter, ...search } = supportersSearch({
+      contact: ["email:newsletter:yes", "!text:events:yes"],
+      near: "LS1",
+      broadcast: "3",
+    });
     void filter;
     await render(<SupporterFilters search={search} choices={choices} lockConsent />);
     const locked = [...document.querySelectorAll("[class*=locked]")];
-    expect(locked.map((chip) => chip.textContent)).toEqual([
-      `${label}: ${topics["newsletter"]}`,
-      copy.detail.permissions.answers.email.yes,
+    expect(locked.map((chip) => chip.textContent)).toEqual([`${wayChips.email}: ${topics.newsletter}`]);
+    expect(locked[0].tagName).toBe("SPAN");
+    expect(locked[0].getAttribute("title")).toBe(supportersCopy.consentLocked);
+    // Its padlock at the end.
+    expect(locked[0].querySelector("svg:last-child[class*=lockIcon]")).not.toBeNull();
+    // The one left out opens, with no turning to found, and goes on its own.
+    const out = await menu(staffVocabulary.filters.notChip(wayChips.text, topics.events));
+    expect(out.map(([words]) => words)).not.toContain(staffVocabulary.filters.onlyThis);
+    expect(out.at(-1)).toEqual([
+      staffVocabulary.filters.remove,
+      "/staff/supporters?contact=email%3Anewsletter%3Ayes&near=LS1&broadcast=3",
     ]);
-    expect(locked.every((chip) => chip.tagName === "SPAN")).toBe(true);
-    expect(locked.map((chip) => chip.getAttribute("title"))).toEqual([
-      supportersCopy.consentLocked,
-      supportersCopy.consentLocked,
-    ]);
-    // Its padlock at the end, in the second half.
-    expect(locked.map((chip) => Boolean(chip.querySelector("svg:last-child[class*=lockIcon]")))).toEqual([false, true]);
-    expect((await menu(staffVocabulary.filters.add)).map(([words]) => words)).not.toContain(label);
+    // + Filter doesn't offer Consent; Except does.
+    expect((await menu(staffVocabulary.filters.add)).map(([words]) => words)).not.toContain(topics.volunteering);
+    expect((await menu(staffVocabulary.filters.except)).map(([words]) => words)).toContain(topics.volunteering);
+    // Clear filters keeps what it finds, not what it leaves out.
     await expect
       .element(page.getByRole("link", { name: staffVocabulary.resetFilters }))
       .toHaveAttribute("href", "/staff/supporters?contact=email%3Anewsletter%3Ayes");
   });
 
-  it("marks a locked Consent that leaves people out as a not", async () => {
-    const { filter, ...search } = supportersSearch({ contact: "!email:newsletter:yes" });
+  it("while locked, leaves a value it doesn't know open when it's left out, marked as a not", async () => {
+    const { filter, ...search } = supportersSearch({ contact: ["email:newsletter:yes", "!email:newsletter:asked"] });
     void filter;
     await render(<SupporterFilters search={search} choices={choices} lockConsent />);
-    const locked = document.querySelector("[class*=locked]")!;
-    expect(locked.querySelector("svg")).not.toBeNull();
-    expect(locked.querySelector("svg:first-child[class*=lockIcon]")).toBeNull();
+    const label = copy.columns.subscriptions;
+    const out = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.startsWith(staffVocabulary.filters.notChip(label, "email:newsletter:asked")),
+    )!;
+    expect(out.querySelector("svg")).not.toBeNull();
+    expect(document.querySelectorAll("[class*=locked]")).toHaveLength(1);
   });
 
   it("offers every consent once in the Consent filter, by email, then text, then call, which is volunteering's alone", () => {
@@ -198,6 +184,7 @@ describe("SupporterFilters", () => {
       politiciansCopy.politician.country,
       politiciansCopy.politician.roles.commons,
       copy.columns.badges,
+      copy.columns.subscriptions,
       copy.filters.event,
     ]);
     expect(await menu(staffVocabulary.filters.except)).toContainEqual([

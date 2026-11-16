@@ -59,7 +59,7 @@ import { TEMPLATE_FOOTER, templateText } from "./whatsapp-template";
 import { supporterAudience } from "./recipients.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { filterProblems } from "@/lib/server/stored-filters.server";
-import type { Topic } from "@/lib/supporters/contact-permissions";
+import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
 import { broadcastsCopy } from "./copy";
 
 // A broadcast to supporters written on the site: a mailing to the supporters
@@ -219,7 +219,7 @@ export async function changeBroadcastFilter(id: number, params: Params): Promise
 
 /**
  * Changes the Consent a draft goes under to `value`, topics answered yes,
- * keeping its other filters. To the other channel only while it has no words
+ * keeping its other filters and the consents it leaves out. To the other channel only while it has no words
  * of its own (hasWords), starting it afresh as one new on that channel is.
  * Says whether it did.
  */
@@ -229,7 +229,10 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
   if (broadcast?.state !== "draft" || !terms) return false;
   const moving = terms.channel !== broadcast.channel;
   if (moving && hasWords({ ...broadcast, templateId: broadcast.template?.id ?? null })) return false;
-  const filter = storedFilter("supporters", { ...broadcast.filter.params, contact: termsValues(terms) });
+  const filter = storedFilter("supporters", {
+    ...broadcast.filter.params,
+    contact: [...termsValues(terms), ...consentLeftOut(broadcast.filter.params.contact)],
+  });
   const sender = await senderOf(terms.channel);
   await query(
     `UPDATE mailings SET channel = $2, topic = $3, filter = $4, also_topics = $8,

@@ -775,25 +775,27 @@ are:
   conference | Going or Declined". Ticking nothing means its blank choice,
   "Any answer". Changing the first half clears the second. A filter like
   this can't leave choices out.
-- A filter can have choices in two parts (an option's `seconds`). Its chip
-  is then in two halves: the first half chooses among the choices, and the
-  second among the second parts of the one chosen. Such a filter doesn't
-  repeat. A choice list can have headings (an option's `group`, its icon
-  once) and a quiet `detail` after a choice. The Consent filter does all
-  of this. Its topics come under Email and Phone. A topic, when chosen,
-  finds those we can contact about it, "Consent: PauseAI UK | Can email",
-  and the chip's second half turns that to Not sure or Can't email. The
-  first half changes the topic, or removes the filter. Its value is one
-  parameter: `contact=email:newsletter:yes`.
+- A choice list can have headings (an option's `group`, its icon once)
+  and a quiet `detail` after a choice. A repeating filter whose choices
+  are in groups has a chip for each group it finds, and one for each it
+  leaves out, the group's icon first. A group can name its chip (its
+  `chip`): "✉ Email consent: Newsletter or Events only" and "💬 Text
+  consent: not Events only". "+ Add" ticks the group's choices alone. The Consent filter is one: its topics come under
+  Email, Text and Call, each finding those we can contact about it that
+  way. Its values are each a parameter: `contact=email:newsletter:yes`,
+  `contact=!text:events:yes`. Leaving out every consent still finds those
+  with none, so it never takes the filter off.
 - A filter that matters most has its own button (`own`) before
-  "+ Filter", and "+ Filter" doesn't offer it. Once it's on, its chip
-  comes first. The supporters list's Consent is one, as it's what a
-  broadcast needs.
-- A filter that can't change in a mode is `locked`, and says why on hover.
-  Its chip is there, with a padlock in place of its arrow, but doesn't
-  open. "+ Filter" doesn't offer it, and Clear filters keeps it. Consent
-  is locked while the list is choosing who a broadcast goes to, because
-  the broadcast's writer is where it changes.
+  "+ Filter", and "+ Filter" doesn't offer it, though Except does. Once
+  it finds something, its chip comes first. The supporters list's Consent
+  is one, as it's what a broadcast needs.
+- A filter whose finding can't change in a mode is `locked`, and says why
+  on hover. The chip of what it finds is there, with a padlock in place of
+  its arrow, but doesn't open. "+ Filter" doesn't offer it, and Clear
+  filters keeps what it finds. What it leaves out can change, and Except
+  offers it. Consent is locked while the list is choosing who a broadcast
+  goes to, because the broadcast's writer is where it changes; leaving
+  consents out there only narrows who it goes to.
 - Clear filters comes last, and shows while anything is on. It empties the
   search, every filter and the sort. A tab over the list, such as the
   politicians' houses, isn't a filter, so Clear filters keeps it.

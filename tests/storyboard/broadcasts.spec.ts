@@ -613,10 +613,24 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await expect(page.locator(`[title="${supportersCopy.consentLocked}"]`).first()).toBeVisible();
   await page.locator(`[title="${supportersCopy.consentLocked}"]`).first().hover();
   await frame(page, "The Consent, locked", { window: true });
+  story(
+    "Except offers the Consents all the same, as leaving some out only narrows it: here those we can text about events, who'll get a text instead.",
+  );
+  const { topics } = supportersCopy.supporters.filters;
+  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
+  const except = page.locator("[popover]:popover-open");
+  await except.getByText(supportersCopy.supporters.columns.subscriptions, { exact: true }).click();
+  await except.getByRole("link", { name: topics.events, exact: true }).click();
+  await expect(page).toHaveURL(/contact=%21text%3Aevents%3Ayes/);
+  const leftOut = staffVocabulary.filters.notChip(supportersCopy.supporters.filters.wayChips.text, topics.events);
+  await expect(page.getByRole("button", { name: leftOut })).toBeVisible();
+  await frame(page, "Those we can text about events, left out", { window: true });
   story("The orange button keeps them for the draft.");
-  await bar.getByRole("button", { name: copy.useThese(EMAILABLE) }).click();
+  await bar.getByRole("button", { name: /^Use these/ }).click();
   await expect(page).toHaveURL(draft);
-  await expect(page.getByRole("list", { name: mailingsCopy.mailingPages.whoLabel })).toContainText("fixture");
+  const who = page.getByRole("list", { name: mailingsCopy.mailingPages.whoLabel });
+  await expect(who).toContainText("fixture");
+  await expect(who).toContainText(leftOut);
   await frame(page, "The draft, to those found");
   story("Narrowed, the button is Change who. Cancel at the top goes back and changes nothing.");
   await page.getByRole("link", { name: mailingCopy.changeWho }).click();

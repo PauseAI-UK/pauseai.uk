@@ -20,7 +20,7 @@ describe("consents", () => {
 });
 
 describe("contactState", () => {
-  it("reads a consent, with an answer or a reason, and nothing else", () => {
+  it("reads a consent, with a yes or a reason, and nothing else", () => {
     expect(contactState("email:events")).toEqual({ way: "email", topic: "events" });
     expect(contactState("text:newsletter:yes")).toEqual({ way: "text", topic: "newsletter", send: "yes" });
     expect(contactState("call:volunteering:do-not-phone")).toEqual({
@@ -31,13 +31,14 @@ describe("contactState", () => {
     expect(contactState("phone:events")).toBeUndefined();
     expect(contactState("email:luma-calendar")).toBeUndefined();
     expect(contactState("email:events:unsure")).toBeUndefined();
+    expect(contactState("email:events:no")).toBeUndefined();
     expect(contactState("email:events:yes:no")).toBeUndefined();
     expect(contactState("email")).toBeUndefined();
     expect(contactState("")).toBeUndefined();
   });
 
   it("writes a state as its form value", () => {
-    for (const value of ["text:events", "email:newsletter:no", "call:volunteering:volunteered"]) {
+    for (const value of ["text:events", "email:newsletter:yes", "call:volunteering:volunteered"]) {
       expect(stateValue(contactState(value)!)).toBe(value);
     }
   });
