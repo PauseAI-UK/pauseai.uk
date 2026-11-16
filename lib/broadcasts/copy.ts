@@ -187,10 +187,9 @@ export const broadcastsCopy = {
     // (mailingPages.standing), as a sentence after a dot in its colour: its words with WhatsApp, approved or rejected by it,
     // stopped by itself and why.
     standing: {
-      waiting: "Waiting for WhatsApp to approve its template",
-      approved: (n: number) =>
-        `⁂ WhatsApp approved its template: ready to schedule, to ${count(n, "person", "people")}`,
-      rejected: "WhatsApp rejected its template",
+      waiting: "In review by WhatsApp",
+      approved: (n: number) => `Approved by WhatsApp, to ${count(n, "person", "people")}`,
+      rejected: "Rejected by WhatsApp",
       gaveUp: {
         limit: (n: number, of: number) =>
           `Ran out of time after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
