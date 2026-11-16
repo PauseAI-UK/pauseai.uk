@@ -1,19 +1,19 @@
-/* The form under a politician's addresses, set apart from the list above. */
-.form {
+/* The form under a politician's addresses, and the Add that opens it, set
+   apart from the list above. */
+.form,
+.open {
   margin-top: var(--space-4);
 }
 
-/* The address and Add on one line, over the kit's form, which wraps (the
-   class twice, so it wins whichever loads last). */
-.form.form {
-  flex-wrap: nowrap;
+/* The address on a line of its own; under it the note of why, and Add. */
+.address {
+  flex-basis: 100%;
+  min-width: 0;
 }
 
-/* The field is short, as an address is a few words; it doesn't grow into
-   the room beside it. */
-.address {
-  flex: 0 1 16rem;
-  min-width: 10rem;
+.note {
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 /* What the server said, under the form. */
@@ -21,7 +21,7 @@
   margin: var(--space-2) 0 0;
 }
 
-/* Add stays whole, however narrow the field gets. */
+/* Add stays whole, however narrow the note gets. */
 .form button {
   flex: none;
   white-space: nowrap;

@@ -82,7 +82,8 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "add politician": { id: number } & ImportedFields;
   /** An import's or a staff member's edit; an import's change of status, with when it happened and why. */
   "edit politician": PoliticianEdit & { date?: string | null; note?: string };
-  "add politician address": { politicianId: number; address: string };
+  // With staff's note of why, but for one added before notes.
+  "add politician address": { politicianId: number; address: string; note?: string };
   "remove politician address": { politicianId: number; address: string };
   "apply politician import": ImportCounts;
   "hold politician import": ImportCounts;

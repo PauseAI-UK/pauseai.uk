@@ -561,7 +561,7 @@ test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) 
 
 test("A politician's own address", async ({ page, request, flowDatabase }) => {
   story(
-    "Polly wrote to policy@ from her own Gmail, which is on no list, so her email matched no one. Staff press the “more” after her email at the top of her page, which opens her other addresses.",
+    "Polly wrote to policy@ from her own Gmail, which is on no list, so her email matched no one. Staff press the “more” after her email at the top of her page, which opens her linked addresses.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   connectPolicyMailboxes(flowDatabase);
@@ -572,12 +572,18 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
   const bubble = page.locator("[popover]:popover-open");
   await expect(bubble.getByRole("heading", { name: aliases.title })).toBeVisible();
-  await frame(page, "Her other addresses", { window: true });
+  await frame(page, "Her linked addresses", { window: true });
 
-  story("Staff add her Gmail. It appears at the foot of the list, and pulses once.");
+  story("Staff press Add under the list, and type her Gmail and why it's hers.");
+  await bubble.getByRole("button", { name: aliases.add }).click();
   await bubble.getByLabel(aliases.address).fill(POLLY_PERSONAL);
+  await bubble.getByLabel(aliases.note).fill("She writes to us from it");
+  await frame(page, "Her Gmail, and why", { window: true });
+
+  story("Added, it appears at the foot of the list, with why, and pulses once.");
   await bubble.getByRole("button", { name: aliases.add }).click();
   await expect(bubble.getByText(POLLY_PERSONAL)).toBeVisible();
+  await expect(bubble.getByText("She writes to us from it", { exact: false })).toBeVisible();
   await frame(page, "Her Gmail added", { window: true });
 
   story("The next read of Gmail searches policy@ for her Gmail, and says so. Her email is kept, and shows under her.");
@@ -660,11 +666,11 @@ test("Changing an MP's email", async ({ page, request, flowDatabase }) => {
   const words = copy.editDetails;
   await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
   const bubble = page.locator("[popover]:popover-open");
-  await expect(bubble.getByText(copy.aliases.sources.parliament).first()).toBeVisible();
+  await expect(bubble.getByText(copy.aliases.sources.parliament("commons")).first()).toBeVisible();
   await frame(page, "Her main address, from Parliament", { window: true });
 
-  story("They press edit by it, and type the new address. Save won't send it until they say why.");
-  await bubble.getByRole("button", { name: words.edit }).click();
+  story("They press Edit by it, and type the new address. Save won't send it until they say why.");
+  await bubble.getByRole("button", { name: copy.edit, exact: true }).click();
   const field = bubble.getByRole("textbox", { name: words.email });
   const old = await field.inputValue();
   await field.fill("polly.office@example.org");
@@ -672,12 +678,11 @@ test("Changing an MP's email", async ({ page, request, flowDatabase }) => {
   await frame(page, "Her new address, and why", { window: true });
 
   story(
-    "Saved, the band shows the new address. Its bubble says who set it, when and why, and her old address is under her other addresses, so her emails from it are still linked to her.",
+    "Saved, the bubble stays open on the new address: why, who set it and when. Her old address is under her other addresses, so her emails from it are still linked to her.",
   );
   await bubble.getByRole("button", { name: words.save }).click();
-  await expect(page.getByRole("link", { name: "polly.office@example.org" }).first()).toBeVisible();
-  await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
   await expect(bubble.getByText("Her office asked us to write here", { exact: false })).toBeVisible();
+  await expect(bubble.getByRole("textbox", { name: words.email })).toHaveCount(0);
   await expect(bubble.getByText(old, { exact: true })).toBeVisible();
   await frame(page, "Her new main address, set by staff", { window: true });
 

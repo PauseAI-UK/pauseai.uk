@@ -219,6 +219,15 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
         </>
       );
     }
+    // One of their addresses staff added, and why, or removed: which.
+    case "add politician address":
+    case "remove politician address":
+      return (
+        <>
+          {text("address")}
+          {text("note") && <Muted> · {text("note")}</Muted>}
+        </>
+      );
     default:
       return <>{text("note")}</>;
   }

@@ -39,7 +39,8 @@ describe("PoliticianWriting's examples in the gallery", () => {
     await expect.element(page.getByText(edit.emailHint)).not.toBeInTheDocument();
     // Their email, with its edit, which opens the field.
     await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
-    await page.getByRole("button", { name: edit.edit }).click();
+    const editButton = page.getByRole("button", { name: politiciansCopy.politician.edit, exact: true });
+    await editButton.click();
     await page.getByRole("textbox", { name: edit.email }).fill("polly@example.org");
     await page.getByRole("button", { name: edit.save }).click();
     // The note is required, so the form isn't sent without it.
@@ -51,16 +52,41 @@ describe("PoliticianWriting's examples in the gallery", () => {
       .toHaveTextContent(
         'editDetails({"politicianId":"7","salutation":"Ms Placeholder","email":"polly@example.org","note":"Her office asked"})',
       );
-    // Saved, the bubble closes; it opens again from its button, with the field folded.
+    // Saved, the bubble stays open, the field folded, showing the address and its Edit.
     await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
+    await expect.element(editButton).toBeVisible();
+    // Closed with the field open, it opens again with it folded.
+    await editButton.click();
     await page.getByRole("button", { name: words.more(7) }).click();
-    await expect.element(page.getByRole("button", { name: edit.edit })).toBeVisible();
-    await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
+    await page.getByRole("button", { name: words.more(7) }).click();
+    await expect.element(editButton).toBeVisible();
     await page.getByRole("button", { name: words.remove }).first().click();
     await expect
       .element(log().nth(1))
       .toHaveTextContent('removeAlias({"politicianId":"7","address":"jane.smith@parliament.uk"})');
     await expect.element(page.getByRole("button", { name: words.add })).toBeVisible();
+  });
+
+  it("with no linked address, opens from an edit, and has Add close under the intro", async () => {
+    const none = { past: [], parliament: [], office: [], added: [], domains: [], forms: [] };
+    await render(
+      <AddressesBubble
+        politician={examplePolitician}
+        aliases={{ ...exampleAliases, ...none }}
+        actions={{ add: vi.fn(), remove: vi.fn() }}
+      />,
+    );
+    const words = politiciansCopy.politician.aliases;
+    await page.getByRole("button", { name: politiciansCopy.politician.editDetails.edit, exact: true }).click();
+    const intro = page.getByText(words.intro).element();
+    const add = page.getByRole("button", { name: words.add });
+    // Nothing between them but the empty list: Add sits a small gap under the intro.
+    const gap = add.element().getBoundingClientRect().top - intro.getBoundingClientRect().bottom;
+    expect(gap).toBeLessThan(16);
+    await add.click();
+    await expect.element(page.getByLabelText(words.address)).toBeVisible();
+    const form = page.getByRole("form", { name: words.add }).element();
+    expect(form.getBoundingClientRect().top - intro.getBoundingClientRect().bottom).toBeLessThan(16);
   });
 
   it("says under their main address where it came from: the staff edit with its note, their body's list, or nothing", async () => {
@@ -89,7 +115,19 @@ describe("PoliticianWriting's examples in the gallery", () => {
     await rerender(bubble({ by: "body" }));
     await expect.element(page.getByRole("textbox", { name: edit.email })).not.toBeInTheDocument();
     expect(part()).toContain(examplePolitician.email);
-    expect(part()).toContain(words.sources.parliament);
+    expect(part()).toContain(words.sources.parliament("commons"));
+    // An MSP's names their own body.
+    await rerender(
+      <AddressesBubble
+        politician={{ ...examplePolitician, house: "scottish-parliament" }}
+        aliases={{ ...exampleAliases, emailSource: { by: "body" } }}
+        actions={{ add: vi.fn(), remove: vi.fn() }}
+        open
+      />,
+    );
+    expect(part()).toContain(words.sources.parliament("scottish-parliament"));
+    expect(words.sources.parliament("scottish-parliament")).toContain("the Scottish Parliament");
+    expect(words.sources.parliament()).toBe(words.sources.parliament("lords"));
     await rerender(bubble({ by: "airtable" }));
     expect(part()).toContain(edit.fromAirtable);
     await rerender(bubble(null));

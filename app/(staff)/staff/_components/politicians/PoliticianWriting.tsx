@@ -40,7 +40,8 @@ type Choices = { hint: string; values: string[] };
 /**
  * A field, sent with `hidden`; any `choices` for it; then a field for the
  * note of why it changed, which must be filled, and Save; and, once the
- * server has it, that it's saved, closing the bubble, or why not.
+ * server has it, that it's saved, calling `onSaved` or else closing the
+ * bubble, or why not.
  */
 function SaveField({
   label,
@@ -50,6 +51,7 @@ function SaveField({
   hidden,
   action,
   choices,
+  onSaved,
 }: {
   label: string;
   name: string;
@@ -58,13 +60,17 @@ function SaveField({
   hidden: Record<string, string | number>;
   action: EditAction;
   choices?: Choices;
+  onSaved?: () => void;
 }) {
   const form = useRef<HTMLFormElement>(null);
   const [result, setResult] = useState<EditResult | undefined>();
   const send = async (data: FormData) => {
     const answer = (await action(data)) ?? undefined;
     setResult(answer);
-    if (answer?.saved) closeBubble(form.current);
+    if (answer?.saved) {
+      if (onSaved) onSaved();
+      else closeBubble(form.current);
+    }
   };
   // A choice fills the field, and leads on to the note.
   const choose = (choice: string) => {
@@ -146,14 +152,14 @@ export function SalutationBubble({ politician, action }: { politician: Politicia
 
 /**
  * Where their email came from, in words: why, then who set it and when, as an
- * ask's answer says; their body's list; or Airtable.
+ * ask's answer says; their body's list, by their `house`; or Airtable.
  */
-function sourceLine(source: NonNullable<EmailSource>): string {
+function sourceLine(source: NonNullable<EmailSource>, house?: string): string {
   if (source.by === "staff") {
     const setBy = politiciansCopy.politician.setBy(source.staff, staffDate(source.at));
     return source.note ? `${source.note} · ${setBy}` : setBy;
   }
-  return source.by === "body" ? words.sources.parliament : copy.fromAirtable;
+  return source.by === "body" ? words.sources.parliament(house) : copy.fromAirtable;
 }
 
 /** The changes a politician's addresses can take: adding one, and removing one staff added or guessed. */
@@ -213,7 +219,7 @@ export function AddressesBubble({
     addresses.map((address) => ({ key: `${key} ${address}`, address, from }));
   const lines: Line[] = [
     ...of("past", aliases.past, words.sources.past),
-    ...of("parliament", aliases.parliament, words.sources.parliament),
+    ...of("parliament", aliases.parliament, words.sources.parliament(politician.house)),
     ...aliases.office.map((address) => ({
       key: `office ${address}`,
       address,
@@ -229,10 +235,11 @@ export function AddressesBubble({
     // Those staff added last, oldest first, so a new one appears at the foot, by the field it came from.
     ...[...aliases.added]
       .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
-      .map(({ address, addedBy, at }) => ({
+      .map(({ address, addedBy, at, note }) => ({
         key: `added ${address}`,
         address,
-        from: words.addedBy(addedBy, staffDate(at)),
+        // Why, then who and when, as their main address says it.
+        from: note ? `${note} · ${words.addedBy(addedBy, staffDate(at))}` : words.addedBy(addedBy, staffDate(at)),
         removable: true,
       })),
   ];
@@ -244,7 +251,8 @@ export function AddressesBubble({
         politiciansCopy.politicians.noEmail
       )}
       <button type="button" className={styles.trigger} {...bubbleTrigger(id)}>
-        {politician.email ? words.more(lines.length) : copy.add}
+        {/* With no other address, there's nothing more: only their email to edit. */}
+        {politician.email ? (lines.length ? words.more(lines.length) : copy.edit) : copy.add}
       </button>
       <BubbleBox id={id} ref={bubble} className={styles.bubble}>
         {(setEmail || politician.email) && (
@@ -259,16 +267,20 @@ export function AddressesBubble({
                 value={politician.email ?? ""}
                 hidden={{ politicianId: politician.id, salutation: politician.salutation }}
                 action={setEmail}
+                // Saved, the bubble stays open, the field folded, to show the new address and where it came from.
+                onSaved={() => setEditing(false)}
               />
             ) : (
               <div className={styles.main}>
                 <span className={styles.address}>
                   {politician.email}
-                  {aliases.emailSource && <span className={styles.from}>{sourceLine(aliases.emailSource)}</span>}
+                  {aliases.emailSource && (
+                    <span className={styles.from}>{sourceLine(aliases.emailSource, politician.house)}</span>
+                  )}
                 </span>
                 {setEmail && (
                   <Button type="button" variant="ghost" size="small" fit onClick={() => setEditing(true)}>
-                    {copy.edit}
+                    {politiciansCopy.politician.edit}
                   </Button>
                 )}
               </div>
@@ -305,7 +317,13 @@ export function AddressesBubble({
                 </li>
               ))}
             </ul>
-            <AddAliasForm key={round} politicianId={politician.id} action={actions.add} onAdded={setJustAdded} />
+            <AddAliasForm
+              key={round}
+              politicianId={politician.id}
+              action={actions.add}
+              onAdded={setJustAdded}
+              first={lines.length === 0}
+            />
           </div>
         )}
       </BubbleBox>

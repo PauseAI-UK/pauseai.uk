@@ -736,6 +736,13 @@ describe("PoliticianDetails", () => {
             },
           },
           {
+            id: 11,
+            at: new Date("2026-07-22T10:00:00Z"),
+            actor: "jo@pauseai.uk",
+            action: "add politician address",
+            details: { politicianId: 7, address: "polly.home@example.org" },
+          },
+          {
             id: 9,
             at: new Date("2026-07-20T10:00:00Z"),
             actor: "sync",
@@ -795,6 +802,8 @@ describe("PoliticianDetails", () => {
       "strange 1 Aug 2026, 10:00 · x",
       // A change of email, with why.
       `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.email} a@example.org → b@example.org · Her office asked25 Jul 2026, 10:00 · jo@pauseai.uk`,
+      // An address added, by which.
+      `${copy["add politician address"]} polly.home@example.org22 Jul 2026, 10:00 · jo@pauseai.uk`,
       `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
       `${copy["add politician"]} Polly Placeholder15 Jul 2026, 10:00 · import`,
     ]);
@@ -1315,8 +1324,13 @@ describe("PoliticianDetails", () => {
       "citiesoflondonandwestminster.mp@parliament.uk",
       "polly.placeholder@example.com",
     ]);
+    // One staff added says why, then who and when.
     await expect
-      .element(page.getByText(words.addedBy("jo@pauseai.uk", staffDate(exampleAliases.added[0].at))))
+      .element(
+        page.getByText(
+          `${exampleAliases.added[0].note} · ${words.addedBy("jo@pauseai.uk", staffDate(exampleAliases.added[0].at))}`,
+        ),
+      )
       .toBeVisible();
     const removes = page.getByRole("button", { name: words.remove });
     await removes.nth(0).click();
@@ -1327,16 +1341,24 @@ describe("PoliticianDetails", () => {
         { politicianId: String(MP.id), address: "polly.placeholder@example.com" },
       ]),
     );
-    // One just added comes last, and pulses once to draw the eye.
+    // Add opens the form, for the address and why. One just added comes last, and pulses once to draw the eye.
+    await expect.element(page.getByLabelText(words.address)).not.toBeInTheDocument();
+    await page.getByRole("button", { name: words.add }).click();
     await page.getByLabelText(words.address).fill("Polly.New@example.com");
+    await page.getByLabelText(words.note).fill("Her new Gmail");
     await page.getByRole("button", { name: words.add }).click();
     await vi.waitFor(() => expect(add).toHaveBeenCalledOnce());
+    // Added, the form folds back to its Add.
+    await expect.element(page.getByLabelText(words.address)).not.toBeInTheDocument();
     const later = new Date(exampleAliases.added[0].at.getTime() + 60_000);
     await rerender(
       details({
         aliases: {
           ...exampleAliases,
-          added: [{ address: "polly.new@example.com", addedBy: "jo@pauseai.uk", at: later }, ...exampleAliases.added],
+          added: [
+            { address: "polly.new@example.com", addedBy: "jo@pauseai.uk", at: later, note: "Her new Gmail" },
+            ...exampleAliases.added,
+          ],
         },
       }),
     );

@@ -16,7 +16,14 @@ export const exampleAliases: PoliticianAliases = {
   past: ["polly@oldexample.org.uk"],
   parliament: ["placeholderp@parliament.uk"],
   office: ["jane.smith@parliament.uk"],
-  added: [{ address: "polly.placeholder@example.com", addedBy: "jo@pauseai.uk", at: new Date("2026-11-10T10:00:00Z") }],
+  added: [
+    {
+      address: "polly.placeholder@example.com",
+      addedBy: "jo@pauseai.uk",
+      at: new Date("2026-11-10T10:00:00Z"),
+      note: "She writes from her Gmail",
+    },
+  ],
   domains: ["pollyplaceholder.org.uk"],
   forms: ["polly.placeholder.mp@parliament.uk", "citiesoflondonandwestminster.mp@parliament.uk"],
 };

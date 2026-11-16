@@ -22,8 +22,8 @@ import { politiciansCopy } from "./copy";
  */
 export type AddressSource = "parliament" | "office" | "staff" | "rejected";
 
-/** An address staff added: who and when. */
-export type AddedAddress = { address: string; addedBy: string; at: Date };
+/** An address staff added: who, when, and their note of why (empty for one from before notes). */
+export type AddedAddress = { address: string; addedBy: string; at: Date; note: string };
 
 /**
  * Where a politician's email came from: the staff member who set it last,
@@ -108,9 +108,14 @@ export async function politicianAliases(politician: {
        ) emails WHERE address IS NOT NULL ORDER BY address`,
       [politician.id],
     ),
-    query<{ address: string; source: AddressSource; addedBy: string | null; at: Date }>(
-      `SELECT address, source, added_by AS "addedBy", created_at AS at FROM politician_addresses
-       WHERE notable_person_id = $1 ORDER BY address`,
+    // With the note of why on the entry that added it, for one staff added.
+    query<{ address: string; source: AddressSource; addedBy: string | null; at: Date; note: string | null }>(
+      `SELECT a.address, a.source, a.added_by AS "addedBy", a.created_at AS at,
+         (SELECT l.details->>'note' FROM audit_log l
+          WHERE l.action = ${auditActions("add politician address")}
+            AND (l.details->>'politicianId')::bigint = a.notable_person_id AND l.details->>'address' = a.address
+          ORDER BY l.id DESC LIMIT 1) AS note
+       FROM politician_addresses a WHERE a.notable_person_id = $1 ORDER BY a.address`,
       [politician.id],
     ),
     query<{ domain: string }>("SELECT domain FROM politician_domains WHERE notable_person_id = $1 ORDER BY domain", [
@@ -137,7 +142,7 @@ export async function politicianAliases(politician: {
     office: from("office"),
     added: listed
       .filter((row) => row.source === "staff")
-      .map(({ address, addedBy, at }) => ({ address, addedBy: addedBy!, at })),
+      .map(({ address, addedBy, at, note }) => ({ address, addedBy: addedBy!, at, note: note ?? "" })),
     domains: domains.map((row) => row.domain),
     // Only forms not already listed as one of theirs.
     forms: formExamples(book, politician).filter(
@@ -230,18 +235,26 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
 }
 
 /** What adding an address did, or why it didn't. */
-export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" | "shared" };
+export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" | "shared" | "note" };
 
 /**
- * Adds an address to a politician's by hand, logged, and relinks every
+ * Adds an address to a politician's by hand, with a note of why, logged, and relinks every
  * thread, so that those with it show on their page. The mailboxes are
  * searched for its earlier mail by the regular read of Gmail
  * (searchAddedAddresses), not while staff wait. Gives what happened.
  */
-export async function addPoliticianAddress(politicianId: number, given: string, by: string): Promise<AddResult> {
+export async function addPoliticianAddress(
+  politicianId: number,
+  given: string,
+  by: string,
+  givenNote: string,
+): Promise<AddResult> {
   const address = given.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return { added: false, why: "invalid" };
   if (isSharedInbox(address)) return { added: false, why: "shared" };
+  // The audit log refuses a staff member's address without a note of why too (audit_log_edit_note).
+  const note = givenNote.trim();
+  if (!note) return { added: false, why: "note" };
   // Already theirs, however: their email, a past one, one their body lists, their office's, or a form of their name.
   const [who] = await query<{
     id: number;
@@ -277,7 +290,7 @@ export async function addPoliticianAddress(politicianId: number, given: string, 
       [address, politicianId],
       db,
     );
-    await logChange(by, "add politician address", { politicianId, address }, db);
+    await logChange(by, "add politician address", { politicianId, address, note }, db);
   });
   await relinkOneOffs(Date.now());
   return { added: true };

@@ -114,14 +114,17 @@ describeWithDatabase("the politician pages' Server Actions", () => {
   it("addAliasNow and removeAliasNow add and remove a politician's address as the staff member, refreshing the staff pages", async () => {
     const id = await addTestPolitician();
     expect(await addAliasNow(form({ politicianId: String(id), address: "polly@example.com" }))).toEqual({
-      added: true,
+      added: false,
+      why: "note",
     });
+    expect(
+      await addAliasNow(form({ politicianId: String(id), address: "polly@example.com", note: "Her Gmail" })),
+    ).toEqual({ added: true });
     expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
     revalidatePath.mockClear();
-    expect(await addAliasNow(form({ politicianId: String(id), address: "polly@example.com" }))).toEqual({
-      added: false,
-      why: "exists",
-    });
+    expect(
+      await addAliasNow(form({ politicianId: String(id), address: "polly@example.com", note: "Her Gmail" })),
+    ).toEqual({ added: false, why: "exists" });
     expect(await addAliasNow(form({ politicianId: String(id) }))).toEqual({ added: false, why: "invalid" });
     expect(await addAliasNow(form({ politicianId: "x", address: "a@example.com" }))).toBeUndefined();
     expect(revalidatePath).not.toHaveBeenCalled();
