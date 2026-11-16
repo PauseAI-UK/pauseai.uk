@@ -31,11 +31,12 @@ import { REPLIES } from "@/lib/letters/reply-count.server";
 
 // Supporters: one per person, tied to each record about them in a source
 // (supporter_links). Linking is by email, trimmed and lowercased and
-// nothing more: jane+luma@ and jane@ are two people. It only adds links,
+// nothing more: jane+luma@ and jane@ are two people. A WhatsApp entry, which
+// has no email, links by its number. It only adds links,
 // so running it again does nothing, and a Luma user who changes their
 // email stays linked by user ID. Then two supporters who gave the same UK
-// mobile number are one, merged into the older
-// (merge_supporters_by_phone(), migration 0058); the other's ID still
+// mobile number, or the same number in a WhatsApp entry, are one, merged
+// into the older (merge_supporters_by_phone()); the other's ID still
 // finds them.
 
 export type LinkResult = { supportersAdded: number; linked: number };
@@ -54,7 +55,8 @@ const CANDIDATE_COLUMNS = SUPPORTER_SOURCES.map((s) => `c.${s.column}`).join(", 
 /**
  * Links every unlinked source record to a supporter: to the supporter an
  * existing link matched on the same email, or else to a new one, made for
- * each new email; then merges those who share a UK mobile number, by the
+ * each new email, and each WhatsApp entry by its number (linkByNumber());
+ * then merges those who share a UK mobile number, or a WhatsApp one, by the
  * numbers of the supporters it linked, or with `everyone`, by everyone's,
  * which catches a number given since a record was linked, as the Luma
  * and members imports do; then brings what's worked out about each supporter it linked
@@ -95,7 +97,8 @@ export async function linkSupporters(db?: Queryable, everyone = false): Promise<
     db,
   );
   await query("DROP TABLE candidates, new_supporters", [], db);
-  const linked = [...new Set([...existing, ...fresh].map((link) => link.id))];
+  const byNumber = await linkByNumber(db);
+  const linked = [...new Set([...existing, ...fresh, ...byNumber.linked].map((link) => link.id))];
   const merged = await query<{ id: number }>(
     "SELECT DISTINCT id::int AS id FROM merge_supporters_by_phone($1::bigint[]) id",
     [everyone ? null : linked],
@@ -103,15 +106,71 @@ export async function linkSupporters(db?: Queryable, everyone = false): Promise<
   );
   const linkedTo = [...new Set([...linked, ...merged.map((row) => row.id)])];
   if (linkedTo.length > 0) await refreshSupporterFacts(db, linkedTo);
-  if (merged.length === 0) return { supportersAdded: added.length, linked: existing.length + fresh.length };
+  const newIds = [...added, ...byNumber.added].map((row) => row.id);
+  const links = existing.length + fresh.length + byNumber.linked.length;
+  if (merged.length === 0) return { supportersAdded: newIds.length, linked: links };
   // Those merged went, so the list loses them now, and only the new supporters still here were added.
   await refreshSupportersList(db);
   const [{ kept }] = await query<{ kept: number }>(
     "SELECT count(*)::int AS kept FROM supporters WHERE id = ANY($1::bigint[])",
-    [added.map((row) => row.id)],
+    [newIds],
     db,
   );
-  return { supportersAdded: kept, linked: existing.length + fresh.length };
+  return { supportersAdded: kept, linked: links };
+}
+
+/**
+ * Links each unlinked WhatsApp entry, which has a number and no email: to a
+ * supporter who gave the number anywhere, the oldest if several did, or else
+ * to a new one, made for each number nobody has. Says the supporters it
+ * linked to, and those it made.
+ */
+async function linkByNumber(db: Queryable): Promise<{ linked: { id: number }[]; added: { id: number }[] }> {
+  await query(
+    `CREATE TEMP TABLE by_number ON COMMIT DROP AS
+     SELECT f.id AS form_entry_id, phone_number(f.phone) AS number FROM form_entries f
+     WHERE f.form = 'whatsapp-community' AND NOT EXISTS (SELECT 1 FROM supporter_links l WHERE l.form_entry_id = f.id)`,
+    [],
+    db,
+  );
+  // Mostly none, so the matching below, over every number, is left out.
+  const [{ unlinked }] = await query<{ unlinked: number }>("SELECT count(*)::int AS unlinked FROM by_number", [], db);
+  if (unlinked === 0) {
+    await query("DROP TABLE by_number", [], db);
+    return { linked: [], added: [] };
+  }
+  // The number already belongs to a supporter.
+  const existing = await query<{ id: number; entry: number }>(
+    `INSERT INTO supporter_links (supporter_id, form_entry_id, matched_by, matched_value)
+     SELECT DISTINCT ON (b.form_entry_id) c.supporter_id, b.form_entry_id, 'phone', b.number
+     FROM by_number b JOIN supporter_contact c ON phone_number(c.phone) = b.number
+     ORDER BY b.form_entry_id, c.supporter_id
+     RETURNING supporter_id::int AS id, form_entry_id::int AS entry`,
+    [],
+    db,
+  );
+  await query("DELETE FROM by_number WHERE form_entry_id = ANY($1::bigint[])", [existing.map((l) => l.entry)], db);
+  // A new supporter for each number nobody has, and a link for every entry with it.
+  await query(
+    `CREATE TEMP TABLE new_by_number ON COMMIT DROP AS
+     SELECT number, nextval(pg_get_serial_sequence('supporters', 'id')) AS id FROM (SELECT DISTINCT number FROM by_number) n`,
+    [],
+    db,
+  );
+  const added = await query<{ id: number }>(
+    "INSERT INTO supporters (id) OVERRIDING SYSTEM VALUE SELECT id FROM new_by_number RETURNING id::int AS id",
+    [],
+    db,
+  );
+  const fresh = await query<{ id: number }>(
+    `INSERT INTO supporter_links (supporter_id, form_entry_id, matched_by, matched_value)
+     SELECT n.id, b.form_entry_id, 'phone', b.number FROM by_number b JOIN new_by_number n USING (number)
+     RETURNING supporter_id::int AS id`,
+    [],
+    db,
+  );
+  await query("DROP TABLE by_number, new_by_number", [], db);
+  return { linked: [...existing, ...fresh], added };
 }
 
 /**

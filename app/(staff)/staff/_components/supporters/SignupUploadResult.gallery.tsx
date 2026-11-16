@@ -2,7 +2,7 @@
 // (app/(tools)/gallery/_examples/staff-supporters.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
-import { exampleSignupUpload, exampleSignupUploadPeople } from "./SignupUpload.examples";
+import { exampleSignupUpload, exampleSignupUploadPeople, exampleWhatsappUpload } from "./SignupUpload.examples";
 import SignupUploadResult, { SignupUploadHead, SignupUploadsList } from "./SignupUploadResult";
 
 export const signupUploadResultGallery: Example[] = [
@@ -17,6 +17,10 @@ export const signupUploadResultGallery: Example[] = [
       {
         label: "Just imported, while the Luma import it started reads the event's guests",
         render: () => <SignupUploadResult upload={{ ...exampleSignupUploadPeople, lumaReading: true }} />,
+      },
+      {
+        label: "A WhatsApp group: names and numbers, one with no profile name",
+        render: () => <SignupUploadResult upload={exampleWhatsappUpload} />,
       },
       {
         label: "Everyone since erased, with no event or note",
@@ -48,6 +52,14 @@ export const signupUploadResultGallery: Example[] = [
           </StaffPage>
         ),
       },
+      {
+        label: "A local WhatsApp group, with its town",
+        render: () => (
+          <StaffPage as="div">
+            <SignupUploadHead upload={exampleWhatsappUpload} />
+          </StaffPage>
+        ),
+      },
     ],
   },
   {
@@ -60,8 +72,9 @@ export const signupUploadResultGallery: Example[] = [
           <SignupUploadsList
             now="2026-11-07T12:00:00Z"
             uploads={[
+              exampleWhatsappUpload,
               exampleSignupUpload,
-              { ...exampleSignupUpload, id: 2, signedOn: "2025-06-14", note: null, eventName: null, heldBack: 0 },
+              { ...exampleSignupUpload, id: 3, signedOn: "2025-06-14", note: null, eventName: null, heldBack: 0 },
             ]}
           />
         ),

@@ -33,8 +33,12 @@ function whyHeld(problem: SignupRowProblem): string {
   return problem.kind === "unread-yes-no" ? words.unread(problem.value, problem.column) : words.problems[problem.kind];
 }
 
-/** What will happen to one person, a lozenge each: held back and why; or already imported; or the supporter they'll be, Luma, and how they can be contacted. */
-function Happens({ row }: { row: SignupPlanRow }) {
+/**
+ * What will happen to one person, a lozenge each: held back and why; or
+ * already imported; or the supporter they'll be, Luma, and how they can be
+ * contacted: a WhatsApp member by newsletter texts alone.
+ */
+function Happens({ row, whatsapp }: { row: SignupPlanRow; whatsapp: boolean }) {
   const said = words.happens;
   if (row.pile === "held") {
     return (
@@ -50,8 +54,9 @@ function Happens({ row }: { row: SignupPlanRow }) {
       {row.newEntry && row.known && <Tag tone="blue">{said.known[row.known]}</Tag>}
       {row.pile === "register" && <Tag tone="green">{said.register}</Tag>}
       {row.pile === "going" && <Tag>{said.going}</Tag>}
-      {row.newEntry && <Tag tone="green">{said.mailing}</Tag>}
-      {row.newEntry && row.phone && <Tag tone="green">{said.phone}</Tag>}
+      {row.newEntry && whatsapp && <Tag tone="green">{said.texts}</Tag>}
+      {row.newEntry && !whatsapp && <Tag tone="green">{said.mailing}</Tag>}
+      {row.newEntry && !whatsapp && row.phone && <Tag tone="green">{said.phone}</Tag>}
       {row.notice === "bulk" && <Tag tone="amber">{said.notice}</Tag>}
       {row.notice === "no-email" && <Tag tone="red">{said.noEmail}</Tag>}
     </span>
@@ -102,6 +107,8 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
   const known = fresh.filter((row) => row.known).length;
   const notices = plan.rows.filter((row) => row.notice === "bulk").length;
   const noEmail = plan.rows.filter((row) => row.notice === "no-email").length;
+  // A WhatsApp group's file has only names and numbers.
+  const whatsapp = plan.input.kind === "whatsapp";
 
   return (
     <div className={styles.page}>
@@ -120,9 +127,9 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
           <tr>
             <th>{words.table.row}</th>
             <th>{fields.name.label}</th>
-            <th>{fields.email.label}</th>
+            {!whatsapp && <th>{fields.email.label}</th>}
             <th>{fields.phone.label}</th>
-            <th>{fields.postcode.label}</th>
+            {!whatsapp && <th>{fields.postcode.label}</th>}
             <th className={styles.happens}>{words.table.happens}</th>
           </tr>
         </thead>
@@ -131,11 +138,11 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
             <tr key={row.line}>
               <td>{row.line}</td>
               <td>{row.name}</td>
-              <td className={styles.email}>{row.email}</td>
+              {!whatsapp && <td className={styles.email}>{row.email}</td>}
               <td className={styles.nowrap}>{row.phone && phoneWords(row.phone)}</td>
-              <td className={styles.nowrap}>{row.postcode}</td>
+              {!whatsapp && <td className={styles.nowrap}>{row.postcode}</td>}
               <td>
-                <Happens row={row} />
+                <Happens row={row} whatsapp={whatsapp} />
               </td>
             </tr>
           ))}
@@ -192,11 +199,17 @@ export function LumaReading() {
  * instead, for another look.
  */
 export default function SignupUploadPreview({
+  step,
   input,
   blockers,
   preview,
   finish,
-}: SignupUploadActions & { input: SignupUploadInput | null; blockers: string[] }) {
+}: SignupUploadActions & {
+  /** Its number among the form's steps. */
+  step: number;
+  input: SignupUploadInput | null;
+  blockers: string[];
+}) {
   const router = useRouter();
   const [outcome, setOutcome] = useState<{ of: SignupUploadInput; is: Outcome } | null>(null);
   // The input that changed on the server before it went in: the notice stays
@@ -262,7 +275,7 @@ export default function SignupUploadPreview({
   );
 
   return (
-    <Card span={6} title={<Numbered n={4}>{copy.steps.check}</Numbered>} id="upload-check">
+    <Card span={6} title={<Numbered n={step}>{copy.steps.check}</Numbered>} id="upload-check">
       {shown}
       <div className={styles.actions}>
         {plan && fresh + registering === 0 ? (

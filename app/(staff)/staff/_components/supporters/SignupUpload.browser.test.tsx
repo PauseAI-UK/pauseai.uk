@@ -68,7 +68,7 @@ describe("SignupUploadForm", () => {
       `3${copy.form.eventTitle}`,
       `4${copy.steps.check}`,
     ]);
-    await expect.element(page.getByText(copy.help.short[0])).toBeVisible();
+    await expect.element(page.getByText(copy.help.short.paper[0])).toBeVisible();
     await expect.element(page.getByText(words.needsFile)).toBeVisible();
     await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toBeDisabled();
     await expect.element(page.getByRole("searchbox", { name: copy.form.findEvent })).toBeDisabled();
@@ -310,12 +310,12 @@ describe("SignupUploadPreview", () => {
     await expect.element(page.getByText(words.changed)).toBeVisible();
     // The page refreshed after the import: new actions, the same file.
     const again = vi.fn(async () => changed);
-    await view.rerender(<SignupUploadPreview input={input} blockers={[]} preview={again} finish={finish} />);
+    await view.rerender(<SignupUploadPreview step={4} input={input} blockers={[]} preview={again} finish={finish} />);
     await expect.poll(() => again.mock.calls.length).toBe(1);
     await expect.element(page.getByText(words.changed)).toBeVisible();
     // Another file.
     const other = { ...input, filename: "other.csv" };
-    await view.rerender(<SignupUploadPreview input={other} blockers={[]} preview={again} finish={finish} />);
+    await view.rerender(<SignupUploadPreview step={4} input={other} blockers={[]} preview={again} finish={finish} />);
     await expect.poll(() => again.mock.calls.length).toBe(2);
     await expect.element(page.getByText(words.changed)).not.toBeInTheDocument();
   });

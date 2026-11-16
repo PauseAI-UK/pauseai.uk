@@ -46,13 +46,19 @@ function held(supporter: Details, usable: Set<string>): Held[] {
   const names = identities
     .filter((i) => i.name)
     .map((i, n) => ({ key: `name-${n}`, what: d.held.name, value: i.name, from: from(i.source), at: i.seenAt }));
-  const emails = identities.map((i, n) => ({
-    key: `email-${n}`,
-    what: d.emails,
-    value: <a href={`mailto:${i.email}`}>{i.email}</a>,
-    from: from(i.source),
-    at: i.seenAt,
-  }));
+  const emails = identities.flatMap((i, n) =>
+    i.email === null
+      ? []
+      : [
+          {
+            key: `email-${n}`,
+            what: d.emails,
+            value: <a href={`mailto:${i.email}`}>{i.email}</a>,
+            from: from(i.source),
+            at: i.seenAt,
+          },
+        ],
+  );
   const contacts = [...supporter.contacts].sort(byTime);
   const each = (what: string, value: (c: (typeof contacts)[number]) => ReactNode | null) =>
     contacts.flatMap((c, n) => {
@@ -176,6 +182,10 @@ function Subject({ item }: { item: SupporterActivity }) {
         {said && <Muted> · {said}</Muted>}
       </>
     );
+  }
+  if (item.kind === "whatsapp-joined") {
+    // The group's name, as staff typed it, linked to the upload, which every WhatsApp entry has.
+    return <StaffLink href={item.href!}>{item.detail}</StaffLink>;
   }
   if (item.kind === "member-joined") {
     // What they chose on the join form, if it says anything.

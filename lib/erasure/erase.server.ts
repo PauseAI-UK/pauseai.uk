@@ -20,7 +20,8 @@ import { erasureCopy } from "./copy";
 // Trash; a Luma user goes with their registrations and contact, and their
 // Luma ID is kept in
 // luma_erased so the import never copies them back; their CiviCRM contacts go
-// the same way, their IDs kept in civicrm_erased; a message of a mailing
+// the same way, their IDs kept in civicrm_erased; each number they gave is
+// kept hashed in whatsapp_erased, which a WhatsApp upload holds back; a message of a mailing
 // sent to them loses its address and merge values; a one-off email with their
 // address on it goes, with its blob, its IDs kept in one_off_erased so that
 // reading its thread again doesn't keep it again, as does a reply on a form letter
@@ -59,6 +60,15 @@ export async function eraseSupporter(id: number, reference: string, by: string):
     // WhatsApp. Not an opt-out, nor one still to go, which stay.
     const theirs = `(SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1
                      UNION SELECT phone_number(matched_value) FROM supporter_links WHERE supporter_id = $1)`;
+    // Every number they gave, hashed, so that a WhatsApp group's next upload doesn't bring them back.
+    await query(
+      `INSERT INTO whatsapp_erased (number_hash)
+       SELECT DISTINCT whatsapp_number_hash(phone) FROM supporter_contact
+       WHERE supporter_id = $1 AND phone_number(phone) IS NOT NULL
+       ON CONFLICT DO NOTHING`,
+      [id],
+      db,
+    );
     const replies = await query<{ blobKey: string }>(
       `WITH gone AS (
          DELETE FROM broadcast_replies WHERE message_id IN (SELECT id FROM broadcast_messages WHERE supporter_id = $1)

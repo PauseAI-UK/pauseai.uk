@@ -1,7 +1,14 @@
 import LinkButton from "@/components/ui/LinkButton";
 import Required from "@/components/ui/Required";
 import Table from "@/components/ui/Table";
-import { SIGNUP_FIELD_NAMES, SIGNUP_FIELDS, SIGNUP_YES } from "@/lib/supporters/signup-csv";
+import {
+  KIND_FIELDS,
+  REQUIRED,
+  SIGNUP_FIELD_NAMES,
+  SIGNUP_YES,
+  type SignupField,
+  type SignupKind,
+} from "@/lib/supporters/signup-csv";
 import styles from "./SignupUpload.module.css";
 import { supportersCopy } from "./copy";
 
@@ -13,14 +20,23 @@ const YES_WORDS = SIGNUP_YES.filter((word) => /^[a-z]/.test(word))
   .concat("✓");
 
 /**
- * What the file needs, in a few lines, to read before choosing one, and the
- * button that opens or closes the full list of column names (SignupColumnNames).
+ * What a file of the kind needs, in a few lines, to read before choosing
+ * one, and the button that opens or closes the full list of column names
+ * (SignupColumnNames).
  */
-export default function SignupUploadHelp({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+export default function SignupUploadHelp({
+  kind = "paper",
+  open,
+  onToggle,
+}: {
+  kind?: SignupKind;
+  open: boolean;
+  onToggle: () => void;
+}) {
   return (
     <>
       <ul className={styles.short}>
-        {copy.short.map((line) => (
+        {copy.short[kind].map((line) => (
           <li key={line}>{line}</li>
         ))}
       </ul>
@@ -37,8 +53,8 @@ export default function SignupUploadHelp({ open, onToggle }: { open: boolean; on
   );
 }
 
-/** Every column name the file can use, and the values each can hold. */
-export function SignupColumnNames() {
+/** Every column name a file of the kind can use, and the values each can hold. */
+export function SignupColumnNames({ kind = "paper" }: { kind?: SignupKind }) {
   // A yes or no column's values: what's yes, then on its own line what's no.
   const yes = (
     <>
@@ -47,6 +63,8 @@ export function SignupColumnNames() {
       {copy.no}
     </>
   );
+  const fields = { ...copy.fields, ...(kind === "whatsapp" ? copy.whatsappFields : {}) };
+  const required = (field: SignupField) => (REQUIRED[kind] as readonly SignupField[]).includes(field);
   return (
     <>
       <p>{copy.intro}</p>
@@ -59,24 +77,22 @@ export function SignupColumnNames() {
           </tr>
         </thead>
         <tbody>
-          {SIGNUP_FIELDS.map((field) => (
+          {KIND_FIELDS[kind].map((field) => (
             <tr key={field}>
               <td className={styles.nowrap}>
-                {field === "name" || field === "email" ? (
-                  <Required>{copy.fields[field].label}</Required>
-                ) : (
-                  copy.fields[field].label
-                )}
+                {required(field) ? <Required>{fields[field].label}</Required> : fields[field].label}
               </td>
               <td>{SIGNUP_FIELD_NAMES[field].join(", ")}</td>
-              <td>{copy.fields[field].values}</td>
+              <td>{fields[field].values}</td>
             </tr>
           ))}
-          <tr>
-            <td className={styles.nowrap}>{copy.event.label}</td>
-            <td>{copy.event.names}</td>
-            <td>{yes}</td>
-          </tr>
+          {kind === "paper" && (
+            <tr>
+              <td className={styles.nowrap}>{copy.event.label}</td>
+              <td>{copy.event.names}</td>
+              <td>{yes}</td>
+            </tr>
+          )}
         </tbody>
       </Table>
     </>

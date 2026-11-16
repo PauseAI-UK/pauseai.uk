@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, type DragEvent } from "react";
-import { FileInput, Select, TextInput } from "@/components/ui/Controls";
+import ChannelIcon from "@/components/ui/ChannelIcon";
+import { FileInput, Segmented, Select, TextInput } from "@/components/ui/Controls";
 import DatePicker from "@/components/ui/DatePicker";
 import { Field, FieldSet } from "@/components/ui/Field";
 import LinkButton from "@/components/ui/LinkButton";
@@ -15,6 +16,7 @@ import {
   signupEventColumns,
   signupFileText,
   type SignupFileRead,
+  type SignupKind,
   type SignupUploadInput,
 } from "@/lib/supporters/signup-csv";
 import { staffDate } from "@/lib/staff-time";
@@ -45,14 +47,41 @@ function refusedWords(read: Exclude<SignupFileRead, { ok: true }>): string {
   );
 }
 
-type Chosen = { name: string; text: string; read: SignupFileRead };
+type Chosen = { name: string; text: string };
+
+/** A page of a form, with lines on it, for paper sign-ups, in the line icons' style (ChannelIcon). */
+const PAPER_ICON = (
+  <svg
+    width={12}
+    height={12}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M9 11h6M9 15h6" />
+  </svg>
+);
+
+/** Each kind's icon: a paper form, or a text's speech bubble for WhatsApp. */
+const KIND_ICONS: Record<SignupKind, React.ReactNode> = {
+  paper: PAPER_ICON,
+  whatsapp: <ChannelIcon channel="text" />,
+};
 
 /**
- * Uploading sign-ups, in four numbered steps always shown: the file, beside
- * what it should look like, and once read, what each of its columns will do;
- * the date and note; an event; and what importing will do, worked out as soon
- * as there's enough to go on, with the button that does it. The file is read
- * in the browser, and sent to the server only to preview and import it.
+ * Uploading sign-ups, under the choice of what they are: paper forms or a
+ * WhatsApp group. For paper, four numbered steps always shown: the date and
+ * note; the file, beside what it should look like, and once read, what each
+ * of its columns will do; an event; and what importing will do, worked out as
+ * soon as there's enough to go on, with the button that does it. A WhatsApp
+ * group has its name and town in place of the date and note, and no event.
+ * The file is read in the browser, and sent to the server only to preview
+ * and import it.
  */
 export default function SignupUploadForm({
   events,
@@ -63,6 +92,7 @@ export default function SignupUploadForm({
   today: string;
   actions: SignupUploadActions;
 }) {
+  const [kind, setKind] = useState<SignupKind>("paper");
   const [chosen, setChosen] = useState<Chosen | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -70,7 +100,9 @@ export default function SignupUploadForm({
   const [column, setColumn] = useState("");
   const [signedOn, setSignedOn] = useState(today);
   const [note, setNote] = useState("");
+  const [town, setTown] = useState("");
   const [allNames, setAllNames] = useState(false);
+  const whatsapp = kind === "whatsapp";
 
   async function choose(file: File) {
     setChosen(null);
@@ -79,8 +111,11 @@ export default function SignupUploadForm({
     if (file.size > MAX_SIGNUP_FILE_BYTES) return setFileError(copy.drop.tooBig);
     const text = signupFileText(await file.arrayBuffer());
     setFileError(null);
-    setChosen({ name: file.name, text, read: readSignupFile(text) });
+    setChosen({ name: file.name, text });
   }
+
+  // The file as the kind reads it, so choosing the other kind reads it again.
+  const fileRead = useMemo(() => chosen && readSignupFile(chosen.text, kind), [chosen, kind]);
 
   function startAgain() {
     setChosen(null);
@@ -95,48 +130,89 @@ export default function SignupUploadForm({
     if (file) void choose(file);
   }
 
-  const read = chosen?.read.ok ? chosen.read : null;
-  const choices = read ? signupEventColumns(read) : [];
+  const read = fileRead?.ok ? fileRead : null;
+  // A WhatsApp group signs nobody up for an event, so has no column for one.
+  const choices = read && !whatsapp ? signupEventColumns(read) : [];
   const chosenEvent = events.find((event) => event.id === eventId);
-  // A column chosen, and then an event, are the upload's event sign-up; either alone is none.
+  // A column chosen, and then an event, are the upload's event sign-up; either alone is none. Choosing a kind clears the column.
   const eventColumn = column && eventId ? column : "";
   // What stops the import, though not the preview: each a line under the button.
   const blockers = [
     ...(read ? [] : [copy.preview.blockers.file]),
-    ...(note.trim() ? [] : [copy.preview.blockers.note]),
+    ...(note.trim() ? [] : [whatsapp ? copy.preview.blockers.group : copy.preview.blockers.note]),
     ...(column && !eventId ? [copy.preview.blockers.event] : []),
   ];
   // What the preview is sent, as text, so it's the same object, and the preview isn't worked out again, until something in it changes.
   const sent = !read
     ? null
     : JSON.stringify({
+        kind,
         csv: chosen!.text,
         filename: chosen!.name,
         eventId: eventColumn ? eventId : null,
         eventColumn: eventColumn || null,
-        signedOn,
+        // A WhatsApp group is uploaded as it is today.
+        signedOn: whatsapp ? today : signedOn,
         note,
+        town: whatsapp ? town : "",
       } satisfies SignupUploadInput);
   const input = useMemo(() => (sent === null ? null : (JSON.parse(sent) as SignupUploadInput)), [sent]);
 
   // Even, so the file's card and what it needs are as tall as each other; every other card has a row to itself.
   return (
     <Grid even>
-      <Card span={6} title={<Numbered n={1}>{copy.form.formsTitle}</Numbered>} id="upload-forms">
-        <div className={styles.fields}>
-          <Field label={<Required>{copy.form.signedOn}</Required>}>
-            <DatePicker value={signedOn} onChange={setSignedOn} />
-          </Field>
-          <Field label={<Required>{copy.form.note}</Required>}>
-            <TextInput
-              value={note}
-              required
-              placeholder={copy.form.noteHint}
-              onChange={(event) => setNote(event.target.value)}
-            />
-          </Field>
-        </div>
+      <Card span={6} id="upload-kind">
+        <Segmented<SignupKind>
+          label={copy.kind.label}
+          options={(["paper", "whatsapp"] as const).map((value) => ({
+            value,
+            label: copy.kind[value],
+            icon: KIND_ICONS[value],
+          }))}
+          value={kind}
+          onChange={(chosenKind) => {
+            setKind(chosenKind);
+            setColumn("");
+          }}
+        />
       </Card>
+      {whatsapp ? (
+        <Card span={6} title={<Numbered n={1}>{copy.form.groupTitle}</Numbered>} id="upload-forms">
+          <div className={styles.fields}>
+            <Field label={<Required>{copy.form.group}</Required>}>
+              <TextInput
+                value={note}
+                required
+                placeholder={copy.form.groupHint}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </Field>
+            <Field label={copy.form.town}>
+              <TextInput
+                value={town}
+                placeholder={copy.form.townHint}
+                onChange={(event) => setTown(event.target.value)}
+              />
+            </Field>
+          </div>
+        </Card>
+      ) : (
+        <Card span={6} title={<Numbered n={1}>{copy.form.formsTitle}</Numbered>} id="upload-forms">
+          <div className={styles.fields}>
+            <Field label={<Required>{copy.form.signedOn}</Required>}>
+              <DatePicker value={signedOn} onChange={setSignedOn} />
+            </Field>
+            <Field label={<Required>{copy.form.note}</Required>}>
+              <TextInput
+                value={note}
+                required
+                placeholder={copy.form.noteHint}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </Field>
+          </div>
+        </Card>
+      )}
       <Card
         span={3}
         title={<Numbered n={2}>{read ? chosen!.name : copy.steps.file}</Numbered>}
@@ -197,19 +273,21 @@ export default function SignupUploadForm({
               />
             </label>
             {fileError && <Strip tone="red">{fileError}</Strip>}
-            {chosen && !chosen.read.ok && <Strip tone="red">{refusedWords(chosen.read)}</Strip>}
+            {fileRead && !fileRead.ok && <Strip tone="red">{refusedWords(fileRead)}</Strip>}
           </>
         )}
       </Card>
       <Card span={3} look="aside" title={copy.help.title} id="upload-help">
-        <SignupUploadHelp open={allNames} onToggle={() => setAllNames(!allNames)} />
+        <SignupUploadHelp kind={kind} open={allNames} onToggle={() => setAllNames(!allNames)} />
       </Card>
       {allNames && (
         <Card span={6} look="aside" title={copy.help.more} id="upload-names">
-          <SignupColumnNames />
+          <SignupColumnNames kind={kind} />
         </Card>
       )}
 
+      {/* A paper upload's event, which its yes column signs people up for. */}
+      {!whatsapp && (
       <Card span={6} title={<Numbered n={3}>{copy.form.eventTitle}</Numbered>} id="upload-event">
         <div className={styles.fields}>
           <Field label={copy.form.eventColumn}>
@@ -256,8 +334,9 @@ export default function SignupUploadForm({
           </FieldSet>
         </div>
       </Card>
+      )}
 
-      <SignupUploadPreview input={input} blockers={blockers} {...actions} />
+      <SignupUploadPreview step={whatsapp ? 3 : 4} input={input} blockers={blockers} {...actions} />
     </Grid>
   );
 }
