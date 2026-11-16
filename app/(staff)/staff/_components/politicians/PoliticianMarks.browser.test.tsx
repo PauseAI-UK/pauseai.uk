@@ -21,15 +21,21 @@ describe("PoliticianMarks's examples in the gallery", () => {
     await expect.element(test).toBeDisabled();
   });
 
-  it("names each mark that's on in its tag, as the politicians list does, an important target amber", async () => {
+  it("shows each mark that's on filled, as the politicians list's tag, an important target amber; one off empty", async () => {
     await render(<PoliticianMarksExample test />);
-    const tag = (name: string) => document.getElementById(name)!.firstElementChild;
-    // On: an important target, and a test politician.
-    expect(tag("mark-importantTarget")!.textContent).toBe(politiciansCopy.politician.importantTarget);
-    expect(tag("mark-importantTarget")!.className).toMatch(/amber/);
-    expect(tag("mark-test")!.textContent).toBe(staffVocabulary.politicianFlags.test);
-    expect(tag("mark-test")!.className).not.toMatch(/amber/);
-    // Off: its name alone.
-    expect(tag("mark-personalConnection")).toBeNull();
+    const lozenge = (name: string) => page.getByRole("switch", { name }).element().firstElementChild!;
+    // On: an important target, in amber, and a test politician, plain.
+    expect(lozenge(politiciansCopy.politician.importantTarget).className).toMatch(/tag.*amber/);
+    expect(lozenge(staffVocabulary.politicianFlags.test).className).toMatch(/tag/);
+    expect(lozenge(staffVocabulary.politicianFlags.test).className).not.toMatch(/amber/);
+    // Off: empty, dashed.
+    expect(lozenge(politiciansCopy.politician.personalConnection).className).toMatch(/off/);
+    expect(getComputedStyle(lozenge(politiciansCopy.politician.personalConnection)).outlineStyle).toBe("dashed");
+  });
+
+  it("leaves out the test politicians' tag for one who isn't", async () => {
+    await render(<PoliticianMarksExample />);
+    await expect.element(page.getByRole("switch", { name: politiciansCopy.politician.importantTarget })).toBeVisible();
+    expect(page.getByRole("switch", { name: staffVocabulary.politicianFlags.test }).query()).toBeNull();
   });
 });

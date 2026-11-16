@@ -32,3 +32,12 @@
 .running {
   margin-block-end: var(--space-4);
 }
+
+/* The run to come, over those it has made: dashed, as it hasn't happened, grey, set off from the runs under it. */
+.coming {
+  margin: 0 0 var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+}

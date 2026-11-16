@@ -30,6 +30,23 @@ export const iconTextGallery: Example[] = [
         ),
       },
       {
+        label: "An icon as tall as a title's letters, centred on its first line, the rest wrapping under the words",
+        render: () => (
+          <StaffPage as="div">
+            <h1>
+              <IconText tall icon={<ChannelIcon channel="email" size="1em" />}>
+                An email
+              </IconText>
+            </h1>
+            <h1 style={{ maxWidth: "16rem" }}>
+              <IconText tall icon={<ChannelIcon channel="phone" size="1em" />}>
+                A text whose title runs on to another line
+              </IconText>
+            </h1>
+          </StaffPage>
+        ),
+      },
+      {
         label: "An icon after words",
         render: () => (
           <StaffPage as="div">

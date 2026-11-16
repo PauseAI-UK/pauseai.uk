@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100" width="80" height="100">
+  <!-- A fixture build's photo of a made-up politician: a head and shoulders, in greys. -->
+  <rect width="80" height="100" fill="#d9d4cc"/>
+  <circle cx="40" cy="38" r="17" fill="#a39b8f"/>
+  <path d="M8 100c0-21 14-35 32-35s32 14 32 35z" fill="#a39b8f"/>
+</svg>

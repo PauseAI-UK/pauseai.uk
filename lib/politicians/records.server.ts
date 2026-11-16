@@ -15,6 +15,8 @@ import { ADDRESS_ACTIONS } from "@/lib/audit-events";
 import { EMAIL_COUNTS } from "./email-counts.server";
 import { CLOSE_ENOUGH, closeness, contains, everyWord } from "@/lib/server/search.server";
 import { proxyTag } from "@/lib/letters/letters-inbox.server";
+import { config } from "@/lib/server/config.server";
+import { STAND_IN_PHOTO } from "./photo-hosts";
 import { sql, type Sql } from "@/lib/server/sql.server";
 
 // Politicians, the notable people who are in a parliament or were, and
@@ -148,7 +150,8 @@ function toPolitician({ statuses, ...row }: Row): Politician {
     ask,
     { ...record, updatedAt: new Date(record.updatedAt) },
   ]);
-  return { ...row, statuses: Object.fromEntries(records) };
+  const photoUrl = row.photoUrl && config.fixtures ? STAND_IN_PHOTO : row.photoUrl;
+  return { ...row, photoUrl, statuses: Object.fromEntries(records) };
 }
 
 /** The filters that repeat, which can leave out as well as find. */

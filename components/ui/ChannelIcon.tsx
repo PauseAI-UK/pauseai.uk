@@ -6,7 +6,8 @@ import type { Channel, Way } from "@/lib/supporters/contact-permissions";
  * call or a phone number. By `channel`, it's the kind of address; by a way,
  * how we'd use it. With `label`, it's named so; without, it's decoration
  * beside words that already say it. `size` is its width and height in
- * pixels, small to sit in a line of small words.
+ * pixels, small to sit in a line of small words, or in `em` ("1em") beside
+ * words it grows with, such as a title.
  */
 export default function ChannelIcon({
   channel,
@@ -15,7 +16,7 @@ export default function ChannelIcon({
 }: {
   channel: Channel | Way;
   label?: string;
-  size?: number;
+  size?: number | `${number}em`;
 }) {
   return (
     <svg

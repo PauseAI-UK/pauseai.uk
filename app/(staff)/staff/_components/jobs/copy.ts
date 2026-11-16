@@ -1,7 +1,7 @@
 // The words of the scheduled jobs' pages that only they show: the
 // overview of every job, and the line each run starts with, with those the
 // server uses too (lib/jobs/copy.ts).
-import { count } from "@/lib/content/plural";
+import { count, plural } from "@/lib/content/plural";
 import { jobsCopy as wordsTheServerUses } from "@/lib/jobs/copy";
 
 export const jobsCopy = {
@@ -43,11 +43,17 @@ export const jobsCopy = {
     pageTitle: "Scheduled jobs",
     // Under the title.
     pageIntro: "Imports, mail and tidying that run on a timer",
-    // On each job's card, under how its newest run ended: when it next runs on its own.
-    nextRun: (when: string) => `⁂ Next run ${when}`,
+    // At the foot of each job's card: how long till it next runs on its own (inMinutes or inHours), and the time.
+    runsAgain: (inWords: string, at: string) => `Runs again ${inWords} · ${at}`,
+    inMinutes: (n: number) => plural(n, "in 1 minute", `in ${n} minutes`),
+    inHours: (n: number) => plural(n, "in 1 hour", `in ${n} hours`),
+    // On a job's page, over its runs: the next, when, how long till then (inMinutes or inHours), and how often it
+    // runs (frequent, nightly and so on).
+    comingUp: "Coming up",
+    nextRunOn: (when: string, inWords: string, schedule: string) => `Next run ${when} (${inWords}) · ${schedule}`,
     // Each job's icon, named for screen readers and on hover: where it reads
-    // from or works on. Then how often it runs, the overview's headings and a
-    // lozenge on the job's page.
+    // from or works on. Then how often it runs, the overview's headings and
+    // after its next run on the job's page.
     parliament: "UK Parliament",
     "scottish-parliament": "Scottish Parliament",
     senedd: "Welsh Parliament",
@@ -58,17 +64,6 @@ export const jobsCopy = {
     civicrm: "CiviCRM",
     gmail: "Gmail",
     nightly: "Nightly",
-    // What a job that isn't an import does, a lozenge after its name: compares
-    // with another list, reads mail, sends mail, or keeps the site tidy.
-    kinds: {
-      check: "Check",
-      read: "Reads mail",
-      send: "Sends mail",
-      tidy: "Tidy",
-    },
-    // After that, for the Luma import, which tags Luma's events. Reading Gmail,
-    // which relays mail and emails staff, has "Sends mail" (kinds.send).
-    changesLuma: "Changes Luma",
     // On a job's page, while a run of it is going: one a staff member started, or one of its schedule's.
     running: (who: string, when: string) => `Running, started by ${who} at ${when}. Can only run one at a time.`,
     runningScheduled: (when: string) => `Running now, started at ${when}. Can only run one at a time.`,

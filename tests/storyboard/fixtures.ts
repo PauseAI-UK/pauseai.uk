@@ -17,7 +17,6 @@ import { copyDatabase, dropDatabase, runSql } from "@/scripts/fresh-database.mjs
 import { FLOW_DATABASES, LETTERS_INBOX_DIR, LOCAL_URL, REQUESTS_DIR, TEMPLATE_DATABASE } from "../checkout.mjs";
 import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
 import { historyIdNow } from "@/lib/server/fixtures/inbox-clock";
-import { POLITICIAN_PHOTO_HOSTS } from "@/lib/politicians/photo-hosts";
 import { emptyLettersInbox } from "@/lib/server/fixtures/letters-inbox";
 
 export { expect } from "@playwright/test";
@@ -55,9 +54,6 @@ export const ANALYTICS_URL = "**/www.googletagmanager.com/**";
  * every one is this.
  */
 const OUTSIDE_IMAGE = /\/_next\/image\?url=https?%3A/;
-
-/** A politician's photo, which their page loads from their body's site: the same stand-in. */
-const POLITICIAN_PHOTO = (url: URL) => POLITICIAN_PHOTO_HOSTS.includes(url.hostname);
 const OUTSIDE_IMAGE_STAND_IN = readFileSync(join(process.cwd(), "public/images/bristol-launch.jpeg"));
 
 /** Stands in for pauseai.info's onboarding form, posting its height as the real embed does. */
@@ -225,13 +221,10 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
   // outside page a fixture build still embeds, is a stand-in that reports a
   // fixed height: the real one's height, and so the page below it, varied
   // between runs. Tally's story form doesn't load at all. Pictures from
-  // other sites are a local stand-in (OUTSIDE_IMAGE, POLITICIAN_PHOTO).
+  // other sites are a local stand-in (OUTSIDE_IMAGE).
   page: async ({ page }, provide) => {
     await page.clock.setFixedTime(new Date(FIXTURE_NOW));
     await page.route(OUTSIDE_IMAGE, (route) =>
-      route.fulfill({ contentType: "image/jpeg", body: OUTSIDE_IMAGE_STAND_IN }),
-    );
-    await page.route(POLITICIAN_PHOTO, (route) =>
       route.fulfill({ contentType: "image/jpeg", body: OUTSIDE_IMAGE_STAND_IN }),
     );
     await page.route("https://pauseai.info/**", (route) =>

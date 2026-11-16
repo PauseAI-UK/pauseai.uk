@@ -17,14 +17,13 @@ import {
 } from "@/lib/import-runs";
 import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
 import { ERRORS_LIST } from "@/lib/staff-lists";
-import { staffTime } from "@/lib/staff-time";
+import { londonClock, staffTime } from "@/lib/staff-time";
 import styles from "./ImportJob.module.css";
 import ImportCard, { ImportCards } from "./ImportCard";
 import ImportIcon, { type ImportSource } from "./ImportIcon";
 import JobActions from "./JobActions";
 import type { Decide } from "./Run";
 import RunList from "./RunList";
-import Tag from "@/components/ui/Tag";
 import Strip from "../ui/Strip";
 import ExternalLink from "../ui/ExternalLink";
 import PageHead from "../ui/PageHead";
@@ -53,38 +52,6 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "send-mailings": "gmail",
   "tidy-logs": "database",
 };
-
-/**
- * What a job that isn't an import does, in a lozenge after its name. An
- * import has none: its description starts by saying it imports.
- */
-const KINDS: Partial<Record<ImportJob, keyof typeof words.kinds>> = {
-  "read-gmail": "read",
-  "send-mailings": "send",
-  "tidy-logs": "tidy",
-};
-
-/**
- * After that, for a job that changes something outside the site, what: the
- * Luma import tags Luma's events, and reading Gmail relays mail and emails
- * staff. Sending mailings says so already.
- */
-const OUTSIDE: Partial<Record<ImportJob, string>> = {
-  "import-luma": words.changesLuma,
-  "read-gmail": words.kinds.send,
-};
-
-/** What a job does, and what it changes outside the site, if anything, as lozenges. */
-function JobTags({ job }: { job: ImportJob }) {
-  const kind = KINDS[job];
-  const outside = OUTSIDE[job];
-  return (
-    <>
-      {kind && <Tag>{words.kinds[kind]}</Tag>}
-      {outside && <Tag>{outside}</Tag>}
-    </>
-  );
-}
 
 /** Where each body documents the API its import reads. */
 const API_DOCS: Record<PoliticianImportJob, string> = {
@@ -223,6 +190,18 @@ function NewestRun({ job, run, running }: { job: ImportJob; run: AnyImportRun | 
   );
 }
 
+/** How long from `now` till `next`, in words: "in 4 minutes", or from an hour on, "in 3 hours". */
+function until(next: Date, now: Date): string {
+  const minutes = Math.ceil((next.getTime() - now.getTime()) / 60_000);
+  return minutes < 60 ? words.inMinutes(minutes) : words.inHours(Math.round(minutes / 60));
+}
+
+/** When a job next runs after `now`, as the overview's cards end: "Runs again in 4 minutes · 11:15". */
+function untilNext(job: ImportJob, now: Date): string {
+  const next = nextRun(job, now);
+  return words.runsAgain(until(next, now), londonClock(next));
+}
+
 /** /staff/scheduled-jobs: a card per job, each a link to its page, with how its newest run ended. */
 /** The overview's sections, each the jobs that run that often, in this order. */
 const SCHEDULES = ["frequent", "quarter-hour", "hourly", "nightly"] as const;
@@ -254,9 +233,7 @@ export function ImportOverview({
                   title={importRunsCopy.jobTitles[job]}
                   href={importPath(job)}
                   icon={<ImportIcon source={SOURCES[job]} />}
-                  tags={<JobTags job={job} />}
-                  intro={<Intro job={job} />}
-                  next={words.nextRun(staffTime(nextRun(job, now)))}
+                  next={untilNext(job, now)}
                 >
                   <NewestRun job={job} run={newest[i]} running={running[i]} />
                 </ImportCard>
@@ -270,10 +247,9 @@ export function ImportOverview({
 }
 
 /**
- * One job's page: its icon, name, how often it runs and what it does as
- * lozenges; under them, what it does in words, as the page's first
- * paragraph, and under that, at the left, its button; then every run it has
- * made, newest first.
+ * One job's page: its icon and name; under them, what it does in words, as
+ * the page's first paragraph, and under that, at the left, its button; then
+ * when it next runs, and how often, and every run it has made, newest first.
  */
 export function ImportJobPage({
   job,
@@ -281,6 +257,7 @@ export function ImportJobPage({
   running,
   run,
   decide,
+  now,
 }: {
   job: ImportJob;
   runs: AnyImportRun[];
@@ -290,20 +267,12 @@ export function ImportJobPage({
   run: (form: FormData) => void | Promise<void>;
   /** Applies or discards a held import. */
   decide: Decide;
+  /** The time the page shows, which its next run is after. */
+  now: Date;
 }): ReactNode {
   return (
     <>
-      <PageHead
-        lead={<ImportIcon source={SOURCES[job]} />}
-        tags={
-          <>
-            <Tag>{words[jobSchedule(job)]}</Tag>
-            <JobTags job={job} />
-          </>
-        }
-      >
-        {importRunsCopy.jobTitles[job]}
-      </PageHead>
+      <PageHead lead={<ImportIcon source={SOURCES[job]} />}>{importRunsCopy.jobTitles[job]}</PageHead>
       <div className={styles.about}>
         <p>
           <Intro job={job} />
@@ -321,6 +290,10 @@ export function ImportJobPage({
           </Strip>
         </div>
       )}
+      <h2>{words.comingUp}</h2>
+      <p className={styles.coming}>
+        {words.nextRunOn(staffTime(nextRun(job, now)), until(nextRun(job, now), now), words[jobSchedule(job)])}
+      </p>
       <RunList runs={runs} none={ABOUT[job].none} decide={decide} running={running} />
     </>
   );

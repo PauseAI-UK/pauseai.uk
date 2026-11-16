@@ -90,7 +90,7 @@ describe("PoliticianDetails", () => {
       // Their salutation, quietly under their email.
       politiciansCopy.politician.editDetails.dear(MP.salutation),
     ]);
-    // Their marks, in a card of their own under the notes: without a way to change them, the switches can't be pressed.
+    // Their marks, in a card of their own under the notes: without a way to change them, they can't be pressed.
     const marks = page.getByRole("region", { name: politiciansCopy.politician.marks });
     await expect.element(marks.getByRole("switch", { name: politiciansCopy.politician.importantTarget })).toBeChecked();
     await expect

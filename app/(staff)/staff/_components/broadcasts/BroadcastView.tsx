@@ -214,7 +214,7 @@ export default function BroadcastView({
       <Band
         title={
           // The icon's a picture alone: the facts say the channel in words, in what they said yes to and what sends it.
-          <IconText icon={<ChannelIcon channel={written.channel} size={24} />}>
+          <IconText tall icon={<ChannelIcon channel={written.channel} size="1em" />}>
             {written.title || copy.untitled}
           </IconText>
         }

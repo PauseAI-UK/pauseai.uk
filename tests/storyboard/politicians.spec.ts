@@ -9,6 +9,7 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import { openBubble } from "./settle";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
+import { STAND_IN_PHOTO } from "@/lib/politicians/photo-hosts";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
@@ -61,7 +62,7 @@ async function listSortedBy(page: Page, heading: string, sorted: RegExp) {
 
 test("A politician's page", async ({ page, request, flowDatabase }) => {
   story(
-    "Staff open Polly Placeholder's page. It shows her photo, from Parliament's site, her markers, the notes kept on her in Airtable, her answers to the asks and the emails PauseAI has sent her.",
+    "Staff open Polly Placeholder's page. It shows her photo (here a stand-in, as she's made up), her markers, the notes kept on her in Airtable, her answers to the asks and the emails PauseAI has sent her.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
@@ -69,7 +70,7 @@ test("A politician's page", async ({ page, request, flowDatabase }) => {
   addPauseaiEmails(flowDatabase);
   await openPolitician(page, "Polly Placeholder");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Polly Placeholder");
-  const photo = page.locator("img[src^='https://members-api.parliament.uk/']");
+  const photo = page.locator(`img[src='${STAND_IN_PHOTO}']`);
   await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   await expect(page.getByText(copy.importantTarget, { exact: true })).toBeVisible();
   await expect(
@@ -612,7 +613,7 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
 
 test("Marking a politician", async ({ page, request, flowDatabase }) => {
   story(
-    "Polly Placeholder is an important target: its switch is on in the Marks card, under her notes. Staff switch Personal connection on, and Important target off.",
+    "Polly Placeholder is an important target: its lozenge is filled in the Marks card, under her notes, and Personal connection's is empty. Staff press Personal connection to fill it, and Important target to empty it.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);

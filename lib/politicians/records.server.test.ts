@@ -25,6 +25,7 @@ import {
 import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import { recordProblem } from "@/lib/email/email.server";
 import { logChange } from "@/lib/server/audit.server";
+import { STAND_IN_PHOTO } from "./photo-hosts";
 
 const PM = "frontier-ai-letter";
 const BILL = "controlai-letter";
@@ -100,6 +101,20 @@ describeWithDatabase("politicians", () => {
       email: "test-mp@parliament.example",
     });
     expect(await findTestMp("ZZ99ZS")).toBeUndefined();
+  });
+
+  it("gives their photo as their body lists it, or in a fixture build a stand-in, and none for none", async () => {
+    const id = await addTestPolitician();
+    const other = await addTestPolitician({ name: "Other Placeholder", airtableId: "recOther" });
+    await query(
+      "UPDATE politicians SET photo_url = 'https://members-api.parliament.uk/api/Members/1/Thumbnail' WHERE id = $1",
+      [id],
+    );
+    vi.stubEnv("DATA_FIXTURES", "");
+    expect((await getPolitician(id))!.photoUrl).toBe("https://members-api.parliament.uk/api/Members/1/Thumbnail");
+    vi.stubEnv("DATA_FIXTURES", "1");
+    expect((await listPoliticians({ ids: [id, other] })).map((p) => p.photoUrl).sort()).toEqual([STAND_IN_PHOTO, null]);
+    vi.unstubAllEnvs();
   });
 
   it("sets, changes and clears statuses, logging each change", async () => {

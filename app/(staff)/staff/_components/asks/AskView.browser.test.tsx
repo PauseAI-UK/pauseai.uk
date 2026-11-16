@@ -14,8 +14,8 @@ describe("AskView", () => {
   const path = `/staff/asks/${exampleAskPage.slug}`;
   const words = asksCopy.asks.page;
 
-  it("sizes its kind's picture by its title's words, so it grows with a larger font", async () => {
-    // A browser set to a larger font: the title, a heading of 2em, grows with it.
+  it("sizes its kind's picture as its title's words, at whatever size they are", async () => {
+    // Words larger than the page's own: the title, a heading of 2em, grows with them, and its picture with it.
     await render(
       <div style={{ fontSize: "24px" }}>
         <AskView ask={exampleAskPage} answer="" />
@@ -23,7 +23,7 @@ describe("AskView", () => {
     );
     const title = page.getByRole("heading", { level: 1 }).element();
     const picture = title.querySelector("svg")!;
-    expect(picture.getBoundingClientRect().height).toBeCloseTo(0.75 * parseFloat(getComputedStyle(title).fontSize));
+    expect(picture.getBoundingClientRect().height).toBeCloseTo(parseFloat(getComputedStyle(title).fontSize));
     expect(parseFloat(getComputedStyle(title).fontSize)).toBe(48);
   });
 

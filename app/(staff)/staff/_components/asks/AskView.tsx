@@ -175,7 +175,9 @@ export default function AskView({ ask, answer }: { ask: AskPageData; answer: str
       <Band
         title={
           // Its kind's picture first, as a broadcast's title has its channel's; the Asked fact says it in words.
-          <IconText icon={<AskKindIcon kind={ask.kind} size="0.75em" />}>{ask.title}</IconText>
+          <IconText tall icon={<AskKindIcon kind={ask.kind} size="1em" />}>
+            {ask.title}
+          </IconText>
         }
         corner={
           <StaffLink className={buttonClass({ variant: "ghost", size: "small", fit: true })} href={`${path}/edit`}>
