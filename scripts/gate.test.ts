@@ -40,6 +40,13 @@ describe("parseArgs", () => {
     expect(parseArgs(["--only", "test,checks"])).toEqual({ fast: false, storyboard: true, only: ["test", "checks"] });
   });
 
+  it("refuses --only with options that leave none of its groups to run", () => {
+    expect(() => parseArgs(["--only", "test,flows", "--fast"])).toThrow("Nothing to run");
+    expect(() => parseArgs(["--no-storyboard", "--only", "flows"])).toThrow("Nothing to run");
+    expect(parseArgs(["--fast", "--only", "checks,test"]).only).toEqual(["checks", "test"]);
+    expect(parseArgs(["--no-storyboard", "--only", "flows,test"]).only).toEqual(["flows", "test"]);
+  });
+
   it("refuses a group it doesn't know, or none", () => {
     expect(() => parseArgs(["--only", "test,lint"])).toThrow('--only takes checks, test, flows, not "lint"');
     expect(() => parseArgs(["--only"])).toThrow('not ""');

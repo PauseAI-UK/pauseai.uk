@@ -73,6 +73,12 @@ export function parseArgs(args) {
       );
     }
   }
+  // `--fast` runs only checks, and `--no-storyboard` leaves out flows.
+  const runnable = options.only?.filter(
+    (group) => (!options.fast || group === "checks") && (options.storyboard || group !== "flows"),
+  );
+  if (runnable?.length === 0)
+    throw new Error(`Nothing to run: --only ${options.only.join(",")} with ${args.join(" ")}`);
   return options;
 }
 

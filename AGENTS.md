@@ -35,7 +35,9 @@ npm run gate -- --no-storyboard   # everything but the storyboard
 npm run gate -- --only test       # one group or more of checks, test and flows, nothing else
 ```
 
-To rerun part of the gate, such as the tests after a fix, use `--only` rather than `npm test` or a linter by itself: the gate's status (`tmp/gate/status.json`, which Francis's status line shows) records only what runs through the gate, and `--only` keeps the other groups' results from the last gate on the same commit.
+To rerun part of the gate, such as the tests after a fix, use `--only` rather than `npm test` or a linter by itself: the gate's status (`tmp/gate/status.json`) records only what runs through the gate, and `--only` keeps the other groups' results from the last gate on the same commit. Read that file to see where the branch stands: each group passed, failed, running or not run, and the commit it's for (`docs/testing.md`, "The gate's status").
+
+Claude Code's status line ([`statusLine`](https://code.claude.com/docs/en/statusline)) can show that file, and the storyboard's progress, beneath the prompt. If the person you're working with doesn't have one showing them, offer to set it up.
 
 The branch isn't done until `npm run gate` exits 0. It takes the files changed since the branch left `origin/main`, committed or not, formats them with Prettier and checks them, and stops there if a check fails. Then it runs what CI runs (`.github/workflows/ci.yml`) in parallel, as CI's jobs do:
 
