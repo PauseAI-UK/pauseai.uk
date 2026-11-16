@@ -19,6 +19,7 @@ import { answersTo, type BroadcastAnswer } from "./answers.server";
 import { repliesTo, type BroadcastReply } from "./replies.server";
 import { query } from "@/lib/server/db.server";
 import { channelSends, textSenderNumber } from "./channels.server";
+import { stopwatch } from "@/lib/server/stopwatch.server";
 import {
   approvedTemplates,
   broadcastSender,
@@ -243,14 +244,21 @@ export type BroadcastPageData =
       pageSize: number;
     };
 
+/**
+ * What a draft's writer shows, each part asked for at once; how long each
+ * took is logged, as changing its Consent waits for it all.
+ */
 async function writerData(draft: WrittenBroadcast, me: string): Promise<BroadcastWriterData> {
-  const [audience, unknown, choices, sender, templates] = await Promise.all([
-    supporterAudience(draft.filter, draft),
-    filterProblems(draft.filter),
-    supporterChoices(),
-    broadcastSender(draft),
-    approvedTemplates(),
+  const watch = stopwatch(`Broadcast ${draft.id}'s writer`);
+  const [audience, unknown, choices, sender, templates, textNumber] = await Promise.all([
+    watch.time("audience", supporterAudience(draft.filter, draft)),
+    watch.time("filter problems", filterProblems(draft.filter)),
+    watch.time("choices", supporterChoices()),
+    watch.time("sender", broadcastSender(draft)),
+    watch.time("templates", approvedTemplates()),
+    watch.time("WhatsApp number", textSenderNumber()),
   ]);
+  watch.log();
   return {
     filter: draft.filter,
     choices,
@@ -263,7 +271,7 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
     sends: channelSends(draft.channel, draft.sendBy),
     textsSend: channelSends("text"),
     templates,
-    textNumber: await textSenderNumber(),
+    textNumber,
   };
 }
 
@@ -276,11 +284,12 @@ export async function newBroadcastPageData(
   me: string,
 ): Promise<{ draft: WrittenBroadcast; data: BroadcastWriterData }> {
   const start = { channel: "email", sendBy: DEFAULT_SEND_BY, sentFrom: BROADCAST_SENDER.email } as const;
-  const [choices, sender, templates, parts] = await Promise.all([
+  const [choices, sender, templates, parts, textNumber] = await Promise.all([
     supporterChoices(),
     broadcastSender(start),
     approvedTemplates(),
     broadcastParts(),
+    textSenderNumber(),
   ]);
   const filter = storedFilter("supporters", {});
   return {
@@ -318,7 +327,7 @@ export async function newBroadcastPageData(
       sends: channelSends("email"),
       textsSend: channelSends("text"),
       templates,
-      textNumber: await textSenderNumber(),
+      textNumber,
     },
   };
 }

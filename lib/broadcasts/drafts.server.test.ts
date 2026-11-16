@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
+import { forgetNumbers, NUMBER_KEPT_MS } from "./channels.server";
 import { query } from "@/lib/server/db.server";
 import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailings/doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -57,7 +58,11 @@ beforeEach(() => {
   vi.stubEnv("WHATSAPP_TOKEN", "token");
   vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
 });
-afterEach(() => vi.unstubAllEnvs());
+// Each test sets Meta's answers its own way, so none sees our number as another's Meta said it.
+afterEach(() => {
+  vi.unstubAllEnvs();
+  forgetNumbers();
+});
 
 /** A draft to everyone with `params`, at version 1. */
 async function draftOf(params: Record<string, string>): Promise<number> {
@@ -445,14 +450,18 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await submitTemplate(id, JO)).toEqual({ failed: null });
       expect(await query("SELECT id::int AS id FROM whatsapp_templates")).toEqual([{ id: rejected }]);
       expect(console.error).toHaveBeenCalled();
-      // WhatsApp answering the check before, which asks for our number and for its daily limit, but not when the words go.
+      // WhatsApp answering the check before, but not when the words go, the number kept from the check having gone
+      // stale in between.
+      forgetNumbers();
+      vi.useFakeTimers({ toFake: ["Date"] });
+      onTestFinished(() => void vi.useRealTimers());
       let asked = 0;
       server.use(
-        http.get(/phone_numbers/, () =>
-          ++asked > 2
-            ? HttpResponse.json({}, { status: 500 })
-            : HttpResponse.json({ data: [{ id: "fixture-phone", display_phone_number: "+44 7700 900000" }] }),
-        ),
+        http.get(/phone_numbers/, () => {
+          if (++asked > 1) return HttpResponse.json({}, { status: 500 });
+          vi.advanceTimersByTime(NUMBER_KEPT_MS);
+          return HttpResponse.json({ data: [{ id: "fixture-phone", display_phone_number: "+44 7700 900000" }] });
+        }),
       );
       // WhatsApp not reached: no reason.
       expect(await submitTemplate(id, JO)).toEqual({ failed: null });
@@ -507,6 +516,8 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await sendBroadcastTest(text, to, "+447700900002")).toEqual({ sent: true, id: "wamid.test" });
       expect(names).toEqual(["march_day_9"]);
       server.use(http.get(/phone_numbers/, () => HttpResponse.json({}, { status: 500 })));
+      // Once the number this server kept has gone stale, and it asks again.
+      forgetNumbers();
       expect(await sendBroadcastTest(text, to, "+447700900002")).toBeUndefined();
     });
   });
@@ -555,6 +566,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     vi.stubEnv("DATA_FIXTURES", "");
     vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get(/graph\.facebook\.com/, () => HttpResponse.json({ data: [] })));
+    forgetNumbers();
     expect(await scheduleBroadcast(id, version, JO)).toEqual({
       scheduled: false,
       problems: ["no-template", "no-number"],

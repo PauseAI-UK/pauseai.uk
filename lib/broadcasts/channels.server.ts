@@ -42,13 +42,46 @@ export function whatsAppKeys(): WhatsAppKeys | undefined {
 /** What sends texts: WhatsApp's keys, and our number there. */
 export type TextBackend = { keys: WhatsAppKeys; number: BusinessNumber };
 
-/** What sends texts, if anything does here; undefined too while WhatsApp doesn't answer, which is reported. */
+/** How long our number and its daily limit are kept once Meta has said them: the number never changes, and the limit seldom. */
+export const NUMBER_KEPT_MS = 10 * 60_000;
+
+/**
+ * Our number as Meta last said it, for each set of keys, and when it was
+ * asked: kept in this server's memory, so the many things that need it
+ * (a broadcast's page, its changes, the sending) ask Meta once in
+ * NUMBER_KEPT_MS, not each time, and those that ask at once share the one
+ * question. One Meta didn't answer isn't kept, so the next asks again.
+ */
+const numbers = new Map<string, { at: number; number: Promise<BusinessNumber> }>();
+
+/** Forgets the number Meta said, so the next to need it asks: for a test, which sets Meta's answers its own way. */
+export function forgetNumbers(): void {
+  numbers.clear();
+}
+
+/** Where the number for these keys is kept. */
+const numberKey = (keys: WhatsAppKeys) => `${keys.accountId} ${keys.token}`;
+
+/** Our number, as kept, or asked of Meta now. */
+function numberFor(keys: WhatsAppKeys): Promise<BusinessNumber> {
+  const kept = numbers.get(numberKey(keys));
+  if (kept && Date.now() - kept.at < NUMBER_KEPT_MS) return kept.number;
+  const number = businessNumber(keys);
+  numbers.set(numberKey(keys), { at: Date.now(), number });
+  return number;
+}
+
+/**
+ * What sends texts, if anything does here; undefined too while WhatsApp
+ * doesn't answer, which is reported, and isn't kept, so the next asks again.
+ */
 export async function textBackend(): Promise<TextBackend | undefined> {
   const keys = whatsAppKeys();
   if (!keys) return undefined;
   try {
-    return { keys, number: await businessNumber(keys) };
+    return { keys, number: await numberFor(keys) };
   } catch (error) {
+    numbers.delete(numberKey(keys));
     problem(broadcastsCopy.problems.whatsAppUnanswered, error);
     return undefined;
   }
