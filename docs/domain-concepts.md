@@ -333,9 +333,10 @@ time they're written to, and kept.
 - **Reading and relaying** (`lib/letters/letters-inbox-reading.server.ts`,
   `relays.server.ts`): `read-gmail`, every 5 minutes, reads the letters inbox, Spam
   included, as all of its mail is ours. What it relays:
-  - A message from the MP's office (Parliament's domain, or the address the
-    letter went to) to the supporter's proxy goes to the supporter from the
-    MP's proxy, in the thread of their copy.
+  - A message from the MP's office (a parliament's domain, the address the
+    letter went to, or one of the MP's linked addresses in the politician
+    book, such as on a domain of their own) to the supporter's proxy goes to
+    the supporter from the MP's proxy, in the thread of their copy.
   - A message from the supporter, to either proxy, goes to the MP from the
     supporter's proxy, naming the letter.
   - An automatic reply goes on either way too, keeping the marks that stop

@@ -21,6 +21,8 @@ import {
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { overRelayCap, relay } from "./relays.server";
 import { lettersCopy } from "./copy";
+import { readPoliticianBook } from "./book.server";
+import { onParliamentDomain, politiciansOf } from "./one-off";
 
 // Reading the letters inbox (lib/letters/letters-inbox.server.ts), from the
 // read of Gmail every 5 minutes (gmail-reading.server.ts). All of its mail is ours, so every
@@ -246,14 +248,20 @@ async function isPoliticians(address: string): Promise<boolean> {
   return !!row;
 }
 
-/** Whether an address is the office's: an address of Parliament's, or the one the letter went to. */
+/**
+ * Whether an address is the office's: one on a parliament's domain, one the
+ * letter went to, or one of the MP's linked addresses, which are on a domain
+ * of their own or in the politician book (politiciansOf).
+ */
 async function isOffice(letterId: number, address: string): Promise<boolean> {
-  if (aligned(domainOf(address), "parliament.uk")) return true;
-  const [sent] = await query(
-    "SELECT 1 FROM email_sends WHERE letter_id = $1 AND purpose IN ('letter', 'relay') AND address = $2 LIMIT 1",
+  if (onParliamentDomain(address)) return true;
+  const [letter] = await query<{ mp: number; sent: boolean }>(
+    `SELECT notable_person_id::int AS mp, EXISTS (SELECT 1 FROM email_sends
+       WHERE letter_id = $1 AND purpose IN ('letter', 'relay') AND address = $2) AS sent
+     FROM letters WHERE id = $1`,
     [letterId, address],
   );
-  return !!sent;
+  return letter.sent || politiciansOf(await readPoliticianBook(true), address).includes(letter.mp);
 }
 
 /**

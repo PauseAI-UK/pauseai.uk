@@ -6,7 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { copy } from "@/lib/content/email-your-mp";
 import { NIGHTLY, runStatus, type GmailReading } from "@/lib/import-runs";
 import { docFromMarkup } from "./format";
-import { addTestMp, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import {
+  addTestMp,
+  addTestPolitician,
+  connectTestGmail,
+  describeWithDatabase,
+  useTestDatabase,
+} from "@/tests/database";
 import {
   deliverToLettersInbox,
   keepSent,
@@ -535,6 +541,28 @@ describeWithDatabase("reading the letters inbox", () => {
     expect(line.notUnderstood).toEqual([
       expect.objectContaining({ from: "someone@parliament.example", reason: "stranger" }),
     ]);
+  });
+
+  it("takes the MP's linked addresses as the office's: one of theirs, or on a domain of their own, but no other MP's", async () => {
+    const letter = await write();
+    const [{ mp }] = await query<{ mp: number }>("SELECT notable_person_id::int AS mp FROM letters WHERE id = $1", [
+      letter.id,
+    ]);
+    const other = await addTestPolitician({ airtableId: null, email: "other.mp@parliament.uk" });
+    await query(
+      `INSERT INTO politician_domains (domain, notable_person_id) VALUES ('testy.example', $1), ('other.example', $2)`,
+      [mp, other],
+    );
+    await query(
+      "INSERT INTO politician_addresses (address, notable_person_id, source) VALUES ('testy.office@gmail.example', $1, 'parliament')",
+      [mp],
+    );
+    deliver({ from: "testy@testy.example", to: JANES_PROXY });
+    deliver({ from: "testy.office@gmail.example", to: JANES_PROXY });
+    deliver({ from: "other@other.example", to: JANES_PROXY });
+    const line = await read();
+    expect(line.relayed).toBe(2);
+    expect(line.notUnderstood).toEqual([expect.objectContaining({ from: "other@other.example", reason: "stranger" })]);
   });
 
   it("stops relaying a letter at its cap, so a loop of automatic replies ends", async () => {
