@@ -197,6 +197,7 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
   });
 
   it("sends a test copy for someone made up: an email to you with no address given, a text only to a number", async () => {
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const meets = ["has:firstName"];
     const email = await draft();
