@@ -6,9 +6,11 @@ import { server } from "@/tests/fixtures/msw";
 import { importCivicrm } from "./civicrm-import.server";
 import { unblock } from "@/lib/oversight/delivery-problems.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
+import { saveSettings } from "@/lib/supporters/email-settings.server";
 import { jobsCopy } from "./copy";
 
 const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
+const UPDATE = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";
 
 type Row = Record<string, unknown>;
 
@@ -327,5 +329,82 @@ describeWithDatabase("importCivicrm", () => {
       { name: "Jane Brown", member: true, first_seen_at: new Date("2026-09-01T00:00:00Z") },
       { name: null, member: false, first_seen_at: new Date("2026-09-13T00:00:00Z") },
     ]);
+  });
+});
+
+describeWithDatabase("an unsubscribe, then a box ticked again on the contact preferences page", () => {
+  useTestDatabase();
+
+  /**
+   * CiviCRM holding one contact, Kit, whose newsletter is `newsletter`, applying the events it's sent as Global's
+   * API does: an unsubscribe always, a resubscribe unless Kit never opted in. Gives the events it got.
+   */
+  function civicrm(newsletter: "subscribed" | "not_opted_in") {
+    let status: string = newsletter;
+    const got: Row[] = [];
+    server.use(
+      http.post(UPDATE, async ({ request }) => {
+        const { events } = JSON.parse(new URLSearchParams(await request.text()).get("params")!) as { events: Row[] };
+        got.push(...events);
+        return HttpResponse.json({
+          values: events.map((event) => {
+            if (event.change === "resubscribe" && newsletter === "not_opted_in") {
+              return { event_id: event.event_id, status: "refused", reason: "not_opted_in" };
+            }
+            status = event.change === "unsubscribe" ? "unsubscribed" : "subscribed";
+            return { event_id: event.event_id, status: "accepted" };
+          }),
+        });
+      }),
+      http.all(GET, () => HttpResponse.json({ values: [contact(1, KIT, {}, { newsletter: status })] })),
+    );
+    return got;
+  }
+
+  const KIT = "kit@example.com";
+  const answer = async () =>
+    (await query<{ send: string }>("SELECT send FROM contact_permission('newsletter', 'email', $1)", [KIT]))[0].send;
+
+  /** Kit unsubscribes by a copy's link and, before the next run, ticks the newsletter again; then a run. */
+  async function unsubscribeAndTickAgain() {
+    await recordOptOut({
+      address: KIT,
+      list: "newsletter",
+      source: "link",
+      sourceRef: "link 1",
+      unsubscribedAt: new Date(),
+    });
+    expect(await answer()).toBe("no");
+    await saveSettings(KIT, new Set(["newsletter:email"]));
+    expect(await answer()).toBe("yes");
+    await importCivicrm("nightly");
+  }
+
+  it("puts someone on Global's list back on it, and the run's pull leaves them a yes", async () => {
+    const got = civicrm("subscribed");
+    await importCivicrm("nightly");
+    await unsubscribeAndTickAgain();
+    expect(got.map((event) => [event.change, event.list])).toEqual([
+      ["unsubscribe", "newsletter"],
+      ["resubscribe", "newsletter"],
+    ]);
+    expect(await kept()).toEqual([expect.objectContaining({ newsletter: "subscribed" })]);
+    expect(await answer()).toBe("yes");
+  });
+
+  it("leaves someone never on Global's list a yes, though CiviCRM refuses to put them on it", async () => {
+    const got = civicrm("not_opted_in");
+    await importCivicrm("nightly");
+    await unsubscribeAndTickAgain();
+    expect(got.map((event) => event.change)).toEqual(["unsubscribe", "resubscribe"]);
+    expect(await query("SELECT status, reason FROM civicrm_updates ORDER BY id")).toEqual([
+      { status: "accepted", reason: null },
+      { status: "refused", reason: "not_opted_in" },
+    ]);
+    expect(await kept()).toEqual([expect.objectContaining({ newsletter: "unsubscribed" })]);
+    // CiviCRM's unsubscribe is the one Kit made by the link, older than the box they ticked.
+    expect(await answer()).toBe("yes");
+    await importCivicrm("nightly");
+    expect(await answer()).toBe("yes");
   });
 });

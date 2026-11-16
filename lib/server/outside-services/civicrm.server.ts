@@ -237,7 +237,7 @@ export type SubscriptionEvent = {
   email?: string;
   /** In international format, for "Do not SMS" or "Do not phone". */
   phone?: string;
-  change: "unsubscribe" | "no_bulk_email" | "allow_bulk_email" | "do_not_sms" | "do_not_phone";
+  change: "unsubscribe" | "resubscribe" | "no_bulk_email" | "allow_bulk_email" | "do_not_sms" | "do_not_phone";
   list?: "newsletter" | "volunteer_updates";
   /** From the last pull, for an opt-out. */
   contactId?: number;

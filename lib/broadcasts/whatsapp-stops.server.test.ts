@@ -25,7 +25,7 @@ const stops = () =>
 describeWithDatabase("stops given in WhatsApp", () => {
   useTestDatabase();
 
-  it("stops every text to the number, once however often it's told, and sends CiviCRM Do not SMS", async () => {
+  it("stops every text to the number, once however often it's told, keeping it from CiviCRM", async () => {
     expect(await recordWhatsAppStop(NUMBER, "setting", "447700900123 1730000000", AT)).toBe(true);
     // One stop of every text, whatever topics a text goes under now or later.
     expect(await stops()).toEqual([
@@ -34,7 +34,8 @@ describeWithDatabase("stops given in WhatsApp", () => {
     expect(
       (await query<{ send: string }>("SELECT send FROM contact_permission('volunteering', 'text', $1)", [NUMBER]))[0],
     ).toEqual({ send: "no" });
-    expect(await query("SELECT change, phone FROM civicrm_updates")).toEqual([{ change: "do_not_sms", phone: NUMBER }]);
+    // The person can lift it in WhatsApp, and nothing of ours could lift CiviCRM's Do not SMS.
+    expect(await query("SELECT 1 FROM civicrm_updates")).toEqual([]);
     expect(await recordWhatsAppStop(NUMBER, "setting", "447700900123 1730000000", AT)).toBe(false);
     expect(await stops()).toHaveLength(1);
   });

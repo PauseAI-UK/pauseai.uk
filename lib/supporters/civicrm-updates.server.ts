@@ -11,13 +11,13 @@ import { problem } from "@/lib/server/problems.server";
 import { supportersCopy } from "./copy";
 
 // Our opt-outs sent to CiviCRM's updateSubscriptions, so Global's records
-// and mail honour them too: of email by address, and of every text or call
-// to a number as its "Do not SMS" or "Do not phone"; and lifts of "No bulk
-// emails" made on the email settings page. Each is queued in civicrm_updates in the transaction that
-// records it, then sent by the hourly CiviCRM import, before it pulls, and
-// tried again each hour until CiviCRM answers it. Only opt-outs go, but
-// that one opt-in: a yes on our side stays ours, as CiviCRM's lists are its
-// own.
+// and mail honour them too: of email by address, and Stop everything's
+// stops of a number as its "Do not SMS" and "Do not phone"; and the opt-ins a person makes on the contact preferences page
+// that CiviCRM takes: a lift of "No bulk emails", and a box ticked for the
+// newsletter or volunteering by email, as a resubscribe to its list. Each
+// is queued in civicrm_updates in the transaction that records it, then
+// sent by the hourly CiviCRM import, before it pulls, oldest first, so an
+// opt-in goes after the opt-out it undoes, and the pull sees both.
 
 /** What an opt-out of ours is to CiviCRM, if it's anything: the newsletter or volunteering by email, or every bulk email. */
 export function civicrmChange(list: string, way: string): Pick<SubscriptionEvent, "change" | "list"> | undefined {
@@ -28,23 +28,31 @@ export function civicrmChange(list: string, way: string): Pick<SubscriptionEvent
   return undefined;
 }
 
+/** What a yes from the contact preferences page is to CiviCRM, if it's anything: a resubscribe to the list it unsubscribes from. */
+export function civicrmResubscribe(topic: string, way: string): Pick<SubscriptionEvent, "change" | "list"> | undefined {
+  const list = civicrmChange(topic, way)?.list;
+  return list && { change: "resubscribe", list };
+}
+
 /** Where a person did it, as CiviCRM is told: our name for the source, as from pauseai.uk. */
 const sourceName = (source: string): string => `pauseai.uk:${source}`;
 
 /**
- * An opt-out of ours, as queued for CiviCRM: for a number, whether the
- * number now has a stop of every topic by its way (`every`).
+ * An opt-out of ours, as queued for CiviCRM: for a number, whether it's
+ * one of a Stop everything's (`stopsAll`).
  */
-type Queued = { id: number; address: string; list: string; way: string; source: string; at: Date; every: boolean };
+type Queued = { id: number; address: string; list: string; way: string; source: string; at: Date; stopsAll: boolean };
 
 /**
- * Queues "Do not SMS" or "Do not phone" for a number whose every topic by
- * text, or by call, `optOut` has just stopped, as those are CiviCRM's
- * flags for the whole number; a stop of only some stays ours. Returns
- * whether it queued it.
+ * Queues "Do not SMS" or "Do not phone" for a number's stop of every text,
+ * or every call, by Stop everything on the contact preferences page. Those
+ * are CiviCRM's flags for the whole number, which nothing of ours can lift,
+ * so any other stop stays ours: of a topic, even the last one the number
+ * had, or WhatsApp's own stop of our marketing messages, which the person
+ * can lift there. Returns whether it queued it.
  */
 async function queueNumberStop(optOut: Queued, db?: Queryable): Promise<boolean> {
-  if (!optOut.every) return false;
+  if (!optOut.stopsAll) return false;
   await query(
     `INSERT INTO civicrm_updates (opt_out_id, change, phone, occurred_at, source) VALUES ($1, $2, $3, $4, $5)`,
     [
@@ -62,9 +70,8 @@ async function queueNumberStop(optOut: Queued, db?: Queryable): Promise<boolean>
 /**
  * Queues an opt-out of ours for CiviCRM, if it's one it takes (civicrmChange)
  * and not one CiviCRM told us of, with the contact ID of the address's
- * contact in the last pull, if it has one; or, for a number, the stop of
- * every text or call it completes (queueNumberStop). Returns whether it
- * queued it.
+ * contact in the last pull, if it has one; or, for a number, a Stop
+ * everything's (queueNumberStop). Returns whether it queued it.
  */
 export async function queueOptOut(optOut: Queued, db?: Queryable): Promise<boolean> {
   if (optOut.source === "civicrm" || optOut.source === "civicrm-check") return false;
@@ -92,6 +99,26 @@ export async function queueBulkLift(
     [choice.id, choice.address, choice.at, sourceName("preferences"), choice.wording],
     db,
   );
+}
+
+/**
+ * Queues a resubscribe to a CiviCRM list, for a box ticked on the contact
+ * preferences page beside `wording`, if CiviCRM has a list for it
+ * (civicrmResubscribe). Returns whether it queued it.
+ */
+export async function queueResubscribe(
+  choice: { id: number; address: string; topic: string; way: string; at: Date; wording: string },
+  db?: Queryable,
+): Promise<boolean> {
+  const change = civicrmResubscribe(choice.topic, choice.way);
+  if (!change) return false;
+  await query(
+    `INSERT INTO civicrm_updates (choice_id, change, list, email, occurred_at, source, wording)
+     VALUES ($1, 'resubscribe', $2, $3, $4, $5, $6)`,
+    [choice.id, change.list, choice.address, choice.at, sourceName("preferences"), choice.wording],
+    db,
+  );
+  return true;
 }
 
 /** An update CiviCRM hasn't answered, as kept: null where it has none of a field. */
@@ -124,7 +151,9 @@ function eventOf(waiting: Waiting): SubscriptionEvent {
 /**
  * Applies CiviCRM's results to the updates sent: each answered is kept with
  * its result, and a refused lift of "No bulk emails" is marked so, as a
- * newer "No bulk emails" there still stands. Every one sent counts a try.
+ * newer "No bulk emails" there still stands. A refused resubscribe changes
+ * nothing of ours: the person's yes stands for what we send, and CiviCRM's
+ * list stays as CiviCRM has it. Every one sent counts a try.
  */
 async function keepResults(sent: Waiting[], results: Map<string, SubscriptionResult>): Promise<void> {
   for (const update of sent) {
@@ -136,10 +165,28 @@ async function keepResults(sent: Waiting[], results: Map<string, SubscriptionRes
        WHERE id = $1`,
       [update.id, result?.status ?? null, reason],
     );
-    if (result?.status === "refused" && update.choiceId) {
+    if (result?.status === "refused" && update.change === "allow_bulk_email") {
       await query("UPDATE preference_choices SET refused_at = now() WHERE id = $1", [update.choiceId]);
     }
+    if (result?.status === "accepted" && update.list) await keepListChange(update);
   }
+}
+
+/**
+ * Keeps what an accepted unsubscribe or resubscribe made of the address's
+ * contacts' list, from when the person did it, as the pull would see it
+ * otherwise only after, from when it pulled. So the pull sees no change,
+ * and the stop it brings into our records (recordCivicrmLists) is as old as
+ * the person's own, and a yes they gave since still wins.
+ */
+async function keepListChange(update: Waiting): Promise<void> {
+  const column = update.list === "newsletter" ? "newsletter" : "volunteer_updates";
+  const status = update.change === "unsubscribe" ? "unsubscribed" : "subscribed";
+  await query(
+    `UPDATE civicrm_contacts SET ${column} = $2, ${column}_since = $3
+     WHERE email = $1 AND ${column} <> $2`,
+    [update.email, status, update.occurredAt],
+  );
 }
 
 /**

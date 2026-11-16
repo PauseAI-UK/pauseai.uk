@@ -3,8 +3,14 @@ import { http, HttpResponse } from "msw";
 import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
-import { civicrmChange, queueBulkLift, sendCivicrmUpdates } from "./civicrm-updates.server";
-import { recordOptOut, type OptOut } from "@/lib/supporters/opt-outs.server";
+import {
+  civicrmChange,
+  civicrmResubscribe,
+  queueBulkLift,
+  queueResubscribe,
+  sendCivicrmUpdates,
+} from "./civicrm-updates.server";
+import { recordOptOut, STOP_ALL, type OptOut } from "@/lib/supporters/opt-outs.server";
 import { inRun } from "@/lib/server/run-store.server";
 import { supportersCopy } from "./copy";
 
@@ -52,6 +58,14 @@ it("sends only the opt-outs CiviCRM takes: the newsletter or volunteering by ema
   expect(civicrmChange("events", "email")).toBeUndefined();
   expect(civicrmChange("all", "email")).toBeUndefined();
   expect(civicrmChange("newsletter", "text")).toBeUndefined();
+});
+
+it("sends a yes from the page as a resubscribe to the list its opt-out unsubscribes from, if CiviCRM has one", () => {
+  expect(civicrmResubscribe("newsletter", "email")).toEqual({ change: "resubscribe", list: "newsletter" });
+  expect(civicrmResubscribe("volunteering", "email")).toEqual({ change: "resubscribe", list: "volunteer_updates" });
+  expect(civicrmResubscribe("bulk", "email")).toBeUndefined();
+  expect(civicrmResubscribe("events", "email")).toBeUndefined();
+  expect(civicrmResubscribe("newsletter", "text")).toBeUndefined();
 });
 
 describeWithDatabase("our opt-outs sent to CiviCRM", () => {
@@ -129,6 +143,79 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("sends a resubscribe with the box's words, and keeps a refused one without marking the yes", async () => {
+    const calls = serve((event) => ({ event_id: event.event_id, status: "refused", reason: "not_opted_in" }));
+    const [{ id }] = await query<{ id: number }>(
+      `INSERT INTO preference_choices (address, way, topic, wording) VALUES ('jane@example.com', 'email', 'newsletter', 'News')
+       RETURNING id::int AS id`,
+    );
+    const choice = { id, address: "jane@example.com", way: "email", at: AT, wording: "News" };
+    expect(await queueResubscribe({ ...choice, topic: "events" })).toBe(false);
+    expect(await queueResubscribe({ ...choice, topic: "newsletter" })).toBe(true);
+    expect(await sendCivicrmUpdates("key")).toEqual({ sent: 0, refused: 1, unanswered: 0 });
+    expect(calls[0]).toEqual([
+      {
+        event_id: `lift:${id}`,
+        email: "jane@example.com",
+        change: "resubscribe",
+        list: "newsletter",
+        occurred_at: AT.toISOString(),
+        source: "pauseai.uk:preferences",
+        wording: "News",
+      },
+    ]);
+    expect(await updates()).toEqual([expect.objectContaining({ status: "refused", reason: "not_opted_in" })]);
+    expect(await query("SELECT refused_at FROM preference_choices")).toEqual([{ refused_at: null }]);
+  });
+
+  it("keeps the list as an accepted change made it, from when the person made it, for the pull to find", async () => {
+    serve();
+    const contact = (id: number, email: string, volunteering: string) =>
+      query(
+        `INSERT INTO civicrm_contacts (contact_id, email, newsletter, newsletter_since, volunteer_updates,
+           volunteer_updates_since, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since, do_not_email,
+           do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since)
+         VALUES ($1, $2, 'subscribed', now(), $3, now(), false, now(), false, now(), false, now(), false, now(),
+           false, now())`,
+        [id, email, volunteering],
+      );
+    await contact(1, "jane@example.com", "subscribed");
+    await contact(2, "jane@example.com", "unsubscribed");
+    await contact(3, "sam@example.com", "subscribed");
+    await recordOptOut(optOut({ list: "volunteering" }));
+    await sendCivicrmUpdates("key");
+    const lists = () =>
+      query(
+        `SELECT contact_id::int AS id, newsletter, volunteer_updates AS volunteering,
+           volunteer_updates_since = $1 AS "fromThen" FROM civicrm_contacts ORDER BY contact_id`,
+        [AT],
+      );
+    // Contact 2 was unsubscribed already, so it keeps when that was.
+    expect(await lists()).toEqual([
+      { id: 1, newsletter: "subscribed", volunteering: "unsubscribed", fromThen: true },
+      { id: 2, newsletter: "subscribed", volunteering: "unsubscribed", fromThen: false },
+      { id: 3, newsletter: "subscribed", volunteering: "subscribed", fromThen: false },
+    ]);
+    const [{ id }] = await query<{ id: number }>(
+      `INSERT INTO preference_choices (address, way, topic, wording) VALUES ('jane@example.com', 'email', 'volunteering', 'Help')
+       RETURNING id::int AS id`,
+    );
+    await queueResubscribe({
+      id,
+      address: "jane@example.com",
+      topic: "volunteering",
+      way: "email",
+      at: AT,
+      wording: "Help",
+    });
+    await sendCivicrmUpdates("key");
+    expect(await lists()).toEqual([
+      { id: 1, newsletter: "subscribed", volunteering: "subscribed", fromThen: true },
+      { id: 2, newsletter: "subscribed", volunteering: "subscribed", fromThen: true },
+      { id: 3, newsletter: "subscribed", volunteering: "subscribed", fromThen: false },
+    ]);
+  });
+
   it("marks a lift CiviCRM refused, so its newer “No bulk emails” still stands", async () => {
     serve((event) => ({ event_id: event.event_id, status: "refused", reason: "newer_no_bulk_email" }));
     const [{ id }] = await query<{ id: number }>(
@@ -200,7 +287,7 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
 describeWithDatabase("our stops of a number sent to CiviCRM", () => {
   useTestDatabase();
 
-  it("sends a stop of every text as Do not SMS, and of calls as Do not phone, but not a stop of some texts", async () => {
+  it("sends nothing for a stop of every topic one by one, nor of every text by WhatsApp", async () => {
     const stop = (list: OptOut["list"], way: "text" | "call", ref: string) =>
       recordOptOut(
         optOut({
@@ -213,11 +300,27 @@ describeWithDatabase("our stops of a number sent to CiviCRM", () => {
           how: "Told us",
         }),
       );
-    await stop("events", "text", "a");
-    await stop("newsletter", "text", "b");
+    for (const list of ["events", "newsletter", "volunteering"] as const) await stop(list, "text", list);
+    await stop("volunteering", "call", "call");
+    await recordOptOut(
+      optOut({ address: "+447700900002", list: "all", way: "text", source: "whatsapp", sourceRef: "setting all" }),
+    );
     expect(await query("SELECT 1 FROM civicrm_updates")).toEqual([]);
-    await stop("volunteering", "text", "c");
-    await stop("volunteering", "call", "d");
+  });
+
+  it("sends Stop everything's stops of a number as Do not SMS and Do not phone", async () => {
+    const stop = (way: "text" | "call") =>
+      recordOptOut(
+        optOut({
+          address: "+447700900001",
+          list: "all",
+          way,
+          source: "preferences",
+          sourceRef: `${STOP_ALL} group-1 ${way} all +447700900001`,
+        }),
+      );
+    await stop("text");
+    await stop("call");
     expect(await query("SELECT change, phone, email FROM civicrm_updates ORDER BY id")).toEqual([
       { change: "do_not_sms", phone: "+447700900001", email: null },
       { change: "do_not_phone", phone: "+447700900001", email: null },
@@ -225,7 +328,7 @@ describeWithDatabase("our stops of a number sent to CiviCRM", () => {
     const calls = serve();
     expect(await sendCivicrmUpdates("key")).toEqual({ sent: 2, refused: 0, unanswered: 0 });
     expect(calls[0]).toEqual([
-      expect.objectContaining({ phone: "+447700900001", change: "do_not_sms", source: "pauseai.uk:staff" }),
+      expect.objectContaining({ phone: "+447700900001", change: "do_not_sms", source: "pauseai.uk:preferences" }),
       expect.objectContaining({ phone: "+447700900001", change: "do_not_phone" }),
     ]);
     expect(calls[0][0]).not.toHaveProperty("email");

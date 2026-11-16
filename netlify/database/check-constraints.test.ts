@@ -123,6 +123,7 @@ const LISTED: Record<string, readonly string[]> = {
   "mailings.send_by": every<BroadcastSendBy>()(["gmail", "postmark"]),
   "civicrm_updates.change": every<SubscriptionEvent["change"]>()([
     "unsubscribe",
+    "resubscribe",
     "no_bulk_email",
     "allow_bulk_email",
     "do_not_sms",

@@ -67,6 +67,19 @@ and event messages.
    says isn't on it is.
 4. A new source for `volunteering`, as a new member's number is unsure
    (open question 4).
+5. Texts and calls again after "Do not SMS" or "Do not phone". We send
+   CiviCRM those flags only for Stop everything, but nothing of ours can
+   lift them: Global's API has no change that clears them. So after Stop
+   everything and Restart, a number in CiviCRM never gets our texts or
+   calls again, and the contact preferences page locks its boxes, saying
+   only Global can lift it (`numberHolds`). Ask Global to add
+   `allow_sms` and `allow_phone` to `updateSubscriptions`, on the same
+   terms as `allow_bulk_email`: only from the person ticking a box, with
+   its words, and refused after a newer stop. Then Restart, and a text or
+   call box ticked on the page, send them, as lifting "No bulk emails"
+   does, and the page unlocks those boxes, with words saying it turns
+   Global's texts or calls back on too. Until Global has it, those
+   numbers stay as they are (open question 7).
 
 ## 2. The WhatsApp backend
 
@@ -198,3 +211,8 @@ politicians, and a calling tool.
    place, but no other texts, as no join form asked
    ([legal-pack#13](https://github.com/PauseAI/legal-pack/issues/13)).
    Until then, a text reaches Luma's and our march form's numbers.
+7. If Global won't add `allow_sms` and `allow_phone` (step 5 of
+   "1. Groundwork"), should a box ticked on our page win over CiviCRM's
+   "Do not SMS" for our own texts, as we'd decide alone? That means our
+   own override in `contact_permission()`, and in the check before each
+   text, which skips a number with "Do not SMS".

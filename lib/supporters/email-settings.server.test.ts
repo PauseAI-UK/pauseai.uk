@@ -246,8 +246,14 @@ describeWithDatabase("the contact preferences page", () => {
       { address: JANE, list: "newsletter", way: "email", source: "preferences", open: true },
       { address: "+447700900123", list: "newsletter", way: "text", source: "preferences", open: true },
     ]);
-    expect(await query("SELECT change, list FROM civicrm_updates")).toEqual([
-      { change: "unsubscribe", list: "newsletter" },
+    // The tick of volunteering by email puts Jane back on CiviCRM's list too.
+    expect(await query("SELECT change, list, wording FROM civicrm_updates ORDER BY id")).toEqual([
+      { change: "unsubscribe", list: "newsletter", wording: null },
+      {
+        change: "resubscribe",
+        list: "volunteer_updates",
+        wording: emailSettingsCopy.wording("volunteering", "email"),
+      },
     ]);
     const answers = (await settingsFor(JANE)).answers;
     expect(answers.find((a) => a.topic === "volunteering" && a.way === "email")).toMatchObject({
