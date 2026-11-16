@@ -640,7 +640,10 @@ test("An email broadcast goes", async ({ page, request, flowDatabase }) => {
   connectGmail(flowDatabase, HELLO);
   const id = addDue(flowDatabase, "Stall on Saturday", staffEmail());
   await runSending(request);
-  const email = newestEmail((one) => one.Subject === "Stall on Saturday" && one.To.includes("@example.com"))!;
+  // One supporter's copy, picked by address, as the email goes to many.
+  const email = newestEmail(
+    (one) => one.Subject === "Stall on Saturday" && one.To.endsWith("<jane.fixture@example.com>"),
+  )!;
   await emailFrame(page, email, "A supporter's copy");
   story("Its page counts what was delivered, failed and stopped, and the replies.");
   await logIn(page, flowDatabase);
@@ -662,7 +665,7 @@ test("An email that takes more than a day", async ({ page, request, flowDatabase
      SELECT 'broadcast', 'earlier-' || i || '@example.com', 'sent', 'earlier-' || i, 'gmail', '${HELLO}'
      FROM generate_series(1, ${GMAIL_DAILY_LIMIT - 2}) i`,
   );
-  const id = addDue(flowDatabase, "Stall on Saturday", staffEmail());
+  const id = addDue(flowDatabase, "Leafleting on Sunday", staffEmail());
   await runSending(request);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
@@ -674,7 +677,7 @@ test("An email that takes more than a day", async ({ page, request, flowDatabase
   runSql(flowDatabase, `UPDATE mailings SET due_at = due_at - interval '${SENDING_DAYS} days' WHERE id = ${id}`);
   await runSending(request);
   const told = newestEmail(
-    (one) => one.Subject === broadcastsCopy.notifications.broadcastGaveUp.subject("Stall on Saturday", "limit"),
+    (one) => one.Subject === broadcastsCopy.notifications.broadcastGaveUp.subject("Leafleting on Sunday", "limit"),
   )!;
   await emailFrame(page, told, "The email saying it stopped");
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
