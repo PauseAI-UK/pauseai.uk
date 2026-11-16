@@ -184,11 +184,12 @@ export const broadcastsCopy = {
     textTitle: "The text",
     emailTitle: "The email",
     // In the list of broadcasts, where each stands, where a broadcast has more to say than a mailing
-    // (mailingPages.standing), as a sentence after a dot in its colour: its words with WhatsApp or rejected by it,
+    // (mailingPages.standing), as a sentence after a dot in its colour: its words with WhatsApp, approved or rejected by it,
     // stopped by itself and why.
     standing: {
-      waiting: "Waiting for WhatsApp to approve its template",
-      rejected: "WhatsApp rejected its template",
+      waiting: "WhatsApp reviewing",
+      approved: (n: number) => `WhatsApp approved, to ${count(n, "person", "people")}`,
+      rejected: "WhatsApp rejected",
       gaveUp: {
         limit: (n: number, of: number) =>
           `Ran out of time after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,

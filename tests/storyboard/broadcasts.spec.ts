@@ -396,7 +396,11 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
     (one) => one.Subject === broadcastsCopy.notifications.templateApproved.subject("PauseCon doors"),
   )!;
   await emailFrame(page, told, "The email saying WhatsApp approved them");
-  story("The text can be scheduled now.");
+  story("The list says the draft is approved, with a green dot, so it's plain it's ready to schedule.");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.standing.approved(TEXTABLE))).toBeVisible();
+  await frame(page, "The list, the draft WhatsApp approved");
+  story("On the draft, the text can be scheduled now.");
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   const send = page.getByRole("region", { name: copy.sections.send });
   await expect(send.getByRole("button", { name: copy.schedule(TEXTABLE, "text") })).toBeEnabled();

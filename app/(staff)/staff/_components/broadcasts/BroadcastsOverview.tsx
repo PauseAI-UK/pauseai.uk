@@ -11,12 +11,13 @@ const words = copy.standing;
 
 /**
  * Where a broadcast stands, where it has more to say than a mailing: its
- * words with WhatsApp, or rejected by it; stopped by itself, and why, and
+ * words with WhatsApp, approved by it, or rejected; stopped by itself, and why, and
  * how many of how many went.
  */
 function sentence(b: BroadcastSummary): Sentence | undefined {
   if (b.state === "draft" && b.rejected) return { tone: "red", text: words.rejected };
   if (b.state === "draft" && b.waiting) return { tone: "blue", text: words.waiting };
+  if (b.state === "draft" && b.approved) return { tone: "green", text: words.approved(b.to) };
   if (b.state === "cancelled" && b.gaveUp) return { tone: "red", text: words.gaveUp[b.waitReason!]!(b.sent, b.to) };
   return undefined;
 }

@@ -124,6 +124,10 @@
   background: var(--status-blue);
 }
 
+.dot[data-tone="green"] {
+  background: var(--status-green);
+}
+
 /* The sending bar, the width of the column, leading to it: its sentence above it, on the left. */
 .bar {
   justify-self: stretch;

@@ -283,20 +283,24 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await choosingBroadcast(String(id))).toBeUndefined();
   });
 
-  it("says which drafts are waiting for WhatsApp to approve their words, and which it rejected", async () => {
+  it("says which drafts are waiting for WhatsApp to approve their words, which it approved, and which it rejected", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const plain = (await createBroadcastDraft(JO, TEXT_FILTER))!;
     const id = (await createBroadcastDraft(JO, TEXT_FILTER))!;
+    const ready = (await createBroadcastDraft(JO, TEXT_FILTER))!;
     const turnedDown = (await createBroadcastDraft(JO, TEXT_FILTER))!;
     const pending = await addTemplate("Rain on Saturday", { status: "pending" });
+    const approved = await addTemplate("Snow on Monday", { status: "approved" });
     const rejected = await addTemplate("Sun on Sunday", { status: "rejected", reason: "It ends with a field." });
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, pending]);
+    await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [ready, approved]);
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [turnedDown, rejected]);
     const drafts = (await broadcastsPage()).groups[0].mailings;
-    expect(drafts.map((m) => [m.id, m.waiting, m.rejected]).sort()).toEqual([
-      [plain, false, false],
-      [id, true, false],
-      [turnedDown, false, true],
+    expect(drafts.map((m) => [m.id, m.waiting, m.approved, m.rejected]).sort()).toEqual([
+      [plain, false, false, false],
+      [id, true, false, false],
+      [ready, false, true, false],
+      [turnedDown, false, false, true],
     ]);
   });
 

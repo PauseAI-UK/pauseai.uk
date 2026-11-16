@@ -46,6 +46,8 @@ export type BroadcastSummary = MailingBase & {
   sendBy: BroadcastSendBy;
   /** A draft whose new words WhatsApp is reviewing. */
   waiting: boolean;
+  /** A draft on words WhatsApp has approved, so it can be scheduled. */
+  approved: boolean;
   /** A draft whose new words WhatsApp rejected, until they're sent again or a template's chosen. */
   rejected: boolean;
   /** One that stopped by itself, as it hadn't all gone in time, and why: limit, civicrm, pull or template. */
@@ -126,6 +128,7 @@ const SELECT_BROADCASTS = `
     coalesce(nullif(m.from_name, ''), m.sent_from) AS "fromName", m.sent_from AS "sentFrom", m.due_at AS "dueAt",
     m.updated_at AS "updatedAt", m.channel, m.send_by AS "sendBy",
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'pending') AS waiting,
+    EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'approved') AS approved,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
     m.gave_up AS "gaveUp", m.wait_reason AS "waitReason",
     min(c.sent_at) AS "sentAt",
