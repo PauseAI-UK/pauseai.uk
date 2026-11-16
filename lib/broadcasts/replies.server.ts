@@ -1,7 +1,7 @@
 import "server-only";
 import { gzipSync } from "node:zlib";
 import { hasWay, TOPICS, type Topic, type Way } from "@/lib/supporters/contact-permissions";
-import { inWindow } from "./answers.server";
+import { inWindow, settleEarlier } from "./answers.server";
 import { fromAddress, messageIds } from "@/lib/email-parsing/mime.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { logChange } from "@/lib/server/audit.server";
@@ -169,6 +169,7 @@ export async function dealWithReply(replyId: number, decision: ReplyDecision, by
       [replyId, outcome, by.toLowerCase()],
       db,
     );
+    await settleEarlier(replyId, outcome, by, db);
     await logChange(by, "deal with reply", { replyId, outcome }, db);
     return true;
   });

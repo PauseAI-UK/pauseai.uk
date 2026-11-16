@@ -140,6 +140,23 @@ describeWithDatabase("answers to replies", () => {
     ]);
   });
 
+  it("settle, with their reply, those before it still waiting", async () => {
+    await connectTestGmail(HELLO);
+    gmailTakes();
+    const { copy, reply } = await replied();
+    await query(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, rfc_message_id, blob_key, automatic)
+       VALUES ($1, now() - interval '1 hour', 'jane@example.com', 'Re: News', $2, 'g-before', 't-reply', 'b@x', 'k', false)`,
+      [copy, HELLO],
+    );
+    await answerReply(reply, DRAFT, words("Thanks."), JO);
+    expect(await query("SELECT outcome, dealt_by FROM broadcast_replies ORDER BY received_at")).toEqual([
+      { outcome: "answered", dealt_by: JO },
+      { outcome: "answered", dealt_by: JO },
+    ]);
+  });
+
   it("are forgotten when something goes wrong before they go, and kept as they are once they went", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const words = emailCopy.problems;

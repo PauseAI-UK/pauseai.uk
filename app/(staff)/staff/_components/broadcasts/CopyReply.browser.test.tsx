@@ -60,8 +60,8 @@ describe("replies to broadcasts", () => {
     await expect.element(page.getByText("Hi Jane, it's on 6 December. See you there!")).toBeVisible();
     await expect.element(page.getByText(copy.replies.sentBy("jo@pauseai.uk"))).toBeVisible();
     expect(entry(copy.replies.historyAnswered)).toContain(`${lettersCopy.letters.detail.fields.by}jo@pauseai.uk`);
-    // The answered reply can still be an opt-out, but has no need of Nothing to do; only their latest, answered.
-    await expect.element(page.getByRole("button", { name: optOut })).toHaveLength(2);
+    // One set of buttons, for their latest, which deals with those before it too.
+    await expect.element(page.getByRole("button", { name: optOut })).toHaveLength(1);
     await expect.element(page.getByRole("button", { name: copy.replies.nothing })).toHaveLength(1);
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(1);
     await expect.element(page.getByRole("button", { name: copy.replies.followUp })).not.toBeInTheDocument();
@@ -95,6 +95,9 @@ describe("replies to broadcasts", () => {
     const ours = page.getByText("Hi Jane, it's on 6 December. See you there!").element();
     const button = page.getByRole("button", { name: copy.replies.followUp }).element();
     expect(ours.closest("article")!.contains(button)).toBe(true);
+    // With Unsubscribe them beside it, but not Nothing to do, as it's answered.
+    expect(ours.closest("article")!.textContent).toContain(optOut);
+    await expect.element(page.getByRole("button", { name: copy.replies.nothing })).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.replies.followUp }).click();
     const draft = page.getByRole("textbox", { name: copy.replies.answerLabel }).element();
     expect(ours.compareDocumentPosition(draft) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -126,6 +129,25 @@ describe("replies to broadcasts", () => {
       `${lettersCopy.letters.detail.fields.by}sam@pauseai.uk${lettersCopy.letters.detail.fields.how}${copy.replies.how}`,
     );
     await expect.element(page.getByText(copy.replies.stillSending("hello@pauseai.uk"))).toBeVisible();
+  });
+
+  it("dealt with at once are one line in the history", async () => {
+    const dealtAt = new Date("2026-11-07T10:00:00Z");
+    const settled = { outcome: "nothing" as const, dealtBy: "jo@pauseai.uk", dealtAt };
+    await render(
+      <MessageCopyView
+        one={{
+          ...emailCopy,
+          replies: [
+            { ...exampleBroadcastReplies[1], ...settled },
+            { ...exampleBroadcastReplies[3], ...settled },
+          ],
+          answers: [],
+        }}
+      />,
+    );
+    const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
+    expect(history.getByText(copy.replies.historyNothing, { exact: true }).elements()).toHaveLength(1);
   });
 
   it("show a STOP the site recorded in the thread, but not twice in the history, as WhatsApp's opt-out is there", async () => {

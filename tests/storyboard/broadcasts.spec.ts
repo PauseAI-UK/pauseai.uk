@@ -538,7 +538,7 @@ test("Our answer to a text fails", async ({ page, request, flowDatabase }) => {
     statusOf(sent.answer, sent.number, "failed", 30, { code: 131026, title: "Message undeliverable" }),
   );
   story(
-    "Their reply is back for staff to deal with, as no one has: under it, its buttons again, and under our answer, why it didn't go.",
+    "Their reply is back for staff to deal with, as no one has: under our answer, why it didn't go, and the buttons again, at the foot of the thread.",
   );
   await page.reload();
   await expect(page.getByText(copy.replies.undelivered("Message undeliverable"))).toBeVisible();

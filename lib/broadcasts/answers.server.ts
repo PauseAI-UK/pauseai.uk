@@ -7,7 +7,7 @@ import { problem } from "@/lib/server/problems.server";
 import { broadcastsCopy } from "./copy";
 import { now } from "@/lib/now";
 import { textBackend } from "./channels.server";
-import { query, transaction } from "@/lib/server/db.server";
+import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { send } from "@/lib/email/sending.server";
 import { sendText } from "@/lib/server/outside-services/whatsapp.server";
 import { emailCopy } from "@/lib/email/copy";
@@ -142,6 +142,28 @@ async function textAnswer(reply: Answering, doc: LetterDoc): Promise<AnswerSend>
   return result.sent ? { sent: true, gmailId: null, providerId: result.id } : { sent: false, reason: "failed" };
 }
 
+/**
+ * Settles, as `outcome`, the replies to the same copy before reply `replyId`
+ * (in the thread's order, by when they came, then ID) still waiting for
+ * staff, but the automatic ones: staff deal with a thread at its end, their
+ * latest reply, which deals with what they said before it.
+ */
+export async function settleEarlier(
+  replyId: number,
+  outcome: "answered" | "nothing" | "opted-out",
+  by: string,
+  db: Queryable,
+): Promise<void> {
+  await query(
+    `UPDATE broadcast_replies e SET outcome = $2, dealt_by = $3, dealt_at = now()
+     FROM broadcast_replies r
+     WHERE r.id = $1 AND e.message_id = r.message_id AND (e.received_at, e.id) < (r.received_at, r.id)
+       AND e.outcome IS NULL AND NOT e.automatic`,
+    [replyId, outcome, by.toLowerCase()],
+    db,
+  );
+}
+
 /** How long after someone's last message WhatsApp takes words of our own to them. */
 const WINDOW_HOURS = 24;
 
@@ -200,6 +222,7 @@ export async function answerReply(replyId: number, draftId: string, body: unknow
         [replyId, by.toLowerCase()],
         db,
       );
+      await settleEarlier(replyId, "answered", by, db);
       await logChange(by, "answer reply", { replyId, answerId: answer.id }, db);
     });
   } catch (error) {
