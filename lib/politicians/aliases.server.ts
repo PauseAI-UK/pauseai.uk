@@ -22,13 +22,24 @@ import { politiciansCopy } from "./copy";
  */
 export type AddressSource = "parliament" | "office" | "staff" | "rejected";
 
-/** An address staff added: who and when. */
-export type AddedAddress = { address: string; addedBy: string; at: Date };
+/** An address staff added: who, when, and their note of why (empty for one from before notes). */
+export type AddedAddress = { address: string; addedBy: string; at: Date; note: string };
+
+/**
+ * Where a politician's email came from: the staff member who set it last,
+ * when, and their note of why (empty for one from before notes); or else
+ * their body's list, which has it; or else Airtable, which the policy team
+ * kept, for one its sync set or copied over; or null for none of those.
+ */
+export type EmailSource =
+  { by: "staff"; staff: string; at: Date; note: string } | { by: "body" } | { by: "airtable" } | null;
 
 /** Every address and domain that's a politician's, by where it came from. */
 export type PoliticianAliases = {
   /** Their email, which letters go to. */
   email: string | null;
+  /** Where their email came from, if known (EmailSource). */
+  emailSource: EmailSource;
   /** Emails they had before, from the audit log's edits. */
   past: string[];
   /** Those Parliament's Members API lists. */
@@ -75,7 +86,20 @@ export async function politicianAliases(politician: {
   constituency: string | null;
   email: string | null;
 }): Promise<PoliticianAliases> {
-  const [past, listed, domains, book] = await Promise.all([
+  const [[setBy], [record], past, listed, domains, book] = await Promise.all([
+    // The last entry that made their email what it is, adding them or editing them: a staff member's, logged by
+    // their email, Airtable's sync's, or an import's.
+    query<{ actor: string; at: Date; note: string | null }>(
+      `SELECT actor, at, details->>'note' AS note FROM audit_log
+       WHERE action IN (${auditActions("edit politician", "add politician")}) AND (details->>'id')::bigint = $1
+         AND lower(coalesce(details->'changed'->'email'->>1, details->>'email')) = lower($2)
+       ORDER BY id DESC LIMIT 1`,
+      [politician.id, politician.email],
+    ),
+    query<{ fromAirtable: boolean }>(
+      `SELECT airtable_id IS NOT NULL AS "fromAirtable" FROM notable_people WHERE id = $1`,
+      [politician.id],
+    ),
     query<{ address: string }>(
       `SELECT DISTINCT address FROM (
          SELECT lower(jsonb_array_elements_text(details->'changed'->'email')) AS address
@@ -84,9 +108,14 @@ export async function politicianAliases(politician: {
        ) emails WHERE address IS NOT NULL ORDER BY address`,
       [politician.id],
     ),
-    query<{ address: string; source: AddressSource; addedBy: string | null; at: Date }>(
-      `SELECT address, source, added_by AS "addedBy", created_at AS at FROM politician_addresses
-       WHERE notable_person_id = $1 ORDER BY address`,
+    // With the note of why on the entry that added it, for one staff added.
+    query<{ address: string; source: AddressSource; addedBy: string | null; at: Date; note: string | null }>(
+      `SELECT a.address, a.source, a.added_by AS "addedBy", a.created_at AS at,
+         (SELECT l.details->>'note' FROM audit_log l
+          WHERE l.action = ${auditActions("add politician address")}
+            AND (l.details->>'politicianId')::bigint = a.notable_person_id AND l.details->>'address' = a.address
+          ORDER BY l.id DESC LIMIT 1) AS note
+       FROM politician_addresses a WHERE a.notable_person_id = $1 ORDER BY a.address`,
       [politician.id],
     ),
     query<{ domain: string }>("SELECT domain FROM politician_domains WHERE notable_person_id = $1 ORDER BY domain", [
@@ -97,14 +126,31 @@ export async function politicianAliases(politician: {
   const email = politician.email?.toLowerCase() ?? null;
   const from = (source: AddressSource) =>
     listed.filter((row) => row.source === source && row.address !== email).map((row) => row.address);
+  const emailSource: EmailSource = setBy?.actor.includes("@")
+    ? { by: "staff", staff: setBy.actor, at: setBy.at, note: setBy.note ?? "" }
+    : listed.some((row) => row.source === "parliament" && row.address === email)
+      ? { by: "body" }
+      : // Airtable's sync logged as "sync"; a politician copied from Airtable before the audit log has no entry.
+        email && (setBy ? setBy.actor === "sync" : record?.fromAirtable)
+        ? { by: "airtable" }
+        : null;
   return {
     email: politician.email,
-    past: past.map((row) => row.address).filter((address) => address !== email && address.includes("@")),
+    emailSource,
+    // Only those not listed otherwise, as by their body, which says more.
+    past: past
+      .map((row) => row.address)
+      .filter(
+        (address) =>
+          address !== email &&
+          address.includes("@") &&
+          !listed.some((row) => row.address === address && row.source !== "rejected"),
+      ),
     parliament: from("parliament"),
     office: from("office"),
     added: listed
       .filter((row) => row.source === "staff")
-      .map(({ address, addedBy, at }) => ({ address, addedBy: addedBy!, at })),
+      .map(({ address, addedBy, at, note }) => ({ address, addedBy: addedBy!, at, note: note ?? "" })),
     domains: domains.map((row) => row.domain),
     // Only forms not already listed as one of theirs.
     forms: formExamples(book, politician).filter(
@@ -197,18 +243,26 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
 }
 
 /** What adding an address did, or why it didn't. */
-export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" | "shared" };
+export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" | "shared" | "note" };
 
 /**
- * Adds an address to a politician's by hand, logged, and relinks every
+ * Adds an address to a politician's by hand, with a note of why, logged, and relinks every
  * thread, so that those with it show on their page. The mailboxes are
  * searched for its earlier mail by the regular read of Gmail
  * (searchAddedAddresses), not while staff wait. Gives what happened.
  */
-export async function addPoliticianAddress(politicianId: number, given: string, by: string): Promise<AddResult> {
+export async function addPoliticianAddress(
+  politicianId: number,
+  given: string,
+  by: string,
+  givenNote: string,
+): Promise<AddResult> {
   const address = given.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) return { added: false, why: "invalid" };
   if (isSharedInbox(address)) return { added: false, why: "shared" };
+  // The audit log refuses a staff member's address without a note of why too (audit_log_edit_note).
+  const note = givenNote.trim();
+  if (!note) return { added: false, why: "note" };
   // Already theirs, however: their email, a past one, one their body lists, their office's, or a form of their name.
   const [who] = await query<{
     id: number;
@@ -244,7 +298,7 @@ export async function addPoliticianAddress(politicianId: number, given: string, 
       [address, politicianId],
       db,
     );
-    await logChange(by, "add politician address", { politicianId, address }, db);
+    await logChange(by, "add politician address", { politicianId, address, note }, db);
   });
   await relinkOneOffs(Date.now());
   return { added: true };

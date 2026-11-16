@@ -164,7 +164,7 @@ describe("PoliticianDetails", () => {
     await expect.element(page.getByRole("button", { name: words.edit })).not.toBeInTheDocument();
   });
 
-  it("says a salutation made from the name is so, and sets Ms or Mr with their surname from its bubble", async () => {
+  it("says a salutation made from the name is so, and sets Ms or Mr with their surname from its bubble, with why", async () => {
     const { fn, sent } = action();
     const politician = { ...MP, salutation: MP.name, salutationToCheck: true, importantTarget: false };
     const { rerender } = await render(
@@ -184,7 +184,11 @@ describe("PoliticianDetails", () => {
     await expect.element(page.getByText(words.fromName)).toBeVisible();
     await expect.element(page.getByRole("button", { name: "Mr Placeholder" })).toBeVisible();
     await page.getByRole("button", { name: "Ms Placeholder" }).click();
-    await vi.waitFor(() => expect(sent).toEqual([{ politicianId: String(MP.id), salutation: "Ms Placeholder" }]));
+    await page.getByRole("textbox", { name: words.note }).fill("Her website");
+    await page.getByRole("button", { name: words.save }).click();
+    await vi.waitFor(() =>
+      expect(sent).toEqual([{ politicianId: String(MP.id), salutation: "Ms Placeholder", note: "Her website" }]),
+    );
     // Without a way to change it, the salutation alone.
     await rerender(<PoliticianDetails politician={politician} unblock={vi.fn()} {...none} />);
     await expect.element(page.getByText(words.dear(MP.name))).toBeVisible();
@@ -196,6 +200,7 @@ describe("PoliticianDetails", () => {
     await render(<PoliticianDetails politician={MP} unblock={vi.fn()} editDetails={editDetails} {...none} />);
     const words = politiciansCopy.politician.editDetails;
     await page.getByRole("button", { name: words.edit }).click();
+    await page.getByRole("textbox", { name: words.note }).fill("Her letters");
     await page.getByRole("button", { name: words.save }).click();
     await vi.waitFor(() => expect(editDetails).toHaveBeenCalledOnce());
     await expect.element(page.getByRole("textbox", { name: words.salutation })).toBeVisible();
@@ -719,6 +724,25 @@ describe("PoliticianDetails", () => {
           },
           { id: 5, at: new Date("2026-08-01T10:00:00Z"), actor: "x", action: "strange", details: {} },
           {
+            id: 10,
+            at: new Date("2026-07-25T10:00:00Z"),
+            actor: "jo@pauseai.uk",
+            action: "edit politician",
+            details: {
+              id: 7,
+              name: "Polly Placeholder",
+              changed: { email: ["a@example.org", "b@example.org"] },
+              note: "Her office asked",
+            },
+          },
+          {
+            id: 11,
+            at: new Date("2026-07-22T10:00:00Z"),
+            actor: "jo@pauseai.uk",
+            action: "add politician address",
+            details: { politicianId: 7, address: "polly.home@example.org", note: "She writes from it" },
+          },
+          {
             id: 9,
             at: new Date("2026-07-20T10:00:00Z"),
             actor: "sync",
@@ -776,6 +800,10 @@ describe("PoliticianDetails", () => {
       `${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk30 Sept 2026, 10:00 · samuel.whitlock@pauseai.uk`,
       `${copy["block address"]} polly@example.org · weird10 Aug 2026, 10:00 · postmark`,
       "strange 1 Aug 2026, 10:00 · x",
+      // A change of email, with why.
+      `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.email} a@example.org → b@example.org · Her office asked25 Jul 2026, 10:00 · jo@pauseai.uk`,
+      // An address added, by which, and why.
+      `${copy["add politician address"]} polly.home@example.org · She writes from it22 Jul 2026, 10:00 · jo@pauseai.uk`,
       `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
       `${copy["add politician"]} Polly Placeholder15 Jul 2026, 10:00 · import`,
     ]);
@@ -1203,7 +1231,7 @@ describe("PoliticianDetails", () => {
     const strip = notice.element().firstElementChild!;
     expect(strip.firstElementChild!.tagName.toLowerCase()).toBe("svg");
     expect(strip.className).toMatch(/red/);
-    // An MP's address is their body's, so the only choice here is that it's right.
+    // Without a way to edit their email, the only choice here is that it's right.
     expect([...notice.element().querySelectorAll("h3")].map((h) => h.textContent)).toEqual([copy.right.title]);
     expect(notice.element().querySelector("p")!.textContent).toBe(
       `${copy.why.before}${MP.email}${copy.why.after(exampleBlock.reason, "12 Oct 2026, 09:10")}`,
@@ -1222,18 +1250,28 @@ describe("PoliticianDetails", () => {
     await page.getByRole("button", { name: emailCopy.emails.unblock }).click();
     await vi.waitFor(() => expect(sent).toEqual([{ address: MP.email, note: "Fixed in Airtable" }]));
 
-    // An MP's address is their body's, so there's nowhere to correct it here; a Lord's is staff's, in Writing to them.
+    // Without a way to edit their email, there's nowhere to correct it here, nor for a test politician.
     expect(notice.element().textContent).not.toContain(copy.wrong.before);
     await rerender(
       <PoliticianDetails
-        politician={{ ...MP, house: "lords", emailBlocked: true }}
+        politician={{ ...MP, isTest: true, emailBlocked: true }}
         block={{ ...exampleBlock, address: MP.email! }}
         unblock={fn}
         editDetails={vi.fn()}
         {...none}
       />,
     );
-    // A Lord's: their two choices side by side, the address wrong, corrected in Writing to them, or right.
+    expect(notice.element().textContent).not.toContain(copy.wrong.before);
+    await rerender(
+      <PoliticianDetails
+        politician={{ ...MP, emailBlocked: true }}
+        block={{ ...exampleBlock, address: MP.email! }}
+        unblock={fn}
+        editDetails={vi.fn()}
+        {...none}
+      />,
+    );
+    // With one: their two choices side by side, the address wrong, corrected from their email in the band, or right.
     expect([...notice.element().querySelectorAll("h3")].map((h) => h.textContent)).toEqual([
       copy.wrong.title,
       copy.right.title,
@@ -1286,8 +1324,13 @@ describe("PoliticianDetails", () => {
       "citiesoflondonandwestminster.mp@parliament.uk",
       "polly.placeholder@example.com",
     ]);
+    // One staff added says why, then who and when.
     await expect
-      .element(page.getByText(words.addedBy("jo@pauseai.uk", staffDate(exampleAliases.added[0].at))))
+      .element(
+        page.getByText(
+          `${exampleAliases.added[0].note} · ${words.addedBy("jo@pauseai.uk", staffDate(exampleAliases.added[0].at))}`,
+        ),
+      )
       .toBeVisible();
     const removes = page.getByRole("button", { name: words.remove });
     await removes.nth(0).click();
@@ -1298,21 +1341,31 @@ describe("PoliticianDetails", () => {
         { politicianId: String(MP.id), address: "polly.placeholder@example.com" },
       ]),
     );
-    // One just added comes last, and pulses once to draw the eye.
+    // Add opens the form, for the address and why. One just added comes last, and pulses once to draw the eye.
+    await expect.element(page.getByLabelText(words.address)).not.toBeInTheDocument();
+    await page.getByRole("button", { name: words.add }).click();
     await page.getByLabelText(words.address).fill("Polly.New@example.com");
+    await page.getByLabelText(words.note).fill("Her new Gmail");
     await page.getByRole("button", { name: words.add }).click();
     await vi.waitFor(() => expect(add).toHaveBeenCalledOnce());
+    // Added, the form folds back to its Add.
+    await expect.element(page.getByLabelText(words.address)).not.toBeInTheDocument();
     const later = new Date(exampleAliases.added[0].at.getTime() + 60_000);
     await rerender(
       details({
         aliases: {
           ...exampleAliases,
-          added: [{ address: "polly.new@example.com", addedBy: "jo@pauseai.uk", at: later }, ...exampleAliases.added],
+          added: [
+            // Without a note, as one added before notes: who and when alone.
+            { address: "polly.new@example.com", addedBy: "jo@pauseai.uk", at: later, note: "" },
+            ...exampleAliases.added,
+          ],
         },
       }),
     );
     const newest = [...bubble.querySelectorAll("li")].at(-1)!;
     expect(newest.textContent).toContain("polly.new@example.com");
+    expect(newest.textContent).toContain(`polly.new@example.com${words.addedBy("jo@pauseai.uk", staffDate(later))}`);
     expect(newest.hasAttribute("data-pulse")).toBe(true);
     // Led here, as from the blocked address's strip, it opens at once.
     await rerender(<div />);
@@ -1393,9 +1446,10 @@ describe("PoliticianDetails's examples in the gallery", () => {
       .toHaveTextContent('setMark({"politicianId":"7","mark":"personalConnection","on":"true"})');
     const words = politiciansCopy.politician.editDetails;
     await page.getByRole("button", { name: words.edit }).click();
+    await page.getByRole("textbox", { name: words.note }).fill("Her letters");
     await page.getByRole("button", { name: words.save }).click();
     await expect
       .element(log().nth(1))
-      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder"})');
+      .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder","note":"Her letters"})');
   });
 });

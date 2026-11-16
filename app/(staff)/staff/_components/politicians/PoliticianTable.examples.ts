@@ -7,10 +7,23 @@ import type { PoliticiansSearch } from "@/lib/staff-search";
 /** The example politician's aliases: one of each kind, a personal address staff added among them. */
 export const exampleAliases: PoliticianAliases = {
   email: "polly.placeholder.mp@parliament.uk",
+  emailSource: {
+    by: "staff",
+    staff: "jo@pauseai.uk",
+    at: new Date("2026-11-03T10:00:00Z"),
+    note: "Her office asked us to write here",
+  },
   past: ["polly@oldexample.org.uk"],
   parliament: ["placeholderp@parliament.uk"],
   office: ["jane.smith@parliament.uk"],
-  added: [{ address: "polly.placeholder@example.com", addedBy: "jo@pauseai.uk", at: new Date("2026-11-10T10:00:00Z") }],
+  added: [
+    {
+      address: "polly.placeholder@example.com",
+      addedBy: "jo@pauseai.uk",
+      at: new Date("2026-11-10T10:00:00Z"),
+      note: "She writes from her Gmail",
+    },
+  ],
   domains: ["pollyplaceholder.org.uk"],
   forms: ["polly.placeholder.mp@parliament.uk", "citiesoflondonandwestminster.mp@parliament.uk"],
 };

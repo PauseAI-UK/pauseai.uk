@@ -35,27 +35,72 @@ describeWithDatabase("staff edits", () => {
     expect(isMark("is_test")).toBe(false);
   });
 
-  it("saves a corrected salutation, which is then checked, and a Lord's email", async () => {
+  it("saves a corrected salutation, which is then checked, and an email with the note of why", async () => {
     const lord = await addTestPolitician({ name: "Lord Seedling", house: "lords", email: null, constituency: null });
     await query("UPDATE notable_people SET salutation_to_check = true WHERE id = $1", [lord]);
     expect(
-      await editPoliticianDetails(lord, { salutation: " Lord Seedling ", email: " Seedling@Example.org " }, JO),
+      await editPoliticianDetails(
+        lord,
+        { salutation: " Lord Seedling ", email: " Seedling@Example.org ", note: " From his office " },
+        JO,
+      ),
     ).toEqual({ saved: true });
     expect(await row(lord)).toMatchObject({
       salutation: "Lord Seedling",
       email: "seedling@example.org",
       toCheck: false,
     });
-    expect(await editPoliticianDetails(lord, { salutation: "Lord Seedling", email: "" }, JO)).toEqual({ saved: true });
+    expect(
+      await editPoliticianDetails(lord, { salutation: "Lord Seedling", email: "", note: "He left it" }, JO),
+    ).toEqual({ saved: true });
     expect((await row(lord)).email).toBeNull();
+    // Nothing changed, nothing to say why.
     expect(await editPoliticianDetails(lord, { salutation: "Lord Seedling" }, JO)).toEqual({ saved: true });
-    expect(await logged()).toHaveLength(2);
+    expect(await editPoliticianDetails(lord, { salutation: "Lord S", email: "", note: "He signs off so" }, JO)).toEqual(
+      { saved: true },
+    );
+    expect((await logged()).map((entry) => entry.details)).toEqual([
+      {
+        id: lord,
+        name: "Lord Seedling",
+        changed: { salutation: ["Ms Placeholder", "Lord Seedling"], email: [null, "seedling@example.org"] },
+        note: "From his office",
+      },
+      { id: lord, name: "Lord Seedling", changed: { email: ["seedling@example.org", null] }, note: "He left it" },
+      {
+        id: lord,
+        name: "Lord Seedling",
+        changed: { salutation: ["Lord Seedling", "Lord S"] },
+        note: "He signs off so",
+      },
+    ]);
   });
 
-  it("leaves an MP's email to their body's list", async () => {
+  it("changes an MP's email or salutation too, but never without a note of why", async () => {
     const mp = await addTestPolitician();
-    await editPoliticianDetails(mp, { salutation: "Polly", email: "polly@example.org" }, JO);
-    expect(await row(mp)).toMatchObject({ salutation: "Polly", email: "polly.placeholder.mp@parliament.uk" });
+    const edit = (note?: string) =>
+      editPoliticianDetails(mp, { salutation: "Polly", email: "polly@example.org", note }, JO);
+    expect(await edit()).toEqual({ saved: false, why: "note" });
+    expect(await edit("  ")).toEqual({ saved: false, why: "note" });
+    expect(await editPoliticianDetails(mp, { salutation: "Polly" }, JO)).toEqual({ saved: false, why: "note" });
+    expect(await row(mp)).toMatchObject({ salutation: "Ms Placeholder", email: "polly.placeholder.mp@parliament.uk" });
+    expect(await edit("Her office asked")).toEqual({ saved: true });
+    expect(await row(mp)).toMatchObject({ salutation: "Polly", email: "polly@example.org" });
+  });
+
+  it("is refused by the audit log a staff member's change of salutation or email without a note, but not an import's or a mark's", async () => {
+    const entry = (actor: string, details: object) =>
+      query("INSERT INTO audit_log (actor, action, details) VALUES ($1, 'edit politician', $2)", [actor, details]);
+    const email = { email: ["a@example.org", "b@example.org"] };
+    const salutation = { salutation: ["A", "B"] };
+    await expect(entry(JO, { id: 1, name: "X", changed: email })).rejects.toThrow(/audit_log_edit_note/);
+    await expect(entry(JO, { id: 1, name: "X", changed: email, note: " " })).rejects.toThrow(/audit_log_edit_note/);
+    await expect(entry(JO, { id: 1, name: "X", changed: salutation })).rejects.toThrow(/audit_log_edit_note/);
+    await entry(JO, { id: 1, name: "X", changed: email, note: "Why" });
+    await entry(JO, { id: 1, name: "X", changed: salutation, note: "Why" });
+    await entry("import-parliament", { id: 1, name: "X", changed: { ...email, ...salutation } });
+    await entry(JO, { id: 1, name: "X", changed: { importantTarget: [false, true] } });
+    expect(await logged()).toHaveLength(4);
   });
 
   it("refuses an empty salutation, an address that isn't one, the Lords' shared inbox, and a test MP or no one", async () => {

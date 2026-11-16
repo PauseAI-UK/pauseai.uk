@@ -88,7 +88,7 @@ export const politiciansCopy = {
     },
     // The card of the marks staff set, under their notes, each a switch.
     marks: "Marks",
-    // What staff keep by hand, in the band's bubbles: their salutation, and a Lord's email.
+    // What staff keep by hand, in the band's bubbles: their salutation and email.
     editDetails: {
       salutation: "Salutation",
       email: "Email",
@@ -96,8 +96,13 @@ export const politiciansCopy = {
       emailHint: "Most Lords have no public email, so set one you find here",
       // Each line's button, which opens its field, and the one that closes it unsaved.
       edit: "edit",
-      // Over a Lord's email field in the band's bubble: the address letters go to.
+      // Over the email field in the band's bubble: the address letters go to, and what that means, ghosted.
       mainEmail: "Main address",
+      mainIntro: "We send letters and emails to this address.",
+      // Under it, ghosted, where it came from. Set by staff, it says why and who, as an ask's answer does (setBy);
+      // one their body lists says so in the words of the other addresses' sources; and one that came from
+      // Airtable's UK Parliamentarians, which the policy team kept, and no body lists.
+      fromAirtable: "From Airtable",
       // In the band, for a Lord with no email: opens the bubble to set one.
       add: "add email",
       cancel: "Cancel",
@@ -108,12 +113,16 @@ export const politiciansCopy = {
       // In the bubble of a salutation made from their name, as their gender isn't known, before Ms and Mr with their surname.
       fromName: "We don't know their gender, so this is just their name. Pick one:",
       dear: (salutation: string) => `“Dear ${salutation},”`,
+      // The field under the email, which must say why it's being changed: its name, and what it asks.
+      note: "Why",
+      notePlaceholder: "Why are you changing it?",
       save: "Save",
       saved: "Saved.",
       refused: {
         salutation: "A salutation can't be empty.",
         email: "That doesn't look like an email address.",
         shared: "That's the House of Lords' shared inbox.",
+        note: "Say why you're changing their email.",
         gone: "This politician can't be edited.",
       },
     },
@@ -186,8 +195,9 @@ export const politiciansCopy = {
       "remove politician": "No longer in Airtable",
       "block address": "Address blocked",
       "unblock address": "Address unblocked",
-      "add politician address": "Email address added",
-      "remove politician address": "Email address removed",
+      // Before the address, and staff's note of why it was added.
+      "add politician address": "Linked address added",
+      "remove politician address": "Linked address removed",
     } as Record<string, string>,
     // At the foot of their page, folded: every address and domain that says an
     // email is theirs, where each came from, and the form to add one by hand.
@@ -195,26 +205,33 @@ export const politiciansCopy = {
       // After their email at the top of the page, opening the bubble of every
       // other address that links their emails, where they're changed.
       more: (n: number) => `+${n} more`,
-      title: "Other addresses",
+      title: "Linked addresses",
       intro: "Policy emails using these will be linked to this politician.",
       columns: { address: "Address", from: "Source" },
       sources: {
         email: "Main address, we send email here",
         past: "Previous main address",
-        parliament: "Listed on Parliament's website",
+        // By the body whose list has it, from their house: Parliament's for MPs and Lords.
+        parliament: (house?: string) =>
+          house && house !== "parliament" && Object.hasOwn(bodyNames, house)
+            ? `Listed on ${bodyNames[house as Body]}'s website`
+            : "Listed on Parliament's website",
         office: "Inferred as being a member of their staff as in emails with them",
         domain: "Their own domain, taken from a list on Parliament website",
         form: "Variant format Parliament often uses",
       },
-      // An address staff added: who and when.
+      // An address staff added: who and when, after their note of why, if any.
       addedBy: (by: string, when: string) => `Added by ${by} on ${when}`,
       remove: "Remove",
-      // The form under the list.
+      // Under the list, the button that opens the form to add one; and the form's fields, its address and why.
       address: "New address",
       add: "Add",
+      note: "Why",
+      notePlaceholder: "Why is this address theirs?",
       refused: {
         invalid: "That doesn't look like an email address.",
         exists: "That address is already listed.",
+        note: "Say why this address is theirs.",
         // The House of Lords' shared inbox, which forwards to the Lord a message names: no one's own.
         shared: "That's the House of Lords' shared inbox, which would be confusing to link to.",
       },

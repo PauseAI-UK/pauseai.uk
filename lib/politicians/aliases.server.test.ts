@@ -51,8 +51,14 @@ describeWithDatabase("a politician's aliases", () => {
     const polly = await politician();
     await query(
       `INSERT INTO audit_log (actor, action, details)
-       VALUES ('sync', 'edit politician', $1), ('sync', 'edit politician', $2), ('sync', 'edit politician', $3)`,
+       VALUES ('sync', 'edit politician', $1), ('sync', 'edit politician', $2), ('sync', 'edit politician', $3),
+         ('sync', 'edit politician', $4)`,
       [
+        // A past address their body still lists: listed as theirs, not as past.
+        JSON.stringify({
+          id: polly.id,
+          changed: { email: ["placeholderp@parliament.uk", "old.polly@example.com"] },
+        }),
         JSON.stringify({
           id: polly.id,
           changed: { email: ["old.polly@example.com", "polly.placeholder.mp@parliament.uk"] },
@@ -72,14 +78,67 @@ describeWithDatabase("a politician's aliases", () => {
     await query("INSERT INTO politician_domains (domain, notable_person_id) VALUES ('polly.example', $1)", [polly.id]);
     expect(await politicianAliases({ ...polly, email: "Polly.Placeholder.MP@parliament.uk" })).toEqual({
       email: "Polly.Placeholder.MP@parliament.uk",
+      // An import set it, and their body lists it.
+      emailSource: { by: "body" },
       past: ["old.polly@example.com"],
       parliament: ["placeholderp@parliament.uk"],
       office: ["jane.smith@parliament.uk"],
-      added: [{ address: "polly@example.com", addedBy: "jo@pauseai.uk", at: expect.any(Date) }],
+      added: [{ address: "polly@example.com", addedBy: "jo@pauseai.uk", at: expect.any(Date), note: "" }],
       domains: ["polly.example"],
       forms: ["citiesoflondonandwestminster.mp@parliament.uk"],
     });
-    expect((await politicianAliases({ ...polly, email: null })).parliament).toHaveLength(2);
+    const none = await politicianAliases({ ...polly, email: null });
+    expect(none.emailSource).toBeNull();
+    expect(none.parliament).toHaveLength(2);
+  });
+
+  it("says where their email came from: staff who set it last, with why, else their body's list, else Airtable, else nothing", async () => {
+    const polly = await politician();
+    const source = async (email: string | null) => (await politicianAliases({ ...polly, email })).emailSource;
+    const edit = (actor: string, email: [string | null, string | null], note?: string) =>
+      query("INSERT INTO audit_log (actor, action, details) VALUES ($1, 'edit politician', $2)", [
+        actor,
+        JSON.stringify({ id: polly.id, name: "Polly", changed: { email }, ...(note && { note }) }),
+      ]);
+    const fromAirtable = (on: boolean) =>
+      query("UPDATE notable_people SET airtable_id = $2 WHERE id = $1", [polly.id, on ? "rec123" : null]);
+    // Nothing logged and not from Airtable: nothing to say; nor with no email.
+    await fromAirtable(false);
+    expect(await source("polly@example.org")).toBeNull();
+    // Copied from Airtable before the audit log: no entry, but their record is Airtable's.
+    await fromAirtable(true);
+    expect(await source("polly@example.org")).toEqual({ by: "airtable" });
+    expect(await source(null)).toBeNull();
+    // Added by Airtable's sync, with that email.
+    await query("INSERT INTO audit_log (actor, action, details) VALUES ('sync', 'add politician', $1)", [
+      JSON.stringify({ id: polly.id, airtableId: "rec123", name: "Polly", email: "Polly@example.org" }),
+    ]);
+    await fromAirtable(false);
+    expect(await source("polly@example.org")).toEqual({ by: "airtable" });
+    // Their body's list says more than Airtable did.
+    await query(
+      "INSERT INTO politician_addresses (address, notable_person_id, source) VALUES ('polly@example.org', $1, 'parliament')",
+      [polly.id],
+    );
+    expect(await source("polly@example.org")).toEqual({ by: "body" });
+    await query("DELETE FROM politician_addresses");
+    await edit("jo@pauseai.uk", [null, "polly@example.org"], "Her office asked");
+    await edit("sam@pauseai.uk", ["polly@example.org", "other@example.org"], "Wrong one");
+    expect(await source("Polly@example.org")).toEqual({
+      by: "staff",
+      staff: "jo@pauseai.uk",
+      at: expect.any(Date),
+      note: "Her office asked",
+    });
+    // A staff member who added them by hand, with that email, says no why: who and when alone.
+    await query("INSERT INTO audit_log (actor, action, details) VALUES ('sam@pauseai.uk', 'add politician', $1)", [
+      JSON.stringify({ id: polly.id, name: "Polly", email: "polly@example.org" }),
+    ]);
+    expect(await source("polly@example.org")).toMatchObject({ by: "staff", staff: "sam@pauseai.uk", note: "" });
+    // An import that set it since, of an address their body doesn't list, on a record that isn't Airtable's: nothing
+    // to say.
+    await edit("import-parliament", ["x@example.org", "polly@example.org"]);
+    expect(await source("polly@example.org")).toBeNull();
   });
 
   /** The fake Gmail for policy@: searches find m1, from Polly's Gmail, one gone, and m2, from nobody; `refuse` answers a fetch of m2 as past the limit. */
@@ -135,15 +194,31 @@ describeWithDatabase("a politician's aliases", () => {
          false, 'x', 1, '{}', '{}')`,
       [thread],
     );
-    expect(await addPoliticianAddress(polly.id, " Polly.Personal@Example.com ", "jo@pauseai.uk")).toEqual({
+    expect(
+      await addPoliticianAddress(polly.id, " Polly.Personal@Example.com ", "jo@pauseai.uk", "Her own address"),
+    ).toEqual({
       added: true,
     });
     expect(await query("SELECT notable_person_id::int AS id FROM one_off_thread_people")).toEqual([{ id: polly.id }]);
     expect(await searchedAt()).toEqual([{ at: null }]);
     expect(await query("SELECT actor, details FROM audit_log WHERE action = 'add politician address'")).toEqual([
-      { actor: "jo@pauseai.uk", details: { politicianId: polly.id, address: "polly.personal@example.com" } },
+      {
+        actor: "jo@pauseai.uk",
+        details: { politicianId: polly.id, address: "polly.personal@example.com", note: "Her own address" },
+      },
     ]);
-    expect(await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk")).toEqual({
+    // Their aliases give the note of why, from the entry that added it.
+    expect((await politicianAliases({ ...polly, email: null })).added).toEqual([
+      {
+        address: "polly.personal@example.com",
+        addedBy: "jo@pauseai.uk",
+        at: expect.any(Date),
+        note: "Her own address",
+      },
+    ]);
+    expect(
+      await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk", "Her own address"),
+    ).toEqual({
       added: false,
       why: "exists",
     });
@@ -157,7 +232,7 @@ describeWithDatabase("a politician's aliases", () => {
     const searched: string[] = [];
     mailbox(searched);
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 0, kept: 0, waiting: 0 });
-    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk", "Her own address");
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 1, kept: 1, waiting: 0 });
     expect(searched).toEqual(['"polly.personal@example.com"']);
     expect(await query("SELECT notable_person_id::int AS id FROM one_off_thread_people")).toEqual([{ id: polly.id }]);
@@ -165,7 +240,7 @@ describeWithDatabase("a politician's aliases", () => {
     // Searched once; added again, it's searched again, passing over what's kept.
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 0, kept: 0, waiting: 0 });
     await removePoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
-    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk", "Her own address");
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 1, kept: 0, waiting: 0 });
   });
 
@@ -202,7 +277,7 @@ describeWithDatabase("a politician's aliases", () => {
             }),
       ),
     );
-    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk", "Her own address");
     const error = vi.spyOn(console, "error");
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 1, kept: 0, waiting: 0 });
     expect(error).not.toHaveBeenCalled();
@@ -214,8 +289,8 @@ describeWithDatabase("a politician's aliases", () => {
     await connectTestGmail("policy@pauseai.uk");
     vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
     mailbox([], "quota");
-    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
-    await addPoliticianAddress(polly.id, "polly.other@example.com", "jo@pauseai.uk");
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk", "Her own address");
+    await addPoliticianAddress(polly.id, "polly.other@example.com", "jo@pauseai.uk", "Her own address");
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 0, kept: 1, waiting: 2 });
     expect(error).toHaveBeenCalledWith(
@@ -232,7 +307,7 @@ describeWithDatabase("a politician's aliases", () => {
     const polly = await politician();
     await connectTestGmail("policy@pauseai.uk");
     mailbox([]);
-    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk", "Her own address");
     expect(await searchAddedAddresses(Date.now() - 1)).toEqual({
       searched: 0,
       kept: 0,
@@ -251,7 +326,7 @@ describeWithDatabase("a politician's aliases", () => {
     await connectTestGmail("policy@pauseai.uk");
     vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
     mailbox([], "error");
-    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk");
+    await addPoliticianAddress(polly.id, "polly.personal@example.com", "jo@pauseai.uk", "Her own address");
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await searchAddedAddresses(LATER())).toMatchObject({ searched: 1, waiting: 0 });
     expect(error).toHaveBeenCalledWith(
@@ -261,18 +336,34 @@ describeWithDatabase("a politician's aliases", () => {
     error.mockRestore();
   });
 
-  it("refuses what isn't an email address, or a politician who isn't there", async () => {
+  it("refuses what isn't an email address, one without a note of why, or a politician who isn't there", async () => {
     const polly = await politician();
-    expect(await addPoliticianAddress(polly.id, "not an address", "jo@pauseai.uk")).toEqual({
+    expect(await addPoliticianAddress(polly.id, "a@example.com", "jo@pauseai.uk", "  ")).toEqual({
+      added: false,
+      why: "note",
+    });
+    // The audit log refuses one too, but for an import's.
+    const entry = (actor: string, details: object) =>
+      query("INSERT INTO audit_log (actor, action, details) VALUES ($1, 'add politician address', $2)", [
+        actor,
+        details,
+      ]);
+    await expect(entry("jo@pauseai.uk", { politicianId: polly.id, address: "a@example.com" })).rejects.toThrow(
+      /audit_log_edit_note/,
+    );
+    await entry("import-parliament", { politicianId: polly.id, address: "a@example.com" });
+    expect(await addPoliticianAddress(polly.id, "not an address", "jo@pauseai.uk", "Her own address")).toEqual({
       added: false,
       why: "invalid",
     });
-    expect(await addPoliticianAddress(polly.id + 99, "a@example.com", "jo@pauseai.uk")).toEqual({
+    expect(await addPoliticianAddress(polly.id + 99, "a@example.com", "jo@pauseai.uk", "Her own address")).toEqual({
       added: false,
       why: "exists",
     });
     // The Lords' shared inbox is no one's own address.
-    expect(await addPoliticianAddress(polly.id, "ContactHOLMember@parliament.uk", "jo@pauseai.uk")).toEqual({
+    expect(
+      await addPoliticianAddress(polly.id, "ContactHOLMember@parliament.uk", "jo@pauseai.uk", "Her own address"),
+    ).toEqual({
       added: false,
       why: "shared",
     });
@@ -291,7 +382,7 @@ describeWithDatabase("a politician's aliases", () => {
       "aaron.lukas@parliament.uk",
       "citiesoflondonandwestminster.mp@parliament.uk",
     ]) {
-      expect(await addPoliticianAddress(polly.id, address, "jo@pauseai.uk"), address).toEqual({
+      expect(await addPoliticianAddress(polly.id, address, "jo@pauseai.uk", "Her own address"), address).toEqual({
         added: false,
         why: "exists",
       });
@@ -301,7 +392,7 @@ describeWithDatabase("a politician's aliases", () => {
     ]);
     // With no email, the rest still counts.
     await query("UPDATE notable_people SET email = NULL WHERE id = $1", [polly.id]);
-    expect(await addPoliticianAddress(polly.id, "listed@parliament.uk", "jo@pauseai.uk")).toEqual({
+    expect(await addPoliticianAddress(polly.id, "listed@parliament.uk", "jo@pauseai.uk", "Her own address")).toEqual({
       added: false,
       why: "exists",
     });
@@ -343,7 +434,9 @@ describeWithDatabase("a politician's aliases", () => {
     ]);
     expect(await query("SELECT 1 FROM one_off_thread_people")).toEqual([]);
     expect((await politicianAliases({ ...polly, email: null })).office).toEqual([]);
-    expect(await addPoliticianAddress(polly.id, "aaron.lukas@parliament.uk", "jo@pauseai.uk")).toMatchObject({
+    expect(
+      await addPoliticianAddress(polly.id, "aaron.lukas@parliament.uk", "jo@pauseai.uk", "Her own address"),
+    ).toMatchObject({
       added: true,
     });
     expect(await query("SELECT source FROM politician_addresses")).toEqual([{ source: "staff" }]);

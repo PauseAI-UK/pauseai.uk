@@ -341,7 +341,7 @@ describeWithDatabase("importPoliticians", () => {
     await query(`INSERT INTO audit_log (actor, action, details) VALUES ('import-parliament', 'edit politician', $1)`, [
       { id: dora.id, name: "Ms Dora Dummy", changed: { salutation: ["Ms Dummy", "Mrs Dummy"] } },
     ]);
-    await editPoliticianDetails(mo.id, { salutation: "Mo" }, JO);
+    await editPoliticianDetails(mo.id, { salutation: "Mo", note: "How he signs" }, JO);
     const sent = notifications();
     const { result } = await importPoliticians("parliament", NIGHTLY);
     expect(result.changes.changed).toEqual([

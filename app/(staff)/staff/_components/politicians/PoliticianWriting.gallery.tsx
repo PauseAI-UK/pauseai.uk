@@ -21,7 +21,7 @@ export const politicianWritingGallery: Example[] = [
     file: "app/(staff)/staff/_components/politicians/PoliticianWriting.tsx",
     variants: [
       {
-        label: "An MP's email, its bubble of their other addresses open",
+        label: "An MP's email, its bubble open to change it, with their other addresses",
         render: () => (
           <StaffPage as="div">
             <AddressesBubbleExample result={{ saved: true }} />

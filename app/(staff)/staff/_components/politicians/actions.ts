@@ -51,6 +51,7 @@ export async function editPoliticianNow(form: FormData): Promise<EditResult | un
     id,
     {
       salutation: String(form.get("salutation") ?? ""),
+      note: String(form.get("note") ?? ""),
       ...(given === null ? {} : { email: String(given) }),
     },
     email,
@@ -68,7 +69,12 @@ export async function addAliasNow(form: FormData): Promise<AddResult | undefined
   const { email } = await requireStaff();
   const politicianId = idFrom(form, "politicianId");
   if (!politicianId) return undefined;
-  const result = await addPoliticianAddress(politicianId, String(form.get("address") ?? ""), email);
+  const result = await addPoliticianAddress(
+    politicianId,
+    String(form.get("address") ?? ""),
+    email,
+    String(form.get("note") ?? ""),
+  );
   // Their page, and any thread's, which can now show them.
   if (result.added) revalidatePath("/staff", "layout");
   return result;

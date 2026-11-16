@@ -33,7 +33,7 @@
   border-top: 1px solid var(--border);
 }
 
-/* A field, then Save, on one line, what the server said under them. */
+/* A field, then the note and Save on one line, what the server said under them. */
 .form {
   display: flex;
   flex-wrap: wrap;
@@ -43,6 +43,19 @@
 
 .field {
   flex: 1 1 12rem;
+  min-width: 0;
+}
+
+/* Their main address, and its edit at the right, as each other address has its Remove. */
+.main {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* The field, or the choices for it, each on a line of its own above the note and Save. */
+.wholeField {
+  flex-basis: 100%;
   min-width: 0;
 }
 
@@ -116,14 +129,14 @@
   overflow-wrap: anywhere;
 }
 
-/* Under a Lord's email field while they have none: why it's theirs to set, ghosted. */
+/* Ghosted lines under a field: why a Lord's is theirs to set, why choices are offered. */
 .hint {
   margin: var(--space-2) 0 0;
   color: var(--muted);
   font-size: var(--text-xs);
 }
 
-/* Where it came from, ghosted, under the address. */
+/* Where an address came from, ghosted, under it: their main address and each other one. */
 .from {
   color: var(--muted);
   font-size: var(--text-xs);
