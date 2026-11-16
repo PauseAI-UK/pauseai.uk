@@ -1922,9 +1922,6 @@ accounts start with no rows. A permission gained opens pages that are new
 to that person. The layout is kept between pages, so the tag goes at the
 next full page load.
 
-A page to try out that can't do its job yet, such as Broadcasts with no
-backend for sending, shows a "draft" tag instead, for everyone.
-
 ## The public site's content
 
 The rest of the site is content more than data: people's stories, local

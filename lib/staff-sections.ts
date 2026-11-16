@@ -30,8 +30,7 @@ export type StaffSectionId = "supporters" | "events" | "politicians" | "admin";
 /**
  * A page in the navigation: which, where, and the permission it needs. The
  * paths `under` it too, besides its own: pages that belong with it but live
- * elsewhere. `draft`, for a page to try out that can't do its job yet, which says so in the navigation.
- * `added`, the day a page went live (as 2026-11-13), so for its first days
+ * elsewhere. `added`, the day a page went live (as 2026-11-13), so for its first days
  * it's new even to an account seeing the navigation for the first time
  * (lib/accounts/nav-seen.server.ts).
  */
@@ -40,7 +39,6 @@ export type StaffPageLink = {
   href: string;
   permission?: Permission;
   under?: string[];
-  draft?: true;
   added?: string;
 };
 
@@ -54,7 +52,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
       { id: "supporters", href: "/staff/supporters", permission: "supporters", under: ["/staff/letters/supporter"] },
       // A letter's page stays at /staff/letters/[id], and shows in Campaigns.
       { id: "campaigns", href: "/staff/campaigns", permission: "supporters", under: ["/staff/letters"] },
-      { id: "broadcasts", href: "/staff/broadcasts", permission: "supporters", draft: true },
+      { id: "broadcasts", href: "/staff/broadcasts", permission: "supporters" },
       { id: "supporterEmails", href: "/staff/supporters/bounced-emails", permission: "supporters" },
       { id: "signupUpload", href: "/staff/supporters/import", permission: "supporters" },
     ],
