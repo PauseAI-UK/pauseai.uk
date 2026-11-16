@@ -257,9 +257,11 @@ const summary: BroadcastSummary = {
   states: {
     look: 0,
     "opted-out": 1,
+    "reply-failed": 0,
     error: 4,
     unreached: 2,
     "not-sent": 8,
+    "we-replied": 0,
     replied: 0,
     read: 0,
     delivered: 0,
@@ -443,6 +445,8 @@ export const exampleBroadcastAnswers: BroadcastAnswer[] = [
         { type: "paragraph", content: [{ type: "text", text: "Hi Jane, it's on 6 December. See you there!" }] },
       ],
     },
+    // An email's answer: nothing more is heard of it.
+    events: [],
   },
 ];
 
@@ -490,6 +494,11 @@ export const exampleTextAnswers: BroadcastAnswer[] = [
       type: "doc",
       content: [{ type: "paragraph", content: [{ type: "text", text: "Yes, Parliament Square, by the statue." }] }],
     },
+    // Read by Jane, newest first.
+    events: [
+      { at: new Date("2026-11-07T07:50:00Z"), kind: "read", details: {} },
+      { at: new Date("2026-11-07T07:46:00Z"), kind: "delivered", details: {} },
+    ],
   },
 ];
 

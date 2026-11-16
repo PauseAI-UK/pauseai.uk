@@ -19,6 +19,7 @@ import { supportersCopy } from "../supporters/copy";
 import { lettersCopy } from "../letters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { receiptOf } from "@/lib/broadcasts/receipts";
 
 const copy = broadcastsCopy.broadcastPages;
 
@@ -54,7 +55,12 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
   if (one.channel === "text") {
     return (
       <ChatWall>
-        <ChatBubble who={TEXT_SENDER_NAME} when={one.sentAt ? staffTime(one.sentAt) : ""} ours>
+        <ChatBubble
+          who={TEXT_SENDER_NAME}
+          when={one.sentAt ? staffTime(one.sentAt) : ""}
+          ours
+          receipt={one.sentAt ? receiptOf(one.events) : undefined}
+        >
           <TextWords words={letterFor(one.body, merge)} />
           {/* Its footer, as they got it, where we know it. */}
           {one.footer && <span className={bubble.footer}>{one.footer}</span>}
@@ -105,6 +111,15 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
       label: copy.events[event.kind as keyof typeof copy.events],
     })),
     ...dealt,
+    // What WhatsApp said became of our replies to a text.
+    ...one.answers.flatMap((answer) =>
+      answer.events.map((event) => ({
+        at: event.at,
+        status: event.kind,
+        details: event.details,
+        label: copy.replies.historyOurs[event.kind]!,
+      })),
+    ),
     ...one.answers.flatMap((answer) =>
       answer.sentAt
         ? [

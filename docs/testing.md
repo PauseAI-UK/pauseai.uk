@@ -960,6 +960,8 @@ that drives it or why nothing does.
   - one to the newsletter's and events' yeses both, ticked as about our events;
   - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
   - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
+  - our answer to a text delivered and read by its webhook, ticked in its bubble, its copy counted as one we replied to;
+  - our answer to a text that WhatsApp's webhook says failed, why under its bubble, and its copy counted and listed as our reply failed;
   - Stop pressed in WhatsApp, on the copy and the supporter's page.
 - `email-settings.spec.ts`: The contact preferences page:
   - asking for a link past Turnstile, the email with it, and the page it opens;
@@ -1076,7 +1078,7 @@ that drives it or why nothing does.
 - `/api/backup/messages`: Not driven: it's for the backup's container, and shows nothing. Vitest-tested.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
-- `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, and Stop pressed. Its check of the callback URL is Vitest-tested.
+- `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, our answer delivered, read and failed, and Stop pressed. Its check of the callback URL is Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `supporters.spec.ts`), and the redelivery that changes nothing.
 - `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `staff-login.spec.ts`).
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.

@@ -9,6 +9,11 @@
   vertical-align: middle;
 }
 
+.after {
+  margin-right: 0;
+  margin-left: var(--space-1);
+}
+
 .icon svg {
   display: block;
 }

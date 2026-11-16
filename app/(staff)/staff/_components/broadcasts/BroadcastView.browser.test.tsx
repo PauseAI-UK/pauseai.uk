@@ -267,9 +267,11 @@ describe("BroadcastCounts", () => {
     replied: 3,
     look: 1,
     "opted-out": 2,
+    "reply-failed": 0,
     error: 1,
     unreached: 2,
     "not-sent": 6,
+    "we-replied": 0,
   };
   const counts = (more: Partial<typeof states> = {}) =>
     countsOpening(
@@ -282,8 +284,8 @@ describe("BroadcastCounts", () => {
     const { rerender } = await render(
       <CountGroups
         groups={[
-          { key: "went", label: "went", counts: all.slice(0, 6) },
-          { key: "gone", label: "didn't go", counts: all.slice(6) },
+          { key: "went", label: "went", counts: all.slice(0, 8) },
+          { key: "gone", label: "didn't go", counts: all.slice(8) },
         ]}
       />,
     );
@@ -299,7 +301,7 @@ describe("BroadcastCounts", () => {
     await rerender(
       <CountGroups
         groups={[
-          { key: "gone", label: "didn't go", counts: counts({ error: 0, unreached: 0, "not-sent": 0 }).slice(6) },
+          { key: "gone", label: "didn't go", counts: counts({ error: 0, unreached: 0, "not-sent": 0 }).slice(8) },
         ]}
       />,
     );

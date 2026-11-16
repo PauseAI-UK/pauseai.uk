@@ -488,6 +488,64 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
   await textFrame(page, OUR_CHAT, shownText(flowDatabase, answer), "The answer, as they get it");
 });
 
+/** A reply to a text, answered from its thread: the text, and WhatsApp's ID for our answer. */
+async function textAnswered(page: Page, request: APIRequestContext, database: string) {
+  const sent = await textSent(request, database);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    messageFrom(sent.number, `wamid.flow-reply-${sent.copy}`, sent.wamid, { text: "Is there step-free access?" }),
+  );
+  await logIn(page, database);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await page.getByRole("button", { name: copy.replies.reply }).click();
+  await page.getByRole("textbox", { name: copy.replies.answerLabel }).fill("Yes, there's a lift by the main doors.");
+  await page.getByRole("button", { name: copy.replies.send }).click();
+  await expect(page.getByText(copy.replies.sentBy(staffEmail()))).toBeVisible();
+  const [answer] = runSql(database, "SELECT provider_message_id FROM broadcast_answers");
+  return { ...sent, answer: answer! };
+}
+
+test("Our answer to a text, read", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff answer a reply to a text from its thread, as in the flow before. WhatsApp's webhook says the answer was delivered, then read, as it does for the text.",
+  );
+  const sent = await textAnswered(page, request, flowDatabase);
+  await postWhatsAppWebhook(request, BASE, statusOf(sent.answer, sent.number, "delivered", 30));
+  await postWhatsAppWebhook(request, BASE, statusOf(sent.answer, sent.number, "read", 40));
+  story("Each bubble of ours has its ticks, as WhatsApp shows them: two blue ones once read.");
+  await page.reload();
+  await expect(page.getByRole("img", { name: copy.events.read })).toHaveCount(2);
+  await frame(page, "The text and our answer, both read");
+  story("On the text's page, the copy is counted as one we replied to.");
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
+  await frame(page, "The text, its copy counted as replied to by us");
+});
+
+test("Our answer to a text fails", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff answer a reply to a text from its thread. WhatsApp takes the answer, then its webhook says it couldn't deliver it, and why.",
+  );
+  const sent = await textAnswered(page, request, flowDatabase);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    statusOf(sent.answer, sent.number, "failed", 30, { code: 131026, title: "Message undeliverable" }),
+  );
+  await page.reload();
+  await expect(page.getByText(copy.replies.undelivered("Message undeliverable"))).toBeVisible();
+  await frame(page, "Our answer, which WhatsApp couldn't deliver");
+  story("On the text's page, the copy is red, under its own count, so staff can find it.");
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
+  await frame(page, "The text, with our reply that failed counted");
+  story("Its count lists the copies whose reply from us failed.");
+  await page.getByRole("link", { name: `1 ${lettersCopy.copyStates.counts["reply-failed"]}` }).click();
+  await expect(page.getByRole("heading", { name: lettersCopy.copyStates.tabs["reply-failed"] })).toBeVisible();
+  await frame(page, "The copies whose reply from us failed");
+});
+
 test("Stop, replied in WhatsApp", async ({ page, request, flowDatabase }) => {
   story(
     "A supporter replies STOP to a text, as its footer says. WhatsApp's webhook tells the site, which stops texts on that text's topics to their number.",

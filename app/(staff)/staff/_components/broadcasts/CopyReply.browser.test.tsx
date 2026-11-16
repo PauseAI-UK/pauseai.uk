@@ -259,6 +259,13 @@ describe("replies to broadcasts", () => {
       .element(page.getByText(`${copy.replies.sentBy("jo@pauseai.uk")} · ${staffTime(exampleTextAnswers[0].sentAt!)}`))
       .toBeVisible();
     await expect.element(page.getByText(copy.replies.stillSending("+447700900000"))).toBeVisible();
+    // Ours ticked as far as WhatsApp said it got, read; the one that may not have gone, none.
+    const ours = page.getByText("Yes, Parliament Square, by the statue.");
+    expect(ours.elements()).toHaveLength(2);
+    expect(
+      ours.elements()[0].parentElement!.parentElement!.querySelector(`[aria-label="${copy.events.read}"]`),
+    ).not.toBeNull();
+    expect(ours.elements()[1].parentElement!.parentElement!.querySelector("svg")).toBeNull();
     // Their name, as their copy had it.
     await expect.element(page.getByText("Jane Example", { exact: true }).first()).toBeVisible();
     // The one too old for WhatsApp says so, and has no Reply; the others do, the answered one and the one waiting.

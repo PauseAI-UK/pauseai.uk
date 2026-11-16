@@ -238,6 +238,15 @@ export const broadcastsCopy = {
       historyOptedOut: "Recorded as an opt-out",
       historyNothing: "Marked as nothing to do",
       historyAnswered: "Answered",
+      // What WhatsApp said became of our reply to a text, in the copy's history.
+      historyOurs: {
+        delivered: "⁂ Our reply delivered",
+        read: "⁂ Our reply read",
+        failed: "⁂ Our reply failed",
+      } as Record<string, string>,
+      // Under a text's bubble, ours or the broadcast's, that WhatsApp said it couldn't deliver, with its why if it gave one.
+      undelivered: (why: string | null) =>
+        why ? `⁂ WhatsApp couldn't deliver this: ${why}` : "⁂ WhatsApp couldn't deliver this",
       noText: "No text to show. Open it in Gmail.",
       // A reply to a text with no words, such as a photo or a voice note, which only WhatsApp shows: what it is.
       notWords: (type: string) => `[A ${type} message, which only the WhatsApp app shows]`,

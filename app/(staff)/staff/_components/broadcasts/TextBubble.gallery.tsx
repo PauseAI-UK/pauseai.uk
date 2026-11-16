@@ -74,6 +74,32 @@ export const textBubbleGallery: Example[] = [
           </ChatBubble>
         ),
       },
+      {
+        label: "Ours, sent, delivered and read, ticked as WhatsApp shows them",
+        render: () => (
+          <ChatWall>
+            <ChatBubble who="PauseAI UK" when="08:10" ours receipt={{ kind: "sent" }}>
+              Yes.
+            </ChatBubble>
+            <ChatBubble who="PauseAI UK" when="08:11" ours receipt={{ kind: "delivered" }}>
+              Bring water for it.
+            </ChatBubble>
+            <ChatBubble who="PauseAI UK" when="08:12" ours receipt={{ kind: "read" }}>
+              See you there!
+            </ChatBubble>
+          </ChatWall>
+        ),
+      },
+      {
+        label: "Ours, which WhatsApp couldn't deliver",
+        render: () => (
+          <ChatWall>
+            <ChatBubble who="PauseAI UK" when="08:10" ours receipt={{ kind: "failed", why: "Message undeliverable" }}>
+              Yes.
+            </ChatBubble>
+          </ChatWall>
+        ),
+      },
     ],
   },
 ];

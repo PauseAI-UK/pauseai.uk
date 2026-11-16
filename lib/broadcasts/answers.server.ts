@@ -35,17 +35,33 @@ export type BroadcastAnswer = {
   /** When it went; null while it's being sent, or if the run sending it stopped. */
   sentAt: Date | null;
   body: LetterDoc;
+  /** What WhatsApp said became of one to a text (delivered, read, failed), newest first; none for an email. */
+  events: AnswerEvent[];
 };
+
+/** Something WhatsApp said became of our answer, with its why for a failure. */
+export type AnswerEvent = { at: Date; kind: string; details: Record<string, unknown> };
 
 /** The answers to a copy's replies, oldest first. */
 export async function answersTo(copyId: number): Promise<BroadcastAnswer[]> {
-  const rows = await query<Omit<BroadcastAnswer, "body"> & { body: unknown }>(
+  const rows = await query<Omit<BroadcastAnswer, "body" | "events"> & { body: unknown }>(
     `SELECT a.id::int AS id, a.reply_id::int AS "replyId", a.sent_by AS "sentBy", a.sent_at AS "sentAt", a.body
      FROM broadcast_answers a JOIN broadcast_replies r ON r.id = a.reply_id
      WHERE r.message_id = $1 ORDER BY a.created_at, a.id`,
     [copyId],
   );
-  return rows.map((row) => ({ ...row, body: checkDoc(row.body)! }));
+  const events = await query<AnswerEvent & { answerId: number }>(
+    `SELECT answer_id::int AS "answerId", at, kind, details FROM broadcast_message_events
+     WHERE answer_id = ANY($1::bigint[]) ORDER BY at DESC, id DESC`,
+    [rows.map((row) => row.id)],
+  );
+  return rows.map((row) => ({
+    ...row,
+    body: checkDoc(row.body)!,
+    events: events
+      .filter((event) => event.answerId === row.id)
+      .map((event) => ({ at: event.at, kind: event.kind, details: event.details })),
+  }));
 }
 
 /**

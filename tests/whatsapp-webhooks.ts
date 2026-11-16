@@ -51,11 +51,17 @@ export const messageFrom = (
     ],
   });
 
-/** What became of a text: delivered or read. */
-export const statusOf = (id: string, number: string, status: "delivered" | "read", minutes = 1) =>
+/** What became of a text: delivered, read, or failed, with WhatsApp's error. */
+export const statusOf = (
+  id: string,
+  number: string,
+  status: "delivered" | "read" | "failed",
+  minutes = 1,
+  error?: { code: number; title: string },
+) =>
   webhook("messages", {
     messaging_product: "whatsapp",
-    statuses: [{ id, status, timestamp: at(minutes), recipient_id: number }],
+    statuses: [{ id, status, timestamp: at(minutes), recipient_id: number, ...(error && { errors: [error] }) }],
   });
 
 /** Posts a webhook to the build at `base`, signed as WhatsApp signs it; how many changes it applied. */
