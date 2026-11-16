@@ -117,7 +117,7 @@ export const jobsCopy = {
   },
   // The sending every 15 minutes (/api/cron/send-mailings): the letters inbox's queue, then the mailings due.
   sending: {
-    title: "Sending letters and mailings",
+    title: "Sending letters, mailings and broadcasts",
     intro: {
       before: "Sends ",
       link: "campaign",
