@@ -10,16 +10,16 @@ const LIST = defineStaffList({
 });
 
 describe("listFilters", () => {
-  it("names each filter by its parameter, in their order, one the URL gives more than once repeating unless it's chosen once", () => {
+  it("names each filter by its parameter, in their order, one the URL gives more than once repeating", () => {
     const filters = listFilters(LIST, ({ tags }: { tags: string[] }) => ({
       size: { label: "Size", options: [] },
       colour: { label: "Colour", options: [] },
-      tag: { label: "Tag", once: true, options: tags.map((value) => ({ value, label: value })) },
+      tag: { label: "Tag", options: tags.map((value) => ({ value, label: value })) },
     }));
     expect(filters({ tags: ["red"] })).toEqual([
       { name: "size", label: "Size", options: [] },
       { name: "colour", label: "Colour", options: [], repeat: true },
-      { name: "tag", label: "Tag", options: [{ value: "red", label: "red" }] },
+      { name: "tag", label: "Tag", options: [{ value: "red", label: "red" }], repeat: true },
     ]);
     // Only the list's own parameters are filters.
     // @ts-expect-error: the list has no "shape"
@@ -51,6 +51,8 @@ describe("SUPPORTER_FILTERS", () => {
       ...[1, 2, 3].map(() => ({ label: copy.ways.text, icon: "icon of text" })),
       { label: copy.ways.call, icon: "icon of call" },
     ]);
-    expect(contact().repeat).toBeUndefined();
+    // Each a yes, and chosen more than once, a chip for each way.
+    expect(contact().options.map((option) => option.value)).toContain("text:events:yes");
+    expect(contact().repeat).toBe(true);
   });
 });

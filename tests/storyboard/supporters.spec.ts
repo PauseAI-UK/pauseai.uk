@@ -544,12 +544,8 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByRole("columnheader", { name: copy.columns.subscriptions })).toBeVisible();
   await frame(page, "The supporters list");
-  story(
-    "Staff filter to those they can't email about events. Jane is there. Owen, a member who never opted in to chapter emails, isn't, as he never followed the calendar.",
-  );
+  story("Staff filter to those they can email about events. Jane isn't there, as she unsubscribed.");
 
-  // A topic first, those we can email about it, then in the chip's second half, those we can't.
-  const answers = copy.detail.permissions.answers;
   // Consent has its own button, as it's what lets a message go.
   await page.getByRole("button", { name: copy.columns.subscriptions, exact: true }).click();
   await page
@@ -557,23 +553,35 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
     .getByRole("link", { name: copy.filters.topics["events"] })
     .first()
     .click();
-  await changeFilter(page, answers.email.yes, answers.email.no);
-  await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
-  // Owen has never had anything to do with the calendar.
-  await expect(page.getByRole("row").filter({ hasText: "Owen Member" })).toHaveCount(0);
-  await frame(page, "Those who can't be emailed about events");
-  story("They change the topic to the newsletter. Now Owen is there, and Jane, on the newsletter in CiviCRM, isn't.");
+  await expect(page).toHaveURL(/contact=email%3Aevents%3Ayes/);
+  await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toHaveCount(0);
+  await frame(page, "Those who can be emailed about events");
+  story("They change the topic to the newsletter. Now Jane, on the newsletter in CiviCRM, is there.");
 
-  // Another topic, from the chip's first half, keeping its answer: the newsletter by email, the first of its three.
+  // Another topic from the chip: the newsletter by email, the first of its three.
   await changeTopic(
     page,
     `${copy.columns.subscriptions}: ${copy.filters.topics.events}`,
     copy.filters.topics.newsletter,
   );
-  await expect(page).toHaveURL(/contact=email%3Anewsletter%3Ano/);
-  await expect(page.getByRole("row").filter({ hasText: "Owen Member" })).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toHaveCount(0);
-  await frame(page, "Those who can't be emailed the newsletter");
+  await expect(page).toHaveURL(/contact=email%3Anewsletter%3Ayes/);
+  await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
+  await frame(page, "Those who can be emailed the newsletter");
+  story(
+    "Except leaves out those we can email about events, so they see who gets the newsletter but not events emails. Jane is still there.",
+  );
+  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
+  const except = page.locator("[popover]:popover-open");
+  await except.getByText(copy.columns.subscriptions, { exact: true }).click();
+  await except.getByRole("link", { name: copy.filters.topics.events }).first().click();
+  await expect(page).toHaveURL(/contact=%21email%3Aevents%3Ayes/);
+  await expect(
+    page.getByRole("button", {
+      name: staffVocabulary.filters.notChip(copy.columns.subscriptions, copy.filters.topics.events),
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
+  await frame(page, "The newsletter, but not events emails");
 });
 
 test("Subscriptions to more than one topic", async ({ page, request, flowDatabase }) => {
@@ -597,12 +605,15 @@ test("Subscriptions to more than one topic", async ({ page, request, flowDatabas
   await expect(page).toHaveURL(/contact=.*contact=/);
   await frame(page, "One chip for both");
 
-  story("Changing its answer to No changes it for both.");
-  await page.getByRole("button", { name: copy.detail.permissions.answers.email.yes }).click();
-  await menu.getByRole("link", { name: copy.detail.permissions.answers.email.no, exact: true }).click();
-  await expect(page.getByRole("button", { name: both })).toBeVisible();
-  await expect(page.getByRole("button", { name: copy.detail.permissions.answers.email.no })).toBeVisible();
-  await frame(page, "Both, No");
+  story("Except these turns the chip round: everyone we can't email about either.");
+  await page.getByRole("button", { name: both }).click();
+  await menu.getByRole("link", { name: staffVocabulary.filters.exceptThese }).click();
+  const neither = staffVocabulary.filters.notChip(
+    label,
+    staffVocabulary.filters.anyOf([topics.events, topics.newsletter]),
+  );
+  await expect(page.getByRole("button", { name: neither })).toBeVisible();
+  await frame(page, "Neither");
 });
 
 test("A member who never opted in", async ({ page, request, flowDatabase }) => {

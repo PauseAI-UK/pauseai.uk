@@ -570,60 +570,6 @@ describe("FilterBar", () => {
     expect(rows.map((row) => row.open)).toEqual([false, true]);
   });
 
-  it("gives a choice in two parts a chip in two halves, its words alone when it has no group", async () => {
-    await render(
-      <FilterBar
-        path="/list"
-        values={{ part: ["a:2"] }}
-        search={{ name: "q", label: "Search" }}
-        filters={[
-          {
-            name: "part",
-            label: "Part",
-            options: [
-              {
-                value: "a:1",
-                label: "A",
-                seconds: [
-                  { value: "a:1", label: "One" },
-                  { value: "a:2", label: "Two" },
-                ],
-              },
-            ],
-          },
-        ]}
-      />,
-    );
-    const halves = page.getByRole("group", { name: "Part" }).getByRole("button").all();
-    expect(halves.map((half) => half.element().textContent)).toEqual(["Part: A", "Two"]);
-    expect(halves[0].element().querySelector("span")).toBeNull();
-  });
-
-  it("offers in a lozenge's first half only the choices with its second part", async () => {
-    const seconds = (first: string, likes: string[]) =>
-      likes.map((like) => ({ value: `${first}:${like}`, label: like, like }));
-    await render(
-      <FilterBar
-        path="/list"
-        values={{ part: ["a:yes"] }}
-        search={{ name: "q", label: "Search" }}
-        filters={[
-          {
-            name: "part",
-            label: "Part",
-            options: [
-              { value: "a:yes", label: "A", seconds: seconds("a", ["yes", "no"]) },
-              { value: "b:no", label: "B", seconds: seconds("b", ["no"]) },
-              { value: "c", label: "C" },
-            ],
-          },
-        ]}
-      />,
-    );
-    await page.getByRole("button", { name: "Part: A" }).click();
-    expect(links()).toEqual(["/list?part=a%3Ayes", "/list"]);
-  });
-
   it("shows a searchable filter's choices only once something's typed, those that have it", async () => {
     await render(
       <FilterBar

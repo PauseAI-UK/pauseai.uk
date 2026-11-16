@@ -234,7 +234,7 @@ describe("broadcastTerms", () => {
     expect(broadcastTerms("email:newsletter:unsure")).toBeUndefined();
     expect(broadcastTerms("email:newsletter")).toBeUndefined();
     expect(broadcastTerms(["email:newsletter:yes", "text:events:yes"])).toBeUndefined();
-    expect(broadcastTerms(["email:newsletter:yes", "email:events:no"])).toBeUndefined();
+    expect(broadcastTerms(["email:newsletter:yes", "email:events:unsubscribed"])).toBeUndefined();
     expect(broadcastTerms("call:volunteering:yes")).toBeUndefined();
   });
 });

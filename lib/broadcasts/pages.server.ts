@@ -14,7 +14,7 @@ import {
   type BroadcastSendBy,
   type BroadcastTerms,
 } from "./broadcasts";
-import type { Topic } from "@/lib/supporters/contact-permissions";
+import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
 import { answersTo, type BroadcastAnswer } from "./answers.server";
 import { repliesTo, type BroadcastReply } from "./replies.server";
 import { query } from "@/lib/server/db.server";
@@ -537,15 +537,19 @@ export function choosingConsent(choosing: ChoosingBroadcast): string | string[] 
 
 /**
  * The supporters list's filters, `params`, while it's choosing who the draft
- * `broadcast` names goes to: that draft, and its Consent over any other, as
- * the list can't change it. As they are, with no such draft.
+ * `broadcast` names goes to: that draft, and its Consent over any other the
+ * list finds, as the list can't change it, keeping the consents it leaves
+ * out. As they are, with no such draft.
  */
 export async function withChoosing(
   params: Params,
   broadcast: ParamValue | undefined,
 ): Promise<{ choosing?: ChoosingBroadcast; params: Params }> {
   const choosing = await choosingBroadcast(firstOf(broadcast));
-  return { choosing, params: choosing ? { ...params, contact: choosingConsent(choosing) } : params };
+  if (!choosing) return { params };
+  const leftOut = consentLeftOut(params.contact);
+  const contact = leftOut.length > 0 ? [...termsValues(choosing), ...leftOut] : choosingConsent(choosing);
+  return { choosing, params: { ...params, contact } };
 }
 
 /** The draft the list's `broadcast` parameter names; undefined for none, or one no longer a draft. */

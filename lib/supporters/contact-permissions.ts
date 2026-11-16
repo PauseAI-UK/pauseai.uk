@@ -3,6 +3,7 @@
 // on and the staff home counts. The rules are contact_permission()'s
 // (netlify/database/migrations/0100_consents.sql), and
 // lib/supporters/permissions-for.server.ts reads them.
+import { notValue, valuesOf, type ParamValue } from "@/lib/list-params";
 
 /** What we'd reach someone at: an email address, or a phone number. */
 export const CHANNELS = ["email", "phone"] as const;
@@ -45,8 +46,7 @@ export function consentKey({ topic, way }: Consent): `${Way}:${Topic}` {
 }
 
 /** Our answer for an address about a consent: we'd contact them, or we wouldn't. */
-export const SENDS = ["yes", "no"] as const;
-export type Send = (typeof SENDS)[number];
+export type Send = "yes" | "no";
 
 /** Why we may or may not contact someone about a consent; the migration says what each means. */
 export const REASONS = [
@@ -73,15 +73,14 @@ export const REASONS = [
 export type Reason = (typeof REASONS)[number];
 
 /**
- * What the Consent filter finds: an answer for one consent, any answer, yes
- * or no (`send`), or one reason.
+ * What the Consent filter finds: an answer for one consent, any answer, a
+ * yes (`send`), or one reason.
  */
-export type ContactState = Consent & { send?: Send; reason?: Reason };
+export type ContactState = Consent & { send?: "yes"; reason?: Reason };
 
 /**
  * A state from its form value: "<way>:<topic>" for any answer,
- * "<way>:<topic>:<send>" for one answer, "<way>:<topic>:<reason>" for one
- * reason.
+ * "<way>:<topic>:yes" for a yes, "<way>:<topic>:<reason>" for one reason.
  */
 export function contactState(value: string): ContactState | undefined {
   const [way, topic, last, ...rest] = value.split(":");
@@ -89,8 +88,16 @@ export function contactState(value: string): ContactState | undefined {
   if (!(TOPICS as readonly string[]).includes(topic)) return undefined;
   const state = { way: way as Way, topic: topic as Topic };
   if (last === undefined) return state;
-  if ((SENDS as readonly string[]).includes(last)) return { ...state, send: last as Send };
+  if (last === "yes") return { ...state, send: last };
   return (REASONS as readonly string[]).includes(last) ? { ...state, reason: last as Reason } : undefined;
+}
+
+/**
+ * The Consent filter's values that leave people out, each marked: those
+ * with a yes to any of them aren't found.
+ */
+export function consentLeftOut(contact: ParamValue | undefined): string[] {
+  return valuesOf(contact).filter((value) => notValue(value).not);
 }
 
 /** A state's form value, which contactState reads back. */

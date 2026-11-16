@@ -530,16 +530,12 @@ describeWithDatabase("listSupporters and getSupporter", () => {
        INSERT INTO email_blocks (address, problem_id) SELECT 'sam@example.com', id FROM p`,
     );
     expect(await names({ contact: [...unsubscribed] })).toEqual([]);
-    expect(await names({ contact: [{ way: "email", topic: "events", send: "no" }] })).toContain("Sam");
-    // Any answer for a topic, and one answer.
-    expect(await names({ contact: [{ way: "email", topic: "newsletter", send: "no" }] })).toEqual(["Old"]);
+    expect(await names({ contact: [{ way: "email", topic: "events", reason: "blocked" }] })).toEqual(["Sam"]);
+    // Any answer for a topic, and a yes.
+    const yes = await names({ contact: [{ way: "email", topic: "newsletter", send: "yes" }] });
+    expect(yes).not.toContain("Old");
     expect(await names({ contact: [{ way: "email", topic: "newsletter" }] })).toEqual(
-      await names({
-        contact: [
-          { way: "email", topic: "newsletter", send: "yes" },
-          { way: "email", topic: "newsletter", send: "no" },
-        ],
-      }),
+      expect.arrayContaining([...yes, "Old"]),
     );
     expect(await names({ contact: [...unsubscribed] })).toEqual([]);
     expect(await names({ sort: "first", dir: "asc" })).toEqual(["Old", "Sam", "Jane", "Pat"]);

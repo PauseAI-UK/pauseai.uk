@@ -241,16 +241,22 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
   });
 
-  it("goes under several topics' yeses, keeping them through a change of Consent, and schedules", async () => {
+  it("goes under several topics' yeses, keeping them and those it leaves out through a change of Consent, and schedules", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane");
-    const id = (await createBroadcastDraft(JO, { contact: ["email:volunteering:yes", "email:newsletter:yes"] }))!;
+    const id = (await createBroadcastDraft(JO, {
+      contact: ["email:volunteering:yes", "!text:newsletter:yes", "email:newsletter:yes"],
+    }))!;
     expect(await getWrittenBroadcast(id)).toMatchObject({ topics: ["newsletter", "volunteering"] });
     expect(await changeBroadcastConsent(id, "email:newsletter:yes email:events:yes email:volunteering:yes", JO)).toBe(
       true,
     );
     expect(await getWrittenBroadcast(id)).toMatchObject({
       topics: ["newsletter", "events", "volunteering"],
-      filter: { params: { contact: ["email:newsletter:yes", "email:events:yes", "email:volunteering:yes"] } },
+      filter: {
+        params: {
+          contact: ["email:newsletter:yes", "email:events:yes", "email:volunteering:yes", "!text:newsletter:yes"],
+        },
+      },
     });
     const version = await readied(id, { subject: "Events", body: EVENT_WORDS });
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });

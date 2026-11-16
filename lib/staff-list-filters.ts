@@ -6,7 +6,7 @@
 // such as the parties, the events, or who's in the log.
 import type { ReactNode } from "react";
 import { ASK_STATUSES } from "@/lib/asks/asks";
-import { SENDS, TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
+import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, valuesOf, type Params } from "./list-params";
@@ -38,18 +38,13 @@ import { oversightCopy } from "@/lib/oversight/copy";
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
  * the group named on the chip too; a `detail` is said quietly after the
- * words. One with `seconds` is in two parts: chosen, its chip is in two
- * halves, the second offering `seconds`, the first of which is this choice
- * alone and the rest narrow it.
+ * words.
  */
 export type FilterOption = {
   value: string;
   label: string;
   group?: { label: string; icon: ReactNode };
   detail?: string;
-  seconds?: FilterOption[];
-  /** A second part's kind, the same across choices, so changing the first keeps it where the new one has it. */
-  like?: string;
 };
 
 /**
@@ -61,7 +56,8 @@ export type FilterOption = {
  * leave out too, each marked with NOT, in a chip of its own, which finds what
  * has none of them, unless it's `after` another. `oneEach` on one where a record
  * has only one value, so that finding one and leaving out another can't both
- * be needed. A choice in two parts doesn't repeat. A `searchable`
+ * be needed. One whose choices are in groups has a chip for each group it
+ * finds, and one for each it leaves out. A `searchable`
  * one has a box over its choices, which show only once something's typed
  * in it, those that have it. A
  * `place` one takes words typed, a postcode or a town, and how far from it
@@ -82,19 +78,19 @@ export type Filter = {
   /** A filter that matters most: its own button, first, rather than a row in "+ Filter". */
   own?: boolean;
   /**
-   * A filter that can't be changed here, and why, said on hovering its chip:
-   * its chip is there but doesn't open, with a lock for its arrow, it's never
-   * offered, and Clear filters keeps it.
+   * A filter whose finding can't be changed here, and why, said on hovering
+   * its chip: that chip is there but doesn't open, with a lock for its arrow,
+   * "+ Filter" never offers it, and Clear filters keeps it. What it leaves
+   * out can change, as any repeating filter's can.
    */
   locked?: string;
 };
 
 /**
  * One of a list's filters, as the list gives it: all a Filter is but its
- * name, its parameter's, and whether it repeats, which its parameter says
- * unless it's chosen only `once` though the URL can give it more than once.
+ * name, its parameter's, and whether it repeats, which its parameter says.
  */
-type FilterOf = Omit<Filter, "name" | "repeat"> & { once?: true };
+type FilterOf = Omit<Filter, "name" | "repeat">;
 
 /** The filters of `list`'s bar, from what its page gives (`choices`): each of `filters`, by its parameter, in their order. */
 export function listFilters<const P extends ParamKinds, C>(
@@ -102,25 +98,25 @@ export function listFilters<const P extends ParamKinds, C>(
   filters: (choices: C) => NoInfer<{ [K in keyof P & string]?: FilterOf }>,
 ): (choices: C) => Filter[] {
   return (choices) =>
-    Object.entries(filters(choices) as Record<string, FilterOf>).map(([name, { once, ...filter }]) =>
-      list.params[name] === "many" && !once ? { name, ...filter, repeat: true } : { name, ...filter },
+    Object.entries(filters(choices) as Record<string, FilterOf>).map(([name, filter]) =>
+      list.params[name] === "many" ? { name, ...filter, repeat: true } : { name, ...filter },
     );
 }
 
-/** The choice of `filter` a value is, or whose second part it is, and that second part, if it narrows it. */
-export function choiceParts(filter: Filter, value: string): { first?: FilterOption; second?: FilterOption } {
-  for (const option of filter.options) {
-    if (option.value === value) return { first: option };
-    const second = option.seconds?.find((o) => o.value === value);
-    if (second) return { first: option, second };
-  }
-  return {};
+/** The choice of `filter` a value is, if it's one. */
+export function choiceOf(filter: Filter, value: string): FilterOption | undefined {
+  return filter.options.find((option) => option.value === value);
 }
 
-/** A choice of `filter` in words: its group, its words and its second part; or as typed, when it has none. */
+/** Whether `filter`'s choices are in groups, each group a chip of its own. */
+export function isGrouped(filter: Filter): boolean {
+  return filter.options.some((option) => option.group);
+}
+
+/** A choice of `filter` in words: its group and its words; or as typed, when it's none of its choices. */
 function choiceWords(filter: Filter, plain: string): string {
-  const { first, second } = choiceParts(filter, plain);
-  return first ? [first.group?.label, first.label, second?.label].filter(Boolean).join(", ") : plain;
+  const choice = choiceOf(filter, plain);
+  return choice ? [choice.group?.label, choice.label].filter(Boolean).join(", ") : plain;
 }
 
 /** A value of `filter` in words: its name and choice, joined by `join`, or that it's left out. */
@@ -273,13 +269,13 @@ export type SupporterBarChoices = SupporterChoices & {
  * on, in the columns' order: their nation and how near somewhere they
  * are, and their MP; their activities and subscriptions; the events they
  * registered for; and whether they wrote in a campaign. Consent, the
- * contact filter, has its own button. Its choices are each topic, a topic
- * chosen as those we can contact about it and another answer in its chip's
- * second half; one by email or phone shows that column; and when they were
- * first seen, last registered for an event or unsubscribed, the lists the
- * dashboard's tiles open, the last two only from those tiles. Activities,
- * nations, MPs and events can each be chosen more than once; a supporter
- * has one nation and one MP.
+ * contact filter, has its own button. Its choices are each topic by each
+ * way, as those we can contact about it, a chip for each way; one by email
+ * or phone shows that column; and when they were first seen, last
+ * registered for an event or unsubscribed, the lists the dashboard's tiles
+ * open, the last two only from those tiles. Activities, consents, nations,
+ * MPs and events can each be chosen more than once; a supporter has one
+ * nation and one MP.
  */
 export const SUPPORTER_FILTERS = listFilters(
   SUPPORTERS_LIST,
@@ -315,23 +311,12 @@ export const SUPPORTER_FILTERS = listFilters(
         label: columns.subscriptions,
         // Who a message can go to, so its own button.
         own: true,
-        // Chosen in two parts, not more than once.
-        once: true,
-        // Each topic under its way's heading, chosen as those we can contact about it; then in its chip's second
-        // half, yes or no. Changing the topic keeps the answer.
-        options: CONSENT_ORDER.map(({ topic, way }) => {
-          const answers = supportersCopy.supporters.detail.permissions.answers[way];
-          return {
-            value: stateValue({ way, topic, send: "yes" }),
-            label: copy.topics[topic],
-            group: { label: copy.ways[way], icon: channelIcon?.(way) },
-            seconds: SENDS.map((send) => ({
-              value: stateValue({ way, topic, send }),
-              label: answers[send],
-              like: send,
-            })),
-          };
-        }),
+        // Each topic under its way's heading, as those we can contact about it by that way.
+        options: CONSENT_ORDER.map(({ topic, way }) => ({
+          value: stateValue({ way, topic, send: "yes" }),
+          label: copy.topics[topic],
+          group: { label: copy.ways[way], icon: channelIcon?.(way) },
+        })),
       },
       event: {
         label: copy.event,

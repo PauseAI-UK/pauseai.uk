@@ -5,11 +5,11 @@ import { Select, TextInput } from "@/components/ui/Controls";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { chosenValues } from "@/lib/filter-choices";
 import { filtersPath, firstOf, NOT, notValue, valuesOf, type Params } from "@/lib/list-params";
-import { choiceParts, valueWords, type Filter, type FilterOption } from "@/lib/staff-list-filters";
+import { choiceOf, isGrouped, valueWords, type Filter } from "@/lib/staff-list-filters";
 import Choices from "./Choices";
 import FilterBarLines from "./FilterBarLines";
 import FormPending from "./FormPending";
-import ManyChoices, { NotWords } from "./ManyChoices";
+import ManyChoices from "./ManyChoices";
 import StaffLink from "./StaffLink";
 import Menu from "./Menu";
 import LockIcon from "./LockIcon";
@@ -27,8 +27,13 @@ const copy = staffVocabulary.filters;
  */
 export const filterChipClass = { on: styles.chip, off: `${styles.add} ${styles.own}`, heading: styles.heading };
 
-/** A filter's choices, without its blank one, its default. */
-const everyChoice = (filter: Filter) => filter.options.map((option) => option.value).filter(Boolean);
+/**
+ * A filter's choices, without its blank one, its default: leaving out all of
+ * them takes the filter off. None for one in groups, as leaving out every
+ * consent still finds those with none.
+ */
+const everyChoice = (filter: Filter) =>
+  isGrouped(filter) ? [] : filter.options.map((option) => option.value).filter(Boolean);
 
 /** The values a saved filter can no longer find, each "<parameter>=<value>", in words, as chips say them. */
 function goneWords(filters: Filter[], gone: string[]): string[] {
@@ -139,9 +144,21 @@ export default function FilterBar({
   const on = filters
     .filter((filter) => chosen(filter.name).length > 0)
     .sort((a, b) => Number(Boolean(b.own)) - Number(Boolean(a.own)));
-  const ownButtons = filters.filter((filter) => filter.own && chosen(filter.name).length === 0);
+  // A repeating filter's values, found or left out, without their marks.
+  const side = (filter: Filter, not: boolean) =>
+    chosen(filter.name)
+      .map(notValue)
+      .filter((one) => one.not === not)
+      .map((one) => one.value);
+  // A filter of its own has its button while it finds nothing, though it may leave some out.
+  const ownButtons = filters.filter((filter) => filter.own && side(filter, false).length === 0);
+  // A filter with the choices it has yet to make, found or left out.
+  const choosable = (filter: Filter) => {
+    const taken = chosen(filter.name).map((value) => notValue(value).value);
+    return { filter, options: filter.options.filter((option) => option.value && !taken.includes(option.value)) };
+  };
   // Those "+ Filter" offers, each with the choices it offers: one not on, or one that repeats, its other
-  // choices, found or left out; a place, its form. Except offers those that repeat.
+  // choices; a place, its form.
   const offered = filters
     .filter(
       (filter) =>
@@ -151,21 +168,21 @@ export default function FilterBar({
         !filter.locked &&
         (filter.repeat || chosen(filter.name).length === 0),
     )
-    .map((filter) => {
-      const taken = chosen(filter.name).map((value) => {
-        const plain = notValue(value).value;
-        return choiceParts(filter, plain).first?.value ?? plain;
-      });
-      return { filter, options: filter.options.filter((option) => option.value && !taken.includes(option.value)) };
-    })
+    .map(choosable)
     .filter(({ filter, options }) => filter.place || options.length > 0);
-  const negatable = offered.filter(({ filter }) => filter.repeat);
+  // Those Except offers: every one that repeats, its own button's and a locked one's too.
+  const negatable = filters
+    .filter((filter) => filter.repeat && !filter.after && !filter.linkedOnly)
+    .map(choosable)
+    .filter(({ options }) => options.length > 0);
   const hidden = Object.entries(values)
     .filter(([name]) => name !== search.name && name !== "page")
     .flatMap(([name, value]) => valuesOf(value).map((one) => [name, one] as const));
-  const kept = Object.fromEntries(
-    [...keep, ...filters.filter((f) => f.locked).map((f) => f.name)].map((name) => [name, values[name] ?? ""]),
-  );
+  // Clear filters keeps those named in `keep`, and what a locked filter finds.
+  const kept = Object.fromEntries([
+    ...keep.map((name) => [name, values[name] ?? ""]),
+    ...filters.filter((f) => f.locked).map((f) => [f.name, side(f, false)]),
+  ]);
   const label = (filter: Filter, value: string) =>
     filter.options.find((option) => option.value === value)?.label ?? value;
   // A place filter's chip: the words found, and how far.
@@ -178,55 +195,25 @@ export default function FilterBar({
   const othersThan = (filter: Filter) =>
     hidden.filter(([name]) => name !== filter.name && name !== filter.place!.within) as [string, string][];
   // A filter's chip, for `value` of it: its menu has its choices and, but in a chip's second half, a way to
-  // remove it. A choice in a first half or a chip of its own takes the filter's place, with the second part it had,
-  // by its `like`, where the new choice has one the same, else the choice's own; one in the second half of a
-  // choice in two parts, which offers its `seconds`, changes that one value, keeping it found or left out. More
-  // than one value of a filter that doesn't repeat can only come from a link or a saved filter: each has its chip.
-  const chip = (
-    filter: Filter,
-    value: string,
-    text: ReactNode,
-    second = false,
-    seconds?: { options: FilterOption[]; current: string; together: string[] },
-  ) => {
+  // remove it. A choice takes the filter's place. More than one value of a filter that doesn't repeat can only
+  // come from a link or a saved filter: each has its chip.
+  const chip = (filter: Filter, value: string, text: ReactNode, second = false) => {
     const { value: plain, not } = notValue(value);
-    // A second part changes for every value of its lozenge.
-    const changing = seconds?.together ?? [value];
-    const others = chosen(filter.name).filter((v) => !changing.includes(v));
-    // Each of the lozenge's values with the second part `v` has: the others share their second parts' likes.
-    const withSecond = (v: string) => {
-      const to = seconds!.options.find((o) => o.value === v)!.like;
-      return changing.map((one) => {
-        const next =
-          one === value
-            ? v
-            : choiceParts(filter, notValue(one).value).first!.seconds!.find((o) => o.like === to)!.value;
-        return not ? NOT + next : next;
-      });
-    };
-    const choose = (v: string) =>
-      seconds
-        ? href({ [filter.name]: [...others, ...withSecond(v)] })
-        : href({ ...without(filter.name), [filter.name]: v });
+    const others = chosen(filter.name).filter((v) => v !== value);
     if (filter.locked) {
       // There, saying what it is and why it can't change, but not opening.
       return (
-        <span
-          key={`${filter.name}-${value}${seconds ? "-2" : ""}`}
-          className={`${styles.chip} ${styles.locked}`}
-          title={filter.locked}
-        >
+        <span key={`${filter.name}-${value}`} className={`${styles.chip} ${styles.locked}`} title={filter.locked}>
           {not && <NotIcon />}
           {text}
-          {/* At the end of the lozenge: in its second half, if it has two. */}
-          {(second || !choiceParts(filter, plain).first?.seconds) && <LockIcon />}
+          <LockIcon />
         </span>
       );
     }
     return (
       <Menu
-        key={`${filter.name}-${value}${seconds ? "-2" : ""}`}
-        id={`filter-${filter.name}-${value}${seconds ? "-2" : ""}`}
+        key={`${filter.name}-${value}`}
+        id={`filter-${filter.name}-${value}`}
         trigger={not ? `${styles.chip} ${styles.not}` : styles.chip}
         label={
           <>
@@ -240,9 +227,9 @@ export default function FilterBar({
           <PlaceForm path={path} filter={filter} values={values} others={othersThan(filter)} />
         ) : (
           <Choices
-            options={seconds?.options ?? filter.options}
-            current={[seconds?.current ?? choiceParts(filter, plain).first?.value ?? plain]}
-            href={choose}
+            options={filter.options}
+            current={[plain]}
+            href={(v) => href({ ...without(filter.name), [filter.name]: v })}
             search={filter.searchable ? copy.narrow : undefined}
           />
         )}
@@ -256,73 +243,58 @@ export default function FilterBar({
       </Menu>
     );
   };
-  // A lozenge of a choice in two parts, for `ones` of one group and one second part: its first half the firsts,
-  // one or more, "+ Add" offering others of the group; its second, their second part, which changes for them all.
-  // Its group's icon before its words, so "PauseAI UK" says which.
-  const parted = (filter: Filter, ones: string[]) => {
-    const { value: plain, not } = notValue(ones[0]);
-    const { first, second } = choiceParts(filter, plain);
-    const like = (second ?? first!.seconds![0]).like;
-    const here = ones.map((one) => notValue(one).value);
-    // Each first as it is with this second part, as the lozenge has them and offers them: those that have it, or,
-    // with no like to match, its own as it is and each other as the filter has it. Not those another lozenge has.
+  // A filter in groups' chips: one for each group it finds, and one for each it leaves out, in the order they
+  // first come, the group's icon before the choices; a value it doesn't know, alone. Each offers its group's
+  // choices to tick, and to swap to, any choice no other chip has. What a locked one finds doesn't open.
+  const grouped = (filter: Filter) => {
+    const choice = (value: string) => filter.options.find((option) => option.value === value);
+    const chips = new Map<string, string[]>();
+    for (const one of chosen(filter.name)) {
+      const { value: plain, not } = notValue(one);
+      const group = choice(plain)?.group;
+      const key = group ? [not, group.label].join("|") : `own ${one}`;
+      chips.set(key, [...(chips.get(key) ?? []), one]);
+    }
     const taken = chosen(filter.name).map((one) => notValue(one).value);
-    const offered = filter.options
-      .flatMap((option) => {
-        if (like === undefined) return [option === first ? { ...option, value: plain } : option];
-        const same = option.seconds?.find((o) => o.like === like);
-        return same ? [{ ...option, value: same.value }] : [];
-      })
-      .filter((option) => here.includes(option.value) || !taken.includes(option.value));
-    const words = (named: ReactNode) =>
-      not ? (
-        <>
-          <NotWords label={filter.label} />
-          {named}
-        </>
-      ) : (
-        <>
-          {filter.label}: {named}
-        </>
+    return [...chips.values()].map((ones) => {
+      const { not } = notValue(ones[0]);
+      const here = ones.map((one) => notValue(one).value);
+      const first = choice(here[0]);
+      if (!first?.group) return chip(filter, ones[0], valueWords(filter, ones[0], ": "));
+      const { label: group, icon } = first.group;
+      if (filter.locked && !not) {
+        const named = <IconText icon={icon}>{copy.anyOf(here.map((one) => choice(one)!.label))}</IconText>;
+        return chip(
+          filter,
+          ones[0],
+          <>
+            {filter.label}: {named}
+          </>,
+        );
+      }
+      const options = filter.options.filter((option) => here.includes(option.value) || !taken.includes(option.value));
+      return (
+        <ManyChoices
+          key={`${filter.name}-${ones.join(" ")}`}
+          id={`filter-${filter.name}-${ones.join("-")}`}
+          path={path}
+          values={values}
+          name={filter.name}
+          label={filter.label}
+          all={chosen(filter.name)}
+          here={here}
+          not={not}
+          oneEach={false}
+          options={options}
+          boxOptions={options.filter((option) => option.group?.label === group)}
+          every={everyChoice(filter)}
+          turns={!filter.locked}
+          half={false}
+          icon={icon}
+        />
       );
-    const firsts = here.map((one) => choiceParts(filter, one).first!.label);
-    return (
-      <span key={`${filter.name}-${ones.join(" ")}`} className={styles.pair} role="group" aria-label={filter.label}>
-        {filter.locked ? (
-          chip(filter, ones[0], words(<IconText icon={first!.group?.icon}>{copy.anyOf(firsts)}</IconText>))
-        ) : (
-          <ManyChoices
-            id={`filter-${filter.name}-${ones.join("-")}`}
-            path={path}
-            values={values}
-            name={filter.name}
-            label={filter.label}
-            all={chosen(filter.name)}
-            here={here}
-            not={not}
-            oneEach={false}
-            options={offered}
-            boxOptions={offered.filter((option) => option.group?.label === first!.group?.label)}
-            every={[]}
-            turns={false}
-            half={false}
-            icon={first!.group?.icon}
-          />
-        )}
-        {chip(filter, ones[0], (second ?? first!.seconds![0]).label, true, {
-          options: first!.seconds!,
-          current: plain,
-          together: ones,
-        })}
-      </span>
-    );
+    });
   };
-  // A repeating filter's values, found or left out, without their marks.
-  const side = (filter: Filter, not: boolean) =>
-    chosen(filter.name)
-      .map(notValue)
-      .filter((one) => one.not === not)
-      .map((one) => one.value);
   // A repeating filter's chip for all it finds, or all it leaves out, if any; as a lozenge's second half, `half`,
   // always.
   const manyChip = (filter: Filter, not: boolean, half = false) => {
@@ -341,7 +313,7 @@ export default function FilterBar({
         not={not}
         oneEach={Boolean(filter.oneEach)}
         options={[
-          ...here.filter((v) => !choiceParts(filter, v).first).map((value) => ({ value, label: value })),
+          ...here.filter((v) => !choiceOf(filter, v)).map((value) => ({ value, label: value })),
           ...filter.options.filter((o) => (o.value || filter.after) && !elsewhere.includes(o.value)),
         ]}
         every={everyChoice(filter)}
@@ -424,7 +396,7 @@ export default function FilterBar({
               <Choices
                 options={filter.options.filter((option) => option.value)}
                 current={[]}
-                href={(v) => href({ [filter.name]: v })}
+                href={(v) => href({ [filter.name]: [...chosen(filter.name), v] })}
               />
             </Menu>
           ))}
@@ -444,23 +416,9 @@ export default function FilterBar({
                 );
               }
               if (filter.place) return chip(filter, value, placeLabel(filter, value));
+              if (isGrouped(filter)) return grouped(filter);
               if (filter.repeat) return [manyChip(filter, false), manyChip(filter, true)];
-              // A choice in two parts: those of one group (a Consent's way) with one second part (its answer),
-              // found or left out, one lozenge, "or" between their firsts.
-              // In the order they first come; one it doesn't know, or with no like to match, alone.
-              const lozenges = new Map<string, string[]>();
-              for (const one of chosen(filter.name)) {
-                const { value: plain, not } = notValue(one);
-                const { first, second } = choiceParts(filter, plain);
-                const like = first?.seconds && (second ?? first.seconds[0]).like;
-                const key = like === undefined ? `own ${one}` : [not, first!.group?.label, like].join("|");
-                lozenges.set(key, [...(lozenges.get(key) ?? []), one]);
-              }
-              return [...lozenges.values()].map((ones) =>
-                choiceParts(filter, notValue(ones[0]).value).first?.seconds
-                  ? parted(filter, ones)
-                  : chip(filter, ones[0], valueWords(filter, ones[0], ": ")),
-              );
+              return chosen(filter.name).map((one) => chip(filter, one, valueWords(filter, one, ": ")));
             })}
           {offered.length > 0 &&
             (negatable.length > 0 ? (
