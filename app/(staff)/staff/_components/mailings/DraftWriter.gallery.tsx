@@ -1,7 +1,9 @@
 // DraftWriter in the component gallery (app/(tools)/gallery/), in the staff broadcasts group
 // (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
+import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import StaffPage from "../ui/StaffPage";
+import { TestSent } from "./DraftWriter";
 import { DraftFootExample, DraftTitleExample } from "./DraftWriter.gallery.client";
 
 export const draftWriterGallery: Example[] = [
@@ -28,6 +30,21 @@ export const draftWriterGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <DraftFootExample />
+          </StaffPage>
+        ),
+      },
+    ],
+  },
+  {
+    name: "TestSent",
+    file: "app/(staff)/staff/_components/mailings/DraftWriter.tsx",
+    variants: [
+      {
+        label: "Sent, and not",
+        render: () => (
+          <StaffPage as="div">
+            <TestSent line={broadcastsCopy.broadcastPages.testSent("+447700900123")} sent />
+            <TestSent line={broadcastsCopy.broadcastPages.testFailed} sent={false} />
           </StaffPage>
         ),
       },

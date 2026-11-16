@@ -12,7 +12,7 @@ import styles from "./layout.module.css";
 // drawn on the server, from its cookie (lib/staff-nav.ts), on a box around
 // the pages that lays nothing out itself.
 export const metadata: Metadata = {
-  title: { default: staffVocabulary.metaTitle, template: `%s - ${staffVocabulary.metaTitle}` },
+  title: { default: staffVocabulary.metaTitle, template: staffVocabulary.tabTitle("%s") },
   robots: { index: false, follow: false },
 };
 

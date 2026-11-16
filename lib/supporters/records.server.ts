@@ -309,16 +309,21 @@ export async function listSupporters(
   // The page's rows first, then their columns: worked out before the sort, the columns were for everyone.
   const page = sql`SELECT ${sql.raw(SUMMARY_COLUMNS)} FROM (SELECT s.* ${filtered}
      ORDER BY ${order} LIMIT ${limit} OFFSET ${(filter.page - 1) * (limit ?? 0)}) s ORDER BY ${order}`;
-  const [rows, [{ total }]] = await Promise.all([
+  // With no limit, every row is read, so they're the count.
+  const [rows, counted] = await Promise.all([
     query<SupporterSummary>(page),
-    query<{ total: number }>(sql`SELECT count(*)::int AS total ${filtered}`),
+    limit === null ? undefined : query<{ total: number }>(sql`SELECT count(*)::int AS total ${filtered}`),
   ]);
+  const total = counted ? counted[0].total : rows.length;
   const permissions = await permissionsFor(
     rows.flatMap((row) => row.emails),
     rows.flatMap((row) => row.phones),
   );
-  const theirs = (row: SupporterSummary) =>
-    permissions.filter((p) => (p.channel === "email" ? row.emails : row.phones).includes(p.address));
+  // Each address's answers, looked up rather than searched for: a broadcast's rows are thousands.
+  const byAddress = Map.groupBy(permissions, (p) => `${p.channel} ${p.address}`);
+  const answers = (channel: string, addresses: string[]) =>
+    [...new Set(addresses)].flatMap((address) => byAddress.get(`${channel} ${address}`) ?? []);
+  const theirs = (row: SupporterSummary) => [...answers("email", row.emails), ...answers("phone", row.phones)];
   const ids = rows.map((row) => row.id);
   // For the columns the Event and Campaign filters add: the page's registrations for the events chosen, and when
   // each first wrote in the campaign.

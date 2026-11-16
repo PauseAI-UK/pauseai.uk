@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/mailings/attachments";
 import { earliestRun, fromLondon, londonDayTime, SENDING } from "@/lib/staff-time";
 import type { MailingAttachmentSummary, SaveResult } from "@/lib/mailings/drafts.server";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { SaveState as SaveStatePill, type SaveStateValue as SaveState } from "@/components/ui/SaveState";
 import { CHECK_EVERY, DueTimeFields, dueTime } from "./DueTime";
+import IconText from "../ui/IconText";
+import TickIcon from "../ui/TickIcon";
 import styles from "./MailingWriter.module.css";
 import { mailingsCopy } from "./copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 // What a draft mailing's page and a draft message's page share: saving as
 // you type, its files, and its title with whether it's saved.
@@ -35,11 +37,16 @@ export type DraftActions = {
 /**
  * A draft's title, with whether it's saved at the top right, scrolling away
  * with the title; once the title has scrolled off, in a bar at the top of
- * the window with the title, in the same place.
+ * the window with the title, in the same place. The window's tab has the
+ * title too, changing as it's typed, as the page's own title would once
+ * saved and opened again.
  */
 export function DraftTitle({ title, saveState }: { title: string; saveState?: SaveState }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [titleGone, setTitleGone] = useState(false);
+  useEffect(() => {
+    document.title = staffVocabulary.tabTitle(title);
+  }, [title]);
   useEffect(() => {
     // Gone once half of it has scrolled off.
     const watch = new IntersectionObserver(([entry]) => setTitleGone(entry.intersectionRatio < 0.5), {
@@ -206,9 +213,11 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
 
 /**
  * Schedule: what's still to be saved, such as a time just chosen, goes
- * first, or it's scheduled without it. Scheduled, the page becomes the
- * scheduled one's, from its top, at once, as a new page would; till then
- * the button stays pending.
+ * first, or it's scheduled without it. Scheduled, the action brings back
+ * the scheduled page (revalidatePath), which takes the writer's place, and
+ * this button with it: as it goes, the window goes to the top, so the new
+ * page shows from its top, as a new page would. Till then the button stays
+ * pending, and the page where it was.
  */
 export function ScheduleButton({
   label,
@@ -221,8 +230,14 @@ export function ScheduleButton({
   saveNow: () => Promise<unknown>;
   schedule: () => Promise<{ scheduled: boolean }>;
 }) {
-  const router = useRouter();
   const [scheduling, setScheduling] = useState(false);
+  const trying = useRef(false);
+  useLayoutEffect(
+    () => () => {
+      if (trying.current) window.scrollTo({ top: 0, behavior: "instant" });
+    },
+    [],
+  );
   return (
     <Button
       variant="primary"
@@ -232,16 +247,33 @@ export function ScheduleButton({
       onClick={async () => {
         setScheduling(true);
         await saveNow();
-        if ((await schedule()).scheduled) {
-          window.scrollTo({ top: 0, behavior: "instant" });
-          router.refresh();
-        } else {
+        trying.current = true;
+        if (!(await schedule()).scheduled) {
+          trying.current = false;
           setScheduling(false);
         }
       }}
     >
       {label}
     </Button>
+  );
+}
+
+/**
+ * How the last test copy went, under its button, read out as it changes:
+ * sent, in green with a tick, as it's what was being waited for; or not, in
+ * red. Nothing before one is sent.
+ */
+export function TestSent({ line, sent }: { line?: string; sent: boolean }) {
+  return (
+    <p role="status" className={styles.testSent}>
+      {line &&
+        (sent ? (
+          <IconText icon={<TickIcon className={styles.testTick} />}>{line}</IconText>
+        ) : (
+          <span className={styles.testFailed}>{line}</span>
+        ))}
+    </p>
   );
 }
 

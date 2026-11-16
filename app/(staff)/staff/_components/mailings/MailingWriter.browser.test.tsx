@@ -436,7 +436,7 @@ describe("MailingWriter", () => {
       dueAt: new Date("2099-12-01T09:00:00Z"),
     };
     const data = { ...exampleWriterData, fields: [] };
-    const { actions } = await renderWriter({ data, draft: ready });
+    const { actions, view } = await renderWriter({ data, draft: ready });
     await expect.element(page.getByText(copy.cantSend)).not.toBeInTheDocument();
     const schedule = page.getByRole("button", { name: copy.schedule(2) });
     // Refused, it's pressed again.
@@ -444,13 +444,16 @@ describe("MailingWriter", () => {
     await schedule.click();
     await expect.poll(() => actions.schedule.mock.calls.length, WAIT).toBe(1);
     await expect.element(schedule).toBeEnabled();
-    expect(navigation.refreshes).toBe(0);
     await schedule.click();
-    await expect.poll(() => navigation.refreshes, WAIT).toBe(1);
-    expect(window.scrollY).toBe(0);
+    await expect.poll(() => actions.schedule.mock.calls.length, WAIT).toBe(2);
     expect(actions.schedule).toHaveBeenLastCalledWith(12, 3);
-    // Pending still, till the scheduled mailing's page comes.
+    // Pending still, where it was, till the action brings the scheduled mailing's page back; it isn't fetched again.
     await expect.element(schedule).toHaveAttribute("aria-busy", "true");
+    expect(window.scrollY).toBeGreaterThan(0);
+    expect(navigation.refreshes).toBe(0);
+    // That page takes the writer's place: from its top.
+    await view.rerender(<p>Scheduled</p>);
+    expect(window.scrollY).toBe(0);
   });
 
   it("schedules after a save under way, with the version it saved", async () => {

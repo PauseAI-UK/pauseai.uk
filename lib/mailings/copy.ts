@@ -72,15 +72,16 @@ export const mailingsCopy = {
     cantSend: "Mailings can't be sent yet. Everything else should work, and you can send a test copy to yourself.",
     // Beside the title: whether the draft is saved.
     saveStates: {
+      // A draft changed elsewhere: by someone else, by you in another tab, or by being scheduled.
       conflict:
-        "Sorry! Someone else has changed this draft since you opened it, so what you've done hasn't been saved. Reload the page to see their changes.",
+        "⁂ This draft changed somewhere else since you opened it, so your last change wasn't saved. Reload the page to see it as it is now.",
     } as Record<string, string>,
     // In the window's corner, whether the draft is saved.
     savePill: {
       saving: "Saving…",
       saved: "Saved",
       failed: "Couldn't save. Make another change to try saving again.",
-      conflict: "Not saved because someone else changed the same draft!",
+      conflict: "⁂ Not saved: changed elsewhere",
     } as Record<string, string>,
     deleteDraft: "Delete draft",
     // The numbered sections of a new mailing.

@@ -56,6 +56,7 @@ import {
   ProblemList,
   ScheduleButton,
   TEST_NEEDS,
+  TestSent,
   useDraftWriter,
   type DraftActions,
 } from "../mailings/DraftWriter";
@@ -326,9 +327,7 @@ function BroadcastPreview({
           </Button>
         </div>
         <Muted>{testNote}</Muted>
-        <Muted>
-          <span role="status">{sent && (sent.to ? copy.testSent(sent.to) : copy.testFailed)}</span>
-        </Muted>
+        <TestSent line={sent && (sent.to ? copy.testSent(sent.to) : copy.testFailed)} sent={Boolean(sent?.to)} />
         <ProblemList problems={needs} />
       </div>
     </>
@@ -372,8 +371,9 @@ export default function BroadcastWriter({
   const { id } = draft;
   const start = BROADCAST_START;
   const [picking, setPicking] = useState(false);
-  // Fetching the page again after a Consent changed, its counts with it: the pick isn't done till they're here.
-  const [refreshing, startRefresh] = useTransition();
+  // Changing the Consent, which brings the page back with its new counts (revalidatePath): the pick isn't done till
+  // they're here.
+  const [changing, startChange] = useTransition();
   // The channel whose Consents show: the draft's, or on New broadcast the one picked, if any.
   const [shown, setShown] = useState<Channel | "">(chosen ?? (email ? "email" : "phone"));
   const show = (channel: Channel) => {
@@ -430,6 +430,9 @@ export default function BroadcastWriter({
     : !isBlankMailing(body);
   // By Gmail, it goes from the address's own connected Gmail, which sends so many a day.
   const byGmail = email && values.sendBy === "gmail";
+  // Whether the page has the Gmail's state yet: just after it's chosen, the page is still the one for Postmark, which
+  // has no Gmail to check, till it comes back.
+  const gmailChecked = byGmail && data.sender.byGmail;
   // How many more emails or texts can go today, and each day after, and so how many days this takes.
   const { remaining, daily } = data.sender;
   const days = sendingDays(data.count, remaining, daily);
@@ -441,7 +444,7 @@ export default function BroadcastWriter({
     dueAt: values.dueAt,
     recipients: data.count,
     unknown: data.unknown,
-    byGmail,
+    byGmail: gmailChecked,
     connected: data.sender.connected,
     remaining,
     daily,
@@ -465,7 +468,9 @@ export default function BroadcastWriter({
     try {
       if (creating) return await actions.create(consent);
       await saveNow();
-      if (await actions.changeConsent(id, consent)) startRefresh(() => router.refresh());
+      startChange(async () => {
+        await actions.changeConsent(id, consent);
+      });
     } finally {
       setPicking(false);
     }
@@ -527,7 +532,7 @@ export default function BroadcastWriter({
             value={blank ? "" : consentChoice(draft)}
             channel={draft.channel === "email" ? "email" : "phone"}
             written={hasOwnWords}
-            pending={picking || refreshing}
+            pending={picking || changing}
             pick={pickConsent}
             shown={shown}
             show={show}
@@ -599,9 +604,9 @@ export default function BroadcastWriter({
                     </div>
                   </div>
                   {/* By Gmail: how many more its account can send today, and so how long this takes; or that it isn't
-                      connected. By Postmark: that it has no limit. */}
+                      connected, once the page has checked. By Postmark: that it has no limit. */}
                   {byGmail ? (
-                    data.sender.connected ? (
+                    !gmailChecked ? null : data.sender.connected ? (
                       <Muted>{copy.sendBy.room(draft.sentFrom!, remaining!, days)}</Muted>
                     ) : (
                       <Strip tone="amber">{copy.sendBy.notConnected(draft.sentFrom!)}</Strip>
@@ -732,7 +737,7 @@ export default function BroadcastWriter({
                 footer={template?.footer ?? TEMPLATE_FOOTER}
                 subject={values.subject}
                 from={fromLine}
-                gmail={byGmail && data.sender.connected ? draft.sentFrom : null}
+                gmail={gmailChecked && data.sender.connected ? draft.sentFrom : null}
                 needs={problems
                   .filter((problem) => TEST_NEEDS.includes(problem))
                   .map((problem) => copy.problems[problem])}

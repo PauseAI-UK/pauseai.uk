@@ -2,7 +2,8 @@
 // quotes, and the signature and footer its writer, mailer or office adds. The
 // thread on a letter's page shows every message in turn, so these are folded
 // away, not lost. A signature folds from its name or title down to the end:
-// a politician's name over their role, or a member of staff's title. A
+// a politician's name over their role, or a member of staff's title; or
+// from the line of "-- " it comes under, if it's no longer than one. A
 // top-posted reply folds everything from its quote's header down: Outlook's
 // "From: … Sent: …" block (in Welsh too, for the Senedd), its line of
 // underscores, "-----Original Message-----", a forward's header, an "On …
@@ -35,9 +36,16 @@ const FOOTER_LINE =
 /** A ruled line, as HTML mail's comes as plain text, over a footer. */
 const RULE_LINE = /^\s*-{10,}\s*$/;
 
-/** The footer a Google Group adds to each message it passes on, under a line of "--". */
+/**
+ * A line of "-- ", which a signature comes under by custom (RFC 3676), its
+ * space often lost; and the footer a Google Group adds under one to each
+ * message it passes on.
+ */
 const SEPARATOR_LINE = /^--\s*$/;
 const GROUP_FOOTER = /^\s*You received this message because you are subscribed to the Google Groups\b/i;
+
+/** How many lines a signature under a "-- " can have, down to the quote or the end: more, and it's what the message says. */
+const DASHED_SIGNATURE_LINES = 10;
 
 /**
  * A politician's role, as their signature gives it under their name:
@@ -118,12 +126,43 @@ function startsUnmarkedWrote(lines: string[], i: number): boolean {
   return under !== undefined && !QUOTED.test(under);
 }
 
-/** Where what's folded starts, unmarked: a quote's header, a footer or a politician's signature. */
+/** Whether a quote starts at a line: quoted, a quote's header, or the "On … wrote:" over one. */
+function startsQuote(lines: string[], i: number): boolean {
+  const line = lines[i]!;
+  if (QUOTED.test(line) || QUOTE_LINE.test(line) || FROM_LINE.test(line)) return true;
+  return WROTE_STARTS.test(line) && [0, 1, 2].some((n) => WROTE_ENDS.test(lines[i + n] ?? ""));
+}
+
+/**
+ * The lines of the signature under the "-- " at line `at`, blank ones left
+ * out: those down to the quote, or the end; undefined if there are none, or
+ * too many for a signature.
+ */
+function dashedSignature(lines: string[], at: number): string[] | undefined {
+  if (!SEPARATOR_LINE.test(lines[at] ?? "")) return undefined;
+  const quote = lines.findIndex((_, j) => j > at && startsQuote(lines, j));
+  const under = lines.slice(at + 1, quote === -1 ? undefined : quote).filter((line) => line.trim());
+  return under.length && under.length <= DASHED_SIGNATURE_LINES ? under : undefined;
+}
+
+/**
+ * Whether a signature under a "-- " folds from a line: the "-- " itself; or,
+ * where a name comes first under it, the line after the name, as who wrote
+ * the message stays with what they said. A name alone under it stays.
+ */
+function startsDashedSignatureFold(lines: string[], i: number): boolean {
+  const under = dashedSignature(lines, i);
+  if (under) return !nameLike(under[0]!);
+  return i >= 2 && nameLike(lines[i - 1]!) && lines[i]!.trim() !== "" && dashedSignature(lines, i - 2) !== undefined;
+}
+
+/** Where what's folded starts, unmarked: a quote's header, a footer, or a signature. */
 function startsFolded(lines: string[], i: number): boolean {
   const line = lines[i]!;
   if (QUOTE_LINE.test(line) || FOOTER_LINE.test(line) || startsUnmarkedWrote(lines, i)) return true;
   if (startsSignatureFold(lines, i) || RULE_LINE.test(line)) return true;
   if (SEPARATOR_LINE.test(line) && GROUP_FOOTER.test(lines[i + 1] ?? "")) return true;
+  if (startsDashedSignatureFold(lines, i)) return true;
   return FROM_LINE.test(line) && lines.slice(i + 1, i + 4).some((next) => SENT_LINE.test(next));
 }
 

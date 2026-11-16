@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import Notice from "./Notice";
+import TickIcon from "./TickIcon";
 import styles from "./CopyButton.module.css";
 
 /** How long the button says it copied, in milliseconds; the note stays. */
@@ -50,19 +51,7 @@ export default function CopyButton({
       <Button variant="ghost" size="small" fit type="button" onClick={copy}>
         {done ? (
           <span className={styles.done}>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+            <TickIcon />
             {copied}
           </span>
         ) : (

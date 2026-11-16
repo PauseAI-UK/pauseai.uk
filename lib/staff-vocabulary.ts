@@ -7,8 +7,12 @@
 
 import { count, plural } from "@/lib/content/plural";
 
+const META_TITLE = "PauseAI Staff";
+
 export const staffVocabulary = {
-  metaTitle: "PauseAI Staff",
+  metaTitle: META_TITLE,
+  // A staff page's title in the window's tab: its own, then the interface's.
+  tabTitle: (title: string) => `${title} - ${META_TITLE}`,
   // The tooltip on a link out of the site, beside its arrow, which a screen reader reads as its description.
   opensInNewTab: "(opens in a new tab)",
   // The trail above a page's head, as a screen reader names it.

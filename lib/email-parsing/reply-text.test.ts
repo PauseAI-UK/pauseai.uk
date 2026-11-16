@@ -143,6 +143,38 @@ describe("replyText", () => {
     expect(replyText("Thanks.\n\n--")).toBe("Thanks.\n\n--");
   });
 
+  it("folds a signature under a line of “-- ”, its space there or lost, down to the quote, which folds too", () => {
+    const signature = [
+      "*The Example Fair* is in Leeds on Saturday. Come along! https://example.com/fair",
+      "",
+      "*Garden Talks* is a series of evenings I host about allotments. https://example.com/talks",
+    ];
+    const quote = ["On Mon, 16 Nov 2026, at 11:48 AM, PauseAI UK wrote:", "> Hi Jane,", ">", "> This is to test."];
+    for (const dashes of ["--", "-- "]) {
+      const whole = ["This is my reply!", "", dashes, ...signature, "", "", ...quote].join("\n");
+      expect(replyParts(whole)).toEqual({
+        text: "This is my reply!",
+        quoted: [dashes, ...signature, "", "", ...quote].join("\n").trim(),
+      });
+      expect(replyText(["Thanks.", "", dashes, ...signature].join("\n"))).toBe("Thanks.");
+    }
+  });
+
+  it("keeps the name first under a “-- ”, folding the rest; and a “-- ” over more than a signature", () => {
+    expect(replyParts("Thanks.\n\n--\nJane Smith\nhttps://example.com\n07700 900123")).toEqual({
+      text: "Thanks.\n\n--\nJane Smith",
+      quoted: "https://example.com\n07700 900123",
+    });
+    const long = Array.from({ length: 11 }, (_, n) => `Point ${n + 1} of what I think, at length, about it all.`);
+    const whole = ["Some thoughts.", "", "--", ...long].join("\n");
+    expect(replyText(whole)).toBe(whole);
+    // A quote's header straight under it: nothing to fold as a signature, so the quote alone folds.
+    expect(replyParts("Thanks.\n--\nFrom: Jane\nSent: Monday\nHello")).toEqual({
+      text: "Thanks.\n--",
+      quoted: "From: Jane\nSent: Monday\nHello",
+    });
+  });
+
   it("folds a politician's signature under their name, which stays, from their role down", () => {
     const signature = [
       "Member of Parliament for Testshire North",
