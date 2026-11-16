@@ -96,7 +96,7 @@ export const broadcastsCopy = {
     testFailed: "Couldn't send the test copy.",
     // From.
     // The choice of what sends an email, from the one address it's from: each as "address, by what"
-    // (mailingPages.fromOption), one that can't be chosen yet greyed out.
+    // (mailingPages.fromOption), any that can't be chosen yet greyed out.
     fromAccount: "Account",
     sendBy: {
       // Under the choice, by Gmail: how many more its account can send today, and how long this one would take.
@@ -105,6 +105,8 @@ export const broadcastsCopy = {
           ? `${address} can send ${remaining.toLocaleString("en-GB")} more emails today, enough for this broadcast.`
           : `${address} can send ${remaining.toLocaleString("en-GB")} more emails today, so this broadcast will take ${days} days.`,
       notConnected: (address: string) => `${address}'s Gmail isn't connected. Log in as ${address} to connect it.`,
+      // Under the choice, by Postmark, which has no daily limit.
+      postmark: "Postmark has no daily limit, so this will go in one go.",
     },
     fromName: "Name",
     noNumber: "No WhatsApp number is configured yet",

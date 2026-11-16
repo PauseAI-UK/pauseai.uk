@@ -946,7 +946,7 @@ that drives it or why nothing does.
 - `broadcasts.spec.ts`: Broadcasts to supporters:
   - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed;
   - the list's Broadcast button with a Consent filter;
-  - an email written, from hello@ by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
+  - an email written, from hello@ by Postmark, or by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
   - a text on an approved template, with the templates' search and Show all;
   - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected by its webhook;
   - a new template WhatsApp won't take, too long, with its reason in a red alert under the button;

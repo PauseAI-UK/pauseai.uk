@@ -603,8 +603,11 @@ job all leave broadcasts out.
     (`SENDING_DAYS`) can't be scheduled (`too-slow`), nor one while `hello@`'s Gmail isn't
     connected. Its bounces are read from the mailbox, as a mailing's are.
   - **Postmark**'s broadcast stream, apart from the site's transactional
-    mail, with no limit of ours. Postmark hasn't approved us for broadcasts,
-    so it can't be chosen yet (`available`).
+    mail, with no limit of ours. A new email goes by it unless its writer
+    chooses Gmail (`DEFAULT_SEND_BY`). The stream manages no unsubscribes
+    of its own, so it adds no `List-Unsubscribe` headers and keeps no list:
+    each copy's own link and headers, and the check before each send, are
+    all there is.
 - **Waiting for CiviCRM.** Nothing goes unchecked. A broadcast
   waits while no CiviCRM pull has completed for a day, or CiviCRM doesn't
   answer its check; whoever scheduled it and the notification inbox are

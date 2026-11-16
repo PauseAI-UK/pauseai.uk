@@ -83,7 +83,8 @@ it("takes only what a broadcast may change, by its channel", () => {
     subject: "Hello",
     sendBy: "gmail",
   });
-  expect(broadcastChangesFrom({ sendBy: "postmark" }, "email")).toBeUndefined();
+  expect(broadcastChangesFrom({ sendBy: "postmark" }, "email")).toEqual({ sendBy: "postmark" });
+  expect(broadcastChangesFrom({ sendBy: "pigeon" }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ sendBy: "gmail" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ subject: "Hello" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ sentFrom: "jo@pauseai.uk" }, "text")).toBeUndefined();
@@ -249,19 +250,27 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
   });
 
-  it("holds an email by Gmail to hello@'s being connected, and one by Postmark to Postmark's sending yet", async () => {
+  it("holds an email by Gmail to hello@'s being connected, but not one by Postmark", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane");
     const id = await draftOf(EMAIL_FILTER);
+    expect(await getWrittenBroadcast(id)).toMatchObject({ sendBy: "postmark" });
     const version = await readied(id, { subject: "Events", body: EVENT_WORDS, sendBy: "gmail" });
     expect(await getWrittenBroadcast(id)).toMatchObject({ sendBy: "gmail" });
     await query(
       "UPDATE staff_accounts SET gmail_token = NULL, gmail_connected_at = NULL, gmail_history_id = NULL, gmail_name = NULL",
     );
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, problems: ["not-connected"] });
-    await query("UPDATE mailings SET send_by = 'postmark' WHERE id = $1", [id]);
-    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, problems: ["cannot-send"] });
-    await query("UPDATE mailings SET send_by = 'gmail' WHERE id = $1", [id]);
     await connectTestGmail(HELLO);
+    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
+  });
+
+  it("schedules an email by Postmark, as a new one is, with no Gmail connected", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane");
+    const id = await draftOf(EMAIL_FILTER);
+    const version = await readied(id, { subject: "Events", body: EVENT_WORDS });
+    await query(
+      "UPDATE staff_accounts SET gmail_token = NULL, gmail_connected_at = NULL, gmail_history_id = NULL, gmail_name = NULL",
+    );
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
   });
 

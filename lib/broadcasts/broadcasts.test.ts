@@ -343,9 +343,9 @@ describe("sendingDays", () => {
 });
 
 describe("isAvailableSendBy", () => {
-  it("is so of Gmail, but not of Postmark yet, nor of anything else", () => {
+  it("is so of Postmark and Gmail, but nothing else", () => {
     expect(isAvailableSendBy("gmail")).toBe(true);
-    expect(isAvailableSendBy("postmark")).toBe(false);
+    expect(isAvailableSendBy("postmark")).toBe(true);
     expect(isAvailableSendBy("pigeon")).toBe(false);
     expect(isAvailableSendBy(null)).toBe(false);
   });

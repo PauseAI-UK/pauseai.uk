@@ -139,7 +139,8 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       sends: true,
       unknown: [],
       templates: [],
-      sender: { byGmail: true, connected: true, remaining: 1800, daily: 1800 },
+      // By Postmark, with no limit.
+      sender: { byGmail: false, connected: false, remaining: null, daily: null },
     });
     // No supporter's details: its preview is for someone made up.
     expect(data!.kind === "draft" && "recipients" in data!).toBe(false);
@@ -152,6 +153,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
 
   it("says how what sends a draft email stands: hello@'s Gmail connected or not, and what it can send today", async () => {
     const id = (await createBroadcastDraft(JO, EMAIL_FILTER))!;
+    await query("UPDATE mailings SET send_by = 'gmail' WHERE id = $1", [id]);
     const sender = async () => {
       const data = await broadcastPageData(id, {}, JO);
       return data!.kind === "draft" && data!.sender;
@@ -178,7 +180,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
 
   it("says one sending is at its limit once hello@ can send no more today", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane Smith");
-    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS, sendBy: "gmail" });
     expect(await broadcastPageData(id, {}, JO)).toMatchObject({ kind: "written", atLimit: false });
     await startSending(id);
     expect(await broadcastPageData(id, {}, JO)).toMatchObject({ atLimit: false });
@@ -186,15 +188,21 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await broadcastPageData(id, {}, JO)).toMatchObject({ atLimit: true });
   });
 
-  it("gives New broadcast an email to no one yet, by hello@'s Gmail", async () => {
+  it("gives New broadcast an email to no one yet, by Postmark", async () => {
     const { draft, data } = await newBroadcastPageData(JO);
-    expect(draft).toMatchObject({ id: 0, channel: "email", sendBy: "gmail", state: "draft", filter: { params: {} } });
+    expect(draft).toMatchObject({
+      id: 0,
+      channel: "email",
+      sendBy: "postmark",
+      state: "draft",
+      filter: { params: {} },
+    });
     expect(data).toMatchObject({ count: 0, me: JO, templates: [] });
     expect(data.fields.map((field) => field.lacking)).toEqual([0, 0]);
     // Each condition a part can be for, as a draft's, covering no one yet.
     expect(data.conditions.length).toBeGreaterThan(0);
     expect(data.conditions.every((condition) => condition.covers === 0)).toBe(true);
-    expect(data.sender).toEqual({ byGmail: true, connected: true, remaining: 1800, daily: 1800 });
+    expect(data.sender).toEqual({ byGmail: false, connected: false, remaining: null, daily: null });
   });
 
   it("names a broadcast in the trail above its page: a draft as a draft, one sent by its title", async () => {
@@ -363,7 +371,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
 
   it("puts each copy in one state, the first that applies, with why", async () => {
     for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) await addFollower(`usr-${n}`, `p${n}@example.com`, `P${n}`);
-    const id = await scheduled(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
+    const id = await scheduled(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS, sendBy: "gmail" });
     const copies = await sent(id, [
       ["delivered", null],
       ["failed", null],

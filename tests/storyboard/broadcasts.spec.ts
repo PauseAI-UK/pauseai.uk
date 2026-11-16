@@ -204,12 +204,19 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) })).toBeVisible();
   await frame(page, "The list, ready to broadcast");
   story(
-    "It makes a draft to them and opens the writer: by email, from hello@, sent by its Gmail. Postmark can't be chosen yet. Under that, how many more emails hello@ can send today.",
+    "It makes a draft to them and opens the writer: by email, from hello@, sent by Postmark, which has no daily limit.",
   );
   await page.getByRole("button", { name: copy.broadcastButton(EMAILABLE) }).click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.newTitle.email);
+  await expect(page.getByText(copy.sendBy.postmark)).toBeVisible();
   await frame(page, "The new email");
+  story("It could go by hello@'s Gmail instead, which says how many more emails it can send today.");
+  const account = page.getByLabel(copy.fromAccount, { exact: false });
+  await savedAfter(page, () => account.selectOption("gmail"));
+  await expect(page.getByText(copy.sendBy.room(HELLO, GMAIL_DAILY_LIMIT, 1), { exact: false })).toBeVisible();
+  await frame(page, "By hello@'s Gmail");
+  await savedAfter(page, () => account.selectOption("postmark"));
   story("They write a subject and a line, and the preview shows it as one supporter will get it.");
   await page.getByLabel(copy.subject).fill("Events near you this month");
   const words = page.getByRole("textbox", { name: copy.emailLabel });
@@ -229,7 +236,7 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("status").first()).toHaveText(mailingCopy.savePill.saved);
   await frame(page, "The preview, for someone with no first name", { window: true });
   await noName.click();
-  story("Send test sends them a copy, by hello@'s Gmail too, as that supporter would get it.");
+  story("Send test sends them a copy, by Postmark too, as that supporter would get it.");
   await preview.getByRole("button", { name: copy.sendTest }).click();
   await expect(preview.getByText(copy.testSent(staffEmail()))).toBeVisible();
   const email = newestEmail((one) => one.To.includes(`<${staffEmail()}>`))!;

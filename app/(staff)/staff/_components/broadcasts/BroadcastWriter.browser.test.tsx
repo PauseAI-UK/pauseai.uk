@@ -373,23 +373,43 @@ describe("BroadcastWriter, by email", () => {
     await expect.element(button(copy.sendTest)).toBeDisabled();
   });
 
-  it("goes from hello@ by its Gmail, Postmark greyed out, its name fixed, and says what it can send today", async () => {
+  it("goes from hello@ by Postmark, saying it has no limit", async () => {
+    await renderWriter({
+      draft: { ...exampleBroadcastEmail, sendBy: "postmark" },
+      data: { ...exampleBroadcastData, sender: { byGmail: false, connected: false, remaining: null, daily: null } },
+    });
+    await expect.element(page.getByLabelText(copy.fromAccount, { exact: false })).toHaveValue("postmark");
+    await expect.element(page.getByText(copy.sendBy.postmark)).toBeVisible();
+    expect(document.body.textContent).not.toContain(copy.sendBy.notConnected("hello@pauseai.uk"));
+  });
+
+  it("goes from hello@ by its Gmail, Postmark beside it, its name fixed, and says what it can send today", async () => {
     await renderWriter();
     const account = page.getByLabelText(copy.fromAccount, { exact: false });
     await expect.element(account).toHaveValue("gmail");
     const options = [...account.element().querySelectorAll("option")].map((o) => [o.textContent, o.disabled]);
     expect(options).toEqual([
+      [
+        mailingsCopy.mailingPages.fromOption("hello@pauseai.uk", mailingsCopy.mailingPages.sendBy.names.postmark),
+        false,
+      ],
       [mailingsCopy.mailingPages.fromOption("hello@pauseai.uk", mailingsCopy.mailingPages.sendBy.names.gmail), false],
-      [mailingsCopy.mailingPages.fromOption("hello@pauseai.uk", mailingsCopy.mailingPages.sendBy.names.postmark), true],
     ]);
+    expect(document.body.textContent).not.toContain(copy.sendBy.postmark);
     // The name isn't a field.
     await expect.element(page.getByRole("textbox", { name: copy.fromName })).not.toBeInTheDocument();
     // Enough left today for all it goes to.
     await expect.element(page.getByText(copy.sendBy.room("hello@pauseai.uk", 1788, 1))).toBeVisible();
     // The test goes the same way.
     await expect.element(page.getByText(copy.testVia.emailGmail("hello@pauseai.uk"))).toBeVisible();
-    await account.selectOptions("gmail");
-    await expect.element(account).toHaveValue("gmail");
+  });
+
+  it("saves another choice of what sends it at once, and asks the page for what that can send", async () => {
+    const actions = await renderWriter();
+    const refreshes = navigation.refreshes;
+    await page.getByLabelText(copy.fromAccount, { exact: false }).selectOptions("postmark");
+    await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
+    expect(actions.save.mock.calls.at(-1)?.[2]).toMatchObject({ sendBy: "postmark" });
   });
 
   it("is from PauseAI UK with no name of its own: Send has the address, the name under it, then by what", async () => {

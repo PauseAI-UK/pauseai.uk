@@ -1,5 +1,5 @@
 import "server-only";
-import { BROADCAST_SEND_BY, type BroadcastChannel, type BroadcastSendBy } from "./broadcasts";
+import { BROADCAST_SEND_BY, DEFAULT_SEND_BY, type BroadcastChannel, type BroadcastSendBy } from "./broadcasts";
 import { config } from "@/lib/server/config.server";
 import { FIXTURE_KEYS } from "@/lib/server/fixtures/whatsapp";
 import { gmailEmail, postmarkBroadcast } from "@/lib/mailings/channels.server";
@@ -56,10 +56,10 @@ export async function textBackend(): Promise<TextBackend | undefined> {
 
 /**
  * Whether a broadcast by `channel` can be sent: an email by `sendBy`, if
- * that's available yet, Gmail unless it says; a text where WhatsApp's keys
- * are set.
+ * that's available yet, by what a new one is unless it says; a text where
+ * WhatsApp's keys are set.
  */
-export function channelSends(channel: BroadcastChannel, sendBy: BroadcastSendBy = "gmail"): boolean {
+export function channelSends(channel: BroadcastChannel, sendBy: BroadcastSendBy = DEFAULT_SEND_BY): boolean {
   return channel === "email" ? BROADCAST_SEND_BY[sendBy].available : Boolean(whatsAppKeys());
 }
 
