@@ -98,7 +98,7 @@ export const politiciansCopy = {
       edit: "edit",
       // Over the email field in the band's bubble: the address letters go to, and what that means, ghosted.
       mainEmail: "Main address",
-      mainIntro: "⁂ We send letters and emails to them here.",
+      mainIntro: "We send letters and emails to this address.",
       // Under it, ghosted, where it came from. Set by staff, it says why and who, as an ask's answer does (setBy);
       // one their body lists says so in the words of the other addresses' sources; and one that came from
       // Airtable's UK Parliamentarians, which the policy team kept, and no body lists.
