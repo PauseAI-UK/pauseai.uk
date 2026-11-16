@@ -349,12 +349,12 @@ export const politiciansCopy = {
     // A problem of an import: a salutation that doesn't spell its politician's name as the name is written, case and
     // all, such as a slip in typing.
     misspeltSalutation: (name: string, salutation: string) =>
-      `⁂ ${name}: the salutation ${salutation} doesn't spell the name as it's written`,
+      `${name}: the salutation ${salutation} doesn't spell the name as it's written`,
     // A problem of an import: Wikidata says a politician is Sir or Dame, and their salutation doesn't.
     missingHonour: (name: string, salutation: string, honour: string) =>
-      `⁂ ${name}: Wikidata says ${honour}, but the salutation is ${salutation}`,
+      `${name}: Wikidata says ${honour}, but the salutation is ${salutation}`,
     // A problem of the run: Wikidata couldn't be asked who's Sir or Dame, so no salutation was checked for it.
-    honourLookupFailed: "⁂ Couldn't ask Wikidata who's Sir or Dame, so no salutation was checked for it",
+    honourLookupFailed: "Couldn't ask Wikidata who's Sir or Dame, so no salutation was checked for it",
   },
   // Whether a notable person is in office.
   personStatuses: {
