@@ -74,7 +74,15 @@ describe("replies to broadcasts", () => {
   });
 
   it("offer Follow up under their latest, once we've answered it, and nothing to write under any before it", async () => {
-    await render(
+    // Their latest, recorded as needing nothing, can still be answered.
+    const { rerender } = await render(
+      <MessageCopyView
+        one={{ ...emailCopy, replies: exampleBroadcastReplies.slice(0, 2), answers: [] }}
+        actions={{ deal: vi.fn(), answer: vi.fn() }}
+      />,
+    );
+    await expect.element(page.getByRole("button", { name: copy.replies.reply })).toBeVisible();
+    await rerender(
       <MessageCopyView
         one={{ ...emailCopy, replies: exampleBroadcastReplies.slice(0, 3) }}
         actions={{ deal: vi.fn(), answer: vi.fn() }}

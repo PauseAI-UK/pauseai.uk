@@ -120,7 +120,7 @@ export default function Reply({
   // why it can't be answered now: only under their latest message, while it's unanswered, as an earlier one, or
   // one we answered, needs no answer now.
   const answered = one.answers.some((answer) => answer.replyId === reply.id);
-  const latest = one.replies.findLast((each) => !each.automatic)?.id === reply.id;
+  const latest = one.replies.findLast((each) => !each.automatic) === reply;
   const textReply = (write?: () => void) => {
     const closed = !reply.answerable && actions && latest && !answered;
     const done = dealt(write);
