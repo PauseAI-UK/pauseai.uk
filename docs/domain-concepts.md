@@ -489,7 +489,9 @@ job all leave broadcasts out.
   Scheduling doesn't fix who a broadcast goes to. Sending finds them when
   it starts: those the filter finds whom `contact_permission()` says yes
   for (`lib/broadcasts/recipients.server.ts`), with a row of
-  `broadcast_messages` for each. So it reaches whoever the filters find
+  `broadcast_messages` for each. Each person gets one copy, at the newest
+  of their addresses or numbers that said yes: an email goes to the address
+  we saw most recently, and a text to the number given most recently. So it reaches whoever the filters find
   then. Until it's sent, the list of broadcasts and the broadcast's page
   count who the filters find now.
 
