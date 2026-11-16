@@ -960,8 +960,8 @@ that drives it or why nothing does.
   - one to the newsletter's and events' yeses both, ticked as about our events;
   - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
   - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
-  - our answer to a text delivered and read by its webhook, ticked in its bubble, its copy counted as one we replied to;
-  - our answer to a text that WhatsApp's webhook says failed, why under its bubble, and its copy counted and listed as our reply failed;
+  - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;
+  - our answer to a text that WhatsApp's webhook says failed, why under its bubble, and their reply back to check;
   - Stop pressed in WhatsApp, on the copy and the supporter's page.
 - `email-settings.spec.ts`: The contact preferences page:
   - asking for a link past Turnstile, the email with it, and the page it opens;

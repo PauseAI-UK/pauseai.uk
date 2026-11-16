@@ -1417,9 +1417,9 @@ SELECT id, '00000000-0000-4000-8000-000000000001', dealt_by,
   'sent', dealt_at, dealt_at, 'seed-answer-thanks', 'seed-answer-thanks@pauseai.uk'
 FROM broadcast_replies WHERE gmail_message_id = 'seed-reply-thanks';
 -- Jo answered two replies to texts ten minutes after each came, by
--- WhatsApp: Jane's, which WhatsApp delivered and she read, so her copy is
--- one we replied to; and Omar's, which WhatsApp then said it couldn't
--- deliver, so his is one our reply to failed.
+-- WhatsApp: Jane's, which WhatsApp delivered and she read; and Omar's,
+-- which WhatsApp then said it couldn't deliver, so his reply is back for
+-- staff to check, though it's too old for WhatsApp to take another.
 UPDATE broadcast_replies SET outcome = 'answered', dealt_by = 'jo@pauseai.uk', dealt_at = received_at + interval '10 minutes'
 WHERE provider_message_id IN ('seed-text-reply-read', 'seed-text-reply-failed');
 INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, provider_message_id)
@@ -1437,6 +1437,8 @@ FROM broadcast_answers a JOIN (VALUES
   ('answer-seed-text-reply-read', interval '5 minutes', 'read', '{}'::jsonb),
   ('answer-seed-text-reply-failed', interval '1 minute', 'failed', '{"code": 131026, "title": "Message undeliverable"}'::jsonb)
 ) e (answer, after, kind, details) ON e.answer = a.provider_message_id;
+UPDATE broadcast_replies SET outcome = NULL, dealt_by = NULL, dealt_at = NULL
+WHERE provider_message_id = 'seed-text-reply-failed';
 
 -- ------------------------------------------------------ contact preferences
 

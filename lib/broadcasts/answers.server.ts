@@ -22,7 +22,8 @@ import { emailCopy } from "@/lib/email/copy";
 // WhatsApp, as words of our own, which it takes only within a day of the
 // person's message; a reply to it joins the copy's thread too
 // (whatsapp-webhooks.server.ts). Sending one settles the reply, unless it was
-// recorded as an opt-out.
+// recorded as an opt-out; WhatsApp saying later it couldn't deliver one puts
+// the reply back for staff (whatsapp-webhooks.server.ts).
 
 /** Where an answer is: recorded before it goes, and sent once Gmail has it. */
 export type AnswerStatus = "sending" | "sent";

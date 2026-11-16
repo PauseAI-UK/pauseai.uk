@@ -424,48 +424,4 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     );
     expect((await states())[6]).toEqual(["error", "limit"]);
   });
-
-  it("says whether we replied to someone who replied, and whether our newest reply failed", async () => {
-    for (const n of [1, 2, 3]) await addFollower(`usr-${n}`, `p${n}@example.com`, `P${n}`);
-    const id = await scheduled(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
-    const copies = await sent(id, [
-      ["sent", null],
-      ["sent", null],
-      ["sent", null],
-    ]);
-    const reply = async (copy: number, outcome: string) => {
-      const [{ id: replyId }] = await query<{ id: number }>(
-        `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
-           gmail_thread_id, blob_key, automatic, outcome, dealt_by, dealt_at)
-         VALUES ($1, now(), 'p@example.com', 'Re: Events', 'hello@pauseai.uk', $2, 't', 'k', false, $3, $4, now())
-         RETURNING id::int AS id`,
-        [copy, `g${copy}`, outcome, JO],
-      );
-      return replyId;
-    };
-    const answer = async (replyId: number, status: string, sentAt: string | null) => {
-      const [{ id: answerId }] = await query<{ id: number }>(
-        `INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, sent_at)
-         VALUES ($1, gen_random_uuid(), $2, '{}', $3, $4) RETURNING id::int AS id`,
-        [replyId, JO, status, sentAt],
-      );
-      return answerId;
-    };
-    const states = async () => {
-      const data = await broadcastPageData(id, {}, JO);
-      const rows = data!.kind === "written" ? data!.recipients : [];
-      return copies.map((copy) => rows.find((one) => one.copyId === copy)!.state);
-    };
-    // Dealt with as nothing to do; answered; an answer whose send never finished, so may not have gone.
-    await reply(copies[0], "nothing");
-    const answered = await reply(copies[1], "answered");
-    const first = await answer(answered, "sent", "2026-11-07T07:45:00Z");
-    await answer(await reply(copies[2], "answered"), "sending", null);
-    expect(await states()).toEqual(["replied", "we-replied", "replied"]);
-    // WhatsApp said our reply failed; then we replied again, and that one went.
-    await query("INSERT INTO broadcast_message_events (answer_id, kind) VALUES ($1, 'failed')", [first]);
-    expect((await states())[1]).toBe("reply-failed");
-    await answer(answered, "sent", "2026-11-07T08:00:00Z");
-    expect((await states())[1]).toBe("we-replied");
-  });
 });
