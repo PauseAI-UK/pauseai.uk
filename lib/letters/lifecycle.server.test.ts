@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query, transaction } from "@/lib/server/db.server";
-import { letterEvent, transition } from "./lifecycle.server";
+import { letterEvent, transition, transitionReading } from "./lifecycle.server";
 import { sql } from "@/lib/server/sql.server";
 
 const letter = async (id: number) =>
@@ -56,6 +56,25 @@ describeWithDatabase("a letter's transitions", () => {
     expect(moved).toEqual([one, two]);
     expect((await events(one))[0]).toEqual({ status: "failed", details: {} });
     expect(await events(sent)).toEqual([]);
+  });
+
+  it("reads the letters it moves in the same statement, as they were before", async () => {
+    const id = await addTestLetter({ politicianId: await addTestMp(), status: "queued", sentAt: null });
+    const read = sql`SELECT moved.id::int AS id, l.status AS was FROM moved JOIN letters l USING (id)`;
+    expect(await transitionReading(id, ["queued"], "sending", { stamp: "taken_at" }, read)).toEqual([
+      { id, was: "queued" },
+    ]);
+    expect(await letter(id)).toEqual({ status: "sending", taken: true, sent: false });
+  });
+
+  it("moves nothing, logging nothing, when reading the letters it moves fails", async () => {
+    const id = await addTestLetter({ politicianId: await addTestMp(), status: "queued", sentAt: null });
+    const failing = sql`SELECT 1 / 0 FROM moved`;
+    await expect(transitionReading(id, ["queued"], "sending", { event: "queued" }, failing)).rejects.toThrow(
+      "division by zero",
+    );
+    expect(await letter(id)).toEqual({ status: "queued", taken: false, sent: false });
+    expect(await events(id)).toEqual([]);
   });
 
   it("logs an event that doesn't change the status", async () => {

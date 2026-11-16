@@ -1219,6 +1219,14 @@ not a mock.
   (`tests/at-once.ts`) starts several runs together on the test file's
   database, and the test checks each letter, guest or message was handled
   once (`lib/jobs/sending.server.test.ts`, `lib/events/luma-import.server.test.ts`).
+- **A test keeps to the schema the migrations make**, so what it proves
+  holds for the site's. To reach a failure, it injects one at a seam:
+  `vi.mock` of the module, with `importOriginal` passing the real functions
+  through, and one made to reject once with `mockRejectedValueOnce`
+  (`app/api/email-your-mp/letters/mp-letters.server.test.ts`). An ESLint
+  rule (`SCHEMA_CHANGE_RULES` in `eslint.config.mjs`) fails a test whose
+  strings alter, drop or create a table or the like; the few tests whose
+  subject is a schema are named there.
 - **A data migration gets a test while its tables are still changing.** A
   migration that moves or reshapes rows, not only tables, is tested with
   `useDatabaseUpTo()`:

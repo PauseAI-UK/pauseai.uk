@@ -27,9 +27,35 @@ export async function transition(
   which: number | Sql,
   from: readonly LetterStatus[],
   to: LetterStatus,
-  { event, details = {}, stamp }: Move = {},
+  move: Move = {},
   db?: Queryable,
 ): Promise<number[]> {
+  const rows = await transitionReading<{ id: number }>(
+    which,
+    from,
+    to,
+    move,
+    sql`SELECT id::int AS id FROM moved ORDER BY id`,
+    db,
+  );
+  return rows.map((row) => row.id);
+}
+
+/**
+ * Moves letters as transition does and, in the same statement, returns the
+ * rows `read` selects: a SELECT that can use `moved`, the IDs of the letters
+ * moved. Taking a letter and reading it at once means a read that fails
+ * moves nothing. The statement sees `letters` as it was before the move, so
+ * `read` takes a letter's new status from `to`, not from the table.
+ */
+export async function transitionReading<Row extends Record<string, unknown>>(
+  which: number | Sql,
+  from: readonly LetterStatus[],
+  to: LetterStatus,
+  { event, details = {}, stamp }: Move,
+  read: Sql,
+  db?: Queryable,
+): Promise<Row[]> {
   const letters = typeof which === "number" ? sql`${which}` : which;
   const stamped = stamp ? sql`, ${sql.raw(stamp)} = now()` : sql``;
   const moved = sql`UPDATE letters SET status = ${to}${stamped}
@@ -37,11 +63,7 @@ export async function transition(
   const logged = event
     ? sql`, logged AS (INSERT INTO letter_events (letter_id, status, details) SELECT id, ${event}, ${JSON.stringify(details)} FROM moved)`
     : sql``;
-  const rows = await query<{ id: number }>(
-    sql`WITH moved AS (${moved})${logged} SELECT id::int AS id FROM moved ORDER BY id`,
-    db,
-  );
-  return rows.map((row) => row.id);
+  return query<Row>(sql`WITH moved AS (${moved})${logged} ${read}`, db);
 }
 
 /**
