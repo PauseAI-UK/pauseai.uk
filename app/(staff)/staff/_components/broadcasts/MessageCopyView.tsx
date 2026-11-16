@@ -1,6 +1,7 @@
 import { letterFor } from "@/lib/mailings/doc";
 import { named } from "@/lib/email-parsing/addresses";
 import type { MessageCopy } from "@/lib/broadcasts/pages.server";
+import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import { phoneWords } from "@/lib/phone";
 import Reply, { type ReplyHandlers } from "./CopyReply";
 import { staffTime } from "@/lib/staff-time";
@@ -144,9 +145,15 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
           },
         ],
   );
-  // A STOP the site recorded is already there, as WhatsApp's opt-out.
+  // A STOP the site recorded is already there, as WhatsApp's opt-out. Replies dealt with at once, as dealing with
+  // their latest deals with those before it, are one line.
+  const once = new Set<string>();
+  const firstOf = (reply: BroadcastReply) => {
+    const key = `${reply.dealtAt!.getTime()} ${reply.dealtBy} ${reply.outcome}`;
+    return !once.has(key) && once.add(key);
+  };
   const dealt = one.replies.flatMap((reply): HistoryEntry[] =>
-    reply.dealtAt && reply.outcome !== "answered" && reply.dealtBy !== SITE_ACTOR
+    reply.dealtAt && reply.outcome !== "answered" && reply.dealtBy !== SITE_ACTOR && firstOf(reply)
       ? [
           {
             at: reply.dealtAt,

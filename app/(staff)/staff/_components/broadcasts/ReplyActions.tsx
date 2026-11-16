@@ -12,18 +12,21 @@ const copy = broadcastsCopy.broadcastPages;
 /** Each topic's name, as the consents and lists say it. */
 const topicNames = supportersCopy.supporters.detail.permissions.topics;
 
-/** Reply, in orange: opens the answer to a reply at the foot of the thread (AnswerableReply). */
-export function ReplyButton({ write }: { write: () => void }) {
+/**
+ * Reply, in orange: opens the answer to a reply at the foot of the thread
+ * (AnswerableReply). Follow up, under our answer to it (`followUp`).
+ */
+export function ReplyButton({ write, followUp = false }: { write: () => void; followUp?: boolean }) {
   return (
     <Button variant="primary" size="small" fit type="button" onClick={write}>
-      {copy.replies.reply}
+      {followUp ? copy.replies.followUp : copy.replies.reply}
     </Button>
   );
 }
 
 /**
  * Under a reply waiting for staff: Reply, while its answer isn't open
- * (`write`); Unsubscribe them, the form a supporter's
+ * (`write`), Follow up under our answer (`followUp`); Unsubscribe them, the form a supporter's
  * page has, for what the email went under (`topics`) or every bulk email,
  * or for a reply to a text (`text`), what it went under or every text,
  * at the address or number that replied, with no need to say how they told us, as
@@ -39,12 +42,14 @@ export default function ReplyActions({
   answered = false,
   text = false,
   write,
+  followUp = false,
 }: {
   replyId: number;
   topics: Topic[];
   answered?: boolean;
   text?: boolean;
   write?: () => void;
+  followUp?: boolean;
   deal: (form: FormData) => void | Promise<void>;
 }) {
   return (
@@ -64,7 +69,7 @@ export default function ReplyActions({
         record={deal}
         spaced={false}
         end={text}
-        before={write && <ReplyButton write={write} />}
+        before={write && <ReplyButton write={write} followUp={followUp} />}
         beside={
           !answered && (
             <form action={deal}>

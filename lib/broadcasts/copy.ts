@@ -213,6 +213,8 @@ export const broadcastsCopy = {
       how: "By replying to this email",
       // Answering a reply: the folded draft at the foot of the thread, the draft opened, and why one didn't go.
       reply: "Reply",
+      // Reply, under our last answer to their latest reply.
+      followUp: "Follow up",
       answerLabel: "Your reply",
       send: "Send reply",
       sending: "Sending…",

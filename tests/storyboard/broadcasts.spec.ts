@@ -538,7 +538,7 @@ test("Our answer to a text fails", async ({ page, request, flowDatabase }) => {
     statusOf(sent.answer, sent.number, "failed", 30, { code: 131026, title: "Message undeliverable" }),
   );
   story(
-    "Their reply is back for staff to deal with, as no one has: under it, its buttons again, and under our answer, why it didn't go.",
+    "Their reply is back for staff to deal with, as no one has: under our answer, why it didn't go, and the buttons again, at the foot of the thread.",
   );
   await page.reload();
   await expect(page.getByText(copy.replies.undelivered("Message undeliverable"))).toBeVisible();
@@ -823,11 +823,12 @@ test("Answering a reply", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.replies.discard }).scrollIntoViewIfNeeded();
   await frame(page, "Writing a reply", { window: true });
   story(
-    "Send reply sends it by Gmail from hello@, in the same conversation as their reply. It's in the thread, the reply is settled, and the History says who answered.",
+    "Send reply sends it by Gmail from hello@, in the same conversation as their reply. It's in the thread, the reply is settled, and the History says who answered. Under our answer, the last message, Follow up writes another.",
   );
   await page.getByRole("button", { name: copy.replies.send }).click();
   await expect(page.getByText(copy.replies.sentBy(staffEmail()))).toBeVisible();
   await expect(page.getByRole("button", { name: copy.replies.nothing })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: copy.replies.followUp })).toBeVisible();
   await frame(page, "The reply, answered");
   story("The email they get, from hello@, as an answer to theirs.");
   // To them by name, as they're a supporter.

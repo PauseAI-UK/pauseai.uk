@@ -171,6 +171,24 @@ describeWithDatabase("replies to broadcasts", () => {
     expect(removed).toEqual([{ email: address }, { email: address }]);
   });
 
+  it("records with a reply those before it still waiting, but not automatic ones, nor any after it", async () => {
+    const id = await copy();
+    const before = await reply(id, "g1");
+    const automatic = await reply(id, "g2", true);
+    const latest = await reply(id, "g3");
+    const after = await reply(id, "g4");
+    expect(await dealWithReply(latest, "nothing", "Jo@PauseAI.uk")).toBe(true);
+    const outcomes = await query<{ id: number; outcome: string | null; dealt_by: string | null }>(
+      "SELECT id::int AS id, outcome, dealt_by FROM broadcast_replies ORDER BY id",
+    );
+    expect(outcomes).toEqual([
+      { id: before, outcome: "nothing", dealt_by: JO },
+      { id: automatic, outcome: null, dealt_by: null },
+      { id: latest, outcome: "nothing", dealt_by: JO },
+      { id: after, outcome: null, dealt_by: null },
+    ]);
+  });
+
   it("records an answered reply as an opt-out, but not as nothing to do", async () => {
     const id = await copy(["newsletter"]);
     const answered = await reply(id, "g1");
