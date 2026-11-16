@@ -32,6 +32,7 @@ import { query, transaction } from "@/lib/server/db.server";
 import { gmailAccount, GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-accounts.server";
 import type { ChannelResult } from "@/lib/letters/channels.server";
 import {
+  attachmentsOf,
   getWrittenMailing,
   lockDraft,
   mailingChangesFrom,
@@ -40,12 +41,12 @@ import {
   markUnscheduled,
   openWrittenMailing,
   saveDraft,
-  sendTestCopy,
   type MailingChanges,
   type SaveResult,
   type WrittenMailing,
 } from "@/lib/mailings/drafts.server";
 import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./channels.server";
+import { broadcastEmail, testLinks } from "./email-message.server";
 import {
   createTemplate,
   deleteTemplate,
@@ -641,17 +642,27 @@ export async function reviewTemplate(templateId: number, review: TemplateReview)
 }
 
 /**
- * Sends `to` one recipient's copy of a draft, as they'd get it: an email by
- * Postmark or the Gmail it's from, whatever the recipient's permissions; a
- * text by the backend, only on an approved template, as WhatsApp sends no
- * other. Undefined when it can't go.
+ * Sends `to` one recipient's copy of a draft, as they'd get it, whatever the
+ * recipient's permissions: an email by what the broadcast goes by, Postmark
+ * or hello@'s Gmail, with its files and unsubscribe links that change
+ * nothing (testLinks); a text by the backend, only on an approved template,
+ * as WhatsApp sends no other. Undefined when it can't go.
  */
 export async function sendBroadcastTest(
   broadcast: WrittenBroadcast,
   recipient: FakeRecipient,
   to: string,
 ): Promise<ChannelResult | undefined> {
-  if (broadcast.channel === "email") return sendTestCopy(broadcast, recipient, to);
+  if (broadcast.channel === "email") {
+    const sender = { sentFrom: BROADCAST_SENDER.email, fromName: BROADCAST_SENDER.name };
+    const message = broadcastEmail(
+      { ...broadcast, ...sender },
+      { address: to, values: recipient },
+      testLinks(),
+      await attachmentsOf(broadcast.id),
+    );
+    return broadcastEmailChannel(broadcast.sendBy).channel.send(message, "mailing-test");
+  }
   if (broadcast.template?.status !== "approved") return undefined;
   const backend = await textBackend();
   if (!backend) return undefined;

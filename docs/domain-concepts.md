@@ -612,6 +612,13 @@ job all leave broadcasts out.
     of its own, so it adds no `List-Unsubscribe` headers and keeps no list:
     each copy's own link and headers, and the check before each send, are
     all there is.
+
+  The writer's Send test sends a made-up recipient's copy to the address
+  staff give, by the same backend, built as a real copy is
+  (`lib/broadcasts/email-message.server.ts`), but its links change nothing:
+  its foot links to the contact preferences page itself, and its
+  `List-Unsubscribe` to a token that's no copy's.
+
 - **Waiting for CiviCRM.** Nothing goes unchecked. A broadcast
   waits while no CiviCRM pull has completed for a day, or CiviCRM doesn't
   answer its check; whoever scheduled it and the notification inbox are
