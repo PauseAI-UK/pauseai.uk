@@ -60,13 +60,13 @@ describe("ImportOverview", () => {
       jobsCopy.import.nightly,
     ]);
     const cards = [...document.querySelectorAll("section")];
-    // Each ends with when it next runs, in London, an hour ahead in summer: Luma's at 2 minutes past each five, sending's at 3 past each quarter,
-    // Parliament's tomorrow morning; and not what it does, which its own page says.
+    // Each ends with when it next runs, in UTC as the staff pages' times are: Luma's at 2 minutes past each five,
+    // sending's at 3 past each quarter, Parliament's tomorrow morning; and not what it does, which its own page says.
     const words = jobsCopy.import;
-    expect(cards[0].lastElementChild!.textContent).toBe(words.runsAgain(words.inMinutes(2), "12:52"));
-    expect(cards[2].lastElementChild!.textContent).toBe(words.runsAgain(words.inMinutes(13), "13:03"));
-    expect(cards[4].lastElementChild!.textContent).toBe(words.runsAgain(words.inHours(19), "07:21"));
-    expect(cards[1].textContent).toContain(words.runsAgain(words.inMinutes(5), "12:55"));
+    expect(cards[0].lastElementChild!.textContent).toBe(words.runsAgain(words.inMinutes(2), "11:52"));
+    expect(cards[2].lastElementChild!.textContent).toBe(words.runsAgain(words.inMinutes(13), "12:03"));
+    expect(cards[4].lastElementChild!.textContent).toBe(words.runsAgain(words.inHours(19), "06:21"));
+    expect(cards[1].textContent).toContain(words.runsAgain(words.inMinutes(5), "11:55"));
     expect(document.body.textContent).not.toContain(politiciansCopy.politicianImports.intros["import-parliament"].link);
     expect(cards.map((card) => card.querySelector("h3 a")!.getAttribute("href"))).toEqual([
       "/staff/scheduled-jobs/luma",

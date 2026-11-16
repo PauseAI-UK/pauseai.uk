@@ -17,7 +17,7 @@ import {
 } from "@/lib/import-runs";
 import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
 import { ERRORS_LIST } from "@/lib/staff-lists";
-import { londonClock, staffTime } from "@/lib/staff-time";
+import { staffClock, staffTime } from "@/lib/staff-time";
 import styles from "./ImportJob.module.css";
 import ImportCard, { ImportCards } from "./ImportCard";
 import ImportIcon, { type ImportSource } from "./ImportIcon";
@@ -199,7 +199,7 @@ function until(next: Date, now: Date): string {
 /** When a job next runs after `now`, as the overview's cards end: "Runs again in 4 minutes · 11:15". */
 function untilNext(job: ImportJob, now: Date): string {
   const next = nextRun(job, now);
-  return words.runsAgain(until(next, now), londonClock(next));
+  return words.runsAgain(until(next, now), staffClock(next));
 }
 
 /** /staff/scheduled-jobs: a card per job, each a link to its page, with how its newest run ended. */
