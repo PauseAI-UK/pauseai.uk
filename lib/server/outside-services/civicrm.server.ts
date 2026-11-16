@@ -230,13 +230,15 @@ export async function checkSuppression(key: string, emails: string[], phones: st
   return found;
 }
 
-/** A change to a UK list or a flag, as `updateSubscriptions` takes it: by address, or a number's flag by number. */
+/**
+ * A change to an address's UK list or flag, as `updateSubscriptions` takes it.
+ * `civicrm_updates` can also hold a number's "Do not SMS" or "Do not phone",
+ * which are never sent (lib/supporters/civicrm-updates.server.ts).
+ */
 export type SubscriptionEvent = {
   /** Ours, unique: sending it again changes nothing there. */
   eventId: string;
-  email?: string;
-  /** In international format, for "Do not SMS" or "Do not phone". */
-  phone?: string;
+  email: string;
   change: "unsubscribe" | "resubscribe" | "no_bulk_email" | "allow_bulk_email" | "do_not_sms" | "do_not_phone";
   list?: "newsletter" | "volunteer_updates";
   /** From the last pull, for an opt-out. */
@@ -266,8 +268,7 @@ export async function updateSubscriptions(
     {
       events: events.map((event) => ({
         event_id: event.eventId,
-        ...(event.email && { email: event.email }),
-        ...(event.phone && { phone: event.phone }),
+        email: event.email,
         change: event.change,
         ...(event.list && { list: event.list }),
         ...(event.contactId && { contact_id: event.contactId }),

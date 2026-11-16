@@ -95,11 +95,9 @@ export async function queueResubscribe(
 }
 
 /** An update CiviCRM hasn't answered, as kept: null where it has none of a field. */
-type Waiting = Omit<SubscriptionEvent, "email" | "phone" | "list" | "contactId" | "wording"> & {
+type Waiting = Omit<SubscriptionEvent, "list" | "contactId" | "wording"> & {
   id: number;
   choiceId: number | null;
-  email: string | null;
-  phone: string | null;
   list: SubscriptionEvent["list"] | null;
   contactId: number | null;
   wording: string | null;
@@ -107,14 +105,13 @@ type Waiting = Omit<SubscriptionEvent, "email" | "phone" | "list" | "contactId" 
 
 /** An update as CiviCRM is sent it, with only the fields it has. */
 function eventOf(waiting: Waiting): SubscriptionEvent {
-  const { eventId, email, phone, change, list, contactId, occurredAt, source, wording } = waiting;
+  const { eventId, email, change, list, contactId, occurredAt, source, wording } = waiting;
   return {
     eventId,
+    email,
     change,
     occurredAt,
     source,
-    ...(email && { email }),
-    ...(phone && { phone }),
     ...(list && { list }),
     ...(contactId && { contactId }),
     ...(wording && { wording }),
@@ -163,7 +160,7 @@ async function keepListChange(update: Waiting): Promise<void> {
 }
 
 /**
- * Sends every update CiviCRM hasn't answered, oldest first, UPDATE_BATCH a
+ * Sends every update of an address CiviCRM hasn't answered, oldest first, UPDATE_BATCH a
  * call, so a lift goes before an opt-out made after it. One CiviCRM leaves
  * unanswered, or a call that fails, is tried again next time; a failure
  * stops this run's sending, and is a problem of the run it's in.
@@ -172,8 +169,8 @@ export async function sendCivicrmUpdates(key: string): Promise<CivicrmUpdatesRes
   const waiting = await query<Waiting>(
     `SELECT id::int AS id, choice_id::int AS "choiceId",
        CASE WHEN opt_out_id IS NULL THEN 'lift:' || choice_id ELSE 'opt-out:' || opt_out_id END AS "eventId",
-       email, phone, change, list, contact_id::int AS "contactId", occurred_at AS "occurredAt", source, wording
-     FROM civicrm_updates WHERE status IS NULL ORDER BY id`,
+       email, change, list, contact_id::int AS "contactId", occurred_at AS "occurredAt", source, wording
+     FROM civicrm_updates WHERE status IS NULL AND email IS NOT NULL ORDER BY id`,
   );
   const counts: CivicrmUpdatesResult = { sent: 0, refused: 0, unanswered: 0 };
   const invalid: string[] = [];

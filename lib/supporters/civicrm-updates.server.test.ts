@@ -298,4 +298,19 @@ describeWithDatabase("our stops of a number, kept from CiviCRM", () => {
     }
     expect(await query("SELECT 1 FROM civicrm_updates")).toEqual([]);
   });
+
+  it("never sends a number's Do not SMS or Do not phone left waiting", async () => {
+    const [{ id }] = await query<{ id: number }>(
+      `INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at)
+       VALUES ('+447700900001', 'all', 'text', 'whatsapp', 'setting all', now()) RETURNING id::int AS id`,
+    );
+    await query(
+      `INSERT INTO civicrm_updates (opt_out_id, change, phone, occurred_at, source)
+       VALUES ($1, 'do_not_sms', '+447700900001', now(), 'pauseai.uk:whatsapp')`,
+      [id],
+    );
+    const calls = serve();
+    expect(await sendCivicrmUpdates("key")).toEqual({ sent: 0, refused: 0, unanswered: 0 });
+    expect(calls).toEqual([]);
+  });
 });
