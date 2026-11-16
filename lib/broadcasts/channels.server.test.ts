@@ -1,7 +1,7 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, onTestFinished, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { channelSends, textBackend, textSenderNumber, whatsAppKeys } from "./channels.server";
+import { channelSends, NUMBER_KEPT_MS, textBackend, textSenderNumber, whatsAppKeys } from "./channels.server";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -47,6 +47,37 @@ it("sends no text, reporting it, while WhatsApp doesn't answer", async () => {
   );
   expect(await textBackend()).toBeUndefined();
   expect(console.error).toHaveBeenCalled();
+});
+
+it("asks Meta for our number once in a while, those asking at once sharing the question, and again once it fails", async () => {
+  keysSet();
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  let asked = 0;
+  let down = false;
+  server.use(
+    http.get(/graph\.facebook\.com\/.*phone_numbers/, () => {
+      asked++;
+      return down
+        ? HttpResponse.json({ error: { message: "Down" } }, { status: 500 })
+        : HttpResponse.json({ data: [{ id: "fixture-phone", display_phone_number: "+44 7700 900000" }] });
+    }),
+  );
+  vi.useFakeTimers({ toFake: ["Date"] });
+  onTestFinished(() => void vi.useRealTimers());
+  // Asked by the page's parts at once: one question.
+  await Promise.all([textSenderNumber(), textSenderNumber(), textBackend()]);
+  expect(asked).toBe(1);
+  // Kept a while: no question.
+  vi.advanceTimersByTime(NUMBER_KEPT_MS - 1);
+  expect(await textSenderNumber()).toBe("+447700900000");
+  expect(asked).toBe(1);
+  // Then asked again, and Meta doesn't answer: none kept, so the next asks once more.
+  vi.advanceTimersByTime(1);
+  down = true;
+  expect(await textSenderNumber()).toBeNull();
+  down = false;
+  expect(await textSenderNumber()).toBe("+447700900000");
+  expect(asked).toBe(3);
 });
 
 it("says whether an email can go by what it's sent by", () => {

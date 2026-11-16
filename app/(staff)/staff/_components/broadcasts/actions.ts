@@ -28,6 +28,7 @@ import {
   type TemplateSubmitResult,
 } from "@/lib/broadcasts/drafts.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
+import { stopwatch } from "@/lib/server/stopwatch.server";
 import type { SaveResult } from "@/lib/mailings/drafts.server";
 import { dueAtFrom, idFrom } from "@/lib/staff-forms";
 import { storedFilter } from "@/lib/staff-search";
@@ -69,10 +70,16 @@ export async function newBroadcastWith(consent: string): Promise<void> {
   redirect(`${LIST}/${id}`);
 }
 
-/** Changes the Consent draft `id` goes under, as its writer's dropdown is changed; says whether it did. */
+/**
+ * Changes the Consent draft `id` goes under, as its writer's lozenges are
+ * pressed; says whether it did. How long the change took is logged, and the
+ * page it brings back logs its own (writerData).
+ */
 export async function changeBroadcastConsentNow(id: number, consent: string): Promise<boolean> {
   const { email } = await requireStaff("supporters");
-  const changed = await changeBroadcastConsent(id, consent, email);
+  const watch = stopwatch(`Broadcast ${id}'s Consent change`);
+  const changed = await watch.time("change", changeBroadcastConsent(id, consent, email));
+  watch.log();
   if (changed) revalidatePath(`${LIST}/${id}`);
   return changed;
 }

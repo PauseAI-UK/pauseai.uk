@@ -42,12 +42,40 @@ export function whatsAppKeys(): WhatsAppKeys | undefined {
 /** What sends texts: WhatsApp's keys, and our number there. */
 export type TextBackend = { keys: WhatsAppKeys; number: BusinessNumber };
 
+/** How long our number and its daily limit are kept once Meta has said them: the number never changes, and the limit seldom. */
+export const NUMBER_KEPT_MS = 10 * 60_000;
+
+/**
+ * Our number as Meta last said it, for each set of keys, and when it was
+ * asked: kept in this server's memory, so the many things that need it
+ * (a broadcast's page, its changes, the sending) ask Meta once in
+ * NUMBER_KEPT_MS, not each time, and those that ask at once share the one
+ * question. One Meta didn't answer isn't kept, so the next asks again.
+ */
+const numbers = new Map<string, { at: number; number: Promise<BusinessNumber> }>();
+
+/** Forgets the number Meta said, so the next to need it asks: for a test, which sets Meta's answers its own way. */
+export function forgetNumbers(): void {
+  numbers.clear();
+}
+
+/** Our number, as kept, or asked of Meta now. */
+function numberFor(keys: WhatsAppKeys): Promise<BusinessNumber> {
+  const key = `${keys.accountId} ${keys.token}`;
+  const kept = numbers.get(key);
+  if (kept && Date.now() - kept.at < NUMBER_KEPT_MS) return kept.number;
+  const number = businessNumber(keys);
+  numbers.set(key, { at: Date.now(), number });
+  number.catch(() => numbers.delete(key));
+  return number;
+}
+
 /** What sends texts, if anything does here; undefined too while WhatsApp doesn't answer, which is reported. */
 export async function textBackend(): Promise<TextBackend | undefined> {
   const keys = whatsAppKeys();
   if (!keys) return undefined;
   try {
-    return { keys, number: await businessNumber(keys) };
+    return { keys, number: await numberFor(keys) };
   } catch (error) {
     problem(broadcastsCopy.problems.whatsAppUnanswered, error);
     return undefined;
