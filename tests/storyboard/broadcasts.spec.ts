@@ -823,7 +823,7 @@ test("Answering a reply", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.replies.discard }).scrollIntoViewIfNeeded();
   await frame(page, "Writing a reply", { window: true });
   story(
-    "Send reply sends it by Gmail from hello@, in the same conversation as their reply. It's in the thread, the reply is settled, and the History says who answered. Reply is now Follow up, to write another under ours.",
+    "Send reply sends it by Gmail from hello@, in the same conversation as their reply. It's in the thread, the reply is settled, and the History says who answered. Under our answer, the last message, Follow up writes another.",
   );
   await page.getByRole("button", { name: copy.replies.send }).click();
   await expect(page.getByText(copy.replies.sentBy(staffEmail()))).toBeVisible();

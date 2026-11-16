@@ -14,7 +14,7 @@ const topicNames = supportersCopy.supporters.detail.permissions.topics;
 
 /**
  * Reply, in orange: opens the answer to a reply at the foot of the thread
- * (AnswerableReply). Follow up, to one we've answered (`followUp`).
+ * (AnswerableReply). Follow up, under our answer to it (`followUp`).
  */
 export function ReplyButton({ write, followUp = false }: { write: () => void; followUp?: boolean }) {
   return (
@@ -26,7 +26,7 @@ export function ReplyButton({ write, followUp = false }: { write: () => void; fo
 
 /**
  * Under a reply waiting for staff: Reply, while its answer isn't open
- * (`write`), Follow up once `answered`; Unsubscribe them, the form a supporter's
+ * (`write`); Unsubscribe them, the form a supporter's
  * page has, for what the email went under (`topics`) or every bulk email,
  * or for a reply to a text (`text`), what it went under or every text,
  * at the address or number that replied, with no need to say how they told us, as
@@ -67,7 +67,7 @@ export default function ReplyActions({
         record={deal}
         spaced={false}
         end={text}
-        before={write && <ReplyButton write={write} followUp={answered} />}
+        before={write && <ReplyButton write={write} />}
         beside={
           !answered && (
             <form action={deal}>

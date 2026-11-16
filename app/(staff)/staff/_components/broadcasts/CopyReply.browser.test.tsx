@@ -90,10 +90,12 @@ describe("replies to broadcasts", () => {
     );
     await expect.element(page.getByRole("button", { name: copy.replies.followUp })).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).not.toBeInTheDocument();
-    // Opened after our answer, at the foot of the thread.
-    await page.getByRole("button", { name: copy.replies.followUp }).click();
+    // Under our answer, the last message, and opened after it, at the foot of the thread.
     const thread = page.getByLabelText(copy.threadTitle).element();
     const ours = page.getByText("Hi Jane, it's on 6 December. See you there!").element();
+    const button = page.getByRole("button", { name: copy.replies.followUp }).element();
+    expect(ours.closest("article")!.contains(button)).toBe(true);
+    await page.getByRole("button", { name: copy.replies.followUp }).click();
     const draft = page.getByRole("textbox", { name: copy.replies.answerLabel }).element();
     expect(ours.compareDocumentPosition(draft) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(thread.contains(draft)).toBe(true);
@@ -318,6 +320,33 @@ describe("replies to broadcasts", () => {
     await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
     await expect.element(page.getByRole("button", { name: copy.replies.allTexts })).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.replies.topicsText(topics.events) })).toBeVisible();
+    // Answered, Follow up is under our bubble, the last, and Reply is gone.
+    await page.getByRole("button", { name: copy.replies.discard }).click();
+    await rerender(
+      <MessageCopyView
+        one={{
+          ...exampleMessageCopy,
+          replies: exampleTextReplies,
+          answers: [
+            ...exampleTextAnswers,
+            {
+              ...exampleTextAnswers[0],
+              id: 13,
+              replyId: exampleTextReplies[1].id,
+              body: {
+                type: "doc",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "Glad to help." }] }],
+              },
+            },
+          ],
+        }}
+        actions={{ deal: vi.fn(), answer }}
+      />,
+    );
+    await expect.element(page.getByRole("button", { name: copy.replies.reply })).not.toBeInTheDocument();
+    const last = page.getByText("Glad to help.").element();
+    const followUp = page.getByRole("button", { name: copy.replies.followUp }).element();
+    expect(last.compareDocumentPosition(followUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("to a text say WhatsApp won't take an answer only under their latest message, while it's unanswered", async () => {

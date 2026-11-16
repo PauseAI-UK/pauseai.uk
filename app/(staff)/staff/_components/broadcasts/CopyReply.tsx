@@ -30,13 +30,31 @@ const sender = (reply: BroadcastReply, one: MessageCopy) => {
   return named(name, reply.from);
 };
 
-/** Our answer to a reply, in the thread after it: who sent it, or that it may not have gone; to a text, as a bubble. */
-function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: BroadcastReply; one: MessageCopy }) {
+/**
+ * Our answer to a reply, in the thread after it: who sent it, or that it may
+ * not have gone; to a text, as a bubble. The last in the thread has Follow
+ * up (`write`), which writes another under it.
+ */
+function Answer({
+  answer,
+  reply,
+  one,
+  write,
+}: {
+  answer: BroadcastAnswer;
+  reply: BroadcastReply;
+  one: MessageCopy;
+  write?: () => void;
+}) {
   // Who sent it: the site itself, for its answer to a STOP, or the staff member.
   const sentBy = answer.sentBy === SITE_ACTOR ? copy.replies.sentAutomatically : copy.replies.sentBy(answer.sentBy);
+  const followUp = write && (
+    <p className={styles.write}>
+      <ReplyButton write={write} followUp />
+    </p>
+  );
   if (one.channel === "text") {
-    // Who sent it on the line with the time, as a chat app puts what it says of a message there.
-    return (
+    const bubble = (
       <ChatWall>
         <ChatBubble
           who={TEXT_SENDER_NAME}
@@ -49,6 +67,15 @@ function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: Broadc
         </ChatBubble>
       </ChatWall>
     );
+    // With Follow up, in a card as their reply is, the button at its foot.
+    return followUp ? (
+      <div className={styles.textReply}>
+        {bubble}
+        <div className={styles.textFoot}>{followUp}</div>
+      </div>
+    ) : (
+      bubble
+    );
   }
   const by = <p className={styles.dealt}>{answer.sentAt ? sentBy : copy.replies.stillSending(one.sentFrom)}</p>;
   return (
@@ -60,6 +87,7 @@ function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: Broadc
     >
       <MailingLetter doc={answer.body} />
       {by}
+      {followUp}
     </ThreadEmail>
   );
 }
@@ -67,9 +95,10 @@ function Answer({ answer, reply, one }: { answer: BroadcastAnswer; reply: Broadc
 /**
  * A reply under our email or text, as it came, a text's as a bubble; then
  * what to record it as, or what was, but nothing for an automatic one; then
- * our answers to it, and, under their latest that isn't automatic, one to
- * write (`answer`), but to a text's more than a day old, which WhatsApp
- * takes no answer to.
+ * our answers to it, and, to their latest that isn't automatic, one to
+ * write (`answer`), opened by Reply under it, or by Follow up under our last
+ * answer, but to a text's more than a day old, which WhatsApp takes no
+ * answer to.
  */
 export default function Reply({
   reply,
@@ -149,14 +178,25 @@ export default function Reply({
         {dealt(write)}
       </ThreadEmail>
     );
-  const answers = one.answers
-    .filter((answer) => answer.replyId === reply.id)
-    .map((answer) => <Answer key={answer.id} answer={answer} reply={reply} one={one} />);
-  // Only their latest is answered, so ours is written at the foot of the thread, after all they said.
+  // Our answers to it, the last with Follow up (`write`).
+  const answers = (write?: () => void) =>
+    one.answers
+      .filter((answer) => answer.replyId === reply.id)
+      .map((answer, i, all) => (
+        <Answer
+          key={answer.id}
+          answer={answer}
+          reply={reply}
+          one={one}
+          write={i === all.length - 1 ? write : undefined}
+        />
+      ));
+  // Only their latest is answered, so ours is written at the foot of the thread, after all they said: Reply under
+  // theirs, or, once we've answered it, Follow up under our last.
   return reply.automatic || !actions || !reply.answerable || !latest ? (
     <>
       {email()}
-      {answers}
+      {answers()}
     </>
   ) : (
     <AnswerableReply
@@ -170,8 +210,8 @@ export default function Reply({
     >
       {(write) => (
         <>
-          {email(write)}
-          {answers}
+          {email(answered ? undefined : write)}
+          {answers(write)}
         </>
       )}
     </AnswerableReply>
