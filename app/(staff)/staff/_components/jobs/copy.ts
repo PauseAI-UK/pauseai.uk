@@ -46,10 +46,10 @@ export const jobsCopy = {
     // On a job's page, the facts in its band: how it stands now; when it last ran; when it
     // runs again, how long till then (staffVocabulary.dueIn) and the time; and how often (frequent, nightly and so on).
     facts: {
-      now: "⁂ Now",
-      lastRun: "⁂ Last run",
-      nextRun: "⁂ Next run",
-      runs: "⁂ Runs",
+      now: "Now",
+      lastRun: "Last run",
+      nextRun: "Next run",
+      runs: "Runs",
     },
     nextRunAt: (inWords: string, at: string) => `${inWords} · ${at}`,
     // Each job's icon, named for screen readers and on hover: where it reads
