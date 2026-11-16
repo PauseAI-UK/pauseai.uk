@@ -159,7 +159,13 @@ function Row<T extends MailingBase>({
       <span className={styles.what}>
         {/* A list with a mark has it before each title, as an icon is before words (IconText). */}
         <span className={styles.head}>
-          {look.mark ? <IconText icon={look.mark(mailing)}>{title}</IconText> : title}
+          {look.mark ? (
+            <IconText tall icon={look.mark(mailing)}>
+              {title}
+            </IconText>
+          ) : (
+            title
+          )}
         </span>
         <Muted>
           {look.lead?.(mailing)}

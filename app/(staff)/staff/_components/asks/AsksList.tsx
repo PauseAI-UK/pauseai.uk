@@ -95,7 +95,7 @@ function AskRow({ ask, picked, Title }: { ask: AskWithCounts; picked: boolean; T
         <span className={styles.asked}>{[askedLine(ask), askPeriod(ask)].filter(Boolean).join(" · ")}</span>
         {/* Its kind's picture before its title, as a broadcast's channel is before its; the line above says it in words. */}
         <Title className={styles.title}>
-          <IconText icon={<AskKindIcon kind={ask.kind} size="1.25em" />}>
+          <IconText tall icon={<AskKindIcon kind={ask.kind} size="1.25em" />}>
             <StaffLink href={askHref(ask.slug)}>{ask.title}</StaffLink>
           </IconText>
         </Title>

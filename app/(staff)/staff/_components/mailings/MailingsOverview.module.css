@@ -58,12 +58,14 @@
   font-weight: 600;
 }
 
-/* The title, after its mark where the list has one. */
+/* The title, after its mark where the list has one, at the title's size, so a mark as tall as its line is centred on
+   it (IconText's tall). */
 .head {
   display: flex;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
+  font-size: var(--text-md);
 }
 
 /* How it stands, at the column's right edge, so they line up there. */
