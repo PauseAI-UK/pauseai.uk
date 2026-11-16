@@ -114,7 +114,7 @@ export function isGrouped(filter: Filter): boolean {
 }
 
 /** What the chip of a choice of `filter` is named: its group's chip's name, or the filter's. */
-export function chipName(filter: Filter, plain: string): string {
+function chipName(filter: Filter, plain: string): string {
   return choiceOf(filter, plain)?.group?.chip ?? filter.label;
 }
 

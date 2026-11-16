@@ -18,7 +18,7 @@ import styles from "./FilterBar.module.css";
 const copy = staffVocabulary.filters;
 
 /** The start of a chip that leaves out: its filter's name, then "not", lighter than the choices that follow. */
-export function NotWords({ label }: { label: string }) {
+function NotWords({ label }: { label: string }) {
   return (
     <>
       {label}: <span className={styles.joining}>{copy.not}</span>{" "}
