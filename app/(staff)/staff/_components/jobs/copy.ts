@@ -61,6 +61,7 @@ export const jobsCopy = {
     "ni-assembly": "Northern Ireland Assembly",
     controlai: "ControlAI",
     database: "Database",
+    sending: "⁂ Sends with Gmail, Postmark and WhatsApp",
     luma: "Luma",
     civicrm: "CiviCRM",
     gmail: "Gmail",

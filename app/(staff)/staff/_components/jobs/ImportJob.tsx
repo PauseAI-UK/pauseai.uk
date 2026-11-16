@@ -52,7 +52,7 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "import-controlai-statement": "controlai",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
-  "send-mailings": "gmail",
+  "send-mailings": "sending",
   "tidy-logs": "database",
 };
 

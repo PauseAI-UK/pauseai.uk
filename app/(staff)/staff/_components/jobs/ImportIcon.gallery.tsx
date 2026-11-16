@@ -13,9 +13,11 @@ export const importIconGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <div style={{ display: "flex", gap: "var(--space-3)" }}>
-              {(["luma", "civicrm", "gmail", "parliament", "controlai", "database"] as const).map((source) => (
-                <ImportIcon key={source} source={source} />
-              ))}
+              {(["luma", "civicrm", "gmail", "parliament", "controlai", "database", "sending"] as const).map(
+                (source) => (
+                  <ImportIcon key={source} source={source} />
+                ),
+              )}
             </div>
           </StaffPage>
         ),
