@@ -59,24 +59,29 @@ export function forgetNumbers(): void {
   numbers.clear();
 }
 
+/** Where the number for these keys is kept. */
+const numberKey = (keys: WhatsAppKeys) => `${keys.accountId} ${keys.token}`;
+
 /** Our number, as kept, or asked of Meta now. */
 function numberFor(keys: WhatsAppKeys): Promise<BusinessNumber> {
-  const key = `${keys.accountId} ${keys.token}`;
-  const kept = numbers.get(key);
+  const kept = numbers.get(numberKey(keys));
   if (kept && Date.now() - kept.at < NUMBER_KEPT_MS) return kept.number;
   const number = businessNumber(keys);
-  numbers.set(key, { at: Date.now(), number });
-  number.catch(() => numbers.delete(key));
+  numbers.set(numberKey(keys), { at: Date.now(), number });
   return number;
 }
 
-/** What sends texts, if anything does here; undefined too while WhatsApp doesn't answer, which is reported. */
+/**
+ * What sends texts, if anything does here; undefined too while WhatsApp
+ * doesn't answer, which is reported, and isn't kept, so the next asks again.
+ */
 export async function textBackend(): Promise<TextBackend | undefined> {
   const keys = whatsAppKeys();
   if (!keys) return undefined;
   try {
     return { keys, number: await numberFor(keys) };
   } catch (error) {
+    numbers.delete(numberKey(keys));
     problem(broadcastsCopy.problems.whatsAppUnanswered, error);
     return undefined;
   }

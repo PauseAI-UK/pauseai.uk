@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
+import { forgetNumbers } from "./channels.server";
 import { query } from "@/lib/server/db.server";
 import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailings/doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -57,7 +58,11 @@ beforeEach(() => {
   vi.stubEnv("WHATSAPP_TOKEN", "token");
   vi.stubEnv("WHATSAPP_ACCOUNT_ID", "fixture-account");
 });
-afterEach(() => vi.unstubAllEnvs());
+// Each test sets Meta's answers its own way, so none sees our number as another's Meta said it.
+afterEach(() => {
+  vi.unstubAllEnvs();
+  forgetNumbers();
+});
 
 /** A draft to everyone with `params`, at version 1. */
 async function draftOf(params: Record<string, string>): Promise<number> {
@@ -507,6 +512,8 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await sendBroadcastTest(text, to, "+447700900002")).toEqual({ sent: true, id: "wamid.test" });
       expect(names).toEqual(["march_day_9"]);
       server.use(http.get(/phone_numbers/, () => HttpResponse.json({}, { status: 500 })));
+      // Once the number this server kept has gone stale, and it asks again.
+      forgetNumbers();
       expect(await sendBroadcastTest(text, to, "+447700900002")).toBeUndefined();
     });
   });
@@ -555,6 +562,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     vi.stubEnv("DATA_FIXTURES", "");
     vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get(/graph\.facebook\.com/, () => HttpResponse.json({ data: [] })));
+    forgetNumbers();
     expect(await scheduleBroadcast(id, version, JO)).toEqual({
       scheduled: false,
       problems: ["no-template", "no-number"],

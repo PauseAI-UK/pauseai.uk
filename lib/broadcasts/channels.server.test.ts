@@ -1,9 +1,20 @@
 import { afterEach, expect, it, onTestFinished, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { channelSends, NUMBER_KEPT_MS, textBackend, textSenderNumber, whatsAppKeys } from "./channels.server";
+import {
+  channelSends,
+  NUMBER_KEPT_MS,
+  textBackend,
+  textSenderNumber,
+  whatsAppKeys,
+  forgetNumbers,
+} from "./channels.server";
 
-afterEach(() => vi.unstubAllEnvs());
+// Each test sets Meta's answers its own way, so none sees our number as another's Meta said it.
+afterEach(() => {
+  vi.unstubAllEnvs();
+  forgetNumbers();
+});
 
 /** WhatsApp's keys set, as on the live site. */
 function keysSet() {

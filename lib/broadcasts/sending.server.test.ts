@@ -6,6 +6,7 @@ import { staffTime } from "@/lib/staff-time";
 import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
+import { forgetNumbers } from "./channels.server";
 import { recordGmail } from "@/tests/gmail-sends";
 import { notifications, NOTIFICATIONS } from "@/tests/notifications";
 import { createBroadcastDraft, resumeBroadcast } from "./drafts.server";
@@ -90,9 +91,11 @@ beforeEach(() => {
   vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
   vi.setSystemTime(new Date("2026-11-02T10:18:00Z"));
 });
+// Each test sets Meta's answers its own way, so none sees our number as another's Meta said it.
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.useRealTimers();
+  forgetNumbers();
 });
 
 /** hello@ having sent `n` emails in the last day. */

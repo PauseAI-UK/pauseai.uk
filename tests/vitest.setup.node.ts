@@ -3,7 +3,6 @@
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { server } from "./fixtures/msw";
 import { LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
-import { forgetNumbers } from "@/lib/broadcasts/channels.server";
 
 // Unit tests choose their responses through MSW, and their clock with fake
 // timers. A DATA_FIXTURES=1 or FIXTURE_NOW inherited from a Playwright build
@@ -16,9 +15,5 @@ delete process.env.LETTERS_INBOX_DIR;
 process.env.LETTERS_INBOX = LETTERS_INBOX;
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
-// Each test sets Meta's answers its own way, so none sees our number as another's Meta said it.
-afterEach(() => {
-  server.resetHandlers();
-  forgetNumbers();
-});
+afterEach(() => server.resetHandlers());
 afterAll(() => server.close());

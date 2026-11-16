@@ -97,6 +97,8 @@ const STAYS: Record<string, string[]> = {
     "random-id",
     "run-store",
     "sql",
+    // Timing a slow request's steps into the server's log, for any feature's server code.
+    "stopwatch",
     // The audit log, which every feature writes to, the sending layer and accounts included; its page reads it
     // in lib/oversight/.
     "audit",
