@@ -49,4 +49,28 @@ export const HERO_PHOTOS: [string, string, number, number][] = [
     800,
     534,
   ],
+  [
+    "edinburgh-nov-2026-audience.webp",
+    "The audience at the PauseAI UK panel discussion in Edinburgh's Playfair Library, November 2026",
+    800,
+    533,
+  ],
+  [
+    "edinburgh-nov-2026-panel.webp",
+    "Panellists at the PauseAI UK panel discussion in Edinburgh, November 2026",
+    800,
+    533,
+  ],
+  [
+    "edinburgh-nov-2026-group.webp",
+    "Speakers, volunteers and guests behind a PauseAI banner in Edinburgh, November 2026",
+    800,
+    533,
+  ],
+  [
+    "edinburgh-nov-2026-check-in.webp",
+    "PauseAI UK volunteers checking in guests at the Edinburgh panel discussion, November 2026",
+    800,
+    533,
+  ],
 ];
