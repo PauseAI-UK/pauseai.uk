@@ -219,7 +219,8 @@ describeWithDatabase("staff events", () => {
       }),
     ]);
     expect(sent[0].Cc).toBeUndefined();
-    expect(sent[0].ReplyTo).toBe("sean@pauseai.uk");
+    // To them alone: no one else for a reply to reach.
+    expect(sent[0].ReplyTo).toBeUndefined();
     expect(sent[0].TextBody).toContain("jo@pauseai.uk");
 
     // The same owner again changes nothing.

@@ -135,7 +135,8 @@ export async function eventChoices(): Promise<{ staff: string[]; tags: string[];
 /**
  * Emails `owner` that they own `ids` now, whoever chose them, copied to
  * `previous`, the owner before, saying `by` gave it to them; or with no
- * `by`, that the rules did. A reply goes to them both. It links to the staff events page: for one
+ * `by`, that the rules did. A reply goes to them both; to one alone, it
+ * has no Reply-To, as there's no one else for it to reach. It links to the staff events page: for one
  * event, searched for it, which also suits the owner before, Cc'd; for
  * several, filtered to the owner. Returns whom it emailed, none if it
  * wasn't sent.
@@ -158,8 +159,7 @@ async function tellOwner(
     {
       From: `PauseAI UK <noreply@${notifyDomain()}>`,
       To: toLine,
-      ...(ccLine ? { Cc: ccLine } : {}),
-      ReplyTo: replyToAll(toLine, ccLine),
+      ...(ccLine ? { Cc: ccLine, ReplyTo: replyToAll(toLine, ccLine) } : {}),
       Subject: copy.subject(events.length, events[0].name, owner),
       TextBody: copy.body({
         events: events.map((event) => ({ name: event.name, when: londonStart(event.startAt), url: event.url })),
