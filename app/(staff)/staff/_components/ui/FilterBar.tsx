@@ -200,11 +200,10 @@ export default function FilterBar({
   const chip = (filter: Filter, value: string, text: ReactNode, second = false) => {
     const { value: plain, not } = notValue(value);
     const others = chosen(filter.name).filter((v) => v !== value);
-    if (filter.locked) {
+    if (filter.locked && !not) {
       // There, saying what it is and why it can't change, but not opening.
       return (
         <span key={`${filter.name}-${value}`} className={`${styles.chip} ${styles.locked}`} title={filter.locked}>
-          {not && <NotIcon />}
           {text}
           <LockIcon />
         </span>

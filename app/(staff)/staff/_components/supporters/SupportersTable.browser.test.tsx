@@ -198,8 +198,8 @@ describe("the supporters list's Email and Phone columns", () => {
     expect(supporterColumns(search(["!email:newsletter:yes"])).map((c) => c.key)).not.toContain("email");
     // A value it can't read finds nothing to show.
     expect(supporterColumns(search(["email:nonsense"])).map((c) => c.key)).not.toContain("email");
-    // Reasons, and a topic's any answer; each channel's column, of its own.
-    const contact = ["email:events:unsubscribed", "text:events", "email:newsletter:asked"];
+    // A topic's any answer, and a reason; each channel's column, of its own.
+    const contact = ["email:events", "text:events", "email:newsletter:asked"];
     const columns = supporterColumns(search(contact));
     const [jane] = exampleSupporterRows;
     expect(text(columns, "email", jane)).toBe("jane@example.com");

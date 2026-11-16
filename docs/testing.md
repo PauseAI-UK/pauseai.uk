@@ -951,7 +951,7 @@ that drives it or why nothing does.
   - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected by its webhook;
   - a new template WhatsApp won't take, too long, with its reason in a red alert under the button;
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
-  - who it goes to changed from the list, with its Consent locked there;
+  - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
   - an email sent by the sending job, by hello@'s Gmail, and a copy as the supporter gets it, with its unsubscribe link;
   - an email with more copies than hello@'s Gmail can send today: some sent and the rest tomorrow, then stopped three days after its time, with the email saying so, and set going again by Resume sending;
@@ -1012,11 +1012,11 @@ that drives it or why nothing does.
   - a supporter merged into another by their mobile number, whose old ID's page redirects to the one kept;
   - a letter writer reached from the letters page;
   - a march sign-up, with what they gave and the link they came by;
-  - the list's Consent column, and its filter: those who can't be emailed about events, then the newsletter;
+  - the list's Consent column, and its filter: those who can be emailed about events, then the newsletter, then leaving out those who get events emails;
   - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, and one who unsubscribed there;
   - a hold in CiviCRM in Bounced emails, lifted with a note;
   - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next CiviCRM import;
-  - subscriptions to more than one topic, in one chip, its answer changing them all;
+  - subscriptions to more than one topic, in one chip, Except these turning them all round;
   - an opt-out told to staff, recorded under a supporter's consents with how it was given;
   - in a fixture build, a supporter's contact preferences opened from their page.
 - `signup-uploads.spec.ts`: Import sign-ups:

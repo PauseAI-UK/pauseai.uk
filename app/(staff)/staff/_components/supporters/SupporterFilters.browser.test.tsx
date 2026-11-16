@@ -110,6 +110,18 @@ describe("SupporterFilters", () => {
       .toHaveAttribute("href", "/staff/supporters?contact=email%3Anewsletter%3Ayes");
   });
 
+  it("while locked, leaves a value it doesn't know open when it's left out, marked as a not", async () => {
+    const { filter, ...search } = supportersSearch({ contact: ["email:newsletter:yes", "!email:newsletter:asked"] });
+    void filter;
+    await render(<SupporterFilters search={search} choices={choices} lockConsent />);
+    const label = copy.columns.subscriptions;
+    const out = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.startsWith(staffVocabulary.filters.notChip(label, "email:newsletter:asked")),
+    )!;
+    expect(out.querySelector("svg")).not.toBeNull();
+    expect(document.querySelectorAll("[class*=locked]")).toHaveLength(1);
+  });
+
   it("offers every consent once in the Consent filter, by email, then text, then call, which is volunteering's alone", () => {
     expect(CONSENT_ORDER.map(consentKey).sort()).toEqual(CONSENTS.map(consentKey).sort());
     expect(CONSENT_ORDER.map((consent) => consent.way)).toEqual([
