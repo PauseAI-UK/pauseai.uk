@@ -9,11 +9,34 @@ export interface QrCode {
 
 export const MAX_QR_CODES = 4;
 
-/** Adds https:// when a volunteer types a bare address like "pauseai.uk/london". */
+/** An email address alone, like "hello@pauseai.uk". */
+const EMAIL = /^[^\s@/?#:]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
+
+/**
+ * Adds https:// when a volunteer types a bare address like "pauseai.uk/london", and mailto: when they type an email
+ * address like "hello@pauseai.uk".
+ */
 export function normaliseUrl(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return "";
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  if (/^https?:\/\//i.test(trimmed) || /^mailto:/i.test(trimmed)) return trimmed;
+  return EMAIL.test(trimmed) ? `mailto:${trimmed}` : `https://${trimmed}`;
+}
+
+/**
+ * Whether `input` is an email link a phone can open: an email address, alone or after mailto:, which may be followed
+ * by a subject or body, like "mailto:hello@pauseai.uk?subject=Flyers".
+ */
+export function isEmailLink(input: string): boolean {
+  const trimmed = input.trim();
+  if (/\s/.test(trimmed)) return false;
+  const url = normaliseUrl(trimmed);
+  return /^mailto:/i.test(url) && EMAIL.test(url.slice("mailto:".length).split("?")[0]);
+}
+
+/** Whether `input` is something a QR code can open: a web address or an email link. */
+export function isQrLink(input: string): boolean {
+  return isWebAddress(input) || isEmailLink(input);
 }
 
 /**

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  isEmailLink,
+  isQrLink,
   isWebAddress,
   MAX_QR_CODES,
   normaliseUrl,
@@ -29,6 +31,35 @@ describe("normaliseUrl", () => {
   it("returns empty for empty input", () => {
     expect(normaliseUrl("   ")).toBe("");
   });
+
+  it("adds mailto to a bare email address, and keeps one already there", () => {
+    expect(normaliseUrl(" hello@pauseai.uk ")).toBe("mailto:hello@pauseai.uk");
+    expect(normaliseUrl("MAILTO:hello@pauseai.uk?subject=Hi")).toBe("MAILTO:hello@pauseai.uk?subject=Hi");
+  });
+});
+
+describe("isEmailLink", () => {
+  it.each(["hello@pauseai.uk", "mailto:jane.smith@example.co.uk", "mailto:hello@pauseai.uk?subject=Flyers&body=Hi"])(
+    "accepts %j",
+    (input) => {
+      expect(isEmailLink(input)).toBe(true);
+    },
+  );
+
+  it.each(["", "mailto:", "mailto:hello", "mailto:hello@pauseai", "hello@pauseai.uk please", "pauseai.uk"])(
+    "rejects %j",
+    (input) => {
+      expect(isEmailLink(input)).toBe(false);
+    },
+  );
+});
+
+describe("isQrLink", () => {
+  it("takes a web address or an email link, and nothing else", () => {
+    expect(isQrLink("pauseai.uk/join")).toBe(true);
+    expect(isQrLink("mailto:hello@pauseai.uk")).toBe(true);
+    expect(isQrLink("not a link")).toBe(false);
+  });
 });
 
 describe("isWebAddress", () => {
@@ -39,12 +70,17 @@ describe("isWebAddress", () => {
     },
   );
 
-  it.each(["", "not a url", "pauseai", "https://", "mailto:hello@pauseai.uk", "pauseai.uk/some page"])(
-    "rejects %j",
-    (input) => {
-      expect(isWebAddress(input)).toBe(false);
-    },
-  );
+  it.each([
+    "",
+    "not a url",
+    "pauseai",
+    "https://",
+    "mailto:hello@pauseai.uk",
+    "hello@pauseai.uk",
+    "pauseai.uk/some page",
+  ])("rejects %j", (input) => {
+    expect(isWebAddress(input)).toBe(false);
+  });
 });
 
 describe("qrTarget", () => {
@@ -172,6 +208,7 @@ describe("qrFilenameStem", () => {
   it("builds a readable, safe name from the address", () => {
     expect(qrFilenameStem("https://www.pauseai.uk/join?x=1")).toBe("pauseai-uk-join");
     expect(qrFilenameStem("luma.com/pauseai.uk")).toBe("luma-com-pauseai-uk");
+    expect(qrFilenameStem("mailto:hello@pauseai.uk?subject=Hi")).toBe("hello-pauseai-uk");
   });
 
   it("never returns an empty or unsafe name", () => {

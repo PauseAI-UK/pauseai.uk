@@ -10,6 +10,7 @@ describe("displayLink", () => {
     ["https://pauseai.uk/join", "pauseai.uk/join"],
     ["pauseai.uk/", "pauseai.uk"],
     ["https://www.example.com/a?b=1", "example.com/a?b=1"],
+    ["mailto:hello@pauseai.uk?subject=Hi", "hello@pauseai.uk"],
     ["", ""],
   ])("shows %s as %s", (input, expected) => {
     expect(displayLink(input)).toBe(expected);

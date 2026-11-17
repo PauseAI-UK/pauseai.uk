@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { declareCanvasFonts } from "@/lib/collateral/canvasFonts.client";
 import { canvasToPngBlob, downloadCanvasPng, downloadText } from "@/lib/collateral/export.client";
-import { isWebAddress, qrFilenameStem, qrMinPrintMm, qrTarget } from "@/lib/collateral/qr";
+import { isQrLink, qrFilenameStem, qrMinPrintMm, qrTarget } from "@/lib/collateral/qr";
 import {
   CAPTION_FONTS,
   captionFont,
@@ -85,7 +85,7 @@ export default function QrGenerator() {
   // Stable, so the scanner does not restart the camera on every render.
   const onScan = useCallback((text: string) => {
     const trimmed = text.trim();
-    if (isWebAddress(trimmed)) {
+    if (isQrLink(trimmed)) {
       setUrl(trimmed);
       setScanned(null);
     } else {
@@ -93,7 +93,7 @@ export default function QrGenerator() {
     }
   }, []);
 
-  const valid = isWebAddress(url);
+  const valid = isQrLink(url);
   const target = valid ? qrTarget(url, track) : "";
   const stem = `pauseai-qr-${qrFilenameStem(url)}`;
 

@@ -63,6 +63,15 @@ describe("QrGenerator", () => {
     expect(page.getByRole("list").element().textContent).not.toContain("dense code");
   });
 
+  it("makes a code for an email address, opening a new email to it", async () => {
+    const { container } = await render(<QrGenerator />);
+    await input("Web address").fill("hello@pauseai.uk");
+    await expect.poll(() => preview(container)?.alt).toBe("QR code for mailto:hello@pauseai.uk");
+    await expect
+      .element(page.getByRole("link", { name: "mailto:hello@pauseai.uk" }))
+      .toHaveAttribute("href", "mailto:hello@pauseai.uk");
+  });
+
   it("asks for a web address, and points out one that isn't", async () => {
     await render(<QrGenerator />);
     await input("Web address").fill("");
@@ -210,6 +219,8 @@ describe("QrGenerator", () => {
     await scan(" pauseai.uk/join ");
     await expect.element(input("Web address")).toHaveValue("pauseai.uk/join");
     expect(container.querySelector("q")).toBeNull();
+    await scan("mailto:hello@pauseai.uk");
+    await expect.element(input("Web address")).toHaveValue("mailto:hello@pauseai.uk");
     await scan("   ");
     await expect
       .poll(() => page.getByRole("status").query()?.textContent)

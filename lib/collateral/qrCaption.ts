@@ -45,10 +45,11 @@ export interface CaptionLayout {
 /** Width of `text` in the given caption font, in px. Injected so tests can run without a canvas. */
 export type CaptionMeasure = (kind: CaptionKind, text: string, fontSize: number) => number;
 
-/** How a link reads in print: "pauseai.uk/join", not "https://pauseai.uk/join/". */
+/** How a link reads in print: "pauseai.uk/join", not "https://pauseai.uk/join/", and an email link as its address. */
 export function displayLink(input: string): string {
   const url = normaliseUrl(input);
   if (!url) return "";
+  if (/^mailto:/i.test(url)) return url.slice("mailto:".length).split("?")[0];
   return url
     .replace(/^https?:\/\//i, "")
     .replace(/^www\./i, "")
