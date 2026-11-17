@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { exampleWhatsAppWords } from "./BroadcastWriter.examples";
-import TextBubble, { ChatBubble, LinkedText } from "./TextBubble";
+import { exampleLinkCard, exampleWhatsAppWords } from "./BroadcastWriter.examples";
+import TextBubble, { ChatBubble, LinkedText, type TextDoc } from "./TextBubble";
+import type { LinkCard } from "@/lib/broadcasts/link-card";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { Receipt } from "@/lib/broadcasts/receipts";
 
@@ -35,6 +36,41 @@ describe("TextBubble", () => {
     expect(bubble.querySelector("br")).not.toBeNull();
     expect([...bubble.querySelectorAll("a")].map((a) => a.textContent)).toEqual(["https://pauseai.uk/march"]);
     expect(bubble.textContent).not.toMatch(/[>*_]/);
+  });
+});
+
+describe("TextBubble's card and fold", () => {
+  const paragraphs = (...texts: string[]): TextDoc => ({
+    content: texts.map((text) => ({ type: "paragraph", content: [{ type: "text", text }] })),
+  });
+  const bubble = (words: TextDoc, card?: LinkCard | null) => (
+    <TextBubble from="PauseAI UK" words={words} card={card} footer={TEMPLATE_FOOTER} time="07:18" />
+  );
+  const readMore = () => page.getByRole("button", { name: broadcastsCopy.broadcastPages.readMore });
+
+  it("shows the card for its link above its words: the title, a line of description, the site", async () => {
+    await render(bubble(paragraphs("Details: https://pauseai.uk/march"), exampleLinkCard));
+    await expect.element(page.getByText(exampleLinkCard.title)).toBeVisible();
+    await expect.element(page.getByText(exampleLinkCard.description)).toBeVisible();
+    await expect.element(page.getByText(exampleLinkCard.site, { exact: true })).toBeVisible();
+  });
+
+  it("shows words that fit whole, with no card and no Read more", async () => {
+    await render(bubble(paragraphs("One", "Two", "Three"), null));
+    await expect.element(page.getByText("Three")).toBeVisible();
+    expect(readMore().query()).toBeNull();
+  });
+
+  it("folds at five lines, a blank line between paragraphs counting as one, and Read more opens the rest", async () => {
+    await render(bubble(paragraphs("One", "Two", "Three", "Four")));
+    const words = page.getByText("One").element().parentElement!;
+    const line = parseFloat(getComputedStyle(words).lineHeight);
+    // One, a blank, Two, a blank, Three: the fold; Four under it.
+    expect(words.clientHeight).toBeCloseTo(5 * line, 0);
+    await expect.element(readMore()).toBeVisible();
+    await readMore().click();
+    await expect.element(readMore()).not.toBeInTheDocument();
+    expect(words.clientHeight).toBeCloseTo(7 * line, 0);
   });
 });
 

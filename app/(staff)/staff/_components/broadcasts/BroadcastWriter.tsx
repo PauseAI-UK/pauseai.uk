@@ -75,7 +75,8 @@ import MailingFiles from "../mailings/MailingFiles";
 import BroadcastConsent from "./BroadcastConsent";
 import { othersThanConsent } from "../supporters/SupporterFilters";
 import { MailingLetter } from "../mailings/MailingLetter";
-import TextBubble from "./TextBubble";
+import TextBubble, { type TextDoc } from "./TextBubble";
+import { firstLink, type LinkCard } from "@/lib/broadcasts/link-card";
 import { BandFact, Facts } from "../ui/Band";
 import Grid, { Card } from "../ui/Grid";
 import NotIcon from "../ui/NotIcon";
@@ -120,6 +121,8 @@ export type BroadcastWriterActions = DraftActions & {
   withdrawTemplate: (id: number) => Promise<boolean>;
   /** Deletes an approved template no broadcast has, from WhatsApp too; says how it went. */
   deleteTemplate: (templateId: number) => Promise<TemplateDeleteResult>;
+  /** The card WhatsApp would show at the top of a text for its link to `url`, if any. */
+  linkCard: (url: string) => Promise<LinkCard | null>;
 };
 
 /**
@@ -232,6 +235,36 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
   );
 }
 
+/** How long the words' link must stay the same before its page is asked for its card, so typing it doesn't ask for each letter. */
+const CARD_PAUSE_MS = 600;
+
+/** A text's bubble, with the card WhatsApp shows for its first link once its page has said what goes on it; each link asked about once. */
+function TextPreview({
+  words,
+  footer,
+  time,
+  linkCard,
+}: {
+  words: TextDoc;
+  footer: string;
+  time: string;
+  linkCard: BroadcastWriterActions["linkCard"];
+}) {
+  const link = firstLink(words.content);
+  const [cards, setCards] = useState<Record<string, LinkCard | null>>({});
+  useEffect(() => {
+    if (!link || link in cards) return;
+    const timer = setTimeout(
+      () => void linkCard(link).then((card) => setCards((known) => ({ ...known, [link]: card }))),
+      CARD_PAUSE_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [link, cards, linkCard]);
+  return (
+    <TextBubble from={TEXT_SENDER_NAME} words={words} card={link ? cards[link] : null} footer={footer} time={time} />
+  );
+}
+
 /**
  * Each recipient's copy, as they'll get it: an email as a mail app shows
  * it, or a text as a bubble. Over it, a button for each field the words use
@@ -252,6 +285,7 @@ function BroadcastPreview({
   needs,
   dueAt,
   sendTest,
+  linkCard,
   footer,
   approval,
 }: {
@@ -270,6 +304,7 @@ function BroadcastPreview({
   dueAt: Date | null;
   sendTest: (meets: string[], to: string) => ReturnType<BroadcastWriterActions["sendTest"]>;
   approval?: ReactNode;
+  linkCard: BroadcastWriterActions["linkCard"];
 }) {
   const email = draft.channel === "email";
   const testId = useId();
@@ -343,11 +378,11 @@ function BroadcastPreview({
           <MailingLetter doc={letterFor(body, recipient)} />
         </div>
       ) : (
-        <TextBubble
-          from={TEXT_SENDER_NAME}
+        <TextPreview
           words={letterFor(body, recipient)}
           footer={footer}
           time={londonClock(sendsAt(dueAt ?? earliestRun()))}
+          linkCard={linkCard}
         />
       )}
       {approval}
@@ -894,6 +929,7 @@ export default function BroadcastWriter({
                   .filter((problem) => TEST_NEEDS.includes(problem))
                   .map((problem) => copy.problems[problem])}
                 dueAt={values.dueAt}
+                linkCard={actions.linkCard}
                 sendTest={async (meets, to) => {
                   // The test is of the draft as saved, so what's typed goes first.
                   await saveNow();

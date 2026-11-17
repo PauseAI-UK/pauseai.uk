@@ -155,7 +155,8 @@
 }
 
 /* A text's words as WhatsApp lays them out: its lines a blank line apart, a
-   list's bullets set in, a quote with a bar beside it. */
+   list's bullets set in, a quote with a bar beside it. The blank line is a
+   line of its own, not a margin, so the fold counts it, as WhatsApp does. */
 .words {
   white-space: normal;
 }
@@ -164,8 +165,58 @@
   margin: 0;
 }
 
-.words > :is(p, ul, blockquote) + :is(p, ul, blockquote) {
-  margin-top: 0.75em;
+.words > :is(p, ul, blockquote) + :is(p, ul, blockquote)::before {
+  content: "\A";
+  display: block;
+  white-space: pre;
+}
+
+/* A marketing text's words as WhatsApp folds them: five lines, the last
+   ending "…" where it's cut. */
+.folded {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+}
+
+/* Under folded words, WhatsApp's link to the rest, in its green. */
+.readMore {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--chat-our-name);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* The card at the top of a text for its link, as WhatsApp shows one with
+   no picture: the page's title in bold, at most two lines, then a line of
+   its description and its site, in grey. */
+.linkCard {
+  display: grid;
+  margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--chat-card);
+  white-space: normal;
+}
+
+.cardTitle {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.cardLine {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .words ul {

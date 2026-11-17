@@ -17,6 +17,7 @@ import { copyReplyGallery } from "@/app/(staff)/staff/_components/broadcasts/Cop
 import { answerableReplyGallery } from "@/app/(staff)/staff/_components/broadcasts/AnswerableReply.gallery";
 import { supporterBroadcastsGallery } from "@/app/(staff)/staff/_components/broadcasts/SupporterBroadcasts.gallery";
 import { textBubbleGallery } from "@/app/(staff)/staff/_components/broadcasts/TextBubble.gallery";
+import { textFoldGallery } from "@/app/(staff)/staff/_components/broadcasts/TextFold.gallery";
 
 // BroadcastView's examples, with how a copy went between its first two.
 const [broadcastChannelMark, broadcastWaiting, broadcastView] = broadcastViewGallery;
@@ -45,5 +46,6 @@ export const staffBroadcasts: Group = {
     ...answerableReplyGallery,
     ...supporterBroadcastsGallery,
     ...textBubbleGallery,
+    ...textFoldGallery,
   ],
 };

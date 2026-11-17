@@ -13,6 +13,7 @@ import {
   stopBroadcastNow,
   submitTemplateNow,
   withdrawTemplateNow,
+  linkCardFor,
 } from "./actions";
 
 /** The Server Actions a broadcast's pages give its writer and its view. */
@@ -28,6 +29,7 @@ export const broadcastWriterActions = {
   submitTemplate: submitTemplateNow,
   withdrawTemplate: withdrawTemplateNow,
   deleteTemplate: deleteTemplateNow,
+  linkCard: linkCardFor,
   stop: stopBroadcastNow,
   reschedule: rescheduleBroadcastNow,
   resume: resumeBroadcastNow,

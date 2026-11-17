@@ -136,6 +136,12 @@ describe("fixtureResponse", () => {
     expect(fixtureResponse("https://api.postcodes.io/postcodes/XX11XX")!.status).toBe(404);
   });
 
+  it("serves any page of our site with a card's Open Graph tags", async () => {
+    const page = await fixtureResponse("https://pauseai.uk/march")!.text();
+    expect(page).toContain('property="og:title"');
+    expect(page).toContain('property="og:description"');
+  });
+
   it("passes every Turnstile token", async () => {
     expect((await fixtureResponse("https://challenges.cloudflare.com/turnstile/v0/siteverify")!.json()).success).toBe(
       true,

@@ -30,6 +30,8 @@ import {
   type TemplateSubmitResult,
 } from "@/lib/broadcasts/drafts.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
+import type { LinkCard } from "@/lib/broadcasts/link-card";
+import { linkCard } from "@/lib/server/outside-services/link-pages.server";
 import type { SaveResult } from "@/lib/mailings/drafts.server";
 import { dueAtFrom, idFrom } from "@/lib/staff-forms";
 import { storedFilter } from "@/lib/staff-search";
@@ -194,6 +196,12 @@ export async function deleteTemplateNow(templateId: number): Promise<TemplateDel
   const result = await deleteApprovedTemplate(templateId, email);
   revalidatePath(LIST, "layout");
   return result;
+}
+
+/** The card WhatsApp would show at the top of a text for its link to `url`, for the writer's preview. */
+export async function linkCardFor(url: string): Promise<LinkCard | null> {
+  await requireStaff("supporters");
+  return linkCard(url);
 }
 
 /** Deletes the form's draft, then goes to the list of broadcasts. */

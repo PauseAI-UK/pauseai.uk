@@ -25,6 +25,7 @@ import {
   deleteTemplateNow,
   submitTemplateNow,
   withdrawTemplateNow,
+  linkCardFor,
 } from "./actions";
 import { broadcastWriterActions } from "./writer-actions";
 
@@ -272,11 +273,19 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     expect(await deleteTemplateNow(0)).toBe("gone");
   });
 
+  it("gives the card WhatsApp would show for a text's link", async () => {
+    expect(await linkCardFor("https://pauseai.uk/march")).toMatchObject({
+      title: "March Against AI Extinction & for a pause",
+      site: "pauseai.uk",
+    });
+  });
+
   it("gives the writer each of its actions", () => {
     expect(broadcastWriterActions).toMatchObject({
       submitTemplate: submitTemplateNow,
       withdrawTemplate: withdrawTemplateNow,
       deleteTemplate: deleteTemplateNow,
+      linkCard: linkCardFor,
       schedule: scheduleBroadcastNow,
     });
   });

@@ -1,6 +1,7 @@
 import type { BroadcastAnswer } from "@/lib/broadcasts/answers.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import type { LetterDoc } from "@/lib/letters/format";
+import type { LinkCard } from "@/lib/broadcasts/link-card";
 import type { MailingDoc } from "@/lib/mailings/doc";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import type { WhatsAppTemplate, WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
@@ -79,6 +80,13 @@ export const exampleWhatsAppWords: LetterDoc = {
     { type: "blockquote", content: [{ type: "paragraph", content: [{ type: "text", text: "Pause AI now." }] }] },
     { type: "paragraph" },
   ],
+};
+
+/** The card WhatsApp shows for a text's link to a page about the march. */
+export const exampleLinkCard: LinkCard = {
+  title: "March Against AI Extinction",
+  description: "Join thousands in London to call for a pause on the race to superintelligence.",
+  site: "pauseai.uk",
 };
 
 /** A text's words, with only a first name. */

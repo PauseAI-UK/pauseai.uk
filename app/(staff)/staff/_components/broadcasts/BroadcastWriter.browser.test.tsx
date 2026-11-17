@@ -18,6 +18,7 @@ import {
   exampleBroadcastData,
   exampleBroadcastEmail,
   exampleBroadcastText,
+  exampleLinkCard,
   exampleTemplates,
   exampleTextSender,
   exampleTextWords,
@@ -50,6 +51,7 @@ function fakeActions() {
     submitTemplate: action(() => "submitted"),
     withdrawTemplate: action(() => true),
     deleteTemplate: action(() => "deleted"),
+    linkCard: vi.fn(async (url: string) => (url === "https://pauseai.uk/march" ? exampleLinkCard : null)),
   };
 }
 
@@ -795,6 +797,22 @@ describe("BroadcastWriter, by text", () => {
       .toHaveTextContent("See you at the march");
     await expect.element(page.getByLabelText(copy.templateName)).toHaveValue("March day");
     await expect.element(page.getByRole("heading", { name: "March day", level: 1 })).toBeVisible();
+  });
+
+  it("shows the card WhatsApp makes for the words' first link, asking about each link once it's typed, and once only", async () => {
+    const actions = await renderWriter({ draft: exampleBroadcastText });
+    await pick("new");
+    const words = page.getByRole("textbox", { name: copy.templateWords });
+    await words.fill("See you there https://pauseai.uk/march");
+    await expect.element(page.getByText(exampleLinkCard.title)).toBeVisible();
+    await words.fill("No card for https://example.org/none");
+    await vi.waitFor(() => expect(actions.linkCard).toHaveBeenCalledWith("https://example.org/none"), WAIT);
+    await expect.element(page.getByText(exampleLinkCard.title)).not.toBeInTheDocument();
+    await words.fill("Back to https://pauseai.uk/march");
+    await expect.element(page.getByText(exampleLinkCard.title)).toBeVisible();
+    await words.fill("No link at all");
+    await expect.element(page.getByText(exampleLinkCard.title)).not.toBeInTheDocument();
+    expect(actions.linkCard).toHaveBeenCalledTimes(2);
   });
 
   it("opens on a draft's new words, titled by them, to send to WhatsApp before they can be scheduled", async () => {

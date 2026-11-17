@@ -427,6 +427,30 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await frame(page, "The list, the draft WhatsApp rejected");
 });
 
+test("A text's preview, as WhatsApp shows it", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write a text's new words with a link in them. WhatsApp shows a small card for a link at the top of a text, made from the page, and folds the words at five lines, so the preview does too.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("The march meets at 11:00 at Parliament Square. Details: https://pauseai.uk/march");
+  for (const line of ["Bring water.", "Wear orange.", "Look for the flags."]) {
+    await page.keyboard.press("Enter");
+    await page.keyboard.type(line);
+  }
+  const preview = page.getByRole("button", { name: copy.readMore });
+  await expect(page.getByText("March Against AI Extinction & for a pause")).toBeVisible();
+  await preview.scrollIntoViewIfNeeded();
+  await frame(page, "The preview: the link's card, and the words folded at Read more", { window: true });
+  story("Read more opens the rest, as it does on their phone.");
+  await preview.click();
+  await expect(preview).toBeHidden();
+  await frame(page, "The words opened", { window: true });
+});
+
 test("WhatsApp won't take a new template", async ({ page, request, flowDatabase }) => {
   story("Staff write a new template for a text and send it for approval, but it's longer than WhatsApp allows.");
   await importLuma(request, BASE);

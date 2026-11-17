@@ -213,9 +213,10 @@
   --brand-holyrood-blue: #0065bd;
   --brand-senedd-green: #00845a;
   --brand-stormont-blue: #2f5d8a;
-  /* A text as a messaging app shows it: the wall behind it, our bubble, the names on the bubbles, and a read text's ticks. */
+  /* A text as a messaging app shows it: the wall behind it, our bubble, the card for a link, the names on the bubbles, and a read text's ticks. */
   --chat-wall: #e4ddd3;
   --chat-ours: #d9fdd3;
+  --chat-card: #f0f2f5;
   --chat-our-name: #1f7a5a;
   --chat-their-name: #b4532a;
   --chat-link: #027eb5;
