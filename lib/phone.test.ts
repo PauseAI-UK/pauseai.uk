@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { phoneWords } from "./phone";
+import { isInternational, phoneWords } from "./phone";
+
+describe("isInternational", () => {
+  it.each(["+447700900000", "+15555550100", "+3531234567"])("takes %s", (number) => {
+    expect(isInternational(number)).toBe(true);
+  });
+
+  it.each(["07700900000", "447700900000", "+44 7700 900000", "+", "+0447700900000", "+4477009000001234"])(
+    "refuses %s",
+    (number) => {
+      expect(isInternational(number)).toBe(false);
+    },
+  );
+});
 
 describe("phoneWords", () => {
   it.each([

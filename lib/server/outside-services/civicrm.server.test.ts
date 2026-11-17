@@ -109,6 +109,18 @@ describe("fetchContactsPage", () => {
     server.use(http.get(GET, () => HttpResponse.json(null)));
     await expect(fetchContactsPage("key", 0)).rejects.toThrow("no list of values");
   });
+
+  it("says what CiviCRM said of a request it refused: its error_message, or its answer as it came", async () => {
+    const refusing = (answer: string) => server.use(http.get(GET, () => new HttpResponse(answer, { status: 500 })));
+    refusing(JSON.stringify({ error_code: 0, error_message: "Phone 11 is not in international format.", status: 500 }));
+    await expect(fetchContactsPage("key", 0)).rejects.toThrow(
+      /^CiviCRM request failed with status 500: Phone 11 is not in international format\.$/,
+    );
+    refusing(JSON.stringify({ error_code: 0 }));
+    await expect(fetchContactsPage("key", 0)).rejects.toThrow('status 500: {"error_code":0}');
+    refusing("null");
+    await expect(fetchContactsPage("key", 0)).rejects.toThrow("status 500: null");
+  });
 });
 
 /** The params a POST to `action` was sent, from its body. */

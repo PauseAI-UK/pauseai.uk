@@ -16,10 +16,13 @@ it("ends WhatsApp's reason for refusing a template with one full stop, whether i
 
 it("says why a broadcast waits", () => {
   const waiting = broadcastsCopy.notifications.broadcastWaiting;
-  expect(waiting.body("Hi", "civicrm", "3 Nov", "link")).toContain("CiviCRM isn't answering");
-  expect(waiting.body("Hi", "pull", "3 Nov", "link")).toContain("our import from CiviCRM hasn't worked");
-  expect(broadcastsCopy.broadcastPages.waiting("civicrm", "5 Nov")).toContain("Waiting for CiviCRM to work again");
-  expect(broadcastsCopy.broadcastPages.waiting("pull", "5 Nov")).toContain("Waiting for an import");
+  expect(waiting.body("Hi", "civicrm", "Down", "3 Nov", "link")).toContain("CiviCRM said: Down");
+  expect(waiting.body("Hi", "civicrm", null, "3 Nov", "link")).toContain("CiviCRM said: nothing");
+  expect(waiting.body("Hi", "pull", null, "3 Nov", "link")).toContain("our import from CiviCRM hasn't worked");
+  const pages = broadcastsCopy.broadcastPages;
+  expect(pages.waiting("civicrm", "5 Nov", "Down")).toContain("It last said: Down.");
+  expect(pages.waiting("civicrm", "5 Nov", null)).toContain("It last said: nothing.");
+  expect(pages.waiting("pull", "5 Nov", null)).toContain("Waiting for an import");
 });
 
 describe("the words of messages to supporters", () => {

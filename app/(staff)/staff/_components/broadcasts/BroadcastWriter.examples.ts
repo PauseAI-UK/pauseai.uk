@@ -210,6 +210,7 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   sendBy: "gmail",
   waitingSince: null,
   waitReason: null,
+  waitSaid: null,
   gaveUp: false,
   restingUntil: null,
 };

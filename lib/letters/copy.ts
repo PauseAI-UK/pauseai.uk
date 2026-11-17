@@ -345,6 +345,8 @@ export const lettersCopy = {
       "not-sent:suppressed": "Not sent: PauseAI Global",
       "not-sent:blocked": "Not sent: address blocked",
       "not-sent:not-on-whatsapp": "Not sent: not on WhatsApp",
+      // A text whose number isn't in international format (+, the country code, then the number).
+      "not-sent:bad-number": "Not sent: number bad format",
       // A mailing's letter to a politician who has left office, or has no address we know.
       "not-sent:left-office": "Not sent: left office",
       "not-sent:no-email": "Not sent: no email address",

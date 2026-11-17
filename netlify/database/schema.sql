@@ -1329,7 +1329,7 @@ CREATE TABLE public.broadcast_messages (
     CONSTRAINT broadcast_messages_check CHECK (((status = 'skipped'::text) = (skip_reason IS NOT NULL))),
     CONSTRAINT broadcast_messages_check1 CHECK (((supporter_id IS NOT NULL) OR ((address IS NULL) AND (merge_values IS NULL)))),
     CONSTRAINT broadcast_messages_check2 CHECK (((status = 'sending'::text) = (sending_since IS NOT NULL))),
-    CONSTRAINT broadcast_messages_skip_reason_check CHECK ((skip_reason = ANY (ARRAY['blocked'::text, 'unsubscribed'::text, 'no-permission'::text, 'not-on-whatsapp'::text, 'suppressed'::text]))),
+    CONSTRAINT broadcast_messages_skip_reason_check CHECK ((skip_reason = ANY (ARRAY['blocked'::text, 'unsubscribed'::text, 'no-permission'::text, 'not-on-whatsapp'::text, 'suppressed'::text, 'bad-number'::text]))),
     CONSTRAINT broadcast_messages_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'failed'::text, 'skipped'::text, 'cancelled'::text])))
 );
 
@@ -2048,6 +2048,7 @@ CREATE TABLE public.mailings (
     failed_in_a_row integer DEFAULT 0 NOT NULL,
     held_back_since timestamp with time zone,
     held_back_told boolean DEFAULT false NOT NULL,
+    wait_said text,
     CONSTRAINT mailings_also_topics CHECK (((cardinality(also_topics) = 0) OR ((topic IS NOT NULL) AND (NOT (topic = ANY (also_topics)))))),
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),
@@ -2068,6 +2069,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
     CONSTRAINT mailings_topic_for_supporters CHECK (((audience = 'supporters'::text) = (topic IS NOT NULL))),
     CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text, 'limit'::text, 'template'::text, 'late'::text, 'failing'::text]))),
+    CONSTRAINT mailings_wait_said CHECK (((wait_said IS NULL) OR (wait_reason = 'civicrm'::text))),
     CONSTRAINT mailings_waiting CHECK (((waiting_since IS NULL) = (wait_reason IS NULL)))
 );
 

@@ -138,6 +138,16 @@ export function readContact(row: Record<string, unknown>): CivicrmContact {
   };
 }
 
+/** What CiviCRM said of a request it refused: its error_message, where its answer is JSON with one, or the answer as it came. */
+function said(answer: string): string {
+  try {
+    const message = (JSON.parse(answer) as { error_message?: unknown } | null)?.error_message;
+    return typeof message === "string" ? message : answer;
+  } catch {
+    return answer;
+  }
+}
+
 /**
  * Calls `action` with `params`, by GET in the URL, or by POST in the body,
  * which keeps addresses out of URL logs, and gives its rows.
@@ -159,7 +169,8 @@ async function call(
     ...(method === "POST" && { body: encoded.toString() }),
     cache: "no-store",
   });
-  if (!res.ok) throw new CivicrmRequestError(`CiviCRM request failed with status ${res.status}: ${await res.text()}`);
+  if (!res.ok)
+    throw new CivicrmRequestError(`CiviCRM request failed with status ${res.status}: ${said(await res.text())}`);
   const data: unknown = await res.json();
   const values = (data as { values?: unknown })?.values;
   if (!Array.isArray(values)) throw new CivicrmRequestError(`CiviCRM's answer to ${action} had no list of values`);

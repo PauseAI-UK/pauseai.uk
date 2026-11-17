@@ -8,6 +8,15 @@
  * a number as stored ("+447700900000") or as typed ("07700 900 000",
  * "+44 (0)7700 900000"), and gives one it can't read as UK as it came.
  */
+/**
+ * Whether a number is in international format, as WhatsApp and CiviCRM's
+ * check take it: +, the country code, then the number, digits alone, at
+ * most fifteen (E.164).
+ */
+export function isInternational(number: string): boolean {
+  return /^\+[1-9]\d{6,14}$/.test(number);
+}
+
 export function phoneWords(number: string): string {
   const digits = number.replace(/[\s().-]/g, "");
   const uk = /^(?:\+44|0044|44)0?(\d{10})$/.exec(digits)?.[1] ?? /^0(\d{10})$/.exec(digits)?.[1];

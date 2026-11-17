@@ -36,6 +36,8 @@ export const broadcastViewGallery: Example[] = [
                 state: "sending",
                 waitingSince: new Date("2026-11-07T07:18:00Z"),
                 waitReason: "civicrm",
+                waitSaid:
+                  "CiviCRM request failed with status 500: pauseai_core: phone 11 is not a number in international format (+, the country code, then the number).",
               }}
             />
             <BroadcastWaiting
