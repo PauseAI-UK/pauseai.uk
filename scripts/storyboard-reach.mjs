@@ -34,7 +34,8 @@ const EVERYTHING = [
   /^next\.config\.ts$/,
   /^proxy\.ts$/,
   /^instrumentation(-client)?\.ts$/,
-  /^netlify\/database\//,
+  // The migrations, the schema and how they're applied; not the unit tests beside them.
+  /^netlify\/database\/(?!.*\.test\.ts$)/,
   /^tests\/fixtures\/.*\.sql$/,
   /^tests\/checkout\.mjs$/,
   /^tests\/storyboard\/global-(setup|teardown)\.ts$/,
@@ -361,6 +362,63 @@ const ERRORS_KEPT = "instrumentation.ts";
 
 /** The files this map names by their paths: if one moves, its rule here stops applying (the tests check they exist). */
 export const NAMED = [...ALWAYS, ERRORS_KEPT, GALLERY_EXAMPLES, ...Object.entries(HANDED_OVER).flat(2)];
+
+/**
+ * SQL with its comments taken out and each run of space between tokens made
+ * one space: what Postgres runs. Text in quotes, names in double quotes and
+ * dollar-quoted bodies are kept as they are, comments in them too, as a
+ * function's body is the function's.
+ */
+export function sqlWithoutComments(sql) {
+  let out = "";
+  let at = 0;
+  const space = () => {
+    if (out !== "" && !out.endsWith(" ")) out += " ";
+  };
+  while (at < sql.length) {
+    const rest = sql.slice(at, at + 2);
+    if (rest === "--") {
+      const end = sql.indexOf("\n", at);
+      at = end === -1 ? sql.length : end;
+      space();
+    } else if (rest === "/*") {
+      // Postgres's block comments nest.
+      let depth = 0;
+      do {
+        const step = sql.startsWith("/*", at) ? 1 : sql.startsWith("*/", at) ? -1 : 0;
+        depth += step;
+        at += step === 0 ? 1 : 2;
+      } while (depth > 0 && at < sql.length);
+      space();
+    } else if (/\s/.test(sql[at])) {
+      at++;
+      space();
+    } else if (sql[at] === "'" || sql[at] === '"') {
+      // A quote doubled inside is the quote itself, and the text goes on; so is one after a backslash in E'…'.
+      const quote = sql[at];
+      const escapes = quote === "'" && /(^|[^\w$])[Ee]$/.test(out);
+      let end = at + 1;
+      while (end < sql.length) {
+        if (escapes && sql[end] === "\\") end += 2;
+        else if (sql[end] === quote && sql[end + 1] === quote) end += 2;
+        else if (sql[end] === quote) break;
+        else end++;
+      }
+      end = Math.min(end + 1, sql.length);
+      out += sql.slice(at, end);
+      at = end;
+    } else {
+      const tag = /^\$[A-Za-z_]*\$/.exec(sql.slice(at))?.[0];
+      if (tag) {
+        const close = sql.indexOf(tag, at + tag.length);
+        const end = close === -1 ? sql.length : close + tag.length;
+        out += sql.slice(at, end);
+        at = end;
+      } else out += sql[at++];
+    }
+  }
+  return out.trim();
+}
 
 /** For each context's cache of flowReach, each run's answers, found by the run itself: whole, and not. */
 const answersByRun = new WeakMap();

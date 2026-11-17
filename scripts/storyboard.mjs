@@ -100,7 +100,7 @@ import {
   runFolder,
   selectFlows,
 } from "./storyboard-main.mjs";
-import { flowsToRun, reachContext, readByNoFlow } from "./storyboard-reach.mjs";
+import { flowsToRun, reachContext, readByNoFlow, sqlWithoutComments } from "./storyboard-reach.mjs";
 import {
   carryKept,
   keepRuns,
@@ -263,15 +263,19 @@ const knownTree = once((tree) => spawnSync("git", ["cat-file", "-e", `${tree}^{t
 
 /**
  * The files that differ between two trees, and those of them only one has
- * (added or deleted), or undefined if git no longer has `from`.
+ * (added or deleted), or undefined if git no longer has `from`. A SQL file
+ * changed only in its comments isn't one: Postgres runs the same.
  */
 const changedBetween = once((from, to) => {
   if (!knownTree(from)) return undefined;
   const lines = git("diff", "--no-renames", "--name-status", "-z", from, to).split("\0");
   const files = [];
   const addedOrDeleted = [];
+  const sameSql = (path) =>
+    sqlWithoutComments(git("show", `${from}:${path}`)) === sqlWithoutComments(git("show", `${to}:${path}`));
   // With -z, a status and then its path, each ended by a NUL.
   for (let at = 0; at + 1 < lines.length; at += 2) {
+    if (lines[at] === "M" && lines[at + 1].endsWith(".sql") && sameSql(lines[at + 1])) continue;
     files.push(lines[at + 1]);
     if (lines[at] === "A" || lines[at] === "D") addedOrDeleted.push(lines[at + 1]);
   }
