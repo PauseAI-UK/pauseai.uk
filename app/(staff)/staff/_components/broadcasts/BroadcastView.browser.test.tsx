@@ -44,7 +44,7 @@ describe("a broadcast's page", () => {
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=sent");
     await expect.element(page.getByRole("link", { name: stateWords.counts.read })).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.emailTitle)).toBeVisible();
-    await expect.element(page.getByText(mailingsCopy.campaigns.supporters(290), { exact: true })).toBeVisible();
+    await expect.element(page.getByText(copy.facts.to(290), { exact: true })).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: "Jane Example" }))
       .toHaveAttribute("href", "/staff/supporters/7");
