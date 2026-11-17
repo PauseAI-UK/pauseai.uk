@@ -11,6 +11,7 @@ import {
 import { sendCivicrmUpdates } from "@/lib/supporters/civicrm-updates.server";
 import { recordCivicrmLists } from "@/lib/supporters/opt-outs.server";
 import { problem } from "@/lib/server/problems.server";
+import { withNumbersRead } from "@/lib/phone";
 import { resendAfterFix } from "@/lib/letters/relays.server";
 import { refreshSupporterFacts, refreshSupportersList } from "@/lib/supporters/facts.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
@@ -185,7 +186,8 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
     // Ours first, so the pull already has them.
     const updates = await sendCivicrmUpdates(key);
     const sentAny = updates.sent + updates.refused + updates.unanswered > 0;
-    const contacts = await pullContacts(key);
+    const { rows: contacts, unread } = withNumbersRead(await pullContacts(key));
+    if (unread > 0) problem(jobsCopy.problems.civicrmNumbersUnread, String(unread));
     return transaction(async (db) => {
       const [{ before }] = await query<{ before: number }>(
         "SELECT count(*)::int AS before FROM civicrm_contacts WHERE gone_at IS NULL",

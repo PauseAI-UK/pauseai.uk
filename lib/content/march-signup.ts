@@ -72,12 +72,14 @@ export const marchSignupCopy = {
     privacy: "We only use your data to organise and improve our campaigns. See our",
     privacyLink: "privacy policy",
   },
-  /** What the server says about a name or email it won't take. */
+  /** What the server says about a name, email or phone number it won't take. */
   errors: {
     missing: (label: string) => `Please enter your ${label}.`,
     check: (label: string) => `Please check your ${label}.`,
     emailMissing: "Please enter your email address.",
     emailInvalid: "Please enter a valid email address.",
+    // A number it can't read: one from 0 for the UK, or + and its country code for anywhere else.
+    phoneInvalid: "⁂ Please check your phone number. Start with 0 for a UK number, or + and the country code.",
   },
   share: {
     /** At the top of the card, so it's clear the form went through. */

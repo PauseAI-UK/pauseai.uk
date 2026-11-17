@@ -203,7 +203,7 @@ Bad,bad,,,,,Y`,
       "SELECT contact_consent AS consent FROM form_entries WHERE form = 'paper-signup' ORDER BY id",
     );
     expect(consents.map((row) => row.consent)).toEqual([true, true, true, true]);
-    expect(upload.people[1]).toMatchObject({ phone: "07700900333", postcode: "SE15" });
+    expect(upload.people[1]).toMatchObject({ phone: "+447700900333", postcode: "SE15" });
     // Their postcode looked up at once, not left for the next Luma import.
     const [looked] = await query<{ postcode: string }>("SELECT postcode FROM postcode_places WHERE postcode = 'SE15'");
     expect(looked).toEqual({ postcode: "SE15" });
@@ -393,7 +393,7 @@ ${"x".repeat(101)},07700900444,`),
       ["", "+33612345678", "none", "mobile"],
       ["No number", null, "held", "no-phone"],
       ["Words", null, "held", "bad-phone"],
-      ["Local", "612345678", "held", "bad-phone"],
+      ["Local", null, "held", "bad-phone"],
       ["Twice", "+447700900555", "held", "same-phone"],
       ["Again", "+447700900555", "held", "same-phone"],
       ["Gone", "+447700900999", "held", "erased"],

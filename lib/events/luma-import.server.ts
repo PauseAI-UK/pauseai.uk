@@ -19,6 +19,7 @@ import {
 import { getEventHosts, type EventHost } from "@/lib/server/outside-services/luma-event.server";
 import { type EventGuest, listEventGuests } from "@/lib/server/outside-services/luma-guests.server";
 import { describeError, problem } from "@/lib/server/problems.server";
+import { withNumbersRead } from "@/lib/phone";
 import { eventsCopy } from "./copy";
 
 // Copies our Luma calendar into luma_events, luma_people, luma_guests and
@@ -296,7 +297,8 @@ async function importGuests(eventId: string, budget: Budget): Promise<GuestCount
         (guest): guest is EventGuest & { registeredAt: string } =>
           GUEST_STATUSES.includes(guest.approvalStatus) && guest.registeredAt !== null,
       );
-      const unique = [...new Map(guests.map((guest) => [guest.id, guest])).values()];
+      const { rows: unique, unread } = withNumbersRead([...new Map(guests.map((guest) => [guest.id, guest])).values()]);
+      if (unread > 0) problem(eventsCopy.problems.numbersUnread, `${unread} on event ${eventId}`);
       counts.people += await upsertPeople(unique);
       counts.guests += await upsertGuests(eventId, unique);
       seen.push(...unique.map((guest) => guest.id));

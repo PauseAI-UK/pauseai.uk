@@ -223,5 +223,9 @@ export const jobsCopy = {
     // The CiviCRM import: a pull came back much shorter than the last, so nobody was taken as gone from the
     // chapter, in case it's CiviCRM's mistake. The counts follow; Global should be told.
     civicrmTooFew: "CiviCRM returned far fewer contacts than last time, so nobody was marked gone. Tell Global:",
+    // The CiviCRM import: some contacts' phone numbers couldn't be read as numbers, so they came in without them.
+    // How many follows.
+    civicrmNumbersUnread:
+      "⁂ Some contacts' phone numbers couldn't be read, so they came in without them. Fix them in CiviCRM:",
   },
 };

@@ -2,6 +2,7 @@
 // server to import it. It's liberal about how a file is written (separators,
 // encodings, spellings of a heading, ways of saying yes) and has no opinion on
 // what a column means beyond the names here: any other column is ignored.
+import { phoneNumber } from "@/lib/phone";
 
 /**
  * What a file is of: paper sign-up forms, each with a name and an email; or
@@ -81,9 +82,8 @@ const ROWS_TO_FIND_HEADINGS = 10;
 const MAX_NAME_LENGTH = 100;
 /** The longest address SMTP allows. */
 const MAX_EMAIL_LENGTH = 254;
-/** Longer than any real phone number or postcode. */
+/** Longer than any real postcode. */
 const MAX_OPTIONAL_LENGTH = 100;
-const FEWEST_PHONE_DIGITS = 7;
 /** Loose: one @, something either side, a dot in the domain, nothing that would separate two addresses. */
 const EMAIL_PATTERN = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 /** The first half of a UK postcode alone: "SE15", "M1", "EC1A". */
@@ -296,11 +296,14 @@ export type SignupRow = {
   problem: SignupRowProblem | null;
 };
 
-/** A phone number as written, but for a mobile's leading zero, which spreadsheets drop; undefined if it can't be one. */
+/**
+ * A phone number in international format (phoneNumber()), with a UK
+ * mobile's leading zero put back, as spreadsheets drop it; undefined if it
+ * can't be read as one.
+ */
 function cleanPhone(cell: string): string | undefined {
-  const digits = cell.replace(/\D/g, "");
-  if (/[a-z]/i.test(cell) || digits.length < FEWEST_PHONE_DIGITS) return undefined;
-  return /^7\d{9}$/.test(digits) ? `0${digits}` : cell;
+  const digits = cell.replace(/[\s().-]/g, "");
+  return phoneNumber(/^7\d{9}$/.test(digits) ? `0${digits}` : cell) ?? undefined;
 }
 
 /** An optional cell as kept: null when blank, or too long to be what it says. */

@@ -3,6 +3,8 @@ import type { Topic, Way } from "./contact-permissions";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
 import { permissionsFor } from "./permissions-for.server";
+import { isInternational, phoneNumber } from "@/lib/phone";
+import { PHONE_NUMBERS } from "@/tests/phone-numbers";
 
 /** A Luma account, a contact of the calendar since `since` or not one. */
 async function luma(email: string, since: string | null) {
@@ -466,5 +468,15 @@ describeWithDatabase("permissionsFor", () => {
     expect(await written(" ext. 12 ")).toBe("ext. 12");
     expect(await written("  ")).toBeNull();
     expect(await written(null)).toBeNull();
+  });
+
+  it("reads numbers as phoneNumber() does, giving back as typed one it can't", async () => {
+    const rows = await query<{ typed: string; n: string | null }>(
+      "SELECT typed, phone_number(typed) AS n FROM unnest($1::text[]) typed",
+      [PHONE_NUMBERS.map(([typed]) => typed)],
+    );
+    expect(rows.map(({ typed, n }) => [typed, n !== null && isInternational(n) ? n : null])).toEqual(
+      PHONE_NUMBERS.map(([typed]) => [typed, phoneNumber(typed)]),
+    );
   });
 });
