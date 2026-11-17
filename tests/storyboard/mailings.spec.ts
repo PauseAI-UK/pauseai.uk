@@ -610,6 +610,9 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
 
   await page.getByLabel(copy.hour, { exact: false }).selectOption("14");
   await page.getByRole("button", { name: copy.schedule(1) }).click();
+  // The draft's Send section shows the same day and time before it's scheduled, so the wait is for what only a
+  // scheduled mailing's page has.
+  await expect(page.getByRole("button", { name: copy.unschedule })).toBeVisible();
   await expect(page.getByText("Fri 16 Oct at 14:03", { exact: true })).toBeVisible();
   await frame(page, "The scheduled mailing");
   story("When its time comes, the sending job sends it from their Gmail.");
