@@ -11,7 +11,7 @@ describe("marchEventJsonLd", () => {
       endDate: "2026-11-21T15:00:00Z",
       location: { name: "All Souls' Place", address: { postalCode: "W1B 3DA" } },
       offers: { url: "https://luma.com/pauseai-nov26", price: "0" },
-      url: "https://pauseai.uk/protests/march-against-ai-extinction-nov-26/",
+      url: "https://pauseai.uk/demonstrations/march-against-ai-extinction-nov-26/",
     });
     expect(data.image).toEqual(["https://pauseai.uk/images/march-nov-26/luma-cover.webp"]);
   });

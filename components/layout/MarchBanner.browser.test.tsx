@@ -19,10 +19,10 @@ describe("MarchBanner", () => {
     await expect.element(page.getByText("Sat 21 Nov · London")).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: /March Against AI Extinction/ }))
-      .toHaveAttribute("href", "/protests/march-against-ai-extinction-nov-26");
+      .toHaveAttribute("href", "/demonstrations/march-against-ai-extinction-nov-26");
     await expect
       .element(page.getByRole("link", { name: "Register →" }))
-      .toHaveAttribute("href", "/protests/march-against-ai-extinction-nov-26");
+      .toHaveAttribute("href", "/demonstrations/march-against-ai-extinction-nov-26");
   });
 
   it("isn't on the contact preferences pages, but is on others", async () => {

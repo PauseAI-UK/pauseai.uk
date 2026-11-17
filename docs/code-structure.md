@@ -702,7 +702,7 @@ It follows the rules above, with these particulars:
 
 ### The march sign-up
 
-`/protests/march-against-ai-extinction-nov-26` (`app/(march)/protests/march-against-ai-extinction-nov-26/`)
+`/demonstrations/march-against-ai-extinction-nov-26` (`app/(march)/demonstrations/march-against-ai-extinction-nov-26/`)
 is a sub-site in the site's style, with a few looks of its own
 (`docs/style-guide.md`, "The briefings and the march"). It follows the
 rules above, with these exceptions:

@@ -4,7 +4,7 @@
 // change to any of its words a change to every page.
 
 /** The march's page, the sign-up (march, ./march.ts). */
-export const MARCH_PATH = "/protests/march-against-ai-extinction-nov-26";
+export const MARCH_PATH = "/demonstrations/march-against-ai-extinction-nov-26";
 
 /** The march's short link, which redirects to MARCH_PATH. */
 export const MARCH_SHORT_PATH = "/march";

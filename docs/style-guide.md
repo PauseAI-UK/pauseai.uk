@@ -1138,7 +1138,7 @@ march sign-up").
   a topic's colour with the heading on a tab, and charts of their own. The
   sizes are the design's, scaled so the text is 16px, and the topic
   colours are the `--briefing-*` tokens.
-- **The march sign-up** (`/protests/march-against-ai-extinction-nov-26`)
+- **The march sign-up** (`/demonstrations/march-against-ai-extinction-nov-26`)
   uses the site's header, footer, type, colours and buttons, with three
   looks of its own, from the march's roll-up banner and flyers:
   PauseAI's own orange, `--march-orange` (#FF9416), brighter than the
