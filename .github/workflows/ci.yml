@@ -121,8 +121,17 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    # Playwright's image, with Chromium and the system packages it needs, so
+    # the job installs neither (https://playwright.dev/docs/ci#via-containers).
+    # Its version is @playwright/test's, which Dependabot bumps and the image
+    # not: tests/checks/playwright-image.test.ts fails when they differ. It
+    # runs as root, so apt needs no sudo.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
     # Tests that need a database make their own in this Postgres
-    # (tests/database.ts, scripts/fresh-database.mjs).
+    # (tests/database.ts, scripts/fresh-database.mjs). From inside the
+    # container it's reached by its name, which LOCAL_POSTGRES_HOST names as
+    # on this machine (scripts/fresh-database.mjs, isLocal).
     services:
       postgres:
         image: postgres:18
@@ -130,35 +139,32 @@ jobs:
           POSTGRES_PASSWORD: postgres
           # Production's collation, not the image's en_US (docs/development.md, "Collation").
           POSTGRES_INITDB_ARGS: --locale-provider=builtin --builtin-locale=C.UTF-8 --locale=C.UTF-8 --encoding=UTF8
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      PGHOST: localhost
+      PGHOST: postgres
       PGUSER: postgres
       PGPASSWORD: postgres
+      LOCAL_POSTGRES_HOST: postgres
     steps:
+      # Git, for the checkout and the tests that read history, and pg_dump 18,
+      # to match the server, for the test that checks
+      # netlify/database/schema.sql is up to date. apt gives up on a download
+      # that sends nothing for 20 seconds and tries it again, up to three times.
+      - name: Install Git and the Postgres 18 client
+        timeout-minutes: 4
+        run: |
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' > /etc/apt/apt.conf.d/80-retries
+          apt-get update
+          apt-get install -y --no-install-recommends git postgresql-common
+          /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          apt-get install -y --no-install-recommends postgresql-client-18
+
       - name: Checkout
         uses: actions/checkout@v7
-
-      # GitHub's runners fetch Ubuntu's packages from Azure's mirror
-      # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
-      # download, and at times the runners can't look up any ubuntu.com name.
-      # So apt uses mirrors outside ubuntu.com, not Azure's at all: apt picks
-      # from the list for each file, and a lookup of Azure's that hangs costs
-      # every file it picks it for 20 seconds. And every apt-get below,
-      # Playwright's too, gives up on a download that sends nothing for 20
-      # seconds and tries it again, up to three times.
-      - name: Give apt mirrors outside ubuntu.com, and retry stalled downloads
-        run: |
-          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
-            http://mirror.math.princeton.edu/pub/ubuntu/ \
-            | sudo tee /etc/apt/apt-mirrors.txt
-          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
         id: node
@@ -179,53 +185,8 @@ jobs:
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
-      # The browser Vitest project renders components in real Chromium.
-      # Cached as the storyboard job caches it, below.
-      - name: Resolve Playwright version
-        id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browser
-        id: playwright-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-
-      - name: Install Playwright browser
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        # A stall that gets past apt's own retries fails here, not at the job's limit.
-        timeout-minutes: 5
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        # A mirror that trickles rather than stalls gets past apt's retries,
-        # so each attempt has two minutes and is tried again, three times in
-        # all. Timeout stops npx but not the apt-get it started under sudo,
-        # which holds dpkg's lock, so that is killed and waited for before
-        # dpkg finishes anything it left half done.
-        timeout-minutes: 8
-        run: |
-          for attempt in 1 2 3; do
-            timeout --kill-after=10 120 npx playwright install-deps chromium && exit 0
-            echo "::warning::Playwright's system dependencies, attempt $attempt, failed or took over two minutes"
-            sudo pkill -KILL -x apt-get || true
-            while pgrep -x apt-get > /dev/null || pgrep -x dpkg > /dev/null; do sleep 1; done
-            sudo dpkg --configure -a
-          done
-          exit 1
-
-      # pg_dump 18, to match the server, for the test that checks
-      # netlify/database/schema.sql is up to date. The runner's own is older.
-      - name: Install the Postgres 18 client
-        timeout-minutes: 4
-        run: |
-          sudo apt-get install -y postgresql-common
-          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-          sudo apt-get install -y postgresql-client-18
-
-      # Both Vitest projects (node and browser), gated on coverage.
+      # Both Vitest projects (node and browser), gated on coverage. The
+      # browser project renders components in the image's Chromium.
       - name: Test with coverage
         run: npm test
 
@@ -285,8 +246,12 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
+    # In Playwright's image, as the Test job is.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
     # Tests that need a database make their own in this Postgres
-    # (tests/database.ts, scripts/fresh-database.mjs).
+    # (tests/database.ts, scripts/fresh-database.mjs), reached by its name
+    # as in the Test job.
     services:
       postgres:
         image: postgres:18
@@ -294,35 +259,31 @@ jobs:
           POSTGRES_PASSWORD: postgres
           # Production's collation, not the image's en_US (docs/development.md, "Collation").
           POSTGRES_INITDB_ARGS: --locale-provider=builtin --builtin-locale=C.UTF-8 --locale=C.UTF-8 --encoding=UTF8
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      PGHOST: localhost
+      PGHOST: postgres
       PGUSER: postgres
       PGPASSWORD: postgres
+      LOCAL_POSTGRES_HOST: postgres
     steps:
+      # Git, for the checkout, and psql 18, to match the server: each flow's
+      # database is made with it (scripts/fresh-database.mjs). Retried as in
+      # the Test job.
+      - name: Install Git and the Postgres 18 client
+        timeout-minutes: 4
+        run: |
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' > /etc/apt/apt.conf.d/80-retries
+          apt-get update
+          apt-get install -y --no-install-recommends git postgresql-common
+          /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          apt-get install -y --no-install-recommends postgresql-client-18
+
       - name: Checkout
         uses: actions/checkout@v7
-
-      # GitHub's runners fetch Ubuntu's packages from Azure's mirror
-      # (/etc/apt/apt-mirrors.txt), which sometimes stalls partway through a
-      # download, and at times the runners can't look up any ubuntu.com name.
-      # So apt uses mirrors outside ubuntu.com, not Azure's at all: apt picks
-      # from the list for each file, and a lookup of Azure's that hangs costs
-      # every file it picks it for 20 seconds. And every apt-get below,
-      # Playwright's too, gives up on a download that sends nothing for 20
-      # seconds and tries it again, up to three times.
-      - name: Give apt mirrors outside ubuntu.com, and retry stalled downloads
-        run: |
-          printf '%s\n' http://mirrors.edge.kernel.org/ubuntu/ http://mirrors.mit.edu/ubuntu/ \
-            http://mirror.math.princeton.edu/pub/ubuntu/ \
-            | sudo tee /etc/apt/apt-mirrors.txt
-          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' | sudo tee /etc/apt/apt.conf.d/80-retries
 
       - name: Set up Node
         id: node
@@ -342,57 +303,6 @@ jobs:
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
-
-      # Keyed on the Playwright version rather than the lockfile hash, so an
-      # unrelated dependency bump does not throw the browser away.
-      - name: Resolve Playwright version
-        id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browser
-        id: playwright-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-
-      # Only Chromium: both of the storyboard's projects run in it, and
-      # downloading the rest costs more than it proves.
-      - name: Install Playwright browser
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        # A stall that gets past apt's own retries fails here, not at the job's limit.
-        timeout-minutes: 5
-        run: npx playwright install --with-deps chromium
-
-      # The cache holds the browser but not the apt packages it links against,
-      # which live outside ~/.cache/ms-playwright — so a cache hit still needs
-      # the system libraries installing.
-      - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        # A mirror that trickles rather than stalls gets past apt's retries,
-        # so each attempt has two minutes and is tried again, three times in
-        # all. Timeout stops npx but not the apt-get it started under sudo,
-        # which holds dpkg's lock, so that is killed and waited for before
-        # dpkg finishes anything it left half done.
-        timeout-minutes: 8
-        run: |
-          for attempt in 1 2 3; do
-            timeout --kill-after=10 120 npx playwright install-deps chromium && exit 0
-            echo "::warning::Playwright's system dependencies, attempt $attempt, failed or took over two minutes"
-            sudo pkill -KILL -x apt-get || true
-            while pgrep -x apt-get > /dev/null || pgrep -x dpkg > /dev/null; do sleep 1; done
-            sudo dpkg --configure -a
-          done
-          exit 1
-
-      # psql 18, to match the server: each flow's database is made with it
-      # (scripts/fresh-database.mjs).
-      - name: Install the Postgres 18 client
-        timeout-minutes: 4
-        run: |
-          sudo apt-get install -y postgresql-common
-          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-          sudo apt-get install -y postgresql-client-18
 
       # As the Build job does, for the fixture build: kept apart, as its
       # settings differ.
