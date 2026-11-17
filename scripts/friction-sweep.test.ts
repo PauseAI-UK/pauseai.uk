@@ -123,7 +123,6 @@ describe("sweep and report", () => {
       ]),
       bash("t5", "git status"),
       result("t5", "CONFLICT (content): Merge conflict in lib/c.ts"),
-      JSON.stringify({ type: "system", subtype: "compact_boundary", timestamp: "2026-11-03T11:00:00Z" }),
     ]);
     log("one/subagents/agent-1.jsonl", [bash("s1", "sed -i 's/a/b/' lib/a.ts", "2026-11-04T10:00:00Z")]);
     log("two.jsonl", [
@@ -152,7 +151,6 @@ describe("sweep and report", () => {
         "killed a server on a port                                    0           1",
         "read storyboard.json with a script                           0           0",
         "edited files with sed -i, perl -i or inline Python           1           0",
-        "ran out of context and was summarised                        1           0",
         "had the Bash-first experiment on                             0           1",
         "",
         "Rebase conflicts, by file           2026-10-26  2026-11-09",
@@ -179,7 +177,6 @@ describe("sweep and report", () => {
         "killed a server on a port                                    0",
         "read storyboard.json with a script                           0",
         "edited files with sed -i, perl -i or inline Python           0",
-        "ran out of context and was summarised                        0",
         "had the Bash-first experiment on                             0",
         "",
         "Rebase conflicts: none.",

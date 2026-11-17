@@ -29,7 +29,6 @@ const MEASURES = [
   ["killedServer", "killed a server on a port"],
   ["storyboardJson", "read storyboard.json with a script"],
   ["scriptedEdit", "edited files with sed -i, perl -i or inline Python"],
-  ["compacted", "ran out of context and was summarised"],
   ["bashFirst", "had the Bash-first experiment on"],
 ];
 
@@ -120,8 +119,8 @@ function resultText(content) {
 
 /**
  * Reads the logs line by line and counts. A line is parsed as JSON only if
- * it could count: a Bash call, the result of a rebase, a summary of the
- * context, or Claude Code's auto mode settings. `isRepoFile` says whether a
+ * it could count: a Bash call, the result of a rebase, or Claude Code's
+ * auto mode settings. `isRepoFile` says whether a
  * conflicted path is a file in the repo; any other is counted under null,
  * so no path from a log is reported that isn't the repo's own.
  */
@@ -143,7 +142,6 @@ export async function sweep(files, isRepoFile) {
       const stamp = TIMESTAMP.exec(line)?.[1];
       if (stamp && !Number.isNaN(Date.parse(stamp)) && (session.first === undefined || stamp < session.first))
         session.first = stamp;
-      if (line.includes('"compact_boundary"')) session.measures.add("compacted");
       if (line.includes('"auto_mode"') && line.includes('"bashFirst":true')) session.measures.add("bashFirst");
 
       const bashCall = line.includes('"tool_use"') && line.includes('"Bash"');
