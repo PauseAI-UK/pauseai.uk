@@ -52,9 +52,9 @@
   font-size: var(--text-lg);
 }
 
-/* The facts, with what's aside at the bottom right. Under 70rem, what's aside goes under the facts, still at the
-   right. From 70rem it's beside them: it takes the width it needs on one line, the facts take the rest down to 26rem,
-   and only then does what's aside wrap, at the right. */
+/* The facts, with what's aside at the bottom right. Under 70rem, what's aside is beside the facts if both fit on
+   one line, and under them at the right if not. From 70rem it's always beside them: it takes the width it needs on
+   one line, the facts take the rest down to 26rem, and only then does what's aside wrap, at the right. */
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -62,19 +62,18 @@
   align-items: flex-end;
 }
 
-/* Its width decides how the facts lie (.facts). */
 .factsBox {
-  container: band-facts / inline-size;
-  flex: 1 1 100%;
+  flex: 1 1 auto;
   align-self: flex-start;
   min-width: 0;
 }
 
 .aside {
   display: flex;
-  flex: 1 1 100%;
+  flex: 0 1 auto;
   justify-content: flex-end;
   min-width: 0;
+  margin-left: auto;
 }
 
 @container band (min-width: 70rem) {
@@ -82,7 +81,9 @@
     flex-wrap: nowrap;
   }
 
+  /* Its width decides how the facts lie (.facts). */
   .factsBox {
+    container: band-facts / inline-size;
     flex: 1 1 0;
     min-width: 26rem;
   }
@@ -107,8 +108,8 @@
   max-width: 34rem;
 }
 
-/* Between 26rem and 46rem, too narrow for one line, a tall fact takes a column of its own at the right, the
-   others one over another at the left, so it doesn't push them apart. */
+/* Beside what's aside, between 26rem and 46rem, too narrow for one line, a tall fact takes a column of its own at
+   the right, the others one over another at the left, so it doesn't push them apart. */
 @container band-facts (min-width: 26rem) and (max-width: 46rem) {
   .facts:has(> .tall) {
     display: grid;

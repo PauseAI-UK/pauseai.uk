@@ -1097,42 +1097,45 @@ describe("Band", () => {
     await expect.element(page.getByText("Ask")).not.toBeInTheDocument();
   });
 
-  it("puts a tall fact in a column of its own where the facts are short of room, and what's aside at the right", async () => {
-    // As wide as a band's row is under 70rem: what's aside under the facts; the facts 26rem to 46rem wide.
-    await render(
+  // Where a fact's words are on the page.
+  const box = (text: string) => page.getByText(text, { exact: true }).element().getBoundingClientRect();
+
+  it("under 70rem wide, has what's aside beside the facts if they fit, and under them at the right if not", async () => {
+    const band = (to: string) => (
       <div style={{ width: "40rem" }}>
-        <Band title="A broadcast" aside={<span>counts</span>}>
+        <Band title="A broadcast" aside={<span style={{ display: "block", width: "12rem" }}>counts</span>}>
           <BandFact label="From">hello@pauseai.uk</BandFact>
           <BandFact label="To" tall>
-            pills
+            {to}
+          </BandFact>
+        </Band>
+      </div>
+    );
+    const view = await render(band("few"));
+    expect(box("counts").left).toBeGreaterThan(box("few").right);
+    await view.unmount();
+    await render(band("many words, so many that what's aside can't fit beside them"));
+    const aside = page.getByText("counts", { exact: true }).element();
+    expect(box("counts").top).toBeGreaterThan(box("hello@pauseai.uk").bottom);
+    expect(box("counts").right).toBe(aside.parentElement!.parentElement!.getBoundingClientRect().right);
+  });
+
+  it("from 70rem wide, has what's aside beside the facts, and a tall fact in a column of its own if they're short of room", async () => {
+    await render(
+      <div style={{ width: "80rem" }}>
+        <Band title="A broadcast" aside={<span style={{ display: "block", width: "40rem" }}>counts</span>}>
+          <BandFact label="From">hello@pauseai.uk</BandFact>
+          <BandFact label="To" tall>
+            <span style={{ display: "block", width: "20rem" }}>pills</span>
           </BandFact>
           <BandFact label="Started">17 Nov 2026</BandFact>
         </Band>
       </div>,
     );
-    const box = (text: string) => page.getByText(text, { exact: true }).element().getBoundingClientRect();
+    expect(box("counts").left).toBeGreaterThan(box("pills").right);
     expect(box("pills").left).toBeGreaterThan(box("hello@pauseai.uk").right);
     expect(box("17 Nov 2026").left).toBe(box("hello@pauseai.uk").left);
     expect(box("17 Nov 2026").top).toBeGreaterThan(box("hello@pauseai.uk").bottom);
-    const aside = page.getByText("counts", { exact: true }).element();
-    expect(box("counts").top).toBeGreaterThan(box("17 Nov 2026").bottom);
-    expect(Math.round(box("counts").right)).toBe(Math.round(aside.parentElement!.getBoundingClientRect().right));
-  });
-
-  it("from 70rem wide, has what's aside beside the facts, and the facts in a line", async () => {
-    await render(
-      <div style={{ width: "90rem" }}>
-        <Band title="A broadcast" aside={<span>counts</span>}>
-          <BandFact label="From">hello@pauseai.uk</BandFact>
-          <BandFact label="To" tall>
-            pills
-          </BandFact>
-        </Band>
-      </div>,
-    );
-    const box = (text: string) => page.getByText(text, { exact: true }).element().getBoundingClientRect();
-    expect(box("pills").top).toBe(box("hello@pauseai.uk").top);
-    expect(box("counts").left).toBeGreaterThan(box("pills").right);
   });
 
   it("shows a plain tag on it in white, apart from the band, and a coloured one in its colour", async () => {
