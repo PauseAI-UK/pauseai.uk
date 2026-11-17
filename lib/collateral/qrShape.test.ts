@@ -60,13 +60,15 @@ describe("qrShape", () => {
   });
 
   it.each(["https://asdd.com", target, `https://pauseai.uk/${"a".repeat(150)}`])(
-    "brings the dots right up to the square around the logo for %s, whatever the code's density",
+    "leaves the same hairline between the logo and the nearest dots for %s, whatever the code's density",
     (link) => {
       const shape = qrShape(link, 1000, true);
+      const cell = shape.finderEyes[0].s / 3;
       const gaps = shape.dots.map(
         (d) => Math.max(Math.abs(d.x - shape.centre.x), Math.abs(d.y - shape.centre.y)) - d.r - shape.logoRadius!,
       );
-      expect(Math.min(...gaps)).toBeCloseTo(0, 6);
+      // A small fraction of a module.
+      expect(Math.min(...gaps) / cell).toBeCloseTo(0.15, 6);
     },
   );
 

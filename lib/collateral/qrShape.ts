@@ -41,9 +41,11 @@ const EYE_RADIUS = 0.8;
 /**
  * Radius of the square cleared for the pause symbol, as a share of the panel. Small enough that a code of any length
  * the tools take stays readable: larger, and codes 25 and 69 modules wide stop scanning. The symbol itself grows by up
- * to a module to meet the dots around the square.
+ * to a module, to just short of the dots around the square.
  */
 const LOGO_RADIUS = 0.115;
+/** The gap between the pause symbol and the nearest dots, in modules: enough that they don't quite touch. */
+const LOGO_GAP = 0.15;
 /** A dot is a touch wider than its module so neighbours join up, as in the reference style. */
 const DOT_SCALE = 1.03;
 
@@ -86,11 +88,11 @@ export function qrShape(target: string, size: number, logo: boolean): QrShape {
   const r = (cell / 2) * DOT_SCALE;
   // The logo sits on a white square as wide as it is, its corners showing: the modules cleared for it, out from
   // the middle one, are those that would touch a square LOGO_RADIUS wide. The highest error correction level
-  // covers them. The logo then grows to meet the dots left around it, so there is no gap whatever the code's
-  // density.
+  // covers them. The logo then grows to just short of the dots left around it, so the gap between them is the
+  // same hairline whatever the code's density.
   const mid = (modules - 1) / 2;
   const cleared = Math.ceil((size * LOGO_RADIUS) / cell + DOT_SCALE / 2) - 1;
-  const logoRadius = (cleared + 1) * cell - r;
+  const logoRadius = (cleared + 1) * cell - r - LOGO_GAP * cell;
 
   const dots: QrDot[] = [];
   matrix.forEach((line, row) =>
