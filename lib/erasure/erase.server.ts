@@ -58,13 +58,12 @@ export async function eraseSupporter(id: number, reference: string, by: string):
     // answers to them, whose messages go after, a text's kept only here; their links and yeses on the contact
     // preferences page; what CiviCRM has answered of what we sent it for them; and that a number of theirs isn't on
     // WhatsApp. Not an opt-out, nor one still to go, which stay.
-    const theirs = `(SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1
-                     UNION SELECT phone_number(matched_value) FROM supporter_links WHERE supporter_id = $1)`;
+    const theirs = "(SELECT lower(matched_value) FROM supporter_links WHERE supporter_id = $1)";
     // Every number they gave, hashed, so that a WhatsApp group's next upload doesn't bring them back.
     await query(
       `INSERT INTO whatsapp_erased (number_hash)
        SELECT DISTINCT whatsapp_number_hash(phone) FROM supporter_contact
-       WHERE supporter_id = $1 AND phone_number(phone) IS NOT NULL
+       WHERE supporter_id = $1 AND phone IS NOT NULL
        ON CONFLICT DO NOTHING`,
       [id],
       db,

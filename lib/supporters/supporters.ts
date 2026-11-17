@@ -47,7 +47,7 @@ export type SupporterSummary = {
   /** The newest name any source gave, or null when none did. */
   name: string | null;
   emails: string[];
-  /** Every number any source gave, as phone_number() writes them, newest first, whether we may use them or not. */
+  /** Every number any source gave, in international format, newest first, whether we may use them or not. */
   phones: string[];
   postcode: string | null;
   sources: SupporterSource[];
@@ -138,7 +138,7 @@ export type SupporterIdentity = { source: SupporterSource; email: string | null;
 export type SupporterContact = {
   source: SupporterSource;
   at: Date;
-  /** As phone_number() writes it. */
+  /** In international format. */
   phone: string | null;
   postcode: string | null;
   latitude: number | null;

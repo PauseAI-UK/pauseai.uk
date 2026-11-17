@@ -13,11 +13,17 @@ describe("phoneNumber", () => {
 });
 
 describe("withNumbersRead", () => {
-  it("reads each row's number, leaving out and counting those it can't, and leaves a row with none as it is", () => {
-    const none = { id: 3, phone: null };
-    const { rows, unread } = withNumbersRead([{ id: 1, phone: "07700 900123" }, { id: 2, phone: "0770?900123" }, none]);
-    expect(rows).toEqual([{ id: 1, phone: "+447700900123" }, { id: 2, phone: null }, none]);
-    expect(rows[2]).toBe(none);
+  it("reads each row's number, leaving out and counting those it can't, and leaves a row with none without one", () => {
+    const { rows, unread } = withNumbersRead([
+      { id: 1, phone: "07700 900123" },
+      { id: 2, phone: "0770?900123" },
+      { id: 3, phone: null },
+    ]);
+    expect(rows).toEqual([
+      { id: 1, phone: "+447700900123" },
+      { id: 2, phone: null },
+      { id: 3, phone: null },
+    ]);
     expect(unread).toBe(1);
   });
 });

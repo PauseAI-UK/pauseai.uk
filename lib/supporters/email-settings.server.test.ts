@@ -23,6 +23,7 @@ import {
   unsubscribeCopy,
 } from "./email-settings.server";
 import { addFormEntry } from "./form-entries.server";
+import { phoneNumber } from "@/lib/phone";
 import { recordOptOut } from "./opt-outs.server";
 import { inRun } from "@/lib/server/run-store.server";
 import { settingsTopics } from "./settings-view";
@@ -40,7 +41,7 @@ async function jane(consent = true) {
   await addFormEntry("march-2026-11", {
     name: "Jane Smith",
     email: JANE,
-    phone: "07700 900123",
+    phone: phoneNumber("07700 900123"),
     city: null,
     postcode: null,
     consent,
@@ -270,7 +271,7 @@ describeWithDatabase("the contact preferences page", () => {
     await addFormEntry("march-2026-11", {
       name: "Jane Smith",
       email: JANE,
-      phone: "07700 900456",
+      phone: phoneNumber("07700 900456"),
       city: null,
       postcode: null,
       consent: true,

@@ -7,8 +7,8 @@ import { query } from "@/lib/server/db.server";
 // (lib/supporters/contact-permissions.ts).
 
 /**
- * Every consent's answer for each of `emails`, then each of `phones` (as
- * phone_number() writes them), in their order, a topic at a time, each by
+ * Every consent's answer for each of `emails`, then each of `phones` (in
+ * international format), in their order, a topic at a time, each by
  * text before call.
  */
 export async function permissionsFor(emails: string[], phones: string[] = []): Promise<ContactPermission[]> {

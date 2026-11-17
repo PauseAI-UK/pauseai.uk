@@ -41,7 +41,6 @@ import { recordWhatsAppStop } from "./whatsapp-stops.server";
 import { markUnreachable, templateParams, textResult, textsLeftToday, unreachable } from "./whatsapp-texts.server";
 import { broadcastsCopy } from "./copy";
 import { emailCopy } from "@/lib/email/copy";
-import { isInternational } from "@/lib/phone";
 
 // Sending broadcasts to supporters, in the send-mailings run every 15 minutes, as
 // mailings to politicians go. A broadcast that's due starts: who it goes to
@@ -308,7 +307,7 @@ async function answers(copies: Copy[]): Promise<Map<number, "yes" | "blocked" | 
 }
 
 /** Why a copy didn't go. */
-type SkipReason = "blocked" | "unsubscribed" | "no-permission" | "suppressed" | "not-on-whatsapp" | "bad-number";
+type SkipReason = "blocked" | "unsubscribed" | "no-permission" | "suppressed" | "not-on-whatsapp";
 
 async function skip(id: number, reason: SkipReason): Promise<void> {
   await query(
@@ -626,9 +625,9 @@ async function newToken(copy: Copy): Promise<string> {
 /**
  * A copy that can't go, as CiviCRM's check blocks it, and the opt-out of
  * ours that keeps that, where it's ours to keep; or as its number isn't on
- * WhatsApp, or isn't in international format.
+ * WhatsApp.
  */
-type Blocked = { copy: Copy; optOut?: OptOut; reason?: "not-on-whatsapp" | "bad-number" };
+type Blocked = { copy: Copy; optOut?: OptOut; reason?: "not-on-whatsapp" };
 
 /**
  * How a broadcast's copies go, by its channel, for a run: its pace, whether
@@ -724,16 +723,14 @@ async function blockedEmails(copies: Copy[], said: Suppressions): Promise<Blocke
 }
 
 /**
- * The copies of a text that can't go: any whose number isn't in
- * international format, which CiviCRM wasn't asked about (textSender); any
- * whose number has CiviCRM's "Do not SMS", which stops WhatsApp too; and
- * any whose number isn't on WhatsApp. None is kept as an opt-out of ours:
- * CiviCRM's import already brings its flag into consent.
+ * The copies of a text that can't go: any whose number has CiviCRM's "Do
+ * not SMS", which stops WhatsApp too, and any whose number isn't on
+ * WhatsApp. None is kept as an opt-out of ours: CiviCRM's import already
+ * brings its flag into consent.
  */
 async function blockedNumbers(copies: Copy[], said: Suppressions): Promise<Blocked[]> {
   const off = await unreachable(copies.map((copy) => copy.address));
   return copies.flatMap((copy): Blocked[] => {
-    if (!isInternational(copy.address)) return [{ copy, reason: "bad-number" }];
     if (said.phones.get(copy.address)!.doNotSms) return [{ copy }];
     return off.has(copy.address) ? [{ copy, reason: "not-on-whatsapp" }] : [];
   });
@@ -795,8 +792,11 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
     gap: 0,
     ready: async () => true,
     remainingToday: () => textsLeftToday(backend.number.dailyLimit),
-    // CiviCRM refuses the whole check for one number not in international format: those are skipped (blockedNumbers).
-    ask: (copies) => suppressions(copies.map((copy) => copy.address).filter(isInternational), "phone"),
+    ask: (copies) =>
+      suppressions(
+        copies.map((copy) => copy.address),
+        "phone",
+      ),
     blocked: blockedNumbers,
     send: async (copy) => {
       // Its words can't be made: thrown, as nothing has gone, so it's put back.

@@ -184,7 +184,6 @@ export async function eraseFromSavedFilters(id: number, by: string, db: Queryabl
        SELECT name AS d FROM supporter_identity WHERE supporter_id = $1
        UNION SELECT email FROM supporter_identity WHERE supporter_id = $1
        UNION SELECT phone FROM supporter_contact WHERE supporter_id = $1
-       UNION SELECT phone_number(phone) FROM supporter_contact WHERE supporter_id = $1
        UNION SELECT postcode FROM supporter_contact WHERE supporter_id = $1
      ) found WHERE trim(d) <> ''`,
     [id],

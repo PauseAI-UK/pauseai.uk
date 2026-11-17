@@ -14,7 +14,7 @@ const SOURCES: Record<SectionMetric<"supporters">, MetricSource> = {
     from: `(SELECT i.supporter_id, u.at FROM contact_unsubscribes u
             JOIN supporter_identity i ON u.way = 'email' AND i.email = u.address
           UNION SELECT c.supporter_id, u.at FROM contact_unsubscribes u
-            JOIN supporter_contact c ON u.way <> 'email' AND phone_number(c.phone) = u.address) u WHERE true`,
+            JOIN supporter_contact c ON u.way <> 'email' AND c.phone = u.address) u WHERE true`,
     at: "u.at",
     count: "DISTINCT u.supporter_id",
   },

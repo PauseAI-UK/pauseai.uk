@@ -1041,45 +1041,6 @@ describeWithDatabase("sending texts", () => {
     expect(await query("SELECT 1 FROM opt_outs WHERE address = '+447700900124'")).toEqual([]);
   });
 
-  it("skips a number not in international format, asking CiviCRM nothing of it, as CiviCRM refuses the whole check for one", async () => {
-    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
-    await addFollower("usr-sam", "sam@example.com", "Sam Jones", { phone: "7700900124" });
-    server.use(
-      http.post(CHECK, async ({ request }) => {
-        const { phone } = JSON.parse(new URLSearchParams(await request.text()).get("params")!) as { phone: string[] };
-        const bad = phone.findIndex((number) => !number.startsWith("+"));
-        if (bad >= 0) {
-          return HttpResponse.json(
-            { error_message: `pauseai_core: phone ${bad} is not a number in international format.` },
-            { status: 500 },
-          );
-        }
-        return HttpResponse.json({ values: phone.map((number) => ({ phone: number, do_not_sms: false })) });
-      }),
-    );
-    const sent = whatsApp();
-    await pulled();
-    const id = await text();
-    await startDueBroadcasts();
-    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, skipped: 1, waiting: 0 });
-    expect(sent.map((one) => one.to)).toEqual(["447700900123"]);
-    expect(await copies()).toMatchObject([
-      { address: "+447700900123", status: "sent" },
-      { address: "7700900124", status: "skipped", skip: "bad-number" },
-    ]);
-    expect((await stateOf(id)).state).toBe("sent");
-  });
-
-  it("asks CiviCRM nothing when every number of a batch is skipped as not in international format", async () => {
-    await addFollower("usr-sam", "sam@example.com", "Sam Jones", { phone: "+" });
-    server.use(http.post(CHECK, () => HttpResponse.json({ error_message: "Asked" }, { status: 500 })));
-    await pulled();
-    await text();
-    await startDueBroadcasts();
-    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, skipped: 1, waiting: 0 });
-    expect(await copies()).toMatchObject([{ address: "+", status: "skipped", skip: "bad-number" }]);
-  });
-
   it("keeps what WhatsApp refuses: not on WhatsApp, stopped, held a day, too fast for now, or failed", async () => {
     for (const [n, user] of ["jane", "sam", "ann", "bo", "cy"].entries()) {
       await addFollower(`usr-${user}`, `${user}@example.com`, `${user} Smith`, { phone: `+44770090012${n}` });

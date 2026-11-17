@@ -679,10 +679,10 @@ INSERT INTO signup_upload_entries (entry_id, upload_id, new_entry) SELECT id, 1,
 -- each ticking the box; her old one is blocked further down.
 WITH entries AS (
   INSERT INTO form_entries (form, created_at, name, email, phone, city, postcode, contact_consent, utm_source) VALUES
-    ('march-2026-11', now() - interval '2 days', 'Ben Seed', 'ben.seed@example.com', '07700 900111', 'Bristol', 'BS1 1AA', true, 'nl'),
+    ('march-2026-11', now() - interval '2 days', 'Ben Seed', 'ben.seed@example.com', '+447700900111', 'Bristol', 'BS1 1AA', true, 'nl'),
     ('march-2026-11', now() - interval '1 day', 'Mo March', 'mo.march@example.com', NULL, 'Leeds', NULL, false, NULL),
-    ('march-2026-11', now() - interval '4 days', 'Dana Double', 'dana.old@example.com', '07700 900222', 'Leeds', 'LS1 1AA', true, NULL),
-    ('march-2026-11', now() - interval '3 days', 'Dana Double', 'dana.double@example.com', '07700 900222', 'Leeds', 'LS1 1AA', true, NULL)
+    ('march-2026-11', now() - interval '4 days', 'Dana Double', 'dana.old@example.com', '+447700900222', 'Leeds', 'LS1 1AA', true, NULL),
+    ('march-2026-11', now() - interval '3 days', 'Dana Double', 'dana.double@example.com', '+447700900222', 'Leeds', 'LS1 1AA', true, NULL)
   RETURNING id, email
 )
 INSERT INTO form_entry_luma (entry_id, event_id, status)
@@ -1308,7 +1308,7 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
 INSERT INTO broadcast_messages (id, mailing_id, supporter_id, address, status, provider_message_id, merge_values, skip_reason, sent_at) OVERRIDING SYSTEM VALUE
 SELECT c.id, c.mailing_id, c.supporter_id,
   CASE WHEN c.channel = 'email' THEN (SELECT email FROM luma_people WHERE user_id = c.luma_user)
-    ELSE (SELECT phone_number(g.phone) FROM luma_guests g WHERE g.user_id = c.luma_user AND g.phone IS NOT NULL ORDER BY g.registered_at DESC LIMIT 1) END,
+    ELSE (SELECT g.phone FROM luma_guests g WHERE g.user_id = c.luma_user AND g.phone IS NOT NULL ORDER BY g.registered_at DESC LIMIT 1) END,
   c.status, CASE WHEN c.status IN ('sent', 'delivered', 'failed') AND NOT c.refused THEN 'seed-broadcast-' || c.id END,
   CASE WHEN c.supporter_id IS NOT NULL THEN jsonb_build_object('name', s.name, 'place', (SELECT place FROM supporter_place WHERE supporter_id = c.supporter_id),
     'values', jsonb_build_object('firstName', split_part(s.name, ' ', 1), 'name', s.name),

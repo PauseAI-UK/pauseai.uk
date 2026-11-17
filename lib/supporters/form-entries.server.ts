@@ -1,6 +1,7 @@
 import "server-only";
 import { query, transaction } from "@/lib/server/db.server";
 import { linkSupporters } from "./records.server";
+import type { PhoneNumber } from "@/lib/phone";
 
 // Keeping a form entry: one person filling in one of our forms once
 // (form_entries; docs/domain-concepts.md, "Form entries"), and its sender
@@ -12,7 +13,7 @@ export type EntryForm = "march-2026-11";
 export type FormEntry = {
   name: string;
   email: string;
-  phone: string | null;
+  phone: PhoneNumber | null;
   city: string | null;
   postcode: string | null;
   /** The box to hear from us. */

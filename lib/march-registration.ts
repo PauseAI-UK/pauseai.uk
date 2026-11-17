@@ -3,7 +3,7 @@
 // type="email" are only a convenience, and the route can be posted to
 // directly.
 import { marchSignupCopy } from "@/lib/content/march-signup";
-import { phoneNumber } from "@/lib/phone";
+import { phoneNumber, type PhoneNumber } from "@/lib/phone";
 
 /**
  * A sign-up: the name and email Luma gets, and what else the form asks,
@@ -12,7 +12,7 @@ import { phoneNumber } from "@/lib/phone";
 export type MarchRegistration = {
   name: string;
   email: string;
-  phone: string | null;
+  phone: PhoneNumber | null;
   city: string | null;
   postcode: string | null;
   /** The box to hear from us by email and phone. */

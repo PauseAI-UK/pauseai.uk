@@ -11,7 +11,7 @@ import {
 import { sendCivicrmUpdates } from "@/lib/supporters/civicrm-updates.server";
 import { recordCivicrmLists } from "@/lib/supporters/opt-outs.server";
 import { problem } from "@/lib/server/problems.server";
-import { withNumbersRead } from "@/lib/phone";
+import { withNumbersRead, type NumbersRead } from "@/lib/phone";
 import { resendAfterFix } from "@/lib/letters/relays.server";
 import { refreshSupporterFacts, refreshSupportersList } from "@/lib/supporters/facts.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
@@ -70,7 +70,10 @@ const DETAILS = ["first_name", "last_name", "city", "postal_code", "joined_date"
  * from now, and one marked gone back. Returns how many were added and how
  * many changed.
  */
-async function upsertContacts(contacts: CivicrmContact[], db: Queryable): Promise<{ added: number; changed: number }> {
+async function upsertContacts(
+  contacts: NumbersRead<CivicrmContact>[],
+  db: Queryable,
+): Promise<{ added: number; changed: number }> {
   const sets = [
     ...["airtable_id", "email", ...DETAILS].map((field) => `${field} = EXCLUDED.${field}`),
     ...FIELDS.map(

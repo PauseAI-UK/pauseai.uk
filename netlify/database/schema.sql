@@ -52,6 +52,13 @@ CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
 COMMENT ON EXTENSION unaccent IS 'text search dictionary that removes accents';
 
 --
+-- Name: phone; Type: DOMAIN; Schema: public; Owner: -
+--
+
+CREATE DOMAIN public.phone AS text
+	CONSTRAINT phone_check CHECK ((VALUE ~ '^\+[1-9][0-9]{6,14}$'::text));
+
+--
 -- Name: civicrm_joined_at(date, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -73,7 +80,7 @@ WITH
   civi AS (
     SELECT c.* FROM civicrm_contacts c WHERE for_way = 'email' AND c.email = for_address
     UNION
-    SELECT c.* FROM civicrm_contacts c WHERE for_way <> 'email' AND phone_number(c.phone) = for_address
+    SELECT c.* FROM civicrm_contacts c WHERE for_way <> 'email' AND c.phone = for_address
   ),
   -- The contacts who gave the number, for a volunteering call or text, each
   -- with whether they wanted to volunteer, and when they joined.
@@ -83,7 +90,7 @@ WITH
       civicrm_joined_at(c.joined_date, c.first_seen_at) AS at, 'civicrm' AS source
     FROM civi c
     WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND c.gone_at IS NULL
-      AND phone_number(c.phone) = for_address
+      AND c.phone = for_address
   ),
   -- The latest lift of "No bulk emails" on the email settings page that
   -- CiviCRM hasn't refused.
@@ -132,13 +139,13 @@ WITH
     FROM form_entries f
     WHERE for_topic = 'newsletter' AND f.contact_consent
       AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
-        OR (for_way = 'text' AND phone_number(f.phone) = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
+        OR (for_way = 'text' AND f.phone = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
     UNION ALL
     -- In our WhatsApp community, unless they've opted out since, or before.
     SELECT 'yes', 'joined-whatsapp', min(f.created_at), 'whatsapp-community'
     FROM form_entries f
     WHERE for_topic = 'newsletter' AND for_way = 'text' AND f.form = 'whatsapp-community'
-      AND phone_number(f.phone) = for_address
+      AND f.phone = for_address
       AND NOT EXISTS (SELECT 1 FROM opt_outs o WHERE o.way = 'text' AND o.address = for_address
         AND o.list = 'newsletter' AND o.resubscribed_at IS NULL)
     HAVING count(*) > 0
@@ -171,7 +178,7 @@ WITH
             LEFT JOIN opt_outs o ON o.way = 'email' AND o.list = 'events' AND o.address = l.email
               AND o.resubscribed_at IS NULL
           WHERE l.contact_since IS NOT NULL
-            AND l.user_id IN (SELECT g.user_id FROM luma_guests g WHERE phone_number(g.phone) = for_address)
+            AND l.user_id IN (SELECT g.user_id FROM luma_guests g WHERE g.phone = for_address)
           ORDER BY o.id IS NULL DESC, coalesce(o.unsubscribed_at, l.contact_since) DESC
           LIMIT 1) a
     WHERE for_way = 'text' AND for_topic = 'events'
@@ -179,7 +186,7 @@ WITH
     -- A number for text updates on a day still to end.
     SELECT 'yes', 'gave-number', f.created_at, f.form
     FROM form_entries f JOIN day_texts d ON d.form = f.form
-    WHERE for_way = 'text' AND for_topic = 'events' AND phone_number(f.phone) = for_address AND now() < d.ends_at
+    WHERE for_way = 'text' AND for_topic = 'events' AND f.phone = for_address AND now() < d.ends_at
     UNION ALL
     -- A contact who chose to volunteer gave the number.
     SELECT 'yes', 'volunteered', c.at, c.source FROM callers c WHERE c.volunteer
@@ -189,7 +196,7 @@ WITH
     FROM form_entries f
     WHERE for_topic = 'newsletter' AND NOT f.contact_consent
       AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
-        OR (for_way = 'text' AND phone_number(f.phone) = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
+        OR (for_way = 'text' AND f.phone = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
     UNION ALL
     SELECT 'not-volunteer', c.at, c.source FROM callers c WHERE NOT c.volunteer
     UNION ALL
@@ -205,7 +212,7 @@ WITH
     SELECT 'left', c.gone_at, 'civicrm'
     FROM civi c
     WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND c.gone_at IS NOT NULL
-      AND phone_number(c.phone) = for_address
+      AND c.phone = for_address
     UNION ALL
     SELECT 'not-following', NULL, 'luma'
     FROM luma_people l
@@ -213,11 +220,11 @@ WITH
     UNION ALL
     SELECT 'not-following', NULL, 'luma'
     FROM luma_guests g
-    WHERE for_way = 'text' AND for_topic = 'events' AND phone_number(g.phone) = for_address
+    WHERE for_way = 'text' AND for_topic = 'events' AND g.phone = for_address
     UNION ALL
     SELECT 'ended', d.ends_at, f.form
     FROM form_entries f JOIN day_texts d ON d.form = f.form
-    WHERE for_way = 'text' AND for_topic = 'events' AND phone_number(f.phone) = for_address AND now() >= d.ends_at
+    WHERE for_way = 'text' AND for_topic = 'events' AND f.phone = for_address AND now() >= d.ends_at
   )
 SELECT r.send, r.reason, r.at, r.source FROM (
   (SELECT 1 AS tier, s.rank, 'no' AS send, s.reason, s.at, s.source FROM stops s ORDER BY s.rank, s.at LIMIT 1)
@@ -243,8 +250,8 @@ DECLARE
   merged boolean;
 BEGIN
   IF only_for IS NOT NULL THEN
-    numbers := (SELECT array_agg(DISTINCT phone_number(c.phone)) FROM supporter_contact c
-                WHERE c.supporter_id = ANY(only_for) AND phone_number(c.phone) IS NOT NULL);
+    numbers := (SELECT array_agg(DISTINCT c.phone) FROM supporter_contact c
+                WHERE c.supporter_id = ANY(only_for) AND c.phone IS NOT NULL);
     IF numbers IS NULL THEN
       RETURN;
     END IF;
@@ -253,11 +260,11 @@ BEGIN
     merged := false;
     FOR pair IN
       WITH given AS (
-        SELECT k.supporter_id, phone_number(g.phone) AS phone, false AS whatsapp FROM luma_guests g
+        SELECT k.supporter_id, g.phone AS phone, false AS whatsapp FROM luma_guests g
           JOIN supporter_links k ON k.luma_user_id = g.user_id
-        UNION SELECT k.supporter_id, phone_number(f.phone), f.form = 'whatsapp-community' FROM form_entries f
+        UNION SELECT k.supporter_id, f.phone, f.form = 'whatsapp-community' FROM form_entries f
           JOIN supporter_links k ON k.form_entry_id = f.id
-        UNION SELECT k.supporter_id, phone_number(c.phone), false FROM civicrm_contacts c
+        UNION SELECT k.supporter_id, c.phone, false FROM civicrm_contacts c
           JOIN supporter_links k ON k.civicrm_contact_id = c.contact_id
       ),
       held AS (
@@ -286,24 +293,6 @@ BEGIN
   END LOOP;
 END
 $$;
-
---
--- Name: phone_number(text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.phone_number(raw text) RETURNS text
-    LANGUAGE sql IMMUTABLE
-    AS $_$
-SELECT CASE
-  WHEN d IS NULL OR d = '' THEN NULL
-  WHEN d ~ '^\+440[1-9][0-9]{8,9}$' THEN '+44' || substr(d, 5)
-  WHEN d ~ '^\+[1-9][0-9]{6,14}$' THEN d
-  WHEN d ~ '^00[1-9][0-9]{6,14}$' THEN '+' || substr(d, 3)
-  WHEN d ~ '^0[1-9][0-9]{8,9}$' THEN '+44' || substr(d, 2)
-  WHEN d ~ '^44[1-9][0-9]{9}$' THEN '+' || d
-  ELSE btrim(raw) END
-FROM (SELECT regexp_replace(raw, '[[:space:]().-]', '', 'g') AS d) n
-$_$;
 
 --
 -- Name: phone_usable(text); Type: FUNCTION; Schema: public; Owner: -
@@ -357,6 +346,7 @@ CREATE TABLE public.civicrm_contacts (
     CONSTRAINT civicrm_contacts_email_check CHECK ((email = lower(email))),
     CONSTRAINT civicrm_contacts_intent_check CHECK ((intent = ANY (ARRAY['act_now'::text, 'volunteer'::text, 'lead'::text, 'none'::text, 'keep_informed'::text]))),
     CONSTRAINT civicrm_contacts_newsletter_check CHECK ((newsletter = ANY (ARRAY['subscribed'::text, 'unsubscribed'::text, 'not_opted_in'::text, 'not_on_list'::text]))),
+    CONSTRAINT civicrm_contacts_phone_check CHECK ((NOT (((phone)::public.phone)::text IS DISTINCT FROM phone))),
     CONSTRAINT civicrm_contacts_volunteer_updates_check CHECK ((volunteer_updates = ANY (ARRAY['subscribed'::text, 'unsubscribed'::text, 'not_opted_in'::text, 'not_on_list'::text])))
 );
 
@@ -378,7 +368,8 @@ CREATE TABLE public.form_entries (
     utm_source text,
     bulk_notice_at timestamp with time zone,
     CONSTRAINT form_entries_email_check CHECK (((email IS NOT NULL) OR ((form = 'whatsapp-community'::text) AND (phone IS NOT NULL)))),
-    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text])))
+    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text]))),
+    CONSTRAINT form_entries_phone_check CHECK ((NOT (((phone)::public.phone)::text IS DISTINCT FROM phone)))
 );
 
 --
@@ -490,7 +481,8 @@ CREATE TABLE public.luma_guests (
     utm_source text,
     removed_at timestamp with time zone,
     changed_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT luma_guests_approval_status_check CHECK ((approval_status = ANY (ARRAY['approved'::text, 'pending_approval'::text, 'waitlist'::text, 'declined'::text])))
+    CONSTRAINT luma_guests_approval_status_check CHECK ((approval_status = ANY (ARRAY['approved'::text, 'pending_approval'::text, 'waitlist'::text, 'declined'::text]))),
+    CONSTRAINT luma_guests_phone_check CHECK ((NOT (((phone)::public.phone)::text IS DISTINCT FROM phone)))
 );
 
 --
@@ -564,6 +556,7 @@ CREATE TABLE public.opt_outs (
     CONSTRAINT opt_outs_bulk_email CHECK (((list <> 'bulk'::text) OR (way = 'email'::text))),
     CONSTRAINT opt_outs_how CHECK (((source = 'staff'::text) = ((how IS NOT NULL) AND (how <> ''::text)))),
     CONSTRAINT opt_outs_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text, 'bulk'::text, 'all'::text]))),
+    CONSTRAINT opt_outs_number_check CHECK (((way = 'email'::text) OR (NOT (((address)::public.phone)::text IS DISTINCT FROM address)))),
     CONSTRAINT opt_outs_recorded_by CHECK (((source = ANY (ARRAY['staff'::text, 'reply'::text])) = (recorded_by IS NOT NULL))),
     CONSTRAINT opt_outs_recorded_by_check CHECK ((recorded_by = lower(recorded_by))),
     CONSTRAINT opt_outs_source_check CHECK ((source = ANY (ARRAY['luma-webhook'::text, 'luma-contacts'::text, 'civicrm'::text, 'link'::text, 'list-unsubscribe'::text, 'postmark-complaint'::text, 'reply'::text, 'staff'::text, 'preferences'::text, 'civicrm-check'::text, 'whatsapp'::text]))),
@@ -710,7 +703,8 @@ CREATE TABLE public.supporter_links (
     civicrm_contact_id bigint,
     CONSTRAINT supporter_links_check CHECK ((num_nonnulls(luma_user_id, form_entry_id, civicrm_contact_id) = 1)),
     CONSTRAINT supporter_links_matched_by_check CHECK ((matched_by = ANY (ARRAY['email'::text, 'phone'::text]))),
-    CONSTRAINT supporter_links_matched_value_check CHECK ((matched_value = lower(matched_value)))
+    CONSTRAINT supporter_links_matched_value_check CHECK ((matched_value = lower(matched_value))),
+    CONSTRAINT supporter_links_number_check CHECK (((matched_by <> 'phone'::text) OR (NOT (((matched_value)::public.phone)::text IS DISTINCT FROM matched_value))))
 );
 
 --
@@ -1079,11 +1073,11 @@ CREATE VIEW public.supporters_summary AS
          SELECT n.supporter_id,
             array_agg(n.number ORDER BY n.at DESC, n.number) AS phones
            FROM ( SELECT c.supporter_id,
-                    public.phone_number(c.phone) AS number,
+                    c.phone AS number,
                     max(c.at) AS at
                    FROM public.supporter_contact c
-                  WHERE (public.phone_number(c.phone) IS NOT NULL)
-                  GROUP BY c.supporter_id, (public.phone_number(c.phone))) n
+                  WHERE (c.phone IS NOT NULL)
+                  GROUP BY c.supporter_id, c.phone) n
           GROUP BY n.supporter_id
         )
  SELECT s.id,
@@ -1173,9 +1167,7 @@ $$;
 
 CREATE FUNCTION public.whatsapp_number_hash(number text) RETURNS text
     LANGUAGE sql IMMUTABLE
-    AS $$
-SELECT encode(sha256(convert_to(phone_number(number), 'UTF8')), 'hex')
-$$;
+    AS $$ SELECT encode(sha256(convert_to(number::phone, 'UTF8')), 'hex') $$;
 
 --
 -- Name: ask_kind_statuses; Type: TABLE; Schema: public; Owner: -
@@ -1373,6 +1365,7 @@ CREATE TABLE public.broadcast_replies (
     CONSTRAINT broadcast_replies_dealt_by_check CHECK ((dealt_by = lower(dealt_by))),
     CONSTRAINT broadcast_replies_from_address_check CHECK ((from_address = lower(from_address))),
     CONSTRAINT broadcast_replies_gmail CHECK ((num_nonnulls(account, gmail_message_id, gmail_thread_id, blob_key) = ANY (ARRAY[0, 4]))),
+    CONSTRAINT broadcast_replies_number_check CHECK (((provider_message_id IS NULL) OR (NOT (((from_address)::public.phone)::text IS DISTINCT FROM from_address)))),
     CONSTRAINT broadcast_replies_one_kind CHECK ((num_nonnulls(gmail_message_id, provider_message_id) = 1)),
     CONSTRAINT broadcast_replies_outcome_check CHECK ((outcome = ANY (ARRAY['opted-out'::text, 'nothing'::text, 'answered'::text]))),
     CONSTRAINT broadcast_replies_whatsapp CHECK (((provider_message_id IS NULL) = (body IS NULL)))
@@ -1445,6 +1438,7 @@ CREATE TABLE public.civicrm_updates (
     CONSTRAINT civicrm_updates_email_or_phone CHECK ((num_nonnulls(email, phone) = 1)),
     CONSTRAINT civicrm_updates_list_check CHECK ((list = ANY (ARRAY['newsletter'::text, 'volunteer_updates'::text]))),
     CONSTRAINT civicrm_updates_phone CHECK (((phone IS NOT NULL) = (change = ANY (ARRAY['do_not_sms'::text, 'do_not_phone'::text])))),
+    CONSTRAINT civicrm_updates_phone_check CHECK ((NOT (((phone)::public.phone)::text IS DISTINCT FROM phone))),
     CONSTRAINT civicrm_updates_status_check CHECK ((status = ANY (ARRAY['accepted'::text, 'refused'::text, 'invalid'::text])))
 );
 
@@ -1485,6 +1479,7 @@ CREATE TABLE public.preference_choices (
     CONSTRAINT preference_choices_check CHECK (((way <> 'email'::text) OR (address = lower(address)))),
     CONSTRAINT preference_choices_check1 CHECK (((topic <> 'bulk'::text) OR (way = 'email'::text))),
     CONSTRAINT preference_choices_check2 CHECK (((refused_at IS NULL) OR (topic = 'bulk'::text))),
+    CONSTRAINT preference_choices_number_check CHECK (((way = 'email'::text) OR (NOT (((address)::public.phone)::text IS DISTINCT FROM address)))),
     CONSTRAINT preference_choices_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text, 'bulk'::text]))),
     CONSTRAINT preference_choices_way_check CHECK ((way = ANY (ARRAY['email'::text, 'text'::text, 'call'::text]))),
     CONSTRAINT preference_choices_wording_check CHECK ((wording <> ''::text))
@@ -1544,29 +1539,29 @@ CREATE VIEW public.phone_permissions AS
     d.source
    FROM (( SELECT 'newsletter'::text AS topic,
             'text'::text AS way,
-            public.phone_number(form_entries.phone) AS address
+            form_entries.phone AS address
            FROM public.form_entries
-          WHERE ((form_entries.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text])) AND (public.phone_number(form_entries.phone) IS NOT NULL))
+          WHERE ((form_entries.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text])) AND (form_entries.phone IS NOT NULL))
         UNION
-         SELECT 'events'::text,
-            'text'::text,
-            public.phone_number(luma_guests.phone) AS phone_number
+         SELECT 'events'::text AS text,
+            'text'::text AS text,
+            luma_guests.phone AS phone_number
            FROM public.luma_guests
-          WHERE (public.phone_number(luma_guests.phone) IS NOT NULL)
+          WHERE (luma_guests.phone IS NOT NULL)
         UNION
-         SELECT 'events'::text,
-            'text'::text,
-            public.phone_number(form_entries.phone) AS phone_number
+         SELECT 'events'::text AS text,
+            'text'::text AS text,
+            form_entries.phone AS phone_number
            FROM public.form_entries
           WHERE ((form_entries.form IN ( SELECT day_texts.form
-                   FROM public.day_texts)) AND (public.phone_number(form_entries.phone) IS NOT NULL))
+                   FROM public.day_texts)) AND (form_entries.phone IS NOT NULL))
         UNION
-         SELECT 'volunteering'::text,
+         SELECT 'volunteering'::text AS text,
             w.way,
-            public.phone_number(civicrm_contacts.phone) AS phone_number
+            civicrm_contacts.phone AS phone_number
            FROM public.civicrm_contacts,
             ( VALUES ('call'::text), ('text'::text)) w(way)
-          WHERE (public.phone_number(civicrm_contacts.phone) IS NOT NULL)
+          WHERE (civicrm_contacts.phone IS NOT NULL)
         UNION
          SELECT opt_outs.list,
             opt_outs.way,
@@ -2604,7 +2599,8 @@ ALTER TABLE public.whatsapp_templates ALTER COLUMN id ADD GENERATED ALWAYS AS ID
 CREATE TABLE public.whatsapp_unreachable (
     number text NOT NULL,
     at timestamp with time zone DEFAULT now() NOT NULL,
-    message_id bigint
+    message_id bigint,
+    CONSTRAINT whatsapp_unreachable_number_check CHECK ((NOT (((number)::public.phone)::text IS DISTINCT FROM number)))
 );
 
 --
@@ -3428,7 +3424,7 @@ CREATE INDEX civicrm_contacts_email ON public.civicrm_contacts USING btree (emai
 -- Name: civicrm_contacts_phone; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX civicrm_contacts_phone ON public.civicrm_contacts USING btree (public.phone_number(phone));
+CREATE INDEX civicrm_contacts_phone ON public.civicrm_contacts USING btree (phone);
 
 --
 -- Name: civicrm_updates_email; Type: INDEX; Schema: public; Owner: -
@@ -3530,7 +3526,7 @@ CREATE INDEX form_entries_email ON public.form_entries USING btree (lower(TRIM(B
 -- Name: form_entries_phone; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX form_entries_phone ON public.form_entries USING btree (public.phone_number(phone));
+CREATE INDEX form_entries_phone ON public.form_entries USING btree (phone);
 
 --
 -- Name: import_runs_job_at; Type: INDEX; Schema: public; Owner: -
@@ -3602,7 +3598,7 @@ CREATE INDEX luma_guests_event ON public.luma_guests USING btree (event_id);
 -- Name: luma_guests_phone; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX luma_guests_phone ON public.luma_guests USING btree (public.phone_number(phone));
+CREATE INDEX luma_guests_phone ON public.luma_guests USING btree (phone);
 
 --
 -- Name: luma_guests_user; Type: INDEX; Schema: public; Owner: -
