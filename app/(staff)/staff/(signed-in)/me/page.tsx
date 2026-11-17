@@ -11,6 +11,7 @@ import StaffSessions from "../../_components/accounts/StaffSessions";
 import Grid from "../../_components/ui/Grid";
 import Page from "../../_components/ui/Page";
 import PageHead from "../../_components/ui/PageHead";
+import StaffMember from "../../_components/ui/StaffMember";
 import { accountsCopy } from "../../_components/accounts/copy";
 
 export const metadata: Metadata = { title: accountsCopy.me.title };
@@ -21,7 +22,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<R
   const [account, sessions] = await Promise.all([gmailAccount(email), listSessions(email, token)]);
   return (
     <Page kind="board">
-      <PageHead intro={email}>{accountsCopy.me.title}</PageHead>
+      <PageHead intro={<StaffMember email={email} />}>{accountsCopy.me.title}</PageHead>
       <Grid even>
         <StaffSessions sessions={sessions} />
         <MyGmail

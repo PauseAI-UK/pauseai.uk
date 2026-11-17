@@ -52,6 +52,8 @@ const config = {
   // selectors, deprecated CSS), not style: Prettier does the formatting.
   extends: ["stylelint-config-recommended"],
   ignoreFiles: [
+    // Agents' worktrees: whole checkouts of other branches.
+    ".claude/**",
     "coverage/**",
     "playwright-report/**",
     "test-results/**",

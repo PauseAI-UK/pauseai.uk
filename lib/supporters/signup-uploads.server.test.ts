@@ -7,7 +7,7 @@ import { notifications } from "@/tests/notifications";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { query } from "@/lib/server/db.server";
 import { eraseSupporter } from "@/lib/erasure/erase.server";
-import { linkSupporters } from "./records.server";
+import { getSupporter, linkSupporters } from "./records.server";
 import {
   finishSignupUpload,
   getSignupUpload,
@@ -483,6 +483,17 @@ ${"x".repeat(101)},07700900444,`),
     const [{ supporters }] = await query<{ supporters: number }>("SELECT count(*)::int AS supporters FROM supporters");
     expect(supporters).toBe(1);
     expect((await getSignupUpload(other))!.town).toBeNull();
+  });
+
+  it("gives a supporter's page the town of each group they're in that has one", async () => {
+    await place("oxford");
+    await place("leeds");
+    const oxford = await imported(group("Phone\n07700900123", { note: "Oxford", town: "Oxford" }));
+    await imported(group("Phone\n07700900123", { note: "Whole community" }));
+    await imported(group("Phone\n07700900999", { note: "Leeds", town: "Leeds" }));
+    const [person] = (await getSignupUpload(oxford))!.people;
+    const { groupTowns } = (await getSupporter(person.supporterId!))!;
+    expect(groupTowns).toEqual([{ town: "Oxford", group: "Oxford", at: expect.any(Date) }]);
   });
 
   it("merges a WhatsApp number abroad with a later Luma guest's, but not two forms' numbers abroad", async () => {

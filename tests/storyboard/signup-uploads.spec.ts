@@ -351,6 +351,28 @@ test("A local WhatsApp group", async ({ page, flowDatabase }) => {
     .click();
   await expect(page.getByRole("link", { name: "PauseAI UK Oxford" })).toBeVisible();
   await frame(page, "A WhatsApp member's page");
+
+  story("Everything we hold about them has the group's town, as the group gave it, not they themselves.");
+  const everything = page.locator("summary", {
+    has: page.getByRole("heading", { name: supportersCopy.supporters.detail.everythingTitle }),
+  });
+  await everything.click();
+  const town = page.getByRole("row").filter({ hasText: supportersCopy.supporters.detail.held.town });
+  await expect(town).toContainText("PauseAI UK Oxford");
+  await town.scrollIntoViewIfNeeded();
+  await frame(page, "The group's town, among everything we hold", { window: true });
+});
+
+test("Changing where they signed up", async ({ page, flowDatabase }) => {
+  story("Staff drop in a paper sign-up file, then see it's a WhatsApp group's, and choose that instead.");
+  await openUpload(page, flowDatabase);
+  await chooseFile(page, "street-flyering.csv");
+  await expect(page.getByLabel(copy.drop.label)).toHaveCount(0);
+  await frame(page, "A paper file chosen");
+  story("The file was chosen for paper, so it goes, to choose again for the group; what's typed stays.");
+  await page.getByRole("radio", { name: copy.kind.whatsapp }).click();
+  await expect(page.getByText(copy.drop.title)).toBeVisible();
+  await frame(page, "WhatsApp chosen: the file to choose again");
 });
 
 test("A big WhatsApp group", async ({ page, flowDatabase, request }) => {

@@ -2568,14 +2568,18 @@ CREATE TABLE public.whatsapp_templates (
     category text,
     stopped_at timestamp with time zone,
     footer text,
+    deleted_at timestamp with time zone,
+    deleted_by text,
     CONSTRAINT whatsapp_templates_category_check CHECK ((category = ANY (ARRAY['MARKETING'::text, 'UTILITY'::text, 'AUTHENTICATION'::text]))),
     CONSTRAINT whatsapp_templates_check CHECK (((status <> 'approved'::text) OR (approved_at IS NOT NULL))),
     CONSTRAINT whatsapp_templates_check1 CHECK (((status = 'rejected'::text) = (rejected_at IS NOT NULL))),
     CONSTRAINT whatsapp_templates_check2 CHECK (((status = 'rejected'::text) = (rejected_reason IS NOT NULL))),
     CONSTRAINT whatsapp_templates_created_by_check CHECK ((created_by = lower(created_by))),
+    CONSTRAINT whatsapp_templates_deleted CHECK (((status = 'deleted'::text) = ((deleted_at IS NOT NULL) AND (deleted_by IS NOT NULL)))),
+    CONSTRAINT whatsapp_templates_deleted_by_check CHECK ((deleted_by = lower(deleted_by))),
     CONSTRAINT whatsapp_templates_meta_name_check CHECK ((meta_name ~ '^[a-z0-9_]+$'::text)),
     CONSTRAINT whatsapp_templates_name_check CHECK ((name <> ''::text)),
-    CONSTRAINT whatsapp_templates_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'paused'::text, 'disabled'::text]))),
+    CONSTRAINT whatsapp_templates_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'paused'::text, 'disabled'::text, 'deleted'::text]))),
     CONSTRAINT whatsapp_templates_stopped CHECK (((status = ANY (ARRAY['paused'::text, 'disabled'::text])) = (stopped_at IS NOT NULL)))
 );
 

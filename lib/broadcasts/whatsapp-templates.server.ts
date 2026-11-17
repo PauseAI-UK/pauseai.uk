@@ -15,6 +15,7 @@ import { broadcastsCopy } from "./copy";
 // disabled for its quality, which stops the texts on it, or approved again.
 // A template is found by the name WhatsApp has it by: one sent from here
 // has its own (meta_name); one made in WhatsApp Manager is called that here.
+// One staff deleted is passed over, as its name may be WhatsApp's for another.
 
 /**
  * Applies a status WhatsApp gives template `name`, and the category it
@@ -27,7 +28,7 @@ export async function applyTemplateStatus(
   category?: string,
 ): Promise<boolean> {
   const [template] = await query<{ id: number; status: string; name: string }>(
-    "SELECT id::int AS id, status, name FROM whatsapp_templates WHERE coalesce(meta_name, name) = $1",
+    "SELECT id::int AS id, status, name FROM whatsapp_templates WHERE coalesce(meta_name, name) = $1 AND status <> 'deleted'",
     [name],
   );
   if (!template) return false;

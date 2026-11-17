@@ -13,8 +13,9 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = join(__dirname, "..", "..");
 
-/** Generated, installed or local-only. */
+/** Generated, installed or local-only: .claude holds agents' worktrees, whole checkouts of other branches. */
 const SKIP_DIRS = new Set([
+  ".claude",
   ".git",
   ".netlify",
   ".next",

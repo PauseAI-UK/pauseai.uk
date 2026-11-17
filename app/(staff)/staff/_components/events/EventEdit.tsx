@@ -11,6 +11,7 @@ import Bubble from "@/components/ui/Bubble";
 import Notice from "../ui/Notice";
 import styles from "./EventsTable.module.css";
 import { eventsCopy } from "@/lib/events/copy";
+import { staffMemberText } from "@/lib/staff-member";
 
 const copy = eventsCopy.events;
 
@@ -31,7 +32,7 @@ export function EventsEditing({ children }: { children: ReactNode }) {
       <span role="status" className={styles.emailed}>
         {saved?.owner && saved.emailed.length > 0 && (
           <Notice close={copy.closeEmailed} onClose={() => setSaved(undefined)}>
-            {copy.emailed(saved.emailed, saved.owner)}
+            {copy.emailed(saved.emailed.map(staffMemberText), staffMemberText(saved.owner))}
           </Notice>
         )}
       </span>
@@ -100,7 +101,7 @@ export function EventEdit({
           )}
           {staff.map((email) => (
             <option key={email} value={email}>
-              {email}
+              {staffMemberText(email)}
             </option>
           ))}
         </Select>

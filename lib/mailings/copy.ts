@@ -81,7 +81,8 @@ export const mailingsCopy = {
       saving: "Saving…",
       saved: "Saved",
       failed: "Couldn't save. Make another change to try saving again.",
-      conflict: "Not saved: changed elsewhere",
+      conflict: "Not saved. It changed elsewhere.",
+      outdated: "Not saved. Reload the page first.",
     } as Record<string, string>,
     deleteDraft: "Delete draft",
     // The numbered sections of a new mailing.

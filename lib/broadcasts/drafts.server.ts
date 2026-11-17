@@ -17,6 +17,7 @@ import {
   isAvailableSendBy,
   rejectionWords,
   restsUntil,
+  sameWords,
   termsValues,
   BROADCAST_SENDER,
   DEFAULT_SEND_BY,
@@ -74,8 +75,11 @@ export type WhatsAppTemplate = {
   id: number;
   name: string;
   body: MailingDoc;
-  /** Waiting for WhatsApp, approved, rejected; or, once approved, paused or disabled by WhatsApp for its quality. */
-  status: "pending" | "approved" | "rejected" | "paused" | "disabled";
+  /**
+   * Waiting for WhatsApp, approved, rejected; or, once approved, paused or
+   * disabled by WhatsApp for its quality, or deleted by staff.
+   */
+  status: "pending" | "approved" | "rejected" | "paused" | "disabled" | "deleted";
   /** What WhatsApp approved it as, which may not be what it was sent as; null till it has. */
   category: "MARKETING" | "UTILITY" | "AUTHENTICATION" | null;
   /** The name WhatsApp has it by, for one sent from here; one made in WhatsApp Manager has its own name there. */
@@ -92,7 +96,14 @@ export type WhatsAppTemplate = {
   /** When it last went, and to how many; none if it never has. */
   lastUsedAt: Date | null;
   lastUsedTo: number;
+  /** When the soonest broadcast scheduled with it goes; none if none is. */
+  nextScheduledAt: Date | null;
+  /** How many broadcasts have it: sent, or stopped once sending; scheduled or sending; and drafts. */
+  uses: TemplateUses;
 };
+
+/** How many broadcasts have a template, by how far they've got. */
+export type TemplateUses = { sent: number; scheduled: number; drafts: number };
 
 export type WrittenBroadcast = WrittenMailing & {
   /** The subject, for an email; for a text, its template's name or its first words. */
@@ -118,16 +129,26 @@ export type WrittenBroadcast = WrittenMailing & {
 
 const SELECT_TEMPLATES = `
   SELECT t.id::int AS id, t.name, t.body, t.status, t.category, t.meta_name AS "metaName", t.created_by AS "createdBy", t.approved_at AS "approvedAt", t.created_at AS "requestedAt",
-    t.rejected_at AS "rejectedAt", t.rejected_reason AS "rejectedReason", t.footer, u.at AS "lastUsedAt", coalesce(u.n, 0)::int AS "lastUsedTo"
+    t.rejected_at AS "rejectedAt", t.rejected_reason AS "rejectedReason", t.footer, u.at AS "lastUsedAt", coalesce(u.n, 0)::int AS "lastUsedTo",
+    (SELECT min(m.due_at) FROM mailings m WHERE m.template_id = t.id AND m.state = 'scheduled') AS "nextScheduledAt",
+    (SELECT json_build_object(
+       'sent', count(*) FILTER (WHERE m.state IN ('sent', 'cancelled')),
+       'scheduled', count(*) FILTER (WHERE m.state IN ('scheduled', 'sending')),
+       'drafts', count(*) FILTER (WHERE m.state = 'draft'))
+     FROM mailings m WHERE m.template_id = t.id) AS uses
   FROM whatsapp_templates t LEFT JOIN LATERAL (
     SELECT m.due_at AS at, (SELECT count(*) FROM broadcast_messages c WHERE c.mailing_id = m.id) AS n
     FROM mailings m WHERE m.template_id = t.id AND m.state IN ('sending', 'sent', 'cancelled')
     ORDER BY m.due_at DESC LIMIT 1) u ON true`;
 
-/** The templates WhatsApp has approved, most recently used first, then newest approved. */
+/**
+ * The templates WhatsApp has approved, by the later of when each was
+ * approved and last used, the latest first: so one just approved, such as a
+ * template's words edited, is first, as is one just used.
+ */
 export async function approvedTemplates(): Promise<WhatsAppTemplate[]> {
   return query<WhatsAppTemplate>(
-    `${SELECT_TEMPLATES} WHERE t.status = 'approved' ORDER BY u.at DESC NULLS LAST, t.approved_at DESC, t.id DESC`,
+    `${SELECT_TEMPLATES} WHERE t.status = 'approved' ORDER BY greatest(u.at, t.approved_at) DESC, t.id DESC`,
   );
 }
 
@@ -356,14 +377,19 @@ export async function broadcastSender(
 async function scheduleProblems(
   broadcast: WrittenBroadcast,
 ): Promise<{ problems: BroadcastScheduleProblem[]; recipients: number }> {
-  const [audience, unknown, sender, number] = await Promise.all([
+  const [audience, unknown, sender, number, templates] = await Promise.all([
     supporterAudience(broadcast.filter, broadcast),
     filterProblems(broadcast.filter),
     broadcastSender(broadcast),
     textSenderNumber(),
+    query<{ body: MailingDoc }>("SELECT body FROM whatsapp_templates WHERE status = 'approved'"),
   ]);
   const problems = broadcastScheduleProblems({
     ...broadcast,
+    sameWords: sameWords(
+      broadcast.body,
+      templates.map((template) => template.body),
+    ),
     recipients: audience.recipients.length,
     unknown,
     ...sender,
@@ -617,6 +643,45 @@ export async function withdrawTemplate(id: number, by: string): Promise<boolean>
     }
   }
   return true;
+}
+
+/** How deleting a template went: deleted; or not, as a broadcast has it, it's not approved now, or WhatsApp refused. */
+export type TemplateDeleteResult = "deleted" | "used" | "gone" | "failed";
+
+/**
+ * Deletes approved template `id` from WhatsApp, and marks it deleted here,
+ * where it's kept: only one no broadcast has ever had, draft or sent, as
+ * one sent names it and takes its footer from it, and WhatsApp won't let a
+ * new one take its name for 30 days. WhatsApp first, so nothing changes here
+ * if it refuses.
+ */
+export async function deleteApprovedTemplate(id: number, by: string): Promise<TemplateDeleteResult> {
+  return transaction(async (db) => {
+    const [template] = await query<{ name: string; used: boolean }>(
+      `SELECT coalesce(t.meta_name, t.name) AS name, EXISTS (SELECT 1 FROM mailings m WHERE m.template_id = t.id) AS used
+       FROM whatsapp_templates t WHERE t.id = $1 AND t.status = 'approved' FOR UPDATE`,
+      [id],
+      db,
+    );
+    if (!template) return "gone";
+    if (template.used) return "used";
+    // With no keys, as on a deploy preview, nothing can reach WhatsApp.
+    const backend = await textBackend();
+    if (!backend) return "failed";
+    try {
+      await deleteTemplate(backend.keys, template.name);
+    } catch (error) {
+      problem(broadcastsCopy.problems.approvedNotDeleted(template.name), error);
+      return "failed";
+    }
+    await query(
+      "UPDATE whatsapp_templates SET status = 'deleted', deleted_at = now(), deleted_by = $2 WHERE id = $1",
+      [id, by],
+      db,
+    );
+    await logChange(by, "delete broadcast template", { id, name: template.name }, db);
+    return "deleted";
+  });
 }
 
 /** What WhatsApp decided about a template: approved, or rejected and why, by its code (INVALID_FORMAT), which is kept. */

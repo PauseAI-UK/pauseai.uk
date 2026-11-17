@@ -66,6 +66,13 @@ describe("SupporterDetails", () => {
         [copy.detail.phone, `07700 900001 ${copy.detail.unusable}`],
       ]),
     );
+    // Her WhatsApp group's town is its upload's, from the group.
+    expect(held).toContainEqual([
+      "20 Oct 2026",
+      copy.detail.held.town,
+      "Salford",
+      `${copy.sources["whatsapp-community"]} · PauseAI Salford`,
+    ]);
     await expect.element(page.getByRole("link", { name: "07700 900001" })).not.toBeInTheDocument();
     // Beside the profile, her events and her letters, a table each.
     // The event she registered for and hosts is two rows, one event in the band.
@@ -239,6 +246,7 @@ describe("SupporterDetails", () => {
           },
           identities: [{ source: "luma", email: "x@example.com", name: "", seenAt: null }],
           contacts: [],
+          groupTowns: [],
           activity: [
             {
               source: "luma",
@@ -572,6 +580,7 @@ describe("SupporterDetails", () => {
             { source: "email-your-mp", email: "old@example.com", name: "", seenAt: null },
           ],
           contacts: [],
+          groupTowns: [],
           activity: [],
         }}
       />,

@@ -5,6 +5,7 @@ import { staffTime } from "@/lib/staff-time";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import PageHead from "../ui/PageHead";
 import StaffLink from "../ui/StaffLink";
+import StaffMember from "../ui/StaffMember";
 import Tabs from "../ui/Tabs";
 import { shellCopy } from "../shell/copy";
 import { oversightCopy } from "@/lib/oversight/copy";
@@ -29,7 +30,7 @@ const columns: ListColumn<ErrorSeen>[] = [
 /** The Done tab's: who marked each done, and when, after the rest. */
 const doneColumns: ListColumn<ErrorSeen>[] = [
   ...columns,
-  { key: "doneBy", label: copy.columns.doneBy, cell: (error) => error.doneBy },
+  { key: "doneBy", label: copy.columns.doneBy, cell: (error) => <StaffMember email={error.doneBy!} /> },
   { key: "doneAt", label: copy.columns.doneAt, short: true, cell: (error) => staffTime(error.doneAt!) },
 ];
 

@@ -82,6 +82,32 @@ describe("ChangesTable", () => {
     expect(details(2).element().textContent).toBe(`${oversightCopy.changes.gone("7")} · polly@example.com`);
   });
 
+  it("names the staff members an entry's fields hold as staff pages name them, and its actor", async () => {
+    const edit = exampleChanges.find((one) => one.action === "edit politician")!;
+    const owner = {
+      ...edit,
+      actor: "jo@pauseai.uk",
+      action: "set event owner",
+      details: { eventId: "evt-1", owner: "sam@pauseai.uk", previous: "jo@pauseai.uk" },
+    } as const;
+    await render(
+      <ChangesTable
+        search={changesSearch({})}
+        log={log([owner as unknown as (typeof exampleChanges)[number]])}
+        page={1}
+      />,
+    );
+    const cells = page.getByRole("row").nth(1).getByRole("cell");
+    expect(cells.nth(2).element().innerHTML).toBe("<span>jo<wbr>@pauseai.uk</span>");
+    const details = cells.nth(4).element();
+    expect([...details.querySelectorAll("wbr")].map((at) => at.parentElement!.textContent)).toEqual([
+      "sam@pauseai.uk",
+      "jo@pauseai.uk",
+    ]);
+    // Its event isn't a staff member.
+    expect(details.textContent).toContain("evt-1");
+  });
+
   it("leaves a change of nothing out of an entry's fields", async () => {
     const edit = exampleChanges.find((one) => one.action === "edit politician")!;
     const empty = { ...edit, details: { ...edit.details, changed: {} } };

@@ -1,6 +1,7 @@
 "use client";
 
 // DraftWriter's examples, which log what is chosen (DraftWriter.gallery.tsx).
+import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { DraftTitle, DueSection, ProblemList, ScheduleButton } from "./DraftWriter";
 import Numbered from "../ui/Numbered";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
@@ -30,8 +31,20 @@ export function DraftFootExample() {
       {(log) => (
         <>
           <DueSection dueAt={null} onChange={log("dueAt")} />
-          <ScheduleButton label="Schedule 412 emails" disabled={false} saveNow={nothing} schedule={refused} />
-          <ScheduleButton label="Schedule 412 emails" disabled saveNow={nothing} schedule={refused} />
+          <ScheduleButton
+            label="Schedule 412 emails"
+            disabled={false}
+            saveNow={nothing}
+            schedule={refused}
+            stale={unstable_isUnrecognizedActionError}
+          />
+          <ScheduleButton
+            label="Schedule 412 emails"
+            disabled
+            saveNow={nothing}
+            schedule={refused}
+            stale={unstable_isUnrecognizedActionError}
+          />
           <ProblemList problems={["Fill in the subject.", "Choose what time it will be sent."]} />
           <ProblemList problems={[]} />
         </>

@@ -13,6 +13,8 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { DeleteTwice } from "../ui/DeleteTwice";
 import SortHeading from "../ui/SortHeading";
+import StaffMember from "../ui/StaffMember";
+import { staffMemberText } from "@/lib/staff-member";
 import Bubble from "@/components/ui/Bubble";
 import When from "../ui/When";
 // A row's button, kept at the window's right edge as a list's is.
@@ -53,7 +55,7 @@ function Permissions({ account, save }: { account: StaffAccount; save: Action })
         <form
           ref={form}
           className={styles.editor}
-          aria-label={copy.editLabel(account.email)}
+          aria-label={copy.editLabel(staffMemberText(account.email))}
           action={async () => {
             await save(accountForm(account.email, ticked));
             close();
@@ -106,7 +108,7 @@ function EndSessionsForm({ account, yours, end }: { account: StaffAccount; yours
   const copy = accountsCopy.accounts;
   if (account.sessions === 0) return null;
   return (
-    <form action={end} aria-label={`${copy.endSessions}: ${account.email}`}>
+    <form action={end} aria-label={`${copy.endSessions}: ${staffMemberText(account.email)}`}>
       <input type="hidden" name="email" value={account.email} />
       <SubmitButton variant="ghost" size="small" fit>
         {yours ? copy.endMySessions : copy.endSessions}
@@ -223,13 +225,19 @@ export default function StaffAccountsTable({
         <tbody>
           {accounts.map((account) => (
             <tr key={account.email}>
-              <td>{account.email}</td>
+              <td>
+                <StaffMember email={account.email} />
+              </td>
               <td>
                 <Permissions account={account} save={save} />
               </td>
               <td>
                 <When at={account.addedAt} />{" "}
-                <Muted>{account.addedBy === ADDED_BY_LOGIN ? copy.addedByLogin : copy.addedBy(account.addedBy)}</Muted>
+                <Muted>
+                  {account.addedBy === ADDED_BY_LOGIN
+                    ? copy.addedByLogin
+                    : copy.addedBy(staffMemberText(account.addedBy))}
+                </Muted>
               </td>
               <td>{when(account.lastLoginAt)}</td>
               <td>{when(account.lastSeenAt)}</td>

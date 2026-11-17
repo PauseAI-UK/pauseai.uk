@@ -104,7 +104,7 @@ export function BroadcastWaiting({
     const reason = written.waitReason as "civicrm" | "pull";
     const sending = written.state === "sending" && written.dueAt ? { dueAt: written.dueAt } : null;
     return (
-      <Strip tone="amber">
+      <Strip tone="blue" waiting>
         {copy.waiting(reason, londonDate(waitEndsAt(written.waitingSince, sending)), written.waitSaid)}
       </Strip>
     );

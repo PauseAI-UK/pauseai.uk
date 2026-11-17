@@ -5,6 +5,7 @@ import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
 import { connectPath, GMAIL_DAILY_LIMIT, LETTERS_DAILY_LIMIT } from "@/lib/email/gmail-connect";
 import Strip from "../ui/Strip";
+import { staffMemberText } from "@/lib/staff-member";
 import styles from "./GmailConnect.module.css";
 import { emailCopy } from "./copy";
 
@@ -67,7 +68,7 @@ export function GmailOutcome({
 }) {
   const words =
     outcome === "other-account"
-      ? copy.otherAccount(me)
+      ? copy.otherAccount(staffMemberText(me))
       : outcome === "connected" && lettersInbox
         ? copy.outcomes.connectedLettersInbox
         : copy.outcomes[outcome];

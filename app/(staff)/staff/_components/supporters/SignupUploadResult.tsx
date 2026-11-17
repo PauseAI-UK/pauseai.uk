@@ -2,6 +2,7 @@ import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
 import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/supporters/signup-uploads.server";
 import { signupUploadPath } from "@/lib/supporters/signup-csv";
+import { staffMemberText } from "@/lib/staff-member";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { Muted } from "@/components/ui/Text";
 import { monthsAndYears } from "@/lib/dated-groups";
@@ -54,7 +55,7 @@ export function SignupUploadHead({ upload }: { upload: SignupUploadSummary }) {
     <PageHead
       facts={[
         words.summary(upload.imported, upload.heldBack),
-        words.by(upload.uploadedBy, staffTime(upload.uploadedAt)),
+        words.by(staffMemberText(upload.uploadedBy), staffTime(upload.uploadedAt)),
         !whatsapp && words.signedOn(staffDate(new Date(upload.signedOn))),
         upload.eventName && (
           <>
@@ -170,7 +171,7 @@ export function SignupUploadsList({ uploads, now }: { uploads: SignupUploadSumma
                           </>
                         )}
                         {" · "}
-                        {heads.by(upload.uploadedBy)}
+                        {heads.by(staffMemberText(upload.uploadedBy))}
                       </Muted>
                     </span>
                     <Counts

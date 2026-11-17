@@ -39,6 +39,7 @@ import type { EditResult } from "@/lib/politicians/edits.server";
 import { politiciansCopy } from "./copy";
 import { lettersCopy } from "../letters/copy";
 import { notesCopy } from "../notes/copy";
+import StaffMember from "../ui/StaffMember";
 import { emailCopy } from "@/lib/email/copy";
 
 const copy = politiciansCopy.politician;
@@ -425,7 +426,7 @@ export default function PoliticianDetails({
         <>
           {note.body}{" "}
           <Muted>
-            · {notesCopy.notes.kind} · {note.writtenBy}
+            · {notesCopy.notes.kind} · <StaffMember email={note.writtenBy} />
           </Muted>
         </>
       ),
@@ -437,7 +438,10 @@ export default function PoliticianDetails({
         ...whenOf(change),
         what: (
           <>
-            <Detail change={change} asks={asks} /> <Muted>· {change.actor}</Muted>
+            <Detail change={change} asks={asks} />{" "}
+            <Muted>
+              · <StaffMember email={change.actor} />
+            </Muted>
           </>
         ),
       })),
@@ -601,7 +605,7 @@ export default function PoliticianDetails({
                   <li key={change.id}>
                     <span>{change.what}</span>
                     <span className={styles.timelineWhen}>
-                      {staffTime(change.at)} · {change.actor}
+                      {staffTime(change.at)} · <StaffMember email={change.actor} />
                     </span>
                   </li>
                 ))}

@@ -1,3 +1,24 @@
+/* An email's thread: a mail each, apart, as the thread spaces what's in it. */
+.mails {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* A text's thread: one conversation, its parts touching, rounded only at its top and foot. */
+.chat {
+  display: grid;
+}
+
+.chat > :not(:first-child) {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.chat > :not(:last-child) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 /* A reply's words, its lines kept, a long address broken to fit. */
 .text {
   margin: 0;

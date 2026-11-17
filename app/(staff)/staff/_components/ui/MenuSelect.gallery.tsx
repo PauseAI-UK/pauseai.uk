@@ -44,6 +44,40 @@ export const menuSelectGallery: Example[] = [
           </StaffPage>
         ),
       },
+      {
+        label: "Choices with a tag, their words and a line of facts, in a wider menu, one at its foot",
+        render: () => (
+          <StaffPage as="div">
+            <MenuSelect
+              id="example-menu-select-facts"
+              label="Template"
+              placeholder="Choose a template"
+              value="t2"
+              options={[
+                {
+                  value: "t1",
+                  label: "The march meets at 11:00",
+                  words: "Hi {First name}, the march meets at 11:00 at Parliament Square.",
+                  facts: [
+                    "jo@pauseai.uk",
+                    "Approved 20 Oct 2026",
+                    "Last sent 2 Nov 2026, to 318 people",
+                    "Used in: 2 sent",
+                  ],
+                },
+                {
+                  value: "t2",
+                  label: "Thank you for coming.",
+                  tag: "Unused",
+                  words: "Hi {First name}, thank you for coming. Here is what happens next.",
+                  facts: ["sam@pauseai.uk", "Approved 25 Sept 2026"],
+                },
+              ]}
+              last={{ value: "new", label: "New template" }}
+            />
+          </StaffPage>
+        ),
+      },
     ],
   },
 ];

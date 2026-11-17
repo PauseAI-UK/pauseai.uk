@@ -1,5 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { ErrorSeen } from "@/lib/oversight/errors-seen.server";
+import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
 import Band, { BandFact } from "../ui/Band";
 import Empty from "../ui/Empty";
@@ -49,7 +50,9 @@ export default function ErrorSeenView({
         <BandFact label={copy.one.first}>{staffTime(error.firstSeen)}</BandFact>
         <BandFact label={copy.one.count}>{error.count}</BandFact>
       </Band>
-      {error.doneAt && <p className={styles.done}>{copy.one.doneBy(error.doneBy!, staffTime(error.doneAt))}</p>}
+      {error.doneAt && (
+        <p className={styles.done}>{copy.one.doneBy(staffMemberText(error.doneBy!), staffTime(error.doneAt))}</p>
+      )}
       <h2>{copy.one.latest}</h2>
       <Grid>
         <Card span={6} title={copy.one.message} id="error-message">

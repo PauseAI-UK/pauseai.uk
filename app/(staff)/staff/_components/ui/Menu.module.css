@@ -20,6 +20,11 @@
   box-sizing: border-box;
 }
 
+/* For choices with a line of facts (MenuSelect). */
+.wider {
+  width: min(34rem, calc(100vw - 2 * var(--space-4)));
+}
+
 /* Choices that do something: a line each, as wide as the box. */
 .items {
   display: grid;

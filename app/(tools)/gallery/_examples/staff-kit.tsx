@@ -5,6 +5,7 @@
 // login page.
 import { staffNavGallery } from "@/app/(staff)/staff/_components/shell/StaffNav.gallery";
 import { navIconGallery } from "@/app/(staff)/staff/_components/shell/NavIcon.gallery";
+import { siteUpdatedGallery } from "@/app/(staff)/staff/_components/shell/SiteUpdated.gallery";
 import type { Group } from "../_components/types";
 import { staffPageGallery } from "@/app/(staff)/staff/_components/ui/StaffPage.gallery";
 import { gridGallery } from "@/app/(staff)/staff/_components/ui/Grid.gallery";
@@ -12,6 +13,7 @@ import { numberedGallery } from "@/app/(staff)/staff/_components/ui/Numbered.gal
 import { staffLinkGallery } from "@/app/(staff)/staff/_components/ui/StaffLink.gallery";
 import { externalLinkGallery } from "@/app/(staff)/staff/_components/ui/ExternalLink.gallery";
 import { testTagGallery } from "@/app/(staff)/staff/_components/ui/TestTag.gallery";
+import { staffMemberGallery } from "@/app/(staff)/staff/_components/ui/StaffMember.gallery";
 import { formPendingGallery } from "@/app/(staff)/staff/_components/ui/FormPending.gallery";
 import { navFoldGallery } from "@/app/(staff)/staff/_components/ui/NavFold.gallery";
 import { withheldGallery } from "@/app/(staff)/staff/_components/ui/Withheld.gallery";
@@ -67,9 +69,11 @@ export const staffKit: Group = {
     ...staffLinkGallery,
     ...externalLinkGallery,
     ...testTagGallery,
+    ...staffMemberGallery,
     ...formPendingGallery,
     ...navFoldGallery,
     ...navIconGallery,
+    ...siteUpdatedGallery,
     ...withheldGallery,
     ...choiceSearchGallery,
     listTable,

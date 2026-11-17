@@ -12,6 +12,7 @@ import {
   textCost,
   broadcastScheduleProblems,
   misplacedFields,
+  sameWords,
   rejectionWords,
   broadcastTerms,
   isAvailableSendBy,
@@ -365,6 +366,7 @@ describe("broadcastScheduleProblems", () => {
     remaining: null,
     daily: null,
     approved: true,
+    sameWords: false,
     numbered: true,
     sends: true,
   };
@@ -461,6 +463,29 @@ describe("broadcastScheduleProblems", () => {
       }),
     ).toEqual(["no-recipients", "no-number", "not-approved", "no-time"]);
     expect(broadcastScheduleProblems({ ...good, approved: false })).toEqual([]);
+  });
+
+  it("won't send for approval new words an approved template has already, but a chosen template is fine", () => {
+    expect(broadcastScheduleProblems({ ...good, channel: "text", approved: false, sameWords: true })).toEqual([
+      "same-words",
+      "not-approved",
+    ]);
+    expect(broadcastScheduleProblems({ ...good, channel: "text", sameWords: true })).toEqual([]);
+  });
+
+  it("finds new words a template has already (sameWords): the very words, fields and all, ignoring space at the ends", () => {
+    const field = (name: string): MailingInline => ({ type: "field", attrs: { field: name } });
+    const text = (words: string): MailingInline => ({ type: "text", text: words });
+    const words = (...content: MailingInline[]): MailingDoc => ({
+      type: "doc",
+      content: [{ type: "paragraph", content }],
+    });
+    const hi = words(text("Hi "), field("firstName"), text(", see you there."));
+    expect(
+      sameWords(hi, [words(text("Something else")), words(text("Hi "), field("firstName"), text(", see you there. "))]),
+    ).toBe(true);
+    expect(sameWords(hi, [words(text("Hi "), field("name"), text(", see you there."))])).toBe(false);
+    expect(sameWords(hi, [])).toBe(false);
   });
 
   it("wants a WhatsApp number for a text to come from, but not for an email", () => {

@@ -35,6 +35,9 @@ export const stripGallery: Example[] = [
               <Strip tone="blue">
                 <span>Running, started by jo@pauseai.uk</span>
               </Strip>
+              <Strip tone="blue" waiting>
+                <span>Waiting for WhatsApp approval, sent on 17 Nov 2026, 13:38 by jo@pauseai.uk.</span>
+              </Strip>
               <Strip
                 tone="red"
                 action={

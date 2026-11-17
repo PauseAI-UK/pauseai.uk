@@ -563,15 +563,26 @@ describe("a WhatsApp group's upload", () => {
       });
   });
 
-  it("reads the file again as paper when paper's chosen, clearing a column chosen before", async () => {
+  it("clears the file and a column chosen before when the other kind's chosen, keeping the note", async () => {
     await showForm();
     await choose(csvFile(CSV));
     await page.getByRole("combobox", { name: copy.form.eventColumn }).selectOptions("March");
+    await page.getByRole("textbox", { name: copy.form.note }).fill("Leeds market");
     await kindButton("whatsapp").click();
+    await expect.element(page.getByText(copy.drop.title)).toBeVisible();
+    await expect.element(page.getByRole("textbox", { name: copy.form.group })).toHaveValue("Leeds market");
+    await kindButton("paper").click();
+    await expect.element(page.getByText(copy.drop.title)).toBeVisible();
+    await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toHaveValue("");
+  });
+
+  it("clears a file it couldn't read when the other kind's chosen", async () => {
+    await showForm();
+    await kindButton("whatsapp").click();
+    await choose(csvFile(CSV));
     await expect.element(page.getByText(/no Phone column/)).toBeVisible();
     await kindButton("paper").click();
-    await expect.element(page.getByRole("combobox", { name: copy.form.eventColumn })).toHaveValue("");
-    await expect.element(page.getByRole("cell", { name: "Colour" })).toBeVisible();
+    await expect.element(page.getByText(/no Phone column/)).not.toBeInTheDocument();
   });
 
   it("previews each member by name and number, with what will happen", async () => {

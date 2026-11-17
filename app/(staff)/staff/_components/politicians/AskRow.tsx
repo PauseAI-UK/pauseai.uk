@@ -16,6 +16,7 @@ import { AskLead } from "../asks/AskLine";
 import { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import Menu from "../ui/Menu";
+import { staffMemberText } from "@/lib/staff-member";
 import styles from "../ui/Details.module.css";
 import { politiciansCopy } from "./copy";
 
@@ -125,7 +126,8 @@ export default function AskRow({
         {status && (
           <span className={styles.askMeta}>
             {status.note && `${status.note} · `}
-            {copy.fromImport[status.updatedBy] ?? copy.setBy(status.updatedBy, staffDate(status.updatedAt))}
+            {copy.fromImport[status.updatedBy] ??
+              copy.setBy(staffMemberText(status.updatedBy), staffDate(status.updatedAt))}
           </span>
         )}
       </div>

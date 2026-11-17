@@ -5,6 +5,7 @@ import { page, userEvent } from "vitest/browser";
 import { DEFAULT_SENDER } from "@/lib/email/gmail-connect";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/mailings/attachments";
 import { navigation } from "@/tests/browser/navigation";
+import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
 import MailingWriter, { type MailingWriterActions } from "./MailingWriter";
 import {
   exampleFreshMailing,
@@ -20,7 +21,13 @@ import { politiciansCopy } from "../politicians/copy";
 // Following a link that saves first leaves the page, which would take the test with it.
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
 vi.mock("@/lib/leave-page.client", () => ({ leavePage }));
-afterEach(() => leavePage.mockClear());
+afterEach(() => {
+  leavePage.mockClear();
+  sessionStorage.clear();
+});
+
+/** What a Server Action throws when a deploy since the page opened has taken it away. */
+const gone = () => new UnrecognizedActionError('Server Action "x" was not found on the server.');
 
 const copy = mailingsCopy.mailingPages;
 const WAIT = { timeout: 3000 };
@@ -115,6 +122,117 @@ describe("MailingWriter", () => {
     await subject().fill("Mine again");
     await pause(1200);
     expect(actions.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops saving when the site has changed under the page, keeps what's typed as it's left, and takes it back", async () => {
+    const { actions, view } = await renderWriter({ draft: exampleWrittenMailing });
+    // Leaving it before then keeps nothing.
+    window.dispatchEvent(new PageTransitionEvent("pagehide"));
+    expect(sessionStorage.length).toBe(0);
+    actions.save.mockRejectedValue(gone());
+    await subject().fill("After the deploy");
+    await expect.element(status()).toHaveTextContent(copy.savePill.outdated);
+    // Nothing more is tried till the page is reloaded; what's typed is kept for it as it's left.
+    await subject().fill("After the deploy, more");
+    await pause(1200);
+    expect(actions.save).toHaveBeenCalledTimes(1);
+    window.dispatchEvent(new PageTransitionEvent("pagehide"));
+    const kept = JSON.parse(sessionStorage.getItem(`draft-unsaved-${exampleWrittenMailing.id}`)!);
+    expect(kept).toEqual({ version: exampleWrittenMailing.version, changes: { subject: "After the deploy, more" } });
+    await view.unmount();
+    // The page, opened again on the new build, saves it, once.
+    const again = await renderWriter({ draft: exampleWrittenMailing });
+    await expect.element(subject()).toHaveValue("After the deploy, more");
+    await expect
+      .poll(() => again.actions.save.mock.calls[0]?.[2], WAIT)
+      .toMatchObject({ subject: "After the deploy, more" });
+    expect(sessionStorage.getItem(`draft-unsaved-${exampleWrittenMailing.id}`)).toBeNull();
+  });
+
+  it("takes back a time kept over a reload as a time, and the letter's words into the editor", async () => {
+    const dueAt = new Date("2030-01-07T09:30:00Z");
+    const body = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Kept words" }] }] };
+    sessionStorage.setItem(
+      `draft-unsaved-${exampleWrittenMailing.id}`,
+      JSON.stringify({ version: exampleWrittenMailing.version, changes: { dueAt, body } }),
+    );
+    const { actions } = await renderWriter({ draft: exampleWrittenMailing });
+    await expect.element(letter()).toHaveTextContent("Kept words");
+    await expect.poll(() => actions.save.mock.calls[0]?.[2], WAIT).toMatchObject({ dueAt });
+  });
+
+  it("drops what a reload kept when the draft has been saved since, or it can't be read", async () => {
+    const key = `draft-unsaved-${exampleWrittenMailing.id}`;
+    sessionStorage.setItem(
+      key,
+      JSON.stringify({ version: exampleWrittenMailing.version - 1, changes: { subject: "Old" } }),
+    );
+    const first = await renderWriter({ draft: exampleWrittenMailing });
+    await expect.element(subject()).toHaveValue(exampleWrittenMailing.subject);
+    await first.view.unmount();
+    sessionStorage.setItem(key, "{");
+    const { actions } = await renderWriter({ draft: exampleWrittenMailing });
+    await expect.element(subject()).toHaveValue(exampleWrittenMailing.subject);
+    await pause(1200);
+    expect(actions.save).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(key)).toBeNull();
+  });
+
+  it("is left with nothing kept where the tab can't keep it", async () => {
+    const { actions } = await renderWriter({ draft: exampleWrittenMailing });
+    actions.save.mockRejectedValue(gone());
+    await subject().fill("Lost");
+    await expect.element(status()).toHaveTextContent(copy.savePill.outdated);
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+    window.dispatchEvent(new PageTransitionEvent("pagehide"));
+    expect(setItem).toHaveBeenCalled();
+    setItem.mockRestore();
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  // A draft that can be tested and scheduled, as the scheduling test below has it.
+  const ready = {
+    ...exampleWrittenMailing,
+    sentFrom: "samuel.whitlock@pauseai.uk",
+    dueAt: new Date("2099-12-01T09:00:00Z"),
+  };
+  const readyData = { ...exampleWriterData, fields: [] };
+
+  it("says the page is outdated when a test, or scheduling, finds it so", async () => {
+    const { actions, view } = await renderWriter({ draft: ready, data: readyData });
+    actions.sendTest.mockRejectedValueOnce(gone());
+    await preview().getByRole("button", { name: copy.sendTest }).click();
+    await expect.element(status()).toHaveTextContent(copy.savePill.outdated);
+    await view.unmount();
+    const again = await renderWriter({ draft: ready, data: readyData });
+    again.actions.schedule.mockRejectedValueOnce(gone());
+    const schedule = page.getByRole("button", { name: copy.schedule(2) });
+    await schedule.click();
+    await expect.element(status()).toHaveTextContent(copy.savePill.outdated);
+    await expect.element(schedule).toBeEnabled();
+  });
+
+  it("lets any other error from a test, or scheduling, go on", async () => {
+    const errors: unknown[] = [];
+    const caught = (event: PromiseRejectionEvent) => {
+      errors.push(event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", caught);
+    try {
+      const { actions } = await renderWriter({ draft: ready, data: readyData });
+      actions.sendTest.mockRejectedValueOnce(new Error("test broke"));
+      actions.schedule.mockRejectedValueOnce(new Error("schedule broke"));
+      await preview().getByRole("button", { name: copy.sendTest }).click();
+      await page.getByRole("button", { name: copy.schedule(2) }).click();
+      await expect
+        .poll(() => errors.map((e) => (e as Error).message).sort(), WAIT)
+        .toEqual(["schedule broke", "test broke"]);
+    } finally {
+      window.removeEventListener("unhandledrejection", caught);
+    }
   });
 
   it("says when a save fails, and tries again, with what failed, at the next change", async () => {

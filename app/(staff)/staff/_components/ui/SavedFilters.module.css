@@ -126,9 +126,10 @@
   font-size: var(--text-xs);
 }
 
+/* Who made it, by their whole address, can break before its @ when the name needs the room. */
 .rowBy {
-  flex: none;
-  white-space: nowrap;
+  flex: 0 1 auto;
+  text-align: end;
 }
 
 .summary {

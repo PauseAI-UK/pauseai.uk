@@ -1,4 +1,5 @@
 import StaffLink from "../ui/StaffLink";
+import { staffMemberText } from "@/lib/staff-member";
 import type { ReactNode } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import Tag, { type TagTone } from "@/components/ui/Tag";
@@ -214,7 +215,7 @@ export function MailingWhen({
   mailing: Pick<Mailing, "sentAt">;
   written?: Pick<WrittenMailing, "createdBy" | "state" | "dueAt">;
 }) {
-  const by = written?.createdBy && copy.by(written.createdBy);
+  const by = written?.createdBy && copy.by(staffMemberText(written.createdBy));
   if (written?.state === "scheduled") {
     return (
       <BandFact label={copy.states.scheduled} detail={by}>

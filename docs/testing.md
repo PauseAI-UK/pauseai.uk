@@ -977,8 +977,10 @@ that drives it or why nothing does.
   - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed;
   - the list's Broadcast button with a Consent filter;
   - an email written, from hello@ by Postmark, or by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
-  - a text on an approved template, with the templates' search and Show all;
-  - a text on new words, sent for WhatsApp's approval, locked till it decides, then rejected by its webhook;
+  - a text on an approved template, chosen from the dropdown, each template's facts under its name;
+  - a template's words edited as a new template, and an unused one deleted, from WhatsApp and the dropdown;
+  - the site updated under an open draft: the dialog over the page, closed, then Reload;
+  - a text on new words, sent for WhatsApp's approval from under the preview, locked till it decides, then rejected by its webhook;
   - a new template WhatsApp won't take, too long, with its reason in a red alert under the button;
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
   - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
@@ -1059,8 +1061,9 @@ that drives it or why nothing does.
   - what changes before importing;
   - Past imports, and an import's page;
   - someone with "No bulk emails" marked in the preview, with the email they'll get, and someone with "Do not email".
-  - a local WhatsApp group's members, by profile name and number, and a member's page;
-  - a hundred WhatsApp members at once, with no town.
+  - a local WhatsApp group's members, by profile name and number, and a member's page with the group's town;
+  - a hundred WhatsApp members at once, with no town;
+  - a file chosen for paper, cleared on choosing WhatsApp instead.
 - `errors.spec.ts`: What goes wrong outside an import:
   - a staff page that throws: Next's error page in its place and Reload, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
   - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`): the email that quotes none of it, and a click that throws, kept without an email;
@@ -1463,7 +1466,7 @@ table still shows whether its tests and coverage pass.
 storyboard builds the site.
 
 Each command has a time limit, from a minute for the migrations' order to
-twenty for the storyboard. Its output goes to `tmp/gate/<command>.log`, and
+thirty for the storyboard. Its output goes to `tmp/gate/<command>.log`, and
 that folder is emptied at the start of each run. A command stopped at its
 limit exits 124, as `timeout` does.
 

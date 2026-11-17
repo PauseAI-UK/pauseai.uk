@@ -12,7 +12,8 @@ export type StripTone = "plain" | "green" | "amber" | "red" | "blue" | "dark";
  * person. `action` sits at the right, a button or a link. `announce` reads
  * it out at once: red as an alert, any other as a status. `icon={false}`
  * leaves out the icon, for a red or amber that's an answer, not a warning.
- * Blue is something going on now.
+ * Blue is something going on now; `waiting`, a clock for its icon, for
+ * waiting on someone else, such as WhatsApp or CiviCRM.
  * Dark is a mode the page is in, such as choosing who a mailing is for:
  * the dark bar's look (PoliticiansList's ChoosingBar), its links light.
  */
@@ -21,18 +22,20 @@ export default function Strip({
   action,
   announce = false,
   icon = true,
+  waiting = false,
   children,
 }: {
   tone?: StripTone;
   action?: ReactNode;
   announce?: boolean;
   icon?: boolean;
+  waiting?: boolean;
   children: ReactNode;
 }) {
   const role = announce ? (tone === "red" ? "alert" : "status") : undefined;
   return (
     <div className={tone === "plain" ? styles.strip : `${styles.strip} ${styles[tone]}`} role={role} data-strip>
-      {icon && (tone === "amber" || tone === "red" || tone === "blue") && <AlertIcon tone={tone} />}
+      {icon && (tone === "amber" || tone === "red" || tone === "blue") && <AlertIcon tone={tone} waiting={waiting} />}
       <div className={styles.body}>{children}</div>
       {action && <div className={styles.action}>{action}</div>}
     </div>

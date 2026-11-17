@@ -123,6 +123,7 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "change broadcast consent": { id: number } & BroadcastTerms;
   "submit broadcast template": { id: number; name: string };
   "withdraw broadcast template": { id: number };
+  "delete broadcast template": { id: number; name: string };
   "schedule broadcast": { id: number; recipients: number };
   "stop broadcast": { id: number; was: MailingState };
   "resume broadcast": { id: number; copies: number };

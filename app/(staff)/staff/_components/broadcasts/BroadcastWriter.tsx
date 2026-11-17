@@ -7,6 +7,8 @@ import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import { useEffect, useId, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
+import MenuSelect, { type MenuOption } from "../ui/MenuSelect";
+import { DeleteTwice } from "../ui/DeleteTwice";
 import { Field, Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
@@ -27,9 +29,12 @@ import type { ChannelResult } from "@/lib/letters/channels.server";
 import type {
   BroadcastScheduleResult,
   WhatsAppTemplate,
+  TemplateDeleteResult,
   TemplateSubmitResult,
+  TemplateUses,
   WrittenBroadcast,
 } from "@/lib/broadcasts/drafts.server";
+import { staffMemberText } from "@/lib/staff-member";
 import type { BroadcastWriterData } from "@/lib/broadcasts/pages.server";
 import { filtersPath } from "@/lib/list-params";
 import { earliestRun, londonClock, londonWhen, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
@@ -43,11 +48,13 @@ import {
   BROADCAST_START,
   consentChoice,
   textCost,
+  sameWords,
   broadcastScheduleProblems,
   BROADCAST_SEND_BY,
   BROADCAST_SENDER,
   sendingDays,
   TEXT_SENDER_NAME,
+  type BroadcastScheduleProblem,
   type BroadcastSendBy,
 } from "@/lib/broadcasts/broadcasts";
 import {
@@ -111,18 +118,60 @@ export type BroadcastWriterActions = DraftActions & {
   submitTemplate: (id: number) => Promise<TemplateSubmitResult>;
   /** Takes them back, so they can be changed; says whether it did. */
   withdrawTemplate: (id: number) => Promise<boolean>;
+  /** Deletes an approved template no broadcast has, from WhatsApp too; says how it went. */
+  deleteTemplate: (templateId: number) => Promise<TemplateDeleteResult>;
 };
 
-/** Who made a template, when it was approved and when it was last used, in words. */
-export function templateLine(template: WhatsAppTemplate): string {
-  return copy.templateBy(
-    template.createdBy ?? copy.templateMadeIn,
-    staffDate(template.approvedAt!),
-    template.lastUsedAt
-      ? copy.templateUsed(staffDate(template.lastUsedAt), template.lastUsedTo)
-      : copy.templateNeverUsed,
-  );
+/**
+ * A template's facts as the dropdown gives them (templateOption), on a line
+ * under the one chosen, a dot between each, and Unused last if nothing has
+ * ever had it; `uses` are its own but for this draft's.
+ */
+export function templateLine(template: WhatsAppTemplate, uses: TemplateUses = template.uses): string {
+  const { tag, facts } = templateOption(template, uses);
+  return [...facts!, ...(tag ? [tag] : [])].join(" · ");
 }
+
+/**
+ * A template in the dropdown: its facts, on a line under its name: who made it; when it was last sent and to how many, or
+ * else when it's first scheduled for, or else when it was approved, as being
+ * sent or scheduled says it was; and how many other drafts have it (`uses`),
+ * if any do; or a tag saying nothing ever has.
+ */
+export function templateOption(template: WhatsAppTemplate, uses: TemplateUses): Pick<MenuOption, "tag" | "facts"> {
+  const facts = copy.templateFacts;
+  const by = template.createdBy ? staffMemberText(template.createdBy) : copy.templateMadeIn;
+  if (!template.lastUsedAt && uses.sent + uses.scheduled + uses.drafts === 0) {
+    return { tag: facts.unused, facts: [by, facts.approved(staffDate(template.approvedAt!))] };
+  }
+  return {
+    facts: [
+      by,
+      template.lastUsedAt
+        ? facts.used(staffDate(template.lastUsedAt), template.lastUsedTo)
+        : template.nextScheduledAt
+          ? facts.scheduled(staffDate(template.nextScheduledAt))
+          : facts.approved(staffDate(template.approvedAt!)),
+      ...(uses.drafts ? [facts.drafts(uses.drafts)] : []),
+    ],
+  };
+}
+
+/** A copy of template `name`'s name, numbered after any of `names` that copy it already. */
+function copyName(name: string, names: string[]): string {
+  let n = 2;
+  while (names.includes(copy.copyName(name, n))) n++;
+  return copy.copyName(name, n);
+}
+
+/** What only new words can have wrong, said under Send for approval. */
+const NEW_WORDS_PROBLEMS: BroadcastScheduleProblem[] = [
+  "no-name",
+  "field-edge",
+  "fields-together",
+  "field-twice",
+  "same-words",
+];
 
 /** How a draft's words stand: an email's own, or a text's template chosen, new words, or none yet. */
 type Words = "email" | "chosen" | "new" | "none";
@@ -153,7 +202,7 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
         <MailingLetter doc={template.body} fields={fields} />
       </div>
       {/* Who asked, and when, as an approved template's line says who made it; always someone, as they're sent from here. */}
-      <Muted>{copy.templatePending(template.createdBy!, staffDate(template.requestedAt))}</Muted>
+      <Muted>{copy.templatePending(staffMemberText(template.createdBy!), staffDate(template.requestedAt))}</Muted>
       <div>
         {/* Pressed twice, as a delete is: the first asks, red, for the second, and turns back unless it comes. */}
         {armed || withdrawing ? (
@@ -188,7 +237,9 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
  * it, or a text as a bubble. Over it, a button for each field the words use
  * and each condition of their parts, pressed for those who have or meet it,
  * each press choosing a recipient like that. With no one like that, no
- * copy, as there's no one to fill it in for. Under it, a test copy.
+ * copy, as there's no one to fill it in for. Under it, for new words,
+ * sending them for approval (`approval`), as a test copy can only go once
+ * WhatsApp has approved them; then a test copy.
  */
 function BroadcastPreview({
   data,
@@ -202,6 +253,7 @@ function BroadcastPreview({
   dueAt,
   sendTest,
   footer,
+  approval,
 }: {
   data: BroadcastWriterData;
   draft: WrittenBroadcast;
@@ -217,6 +269,7 @@ function BroadcastPreview({
   needs: string[];
   dueAt: Date | null;
   sendTest: (meets: string[], to: string) => ReturnType<BroadcastWriterActions["sendTest"]>;
+  approval?: ReactNode;
 }) {
   const email = draft.channel === "email";
   const testId = useId();
@@ -297,6 +350,7 @@ function BroadcastPreview({
           time={londonClock(sendsAt(dueAt ?? earliestRun()))}
         />
       )}
+      {approval}
 
       <div className={styles.test}>
         <div className={styles.testRow}>
@@ -384,7 +438,7 @@ export default function BroadcastWriter({
   const [fresh] = useState<Partial<Changes>>(() =>
     email && !draft.subject && isBlankMailing(draft.body) ? { body: start } : {},
   );
-  const { values, change, saveNow, saveState, version, attachments, attach, detach, fileProblem } =
+  const { values, change, saveNow, saveState, version, attachments, attach, detach, fileProblem, stale, restored } =
     useDraftWriter<Changes>({
       id,
       version: draft.version,
@@ -422,6 +476,9 @@ export default function BroadcastWriter({
   const newWords = useRef<MailingDoc>(EMPTY_MAILING_DOC);
   const newName = useRef("");
   const wordsLabel = useId();
+  const picker = useId();
+  // Why the template chosen wasn't deleted just now: an alert under it.
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const body = useMemo(() => checkMailingDoc(values.body) ?? EMPTY_MAILING_DOC, [values.body]);
   const template = data.templates.find((one) => one.id === values.templateId);
   const words: Words = email ? "email" : writingNew ? "new" : template ? "chosen" : "none";
@@ -449,11 +506,18 @@ export default function BroadcastWriter({
     remaining,
     daily,
     approved: words === "chosen",
+    sameWords: sameWords(
+      body,
+      data.templates.map((template) => template.body),
+    ),
     numbered: Boolean(data.textNumber),
     sends: data.sends,
   }).filter((problem) => problem !== "cannot-send");
-  // Greyed, before a Consent by the channel picked: that comes first.
-  const shownProblems = blank ? ["no-consent", ...problems] : problems;
+  // Greyed, before a Consent by the channel picked: that comes first. What only new words have wrong is said
+  // under Send for approval, not again by Schedule.
+  const shownProblems = [...(blank ? ["no-consent"] : []), ...problems].filter(
+    (problem) => !(NEW_WORDS_PROBLEMS as string[]).includes(problem),
+  );
   const fromName = email ? draft.fromName || BROADCAST_SENDER.name : TEXT_SENDER_NAME;
   const fromLine = email ? named(fromName, draft.sentFrom!) : TEXT_SENDER_NAME;
   // In Send, as the broadcast's page has it: the address, or a text's WhatsApp number once there is one, the
@@ -499,8 +563,33 @@ export default function BroadcastWriter({
     change({ templateId: one.id, body: one.body, title: one.name });
     setWritingNew(false);
   };
+  // As the page has them, this draft has its template saved: how many others have each.
+  const others = (one: WhatsAppTemplate): TemplateUses =>
+    draft.template?.id === one.id ? { ...one.uses, drafts: one.uses.drafts - 1 } : one.uses;
+  const unused = (one: WhatsAppTemplate) => Object.values(others(one)).every((n) => n === 0);
+  // Edit as a new template: its words, under a new name, are new words, to change and send for approval.
+  const editTemplate = (one: WhatsAppTemplate) => {
+    newWords.current = one.body;
+    newName.current = copyName(
+      one.name,
+      data.templates.map((t) => t.name),
+    );
+    chooseWords("new");
+  };
+  // Deleting the template chosen: this draft lets it go first, so nothing has it, and chooses again after.
+  const deleteChosen = async (one: WhatsAppTemplate) => {
+    setDeleteError(null);
+    change({ templateId: null, body: EMPTY_MAILING_DOC, title: "" });
+    await saveNow();
+    // An outdated page says so over the draft, not here.
+    const result = await actions.deleteTemplate(one.id).catch((error: unknown) => (stale(error) ? null : "failed"));
+    if (result && result !== "deleted") setDeleteError(copy.deleteRefused[result]);
+    router.refresh();
+  };
   const wordsEditor = (labelledBy: string) => (
+    // Made anew with what a reload kept, as it reads its words once.
     <MailingEditor
+      key={restored}
       initial={values.body as JSONContent}
       onChange={(doc) => change({ body: doc as MailingDoc })}
       fields={data.fields}
@@ -519,8 +608,8 @@ export default function BroadcastWriter({
         </Strip>
       )}
       {draft.template?.status === "pending" && (
-        <Strip tone="amber">
-          {copy.awaitingApproval(draft.template.createdBy!, staffTime(draft.template.requestedAt))}
+        <Strip tone="blue" waiting>
+          {copy.awaitingApproval(staffMemberText(draft.template.createdBy!), staffTime(draft.template.requestedAt))}
         </Strip>
       )}
       {draft.template?.status === "rejected" && (
@@ -663,29 +752,45 @@ export default function BroadcastWriter({
               {!email && (
                 <div className={own.textWords}>
                   {/* An approved template, or new words, the last choice; while WhatsApp reviews new words, they stay chosen. */}
-                  <Field label={copy.templateLabel} className={styles.sender}>
-                    <Select
-                      value={writingNew ? "new" : (template?.id ?? "")}
+                  {/* Each approved template with who made it, when, and how much it's used, then new words. */}
+                  <div className={styles.sender}>
+                    <MenuSelect
+                      id={picker}
+                      label={copy.templateLabel}
+                      placeholder={copy.pickTemplate}
+                      value={writingNew ? "new" : template ? String(template.id) : ""}
                       disabled={Boolean(waiting)}
-                      onChange={(event) => chooseWords(event.target.value)}
-                    >
-                      {!writingNew && !template && (
-                        <option value="" disabled>
-                          {copy.pickTemplate}
-                        </option>
-                      )}
-                      {data.templates.map((one) => (
-                        <option key={one.id} value={one.id}>
-                          {one.name}
-                        </option>
-                      ))}
-                      {/* A rule between the approved templates and new words, as browsers draw one in a select's list. */}
-                      {data.templates.length > 0 && <hr />}
-                      <option value="new">{copy.newTemplate}</option>
-                    </Select>
-                  </Field>
-                  {/* Its words show once, in the preview; here, who made it and when it was last used. */}
-                  {template && <Muted>{templateLine(template)}</Muted>}
+                      options={data.templates.map((one) => ({
+                        value: String(one.id),
+                        label: one.name,
+                        ...templateOption(one, others(one)),
+                      }))}
+                      last={{ value: "new", label: copy.newTemplate }}
+                      onChange={chooseWords}
+                    />
+                  </div>
+                  {/* Its words show once, in the preview; here, its facts as the dropdown gives them (templateLine);
+                      then, quietly, its words as a new template, and deleting it while nothing else has it. */}
+                  {template && (
+                    <div className={own.templateFacts}>
+                      <Muted>{templateLine(template, others(template))}</Muted>
+                      <div className={own.templateActions}>
+                        <Button variant="ghost" size="small" fit onClick={() => editTemplate(template)}>
+                          {copy.editTemplate}
+                        </Button>
+                        {unused(template) && (
+                          <DeleteTwice
+                            name="template"
+                            value={String(template.id)}
+                            label={copy.deleteTemplate}
+                            short
+                            action={() => deleteChosen(template)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {deleteError && <Alert>{deleteError}</Alert>}
                   {writingNew &&
                     (waiting ? (
                       <TemplatePending
@@ -728,13 +833,60 @@ export default function BroadcastWriter({
               )}
             </Card>
 
-            <Card span={6} title={<Numbered n={4}>{copy.sections.preview}</Numbered>} id="preview-title">
+            <Card
+              span={6}
+              title={<Numbered n={4}>{words === "new" && !waiting ? copy.previewNew : copy.sections.preview}</Numbered>}
+              id="preview-title"
+            >
               <BroadcastPreview
                 data={data}
                 draft={draft}
                 body={body}
                 words={words}
                 footer={template?.footer ?? TEMPLATE_FOOTER}
+                approval={
+                  // New words go to WhatsApp from here, under how they'll look, once they're written, before a test,
+                  // which can only go once WhatsApp approves them.
+                  words === "new" &&
+                  !waiting && (
+                    <div className={own.approval}>
+                      <Button
+                        variant="primary"
+                        fit
+                        disabled={!written || approvalProblems(problems).length > 0 || !data.sends}
+                        pending={submitting}
+                        onClick={async () => {
+                          setSubmitting(true);
+                          setSubmitError(null);
+                          const result = await saveNow()
+                            .then(() => actions.submitTemplate(id))
+                            // An outdated page says so over the draft, not here.
+                            .catch((error: unknown) => (stale(error) ? ("outdated" as const) : ("broke" as const)));
+                          // Back to the list, where the broadcast's row says it's waiting for WhatsApp, and pulses.
+                          if (result === "submitted") {
+                            router.push(`/staff/broadcasts?submitted=${id}`);
+                            return;
+                          }
+                          setSubmitting(false);
+                          if (result === "outdated") return;
+                          setSubmitError(
+                            result === "broke"
+                              ? copy.submitBroke
+                              : typeof result === "object"
+                                ? copy.submitFailed(result.failed)
+                                : copy.submitRefused[result],
+                          );
+                        }}
+                      >
+                        {copy.submitTemplate}
+                      </Button>
+                      {/* Why it can't go yet, under the button: fields where WhatsApp won't take them, the words
+                          a template has already, and the rest. */}
+                      <ProblemList problems={approvalProblems(problems).map((problem) => copy.problems[problem])} />
+                      {submitError && <Alert>{submitError}</Alert>}
+                    </div>
+                  )
+                }
                 subject={values.subject}
                 from={fromLine}
                 gmail={gmailChecked && data.sender.connected ? draft.sentFrom : null}
@@ -745,7 +897,10 @@ export default function BroadcastWriter({
                 sendTest={async (meets, to) => {
                   // The test is of the draft as saved, so what's typed goes first.
                   await saveNow();
-                  return actions.sendTest(id, meets, to);
+                  return actions.sendTest(id, meets, to).catch((error: unknown) => {
+                    if (stale(error)) return undefined;
+                    throw error;
+                  });
                 }}
               />
             </Card>
@@ -777,49 +932,21 @@ export default function BroadcastWriter({
                 )}
               </Facts>
               <div className={styles.send}>
-                {/* New words go to WhatsApp from here, at the foot, once they're written, in Schedule's
-                    place, as they can't be scheduled till WhatsApp approves them. */}
-                {words === "new" && !waiting ? (
-                  <Button
-                    variant="primary"
-                    fit
-                    disabled={!written || approvalProblems(problems).length > 0 || !data.sends}
-                    pending={submitting}
-                    onClick={async () => {
-                      setSubmitting(true);
-                      setSubmitError(null);
-                      const result = await saveNow()
-                        .then(() => actions.submitTemplate(id))
-                        .catch(() => "broke" as const);
-                      // Back to the list, where the broadcast's row says it's waiting for WhatsApp, and pulses.
-                      if (result === "submitted") {
-                        router.push(`/staff/broadcasts?submitted=${id}`);
-                        return;
-                      }
-                      setSubmitting(false);
-                      setSubmitError(
-                        result === "broke"
-                          ? copy.submitBroke
-                          : typeof result === "object"
-                            ? copy.submitFailed(result.failed)
-                            : copy.submitRefused[result],
-                      );
-                    }}
-                  >
-                    {copy.submitTemplate}
-                  </Button>
-                ) : (
-                  <ScheduleButton
-                    label={copy.schedule(data.count, draft.channel)}
-                    disabled={problems.length > 0 || !data.sends}
-                    saveNow={saveNow}
-                    schedule={() => actions.schedule(id, version.current)}
-                  />
-                )}
+                <ScheduleButton
+                  label={copy.schedule(data.count, draft.channel)}
+                  disabled={problems.length > 0 || !data.sends}
+                  saveNow={saveNow}
+                  schedule={() => actions.schedule(id, version.current)}
+                  stale={stale}
+                />
                 <DeleteDraft id={id} action={actions.deleteDraft} />
               </div>
-              {submitError && <Alert>{submitError}</Alert>}
-              <ProblemList problems={shownProblems.map((problem) => copy.problems[problem])} />
+              {/* Words with WhatsApp already aren't to be sent for approval: it's reviewing them. */}
+              <ProblemList
+                problems={shownProblems.map((problem) =>
+                  waiting && problem === "not-approved" ? copy.reviewing : copy.problems[problem],
+                )}
+              />
             </Card>
           </>,
         )}

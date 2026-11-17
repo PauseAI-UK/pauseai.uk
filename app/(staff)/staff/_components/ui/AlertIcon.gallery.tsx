@@ -9,10 +9,11 @@ export const alertIconGallery: Example[] = [
     file: "app/(staff)/staff/_components/ui/AlertIcon.tsx",
     variants: [
       {
-        label: "Waiting, and broken",
+        label: "To see to, broken, going, and waiting on someone else",
         render: () => (
           <StaffPage as="div">
-            <AlertIcon tone="amber" /> <AlertIcon tone="red" /> <AlertIcon tone="blue" />
+            <AlertIcon tone="amber" /> <AlertIcon tone="red" /> <AlertIcon tone="blue" />{" "}
+            <AlertIcon tone="blue" waiting />
           </StaffPage>
         ),
       },

@@ -3,6 +3,7 @@
 // A reply in a copy's thread (MessageCopyView), on the client, as what opens
 // its answer (AnswerableReply's) is a function its buttons are given.
 import type { ReactNode } from "react";
+import { staffMemberText } from "@/lib/staff-member";
 import { Muted } from "@/components/ui/Text";
 import { named } from "@/lib/email-parsing/addresses";
 import { phoneWords } from "@/lib/phone";
@@ -48,7 +49,8 @@ function Answer({
   foot?: ReactNode;
 }) {
   // Who sent it: the site itself, for its answer to a STOP, or the staff member.
-  const sentBy = answer.sentBy === SITE_ACTOR ? copy.replies.sentAutomatically : copy.replies.sentBy(answer.sentBy);
+  const sentBy =
+    answer.sentBy === SITE_ACTOR ? copy.replies.sentAutomatically : copy.replies.sentBy(staffMemberText(answer.sentBy));
   if (one.channel === "text") {
     const bubble = (
       <ChatWall>
@@ -119,7 +121,10 @@ export default function Reply({
     <p className={styles.dealt}>
       {reply.dealtBy === SITE_ACTOR
         ? copy.replies.optedOutAutomatically(when!)
-        : (reply.outcome === "opted-out" ? copy.replies.optedOut : copy.replies.nothingDone)(reply.dealtBy!, when!)}
+        : (reply.outcome === "opted-out" ? copy.replies.optedOut : copy.replies.nothingDone)(
+            staffMemberText(reply.dealtBy!),
+            when!,
+          )}
     </p>
   );
   const answered = one.answers.some((answer) => answer.replyId === reply.id);

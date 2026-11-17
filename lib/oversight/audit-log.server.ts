@@ -37,6 +37,7 @@ const WITHOUT_SUPPORTERS = `NOT (
     "change broadcast consent",
     "submit broadcast template",
     "withdraw broadcast template",
+    "delete broadcast template",
     "schedule broadcast",
     "stop broadcast",
     "resume broadcast",

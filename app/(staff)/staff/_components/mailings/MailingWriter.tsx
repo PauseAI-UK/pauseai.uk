@@ -133,7 +133,7 @@ export default function MailingWriter({
         }
       : {},
   );
-  const { values, change, saveNow, saveState, version, attachments, attach, detach, fileProblem } =
+  const { values, change, saveNow, saveState, version, attachments, attach, detach, fileProblem, stale, restored } =
     useDraftWriter<Changes>({
       id,
       version: draft.version,
@@ -341,7 +341,9 @@ export default function MailingWriter({
             <p id={letterLabel} className={styles.label}>
               {copy.letter}
             </p>
+            {/* Made anew with what a reload kept, as it reads its words once. */}
             <MailingEditor
+              key={restored}
               initial={values.body as JSONContent}
               onChange={(doc) => change({ body: doc as MailingDoc })}
               fields={data.fields}
@@ -373,7 +375,10 @@ export default function MailingWriter({
             sendTest={async (recipient, to) => {
               // The test is of the draft as saved, so what's typed goes first.
               await saveNow();
-              return actions.sendTest(id, recipient, to);
+              return actions.sendTest(id, recipient, to).catch((error: unknown) => {
+                if (stale(error)) return undefined;
+                throw error;
+              });
             }}
           />
         </Card>
@@ -400,6 +405,7 @@ export default function MailingWriter({
               disabled={problems.length > 0 || !data.sends}
               saveNow={saveNow}
               schedule={() => actions.schedule(id, version.current)}
+              stale={stale}
             />
             <DeleteDraft id={id} action={actions.deleteDraft} />
           </div>

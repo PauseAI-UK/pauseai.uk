@@ -22,6 +22,7 @@ import {
   sendBroadcastTestNow,
   resumeBroadcastNow,
   stopBroadcastNow,
+  deleteTemplateNow,
   submitTemplateNow,
   withdrawTemplateNow,
 } from "./actions";
@@ -264,10 +265,18 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}`);
   });
 
+  it("deletes a template, as its writer's page asks, refreshing the broadcasts' pages", async () => {
+    // As fixture builds' WhatsApp takes it.
+    expect(await deleteTemplateNow(await addTemplate("Old words"))).toBe("deleted");
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts", "layout");
+    expect(await deleteTemplateNow(0)).toBe("gone");
+  });
+
   it("gives the writer each of its actions", () => {
     expect(broadcastWriterActions).toMatchObject({
       submitTemplate: submitTemplateNow,
       withdrawTemplate: withdrawTemplateNow,
+      deleteTemplate: deleteTemplateNow,
       schedule: scheduleBroadcastNow,
     });
   });

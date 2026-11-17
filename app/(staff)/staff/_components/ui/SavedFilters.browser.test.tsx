@@ -176,7 +176,7 @@ describe("SavedFilters' list", () => {
     await bar({ mailing: "12", pasted: ["Jo"] }, { rows });
     await chip().click();
     const link = page.getByRole("link", { name: /Conservatives who replied/ });
-    await says(/Conservatives who replied/, "jane.smith+1 · ");
+    await says(/Conservatives who replied/, "jane.smith+1@pauseai.uk · ");
     await says(/Conservatives who replied/, "Labour");
     await expect.element(link).toHaveAttribute("href", "/staff/politicians?party=Labour&mailing=12&pasted=Jo&saved=1");
     await expect.element(page.getByText(copy.count(2))).toBeVisible();

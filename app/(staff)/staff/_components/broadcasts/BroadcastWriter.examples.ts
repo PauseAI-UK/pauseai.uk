@@ -96,10 +96,25 @@ export const exampleTextWords: MailingDoc = {
   ],
 };
 
+/** An approved template's words: not quite the words above, which are new words, not yet a template. */
+const exampleTemplateWords: MailingDoc = {
+  type: "doc",
+  content: [
+    {
+      type: "paragraph",
+      content: [
+        { type: "text", text: "Hi " },
+        { type: "field", attrs: { field: "firstName" } },
+        { type: "text", text: ", the march meets at 11:00 at Parliament Square." },
+      ],
+    },
+  ],
+};
+
 const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}): WhatsAppTemplate => ({
   id,
   name,
-  body: exampleTextWords,
+  body: exampleTemplateWords,
   status: "approved",
   category: "MARKETING",
   metaName: null,
@@ -111,6 +126,8 @@ const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}
   footer: TEMPLATE_FOOTER,
   lastUsedAt: null,
   lastUsedTo: 0,
+  nextScheduledAt: null,
+  uses: { sent: 0, scheduled: 0, drafts: 0 },
   ...more,
 });
 
@@ -119,6 +136,7 @@ export const exampleTemplates: WhatsAppTemplate[] = [
   template(1, "The march meets at 11:00 at Parliament Square.", {
     lastUsedAt: new Date("2026-11-02T08:00:00Z"),
     lastUsedTo: 318,
+    uses: { sent: 2, scheduled: 1, drafts: 1 },
   }),
   template(2, "PauseCon room change", { createdBy: null, footer: null }),
   template(3, "Our next event is on Saturday."),

@@ -4,7 +4,7 @@ import { type Picked } from "@/lib/staff-search";
 import { firstOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import type { FilterWordsData } from "@/lib/mailings/pages.server";
-import { filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
+import { filterPills, POLITICIAN_FILTERS, type FilterPill } from "@/lib/staff-list-filters";
 import Pills from "../ui/Pills";
 import styles from "./MailingParts.module.css";
 import { mailingsCopy } from "./copy";
@@ -17,16 +17,16 @@ const copy = mailingsCopy.mailingPages;
 /** The most names ticked said as pills; the rest are a count. */
 const MOST_NAMES = 10;
 
-/** A filter's words, as the politicians list's tabs and chips say them: the house first, then the search, then the chips. */
-function filterPills(data: FilterWordsData, params: Params): string[] {
+/** A filter's pills, as the politicians list's tabs and chips say them: the house first, then the search, then the chips. */
+function politicianPills(data: FilterWordsData, params: Params): FilterPill[] {
   // The house is the list's tabs, not one of its filters, so it comes first, on its own.
   const house = staffVocabulary.houses[firstOf(params.house)];
   // The search in quotes, so it reads as what was typed.
   const search = firstOf(params.q);
   return [
-    ...(house ? [house] : []),
-    ...(search ? [copy.searchPill(search)] : []),
-    ...filterWords(
+    ...(house ? [{ words: house, not: false }] : []),
+    ...(search ? [{ words: copy.searchPill(search), not: false }] : []),
+    ...filterPills(
       POLITICIAN_FILTERS({ ask: firstOf(params.ask), parties: data.parties, asks: data.asks }),
       { ...params, q: "" },
       "q",
@@ -34,25 +34,26 @@ function filterPills(data: FilterWordsData, params: Params): string[] {
   ];
 }
 
-/** Who's ticked, in words: the group a filter found and when, with those added and taken off; else their names. */
-function pickedPills(data: FilterWordsData, picked: Picked): string[] {
+/** Who's ticked, as pills: the group a filter found and when, with those added and taken off; else their names. */
+function pickedPills(data: FilterWordsData, picked: Picked): FilterPill[] {
   const name = (id: number) => data.names[id] ?? `#${id}`;
+  const found = (words: string) => ({ words, not: false });
   const who = pickedWho(picked);
   if (who.kind === "group") {
     const { from, plus, except } = who;
-    const group = filterPills(data, from.params);
+    const group = politicianPills(data, from.params);
     return [
-      ...(group.length ? group : [copy.everyone]),
-      copy.pickedFrom(staffDate(new Date(from.at)), from.found.length),
-      ...plus.map((id) => copy.pickedPlus(name(id))),
-      ...except.map((id) => copy.pickedExcept(name(id))),
+      ...(group.length ? group : [found(copy.everyone)]),
+      found(copy.pickedFrom(staffDate(new Date(from.at)), from.found.length)),
+      ...plus.map((id) => found(copy.pickedPlus(name(id)))),
+      ...except.map((id) => ({ words: copy.pickedExcept(name(id)), not: true })),
     ];
   }
   const names = who.ids.map(name).sort((a, b) => a.localeCompare(b));
   return [
     ...names.slice(0, MOST_NAMES),
     ...(names.length > MOST_NAMES ? [copy.pickedMore(names.length - MOST_NAMES)] : []),
-  ];
+  ].map(found);
 }
 
 /**
@@ -62,9 +63,9 @@ function pickedPills(data: FilterWordsData, picked: Picked): string[] {
  */
 export function FilterPills({ data }: { data: FilterWordsData }) {
   const { picked } = data.filter;
-  const words = picked ? pickedPills(data, picked) : filterPills(data, data.filter.params);
-  if (words.length === 0) {
+  const pills = picked ? pickedPills(data, picked) : politicianPills(data, data.filter.params);
+  if (pills.length === 0) {
     return <p className={styles.everyone}>{picked ? politiciansCopy.choosing.pickedNone : copy.everyone}</p>;
   }
-  return <Pills words={words} label={copy.whoLabel} />;
+  return <Pills pills={pills} label={copy.whoLabel} />;
 }

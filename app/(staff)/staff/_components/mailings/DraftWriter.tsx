@@ -1,5 +1,6 @@
 "use client";
 
+import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MAX_ATTACHMENT_BYTES } from "@/lib/mailings/attachments";
 import { earliestRun, fromLondon, londonDayTime, SENDING } from "@/lib/staff-time";
@@ -7,6 +8,7 @@ import type { MailingAttachmentSummary, SaveResult } from "@/lib/mailings/drafts
 import { Button } from "@/components/ui/Button";
 import { SaveState as SaveStatePill, type SaveStateValue as SaveState } from "@/components/ui/SaveState";
 import { CHECK_EVERY, DueTimeFields, dueTime } from "./DueTime";
+import { keepDraftOnReload } from "../shell/stale-actions.client";
 import IconText from "../ui/IconText";
 import TickIcon from "../ui/TickIcon";
 import styles from "./MailingWriter.module.css";
@@ -75,6 +77,27 @@ export function DraftTitle({ title, saveState }: { title: string; saveState?: Sa
   );
 }
 
+/** Where a draft's changes wait across a reload, while the page is too old to save them. */
+const unsavedKey = (id: number) => `draft-unsaved-${id}`;
+
+/** What's kept across a reload: the changes, and the version they're changes to. */
+type Unsaved = { version: number; changes: Record<string, unknown> };
+
+/** A draft's changes kept for it before a reload, if they're to the version it has now; taken, so they're kept once. */
+function takeUnsaved(id: number, version: number): Record<string, unknown> | null {
+  try {
+    const kept = sessionStorage.getItem(unsavedKey(id));
+    sessionStorage.removeItem(unsavedKey(id));
+    if (!kept) return null;
+    const unsaved = JSON.parse(kept) as Unsaved;
+    if (unsaved.version !== version) return null;
+    const { dueAt } = unsaved.changes;
+    return typeof dueAt === "string" ? { ...unsaved.changes, dueAt: new Date(dueAt) } : unsaved.changes;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * A draft's values and saving them: each change a moment after it's made,
  * or at once with saveNow, before leaving the page, scheduling or sending a
@@ -83,6 +106,15 @@ export function DraftTitle({ title, saveState }: { title: string; saveState?: Sa
  * saving and says so. A time too soon, or gone, when the draft is opened, or
  * that becomes so while it's open, moves on to the first hour it can go at,
  * and that's saved.
+ *
+ * A deploy since the page was opened leaves it calling Server Actions the
+ * site no longer has, so nothing it does can work: the draft is then
+ * outdated, saving stops, and changes made since its last save are kept.
+ * `stale` says whether an action's error was that, and marks the draft so;
+ * the page says it (SiteUpdated). Leaving an outdated page, as reloading it
+ * does, keeps the changes in the tab's session storage; the page, opened
+ * again, takes them back and saves them, and `restored` goes up by one, for
+ * an editor that reads its words only once to be made anew.
  */
 export function useDraftWriter<Changes extends { dueAt: Date | null }>({
   id,
@@ -110,6 +142,38 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
   /** The save under way, if any: what saveNow waits for before it saves the rest. */
   const underway = useRef<Promise<void>>(Promise.resolve());
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const outdated = useRef(false);
+  const [restored, setRestored] = useState(0);
+
+  /** Whether `error` is from a Server Action this page has but the site no longer does; if so, the draft's outdated. */
+  function stale(error: unknown): boolean {
+    if (!unstable_isUnrecognizedActionError(error)) return false;
+    outdated.current = true;
+    clearTimeout(timer.current);
+    setSaveState("outdated");
+    return true;
+  }
+
+  // Leaving an outdated page keeps what isn't saved yet, for the page, opened again, to take back.
+  useEffect(() => {
+    const leaving = () => {
+      if (!outdated.current) return;
+      try {
+        sessionStorage.setItem(
+          unsavedKey(id),
+          JSON.stringify({ version: version.current, changes: pending.current } satisfies Unsaved),
+        );
+      } catch {
+        // With no session storage, the page opens again as it was last saved.
+      }
+    };
+    window.addEventListener("pagehide", leaving);
+    const unkeep = keepDraftOnReload();
+    return () => {
+      window.removeEventListener("pagehide", leaving);
+      unkeep();
+    };
+  }, [id]);
 
   function flush(): Promise<void> {
     if (saving.current) {
@@ -133,9 +197,9 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
       } else {
         setSaveState("conflict");
       }
-    } catch {
+    } catch (error) {
       pending.current = { ...changes, ...pending.current };
-      setSaveState("failed");
+      if (!stale(error)) setSaveState("failed");
     } finally {
       saving.current = false;
     }
@@ -151,6 +215,8 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     latest.current = { ...latest.current, ...changes };
     setValues(latest.current);
     pending.current = { ...pending.current, ...changes };
+    // Outdated, it's kept for the reload, and not saved.
+    if (outdated.current) return;
     // Saving from the change, not only once its save starts, so Saved means nothing's waiting.
     setSaveState("saving");
     later();
@@ -161,7 +227,7 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     clearTimeout(timer.current);
     await underway.current;
     clearTimeout(timer.current);
-    if (Object.keys(pending.current).length) await flush();
+    if (Object.keys(pending.current).length && !outdated.current) await flush();
   }
 
   /** Shows what's attached after an attach or a detach; whether it was done. */
@@ -197,6 +263,17 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
   const detach = async (file: number) => void attached(await actions.detach(id, version.current, file));
 
   useEffect(() => {
+    const unsaved = takeUnsaved(id, firstVersion);
+    if (unsaved) {
+      change(unsaved as Partial<Changes>);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- once, on load, from sessionStorage, which the server render couldn't read
+      setRestored(1);
+    }
+    // Once, as the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     const check = () => {
       const due = latest.current.dueAt;
       if (due && due < earliestRun()) change({ dueAt: earliestRun() } as Partial<Changes>);
@@ -208,7 +285,19 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { values, change, saveNow, saveState, version, attachments, attach, detach, fileProblem };
+  return {
+    values,
+    change,
+    saveNow,
+    saveState,
+    version,
+    attachments,
+    attach,
+    detach,
+    fileProblem,
+    stale,
+    restored,
+  };
 }
 
 /**
@@ -217,18 +306,21 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
  * the scheduled page (revalidatePath), which takes the writer's place, and
  * this button with it: as it goes, the window goes to the top, so the new
  * page shows from its top, as a new page would. Till then the button stays
- * pending, and the page where it was.
+ * pending, and the page where it was. An outdated page (useDraftWriter's
+ * `stale`) can't schedule: the button's back, and the draft says why.
  */
 export function ScheduleButton({
   label,
   disabled,
   saveNow,
   schedule,
+  stale,
 }: {
   label: string;
   disabled: boolean;
   saveNow: () => Promise<unknown>;
   schedule: () => Promise<{ scheduled: boolean }>;
+  stale: (error: unknown) => boolean;
 }) {
   const [scheduling, setScheduling] = useState(false);
   const trying = useRef(false);
@@ -248,7 +340,14 @@ export function ScheduleButton({
         setScheduling(true);
         await saveNow();
         trying.current = true;
-        if (!(await schedule()).scheduled) {
+        const scheduled = await schedule().then(
+          (result) => result.scheduled,
+          (error: unknown) => {
+            if (stale(error)) return false;
+            throw error;
+          },
+        );
+        if (!scheduled) {
           trying.current = false;
           setScheduling(false);
         }
@@ -280,7 +379,10 @@ export function TestSent({ line, sent }: { line?: string; sent: boolean }) {
 /** Of what stops a draft being scheduled, what stops a test copy too: there's nothing yet to test. */
 export const TEST_NEEDS: string[] = ["no-subject", "no-letter", "no-template"];
 
-/** What stops a draft being scheduled, a line each, in the order of the page's sections; nothing when nothing does. */
+/**
+ * What stops the button over it, as errors: a red bullet each, in the
+ * order of the page's sections; nothing when nothing does.
+ */
 export function ProblemList({ problems }: { problems: string[] }) {
   if (problems.length === 0) return null;
   return (

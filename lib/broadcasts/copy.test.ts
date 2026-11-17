@@ -45,7 +45,7 @@ describe("the words of messages to supporters", () => {
         copy.broadcastButton(n),
         copy.choosingCount(n),
         copy.recipientsCount(n),
-        copy.templateUsed("1 Oct 2026", n),
+        copy.templateFacts.used("1 Oct 2026", n),
       ];
       for (const words of others) expect(words).toContain(String(n));
     }

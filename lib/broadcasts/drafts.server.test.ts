@@ -12,6 +12,7 @@ import { toNotifications } from "@/tests/notifications";
 import { getWrittenMailing, saveDraft } from "@/lib/mailings/drafts.server";
 import {
   approvedTemplates,
+  deleteApprovedTemplate,
   changeBroadcastConsent,
   changeBroadcastFilter,
   createBroadcastDraft,
@@ -293,14 +294,22 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await scheduleBroadcast(on, await readied(on, { templateId: template }), JO)).toEqual({ scheduled: true });
     expect((await getWrittenBroadcast(on))!.template).toMatchObject({ id: template, status: "approved" });
 
+    // New words, not the template's.
+    const saturday = structuredClone(EVENT_WORDS);
+    saturday.content[0].content[2] = { type: "text", text: ", see you on Saturday." };
     const fresh = await draftOf(TEXT_FILTER);
     expect(
-      await scheduleBroadcast(fresh, await readied(fresh, { body: EVENT_WORDS, title: "See you there." }), JO),
+      await scheduleBroadcast(fresh, await readied(fresh, { body: saturday, title: "See you Saturday." }), JO),
     ).toEqual({
       scheduled: false,
       problems: ["not-approved"],
     });
     expect((await getWrittenBroadcast(fresh))!.template).toBeNull();
+    // The very words of the approved template: nothing new to approve.
+    const same = await draftOf(TEXT_FILTER);
+    expect(
+      await scheduleBroadcast(same, await readied(same, { body: EVENT_WORDS, title: "See you there." }), JO),
+    ).toEqual({ scheduled: false, problems: ["same-words", "not-approved"] });
   });
 
   it("sends new words for approval, emailing who sent them and the inbox, and locks them till WhatsApp decides", async () => {
@@ -504,6 +513,52 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(deleted).toHaveLength(2);
     });
 
+    it("deletes an approved template no broadcast ever had, from WhatsApp first, keeping it here", async () => {
+      const deleted: string[] = [];
+      let refuse = false;
+      server.use(
+        http.delete(TEMPLATES, ({ request }) => {
+          deleted.push(new URL(request.url).searchParams.get("name")!);
+          return refuse
+            ? HttpResponse.json({ error: { message: "No" } }, { status: 400 })
+            : HttpResponse.json({ success: true });
+        }),
+      );
+      const old = await addTemplate("Old words");
+      await query("UPDATE whatsapp_templates SET meta_name = 'old_words_1' WHERE id = $1", [old]);
+      // WhatsApp refusing: it's kept as it was, and reported.
+      refuse = true;
+      expect(await deleteApprovedTemplate(old, JO)).toBe("failed");
+      expect(console.error).toHaveBeenCalled();
+      expect((await approvedTemplates()).map((t) => t.id)).toEqual([old]);
+      refuse = false;
+      expect(await deleteApprovedTemplate(old, JO)).toBe("deleted");
+      expect(deleted).toEqual(["old_words_1", "old_words_1"]);
+      expect(
+        await query(
+          "SELECT status, deleted_by, deleted_at IS NOT NULL AS dated FROM whatsapp_templates WHERE id = $1",
+          [old],
+        ),
+      ).toEqual([{ status: "deleted", deleted_by: JO, dated: true }]);
+      expect(await query("SELECT actor, details FROM audit_log WHERE action = 'delete broadcast template'")).toEqual([
+        { actor: JO, details: { id: old, name: "old_words_1" } },
+      ]);
+      expect(await approvedTemplates()).toEqual([]);
+      // Gone already: nothing more to do.
+      expect(await deleteApprovedTemplate(old, JO)).toBe("gone");
+      // One a broadcast has, even a draft, stays; one made in WhatsApp Manager goes by its name there.
+      const kept = await addTemplate("Kept");
+      const id = await draftOf(TEXT_FILTER);
+      await readied(id, { templateId: kept });
+      expect(await deleteApprovedTemplate(kept, JO)).toBe("used");
+      const manager = await addTemplate("made_in_manager", { createdBy: null });
+      expect(await deleteApprovedTemplate(manager, JO)).toBe("deleted");
+      expect(deleted).toEqual(["old_words_1", "old_words_1", "made_in_manager"]);
+      // With no keys, as on a deploy preview, WhatsApp can't be reached.
+      vi.stubEnv("WHATSAPP_TOKEN", "");
+      expect(await deleteApprovedTemplate(await addTemplate("No keys"), JO)).toBe("failed");
+    });
+
     it("tests a text on a template by the name WhatsApp has it by, but not while WhatsApp doesn't answer", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const names: string[] = [];
@@ -585,17 +640,38 @@ describeWithDatabase("broadcasts to supporters", () => {
     });
   });
 
-  it("lists approved templates, most recently used first", async () => {
+  it("lists approved templates by the later of when each was approved and last used", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const unused = await addTemplate("Unused", { createdBy: null });
     const used = await addTemplate("Used");
+    // Approved after the other was last sent (in 2099, as the fixtures send): first.
+    const newest = await addTemplate("Newest");
+    await query("UPDATE whatsapp_templates SET approved_at = '2100-01-01' WHERE id = $1", [newest]);
     await addTemplate("Rejected", { status: "rejected" });
     const id = await draftOf(TEXT_FILTER);
     await scheduleBroadcast(id, await readied(id, { templateId: used }), JO);
     await startSending(id, "sent");
+    // A draft on the unused one, and another scheduled on the used one, are counted, but not as sent.
+    await readied(await draftOf(TEXT_FILTER), { templateId: unused });
+    const again = await draftOf(TEXT_FILTER);
+    await scheduleBroadcast(again, await readied(again, { templateId: used }), JO);
     expect(await approvedTemplates()).toMatchObject([
-      { id: used, lastUsedAt: expect.anything(), lastUsedTo: 1 },
-      { id: unused, createdBy: null, lastUsedAt: null, lastUsedTo: 0 },
+      { id: newest, lastUsedAt: null, nextScheduledAt: null },
+      {
+        id: used,
+        lastUsedAt: expect.anything(),
+        lastUsedTo: 1,
+        nextScheduledAt: expect.any(Date),
+        uses: { sent: 1, scheduled: 1, drafts: 0 },
+      },
+      {
+        id: unused,
+        createdBy: null,
+        lastUsedAt: null,
+        lastUsedTo: 0,
+        nextScheduledAt: null,
+        uses: { sent: 0, scheduled: 0, drafts: 1 },
+      },
     ]);
   });
 

@@ -1380,4 +1380,31 @@ describe("MenuSelect", () => {
     expect(sent()).toBe("p");
     await expect.element(page.getByRole("button", { name: "Fruit: Pears, Fruit" })).toBeVisible();
   });
+
+  it("shows the choice its page keeps, each choice's facts, one at its foot under a rule, and can't open disabled", async () => {
+    const options = [{ value: "a", label: "Apples", facts: ["Picked 3 Nov", "Kent"] }];
+    const picked = vi.fn();
+    const { container, rerender } = await render(
+      <MenuSelect
+        id="fruit"
+        label="Fruit"
+        placeholder="Choose…"
+        options={options}
+        last={{ value: "new", label: "Something new" }}
+        value="new"
+        onChange={picked}
+      />,
+    );
+    // No form field without a name.
+    expect(container.querySelector("input")).toBeNull();
+    await page.getByRole("button", { name: "Fruit: Something new" }).click();
+    await expect.element(page.getByRole("button", { name: "Apples" })).toHaveAccessibleDescription("Picked 3 Nov Kent");
+    expect(container.querySelector("hr + ul")!.textContent).toBe("Something new");
+    await page.getByRole("button", { name: "Apples" }).click();
+    expect(picked).toHaveBeenCalledWith("a");
+    // The page hasn't taken it, so the box still says its choice.
+    await expect.element(page.getByRole("button", { name: "Fruit: Something new" })).toBeVisible();
+    await rerender(<MenuSelect id="fruit" label="Fruit" placeholder="Choose…" options={options} value="a" disabled />);
+    await expect.element(page.getByRole("button", { name: "Fruit: Apples" })).toBeDisabled();
+  });
 });

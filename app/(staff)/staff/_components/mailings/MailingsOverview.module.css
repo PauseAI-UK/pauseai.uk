@@ -117,15 +117,15 @@
 }
 
 .dot[data-tone="red"] {
-  background: var(--status-red);
+  background: var(--status-red-mark);
 }
 
 .dot[data-tone="blue"] {
-  background: var(--status-blue);
+  background: var(--status-blue-mark);
 }
 
 .dot[data-tone="green"] {
-  background: var(--status-green);
+  background: var(--status-green-mark);
 }
 
 /* The sending bar, the width of the column, leading to it: its sentence above it, on the left. */
