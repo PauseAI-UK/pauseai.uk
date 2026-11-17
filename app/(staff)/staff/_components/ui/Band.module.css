@@ -52,7 +52,7 @@
   font-size: var(--text-lg);
 }
 
-/* The facts, with what's aside at the bottom right. Under 70rem, what's aside is beside the facts if both fit on
+/* The facts, with what's aside at the bottom right, their bottoms level. Under 70rem, what's aside is beside the facts if both fit on
    one line, and under them at the right if not. From 70rem it's always beside them: it takes the width it needs on
    one line, the facts take the rest down to 26rem, and only then does what's aside wrap, at the right. */
 .row {
@@ -64,7 +64,6 @@
 
 .factsBox {
   flex: 1 1 auto;
-  align-self: flex-start;
   min-width: 0;
 }
 
