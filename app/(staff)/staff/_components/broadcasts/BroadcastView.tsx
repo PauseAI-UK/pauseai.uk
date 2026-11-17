@@ -146,7 +146,7 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
           <span className={styles.stack}>
             <CopyStatus copyOf={r} />
             {r.sentAt && <Muted>{staffDate(r.sentAt)}</Muted>}
-            {r.heldTill && <Muted>{copy.heldTill(staffDate(r.heldTill))}</Muted>}
+            {r.heldTill && <Muted>{copy.heldTill(staffTime(r.heldTill))}</Muted>}
             {copyWent(r) && (
               <StaffLink href={`/staff/broadcasts/${broadcast.id}/${r.copyId}`}>{copy.threadLink}</StaffLink>
             )}

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
+import { londonWhen, staffTime } from "@/lib/staff-time";
 import BroadcastView, { broadcastCounts } from "./BroadcastView";
 import { CountGroups, NeedsAndFine } from "../mailings/CopyCounts";
 import { CopyStatus, copyStatus } from "../letters/CopyStatus";
@@ -190,7 +190,7 @@ describe("a broadcast's page", () => {
     // The went group leaves them out.
     await expect.element(page.getByRole("group", { name: `276 ${stateWords.groups.went}` })).toBeVisible();
     await expect.element(page.getByText(stateWords.tags.held!, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(copy.heldTill(staffDate(heldTill)))).toBeVisible();
+    await expect.element(page.getByText(copy.heldTill(staffTime(heldTill)))).toBeVisible();
     // Not gone yet, so no way to its copy.
     await expect.element(page.getByRole("link", { name: copy.threadLink })).not.toBeInTheDocument();
   });

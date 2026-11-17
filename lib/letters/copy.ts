@@ -285,9 +285,9 @@ export const lettersCopy = {
       unreached: "didn't reach",
       "not-sent": "not sent",
       // A broadcast's copy WhatsApp turned away for now, as the person has had too many marketing messages lately.
-      held: "⁂ held by WhatsApp",
+      held: "delayed",
       // A broadcast's copy whose turn hasn't come yet, or that's being sent.
-      "to-go": "⁂ queued",
+      "to-go": "queued",
     } as Record<string, string>,
     tabs: {
       sent: "Sent",
@@ -301,8 +301,8 @@ export const lettersCopy = {
       error: "Something went wrong",
       unreached: "Didn't reach them",
       "not-sent": "Not sent",
-      held: "⁂ Held by WhatsApp, to try again later",
-      "to-go": "⁂ Queued",
+      held: "Delayed, they're at WhatsApp's marketing limit",
+      "to-go": "Queued",
     } as Record<string, string>,
     // On its page, its counts in groups, each under its total: those that went, those still to go, and those that didn't.
     groups: { went: "went", toGo: "still to go", gone: "didn't go" },
@@ -314,8 +314,8 @@ export const lettersCopy = {
       queued: "Queued",
       scheduled: "Scheduled",
       sending: "Sending",
-      held: "⁂ Held by WhatsApp",
-      "to-go": "⁂ Queued",
+      held: "Delayed",
+      "to-go": "Queued",
       sent: "Sent",
       // A letter that only an automatic reply has come back to, such as an out-of-office.
       "sent:auto-reply": "Sent: auto-reply",
