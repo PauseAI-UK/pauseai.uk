@@ -283,6 +283,40 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await choosingBroadcast(String(id))).toBeUndefined();
   });
 
+  it("counts those still to go: held by WhatsApp till a time to come, or waiting their turn", async () => {
+    for (const n of [1, 2, 3, 4]) await addFollower(`usr-${n}`, `p${n}@example.com`, `Person ${n}`);
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });
+    const copies = await sent(id, [
+      ["delivered", null],
+      ["scheduled", null],
+      ["scheduled", null],
+      ["scheduled", null],
+    ]);
+    await query("UPDATE mailings SET state = 'sending' WHERE id = $1", [id]);
+    await query("UPDATE broadcast_messages SET sent_at = NULL WHERE id = ANY($1)", [copies.slice(1)]);
+    // One held till tomorrow; one held till a time now past, so it's waiting its turn again; one being sent.
+    await query("UPDATE broadcast_messages SET not_before = now() + interval '1 day' WHERE id = $1", [copies[1]]);
+    await query("UPDATE broadcast_messages SET not_before = now() - interval '1 hour' WHERE id = $1", [copies[2]]);
+    await query("UPDATE broadcast_messages SET status = 'sending', sending_since = now() WHERE id = $1", [copies[3]]);
+    const data = await broadcastPageData(id, {}, JO);
+    expect(data!.kind === "written" && data!.summary.states).toMatchObject({ delivered: 1, held: 1, "to-go": 2 });
+    const rows = data!.kind === "written" ? data!.recipients : [];
+    const [{ tomorrow }] = await query<{ tomorrow: Date }>(
+      "SELECT not_before AS tomorrow FROM broadcast_messages WHERE id = $1",
+      [copies[1]],
+    );
+    expect(
+      copies.map((copy) => rows.find((one) => one.copyId === copy)).map((one) => [one!.state, one!.heldTill]),
+    ).toEqual([
+      ["delivered", null],
+      ["held", tomorrow],
+      ["to-go", null],
+      ["to-go", null],
+    ]);
+    expect(await broadcastPageData(id, { tab: "held" }, JO)).toMatchObject({ tab: "held", recipientsTotal: 1 });
+    expect(await broadcastPageData(id, { tab: "to-go" }, JO)).toMatchObject({ tab: "to-go", recipientsTotal: 2 });
+  });
+
   it("says which drafts are waiting for WhatsApp to approve their words, which it approved, and which it rejected", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const plain = (await createBroadcastDraft(JO, TEXT_FILTER))!;

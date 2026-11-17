@@ -291,6 +291,8 @@ export const broadcastsCopy = {
     columns: { who: "Supporter", status: "Status" },
     erased: "Erased supporter",
     threadLink: "Thread →",
+    // Under a copy WhatsApp held: when it's next tried, as a date and time.
+    heldTill: (when: string) => `Tries again ${when}`,
     // Thread: one copy's page, titled as a letter's is.
     copyTitle: (channel: "email" | "text", to: string) => `${copyKind(channel)} from PauseAI UK to ${to}`,
     // Its own step of the trail above its page, after the broadcast: the title's first word.

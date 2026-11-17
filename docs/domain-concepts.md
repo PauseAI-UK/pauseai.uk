@@ -403,8 +403,10 @@ meaning, a colour and a count:
 
 | State        | Colour | Means                                                                                                                                   |
 | ------------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| scheduled    | grey   | still to go                                                                                                                             |
-| sending      | grey   | going out now                                                                                                                           |
+| scheduled    | grey   | a letter still to go                                                                                                                    |
+| sending      | grey   | a letter going out now                                                                                                                  |
+| to go        | grey   | a broadcast's copy still to go: its turn hasn't come yet, or it's going out now                                                         |
+| held         | grey   | a broadcast's copy WhatsApp turned away for now, as the person has had too many marketing messages lately; it's tried again a day later |
 | sent         | grey   | it went, and nothing has come back                                                                                                      |
 | delivered    | green  | the provider says it arrived (Postmark and WhatsApp say so; Gmail never does)                                                           |
 | read         | green  | WhatsApp says they read it                                                                                                              |
@@ -420,8 +422,8 @@ meaning, a colour and a count:
 The principles:
 
 - **One state a copy.** A copy shows one tag, and is in one count. Where
-  more than one applies, the first in this order wins: to check, opted
-  out, marked spam, error, didn't reach, not sent, answered, replied, read,
+  more than one applies, the first in this order wins: to check, held, to
+  go, opted out, marked spam, error, didn't reach, not sent, answered, replied, read,
   delivered, sent. So a reply to check is never hidden, and a letter that
   didn't go says so though its politician answered.
 - **The colour says how it feels**: red bad, amber sad, green good, blue
@@ -431,10 +433,11 @@ The principles:
 - **The tag says why after a colon** where there's a why: "Not sent:
   consent ended", "Didn't reach: not on WhatsApp". The copy's own page
   keeps the whole story, with the provider's own words.
-- **Went and didn't go.** On its page, the counts fall in two groups: those
-  that went (sent, delivered, read, replied, answered, to check, opted out,
-  marked spam) and those that didn't (error, didn't reach, not sent). A
-  count of none isn't shown. A list of many shows only the red, amber and
+- **Went, still to go and didn't go.** On its page, the counts fall in
+  groups: those that went (sent, delivered, read, replied, answered, to
+  check, opted out, marked spam), a broadcast's still to go (to go, held)
+  and those that didn't (error, didn't reach, not sent). A letter still to
+  go is in no count. A count or group of none isn't shown. A list of many shows only the red, amber and
   blue counts, and folds the rest into how many are fine.
 - **Expected isn't bad.** A copy not sent for a reason we knew before it
   went (an earlier opt-out, a blocked address, no address) is grey, not

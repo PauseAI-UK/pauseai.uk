@@ -161,6 +161,40 @@ describe("a broadcast's page", () => {
     await expect.element(button(mailingsCopy.mailingPages.stopSending)).toBeVisible();
   });
 
+  it("counts those still to go apart, and says when one WhatsApp held is tried again", async () => {
+    const heldTill = new Date("2026-10-19T10:00:00Z");
+    const data = {
+      ...exampleBroadcastSent,
+      summary: {
+        ...exampleBroadcastSummary,
+        state: "sending" as const,
+        states: { ...exampleBroadcastSummary.states, held: 1, "to-go": 2 },
+      },
+      written: { ...exampleBroadcastSent.written, state: "sending" as const },
+      recipients: [
+        {
+          ...exampleBroadcastSent.recipients[0],
+          status: "scheduled",
+          sentAt: null,
+          heldTill,
+          state: "held" as const,
+        },
+      ],
+    };
+    await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByRole("group", { name: `3 ${stateWords.groups.toGo}` })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: `1 ${stateWords.counts.held}` }))
+      .toHaveAttribute("href", "/staff/broadcasts/5?tab=held");
+    await expect.element(page.getByRole("link", { name: `2 ${stateWords.counts["to-go"]}` })).toBeVisible();
+    // The went group leaves them out.
+    await expect.element(page.getByRole("group", { name: `276 ${stateWords.groups.went}` })).toBeVisible();
+    await expect.element(page.getByText(stateWords.tags.held!, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(copy.heldTill(staffTime(heldTill)))).toBeVisible();
+    // Not gone yet, so no way to its copy.
+    await expect.element(page.getByRole("link", { name: copy.threadLink })).not.toBeInTheDocument();
+  });
+
   it("says who it's from when a name is empty, in a scheduled line", async () => {
     const data = {
       ...exampleBroadcastSent,
@@ -269,6 +303,8 @@ describe("BroadcastCounts", () => {
     error: 1,
     unreached: 2,
     "not-sent": 6,
+    held: 0,
+    "to-go": 0,
   };
   const counts = (more: Partial<typeof states> = {}) =>
     countsOpening(

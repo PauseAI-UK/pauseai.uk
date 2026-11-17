@@ -714,6 +714,31 @@ test("A text sent", async ({ page, request, flowDatabase }) => {
   await frame(page, "The text as they got it");
 });
 
+test("A text partly sent", async ({ page, request, flowDatabase }) => {
+  story(
+    "A text is going out. WhatsApp turned one copy away for now, as that person has had too many marketing messages lately, so it's tried again a day later. Another hasn't had its turn yet.",
+  );
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "text", "Lobby day: bring a friend");
+  // As sending leaves them: the failed copy held till tomorrow instead, and the last copy not yet taken.
+  runSql(
+    flowDatabase,
+    `UPDATE mailings SET state = 'sending', due_at = now() - interval '1 hour' WHERE id = ${sent.id};
+     UPDATE broadcast_messages SET status = 'scheduled', skip_reason = NULL, sent_at = NULL,
+       not_before = CASE WHEN status = 'failed' THEN now() + interval '1 day' END
+     WHERE mailing_id = ${sent.id} AND (status = 'failed'
+       OR id = (SELECT max(id) FROM broadcast_messages WHERE mailing_id = ${sent.id}))`,
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByText(copy.textTitle)).toBeVisible();
+  await frame(page, "The text's page, two still to go");
+  story("The held count lists who WhatsApp held, and when each is tried again.");
+  await page.getByRole("link", { name: `1 ${stateWords.counts.held}` }).click();
+  await expect(page.getByRole("heading", { name: stateWords.tabs.held })).toBeVisible();
+  await frame(page, "Those held by WhatsApp");
+});
+
 /** An email to those who follow the calendar, scheduled for an hour ago, as scheduling leaves one; its ID. */
 function addDue(database: string, title: string, scheduledBy: string): string {
   const [id] = runSql(
