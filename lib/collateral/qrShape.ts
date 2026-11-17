@@ -13,6 +13,8 @@ export interface QrRect {
   x: number;
   y: number;
   s: number;
+  /** Corner rounding. */
+  r: number;
 }
 
 export interface QrShape {
@@ -24,7 +26,7 @@ export interface QrShape {
   dots: QrDot[];
   /** SVG path data for the three rounded rings around the corner marks. Fill with the even-odd rule. */
   finderRings: string;
-  /** The solid squares in the middle of the corner marks. */
+  /** The solid rounded squares in the middle of the corner marks. */
   finderEyes: QrRect[];
   centre: { x: number; y: number };
   /** Radius of the pause symbol in the middle, or null when the code has no logo. */
@@ -34,6 +36,8 @@ export interface QrShape {
 /** Corner mark rounding, in modules. Outer edge of the ring, and the edge of the hole inside it. */
 const RING_OUTER_RADIUS = 2.4;
 const RING_INNER_RADIUS = 1.4;
+/** Rounding of the square in the middle of each corner mark, in modules. */
+const EYE_RADIUS = 0.8;
 /**
  * Radius of the pause symbol as a share of the panel. Small enough that clearing the square around it leaves a code
  * of any length the tools take readable: larger, and codes 25 and 69 modules wide stop scanning.
@@ -99,7 +103,7 @@ export function qrShape(target: string, size: number, logo: boolean): QrShape {
     const y = pad + r * cell;
     rings.push(roundedRect(x, y, 7 * cell, 7 * cell, RING_OUTER_RADIUS * cell));
     rings.push(roundedRect(x + cell, y + cell, 5 * cell, 5 * cell, RING_INNER_RADIUS * cell));
-    finderEyes.push({ x: x + 2 * cell, y: y + 2 * cell, s: 3 * cell });
+    finderEyes.push({ x: x + 2 * cell, y: y + 2 * cell, s: 3 * cell, r: EYE_RADIUS * cell });
   }
 
   return {
@@ -148,7 +152,7 @@ export function qrSvg(shape: QrShape, opts: QrSvgOptions): string {
   parts.push(`<g fill="${QR_INK}">`);
   for (const d of dots) parts.push(`<circle cx="${n(d.x)}" cy="${n(d.y)}" r="${n(d.r)}"/>`);
   parts.push(`<path fill-rule="evenodd" d="${finderRings}"/>`);
-  for (const e of finderEyes) parts.push(`<rect x="${n(e.x)}" y="${n(e.y)}" width="${n(e.s)}" height="${n(e.s)}"/>`);
+  for (const e of finderEyes) parts.push(`<path d="${roundedRect(e.x, e.y, e.s, e.s, e.r)}"/>`);
   parts.push("</g>");
   if (logoRadius !== null) {
     const bars = pauseBars(logoRadius);
