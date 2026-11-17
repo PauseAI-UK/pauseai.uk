@@ -441,6 +441,7 @@ test("A text's preview, as WhatsApp shows it", async ({ page, request, flowDatab
     await page.keyboard.press("Enter");
     await page.keyboard.type(line);
   }
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: what to bring"));
   const preview = page.getByRole("button", { name: copy.readMore });
   await expect(page.getByText("March Against AI Extinction & for a pause")).toBeVisible();
   await preview.scrollIntoViewIfNeeded();
