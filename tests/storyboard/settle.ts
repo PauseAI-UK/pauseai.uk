@@ -37,6 +37,22 @@ export async function hydrated(page: Page): Promise<void> {
 }
 
 /**
+ * The page is laid out as styled: every stylesheet it links to has loaded,
+ * and the fonts are in. After a client-side navigation the new page can
+ * show before its stylesheets arrive, and on a busy machine they take a
+ * while: a table's cells are then laid out without the rules that keep a
+ * date on one line.
+ */
+export async function styled(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => [...document.querySelectorAll<HTMLLinkElement>("link[rel=stylesheet]")].every((link) => link.sheet),
+    undefined,
+    POLL,
+  );
+  await page.evaluate(() => document.fonts.ready);
+}
+
+/**
  * React has taken over `element`: hydration has given it its handlers, which
  * React keeps on the element under a `__reactProps$` key. Before then a press
  * gets the browser's own behaviour, or none, as a Next link's does while its

@@ -4,6 +4,7 @@ import { LOCAL_URL } from "../checkout.mjs";
 import type { PlaceholderText } from "./report/frames";
 import { iconsLevelWithWords } from "./icons-level";
 import { tableDatesOnOneLine } from "./table-dates";
+import { styled } from "./settle";
 
 /**
  * A frame of the storyboard: a caption, saying what the picture shows, and, when the run takes screenshots
@@ -29,7 +30,9 @@ import { tableDatesOnOneLine } from "./table-dates";
  * Each frame also records the placeholders it pictures (placeholdersOnPage), for
  * `npm run copy` to show the copy waiting for approval where it appears.
  *
- * Every frame of a staff page on the desktop, pictured or not, fails the
+ * Every frame first waits for the page's stylesheets and fonts (styled, in
+ * settle.ts), so its checks and its picture see the page as styled. Every
+ * frame of a staff page on the desktop, pictured or not, then fails the
  * flow if a date in one of its tables is on two lines (table-dates.ts).
  */
 export async function frame(
@@ -40,6 +43,7 @@ export async function frame(
   const info = test.info();
   const index = info.annotations.filter((a) => a.type === "frame").length + 1;
   info.annotations.push({ type: "frame", description: caption });
+  await styled(page);
   await tableDatesOnOneLine(page);
   await iconsLevelWithWords(page);
   if (process.env.STORYBOARD_SHOTS !== "1") return;
