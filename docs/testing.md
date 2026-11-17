@@ -495,6 +495,8 @@ The review then runs (`scripts/storyboard-reach.mjs`, `flowsToRun`):
   recorded without its tree or another way, or run on other dependencies;
 - each flow that the files changed since its tree, or since it was last
   carried, can reach;
+- for a migration among those files, the desktop flows, and the phone's
+  tagged ones, that reach code naming what it changes (below);
 - when one of those files reaches every flow, every desktop flow, and the
   phone's tagged ones, as CI runs;
 - when the map can't place one of those files, every flow.
@@ -540,12 +542,26 @@ error by `instrumentation.ts`, so a flow that reaches the one reaches the
 others. A changed file reaches the flows whose reach has it, and some
 files reach more:
 
-- **Every flow:** the migrations and `schema.sql`, the seed data
-  (`tests/fixtures/*.sql`), `package.json`, `next.config.ts`, `proxy.ts`,
-  `instrumentation.ts`, `playwright.config.ts`, and the storyboard's set-up
-  (`EVERYTHING`). Data no import leads to can change any page. A SQL file
-  changed only in its comments reaches none: what Postgres runs is the same
-  (`sqlWithoutComments`).
+- **Every flow:** the seed data (`tests/fixtures/*.sql`), `package.json`,
+  `next.config.ts`, `proxy.ts`, `instrumentation.ts`,
+  `playwright.config.ts`, the storyboard's set-up, and a migration that
+  can't be placed by what it changes (`EVERYTHING`). Data no import leads
+  to can change any page. A SQL file changed only in its comments reaches
+  none: what Postgres runs is the same (`sqlWithoutComments`).
+- **A migration** reaches the flows that reach code naming what it
+  changes (`migrationReach`), read from its text before and after, and
+  from `schema.sql`, which no flow reads. A statement that alters, creates,
+  indexes or drops a table, or inserts, updates or deletes its rows,
+  changes that table and names what else it mentions. A change of rows
+  also changes what reads them: the views and functions naming the table,
+  and the tables whose foreign keys a delete cascades to. A change of
+  columns or constraints changes the functions naming the table, and what
+  reads those, but no view, as Postgres won't alter a column a view uses.
+  Code names a table, view or function by its name in lower case, outside
+  comments and paths, or by its start before `${…}`
+  (`supporter_source_${name}`). Anything else, such as a view or function
+  created or replaced, a `DO` block, a `WITH`, a collation or a drop that
+  cascades, reaches every flow.
 - **No flow:** docs, plans, investments, unit tests, the review page's own
   code, and the settings of the tools that don't build the site
   (`NOTHING`), unless a flow imports one.

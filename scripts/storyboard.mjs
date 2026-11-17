@@ -262,24 +262,32 @@ function once(fn) {
 const knownTree = once((tree) => spawnSync("git", ["cat-file", "-e", `${tree}^{tree}`]).status === 0);
 
 /**
- * The files that differ between two trees, and those of them only one has
- * (added or deleted), or undefined if git no longer has `from`. A SQL file
- * changed only in its comments isn't one: Postgres runs the same.
+ * The files that differ between two trees, those of them only one has
+ * (added or deleted), and the texts of each migration among them, in each
+ * tree that has it (`migrations`, by path); or undefined if git no longer
+ * has `from`. A SQL file changed only in its comments isn't one: Postgres
+ * runs the same.
  */
 const changedBetween = once((from, to) => {
   if (!knownTree(from)) return undefined;
   const lines = git("diff", "--no-renames", "--name-status", "-z", from, to).split("\0");
   const files = [];
   const addedOrDeleted = [];
+  const migrations = {};
   const sameSql = (path) =>
     sqlWithoutComments(git("show", `${from}:${path}`)) === sqlWithoutComments(git("show", `${to}:${path}`));
   // With -z, a status and then its path, each ended by a NUL.
   for (let at = 0; at + 1 < lines.length; at += 2) {
-    if (lines[at] === "M" && lines[at + 1].endsWith(".sql") && sameSql(lines[at + 1])) continue;
-    files.push(lines[at + 1]);
-    if (lines[at] === "A" || lines[at] === "D") addedOrDeleted.push(lines[at + 1]);
+    const [status, path] = [lines[at], lines[at + 1]];
+    if (status === "M" && path.endsWith(".sql") && sameSql(path)) continue;
+    files.push(path);
+    if (status === "A" || status === "D") addedOrDeleted.push(path);
+    if (/^netlify\/database\/migrations\/[^/]+\.sql$/.test(path))
+      migrations[path] = [status !== "A" && from, status !== "D" && to]
+        .filter(Boolean)
+        .map((tree) => git("show", `${tree}:${path}`));
   }
-  return { files, addedOrDeleted };
+  return { files, addedOrDeleted, migrations };
 });
 
 /**
@@ -468,6 +476,8 @@ function planSummary(chosen, total) {
     return `Storyboard: every flow, ${total}: the ${chosen.changed.length} files changed since ${from} reach them all.`;
   const why = [
     chosen.reached && `${chosen.reached} that the ${chosen.changed.length} files changed since they last ran can reach`,
+    chosen.data &&
+      `${chosen.data} that query what the migrations change (${chosen.tables.slice(0, 3).join(", ")}${chosen.tables.length > 3 ? ", …" : ""})`,
     chosen.swept && `every desktop flow, as ${chosen.everything.slice(0, 3).join(", ")} changed`,
     chosen.fresh && `${chosen.fresh} new, failed or with no run to carry`,
   ].filter(Boolean);

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -11,13 +11,17 @@ import {
   handOvers,
   importGraph,
   importsOf,
+  migrationReach,
   NAMED,
+  namingPattern,
   reachContext,
   RECORDING,
   readByNoFlow,
   reachedFlows,
   resolveImport,
   routeFiles,
+  schemaObjects,
+  sqlStatements,
   sqlWithoutComments,
   unresolvedImports,
 } from "./storyboard-reach.mjs";
@@ -38,6 +42,18 @@ const COPY = [
   `export const jobTitles = {`,
   `  events: staffCopy.events.title,`,
   `};`,
+].join("\n");
+
+// The database: letters, with a view and a function that read them and events that a delete of one cascades to,
+// and a table no view or function reads.
+const SCHEMA = [
+  "-- Name: letters; Type: TABLE",
+  "CREATE TABLE public.letters (id bigint, body text);",
+  "CREATE TABLE public.letter_events (id bigint, letter_id bigint);",
+  "ALTER TABLE ONLY public.letter_events ADD CONSTRAINT letter_events_letter_id_fkey FOREIGN KEY (letter_id) REFERENCES public.letters(id) ON DELETE CASCADE;",
+  "CREATE VIEW public.letters_listed AS SELECT id FROM public.letters;",
+  "CREATE FUNCTION public.letter_count() RETURNS bigint LANGUAGE sql AS $$ SELECT count(*) FROM letters; $$;",
+  "CREATE TABLE public.audit (id bigint);",
 ].join("\n");
 
 // A checkout of a few files: public pages, staff pages behind a layout, the gallery with two groups, the
@@ -68,8 +84,8 @@ const FILES: Record<string, string> = {
   "components/box.module.css": `.box { margin: 0; }`,
   "components/Letters.tsx": `import { type Letter, sortLetters } from "@/lib/letters";\nexport const Letters = sortLetters;`,
   "lib/letters.ts": `export type Letter = string;\nexport const sortLetters = () => require("./sort");`,
-  "lib/sort.ts": `export default 1;`,
-  "lib/posts.ts": `import "@/lib/server/problems.server";\nexport default 1;`,
+  "lib/sort.ts": `export default "SELECT * FROM letters_listed";`,
+  "lib/posts.ts": `import "@/lib/server/problems.server";\nexport default "SELECT 1 FROM audit";`,
   "lib/feed.ts": `export default 1;`,
   "lib/redirects.ts": `export default [];`,
   "lib/session.ts": `export default 1;`,
@@ -94,7 +110,8 @@ const FILES: Record<string, string> = {
   "public/images/stand-in.jpeg": `jpeg`,
   "tests/storyboard/home.spec.ts": `import { test } from "./fixtures";`,
   "tests/storyboard/staff.spec.ts": `import { test } from "./fixtures";\nimport { steps } from "./staff-steps";`,
-  "tests/storyboard/staff-steps.ts": `export const steps = 1;`,
+  "tests/storyboard/staff-steps.ts": `// Not the audit table.\nexport const steps = "SELECT letter_count()";`,
+  "netlify/database/schema.sql": SCHEMA,
   "tests/storyboard/gallery.spec.ts": `import { test } from "./fixtures";`,
   "tests/storyboard/uploads.spec.ts": `import { test } from "./fixtures";\nconst file = "uploads/list.csv";`,
   "tests/fixtures/uploads/list.csv": `name\nJane Smith`,
@@ -163,6 +180,135 @@ describe("sqlWithoutComments", () => {
     expect(sqlWithoutComments("SELECT 'open -- still text")).toBe("SELECT 'open -- still text");
     expect(sqlWithoutComments("SELECT E'open\\")).toBe("SELECT E'open\\");
     expect(sqlWithoutComments("SELECT $x$ open")).toBe("SELECT $x$ open");
+  });
+});
+
+describe("sqlStatements", () => {
+  it("splits at each semicolon outside quotes and dollar-quoted bodies, without comments or empty statements", () => {
+    expect(
+      sqlStatements(
+        [
+          "BEGIN; -- one; two",
+          "INSERT INTO a VALUES ('x;y', E'it\\'s;', \"odd;name\");;",
+          "CREATE FUNCTION f() AS $body$ SELECT 1; $body$ LANGUAGE sql;",
+          "DO $$ BEGIN; END $$",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "BEGIN",
+      `INSERT INTO a VALUES ('x;y', E'it\\'s;', "odd;name")`,
+      "CREATE FUNCTION f() AS $body$ SELECT 1; $body$ LANGUAGE sql",
+      "DO $$ BEGIN; END $$",
+    ]);
+  });
+});
+
+describe("schemaObjects", () => {
+  it("lists the objects defined, what each function names, and what follows from each object", () => {
+    const objects = schemaObjects(
+      [
+        SCHEMA,
+        "CREATE MATERIALIZED VIEW public.listed AS SELECT * FROM letters_listed;",
+        "CREATE OR REPLACE PROCEDURE tidy() LANGUAGE sql AS $$ DELETE FROM audit $$;",
+        "CREATE TRIGGER audited AFTER INSERT ON public.letter_events FOR EACH ROW EXECUTE FUNCTION public.tidy();",
+        "CREATE INDEX letters_body ON public.letters USING btree (body);",
+      ].join("\n"),
+    );
+    expect(objects.defined).toEqual(
+      new Set(["letters", "letter_events", "letters_listed", "letter_count", "audit", "listed", "tidy"]),
+    );
+    expect(objects.bodies).toEqual(
+      new Map([
+        ["letter_count", new Set(["letter_count", "letters"])],
+        ["tidy", new Set(["tidy", "audit"])],
+      ]),
+    );
+    expect(objects.readers.get("letters")).toEqual(new Set(["letter_events", "letters_listed", "letter_count"]));
+    expect(objects.readers.get("letters_listed")).toEqual(new Set(["listed"]));
+    // A trigger joins its table to whatever it and its functions name, each way.
+    expect(objects.readers.get("letter_events")).toEqual(new Set(["tidy", "audit"]));
+    expect(objects.readers.get("audit")).toEqual(new Set(["letter_events", "tidy"]));
+  });
+});
+
+describe("migrationReach", () => {
+  const objects = schemaObjects(SCHEMA);
+  const reach = (sql: string) => {
+    const names = migrationReach(sql, objects);
+    return names && [...names].sort();
+  };
+
+  it("changes the table a statement acts on and what it names; a change of rows, what reads them too", () => {
+    expect(reach("ALTER TABLE ONLY public.audit ADD COLUMN at timestamptz;")).toEqual(["audit"]);
+    // A change of columns: the function naming the table, not the view, which Postgres keeps as it was.
+    expect(reach("ALTER TABLE letters ADD CONSTRAINT c CHECK (body <> '');")).toEqual(["letter_count", "letters"]);
+    // A change of rows: the view and the function reading them, and the events a delete cascades to; not what it reads.
+    expect(reach("DELETE FROM letters WHERE id IN (SELECT id FROM audit);")).toEqual([
+      "audit",
+      "letter_count",
+      "letter_events",
+      "letters",
+      "letters_listed",
+    ]);
+    expect(reach("INSERT INTO audit SELECT id FROM letters;")).toEqual(["audit", "letters"]);
+    // A function it calls may write to what it names.
+    expect(reach("UPDATE ONLY audit SET id = letter_count();")).toEqual([
+      "audit",
+      "letter_count",
+      "letter_events",
+      "letters",
+      "letters_listed",
+    ]);
+  });
+
+  it("changes a table named by an index, a comment or a refresh, a table dropped and a table's new name", () => {
+    expect(reach("CREATE UNIQUE INDEX IF NOT EXISTS audit_id ON ONLY audit (id);")).toEqual(["audit"]);
+    expect(reach("CREATE INDEX ON audit (id);")).toEqual(["audit"]);
+    expect(reach("COMMENT ON TABLE audit IS 'Who did what';")).toEqual(["audit"]);
+    expect(reach("COMMENT ON COLUMN public.audit.id IS 'Its number';")).toEqual(["audit"]);
+    expect(reach("REFRESH MATERIALIZED VIEW CONCURRENTLY letters_listed;")).toEqual(["letters_listed"]);
+    expect(reach('DROP TABLE IF EXISTS old_notes, public."older" RESTRICT;')).toEqual(["old_notes", "older"]);
+    expect(reach("ALTER TABLE audit RENAME TO audit_log;")).toEqual(["audit", "audit_log"]);
+    expect(
+      reach("BEGIN; CREATE TABLE IF NOT EXISTS x (letter_id bigint REFERENCES letters ON DELETE CASCADE); COMMIT;"),
+    ).toEqual(["letters", "x"]);
+  });
+
+  it("can't place a view, a function, a block of code, a statement it doesn't know or a drop that cascades", () => {
+    for (const sql of [
+      "CREATE OR REPLACE VIEW letters_listed AS SELECT 1;",
+      "CREATE FUNCTION f() RETURNS int LANGUAGE sql AS $$ SELECT 1 $$;",
+      "DO $$ BEGIN END $$;",
+      "WITH gone AS (DELETE FROM audit RETURNING id) INSERT INTO audit SELECT id FROM gone;",
+      "CREATE COLLATION english (provider = icu, locale = 'en-GB');",
+      "SELECT letter_count();",
+      "ALTER TABLE audit ADD COLUMN x text; DROP TABLE letters CASCADE;",
+      "ALTER TABLE letters DROP COLUMN body CASCADE;",
+    ])
+      expect(reach(sql)).toBeUndefined();
+  });
+});
+
+describe("namingPattern", () => {
+  it("matches a name whole and in lower case, or the start of one before ${…}; not in a path or a hyphenated word", () => {
+    const pattern = namingPattern(new Set(["supporter_source_luma", "mailings"]));
+    for (const text of [
+      "FROM mailings m",
+      "FROM supporter_source_luma",
+      "`FROM supporter_source_${name}`",
+      "mailings.id",
+    ])
+      expect(pattern.test(text)).toBe(true);
+    for (const text of [
+      "Mailings",
+      "lib/mailings/",
+      "send-mailings",
+      "mailings_sent",
+      "old_mailings",
+      "supporter_sources",
+    ])
+      expect(pattern.test(text)).toBe(false);
+    expect(namingPattern(new Set(["audit"])).test("`audit_${x}`")).toBe(false);
   });
 });
 
@@ -406,12 +552,13 @@ describe("flowReach", () => {
 
 describe("reachedFlows", () => {
   const reached = (files: string[]) => reachedFlows({ files, runs, context: reachContext(root) });
+  const noData = { data: new Set(), tables: [] };
 
   it("reruns the flows whose reach has a changed file, and none for code no flow reaches", () => {
     expect(reached(["components/Letters.tsx"]).keys).toEqual(
       keysOf(letters, broken, galleryStaff, galleryIndex, upload),
     );
-    expect(reached(["lib/server/inbox.ts"])).toEqual({ keys: new Set(), everything: [], unknown: [] });
+    expect(reached(["lib/server/inbox.ts"])).toEqual({ keys: new Set(), ...noData, everything: [], unknown: [] });
     expect(reached(["components/box.module.css"]).keys).toEqual(keysOf(home, galleryUi, galleryIndex));
     // Whatever kind of file: a test file that a spec imports is reached like any other.
     const context = reachContext(root);
@@ -437,7 +584,7 @@ describe("reachedFlows", () => {
   it("reruns the flows that fetched a public file, there or not, and none for one nothing fetches or names", () => {
     expect(reached(["public/images/logo.svg"]).keys).toEqual(keysOf(home));
     expect(reached(["public/images/gone.svg"]).keys).toEqual(keysOf(post));
-    expect(reached(["public/images/unused.svg"])).toEqual({ keys: new Set(), everything: [], unknown: [] });
+    expect(reached(["public/images/unused.svg"])).toEqual({ keys: new Set(), ...noData, everything: [], unknown: [] });
   });
 
   it("reruns the flows reaching a file that names a public file, or reads from its folder", () => {
@@ -459,10 +606,16 @@ describe("reachedFlows", () => {
       ]),
     ).toEqual({
       keys: new Set(),
+      ...noData,
       everything: ["netlify/database/migrations/0200_x.sql", ".nvmrc"],
       unknown: [],
     });
-    expect(reached(["next.config.ts"])).toEqual({ keys: everyRun, everything: ["next.config.ts"], unknown: [] });
+    expect(reached(["next.config.ts"])).toEqual({
+      keys: everyRun,
+      ...noData,
+      everything: ["next.config.ts"],
+      unknown: [],
+    });
     expect(
       reached([
         "docs/testing.md",
@@ -472,8 +625,9 @@ describe("reachedFlows", () => {
         "tests/storyboard/report/page.ts",
         "next-env.d.ts",
         "netlify.toml",
+        "netlify/database/schema.sql",
       ]),
-    ).toEqual({ keys: new Set(), everything: [], unknown: [] });
+    ).toEqual({ keys: new Set(), ...noData, everything: [], unknown: [] });
   });
 
   it("can't place a file at the top that nothing imports, data that no file names, or a file Next serves at an address of its own", () => {
@@ -532,13 +686,69 @@ describe("reachedFlows", () => {
     }
   });
 
-  it("reruns the flows reaching what reads a data file: a spec naming it, or code naming its folder", () => {
-    expect(reached(["tests/fixtures/uploads/list.csv"])).toEqual({
-      keys: keysOf(upload),
+  it("places a migration by what it changes: the flows reaching code that names it, not what lists the migrations", () => {
+    const migration = "netlify/database/migrations/0200_x.sql";
+    const placed = (sql: string, context = reachContext(root)) =>
+      reachedFlows({
+        files: [migration],
+        addedOrDeleted: [migration],
+        migrations: { [migration]: [sql] },
+        runs,
+        context,
+      });
+    expect(placed("ALTER TABLE audit ADD COLUMN x text;")).toEqual({
+      keys: new Set(),
+      data: keysOf(post),
+      tables: ["audit"],
       everything: [],
       unknown: [],
     });
-    expect(reached(["lib/server/replies/jane.eml"])).toEqual({ keys: new Set(), everything: [], unknown: [] });
+    // The view reads the letters' rows, and the function their columns too; the staff steps name audit only in a comment.
+    expect(placed("ALTER TABLE letters ADD CONSTRAINT c CHECK (body <> '');").data).toEqual(
+      keysOf(letters, events, jobs, broken),
+    );
+    // Each file's code read once for a context.
+    const context = reachContext(root);
+    expect(placed("DELETE FROM letters WHERE id = 1;", context).data).toEqual(
+      keysOf(letters, events, jobs, broken, galleryStaff, galleryIndex, upload),
+    );
+    expect(placed("DELETE FROM letters WHERE id = 1;", context).data).toEqual(
+      keysOf(letters, events, jobs, broken, galleryStaff, galleryIndex, upload),
+    );
+    expect(placed("CREATE TABLE unused (id bigint);")).toMatchObject({ data: new Set(), tables: ["unused"] });
+    // What it can't place reaches every flow, as can a migration whose text, or the schema, isn't there to read.
+    expect(placed("CREATE VIEW v AS SELECT 1;")).toMatchObject({ data: new Set(), everything: [migration] });
+    expect(
+      placed("ALTER TABLE audit ADD COLUMN x text;", { ...reachContext(root), root: join(root, "app") }),
+    ).toMatchObject({
+      everything: [migration],
+    });
+    expect(reachedFlows({ files: [migration], runs, context: reachContext(root) }).everything).toEqual([migration]);
+    // Whatever lists the migrations' folder isn't reached by a new one placed by what it changes.
+    writeFileSync(
+      join(root, "app/sitemap.ts"),
+      `readdirSync(join(process.cwd(), "netlify", "database", "migrations"));`,
+    );
+    try {
+      expect(placed("ALTER TABLE audit ADD COLUMN x text;").keys).toEqual(new Set());
+    } finally {
+      writeFileSync(join(root, "app/sitemap.ts"), FILES["app/sitemap.ts"]);
+    }
+  });
+
+  it("reruns the flows reaching what reads a data file: a spec naming it, or code naming its folder", () => {
+    expect(reached(["tests/fixtures/uploads/list.csv"])).toEqual({
+      keys: keysOf(upload),
+      ...noData,
+      everything: [],
+      unknown: [],
+    });
+    expect(reached(["lib/server/replies/jane.eml"])).toEqual({
+      keys: new Set(),
+      ...noData,
+      everything: [],
+      unknown: [],
+    });
   });
 });
 
@@ -604,10 +814,29 @@ describe("flowsToRun", () => {
       carried: [...carried, passed(untagged)],
       phoneTagged: new Set([phoneHome.key]),
       context: reachContext(root),
-      changedSince: () => since(["netlify/database/schema.sql"]),
+      changedSince: () => since(["tests/fixtures/staff-data.sql"]),
     });
     expect(chosen.run).toEqual(suite);
-    expect(chosen).toMatchObject({ swept: 4, reached: 0, everything: ["netlify/database/schema.sql"] });
+    expect(chosen).toMatchObject({ swept: 4, reached: 0, data: 0, everything: ["tests/fixtures/staff-data.sql"] });
+  });
+
+  it("runs, for a migration, the desktop flows and the phone's tagged ones that reach code naming what it changes", () => {
+    const migration = "netlify/database/migrations/0200_x.sql";
+    const phoneLetters = { ...letters, key: "phone|staff|The letters" };
+    const phoneEvents = { ...events, key: "phone|staff|The events" };
+    const chosen = flowsToRun({
+      suite: new Set([home.key, letters.key, events.key, phoneLetters.key, phoneEvents.key]),
+      carried: [passed(home), passed(letters), passed(events), passed(phoneLetters), passed(phoneEvents)],
+      phoneTagged: new Set([phoneLetters.key]),
+      context: reachContext(root),
+      changedSince: () => ({
+        files: [migration],
+        addedOrDeleted: [migration],
+        migrations: { [migration]: ["ALTER TABLE letters ADD COLUMN x text;"] },
+      }),
+    });
+    expect(chosen.run).toEqual(new Set([letters.key, events.key, phoneLetters.key]));
+    expect(chosen).toMatchObject({ data: 3, swept: 0, reached: 0, tables: ["letter_count", "letters"] });
   });
 
   it("runs every flow, on both viewports, when the map can't place a changed file", () => {
@@ -692,6 +921,13 @@ describe("this repo", { timeout: 120_000 }, () => {
       "lib/server/problems.server.ts: uses globalThis",
       "lib/server/run-store.server.ts: calls registerRunStore() as it loads",
     ]);
+  });
+
+  it("places a migration that widens one table's CHECKs by that table, and one that replaces a function nowhere", () => {
+    const objects = schemaObjects(readFileSync(join(repo, "netlify/database/schema.sql"), "utf8"));
+    const migration = (name: string) => readFileSync(join(repo, "netlify/database/migrations", name), "utf8");
+    expect(migrationReach(migration("0132_civicrm_resubscribe.sql"), objects)).toEqual(new Set(["civicrm_updates"]));
+    expect(migrationReach(migration("0120_volunteer_texts.sql"), objects)).toBeUndefined();
   });
 
   it("has no import that the map can't follow, in what the site and its flows run", () => {

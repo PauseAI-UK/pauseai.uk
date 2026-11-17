@@ -457,14 +457,16 @@ const eslintConfig = defineConfig([
   // The tests whose subject is a schema, not the site's: the backup's, which
   // fill throwaway databases to back up; the migration runner's check, which
   // makes the ledger it reads; and the checks on migration files and the
-  // schema's dump, whose SQL is only text. lib/server/db.server.test.ts, the
-  // runner's own, has every rule off, below.
+  // schema's dump, and the storyboard's reading of what a migration changes,
+  // whose SQL is only text. lib/server/db.server.test.ts, the runner's own,
+  // has every rule off, below.
   {
     files: [
       "backup/container/*.test.ts",
       "lib/server/migrations-check.server.test.ts",
       "netlify/database/schema.test.ts",
       "scripts/migrations-unchanged.test.ts",
+      "scripts/storyboard-reach.test.ts",
     ],
     rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...EXTERNAL_LINK_RULES] },
   },

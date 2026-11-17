@@ -34,8 +34,9 @@ const EVERYTHING = [
   /^next\.config\.ts$/,
   /^proxy\.ts$/,
   /^instrumentation(-client)?\.ts$/,
-  // The migrations, the schema and how they're applied; not the unit tests beside them.
-  /^netlify\/database\/(?!.*\.test\.ts$)/,
+  // The migrations, each one that can't be placed by what it changes (MIGRATION); not the unit tests beside them,
+  // nor the schema they make.
+  /^netlify\/database\/(?!.*\.test\.ts$)(?!schema\.sql$)/,
   /^tests\/fixtures\/.*\.sql$/,
   /^tests\/checkout\.mjs$/,
   /^tests\/storyboard\/global-(setup|teardown)\.ts$/,
@@ -61,7 +62,14 @@ const NOTHING = [
   /^\.(gitignore|prettierignore|prettierrc\.json|stylelintignore|git-blame-ignore-revs|pre-commit-config\.yaml|env\.example)$/,
   /^docker-compose\.yml$/,
   /^netlify\.toml$/,
+  // What the migrations make, written down for reading: the storyboard's databases are made from the migrations.
+  /^netlify\/database\/schema\.sql$/,
 ];
+
+/** The migrations, each placed by what it changes (migrationReach). */
+const MIGRATION = /^netlify\/database\/migrations\/[^/]+\.sql$/;
+/** Where the schema the migrations make is written down (`npm run db:schema`). */
+const SCHEMA = "netlify/database/schema.sql";
 
 /** Whether `path` is one no flow runs or reads (NOTHING): a change to only such files needs no check of the map. */
 export function readByNoFlow(path) {
@@ -393,31 +401,225 @@ export function sqlWithoutComments(sql) {
     } else if (/\s/.test(sql[at])) {
       at++;
       space();
-    } else if (sql[at] === "'" || sql[at] === '"') {
-      // A quote doubled inside is the quote itself, and the text goes on; so is one after a backslash in E'…'.
-      const quote = sql[at];
-      const escapes = quote === "'" && /(^|[^\w$])[Ee]$/.test(out);
-      let end = at + 1;
-      while (end < sql.length) {
-        if (escapes && sql[end] === "\\") end += 2;
-        else if (sql[end] === quote && sql[end + 1] === quote) end += 2;
-        else if (sql[end] === quote) break;
-        else end++;
-      }
-      end = Math.min(end + 1, sql.length);
+    } else {
+      const end = literalEnd(sql, at, out);
       out += sql.slice(at, end);
       at = end;
-    } else {
-      const tag = /^\$[A-Za-z_]*\$/.exec(sql.slice(at))?.[0];
-      if (tag) {
-        const close = sql.indexOf(tag, at + tag.length);
-        const end = close === -1 ? sql.length : close + tag.length;
-        out += sql.slice(at, end);
-        at = end;
-      } else out += sql[at++];
     }
   }
   return out.trim();
+}
+
+/**
+ * Where what starts at `sql[at]` ends: past its closing quote, if it's text
+ * in quotes, a name in double quotes or a dollar-quoted body; else past that
+ * one character. `before` is what comes before it, which says whether
+ * '…' is an E'…' string.
+ */
+function literalEnd(sql, at, before) {
+  if (sql[at] === "'" || sql[at] === '"') {
+    // A quote doubled inside is the quote itself, and the text goes on; so is one after a backslash in E'…'.
+    const quote = sql[at];
+    const escapes = quote === "'" && /(^|[^\w$])[Ee]$/.test(before);
+    let end = at + 1;
+    while (end < sql.length) {
+      if (escapes && sql[end] === "\\") end += 2;
+      else if (sql[end] === quote && sql[end + 1] === quote) end += 2;
+      else if (sql[end] === quote) break;
+      else end++;
+    }
+    return Math.min(end + 1, sql.length);
+  }
+  const tag = /^\$[A-Za-z_]*\$/.exec(sql.slice(at))?.[0];
+  if (!tag) return at + 1;
+  const close = sql.indexOf(tag, at + tag.length);
+  return close === -1 ? sql.length : close + tag.length;
+}
+
+/** The statements of `sql`, without their comments (sqlWithoutComments): split at each `;` outside quotes. */
+export function sqlStatements(sql) {
+  const text = sqlWithoutComments(sql);
+  const statements = [];
+  let start = 0;
+  let at = 0;
+  while (at < text.length) {
+    if (text[at] === ";") {
+      statements.push(text.slice(start, at).trim());
+      start = at + 1;
+      at++;
+    } else at = literalEnd(text, at, text.slice(Math.max(start, at - 2), at));
+  }
+  statements.push(text.slice(start).trim());
+  return statements.filter((statement) => statement !== "");
+}
+
+/** A name in SQL, perhaps with its schema and in double quotes: the name's own part is the match's first group. */
+const SQL_NAME = String.raw`(?:"?\w+"?\.)?"?(\w+)"?`;
+
+/** The words of a statement that could be names: lower case, as Postgres folds a name not in quotes. */
+function sqlWords(statement) {
+  return [...statement.toLowerCase().matchAll(/[a-z_][a-z0-9_$]*/g)].map(([word]) => word);
+}
+
+/**
+ * What schema.sql (`schema`, as `pg_dump` writes it) says of the database's
+ * objects:
+ *
+ * - `defined`, the name of every table, view, function, sequence and type;
+ * - `bodies`, each function's names of other objects: what it may read or write as it's called;
+ * - `readers`, for each object, those whose contents follow from its: the
+ *   views and functions that name it, the tables whose foreign keys
+ *   reference it (a delete can cascade to them), and, for a trigger, rule
+ *   or policy, every object it and its functions name.
+ */
+export function schemaObjects(schema) {
+  const statements = sqlStatements(schema);
+  const defines = new RegExp(
+    String.raw`^CREATE (?:OR REPLACE )?(?:UNLOGGED )?(TABLE|VIEW|MATERIALIZED VIEW|FUNCTION|PROCEDURE|SEQUENCE|TYPE|DOMAIN) (?:IF NOT EXISTS )?${SQL_NAME}`,
+    "i",
+  );
+  const defined = new Set();
+  for (const statement of statements) {
+    const name = defines.exec(statement)?.[2];
+    if (name) defined.add(name.toLowerCase());
+  }
+  const named = (statement) => new Set(sqlWords(statement).filter((word) => defined.has(word)));
+  const bodies = new Map();
+  const readers = new Map();
+  const reads = (from, by) => {
+    if (from === by) return;
+    if (!readers.has(from)) readers.set(from, new Set());
+    readers.get(from).add(by);
+  };
+  for (const statement of statements) {
+    const [, kind = "", name] = defines.exec(statement) ?? [];
+    if (/^(FUNCTION|PROCEDURE)$/i.test(kind)) bodies.set(name.toLowerCase(), named(statement));
+  }
+  for (const statement of statements) {
+    const [, kind = "", name] = defines.exec(statement) ?? [];
+    if (/VIEW|FUNCTION|PROCEDURE/i.test(kind)) for (const from of named(statement)) reads(from, name.toLowerCase());
+    const table = new RegExp(String.raw`^(?:CREATE|ALTER) TABLE (?:IF (?:NOT )?EXISTS )?(?:ONLY )?${SQL_NAME}`, "i");
+    const child = table.exec(statement)?.[1].toLowerCase();
+    if (child)
+      for (const [, parent] of statement.matchAll(new RegExp(String.raw`\bREFERENCES ${SQL_NAME}`, "gi")))
+        reads(parent.toLowerCase(), child);
+    if (/^CREATE (?:OR REPLACE )?(?:CONSTRAINT )?(TRIGGER|RULE|POLICY)\b/i.test(statement)) {
+      const all = calledThrough(named(statement), bodies);
+      for (const from of all) for (const by of all) reads(from, by);
+    }
+  }
+  return { defined, bodies, readers };
+}
+
+/** `names`, and what each function among them names, and so on through the functions those name. */
+function calledThrough(names, bodies) {
+  const all = new Set(names);
+  for (const name of all) for (const more of bodies.get(name) ?? []) all.add(more);
+  return all;
+}
+
+/**
+ * What each statement a migration can be placed by changes: the tables it
+ * names after its first words (`ALTER TABLE x`). Any other statement can
+ * change what any page shows: a view, a function, a type, a collation, a
+ * `DO` block, a setting, a drop that cascades.
+ */
+const PLACED = [
+  String.raw`^CREATE TABLE (?:IF NOT EXISTS )?${SQL_NAME}`,
+  String.raw`^ALTER TABLE (?:IF EXISTS )?(?:ONLY )?${SQL_NAME}`,
+  String.raw`^CREATE (?:UNIQUE )?INDEX (?:CONCURRENTLY )?(?:(?:IF NOT EXISTS )?"?\w+"? )?ON (?:ONLY )?${SQL_NAME}`,
+  String.raw`^INSERT INTO ${SQL_NAME}`,
+  String.raw`^UPDATE (?:ONLY )?${SQL_NAME}`,
+  String.raw`^DELETE FROM (?:ONLY )?${SQL_NAME}`,
+  String.raw`^COMMENT ON TABLE ${SQL_NAME}`,
+  String.raw`^COMMENT ON COLUMN (?:"?\w+"?\.)?"?(\w+)"?\."?\w+"?`,
+  String.raw`^REFRESH MATERIALIZED VIEW (?:CONCURRENTLY )?${SQL_NAME}`,
+].map((source) => new RegExp(source, "i"));
+/** A table or tables dropped, which the schema no longer names. */
+const DROPPED = new RegExp(
+  String.raw`^DROP TABLE (?:IF EXISTS )?(${SQL_NAME}(?: ?, ?${SQL_NAME})*)(?: RESTRICT)?$`,
+  "i",
+);
+/** Statements that change nothing a page shows. */
+const INERT = /^(BEGIN|COMMIT|START TRANSACTION)$/i;
+
+/** Statements that change rows: what reads them, a view or a function, shows something else. */
+const CHANGES_ROWS = /^(INSERT|UPDATE|DELETE|REFRESH)\b/i;
+
+/**
+ * The tables, views and functions whose contents or workings the
+ * migration `sql` can change, by the database's `objects` (schemaObjects),
+ * or undefined if one of its statements can change any page's: it isn't
+ * one PLACED or DROPPED, or it drops what depends on something (`CASCADE`,
+ * other than a foreign key's `ON DELETE CASCADE`).
+ *
+ * Each statement reaches the objects it names: the one it acts on (and its
+ * new name, if renamed), and those it reads or references. A statement
+ * that changes rows changes what reads the table it acts on (`readers`),
+ * and what reads that. One that changes a table's columns or constraints
+ * changes no view, as Postgres refuses to change a column a view uses, but
+ * it can change what a function that names the table does, and so what
+ * reads that. The functions a statement calls may write to whatever they
+ * name.
+ */
+export function migrationReach(sql, objects) {
+  const named = new Set();
+  const rows = new Set();
+  const columns = new Set();
+  for (const statement of sqlStatements(sql)) {
+    if (INERT.test(statement)) continue;
+    if (/(?<!\bON (?:DELETE|UPDATE) )\bCASCADE\b/i.test(statement)) return undefined;
+    const placed = PLACED.map((re) => re.exec(statement)?.[1]).find(Boolean);
+    const dropped = DROPPED.exec(statement)?.[1];
+    if (!placed && !dropped) return undefined;
+    const changed = CHANGES_ROWS.test(statement) ? rows : columns;
+    if (placed) changed.add(placed.toLowerCase());
+    if (dropped) for (const name of dropped.split(",")) changed.add(/"?(\w+)"?$/.exec(name.trim())[1].toLowerCase());
+    const renamed = new RegExp(String.raw`\bRENAME TO ${SQL_NAME}`, "i").exec(statement)?.[1];
+    if (renamed) changed.add(renamed.toLowerCase());
+    const words = sqlWords(statement).filter((word) => objects.defined.has(word));
+    for (const word of words) named.add(word);
+    for (const name of calledThrough(
+      words.flatMap((word) => [...(objects.bodies.get(word) ?? [])]),
+      objects.bodies,
+    ))
+      rows.add(name);
+  }
+  const names = new Set([...named, ...rows, ...columns]);
+  const follow = new Set(rows);
+  for (const name of columns)
+    for (const reader of objects.readers.get(name) ?? []) if (objects.bodies.has(reader)) follow.add(reader);
+  for (const name of follow) {
+    names.add(name);
+    for (const reader of objects.readers.get(name) ?? []) follow.add(reader);
+  }
+  return names;
+}
+
+/**
+ * What matches code naming any of `names` (at least one): a name as a whole
+ * word, or the start of one, up to an underscore, followed by `${…}`, as
+ * `supporter_source_${name}` names the view `supporter_source_luma`. Either
+ * way in lower case, as the site's SQL writes every name, so a page's
+ * "Mailings" isn't the table; and not as part of a path or a hyphenated
+ * word (`lib/mailings/`, `send-mailings`).
+ */
+export function namingPattern(names) {
+  const escape = (part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const starts = new Set();
+  for (const name of names) {
+    const parts = name.split("_");
+    for (let at = 1; at < parts.length; at++) starts.add(escape(`${parts.slice(0, at).join("_")}_`));
+  }
+  const whole = `(?:${[...names].map(escape).join("|")})(?![\\w/-])`;
+  const either = starts.size > 0 ? `${whole}|(?:${[...starts].join("|")})\\$\\{` : whole;
+  return new RegExp(`(?<![\\w/-])(?:${either})`);
+}
+
+/** Code's text without its comments, as TypeScript prints it. */
+function withoutComments(path, text) {
+  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, false, ts.ScriptKind.TSX);
+  return ts.createPrinter({ removeComments: true }).printFile(source);
 }
 
 /** For each context's cache of flowReach, each run's answers, found by the run itself: whole, and not. */
@@ -514,14 +716,45 @@ export function reachContext(root) {
 }
 
 /**
+ * The tables, views and functions a changed migration at `path` can change
+ * (migrationReach), from `migrations`, the texts of each changed
+ * migration's versions, before and after; or undefined if it can change
+ * what any page shows, or its text or the schema's isn't there to read.
+ */
+function migrationNames(context, path, migrations) {
+  if (!migrations?.[path] || !existsSync(join(context.root, SCHEMA))) return undefined;
+  context.schema ??= schemaObjects(textOf(context, SCHEMA));
+  return migrationReach(migrations[path].join(";\n"), context.schema);
+}
+
+/** The code (not data, nor a stylesheet) that names any of `names` (namingPattern) outside its comments. */
+function namers(context, names) {
+  if (names.size === 0) return [];
+  const pattern = namingPattern(names);
+  context.code ??= new Map();
+  const code = (file) => {
+    if (!context.code.has(file)) context.code.set(file, withoutComments(file, textOf(context, file)));
+    return context.code.get(file);
+  };
+  return [...context.graph.keys()].filter(
+    (file) => /\.[cm]?[jt]sx?$/.test(file) && pattern.test(textOf(context, file)) && pattern.test(code(file)),
+  );
+}
+
+/**
  * The flows of `runs` (each with its key and `opened`) that changed `files`
- * can reach; `addedOrDeleted` are those of them added or deleted. Returns:
+ * can reach; `addedOrDeleted` are those of them added or deleted, and
+ * `migrations` the texts of each changed migration (migrationNames).
+ * Returns:
  *
  * - `keys`, the flows reached;
+ * - `data`, the flows reached through what the migrations change: the
+ *   flows reaching code that names it;
+ * - `tables`, what the migrations change;
  * - `everything`, the files that reach every flow, if any changed;
  * - `unknown`, the files the map can't place.
  */
-export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
+export function reachedFlows({ files, addedOrDeleted = [], migrations, runs, context }) {
   const { graph } = context;
   // A plain stylesheet applies wherever it's loaded, so it's reached through the imports as they are (flowReach).
   const plainStyles = (path) => path.endsWith(".css") && !path.endsWith(".module.css");
@@ -534,10 +767,14 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
   const add = (found) => found.forEach((key) => keys.add(key));
   const everything = [];
   const unknown = [];
+  const tables = new Set();
   for (const path of files) {
     // Imported, whatever kind of file it is: the flows whose reach has it.
     reachThrough([path]);
-    if (EVERYTHING.some((re) => re.test(path))) {
+    const changes = MIGRATION.test(path) ? migrationNames(context, path, migrations) : undefined;
+    if (changes) {
+      changes.forEach((name) => tables.add(name));
+    } else if (EVERYTHING.some((re) => re.test(path))) {
       everything.push(path);
     } else if (NOTHING.some((re) => re.test(path))) {
       continue;
@@ -563,13 +800,18 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
         unknown.push(path);
     }
   }
-  // What lists a folder finds something else when a file in it comes or goes. Not for a file that reaches every
-  // flow anyway, as a new migration does: how far that goes is flowsToRun's to say.
-  for (const path of addedOrDeleted) if (!EVERYTHING.some((re) => re.test(path))) reachThrough(listers(context, path));
+  // What lists a folder finds something else when a file in it comes or goes. Not for a migration, which is placed
+  // by what it changes, nor for a file that reaches every flow anyway: how far that goes is flowsToRun's to say.
+  for (const path of addedOrDeleted)
+    if (!MIGRATION.test(path) && !EVERYTHING.some((re) => re.test(path))) reachThrough(listers(context, path));
   const paths = [...reaching];
-  for (const run of runs)
+  const naming = namers(context, tables);
+  const data = new Set();
+  for (const run of runs) {
     if (paths.some((path) => flowReach(run, context, plainStyles(path)).has(path))) keys.add(run.key);
-  return { keys, everything, unknown };
+    if (naming.some((path) => flowReach(run, context).has(path))) data.add(run.key);
+  }
+  return { keys, data, tables: [...tables], everything, unknown };
 }
 
 /**
@@ -584,17 +826,21 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
  * - a flow whose tree git no longer has, so `changedSince(tree)` is
  *   undefined (`fresh` too);
  * - a flow that the files changed since its tree reach (`reached`);
- * - when one of those files reaches everything (a migration, the seed
- *   data): every desktop flow, and the phone's flows of `phoneTagged`, the
- *   ones CI runs there (`everything`, the files, and `swept`, the flows);
+ * - for what a changed migration changes (`tables`), the desktop flows
+ *   that reach code naming it, and those of `phoneTagged` (`data`);
+ * - when one of those files reaches everything (a migration that can
+ *   change any page, the seed data): every desktop flow, and the phone's
+ *   flows of `phoneTagged`, the ones CI runs there (`everything`, the
+ *   files, and `swept`, the flows);
  * - when the map can't place one of them (`unknown`: a file at the top
  *   that nothing imports, or one no code names): every flow.
  *
  * A flow a review carried says the tree it was carried at (`seen`): the
  * files changed since then are what can have reached it since, as those
  * before were found not to. `changedSince(tree)` gives the files changed
- * since `tree`, and those of them added or deleted. Returns the keys to run, and why,
- * for the run to say.
+ * since `tree`, those of them added or deleted, and the texts of the
+ * migrations among them. Returns the keys to run, and why, for the run to
+ * say.
  */
 export function flowsToRun({ suite, carried, phoneTagged, context, setup, changedSince }) {
   const byKey = new Map(carried.map((run) => [run.key, run]));
@@ -617,6 +863,10 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
   const changed = new Set();
   const reached = new Set();
   const swept = new Set();
+  const data = new Set();
+  const tables = new Set();
+  // As CI runs a change to the database: on desktop, and on the phone only the tagged flows.
+  const asCi = (key) => key.startsWith("desktop|") || phoneTagged.has(key);
   for (const [tree, runs] of trees) {
     const since = changedSince(tree);
     if (!since) {
@@ -629,17 +879,20 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
     for (const file of found.everything) everything.add(file);
     for (const file of found.unknown) unknown.add(file);
     for (const key of found.keys) reached.add(key);
-    if (found.everything.length > 0)
-      for (const { key } of runs) if (key.startsWith("desktop|") || phoneTagged.has(key)) swept.add(key);
+    for (const name of found.tables) tables.add(name);
+    for (const key of found.data) if (asCi(key)) data.add(key);
+    if (found.everything.length > 0) for (const { key } of runs) if (asCi(key)) swept.add(key);
   }
   const fresh = run.size;
-  for (const key of [...reached, ...swept]) run.add(key);
+  for (const key of [...reached, ...data, ...swept]) run.add(key);
   // A file the map can't place: every flow, on both viewports.
   if (unknown.size > 0) for (const key of suite) run.add(key);
   return {
     run,
     fresh,
     reached: reached.size,
+    data: data.size,
+    tables: [...tables].sort(),
     swept: swept.size,
     everything: [...everything],
     unknown: [...unknown],
