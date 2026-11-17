@@ -21,6 +21,8 @@ it("says why a broadcast waits", () => {
   expect(waiting.body("Hi", "pull", null, "3 Nov", "link")).toContain("our import from CiviCRM hasn't worked");
   const pages = broadcastsCopy.broadcastPages;
   expect(pages.waiting("civicrm", "5 Nov", "Down")).toContain("It last said: Down.");
+  // What CiviCRM said ends a sentence of ours, so its own full stop isn't doubled.
+  expect(pages.waiting("civicrm", "5 Nov", "Down.")).toContain("It last said: Down. This will send");
   expect(pages.waiting("civicrm", "5 Nov", null)).toContain("It last said: nothing.");
   expect(pages.waiting("pull", "5 Nov", null)).toContain("Waiting for an import");
 });
