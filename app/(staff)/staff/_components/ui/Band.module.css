@@ -14,8 +14,10 @@
   --tag-plain-bg: var(--surface);
 }
 
+/* Its width decides how the facts and what's aside share the row (.row). */
 .main {
   display: grid;
+  container: band / inline-size;
   flex: 1 1 30rem;
   gap: var(--space-3);
   min-width: 0;
@@ -50,7 +52,9 @@
   font-size: var(--text-lg);
 }
 
-/* The facts, with what's aside level with their bottoms. */
+/* The facts, with what's aside at the bottom right. Under 70rem, what's aside goes under the facts, still at the
+   right. From 70rem it's beside them: it takes the width it needs on one line, the facts take the rest down to 26rem,
+   and only then does what's aside wrap, at the right. */
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -58,12 +62,68 @@
   align-items: flex-end;
 }
 
+/* Its width decides how the facts lie (.facts). */
+.factsBox {
+  container: band-facts / inline-size;
+  flex: 1 1 100%;
+  align-self: flex-start;
+  min-width: 0;
+}
+
+.aside {
+  display: flex;
+  flex: 1 1 100%;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+@container band (min-width: 70rem) {
+  .row {
+    flex-wrap: nowrap;
+  }
+
+  .factsBox {
+    flex: 1 1 0;
+    min-width: 26rem;
+  }
+
+  .aside {
+    flex: 0 1 auto;
+    min-width: min-content;
+  }
+}
+
+/* Side by side, wrapping as they must. */
 .facts {
   display: flex;
-  flex: 1 1 30rem;
   flex-wrap: wrap;
   gap: var(--space-3) var(--space-6);
   margin: 0;
+}
+
+/* A tall fact, such as pills, no wider than a line of them. */
+.tall {
+  min-width: 0;
+  max-width: 34rem;
+}
+
+/* Between 26rem and 46rem, too narrow for one line, a tall fact takes a column of its own at the right, the
+   others one over another at the left, so it doesn't push them apart. */
+@container band-facts (min-width: 26rem) and (max-width: 46rem) {
+  .facts:has(> .tall) {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .facts:has(> .tall) > * {
+    grid-column: 1;
+  }
+
+  .facts:has(> .tall) > .tall {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
 }
 
 /* Facts on their own, outside a Band's row: as tall as they are, a gap above what follows. */

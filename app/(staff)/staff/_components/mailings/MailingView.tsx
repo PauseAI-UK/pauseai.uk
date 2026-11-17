@@ -308,7 +308,7 @@ export default function MailingView({
               mailing.fromName ??
               (mailing.oldLetters ? mailingsCopy.mailings.notRecorded : mailingsCopy.mailings.imported))}
         </BandFact>
-        <BandFact label={copy.to} detail={who && staffVocabulary.politicians(mailing.to)}>
+        <BandFact label={copy.to} tall detail={who && staffVocabulary.politicians(mailing.to)}>
           {who ?? staffVocabulary.politicians(mailing.to)}
         </BandFact>
         <BandFact label={mailing.askKind ? asksCopy.asks.askTo[mailing.askKind] : mailingsCopy.mailings.fields.ask}>

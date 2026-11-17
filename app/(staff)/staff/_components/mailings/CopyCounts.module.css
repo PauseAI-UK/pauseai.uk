@@ -1,9 +1,11 @@
-/* The groups side by side, wrapping between groups, never inside one. */
+/* The groups side by side at the right, wrapping between groups, never inside one. */
 .groups {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
-  gap: var(--space-3) var(--space-6);
+  gap: var(--space-3) var(--space-4);
   align-items: flex-start;
+  justify-content: flex-end;
 }
 
 /* A group: its total over its counts, no frame, so the words above say what they hold. Never narrower than its

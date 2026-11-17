@@ -1,0 +1,55 @@
+/* Pills that can't be changed: the filter bar's chips, without their menus. */
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* No wider than 12rem, so a long one doesn't take a line of its own; opened, as wide as there's room for. */
+.pill {
+  min-width: 0;
+  max-width: 12rem;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.pill[data-open] {
+  max-width: 100%;
+}
+
+/* On one line, cut with "…" past the pill's width; opened, wrapping as it must. */
+.words {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill[data-open] .words {
+  white-space: normal;
+}
+
+/* A cut one's words, to click: the pill's own look. */
+.cut {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.cut:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}

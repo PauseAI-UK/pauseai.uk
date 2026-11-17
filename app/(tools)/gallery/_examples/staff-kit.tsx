@@ -36,6 +36,7 @@ import { lockIconGallery } from "@/app/(staff)/staff/_components/ui/LockIcon.gal
 import { tickIconGallery } from "@/app/(staff)/staff/_components/ui/TickIcon.gallery";
 import { notIconGallery } from "@/app/(staff)/staff/_components/ui/NotIcon.gallery";
 import { noticeGallery } from "@/app/(staff)/staff/_components/ui/Notice.gallery";
+import { pillsGallery } from "@/app/(staff)/staff/_components/ui/Pills.gallery";
 import { sortHeadingGallery } from "@/app/(staff)/staff/_components/ui/SortHeading.gallery";
 import { alertIconGallery } from "@/app/(staff)/staff/_components/ui/AlertIcon.gallery";
 import { deleteTwiceGallery } from "@/app/(staff)/staff/_components/ui/DeleteTwice.gallery";
@@ -93,6 +94,7 @@ export const staffKit: Group = {
     ...tickIconGallery,
     ...notIconGallery,
     ...noticeGallery,
+    ...pillsGallery,
     ...sortHeadingGallery,
     ...alertIconGallery,
     ...deleteTwiceGallery,
