@@ -22,8 +22,12 @@ In order of what each would save:
 
 1. Have CI picture main on each push to it and keep the frames as an artifact, for a review to fetch. First compare one run of CI's with one made locally: fonts and the machine may make the pictures differ.
 2. Show the review as it fills: open the page at once, and add main's side as it arrives.
-3. Place a migration by what it touches: read the tables, views and functions it alters, and rerun the flows whose code queries them, and every flow only for one that changes a view or function many pages read (`contact_permission()`, `supporters_list`). Most migrations add a column or a constraint to one table.
+3. Place a migration by the tables each flow uses, measured rather than read from the code. Each flow has a database of its own, so before it's dropped, `pg_stat_user_tables` in it says which tables the flow read or wrote, views' and functions' tables included; kept beside `opened`, a migration then reruns the flows that used what it alters, and every flow only for a collation or anything it can't place. Postgres keeps a connection's counts for up to a second or so before they show (https://www.postgresql.org/docs/current/monitoring-stats.html), so check none is missed before trusting it.
 4. An audit of the map that can be run again, after a change to how the site is built (a new Next, another bundler): the check below was made with scripts that weren't kept.
+
+## Placing a migration by the code that names its tables
+
+Tried in November 2026 (#402, closed): a migration's statements were read for the tables they alter, and a flow reran when a file it reaches named one. On main's last 30 migrations it would have rerun every desktop flow for 15, 70 to 85% of them for 11, and about half for 4, for 600 lines of reading SQL. The import graph is too coarse for it: `tests/storyboard/fixtures.ts` names `errors_seen` and `scripts/fresh-database.mjs` adds the test MPs, and every flow reaches both, and the server code querying `mailings` is reached by about two thirds of flows. Moving the test MPs into a seeding file of their own would narrow a few migrations more, but a migration that broke adding them would then fail every flow unseen. Measuring the tables each flow uses (Fix, 3) needs neither.
 
 ## How the map was checked
 
