@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { staffVocabulary } from "@/lib/staff-vocabulary";
 import BroadcastFor, { BroadcastContact, BroadcastWho } from "./BroadcastFor";
 import {
   exampleBroadcastData,
@@ -9,7 +8,6 @@ import {
   exampleBroadcastSent,
   exampleSupporterChoices,
 } from "./BroadcastWriter.examples";
-import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { BroadcastForExample } from "./BroadcastFor.gallery.client";
@@ -57,36 +55,31 @@ describe("BroadcastFor", () => {
     await expect.element(page.getByRole("heading", { name: copy.sections.write })).toBeVisible();
   });
 
-  // The labels of the band's facts.
-  const terms = () => [...document.querySelector("dl")!.querySelectorAll("dt")].map((term) => term.textContent);
+  // The band's fact of who it's to: its label, its pills or everyone who said yes, and what they said yes to under.
+  const to = () => page.getByText(copy.facts.to(exampleBroadcastSent.summary.to)).element().parentElement!;
 
-  it("shows one sent, the rest of its filters as pills, Only those, beside what they said yes to", async () => {
+  it("shows one sent to so many, the rest of its filters as pills, what they said yes to under them", async () => {
     await render(<BroadcastFor data={exampleBroadcastSent} actions={actions} />);
     await expect.element(page.getByText(copy.recipientsTitle)).toBeVisible();
-    expect(terms()).toContain(copy.facts.onlyThose);
+    expect(to().querySelector("ul")).not.toBeNull();
+    expect(to().textContent).toContain(copy.saidYesTo(["newsletter"], "email"));
   });
 
-  it("shows one sent to everyone who said yes as how many under what they said yes to, with no Only those", async () => {
+  it("shows one sent to everyone who said yes as that, with no pills", async () => {
     const written = {
       ...exampleBroadcastSent.written,
       filter: { list: "supporters" as const, params: { contact: "email:events:yes" } },
     };
     await render(<BroadcastFor data={{ ...exampleBroadcastSent, written }} actions={actions} />);
-    const saidYes = page.getByText(copy.facts.saidYes, { exact: true }).element().parentElement!;
-    expect(saidYes.textContent).toContain(mailingsCopy.campaigns.supporters(exampleBroadcastSent.summary.to));
-    expect(terms()).not.toContain(copy.facts.onlyThose);
-    await expect.element(page.getByText(copy.everyoneWhoSaidYes)).not.toBeInTheDocument();
+    expect(to().textContent).toContain(copy.everyoneWhoSaidYes);
+    expect(to().querySelector("ul")).toBeNull();
   });
 
-  it("says what they said yes to apart, and the other filters as pills, or everyone who did", async () => {
-    const supporters = supportersCopy.supporters.subscriptions.consents;
+  it("says what they said yes to in few words, and the other filters as pills, or everyone who did", async () => {
     const view = await render(
       <>
         <p>
           <BroadcastContact params={{ contact: "text:events:yes" }} />
-        </p>
-        <p>
-          <BroadcastContact params={{ contact: "email:events:yes" }} />
         </p>
         <p>
           <BroadcastContact params={{ contact: ["email:newsletter:yes", "email:events:yes"] }} />
@@ -94,16 +87,11 @@ describe("BroadcastFor", () => {
         <BroadcastWho params={{ contact: "email:newsletter:yes", near: "LS1" }} choices={exampleSupporterChoices} />
       </>,
     );
-    await expect.element(page.getByText(supporters["text:events"])).toBeVisible();
-    await expect.element(page.getByText(supporters["email:events"])).toBeVisible();
-    await expect
-      .element(
-        page.getByText(staffVocabulary.filters.anyOf([supporters["email:newsletter"], supporters["email:events"]])),
-      )
-      .toBeVisible();
+    await expect.element(page.getByText(copy.saidYesTo(["events"], "text"))).toBeVisible();
+    await expect.element(page.getByText(copy.saidYesTo(["newsletter", "events"], "email"))).toBeVisible();
     const pills = page.getByRole("list", { name: mailingsCopy.mailingPages.whoLabel }).getByRole("listitem");
     await expect.element(pills.first()).toBeVisible();
-    expect(pills.all().map((pill) => pill.element().textContent)).toHaveLength(1);
+    expect(pills.all()).toHaveLength(1);
     await view.unmount();
     await render(<BroadcastWho params={{ contact: "text:events:yes" }} choices={exampleSupporterChoices} />);
     await expect.element(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();

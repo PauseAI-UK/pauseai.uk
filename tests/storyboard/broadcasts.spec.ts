@@ -636,6 +636,11 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await expect(who).toContainText("fixture");
   await expect(who).toContainText(leftOut);
   await frame(page, "The draft, to those found");
+  story("A pill too long for its width is cut with “…”. Clicked, it shows its whole words.");
+  const long = who.getByRole("button", { name: leftOut });
+  await long.click();
+  await expect(long).toHaveAttribute("aria-expanded", "true");
+  await frame(page, "A long pill, whole", { window: true });
   story("Narrowed, the button is Change who. Cancel at the top goes back and changes nothing.");
   await page.getByRole("link", { name: mailingCopy.changeWho }).click();
   await page.getByRole("link", { name: copy.choosingCancel }).click();

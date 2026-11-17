@@ -5,10 +5,21 @@ import styles from "./Band.module.css";
  * One fact in a Band: its label, its value, and a quiet line under it of
  * where it's from or what it adds. Nothing when there's no value.
  */
-export function BandFact({ label, detail, children }: { label: string; detail?: ReactNode; children: ReactNode }) {
+export function BandFact({
+  label,
+  detail,
+  tall,
+  children,
+}: {
+  label: string;
+  detail?: ReactNode;
+  /** Taller than the rest, such as pills: where the facts are short of room, a column of its own. */
+  tall?: boolean;
+  children: ReactNode;
+}) {
   if (!children) return null;
   return (
-    <div>
+    <div className={tall ? styles.tall : undefined}>
       <dt>{label}</dt>
       <dd>{children}</dd>
       {detail && <dd className={styles.detail}>{detail}</dd>}
@@ -25,8 +36,8 @@ export function Facts({ children }: { children: ReactNode }) {
  * The tinted band at the top of a record's page (a supporter's, a
  * mailing's): `lead` at its left, such as a map; the title, with a tag
  * beside it, and under it in grey `subtitle`, such as what a politician
- * is; `corner` quietly at its top right, such as where a record came from; under them the facts (BandFact), with `aside` at their right, such
- * as Counts. It wraps on a narrow screen.
+ * is; `corner` quietly at its top right, such as where a record came from; under them the facts (BandFact), with `aside`
+ * at their bottom right, such as Counts, or under them at the right where there isn't room beside them.
  */
 export default function Band({
   title,
@@ -60,8 +71,10 @@ export default function Band({
         </div>
         {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         <div className={styles.row}>
-          <dl className={styles.facts}>{children}</dl>
-          {aside}
+          <div className={styles.factsBox}>
+            <dl className={styles.facts}>{children}</dl>
+          </div>
+          {aside && <div className={styles.aside}>{aside}</div>}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { firstOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import type { FilterWordsData } from "@/lib/mailings/pages.server";
 import { filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
+import Pills from "../ui/Pills";
 import styles from "./MailingParts.module.css";
 import { mailingsCopy } from "./copy";
 import { politiciansCopy } from "../politicians/copy";
@@ -65,11 +66,5 @@ export function FilterPills({ data }: { data: FilterWordsData }) {
   if (words.length === 0) {
     return <p className={styles.everyone}>{picked ? politiciansCopy.choosing.pickedNone : copy.everyone}</p>;
   }
-  return (
-    <ul className={styles.pills} aria-label={copy.whoLabel}>
-      {words.map((word) => (
-        <li key={word}>{word}</li>
-      ))}
-    </ul>
-  );
+  return <Pills words={words} label={copy.whoLabel} />;
 }
