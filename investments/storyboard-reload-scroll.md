@@ -19,3 +19,4 @@ is used in place of `page.reload()`.
 ## Hits
 
 - 2026-11-16: "Our answer to a text, read" (phone) differed from main's by its scroll alone, ~15 min
+- 2026-11-17: "Our answer to a text fails" (phone) landed about 50px apart between runs after its reload; pinned in that flow alone, ~45 min

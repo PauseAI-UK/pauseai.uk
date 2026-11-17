@@ -54,6 +54,12 @@ export default defineConfig({
   // The homepage takes a while to load and hydrate in this harness, so the
   // 30s default leaves no headroom for the checks after it.
   timeout: 60_000,
+  // A check waits up to 15 seconds for what a step's server work brings: a
+  // letter sent and its page shown, a draft made and opened. The 5s default
+  // is often enough, but not in a review, with the workers and both servers
+  // sharing a busy machine. A state that never comes still fails, a little
+  // later.
+  expect: { timeout: 15_000 },
   use: {
     // For `npm run test:report`, to step through a failed flow.
     trace: "retain-on-failure",

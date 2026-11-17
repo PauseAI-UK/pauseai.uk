@@ -7,6 +7,13 @@
   margin: 0 auto;
 }
 
+/* A block, not inline on a line of text: inline, the line's descent below it
+   makes the wrap a few pixels taller than the form, until the form shrinks
+   under .pristine's height and the descent goes, moving everything below. */
+.wrap iframe {
+  display: block;
+}
+
 /* Reserve the form's first-step height at each width until the reader uses
    it. The embed reports its full height almost at once, but only after the
    browser has started scrolling to a deep link, so without this the page

@@ -1524,6 +1524,14 @@ exit code after it. When the time it usually takes has passed, look at the
 file. A run whose output hasn't moved in minutes is stuck, so stop it and
 find out why, rather than waiting for the limit.
 
+A storyboard check waits up to 15 seconds for what it expects
+(`expect.timeout` in `playwright.config.ts`), so a busy machine's slow
+server isn't taken for a failure. The cost falls on a change that breaks
+many flows: each takes that long to fail, and a review can run for many
+minutes before it ends. So watch its output as it goes, not only its end.
+Once several flows have failed on the same thing, stop the run and fix that
+first.
+
 A Vitest test file that hasn't finished in five minutes stops the run
 itself, failing it and naming the file (`tests/hung-files.mts`, a reporter
 in `vitest.config.mts`). A test's own limit runs in the page the test is

@@ -559,6 +559,9 @@ test("PauseAI's email to a politician", async ({ page, request, flowDatabase }) 
   await page.getByRole("button", { name: lettersCopy.findInGmail.copy }).click();
   await expect(page.getByRole("status")).toContainText(lettersCopy.findInGmail.whereUnknown);
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^to:polly\S+ after:\d+ before:\d+$/);
+  // The button says Copied for a few seconds (CopyButton.tsx), which the frame would race: it's pictured
+  // once the button is back to Copy Gmail search, with the status still saying where to search.
+  await page.getByRole("button", { name: lettersCopy.findInGmail.copy }).waitFor();
   await frame(page, "The search, copied");
 });
 
