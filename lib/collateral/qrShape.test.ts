@@ -38,22 +38,39 @@ describe("qrShape", () => {
     const without = qrShape(target, 500, false);
     expect(withLogo.dots.length).toBeLessThan(without.dots.length);
     expect(withLogo.logoRadius).toBeGreaterThan(0);
-    // No dot overlaps the logo circle.
+    // No dot reaches into the square around the logo, as wide as the logo.
     for (const d of withLogo.dots) {
-      const dist = Math.hypot(d.x - withLogo.centre.x, d.y - withLogo.centre.y);
-      expect(dist - d.r).toBeGreaterThanOrEqual(withLogo.logoRadius!);
+      const dist = Math.max(Math.abs(d.x - withLogo.centre.x), Math.abs(d.y - withLogo.centre.y));
+      expect(dist - d.r - withLogo.logoRadius!).toBeGreaterThan(-1e-9);
     }
   });
 
-  it("lets dots touch the logo instead of keeping a gap around it", () => {
+  it("clears the corners of that square, past the logo's circle", () => {
     const shape = qrShape(target, 1000, true);
-    const gaps = shape.dots.map(
-      (d) => Math.hypot(d.x - shape.centre.x, d.y - shape.centre.y) - d.r - shape.logoRadius!,
-    );
-    // Nothing overlaps, and at least one dot sits within a hair of the logo's edge.
-    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(0);
-    expect(Math.min(...gaps)).toBeLessThan(shape.size * 0.01);
+    const without = qrShape(target, 1000, false);
+    const R = shape.logoRadius!;
+    // A dark module in the square's corner, outside the circle, is dropped all the same.
+    const corner = (d: { x: number; y: number }) => {
+      const dx = Math.abs(d.x - shape.centre.x);
+      const dy = Math.abs(d.y - shape.centre.y);
+      return dx < R && dy < R && Math.hypot(dx, dy) > R;
+    };
+    expect(without.dots.some(corner)).toBe(true);
+    expect(shape.dots.some(corner)).toBe(false);
   });
+
+  it.each(["https://asdd.com", target, `https://pauseai.uk/${"a".repeat(150)}`])(
+    "leaves the same hairline between the logo and the nearest dots for %s, whatever the code's density",
+    (link) => {
+      const shape = qrShape(link, 1000, true);
+      const cell = shape.finderEyes[0].s / 3;
+      const gaps = shape.dots.map(
+        (d) => Math.max(Math.abs(d.x - shape.centre.x), Math.abs(d.y - shape.centre.y)) - d.r - shape.logoRadius!,
+      );
+      // A small fraction of a module.
+      expect(Math.min(...gaps) / cell).toBeCloseTo(0.15, 6);
+    },
+  );
 
   it("keeps the logo small enough for error correction to cover the gap", () => {
     const withLogo = qrShape(target, 500, true);

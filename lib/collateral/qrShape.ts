@@ -13,6 +13,8 @@ export interface QrRect {
   x: number;
   y: number;
   s: number;
+  /** Corner rounding. */
+  r: number;
 }
 
 export interface QrShape {
@@ -24,7 +26,7 @@ export interface QrShape {
   dots: QrDot[];
   /** SVG path data for the three rounded rings around the corner marks. Fill with the even-odd rule. */
   finderRings: string;
-  /** The solid squares in the middle of the corner marks. */
+  /** The solid rounded squares in the middle of the corner marks. */
   finderEyes: QrRect[];
   centre: { x: number; y: number };
   /** Radius of the pause symbol in the middle, or null when the code has no logo. */
@@ -34,8 +36,16 @@ export interface QrShape {
 /** Corner mark rounding, in modules. Outer edge of the ring, and the edge of the hole inside it. */
 const RING_OUTER_RADIUS = 2.4;
 const RING_INNER_RADIUS = 1.4;
-/** Radius of the pause symbol as a share of the panel. */
-const LOGO_RADIUS = 0.137;
+/** Rounding of the square in the middle of each corner mark, in modules. */
+const EYE_RADIUS = 0.8;
+/**
+ * Radius of the square cleared for the pause symbol, as a share of the panel. Small enough that a code of any length
+ * the tools take stays readable: larger, and codes 25 and 69 modules wide stop scanning. The symbol itself grows by up
+ * to a module, to just short of the dots around the square.
+ */
+const LOGO_RADIUS = 0.115;
+/** The gap between the pause symbol and the nearest dots, in modules: enough that they don't quite touch. */
+const LOGO_GAP = 0.15;
 /** A dot is a touch wider than its module so neighbours join up, as in the reference style. */
 const DOT_SCALE = 1.03;
 
@@ -75,17 +85,21 @@ export function qrShape(target: string, size: number, logo: boolean): QrShape {
   const inFinder = (row: number, col: number) =>
     corners.some(([c, r]) => col >= c && col < c + 7 && row >= r && row < r + 7);
 
+  const r = (cell / 2) * DOT_SCALE;
+  // The logo sits on a white square as wide as it is, its corners showing: the modules cleared for it, out from
+  // the middle one, are those that would touch a square LOGO_RADIUS wide. The highest error correction level
+  // covers them. The logo then grows to just short of the dots left around it, so the gap between them is the
+  // same hairline whatever the code's density.
+  const mid = (modules - 1) / 2;
+  const cleared = Math.ceil((size * LOGO_RADIUS) / cell + DOT_SCALE / 2) - 1;
+  const logoRadius = (cleared + 1) * cell - r - LOGO_GAP * cell;
+
   const dots: QrDot[] = [];
   matrix.forEach((line, row) =>
     line.forEach((dark, col) => {
       if (!dark || inFinder(row, col)) return;
-      const dx = pad + (col + 0.5) * cell;
-      const dy = pad + (row + 0.5) * cell;
-      const r = (cell / 2) * DOT_SCALE;
-      // Drop only the dots that would overlap the logo, so the rest can sit right against its edge.
-      // The highest error correction level covers the dropped modules.
-      if (logo && Math.hypot(dx - centre.x, dy - centre.y) - r < size * LOGO_RADIUS) return;
-      dots.push({ x: dx, y: dy, r });
+      if (logo && Math.max(Math.abs(col - mid), Math.abs(row - mid)) <= cleared) return;
+      dots.push({ x: pad + (col + 0.5) * cell, y: pad + (row + 0.5) * cell, r });
     }),
   );
 
@@ -96,7 +110,7 @@ export function qrShape(target: string, size: number, logo: boolean): QrShape {
     const y = pad + r * cell;
     rings.push(roundedRect(x, y, 7 * cell, 7 * cell, RING_OUTER_RADIUS * cell));
     rings.push(roundedRect(x + cell, y + cell, 5 * cell, 5 * cell, RING_INNER_RADIUS * cell));
-    finderEyes.push({ x: x + 2 * cell, y: y + 2 * cell, s: 3 * cell });
+    finderEyes.push({ x: x + 2 * cell, y: y + 2 * cell, s: 3 * cell, r: EYE_RADIUS * cell });
   }
 
   return {
@@ -107,7 +121,7 @@ export function qrShape(target: string, size: number, logo: boolean): QrShape {
     finderRings: rings.join(""),
     finderEyes,
     centre,
-    logoRadius: logo ? size * LOGO_RADIUS : null,
+    logoRadius: logo ? logoRadius : null,
   };
 }
 
@@ -145,7 +159,7 @@ export function qrSvg(shape: QrShape, opts: QrSvgOptions): string {
   parts.push(`<g fill="${QR_INK}">`);
   for (const d of dots) parts.push(`<circle cx="${n(d.x)}" cy="${n(d.y)}" r="${n(d.r)}"/>`);
   parts.push(`<path fill-rule="evenodd" d="${finderRings}"/>`);
-  for (const e of finderEyes) parts.push(`<rect x="${n(e.x)}" y="${n(e.y)}" width="${n(e.s)}" height="${n(e.s)}"/>`);
+  for (const e of finderEyes) parts.push(`<path d="${roundedRect(e.x, e.y, e.s, e.s, e.r)}"/>`);
   parts.push("</g>");
   if (logoRadius !== null) {
     const bars = pauseBars(logoRadius);
