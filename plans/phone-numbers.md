@@ -153,11 +153,10 @@ language.
 What it costs:
 
 - **What was typed is gone for a bad number.** `0770?4225` becomes NULL,
-  so staff can't see that a paper form was misread, nor fix it from the
-  page. Where that matters, the migration moves a bad number into a
-  `phone_given` column first, shown on the supporter's page and nowhere
-  else. Dropping them is data minimisation in itself: a number we can't
-  use is one we needn't keep.
+  so staff can't see that a paper form was misread. That's nine numbers
+  today, none of them usable as they are, so dropping them loses no one
+  we could text. Dropping them is data minimisation in itself: a number
+  we can't use is one we needn't keep.
 - **One large migration** touches the consent function, the supporter
   views, the merging by number and erasure at once, and applies to every
   query on deploy. It needs the storyboard's every flow, and a check on a
@@ -184,5 +183,4 @@ None of the steps collects anything new or uses numbers for anything new.
   through `phone_number()`. Step 4 adds each source's `number` column to
   what erasure clears, and its hashing into `whatsapp_erased` reads it.
 - The other way: `docs/data-protection.md` says numbers are kept tidied,
-  and a bad one dropped, or kept in `phone_given` if the migration keeps
-  it, which erasure then clears too.
+  and a bad one dropped.
