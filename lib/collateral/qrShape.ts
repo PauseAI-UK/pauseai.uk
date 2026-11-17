@@ -34,8 +34,11 @@ export interface QrShape {
 /** Corner mark rounding, in modules. Outer edge of the ring, and the edge of the hole inside it. */
 const RING_OUTER_RADIUS = 2.4;
 const RING_INNER_RADIUS = 1.4;
-/** Radius of the pause symbol as a share of the panel. */
-const LOGO_RADIUS = 0.137;
+/**
+ * Radius of the pause symbol as a share of the panel. Small enough that clearing the square around it leaves a code
+ * of any length the tools take readable: larger, and codes 25 and 69 modules wide stop scanning.
+ */
+const LOGO_RADIUS = 0.115;
 /** A dot is a touch wider than its module so neighbours join up, as in the reference style. */
 const DOT_SCALE = 1.03;
 
@@ -82,9 +85,9 @@ export function qrShape(target: string, size: number, logo: boolean): QrShape {
       const dx = pad + (col + 0.5) * cell;
       const dy = pad + (row + 0.5) * cell;
       const r = (cell / 2) * DOT_SCALE;
-      // Drop only the dots that would overlap the logo, so the rest can sit right against its edge.
-      // The highest error correction level covers the dropped modules.
-      if (logo && Math.hypot(dx - centre.x, dy - centre.y) - r < size * LOGO_RADIUS) return;
+      // Drop the dots that would touch the square around the logo, as wide as the logo, so it sits on a
+      // white square with its corners showing. The highest error correction level covers the dropped modules.
+      if (logo && Math.max(Math.abs(dx - centre.x), Math.abs(dy - centre.y)) - r < size * LOGO_RADIUS) return;
       dots.push({ x: dx, y: dy, r });
     }),
   );
