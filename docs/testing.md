@@ -31,6 +31,14 @@ start`), so it is slower. Use it only for what Vitest can't see:
 `coverage/`. CI fails if it drops below the thresholds in
 `vitest.config.mts`.
 
+CI splits the tests between two jobs (Vitest's `--shard`), each writing its
+coverage with the thresholds off, and its Test job merges the two and fails
+on any file under 100% (`scripts/merge-coverage.mjs`). A shard reports a
+file its tests didn't load as all zeros, mapped as a Node module, which can
+differ from the browser's map of a component, so the merge drops that report
+when the other shard ran the file. Vitest's own `--merge-reports` keeps it,
+and fails a few components on statements a whole run covers.
+
 While writing tests, `npm run test:changed` is quicker. It:
 
 - runs only the tests for the files changed since `origin/main`, committed
@@ -1393,7 +1401,7 @@ npm run gate              # the CI gate: the fast checks on the changed files, t
 npm run gate -- --fast    # the fast checks alone
 npm run gate -- --only test   # one group of the gate's commands or more (checks, test, flows), kept in its status
 npm run typecheck         # types (also runs in npm run build)
-npm test                  # both Vitest projects, with the coverage gate (what CI runs)
+npm test                  # both Vitest projects, with the coverage gate (what CI runs, in two halves)
 npm run test:changed      # the tests for the files changed since origin/main, and those files' uncovered lines and branches
 npm run test:node         # Vitest node project (also runs in npm run build)
 npm run lint              # ESLint, failing on warnings too (also runs in npm run build)
