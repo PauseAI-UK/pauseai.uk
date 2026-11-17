@@ -128,7 +128,7 @@ export async function linkSupporters(db?: Queryable, everyone = false): Promise<
 async function linkByNumber(db: Queryable): Promise<{ linked: { id: number }[]; added: { id: number }[] }> {
   await query(
     `CREATE TEMP TABLE by_number ON COMMIT DROP AS
-     SELECT f.id AS form_entry_id, phone_number(f.phone) AS number FROM form_entries f
+     SELECT f.id AS form_entry_id, f.phone AS number FROM form_entries f
      WHERE f.form = 'whatsapp-community' AND NOT EXISTS (SELECT 1 FROM supporter_links l WHERE l.form_entry_id = f.id)`,
     [],
     db,
@@ -143,7 +143,7 @@ async function linkByNumber(db: Queryable): Promise<{ linked: { id: number }[]; 
   const existing = await query<{ id: number; entry: number }>(
     `INSERT INTO supporter_links (supporter_id, form_entry_id, matched_by, matched_value)
      SELECT DISTINCT ON (b.form_entry_id) c.supporter_id, b.form_entry_id, 'phone', b.number
-     FROM by_number b JOIN supporter_contact c ON phone_number(c.phone) = b.number
+     FROM by_number b JOIN supporter_contact c ON c.phone = b.number
      ORDER BY b.form_entry_id, c.supporter_id
      RETURNING supporter_id::int AS id, form_entry_id::int AS entry`,
     [],
@@ -263,7 +263,7 @@ function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
       ...(phones.length
         ? [
             sql`s.id IN (SELECT c.supporter_id FROM supporter_contact c
-               JOIN phone_permissions p ON p.address = phone_number(c.phone) WHERE ${sql.or(phones)})`,
+               JOIN phone_permissions p ON p.address = c.phone WHERE ${sql.or(phones)})`,
           ]
         : []),
     ];
@@ -347,7 +347,7 @@ export async function listSupporters(
     where.push(
       sql`s.id IN (SELECT i.supporter_id FROM contact_unsubscribes u JOIN supporter_identity i ON i.email = u.address
          WHERE u.way = 'email' AND ${which} AND ${within("u.at", filter.unsubscribedDays)}
-       UNION SELECT c.supporter_id FROM contact_unsubscribes u JOIN supporter_contact c ON phone_number(c.phone) = u.address
+       UNION SELECT c.supporter_id FROM contact_unsubscribes u JOIN supporter_contact c ON c.phone = u.address
          WHERE u.way <> 'email' AND ${which} AND ${within("u.at", filter.unsubscribedDays)})`,
     );
   }
@@ -476,7 +476,7 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
       [id],
     ),
     query<SupporterContact>(
-      `SELECT source, at, phone_number(phone) AS phone, postcode, latitude, longitude, city FROM supporter_contact
+      `SELECT source, at, phone, postcode, latitude, longitude, city FROM supporter_contact
        WHERE supporter_id = $1 AND (phone IS NOT NULL OR postcode IS NOT NULL OR latitude IS NOT NULL OR city IS NOT NULL)
        ORDER BY at DESC`,
       [id],

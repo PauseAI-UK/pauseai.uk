@@ -1,6 +1,7 @@
 // Numbers as people type them, each with the international form it is, or
-// null where it can't be read as one: what phoneNumber() in lib/phone.ts and
-// phone_number() in the database must agree on.
+// null where it can't be read as one, as phoneNumber() in lib/phone.ts reads
+// them; and with those, what the database's `phone` domain must keep or refuse
+// as isInternational() does.
 export const PHONE_NUMBERS: [typed: string, number: string | null][] = [
   ["+447700900123", "+447700900123"],
   ["+44 7700 900123", "+447700900123"],

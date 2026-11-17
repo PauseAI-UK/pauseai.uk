@@ -2,7 +2,7 @@
 // server to import it. It's liberal about how a file is written (separators,
 // encodings, spellings of a heading, ways of saying yes) and has no opinion on
 // what a column means beyond the names here: any other column is ignored.
-import { phoneNumber } from "@/lib/phone";
+import { phoneNumber, type PhoneNumber } from "@/lib/phone";
 
 /**
  * What a file is of: paper sign-up forms, each with a name and an email; or
@@ -289,7 +289,7 @@ export type SignupRow = {
   name: string;
   /** '' for a WhatsApp member. */
   email: string;
-  phone: string | null;
+  phone: PhoneNumber | null;
   postcode: string | null;
   /** A yes in the column linked to an event. */
   going: boolean;
@@ -301,7 +301,7 @@ export type SignupRow = {
  * mobile's leading zero put back, as spreadsheets drop it; undefined if it
  * can't be read as one.
  */
-function cleanPhone(cell: string): string | undefined {
+function cleanPhone(cell: string): PhoneNumber | undefined {
   const digits = cell.replace(/[\s().-]/g, "");
   return phoneNumber(/^7\d{9}$/.test(digits) ? `0${digits}` : cell) ?? undefined;
 }

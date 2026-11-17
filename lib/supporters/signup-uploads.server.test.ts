@@ -371,9 +371,9 @@ describeWithDatabase("uploading a WhatsApp group", () => {
 
   it("holds back a number that's missing, bad, repeated or forgotten, and knows one we hold", async () => {
     await event(EVENT);
-    await guest("luma@example.com", "approved", null, "+33 6 12 34 56 78");
+    await guest("luma@example.com", "approved", null, "+33612345678");
     await linkSupporters();
-    await query("INSERT INTO whatsapp_erased (number_hash) VALUES (whatsapp_number_hash('07700 900999'))");
+    await query("INSERT INTO whatsapp_erased (number_hash) VALUES (whatsapp_number_hash('+447700900999'))");
     const plan = await planOf(
       group(`Name,Phone,Email
 Jane 🌻,‪+44 7700 900123‬,ignored@example.com
@@ -405,7 +405,7 @@ ${"x".repeat(101)},07700900444,`),
   it("imports each number as a supporter, linked to whoever gave it, with a yes to newsletter texts", async () => {
     await place("oxford");
     await event(EVENT);
-    await guest("luma@example.com", "approved", null, "+33 6 12 34 56 78");
+    await guest("luma@example.com", "approved", null, "+33612345678");
     await query("UPDATE luma_people SET name = 'Marie Dupont' WHERE user_id = 'luma@example.com'");
     await linkSupporters();
     const [{ id: lumaSupporter }] = await query<{ id: number }>("SELECT id::int AS id FROM supporters");

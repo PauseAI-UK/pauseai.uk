@@ -226,12 +226,12 @@ async function copyLink(token: string): Promise<CopyLink | undefined> {
   return found;
 }
 
-/** The numbers of whoever has the address, as phone_number() writes them. */
+/** The numbers of whoever has the address. */
 async function numbersOf(address: string): Promise<string[]> {
   const rows = await query<{ phone: string }>(
-    `SELECT DISTINCT phone_number(c.phone) AS phone FROM supporter_contact c
+    `SELECT DISTINCT c.phone FROM supporter_contact c
      WHERE c.supporter_id IN (SELECT supporter_id FROM supporter_links WHERE matched_by = 'email' AND matched_value = $1)
-       AND phone_number(c.phone) LIKE '+%'
+       AND c.phone IS NOT NULL
      ORDER BY 1`,
     [address],
   );

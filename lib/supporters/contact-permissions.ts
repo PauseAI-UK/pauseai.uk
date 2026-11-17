@@ -109,7 +109,7 @@ export function stateValue(state: ContactState): string {
 /** Whether we may contact `address` by `way` about `topic`, why, since when, and which source told us. */
 export type ContactPermission = Consent & {
   channel: Channel;
-  /** An email address, or a phone number as phone_number() writes it. */
+  /** An email address, or a phone number in international format. */
   address: string;
   send: Send;
   reason: Reason;

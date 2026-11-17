@@ -518,8 +518,10 @@ describe("MailingWriter", () => {
     await expect.element(name).toHaveValue("");
     await field(copy.fromLegend).selectOptions("al@pauseai.uk");
     await name.fill("Al for PauseAI UK");
-    await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
-    expect(actions.save.mock.calls[0][2]).toEqual({ sentFrom: "al@pauseai.uk", fromName: "Al for PauseAI UK" });
+    // A slow change of Gmail can be saved before the next: the latest save is what counts.
+    await expect
+      .poll(() => actions.save.mock.calls.at(-1)?.[2], WAIT)
+      .toEqual({ sentFrom: "al@pauseai.uk", fromName: "Al for PauseAI UK" });
     await expect.element(preview().getByText("Al for PauseAI UK <al@pauseai.uk>")).toBeVisible();
     // Another Gmail keeps the name given.
     await field(copy.fromLegend).selectOptions("samuel.whitlock@pauseai.uk");

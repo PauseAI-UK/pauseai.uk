@@ -72,9 +72,8 @@ async function whatWeHold(rows: SignupRow[], input: SignupUploadInput) {
       [input.eventId, emails],
     ),
     query<{ given: string; number: string; held: boolean }>(
-      `SELECT given, phone_number(given) AS number, EXISTS (
-         SELECT 1 FROM supporter_contact c WHERE phone_number(c.phone) = phone_number(given)
-       ) AS held FROM unnest($1::text[]) given`,
+      `SELECT given, given AS number, EXISTS (SELECT 1 FROM supporter_contact c WHERE c.phone = given) AS held
+       FROM unnest($1::text[]) given`,
       [phones],
     ),
     // What stops all bulk email to each, which a new entry's yes can't get past, and whether they've had a notice of it lately.
@@ -173,12 +172,12 @@ async function planWhatsappUpload(
   const read = whatsappRows(file);
   const held = await query<{ number: string; known: boolean; erased: boolean; uploaded: boolean }>(
     `SELECT number,
-       EXISTS (SELECT 1 FROM supporter_contact c WHERE phone_number(c.phone) = number) AS known,
+       EXISTS (SELECT 1 FROM supporter_contact c WHERE c.phone = number) AS known,
        EXISTS (SELECT 1 FROM whatsapp_erased e WHERE e.number_hash = whatsapp_number_hash(number)) AS erased,
        EXISTS (
          SELECT 1 FROM form_entries f JOIN signup_upload_entries x ON x.entry_id = f.id
            JOIN signup_uploads u ON u.id = x.upload_id
-         WHERE f.form = 'whatsapp-community' AND phone_number(f.phone) = number
+         WHERE f.form = 'whatsapp-community' AND f.phone = number
            AND lower(btrim(u.note)) = lower(btrim($2))
        ) AS uploaded
      FROM unnest($1::text[]) number`,

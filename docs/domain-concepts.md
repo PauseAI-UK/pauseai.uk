@@ -584,11 +584,9 @@ job all leave broadcasts out.
   so. A copy is the text's template, its fields filled in for the person.
   Before a copy goes, its number is checked with CiviCRM's
   `checkSuppression`, and one with "Do not SMS" is skipped, as is a number
-  WhatsApp has said isn't on it (`whatsapp_unreachable`). A number not in
-  international format (`isInternational` in `lib/phone.ts`), as a form or a
-  paper sign-up may keep one, is skipped without being asked about
-  (`bad-number`): CiviCRM refuses the whole check for one, which would
-  hold the text up for everyone. Texts go to as
+  WhatsApp has said isn't on it (`whatsapp_unreachable`). A copy skipped
+  as `bad-number` had a number not in international format, which CiviCRM's
+  check refuses; no copy can have one now ("Phone numbers", below). Texts go to as
   many people a day as Meta's messaging limit for our business allows
   (`whatsapp_business_manager_messaging_limit`, read from our number), 250
   to start with, or 250 if Meta doesn't say: the rest wait for the next day.
@@ -1047,9 +1045,20 @@ number comes in uses it:
 - the Luma and CiviCRM imports bring the person in without it, and say how
   many on the run's page, as it's theirs to fix.
 
-`phone_number()` in the database is the same rule, which a test checks on
-the same numbers (`tests/phone-numbers.ts`), but gives back one it can't
-read as typed. Queries match numbers through it.
+The database refuses any other. Its `phone` domain is the same rule as
+`isInternational()`, which a test checks on the same numbers
+(`tests/phone-numbers.ts`). A column of numbers is checked by a cast to it,
+on every row or, where a column holds an email or a number, on the rows
+that hold a number (`opt_outs`, `preference_choices`, `supporter_links`,
+a WhatsApp reply in `broadcast_replies`). A new one is declared `phone`,
+which `tests/checks/phone-columns.test.ts` makes sure of. Code that keeps a
+number takes a `PhoneNumber`, which only `phoneNumber()` and
+`isInternational()` make, so a number as typed doesn't compile. Queries
+match numbers as they're kept, on plain indexes.
+
+A text's copy (`broadcast_messages.address`) isn't checked: its number
+comes from a consent, so from a checked column, and the copy is a record of
+what went, which a copy skipped as `bad-number` keeps as it was.
 
 ## Supporters
 
@@ -1069,7 +1078,7 @@ record gives one.
 `linkSupporters()` (`lib/supporters/records.server.ts`) only adds links. It runs at
 the end of each Luma and CiviCRM import and when a form entry is kept, and
 it's set-based, so running it again does nothing. Then supporters who gave
-the same UK mobile number (`+447…` as `phone_number()` writes it) are made
+the same UK mobile number (`+447…`) are made
 one person, whatever their emails. `merge_supporters_by_phone()` moves the
 newer supporter's links, messages and notes to the older, and deletes the
 newer. `supporter_merges` keeps the deleted one's ID, so its old page,

@@ -3,6 +3,7 @@ import { query } from "@/lib/server/db.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { eraseSupporter } from "@/lib/erasure/erase.server";
 import { addNote, deleteNote, editNote, notesOn } from "./records.server";
+import { phoneNumber } from "@/lib/phone";
 
 const jo = { email: "jo@pauseai.uk", permissions: ["supporters" as const] };
 const sam = { email: "sam@pauseai.uk", permissions: ["supporters" as const] };
@@ -11,13 +12,16 @@ const noSupporters = { email: "kim@pauseai.uk", permissions: [] };
 
 const at = (time: string) => vi.stubEnv("FIXTURE_NOW", time);
 
-/** A supporter with a form entry giving `phone`, so two with the same mobile number are merged. */
+/**
+ * A supporter with a form entry giving `phone`, kept as the form keeps it, so two with the same mobile number
+ * are merged.
+ */
 async function supporter(phone: string): Promise<number> {
   const [{ id }] = await query<{ id: number }>("INSERT INTO supporters DEFAULT VALUES RETURNING id::int AS id");
   const [entry] = await query<{ id: number }>(
     `INSERT INTO form_entries (form, name, email, phone, contact_consent)
      VALUES ('march-2026-11', 'Jane Smith', $1, $2, false) RETURNING id::int AS id`,
-    [`jane${id}@example.com`, phone],
+    [`jane${id}@example.com`, phoneNumber(phone)],
   );
   await query(
     `INSERT INTO supporter_links (supporter_id, form_entry_id, matched_by, matched_value) VALUES ($1, $2, 'email', $3)`,

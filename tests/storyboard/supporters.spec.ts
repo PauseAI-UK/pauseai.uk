@@ -392,10 +392,10 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
 
 test("Merged by phone number", async ({ page, request, flowDatabase }) => {
   story(
-    "A newer Luma guest gives Jane Fixture's mobile number, written differently. The next pass over everyone's numbers makes the two one supporter.",
+    "A newer Luma guest gives Jane Fixture's mobile number. The next pass over everyone's numbers makes the two one supporter.",
   );
   await importLuma(request, BASE);
-  // A newer guest gives Jane's mobile, written as people write it; the next pass over everyone's numbers makes them one.
+  // A newer guest gives Jane's mobile, kept in international format; the next pass over everyone's numbers makes them one.
   const [jane] = runSql(
     flowDatabase,
     "SELECT supporter_id FROM supporter_links WHERE matched_value = 'jane.fixture@example.com' LIMIT 1",
@@ -405,7 +405,7 @@ test("Merged by phone number", async ({ page, request, flowDatabase }) => {
     `SELECT g.user_id, k.supporter_id, k.matched_value FROM luma_guests g JOIN supporter_links k ON k.luma_user_id = g.user_id
      WHERE k.supporter_id > ${jane} ORDER BY k.supporter_id DESC LIMIT 1`,
   )[0].split("\t");
-  runSql(flowDatabase, `UPDATE luma_guests SET phone = '07700 900001' WHERE user_id = '${guest}'`);
+  runSql(flowDatabase, `UPDATE luma_guests SET phone = '+447700900001' WHERE user_id = '${guest}'`);
   runSql(flowDatabase, "SELECT count(*) FROM merge_supporters_by_phone(); REFRESH MATERIALIZED VIEW supporters_list");
   story("The other supporter's page now goes to Jane's, which has both email addresses.");
   await logInWithSupporters(page, flowDatabase);

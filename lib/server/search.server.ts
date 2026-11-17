@@ -37,8 +37,8 @@ export function closeness(column: string, text: string): Sql {
 export const CLOSE_ENOUGH = 0.4;
 
 /**
- * What a search typed as a phone number, or part of one, is in the form
- * phone_number() stores numbers in, as far as it can tell from the start:
+ * What a search typed as a phone number, or part of one, is in the
+ * international form numbers are stored in, as far as it can tell from the start:
  * "07700 900" is "+447700900". Undefined for a search that isn't one: not
  * four or more digits, with only spaces, brackets, dots or dashes between.
  */

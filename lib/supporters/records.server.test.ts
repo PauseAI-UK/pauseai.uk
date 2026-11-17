@@ -115,16 +115,16 @@ describeWithDatabase("linkSupporters", () => {
   });
 
   it("merges supporters who gave the same UK mobile number into the older, whose ID still finds them", async () => {
-    await lumaUser("usr-1", "jane@example.com", "Jane", "evt-1", { phone: "07700 900001" });
-    await lumaUser("usr-2", "home@example.com", "Home", "evt-1", { phone: "0161 496 0000" });
+    await lumaUser("usr-1", "jane@example.com", "Jane", "evt-1", { phone: "+447700900001" });
+    await lumaUser("usr-2", "home@example.com", "Home", "evt-1", { phone: "+441614960000" });
     await linkSupporters();
     const [jane, home] = await Promise.all(["jane@example.com", "home@example.com"].map(supporterWith));
-    // A second address for Jane, with her number written another way, and a member with that address and a
-    // second number of hers, which a third address gave too: a chain, all Jane. A landline shared is two people.
-    await lumaUser("usr-3", "jane.work@example.com", "Jane W", "evt-1", { phone: "+44 7700 900001" });
-    await member("jane.work@example.com", "2026-09-01", { phone: "07700 900002" });
-    await lumaUser("usr-4", "jane.other@example.com", "Jane O", "evt-1", { phone: "07700900002" });
-    await lumaUser("usr-5", "flatmate@example.com", "Flatmate", "evt-1", { phone: "0161 496 0000" });
+    // A second address for Jane, with her number, and a member with that address and a second number of hers,
+    // which a third address gave too: a chain, all Jane. A landline shared is two people.
+    await lumaUser("usr-3", "jane.work@example.com", "Jane W", "evt-1", { phone: "+447700900001" });
+    await member("jane.work@example.com", "2026-09-01", { phone: "+447700900002" });
+    await lumaUser("usr-4", "jane.other@example.com", "Jane O", "evt-1", { phone: "+447700900002" });
+    await lumaUser("usr-5", "flatmate@example.com", "Flatmate", "evt-1", { phone: "+441614960000" });
     // The list as the hourly refresh left it, before they're linked.
     await refreshSupportersList();
     expect(await transaction((db) => linkSupporters(db))).toEqual({ supportersAdded: 1, linked: 4 });
@@ -150,7 +150,7 @@ describeWithDatabase("linkSupporters", () => {
   });
 
   it("moves a merged supporter's messages to the older, and keeps only that one was sent where both had one", async () => {
-    await lumaUser("usr-1", "jane@example.com", "Jane", "evt-1", { phone: "07700 900001" });
+    await lumaUser("usr-1", "jane@example.com", "Jane", "evt-1", { phone: "+447700900001" });
     await linkSupporters();
     await lumaUser("usr-2", "jo@example.com", "Jo", "evt-1");
     await linkSupporters();
@@ -167,7 +167,7 @@ describeWithDatabase("linkSupporters", () => {
       [both.id, one.id, jane, other],
     );
     // Jo gives Jane's number: only a pass over everyone's numbers finds it, as Jo was linked before.
-    await query("UPDATE luma_guests SET phone = '07700900001' WHERE user_id = 'usr-2'");
+    await query("UPDATE luma_guests SET phone = '+447700900001' WHERE user_id = 'usr-2'");
     expect(await linkSupporters()).toEqual({ supportersAdded: 0, linked: 0 });
     expect(await supporterWith("jo@example.com")).toBe(other);
     await linkSupporters(undefined, true);
@@ -589,7 +589,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ contact: [{ ...lumaPhone, reason: "unsubscribed" }] })).toEqual(["Jane"]);
     expect(await names({ contact: [{ ...lumaPhone, reason: "following" }] })).toEqual([]);
     // The same number given on joining as a volunteer is one we may use; a number found by email or phone.
-    await member("jane@example.com", "2026-09-01", { name: "Jane", phone: "07700 900001", intent: "volunteer" });
+    await member("jane@example.com", "2026-09-01", { name: "Jane", phone: "+447700900001", intent: "volunteer" });
     await linkSupporters();
     expect(await jane()).toMatchObject({ phones: ["+447700900001"] });
     const volunteered = { way: "call", topic: "volunteering", reason: "volunteered" } as const;

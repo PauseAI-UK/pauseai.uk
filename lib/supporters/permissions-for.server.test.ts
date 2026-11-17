@@ -3,7 +3,7 @@ import type { Topic, Way } from "./contact-permissions";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
 import { permissionsFor } from "./permissions-for.server";
-import { isInternational, phoneNumber } from "@/lib/phone";
+import { isInternational } from "@/lib/phone";
 import { PHONE_NUMBERS } from "@/tests/phone-numbers";
 
 /** A Luma account, a contact of the calendar since `since` or not one. */
@@ -314,7 +314,7 @@ describeWithDatabase("permissionsFor", () => {
 
   it("gives a Luma number its account's answer for events by text, and texts the march's numbers until its day ends", async () => {
     await luma("pat@example.com", "2026-09-20T00:00:00Z");
-    await lumaGuest("pat@example.com", "07700 900020");
+    await lumaGuest("pat@example.com", "+447700900020");
     await luma("tom@example.com", "2026-09-20T00:00:00Z");
     await lumaGuest("tom@example.com", "+447700900021");
     await optOut("tom@example.com", "2026-10-23T00:00:00Z");
@@ -374,7 +374,7 @@ describeWithDatabase("permissionsFor", () => {
     // Numbers CiviCRM gives, with what each contact said they wanted to do.
     const contact = (email: string, phone: string, more: Civicrm = {}) =>
       civicrm(email, "2026-11-01T00:00:00Z", { phone, intent: "volunteer", joined: "2026-09-12", ...more });
-    await contact("cv@example.com", "07700 900050");
+    await contact("cv@example.com", "+447700900050");
     await contact("cl@example.com", "+447700900051", { intent: "lead" });
     await contact("ca@example.com", "+447700900052", { intent: "act_now" });
     await contact("ct@example.com", "+447700900053", { intent: null, joined: "2025-06-06" });
@@ -457,26 +457,28 @@ describeWithDatabase("permissionsFor", () => {
     expect(await usable("+447700900099")).toBe(false);
   });
 
-  it("writes numbers the same way, however they were typed", async () => {
-    const written = async (raw: string | null) =>
-      (await query<{ n: string | null }>("SELECT phone_number($1) AS n", [raw]))[0].n;
-    for (const raw of ["07700 900123", "+44 (0)7700 900123", "0044 7700-900123", "447700900123", "+447700900123"]) {
-      expect(await written(raw)).toBe("+447700900123");
-    }
-    expect(await written("+1 (555) 000-0000")).toBe("+15550000000");
-    // One that can't be read as a number is kept as typed, trimmed; a blank is none.
-    expect(await written(" ext. 12 ")).toBe("ext. 12");
-    expect(await written("  ")).toBeNull();
-    expect(await written(null)).toBeNull();
+  it("keeps as a number just what isInternational() takes, refusing any other", async () => {
+    const values = PHONE_NUMBERS.flatMap(([typed, number]) => (number ? [typed, number] : [typed]));
+    const kept = async (value: string) =>
+      query("SELECT $1::phone AS n", [value]).then(
+        () => true,
+        (error: unknown) => {
+          expect(String(error)).toMatch(/phone_check/);
+          return false;
+        },
+      );
+    for (const value of values) expect(await kept(value), value).toBe(isInternational(value));
   });
 
-  it("reads numbers as phoneNumber() does, giving back as typed one it can't", async () => {
-    const rows = await query<{ typed: string; n: string | null }>(
-      "SELECT typed, phone_number(typed) AS n FROM unnest($1::text[]) typed",
-      [PHONE_NUMBERS.map(([typed]) => typed)],
+  it("refuses a number not in international format wherever one is kept", async () => {
+    await expect(
+      query(
+        "INSERT INTO form_entries (form, name, email, phone, contact_consent) VALUES ('march-2026-11', 'J', 'j@example.com', '07700 900123', true)",
+      ),
+    ).rejects.toThrow(/phone_check/);
+    await expect(query("INSERT INTO whatsapp_unreachable (number) VALUES ('447700900123')")).rejects.toThrow(
+      /phone_check/,
     );
-    expect(rows.map(({ typed, n }) => [typed, n !== null && isInternational(n) ? n : null])).toEqual(
-      PHONE_NUMBERS.map(([typed]) => [typed, phoneNumber(typed)]),
-    );
+    await query("INSERT INTO whatsapp_unreachable (number) VALUES ('+447700900123')");
   });
 });

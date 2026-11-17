@@ -19,7 +19,7 @@ import {
 import { getEventHosts, type EventHost } from "@/lib/server/outside-services/luma-event.server";
 import { type EventGuest, listEventGuests } from "@/lib/server/outside-services/luma-guests.server";
 import { describeError, problem } from "@/lib/server/problems.server";
-import { withNumbersRead } from "@/lib/phone";
+import { withNumbersRead, type NumbersRead } from "@/lib/phone";
 import { eventsCopy } from "./copy";
 
 // Copies our Luma calendar into luma_events, luma_people, luma_guests and
@@ -249,7 +249,7 @@ async function upsertPeople(guests: Pick<EventGuest, "userId" | "email" | "name"
 export const GUEST_STATUSES = ["approved", "pending_approval", "waitlist", "declined"];
 
 /** Upserts a page of an event's guests; returns how many were new or different. */
-async function upsertGuests(eventId: string, guests: EventGuest[], db?: Queryable): Promise<number> {
+async function upsertGuests(eventId: string, guests: NumbersRead<EventGuest>[], db?: Queryable): Promise<number> {
   const rows = await query(
     `INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, phone, postcode, utm_source)
      SELECT g.id, $1, g.user_id, g.approval_status, g.registered_at, g.phone, g.postcode, g.utm_source

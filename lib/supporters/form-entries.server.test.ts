@@ -11,6 +11,7 @@ import {
 import { query } from "@/lib/server/db.server";
 import { addFormEntry } from "./form-entries.server";
 import { linkSupporters } from "./records.server";
+import { phoneNumber } from "@/lib/phone";
 
 /** Every row each supporter view gives, in a fixed order, to compare before and after a migration. */
 async function views() {
@@ -328,7 +329,7 @@ describeWithDatabase("addFormEntry", () => {
     const entry = {
       name: "Jane",
       email: "Jane@Example.com",
-      phone: "07700 900000",
+      phone: phoneNumber("07700 900000"),
       city: "Leeds",
       postcode: "LS1 1AA",
       consent: true,
@@ -340,7 +341,7 @@ describeWithDatabase("addFormEntry", () => {
       await query(`SELECT DISTINCT k.supporter_id::int AS id FROM supporter_links k WHERE k.form_entry_id IS NOT NULL`),
     ).toHaveLength(1);
     expect(await query("SELECT form, email, phone FROM form_entries WHERE id = $1", [id])).toEqual([
-      { form: "march-2026-11", email: "Jane@Example.com", phone: "07700 900000" },
+      { form: "march-2026-11", email: "Jane@Example.com", phone: "+447700900000" },
     ]);
     await addFormEntry("march-2026-11", entry, { eventId: "evt-march", status: "added" });
     expect(await query("SELECT event_id, status FROM form_entry_luma")).toEqual([

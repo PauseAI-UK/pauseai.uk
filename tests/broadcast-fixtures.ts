@@ -3,6 +3,7 @@ import { getWrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import { supporterAudience } from "@/lib/broadcasts/recipients.server";
 import { refreshSupportersList } from "@/lib/supporters/facts.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
+import { phoneNumber } from "@/lib/phone";
 
 // Supporters for the tests of broadcasts: each a Luma guest of one event, so
 // following the calendar says yes to emails about it, and a number given says
@@ -22,7 +23,11 @@ export const EVENT_WORDS = {
   ],
 };
 
-/** A supporter who follows the calendar, by their Luma ID; returns their ID. */
+/**
+ * A supporter who follows the calendar, by their Luma ID, with a number as
+ * they typed it, which is kept in international format as Luma's import
+ * keeps it; returns their ID.
+ */
 export async function addFollower(
   id: string,
   email: string,
@@ -42,7 +47,7 @@ export async function addFollower(
   await query(
     `INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, phone, postcode)
      VALUES ($1, 'evt-1', $2, 'approved', '2026-09-20T10:00:00Z', $3, $4)`,
-    [`gst-${id}`, id, more.phone ?? null, more.postcode ?? null],
+    [`gst-${id}`, id, more.phone ? phoneNumber(more.phone) : null, more.postcode ?? null],
   );
   await linkSupporters();
   await refreshSupportersList();

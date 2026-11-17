@@ -51,7 +51,7 @@ async function janeWithEverything(mp: number): Promise<number> {
   await query(
     `WITH entry AS (
        INSERT INTO form_entries (form, name, email, phone, contact_consent)
-       VALUES ('march-2026-11', 'Jane', 'jane.fixture@example.com', '07700 900000', true) RETURNING id)
+       VALUES ('march-2026-11', 'Jane', 'jane.fixture@example.com', '+447700900000', true) RETURNING id)
      INSERT INTO form_entry_luma (entry_id, event_id, status) SELECT id, 'evt-march', 'added' FROM entry`,
   );
   await linkSupporters();

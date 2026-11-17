@@ -1,5 +1,6 @@
 import type { getSignupUpload, SignupUploadPerson, SignupUploadSummary } from "@/lib/supporters/signup-uploads.server";
 import type { SignupPlan } from "@/lib/supporters/signup-csv";
+import { phoneNumber } from "@/lib/phone";
 
 const person = { phone: null, postcode: null, going: false, problem: null, notice: null };
 
@@ -34,7 +35,7 @@ export const exampleSignupPlan: SignupPlan = {
       line: 3,
       name: "Tom Okafor",
       email: "tom.okafor@example.com",
-      phone: "07700 900123",
+      phone: phoneNumber("07700 900123")!,
       going: true,
       pile: "going",
       known: "email",
@@ -46,7 +47,7 @@ export const exampleSignupPlan: SignupPlan = {
       line: 4,
       name: "Ben Wood",
       email: "ben.wood@example.com",
-      phone: "07700 900456",
+      phone: phoneNumber("07700 900456")!,
       pile: "none",
       known: "mobile",
       newEntry: true,
@@ -135,19 +136,37 @@ export const exampleWhatsappPlan: SignupPlan = {
       line: 2,
       name: "Jane 🌻",
       email: "",
-      phone: "+447700900123",
+      phone: phoneNumber("+447700900123")!,
       pile: "none",
       known: null,
       newEntry: true,
     },
-    { ...person, line: 3, name: "", email: "", phone: "+33612345678", pile: "none", known: "mobile", newEntry: true },
-    { ...person, line: 4, name: "Tom", email: "", phone: "+447700900456", pile: "done", known: null, newEntry: false },
+    {
+      ...person,
+      line: 3,
+      name: "",
+      email: "",
+      phone: phoneNumber("+33612345678")!,
+      pile: "none",
+      known: "mobile",
+      newEntry: true,
+    },
+    {
+      ...person,
+      line: 4,
+      name: "Tom",
+      email: "",
+      phone: phoneNumber("+447700900456")!,
+      pile: "done",
+      known: null,
+      newEntry: false,
+    },
     {
       ...person,
       line: 5,
       name: "Ruth",
       email: "",
-      phone: "+447700900789",
+      phone: phoneNumber("+447700900789")!,
       pile: "held",
       known: null,
       newEntry: false,
