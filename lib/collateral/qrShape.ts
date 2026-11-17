@@ -39,8 +39,9 @@ const RING_INNER_RADIUS = 1.4;
 /** Rounding of the square in the middle of each corner mark, in modules. */
 const EYE_RADIUS = 0.8;
 /**
- * Radius of the pause symbol as a share of the panel. Small enough that clearing the square around it leaves a code
- * of any length the tools take readable: larger, and codes 25 and 69 modules wide stop scanning.
+ * Radius of the square cleared for the pause symbol, as a share of the panel. Small enough that a code of any length
+ * the tools take stays readable: larger, and codes 25 and 69 modules wide stop scanning. The symbol itself grows by up
+ * to a module to meet the dots around the square.
  */
 const LOGO_RADIUS = 0.115;
 /** A dot is a touch wider than its module so neighbours join up, as in the reference style. */
@@ -82,17 +83,21 @@ export function qrShape(target: string, size: number, logo: boolean): QrShape {
   const inFinder = (row: number, col: number) =>
     corners.some(([c, r]) => col >= c && col < c + 7 && row >= r && row < r + 7);
 
+  const r = (cell / 2) * DOT_SCALE;
+  // The logo sits on a white square as wide as it is, its corners showing: the modules cleared for it, out from
+  // the middle one, are those that would touch a square LOGO_RADIUS wide. The highest error correction level
+  // covers them. The logo then grows to meet the dots left around it, so there is no gap whatever the code's
+  // density.
+  const mid = (modules - 1) / 2;
+  const cleared = Math.ceil((size * LOGO_RADIUS) / cell + DOT_SCALE / 2) - 1;
+  const logoRadius = (cleared + 1) * cell - r;
+
   const dots: QrDot[] = [];
   matrix.forEach((line, row) =>
     line.forEach((dark, col) => {
       if (!dark || inFinder(row, col)) return;
-      const dx = pad + (col + 0.5) * cell;
-      const dy = pad + (row + 0.5) * cell;
-      const r = (cell / 2) * DOT_SCALE;
-      // Drop the dots that would touch the square around the logo, as wide as the logo, so it sits on a
-      // white square with its corners showing. The highest error correction level covers the dropped modules.
-      if (logo && Math.max(Math.abs(dx - centre.x), Math.abs(dy - centre.y)) - r < size * LOGO_RADIUS) return;
-      dots.push({ x: dx, y: dy, r });
+      if (logo && Math.max(Math.abs(col - mid), Math.abs(row - mid)) <= cleared) return;
+      dots.push({ x: pad + (col + 0.5) * cell, y: pad + (row + 0.5) * cell, r });
     }),
   );
 
@@ -114,7 +119,7 @@ export function qrShape(target: string, size: number, logo: boolean): QrShape {
     finderRings: rings.join(""),
     finderEyes,
     centre,
-    logoRadius: logo ? size * LOGO_RADIUS : null,
+    logoRadius: logo ? logoRadius : null,
   };
 }
 

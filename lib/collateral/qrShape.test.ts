@@ -41,7 +41,7 @@ describe("qrShape", () => {
     // No dot reaches into the square around the logo, as wide as the logo.
     for (const d of withLogo.dots) {
       const dist = Math.max(Math.abs(d.x - withLogo.centre.x), Math.abs(d.y - withLogo.centre.y));
-      expect(dist - d.r).toBeGreaterThanOrEqual(withLogo.logoRadius!);
+      expect(dist - d.r - withLogo.logoRadius!).toBeGreaterThan(-1e-9);
     }
   });
 
@@ -59,15 +59,16 @@ describe("qrShape", () => {
     expect(shape.dots.some(corner)).toBe(false);
   });
 
-  it("lets dots sit against the square instead of keeping a gap around it", () => {
-    const shape = qrShape(target, 1000, true);
-    const gaps = shape.dots.map(
-      (d) => Math.max(Math.abs(d.x - shape.centre.x), Math.abs(d.y - shape.centre.y)) - d.r - shape.logoRadius!,
-    );
-    // Nothing overlaps, and some dot sits within a module of the square's edge.
-    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(0);
-    expect(Math.min(...gaps)).toBeLessThan(shape.size / shape.modules);
-  });
+  it.each(["https://asdd.com", target, `https://pauseai.uk/${"a".repeat(150)}`])(
+    "brings the dots right up to the square around the logo for %s, whatever the code's density",
+    (link) => {
+      const shape = qrShape(link, 1000, true);
+      const gaps = shape.dots.map(
+        (d) => Math.max(Math.abs(d.x - shape.centre.x), Math.abs(d.y - shape.centre.y)) - d.r - shape.logoRadius!,
+      );
+      expect(Math.min(...gaps)).toBeCloseTo(0, 6);
+    },
+  );
 
   it("keeps the logo small enough for error correction to cover the gap", () => {
     const withLogo = qrShape(target, 500, true);
