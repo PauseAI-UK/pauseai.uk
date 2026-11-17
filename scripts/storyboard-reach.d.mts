@@ -6,9 +6,12 @@ export type Context = {
   routes: Route[];
   reaches?: Map<string, Set<string>>;
   texts?: Map<string, string>;
+  roots?: Map<string, Set<string>>;
 };
 type Changed = { files: string[]; addedOrDeleted: string[] };
-type Run = { key: string; section: string; flow: string; opened?: string[] };
+/** A frame as a run records it: in the gallery, with the file of the component it pictures. */
+type Frame = { caption: string; file?: string };
+type Run = { key: string; section: string; flow: string; opened?: string[]; frames?: Frame[] };
 type CarriedRun = Run & { status: string; tree?: string; seen?: string; setup?: string; recording?: number };
 
 export const NAMED: string[];
@@ -24,22 +27,29 @@ export function closure(graph: Graph, entries: Iterable<string>): Set<string>;
 export function folderPattern(folder: string, prefix?: boolean): RegExp;
 export function appRoutes(root: string): Route[];
 export function routeFiles(routes: Route[], path: string): string[];
-export function flowReach(run: Omit<Run, "key">, context: Context, whole?: boolean): Set<string>;
+export function flowReach(run: Omit<Run, "key">, context: Context, whole?: boolean, cut?: Set<string>): Set<string>;
 export function reachContext(root: string): Context;
-export function reachedFlows(args: { files: string[]; addedOrDeleted?: string[]; runs: Run[]; context: Context }): {
+export function reachedFlows<R extends Run>(args: {
+  files: string[];
+  addedOrDeleted?: string[];
+  runs: R[];
+  context: Context;
+}): {
   keys: Set<string>;
+  carried: Map<string, NonNullable<R["frames"]>>;
   everything: string[];
   unknown: string[];
 };
-export function flowsToRun(args: {
+export function flowsToRun<R extends CarriedRun>(args: {
   suite: Set<string>;
-  carried: CarriedRun[];
-  phoneTagged: Set<string>;
+  carried: R[];
+  phoneTagged: { has(key: string): boolean };
   context: Context;
   setup?: string;
   changedSince: (tree: string) => Changed | undefined;
 }): {
   run: Set<string>;
+  carried: Map<string, NonNullable<R["frames"]>>;
   fresh: number;
   reached: number;
   swept: number;

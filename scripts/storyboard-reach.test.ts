@@ -59,7 +59,15 @@ const FILES: Record<string, string> = {
   "app/(staff)/staff/jobs/page.tsx": `import { jobTitles } from "@/lib/content/staff-interface";\nexport default () => jobTitles;`,
   "app/(tools)/gallery/page.tsx": `import { GROUPS } from "./_examples";\nexport default GROUPS;`,
   "app/(tools)/gallery/[group]/page.tsx": `import { GROUPS } from "../_examples";\nexport default GROUPS;`,
-  "app/(tools)/gallery/_examples/index.ts": `import { ui } from "./ui";\nimport { staff } from "./staff";\nexport const GROUPS = [ui, staff];`,
+  "app/(tools)/gallery/_examples/index.ts": `import { ui } from "./ui";\nimport { staff } from "./staff";\nimport { kit } from "./kit";\nexport const GROUPS = [ui, staff, kit];`,
+  "app/(tools)/gallery/_examples/kit.tsx": `import { bandGallery } from "@/components/kit/Band.gallery";\nimport { tabsGallery } from "@/components/kit/Tabs.gallery";\nimport { Hero } from "@/components/Hero";\nexport const kit = [...bandGallery, ...tabsGallery, Hero];`,
+  "components/kit/Band.gallery.tsx": `import { Band } from "./Band";\nexport const bandGallery = [Band];`,
+  "components/kit/Band.tsx": `import { Frame } from "./Frame";\nimport styles from "./Band.module.css";\nexport const Band = [Frame, styles];`,
+  "components/kit/Band.module.css": `.band { margin: 0; }`,
+  "components/kit/Tabs.gallery.tsx": `import { Tabs } from "./Tabs";\nexport const tabsGallery = [Tabs];`,
+  "components/kit/Tabs.tsx": `import { Frame } from "./Frame";\nimport "./tabs.css";\nexport const Tabs = Frame;`,
+  "components/kit/tabs.css": `.tabs { margin: 0; }`,
+  "components/kit/Frame.tsx": `export const Frame = 1;`,
   "app/(tools)/gallery/_examples/ui.tsx": `import { Hero } from "@/components/Hero";\nexport const ui = Hero;`,
   "app/(tools)/gallery/_examples/staff.tsx": `import { Letters } from "@/components/Letters";\nimport { more } from "./staff.client";\nexport const staff = [Letters, more];`,
   "app/(tools)/gallery/_examples/staff.client.tsx": `export const more = 1;`,
@@ -134,6 +142,12 @@ const phoneHome = { ...home, key: "phone|home|The home page" };
 const runs = [home, post, sitemap, letters, events, jobs, broken, galleryUi, galleryStaff, galleryIndex, upload];
 const keysOf = (...some: { key: string }[]) => new Set(some.map((r) => r.key));
 const everyRun = keysOf(...runs);
+// The kit's group: a frame of each component, two with their examples beside them, one in the group's own file.
+const band = { caption: "Band", file: "components/kit/Band.tsx" };
+const tabs = { caption: "Tabs", file: "components/kit/Tabs.tsx" };
+const hero = { caption: "Hero", file: "components/Hero.tsx" };
+const galleryKit = { ...run("desktop|gallery|gallery: kit", ["/gallery/kit"]), frames: [band, tabs, hero] };
+const nothingReached = { keys: new Set(), carried: new Map(), everything: [], unknown: [] };
 
 describe("sqlWithoutComments", () => {
   it("takes out comments of both kinds, nested ones too, and makes the space between tokens one space", () => {
@@ -411,7 +425,7 @@ describe("reachedFlows", () => {
     expect(reached(["components/Letters.tsx"]).keys).toEqual(
       keysOf(letters, broken, galleryStaff, galleryIndex, upload),
     );
-    expect(reached(["lib/server/inbox.ts"])).toEqual({ keys: new Set(), everything: [], unknown: [] });
+    expect(reached(["lib/server/inbox.ts"])).toEqual(nothingReached);
     expect(reached(["components/box.module.css"]).keys).toEqual(keysOf(home, galleryUi, galleryIndex));
     // Whatever kind of file: a test file that a spec imports is reached like any other.
     const context = reachContext(root);
@@ -437,7 +451,7 @@ describe("reachedFlows", () => {
   it("reruns the flows that fetched a public file, there or not, and none for one nothing fetches or names", () => {
     expect(reached(["public/images/logo.svg"]).keys).toEqual(keysOf(home));
     expect(reached(["public/images/gone.svg"]).keys).toEqual(keysOf(post));
-    expect(reached(["public/images/unused.svg"])).toEqual({ keys: new Set(), everything: [], unknown: [] });
+    expect(reached(["public/images/unused.svg"])).toEqual(nothingReached);
   });
 
   it("reruns the flows reaching a file that names a public file, or reads from its folder", () => {
@@ -459,10 +473,16 @@ describe("reachedFlows", () => {
       ]),
     ).toEqual({
       keys: new Set(),
+      carried: new Map(),
       everything: ["netlify/database/migrations/0200_x.sql", ".nvmrc"],
       unknown: [],
     });
-    expect(reached(["next.config.ts"])).toEqual({ keys: everyRun, everything: ["next.config.ts"], unknown: [] });
+    expect(reached(["next.config.ts"])).toEqual({
+      keys: everyRun,
+      carried: new Map(),
+      everything: ["next.config.ts"],
+      unknown: [],
+    });
     expect(
       reached([
         "docs/testing.md",
@@ -473,7 +493,7 @@ describe("reachedFlows", () => {
         "next-env.d.ts",
         "netlify.toml",
       ]),
-    ).toEqual({ keys: new Set(), everything: [], unknown: [] });
+    ).toEqual(nothingReached);
   });
 
   it("can't place a file at the top that nothing imports, data that no file names, or a file Next serves at an address of its own", () => {
@@ -535,10 +555,68 @@ describe("reachedFlows", () => {
   it("reruns the flows reaching what reads a data file: a spec naming it, or code naming its folder", () => {
     expect(reached(["tests/fixtures/uploads/list.csv"])).toEqual({
       keys: keysOf(upload),
+      carried: new Map(),
       everything: [],
       unknown: [],
     });
-    expect(reached(["lib/server/replies/jane.eml"])).toEqual({ keys: new Set(), everything: [], unknown: [] });
+    expect(reached(["lib/server/replies/jane.eml"])).toEqual(nothingReached);
+  });
+});
+
+describe("reachedFlows, in the gallery's frames", () => {
+  const kit = (files: string[], frames: { caption: string; file?: string }[] = galleryKit.frames) =>
+    reachedFlows({ files, runs: [{ ...galleryKit, frames }], context: reachContext(root) });
+
+  it("carries the frames of a group whose examples beside their components a change can't reach", () => {
+    expect(kit(["components/kit/Band.tsx"])).toEqual({
+      keys: keysOf(galleryKit),
+      carried: new Map([[galleryKit.key, [tabs, hero]]]),
+      everything: [],
+      unknown: [],
+    });
+    expect(kit(["components/kit/Band.module.css"]).carried.get(galleryKit.key)).toEqual([tabs, hero]);
+    expect(kit(["components/kit/Tabs.gallery.tsx"]).carried.get(galleryKit.key)).toEqual([band, hero]);
+    expect(kit(["components/kit/Frame.tsx"]).carried.get(galleryKit.key)).toEqual([hero]);
+  });
+
+  it("pictures every frame of a group for its page and its own file, what they import, or a plain stylesheet", () => {
+    for (const file of [
+      "components/Hero.tsx",
+      "app/(tools)/gallery/_examples/kit.tsx",
+      "app/(tools)/gallery/[group]/page.tsx",
+      "components/kit/tabs.css",
+    ])
+      expect(kit([file]).carried, file).toEqual(new Map());
+    // A file the flow doesn't reach changes nothing of it.
+    expect(kit(["components/Letters.tsx", "components/kit/Band.tsx"]).carried.get(galleryKit.key)).toEqual([
+      tabs,
+      hero,
+    ]);
+  });
+
+  it("pictures every frame of a group when the change reaches them all, or one recorded no file, or none were recorded", () => {
+    expect(kit(["components/kit/Frame.tsx"], [band, tabs]).carried).toEqual(new Map());
+    expect(kit(["components/kit/Band.tsx"], [band, { caption: "Tabs" }]).carried).toEqual(new Map());
+    expect(kit(["components/kit/Band.tsx"], []).keys).toEqual(keysOf(galleryKit));
+    expect(kit(["components/kit/Band.tsx"], []).carried).toEqual(new Map());
+  });
+
+  it("takes a frame to show its group's own file when its examples aren't beside it, or the group doesn't import them", () => {
+    const tokens = { caption: "Tokens", file: "styles/tokens.css" };
+    const letters = { caption: "Letters", file: "components/Letters.tsx" };
+    expect(kit(["components/kit/Band.tsx"], [band, band, tokens, letters]).carried.get(galleryKit.key)).toEqual([
+      tokens,
+      letters,
+    ]);
+    expect(kit(["components/Hero.tsx"], [band, tokens]).carried).toEqual(new Map());
+  });
+
+  it("works out a group's own reach apart from its whole reach", () => {
+    const context = reachContext(root);
+    const own = flowReach(galleryKit, context, false, new Set(["components/kit/Band.gallery.tsx"]));
+    expect(own).not.toContain("components/kit/Band.tsx");
+    expect(own).toContain("components/kit/Tabs.tsx");
+    expect(flowReach(galleryKit, context)).toContain("components/kit/Band.tsx");
   });
 });
 
@@ -657,6 +735,25 @@ describe("flowsToRun", () => {
     });
     expect(chosen.run).toEqual(new Set([home.key, sitemap.key]));
     expect(chosen).toMatchObject({ fresh: 1, reached: 1 });
+  });
+
+  it("runs a gallery flow a change reaches only some frames of, saying which it carries, unless it runs whole anyway", () => {
+    const choose = (files: string[]) =>
+      flowsToRun({
+        suite: new Set([galleryKit.key, home.key]),
+        carried: [passed(galleryKit), passed(home)],
+        phoneTagged: new Set(),
+        context: reachContext(root),
+        changedSince: () => since(files),
+      });
+    const part = choose(["components/kit/Band.tsx"]);
+    expect(part.run).toEqual(keysOf(galleryKit));
+    expect(part.carried).toEqual(new Map([[galleryKit.key, [tabs, hero]]]));
+    expect(part.reached).toBe(1);
+    expect(choose(["components/kit/Band.tsx", "netlify/database/schema.sql"]).carried).toEqual(new Map());
+    const unknown = choose(["components/kit/Band.tsx", "postcss.config.mjs"]);
+    expect(unknown.run).toEqual(keysOf(galleryKit, home));
+    expect(unknown.carried).toEqual(new Map());
   });
 
   it("asks what changed since a review last carried a flow, not since it ran", () => {

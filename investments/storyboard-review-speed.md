@@ -9,7 +9,7 @@ A review's time is its flows': the fixture build takes 8 to 20 seconds, and ever
 A review runs only the flows a change can reach (`docs/testing.md`, "Which flows a review runs"). On the 79 later pushes of 37 PRs (12 November 2026), that was about half of a full review's time on average. A quarter of pushes need none. A sixth change a migration, `schema.sql` or the seed data, which reruns every desktop flow. What's left is mostly:
 
 - **Some files reach most flows.** `npm run reach` lists them, most first: narrowing what imports one makes every review that changes it shorter.
-- **The gallery's flows are a quarter of a review.** A gallery flow is a whole group, one frame per component, so a change to one staff component re-pictures its whole group.
+- **The gallery's flows are a quarter of a review.** A review pictures only the frames of a group a change reaches, but a component whose examples are in the group's own file (most of the site's kit, `_examples/ui.tsx`) is pictured whenever its group is reached.
 - **One file of seed data**, which every desktop flow reruns for (`test-data-builders.md`).
 
 Main's frames are kept only on the machine that ran them.
@@ -20,11 +20,10 @@ Choosing the flows takes about 8 seconds before the build starts, trying each tr
 
 In order of what each would save:
 
-1. Picture only the gallery's sections whose example reaches a changed file: each section's heading names its example file, and a gallery frame doesn't depend on the ones before it, so it can be carried on its own. A change to one component is then a page load and a picture or two.
-2. Have CI picture main on each push to it and keep the frames as an artifact, for a review to fetch. First compare one run of CI's with one made locally: fonts and the machine may make the pictures differ.
-3. Show the review as it fills: open the page at once, and add main's side as it arrives.
-4. Place a migration by what it touches: read the tables, views and functions it alters, and rerun the flows whose code queries them, and every flow only for one that changes a view or function many pages read (`contact_permission()`, `supporters_list`). Most migrations add a column or a constraint to one table.
-5. An audit of the map that can be run again, after a change to how the site is built (a new Next, another bundler): the check below was made with scripts that weren't kept.
+1. Have CI picture main on each push to it and keep the frames as an artifact, for a review to fetch. First compare one run of CI's with one made locally: fonts and the machine may make the pictures differ.
+2. Show the review as it fills: open the page at once, and add main's side as it arrives.
+3. Place a migration by what it touches: read the tables, views and functions it alters, and rerun the flows whose code queries them, and every flow only for one that changes a view or function many pages read (`contact_permission()`, `supporters_list`). Most migrations add a column or a constraint to one table.
+4. An audit of the map that can be run again, after a change to how the site is built (a new Next, another bundler): the check below was made with scripts that weren't kept.
 
 ## How the map was checked
 

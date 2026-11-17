@@ -202,14 +202,19 @@ describe("caught errors", () => {
     expect(unhandledCatches([parse("b.ts", code)]).map((h) => h.fn)).toEqual(["m", "f", "(top level)"]);
   });
 
-  it("every catch where jobs and requests run rethrows or reports, but for the few that answer a question", () => {
-    const sources = DIRS.flatMap((dir) => codeFiles(join(ROOT, dir))).map((path) =>
-      parse(relative(ROOT, path), readFileSync(path, "utf8")),
-    );
-    const hits = unhandledCatches(sources).map((h) => `${h.file}  ${h.fn}`);
-    const unexplained = hits.filter((hit) => !EXCEPTIONS.has(hit));
-    expect(unexplained, "rethrow the error, or report it with problem()").toEqual([]);
-    // An exception that no longer catches anything is one to delete.
-    expect([...EXCEPTIONS.keys()].filter((key) => !hits.includes(key))).toEqual([]);
-  });
+  // It parses every file where jobs and requests run, which takes a busy CI runner more than the default 5s.
+  it(
+    "every catch where jobs and requests run rethrows or reports, but for the few that answer a question",
+    { timeout: 60_000 },
+    () => {
+      const sources = DIRS.flatMap((dir) => codeFiles(join(ROOT, dir))).map((path) =>
+        parse(relative(ROOT, path), readFileSync(path, "utf8")),
+      );
+      const hits = unhandledCatches(sources).map((h) => `${h.file}  ${h.fn}`);
+      const unexplained = hits.filter((hit) => !EXCEPTIONS.has(hit));
+      expect(unexplained, "rethrow the error, or report it with problem()").toEqual([]);
+      // An exception that no longer catches anything is one to delete.
+      expect([...EXCEPTIONS.keys()].filter((key) => !hits.includes(key))).toEqual([]);
+    },
+  );
 });

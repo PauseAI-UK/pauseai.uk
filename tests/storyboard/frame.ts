@@ -27,6 +27,13 @@ import { styled } from "./settle";
  * pictures only the window, for a page too long to picture whole. `hover` puts the pointer over an element, and keeps it
  * there for the picture, in place of moving it out of the way.
  *
+ * `file`, in the gallery, is the file of the component the frame pictures,
+ * which the review works out a change's reach to the frame by
+ * (scripts/storyboard-reach.mjs, galleryParts). `carried` takes no picture:
+ * the review has found that its change can't reach the frame, and fills in
+ * the picture of the run it carries the rest from (fillCarried,
+ * scripts/storyboard-store.mjs).
+ *
  * Each frame also records the placeholders it pictures (placeholdersOnPage), for
  * `npm run copy` to show the copy waiting for approval where it appears.
  *
@@ -38,15 +45,24 @@ import { styled } from "./settle";
 export async function frame(
   page: Page,
   caption: string,
-  { of, window: windowOnly = false, hover }: { of?: Locator; window?: boolean; hover?: Locator } = {},
+  {
+    of,
+    window: windowOnly = false,
+    hover,
+    file,
+    carried = false,
+  }: { of?: Locator; window?: boolean; hover?: Locator; file?: string; carried?: boolean } = {},
 ): Promise<void> {
   const info = test.info();
   const index = info.annotations.filter((a) => a.type === "frame").length + 1;
   info.annotations.push({ type: "frame", description: caption });
+  // Each said of the frame just recorded (tests/storyboard/report/reporter.ts).
+  if (file) info.annotations.push({ type: "frame file", description: file });
+  if (carried) info.annotations.push({ type: "frame carried" });
   await styled(page);
   await tableDatesOnOneLine(page);
   await iconsLevelWithWords(page);
-  if (process.env.STORYBOARD_SHOTS !== "1") return;
+  if (process.env.STORYBOARD_SHOTS !== "1" || carried) return;
 
   // The pointer is wherever the last click left it, which, as the page
   // changes under it, is sometimes over a link or a select and sometimes

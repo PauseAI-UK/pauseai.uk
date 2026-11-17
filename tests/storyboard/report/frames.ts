@@ -95,8 +95,20 @@ export type FlowRun = {
   status: FlowStatus;
   /** The failure's first line, if it failed. */
   error?: string;
-  /** Each with the lines of the flow's story that come before it (frame.ts's `story`), and the placeholders it pictures. */
-  frames: { caption: string; png?: string; story?: string[]; placeholders?: PlaceholderText[] }[];
+  /**
+   * Each with the lines of the flow's story that come before it (frame.ts's `story`), and the placeholders it
+   * pictures. In the gallery, `file` is the file of the component it pictures. `carried` marks one the run
+   * didn't picture, as the change can't reach it, until the review fills in the picture of the run it carries
+   * the rest from (fillCarried, scripts/storyboard-store.mjs).
+   */
+  frames: {
+    caption: string;
+    png?: string;
+    story?: string[];
+    placeholders?: PlaceholderText[];
+    file?: string;
+    carried?: boolean;
+  }[];
   /** The story's lines after the last frame. */
   end?: string[];
   /** When the run that shot it started: a partial run carries the flows it didn't run from the last one. */

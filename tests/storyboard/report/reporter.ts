@@ -60,6 +60,8 @@ export default class StoryboardReporter implements Reporter {
     let story: string[] = [];
     for (const a of test.annotations) {
       if (a.type === "story") story.push(a.description ?? "");
+      if (a.type === "frame file") frames.at(-1)!.file = a.description;
+      if (a.type === "frame carried") frames.at(-1)!.carried = true;
       if (a.type !== "frame") continue;
       const seen = placeholders.get(frames.length + 1);
       frames.push({
