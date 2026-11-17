@@ -109,6 +109,8 @@ export type WrittenBroadcast = WrittenMailing & {
    */
   waitingSince: Date | null;
   waitReason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | null;
+  /** What CiviCRM's check last said, as it failed, while it waits for it; null otherwise. */
+  waitSaid: string | null;
   gaveUp: boolean;
   /** Till when it rests, as its sends failed or what sends it couldn't for now (REST_MINUTES); null if it isn't. */
   restingUntil: Date | null;
@@ -140,14 +142,17 @@ export async function getWrittenBroadcast(id: number, opening = false): Promise<
   const written = await (opening ? openWrittenMailing : getWrittenMailing)(id, "supporters");
   if (!written) return undefined;
   const [{ templateId, tryFailedAt, ...own }] = await query<
-    Pick<WrittenBroadcast, "title" | "channel" | "topics" | "sendBy" | "waitingSince" | "waitReason" | "gaveUp"> & {
+    Pick<
+      WrittenBroadcast,
+      "title" | "channel" | "topics" | "sendBy" | "waitingSince" | "waitReason" | "waitSaid" | "gaveUp"
+    > & {
       templateId: number | null;
       tryFailedAt: Date | null;
     }
   >(
     `SELECT title, channel, ${TOPICS_OF} AS topics, template_id::int AS "templateId", send_by AS "sendBy",
        waiting_since AS "waitingSince",
-       wait_reason AS "waitReason", gave_up AS "gaveUp", try_failed_at AS "tryFailedAt"
+       wait_reason AS "waitReason", wait_said AS "waitSaid", gave_up AS "gaveUp", try_failed_at AS "tryFailedAt"
      FROM mailings WHERE id = $1`,
     [id],
   );
@@ -413,7 +418,11 @@ export async function stopBroadcast(id: number, by: string): Promise<boolean> {
     } else {
       return false;
     }
-    await query("UPDATE mailings SET waiting_since = NULL, wait_reason = NULL WHERE id = $1", [id], db);
+    await query(
+      "UPDATE mailings SET waiting_since = NULL, wait_reason = NULL, wait_said = NULL WHERE id = $1",
+      [id],
+      db,
+    );
     await logChange(by, "stop broadcast", { id, was: broadcast.state }, db);
     return true;
   });
@@ -456,7 +465,7 @@ export async function resumeBroadcast(id: number, by: string): Promise<boolean> 
       db,
     );
     await query(
-      `UPDATE mailings SET state = $2, gave_up = false, waiting_since = NULL, wait_reason = NULL, due_at = $3,
+      `UPDATE mailings SET state = $2, gave_up = false, waiting_since = NULL, wait_reason = NULL, wait_said = NULL, due_at = $3,
          try_failed_at = NULL, failed_in_a_row = 0, held_back_since = NULL, held_back_told = false, updated_at = now()
        WHERE id = $1`,
       [id, stopped.started ? "sending" : "scheduled", now()],

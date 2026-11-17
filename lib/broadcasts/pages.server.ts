@@ -310,6 +310,7 @@ export async function newBroadcastPageData(
       sendBy: start.sendBy,
       waitingSince: null,
       waitReason: null,
+      waitSaid: null,
       gaveUp: false,
       restingUntil: null,
     },

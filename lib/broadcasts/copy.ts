@@ -262,10 +262,11 @@ export const broadcastsCopy = {
       // A text's reply can be answered in WhatsApp only within a day of it.
       windowClosed: "It's more than a day since their message, so WhatsApp won't let us reply.",
     },
-    // A broadcast that can't go yet, on its page: CiviCRM didn't answer its check, or no pull has finished for a day.
-    waiting: (reason: "civicrm" | "pull", stops: string) =>
+    // A broadcast that can't go yet, on its page: CiviCRM's check failed, with what it last said, or no pull has
+    // finished for a day.
+    waiting: (reason: "civicrm" | "pull", stops: string, said: string | null) =>
       reason === "civicrm"
-        ? `Waiting for CiviCRM to work again, so can check live suppression. This will send once it does, or give up on ${stops}.`
+        ? `Waiting, as CiviCRM's check of who can be sent this failed. It last said: ${said ?? "nothing"}. This will send once the check works, or give up on ${stops}.`
         : `Waiting for an import from CiviCRM, so can check live suppression. This will send once one finishes, or give up on ${stops}.`,
     // Where a scheduled broadcast says when it sends, while it waits for CiviCRM, past its time.
     waitingDue: "Waiting for CiviCRM",
@@ -327,6 +328,7 @@ export const broadcastsCopy = {
         unsubscribed: "they asked us to stop",
         "no-permission": "their consent ended",
         "not-on-whatsapp": "they're not on WhatsApp",
+        "bad-number": "their number isn't written in full, with + and its country code",
         suppressed: "PauseAI Global says not to email them",
         cancelled: "we stopped the broadcast",
         // Its broadcast stopped by itself.
@@ -372,8 +374,10 @@ export const broadcastsCopy = {
     // scheduled it and the inbox, once: it goes by itself when it can, or stops at `stops`.
     broadcastWaiting: {
       subject: (title: string) => `Not sent yet: ${title}`,
-      body: (title: string, reason: "civicrm" | "pull", stops: string, link: string) =>
-        `“${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and ${reason === "civicrm" ? "CiviCRM isn't answering" : "our import from CiviCRM hasn't worked for a day"}.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
+      body: (title: string, reason: "civicrm" | "pull", said: string | null, stops: string, link: string) =>
+        reason === "civicrm"
+          ? `“${title}” was due to go, but hasn't been sent.\n\nWe check everyone with CiviCRM before sending to them, and the check failed. CiviCRM said: ${said ?? "nothing"}\n\nIt will send as soon as the check works. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`
+          : `“${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and our import from CiviCRM hasn't worked for a day.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
     },
     // A broadcast whose Gmail, Postmark or WhatsApp has said at every try since `since` that it can't send for now,
     // as at a limit or down, to whoever scheduled it and the inbox, once: it goes on by itself, or stops at `stops`.

@@ -100,7 +100,11 @@ export function BroadcastWaiting({
     // One waiting, not stopped, waits for CiviCRM.
     const reason = written.waitReason as "civicrm" | "pull";
     const sending = written.state === "sending" && written.dueAt ? { dueAt: written.dueAt } : null;
-    return <Strip tone="amber">{copy.waiting(reason, londonDate(waitEndsAt(written.waitingSince, sending)))}</Strip>;
+    return (
+      <Strip tone="amber">
+        {copy.waiting(reason, londonDate(waitEndsAt(written.waitingSince, sending)), written.waitSaid)}
+      </Strip>
+    );
   }
   if (written.restingUntil) return <Strip tone="amber">{copy.resting(staffTime(written.restingUntil))}</Strip>;
   return atLimit ? <Strip tone="amber">{copy.moreTomorrow}</Strip> : null;

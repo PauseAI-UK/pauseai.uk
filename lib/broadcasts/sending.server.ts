@@ -36,11 +36,12 @@ import {
 } from "@/lib/server/outside-services/civicrm.server";
 import type { Attachment } from "@/lib/server/outside-services/postmark.server";
 import { sendTemplate } from "@/lib/server/outside-services/whatsapp.server";
-import { problem } from "@/lib/server/problems.server";
+import { describeError, problem } from "@/lib/server/problems.server";
 import { recordWhatsAppStop } from "./whatsapp-stops.server";
 import { markUnreachable, templateParams, textResult, textsLeftToday, unreachable } from "./whatsapp-texts.server";
 import { broadcastsCopy } from "./copy";
 import { emailCopy } from "@/lib/email/copy";
+import { isInternational } from "@/lib/phone";
 
 // Sending broadcasts to supporters, in the send-mailings run every 15 minutes, as
 // mailings to politicians go. A broadcast that's due starts: who it goes to
@@ -143,6 +144,7 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
       : cancelled.length + refused;
   await query(
     `UPDATE mailings SET state = 'cancelled', gave_up = true, wait_reason = $2,
+       wait_said = CASE WHEN $2 = 'civicrm' THEN wait_said END,
        waiting_since = coalesce(waiting_since, $3), updated_at = now() WHERE id = $1`,
     [broadcast.id, reason, now()],
   );
@@ -183,16 +185,16 @@ export async function stopTextsOn(templateId: number): Promise<number> {
  * once; or stops it, if it has waited WAIT_DAYS. Those run from when it
  * began to wait, by the site's clock, not from its time: one that's days
  * into sending when CiviCRM first fails has them all, unless its
- * SENDING_DAYS run out first, which staff are told (waitEndsAt).
+ * SENDING_DAYS run out first, which staff are told (waitEndsAt). `said` is
+ * what CiviCRM's check last said, as it failed, kept for its page.
  */
-async function wait(broadcast: Due, reason: WaitReason): Promise<void> {
+async function wait(broadcast: Due, reason: WaitReason, said: string | null = null): Promise<void> {
   if (broadcast.waitingSince && now() >= waitStopsAt(broadcast.waitingSince)) return giveUp(broadcast, reason);
   const began = now();
-  await query("UPDATE mailings SET waiting_since = coalesce(waiting_since, $3), wait_reason = $2 WHERE id = $1", [
-    broadcast.id,
-    reason,
-    began,
-  ]);
+  await query(
+    "UPDATE mailings SET waiting_since = coalesce(waiting_since, $3), wait_reason = $2, wait_said = $4 WHERE id = $1",
+    [broadcast.id, reason, began, said],
+  );
   if (broadcast.waitingSince) return;
   const email = broadcastsCopy.notifications.broadcastWaiting;
   await notifyStaff(
@@ -200,6 +202,7 @@ async function wait(broadcast: Due, reason: WaitReason): Promise<void> {
     email.body(
       broadcast.title,
       reason,
+      said,
       staffTime(waitEndsAt(began, broadcast.state === "sending" ? broadcast : null)),
       staffLink(`/staff/broadcasts/${broadcast.id}`, undefined),
     ),
@@ -241,7 +244,7 @@ async function start(broadcast: Due): Promise<void> {
     [broadcast.id, JSON.stringify(rows)],
   );
   await query(
-    "UPDATE mailings SET state = 'sending', waiting_since = NULL, wait_reason = NULL, updated_at = now() WHERE id = $1",
+    "UPDATE mailings SET state = 'sending', waiting_since = NULL, wait_reason = NULL, wait_said = NULL, updated_at = now() WHERE id = $1",
     [broadcast.id],
   );
   await logChange(JOB, "start mailing", { id: broadcast.id });
@@ -305,7 +308,7 @@ async function answers(copies: Copy[]): Promise<Map<number, "yes" | "blocked" | 
 }
 
 /** Why a copy didn't go. */
-type SkipReason = "blocked" | "unsubscribed" | "no-permission" | "suppressed" | "not-on-whatsapp";
+type SkipReason = "blocked" | "unsubscribed" | "no-permission" | "suppressed" | "not-on-whatsapp" | "bad-number";
 
 async function skip(id: number, reason: SkipReason): Promise<void> {
   await query(
@@ -623,9 +626,9 @@ async function newToken(copy: Copy): Promise<string> {
 /**
  * A copy that can't go, as CiviCRM's check blocks it, and the opt-out of
  * ours that keeps that, where it's ours to keep; or as its number isn't on
- * WhatsApp.
+ * WhatsApp, or isn't in international format.
  */
-type Blocked = { copy: Copy; optOut?: OptOut; reason?: "not-on-whatsapp" };
+type Blocked = { copy: Copy; optOut?: OptOut; reason?: "not-on-whatsapp" | "bad-number" };
 
 /**
  * How a broadcast's copies go, by its channel, for a run: its pace, whether
@@ -677,7 +680,7 @@ async function checkCopies(
     // Nothing is sent unchecked.
     problem(broadcastsCopy.problems.civicrmCheckFailed, error);
     await putBack(going);
-    await wait(broadcast, "civicrm");
+    await wait(broadcast, "civicrm", describeError(error));
     return undefined;
   }
   const blocked = await sender.blocked(going, suppressed);
@@ -687,7 +690,9 @@ async function checkCopies(
     run.skipped++;
   }
   if (broadcast.waitingSince) {
-    await query("UPDATE mailings SET waiting_since = NULL, wait_reason = NULL WHERE id = $1", [broadcast.id]);
+    await query("UPDATE mailings SET waiting_since = NULL, wait_reason = NULL, wait_said = NULL WHERE id = $1", [
+      broadcast.id,
+    ]);
     broadcast.waitingSince = null;
   }
   return going.filter((copy) => !blocked.some((one) => one.copy === copy));
@@ -719,14 +724,16 @@ async function blockedEmails(copies: Copy[], said: Suppressions): Promise<Blocke
 }
 
 /**
- * The copies of a text that can't go: any whose number has CiviCRM's "Do
- * not SMS", which stops WhatsApp too, and any whose number isn't on
- * WhatsApp. None is kept as an opt-out of ours: CiviCRM's import already
- * brings its flag into consent.
+ * The copies of a text that can't go: any whose number isn't in
+ * international format, which CiviCRM wasn't asked about (textSender); any
+ * whose number has CiviCRM's "Do not SMS", which stops WhatsApp too; and
+ * any whose number isn't on WhatsApp. None is kept as an opt-out of ours:
+ * CiviCRM's import already brings its flag into consent.
  */
 async function blockedNumbers(copies: Copy[], said: Suppressions): Promise<Blocked[]> {
   const off = await unreachable(copies.map((copy) => copy.address));
   return copies.flatMap((copy): Blocked[] => {
+    if (!isInternational(copy.address)) return [{ copy, reason: "bad-number" }];
     if (said.phones.get(copy.address)!.doNotSms) return [{ copy }];
     return off.has(copy.address) ? [{ copy, reason: "not-on-whatsapp" }] : [];
   });
@@ -788,11 +795,8 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
     gap: 0,
     ready: async () => true,
     remainingToday: () => textsLeftToday(backend.number.dailyLimit),
-    ask: (copies) =>
-      suppressions(
-        copies.map((copy) => copy.address),
-        "phone",
-      ),
+    // CiviCRM refuses the whole check for one number not in international format: those are skipped (blockedNumbers).
+    ask: (copies) => suppressions(copies.map((copy) => copy.address).filter(isInternational), "phone"),
     blocked: blockedNumbers,
     send: async (copy) => {
       // Its words can't be made: thrown, as nothing has gone, so it's put back.

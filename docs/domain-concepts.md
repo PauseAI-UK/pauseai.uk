@@ -581,7 +581,11 @@ job all leave broadcasts out.
   so. A copy is the text's template, its fields filled in for the person.
   Before a copy goes, its number is checked with CiviCRM's
   `checkSuppression`, and one with "Do not SMS" is skipped, as is a number
-  WhatsApp has said isn't on it (`whatsapp_unreachable`). Texts go to as
+  WhatsApp has said isn't on it (`whatsapp_unreachable`). A number not in
+  international format (`isInternational` in `lib/phone.ts`), as a form or a
+  paper sign-up may keep one, is skipped without being asked about
+  (`bad-number`): CiviCRM refuses the whole check for one, which would
+  hold the text up for everyone. Texts go to as
   many people a day as Meta's messaging limit for our business allows
   (`whatsapp_business_manager_messaging_limit`, read from our number), 250
   to start with, or 250 if Meta doesn't say: the rest wait for the next day.
@@ -625,7 +629,8 @@ job all leave broadcasts out.
 - **Waiting for CiviCRM.** Nothing goes unchecked. A broadcast
   waits while no CiviCRM pull has completed for a day, or CiviCRM doesn't
   answer its check; whoever scheduled it and the notification inbox are
-  emailed once, and its page says since when and why, and when it stops if
+  emailed once, with what CiviCRM's check said as it failed (`wait_said`),
+  and its page says since when and why, what the check last said, and when it stops if
   CiviCRM doesn't come back: three days on, or sooner if its seven run out
   first (`waitEndsAt`). It goes by itself
   when it can. A scheduled one's page says quietly when it would stop.
