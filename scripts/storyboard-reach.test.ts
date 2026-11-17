@@ -18,6 +18,7 @@ import {
   reachedFlows,
   resolveImport,
   routeFiles,
+  sqlWithoutComments,
   unresolvedImports,
 } from "./storyboard-reach.mjs";
 
@@ -133,6 +134,37 @@ const phoneHome = { ...home, key: "phone|home|The home page" };
 const runs = [home, post, sitemap, letters, events, jobs, broken, galleryUi, galleryStaff, galleryIndex, upload];
 const keysOf = (...some: { key: string }[]) => new Set(some.map((r) => r.key));
 const everyRun = keysOf(...runs);
+
+describe("sqlWithoutComments", () => {
+  it("takes out comments of both kinds, nested ones too, and makes the space between tokens one space", () => {
+    expect(
+      sqlWithoutComments(
+        "-- Jo's list\nSELECT 1,   -- the first\n  2 /* two /* nested */ still */ FROM t;\n\n/* to the end",
+      ),
+    ).toBe("SELECT 1, 2 FROM t;");
+    expect(sqlWithoutComments("SELECT 1 -- no newline")).toBe("SELECT 1");
+  });
+
+  it("keeps what's in quotes as it is, a comment's marks and space included", () => {
+    const quoted = [
+      "'Jo''s note\n-- signed\n  Jo'",
+      `"odd -- name"`,
+      "E'it\\'s -- not a comment'",
+      "e'\\\\'",
+      "$$ -- a function's own comment $$",
+      "$body$ it's /* kept */ $body$",
+    ];
+    for (const text of quoted) expect(sqlWithoutComments(`SELECT ${text}`)).toBe(`SELECT ${text}`);
+    // Only E or e on its own opens backslash escapes: here the backslash is the text's, and the quote after it ends it.
+    expect(sqlWithoutComments("SELECT name'\\' -- gone")).toBe("SELECT name'\\'");
+  });
+
+  it("reads to the end what isn't closed", () => {
+    expect(sqlWithoutComments("SELECT 'open -- still text")).toBe("SELECT 'open -- still text");
+    expect(sqlWithoutComments("SELECT E'open\\")).toBe("SELECT E'open\\");
+    expect(sqlWithoutComments("SELECT $x$ open")).toBe("SELECT $x$ open");
+  });
+});
 
 describe("importsOf", () => {
   it("lists the imports that run, not those of types alone", () => {
@@ -418,7 +450,14 @@ describe("reachedFlows", () => {
   });
 
   it("says which files reach every flow, and reruns nothing for docs, tests, types and the review's own code", () => {
-    expect(reached(["netlify/database/migrations/0200_x.sql", ".nvmrc", "docs/testing.md"])).toEqual({
+    expect(
+      reached([
+        "netlify/database/migrations/0200_x.sql",
+        ".nvmrc",
+        "docs/testing.md",
+        "netlify/database/schema.test.ts",
+      ]),
+    ).toEqual({
       keys: new Set(),
       everything: ["netlify/database/migrations/0200_x.sql", ".nvmrc"],
       unknown: [],

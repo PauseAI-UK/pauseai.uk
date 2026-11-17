@@ -543,7 +543,9 @@ files reach more:
 - **Every flow:** the migrations and `schema.sql`, the seed data
   (`tests/fixtures/*.sql`), `package.json`, `next.config.ts`, `proxy.ts`,
   `instrumentation.ts`, `playwright.config.ts`, and the storyboard's set-up
-  (`EVERYTHING`). Data no import leads to can change any page.
+  (`EVERYTHING`). Data no import leads to can change any page. A SQL file
+  changed only in its comments reaches none: what Postgres runs is the same
+  (`sqlWithoutComments`).
 - **No flow:** docs, plans, investments, unit tests, the review page's own
   code, and the settings of the tools that don't build the site
   (`NOTHING`), unless a flow imports one.

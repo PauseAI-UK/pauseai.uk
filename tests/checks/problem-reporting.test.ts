@@ -62,7 +62,8 @@ function parse(file: string, text: string): ts.SourceFile {
   return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 }
 
-describe("problem reporting", () => {
+// Parsing every server file takes about a second alone, and past the 5s default beside the gate's other checks.
+describe("problem reporting", { timeout: 60_000 }, () => {
   it("finds console.error and String(error), and lets warnings, information and other strings through", () => {
     const code = `
       console.error("x", e);

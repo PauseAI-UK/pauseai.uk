@@ -100,7 +100,7 @@ import {
   runFolder,
   selectFlows,
 } from "./storyboard-main.mjs";
-import { flowsToRun, reachContext, readByNoFlow } from "./storyboard-reach.mjs";
+import { flowsToRun, reachContext, readByNoFlow, sqlWithoutComments } from "./storyboard-reach.mjs";
 import {
   carryKept,
   keepRuns,
@@ -263,15 +263,19 @@ const knownTree = once((tree) => spawnSync("git", ["cat-file", "-e", `${tree}^{t
 
 /**
  * The files that differ between two trees, and those of them only one has
- * (added or deleted), or undefined if git no longer has `from`.
+ * (added or deleted), or undefined if git no longer has `from`. A SQL file
+ * changed only in its comments isn't one: Postgres runs the same.
  */
 const changedBetween = once((from, to) => {
   if (!knownTree(from)) return undefined;
   const lines = git("diff", "--no-renames", "--name-status", "-z", from, to).split("\0");
   const files = [];
   const addedOrDeleted = [];
+  const sameSql = (path) =>
+    sqlWithoutComments(git("show", `${from}:${path}`)) === sqlWithoutComments(git("show", `${to}:${path}`));
   // With -z, a status and then its path, each ended by a NUL.
   for (let at = 0; at + 1 < lines.length; at += 2) {
+    if (lines[at] === "M" && lines[at + 1].endsWith(".sql") && sameSql(lines[at + 1])) continue;
     files.push(lines[at + 1]);
     if (lines[at] === "A" || lines[at] === "D") addedOrDeleted.push(lines[at + 1]);
   }
@@ -307,6 +311,16 @@ function keptSources(except) {
 }
 
 /**
+ * The keys of the flows `list` gives, as a set flowsToRun can ask of, listed
+ * only once it asks: only a change that reaches every flow needs the phone's
+ * flows of CI's run, and listing them starts Playwright, which takes seconds.
+ */
+function whenAsked(list) {
+  let keys;
+  return { has: (key) => (keys ??= new Set(list().keys())).has(key) };
+}
+
+/**
  * Of `sources`, each some flows to carry from (`runs`), the one that leaves
  * fewest of `suite` (keys) to run on `tree` (flowsToRun, worked out on the
  * checkout of `context`), the first of them on a tie: what flowsToRun
@@ -324,6 +338,8 @@ function nearest(sources, suiteKeys, tree, context, phoneTagged) {
       changedSince: (at) => changedBetween(at, tree),
     });
     if (!best || chosen.run.size < best.run.size) best = { ...chosen, source };
+    // None to run: no source can leave fewer, and the first wins a tie.
+    if (best.run.size === 0) break;
   }
   return best;
 }
@@ -340,7 +356,7 @@ function chooseFlows() {
     sources.push({ latest: true, runs: readJson(latest).frames.map((run) => ({ ...run, key: flowKey(run) })) });
   sources.push(...keptSources());
   if (sources.length === 0) return undefined;
-  const phoneTagged = new Set([...listFlows(["--project=phone"], process.cwd(), process.env, "0").keys()]);
+  const phoneTagged = whenAsked(() => listFlows(["--project=phone"], process.cwd(), process.env, "0"));
   return nearest(sources, new Set(suite.keys()), treeBefore, reachContext(process.cwd()), phoneTagged);
 }
 
@@ -350,7 +366,7 @@ function chooseFlows() {
  * flows main still has to run, and the tree carried from, if any was.
  */
 function carryFromNearest(tree, missing) {
-  const phoneTagged = new Set([...listFlows(["--project=phone"], MAIN_WORKTREE, mainEnv(), "0").keys()]);
+  const phoneTagged = whenAsked(() => listFlows(["--project=phone"], MAIN_WORKTREE, mainEnv(), "0"));
   const best = nearest(keptSources(tree), new Set(missing), tree, reachContext(MAIN_WORKTREE), phoneTagged);
   if (!best || best.run.size >= missing.length) return { run: missing };
   const wanted = new Set(missing);

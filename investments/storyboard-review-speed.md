@@ -14,6 +14,8 @@ A review runs only the flows a change can reach (`docs/testing.md`, "Which flows
 
 Main's frames are kept only on the machine that ran them.
 
+Choosing the flows takes about 8 seconds before the build starts, trying each tree the store keeps: about 5 of them building the import graph, which every review does again from nothing.
+
 ## Fix
 
 In order of what each would save:
@@ -47,6 +49,8 @@ The comparisons found one frame that differed between runs of the same code, the
 Following the flows' runs by coverage to choose them, in place of imports, picked a little fewer (45% of the time against 47%), but needs a run of one flow at a time. Not worth it.
 
 ## Hits
+
+- 2026-11-17: `--plan` on a branch one commit from main, changing five files that reach no flow, took 41s to say so, trying each of the 30 kept trees; a profile put most of it in rebuilding a long cache key for every flow and changed file, ~20 min
 
 - 2026-11-12: three full reviews in a row on one branch, five minutes each with the build, as each turned up one failing phone flow and the fix to a shared piece (the bubble) needed every flow run again; the changes after the first touched four files, ~20 min waiting
 - 2026-11-16: the gate's storyboard in a new sandbox had no frames to carry, so it ran all 626 branch flows (7 min) and then main's whole suite, and stopped at its 20-minute limit before comparing; the gate failed for that alone, ~25 min waiting
