@@ -21,3 +21,4 @@ flows have for smooth scrolls. Every frame scrolled by a flow may move once.
 ## Hits
 
 - 2026-11-16: "A reply to a text" (phone) differed from main's in a full gate's review by a few pixels of scroll, after typing an answer, ~30 min
+- 2026-11-17: "ControlAI's statement" (phone) was pictured at the top in one review and scrolled in another; every frame now waits for the page to be still, which narrows this but doesn't end it, ~20 min
