@@ -44,7 +44,7 @@ describe("CSP reporting endpoint", () => {
 });
 
 describe("redirects", () => {
-  it("keeps old story links, the campaigns-v2 links, /campaigns to the first campaign, old staff alert links, the Glasgow group's old path and malformed backlinks working", async () => {
+  it("keeps old story links, the campaigns-v2 links, /campaigns to the first campaign, old staff alert links, the Glasgow group's old path, the demonstrations' old /protests paths and malformed backlinks working", async () => {
     const config = await loadConfig({});
     const redirects = await config.redirects!();
     expect(redirects).toContainEqual({ source: "/stories", destination: "/people", permanent: true });
@@ -73,10 +73,20 @@ describe("redirects", () => {
       destination: "/staff/scheduled-jobs/:job",
       permanent: true,
     });
+    expect(redirects).toContainEqual({
+      source: "/protests/:path+",
+      destination: "/demonstrations/:path+",
+      permanent: true,
+    });
     expect(redirects.filter((r) => !r.permanent)).toEqual([
-      { source: "/protests", destination: "/protests/march-against-ai-extinction-nov-26", permanent: false },
+      {
+        source: "/demonstrations",
+        destination: "/demonstrations/march-against-ai-extinction-nov-26",
+        permanent: false,
+      },
+      { source: "/protests", destination: "/demonstrations/march-against-ai-extinction-nov-26", permanent: false },
       { source: "/campaigns", destination: `/campaigns/${campaigns[0].slug}`, permanent: false },
-      { source: "/march", destination: "/protests/march-against-ai-extinction-nov-26", permanent: false },
+      { source: "/march", destination: "/demonstrations/march-against-ai-extinction-nov-26", permanent: false },
     ]);
   });
 });

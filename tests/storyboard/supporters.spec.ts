@@ -457,7 +457,7 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   );
   const email = madeUpAddress("Marta Marcher", 42, "example.org");
   const form = marchSignupCopy.form;
-  await page.goto(`${BASE}/protests/march-against-ai-extinction-nov-26?utm_source=nl#register`);
+  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-nov-26?utm_source=nl#register`);
   await page.getByLabel(form.name).fill("Marta Marcher");
   await page.getByLabel(form.email).fill(email);
   await page.getByRole("textbox", { name: new RegExp(`^${form.phone}`) }).fill("07700 900123");

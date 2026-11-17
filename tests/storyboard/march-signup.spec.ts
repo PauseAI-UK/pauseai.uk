@@ -29,7 +29,7 @@ function marchEvents(page: Page) {
 }
 
 async function openSignup(page: Page) {
-  await page.goto(`${BASE}/protests/march-against-ai-extinction-nov-26`);
+  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-nov-26`);
   await hydrated(page);
   await layoutSettled(page, "main");
 }
@@ -136,7 +136,7 @@ test("Registering for the march", { tag: "@phone" }, async ({ page }) => {
   const confirmation = registered(page);
   await expect(confirmation).toBeFocused();
   await expect(confirmation).toContainText(madeUpAddress("Testy McTestface", 43, "example.org"));
-  await expect(page).toHaveURL(`${BASE}/protests/march-against-ai-extinction-nov-26#register`);
+  await expect(page).toHaveURL(`${BASE}/demonstrations/march-against-ai-extinction-nov-26#register`);
   await expect(page.getByRole("link", { name: copy.share.impact.link })).toBeVisible();
   await scrollSettled(page);
   await expectBelowHeader(page, confirmation);
@@ -155,7 +155,7 @@ test("Registration fails", { tag: "@phone" }, async ({ page }) => {
     "href",
     "https://luma.com/pauseai-nov26",
   );
-  await expect(page).toHaveURL(`${BASE}/protests/march-against-ai-extinction-nov-26#register`);
+  await expect(page).toHaveURL(`${BASE}/demonstrations/march-against-ai-extinction-nov-26#register`);
   await messageMidWindow(page);
   await frame(page, "The form's message");
 });

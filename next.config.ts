@@ -179,9 +179,13 @@ const nextConfig: NextConfig = {
       { source: "/staff/import-data/:job", destination: "/staff/scheduled-jobs/:job", permanent: true },
       // The Glasgow local group became the Scotland local group.
       { source: "/glasgow", destination: "/scotland", permanent: true },
-      // There's no list of protests yet, so /protests goes to the current one.
-      // Temporary, so browsers don't remember it when the next protest comes.
+      // There's no list of demonstrations yet, so /demonstrations goes to the current one.
+      // Temporary, so browsers don't remember it when the next demonstration comes.
+      { source: "/demonstrations", destination: MARCH_PATH, permanent: false },
+      // Demonstrations were under /protests, and links to them were shared: each
+      // keeps working, at the same page under /demonstrations.
       { source: "/protests", destination: MARCH_PATH, permanent: false },
+      { source: "/protests/:path+", destination: "/demonstrations/:path+", permanent: true },
       // /campaigns goes to the first campaign in priority order, which can
       // change, so temporary. Here rather than a page's redirect(): a page
       // that redirects while rendering leaves the site's header and footer
