@@ -468,6 +468,33 @@ test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
   await frame(page, "Their copy, with what WhatsApp reported");
 });
 
+test("A text to a number not written in full", async ({ page, request, flowDatabase }) => {
+  story(
+    "Someone gave their number on the March form without its country code. PauseAI Global's records only check a number written in full, with + and its country code, so their copy is skipped, and the rest of the text goes.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  runSql(
+    flowDatabase,
+    `INSERT INTO form_entries (form, name, email, phone, contact_consent)
+       VALUES ('march-2026-11', 'Sam Jones', 'sam.jones@example.com', '7700900999', true);
+     INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, topics, merge_values, rfc_message_id)
+       SELECT ${sent.id}, s.id, '7700900999', 'scheduled', '{newsletter}',
+         json_build_object('name', 'Sam Jones', 'values', json_build_object('firstName', 'Sam'), 'meets', '[]'::json),
+         '<bad-number@pauseai.uk>'
+       FROM supporters s
+       WHERE NOT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = ${sent.id} AND c.supporter_id = s.id)
+       ORDER BY s.id LIMIT 1;
+     UPDATE mailings SET state = 'sending' WHERE id = ${sent.id}`,
+  );
+  await runSending(request);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  story("Its page lists them among those it didn't go to, saying why.");
+  await page.getByRole("link", { name: new RegExp(stateWords.counts["not-sent"]!) }).click();
+  await expect(page.getByText(stateWords.tags["not-sent:bad-number"]!)).toBeVisible();
+  await frame(page, "Their copy, not sent, and why");
+});
+
 test("A reply to a text", async ({ page, request, flowDatabase }) => {
   story(
     "A supporter answers a text in WhatsApp. Its webhook brings the reply to the site, on the text's page, under the copy it answers.",

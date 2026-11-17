@@ -956,6 +956,7 @@ that drives it or why nothing does.
   - an email sent by the sending job, by hello@'s Gmail, and a copy as the supporter gets it, with its unsubscribe link;
   - an email with more copies than hello@'s Gmail can send today: some sent and the rest tomorrow, then stopped three days after its time, with the email saying so, and set going again by Resume sending;
   - one waiting for CiviCRM, with the email saying so and its page;
+  - a text to a number from the March form not written in full, its copy skipped as the rest go;
   - a reply asking to stop, to look at on the email's page, recorded as an opt-out from its thread;
   - a reply answered from its thread, by Gmail from hello@, and the email the person gets;
   - one to the newsletter's and events' yeses both, ticked as about our events;
