@@ -66,7 +66,7 @@ describeWithDatabase("POST /api/march/register", () => {
         form: "march-2026-11",
         name: "Testy McTestface",
         email: "testy@example.org",
-        phone: "07700 900000",
+        phone: "+447700900000",
         city: "Leeds",
         postcode: "LS1 1AA",
         consent: true,

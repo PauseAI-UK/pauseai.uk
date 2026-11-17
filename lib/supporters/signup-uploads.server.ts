@@ -161,8 +161,8 @@ function signed(plan: Omit<SignupPlan, "signature">): SignupPlan {
 }
 
 /**
- * What a WhatsApp group's file would do. Each number is written in full, as
- * phone_number() does, and held back if it can't be, if it's on another row,
+ * What a WhatsApp group's file would do. Each number comes in international
+ * format (whatsappRows), held back if it can't be, if it's on another row,
  * or if its supporter asked to be forgotten. One already uploaded under the
  * same group's name is done. Any number a supporter gave makes them known.
  */
@@ -171,37 +171,34 @@ async function planWhatsappUpload(
   file: Extract<SignupFileRead, { ok: true }>,
 ): Promise<SignupPlan> {
   const read = whatsappRows(file);
-  const held = await query<{ given: string; number: string; known: boolean; erased: boolean; uploaded: boolean }>(
-    `SELECT given, phone_number(given) AS number,
-       EXISTS (SELECT 1 FROM supporter_contact c WHERE phone_number(c.phone) = phone_number(given)) AS known,
-       EXISTS (SELECT 1 FROM whatsapp_erased e WHERE e.number_hash = whatsapp_number_hash(given)) AS erased,
+  const held = await query<{ number: string; known: boolean; erased: boolean; uploaded: boolean }>(
+    `SELECT number,
+       EXISTS (SELECT 1 FROM supporter_contact c WHERE phone_number(c.phone) = number) AS known,
+       EXISTS (SELECT 1 FROM whatsapp_erased e WHERE e.number_hash = whatsapp_number_hash(number)) AS erased,
        EXISTS (
          SELECT 1 FROM form_entries f JOIN signup_upload_entries x ON x.entry_id = f.id
            JOIN signup_uploads u ON u.id = x.upload_id
-         WHERE f.form = 'whatsapp-community' AND phone_number(f.phone) = phone_number(given)
+         WHERE f.form = 'whatsapp-community' AND phone_number(f.phone) = number
            AND lower(btrim(u.note)) = lower(btrim($2))
        ) AS uploaded
-     FROM unnest($1::text[]) given`,
+     FROM unnest($1::text[]) number`,
     [read.flatMap((row) => (row.phone ? [row.phone] : [])), input.note],
   );
-  const of = new Map(held.map((h) => [h.given, h]));
+  const of = new Map(held.map((h) => [h.number, h]));
   const times = new Map<string, number>();
-  for (const h of held) times.set(h.number, (times.get(h.number) ?? 0) + 1);
+  for (const row of read) if (row.phone) times.set(row.phone, (times.get(row.phone) ?? 0) + 1);
   const rows = read.map((row): SignupPlanRow => {
     const h = row.phone ? of.get(row.phone) : undefined;
     const problem =
       row.problem ??
-      (!h!.number.startsWith("+")
-        ? ({ kind: "bad-phone" } as const)
-        : times.get(h!.number)! > 1
-          ? ({ kind: "same-phone" } as const)
-          : h!.erased
-            ? ({ kind: "erased" } as const)
-            : null);
+      (times.get(row.phone!)! > 1
+        ? ({ kind: "same-phone" } as const)
+        : h!.erased
+          ? ({ kind: "erased" } as const)
+          : null);
     const newEntry = !problem && !h!.uploaded;
     return {
       ...row,
-      phone: h?.number ?? row.phone,
       problem,
       pile: problem ? "held" : newEntry ? "none" : "done",
       known: newEntry && h!.known ? "mobile" : null,

@@ -170,6 +170,19 @@ test("An invalid email address", async ({ page }) => {
   await frame(page, "The form's message");
 });
 
+test("A phone number that can't be read", async ({ page }) => {
+  story(
+    "Someone registers with a phone number that has no country code and isn't a UK one from 0, so it can't be texted. The form asks them to check it, and says how to write one.",
+  );
+  await openSignup(page);
+  await fillIn(page, madeUpAddress("Testy McTestface", 44, "example.org"));
+  await page.getByRole("textbox", { name: new RegExp(`^${copy.form.phone}\\b`) }).fill("7700 900123");
+  await page.getByRole("button", { name: copy.form.submit, exact: true }).click();
+  await expect(page.locator("form").getByRole("alert")).toHaveText(copy.errors.phoneInvalid);
+  await messageMidWindow(page);
+  await frame(page, "The form's message");
+});
+
 test("How many have registered", { tag: "@phone" }, async ({ page }) => {
   story("The march page says how many people have registered so far, under the Register now button.");
   await openSignup(page);

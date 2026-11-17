@@ -104,7 +104,7 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
     );
     await query(
       `INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, phone)
-       VALUES ('gst-1', 'evt-1', 'usr-1', 'approved', '2026-09-10T00:00:00Z', '07700 900001')`,
+       VALUES ('gst-1', 'evt-1', 'usr-1', 'approved', '2026-09-10T00:00:00Z', '+447700900001')`,
     );
     await query(
       `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)

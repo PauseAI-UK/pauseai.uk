@@ -855,7 +855,7 @@ that drives it or why nothing does.
   - the page under the site's header, without the march banner, its marker-pen marks drawn;
   - how many have registered, in the hero and the form, asked for again on coming back to the page;
   - the hero's words near the window's edge 1920px wide, and in line with the header and the page below wider than that;
-  - registering, Luma failing, and an email the server won't take;
+  - registering, Luma failing, and an email or a phone number the server won't take;
   - See all details, to the day's details;
   - a heading highlighted as it comes into view;
   - the share card, saying they're registered, its apps all showing on a desktop and a row to swipe on a phone, and registering someone new, with the events sent to GA.

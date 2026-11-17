@@ -7,6 +7,7 @@ import { server } from "@/tests/fixtures/msw";
 import { startRunning } from "@/lib/server/import-runs.server";
 import { ANOTHER_RUNNING, runJob } from "@/lib/jobs/jobs.server";
 import { importLuma } from "./luma-import.server";
+import { eventsCopy } from "./copy";
 
 const API = "https://public-api.luma.com/v1";
 
@@ -160,6 +161,24 @@ afterEach(() => vi.unstubAllEnvs());
 
 describeWithDatabase("importLuma", () => {
   useTestDatabase();
+
+  it("keeps guests' numbers in international format, leaving out and reporting one it can't read", async () => {
+    fakeLuma({
+      events: [event("evt-live", days(1))],
+      guests: {
+        "evt-live": [guest(1, { phone_number: "07700 900001" }), guest(2, { phone_number: "0770?900002" })],
+      },
+      contacts: [],
+    });
+    await importLuma("jo@pauseai.uk");
+    expect(await query("SELECT id, phone FROM luma_guests ORDER BY id")).toEqual([
+      { id: "gst-1", phone: "+447700900001" },
+      { id: "gst-2", phone: null },
+    ]);
+    expect(await query("SELECT problems FROM import_runs")).toEqual([
+      { problems: [{ what: eventsCopy.problems.numbersUnread, error: "1 on event evt-live" }] },
+    ]);
+  });
 
   it("copies the events, their registered guests and the contacts, once", async () => {
     const jane = guest(1, {

@@ -3,6 +3,7 @@
 // type="email" are only a convenience, and the route can be posted to
 // directly.
 import { marchSignupCopy } from "@/lib/content/march-signup";
+import { phoneNumber } from "@/lib/phone";
 
 /**
  * A sign-up: the name and email Luma gets, and what else the form asks,
@@ -21,7 +22,8 @@ export type MarchRegistration = {
 };
 
 export type MarchRegistrationCheck =
-  { ok: true; registration: MarchRegistration } | { ok: false; errors: Partial<Record<"name" | "email", string>> };
+  | { ok: true; registration: MarchRegistration }
+  | { ok: false; errors: Partial<Record<"name" | "email" | "phone", string>> };
 
 /** What registering came to, as app/api/march/register answers it. */
 export type MarchRegisterResult =
@@ -33,7 +35,7 @@ export type MarchRegisterResult =
 const MAX_NAME_LENGTH = 100;
 /** The longest address SMTP allows. */
 const MAX_EMAIL_LENGTH = 254;
-/** Longer than any real phone number, city, postcode or utm_source. */
+/** Longer than any real city, postcode or utm_source. */
 const MAX_OPTIONAL_LENGTH = 100;
 /** Loose: one @, something either side, a dot in the domain, no spaces. Luma checks it properly. */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,7 +58,10 @@ export function checkMarchRegistration(input: unknown): MarchRegistrationCheck {
   const name = text(raw.name);
   const email = text(raw.email);
   const { errors: words } = marchSignupCopy;
-  const errors: Partial<Record<"name" | "email", string>> = {};
+  const errors: Partial<Record<"name" | "email" | "phone", string>> = {};
+  // A number is kept in international format, or the person is asked to fix it: one that can't be texted is no use.
+  const typedPhone = text(raw.phone);
+  const phone = typedPhone ? phoneNumber(typedPhone) : null;
 
   if (!name) errors.name = words.missing("full name");
   else if (name.length > MAX_NAME_LENGTH || CONTROL_CHARS.test(name)) errors.name = words.check("full name");
@@ -65,13 +70,15 @@ export function checkMarchRegistration(input: unknown): MarchRegistrationCheck {
   else if (email.length > MAX_EMAIL_LENGTH || CONTROL_CHARS.test(email) || !EMAIL_PATTERN.test(email))
     errors.email = words.emailInvalid;
 
+  if (typedPhone && !phone) errors.phone = words.phoneInvalid;
+
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return {
     ok: true,
     registration: {
       name,
       email,
-      phone: optional(raw.phone),
+      phone,
       city: optional(raw.city),
       postcode: optional(raw.postcode)?.toUpperCase() ?? null,
       consent: raw.consent === true,

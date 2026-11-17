@@ -141,21 +141,22 @@ describe("signupRows", () => {
       line: 2,
       name: "Jo Bloggs",
       email: "jo@example.com",
-      phone: "07700900123",
+      phone: "+447700900123",
       postcode: "SE15 1AA",
       going: true,
       problem: null,
     });
   });
 
-  it("copes with the ways an address and a phone number are written, and missing cells", () => {
+  it("copes with the ways an address and a phone number are written, and missing cells, keeping numbers international", () => {
     const people = rows(
-      "Name,Email,Phone,Town\na,mailto:a @example.com.,+44 7700 900123\nb,b@example.com\nc,c@example.com,,",
+      "Name,Email,Phone,Town\na,mailto:a @example.com.,+44 7700 900123\nb,b@example.com\nc,c@example.com,,\nd,d@example.com,7700 900 456",
     );
     expect(people.map((p) => [p.email, p.phone])).toEqual([
-      ["a@example.com", "+44 7700 900123"],
+      ["a@example.com", "+447700900123"],
       ["b@example.com", null],
       ["c@example.com", null],
+      ["d@example.com", "+447700900456"],
     ]);
   });
 
@@ -181,6 +182,8 @@ Bad,two@example.com;three@example.com,,
 Long,${"m".repeat(250)}@example.com,,
 Phone,phone@example.com,call me,
 Short,short@example.com,123,
+Unread,unread@example.com,0770?900123,
+Abroad,abroad@example.com,15555550100,
 Twin,twin@example.com,,
 Twin,TWIN@example.com,,
 March,march@example.com,,?
@@ -194,6 +197,8 @@ Fine,fine@example.com,07700900123,no`,
       { kind: "bad-email" },
       { kind: "bad-email" },
       { kind: "bad-email" },
+      { kind: "bad-phone" },
+      { kind: "bad-phone" },
       { kind: "bad-phone" },
       { kind: "bad-phone" },
       { kind: "same-email" },
@@ -284,11 +289,11 @@ describe("a WhatsApp group's file", () => {
         ),
       ).map((row) => [row.name.length > 20 ? "long" : row.name, row.phone, row.problem?.kind ?? null]),
     ).toEqual([
-      ["Jane 🌻", "+44 7700 900123", null],
-      ["", "07700900456", null],
+      ["Jane 🌻", "+447700900123", null],
+      ["", "+447700900456", null],
       ["None", null, "no-phone"],
       ["Words", null, "bad-phone"],
-      ["long", "07700900789", "long-name"],
+      ["long", "+447700900789", "long-name"],
     ]);
   });
 

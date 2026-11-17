@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkMarchRegistration } from "./march-registration";
+import { marchSignupCopy } from "@/lib/content/march-signup";
 
 const valid = { name: "Testy McTestface", email: "testy@example.org" };
 const blank = { phone: null, city: null, postcode: null, consent: false, utmSource: null };
@@ -20,7 +21,7 @@ describe("checkMarchRegistration", () => {
       ok: true,
       registration: {
         ...valid,
-        phone: "07700 900000",
+        phone: "+447700900000",
         city: "Leeds",
         postcode: "SW1A 0AA",
         consent: true,
@@ -63,6 +64,16 @@ describe("checkMarchRegistration", () => {
         ok: false,
         errors: { name: "Please check your full name." },
       });
+    }
+  });
+
+  it("refuses a phone number it can't read in international format, saying how to write one", () => {
+    for (const phone of ["7700900000", "0770?900000", "+", "call me", 7]) {
+      expect(checkMarchRegistration({ ...valid, phone }), String(phone)).toEqual(
+        phone === 7
+          ? { ok: true, registration: { ...valid, ...blank } }
+          : { ok: false, errors: { phone: marchSignupCopy.errors.phoneInvalid } },
+      );
     }
   });
 

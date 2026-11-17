@@ -138,6 +138,10 @@ All events: ${link}`,
     eventGuests: (event: string) => `Couldn't read the guests of an event: ${event}`,
     // Luma errored on one event's hosts. Its other events carry on.
     eventHosts: (event: string) => `Couldn't read the hosts of an event: ${event}`,
+    // Some guests' phone numbers couldn't be read as numbers, so they came in without them. How many, and on which
+    // event, follows.
+    numbersUnread:
+      "Some guests' phone numbers were badly formatted, so they were imported without them. Fix them in Luma:",
     // Luma's rate limit stopped the run early. The next run carries on.
     lumaRefused: "Luma rate limit reached",
     // The calendar's tags couldn't be read, so nothing was tagged this run.

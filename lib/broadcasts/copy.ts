@@ -266,7 +266,7 @@ export const broadcastsCopy = {
     // finished for a day.
     waiting: (reason: "civicrm" | "pull", stops: string, said: string | null) =>
       reason === "civicrm"
-        ? `Waiting, as CiviCRM's check of who can be sent this failed. It last said: ${said ?? "nothing"}. This will send once the check works, or give up on ${stops}.`
+        ? `Waiting, as CiviCRM's check of who can be sent this failed. It last said: ${said?.replace(/\.$/, "") ?? "nothing"}. This will send once the check works, or give up on ${stops}.`
         : `Waiting for an import from CiviCRM, so can check live suppression. This will send once one finishes, or give up on ${stops}.`,
     // Where a scheduled broadcast says when it sends, while it waits for CiviCRM, past its time.
     waitingDue: "Waiting for CiviCRM",

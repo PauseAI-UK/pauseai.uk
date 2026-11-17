@@ -199,6 +199,22 @@ describeWithDatabase("importCivicrm", () => {
     expect((await kept())[0]).toMatchObject({ id: 1, gone: false });
   });
 
+  it("keeps contacts' numbers in international format, leaving out and reporting one it can't read", async () => {
+    serve([
+      contact(1, "a@example.com", { phone: "07700 900001" }),
+      contact(2, "b@example.com", { phone: "0770?900002" }),
+      contact(3, "c@example.com"),
+    ]);
+    await importCivicrm("nightly");
+    expect(await query("SELECT contact_id::int AS id, phone FROM civicrm_contacts ORDER BY contact_id")).toEqual([
+      { id: 1, phone: "+447700900001" },
+      { id: 2, phone: null },
+      { id: 3, phone: null },
+    ]);
+    const [run] = await query<{ problems: unknown }>("SELECT problems FROM import_runs WHERE job = 'import-civicrm'");
+    expect(run.problems).toEqual([{ what: jobsCopy.problems.civicrmNumbersUnread, error: "1" }]);
+  });
+
   it("marks nobody gone from a pull over 5% shorter than the last, and says so", async () => {
     const all = Array.from({ length: 20 }, (_, i) => contact(i + 1, `c${i}@example.com`));
     serve(all);

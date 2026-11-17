@@ -941,8 +941,9 @@ else in it.
 ## Form entries
 
 One person filling in one of our forms once (`form_entries`): their name,
-email, phone, address, city and postcode as they gave them, the box to hear
-from us (`contact_consent`), where they came from (`utm_source`) and when.
+email, address, city and postcode as they gave them, their phone number in
+international format ("Phone numbers", below), the box to hear from us
+(`contact_consent`), where they came from (`utm_source`) and when.
 `form` says which form: `email-your-mp`, `march-2026-11`, `paper-signup`
 ("Paper sign-ups", below), `whatsapp-community` ("WhatsApp groups", below),
 or `web-form` for pauseai.info's old letter form. Every entry has an email
@@ -1018,7 +1019,7 @@ An upload is a row of `signup_uploads` of the kind `whatsapp`, with the
 group's name as its note and, for a local group, its town. Each member is an
 entry with their number, their WhatsApp profile name or `''`, and no email,
 dated when it was uploaded. A row is held back for a number that's missing,
-can't be made international (`phone_number()`), is on another row, or is of
+can't be made international ("Phone numbers", below), is on another row, or is of
 someone erased (`whatsapp_erased`, "Erasure", below). A number already
 uploaded under the group's name, in any case, gets no other entry, so an
 upload only adds people: nobody is marked as having left a group.
@@ -1028,6 +1029,24 @@ an admin and agrees to be messaged. So an entry is a yes to the newsletter
 by text, and to nothing else. It's older than any opt-out, whenever it was
 uploaded: a stop of newsletter texts in force always wins. The group's name
 is the entry's line in a supporter's history, linked to its upload.
+
+## Phone numbers
+
+Every phone number is kept in international format, `+447700900123`, or not
+at all. `phoneNumber()` (`lib/phone.ts`) is the rule: it drops spaces,
+brackets, dots and dashes, gives a UK number from `0`, `44` or `+44 (0)` its
+`+44`, and turns `00` into `+`; any other number can't be read. Each way a
+number comes in uses it:
+
+- the March form asks the person to fix one it can't read;
+- a paper sign-up or WhatsApp upload holds back its row (`bad-phone`), after
+  putting back a UK mobile's leading 0, which spreadsheets drop;
+- the Luma and CiviCRM imports bring the person in without it, and say how
+  many on the run's page, as it's theirs to fix.
+
+`phone_number()` in the database is the same rule, which a test checks on
+the same numbers (`tests/phone-numbers.ts`), but gives back one it can't
+read as typed. Queries match numbers through it.
 
 ## Supporters
 
