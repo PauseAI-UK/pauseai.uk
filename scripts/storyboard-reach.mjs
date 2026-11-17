@@ -362,6 +362,9 @@ const ERRORS_KEPT = "instrumentation.ts";
 /** The files this map names by their paths: if one moves, its rule here stops applying (the tests check they exist). */
 export const NAMED = [...ALWAYS, ERRORS_KEPT, GALLERY_EXAMPLES, ...Object.entries(HANDED_OVER).flat(2)];
 
+/** For each context's cache of flowReach, each run's answers, found by the run itself: whole, and not. */
+const answersByRun = new WeakMap();
+
 /**
  * The files a flow can reach: its spec file and what it imports; for each
  * page, action or API route it opened, the files that render it and what
@@ -372,9 +375,19 @@ export const NAMED = [...ALWAYS, ERRORS_KEPT, GALLERY_EXAMPLES, ...Object.entrie
  * an error).
  */
 export function flowReach(run, { graph, routes, root, reaches }, whole = false) {
+  // A review asks this of every run for every changed file, so the run itself finds its answer, without
+  // making the key below, which is as long as everything the flow opened.
+  if (reaches && !answersByRun.has(reaches)) answersByRun.set(reaches, new WeakMap());
+  const answers = reaches && answersByRun.get(reaches);
+  const answered = answers?.get(run)?.[whole];
+  if (answered) return answered;
+  const keep = (files) => {
+    answers?.set(run, { ...answers.get(run), [whole]: files });
+    return files;
+  };
   // The same flow, having opened the same things, reaches the same files, whichever run it's from.
   const cached = `${whole}|${run.section}|${run.flow}|${(run.opened ?? []).join("|")}`;
-  if (reaches?.has(cached)) return reaches.get(cached);
+  if (reaches?.has(cached)) return keep(reaches.get(cached));
   const entries = [
     `tests/storyboard/${run.section}.spec.ts`,
     ...[...ALWAYS, ...ALWAYS_IF_THERE].filter((path) => graph.has(path)),
@@ -388,7 +401,7 @@ export function flowReach(run, { graph, routes, root, reaches }, whole = false) 
   }
   for (const path of closure(whole ? graph : flowGraph(graph, run), entries)) files.add(path);
   reaches?.set(cached, files);
-  return files;
+  return keep(files);
 }
 
 /** The text of a file of the checkout, read once for a context. */
@@ -426,10 +439,9 @@ function readers(context, path) {
  */
 function listers(context, path) {
   const folders = path.split("/").slice(0, -1);
-  return [...context.graph.keys()].filter((file) => {
-    const text = textOf(context, file);
-    return /\breaddir(Sync)?\(/.test(text) && folders.some((folder) => namesFolder(text, folder));
-  });
+  // The files that list any folder at all, found once for the context.
+  context.listing ??= [...context.graph.keys()].filter((file) => /\breaddir(Sync)?\(/.test(textOf(context, file)));
+  return context.listing.filter((file) => folders.some((folder) => namesFolder(textOf(context, file), folder)));
 }
 
 /** Whether a file of `graph` imports `path`. */
@@ -455,10 +467,9 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
   const { graph } = context;
   // A plain stylesheet applies wherever it's loaded, so it's reached through the imports as they are (flowReach).
   const plainStyles = (path) => path.endsWith(".css") && !path.endsWith(".module.css");
-  const flowsReaching = (paths) =>
-    runs
-      .filter((run) => paths.some((path) => flowReach(run, context, plainStyles(path)).has(path)))
-      .map((run) => run.key);
+  // The files whose flows are reached, each run then checked once against all of them, below.
+  const reaching = new Set();
+  const reachThrough = (paths) => paths.forEach((path) => reaching.add(path));
   const flowsThatOpened = (matches) => runs.filter((run) => (run.opened ?? []).some(matches)).map((run) => run.key);
 
   const keys = new Set();
@@ -467,7 +478,7 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
   const unknown = [];
   for (const path of files) {
     // Imported, whatever kind of file it is: the flows whose reach has it.
-    add(flowsReaching([path]));
+    reachThrough([path]);
     if (EVERYTHING.some((re) => re.test(path))) {
       everything.push(path);
     } else if (NOTHING.some((re) => re.test(path))) {
@@ -489,15 +500,17 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
       // Read as the site or a flow runs: the flows that reach a file naming it. If it isn't public, and nothing
       // names or imports it, what reads it isn't known.
       const found = readers(context, path);
-      add(flowsReaching(found));
+      reachThrough(found);
       if (UNMATCHED_ROUTE_FILES.test(path) || (!isPublic && found.length === 0 && !graphImported(graph, path)))
         unknown.push(path);
     }
   }
   // What lists a folder finds something else when a file in it comes or goes. Not for a file that reaches every
   // flow anyway, as a new migration does: how far that goes is flowsToRun's to say.
-  for (const path of addedOrDeleted)
-    if (!EVERYTHING.some((re) => re.test(path))) add(flowsReaching(listers(context, path)));
+  for (const path of addedOrDeleted) if (!EVERYTHING.some((re) => re.test(path))) reachThrough(listers(context, path));
+  const paths = [...reaching];
+  for (const run of runs)
+    if (paths.some((path) => flowReach(run, context, plainStyles(path)).has(path))) keys.add(run.key);
   return { keys, everything, unknown };
 }
 

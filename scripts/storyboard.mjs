@@ -307,6 +307,16 @@ function keptSources(except) {
 }
 
 /**
+ * The keys of the flows `list` gives, as a set flowsToRun can ask of, listed
+ * only once it asks: only a change that reaches every flow needs the phone's
+ * flows of CI's run, and listing them starts Playwright, which takes seconds.
+ */
+function whenAsked(list) {
+  let keys;
+  return { has: (key) => (keys ??= new Set(list().keys())).has(key) };
+}
+
+/**
  * Of `sources`, each some flows to carry from (`runs`), the one that leaves
  * fewest of `suite` (keys) to run on `tree` (flowsToRun, worked out on the
  * checkout of `context`), the first of them on a tie: what flowsToRun
@@ -324,6 +334,8 @@ function nearest(sources, suiteKeys, tree, context, phoneTagged) {
       changedSince: (at) => changedBetween(at, tree),
     });
     if (!best || chosen.run.size < best.run.size) best = { ...chosen, source };
+    // None to run: no source can leave fewer, and the first wins a tie.
+    if (best.run.size === 0) break;
   }
   return best;
 }
@@ -340,7 +352,7 @@ function chooseFlows() {
     sources.push({ latest: true, runs: readJson(latest).frames.map((run) => ({ ...run, key: flowKey(run) })) });
   sources.push(...keptSources());
   if (sources.length === 0) return undefined;
-  const phoneTagged = new Set([...listFlows(["--project=phone"], process.cwd(), process.env, "0").keys()]);
+  const phoneTagged = whenAsked(() => listFlows(["--project=phone"], process.cwd(), process.env, "0"));
   return nearest(sources, new Set(suite.keys()), treeBefore, reachContext(process.cwd()), phoneTagged);
 }
 
@@ -350,7 +362,7 @@ function chooseFlows() {
  * flows main still has to run, and the tree carried from, if any was.
  */
 function carryFromNearest(tree, missing) {
-  const phoneTagged = new Set([...listFlows(["--project=phone"], MAIN_WORKTREE, mainEnv(), "0").keys()]);
+  const phoneTagged = whenAsked(() => listFlows(["--project=phone"], MAIN_WORKTREE, mainEnv(), "0"));
   const best = nearest(keptSources(tree), new Set(missing), tree, reachContext(MAIN_WORKTREE), phoneTagged);
   if (!best || best.run.size >= missing.length) return { run: missing };
   const wanted = new Set(missing);
