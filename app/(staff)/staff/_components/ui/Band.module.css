@@ -68,12 +68,12 @@
   min-width: 0;
 }
 
+/* Filling its line, so what's in it can, as counts do on a phone; its own width at the right otherwise. */
 .aside {
   display: flex;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   justify-content: flex-end;
   min-width: 0;
-  margin-left: auto;
 }
 
 @container band (min-width: 70rem) {
