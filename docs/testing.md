@@ -553,7 +553,33 @@ files reach more:
   (`_examples/forms.tsx` and `forms.client.tsx`), though the index it picks
   them from imports every group's. A plain stylesheet (not a
   `.module.css`) applies to every page that loads it, so it reaches every
-  group.
+  group. A change may reach only some of a group's frames, as each is one
+  component's (below).
+
+**A gallery flow in part.** Each gallery frame records the file of the
+component it pictures (`file`, in `frames.json`). When the component's
+examples are beside it, in a `Component.gallery.tsx` that the group's file
+imports, the frame shows what that file reaches. The rest of the flow, its
+`own` reach, is what the group's page reaches with those files taken out of
+the group's imports: the page and its layouts, the group's own file and the
+examples in it, and what they import (`galleryParts` in
+`scripts/storyboard-reach.mjs`). A change in the flow's reach that's in
+none of that, and isn't a plain stylesheet, reaches only the frames whose
+file of examples reaches it. The review runs the flow, which loads and
+checks the whole page, but pictures only those frames, and carries the rest
+from the run it chose (`STORYBOARD_CARRY`, read by `gallery.spec.ts`; the
+pictures are filled in by `fillCarried`, `scripts/storyboard-store.mjs`).
+So a change to one staff component pictures its own frame, not the fifty
+of the staff kit. A frame with its examples in the group's own file (most
+of the site's kit, in `_examples/ui.tsx`) is pictured whenever the group
+is reached at all. A frame the run carried from has no frame for, a
+component new to the group, is pictured. `--plan` says how much of each
+such flow it pictures (`gallery: staff-kit, 1 of 50 sections`). Main's side
+does the same when it carries from a kept tree. `tests/checks/gallery.test.ts`
+keeps what this depends on true: a file of examples beside a component
+holds that component's examples alone, and a group takes nothing but them
+from it.
+
 - **Data** (JSON, a picture, a font, a fixture's email, a CSV a flow
   uploads) reaches the flows that reach a file naming it, or naming its
   folder as somewhere to read from. A public file also reaches the flows
@@ -580,7 +606,9 @@ the repo as it is:
 
 **Spot checks.** A review that carries flows also runs six of them
 anyway, chosen by a hash of the tree and the flow, and compares each with
-what it would have carried, as the review compares a frame with main's.
+what it would have carried, as the review compares a frame with main's. A
+gallery flow it would picture in part can be one: it's then run whole, and
+the frames it would have carried compared.
 It does so even when the change reaches no flow, unless nothing changed
 but docs and unit tests. If
 one looks different, the map missed something in the files changed (or a
@@ -1165,8 +1193,10 @@ pages are noindex.
   npm run storyboard -- --no-main --no-open --paths gallery -g 'gallery: ui$'
   ```
 
-  Drop `--no-main` to see main's beside it. The full review pictures every
-  group anyway, so a change to a shared component shows wherever it's used.
+  Drop `--no-main` to see main's beside it. A review pictures the frames a
+  change reaches, in every group, so a change to a shared component shows
+  wherever it's used; it carries the rest of each group ("A gallery flow in
+  part", above).
   A component above it that changes height doesn't change its frame
   (`alone`, `tests/storyboard/frame.ts`). Before it's pictured, the page is
   moved, by padding on its root, so the component starts on a whole pixel,

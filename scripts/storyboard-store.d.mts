@@ -1,9 +1,14 @@
 type FlowStatus = "passed" | "failed" | "timedOut" | "interrupted";
 type Flow = { section: string; flow: string; viewport: string; line: number; status: FlowStatus };
 /** A flow as a run's frames.json has it: each picture a file, by its path in the run's folder. */
-type Run = Flow & { frames: { caption: string; png?: string }[]; tree?: string };
+type Run = Flow & {
+  frames: { caption: string; png?: string; file?: string; carried?: boolean; placeholders?: unknown[] }[];
+  tree?: string;
+};
 /** A flow as the store keeps it: each picture by its hash. */
-type KeptRun = Flow & { frames: { caption: string; picture?: string }[]; tree?: string };
+type KeptRun = Flow & { frames: { caption: string; picture?: string; file?: string }[]; tree?: string };
+/** A frame of a run carried from: from a run's folder, or from the store. */
+type SourceFrame = { caption: string; file?: string; png?: string; picture?: string; placeholders?: unknown[] };
 type Kept = { flows?: Record<string, string>; frames: KeptRun[] };
 
 export function storeDir(root: string): string;
@@ -29,6 +34,13 @@ export function linkFlows(
   wanted: { has(key: string): boolean },
   runDir: string,
   side?: string,
+): { frames: Run[] };
+export function fillCarried<F extends SourceFrame>(
+  manifest: { frames: Run[] },
+  carried: Map<string, F[]>,
+  runDir: string,
+  side: string,
+  pictureOf: (frame: F) => string,
 ): { frames: Run[] };
 export function touchTree(store: string, tree: string, now?: Date, platform?: string): void;
 export function pruneStore(store: string, keep: number, now?: number): void;

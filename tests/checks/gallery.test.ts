@@ -90,6 +90,30 @@ describe("component gallery", () => {
     expect(unshown).toEqual([]);
   });
 
+  // A review pictures only the frames of a group that a change can reach, and takes a component's frame to
+  // show what's in the file of examples beside it, and what that imports (scripts/storyboard-reach.mjs,
+  // galleryParts). So that file holds that component's examples alone, and a group takes nothing else from it.
+  it("has, in each file of examples beside a component, only that component's examples", () => {
+    const besides = [...tsxFiles(join(ROOT, "components")), ...tsxFiles(join(ROOT, "app"))].filter((path) =>
+      path.endsWith(".gallery.tsx"),
+    );
+    const others = besides.flatMap((path) =>
+      [...readFileSync(path, "utf8").matchAll(/\bfile: "([^"]+)"/g)]
+        .filter((m) => join(ROOT, besideOf(m[1])) !== path)
+        .map((m) => `${relative(ROOT, path)}: ${m[1]}`),
+    );
+    expect(others).toEqual([]);
+  });
+
+  it("takes from each file of examples beside a component only its list of examples, in a group's file", () => {
+    const taken = tsxFiles(EXAMPLES).flatMap((path) =>
+      [...readFileSync(path, "utf8").matchAll(/^import \{([^}]*)\} from "[^"]+\.gallery";/gm)]
+        .filter((m) => !/^\s*\w+Gallery\s*$/.test(m[1]))
+        .map((m) => `${relative(ROOT, path)}: ${m[1].trim()}`),
+    );
+    expect(taken).toEqual([]);
+  });
+
   it("finds the staff features' folders: those under _components/ but ui/", () => {
     expect(inFeatureFolder(join(STAFF_COMPONENTS, "events", "EventRow.tsx"))).toBe(true);
     expect(inFeatureFolder(join(STAFF_COMPONENTS, "ui", "Band.tsx"))).toBe(false);

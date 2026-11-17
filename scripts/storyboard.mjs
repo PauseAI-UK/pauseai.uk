@@ -103,6 +103,7 @@ import {
 import { flowsToRun, reachContext, readByNoFlow, sqlWithoutComments } from "./storyboard-reach.mjs";
 import {
   carryKept,
+  fillCarried,
   keepRuns,
   keptTrees,
   linkFlows,
@@ -194,6 +195,19 @@ function runSuite(side, url, extraEnv = {}, extraArgs = []) {
     },
   );
   return result.status ?? 1;
+}
+
+/**
+ * The environment that tells a run of the suite which of the gallery's frames
+ * to carry and not picture (`carried`, flowsToRun's, by flow): a file of
+ * them in `dir`, by caption and component (tests/storyboard/gallery.spec.ts).
+ */
+function carryEnv(dir, carried) {
+  if (carried.size === 0) return {};
+  const file = resolve(dir, "carried.json");
+  const byFlow = [...carried].map(([key, frames]) => [key, frames.map(({ caption, file }) => ({ caption, file }))]);
+  writeFileSync(file, JSON.stringify(Object.fromEntries(byFlow)));
+  return { STORYBOARD_CARRY: file };
 }
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -363,12 +377,14 @@ function chooseFlows() {
 /**
  * Carries into main's `tree` the flows of `missing` (keys) that the nearest
  * kept tree can give (nearest, worked out on main's checkout). Returns the
- * flows main still has to run, and the tree carried from, if any was.
+ * flows main still has to run, the tree carried from, if any was, and the
+ * gallery's flows main pictures in part, each with the frames it carries
+ * from that tree (flowsToRun's `carried`).
  */
 function carryFromNearest(tree, missing) {
   const phoneTagged = whenAsked(() => listFlows(["--project=phone"], MAIN_WORKTREE, mainEnv(), "0"));
   const best = nearest(keptSources(tree), new Set(missing), tree, reachContext(MAIN_WORKTREE), phoneTagged);
-  if (!best || best.run.size >= missing.length) return { run: missing };
+  if (!best || best.run.size >= missing.length) return { run: missing, carried: new Map() };
   const wanted = new Set(missing);
   carryKept(
     STORE,
@@ -378,7 +394,7 @@ function carryFromNearest(tree, missing) {
       // Known to look as it does at main's tree, so what's asked next is what changed since.
       .map((run) => ({ ...withoutKey(run), seen: tree })),
   );
-  return { run: [...best.run], from: best.source.tree };
+  return { run: [...best.run], from: best.source.tree, carried: best.carried };
 }
 
 /** A flow without the key it was given to be chosen by. */
@@ -397,36 +413,50 @@ function withoutKey(run) {
 function spotChecks(chosen) {
   const order = (key) => createHash("sha256").update(`${treeBefore} ${key}`).digest("hex");
   const keys = [...suite.keys()]
-    .filter((key) => !chosen.run.has(key))
+    .filter((key) => !chosen.run.has(key) || chosen.carried.has(key))
     .sort((a, b) => order(a).localeCompare(order(b)))
     .slice(0, SPOT_CHECKS);
-  const latest = chosen.source.latest && realpathSync(LATEST);
+  const pictureOf = carriedPicture(chosen.source);
   return keys.map((key) => {
-    const run = chosen.source.runs.find((carried) => carried.key === key);
-    const frames = run.frames.map((frame) => ({
+    // A gallery flow the review would picture in part is run whole, and checked by the frames it would have carried.
+    const part = chosen.carried.get(key);
+    const frames = (part ?? chosen.source.runs.find((carried) => carried.key === key).frames).map((frame) => ({
       caption: frame.caption,
-      file: latest ? frame.png && join(latest, frame.png) : frame.picture && picturePath(STORE, frame.picture),
+      file: frame.png || frame.picture ? pictureOf(frame) : undefined,
     }));
-    return { key, frames };
+    return { key, frames, whole: !part };
   });
+}
+
+/** Where a frame of the run a review carries from (`source`, chosen's) has its picture: the latest run's folder, or the store. */
+function carriedPicture(source) {
+  const latest = source.latest && realpathSync(LATEST);
+  return (frame) => (latest ? join(latest, frame.png) : picturePath(STORE, frame.picture));
 }
 
 /**
  * The spot checks that failed: flows that, run again, didn't pass, or have
- * other frames than the ones the review would have carried, or a picture
- * that differs past the review's noise (comparePngs).
+ * other frames than the ones the review would have carried (some of them,
+ * in order, for a gallery flow it would have pictured in part), or a
+ * picture that differs past the review's noise (comparePngs).
  */
 async function spotMisses(spot) {
   const ran = new Map(readJson(branchFrames).frames.map((run) => [flowKey(run), run]));
   const missed = [];
-  for (const { key, frames } of spot) {
+  for (const { key, frames: carried, whole } of spot) {
     const run = ran.get(key);
-    let same = run?.status === "passed" && run.frames.length === frames.length;
-    for (let at = 0; same && at < frames.length; at++) {
-      const now = run.frames[at];
-      same = now.caption === frames[at].caption && Boolean(now.png) === Boolean(frames[at].file);
+    let same = run?.status === "passed" && (!whole || run.frames.length === carried.length);
+    // Each carried frame with the one run again that it stands for: the one in its place, or, for a flow the
+    // review would have pictured in part, the next with its caption.
+    let next = 0;
+    for (const [at, was] of carried.entries()) {
+      if (!same) break;
+      const found = whole ? at : run.frames.findIndex((frame, i) => i >= next && frame.caption === was.caption);
+      next = found + 1;
+      const now = run.frames[found];
+      same = now !== undefined && now.caption === was.caption && Boolean(now.png) === Boolean(was.file);
       if (same && now.png) {
-        const compared = await comparePngs(join(runDir, now.png), frames[at].file, join(runDir, "spot-check.png"));
+        const compared = await comparePngs(join(runDir, now.png), was.file, join(runDir, "spot-check.png"));
         same = compared.mismatch === 0 || compared.noise;
       }
     }
@@ -445,6 +475,14 @@ function missedSummary(missed, changed) {
     `  or a frame of theirs differs from run to run. So every flow is run. Find which, and fix the map or the frame;`,
     `  or add a hit to investments/storyboard-review-speed.md naming the flows.`,
   ].join("\n");
+}
+
+/** A flow a review chosen by chooseFlows runs, and, for a gallery flow it pictures in part, how much of it. */
+function planLine(chosen, key) {
+  const carried = chosen.carried.get(key);
+  if (!carried) return key;
+  const of = chosen.source.runs.find((run) => run.key === key).frames.length;
+  return `${key}, ${of - carried.length} of ${of} sections`;
 }
 
 /** What a review chosen by chooseFlows runs, and why. */
@@ -466,8 +504,10 @@ function planSummary(chosen, total) {
     return `Storyboard: every flow, ${total}: none has a record to carry it by, as each was recorded another way, on other dependencies, or not at all.`;
   if (chosen.run.size === total)
     return `Storyboard: every flow, ${total}: the ${chosen.changed.length} files changed since ${from} reach them all.`;
+  const inPart = chosen.carried.size > 0 ? `, ${chosen.carried.size} of them gallery flows in part` : "";
   const why = [
-    chosen.reached && `${chosen.reached} that the ${chosen.changed.length} files changed since they last ran can reach`,
+    chosen.reached &&
+      `${chosen.reached} that the ${chosen.changed.length} files changed since they last ran can reach${inPart}`,
     chosen.swept && `every desktop flow, as ${chosen.everything.slice(0, 3).join(", ")} changed`,
     chosen.fresh && `${chosen.fresh} new, failed or with no run to carry`,
   ].filter(Boolean);
@@ -540,10 +580,11 @@ function mainEnv() {
 
 /**
  * Runs main's own suite, in its checkout, for the flows on `lines`
- * (listedFlows), its frames going to `workDir`/main-run. Playwright builds
- * main and serves it there, on the port of that checkout's own path.
+ * (listedFlows), its frames going to `workDir`/main-run, but those of
+ * `carried` (carryEnv). Playwright builds main and serves it there, on the
+ * port of that checkout's own path.
  */
-async function runMainSuite(workDir, lines) {
+async function runMainSuite(workDir, lines, carried) {
   // Playwright would take whatever serves there for the build it has just been asked for.
   const url = execFileSync(
     "node",
@@ -568,6 +609,7 @@ async function runMainSuite(workDir, lines) {
       STORYBOARD_RUN_AT: runAt,
       STORYBOARD_TREE: git("rev-parse", `${base}^{tree}`),
       STORYBOARD_SETUP: setupOf(MAIN_WORKTREE),
+      ...carryEnv(workDir, carried),
       // This checkout's file, so how far main's run is shows where the review was started
       // (tests/storyboard/report/progress.ts).
       STORYBOARD_PROGRESS: resolve("test-results", "storyboard-progress.json"),
@@ -607,13 +649,17 @@ async function mainFromStore(workDir, wanted) {
         keepRuns(STORE, tree, workDir, [], Object.fromEntries(listFlows([], MAIN_WORKTREE, mainEnv())));
         lookAgain();
       }
+      // The gallery's flows main pictures in part, each with the frames it carries from the nearest kept tree.
+      let inPart = new Map();
       if (missing.length > 0 && !options.freshMain) {
         const near = carryFromNearest(tree, missing);
         if (near.from) {
+          const part = near.carried.size > 0 ? `, and ${near.carried.size} of the gallery's in part` : "";
           console.log(
-            `\n▶ Storyboard: main's frames of ${missing.length - near.run.length} flows carried from the kept tree ${near.from.slice(0, 12)}, as the change from it can't reach them.\n`,
+            `\n▶ Storyboard: main's frames of ${missing.length - near.run.length} flows${part} carried from the kept tree ${near.from.slice(0, 12)}, as the change from it can't reach them.\n`,
           );
           missing = near.run;
+          inPart = near.carried;
         }
       }
       if (missing.length > 0) {
@@ -628,16 +674,16 @@ async function mainFromStore(workDir, wanted) {
         await runMainSuite(
           workDir,
           missing.map((key) => kept.flows[key]),
+          inPart,
         );
         const ran = join(workDir, "main-run");
         // Main may not have got as far as a flow: its build failing, say.
-        if (existsSync(join(ran, "frames.json")))
-          await reportMisses(
-            carriedBefore,
-            keepRuns(STORE, tree, workDir, readJson(join(ran, "frames.json")).frames),
-            tree,
-            workDir,
+        if (existsSync(join(ran, "frames.json"))) {
+          const filled = fillCarried(readJson(join(ran, "frames.json")), inPart, workDir, "main-run", (frame) =>
+            picturePath(STORE, frame.picture),
           );
+          await reportMisses(carriedBefore, keepRuns(STORE, tree, workDir, filled.frames), tree, workDir);
+        }
         rmSync(ran, { recursive: true, force: true });
         kept = readTree(STORE, tree);
       }
@@ -792,7 +838,7 @@ if (options.plan) {
     );
   } else {
     console.log(planSummary(chosen, suite.size));
-    for (const key of [...chosen.run].sort()) console.log(`  ${key}`);
+    for (const key of [...chosen.run].sort()) console.log(`  ${planLine(chosen, key)}`);
   }
   process.exit(0);
 }
@@ -814,6 +860,9 @@ let wanted;
 let chosenArgs = [];
 if (chosen) {
   console.log(`\n▶ ${planSummary(chosen, suite.size)}${nothing ? "" : " --full runs every one."}\n`);
+  for (const key of chosen.carried.keys())
+    if (!spot.some((check) => check.key === key))
+      console.log(`▶ Storyboard: ${planLine(chosen, key)}, the rest carried.`);
   if (spot.length > 0) console.log(`▶ Storyboard: and ${spot.length} of the rest, to check they look as carried.\n`);
   const keys = [...chosen.run, ...spot.map((check) => check.key)];
   wanted = new Map([...suite].filter(([key]) => keys.includes(key)));
@@ -861,14 +910,22 @@ if (!builtHere && !nothing)
 
 // Each flow records the tree it ran on only when the build is that tree's.
 const stamps = { STORYBOARD_TREE: builtHere ? treeBefore : "", STORYBOARD_SETUP: setupOf(process.cwd()) };
-let code = nothing ? 0 : runSuite("branch", options.server ?? LOCAL_URL, stamps, chosenArgs);
+// The gallery's flows it pictures in part, but those it spot-checks, which it runs whole: each with the frames it
+// carries from the run it chose.
+const spotted = new Set(spot.map((check) => check.key));
+const inPart = new Map([...(chosen?.carried ?? [])].filter(([key]) => !spotted.has(key)));
+let code = nothing
+  ? 0
+  : runSuite("branch", options.server ?? LOCAL_URL, { ...stamps, ...carryEnv(runDir, inPart) }, chosenArgs);
+if (inPart.size > 0 && existsSync(branchFrames))
+  writeJson(branchFrames, fillCarried(readJson(branchFrames), inPart, runDir, "branch", carriedPicture(chosen.source)));
 
 // The flows run only to check them: if one looks different from what would have been carried, the map
-// missed something, and every other flow runs too.
+// missed something, and every other flow runs too, the gallery's it pictured in part whole.
 const missed = spot.length > 0 && existsSync(branchFrames) ? await spotMisses(spot) : [];
 if (missed.length > 0) {
   console.log(`\n▶ ${missedSummary(missed, chosen.changed)}\n`);
-  const rest = [...suite.keys()].filter((key) => !wanted.has(key));
+  const rest = [...suite.keys()].filter((key) => !wanted.has(key) || inPart.has(key));
   code = runSuite("branch", options.server ?? LOCAL_URL, stamps, [testList(rest)]) || code;
 }
 

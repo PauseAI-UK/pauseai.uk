@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";
@@ -9,8 +10,10 @@ export const section: Section = { name: "Component gallery", part: "Tools and ch
 // beside main's, even one no other flow reaches. A frame is one component's
 // section, not the group's whole page: a component that grows a line moves
 // every one below it, and a picture of the page would differ all the way
-// down. Pressing things is the other flows' job, and the examples' own
-// Vitest tests'.
+// down. So too a frame can be carried from an earlier run on its own: a
+// review pictures only the components its change can reach, and loads and
+// checks the whole page still. Pressing things is the other flows' job, and
+// the examples' own Vitest tests'.
 
 // Each group of the gallery, in its order. A new group fails the first test
 // until it's here.
@@ -109,9 +112,27 @@ for (const group of GROUPS) {
     // A frame per component, so a group's flow takes as long as the group is big: the staff kit has fifty. Its
     // time limit grows with it, as a flat one is passed on a busy machine by the biggest group alone.
     test.setTimeout(60_000 + headings.length * 3_000);
+    const carry = carriedFrames(`${test.info().project.name}|gallery|gallery: ${group}`);
     for (const [i, { name, file }] of headings.entries()) {
       const shared = headings.filter((other) => other.name === name).length > 1;
-      await frame(page, shared ? `${name} (${file})` : name, { of: sections.nth(i) });
+      const caption = shared ? `${name} (${file})` : name;
+      // Each frame the review carries, once: two components may share a caption and a file.
+      const at = carry.findIndex((carried) => carried.caption === caption && carried.file === file);
+      const carried = at !== -1 && carry.splice(at, 1).length > 0;
+      await frame(page, caption, { of: sections.nth(i), file, carried });
     }
   });
+}
+
+/**
+ * The frames of the flow `key` that the review carries from the run it
+ * chose, rather than picturing them again, as the change can't reach them:
+ * STORYBOARD_CARRY names a file of them by flow (scripts/storyboard.mjs).
+ * Every other frame is pictured, a component new to the group too.
+ */
+function carriedFrames(key: string): { caption: string; file: string }[] {
+  const file = process.env.STORYBOARD_CARRY;
+  if (!file) return [];
+  const all = JSON.parse(readFileSync(file, "utf8")) as Record<string, { caption: string; file: string }[]>;
+  return [...(all[key] ?? [])];
 }

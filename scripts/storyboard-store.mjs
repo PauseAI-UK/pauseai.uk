@@ -206,6 +206,38 @@ export function linkFlows(store, kept, wanted, runDir, side = "main") {
   return { frames };
 }
 
+/**
+ * Fills in the frames of `manifest` (a run's frames.json) that the run
+ * carried and didn't picture (`carried`, tests/storyboard/frame.ts), from
+ * `carried`, the frames of the run they're carried from by flow
+ * (flowsToRun's), each the first of its flow's with the same caption and
+ * file. `pictureOf` gives where one of those frames' picture is. Each goes
+ * into `runDir` under `side`, where the reporter puts a picture, with the
+ * placeholders it pictures. Returns the manifest, filled in.
+ */
+export function fillCarried(manifest, carried, runDir, side, pictureOf) {
+  return {
+    ...manifest,
+    frames: manifest.frames.map((run) => {
+      const from = [...(carried.get(flowKey(run)) ?? [])];
+      return {
+        ...run,
+        frames: run.frames.map((frame, at) => {
+          if (!frame.carried) return frame;
+          const { carried: _, ...rest } = frame;
+          void _;
+          const found = from.findIndex((f) => f.caption === frame.caption && f.file === frame.file);
+          if (found === -1) throw new Error(`${flowKey(run)} carried "${frame.caption}", which it wasn't given.`);
+          const [source] = from.splice(found, 1);
+          const png = join(side, "frames", flowFolder(run), `frame-${at + 1}.png`);
+          place(pictureOf(source), join(runDir, png));
+          return { ...rest, png, ...(source.placeholders ? { placeholders: source.placeholders } : {}) };
+        }),
+      };
+    }),
+  };
+}
+
 /** Marks `tree` as used now, so pruneStore keeps it longest. */
 export function touchTree(store, tree, now = new Date(), platform = process.platform) {
   const file = treeFile(store, tree, platform);

@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   carryKept,
+  fillCarried,
   flowFolder,
   keepRuns,
   keptTrees,
@@ -229,6 +230,67 @@ describe("linkFlows", () => {
     const kept = keepRuns(store, "t1", runDir, [run("log in", "one")]);
     rmSync(join(store, "pictures"), { recursive: true });
     expect(linkFlows(store, kept, new Set([key("log in")]), join(dir, "review")).frames).toEqual([]);
+  });
+});
+
+describe("fillCarried", () => {
+  const placeholders = [{ text: "Words to approve", boxes: [] }];
+  /** The pictures of the run carried from, each a file of `contents` in a folder of its own. */
+  const source = (caption: string, file: string, contents: string, extra = {}) => {
+    const png = join(dir, "source", `${contents}.png`);
+    mkdirSync(dirname(png), { recursive: true });
+    writeFileSync(png, contents);
+    return { caption, file, png, ...extra };
+  };
+  const gallery = (frames: { caption: string; file: string; png?: string; carried?: boolean }[]) => ({
+    section: "gallery",
+    flow: "gallery: kit",
+    viewport: "desktop",
+    line: 1,
+    status: "passed" as const,
+    frames,
+  });
+
+  it("fills in each frame a run carried with the picture of the run carried from, by caption and file", () => {
+    const carried = new Map([
+      [
+        "desktop|gallery|gallery: kit",
+        [
+          source("Card", "Grid.tsx", "card one"),
+          source("Card", "Grid.tsx", "card two", { placeholders }),
+          source("Band", "Band.tsx", "band"),
+        ],
+      ],
+    ]);
+    const manifest = {
+      frames: [
+        gallery([
+          { caption: "Band", file: "Band.tsx", carried: true },
+          { caption: "Tabs", file: "Tabs.tsx", png: "branch/frames/tabs.png" },
+          { caption: "Card", file: "Grid.tsx", carried: true },
+          { caption: "Card", file: "Grid.tsx", carried: true },
+        ]),
+        run("log in"),
+      ],
+    };
+    const filled = fillCarried(manifest, carried, runDir, "branch", (frame) => frame.png);
+    const folder = "branch/frames/gallery-desktop-gallery-kit";
+    expect(filled.frames[0].frames).toEqual([
+      { caption: "Band", file: "Band.tsx", png: `${folder}/frame-1.png` },
+      { caption: "Tabs", file: "Tabs.tsx", png: "branch/frames/tabs.png" },
+      { caption: "Card", file: "Grid.tsx", png: `${folder}/frame-3.png` },
+      { caption: "Card", file: "Grid.tsx", png: `${folder}/frame-4.png`, placeholders },
+    ]);
+    expect(filled.frames[1]).toEqual(manifest.frames[1]);
+    expect(readFileSync(join(runDir, folder, "frame-1.png"), "utf8")).toBe("band");
+    expect(readFileSync(join(runDir, folder, "frame-4.png"), "utf8")).toBe("card two");
+  });
+
+  it("fails on a frame carried that it wasn't given", () => {
+    const manifest = { frames: [gallery([{ caption: "Band", file: "Band.tsx", carried: true }])] };
+    expect(() => fillCarried(manifest, new Map(), runDir, "branch", () => "")).toThrow(
+      'desktop|gallery|gallery: kit carried "Band", which it wasn\'t given.',
+    );
   });
 });
 

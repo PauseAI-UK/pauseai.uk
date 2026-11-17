@@ -334,13 +334,84 @@ export function routeFiles(routes, path) {
  */
 const GALLERY_EXAMPLES = "app/(tools)/gallery/_examples/index.ts";
 
-function flowGraph(graph, run) {
+/** A gallery flow's group's own files of examples (`_examples/forms.tsx` and `forms.client.tsx`), if it has any. */
+function groupFiles(graph, run) {
   const group = run.section === "gallery" ? /^gallery: (.+)$/.exec(run.flow)?.[1] : undefined;
-  const own = (group ? (graph.get(GALLERY_EXAMPLES) ?? []) : []).filter(
+  return (group ? (graph.get(GALLERY_EXAMPLES) ?? []) : []).filter(
     (path) => /([^/]+?)(\.client)?\.tsx?$/.exec(path)?.[1] === group,
   );
-  return own.length > 0 ? new Map([...graph, [GALLERY_EXAMPLES, own]]) : graph;
 }
+
+/**
+ * The graph a flow's reach is worked out on: a gallery group's flow's
+ * narrowed to its own examples, less, from them, the imports of `cut`.
+ */
+function flowGraph(graph, run, cut = new Set()) {
+  const own = groupFiles(graph, run);
+  if (own.length === 0) return graph;
+  const narrowed = new Map([...graph, [GALLERY_EXAMPLES, own]]);
+  for (const path of own)
+    narrowed.set(
+      path,
+      (graph.get(path) ?? []).filter((to) => !cut.has(to)),
+    );
+  return narrowed;
+}
+
+/**
+ * Where each of a gallery group's frames comes from, so a change can be
+ * found to reach some of them and not the rest (docs/testing.md, "The
+ * component gallery"). Each frame records the file of the component it
+ * pictures (`file`), whose examples are in the file beside it,
+ * `Component.gallery.tsx`, when the group imports one: that's the frame's
+ * `root`, which reaches what the frame shows. A frame whose examples are in
+ * the group's own file has none. What the group's page reaches with every
+ * root taken out of the group's imports is the flow's `own` reach: the page,
+ * the group's own file, and what both import. A change there, or to a plain
+ * stylesheet, which applies to the whole page, can change any frame.
+ *
+ * Undefined for any other flow, and for one with a frame that recorded no
+ * file: a run from before frames recorded theirs.
+ */
+function galleryParts(run, context) {
+  const { graph } = context;
+  const own = groupFiles(graph, run);
+  const frames = run.frames ?? [];
+  if (own.length === 0 || frames.length === 0 || frames.some((frame) => !frame.file)) return undefined;
+  const imported = new Set(own.flatMap((path) => graph.get(path) ?? []));
+  const roots = frames.map((frame) => {
+    const beside = frame.file.replace(/\.tsx$/, ".gallery.tsx");
+    return beside !== frame.file && imported.has(beside) ? beside : undefined;
+  });
+  return { roots, own: flowReach(run, context, false, new Set(roots.filter(Boolean))) };
+}
+
+/** What a gallery frame's root reaches (galleryParts): it and what it imports, worked out once for a context. */
+function rootReach(context, root) {
+  context.roots ??= new Map();
+  if (!context.roots.has(root)) context.roots.set(root, closure(context.graph, [root]));
+  return context.roots.get(root);
+}
+
+/**
+ * The frames of a gallery flow that `hits`, the changed files in its reach,
+ * can't change, which a review carries from the run it chose rather than
+ * picturing again; undefined when they can change any of them, or the flow
+ * isn't one whose frames can be told apart (galleryParts), or none would be
+ * carried.
+ */
+function carriedFrames(run, context, hits) {
+  const parts = galleryParts(run, context);
+  if (!parts || hits.some((path) => plainStyles(path) || parts.own.has(path))) return undefined;
+  const reached = parts.roots.map(
+    (root) => root !== undefined && hits.some((path) => rootReach(context, root).has(path)),
+  );
+  const carried = run.frames.filter((frame, at) => !reached[at]);
+  return carried.length > 0 ? carried : undefined;
+}
+
+/** A plain stylesheet, not a CSS module: it applies wherever it's loaded, so it's reached through the imports as they are. */
+const plainStyles = (path) => path.endsWith(".css") && !path.endsWith(".module.css");
 
 /**
  * What every flow runs, whatever it opens: the build's settings and the
@@ -431,20 +502,25 @@ const answersByRun = new WeakMap();
  * the repo whose code ran in the flow some other way
  * (tests/storyboard/fixtures.ts: `instrumentation.ts`, when the server kept
  * an error).
+ *
+ * `whole` takes the imports as they are, for a plain stylesheet. `cut`, for
+ * a gallery group's flow, takes those files out of its group's imports
+ * (galleryParts).
  */
-export function flowReach(run, { graph, routes, root, reaches }, whole = false) {
+export function flowReach(run, { graph, routes, root, reaches }, whole = false, cut = undefined) {
+  const mode = whole ? "whole" : cut ? "own" : "flow";
   // A review asks this of every run for every changed file, so the run itself finds its answer, without
   // making the key below, which is as long as everything the flow opened.
   if (reaches && !answersByRun.has(reaches)) answersByRun.set(reaches, new WeakMap());
   const answers = reaches && answersByRun.get(reaches);
-  const answered = answers?.get(run)?.[whole];
+  const answered = answers?.get(run)?.[mode];
   if (answered) return answered;
   const keep = (files) => {
-    answers?.set(run, { ...answers.get(run), [whole]: files });
+    answers?.set(run, { ...answers.get(run), [mode]: files });
     return files;
   };
   // The same flow, having opened the same things, reaches the same files, whichever run it's from.
-  const cached = `${whole}|${run.section}|${run.flow}|${(run.opened ?? []).join("|")}`;
+  const cached = `${mode}|${run.section}|${run.flow}|${(run.opened ?? []).join("|")}|${[...(cut ?? [])].join("|")}`;
   if (reaches?.has(cached)) return keep(reaches.get(cached));
   const entries = [
     `tests/storyboard/${run.section}.spec.ts`,
@@ -457,7 +533,7 @@ export function flowReach(run, { graph, routes, root, reaches }, whole = false) 
       files.add(`public${path}`);
     else entries.push(...routeFiles(routes, path));
   }
-  for (const path of closure(whole ? graph : flowGraph(graph, run), entries)) files.add(path);
+  for (const path of closure(whole ? graph : flowGraph(graph, run, cut), entries)) files.add(path);
   reaches?.set(cached, files);
   return keep(files);
 }
@@ -518,13 +594,14 @@ export function reachContext(root) {
  * can reach; `addedOrDeleted` are those of them added or deleted. Returns:
  *
  * - `keys`, the flows reached;
+ * - `carried`, of those, the gallery's flows that the files reach only some
+ *   frames of, each with the frames of its run they can't change
+ *   (carriedFrames), by key;
  * - `everything`, the files that reach every flow, if any changed;
  * - `unknown`, the files the map can't place.
  */
 export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
   const { graph } = context;
-  // A plain stylesheet applies wherever it's loaded, so it's reached through the imports as they are (flowReach).
-  const plainStyles = (path) => path.endsWith(".css") && !path.endsWith(".module.css");
   // The files whose flows are reached, each run then checked once against all of them, below.
   const reaching = new Set();
   const reachThrough = (paths) => paths.forEach((path) => reaching.add(path));
@@ -567,9 +644,16 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
   // flow anyway, as a new migration does: how far that goes is flowsToRun's to say.
   for (const path of addedOrDeleted) if (!EVERYTHING.some((re) => re.test(path))) reachThrough(listers(context, path));
   const paths = [...reaching];
-  for (const run of runs)
-    if (paths.some((path) => flowReach(run, context, plainStyles(path)).has(path))) keys.add(run.key);
-  return { keys, everything, unknown };
+  const carried = new Map();
+  for (const run of runs) {
+    if (keys.has(run.key)) continue;
+    const hits = paths.filter((path) => flowReach(run, context, plainStyles(path)).has(path));
+    if (hits.length === 0) continue;
+    keys.add(run.key);
+    const frames = carriedFrames(run, context, hits);
+    if (frames) carried.set(run.key, frames);
+  }
+  return { keys, carried, everything, unknown };
 }
 
 /**
@@ -594,7 +678,9 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
  * files changed since then are what can have reached it since, as those
  * before were found not to. `changedSince(tree)` gives the files changed
  * since `tree`, and those of them added or deleted. Returns the keys to run, and why,
- * for the run to say.
+ * for the run to say, and `carried`: of the gallery flows to run, those a
+ * change reaches only some frames of, each with the frames of its run that
+ * it needn't picture again (reachedFlows).
  */
 export function flowsToRun({ suite, carried, phoneTagged, context, setup, changedSince }) {
   const byKey = new Map(carried.map((run) => [run.key, run]));
@@ -617,6 +703,7 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
   const changed = new Set();
   const reached = new Set();
   const swept = new Set();
+  const inPart = new Map();
   for (const [tree, runs] of trees) {
     const since = changedSince(tree);
     if (!since) {
@@ -629,6 +716,7 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
     for (const file of found.everything) everything.add(file);
     for (const file of found.unknown) unknown.add(file);
     for (const key of found.keys) reached.add(key);
+    for (const [key, frames] of found.carried) inPart.set(key, frames);
     if (found.everything.length > 0)
       for (const { key } of runs) if (key.startsWith("desktop|") || phoneTagged.has(key)) swept.add(key);
   }
@@ -636,8 +724,10 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
   for (const key of [...reached, ...swept]) run.add(key);
   // A file the map can't place: every flow, on both viewports.
   if (unknown.size > 0) for (const key of suite) run.add(key);
+  // Only what nothing else makes run whole: a file that reaches everything, or one the map can't place.
   return {
     run,
+    carried: new Map(unknown.size > 0 ? [] : [...inPart].filter(([key]) => !swept.has(key))),
     fresh,
     reached: reached.size,
     swept: swept.size,
