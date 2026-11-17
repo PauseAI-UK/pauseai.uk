@@ -112,7 +112,7 @@ arriving (`tests/storyboard/whatsapp-steps.ts`) show the same fold.
 4. **Writer** (`BroadcastWriter`): a link field, the button's label, the
    picture in the preview; the fold in `TextBubble`.
 5. **Copy**: the field labels, the button label's default, the message
-   when a page has no usable image, as ⁂ placeholders to be approved.
+   when a page has no usable image, as placeholders to be approved.
 6. **Storyboard**: a flow writing a text with a link, its card and fold
    in the preview, and the text as it arrives.
 7. **Docs**: `docs/development.md`, "WhatsApp", for `WHATSAPP_APP_ID`.
