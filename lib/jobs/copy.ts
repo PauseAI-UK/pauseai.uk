@@ -226,6 +226,6 @@ export const jobsCopy = {
     // The CiviCRM import: some contacts' phone numbers couldn't be read as numbers, so they came in without them.
     // How many follows.
     civicrmNumbersUnread:
-      "⁂ Some contacts' phone numbers couldn't be read, so they came in without them. Fix them in CiviCRM:",
+      "Some contacts' phone numbers were badly formatted, so they were imported without them. Fix them in CiviCRM:",
   },
 };
