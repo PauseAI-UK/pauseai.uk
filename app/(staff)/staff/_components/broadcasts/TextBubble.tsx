@@ -152,7 +152,7 @@ function Blocks({ blocks }: { blocks: MailingBlock[] }) {
 }
 
 /** The card WhatsApp shows at the top of a text for its link: the page's title, a line of its description, its site. */
-export function LinkCardView({ card }: { card: LinkCard }) {
+function LinkCardView({ card }: { card: LinkCard }) {
   return (
     <div className={styles.linkCard}>
       <strong className={styles.cardTitle}>{card.title}</strong>

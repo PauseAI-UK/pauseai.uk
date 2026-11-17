@@ -1,7 +1,7 @@
 // TextBubble in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { exampleLinkCard, exampleWhatsAppWords } from "./BroadcastWriter.examples";
-import TextBubble, { ChatBubble, ChatWall, LinkCardView, LinkedText, TextWords } from "./TextBubble";
+import TextBubble, { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 
 export const textBubbleGallery: Example[] = [
@@ -26,16 +26,6 @@ export const textBubbleGallery: Example[] = [
             time="07:18"
           />
         ),
-      },
-    ],
-  },
-  {
-    name: "LinkCardView",
-    file: "app/(staff)/staff/_components/broadcasts/TextBubble.tsx",
-    variants: [
-      {
-        label: "The card for a text's link",
-        render: () => <LinkCardView card={exampleLinkCard} />,
       },
     ],
   },
