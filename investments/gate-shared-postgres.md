@@ -13,12 +13,13 @@ What's known, from runs on 17 November 2026 in the dev container (14 cores, Post
 - `npm test`'s node tests alone take 39s; under CPU load (about 52) 114s; with seven workers copying and dropping databases beside them 135s, and all pass.
 - Beside CI's storyboard (every flow, no pictures) at a load of about 27, they pass in 61s. Sampled every 2s, the only queries held over a second were drops waiting on `CheckpointDone`, up to 4.6s.
 - With 20 more busy threads on top, a load of about 47, the same pair passed, the node tests in 131s; the longest drop waited 10.3s. So a failure needs more than that: a review taking pictures, say, or another worktree's checks too.
+- At a load of about 100 (those 20 busy threads, three `npm test` runs in other worktrees and two storyboard reviews), the gate failed: six tests in `npm test` hit their 10s limits, `lib/email/email.server.test.ts` was stopped after 5 minutes, and the backup tests timed out at 60s. Twelve drops at once had waited 12 to 25s on `CheckpointDone`. So the failures do come from drops waiting on checkpoints once the machine is busy enough.
 - Keeping every database until the end of each run, to drop them together, made it worse: with no drops for minutes, the writes built up, and a single drop (in `netlify/database/migrations.test.ts`) waited 63s on its checkpoint, failing two tests. So dropping less often isn't the fix. Neither is copying with no drops at all: seven workers copying unchecked failed five tests.
 - A checkpoint on an idle server takes milliseconds even with 300 databases kept, so it's the load that makes one slow, not the number of databases.
 
 ## Fix
 
-Not known yet. Reproduce a failure at the loads the hits saw (40 to 73: a review with pictures, and another worktree's checks), then find what the checkpointer waits on: the bgwriter's settings, a lower `checkpoint_completion_target`, or the gate running the backup tests and `npm test` after the storyboard's build rather than beside it. Whatever's tried, measure the longest drop beside a real storyboard before and after, as above.
+Not known yet. A failure reproduces at a load of about 100 (above); find what the checkpointer waits on: the bgwriter's settings, a lower `checkpoint_completion_target`, or the gate running the backup tests and `npm test` after the storyboard's build rather than beside it. Whatever's tried, measure the longest drop beside a real storyboard before and after, as above.
 
 ## Hits
 
