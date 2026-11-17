@@ -45,6 +45,11 @@ const EXCEPTIONS = new Map([
   ["lib/supporters/signup-csv.ts  signupFileText", "a file that isn't UTF-8 is an answer: it's read as Windows-1252"],
   // What's typed as a link that the URL parser refuses is no link: the catch is the question.
   ["lib/letters/format.ts  linkHref", "text that isn't a web address is an answer: it's no link"],
+  // CiviCRM's refusal that isn't JSON is said as it came: the catch is the question.
+  [
+    "lib/server/outside-services/civicrm.server.ts  said",
+    "an answer that isn't JSON is an answer: it's said as it came",
+  ],
 ]);
 
 /**
