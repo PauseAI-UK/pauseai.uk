@@ -1,7 +1,7 @@
 # Links to the march sign-up
 
 The march sign-up is at pauseai.uk/demonstrations/march-against-ai-extinction-nov-26. The short link pauseai.uk/march
-redirects there and keeps the tags, so it's the one to give out.
+redirects there and keeps the tags, so it's the one to give out. pauseai.uk/march-against-ai-extinction does the same.
 
 Every tracked link to the sign-up has one tag and nothing else: utm_source,
 a short code saying where the link came from. Google Analytics counts

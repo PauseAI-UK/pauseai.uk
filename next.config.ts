@@ -194,6 +194,8 @@ const nextConfig: NextConfig = {
       // The march's short link, keeping its utm_source. Temporary, so it can
       // point to the next march.
       { source: MARCH_SHORT_PATH, destination: MARCH_PATH, permanent: false },
+      // The march's name as a link, without the date, the same way.
+      { source: "/march-against-ai-extinction", destination: MARCH_PATH, permanent: false },
       // Old backlink used a space instead of a hyphen in the filename.
       // Source matches the raw request path, so the space must stay percent-encoded.
       { source: "/pdfs/Donor%20Prospectus.pdf", destination: "/pdfs/Donor-Prospectus.pdf", permanent: true },

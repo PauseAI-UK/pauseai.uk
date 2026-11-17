@@ -74,6 +74,12 @@ const REDIRECTS = [
     to: "/demonstrations/march-against-ai-extinction-nov-26",
     permanent: false,
   },
+  {
+    name: "the march's name as a link, to its page",
+    from: "/march-against-ai-extinction",
+    to: "/demonstrations/march-against-ai-extinction-nov-26",
+    permanent: false,
+  },
 ];
 
 for (const { name, from, to, permanent = true } of REDIRECTS) {
