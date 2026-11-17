@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { BRIEFINGS, briefings, type Briefing as BriefingData } from "@/lib/content/briefings";
+import { BRIEFINGS, findBriefing, type Briefing as BriefingData } from "@/lib/content/briefings";
 import Briefing from "./Briefing";
 import BriefingBox from "./BriefingBox";
 import BriefingCard from "./BriefingCard";
 import BriefingColumns from "./BriefingColumns";
+import BriefingFigure from "./BriefingFigure";
+import BriefingFlags from "./BriefingFlags";
+import BriefingInset from "./BriefingInset";
 import BriefingList from "./BriefingList";
 import BriefingMasthead from "./BriefingMasthead";
 import BriefingPicture from "./BriefingPicture";
@@ -14,6 +17,7 @@ import BriefingSheet from "./BriefingSheet";
 import BriefingSources from "./BriefingSources";
 import { Accent, Aside, Flag, Subhead } from "./BriefingText";
 import BudgetChart, { tickStep } from "./BudgetChart";
+import CommitmentsTable from "./CommitmentsTable";
 import KeyStories from "./KeyStories";
 import SignatoriesChart from "./SignatoriesChart";
 import WeekCalendar from "./WeekCalendar";
@@ -23,7 +27,7 @@ beforeEach(async () => {
   await page.viewport(1280, 900);
 });
 
-const BRIEFING = briefings[0];
+const BRIEFING = findBriefing("ai-news-weekly-briefing-23rd-30th-october")!;
 const STORIES = [
   { lead: "Monday: a filing.", body: "It filed." },
   { lead: "Wednesday: a budget.", body: "It spent." },
@@ -205,6 +209,127 @@ describe("BriefingQuote", () => {
     const sizes = quotes.map((quote) => parseFloat(getComputedStyle(quote).fontSize));
     expect(sizes[0]).toBeLessThan(sizes[1]);
     expect(sizes[1]).toBeLessThan(sizes[2]);
+  });
+
+  it("is the words alone when the briefing doesn't say who said them", async () => {
+    const { container } = await render(<BriefingQuote>“Unattributed”</BriefingQuote>);
+    expect([...container.querySelectorAll("blockquote p")].map((p) => p.textContent)).toEqual(["“Unattributed”"]);
+  });
+});
+
+describe("BriefingFigure", () => {
+  const figure = (
+    <BriefingSheet>
+      <BriefingBox title="Risks" tone="risk">
+        <BriefingFigure
+          src="/images/briefings/nvidia-chip-network.png"
+          alt="A diagram"
+          width={2048}
+          height={753}
+          cite={<sup>1,7</sup>}
+        />
+      </BriefingBox>
+    </BriefingSheet>
+  );
+
+  it("spans its box, the marks citing it under it at the right", async () => {
+    const { container } = await render(figure);
+    const box = container.querySelector("section")!.getBoundingClientRect();
+    const picture = page.getByRole("img", { name: "A diagram" }).element().getBoundingClientRect();
+    expect(picture.width).toBeGreaterThan(box.width - 60);
+    const marks = container.querySelector("figure > p")!.getBoundingClientRect();
+    expect(marks.top).toBeGreaterThanOrEqual(picture.bottom);
+    expect(picture.right - container.querySelector("sup")!.getBoundingClientRect().right).toBeLessThan(2);
+    const region = page.getByRole("region", { name: "A diagram" }).element() as HTMLElement;
+    expect(region.scrollWidth).toBe(region.clientWidth);
+  });
+
+  it("keeps its width on a phone, scrolling sideways", async () => {
+    await page.viewport(390, 800);
+    await render(figure);
+    const region = page.getByRole("region", { name: "A diagram" }).element() as HTMLElement;
+    expect(region.tabIndex).toBe(0);
+    expect(region.scrollWidth).toBeGreaterThan(region.clientWidth);
+  });
+});
+
+describe("BriefingFlags", () => {
+  it("shows each country's flag in a row, named", async () => {
+    await render(
+      <BriefingFlags
+        countries={[
+          { code: "fr", name: "France" },
+          { code: "no", name: "Norway" },
+        ]}
+      />,
+    );
+    const flags = page.getByRole("img").elements();
+    expect(flags.map((flag) => [flag.getAttribute("alt"), flag.getAttribute("title")])).toEqual([
+      ["France", "France"],
+      ["Norway", "Norway"],
+    ]);
+    expect(flags[0].getAttribute("src")).toContain("flags%2Ffr.png");
+    const [one, two] = flags.map((flag) => flag.getBoundingClientRect());
+    expect(two.left).toBeGreaterThan(one.right);
+    expect(two.top).toBe(one.top);
+  });
+});
+
+describe("BriefingInset", () => {
+  it("frames what's in it with dashes in its box's colour", async () => {
+    await render(
+      <BriefingBox title="Box" tone="international">
+        <BriefingInset>
+          <p>Apart</p>
+        </BriefingInset>
+      </BriefingBox>,
+    );
+    const inset = getComputedStyle(page.getByText("Apart").element().parentElement!);
+    expect(inset.borderTopStyle).toBe("dashed");
+    expect(inset.borderTopColor).toBe(token("--briefing-international"));
+  });
+});
+
+describe("CommitmentsTable", () => {
+  it("marks what each text commits to, naming each mark, with a verdict under each text", async () => {
+    const { container } = await render(
+      <BriefingBox title="Box" tone="international">
+        <CommitmentsTable
+          label="What each covers"
+          texts={[
+            { name: "A call", date: "9 Nov", verdict: { label: "NOT SIGNED", tone: "risk", dashed: true } },
+            { name: "A law", date: "10 Nov", verdict: { label: "LAW", tone: "diary" } },
+          ]}
+          rows={[
+            { name: "Reporting", commitments: ["yes", "part"] },
+            { name: "Shutdown", commitments: ["no", "yes"] },
+          ]}
+          meanings={{ yes: "in it", part: "partly", no: "not in it" }}
+          caption="The key"
+          cite={<sup>3</sup>}
+        />
+      </BriefingBox>,
+    );
+    const table = page.getByRole("table", { name: "What each covers" }).element();
+    expect([...table.querySelectorAll("thead th")].map((th) => th.textContent)).toEqual(["A call9 Nov", "A law10 Nov"]);
+    const rows = [...table.querySelectorAll("tbody tr")].map((row) => [
+      row.querySelector("th")!.textContent,
+      ...[...row.querySelectorAll("svg")].map((mark) => mark.getAttribute("aria-label")),
+    ]);
+    expect(rows).toEqual([
+      ["Reporting", "in it", "partly"],
+      ["Shutdown", "not in it", "in it"],
+    ]);
+    const verdicts = [...table.querySelectorAll("tfoot span")];
+    expect(verdicts.map((verdict) => verdict.textContent)).toEqual(["NOT SIGNED", "LAW"]);
+    expect(getComputedStyle(verdicts[0]).borderTopStyle).toBe("dashed");
+    expect(getComputedStyle(verdicts[0]).color).toBe(token("--briefing-risk"));
+    expect(getComputedStyle(verdicts[1]).borderTopStyle).toBe("solid");
+    expect(container.querySelector("figcaption")!.textContent).toBe("The key3");
+    // A text's column is framed in its box's colour.
+    const teal = token("--briefing-international");
+    expect(getComputedStyle(table.querySelector("thead th")!).borderTopColor).toBe(teal);
+    expect(getComputedStyle(table.querySelector("tbody tr:last-child td")!).borderBottomColor).toBe(teal);
   });
 });
 

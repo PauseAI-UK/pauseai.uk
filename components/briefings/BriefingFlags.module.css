@@ -1,0 +1,12 @@
+/* A row of flags under a story's heading (BriefingFlags). */
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 var(--space-1);
+}
+.flag {
+  display: block;
+  border-radius: 2px;
+}
