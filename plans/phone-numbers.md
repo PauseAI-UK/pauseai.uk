@@ -163,8 +163,11 @@ What it costs:
   copy of production's numbers that the counts of consents and of
   textable supporters are unchanged, but for the bad ones.
 - **Every import has to tidy first,** or the CHECK fails it. A Luma or
-  CiviCRM number that can't be tidied mustn't fail the whole import: it's
-  kept as NULL and counted on the run's page.
+  CiviCRM number that can't be tidied mustn't fail the whole import: the
+  person comes in as ever, with their email, name and consents, and only
+  their number is left out (NULL). The run's page counts them, so staff
+  can fix the number where it lives, in CiviCRM or Luma, and the next
+  import brings it in.
 - **Erasure's hashes** (`whatsapp_erased`) are of tidied numbers already,
   so they still match.
 
