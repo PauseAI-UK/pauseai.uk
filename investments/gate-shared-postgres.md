@@ -6,9 +6,19 @@ Size: S. Kind: small fix.
 
 The gate runs `npm test` beside the backup Worker's tests, against the same Postgres. In CI they're separate jobs with their own services. `npm test` creates and drops a database for each test file that needs one, and each `DROP DATABASE … WITH (FORCE)` waits for a checkpoint, so dozens queue at once (`CheckpointDone` in `pg_stat_activity`). The backup Worker's `worker/rules.test.ts` makes a database from the whole schema, which takes about 7 seconds alone, and has timed out at 60 seconds in the gate. Timing its steps in a loop while `npm test` ran gave a stall of about 84 seconds in one run and nothing over 9 seconds in the next, so the cause isn't pinned down.
 
+What's known, from runs on 17 November 2026 in the dev container (14 cores, Postgres 18 with `fsync`, `full_page_writes` and `synchronous_commit` off):
+
+- Each `DROP DATABASE` requests a checkpoint and waits for it: the server's `pg_stat_checkpointer` counted about 3,000 requested and none timed over 12 days. Drops that wait together share one: 20 at once took 97ms and two checkpoints.
+- The storyboard drops a database for every flow, and `npm test` one for every test file, so both keep checkpoints frequent and small.
+- `npm test`'s node tests alone take 39s; under CPU load (about 52) 114s; with seven workers copying and dropping databases beside them 135s, and all pass.
+- Beside CI's storyboard (every flow, no pictures) at a load of about 27, they pass in 61s. Sampled every 2s, the only queries held over a second were drops waiting on `CheckpointDone`, up to 4.6s.
+- With 20 more busy threads on top, a load of about 47, the same pair passed, the node tests in 131s; the longest drop waited 10.3s. So a failure needs more than that: a review taking pictures, say, or another worktree's checks too.
+- Keeping every database until the end of each run, to drop them together, made it worse: with no drops for minutes, the writes built up, and a single drop (in `netlify/database/migrations.test.ts`) waited 63s on its checkpoint, failing two tests. So dropping less often isn't the fix. Neither is copying with no drops at all: seven workers copying unchecked failed five tests.
+- A checkpoint on an idle server takes milliseconds even with 300 databases kept, so it's the load that makes one slow, not the number of databases.
+
 ## Fix
 
-Find what the backup test waits on during the stall, then either run the backup Worker's tests after `npm test` in the gate, or make `npm test` drop its databases without a checkpoint each.
+Not known yet. Reproduce a failure at the loads the hits saw (40 to 73: a review with pictures, and another worktree's checks), then find what the checkpointer waits on: the bgwriter's settings, a lower `checkpoint_completion_target`, or the gate running the backup tests and `npm test` after the storyboard's build rather than beside it. Whatever's tried, measure the longest drop beside a real storyboard before and after, as above.
 
 ## Hits
 
