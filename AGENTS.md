@@ -150,6 +150,10 @@ After every storyboard review of a branch with placeholders, run `npm run copy` 
 
 Anyone can read this repo and its history, so nothing private goes in it: not in code, tests, fixtures, docs, plans or commit messages. That means no supporter's, volunteer's or constituent's name, email, phone number, postcode or address, no text of their letters or emails, and no secrets or tokens. When an example needs a person, make one up (Jane Smith, jane.smith@example.com). Real data you look at while working, from the database, Gmail, Postmark or Airtable, stays in `tmp/`, which is gitignored, or the scratchpad. Public figures in their public role, such as an MP and their office address, are fine.
 
+## WhatsApp: Meta's docs only
+
+The site talks to Meta's Cloud API directly (`lib/server/outside-services/whatsapp.server.ts`), so for anything about WhatsApp read Meta's own developer docs, never a reseller's (360dialog, Bird, Twilio and the like), whose pages describe their own services. Meta's pages are built in the browser, so they fetch empty; add `.md` to a page's address to get its text, e.g. `curl -sL https://developers.facebook.com/documentation/business-messaging/whatsapp/link-previews.md`. If Meta's docs don't say, say so, and test it with a real send.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
