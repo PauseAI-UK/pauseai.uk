@@ -23,8 +23,11 @@ export const STATE_TONES: Record<string, StateTone> = {
   delivered: "green",
 };
 
-/** The states of those that didn't go; the rest went, or are still to go. */
+/** The states of those that didn't go. */
 export const DIDNT_GO = new Set(["error", "unreached", "not-sent"]);
+
+/** The states of a broadcast's copies still to go: held by WhatsApp, or waiting their turn. */
+export const STILL_TO_GO = new Set(["held", "to-go"]);
 
 /** Why a mailing skipped a recipient: their address blocked, out of office, or in office with no address. */
 export type SkipReason = "blocked" | "left-office" | "no-email";

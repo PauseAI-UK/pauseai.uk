@@ -47,8 +47,8 @@ export function BroadcastChannelMark({ channel }: { channel: BroadcastChannel })
 /**
  * How its copies stand, a count for each state (COPY_STATES), in the order
  * it happens: what went and arrived, what was read and replied to, what's
- * to check, who opted out because of it; then what didn't go, the expected
- * first. Each is the colour of its recipients'
+ * to check, who opted out because of it; then what's still to go; then what
+ * didn't go, the expected first. Each is the colour of its recipients'
  * tags. Only texts are said to be read, so an email's read is none, and a
  * count of none isn't shown.
  */
@@ -60,6 +60,9 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
     "replied",
     "look",
     "opted-out",
+    // Those still to go: waiting their turn, then held by WhatsApp.
+    "to-go",
+    "held",
     // Those that didn't go: not sent, as expected, first; then what went wrong.
     "not-sent",
     "error",
@@ -143,6 +146,7 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
           <span className={styles.stack}>
             <CopyStatus copyOf={r} />
             {r.sentAt && <Muted>{staffDate(r.sentAt)}</Muted>}
+            {r.heldTill && <Muted>{copy.heldTill(staffDate(r.heldTill))}</Muted>}
             {copyWent(r) && (
               <StaffLink href={`/staff/broadcasts/${broadcast.id}/${r.copyId}`}>{copy.threadLink}</StaffLink>
             )}

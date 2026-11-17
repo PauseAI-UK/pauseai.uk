@@ -82,8 +82,10 @@ const UNFINISHED = `EXISTS (SELECT 1 FROM broadcast_message_events e
  * refused it, its send cut off, its broadcast gave up); it didn't reach them
  * (a bounce, or a number found not on WhatsApp); not sent, as expected (they'd
  * opted out before, their consent ended, an address already blocked, we
- * cancelled); replied; read; delivered; sent. Still to go: scheduled, or
- * sending. Each count and tab on a broadcast's page is one of these.
+ * cancelled); replied; read; delivered; sent; or still to go: held, as
+ * WhatsApp turned it away till the person has had fewer marketing messages
+ * (holdCopy, in sending.server.ts), or to go, its turn yet to come or being
+ * sent. Each count and tab on a broadcast's page is one of these.
  */
 export const COPY_STATES = [
   "look",
@@ -95,12 +97,19 @@ export const COPY_STATES = [
   "read",
   "delivered",
   "sent",
+  "held",
+  "to-go",
 ] as const;
-export type CopyState = (typeof COPY_STATES)[number] | "scheduled" | "sending";
+/** A copy's state, or, for one of a broadcast not yet sending, which has no copies, scheduled (scheduledRecipients). */
+export type CopyState = (typeof COPY_STATES)[number] | "scheduled";
+
+// Held by WhatsApp: put back to go no sooner than a time still to come.
+const HELD = "c.status = 'scheduled' AND c.not_before > now()";
 
 const COPY_STATE = `CASE
   WHEN ${TO_LOOK_AT} THEN 'look'
-  WHEN c.status IN ('scheduled', 'sending') THEN c.status
+  WHEN ${HELD} THEN 'held'
+  WHEN c.status IN ('scheduled', 'sending') THEN 'to-go'
   WHEN c.status IN ('sent', 'delivered') AND ${OPTED_OUT} THEN 'opted-out'
   WHEN (c.status = 'failed' AND NOT ${BOUNCED}) OR (c.status = 'cancelled' AND ${STOPPED_BY} IS NOT NULL) THEN 'error'
   WHEN c.status = 'failed' OR (c.skip_reason = 'not-on-whatsapp' AND ${FOUND_UNREACHABLE}) THEN 'unreached'
@@ -191,6 +200,8 @@ export type MessageRecipient = {
   status: string;
   skipReason: string | null;
   sentAt: Date | null;
+  /** When one WhatsApp held is next tried (HELD); null for the rest. */
+  heldTill: Date | null;
   /** Where it stands (COPY_STATE), and why, where that state has one (COPY_WHY). */
   state: CopyState;
   why: string | null;
@@ -351,7 +362,7 @@ export async function broadcastPageData(
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-         ${COPY_STATE} AS state, ${COPY_WHY} AS why
+         CASE WHEN ${HELD} THEN c.not_before END AS "heldTill", ${COPY_STATE} AS state, ${COPY_WHY} AS why
        ${from} ORDER BY ${TO_LOOK_AT} DESC, (c.merge_values ->> 'name') COLLATE english NULLS LAST, c.id
        LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE],
@@ -399,6 +410,7 @@ async function scheduledRecipients(
       status: "scheduled" as const,
       skipReason: null,
       sentAt: null,
+      heldTill: null,
       state: "scheduled" as const,
       why: null,
     }));

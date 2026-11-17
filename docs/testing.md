@@ -953,6 +953,7 @@ that drives it or why nothing does.
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
   - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
+  - a text partly sent, its copies still to go counted apart: one held by WhatsApp, with when it's tried again, and one waiting its turn, made in the database as sending would leave them;
   - an email sent by the sending job, by hello@'s Gmail, and a copy as the supporter gets it, with its unsubscribe link;
   - an email with more copies than hello@'s Gmail can send today: some sent and the rest tomorrow, then stopped three days after its time, with the email saying so, and set going again by Resume sending;
   - one waiting for CiviCRM, with the email saying so and its page;

@@ -2,7 +2,7 @@
 // (lib/letters/copy-states.ts): each copy's one tag, and the counts of each state,
 // in the colours of their tags (docs/style-guide.md, "Status colours").
 import Tag from "@/components/ui/Tag";
-import { DIDNT_GO, STATE_TONES, type StateTone } from "@/lib/letters/copy-states";
+import { DIDNT_GO, STATE_TONES, STILL_TO_GO, type StateTone } from "@/lib/letters/copy-states";
 import type { Count } from "../ui/Counts";
 import { lettersCopy } from "./copy";
 
@@ -16,10 +16,15 @@ export function stateCounts<K extends string>(states: Record<K, number>, keys: K
   return keys.map((key) => ({ key, n: states[key], label: words.counts[key]!, tone: STATE_TONES[key] ?? "grey" }));
 }
 
-/** Counts in two groups, each under its total: those that went, then those that didn't (DIDNT_GO). */
+/**
+ * Counts in groups, each under its total: those that went, those still to go
+ * (STILL_TO_GO), then those that didn't (DIDNT_GO).
+ */
 export function wentAndGone(counts: Count[]): CountGroup[] {
+  const went = (count: Count) => !DIDNT_GO.has(count.key) && !STILL_TO_GO.has(count.key);
   return [
-    { key: "went", label: words.groups.went, counts: counts.filter((count) => !DIDNT_GO.has(count.key)) },
+    { key: "went", label: words.groups.went, counts: counts.filter(went) },
+    { key: "to-go", label: words.groups.toGo, counts: counts.filter((count) => STILL_TO_GO.has(count.key)) },
     { key: "gone", label: words.groups.gone, counts: counts.filter((count) => DIDNT_GO.has(count.key)) },
   ];
 }
