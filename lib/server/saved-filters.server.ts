@@ -13,6 +13,7 @@ import { valuesOf, type ParamValue, type Params } from "@/lib/list-params";
 import { logChange } from "./audit.server";
 import { query, transaction, type Queryable } from "./db.server";
 import { filterProblems } from "./stored-filters.server";
+import { isInternational, phoneWords } from "@/lib/phone";
 
 // Filters staff have saved on a list, shared with everyone who can open it,
 // who can each change or delete any of them. Each is read and changed only
@@ -176,10 +177,12 @@ function paramsWithout(params: Params, details: string[]): Params {
  * Takes supporter `id`'s names, emails, phone numbers and postcodes out of
  * every saved filter's name and typed parameters, as `by`, in an erasure's
  * transaction, before their records go. It matches each exactly, ignoring
- * case, so a misspelling or part of a name stays.
+ * case, so a misspelling or part of a name stays; a UK number as people
+ * write it too (phoneWords()), with its spaces or without, as staff search
+ * by it so.
  */
 export async function eraseFromSavedFilters(id: number, by: string, db: Queryable): Promise<void> {
-  const [{ details }] = await query<{ details: string[] }>(
+  const [{ details: found }] = await query<{ details: string[] }>(
     `SELECT coalesce(array_agg(DISTINCT lower(trim(d))), '{}') AS details FROM (
        SELECT name AS d FROM supporter_identity WHERE supporter_id = $1
        UNION SELECT email FROM supporter_identity WHERE supporter_id = $1
@@ -189,6 +192,8 @@ export async function eraseFromSavedFilters(id: number, by: string, db: Queryabl
     [id],
     db,
   );
+  const written = found.filter(isInternational).map(phoneWords);
+  const details = [...new Set([...found, ...written.flatMap((words) => [words, words.replace(/ /g, "")])])];
   const filters = await query<{ id: number; name: string; params: Params }>(
     "SELECT id::int AS id, name, params FROM saved_filters FOR UPDATE",
     [],

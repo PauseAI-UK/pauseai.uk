@@ -3,6 +3,7 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { recentChanges } from "@/lib/oversight/audit-log.server";
 import { query, transaction } from "./db.server";
+import { phoneNumber } from "@/lib/phone";
 import {
   createSavedFilter,
   deleteSavedFilter,
@@ -15,13 +16,13 @@ import {
 const JO = "jo@pauseai.uk";
 const SAM = "sam@pauseai.uk";
 
-/** Adds a supporter with these details, from a form entry, and returns their ID. */
+/** Adds a supporter with these details, from a form entry, its number kept as the form keeps it, and returns their ID. */
 async function addSupporter(name: string, email: string, phone: string, postcode: string): Promise<number> {
   const [{ id }] = await query<{ id: number }>("INSERT INTO supporters DEFAULT VALUES RETURNING id::int AS id");
   const [entry] = await query<{ id: number }>(
     `INSERT INTO form_entries (form, name, email, phone, postcode, contact_consent)
      VALUES ('march-2026-11', $1, $2, $3, $4, true) RETURNING id::int AS id`,
-    [name, email, phone, postcode],
+    [name, email, phoneNumber(phone), postcode],
   );
   await query(
     "INSERT INTO supporter_links (supporter_id, form_entry_id, matched_by, matched_value) VALUES ($1, $2, 'email', $3)",
@@ -167,6 +168,8 @@ describeWithDatabase("saved filters", () => {
     );
     const phone = await createSavedFilter("events", "07700 900123", { q: "07700 900123" }, SAM);
     const normalised = await createSavedFilter("politicians", "Calls", { q: "+447700900123" }, SAM);
+    // Kept in international format, the number is found as staff write it too, with its spaces or without.
+    const compact = await createSavedFilter("supporters", "Texts", { q: "07700900123" }, SAM);
     const nameOnly = await createSavedFilter("supporters", "jane smith", { q: " Jane Smith " }, SAM);
     await erase(jane);
     expect(await stored(byEmail)).toMatchObject({
@@ -181,6 +184,7 @@ describeWithDatabase("saved filters", () => {
     expect((await stored(phone)).name).toBe(staffVocabulary.filters.saved.erasedName);
     expect((await stored(phone)).params).toEqual({});
     expect((await stored(normalised)).params).toEqual({});
+    expect((await stored(compact)).params).toEqual({});
     expect((await stored(nameOnly)).params).toEqual({});
   });
 
