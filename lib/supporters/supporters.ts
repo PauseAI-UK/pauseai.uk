@@ -173,10 +173,15 @@ export type SupporterDetails = {
   mp: SupporterMp | null;
   identities: SupporterIdentity[];
   contacts: SupporterContact[];
+  /** The town of each WhatsApp group upload they're in that gave one: it's the upload's, not their form entry's. */
+  groupTowns: SupporterGroupTown[];
   activity: SupporterActivity[];
   /** Whether we may contact each of their addresses and numbers about each topic, and why. */
   permissions: ContactPermission[];
 };
+
+/** A WhatsApp group's town, from an upload of its members a supporter is in: the group's name, and when it was uploaded. */
+export type SupporterGroupTown = { town: string; group: string; at: Date };
 
 /** What the list can be sorted by, a column heading or the Sort by field, and which way a first click goes. */
 

@@ -2,6 +2,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import type { DevLoginChoice } from "@/lib/accounts/dev-login.server";
 import { DEV_LOGIN_PATH, NEXT_PARAM } from "@/lib/accounts/session";
+import StaffMember from "../ui/StaffMember";
 import styles from "./DevLogin.module.css";
 import { accountsCopy } from "./copy";
 
@@ -29,7 +30,7 @@ export default function DevLogin({ accounts, next }: { accounts: DevLoginChoice[
               <input type="hidden" name="email" value={email} />
               {next && <input type="hidden" name={NEXT_PARAM} value={next} />}
               <SubmitButton variant="ghost" size="small">
-                {email}
+                <StaffMember email={email} />
               </SubmitButton>
             </form>
             <Muted>{description}</Muted>

@@ -51,3 +51,68 @@
 .placeholder {
   color: var(--text-secondary);
 }
+
+/* As a disabled select. */
+.trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* A choice with facts: room around it, and a rule over each but the first. */
+li > button.rich {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2);
+}
+
+li + li > button.rich {
+  border-top: 1px solid var(--border);
+}
+
+/* Its name, bold, and its tag at the far end of the line. */
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.head > :last-child:not(.name) {
+  flex: none;
+}
+
+/* Each a line, never wrapping: cut off at the menu's edge. */
+.name,
+.words,
+.facts {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.words {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Its facts, on a line, a dot between each. */
+.facts {
+  color: var(--text-secondary);
+  font-size: var(--note-font-size);
+  font-weight: 400;
+}
+
+/* Over the choice at the menu's foot. */
+.rule {
+  margin: var(--space-1) 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}

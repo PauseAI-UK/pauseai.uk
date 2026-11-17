@@ -15,6 +15,7 @@ import {
   changeBroadcastConsent,
   changeBroadcastFilter,
   createBroadcastDraft,
+  deleteApprovedTemplate,
   getWrittenBroadcast,
   broadcastChangesFrom,
   resumeBroadcast,
@@ -25,6 +26,7 @@ import {
   submitTemplate,
   withdrawTemplate,
   type BroadcastScheduleResult,
+  type TemplateDeleteResult,
   type TemplateSubmitResult,
 } from "@/lib/broadcasts/drafts.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
@@ -184,6 +186,14 @@ export async function withdrawTemplateNow(id: number): Promise<boolean> {
   const withdrawn = await withdrawTemplate(id, email);
   revalidatePath(`${LIST}/${id}`);
   return withdrawn;
+}
+
+/** Deletes approved template `templateId` from WhatsApp, if no broadcast ever had it; says how it went. */
+export async function deleteTemplateNow(templateId: number): Promise<TemplateDeleteResult> {
+  const { email } = await requireStaff("supporters");
+  const result = await deleteApprovedTemplate(templateId, email);
+  revalidatePath(LIST, "layout");
+  return result;
 }
 
 /** Deletes the form's draft, then goes to the list of broadcasts. */

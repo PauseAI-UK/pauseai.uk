@@ -90,7 +90,7 @@ describe("EventsTable", () => {
     // The owner's address, not in bold, may break before its @, so the column takes little room.
     const cell = protest.getByRole("cell").nth(5).element();
     expect(cell.querySelector("strong")).toBeNull();
-    expect(cell.querySelector("span")!.innerHTML).toBe("joseph<wbr>@pauseai.uk");
+    expect(cell.querySelector("span span")!.innerHTML).toBe("joseph<wbr>@pauseai.uk");
     // To come with no owner: an error. With no doc: only a dash.
     await expect.element(row("AI risk talk").getByRole("cell").nth(5).getByText(copy.noOwner)).toHaveClass(/missing/);
     expect(cells("AI risk talk")[6]).toBe("–");

@@ -34,6 +34,8 @@ const STAYS: Record<string, string[]> = {
     "staff-sort",
     "staff-vocabulary",
     "time-windows",
+    // A staff member's name in words, which every feature that shows who did something uses.
+    "staff-member",
     // The audit log, which every feature writes to: what each entry holds, and a field's change.
     "audit-events",
     "field-changes",

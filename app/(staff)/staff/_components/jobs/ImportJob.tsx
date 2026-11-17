@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { staffMemberText } from "@/lib/staff-member";
 import { site } from "@/lib/content/site";
 import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/asks/asks";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
@@ -281,7 +282,7 @@ export function ImportJobPage({
             <span>
               {running.startedBy === NIGHTLY
                 ? words.runningScheduled(staffTime(running.startedAt))
-                : words.running(running.startedBy, staffTime(running.startedAt))}
+                : words.running(staffMemberText(running.startedBy), staffTime(running.startedAt))}
             </span>
           </Strip>
         </div>

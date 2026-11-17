@@ -176,6 +176,13 @@
   --status-blue: #1d4e89;
   --status-blue-bg: #dbe8f7;
 
+  /* The status colours for a mark with no words in it, such as a list's
+     dot: brighter, as a small shape in the dark shades above, which are
+     dark so words in them can be read, looks grey. */
+  --status-red-mark: #d92d20;
+  --status-green-mark: #2e9e4f;
+  --status-blue-mark: #2f6fd1;
+
   /* A chart's parts beyond the five the status and accent colours give it (StackedBars). */
   --chart-teal: #0b7d78;
   --chart-plum: #8a3b6e;

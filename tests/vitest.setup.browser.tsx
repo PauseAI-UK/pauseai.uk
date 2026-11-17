@@ -6,7 +6,10 @@ import { navigation } from "./browser/navigation";
 
 // next/navigation needs Next's app router, which isn't there in a component
 // test. usePathname and useRouter use tests/browser/navigation.ts instead.
-vi.mock("next/navigation", () => ({
+// Telling a Server Action the site no longer has is Next's own.
+vi.mock("next/navigation", async () => ({
+  unstable_isUnrecognizedActionError: (await import("next/dist/client/components/unrecognized-action-error"))
+    .unstable_isUnrecognizedActionError,
   usePathname: () => navigation.pathname,
   useRouter: () => ({
     push: (url: string) => navigation.pushed.push(url),

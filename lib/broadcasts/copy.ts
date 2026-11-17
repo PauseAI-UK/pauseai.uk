@@ -61,6 +61,8 @@ export const broadcastsCopy = {
     } as Record<string, string>,
     // The numbered sections of a draft.
     sections: { who: "To", write: "Write", preview: "Preview", from: "Sent from", when: "When", send: "Send" },
+    // The preview's title over new words, as it's where they go to WhatsApp for approval.
+    previewNew: "Preview and approval",
     willGet: (n: number, channel: "email" | "text") =>
       `${count(n, "supporter", "supporters")} will be ${channel === "email" ? "emailed" : "texted"}.`,
     // Write.
@@ -73,9 +75,26 @@ export const broadcastsCopy = {
     // Under the approved ones, past a rule: new words, to send for approval.
     newTemplate: "New template",
     templateMadeIn: "Made in WhatsApp Manager",
-    templateBy: (name: string, approved: string, used: string) => `${name}, approved ${approved}, ${used}`,
-    templateNeverUsed: "never used",
-    templateUsed: (at: string, n: number) => `last used ${at}, to ${count(n, "person", "people")}`,
+    // A template in the dropdown, and under the one chosen: a tag by its name when nothing has ever had it; on a line,
+    // who made it; when it was last sent and to how many, or else when it's first scheduled for, or else when it was
+    // approved; and how many other drafts have it, if any do.
+    templateFacts: {
+      unused: "Unused",
+      approved: (day: string) => `Approved ${day}`,
+      scheduled: (day: string) => `Scheduled for ${day}`,
+      used: (day: string, n: number) => `Last sent ${day}, to ${count(n, "person", "people")}`,
+      drafts: (n: number) => `In ${count(n, "draft", "drafts")}`,
+    },
+    // Under the template chosen: its words as new words, under a new name, to send for approval; and deleting it,
+    // from WhatsApp too, offered only while no other broadcast has it.
+    editTemplate: "Edit as a new template",
+    copyName: (name: string, n: number) => `${name} (${n})`,
+    deleteTemplate: "Delete template",
+    deleteRefused: {
+      used: "Another broadcast has used this template since, so it wasn't deleted.",
+      gone: "This template has already been deleted.",
+      failed: "WhatsApp gave an error while deleting the template. Try again later.",
+    } as Record<string, string>,
     newTemplateHint: "WhatsApp needs to approve the new template before it can go. This takes up to 24 hours.",
     // As the email of it says it (notifications.templateRejected).
     rejected: (reason: string) =>
@@ -154,7 +173,7 @@ export const broadcastsCopy = {
     templatePending: (by: string, at: string) => `${by}, approval requested ${at}, withdraw request to change`,
     // At the top of a draft whose words WhatsApp is reviewing, in amber, as the words are locked till it decides.
     awaitingApproval: (by: string, at: string) =>
-      `${by} sent the template to WhatsApp for approval on ${at}. It can't be changed or scheduled until WhatsApp decides.`,
+      `Waiting for WhatsApp approval, sent on ${at} by ${by}. It can't be changed or scheduled until WhatsApp decides.`,
     withdrawTemplate: "Withdraw approval request",
     // The same, pressed once, asking for a second press.
     withdrawSure: "Withdraw it",
@@ -170,7 +189,8 @@ export const broadcastsCopy = {
       "field-edge": "WhatsApp templates can't have a field at the very start or end.",
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
       "field-twice": "WhatsApp templates can't use the same field twice.",
-      "not-approved": "WhatsApp needs to approve the template first. This can take 24 hours.",
+      "same-words": "An approved template already has these words.",
+      "not-approved": "Send the template for approval by WhatsApp first. This can take 24 hours.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": `That's too many to send in ${daysInWords(SENDING_DAYS)}. Send it to fewer people.`,
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
@@ -178,6 +198,8 @@ export const broadcastsCopy = {
       "time-passed": "You can't send it into the past!",
       "cannot-send": "Sending isn't built yet.",
     } as Record<string, string>,
+    // In place of not-approved, for words WhatsApp has already.
+    reviewing: "WhatsApp is reviewing the template. This can take 24 hours.",
     // Its page.
     scheduledLine: (n: number, channel: "email" | "text", from: string) =>
       `${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")} from ${from}`,
@@ -187,7 +209,7 @@ export const broadcastsCopy = {
     // (mailingPages.standing), as a sentence after a dot in its colour: its words with WhatsApp, approved or rejected by it,
     // stopped by itself and why.
     standing: {
-      waiting: "WhatsApp reviewing",
+      waiting: "Waiting for WhatsApp approval",
       approved: (n: number) => `WhatsApp approved, to ${count(n, "person", "people")}`,
       rejected: "WhatsApp rejected",
       gaveUp: {
@@ -364,6 +386,8 @@ export const broadcastsCopy = {
     // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
     templateNotSent: (name: string) => `WhatsApp didn't take template ${name} for approval`,
     templateNotDeleted: (name: string) => `WhatsApp didn't delete template ${name}, which was withdrawn here`,
+    // An approved template staff deleted, which WhatsApp then wouldn't: it's kept, as it was.
+    approvedNotDeleted: (name: string) => `WhatsApp gave an error while deleting template ${name}`,
     // The text answering a reply of "stop" didn't go, though the stop is kept.
     stopNotAnswered:
       "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",

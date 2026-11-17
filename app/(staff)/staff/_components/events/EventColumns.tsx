@@ -19,6 +19,7 @@ import Empty from "../ui/Empty";
 import ExternalLink from "../ui/ExternalLink";
 import Grid, { Card, Column } from "../ui/Grid";
 import Rows, { Row } from "../ui/Rows";
+import StaffMember from "../ui/StaffMember";
 import { londonDate } from "@/lib/staff-time";
 import styles from "./EventColumns.module.css";
 import { eventsCopy } from "@/lib/events/copy";
@@ -45,7 +46,13 @@ function Detail({
   const others = event.tags.filter((tag) => tag !== list);
   return (
     <>
-      {event.owner ? <strong>{event.owner}</strong> : <Missing needed={needed}>{copy.noOwner}</Missing>}
+      {event.owner ? (
+        <strong>
+          <StaffMember email={event.owner} />
+        </strong>
+      ) : (
+        <Missing needed={needed}>{copy.noOwner}</Missing>
+      )}
       {others.length > 0 && <span>{copy.lists.also(others.join(", "))}</span>}
     </>
   );
@@ -101,7 +108,8 @@ function List({
       title={
         <span className={noOwner ? `${styles.title} ${styles.noOwner}` : styles.title}>
           {noOwner && <AlertIcon tone="red" />}
-          {list.title}
+          {/* An owner's list is titled by who they are; the list of those with none, by saying so. */}
+          {grouping === "owner" && list.title !== copy.noOwner ? <StaffMember email={list.title} /> : list.title}
         </span>
       }
       action={<span className={styles.count}>{list.events.length}</span>}

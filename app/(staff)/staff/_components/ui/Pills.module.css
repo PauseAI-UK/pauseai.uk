@@ -8,16 +8,24 @@
   list-style: none;
 }
 
-/* No wider than 12rem, so a long one doesn't take a line of its own; opened, as wide as there's room for. */
+/* As the filter bar's chips (FilterBar.module.css), in the accent. No wider
+   than 12rem, so a long one doesn't take a line of its own; opened, as wide
+   as there's room for. */
 .pill {
   min-width: 0;
   max-width: 12rem;
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--accent);
   border-radius: var(--radius-pill);
-  background: var(--surface-2);
+  background: var(--accent-light);
   font-size: var(--text-sm);
   font-weight: 600;
+}
+
+/* One that leaves out: white, its edge dashed, as the bar's chip for it. */
+.pill[data-not] {
+  border-style: dashed;
+  background: var(--surface);
 }
 
 .pill[data-open] {

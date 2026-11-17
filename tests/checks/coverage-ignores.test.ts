@@ -8,8 +8,9 @@ import { describe, expect, it } from "vitest";
 // can't slip in quietly.
 const PATTERN = /\b(?:v8|c8|istanbul)\s+ignore\b/;
 
-// Generated, installed or local-only.
+// Generated, installed or local-only: .claude holds agents' worktrees, whole checkouts of other branches.
 const SKIP_DIRS = new Set([
+  ".claude",
   ".git",
   ".next",
   ".vitest",

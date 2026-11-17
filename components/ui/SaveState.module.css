@@ -25,7 +25,8 @@
 }
 
 .saveState[data-state="failed"],
-.saveState[data-state="conflict"] {
+.saveState[data-state="conflict"],
+.saveState[data-state="outdated"] {
   color: var(--status-red);
 }
 

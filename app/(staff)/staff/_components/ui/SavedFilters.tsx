@@ -15,6 +15,7 @@ import Empty from "./Empty";
 import Menu, { menuItemClass, menuItemsClass } from "./Menu";
 import MenuSubmit from "./MenuSubmit";
 import StaffLink from "./StaffLink";
+import StaffMember from "./StaffMember";
 import styles from "./SavedFilters.module.css";
 import { iconButtonClass } from "@/components/ui/IconButton";
 
@@ -42,7 +43,7 @@ type Row = {
   name: string;
   /** What it filters by, in words. */
   summary: string;
-  /** The address before the @ of who made it, and the day. */
+  /** Who made it, by their address, and the day. */
   by: string;
   date: string;
   /** The link that loads it. */
@@ -90,7 +91,7 @@ export function savedFiltersProps({
       id: row.id,
       name: row.name,
       summary: summary(row.params).filter(Boolean).join(" · "),
-      by: row.createdBy.split("@")[0],
+      by: row.createdBy,
       date: staffDate(row.createdAt),
       href: savedFilterHref(list, row.id, row.params, carried),
     })),
@@ -197,7 +198,7 @@ function SavedRow({
         <span className={styles.rowTop}>
           <span className={styles.rowName}>{row.name}</span>
           <span className={styles.rowBy}>
-            {row.by} · {row.date}
+            <StaffMember email={row.by} /> · {row.date}
           </span>
         </span>
         <span className={styles.summary}>{row.summary}</span>

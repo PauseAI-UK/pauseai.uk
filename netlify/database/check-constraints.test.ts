@@ -96,6 +96,7 @@ const LISTED: Record<string, readonly string[]> = {
     "rejected",
     "paused",
     "disabled",
+    "deleted",
   ]),
   "whatsapp_templates.category": every<NonNullable<WhatsAppTemplate["category"]>>()([
     "MARKETING",

@@ -11,6 +11,7 @@ import type {
   SupporterDetails,
   SupporterMp,
   SupporterFilter,
+  SupporterGroupTown,
   SupporterIdentity,
   SupporterLetter,
   SupporterRow,
@@ -470,7 +471,7 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
   const [summary] = await query<SupporterSummary>(`SELECT ${SUMMARY_COLUMNS} FROM ${LIVE_SUMMARY}`, [id]);
   if (!summary) return undefined;
   const postcode = summary.place?.basis === "postcode" ? summary.place.given : null;
-  const [identities, contacts, activity, permissions, [mp], letters] = await Promise.all([
+  const [identities, contacts, groupTowns, activity, permissions, [mp], letters] = await Promise.all([
     query<SupporterIdentity>(
       `SELECT source, email, name, seen_at AS "seenAt" FROM supporter_identity WHERE supporter_id = $1 ORDER BY seen_at NULLS LAST, email`,
       [id],
@@ -479,6 +480,13 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
       `SELECT source, at, phone, postcode, latitude, longitude, city FROM supporter_contact
        WHERE supporter_id = $1 AND (phone IS NOT NULL OR postcode IS NOT NULL OR latitude IS NOT NULL OR city IS NOT NULL)
        ORDER BY at DESC`,
+      [id],
+    ),
+    query<SupporterGroupTown>(
+      `SELECT DISTINCT u.town, u.note AS "group", u.uploaded_at AS at FROM supporter_links k
+         JOIN signup_upload_entries e ON e.entry_id = k.form_entry_id JOIN signup_uploads u ON u.id = e.upload_id
+       WHERE k.supporter_id = $1 AND u.kind = 'whatsapp' AND u.town IS NOT NULL
+       ORDER BY at`,
       [id],
     ),
     query<SupporterActivity>(
@@ -518,5 +526,5 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
       [id],
     ),
   ]);
-  return { summary, letters, mp: mp ?? null, identities, contacts, activity, permissions };
+  return { summary, letters, mp: mp ?? null, identities, contacts, groupTowns, activity, permissions };
 });

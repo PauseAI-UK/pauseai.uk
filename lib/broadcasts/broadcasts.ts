@@ -367,6 +367,7 @@ export type BroadcastScheduleProblem =
   | "field-edge"
   | "fields-together"
   | "field-twice"
+  | "same-words"
   | "not-connected"
   | "too-slow"
   | "no-time"
@@ -394,6 +395,8 @@ export type SchedulingBroadcast = {
   daily: number | null;
   /** Whether a text's words are a template WhatsApp has approved. */
   approved: boolean;
+  /** Whether a text's new words are, word for word, those of a template WhatsApp has approved (sameWords). */
+  sameWords: boolean;
   /** Whether a WhatsApp number is configured for texts to come from. */
   numbered: boolean;
   /** Whether its channel sends yet. */
@@ -408,6 +411,15 @@ export type SchedulingBroadcast = {
 export function rejectionWords(code: string | null): string {
   const words = broadcastsCopy.notifications.templateRejectedWhy;
   return code && Object.hasOwn(words.reasons, code) ? words.reasons[code]! : words.other(code ?? "NONE");
+}
+
+/** A text's words as WhatsApp would see them, its fields as words, to compare. */
+const wordsToCompare = (body: MailingDoc): string => toText(letterFor(body, FIELDS_AS_WORDS)).trim();
+
+/** Whether `body`, new words, says what one of `templates`' words does already: no new template, so nothing to approve. */
+export function sameWords(body: MailingDoc, templates: MailingDoc[]): boolean {
+  const words = wordsToCompare(body);
+  return templates.some((template) => wordsToCompare(template) === words);
 }
 
 /** Stands for each field in a text's words, to find where its fields are: a character nobody types. */
@@ -462,6 +474,7 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["field-edge", newWords && misplaced!.atEdge],
     ["fields-together", newWords && misplaced!.together],
     ["field-twice", newWords && misplaced!.twice],
+    ["same-words", newWords && broadcast.sameWords],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
     // At a day's limit of emails or texts, it must all go before it would stop.
     ["too-slow", sendingDays(broadcast.recipients, broadcast.remaining, broadcast.daily) > SENDING_DAYS],

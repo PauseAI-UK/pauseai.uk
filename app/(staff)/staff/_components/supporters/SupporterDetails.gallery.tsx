@@ -44,6 +44,7 @@ export const supporterDetailsGallery: Example[] = [
                 },
                 identities: [{ source: "luma", email: "x@example.com", name: "", seenAt: null }],
                 contacts: [],
+                groupTowns: [],
                 activity: [],
                 permissions: [],
               }}

@@ -37,4 +37,12 @@ export const shellCopy = {
     mpEmails: "Addresses to fix",
     logout: "Log out",
   },
+  // Over any page whose button called the server after a deploy that renamed, moved or removed what it calls.
+  siteUpdated: {
+    title: "The site has been updated",
+    words: "This page can't save or send any more. Reload it and try again.",
+    kept: "Don't worry, this draft's changes are kept in the browser.",
+    reload: "Reload",
+    close: "Close, to copy something first",
+  },
 };

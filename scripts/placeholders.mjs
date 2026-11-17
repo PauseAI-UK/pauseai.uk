@@ -27,6 +27,8 @@ const ALLOWED = new Set(["AGENTS.md"]);
  * leave one on disk from an earlier build before this one regenerates it.
  */
 const SKIP_DIRS = new Set([
+  // Agents' worktrees: whole checkouts of other branches.
+  ".claude",
   ".git",
   ".netlify",
   ".next",

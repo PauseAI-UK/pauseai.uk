@@ -7,7 +7,15 @@ const LONG = "Event: March Against AI Extinction, 21 Nov 2026";
 
 describe("Pills", () => {
   it("cuts a long one, to click to see whole and again to cut, and leaves a short one alone", async () => {
-    await render(<Pills label="Who" words={[LONG, "Tag: Volunteer"]} />);
+    await render(
+      <Pills
+        label="Who"
+        pills={[
+          { words: LONG, not: false },
+          { words: "Tag: Volunteer", not: false },
+        ]}
+      />,
+    );
     const pills = page.getByRole("list", { name: "Who" }).getByRole("listitem");
     await expect.element(pills.first()).toBeVisible();
     // The short one is words alone; the long one a button, its whole words its tooltip.
@@ -25,5 +33,22 @@ describe("Pills", () => {
     await long.click();
     await expect.element(long).toHaveAttribute("aria-expanded", "false");
     expect(words.getBoundingClientRect().height).toBe(cutHeight);
+  });
+
+  it("marks one that leaves out, its circle struck through before its words", async () => {
+    await render(
+      <Pills
+        label="Who"
+        pills={[
+          { words: "Nation: Wales", not: false },
+          { words: "Tag: not Volunteer", not: true },
+        ]}
+      />,
+    );
+    const pills = page.getByRole("list", { name: "Who" }).getByRole("listitem");
+    await expect.element(pills.nth(1)).toHaveAttribute("data-not");
+    expect(pills.nth(1).element().querySelector("svg")).not.toBeNull();
+    expect(pills.first().element().hasAttribute("data-not")).toBe(false);
+    expect(pills.first().element().querySelector("svg")).toBeNull();
   });
 });

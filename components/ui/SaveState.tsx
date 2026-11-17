@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import styles from "./SaveState.module.css";
 
-/** Where a save is: going, done, or not done, as it failed or someone else saved first. */
-export type SaveStateValue = "saving" | "saved" | "failed" | "conflict";
+/** Where a save is: going, done, or not done, as it failed, someone else saved first, or the page is too old to save. */
+export type SaveStateValue = "saving" | "saved" | "failed" | "conflict" | "outdated";
 
 /**
  * Whether something is saved, as a dot and a word (`children`): saving, grey

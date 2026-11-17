@@ -79,6 +79,8 @@ export const exampleSupporterDetails: SupporterDetails = {
       city: "Manchester",
     },
   ],
+  // She's in a WhatsApp group whose upload gave its town.
+  groupTowns: [{ town: "Salford", group: "PauseAI Salford", at: new Date("2026-10-20T12:00:00Z") }],
   activity: [
     {
       source: "luma-webhook",
@@ -210,6 +212,7 @@ export const exampleMemberDetails: SupporterDetails = {
       city: "Cardiff",
     },
   ],
+  groupTowns: [],
   activity: [
     {
       source: "civicrm",

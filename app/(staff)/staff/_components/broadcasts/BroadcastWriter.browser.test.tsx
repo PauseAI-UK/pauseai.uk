@@ -11,7 +11,8 @@ import { chooseDay } from "@/tests/browser/date-picker";
 import { navigation } from "@/tests/browser/navigation";
 import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import BroadcastWriter, { templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
+import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
+import BroadcastWriter, { templateOption, templateLine, type BroadcastWriterActions } from "./BroadcastWriter";
 import ChannelWriter from "./ChannelWriter";
 import {
   exampleBroadcastData,
@@ -48,8 +49,12 @@ function fakeActions() {
     create: vi.fn(async () => {}),
     submitTemplate: action(() => "submitted"),
     withdrawTemplate: action(() => true),
+    deleteTemplate: action(() => "deleted"),
   };
 }
+
+/** What a Server Action throws when a deploy since the page opened has taken it away. */
+const gone = () => new UnrecognizedActionError('Server Action "x" was not found on the server.');
 
 async function renderWriter(props: Partial<Parameters<typeof BroadcastWriter>[0]> = {}) {
   const actions = fakeActions();
@@ -401,6 +406,28 @@ describe("BroadcastWriter, by email", () => {
     await expect.element(button(copy.sendTest)).toBeDisabled();
   });
 
+  it("stops saving when a test finds the site has changed under the page, and lets any other error go on", async () => {
+    const actions = await renderWriter();
+    actions.sendTest.mockRejectedValueOnce(gone());
+    await page.getByLabelText(copy.testTo).fill("me@pauseai.uk");
+    await button(copy.sendTest).click();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
+    await expect.element(page.getByText(copy.testFailed)).toBeVisible();
+    const errors: unknown[] = [];
+    const caught = (event: PromiseRejectionEvent) => {
+      errors.push(event.reason);
+      event.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", caught);
+    try {
+      actions.sendTest.mockRejectedValueOnce(new Error("test broke"));
+      await button(copy.sendTest).click();
+      await expect.poll(() => errors.map((e) => (e as Error).message), WAIT).toEqual(["test broke"]);
+    } finally {
+      window.removeEventListener("unhandledrejection", caught);
+    }
+  });
+
   it("goes from hello@ by Postmark, saying it has no limit", async () => {
     await renderWriter({
       draft: { ...exampleBroadcastEmail, sendBy: "postmark" },
@@ -571,12 +598,17 @@ describe("BroadcastWriter, by text", () => {
     template: exampleTemplates[0],
   };
 
-  const words = () => page.getByLabelText(copy.templateLabel, { exact: false }).first();
-  const pick = (value: string) => words().selectOptions(value);
+  // The dropdown, named with the choice made, and choosing in it by a choice's name.
+  const words = () => page.getByRole("button", { name: new RegExp(`^${copy.templateLabel}: `) });
+  const pick = async (name: string) => {
+    await words().click();
+    await page.getByRole("button", { name, exact: true }).click();
+  };
+  const [march, manager, , , , thanks] = exampleTemplates.map((one) => one.name);
 
   it("starts with the templates to choose from, no preview, and greyed", async () => {
     await renderWriter({ draft: exampleBroadcastText });
-    expect((words().element() as HTMLSelectElement).value).toBe("");
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${copy.pickTemplate}`);
     await expect.element(page.getByText(copy.willGet(412, "text"))).toBeVisible();
     await expect.element(page.getByText(copy.chooseTemplate)).toBeVisible();
     await expect.element(page.getByText(copy.problems["no-template"])).toBeVisible();
@@ -591,35 +623,159 @@ describe("BroadcastWriter, by text", () => {
 
   it("offers only new words when there are no approved templates", async () => {
     await renderWriter({ draft: exampleBroadcastText, data: { ...exampleBroadcastData, templates: [] } });
-    expect([...words().element().querySelectorAll("option")].map((o) => o.textContent)).toEqual([
-      copy.pickTemplate,
-      copy.newTemplate,
-    ]);
-    expect(words().element().querySelector("optgroup")).toBeNull();
+    await words().click();
+    const menu = document.getElementById(words().element().getAttribute("popovertarget")!)!;
+    expect([...menu.querySelectorAll("button")].map((o) => o.textContent)).toEqual([copy.newTemplate]);
   });
 
   it("chooses a template from the dropdown, naming it, its words only in the preview", async () => {
     const actions = await renderWriter({ draft: exampleBroadcastText });
-    await pick("1");
+    // Each with who made it, when, and what else has it, under its name; or a tag if never used.
+    await words().click();
+    const said = ({ tag, facts }: ReturnType<typeof templateOption>) => [tag, ...facts!].filter(Boolean).join(" ");
     await expect
-      .element(page.getByRole("heading", { name: "The march meets at 11:00 at Parliament Square.", level: 1 }))
-      .toBeVisible();
-    await expect.element(page.getByText(templateLine(exampleTemplates[0]))).toBeVisible();
+      .element(page.getByRole("button", { name: march, exact: true }))
+      .toHaveAccessibleDescription(said(templateOption(exampleTemplates[0], exampleTemplates[0].uses)));
+    await expect
+      .element(page.getByRole("button", { name: manager, exact: true }))
+      .toHaveAccessibleDescription(said(templateOption(exampleTemplates[1], exampleTemplates[1].uses)));
+    await page.getByRole("button", { name: march, exact: true }).click();
+    await expect.element(page.getByRole("heading", { name: march, level: 1 })).toBeVisible();
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${march}`);
+    // Under the dropdown too: the last of its two, as the menu's comes first.
+    await expect.element(page.getByText(templateLine(exampleTemplates[0])).last()).toBeVisible();
     await vi.waitFor(() => expect(actions.save.mock.calls[0][2]).toMatchObject({ templateId: 1 }), WAIT);
-    await pick("3");
+    await pick(exampleTemplates[2].name);
     await expect.element(page.getByRole("heading", { name: "Our next event is on Saturday.", level: 1 })).toBeVisible();
   });
 
   it("says a template made in WhatsApp Manager was made there", async () => {
     await renderWriter({ draft: exampleBroadcastText });
-    await pick("2");
-    await expect.element(page.getByText(templateLine(exampleTemplates[1]))).toBeVisible();
+    await pick(manager);
+    await expect.element(page.getByText(templateLine(exampleTemplates[1])).last()).toBeVisible();
     expect(templateLine(exampleTemplates[1])).toContain(copy.templateMadeIn);
+  });
+
+  it("gives the chosen template's facts as the dropdown does, on a line, Unused last, and counts drafts but this one", async () => {
+    const one = exampleTemplates[0];
+    expect(templateLine(one)).toBe(
+      ["jo@pauseai.uk", copy.templateFacts.used("2 Nov 2026", 318), copy.templateFacts.drafts(1)].join(" · "),
+    );
+    expect(templateLine(exampleTemplates[1])).toBe(
+      [copy.templateMadeIn, copy.templateFacts.approved("20 Oct 2026"), copy.templateFacts.unused].join(" · "),
+    );
+    // This draft has it saved, so it's one draft fewer.
+    await renderWriter({ draft: onTemplate });
+    await expect
+      .element(page.getByText(templateLine(one, { ...one.uses, drafts: 0 }), { exact: true }).last())
+      .toBeVisible();
+  });
+
+  it("gives each template in the dropdown its words and facts: who made it, when last sent, scheduled for or approved, and what has it", () => {
+    const [used, manager] = exampleTemplates;
+    // Sent, so approved before: only when it was last sent.
+    expect(templateOption(used, used.uses)).toEqual({
+      facts: ["jo@pauseai.uk", copy.templateFacts.used("2 Nov 2026", 318), copy.templateFacts.drafts(1)],
+    });
+    // Never sent, but scheduled: when it's scheduled for.
+    const scheduled = { ...manager, nextScheduledAt: new Date("2026-11-20T10:00:00Z") };
+    expect(templateOption(scheduled, { sent: 0, scheduled: 1, drafts: 0 }).facts).toEqual([
+      copy.templateMadeIn,
+      copy.templateFacts.scheduled("20 Nov 2026"),
+    ]);
+    expect(copy.templateFacts.drafts(3)).toBe("In 3 drafts");
+    // Never had by anything: a tag, and no facts about its use.
+    expect(templateOption(manager, manager.uses)).toEqual({
+      tag: copy.templateFacts.unused,
+      facts: [copy.templateMadeIn, copy.templateFacts.approved("20 Oct 2026")],
+    });
+    // Never sent nor scheduled, but in a draft: when it was approved, and no tag.
+    expect(templateOption(manager, { sent: 0, scheduled: 0, drafts: 3 }).facts).toEqual([
+      copy.templateMadeIn,
+      copy.templateFacts.approved("20 Oct 2026"),
+      copy.templateFacts.drafts(3),
+    ]);
+  });
+
+  it("edits a template as new words, under its name numbered, keeping the template", async () => {
+    const templates = [...exampleTemplates, { ...exampleTemplates[0], id: 9, name: copy.copyName(march, 2) }];
+    const actions = await renderWriter({ draft: exampleBroadcastText, data: { ...exampleBroadcastData, templates } });
+    await pick(march);
+    await button(copy.editTemplate).click();
+    await expect.element(page.getByLabelText(copy.templateName)).toHaveValue(copy.copyName(march, 3));
+    await expect.element(page.getByRole("textbox", { name: copy.templateWords })).toMatchTextContent(/march\s+meets/);
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${copy.newTemplate}`);
+    await vi.waitFor(
+      () =>
+        expect(actions.save.mock.calls.at(-1)![2]).toMatchObject({ templateId: null, title: copy.copyName(march, 3) }),
+      WAIT,
+    );
+    expect(actions.deleteTemplate).not.toHaveBeenCalled();
+    // The very words of a template already: nothing to approve till they change, and it says so under the button,
+    // before the list at the foot.
+    await expect.element(button(copy.submitTemplate)).toBeDisabled();
+    const why = page.getByRole("listitem").filter({ hasText: copy.problems["same-words"] }).first();
+    await expect.element(why).toBeVisible();
+    expect(
+      button(copy.submitTemplate).element().compareDocumentPosition(why.element()) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await page.getByRole("textbox", { name: copy.templateWords }).fill("See you at the march");
+    await expect.element(button(copy.submitTemplate)).toBeEnabled();
+    expect(page.getByText(copy.problems["same-words"]).query()).toBeNull();
+  });
+
+  it("deletes a template nothing else has, quietly, letting this draft's choice go first", async () => {
+    const actions = await renderWriter({ draft: exampleBroadcastText });
+    // One other broadcasts have can't be deleted.
+    await pick(march);
+    expect(button(copy.deleteTemplate).query()).toBeNull();
+    await pick(thanks);
+    const refreshes = navigation.refreshes;
+    await button(copy.deleteTemplate).click();
+    expect(actions.deleteTemplate).not.toHaveBeenCalled();
+    await button(staffVocabulary.deleteItShort).click();
+    await vi.waitFor(() => expect(actions.deleteTemplate).toHaveBeenCalledWith(6), WAIT);
+    // Saved without it before it went.
+    expect(actions.save.mock.calls.at(-1)![2]).toMatchObject({ templateId: null });
+    expect(actions.save.mock.invocationCallOrder.at(-1)!).toBeLessThan(
+      actions.deleteTemplate.mock.invocationCallOrder[0],
+    );
+    await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${copy.pickTemplate}`);
+    expect(page.getByRole("alert").query()).toBeNull();
+  });
+
+  it("says why a template wasn't deleted", async () => {
+    const actions = await renderWriter({ draft: exampleBroadcastText });
+    for (const [answer, words] of [
+      ["used", copy.deleteRefused.used],
+      ["gone", copy.deleteRefused.gone],
+      ["failed", copy.deleteRefused.failed],
+    ] as const) {
+      actions.deleteTemplate.mockResolvedValueOnce(answer);
+      await pick(thanks);
+      await button(copy.deleteTemplate).click();
+      await button(staffVocabulary.deleteItShort).click();
+      await expect.element(page.getByRole("alert")).toHaveTextContent(words);
+    }
+    // The action itself broke.
+    actions.deleteTemplate.mockRejectedValueOnce(new Error("Server Action failed"));
+    await pick(thanks);
+    await button(copy.deleteTemplate).click();
+    await button(staffVocabulary.deleteItShort).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.deleteRefused.failed);
+    // The site has changed under the page: the page says so (SiteUpdated), not here.
+    actions.deleteTemplate.mockRejectedValueOnce(gone());
+    await pick(thanks);
+    await button(copy.deleteTemplate).click();
+    await button(staffVocabulary.deleteItShort).click();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
+    await expect.element(page.getByText(copy.deleteRefused.failed)).not.toBeInTheDocument();
   });
 
   it("opens the editor for new words, with no parts and WhatsApp's formatting, and keeps them and their name", async () => {
     await renderWriter({ draft: exampleBroadcastText });
-    await pick("new");
+    await pick(copy.newTemplate);
     await expect.element(page.getByText(copy.newTemplateHint)).toBeVisible();
     await expect.element(page.getByText(mailingsCopy.mailingEditor.partsHeading)).not.toBeInTheDocument();
     await page.getByLabelText(copy.templateName).fill("March day");
@@ -632,8 +788,8 @@ describe("BroadcastWriter, by text", () => {
     await userEvent.keyboard("{Control>}k{/Control}");
     expect(page.getByRole("textbox", { name: editing.linkBar.address }).query()).toBeNull();
     // A template, then new words again: the words and their name are kept.
-    await pick("1");
-    await pick("new");
+    await pick(march);
+    await pick(copy.newTemplate);
     await expect
       .element(page.getByRole("textbox", { name: copy.templateWords }))
       .toHaveTextContent("See you at the march");
@@ -649,8 +805,15 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(copy.problems["not-approved"])).toBeVisible();
     await expect.element(page.getByText(copy.testVia.textNew)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
-    // In Schedule's place, as it can't be scheduled till WhatsApp approves.
-    expect(button(copy.schedule(412, "text")).query()).toBeNull();
+    // Under the preview, before a test, as neither a test nor scheduling can be till WhatsApp approves.
+    await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
+    // Titled for what's done there with new words.
+    const preview = page.getByRole("region", { name: copy.previewNew, exact: false });
+    expect(
+      button(copy.submitTemplate).element().compareDocumentPosition(button(copy.sendTest).element()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await expect.element(preview.getByRole("button", { name: copy.submitTemplate })).toBeVisible();
     // Refused here: an alert says why, and the button stays, to be pressed again.
     actions.submitTemplate.mockResolvedValue("already");
     await button(copy.submitTemplate).click();
@@ -665,6 +828,12 @@ describe("BroadcastWriter, by text", () => {
     actions.submitTemplate.mockResolvedValue({ failed: null });
     await button(copy.submitTemplate).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitFailed(null));
+    // The site has changed under the page: the page says so (SiteUpdated), not here.
+    actions.submitTemplate.mockRejectedValueOnce(gone());
+    await button(copy.submitTemplate).click();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
+    await expect.element(page.getByText(copy.submitBroke)).not.toBeInTheDocument();
+    await expect.element(button(copy.submitTemplate)).toBeEnabled();
     // The action itself broke.
     actions.submitTemplate.mockRejectedValue(new Error("Server Action failed"));
     await button(copy.submitTemplate).click();
@@ -678,7 +847,7 @@ describe("BroadcastWriter, by text", () => {
 
   it("can't send words for approval before there are any, or while anything but the time stops it", async () => {
     await renderWriter({ draft: exampleBroadcastText });
-    await page.getByLabelText(copy.templateLabel, { exact: false }).first().selectOptions("new");
+    await pick(copy.newTemplate);
     await expect.element(button(copy.submitTemplate)).toBeDisabled();
   });
 
@@ -719,7 +888,9 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText("Hi there", { exact: true })).toBeVisible();
     expect(page.getByRole("textbox", { name: copy.templateWords }).query()).toBeNull();
     expect(button(copy.submitTemplate).query()).toBeNull();
-    await expect.element(page.getByText(copy.problems["not-approved"])).toBeVisible();
+    // Under Schedule, that WhatsApp is reviewing them, not that they're to be sent.
+    await expect.element(page.getByText(copy.reviewing)).toBeVisible();
+    expect(page.getByText(copy.problems["not-approved"]).query()).toBeNull();
     const refreshes = navigation.refreshes;
     // Pressed once, it asks for a second press, and goes back if focus leaves it.
     await button(copy.withdrawTemplate).click();

@@ -4,6 +4,7 @@
 // parameter's: one the URL gives several times repeats. What a list's page
 // gives its bar (`choices`) is what comes from the database or the page,
 // such as the parties, the events, or who's in the log.
+import { staffMemberText } from "@/lib/staff-member";
 import type { ReactNode } from "react";
 import { ASK_STATUSES } from "@/lib/asks/asks";
 import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
@@ -135,13 +136,17 @@ export function valueWords(filter: Filter, value: string, join: string): string 
   return not ? staffVocabulary.filters.notChip(name, choice) : `${name}${join}${choice}`;
 }
 
+/** A filter that's on, in words, as its chip says them, and whether it leaves out what it says. */
+export type FilterPill = { words: string; not: boolean };
+
 /**
- * The search and each filter that's on, in words, as their chips say them:
- * for a download's filename. One that comes `after` another and doesn't
- * repeat goes with it, as its chip's second half does, its default too.
+ * The search and each filter that's on, as their chips say them, and
+ * whether each leaves out: for pills that show who something is to. One
+ * that comes `after` another and doesn't repeat goes with it, as its chip's
+ * second half does, its default too.
  */
-export function filterWords(filters: Filter[], values: Params, search: string): string[] {
-  const words = values[search] ? [`${staffVocabulary.search}: ${firstOf(values[search])}`] : [];
+export function filterPills(filters: Filter[], values: Params, search: string): FilterPill[] {
+  const pills = values[search] ? [{ words: `${staffVocabulary.search}: ${firstOf(values[search])}`, not: false }] : [];
   for (const filter of filters) {
     if (filter.after && !filter.repeat) continue;
     const chosen = valuesOf(values[filter.name]).map(notValue);
@@ -156,11 +161,17 @@ export function filterWords(filters: Filter[], values: Params, search: string): 
     });
     const next = filters.find((f) => f.after === filter.name && !f.repeat);
     const then = next ? `, ${choiceWords(next, firstOf(values[next.name]))}` : "";
-    for (const [name, ones] of found) words.push(`${name}: ${staffVocabulary.filters.anyOf(ones)}${then}`);
+    for (const [name, ones] of found)
+      pills.push({ words: `${name}: ${staffVocabulary.filters.anyOf(ones)}${then}`, not: false });
     for (const [name, ones] of out)
-      words.push(staffVocabulary.filters.notChip(name, staffVocabulary.filters.anyOf(ones)));
+      pills.push({ words: staffVocabulary.filters.notChip(name, staffVocabulary.filters.anyOf(ones)), not: true });
   }
-  return words;
+  return pills;
+}
+
+/** The search and each filter that's on, in words, as their chips say them (filterPills): for a download's filename. */
+export function filterWords(filters: Filter[], values: Params, search: string): string[] {
+  return filterPills(filters, values, search).map((pill) => pill.words);
 }
 
 /** How long the filters in a list's page title get before they're cut short. */
@@ -376,7 +387,10 @@ export const EVENT_FILTERS = listFilters(EVENTS_LIST, ({ staff, tags, cities }: 
     owner: {
       label: copy.owner,
       oneEach: true,
-      options: [{ value: NO_OWNER, label: copy.noOwner }, ...staff.map((email) => ({ value: email, label: email }))],
+      options: [
+        { value: NO_OWNER, label: copy.noOwner },
+        ...staff.map((email) => ({ value: email, label: staffMemberText(email) })),
+      ],
     },
     removed: { label: copy.removed, options: choicesOf(copy.filters.removed) },
     held: { label: copy.filters.held, options: WINDOW_OPTIONS, linkedOnly: true },
@@ -391,7 +405,11 @@ export const CHANGE_FILTERS = listFilters(AUDIT_LOG_LIST, ({ actors, actions }: 
   const copy = oversightCopy.changes;
   return {
     when: { label: copy.at, options: WINDOW_OPTIONS },
-    actor: { label: copy.actor, oneEach: true, options: actors.map((value) => ({ value, label: value })) },
+    actor: {
+      label: copy.actor,
+      oneEach: true,
+      options: actors.map((value) => ({ value, label: staffMemberText(value) })),
+    },
     action: { label: copy.action, oneEach: true, options: actions.map((value) => ({ value, label: value })) },
   };
 });

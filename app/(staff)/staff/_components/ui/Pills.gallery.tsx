@@ -9,12 +9,17 @@ export const pillsGallery: Example[] = [
     file: "app/(staff)/staff/_components/ui/Pills.tsx",
     variants: [
       {
-        label: "Who a mailing is to, a long one cut, to click to see whole",
+        label:
+          "Who a mailing is to: filters that find in the accent, one that leaves out dashed, a long one cut, to click to see whole",
         render: () => (
           <StaffPage as="div">
             <Pills
               label="Who"
-              words={["Event: March Against AI Extinction, 21 Nov 2026", "Near: LS1 (10 miles)", "Tag: Volunteer"]}
+              pills={[
+                { words: "Event: March Against AI Extinction, 21 Nov 2026", not: false },
+                { words: "Near: LS1 (10 miles)", not: false },
+                { words: "Tag: not Volunteer", not: true },
+              ]}
             />
           </StaffPage>
         ),

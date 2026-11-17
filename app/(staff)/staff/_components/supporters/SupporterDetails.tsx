@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import StaffLink from "../ui/StaffLink";
 import { Muted } from "@/components/ui/Text";
 import { phoneWords } from "@/lib/phone";
+import { staffMemberText } from "@/lib/staff-member";
 import Tag from "@/components/ui/Tag";
 import { displayPostcode } from "@/lib/email-your-mp";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -80,6 +81,14 @@ function held(supporter: Details, usable: Set<string>): Held[] {
     ),
     ...each(d.postcode, (c) => (c.postcode === null ? null : displayPostcode(c.postcode))),
     ...each(d.city, (c) => c.city),
+    // A WhatsApp group's town is its upload's, so their form entry's contact details don't have it.
+    ...supporter.groupTowns.map((g, n) => ({
+      key: `town-${n}`,
+      what: d.held.town,
+      value: g.town,
+      from: `${copy.sources["whatsapp-community"]} · ${g.group}`,
+      at: g.at,
+    })),
     ...each(d.held.point, (c) =>
       c.latitude === null || c.longitude === null ? null : (
         <code>
@@ -153,10 +162,10 @@ function Subject({ item }: { item: SupporterActivity }) {
           <Muted>
             {" · "}
             {item.how ? (
-              copy.detail.toldStaff(item.recordedBy, item.how)
+              copy.detail.toldStaff(staffMemberText(item.recordedBy), item.how)
             ) : (
               <>
-                {copy.detail.fromReply(item.recordedBy)}
+                {copy.detail.fromReply(staffMemberText(item.recordedBy))}
                 {reply}
               </>
             )}

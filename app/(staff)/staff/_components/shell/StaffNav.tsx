@@ -10,6 +10,8 @@ import NavIcon from "./NavIcon";
 import NavFold from "../ui/NavFold";
 import StaffLink from "../ui/StaffLink";
 import styles from "./StaffNav.module.css";
+import StaffMember from "../ui/StaffMember";
+import { staffMemberText } from "@/lib/staff-member";
 import { accountsCopy } from "../accounts/copy";
 import { shellCopy } from "./copy";
 
@@ -118,11 +120,13 @@ export default function StaffNav({ email, permissions = [], current: shown, fres
           <StaffLink
             href={ME_PATH}
             className={`${styles.page} ${styles.address}`}
-            title={email}
+            title={staffMemberText(email)}
             aria-current={current === "me" ? "page" : undefined}
           >
             <NavIcon id="me" />
-            <span className={styles.label}>{email}</span>
+            <span className={styles.label}>
+              <StaffMember email={email} />
+            </span>
           </StaffLink>
         </li>
       </ul>

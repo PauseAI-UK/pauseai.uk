@@ -183,10 +183,11 @@
   }
 }
 
+/* What stops the button over it: errors, a red bullet each. */
 .problems {
   margin: 0;
   padding-left: var(--space-5);
-  color: var(--text-secondary);
+  color: var(--status-red);
 }
 
 /* "Letter" close over the letter, and "Find recipient who:" over its buttons. */

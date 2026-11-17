@@ -184,6 +184,19 @@
   gap: var(--space-3);
 }
 
+/* Under the template chosen: its line, then its quiet buttons, close under it. */
+.templateFacts {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.templateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
 /* A phone number, kept on one line. */
 .number {
   white-space: nowrap;
@@ -198,4 +211,11 @@
    just under the bar that stays at the top of the window. */
 .write {
   scroll-margin-top: var(--space-7);
+}
+
+/* New words' Send for approval, under their preview, before the test copy. */
+.approval {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
 }

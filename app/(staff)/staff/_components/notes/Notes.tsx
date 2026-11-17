@@ -1,6 +1,7 @@
 import { Muted } from "@/components/ui/Text";
 import { canDeleteNote, canEditNote, noteParts, type Note, type NoteReader } from "@/lib/notes/notes";
 import { staffTime } from "@/lib/staff-time";
+import { staffMemberText } from "@/lib/staff-member";
 import NoteChanges from "./NoteChanges";
 import NotesCard from "./NotesCard";
 import styles from "./Notes.module.css";
@@ -62,7 +63,7 @@ export function NoteEntry({
   const text = <NoteText body={note.body} />;
   const meta = (
     <Muted>
-      {[label, note.writtenBy, dated && staffTime(note.createdAt), note.editedAt && copy.edited]
+      {[label, staffMemberText(note.writtenBy), dated && staffTime(note.createdAt), note.editedAt && copy.edited]
         .filter(Boolean)
         .join(" · ")}
     </Muted>

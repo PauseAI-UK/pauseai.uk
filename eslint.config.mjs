@@ -539,6 +539,8 @@ const eslintConfig = defineConfig([
     ".vitest/**",
     "tmp/**",
     "blob-report/**",
+    // Agents' worktrees: whole checkouts of other branches.
+    ".claude/**",
     // Netlify's build folder: its plugins, and the Deno and Node code they
     // bring with them. It's there during a Netlify build, which lints.
     ".netlify/**",

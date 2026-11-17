@@ -33,6 +33,7 @@ export function broadcastActions(log: (name: string) => (...args: unknown[]) => 
     create: logged("newBroadcastWith", undefined),
     submitTemplate: logged("submitTemplateNow", "submitted" as const),
     withdrawTemplate: logged("withdrawTemplateNow", true),
+    deleteTemplate: logged("deleteTemplateNow", "deleted" as const),
   };
 }
 

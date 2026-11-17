@@ -21,6 +21,7 @@ import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy"
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
 
@@ -77,6 +78,15 @@ async function savedAfter(page: Page, change: () => Promise<unknown>) {
 }
 
 /** Starts a broadcast from the supporters list, with these filters, and opens the writer. */
+/** The template dropdown, named with its choice. */
+const templateBox = (page: Page) => page.getByRole("button", { name: new RegExp(`^${copy.templateLabel}: `) });
+
+/** Chooses `name` in the template dropdown: a template, or New template. */
+async function chooseTemplate(page: Page, name: string) {
+  await templateBox(page).click();
+  await page.getByRole("button", { name, exact: true }).click();
+}
+
 async function startFromList(page: Page, filters: string, n: number) {
   await page.goto(`${BASE}/staff/supporters?${filters}`);
   await page.getByRole("button", { name: copy.broadcastButton(n) }).click();
@@ -271,13 +281,18 @@ test("A text on an approved template", async ({ page, request, flowDatabase }) =
   addTemplates(flowDatabase);
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
-  const words = page.getByLabel(copy.templateLabel).first();
-  await expect(words).toHaveValue("");
+  await expect(templateBox(page)).toHaveAccessibleName(`${copy.templateLabel}: ${copy.pickTemplate}`);
   await frame(page, "The new text, its templates to choose from");
   story(
-    "Choosing one from the dropdown names the text after it. Its words show once, in the preview, as a bubble with its Stop button, and can't be changed.",
+    "The dropdown gives each template's facts under its name: who made it, when WhatsApp approved it, when it was last used, and how many other broadcasts have it.",
   );
-  await savedAfter(page, () => words.selectOption({ label: "PauseCon room change" }));
+  await templateBox(page).click();
+  await expect(page.getByRole("button", { name: "PauseCon room change", exact: true })).toBeVisible();
+  await frame(page, "The templates, each with its facts", { window: true });
+  story(
+    "Choosing one names the text after it. Its words show once, in the preview, as a bubble with its Stop button, and can't be changed.",
+  );
+  await savedAfter(page, () => page.getByRole("button", { name: "PauseCon room change", exact: true }).click());
   await expect(page.getByRole("heading", { name: "PauseCon room change", level: 1 })).toBeVisible();
   await frame(page, "A template chosen");
   story("They choose the time.");
@@ -290,6 +305,69 @@ test("A text on an approved template", async ({ page, request, flowDatabase }) =
   await frame(page, "The text, scheduled");
 });
 
+test("A template's words edited as a new one, and an unused one deleted", async ({ page, request, flowDatabase }) => {
+  story(
+    "Under the template chosen, two quiet buttons: its words as a new template, and, while no other broadcast has it, deleting it.",
+  );
+  await importLuma(request, BASE);
+  addTemplates(flowDatabase);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
+  await page.getByRole("button", { name: copy.deleteTemplate }).scrollIntoViewIfNeeded();
+  await frame(page, "A template chosen, with Edit and Delete under it", { window: true });
+  story("Edit takes its words, under its name numbered, as new words, to change and send for approval.");
+  await savedAfter(page, () => page.getByRole("button", { name: copy.editTemplate }).click());
+  await expect(page.getByLabel(copy.templateName)).toHaveValue(copy.copyName("PauseCon room change", 2));
+  await page.getByLabel(copy.templateName).scrollIntoViewIfNeeded();
+  await frame(page, "Its words as a new template", { window: true });
+  story(
+    "Unchanged, they're an approved template's already, so there's nothing to approve: Send for approval is greyed, and a red line under it says why.",
+  );
+  const approval = page.getByRole("button", { name: copy.submitTemplate });
+  await expect(approval).toBeDisabled();
+  await expect(page.getByText(copy.problems["same-words"]).first()).toBeVisible();
+  await approval.scrollIntoViewIfNeeded();
+  await frame(page, "Send for approval, greyed, and why", { window: true });
+  story(
+    "They choose an old template instead, and delete it: pressed twice, it goes from WhatsApp and from the dropdown, and the draft chooses again.",
+  );
+  await savedAfter(page, () => chooseTemplate(page, "Local group meetup"));
+  await page.getByRole("button", { name: copy.deleteTemplate }).click();
+  await expect(page.getByRole("button", { name: staffVocabulary.deleteItShort })).toBeVisible();
+  await frame(page, "Delete, pressed once");
+  await page.getByRole("button", { name: staffVocabulary.deleteItShort }).click();
+  await expect(templateBox(page)).toHaveAccessibleName(`${copy.templateLabel}: ${copy.pickTemplate}`);
+  await templateBox(page).click();
+  await expect(page.getByRole("button", { name: "PauseCon room change", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Local group meetup", exact: true })).toHaveCount(0);
+  await frame(page, "Deleted, gone from the dropdown", { window: true });
+});
+
+test("The site is updated under an open draft", async ({ page, request, flowDatabase }) => {
+  story(
+    "A draft is open when a deploy renames what its buttons call. The next button pressed finds so, and a dialog over the page says the site's been updated, with Reload.",
+  );
+  await importLuma(request, BASE);
+  addTemplates(flowDatabase);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  // A call to a Server Action no build has, as a button on a page opened before the deploy makes.
+  await page.evaluate(() => fetch("/", { method: "POST", headers: { "Next-Action": `40${"0".repeat(40)}` } }));
+  const dialog = page.getByRole("dialog", { name: shellCopy.siteUpdated.title });
+  await expect(dialog).toBeVisible();
+  await frame(page, "The site has been updated");
+  story("Its × closes it, to copy something off the page first; Reload opens the page afresh.");
+  await dialog.getByRole("button", { name: shellCopy.siteUpdated.close }).click();
+  await expect(dialog).toBeHidden();
+  await frame(page, "Closed, to copy first");
+  await page.evaluate(() => fetch("/", { method: "POST", headers: { "Next-Action": `40${"0".repeat(40)}` } }));
+  await dialog.getByRole("button", { name: shellCopy.siteUpdated.reload }).click();
+  await expect(dialog).toBeHidden();
+  await expect(templateBox(page)).toBeVisible();
+  await frame(page, "Reloaded");
+});
+
 test("A text on new words", async ({ page, request, flowDatabase }) => {
   story(
     "No template says it, so staff choose New template, the dropdown's last choice, and name it. There are fields, but no parts for only some, as WhatsApp's words are the same for everyone.",
@@ -298,7 +376,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   addTemplates(flowDatabase);
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
-  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  await chooseTemplate(page, copy.newTemplate);
   const words = page.getByRole("textbox", { name: copy.templateWords });
   await words.click();
   await page.keyboard.type("The march meets at 11:00 at Parliament Square.");
@@ -309,11 +387,14 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await expect(send.getByText(copy.problems["not-approved"])).toBeVisible();
   await frame(page, "New words: WhatsApp approves them before they can be scheduled", { window: true });
   story(
-    "The button to send them to WhatsApp is at the foot, apart from the words, in Schedule's place, as they can't be scheduled till WhatsApp approves them.",
+    "The button to send them to WhatsApp is under their preview, before the test copy, as neither a test nor scheduling can be till WhatsApp approves them.",
   );
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.getByRole("button", { name: copy.submitTemplate }).scrollIntoViewIfNeeded();
+  await frame(page, "Send for approval, under the preview", { window: true });
   const draftPage = page.url();
   const id = new URL(draftPage).pathname.split("/").at(-1);
-  await send.getByRole("button", { name: copy.submitTemplate }).click();
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
   story(
     "Sent, it's back to the list of broadcasts, where the draft says it's waiting for WhatsApp, its row tinted to find it.",
   );
@@ -328,7 +409,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await page.goto(draftPage);
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
   await frame(page, "The draft, sent for approval");
-  await page.getByLabel(copy.templateLabel).first().scrollIntoViewIfNeeded();
+  await templateBox(page).scrollIntoViewIfNeeded();
   await frame(page, "Its words locked", { window: true });
   story(
     "WhatsApp rejects them, and its webhook tells the site why, as a code. The draft says what it means in plain words, and the words can be changed and sent again.",
@@ -351,18 +432,18 @@ test("WhatsApp won't take a new template", async ({ page, request, flowDatabase 
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
-  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  await chooseTemplate(page, copy.newTemplate);
   await page.getByRole("textbox", { name: copy.templateWords }).click();
   await page.keyboard.insertText("The march meets at 11:00 at Parliament Square. ".repeat(25).trim());
   await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: where to meet"));
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
-  const send = page.getByRole("region", { name: copy.sections.send });
-  await send.getByRole("button", { name: copy.submitTemplate }).click();
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
   story(
     "WhatsApp refuses it. A red alert under the button gives its reason, and the template stays, to change and send again.",
   );
-  await expect(send.getByRole("alert")).toBeVisible();
-  await send.scrollIntoViewIfNeeded();
+  await expect(preview.getByRole("alert")).toBeVisible();
+  await preview.getByRole("alert").scrollIntoViewIfNeeded();
   await frame(page, "WhatsApp's refusal, under the button", { window: true });
 });
 
@@ -372,7 +453,7 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
   const id = new URL(page.url()).pathname.split("/").at(-1);
-  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  await chooseTemplate(page, copy.newTemplate);
   await page.getByRole("textbox", { name: copy.templateWords }).click();
   await page.keyboard.type("Doors open at 09:30 for PauseCon.");
   await savedAfter(page, () => page.getByLabel(copy.templateName).fill("PauseCon doors"));

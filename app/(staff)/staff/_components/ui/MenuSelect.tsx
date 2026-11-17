@@ -1,22 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Label } from "@/components/ui/Field";
+import Tag from "@/components/ui/Tag";
 import type { FilterOption } from "@/lib/staff-list-filters";
 import Choices from "./Choices";
 import Menu from "./Menu";
 import styles from "./MenuSelect.module.css";
+
+/**
+ * A choice, and what the menu shows with it: a tag beside its name, a line
+ * of its words under it, cut off at the menu's edge, and facts under those.
+ */
+export type MenuOption = FilterOption & { tag?: string; words?: string; facts?: string[] };
 
 /** A choice in words, with its group's name, as the icon beside it doesn't say it aloud. */
 const named = (option: FilterOption): string =>
   option.group ? `${option.label}, ${option.group.label}` : option.label;
 
 /**
- * A dropdown in a form, for choices in groups with icons, which a native
- * select can't show: a field's box with the choice made, or `placeholder`,
- * that opens the list filters' own menu (Menu, Choices), each group's icon
- * beside its name. Picking one closes it. The form sends the choice as
- * `name`, blank till one's picked; `onChange` hears each pick. Its label is
+ * A dropdown, for choices a native select can't show: in groups with
+ * icons, or each with its name in bold, a tag, its words and facts about it,
+ * each a line that never wraps, a rule between each (`MenuOption`), in a
+ * wider menu. A field's box
+ * with the choice made, or `placeholder`, that opens the list filters' own
+ * menu (Menu, Choices), each group's icon beside its name, and `last`, if
+ * given, at its foot under a rule, as a select's list draws one. Picking one
+ * closes it. In a form, it sends the choice as `name`, blank till one's
+ * picked. It keeps its own choice, or shows `value`, which its page keeps;
+ * `onChange` hears each pick. `disabled`, it can't be opened. Its label is
  * over it, and names it with the choice made. `id` must be unique on the page.
  */
 export default function MenuSelect({
@@ -24,58 +36,106 @@ export default function MenuSelect({
   name,
   label,
   options,
+  last,
   placeholder,
+  value: given,
+  disabled = false,
   onChange,
 }: {
   id: string;
-  name: string;
+  name?: string;
   label: string;
-  options: FilterOption[];
+  options: MenuOption[];
+  last?: MenuOption;
   placeholder: string;
+  value?: string;
+  disabled?: boolean;
   onChange?: (value: string) => void;
 }) {
-  const [value, setValue] = useState("");
-  const chosen = options.find((option) => option.value === value);
+  const [own, setOwn] = useState("");
+  const value = given ?? own;
+  const all = last ? [...options, last] : options;
+  const chosen = all.find((option) => option.value === value);
   const shown = chosen ? named(chosen) : placeholder;
+  const box = chosen ? (
+    <span className={styles.chosen}>
+      {chosen.group?.icon}
+      {shown}
+    </span>
+  ) : (
+    <span className={styles.placeholder}>{placeholder}</span>
+  );
+  const rich = options.some((option) => option.facts);
+  // Choices draws a filter's choices, which have none of these.
+  const row = ({ tag, words, facts, ...option }: FilterOption & Omit<MenuOption, keyof FilterOption>) => {
+    // The tag, the words and each fact by its id, so they're read as separate words.
+    const said = [...(tag ? ["tag"] : []), ...(words ? ["words"] : []), ...(facts ?? []).map((_, n) => n)].map(
+      (one) => `${id}-${option.value}-${one}`,
+    );
+    return (
+      <button
+        type="button"
+        className={rich ? styles.rich : undefined}
+        popoverTarget={id}
+        popoverTargetAction="hide"
+        aria-current={option.value === value ? "true" : undefined}
+        aria-label={named(option)}
+        aria-describedby={said.length ? said.join(" ") : undefined}
+        onClick={() => {
+          setOwn(option.value);
+          onChange?.(option.value);
+        }}
+      >
+        {rich ? (
+          <span className={styles.head}>
+            <span className={styles.name}>{option.label}</span>
+            {tag && (
+              <span id={`${id}-${option.value}-tag`}>
+                <Tag>{tag}</Tag>
+              </span>
+            )}
+          </span>
+        ) : (
+          option.label
+        )}
+        {words && (
+          <span id={`${id}-${option.value}-words`} className={styles.words}>
+            {words}
+          </span>
+        )}
+        {facts && (
+          <span className={styles.facts}>
+            {facts.map((fact, n) => (
+              <Fragment key={fact}>
+                {/* A dot between each, seen, not read: each fact is read by its id. */}
+                {n > 0 && <span aria-hidden="true"> · </span>}
+                <span id={`${id}-${option.value}-${n}`}>{fact}</span>
+              </Fragment>
+            ))}
+          </span>
+        )}
+      </button>
+    );
+  };
   return (
     <div className={styles.field}>
       <Label>{label}</Label>
-      <input type="hidden" name={name} value={value} />
-      <Menu
-        id={id}
-        trigger={styles.trigger}
-        name={`${label}: ${shown}`}
-        label={
-          chosen ? (
-            <span className={styles.chosen}>
-              {chosen.group?.icon}
-              {shown}
-            </span>
-          ) : (
-            <span className={styles.placeholder}>{placeholder}</span>
-          )
-        }
-      >
-        <Choices
-          options={options}
-          current={value ? [value] : []}
-          row={(option) => (
-            <button
-              type="button"
-              popoverTarget={id}
-              popoverTargetAction="hide"
-              aria-current={option.value === value ? "true" : undefined}
-              aria-label={named(option)}
-              onClick={() => {
-                setValue(option.value);
-                onChange?.(option.value);
-              }}
-            >
-              {option.label}
-            </button>
+      {name && <input type="hidden" name={name} value={value} />}
+      {disabled ? (
+        <button type="button" className={styles.trigger} aria-label={`${label}: ${shown}`} disabled>
+          {box}
+        </button>
+      ) : (
+        <Menu id={id} trigger={styles.trigger} name={`${label}: ${shown}`} label={box} wide={rich ? "wider" : true}>
+          <Choices options={options} current={value ? [value] : []} row={row} />
+          {last && (
+            <>
+              <hr className={styles.rule} />
+              <Choices options={[last]} current={value ? [value] : []} row={row} />
+            </>
           )}
-        />
-      </Menu>
+        </Menu>
+      )}
     </div>
   );
 }

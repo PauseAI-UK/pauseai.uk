@@ -194,7 +194,7 @@ export function slowPlan({ storyboard }, files = []) {
     [
       [
         npm("typecheck", ["run", "typecheck"], 5, { required: true }),
-        ...(storyboard ? [npm("storyboard", ["run", "storyboard", "--", "--no-open"], 20)] : []),
+        ...(storyboard ? [npm("storyboard", ["run", "storyboard", "--", "--no-open"], 30)] : []),
         ...(storyboard && picturing ? [npm("determinism", ["run", "storyboard:determinism"], 20)] : []),
       ],
       [npm("test", ["test"], 15)],

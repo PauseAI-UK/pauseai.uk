@@ -3,6 +3,7 @@
 import { startTransition, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextArea } from "@/components/ui/Controls";
+import { staffMemberText } from "@/lib/staff-member";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { isSaveKey } from "@/lib/notes/notes";
@@ -88,7 +89,7 @@ export default function NotesCard({
                   </p>
                 )}
                 <div className={styles.meta}>
-                  <Muted>{`${copy.kind} · ${writer}`}</Muted>
+                  <Muted>{`${copy.kind} · ${staffMemberText(writer)}`}</Muted>
                   <div className={styles.buttons}>
                     <SubmitButton variant="primary" size="small" fit>
                       {copy.add}

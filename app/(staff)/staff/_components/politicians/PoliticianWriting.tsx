@@ -14,6 +14,7 @@ import type { EditResult } from "@/lib/politicians/edits.server";
 import { staffDate } from "@/lib/staff-time";
 import AddAliasForm, { type AddAliasAction } from "./AddAliasForm";
 import styles from "./PoliticianWriting.module.css";
+import { staffMemberText } from "@/lib/staff-member";
 import { politiciansCopy } from "./copy";
 
 const copy = politiciansCopy.politician.editDetails;
@@ -156,7 +157,7 @@ export function SalutationBubble({ politician, action }: { politician: Politicia
  */
 function sourceLine(source: NonNullable<EmailSource>, house?: string): string {
   if (source.by === "staff") {
-    const setBy = politiciansCopy.politician.setBy(source.staff, staffDate(source.at));
+    const setBy = politiciansCopy.politician.setBy(staffMemberText(source.staff), staffDate(source.at));
     return source.note ? `${source.note} · ${setBy}` : setBy;
   }
   return source.by === "body" ? words.sources.parliament(house) : copy.fromAirtable;
@@ -239,7 +240,9 @@ export function AddressesBubble({
         key: `added ${address}`,
         address,
         // Why, then who and when, as their main address says it.
-        from: note ? `${note} · ${words.addedBy(addedBy, staffDate(at))}` : words.addedBy(addedBy, staffDate(at)),
+        from: note
+          ? `${note} · ${words.addedBy(staffMemberText(addedBy), staffDate(at))}`
+          : words.addedBy(staffMemberText(addedBy), staffDate(at)),
         removable: true,
       })),
   ];

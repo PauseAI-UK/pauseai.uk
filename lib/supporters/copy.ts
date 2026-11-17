@@ -135,6 +135,7 @@ export const supportersCopy = {
         columns: { when: "When", what: "What", value: "Value", from: "From" },
         name: "Name",
         point: "Point",
+        town: "Town",
       },
       permissions: {
         // Each topic's name, a row each.

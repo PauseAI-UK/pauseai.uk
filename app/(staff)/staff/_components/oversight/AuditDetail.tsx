@@ -1,4 +1,5 @@
 import StaffLink from "../ui/StaffLink";
+import StaffMember from "../ui/StaffMember";
 import { Fragment, type ReactNode } from "react";
 import type { AuditAction, AuditEvent, StoredAuditDetails } from "@/lib/audit-events";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -32,9 +33,10 @@ function Who({ named, href, name, id }: { named: Named | null; href: string; nam
 
 /**
  * One logged field, labelled, in words: permissions by name, a count by
- * what it counted, and the rest as they are.
+ * what it counted, a staff member (`staff`) as StaffMember names them, and
+ * the rest as they are.
  */
-function Field({ name, value }: { name: string; value: unknown }) {
+function Field({ name, value, staff }: { name: string; value: unknown; staff: boolean }) {
   if (typeof value === "number") {
     return (
       <>
@@ -47,6 +49,7 @@ function Field({ name, value }: { name: string; value: unknown }) {
   else if (name === "status") shown = staffVocabulary.statuses[String(value)] ?? String(value);
   else if (name === "from" || name === "to" || name === "permissions") shown = permissionNames(value);
   else if (name === "changed") return <FieldChanges changed={value as Record<string, FieldChange>} />;
+  else if (staff) shown = <StaffMember email={String(value)} />;
   else shown = fieldValue(name, value);
   return (
     <>
@@ -70,8 +73,25 @@ export default function AuditDetail({ change }: { change: LoggedChange }) {
     value === "" ||
     (typeof value === "object" && !Array.isArray(value) && Object.keys(value as object).length === 0);
   const rest = Object.entries(change.details).filter(([key, value]) => !fields.includes(key) && !empty(value));
-  return <DotParts>{[...parts, ...rest.map(([key, value]) => <Field key={key} name={key} value={value} />)]}</DotParts>;
+  const staff = STAFF_FIELDS[change.action as AuditAction] ?? [];
+  return (
+    <DotParts>
+      {[
+        ...parts,
+        ...rest.map(([key, value]) => <Field key={key} name={key} value={value} staff={staff.includes(key)} />),
+      ]}
+    </DotParts>
+  );
 }
+
+/** The fields an action logs that name a staff member, by their address, beyond what its lead says. */
+const STAFF_FIELDS: Partial<Record<AuditAction, string[]>> = {
+  "end staff sessions": ["email"],
+  "connect gmail": ["email"],
+  "disconnect gmail": ["email"],
+  "set event owner": ["owner", "previous"],
+  "remove supports status": ["updatedBy"],
+};
 
 /** What an entry says first, before the rest of its fields: its parts, and the fields they say. */
 type Lead = { parts: ReactNode[]; fields: string[] };
@@ -150,7 +170,7 @@ const heldSync: LeadOf<
 });
 
 const account: LeadOf<"add staff account" | "remove staff account"> = (details) => ({
-  parts: [details.email],
+  parts: [<StaffMember key="email" email={details.email} />],
   fields: ["email"],
 });
 
@@ -197,7 +217,10 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "discard held politician import": heldImport,
   "add staff account": account,
   "set staff permissions": (details) => ({
-    parts: [details.email, `${permissionNames(details.from)} → ${permissionNames(details.to)}`],
+    parts: [
+      <StaffMember key="email" email={details.email} />,
+      `${permissionNames(details.from)} → ${permissionNames(details.to)}`,
+    ],
     fields: ["email", "from", "to"],
   }),
   "remove staff account": account,
@@ -242,6 +265,7 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "change broadcast consent": none,
   "submit broadcast template": none,
   "withdraw broadcast template": none,
+  "delete broadcast template": none,
   "schedule broadcast": none,
   "stop broadcast": none,
   "resume broadcast": none,

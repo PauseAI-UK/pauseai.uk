@@ -76,7 +76,7 @@ export default function SignupUploadForm(props: {
   );
 }
 
-/** The steps after the kind, as that kind has them. Choosing the other kind keeps what's in them but the event column. */
+/** The steps after the kind, as that kind has them. Choosing the other kind keeps what's in them but the file and the event column. */
 function SignupSteps({
   kind,
   events,
@@ -92,10 +92,14 @@ function SignupSteps({
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [eventId, setEventId] = useState("");
-  // The event column, kept with the kind it was chosen under: choosing the other kind clears it, for good, as
-  // React adjusts state when a prop changes.
+  // The event column, kept with the kind it was chosen under: choosing the other kind clears it, and the file, which
+  // was chosen for the other kind, for good, as React adjusts state when a prop changes.
   const [picked, setPicked] = useState({ kind, column: "" });
-  if (picked.kind !== kind) setPicked({ kind, column: "" });
+  if (picked.kind !== kind) {
+    setPicked({ kind, column: "" });
+    setChosen(null);
+    setFileError(null);
+  }
   const column = picked.kind === kind ? picked.column : "";
   const setColumn = (heading: string) => setPicked({ kind, column: heading });
   const [signedOn, setSignedOn] = useState(today);
@@ -114,7 +118,7 @@ function SignupSteps({
     setChosen({ name: file.name, text });
   }
 
-  // The file as the kind reads it, so choosing the other kind reads it again.
+  // The file as the kind reads it.
   const fileRead = useMemo(() => chosen && readSignupFile(chosen.text, kind), [chosen, kind]);
 
   function startAgain() {

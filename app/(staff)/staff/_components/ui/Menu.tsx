@@ -15,7 +15,7 @@ export const menuItemArmedClass = `${styles.item} ${styles.armed}`;
  * sits in the middle of the window. `id` must be unique on the page.
  * `trigger` is the button's class, for how it looks, and `name` its
  * accessible name, where its label is only a glyph. `wide` is for rows too
- * long for its usual box.
+ * long for its usual box; "wider", for choices with a line of facts.
  */
 export default function Menu({
   id,
@@ -29,7 +29,7 @@ export default function Menu({
   label: ReactNode;
   trigger?: string;
   name?: string;
-  wide?: boolean;
+  wide?: boolean | "wider";
   children: ReactNode;
 }) {
   return (
@@ -46,7 +46,7 @@ export default function Menu({
       <div
         id={id}
         popover="auto"
-        className={wide ? `${styles.menu} ${styles.wide}` : styles.menu}
+        className={wide ? `${styles.menu} ${styles.wide} ${wide === "wider" ? styles.wider : ""}` : styles.menu}
         style={{ positionAnchor: `--${id}` } as CSSProperties}
       >
         {children}

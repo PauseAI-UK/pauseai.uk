@@ -7,6 +7,8 @@ import type { ChangesPage, LoggedChange } from "@/lib/oversight/audit-log.server
 import AuditDetail from "./AuditDetail";
 import { LoggedJson } from "../ui/Logged";
 import SortHeading from "../ui/SortHeading";
+import StaffMember from "../ui/StaffMember";
+import { staffMemberText } from "@/lib/staff-member";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import Withheld from "../ui/Withheld";
 import styles from "./ChangesTable.module.css";
@@ -25,7 +27,12 @@ export function changeColumns(): ListColumn<LoggedChange>[] {
   return [
     { key: "day", label: copy.day, short: true, text: (c) => c.at, cell: (c) => staffDate(c.at) },
     { key: "at", label: copy.at, short: true, cell: (c) => staffClock(c.at) },
-    { key: "actor", label: copy.actor, text: (c) => c.actor, cell: (c) => c.actor },
+    {
+      key: "actor",
+      label: copy.actor,
+      text: (c) => staffMemberText(c.actor),
+      cell: (c) => <StaffMember email={c.actor} />,
+    },
     { key: "action", label: copy.action, words: "name", text: (c) => c.action, cell: (c) => c.action },
     { key: "details", label: copy.details, cell: (c) => <AuditDetail change={c} /> },
     {

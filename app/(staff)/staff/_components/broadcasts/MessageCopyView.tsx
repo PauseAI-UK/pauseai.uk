@@ -1,4 +1,5 @@
 import { letterFor } from "@/lib/mailings/doc";
+import { staffMemberText } from "@/lib/staff-member";
 import { named } from "@/lib/email-parsing/addresses";
 import type { MessageCopy } from "@/lib/broadcasts/pages.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
@@ -13,6 +14,7 @@ import { LetterHistory, type HistoryEntry } from "../letters/LetterHistory";
 import { Thread } from "../letters/LetterThread";
 import ThreadEmail from "../letters/ThreadEmail";
 import bubble from "./Broadcasts.module.css";
+import own from "./MessageCopyView.module.css";
 import Grid, { Card, Column } from "../ui/Grid";
 import PageHead from "../ui/PageHead";
 import StaffLink from "../ui/StaffLink";
@@ -158,7 +160,10 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
           {
             at: reply.dealtAt,
             status: "dealt",
-            details: { by: reply.dealtBy!, ...(reply.outcome === "opted-out" && { how: copy.replies.how }) },
+            details: {
+              by: staffMemberText(reply.dealtBy!),
+              ...(reply.outcome === "opted-out" && { how: copy.replies.how }),
+            },
             label: reply.outcome === "opted-out" ? copy.replies.historyOptedOut : copy.replies.historyNothing,
           },
         ]
@@ -171,7 +176,7 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
             at: answer.sentAt,
             status: "answered",
             details: {
-              by: answer.sentBy === SITE_ACTOR ? copy.replies.automatically : answer.sentBy,
+              by: answer.sentBy === SITE_ACTOR ? copy.replies.automatically : staffMemberText(answer.sentBy),
               from: ourAddress,
               // Every answer is to one of this copy's replies.
               to: shown(one.replies.find((reply) => reply.id === answer.replyId)!.from),
@@ -235,10 +240,13 @@ export default function MessageCopyView({ one, actions }: { one: MessageCopy; ac
         <Column span={3}>
           <NotReached one={one} />
           <Thread title={copy.threadTitle}>
-            <Message one={one} name={name} />
-            {one.replies.map((reply) => (
-              <Reply key={reply.id} reply={reply} one={one} actions={actions} />
-            ))}
+            {/* A text's thread is one conversation, its parts touching; an email's, a mail each, apart. */}
+            <div className={one.channel === "text" ? own.chat : own.mails}>
+              <Message one={one} name={name} />
+              {one.replies.map((reply) => (
+                <Reply key={reply.id} reply={reply} one={one} actions={actions} />
+              ))}
+            </div>
           </Thread>
         </Column>
         <Column span={3}>

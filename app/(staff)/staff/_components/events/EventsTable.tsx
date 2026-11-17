@@ -20,6 +20,7 @@ import { londonDate } from "@/lib/staff-time";
 import AlertIcon from "../ui/AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
 import SortHeading from "../ui/SortHeading";
+import StaffMember from "../ui/StaffMember";
 import { filterChipClass } from "../ui/FilterBar";
 import Choices from "../ui/Choices";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
@@ -117,17 +118,14 @@ export function Missing({ needed, children }: { needed: boolean; children: strin
 }
 
 /**
- * Who owns an event, by their address: free to break before its @, so the
- * column takes little room, leaving it to the hosts.
+ * Who owns an event, by their address, which StaffMember breaks before its
+ * @, so the column takes little room, leaving it to the hosts.
  */
 function Owner({ owner, needed }: { owner: string | null; needed: boolean }) {
   if (!owner) return <Missing needed={needed}>{copy.noOwner}</Missing>;
-  const [name, domain] = owner.split(/(?=@)/);
   return (
     <span className={styles.owner}>
-      {name}
-      <wbr />
-      {domain}
+      <StaffMember email={owner} />
     </span>
   );
 }
