@@ -36,20 +36,71 @@ export async function hydrated(page: Page): Promise<void> {
   }
 }
 
+/** How many polls in a row (50ms apart) the page must hold still to be at rest. */
+const STILL_POLLS = 6;
+
 /**
- * The page is laid out as styled: every stylesheet it links to has loaded,
- * and the fonts are in. After a client-side navigation the new page can
- * show before its stylesheets arrive, and on a busy machine they take a
- * while: a table's cells are then laid out without the rules that keep a
- * date on one line.
+ * The page is at rest, as a frame pictures and checks it. It's styled: every
+ * stylesheet it links to has loaded and the fonts are in, as after a
+ * client-side navigation the page can show before its stylesheets arrive.
+ * And it has held still for STILL_POLLS polls in a row: the same scroll, the
+ * same height, no change to the DOM, and no animation or transition under
+ * way (one that repeats for ever, a spinner's, doesn't count). On a busy
+ * machine what a step sets going can start late, a smooth scroll, a scroll
+ * the browser restores after a reload, a sticky bar an IntersectionObserver
+ * shows or hides once it notices a scroll, and a shorter wait catches the
+ * page before it moves.
  */
-export async function styled(page: Page): Promise<void> {
+export async function atRest(page: Page): Promise<void> {
   await page.waitForFunction(
     () => [...document.querySelectorAll<HTMLLinkElement>("link[rel=stylesheet]")].every((link) => link.sheet),
     undefined,
     POLL,
   );
   await page.evaluate(() => document.fonts.ready);
+  await page
+    .waitForFunction(
+      (polls) => {
+        type Rest = { key: string; same: number; changed: boolean; watch: MutationObserver };
+        const w = window as typeof window & { __rest?: Rest };
+        if (!w.__rest) {
+          const rest: Rest = {
+            key: "",
+            same: 0,
+            changed: false,
+            watch: new MutationObserver(() => (rest.changed = true)),
+          };
+          rest.watch.observe(document.documentElement, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            characterData: true,
+          });
+          w.__rest = rest;
+        }
+        const s = w.__rest;
+        const moving = document
+          .getAnimations()
+          .some((a) => a.playState === "running" && a.effect?.getComputedTiming().iterations !== Infinity);
+        const key = `${window.scrollX},${window.scrollY},${document.documentElement.scrollHeight},${window.innerWidth}`;
+        s.same = key === s.key && !s.changed && !moving ? s.same + 1 : 0;
+        s.key = key;
+        s.changed = false;
+        return s.same >= polls;
+      },
+      STILL_POLLS,
+      POLL,
+    )
+    .finally(() =>
+      page
+        .evaluate(() => {
+          const w = window as typeof window & { __rest?: { watch: MutationObserver } };
+          w.__rest?.watch.disconnect();
+          delete w.__rest;
+        })
+        // A page that navigated away has nothing to tidy.
+        .catch(() => {}),
+    );
 }
 
 /**

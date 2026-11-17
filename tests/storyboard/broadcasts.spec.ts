@@ -11,7 +11,7 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { caretInEmpty } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { holdActions } from "./loading-steps";
-import { scrollSettled } from "./settle";
+import { hydrated, scrollSettled } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
@@ -553,8 +553,17 @@ test("Our answer to a text fails", async ({ page, request, flowDatabase }) => {
     "Their reply is back for staff to deal with, as no one has: under our answer, why it didn't go, and the buttons again, at the foot of the thread.",
   );
   await page.reload();
-  await expect(page.getByText(copy.replies.undelivered("Message undeliverable"))).toBeVisible();
-  await frame(page, "Our answer, which WhatsApp couldn't deliver, and their reply to deal with again");
+  const undelivered = page.getByText(copy.replies.undelivered("Message undeliverable"));
+  await expect(undelivered).toBeVisible();
+  // The reload puts the window back about where it was, but where differs between runs as the page
+  // grows under it, so the frame is of a place of its own: why it didn't go, in the middle, once the
+  // page has hydrated and done what it does to the scroll.
+  await hydrated(page);
+  await undelivered.evaluate((line) => line.scrollIntoView({ block: "center", behavior: "instant" }));
+  await scrollSettled(page);
+  await frame(page, "Our answer, which WhatsApp couldn't deliver, and their reply to deal with again", {
+    window: true,
+  });
   story("On the text's page, the copy is to check again, so staff can find it.");
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
   await expect(page.getByRole("link", { name: `1 ${lettersCopy.copyStates.counts.look}` })).toBeVisible();
