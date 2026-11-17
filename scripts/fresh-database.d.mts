@@ -10,7 +10,7 @@ export function addFixtureData(url: string): void;
 export function connectLettersInbox(url: string, email: string, key: string): void;
 export function defaultHost(port?: string, places?: string[]): string;
 export function resetDatabase(url: string, options?: { singleTransaction?: boolean; upTo?: string }): string;
-export function isLocal(url: string): boolean;
+export function isLocal(url: string, env?: Record<string, string | undefined>): boolean;
 export function testServerUrl(env?: Record<string, string | undefined>, envFile?: string): string | undefined;
 export function serverSource(env?: Record<string, string | undefined>, envFile?: string, places?: string[]): string;
 export function noServer(url: string, source?: string): string;
