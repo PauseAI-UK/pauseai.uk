@@ -176,7 +176,7 @@ test("A phone number that can't be read", async ({ page }) => {
   );
   await openSignup(page);
   await fillIn(page, madeUpAddress("Testy McTestface", 44, "example.org"));
-  await page.getByLabel(copy.form.phone).fill("7700 900123");
+  await page.getByRole("textbox", { name: new RegExp(`^${copy.form.phone}\\b`) }).fill("7700 900123");
   await page.getByRole("button", { name: copy.form.submit, exact: true }).click();
   await expect(page.locator("form").getByRole("alert")).toHaveText(copy.errors.phoneInvalid);
   await messageMidWindow(page);
