@@ -118,9 +118,16 @@ jobs:
       - name: Check types
         run: npm run typecheck
 
-  test:
-    name: Test
+  # The tests split between two jobs, which take about as long as each
+  # other. Each writes its coverage, with Vitest's thresholds off, as a shard
+  # can't know what the other covers; the Test job merges and checks them.
+  test-shard:
+    name: Test (${{ matrix.shard }} of 2)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     # Playwright's image, with Chromium and the system packages it needs, so
     # the job installs neither (https://playwright.dev/docs/ci#via-containers).
     # Its version is @playwright/test's, which Dependabot bumps and the image
@@ -185,10 +192,61 @@ jobs:
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
-      # Both Vitest projects (node and browser), gated on coverage. The
+      # Both Vitest projects (node and browser), a half of each. The
       # browser project renders components in the image's Chromium.
-      - name: Test with coverage
-        run: npm test
+      - name: Test
+        run: >-
+          npx vitest run --coverage --shard=${{ matrix.shard }}/2
+          --coverage.reporter=json --coverage.thresholds.100=false --coverage.thresholds.perFile=false
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.shard }}
+          path: coverage/coverage-final.json
+          retention-days: 1
+
+  # One result for the two parts, under the test check's own name: it fails
+  # if either part did, and otherwise merges their coverage and checks every
+  # file is at 100%, as `npm test` does (scripts/merge-coverage.mjs).
+  test:
+    name: Test
+    needs: test-shard
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every part passed
+        run: test "${{ needs.test-shard.result }}" = success
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        id: node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+
+      # As the first job does: node_modules, kept for each lockfile and Node version.
+      - name: Cache dependencies
+        id: node-modules
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ steps.node.outputs.node-version }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Download coverage
+        uses: actions/download-artifact@v7
+        with:
+          pattern: coverage-*
+
+      - name: Every file at 100% coverage
+        run: node scripts/merge-coverage.mjs coverage-1/coverage-final.json coverage-2/coverage-final.json
 
   build:
     name: Build
