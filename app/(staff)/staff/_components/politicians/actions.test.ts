@@ -50,12 +50,14 @@ describeWithDatabase("the politician pages' Server Actions", () => {
     expect(await query("SELECT 1 FROM politician_addresses")).toEqual([]);
   });
 
-  it("setAskStatus marks a politician as signed today, with a note, or not, as the logged-in staff member", async () => {
+  it("setAskStatus marks a politician as signed today in London, with a note, or not, as the logged-in staff member", async () => {
     const id = await addTestPolitician();
+    // Past midnight in London in summer time, the day before in UTC.
+    vi.stubEnv("FIXTURE_NOW", "2026-07-01T23:30:00Z");
     await setAskStatus(form({ politicianId: String(id), ask: PM, status: "signed", note: "At the march" }));
     expect((await getPolitician(id))!.statuses[PM]).toMatchObject({
       status: "signed",
-      date: new Date().toISOString().slice(0, 10),
+      date: "2026-07-02",
       note: "At the march",
       updatedBy: "jo@pauseai.uk",
     });

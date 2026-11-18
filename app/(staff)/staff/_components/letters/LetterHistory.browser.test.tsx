@@ -206,15 +206,15 @@ describe("LetterHistory", () => {
         [copy.detail.fields.to, "testy.mctestface.mp@parliament.uk, jane.smith.482913@letters.pauseai.uk"],
       ],
       [
-        [done.forwarded, `policy@pauseai.uk · 14 Oct 2026, 09:00${why.policy_inbox}`],
+        [done.forwarded, `policy@pauseai.uk · 14 Oct 2026, 10:00${why.policy_inbox}`],
         [done.not_forwarded, `jane@example.com${why.own_follow_up}`],
       ],
     ]);
     expect(lists(reply)[0]).toContainEqual([copy.detail.fields.cc, "caseworker@parliament.uk"]);
     expect(lists(reply)[0]).toContainEqual([copy.detail.fields.replyTo, "testy.mctestface.mp@parliament.uk"]);
     expect(lists(reply)[1]).toEqual([
-      [done.forwarded, `policy@pauseai.uk · 13 Oct 2026, 09:00${why.policy_inbox}`],
-      [done.forwarded, `jane@example.com · 13 Oct 2026, 09:00${why.sender}`],
+      [done.forwarded, `policy@pauseai.uk · 13 Oct 2026, 10:00${why.policy_inbox}`],
+      [done.forwarded, `jane@example.com · 13 Oct 2026, 10:00${why.sender}`],
     ]);
     // One that went to no one has no one to name; the bounce's ID is only in its {}.
     expect(lists(auto)).toEqual([
@@ -239,9 +239,9 @@ describe("LetterHistory", () => {
       ]);
     const [followUp, reply, auto] = history().getByRole("listitem").all();
     const done = copy.detail.handling;
-    expect(handling(followUp)).toEqual([[done.forwarded, "policy@pauseai.uk · 14 Oct 2026, 09:00"]]);
+    expect(handling(followUp)).toEqual([[done.forwarded, "policy@pauseai.uk · 14 Oct 2026, 10:00"]]);
     expect(handling(reply)).toEqual([
-      [done.forwarded, "policy@pauseai.uk · 13 Oct 2026, 09:00"],
+      [done.forwarded, "policy@pauseai.uk · 13 Oct 2026, 10:00"],
       [done.failed, `jane@example.com${copy.detail.handlingReasons.blocked}`],
     ]);
     // Nothing was logged between the automatic reply and the next.

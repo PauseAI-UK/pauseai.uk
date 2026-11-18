@@ -107,4 +107,10 @@ describe("downloadName", () => {
   it("drops accents and filters that are only punctuation", () => {
     expect(downloadName("Supporters", ["Siân", "—"], at, "json")).toBe("supporters_sian_2026_10_27_1430.json");
   });
+
+  it("says when in London: past midnight in summer time, the next day", () => {
+    expect(downloadName("Supporters", [], new Date("2026-07-01T23:05:00Z"), "csv")).toBe(
+      "supporters_2026_07_02_0005.csv",
+    );
+  });
 });

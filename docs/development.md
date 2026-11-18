@@ -713,7 +713,7 @@ Set up outside the code:
 
 ### The scheduled jobs
 
-Each is a Netlify scheduled function in `netlify/functions/` that calls its route under `/api/cron/` (`docs/code-structure.md`, "Scheduled jobs"), and each has a page under `/staff/scheduled-jobs` with its runs and a button (`docs/domain-concepts.md`, "Imports"). Times are UTC.
+Each is a Netlify scheduled function in `netlify/functions/` that calls its route under `/api/cron/` (`docs/code-structure.md`, "Scheduled jobs"), and each has a page under `/staff/scheduled-jobs` with its runs and a button (`docs/domain-concepts.md`, "Imports"). Times here are UTC, as the schedules are; the staff pages give them in London, an hour later in summer.
 
 | Job                                          | When                                  | Needs                                                                                                                                                                                                                                                                                                                                   |
 | -------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

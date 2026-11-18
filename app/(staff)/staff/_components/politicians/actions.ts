@@ -11,13 +11,14 @@ import { type AddResult, addPoliticianAddress, removePoliticianAddress } from "@
 import { editPoliticianDetails, type EditResult, isMark, setMark } from "@/lib/politicians/edits.server";
 import { setStatus } from "@/lib/politicians/records.server";
 import { idFrom, statusFrom } from "@/lib/staff-forms";
+import { londonDayTime } from "@/lib/staff-time";
 
-/** The form on a politician's page: sets their answer to an ask, dated today, or clears it, with its note of how we know. */
+/** The form on a politician's page: sets their answer to an ask, dated today in London, or clears it, with its note of how we know. */
 export async function setAskStatus(form: FormData): Promise<void> {
   const { email } = await requireStaff();
   const parsed = statusFrom(form);
   if (!parsed) return;
-  const today = now().toISOString().slice(0, 10);
+  const today = londonDayTime(now()).day;
   await setStatus(
     parsed.politicianId,
     parsed.ask,

@@ -9,6 +9,8 @@ import { query, transaction } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";
 import { fetchStatement } from "@/lib/server/outside-services/controlai.server";
 import { problem } from "@/lib/server/problems.server";
+import { now } from "@/lib/now";
+import { londonDayTime } from "@/lib/staff-time";
 import { jobsCopy } from "./copy";
 
 // Copies the supporters of ControlAI's statement into the statuses of its
@@ -67,10 +69,10 @@ export async function importControlAiStatement(startedBy: string): Promise<Contr
       }
       const added = await query<{ politicianId: number; date: string }>(
         `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, updated_by)
-         SELECT id, $2, 'letter', 'signed', now()::date, $3 FROM unnest($1::bigint[]) AS id
+         SELECT id, $2, 'letter', 'signed', $4::date, $3 FROM unnest($1::bigint[]) AS id
          ON CONFLICT (notable_person_id, ask) DO NOTHING
          RETURNING notable_person_id::int AS "politicianId", to_char(status_date, 'YYYY-MM-DD') AS date`,
-        [[...ids], CONTROLAI_STATEMENT_ASK, CONTROLAI],
+        [[...ids], CONTROLAI_STATEMENT_ASK, CONTROLAI, londonDayTime(now()).day],
         db,
       );
       const removed = await query<{ politicianId: number }>(

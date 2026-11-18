@@ -952,7 +952,7 @@ describe("cutAtWord", () => {
 });
 
 describe("When", () => {
-  it("says the day and the time, or the day alone, in UTC, and never breaks across lines", async () => {
+  it("says the day and the time, or the day alone, in London, and never breaks across lines", async () => {
     const at = new Date("2026-10-16T10:34:00Z");
     await render(
       <div style={{ width: 30 }}>
@@ -961,7 +961,8 @@ describe("When", () => {
       </div>,
     );
     const [time, day] = [...document.querySelectorAll("time")];
-    expect(time.textContent).toBe("16 Oct 2026, 10:34");
+    // Summer time, an hour ahead of UTC.
+    expect(time.textContent).toBe("16 Oct 2026, 11:34");
     expect(day.textContent).toBe("16 Oct 2026");
     expect(time.dateTime).toBe("2026-10-16T10:34:00.000Z");
     expect(time.getClientRects()).toHaveLength(1);

@@ -1,12 +1,22 @@
 import { now } from "./now";
 import { staffVocabulary } from "./staff-vocabulary";
 
-/** The day something happened, for a heading over that day's runs: "3 Nov 2026", in UTC. */
+// Every time on the staff pages, and in their emails, is London's, where
+// the site's people are: summer time from the last Sunday of March to the
+// last of October, else UTC.
+const LONDON = "Europe/London";
+
+/** The day something happened, for a heading over that day's runs: "3 Nov 2026". */
 export function staffDate(at: Date): string {
-  return new Date(at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  return new Date(at).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: LONDON,
+  });
 }
 
-/** When something happened, for the staff pages: the day as staffDate says it, and the time to the minute, in UTC. "16 Oct 2026, 10:34". */
+/** When something happened, for the staff pages: the day as staffDate says it, and the time to the minute. "16 Oct 2026, 10:34". */
 export function staffTime(at: Date): string {
   return `${staffDate(at)}, ${staffClock(at)}`;
 }
@@ -24,14 +34,19 @@ export function datesHeldTogether(words: string): string {
   return words.replace(DATE_IN_WORDS, (date) => date.replaceAll(" ", " "));
 }
 
-/** The time of day, to the minute, in UTC, for a row under a heading that gives the day. "10:34". */
+/** The time of day, to the minute, for a row under a heading that gives the day. "10:34". */
 export function staffClock(at: Date): string {
-  return new Date(at).toISOString().slice(11, 16);
+  return new Date(at).toLocaleTimeString("en-GB", {
+    timeZone: LONDON,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
 }
 
-/** The day as a heading reads it: weekday, day and month, in UTC. "Friday 16 October". */
+/** The day as a heading reads it: weekday, day and month. "Friday 16 October". */
 export function staffDay(at: Date): string {
-  return new Date(at).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+  return new Date(at).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: LONDON });
 }
 
 /** A moment's day, as yyyy-mm-dd, hour and minute, in London: what a mailing's When says. */
@@ -41,7 +56,7 @@ export type LondonTime = { day: string; hour: number; minute: number };
 export function londonDayTime(at: Date): LondonTime {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/London",
+      timeZone: LONDON,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -84,16 +99,6 @@ export function sendsAt(at: Date): Date {
   return sends;
 }
 
-/** The time of day, in London, to the minute: "09:18". */
-export function londonClock(at: Date): string {
-  return new Date(at).toLocaleTimeString("en-GB", {
-    timeZone: "Europe/London",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-}
-
 /** When a mailing due at `at` goes, in London: "Thursday 30 October at 09:18", or `short`, "Thu 30 Oct at 09:18". */
 export function londonWhen(at: Date, length: "long" | "short" = "long"): string {
   const sends = sendsAt(at);
@@ -101,9 +106,9 @@ export function londonWhen(at: Date, length: "long" | "short" = "long"): string 
     weekday: length,
     day: "numeric",
     month: length,
-    timeZone: "Europe/London",
+    timeZone: LONDON,
   });
-  return `${day} at ${londonClock(sends)}`;
+  return `${day} at ${staffClock(sends)}`;
 }
 
 /** The same, short, for a list's row: "Fri 30 Oct, 09:18". */
@@ -113,26 +118,16 @@ export function londonWhenShort(at: Date): string {
     weekday: "short",
     day: "numeric",
     month: "short",
-    timeZone: "Europe/London",
+    timeZone: LONDON,
   });
-  return `${day}, ${londonClock(sends)}`;
-}
-
-/** The day something happens in London, for the staff pages: "27 Oct 2026". */
-export function londonDate(at: Date): string {
-  return new Date(at).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "Europe/London",
-  });
+  return `${day}, ${staffClock(sends)}`;
 }
 
 /** When something starts, in London, for an email: "Fri 30 Oct 2026, 19:00". */
 export function londonStart(at: Date): string {
   const part = (options: Intl.DateTimeFormatOptions) =>
-    new Date(at).toLocaleDateString("en-GB", { ...options, timeZone: "Europe/London" });
-  return `${part({ weekday: "short" })} ${part({ day: "numeric", month: "short", year: "numeric" })}, ${londonClock(at)}`;
+    new Date(at).toLocaleDateString("en-GB", { ...options, timeZone: LONDON });
+  return `${part({ weekday: "short" })} ${part({ day: "numeric", month: "short", year: "numeric" })}, ${staffClock(at)}`;
 }
 
 /** How close to a run of the sending is too close for a mailing to go on it. */

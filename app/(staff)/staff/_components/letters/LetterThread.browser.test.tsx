@@ -34,7 +34,7 @@ describe("SupporterLetterThread", () => {
     expect(headers()).toEqual([
       [copy.headers.from, "Jane Smith <jane@example.com>"],
       [copy.headers.to, "Testy McTestface MP <testy.mctestface.mp@parliament.uk>"],
-      [copy.headers.date, "12 Oct 2026, 09:05"],
+      [copy.headers.date, "12 Oct 2026, 10:05"],
       [copy.headers.subject, letter.subject],
     ]);
     await expect
@@ -129,19 +129,19 @@ describe("LetterThread", () => {
       [
         [copy.headers.from, "Jo Seed <jo@pauseai.uk>"],
         [copy.headers.to, polly],
-        [copy.headers.date, "9 Oct 2026, 09:00"],
+        [copy.headers.date, "9 Oct 2026, 10:00"],
         [copy.headers.subject, "Edinburgh follow-up"],
       ],
       [
         [copy.headers.from, polly],
         [copy.headers.to, "Jo Seed <jo@pauseai.uk>"],
-        [copy.headers.date, "10 Oct 2026, 09:00"],
+        [copy.headers.date, "10 Oct 2026, 10:00"],
         [copy.headers.subject, "Re: Edinburgh follow-up"],
       ],
       [
         [copy.headers.from, "Jo Seed <jo@pauseai.uk>"],
         [copy.headers.to, polly],
-        [copy.headers.date, "10 Oct 2026, 11:30"],
+        [copy.headers.date, "10 Oct 2026, 12:30"],
         [copy.headers.subject, "Re: Edinburgh follow-up"],
       ],
     ]);

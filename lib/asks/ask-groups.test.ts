@@ -42,6 +42,20 @@ describe("askGroups", () => {
     ).toEqual([[asksCopy.asks.comingUp, ["today", "later"]]]);
   });
 
+  it("takes today as London's: past midnight in summer time, yesterday's event has gone by", () => {
+    const groups = askGroups(
+      [
+        ask({ slug: "yesterday", kind: "event", date: "2026-07-01" }),
+        ask({ slug: "today", kind: "event", date: "2026-07-02" }),
+      ],
+      new Date("2026-07-01T23:30:00Z"),
+    );
+    expect(groups.map((group) => [group.heading, group.items.map((a) => a.slug)])).toEqual([
+      [asksCopy.asks.comingUp, ["today"]],
+      ["July 2026", ["yesterday"]],
+    ]);
+  });
+
   it("puts the rest under the month or year each last moved, those with no day last with no heading", () => {
     expect(
       shape([

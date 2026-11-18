@@ -10,9 +10,12 @@ export const editor = (page: Page) => page.getByRole("textbox", { name: copy.for
 /** The editor's element: Tiptap puts the editor on it, and so where it has the caret. */
 type TiptapElement = HTMLElement & {
   editor: {
+    isFocused: boolean;
+    isActive: (mark: string) => boolean;
     state: {
       doc: { content: { size: number } };
       selection: {
+        empty: boolean;
         $to: { parentOffset: number; parent: { textContent: string; content: { size: number } }; after: () => number };
       };
     };
@@ -52,6 +55,26 @@ async function focusEditor(page: Page, box = editor(page)) {
   await box.evaluate(() => new Promise((done) => setTimeout(done, 25)));
 }
 
+/**
+ * Puts the caret in `link`, a link in the Tiptap editor `box`, with a click,
+ * and waits until it's there: a link's bubble (LinkPeek) shows for the
+ * caret in it, and for the mouse over it, so seen while the click's caret
+ * was lost (focusEditor) it would go once a frame hid what's under the
+ * mouse. Clicked again until it lands. Not focusEditor first: its focus
+ * scrolls the page to the editor's top.
+ */
+export async function caretInLink(box: Locator, link: Locator) {
+  await expect(async () => {
+    await link.click();
+    expect(
+      await box.evaluate((el) => {
+        const { editor } = el as TiptapElement;
+        return editor.isFocused && editor.isActive("link");
+      }),
+    ).toBe(true);
+  }).toPass();
+}
+
 /** Puts the caret in the empty paragraph `index` (from 0) of the Tiptap editor `box`, such as a broadcast's line under its greeting. */
 export async function caretInEmpty(box: Locator, index: number) {
   await focusEditor(box.page(), box);
@@ -66,7 +89,12 @@ export async function caretInEmpty(box: Locator, index: number) {
     .toBe(true);
 }
 
-/** Puts the caret at the end of the letter in `box`, a Tiptap editor such as a mailing's, to write under what's there. */
+/**
+ * Puts the caret at the end of the letter in `box`, a Tiptap editor such as
+ * a mailing's, to write under what's there: a caret, not a selection, as a
+ * link selected at the letter's end ends there too, and a key pressed then
+ * would replace it.
+ */
 export async function caretAtEnd(box: Locator) {
   await focusEditor(box.page(), box);
   await box.press("Control+End");
@@ -75,7 +103,7 @@ export async function caretAtEnd(box: Locator) {
       box.evaluate((el) => {
         const { doc, selection } = (el as TiptapElement).editor.state;
         const { $to } = selection;
-        return $to.parentOffset === $to.parent.content.size && $to.after() === doc.content.size;
+        return selection.empty && $to.parentOffset === $to.parent.content.size && $to.after() === doc.content.size;
       }),
     )
     .toBe(true);

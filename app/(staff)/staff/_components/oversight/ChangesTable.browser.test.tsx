@@ -133,7 +133,7 @@ describe("ChangesTable", () => {
       .filter((row) => row.element().querySelector("td"));
     expect(rows[0].element().children[0].textContent).toBe("12 Oct 2026");
     expect(rows.at(-1)!.element().children[0].textContent).toBe("11 Oct 2026");
-    expect(rows[0].element().children[1].textContent).toBe("09:59");
+    expect(rows[0].element().children[1].textContent).toBe("10:59");
     expect(rows[0].element().children[2].textContent).toBe("jo@pauseai.uk");
     const details = rows.map((row) => row.element().children[4].textContent);
     const signed = politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed);

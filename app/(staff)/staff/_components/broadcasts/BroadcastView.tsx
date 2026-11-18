@@ -4,7 +4,7 @@ import { Muted } from "@/components/ui/Text";
 import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import type { BroadcastPageData, BroadcastSummary, MessageRecipient } from "@/lib/broadcasts/pages.server";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import { londonClock, londonDate, londonWhenShort, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
+import { londonWhenShort, sendsAt, staffClock, staffDate, staffTime } from "@/lib/staff-time";
 import { FIELD_WORDS, type BroadcastChannel, type SendingPause } from "@/lib/broadcasts/broadcasts";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import Strip from "../ui/Strip";
@@ -82,7 +82,7 @@ export function pauseInBrief(pause: SendingPause): { word: string; till: string 
     case "waiting":
       return { word: words.word, till: words.forCiviCrm };
     case "resting":
-      return { word: words.word, till: words.till(londonClock(sendsAt(pause.until))) };
+      return { word: words.word, till: words.till(staffClock(sendsAt(pause.until))) };
     case "held":
       return { word: words.word, till: words.till(londonWhenShort(pause.until)) };
     case "limit":
@@ -90,16 +90,16 @@ export function pauseInBrief(pause: SendingPause): { word: string; till: string 
   }
 }
 
-/** A pause in full, as its strip says it on a broadcast's page. */
+/** A pause in full, as its strip says it on a broadcast's page: till when as the sending's next run after then, as pauseInBrief says it. */
 function pauseInFull(pause: SendingPause): string {
   switch (pause.kind) {
     case "waiting":
-      return copy.waiting(pause.reason, londonDate(pause.endsAt), pause.said);
+      return copy.waiting(pause.reason, staffDate(pause.endsAt), pause.said);
     case "resting":
-      return copy.resting(staffTime(pause.until));
+      return copy.resting(staffTime(sendsAt(pause.until)));
     case "held":
       // When, as each held recipient's row under it says its own.
-      return copy.heldLeft(pause.held, staffTime(pause.until), londonDate(pause.stopsAt));
+      return copy.heldLeft(pause.held, staffTime(sendsAt(pause.until)), staffDate(pause.stopsAt));
     case "limit":
       return pause.channel === "text" ? copy.moreTomorrowText : copy.moreTomorrow;
   }
@@ -176,7 +176,7 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
           <span className={styles.stack}>
             <CopyStatus copyOf={r} />
             {r.sentAt && <Muted>{staffDate(r.sentAt)}</Muted>}
-            {r.heldTill && <Muted>{copy.heldTill(staffTime(r.heldTill))}</Muted>}
+            {r.heldTill && <Muted>{copy.heldTill(staffTime(sendsAt(r.heldTill)))}</Muted>}
             {copyWent(r) && (
               <StaffLink href={`/staff/broadcasts/${broadcast.id}/${r.copyId}`}>{copy.threadLink}</StaffLink>
             )}
@@ -195,7 +195,7 @@ function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: 
         <TextBubble
           words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
           footer={written.template?.footer ?? TEMPLATE_FOOTER}
-          time={londonClock(sendsAt(written.dueAt!))}
+          time={staffClock(sendsAt(written.dueAt!))}
         />
       </Card>
     );

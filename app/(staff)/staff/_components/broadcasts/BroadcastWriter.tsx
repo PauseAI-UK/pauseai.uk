@@ -37,7 +37,7 @@ import type {
 import { staffMemberText } from "@/lib/staff-member";
 import type { BroadcastWriterData } from "@/lib/broadcasts/pages.server";
 import { filtersPath } from "@/lib/list-params";
-import { earliestRun, londonClock, londonWhen, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
+import { earliestRun, londonWhen, sendsAt, staffClock, staffDate, staffTime } from "@/lib/staff-time";
 import type { Channel } from "@/lib/supporters/contact-permissions";
 import {
   approvalProblems,
@@ -379,7 +379,7 @@ function BroadcastPreview({
         <TextPreview
           words={letterFor(body, recipient)}
           footer={footer}
-          time={londonClock(sendsAt(dueAt ?? earliestRun()))}
+          time={staffClock(sendsAt(dueAt ?? earliestRun()))}
           linkCard={linkCard}
         />
       )}

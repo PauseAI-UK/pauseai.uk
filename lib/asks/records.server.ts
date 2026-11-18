@@ -86,7 +86,7 @@ const ANSWER_COUNTS = `coalesce((SELECT json_object_agg(c.status, c.count) FROM 
   ) c), '{}') AS counts`;
 
 /**
- * One row's first and last letters, how many people a letter put it to
+ * One row's first and last letters' days, in London, how many people a letter put it to
  * (askingLetters), those written to who replied, those asked who haven't
  * answered, and the campaigns and mailings that put it: campaigns first,
  * then mailings, the latest of each first. Its counts of people leave out
@@ -95,11 +95,11 @@ const ANSWER_COUNTS = `coalesce((SELECT json_object_agg(c.status, c.count) FROM 
 const HOW_ASKED = `
   (SELECT count(DISTINCT w.id)::int FROM (${askingLetters("true")}) w
    WHERE w.ask = a.slug AND ${notTest("w.id")}) AS "writtenTo",
-  (SELECT to_char(min(coalesce(l.sent_at, l.created_at)), 'YYYY-MM-DD') FROM letters l
+  (SELECT to_char(min(coalesce(l.sent_at, l.created_at)) AT TIME ZONE 'Europe/London', 'YYYY-MM-DD') FROM letters l
      LEFT JOIN letters_from_supporters s ON s.id = l.id LEFT JOIN campaigns c ON c.slug = s.campaign
      LEFT JOIN letters_from_pauseai p ON p.id = l.id LEFT JOIN mailings m ON m.id = p.mailing_id
    WHERE c.ask = a.slug OR m.ask = a.slug) AS "firstLetter",
-  (SELECT to_char(max(coalesce(l.sent_at, l.created_at)), 'YYYY-MM-DD') FROM letters l
+  (SELECT to_char(max(coalesce(l.sent_at, l.created_at)) AT TIME ZONE 'Europe/London', 'YYYY-MM-DD') FROM letters l
      LEFT JOIN letters_from_supporters s ON s.id = l.id LEFT JOIN campaigns c ON c.slug = s.campaign
      LEFT JOIN letters_from_pauseai p ON p.id = l.id LEFT JOIN mailings m ON m.id = p.mailing_id
    WHERE c.ask = a.slug OR m.ask = a.slug) AS "lastLetter",

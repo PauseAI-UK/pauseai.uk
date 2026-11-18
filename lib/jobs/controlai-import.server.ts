@@ -6,6 +6,8 @@ import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";
 import { fetchLetter } from "@/lib/server/outside-services/controlai.server";
+import { now } from "@/lib/now";
+import { londonDayTime } from "@/lib/staff-time";
 
 // Copies the signatories of ControlAI's letter to the PM into the statuses
 // of its ask (CONTROLAI_LETTER_ASK), nightly (/api/cron/import-controlai) or when staff ask, and
@@ -38,15 +40,15 @@ export async function importControlAiLetter(startedBy: string): Promise<ControlA
       );
       const { matched, problems } = matchSignatories(signatories, candidates);
       const ids = [...matched.keys()];
-      // Dated the letter's day for those who signed it before it was delivered, and today for those added since.
+      // Dated the letter's day for those who signed it before it was delivered, and today, London's, for those added since.
       const added = await query<{ politicianId: number; date: string }>(
         `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, status_date, updated_by)
          SELECT u.id, $2, 'letter', 'signed',
-           CASE WHEN u.later THEN now()::date ELSE least((SELECT date FROM asks WHERE slug = $2), now()::date) END, $3
+           CASE WHEN u.later THEN $5::date ELSE least((SELECT date FROM asks WHERE slug = $2), $5::date) END, $3
          FROM unnest($1::bigint[], $4::boolean[]) AS u (id, later)
          ON CONFLICT (notable_person_id, ask) DO NOTHING
          RETURNING notable_person_id::int AS "politicianId", to_char(status_date, 'YYYY-MM-DD') AS date`,
-        [ids, CONTROLAI_LETTER_ASK, CONTROLAI, ids.map((id) => matched.get(id)!.addedLater)],
+        [ids, CONTROLAI_LETTER_ASK, CONTROLAI, ids.map((id) => matched.get(id)!.addedLater), londonDayTime(now()).day],
         db,
       );
       const removed = await query<{ politicianId: number }>(
