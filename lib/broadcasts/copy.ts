@@ -319,6 +319,8 @@ export const broadcastsCopy = {
     copyTitle: (channel: "email" | "text", to: string) => `${copyKind(channel)} from PauseAI UK to ${to}`,
     // Its own step of the trail above its page, after the broadcast: the title's first word.
     copyCrumb: copyKind,
+    // Under a text's words folded at five lines, WhatsApp's own words for opening the rest.
+    readMore: "Read more",
     // Its history: each thing its provider reported.
     events: {
       sent: "Sent",

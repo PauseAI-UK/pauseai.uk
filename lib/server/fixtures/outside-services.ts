@@ -386,10 +386,25 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
   if (google) return google;
   if (hostname === "blobs.fixture.invalid") return blobResponse(pathname, init);
   if (hostname === "graph.facebook.com") return whatsAppResponse(pathname, init);
+  // A page on our site a text links to, read for the link's card: every
+  // page the same, with the Open Graph tags WhatsApp makes it from.
+  if (hostname === "pauseai.uk") return linkedPage();
   if (hostname === "challenges.cloudflare.com" && pathname === "/turnstile/v0/siteverify") {
     return json({ success: true, hostname: "localhost" });
   }
   return undefined;
+}
+
+/** A web page with a card's Open Graph tags, its title's ampersand written as HTML writes one. */
+function linkedPage(): Response {
+  return new Response(
+    `<!doctype html><html><head><title>March</title>
+<meta property="og:title" content="March Against AI Extinction &amp; for a pause">
+<meta property="og:description" content="Join thousands in London to call for a pause on the race to superintelligence.">
+<meta property="og:url" content="https://pauseai.uk/march">
+</head><body></body></html>`,
+    { headers: { "Content-Type": "text/html; charset=utf-8" } },
+  );
 }
 
 /** The Message-ID of each email the fixture Gmail sent, by its ID, for the life of the process. */

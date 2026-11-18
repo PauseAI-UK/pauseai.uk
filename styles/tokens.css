@@ -213,12 +213,13 @@
   --brand-holyrood-blue: #0065bd;
   --brand-senedd-green: #00845a;
   --brand-stormont-blue: #2f5d8a;
-  /* A text as a messaging app shows it: the wall behind it, our bubble, the names on the bubbles, and a read text's ticks. */
-  --chat-wall: #e4ddd3;
+  /* A text as a messaging app shows it, in WhatsApp's colours on an Android phone: the wall behind it, our bubble, the card for a link, the names on the bubbles, a web address in its words, and a read text's ticks. */
+  --chat-wall: #f5f2eb;
   --chat-ours: #d9fdd3;
+  --chat-card: #f6f5f3;
   --chat-our-name: #1f7a5a;
   --chat-their-name: #b4532a;
-  --chat-link: #027eb5;
+  --chat-link: #1f7a5a;
   --chat-read: #027eb5;
   --brand-gmail-green: #34a853;
   --brand-gmail-yellow: #fbbc04;

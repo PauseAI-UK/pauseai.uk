@@ -163,7 +163,6 @@ function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: 
     return (
       <Card span={3} look="aside" title={copy.textTitle} id="words-title">
         <TextBubble
-          from={written.fromName!}
           words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
           footer={written.template?.footer ?? TEMPLATE_FOOTER}
           time={londonClock(sendsAt(written.dueAt!))}

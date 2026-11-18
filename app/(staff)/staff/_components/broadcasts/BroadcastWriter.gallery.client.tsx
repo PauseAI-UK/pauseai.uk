@@ -9,6 +9,7 @@ import {
   exampleBroadcastData,
   exampleBroadcastEmail,
   exampleBroadcastText,
+  exampleLinkCard,
   exampleTemplates,
   exampleTextSender,
   exampleTextWords,
@@ -34,6 +35,7 @@ export function broadcastActions(log: (name: string) => (...args: unknown[]) => 
     submitTemplate: logged("submitTemplateNow", "submitted" as const),
     withdrawTemplate: logged("withdrawTemplateNow", true),
     deleteTemplate: logged("deleteTemplateNow", "deleted" as const),
+    linkCard: logged("linkCardFor", exampleLinkCard),
   };
 }
 

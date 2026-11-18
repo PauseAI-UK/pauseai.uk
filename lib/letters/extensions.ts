@@ -1,7 +1,7 @@
 import Blockquote from "@tiptap/extension-blockquote";
 import { Fragment, Slice, type Node } from "@tiptap/pm/model";
 import { Plugin } from "@tiptap/pm/state";
-import { Extension } from "@tiptap/react";
+import { Extension, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { linkHref } from "./format";
 
@@ -56,27 +56,44 @@ export function isLinkKey(event: KeyboardEvent): boolean {
   return (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "k";
 }
 
-export const letterExtensions = [
-  StarterKit.configure({
-    // Its own allows anything in a quote; a letter's holds only paragraphs and lists.
-    blockquote: false,
-    code: false,
-    codeBlock: false,
-    heading: false,
-    horizontalRule: false,
-    link: {
-      openOnClick: false,
-      autolink: true,
-      linkOnPaste: true,
-      defaultProtocol: "https",
-      isAllowedUri: (url) => linkHref(url) !== undefined,
-    },
-    orderedList: false,
-    strike: false,
-    underline: false,
-    // It keeps an empty paragraph at the end, which would be sent.
-    trailingNode: false,
-  }),
-  Blockquote.extend({ content: "(paragraph | bulletList)+" }),
-  NoBlankLines,
-];
+/** A letter's extensions; with `links` false, as for WhatsApp's words, which have none, no link can be made, typed, pasted or pasted over words. */
+function extensions(links: boolean) {
+  return [
+    StarterKit.configure({
+      // Its own allows anything in a quote; a letter's holds only paragraphs and lists.
+      blockquote: false,
+      code: false,
+      codeBlock: false,
+      heading: false,
+      horizontalRule: false,
+      link: links && {
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+        defaultProtocol: "https",
+        isAllowedUri: (url) => linkHref(url) !== undefined,
+      },
+      orderedList: false,
+      strike: false,
+      underline: false,
+      // It keeps an empty paragraph at the end, which would be sent.
+      trailingNode: false,
+    }),
+    Blockquote.extend({ content: "(paragraph | bulletList)+" }),
+    NoBlankLines,
+  ];
+}
+
+export const letterExtensions = extensions(true);
+
+export const unlinkedExtensions = extensions(false);
+
+/** `doc` with its links' words kept but not their links, for an editor of unlinkedExtensions, which can't open a link. */
+export function withoutLinks(doc: JSONContent): JSONContent {
+  const marks = doc.marks?.filter((mark) => mark.type !== "link");
+  return {
+    ...doc,
+    ...(marks && { marks }),
+    ...(doc.content && { content: doc.content.map(withoutLinks) }),
+  };
+}

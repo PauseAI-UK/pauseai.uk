@@ -1,6 +1,6 @@
 // TextBubble in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import { exampleWhatsAppWords } from "./BroadcastWriter.examples";
+import { exampleLinkCard, exampleWhatsAppWords } from "./BroadcastWriter.examples";
 import TextBubble, { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 
@@ -10,9 +10,13 @@ export const textBubbleGallery: Example[] = [
     file: "app/(staff)/staff/_components/broadcasts/TextBubble.tsx",
     variants: [
       {
-        label: "A text with its footer",
+        label: "A text with its footer, folded at five lines",
+        render: () => <TextBubble words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />,
+      },
+      {
+        label: "With the card for its link",
         render: () => (
-          <TextBubble from="PauseAI UK" words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />
+          <TextBubble words={exampleWhatsAppWords} card={exampleLinkCard} footer={TEMPLATE_FOOTER} time="07:18" />
         ),
       },
     ],

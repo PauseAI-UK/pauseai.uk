@@ -30,7 +30,12 @@ const field = (id: string): JSONContent => ({ type: "field", attrs: { field: id 
 /** An empty paragraph, as the editor reports it. */
 const EMPTY: JSONContent = { type: "paragraph" };
 
-async function renderEditor(content: JSONContent[], offered = { fields, conditions }, recipients?: number) {
+async function renderEditor(
+  content: JSONContent[],
+  offered = { fields, conditions },
+  recipients?: number,
+  whatsApp = false,
+) {
   const onChange = vi.fn<(doc: JSONContent) => void>();
   await render(
     <>
@@ -41,6 +46,7 @@ async function renderEditor(content: JSONContent[], offered = { fields, conditio
         fields={offered.fields}
         conditions={offered.conditions}
         recipients={recipients}
+        whatsApp={whatsApp}
         labelledBy="label"
       />
     </>,
@@ -407,5 +413,35 @@ describe("MailingEditor", () => {
     expect(last(onChange).content).toEqual([paragraph(text("StartA")), paragraph(text("B"))]);
     paste("<ul><li><p>C</p></li></ul><p></p><ul><li><p>D</p></li></ul>");
     expect(JSON.stringify(last(onChange))).not.toContain('{"type":"paragraph"}');
+  });
+
+  it("opens WhatsApp's words with a link in them as their words alone, as a text shows them", async () => {
+    const linked: JSONContent = {
+      type: "text",
+      text: "Join us",
+      marks: [{ type: "link", attrs: { href: "https://pauseai.uk/join" } }],
+    };
+    await renderEditor([paragraph(text("Hello "), linked)], { fields, conditions }, undefined, true);
+    await expect.element(editor()).toHaveTextContent("Hello Join us");
+  });
+
+  it("makes no links in WhatsApp's words, which have none: not from an address pasted over words, nor pasted, nor typed", async () => {
+    const onChange = await renderEditor([paragraph(text("Details here"))], { fields, conditions }, undefined, true);
+    await toEnd();
+    await userEvent.keyboard("{Shift>}{Home}{/Shift}");
+    await expect.poll(() => document.getSelection()?.toString()).toBe("Details here");
+    const paste = (type: string, data: string) => {
+      const pasted = new DataTransfer();
+      pasted.setData(type, data);
+      editor()
+        .element()
+        .dispatchEvent(new ClipboardEvent("paste", { clipboardData: pasted, bubbles: true }));
+    };
+    paste("text/plain", "https://pauseai.uk/march");
+    expect(last(onChange).content).toEqual([paragraph(text("https://pauseai.uk/march"))]);
+    paste("text/html", '<a href="https://pauseai.uk/join">Join us</a>');
+    await userEvent.keyboard(" www.pauseai.uk ");
+    expect(JSON.stringify(last(onChange))).not.toContain('"link"');
+    expect(page.getByRole("button", { name: copy.link }).query()).toBeNull();
   });
 });

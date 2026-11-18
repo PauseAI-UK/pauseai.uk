@@ -64,6 +64,7 @@ export const COLOUR_TOKENS = [
   "--brand-stormont-blue",
   "--chat-wall",
   "--chat-ours",
+  "--chat-card",
   "--chat-our-name",
   "--chat-their-name",
   "--chat-link",

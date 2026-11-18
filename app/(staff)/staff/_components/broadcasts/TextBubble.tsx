@@ -1,11 +1,13 @@
 import { Fragment, type ReactNode } from "react";
 import { FIELD_WORDS } from "@/lib/broadcasts/broadcasts";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import type { LinkCard } from "@/lib/broadcasts/link-card";
 import type { Receipt } from "@/lib/broadcasts/receipts";
 import type { MailingBlock, MailingInline } from "@/lib/mailings/doc";
 import IconText from "../ui/IconText";
 import letter from "../mailings/MailingLetter.module.css";
 import styles from "./Broadcasts.module.css";
+import TextFold from "./TextFold";
 
 const words = broadcastsCopy.broadcastPages;
 
@@ -149,28 +151,44 @@ function Blocks({ blocks }: { blocks: MailingBlock[] }) {
   );
 }
 
+/** The card WhatsApp shows at the top of a text for its link: the page's title, a line of its description, its site. */
+function LinkCardView({ card }: { card: LinkCard }) {
+  return (
+    <div className={styles.linkCard}>
+      <strong className={styles.cardTitle}>{card.title}</strong>
+      <span className={styles.cardLine}>{card.description}</span>
+      <span className={styles.cardLine}>{card.site}</span>
+    </div>
+  );
+}
+
 /**
  * A text as a messaging app shows it, a phone's width: the words in a bubble
  * from us, on the left as it is on their phone, formatted as WhatsApp does,
- * with its footer, the grey line saying how to stop, and the time.
+ * under the card for their link if there is one, folded at five lines, with
+ * its footer, the grey line saying how to stop, and the time. No name on it,
+ * as WhatsApp puts none on a bubble in a chat with one business.
  */
 export default function TextBubble({
-  from,
   words,
+  card,
   footer,
   time,
 }: {
-  from: string;
   words: TextDoc;
+  card?: LinkCard | null;
   footer: string;
   time: string;
 }) {
   return (
     <div className={styles.phone}>
       <ChatWall>
-        <div className={`${styles.bubble} ${styles.words}`}>
-          <span className={`${styles.name} ${styles.ourName}`}>{from}</span>
-          <Blocks blocks={words.content} />
+        <div className={`${styles.bubble} ${styles.phoneBubble}`}>
+          {card && <LinkCardView card={card} />}
+          {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
+          <TextFold key={JSON.stringify(words.content)}>
+            <Blocks blocks={words.content} />
+          </TextFold>
           <span className={styles.footer}>{footer}</span>
           <span className={styles.time}>{time}</span>
         </div>

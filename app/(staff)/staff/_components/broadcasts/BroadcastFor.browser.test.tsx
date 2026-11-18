@@ -34,6 +34,7 @@ function fakeActions() {
     create: vi.fn(async () => {}),
     submitTemplate: action(() => "submitted"),
     withdrawTemplate: action(() => true),
+    linkCard: action(() => null),
   };
 }
 
