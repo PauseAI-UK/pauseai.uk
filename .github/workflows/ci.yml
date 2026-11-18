@@ -118,16 +118,16 @@ jobs:
       - name: Check types
         run: npm run typecheck
 
-  # The tests split between two jobs, which take about as long as each
-  # other. Each writes its coverage, with Vitest's thresholds off, as a shard
-  # can't know what the other covers; the Test job merges and checks them.
+  # The tests split between three jobs. Each writes its coverage, with
+  # Vitest's thresholds off, as a shard can't know what the others cover; the
+  # Test job merges and checks them.
   test-shard:
-    name: Test (${{ matrix.shard }} of 2)
+    name: Test (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     # Playwright's image, with Chromium and the system packages it needs, so
     # the job installs neither (https://playwright.dev/docs/ci#via-containers).
     # Its version is @playwright/test's, which Dependabot bumps and the image
@@ -192,11 +192,11 @@ jobs:
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
-      # Both Vitest projects (node and browser), a half of each. The
+      # Both Vitest projects (node and browser), a third of each. The
       # browser project renders components in the image's Chromium.
       - name: Test
         run: >-
-          npx vitest run --coverage --shard=${{ matrix.shard }}/2
+          npx vitest run --coverage --shard=${{ matrix.shard }}/3
           --coverage.reporter=json --coverage.thresholds.100=false --coverage.thresholds.perFile=false
 
       - name: Upload coverage
@@ -206,8 +206,8 @@ jobs:
           path: coverage/coverage-final.json
           retention-days: 1
 
-  # One result for the two parts, under the test check's own name: it fails
-  # if either part did, and otherwise merges their coverage and checks every
+  # One result for the parts, under the test check's own name: it fails if
+  # any part did, and otherwise merges their coverage and checks every
   # file is at 100%, as `npm test` does (scripts/merge-coverage.mjs).
   test:
     name: Test
@@ -246,7 +246,7 @@ jobs:
           pattern: coverage-*
 
       - name: Every file at 100% coverage
-        run: node scripts/merge-coverage.mjs coverage-1/coverage-final.json coverage-2/coverage-final.json
+        run: node scripts/merge-coverage.mjs coverage-*/coverage-final.json
 
   build:
     name: Build

@@ -31,8 +31,8 @@ start`), so it is slower. Use it only for what Vitest can't see:
 `coverage/`. CI fails if it drops below the thresholds in
 `vitest.config.mts`.
 
-CI splits the tests between two jobs (Vitest's `--shard`), each writing its
-coverage with the thresholds off, and its Test job merges the two and fails
+CI splits the tests between three jobs (Vitest's `--shard`), each writing its
+coverage with the thresholds off, and its Test job merges them and fails
 on any file under 100% (`scripts/merge-coverage.mjs`). The node and browser
 projects can map a statement to different ranges, and a range that runs to
 its line's end ends at column `Infinity`, which JSON writes as `null`. Merged
@@ -1403,7 +1403,7 @@ npm run gate              # the CI gate: the fast checks on the changed files, t
 npm run gate -- --fast    # the fast checks alone
 npm run gate -- --only test   # one group of the gate's commands or more (checks, test, flows), kept in its status
 npm run typecheck         # types (also runs in npm run build)
-npm test                  # both Vitest projects, with the coverage gate (what CI runs, in two halves)
+npm test                  # both Vitest projects, with the coverage gate (what CI runs, in three parts)
 npm run test:changed      # the tests for the files changed since origin/main, and those files' uncovered lines and branches
 npm run test:node         # Vitest node project (also runs in npm run build)
 npm run lint              # ESLint, failing on warnings too (also runs in npm run build)
