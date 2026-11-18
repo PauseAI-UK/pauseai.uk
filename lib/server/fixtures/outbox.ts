@@ -42,13 +42,19 @@ type PostmarkEmail = Partial<Omit<OutboxEmail, "Attachments" | "Date" | "Message
 
 const CRLF = "\r\n";
 
-let count = 0;
+/**
+ * A name for a file sent now, sortable by when: the time, then the
+ * process's own clock, which never gives the same reading twice. A build
+ * has a copy of this module for its routes and another for its pages, so a
+ * count kept here would be two counts, and two files sent in the same
+ * millisecond could take the same name, one over the other.
+ */
+const sentName = (ending: string) => `${Date.now()}-${String(process.hrtime.bigint()).padStart(20, "0")}.${ending}`;
 
 /** Saves an email, as Postmark would have been sent it, in the outbox `dir`. Returns the file's path. */
 export function saveToOutbox(dir: string, email: PostmarkEmail): string {
   mkdirSync(dir, { recursive: true });
-  // Sortable by when they were sent.
-  const file = join(dir, `${Date.now()}-${String(++count).padStart(4, "0")}.eml`);
+  const file = join(dir, sentName("eml"));
   writeFileSync(file, toEml(email));
   return file;
 }
@@ -60,7 +66,7 @@ export function saveToOutbox(dir: string, email: PostmarkEmail): string {
  */
 export function saveNoteToOutbox(dir: string, words: string): string {
   mkdirSync(dir, { recursive: true });
-  const file = join(dir, `${Date.now()}-${String(++count).padStart(4, "0")}.txt`);
+  const file = join(dir, sentName("txt"));
   writeFileSync(file, words);
   return file;
 }
@@ -71,7 +77,7 @@ export function saveNoteToOutbox(dir: string, words: string): string {
  */
 export function saveRawToOutbox(dir: string, raw: Buffer): string {
   mkdirSync(dir, { recursive: true });
-  const file = join(dir, `${Date.now()}-${String(++count).padStart(4, "0")}.eml`);
+  const file = join(dir, sentName("eml"));
   writeFileSync(file, raw);
   return file;
 }
