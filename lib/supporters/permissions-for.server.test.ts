@@ -127,11 +127,18 @@ async function phoneAnswer(number: string, topic: Topic, way: Way = "text") {
 /** The answers the kept ones (contact_permissions_kept) and the rules (contact_permissions) don't share, each marked with which has it. */
 async function keptDifferences() {
   const columns = "topic, way, channel, address, send, reason, at, source";
-  return query(
-    `(SELECT 'kept' AS only, ${columns} FROM contact_permissions_kept EXCEPT ALL SELECT 'kept', ${columns} FROM contact_permissions)
-     UNION ALL
-     (SELECT 'rules', ${columns} FROM contact_permissions EXCEPT ALL SELECT 'rules', ${columns} FROM contact_permissions_kept)`,
-  );
+  // Every answer the rules give, which is what the kept ones spare the pages: the planner prices it far over
+  // jit_above_cost, and compiling it took CI's Postgres past the hook's time limit, so it's run without JIT.
+  return transaction(async (db) => {
+    await db.query("SET LOCAL jit = off");
+    return (
+      await db.query(
+        `(SELECT 'kept' AS only, ${columns} FROM contact_permissions_kept EXCEPT ALL SELECT 'kept', ${columns} FROM contact_permissions)
+         UNION ALL
+         (SELECT 'rules', ${columns} FROM contact_permissions EXCEPT ALL SELECT 'rules', ${columns} FROM contact_permissions_kept)`,
+      )
+    ).rows;
+  });
 }
 
 describeWithDatabase("permissionsFor", () => {
