@@ -46,6 +46,49 @@ describe("useErrorTold", () => {
     expect(report).not.toHaveBeenCalled();
   });
 
+  describe("a script the site no longer has", () => {
+    afterEach(() => sessionStorage.clear());
+
+    /** Turbopack's error for a script that didn't load. */
+    const chunkFailed = (chunk: string) =>
+      Object.assign(new Error(`Failed to load chunk /_next/static/chunks/${chunk}.js from module 964893`), {
+        name: "ChunkLoadError",
+      });
+
+    it("reloads a page older than the site's last deploy, and tells nothing", async () => {
+      const report = reports();
+      const reload = vi.fn();
+      await render(<Told error={chunkFailed("271hz8msxrmls")} report={report} reload={reload} />);
+      expect(reload).toHaveBeenCalledTimes(1);
+      expect(report).not.toHaveBeenCalled();
+    });
+
+    it("tells of the same script failing again after the reload, and reloads for another", async () => {
+      const report = reports();
+      const reload = vi.fn();
+      const again = chunkFailed("271hz8msxrmls");
+      sessionStorage.setItem("chunk-load-failed", again.message);
+      const { rerender } = await render(<Told error={again} report={report} reload={reload} />);
+      expect(reload).not.toHaveBeenCalled();
+      expect(report.mock.calls).toEqual([["browser-page", again]]);
+      await rerender(<Told error={chunkFailed("3d53ih45l58dd")} report={report} reload={reload} />);
+      expect(reload).toHaveBeenCalledTimes(1);
+      expect(report).toHaveBeenCalledTimes(1);
+    });
+
+    it("tells, rather than reloading, when the tab keeps nothing", async () => {
+      vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+        throw new DOMException("The operation is insecure.", "SecurityError");
+      });
+      const report = reports();
+      const reload = vi.fn();
+      const failed = chunkFailed("271hz8msxrmls");
+      await render(<Told error={failed} report={report} reload={reload} />);
+      expect(reload).not.toHaveBeenCalled();
+      expect(report.mock.calls).toEqual([["browser-page", failed]]);
+    });
+  });
+
   it("tells the site itself when nothing else is given to", async () => {
     const fetch = vi.spyOn(window, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
     await render(<Told error={new Error("Thrown in the browser")} />);
