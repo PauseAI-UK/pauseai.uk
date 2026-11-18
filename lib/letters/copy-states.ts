@@ -16,6 +16,7 @@ export const STATE_TONES: Record<string, StateTone> = {
   "opted-out": "red",
   spam: "red",
   error: "red",
+  lost: "red",
   unreached: "amber",
   answered: "green",
   replied: "green",
@@ -26,8 +27,8 @@ export const STATE_TONES: Record<string, StateTone> = {
 /** The states of those that didn't go. */
 export const DIDNT_GO = new Set(["error", "unreached", "not-sent"]);
 
-/** The states of a broadcast's copies still to go: held by WhatsApp, or waiting their turn. */
-export const STILL_TO_GO = new Set(["held", "to-go"]);
+/** The states of a broadcast's copies still to go: lost by Postmark, held by WhatsApp, or waiting their turn. */
+export const STILL_TO_GO = new Set(["lost", "held", "to-go"]);
 
 /** Why a mailing skipped a recipient: their address blocked, out of office, or in office with no address. */
 export type SkipReason = "blocked" | "left-office" | "no-email";

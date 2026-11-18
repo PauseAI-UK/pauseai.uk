@@ -646,7 +646,8 @@ job all leave broadcasts out.
   one still waiting for CiviCRM when they run out stops then, saying so
   (`late`), not that it was too large. A text stops too when WhatsApp
   pauses or disables its template (`template`), and any broadcast when its
-  copies keep failing (`failing`, above). Resume sending, on its page, sets it going again
+  copies keep failing (`failing`, above), and an email by Postmark when
+  enough of its copies are lost (`lost`, below). Resume sending, on its page, sets it going again
   (`resumeBroadcast`): its cancelled copies are to go again, or one that
   never started is scheduled again, from now, so it has its days again.
   One that stopped as its copies kept failing sends again those its channel
@@ -655,9 +656,18 @@ job all leave broadcasts out.
   among those it didn't reach. Those go after the ones never tried, so the
   copies likeliest to fail again can't stop it before the rest have gone.
 - **What Postmark reports**, of a copy it sent. Its delivery webhook marks a copy delivered;
-  a hard bounce marks it failed and blocks the address; a spam complaint is
+  a hard bounce marks it failed and blocks the address; a soft bounce goes
+  in its history, as Postmark tries it again; a spam complaint is
   an opt-out of every bulk email (`lib/broadcasts/bounces.server.ts`, and
-  `optOutOnComplaint` in `lib/supporters/opt-outs.server.ts`).
+  `optOutOnComplaint` in `lib/supporters/opt-outs.server.ts`). Postmark
+  can take a copy, answering with its ID, and then say nothing more of it.
+  A copy it has said nothing of for `LOST_MINUTES` is
+  **lost** (`LOST` in `lib/broadcasts/drafts.server.ts`): counted as still to go, not
+  as gone. A broadcast by Postmark is only sent once Postmark has said
+  something of each copy, or it's lost; `LOST_TO_STOP` lost since it started or was
+  resumed stop it, so no more go into Postmark. Resume
+  sends those never tried, not the lost ones. Gmail says nothing of what
+  arrives, so a copy by Gmail is never lost.
 - **What WhatsApp reports**, by its webhook, `/api/whatsapp`, signed with
   the Meta app's secret (`lib/broadcasts/whatsapp-webhooks.server.ts`): each text
   delivered, read or failed; a message to us, which answers the text it

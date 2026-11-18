@@ -17,6 +17,16 @@ export const SENDING_DAYS = 7;
  */
 export const FAILURES_TO_STOP = 5;
 
+/**
+ * How long Postmark has to say what became of a copy it took, before the
+ * copy counts as lost: it usually says within seconds, and within a few
+ * minutes at worst.
+ */
+export const LOST_MINUTES = 10;
+
+/** How many of a broadcast's copies can be lost, since it last started or was resumed, before it stops. */
+export const LOST_TO_STOP = 5;
+
 const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 
 /** A number of days in words, as the pages say them: "three days". */

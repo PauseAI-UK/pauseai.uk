@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { FAILURES_TO_STOP } from "./days";
+import { FAILURES_TO_STOP, LOST_TO_STOP } from "./days";
 import {
   REST_MINUTES,
   sendingStopsAt,
@@ -16,7 +16,7 @@ import { now } from "@/lib/now";
 import type { StoredFilter } from "@/lib/staff-search";
 import { SENDING, staffTime } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
-import { SEND_AGAIN, TOPICS_OF } from "./drafts.server";
+import { AWAITED, LOST, SEND_AGAIN, TOPICS_OF } from "./drafts.server";
 import { broadcastEmailChannel, textBackend } from "./channels.server";
 import { supporterAudience } from "./recipients.server";
 import { query } from "@/lib/server/db.server";
@@ -62,7 +62,9 @@ import { emailCopy } from "@/lib/email/copy";
 // sender can't send for now, or two of whose copies fail in a row, rests a
 // while (REST_MINUTES), so nothing that fails every copy can fail everyone;
 // a limit or an outage it rests through for as long as it lasts, telling
-// staff once it's been hours (heldBack).
+// staff once it's been hours (heldBack). Postmark can take a copy and say
+// nothing more of it: LOST_TO_STOP such copies (LOST) stop it, and it's only
+// marked sent once Postmark has said something of every copy, or they're lost.
 
 /** Who the audit log says started and finished a broadcast. */
 const JOB = "send-mailings";
@@ -76,10 +78,11 @@ export type WaitReason = "civicrm" | "pull";
 /**
  * Why a broadcast stopped before it had all gone: it waited too long, a
  * day's limit left it too slow, WhatsApp paused or disabled a text's
- * template, its days ran out while it waited for CiviCRM ("late"), or its
- * copies kept failing ("failing").
+ * template, its days ran out while it waited for CiviCRM ("late"), its
+ * copies kept failing ("failing"), or Postmark took its copies and said no
+ * more of them ("lost").
  */
-export type StopReason = WaitReason | "limit" | "template" | "late" | "failing";
+export type StopReason = WaitReason | "limit" | "template" | "late" | "failing" | "lost";
 
 type Due = {
   id: number;
@@ -127,20 +130,21 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
     "UPDATE broadcast_messages SET status = 'cancelled' WHERE mailing_id = $1 AND status = 'scheduled' RETURNING id",
     [broadcast.id],
   );
-  // Those Resume sends to: the cancelled, and for one that kept failing, those refused too (SEND_AGAIN).
-  const refused =
-    reason === "failing"
-      ? (
-          await query<{ n: number }>(
-            `SELECT count(*)::int AS n FROM broadcast_messages c WHERE c.mailing_id = $1 AND ${SEND_AGAIN}`,
-            [broadcast.id],
-          )
-        )[0].n
-      : 0;
+  // Who else it didn't reach, beside the cancelled: for one that kept failing, those refused (SEND_AGAIN), which
+  // Resume sends to; for one whose copies were lost, those (LOST), which it doesn't.
+  const others = reason === "failing" ? SEND_AGAIN : reason === "lost" ? LOST : null;
+  const alsoNotReached = others
+    ? (
+        await query<{ n: number }>(
+          `SELECT count(*)::int AS n FROM broadcast_messages c WHERE c.mailing_id = $1 AND ${others}`,
+          [broadcast.id],
+        )
+      )[0].n
+    : 0;
   const notReached =
     broadcast.state === "scheduled"
       ? (await supporterAudience(broadcast.filter, termsOf(broadcast))).recipients.length
-      : cancelled.length + refused;
+      : cancelled.length + alsoNotReached;
   await query(
     `UPDATE mailings SET state = 'cancelled', gave_up = true, wait_reason = $2,
        wait_said = CASE WHEN $2 = 'civicrm' THEN wait_said END,
@@ -360,6 +364,8 @@ type Sending = Due & {
   failedInARow: number;
   /** Since when its sender has said at every try that it can't send for now (heldBack); null if it hasn't. */
   heldBackSince: Date | null;
+  /** How many of its copies are lost (LOST) since it started or was resumed (LOST_SINCE_GOING). */
+  lost: number;
 };
 
 /** How long a broadcast's sender can say it can't send for now, with nothing going, before staff are told. */
@@ -878,13 +884,28 @@ async function sendCopies(broadcast: Sending, sender: CopySender, run: Broadcast
   }
 }
 
-/** Marks every broadcast sending with no copy left to go as sent. */
+/**
+ * How many of the copies of broadcast `m` are lost (LOST) since it started
+ * or was resumed, in SQL: both set its updated_at, by the database's clock,
+ * as sent_at is, and nothing else does while it's sending.
+ */
+const LOST_SINCE_GOING = `(SELECT count(*)::int FROM broadcast_messages c
+  WHERE c.mailing_id = m.id AND c.sent_at >= m.updated_at AND ${LOST})`;
+
+/**
+ * Marks as sent every broadcast sending with no copy left to go, nor one
+ * Postmark took and might yet say something of (AWAITED). One with
+ * LOST_TO_STOP lost carries on sending, so the next run stops it.
+ */
 async function finishBroadcasts(): Promise<void> {
   const finished = await query<{ id: number }>(
     `UPDATE mailings m SET state = 'sent', updated_at = now()
      WHERE m.state = 'sending' AND m.audience = 'supporters'
-       AND NOT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id AND c.status IN ('scheduled', 'sending'))
+       AND NOT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id
+                       AND (c.status IN ('scheduled', 'sending') OR ${AWAITED}))
+       AND ${LOST_SINCE_GOING} < $1
      RETURNING m.id::int AS id`,
+    [LOST_TO_STOP],
   );
   for (const { id } of finished) await logChange(JOB, "finish mailing", { id });
 }
@@ -906,13 +927,18 @@ export async function sendDueBroadcasts(until: number, gap?: number): Promise<Br
   const sending = await query<Sending>(
     `SELECT ${DUE_COLUMNS}, subject, body, sent_from AS "sentFrom", from_name AS "fromName",
        coalesce(try_failed_at > now() - make_interval(mins => $1), false) AS resting,
-       failed_in_a_row AS "failedInARow", held_back_since AS "heldBackSince"
-     FROM mailings WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
+       failed_in_a_row AS "failedInARow", held_back_since AS "heldBackSince", ${LOST_SINCE_GOING} AS lost
+     FROM mailings m WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
     [REST_MINUTES],
   );
   for (const broadcast of sending) {
     if (now() >= sendingStopsAt(broadcast.dueAt)) {
       await giveUp(broadcast, broadcast.waitingSince ? "late" : "limit");
+      continue;
+    }
+    // Postmark is taking copies and losing them: no more go into it.
+    if (broadcast.lost >= LOST_TO_STOP) {
+      await giveUp(broadcast, "lost");
       continue;
     }
     // Resting after failed tries: nothing to ask of its channel till it's done.

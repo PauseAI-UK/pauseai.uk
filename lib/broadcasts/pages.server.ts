@@ -24,6 +24,7 @@ import {
   broadcastSender,
   TOPICS_OF,
   getWrittenBroadcast,
+  LOST,
   type WhatsAppTemplate,
   type WrittenBroadcast,
 } from "./drafts.server";
@@ -50,7 +51,7 @@ export type BroadcastSummary = MailingBase & {
   approved: boolean;
   /** A draft whose new words WhatsApp rejected, until they're sent again or a template's chosen. */
   rejected: boolean;
-  /** One that stopped by itself, as it hadn't all gone in time, and why: limit, civicrm, pull or template. */
+  /** One that stopped by itself, and why (StopReason in sending.server.ts). */
   gaveUp: boolean;
   waitReason: string | null;
   /** How many of its copies are in each state (COPY_STATES). */
@@ -82,10 +83,11 @@ const UNFINISHED = `EXISTS (SELECT 1 FROM broadcast_message_events e
  * refused it, its send cut off, its broadcast gave up); it didn't reach them
  * (a bounce, or a number found not on WhatsApp); not sent, as expected (they'd
  * opted out before, their consent ended, an address already blocked, we
- * cancelled); replied; read; delivered; sent; or still to go: held, as
- * WhatsApp turned it away till the person has had fewer marketing messages
- * (holdCopy, in sending.server.ts), or to go, its turn yet to come or being
- * sent. Each count and tab on a broadcast's page is one of these.
+ * cancelled); replied; read; lost, as Postmark took it and has said nothing
+ * of it since (LOST), counted as still to go; delivered; sent; or still to go:
+ * held, as WhatsApp turned it away till the person has had fewer marketing
+ * messages (holdCopy, in sending.server.ts), or to go, its turn yet to come
+ * or being sent. Each count and tab on a broadcast's page is one of these.
  */
 export const COPY_STATES = [
   "look",
@@ -97,6 +99,7 @@ export const COPY_STATES = [
   "read",
   "delivered",
   "sent",
+  "lost",
   "held",
   "to-go",
 ] as const;
@@ -116,6 +119,7 @@ const COPY_STATE = `CASE
   WHEN c.status IN ('skipped', 'cancelled') THEN 'not-sent'
   WHEN ${REPLIED} THEN 'replied'
   WHEN ${WAS_READ} THEN 'read'
+  WHEN ${LOST} THEN 'lost'
   WHEN c.status = 'delivered' THEN 'delivered'
   ELSE 'sent' END`;
 
@@ -142,8 +146,9 @@ const SELECT_BROADCASTS = `
     m.gave_up AS "gaveUp", m.wait_reason AS "waitReason",
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",
-    -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent.
-    count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered'))::int AS sent,
+    -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent. A lost
+    -- copy is neither.
+    count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered') AND s.state <> 'lost')::int AS sent,
     count(c.id) FILTER (WHERE c.status IN ('failed', 'skipped', 'cancelled'))::int AS failed,
     0 AS answered,
     -- How many are in each state.

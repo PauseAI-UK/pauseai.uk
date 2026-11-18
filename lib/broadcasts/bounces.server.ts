@@ -10,12 +10,11 @@ import type { PurposeHook } from "@/lib/email/delivery-problems.server";
 /**
  * A copy of a broadcast's bounce or complaint, in its history: a hard
  * bounce marks it failed; a complaint is an opt-out of every bulk email,
- * which recordProblem keeps. A soft bounce changes nothing, as Postmark
- * tries again.
+ * which recordProblem keeps. A soft bounce only goes in its history, as
+ * Postmark tries again, and it shows Postmark hasn't lost it (LOST).
  */
 const broadcastProblem: PurposeHook = async (_sent, problem) => {
-  if (problem.kind === "soft") return true;
-  const kind = problem.kind === "hard" ? "bounced" : "opted-out";
+  const kind = { hard: "bounced", soft: "soft-bounced", complaint: "opted-out" }[problem.kind];
   await query(
     `WITH copy AS (
        UPDATE broadcast_messages SET status = CASE WHEN $2 = 'bounced' THEN 'failed' ELSE status END
