@@ -11,6 +11,13 @@ ALTER TABLE broadcast_replies
   ADD CONSTRAINT broadcast_replies_reaction
     CHECK (kind IS NOT DISTINCT FROM 'reaction' OR num_nonnulls(reaction_to, removed_at) = 0);
 
+-- A reply to a text has its words, its kind, or both: a voice note has no
+-- words. A reply to an email has neither, as its message is kept whole.
+ALTER TABLE broadcast_replies
+  DROP CONSTRAINT broadcast_replies_whatsapp,
+  ADD CONSTRAINT broadcast_replies_whatsapp
+    CHECK ((provider_message_id IS NULL) = (num_nonnulls(body, kind) = 0));
+
 -- Those kept so far said their kind in their words, and nothing else of them
 -- was kept: a reaction's emoji, a photo's caption.
 UPDATE broadcast_replies

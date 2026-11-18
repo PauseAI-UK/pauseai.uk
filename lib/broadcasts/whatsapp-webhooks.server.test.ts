@@ -189,6 +189,11 @@ describeWithDatabase("WhatsApp's webhook", () => {
     expect(await query("SELECT kind, body FROM broadcast_replies WHERE message_id = $1", [newest])).toEqual([
       { kind: "image", body: "Our banner" },
     ]);
+    // One with no words at all, a voice note, is kept as its kind alone.
+    expect(await recordWhatsAppWebhook(message({ id: "wamid.in-3", type: "audio", audio: { voice: true } }))).toBe(1);
+    expect(await query("SELECT kind, body FROM broadcast_replies WHERE provider_message_id = 'wamid.in-3'")).toEqual([
+      { kind: "voice", body: null },
+    ]);
   });
 
   /** The reactions kept, oldest first. */

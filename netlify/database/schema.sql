@@ -1372,7 +1372,7 @@ CREATE TABLE public.broadcast_replies (
     CONSTRAINT broadcast_replies_one_kind CHECK ((num_nonnulls(gmail_message_id, provider_message_id) = 1)),
     CONSTRAINT broadcast_replies_outcome_check CHECK ((outcome = ANY (ARRAY['opted-out'::text, 'nothing'::text, 'answered'::text]))),
     CONSTRAINT broadcast_replies_reaction CHECK (((NOT (kind IS DISTINCT FROM 'reaction'::text)) OR (num_nonnulls(reaction_to, removed_at) = 0))),
-    CONSTRAINT broadcast_replies_whatsapp CHECK (((provider_message_id IS NULL) = (body IS NULL)))
+    CONSTRAINT broadcast_replies_whatsapp CHECK (((provider_message_id IS NULL) = (num_nonnulls(body, kind) = 0)))
 );
 
 --
