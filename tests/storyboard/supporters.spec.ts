@@ -627,7 +627,7 @@ test("A member with No bulk emails", async ({ page, request, flowDatabase }) => 
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Rhea Member" }).click();
   await expect(page.getByText(said("no-bulk-email", "civicrm"), { exact: false }).first()).toBeVisible();
-  await page.getByRole("button", { name: copy.detail.permissions.why }).first().click();
+  await openBubble(page.getByRole("button", { name: copy.detail.permissions.why }).first());
   await expect(page.getByText(copy.detail.permissions.details.newsletter.about)).toBeVisible();
   await frame(page, "Rhea's page");
 });
@@ -736,7 +736,7 @@ test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   await expect(row).toContainText(emailCopy.emails.kinds.hold);
   await frame(page, "Bounced emails");
   story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
-  await row.getByRole("button", { name: emailCopy.emails.unblockOpen }).click();
+  await openBubble(row.getByRole("button", { name: emailCopy.emails.unblockOpen }));
   await row.getByLabel(emailCopy.emails.note).fill("Global say the address works again");
   await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();

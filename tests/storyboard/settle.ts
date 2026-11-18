@@ -157,8 +157,8 @@ export async function scrollSettled(page: Page): Promise<number> {
  *
  * Returns what's open, to find things in, and to check it has closed
  * (`toHaveCount(0)`). It's every open popover, so with a bubble opened from
- * inside a menu it's both, the bubble last. Flows reach an open popover only
- * through this: ESLint keeps `:popover-open` out of the rest of
+ * inside a menu it's both, the bubble last. A flow can't find an open popover
+ * by its selector instead: ESLint keeps `:popover-open` out of the rest of
  * tests/storyboard (eslint.config.mjs, OPEN_BUBBLE_RULES).
  */
 export async function openBubble(trigger: Locator): Promise<Locator> {

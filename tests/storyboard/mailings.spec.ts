@@ -11,7 +11,7 @@ import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { caretAtEnd } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { scrollSettled } from "./settle";
+import { openBubble, scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
 import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
@@ -264,7 +264,7 @@ test("Pasting names", async ({ page, request, flowDatabase }) => {
     "Paste names, in the bar, opens a box above it. They paste a row copied from the list, a constituency, and a name with a typo.",
   );
 
-  await page.getByRole("button", { name: choosing.pasteNames }).click();
+  await openBubble(page.getByRole("button", { name: choosing.pasteNames }));
   // Typed into at once.
   await expect(page.getByRole("textbox", { name: choosing.pasteLabel })).toBeFocused();
   await page
@@ -328,10 +328,8 @@ test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
   await frame(page, "The scheduled mailing");
   story("Change the time opens a calendar to choose another day.");
 
-  await page.getByRole("button", { name: copy.changeTime }).click();
-  // Opening its box scrolls the window to show it whole (Bubble.tsx). Clicking Day before that has come to rest
-  // races it, and where the window ends up says whether the calendar has room below the field or opens above it.
-  await scrollSettled(page);
+  // Where the window comes to rest says whether the calendar has room below the field or opens above it.
+  await openBubble(page.getByRole("button", { name: copy.changeTime }));
   await page.getByRole("button", { name: copy.day }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await frame(page, "The calendar", { window: true });

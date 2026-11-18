@@ -174,12 +174,12 @@ test("A letter's page", async ({ page, flowDatabase }) => {
 
   const ask = page.getByRole("region", { name: lettersCopy.letters.detail.ask });
   await expect(ask.getByRole("link", { name: campaigns[0].title })).toBeVisible();
-  await ask.getByRole("button", { name: politiciansCopy.politician.edit }).click();
+  await openBubble(ask.getByRole("button", { name: politiciansCopy.politician.edit }));
   await page.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
   const note = page.getByLabel(politiciansCopy.politician.note);
   await note.fill("Signed, says their reply");
-  // The bubble scrolls the page as it opens, and the clicks and typing scroll their fields into view, in an
-  // order that differs between runs: the frame is of the bubble, its note in the middle of the window.
+  // The clicks and typing scroll their fields into view, after the bubble's own scroll: the frame is of the
+  // bubble, its note in the middle of the window.
   await note.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
   await frame(page, "Editing the MP's answer", { window: true });
   story("Saved, the letter's tag says the MP answered.");
