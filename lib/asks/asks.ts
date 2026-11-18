@@ -71,9 +71,6 @@ export type AskStatuses = Partial<Record<string, AskStatus>>;
  */
 export const AGREED_STATUSES: readonly AskStatus[] = ["signed", "going"];
 
-/** Every answer any kind allows, in the order they're picked from: each kind's yes, the no, then "other". */
-export const ALL_ANSWERS: readonly AskStatus[] = [...AGREED_STATUSES, "declined", "other"];
-
 /** How many asks someone agreed to, by their answers (AGREED_STATUSES). */
 export function asksAgreed(statuses: Record<string, { status: RecordedStatus }>): number {
   return Object.values(statuses).filter((answer) => (AGREED_STATUSES as readonly string[]).includes(answer.status))
@@ -82,6 +79,14 @@ export function asksAgreed(statuses: Record<string, { status: RecordedStatus }>)
 
 /** Where an ask's name leads: its own page. */
 export const askHref = (slug: string) => `/staff/asks/${slug}`;
+
+/**
+ * The politicians list of those who stand on an ask as `answer` says, an
+ * answer or INVITED: those in office, as the list is unless told otherwise,
+ * or with `anyStatus`, those out of office too.
+ */
+export const askAnswersHref = (slug: string, answer: string, anyStatus: boolean) =>
+  `/staff/politicians?ask=${slug}&answer=${answer}${anyStatus ? "&status=any" : ""}`;
 
 /** PauseAI's frontier AI letter to the Prime Minister. */
 export const FRONTIER_AI_LETTER_ASK = "frontier-ai-letter";

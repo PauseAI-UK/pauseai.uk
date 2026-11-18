@@ -18,8 +18,8 @@ describe("staff vocabulary", () => {
     expect(Object.keys(staffVocabulary.statuses).sort()).toEqual(
       [...new Set(Object.values(ASK_STATUSES).flat())].sort(),
     );
-    // That they were asked, and never were, in each kind's words and in words for any.
-    const kinds = [...Object.keys(ASK_STATUSES), "any"].sort();
+    // That they were asked, and never were, in each kind's words.
+    const kinds = Object.keys(ASK_STATUSES).sort();
     expect(Object.keys(staffVocabulary.invited).sort()).toEqual(kinds);
     expect(Object.keys(staffVocabulary.neverAsked).sort()).toEqual(kinds);
     expect(Object.keys(politiciansCopy.personStatuses)).toEqual([...PERSON_STATUSES]);

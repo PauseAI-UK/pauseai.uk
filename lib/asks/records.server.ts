@@ -72,20 +72,29 @@ export async function asksWithCounts(): Promise<AskWithCounts[]> {
   );
 }
 
+/**
+ * Whether the notable person `id` isn't a test politician, in SQL. An ask's
+ * counts and columns leave them out, as the politicians list they lead to
+ * does unless it's asked for them.
+ */
+const notTest = (id: string) => `NOT EXISTS (SELECT 1 FROM politicians tp WHERE tp.id = ${id} AND tp.is_test)`;
+
 /** One row's answers, and how many gave each. Those marked invited aren't among them. */
 const ANSWER_COUNTS = `coalesce((SELECT json_object_agg(c.status, c.count) FROM (
     SELECT s.status, count(*)::int AS count FROM ask_statuses s
-    WHERE s.ask = a.slug AND ${answerSql("s.status")} GROUP BY s.status
+    WHERE s.ask = a.slug AND ${answerSql("s.status")} AND ${notTest("s.notable_person_id")} GROUP BY s.status
   ) c), '{}') AS counts`;
 
 /**
  * One row's first and last letters, how many people a letter put it to
  * (askingLetters), those written to who replied, those asked who haven't
  * answered, and the campaigns and mailings that put it: campaigns first,
- * then mailings, the latest of each first.
+ * then mailings, the latest of each first. Its counts of people leave out
+ * test politicians.
  */
 const HOW_ASKED = `
-  (SELECT count(DISTINCT w.id)::int FROM (${askingLetters("true")}) w WHERE w.ask = a.slug) AS "writtenTo",
+  (SELECT count(DISTINCT w.id)::int FROM (${askingLetters("true")}) w
+   WHERE w.ask = a.slug AND ${notTest("w.id")}) AS "writtenTo",
   (SELECT to_char(min(coalesce(l.sent_at, l.created_at)), 'YYYY-MM-DD') FROM letters l
      LEFT JOIN letters_from_supporters s ON s.id = l.id LEFT JOIN campaigns c ON c.slug = s.campaign
      LEFT JOIN letters_from_pauseai p ON p.id = l.id LEFT JOIN mailings m ON m.id = p.mailing_id
@@ -97,14 +106,15 @@ const HOW_ASKED = `
   (SELECT count(DISTINCT l.notable_person_id)::int FROM letters l
      LEFT JOIN letters_from_supporters s ON s.id = l.id LEFT JOIN campaigns c ON c.slug = s.campaign
      LEFT JOIN letters_from_pauseai p ON p.id = l.id LEFT JOIN mailings m ON m.id = p.mailing_id
-   WHERE (c.ask = a.slug OR m.ask = a.slug) AND l.replied_at IS NOT NULL) AS replied,
+   WHERE (c.ask = a.slug OR m.ask = a.slug) AND l.replied_at IS NOT NULL
+     AND ${notTest("l.notable_person_id")}) AS replied,
   (SELECT count(*)::int FROM (
-     SELECT st.notable_person_id FROM ask_statuses st WHERE st.ask = a.slug AND st.status = '${INVITED}'
+     SELECT st.notable_person_id AS id FROM ask_statuses st WHERE st.ask = a.slug AND st.status = '${INVITED}'
      UNION
      SELECT w.id FROM (${askingLetters("true")}) w WHERE w.ask = a.slug AND NOT EXISTS (
        SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = w.id AND st.ask = a.slug
      )
-   ) i) AS invited,
+   ) i WHERE ${notTest("i.id")}) AS invited,
   (SELECT count(*)::int FROM campaigns c WHERE c.ask = a.slug) AS campaigns,
   (SELECT count(*)::int FROM mailings m WHERE m.ask = a.slug AND m.state <> 'draft') AS mailings,
   (SELECT coalesce(
@@ -125,65 +135,54 @@ const HOW_ASKED = `
 export type AskAnswer = {
   politicianId: number;
   name: string;
-  isTest: boolean;
+  /** Whether they're in office, or how they left (notable_people.status, as the shared words name it). */
+  personStatus: string;
   constituency: string | null;
   party: string | null;
   /** INVITED for someone asked who hasn't answered. */
   status: RecordedStatus;
   /** What an answer of "other" was, and any other note on it; "" for none. */
   note: string;
-  /** When a campaign or mailing that put the ask last wrote to them; null if none has. */
-  lastWrittenTo: Date | null;
 };
-
-/** Who the letters that put ask $1 went to (askingLetters), and when the last did. */
-const WRITTEN_TO = `written AS (
-  SELECT w.id, max(w.at) AS at FROM (${askingLetters("true")}) w WHERE w.ask = $1 GROUP BY 1
-)`;
 
 /**
- * Who gave the answer $2, from `written`: those with that status, or for
- * INVITED, those staff marked so and those written to with nothing recorded.
+ * One column of an ask's answers (an answer its kind allows, or INVITED):
+ * how many are in it, how many of those are out of office, and the first
+ * few of them.
  */
-const ANSWERS_FROM = `FROM notable_people n
-    LEFT JOIN politicians p ON p.id = n.id
-    LEFT JOIN ask_statuses s ON s.notable_person_id = n.id AND s.ask = $1
-    LEFT JOIN written w ON w.id = n.id
-  WHERE CASE WHEN $2::text = '${INVITED}' THEN coalesce(s.status = '${INVITED}', w.id IS NOT NULL)
-    ELSE s.status = $2 END`;
+export type AskAnswerGroup = { key: string; total: number; outOfOffice: number; people: AskAnswer[] };
 
-/** One column of an ask's answers (an answer its kind allows, or INVITED): how many are in it, and the first few of them. */
-export type AskAnswerGroup = { key: string; total: number; people: AskAnswer[] };
-
-/** An ask's own page: how it was put, its answers' columns, and, with an answer chosen, a page of those who gave it. */
+/** An ask's own page: how it was put, and its answers' columns. */
 export type AskPageData = AskWithCounts & {
-  /** Each answer its kind allows, then those invited if there are any. Without an answer chosen, its first few people. */
+  /** Those invited if there are any, then each answer its kind allows, each with its first few people. */
   groups: AskAnswerGroup[];
-  answers: AskAnswer[];
-  /** How many gave the answer chosen across all the pages, and which page these are. */
-  answersTotal: number;
-  page: number;
-  pages: number;
-  pageSize: number;
 };
 
-/** Answers on a page of an ask's page. */
-const ANSWERS_PAGE_SIZE = 100;
 /** People in a column of an ask's answers. */
 const ANSWER_COLUMN_SIZE = 5;
 
 /**
- * Those who gave `answer` to an ask, by name, or for INVITED, whoever was
- * asked longest ago first, by their last letter or when staff marked them.
+ * The first few who gave `answer` to an ask, by name; or for INVITED, those
+ * staff marked so and those a letter asked with nothing recorded (askingLetters),
+ * whoever was asked longest ago first, by their last letter or when staff
+ * marked them. Each row has how many of all who gave it are out of office.
  */
-function answersGiven(slug: string, answer: string, limit: number, offset: number) {
-  return query<AskAnswer>(
-    `WITH ${WRITTEN_TO}
-     SELECT n.id::int AS "politicianId", n.name, p.is_test AS "isTest", p.constituency, p.party,
-       coalesce(s.status, '${INVITED}') AS status, coalesce(s.note, '') AS note, w.at AS "lastWrittenTo"
-     ${ANSWERS_FROM}
+function answersGiven(slug: string, answer: string) {
+  return query<AskAnswer & { outOfOffice: number }>(
+    `WITH written AS (
+       SELECT w.id, max(w.at) AS at FROM (${askingLetters("true")}) w WHERE w.ask = $1 GROUP BY 1
+     )
+     SELECT n.id::int AS "politicianId", n.name, n.status AS "personStatus", p.constituency, p.party,
+       coalesce(s.status, '${INVITED}') AS status, coalesce(s.note, '') AS note,
+       count(*) FILTER (WHERE n.status <> 'in_office') OVER ()::int AS "outOfOffice"
+     FROM notable_people n
+       LEFT JOIN politicians p ON p.id = n.id
+       LEFT JOIN ask_statuses s ON s.notable_person_id = n.id AND s.ask = $1
+       LEFT JOIN written w ON w.id = n.id
+     WHERE CASE WHEN $2::text = '${INVITED}' THEN coalesce(s.status = '${INVITED}', w.id IS NOT NULL)
+       ELSE s.status = $2 END AND ${notTest("n.id")}
      ORDER BY CASE WHEN $2::text = '${INVITED}' THEN coalesce(w.at, s.updated_at) END, n.name COLLATE english
-     LIMIT ${limit} OFFSET ${offset}`,
+     LIMIT ${ANSWER_COLUMN_SIZE}`,
     [slug, answer],
   );
 }
@@ -194,47 +193,26 @@ export async function askTitle(slug: string): Promise<string | undefined> {
   return ask?.title;
 }
 
-/**
- * The ask with `slug`, for its page, or undefined for none. With `answer`
- * blank, the first few people of each column; with a column's key, a page
- * of those in it.
- */
-export async function askPageData(slug: string, answer = "", page = 1): Promise<AskPageData | undefined> {
+/** The ask with `slug`, for its page, with the first few people of each column; or undefined for none. */
+export async function askPageData(slug: string): Promise<AskPageData | undefined> {
   const [ask] = await query<AskWithCounts>(
     `SELECT ${ASK_COLUMNS}, ${ANSWER_COUNTS}, ${HOW_ASKED}
      FROM asks a WHERE a.slug = $1`,
     [slug],
   );
   if (!ask) return undefined;
+  // Those invited first, if there are any, as being asked comes before an answer.
   const columns = [
-    ...ASK_STATUSES[ask.kind].map((key) => ({ key, total: ask.counts[key] ?? 0 })),
     ...(ask.invited ? [{ key: INVITED, total: ask.invited }] : []),
+    ...ASK_STATUSES[ask.kind].map((key) => ({ key, total: ask.counts[key] ?? 0 })),
   ];
-  const [groups, answers, total] = await Promise.all([
-    Promise.all(
-      columns.map(async ({ key, total: count }) => ({
-        key,
-        total: count,
-        people: answer ? [] : await answersGiven(slug, key, ANSWER_COLUMN_SIZE, 0),
-      })),
-    ),
-    answer ? answersGiven(slug, answer, ANSWERS_PAGE_SIZE, (page - 1) * ANSWERS_PAGE_SIZE) : [],
-    answer
-      ? query<{ total: number }>(`WITH ${WRITTEN_TO} SELECT count(*)::int AS total ${ANSWERS_FROM}`, [
-          slug,
-          answer,
-        ]).then(([row]) => row.total)
-      : 0,
-  ]);
-  return {
-    ...ask,
-    groups,
-    answers,
-    answersTotal: total,
-    page,
-    pages: Math.max(1, Math.ceil(total / ANSWERS_PAGE_SIZE)),
-    pageSize: ANSWERS_PAGE_SIZE,
-  };
+  const groups = await Promise.all(
+    columns.map(async ({ key, total }) => {
+      const people = await answersGiven(slug, key);
+      return { key, total, outOfOffice: people[0]?.outOfOffice ?? 0, people };
+    }),
+  );
+  return { ...ask, groups };
 }
 
 /** Every campaign, by title. */

@@ -2,6 +2,7 @@ import { beforeEach, expect, it } from "vitest";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { migrate } from "@/scripts/db-migrate.mjs";
 import {
+  addTestMp,
   addTestPolitician,
   describeWithDatabase,
   MAKES_DATABASES,
@@ -55,26 +56,13 @@ describeWithDatabase("asks and campaigns", () => {
     // Campaigns first, then mailings, the latest of each first.
     expect(ask!.ways.map((way) => way.kind)).toEqual([...ask!.ways.map((way) => way.kind)].sort());
     expect(ask!.ways.find((way) => way.letters === 1)).toMatchObject({ kind: "mailing" });
-    // With no answer chosen, a column each, and no page of answers.
-    expect(ask!.groups.map((g) => [g.key, g.total, g.people.map((p) => p.politicianId)])).toEqual([
-      ["signed", 1, [polly]],
-      ["other", 0, []],
-      ["declined", 1, [dora]],
+    // A column each, with its first few people and how many of all of them are out of office.
+    expect(ask!.groups.map((g) => [g.key, g.total, g.outOfOffice, g.people.map((p) => p.politicianId)])).toEqual([
+      ["signed", 1, 0, [polly]],
+      ["other", 0, 0, []],
+      ["declined", 1, 0, [dora]],
     ]);
-    expect(ask).toMatchObject({ answers: [], answersTotal: 0, pages: 1 });
-    expect(ask!.groups[0].people[0].lastWrittenTo).not.toBeNull();
-    expect(ask!.groups[2].people[0].lastWrittenTo).toBeNull();
-    // With one chosen, a page of those who gave it, and the columns' counts without their people.
-    const signed = (await askPageData("deepmind-letter", "signed"))!;
-    expect(signed.answers.map((a) => a.politicianId)).toEqual([polly]);
-    expect(signed).toMatchObject({ answersTotal: 1, pages: 1 });
-    expect(signed.groups.map((g) => [g.key, g.total, g.people])).toEqual([
-      ["signed", 1, []],
-      ["other", 0, []],
-      ["declined", 1, []],
-    ]);
-    // An answer it has no column for finds nobody.
-    expect((await askPageData("deepmind-letter", "going"))!.answers).toEqual([]);
+    expect(ask!.groups[0].people[0].personStatus).toBe("in_office");
     const write = async (person: number, sentAt: string, status = "sent") => {
       const [{ id: letter }] = await query<{ id: number }>(
         `INSERT INTO letters (kind, notable_person_id, status, sent_at) VALUES ('pauseai', $1, $3, $2) RETURNING id::int AS id`,
@@ -94,28 +82,49 @@ describeWithDatabase("asks and campaigns", () => {
     // A letter that bounced, or was stopped before it went, never put the ask to them.
     await write(bounced, "2025-08-03", "bounced");
     await write(bounced, "2025-08-04", "cancelled");
-    // Those invited: only someone a letter reached counts, and only until they answer, oldest first.
-    const invited = (await askPageData("deepmind-letter", INVITED))!;
-    expect(invited).toMatchObject({ answersTotal: 2, invited: 2, writtenTo: 3, page: 1, pages: 1 });
-    expect((await askPageData("deepmind-letter", INVITED, 2))!.answers).toEqual([]);
-    expect(invited.answers.map((a) => [a.politicianId, a.status])).toEqual([
+    // Those invited, first: only someone a letter reached counts, and only until they answer, oldest first.
+    const invited = (await askPageData("deepmind-letter"))!;
+    expect(invited).toMatchObject({ invited: 2, writtenTo: 3 });
+    expect(invited.groups[0]).toMatchObject({ key: INVITED, total: 2, outOfOffice: 0 });
+    expect(invited.groups[0].people.map((a) => [a.politicianId, a.status])).toEqual([
       [older, INVITED],
       [newer, INVITED],
     ]);
     expect((await asksWithCounts()).find((a) => a.slug === "deepmind-letter")!.invited).toBe(2);
-    expect((await askPageData("deepmind-letter"))!.groups.at(-1)).toMatchObject({ key: INVITED, total: 2 });
     // Staff mark as invited someone asked another way, and someone a letter reached too, who is still counted once.
-    // Neither is an answer. One marked has no letter's date, and comes by when they were marked.
+    // Neither is an answer. One marked has no letter's date, and comes by when they were marked. One who has
+    // retired is counted as out of office.
     const marked = await addTestPolitician({ name: "Marked", email: "marked@parliament.uk", airtableId: "marked" });
+    await query("UPDATE notable_people SET status = 'retired' WHERE id = $1", [marked]);
     await setStatus(marked, "deepmind-letter", { status: INVITED, date: null, note: "Asked in person" }, "test");
     await setStatus(newer, "deepmind-letter", { status: INVITED, date: null, note: "And by phone" }, "test");
-    const both = (await askPageData("deepmind-letter", INVITED))!;
-    expect(both).toMatchObject({ answersTotal: 3, invited: 3, counts: { signed: 1, declined: 1 } });
-    expect(both.answers.map((a) => [a.politicianId, a.status, a.note, a.lastWrittenTo !== null])).toEqual([
-      [older, INVITED, "", true],
-      [newer, INVITED, "And by phone", true],
-      [marked, INVITED, "Asked in person", false],
+    const both = (await askPageData("deepmind-letter"))!;
+    expect(both).toMatchObject({ invited: 3, counts: { signed: 1, declined: 1 } });
+    expect(both.groups[0]).toMatchObject({ key: INVITED, total: 3, outOfOffice: 1 });
+    expect(both.groups[0].people.map((a) => [a.politicianId, a.status, a.note, a.personStatus])).toEqual([
+      [older, INVITED, "", "in_office"],
+      [newer, INVITED, "And by phone", "in_office"],
+      [marked, INVITED, "Asked in person", "retired"],
     ]);
+    // A test politician is in none of its counts or columns, as the politicians list leaves them out.
+    const test = await addTestMp();
+    await setStatus(test, "deepmind-letter", { status: "signed", date: null, note: "" }, "test");
+    await write(test, "2025-08-05");
+    await query("UPDATE letters SET replied_at = now() WHERE notable_person_id = $1", [test]);
+    const without = (await askPageData("deepmind-letter"))!;
+    expect(without).toMatchObject({ invited: 3, writtenTo: 3, replied: 1, counts: { signed: 1, declined: 1 } });
+    expect(without.groups.flatMap((g) => g.people.map((p) => p.politicianId))).not.toContain(test);
+    // A column shows only its first few.
+    for (const n of [1, 2, 3, 4, 5]) {
+      const one = await addTestPolitician({
+        name: `Many ${n}`,
+        email: `many${n}@parliament.uk`,
+        airtableId: `many${n}`,
+      });
+      await setStatus(one, "deepmind-letter", { status: "declined", date: null, note: "" }, "test");
+    }
+    const many = (await askPageData("deepmind-letter"))!.groups.find((g) => g.key === "declined")!;
+    expect([many.total, many.people.length]).toEqual([6, 5]);
     expect(await askPageData("no-such-ask")).toBeUndefined();
     await addAsk({ title: "Ours", kind: "letter", date: null, url: null, askedBy: [] }, "jo@pauseai.uk");
     expect(await askTitle("ours")).toBe("Ours");
@@ -135,9 +144,6 @@ describeWithDatabase("asks and campaigns", () => {
       ["other", 1, [["other", "Tentatively said yes"]]],
       ["declined", 1, [["declined", ""]]],
     ]);
-    const other = await askPageData(edinburgh, "other");
-    expect(other!.answers.map((a) => a.politicianId)).toEqual([polly]);
-    expect(other!.answersTotal).toBe(1);
   });
 
   it("lists every ask, newest first, those without a date last", async () => {

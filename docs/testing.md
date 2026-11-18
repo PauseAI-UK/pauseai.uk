@@ -946,7 +946,7 @@ that drives it or why nothing does.
 - `staff-campaigns.spec.ts`: Campaigns, asks and sent emails:
   - campaigns: the list by the month of each one's last letter, a campaign's page with its versions, its counts choosing its letters, and `/staff/letters` redirecting;
   - asks: the list under its months, with each ask's answers, how it was asked and its counts;
-  - an ask's page, for a letter and for an event: its answers in columns, with those invited who haven't answered, those who gave one answer, by page, under the columns' tops, the link to those who answered on the politicians list, and its form at `/edit`;
+  - an ask's page, for a letter and for an event: its answers in columns, each leading to those in it on the politicians list, out of office too when one of them has left, and its form at `/edit`;
   - a mailing's list and page naming its ask and who it's from;
   - Sent emails, as an admin, searched and filtered, and closed without the permission;
   - a new ask, changed and deleted.

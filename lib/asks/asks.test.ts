@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALL_ANSWERS, ASK_STATUSES, askSlug, asksAgreed, INVITED, isAnswer, standing } from "./asks";
+import { askAnswersHref, askSlug, asksAgreed, INVITED, isAnswer, standing } from "./asks";
 
 describe("askSlug", () => {
   it("makes a slug of the title's letters and digits, then the date's month and year", () => {
@@ -40,7 +40,10 @@ describe("standing", () => {
     expect(isAnswer(undefined)).toBe(false);
   });
 
-  it("lists every answer any kind allows, once each", () => {
-    expect([...ALL_ANSWERS].sort()).toEqual([...new Set(Object.values(ASK_STATUSES).flat())].sort());
+  it("leads to those who stand on an ask one way on the politicians list, out of office too when asked to", () => {
+    expect(askAnswersHref("our-letter", INVITED, false)).toBe("/staff/politicians?ask=our-letter&answer=invited");
+    expect(askAnswersHref("our-letter", "signed", true)).toBe(
+      "/staff/politicians?ask=our-letter&answer=signed&status=any",
+    );
   });
 });

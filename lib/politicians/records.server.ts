@@ -187,8 +187,8 @@ export type PoliticianWho = {
   /** Only those who answered this ask, or stand on it as `answer` says, if given. */
   ask?: string;
   /**
-   * Only those who stand in any of these ways on `ask` or, without one, on any ask: an answer they gave; INVITED,
-   * asked with no answer yet; or NEVER_ASKED.
+   * Only those who stand in any of these ways on `ask`: an answer they gave; INVITED, asked with no answer yet; or
+   * NEVER_ASKED. Nothing without an ask.
    */
   answer?: string[];
   /** Only those who agreed to an ask (AGREED_STATUSES), not by Airtable's record, in the last so many days. */
@@ -253,31 +253,30 @@ function anyOf(filter: Pick<PoliticianWho, NegatablePoliticianFilter>): Sql[] {
 }
 
 /**
- * Whether a politician stands on an ask, `filter`'s or any, in one of the
- * ways its `answer` says: an answer they gave; INVITED, staff having marked
- * them so, or a letter having put the ask to them with nothing recorded for
- * it; NEVER_ASKED, with nothing recorded and no such letter. With no
- * `answer`, whether they gave any.
+ * Whether a politician stands on `ask` in one of the ways `answer` says: an
+ * answer they gave; INVITED, staff having marked them so, or a letter having
+ * put the ask to them with nothing recorded for it; NEVER_ASKED, with
+ * nothing recorded and no such letter. With no `answer`, whether they gave
+ * any.
  */
-function answered(filter: Pick<PoliticianWho, "ask" | "answer">): Sql {
-  const ask = filter.ask ? sql` AND a.ask = ${filter.ask}` : sql``;
+function answered(ask: string, answer?: string[]): Sql {
   const recorded = (status: Sql) =>
-    sql`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask}${status})`;
+    sql`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id AND a.ask = ${ask}${status})`;
   // A letter that put the ask to them, with `where` true of it.
   const letter = (where: Sql) =>
     sql`EXISTS (SELECT 1 FROM (${sql.raw(askingLetters("l.notable_person_id = n.id"))}) w
-      WHERE ${filter.ask ? sql`w.ask = ${filter.ask}` : sql`true`} AND ${where})`;
-  if (!filter.answer) return recorded(sql` AND ${sql.raw(answerSql("a.status"))}`);
-  const given = filter.answer.filter((answer) => answer !== INVITED && answer !== NEVER_ASKED);
+      WHERE w.ask = ${ask} AND ${where})`;
+  if (!answer) return recorded(sql` AND ${sql.raw(answerSql("a.status"))}`);
+  const given = answer.filter((one) => one !== INVITED && one !== NEVER_ASKED);
   const conditions: Sql[] = [];
-  if (filter.answer.includes(INVITED)) {
+  if (answer.includes(INVITED)) {
     conditions.push(
       recorded(sql` AND a.status = ${INVITED}`),
       letter(sql`NOT EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id AND a.ask = w.ask)`),
     );
   }
   if (given.length > 0) conditions.push(recorded(sql` AND a.status = ANY(${given})`));
-  if (filter.answer.includes(NEVER_ASKED)) conditions.push(sql`NOT (${recorded(sql``)} OR ${letter(sql`true`)})`);
+  if (answer.includes(NEVER_ASKED)) conditions.push(sql`NOT (${recorded(sql``)} OR ${letter(sql`true`)})`);
   return sql.or(conditions);
 }
 
@@ -315,7 +314,7 @@ function politicianConditions(filter: PoliticianWho, closest = false): Sql[] {
   }
   // What's left out: a filter's condition not true, so one with no value, such as no party, is kept.
   if (filter.not) where.push(...anyOf(filter.not).map((condition) => sql`(${condition}) IS NOT TRUE`));
-  if (filter.ask || filter.answer) where.push(answered(filter));
+  if (filter.ask) where.push(answered(filter.ask, filter.answer));
   return where;
 }
 

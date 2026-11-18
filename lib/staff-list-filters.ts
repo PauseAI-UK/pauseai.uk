@@ -6,7 +6,7 @@
 // such as the parties, the events, or who's in the log.
 import { staffMemberText } from "@/lib/staff-member";
 import type { ReactNode } from "react";
-import { ALL_ANSWERS, ANSWER_CHOICES, INVITED, NEVER_ASKED } from "@/lib/asks/asks";
+import { ANSWER_CHOICES, INVITED, NEVER_ASKED } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
 import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
@@ -255,13 +255,14 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
       after: "ask",
       options: [
         { value: "", label: copy.anyAnswer },
-        { value: INVITED, label: standingWord(INVITED, ask?.kind) },
-        // With no ask, as a link from the dashboard can have it, any ask's answers.
-        ...(ask ? ANSWER_CHOICES[ask.kind] : ALL_ANSWERS).map((value) => ({
-          value,
-          label: staffVocabulary.statuses[value],
-        })),
-        { value: NEVER_ASKED, label: standingWord(null, ask?.kind) },
+        // An answer is only ever to the ask chosen (politiciansSearch), so with none there's nothing more to offer.
+        ...(ask
+          ? [
+              { value: INVITED, label: standingWord(INVITED, ask.kind) },
+              ...ANSWER_CHOICES[ask.kind].map((value) => ({ value, label: staffVocabulary.statuses[value] })),
+              { value: NEVER_ASKED, label: standingWord(null, ask.kind) },
+            ]
+          : []),
       ],
     },
   };

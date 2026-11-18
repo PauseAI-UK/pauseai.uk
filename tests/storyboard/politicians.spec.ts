@@ -301,12 +301,12 @@ test("Invited, with no answer yet", async ({ page, request, flowDatabase }) => {
   await frame(page, "Dora, invited");
 
   story(
-    "The conference's own page counts those invited beside its answers: Polly and Morag, whom the mailing invited, and Dora. It leads to them on the politicians list.",
+    "The conference's own page has a column of those invited, first: Polly and Morag, whom the mailing invited, and Dora. It opens them as a list, to chase.",
   );
   await page.goto(`${BASE}/staff/asks/edinburgh-conference-2026`);
   await expect(page.getByRole("link", { name: `${staffVocabulary.invited.event} 3`, exact: true })).toBeVisible();
   await frame(page, "The conference's page, three invited");
-  await page.getByRole("link", { name: asksCopy.asks.page.invited }).click();
+  await page.getByRole("link", { name: asksCopy.asks.page.asList }).first().click();
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=invited/);
   const rows = page.getByRole("row");
   await expect(rows.filter({ hasText: "Morag Example" })).toContainText(staffVocabulary.invited.event);

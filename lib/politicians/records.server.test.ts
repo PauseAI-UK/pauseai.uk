@@ -409,10 +409,6 @@ describeWithDatabase("politicians", () => {
         ...times.filter((t) => t === null),
       ]);
     }
-    // Everyone who signed, by their newest answer.
-    await setStatus(peer, BILL, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
-    const signed = await listPoliticians({ answer: ["signed"], sort: { key: "asks", dir: "desc" } });
-    expect(signed.map((p) => p.id)).toEqual([peer, mp]);
   });
 
   it("knows whose address is blocked, whatever its case, in the list too", async () => {
@@ -476,9 +472,8 @@ describeWithDatabase("politicians", () => {
     // Several answers find any of them, those never asked among them.
     expect(await ids({ ask: EDINBURGH, answer: ["going", "declined"] })).toEqual([mp, peer].sort());
     expect(await ids({ ask: EDINBURGH, answer: ["going", NEVER_ASKED] })).toEqual([peer, retired].sort());
-    // An answer to any ask, or never asked any.
-    expect(await ids({ answer: ["going"] })).toEqual([peer]);
-    expect(await ids({ answer: [NEVER_ASKED] })).toEqual([retired]);
+    // An answer is to an ask: with none, it finds no fewer.
+    expect(await ids({ answer: ["going"] })).toEqual(await ids({}));
     // One no ask allows finds no one.
     expect(await ids({ ask: EDINBURGH, answer: ["maybe"] })).toEqual([]);
     // Mailed about an ask: a mailing about it went or is going to them, not one stopped or skipped.
@@ -555,9 +550,6 @@ describeWithDatabase("politicians", () => {
     // Being marked invited isn't an answer.
     expect(await ids({ ask: EDINBURGH })).toEqual([answered]);
     expect(await ids({ ask: PM, answer: [INVITED] })).toEqual([written, marked].sort());
-    // With no ask: invited to any, and never asked any.
-    expect(await ids({ answer: [INVITED] })).toEqual([written, marked].sort());
-    expect(await ids({ answer: [NEVER_ASKED] })).toEqual([never, bounced].sort());
     expect(await countPoliticians({ ask: EDINBURGH, answer: [INVITED] })).toBe(2);
 
     // Email your MP isn't told of a mark, a mailing's parts aren't for it, and the Asks column doesn't sort by it.

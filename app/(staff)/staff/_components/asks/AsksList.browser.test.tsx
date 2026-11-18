@@ -23,24 +23,24 @@ describe("AsksList", () => {
     await render(<AsksList now={new Date("2026-11-06T12:00:00Z")} asks={exampleAsksWithCounts} />);
     const row = (title: string) => page.getByRole("listitem").filter({ hasText: title }).first();
     const text = (title: string) => row(title).element().textContent;
-    // Its date, who asked them to do what, its answers in the kind's order, and how it stands.
+    // Its date, who asked them to do what, those invited then its answers in the kind's order, as its page's
+    // columns are, and how it stands.
     const first = text(exampleAsks[0].title);
     expect(first).toContain(asksCopy.asks.askedThem(copy.askedBy.pauseai, "event"));
     expect(first).toContain(`20 ${copy.page.replied}`);
     expect(first).toContain(`40 ${copy.page.lettersWord(40)}`);
     expect(first).toContain(
-      `${lozenge(staffVocabulary.statuses.going, 3)}${lozenge(staffVocabulary.statuses.other, 1)}${lozenge(staffVocabulary.statuses.declined, 50)}`,
+      `${lozenge(staffVocabulary.invited.event, 132)}${lozenge(staffVocabulary.statuses.going, 3)}${lozenge(staffVocabulary.statuses.other, 1)}${lozenge(staffVocabulary.statuses.declined, 50)}`,
     );
     expect(first).toContain("1 Nov 2026");
     expect(first).toContain(`186 ${copy.page.writtenTo}`);
     // No answers, nobody written to, nor any way of asking.
     expect(text(exampleAsks[2].title)).toContain(`0 ${copy.page.replied}`);
-    // Those asked who haven't answered, in its kind's words, leading to them on its page.
+    // Those asked who haven't answered, in its kind's words, leading to them on the politicians list, in office or not.
     expect(text(exampleAsks[2].title)).toContain(lozenge(staffVocabulary.invited.letter, 4));
-    expect(text(exampleAsks[0].title)).toContain(lozenge(staffVocabulary.invited.event, 132));
     await expect
       .element(row(exampleAsks[2].title).getByRole("link", { name: lozenge(staffVocabulary.invited.letter, 4) }))
-      .toHaveAttribute("href", `/staff/asks/${exampleAsks[2].slug}?answer=invited`);
+      .toHaveAttribute("href", `/staff/politicians?ask=${exampleAsks[2].slug}&answer=invited&status=any`);
     expect(text(exampleAsks[1].title)).toContain(`0 ${copy.page.writtenTo}`);
     expect(
       row(exampleAsks[1].title)
@@ -63,16 +63,13 @@ describe("AsksList", () => {
     expect(ways).toContain(`${copy.waysOf.campaign}Sign the open letter`);
     expect(ways).toContain(`${copy.waysOf.mailing}First mailing about the letter`);
     expect(text(exampleAsks[0].title)).not.toContain(copy.waysOf.campaign);
-    // Each leads to its own page, and each answer to its page with that answer chosen.
+    // Each leads to its own page, and each answer to those who gave it on the politicians list.
     await expect
       .element(row(exampleAsks[0].title).getByRole("link", { name: exampleAsks[0].title }))
       .toHaveAttribute("href", `/staff/asks/${exampleAsks[0].slug}`);
     await expect
       .element(row(exampleAsks[0].title).getByRole("link", { name: lozenge(staffVocabulary.statuses.other, 1) }))
-      .toHaveAttribute("href", `/staff/asks/${exampleAsks[0].slug}?answer=other`);
-    await expect
-      .element(page.getByRole("link", { name: lozenge(staffVocabulary.invited.event, 132) }))
-      .toHaveAttribute("href", expect.stringMatching(/\?answer=invited$/));
+      .toHaveAttribute("href", `/staff/politicians?ask=${exampleAsks[0].slug}&answer=other&status=any`);
     // How far it has gone, a sentence after a dot.
     expect(first).toContain(`186 ${copy.page.writtenTo} · 40 ${copy.page.lettersWord(40)} · 20 ${copy.page.replied}`);
     expect(page.getByRole("status").query()).toBeNull();

@@ -1,6 +1,6 @@
 import Tag, { type TagTone } from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
-import { ASK_STATUSES, askHref, INVITED } from "@/lib/asks/asks";
+import { askAnswersHref, ASK_STATUSES, askHref, INVITED } from "@/lib/asks/asks";
 import { askGroups, askPeriod } from "@/lib/asks/ask-groups";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { AskWithCounts } from "@/lib/asks/records.server";
@@ -47,9 +47,10 @@ const lowercase = (words: string) => words.toLocaleLowerCase("en-GB");
 const answerWords = (status: string) => lowercase(staffVocabulary.statuses[status]!);
 
 /**
- * An ask's lozenges: how many gave each answer its kind allows, then those
- * asked who haven't answered, each its number first, as a mailing's counts
- * are, and leading to the ask's page with that answer chosen.
+ * An ask's lozenges: those asked who haven't answered, then how many gave
+ * each answer its kind allows, in the order of its page's columns; each its
+ * number first, as a mailing's counts are, and leading to those who gave it
+ * on the politicians list.
  */
 function Answers({ ask }: { ask: AskWithCounts }) {
   if (answersOf(ask).length === 0 && !ask.invited)
@@ -58,9 +59,15 @@ function Answers({ ask }: { ask: AskWithCounts }) {
         <Muted>{copy.noAnswers}</Muted>
       </span>
     );
-  const href = (answer: string) => `${askHref(ask.slug)}?answer=${answer}`;
+  // Out of office too, as its counts are.
+  const href = (answer: string) => askAnswersHref(ask.slug, answer, true);
   return (
     <div className={styles.answers}>
+      {ask.invited > 0 && (
+        <StaffLink href={href(INVITED)} className={`${styles.answer} ${styles.invited}`}>
+          {ask.invited.toLocaleString("en-GB")} {lowercase(standingWord(INVITED, ask.kind))}
+        </StaffLink>
+      )}
       {answersOf(ask).map((status) => (
         <StaffLink key={status} href={href(status)} className={styles.answer}>
           <Tag tone={ANSWER_TONES[status]}>
@@ -68,11 +75,6 @@ function Answers({ ask }: { ask: AskWithCounts }) {
           </Tag>
         </StaffLink>
       ))}
-      {ask.invited > 0 && (
-        <StaffLink href={href(INVITED)} className={`${styles.answer} ${styles.invited}`}>
-          {ask.invited.toLocaleString("en-GB")} {lowercase(standingWord(INVITED, ask.kind))}
-        </StaffLink>
-      )}
     </div>
   );
 }

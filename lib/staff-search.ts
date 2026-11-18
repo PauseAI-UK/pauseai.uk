@@ -182,7 +182,8 @@ export type PoliticiansSearch = SearchOf<typeof POLITICIANS_LIST.params>;
  * form, and the filter they make, leaving out what's blank or unknown, but
  * for the status: those in office unless it's given. A filter that repeats
  * finds those with any of its values. The test politicians are left out,
- * unseen in the filters, unless the Marked filter finds them.
+ * unseen in the filters, unless the Marked filter finds them. An answer
+ * without an ask is left out, as typed too.
  */
 export function politiciansSearch(params: Partial<Record<string, ParamValue>>): PoliticiansSearch & {
   filter: PoliticianFilter;
@@ -204,7 +205,8 @@ export function politiciansSearch(params: Partial<Record<string, ParamValue>>): 
     email: emails,
     mailed: mailedAbout,
     ask: ask || undefined,
-    answer: search.answer.length ? search.answer : undefined,
+    // An answer is to the ask chosen, so it's nothing without one.
+    answer: ask && search.answer.length ? search.answer : undefined,
     agreedDays: listWindow(search.agreed),
     not: notOf({
       party: notParties,
@@ -218,6 +220,7 @@ export function politiciansSearch(params: Partial<Record<string, ParamValue>>): 
   };
   return {
     ...search,
+    answer: ask ? search.answer : [],
     mailing: /^\d+$/.test(search.mailing) ? search.mailing : "",
     tab: search.tab === "ticked" || search.tab === "pasted" ? search.tab : "",
     filter,

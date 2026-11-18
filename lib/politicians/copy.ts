@@ -5,6 +5,7 @@
 // app/(staff)/staff/_components/politicians/copy.ts.
 import type { Body } from "./import-changes";
 import { count, plural } from "@/lib/content/plural";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 /** Each body, as a sentence names it after its start. */
 const bodyNames: Record<Body, string> = {
@@ -353,13 +354,8 @@ export const politiciansCopy = {
     // A problem of the run: Wikidata couldn't be asked who's Sir or Dame, so no salutation was checked for it.
     honourLookupFailed: "Couldn't ask Wikidata who's Sir or Dame, so no salutation was checked for it",
   },
-  // Whether a notable person is in office.
-  personStatuses: {
-    in_office: "In office",
-    died: "Died",
-    retired: "Retired",
-    left_office: "No longer in office",
-  } as Record<string, string>,
+  // Whether a notable person is in office: the shared words, as asks' pages say it too.
+  personStatuses: staffVocabulary.personStatuses,
   // The emails to the notification inbox (lib/email/notifications.server.ts) about a body's import.
   notifications: {
     // A body's import is held, as it would change too much: which import, how many politicians, and its page.

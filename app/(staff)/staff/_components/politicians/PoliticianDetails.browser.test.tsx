@@ -1184,7 +1184,7 @@ describe("PoliticianDetails", () => {
     expect(radios()[0][1]).toBe("true");
   });
 
-  it("says in their history that they were marked asked, in the ask's kind's words, or any kind's for an ask gone", async () => {
+  it("says in their history that they were marked asked, in the ask's kind's words, or a letter's for an ask gone", async () => {
     const set = (id: number, slug: string) => ({
       id,
       at: new Date(`2026-11-0${id}T10:00:00Z`),
@@ -1210,7 +1210,7 @@ describe("PoliticianDetails", () => {
     expect(lines[0]).toContain(
       `${words(staffVocabulary.invited.event).before}${ask("edinburgh-conference-2026").title}`,
     );
-    expect(lines[1]).toContain(`${words(staffVocabulary.invited.any).before}an-old-ask`);
+    expect(lines[1]).toContain(`${words(staffVocabulary.invited.letter).before}an-old-ask`);
   });
 
   it("crosses a letter they declined", async () => {

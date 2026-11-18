@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { ALL_ANSWERS, ANSWER_CHOICES, INVITED } from "@/lib/asks/asks";
+import { ANSWER_CHOICES } from "@/lib/asks/asks";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import PoliticianFilters from "./PoliticianFilters";
 import { emptyPoliticiansSearch } from "./PoliticianTable.examples";
@@ -92,21 +92,6 @@ describe("PoliticianFilters", () => {
       copy.mailed,
     ]);
     expect(page.getByRole("link", { name: staffVocabulary.resetFilters }).query()).toBeNull();
-  });
-
-  it("with an answer and no ask, as a link can have it, offers every kind's answers, and words for any kind", async () => {
-    await render(
-      <PoliticianFilters search={{ ...emptyPoliticiansSearch, answer: [INVITED] }} asks={exampleAsks} parties={[]} />,
-    );
-    const chip = `${copy.answer}: ${staffVocabulary.invited.any}`;
-    expect(chips()).toEqual([chip]);
-    expect((await menu(chip)).map(([text]) => text)).toEqual(
-      expect.arrayContaining([
-        staffVocabulary.invited.any,
-        ...ALL_ANSWERS.map((s) => staffVocabulary.statuses[s]),
-        staffVocabulary.neverAsked.any,
-      ]),
-    );
   });
 
   it("says a letter's invited and never in a letter's words", async () => {

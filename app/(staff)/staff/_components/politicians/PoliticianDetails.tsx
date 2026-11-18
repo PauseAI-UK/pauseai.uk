@@ -177,10 +177,11 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
   switch (change.action) {
     case "set status": {
       const ask = asks.find((a) => a.slug === details.ask);
-      // That they were asked is in the words of the ask's kind, as it is in the asks card.
+      // That they were asked is in the words of the ask's kind, as it is in the asks card; for an ask since
+      // deleted, a letter's, "asked", which is true of either kind.
       const label =
         details.status === INVITED
-          ? standingWord(INVITED, ask?.kind)
+          ? standingWord(INVITED, ask?.kind ?? "letter")
           : (staffVocabulary.statuses[text("status")] ?? text("status"));
       const words = details.status === null ? copy.statusCleared : copy.statusSet(ANSWER);
       const [lead, rest = ""] = words.before.split(ANSWER);

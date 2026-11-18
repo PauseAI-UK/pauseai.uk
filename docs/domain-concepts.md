@@ -199,7 +199,8 @@ A politician's page lists the asks they've answered or are invited to, and
 its form sets any of the three: invited, an answer, or never asked, which
 clears the row. When a letter asked them, never asked isn't offered, and
 invited is what clears an answer. The politicians list's Ask filter finds
-those who stand on an ask in any of the ways chosen, and its Asks column
+those who stand on an ask in any of the ways chosen (with no ask chosen,
+no answer is offered or taken from the address), and its Asks column
 lists answers, with the ask the list is filtered by among them however they
 stand on it.
 
@@ -215,13 +216,15 @@ its run. Statuses with `updated_by` `airtable` were copied from Airtable's
 records before the site kept answers itself. Staff change them like any
 other.
 
-`/staff/asks` lists the asks, newest first: who asks each, how many gave
-each answer, how many are invited, how many were written to and how they
-were asked. An ask's own page (`/staff/asks/[slug]`) says what was asked, in
-the words a politician's page uses, then lists the campaigns and mailings
-that put it, by date, beside its answers and those invited, and leads to
-either on the politicians list. It has no letters of its own. Its form is at
-`/staff/asks/[slug]/edit`.
+`/staff/asks` lists the asks, newest first: who asks each, how many are
+invited and how many gave each answer, how many were written to and how
+they were asked. An ask's own page (`/staff/asks/[slug]`) says what was
+asked, in the words a politician's page uses, then has a column of those
+invited, then one for each answer, each with its first few people, and
+lists the campaigns and mailings that put it, by date. A column leads to all
+its people on the politicians list, out of office too when any of them are.
+Both pages leave out the test politicians, as that list does. An ask has no
+letters of its own. Its form is at `/staff/asks/[slug]/edit`.
 
 ## Campaigns
 
