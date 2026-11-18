@@ -28,6 +28,26 @@ describe("the test outbox", () => {
     expect(readFileSync(join(dir, files[0]), "utf8")).toMatch(/^From: a@example.org\r\nTo: b@example.org\r\n/);
   });
 
+  it("keeps both of two sent in the same millisecond by two copies of this module, in the order sent", async () => {
+    // A build has one copy of this module for its routes and another for its pages, each with its own state.
+    dir = mkdtempSync(join(tmpdir(), "outbox-"));
+    vi.spyOn(Date, "now").mockReturnValue(1_795_010_876_241);
+    vi.resetModules();
+    const routes = await import("./outbox");
+    vi.resetModules();
+    const pages = await import("./outbox");
+    routes.saveNoteToOutbox(dir, "first");
+    pages.saveNoteToOutbox(dir, "second");
+    routes.saveToOutbox(dir, email(1));
+    pages.saveToOutbox(dir, email(2));
+    const files = readdirSync(dir).sort();
+    expect(files.filter((file) => file.endsWith(".txt")).map((file) => readFileSync(join(dir!, file), "utf8"))).toEqual(
+      ["first", "second"],
+    );
+    expect(readOutbox(dir).map((e) => e.Subject)).toEqual(["Letter 1", "Letter 2"]);
+    vi.restoreAllMocks();
+  });
+
   it("keeps a whole message as it went, a relay's, and reads its text in base64 and its threading", () => {
     dir = mkdtempSync(join(tmpdir(), "outbox-"));
     const raw = [
