@@ -11,7 +11,8 @@ import type { PurposeHook } from "@/lib/email/delivery-problems.server";
  * A copy of a broadcast's bounce or complaint, in its history: a hard
  * bounce marks it failed; a complaint is an opt-out of every bulk email,
  * which recordProblem keeps. A soft bounce only goes in its history, as
- * Postmark tries again, and it shows Postmark hasn't lost it (LOST).
+ * Postmark tries again, which shows the copy as delayed (COPY_STATE in
+ * pages.server.ts).
  */
 const broadcastProblem: PurposeHook = async (_sent, problem) => {
   const kind = { hard: "bounced", soft: "soft-bounced", complaint: "opted-out" }[problem.kind];

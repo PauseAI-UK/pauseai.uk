@@ -450,7 +450,7 @@ meaning, a colour and a count:
 | scheduled    | grey   | a letter still to go                                                                                                                    |
 | sending      | grey   | a letter going out now                                                                                                                  |
 | to go        | grey   | a broadcast's copy still to go: its turn hasn't come yet, or it's going out now                                                         |
-| held         | grey   | a broadcast's copy WhatsApp turned away for now, as the person has had too many marketing messages lately; it's tried again a day later |
+| held         | grey   | delayed: a broadcast's copy not there yet and still being tried, saying by what (below)                                                 |
 | sent         | grey   | it went, and nothing has come back                                                                                                      |
 | delivered    | green  | the provider says it arrived (Postmark and WhatsApp say so; Gmail never does)                                                           |
 | read         | green  | WhatsApp says they read it                                                                                                              |
@@ -459,7 +459,7 @@ meaning, a colour and a count:
 | to check     | blue   | they replied and no one has dealt with it yet, for copies whose replies can be dealt with                                               |
 | opted out    | red    | this copy made them stop: pressed Stop, replied "stop", marked it as spam, unsubscribed                                                 |
 | marked spam  | red    | a politician's office marked our letter as spam                                                                                         |
-| error        | red    | our side broke: the provider refused it, a send was cut off so we can't tell if it went, or we gave up                                  |
+| error        | red    | our side broke: the provider refused it, a send was cut off so we can't tell if it went, we gave up, or it was delayed too long         |
 | didn't reach | amber  | their address or number turned out dead on this send: a bounce, or a number not on WhatsApp                                             |
 | not sent     | grey   | not sent, as expected: they'd opted out before, their consent ended, the address was already blocked, there's no address, we stopped it |
 
@@ -468,7 +468,7 @@ The principles:
 - **One state a copy.** A copy shows one tag, and is in one count. Where
   more than one applies, the first in this order wins: to check, held, to
   go, opted out, marked spam, error, didn't reach, not sent, answered, replied, read,
-  delivered, sent. So a reply to check is never hidden, and a letter that
+  held by Postmark, delivered, sent. So a reply to check is never hidden, and a letter that
   didn't go says so though its politician answered.
 - **The colour says how it feels**: red bad, amber sad, green good, blue
   for staff to do, grey normal (`docs/style-guide.md`, "Status colours").
@@ -477,10 +477,19 @@ The principles:
 - **The tag says why after a colon** where there's a why: "Not sent:
   consent ended", "Didn't reach: not on WhatsApp". The copy's own page
   keeps the whole story, with the provider's own words.
-- **Went, still to go and didn't go.** On its page, the counts fall in
-  groups: those that went (sent, delivered, read, replied, answered, to
-  check, opted out, marked spam), a broadcast's still to go (to go, held)
-  and those that didn't (error, didn't reach, not sent). A letter still to
+- **Delayed, by what.** A broadcast's held copy is delayed, its tag saying
+  by what: WhatsApp turned it away for now, as the person has had too many
+  marketing messages lately, and it's tried again a day later ("Delayed:
+  WhatsApp limit"); Postmark soft-bounced it, and is trying again
+  ("Delayed: soft bounce"); or Postmark took it and has said nothing of it
+  for `SILENT_MINUTES` ("Delayed: Postmark silent"). One still delayed when
+  its broadcast's `SENDING_DAYS` run out is an error, saying the same
+  ("Error: WhatsApp limit"), as it never will arrive
+  (`COPY_STATE` in `lib/broadcasts/pages.server.ts`).
+- **Still to go, went and didn't go.** On its page, the counts fall in
+  groups: a broadcast's still to go (to go, held), first, then those that
+  went (sent, delivered, read, replied, answered, to check, opted out,
+  marked spam), and those that didn't (error, didn't reach, not sent). A letter still to
   go is in no count. A count or group of none isn't shown. A list of many shows only the red, amber and
   blue counts, and folds the rest into how many are fine.
 - **Expected isn't bad.** A copy not sent for a reason we knew before it
@@ -703,8 +712,7 @@ job all leave broadcasts out.
   one still waiting for CiviCRM when they run out stops then, saying so
   (`late`), not that it was too large. A text stops too when WhatsApp
   pauses or disables its template (`template`), and any broadcast when its
-  copies keep failing (`failing`, above), and an email by Postmark when
-  its copies are lost (`lost`, below). Resume sending, on its page, sets it going again
+  copies keep failing (`failing`, above). Resume sending, on its page, sets it going again
   (`resumeBroadcast`): its cancelled copies are to go again, or one that
   never started is scheduled again, from now, so it has its days again.
   One that stopped as its copies kept failing sends again those its channel
@@ -717,16 +725,15 @@ job all leave broadcasts out.
   in its history, as Postmark tries it again; a spam complaint is
   an opt-out of every bulk email (`lib/broadcasts/bounces.server.ts`, and
   `optOutOnComplaint` in `lib/supporters/opt-outs.server.ts`). Postmark
-  can take a copy, answering with its ID, and then say nothing more of it.
-  A copy it has said nothing of for `LOST_MINUTES` is
-  **lost** (`LOST` in `lib/broadcasts/drafts.server.ts`): counted as still to go, not
-  as gone. `LOST_TO_STOP` lost since it started or was resumed stop a
-  broadcast while it sends, so no more go into Postmark. Once nothing is
-  left to go and Postmark has said something of each copy or it's lost, a
-  broadcast with any copy lost stops too, rather than counting as sent:
-  a broadcast is sent only when every copy has gone. Resume
-  sends those never tried, not the lost ones. Gmail says nothing of what
-  arrives, so a copy by Gmail is never lost.
+  can take a copy, answering with its ID, and then say nothing more of it
+  for hours, holding it. A copy soft-bounced, or that it has said nothing
+  of for `SILENT_MINUTES`, is delayed, counted as still to go, until
+  Postmark says more or its broadcast's `SENDING_DAYS` run out ("How a copy
+  went", above). Neither stops a broadcast: it's sent once every copy has
+  gone to Postmark, as stopping can't help those Postmark already has.
+  Gmail says nothing of what arrives, so a copy by Gmail is never delayed
+  for silence, though one is for a "delivery delayed" notice, which the
+  job that reads Gmail counts as a soft bounce.
 - **What WhatsApp reports**, by its webhook, `/api/whatsapp`, signed with
   the Meta app's secret (`lib/broadcasts/whatsapp-webhooks.server.ts`): each text
   delivered, read or failed; a message to us, which answers the text it

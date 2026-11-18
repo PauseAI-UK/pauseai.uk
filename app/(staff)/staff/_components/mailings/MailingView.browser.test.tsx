@@ -267,7 +267,7 @@ describe("MailingView", () => {
 
   it("sending: how far it's got, when it started, and Stop sending", async () => {
     await view({ written: { ...written, state: "sending" } });
-    await expect.element(page.getByText(copy.sendingBar(10, 12))).toBeVisible();
+    await expect.element(page.getByText(copy.sendingBar(12, 12))).toBeVisible();
     await expect.element(page.getByText(copy.started)).toBeVisible();
     await expect.element(page.getByRole("progressbar", { name: copy.sentLabel })).toHaveAttribute("value", "12");
     await expect.element(page.getByRole("button", { name: copy.stopSending })).toBeVisible();

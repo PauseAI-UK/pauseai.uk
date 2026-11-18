@@ -120,6 +120,8 @@
   --table-tag-white-space: normal;
   --tag-font-size: var(--text-sm);
   --tag-padding: var(--space-1) var(--space-3);
+  /* A plain lozenge's colour, and a plain count's (ui/Counts). */
+  --tag-plain-bg: var(--surface-2);
 
   /* Widths. A page's reading column is --measure-page, which the page hero
      (components/ui/PageHero) shares, so the two line up; a page of cards is
@@ -252,6 +254,9 @@
   --table-tag-white-space: nowrap;
   --tag-font-size: var(--text-xs);
   --tag-padding: 0 var(--space-2);
+  /* A plain lozenge, and a plain count (Counts), a beige that stands off both white and the second surface,
+     so one looks the same on a card, a row or a band. */
+  --tag-plain-bg: #ebe1d5;
 }
 
 /* A field's text is 16px or more on a phone, at either density, or iOS

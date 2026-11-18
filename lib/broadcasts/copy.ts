@@ -5,7 +5,7 @@
 // words of their own.
 import { count, plural } from "@/lib/content/plural";
 import { mailingsCopy } from "@/lib/mailings/copy";
-import { daysInWords, FAILURES_TO_STOP, LOST_MINUTES, SENDING_DAYS, WAIT_DAYS } from "./days";
+import { daysInWords, FAILURES_TO_STOP, SENDING_DAYS, WAIT_DAYS } from "./days";
 
 /** What one supporter's copy of a broadcast is, by how it went: the first word of its page's title, and its step of the trail above it. */
 const copyKind = (channel: "email" | "text") => (channel === "email" ? "Email" : "Text");
@@ -225,8 +225,6 @@ export const broadcastsCopy = {
           `CiviCRM was down when its time ran out: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
         failing: (n: number, of: number) =>
           `Kept failing to send: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
-        lost: (n: number, of: number) =>
-          `Postmark lost emails: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
       } as Record<string, (n: number, of: number) => string>,
     },
     // A reply under our email on its Thread: what staff can record it as, and what they did.
@@ -322,9 +320,6 @@ export const broadcastsCopy = {
     gaveUpLate: `Stopped after ${daysInWords(SENDING_DAYS)}, as CiviCRM was down when they ran out.`,
     // The same, for one so many of whose copies failed one after another that it stopped (FAILURES_TO_STOP).
     gaveUpFailing: `Stopped, as the last ${FAILURES_TO_STOP} emails or texts it tried all failed. Each one's page says why.`,
-    // The same, for one Postmark took copies of and said nothing more of in LOST_MINUTES: LOST_TO_STOP of them
-    // while it sent, or any once it was done.
-    gaveUpLost: `Stopped, as Postmark lost some of its emails.`,
     // On one sending that has paused after its sends failed, or what sends it couldn't for now, till when it tries again.
     resting: (until: string) => `Paused, as sending failed. It will try again at ${until}.`,
     // On one sending by Gmail that can send no more today, under the bar that says how far it's got.
@@ -343,7 +338,7 @@ export const broadcastsCopy = {
       forCiviCrm: "for CiviCRM",
       till: (when: string) => `till ${when}`,
       tillTomorrow: "till tomorrow",
-      bar: (n: number, of: number) => `Waiting: ${n} of ${of} sent`,
+      bar: (n: number, of: number) => `Waiting: ${n} of ${of} done`,
     },
     recipientsTitle: "Recipients",
     recipientsCount: (n: number) => count(n, "recipient", "recipients"),
@@ -409,7 +404,6 @@ export const broadcastsCopy = {
         template: "WhatsApp paused the template",
         late: `the broadcast's ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down`,
         failing: "the broadcast stopped after its sending kept failing",
-        lost: "the broadcast stopped after Postmark lost some of its emails",
       } as Record<string, string>,
       notYet: "The broadcast is still sending, so this hasn't gone yet.",
     },
@@ -462,18 +456,14 @@ export const broadcastsCopy = {
     },
     // A broadcast that waited too long and stopped, to whoever scheduled it and the inbox: how many it didn't reach.
     broadcastGaveUp: {
-      subject: (title: string, reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | "lost") =>
+      subject: (title: string, reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing") =>
         reason === "template"
           ? `Stopped, as WhatsApp paused the template it used: ${title}`
           : reason === "failing"
             ? `Stopped, as sending kept failing: ${title}`
-            : reason === "lost"
-              ? `Stopped, as Postmark lost emails: ${title}`
-              : `Stopped after ${daysInWords(reason === "limit" || reason === "late" ? SENDING_DAYS : WAIT_DAYS)}: ${title}`,
+            : `Stopped after ${daysInWords(reason === "limit" || reason === "late" ? SENDING_DAYS : WAIT_DAYS)}: ${title}`,
       // How to send it to those it didn't reach: the button on its page (mailingsCopy.mailingPages.resume).
       resume: `To send it to them, press “${mailingsCopy.mailingPages.resume}” on its page.`,
-      // The same, for one Postmark lost copies of: Resume sends those it never tried, not the lost ones.
-      resumeLost: `To send it to those it hadn't tried yet, press “${mailingsCopy.mailingPages.resume}” on its page. That won't resend to those Postmark lost.`,
       // Why, for an email that Gmail's daily limit left too slow, in place of CiviCRM's sentence.
       whyGmailLimit: `It was too large a broadcast for Gmail to send within ${daysInWords(SENDING_DAYS)}.`,
       // The same, for a text that our WhatsApp number's daily limit left too slow.
@@ -485,11 +475,9 @@ export const broadcastsCopy = {
       whyLate: `Its ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down, and we don't send to anyone without checking with it first.`,
       // Why, for one so many of whose copies failed one after another (FAILURES_TO_STOP): something may be wrong with what sends it.
       whyFailing: `The last ${FAILURES_TO_STOP} messages we tried to send all failed, so something may be fundamentally wrong. Check each copy and fix any problem before sending again.`,
-      // Why, for one Postmark took copies of and said nothing more of in LOST_MINUTES (gaveUpLost).
-      whyLost: `Postmark accepted some of its emails, then for ${LOST_MINUTES} minutes didn't say they were delivered or bounced, so it may have lost them. Ask Postmark what happened before sending again.`,
       body: (
         title: string,
-        reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | "lost",
+        reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing",
         notReached: number,
         link: string,
         channel: "email" | "text",
@@ -500,11 +488,10 @@ export const broadcastsCopy = {
           template: words.whyTemplate,
           late: words.whyLate,
           failing: words.whyFailing,
-          lost: words.whyLost,
           civicrm: `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`,
           pull: `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`,
         }[reason];
-        return `“${title}” has been stopped. ${why}\n\n${count(notReached, "person", "people")} didn't get it. ${reason === "lost" ? words.resumeLost : words.resume}\n\n${link}`;
+        return `“${title}” has been stopped. ${why}\n\n${count(notReached, "person", "people")} didn't get it. ${words.resume}\n\n${link}`;
       },
     },
     // A text's new words sent to WhatsApp for approval, to who sent them and the inbox: the words, and the text.

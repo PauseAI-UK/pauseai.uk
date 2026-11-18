@@ -1156,29 +1156,31 @@ describe("Band", () => {
     expect(box("17 Nov 2026").top).toBeGreaterThan(box("hello@pauseai.uk").bottom);
   });
 
-  it("shows a plain tag on it in white, apart from the band, and a coloured one in its colour", async () => {
+  it("shows a plain tag on it apart from the band and from white, as off it, and a coloured one in its colour", async () => {
     await render(
-      <Band
-        title="A message"
-        tag={
-          <>
-            <Tag>Sent</Tag>
-            <Tag tone="green">Read</Tag>
-          </>
-        }
-      >
-        {null}
-      </Band>,
+      <div data-density="compact">
+        <Band
+          title="A message"
+          tag={
+            <>
+              <Tag>Sent</Tag>
+              <Tag tone="green">Read</Tag>
+            </>
+          }
+        >
+          {null}
+        </Band>
+        <Tag>Alone</Tag>
+      </div>,
     );
     const background = (element: Element) => getComputedStyle(element).backgroundColor;
     const band = page.getByRole("heading", { level: 1 }).element().closest("div")!.parentElement!.parentElement!;
-    const plain = page.getByText("Sent", { exact: true }).element();
-    expect(background(plain)).toBe("rgb(255, 255, 255)");
-    expect(background(plain)).not.toBe(background(band));
-    expect(background(page.getByText("Read", { exact: true }).element())).not.toBe("rgb(255, 255, 255)");
-    // Off the band, a plain tag keeps the second surface.
-    await render(<Tag>Alone</Tag>);
-    expect(background(page.getByText("Alone", { exact: true }).element())).toBe(background(band));
+    const plain = background(page.getByText("Sent", { exact: true }).element());
+    expect(plain).not.toBe(background(band));
+    expect(plain).not.toBe("rgb(255, 255, 255)");
+    expect(background(page.getByText("Read", { exact: true }).element())).not.toBe(plain);
+    // Off the band, a plain tag is the same colour.
+    expect(background(page.getByText("Alone", { exact: true }).element())).toBe(plain);
   });
 });
 

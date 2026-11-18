@@ -82,6 +82,15 @@ describe("LinkPeek", () => {
     await expect.element(peek()).not.toBeInTheDocument();
   });
 
+  it("shows it with the cursor between two parts of a link, such as after a bold word in it", async () => {
+    await render(<Harness content={`<p>Go <a href="${HREF}"><strong>Join</strong> us</a></p>`} />);
+    await expect.element(letter()).toBeVisible();
+    // After "Join", the page has the cursor in the link itself, not in a word's text.
+    current.chain().focus().setTextSelection(8).run();
+    expect(current.view.domAtPos(8).node.nodeName).toBe("A");
+    await expect.element(peek()).toBeVisible();
+  });
+
   it("shows it over a link at the foot of the window, where there's no room under it", async () => {
     await render(<Harness content={`<p>Top</p><p><a href="${HREF}">Join us</a></p>`} above={window.innerHeight} />);
     await letter().getByText("Join us").click();

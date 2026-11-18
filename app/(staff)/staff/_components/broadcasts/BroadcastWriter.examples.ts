@@ -291,7 +291,6 @@ const summary: BroadcastSummary = {
     read: 0,
     delivered: 0,
     sent: 275,
-    lost: 0,
     held: 0,
     "to-go": 0,
   },

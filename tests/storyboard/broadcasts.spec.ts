@@ -979,13 +979,14 @@ test("A broadcast waiting for CiviCRM", async ({ page, request, flowDatabase }) 
   await frame(page, "Waiting for CiviCRM");
 });
 
-test("Postmark loses an email's copies", async ({ page, request, flowDatabase }) => {
+test("Postmark says nothing of an email's copies", async ({ page, request, flowDatabase }) => {
   story(
-    "An email is going out by Postmark. Postmark said it was delivered to one person, but it took five more twenty minutes ago and has said nothing of them since: not delivered, not bounced. It usually says within seconds.",
+    "An email is going out by Postmark. Postmark said it was delivered to one person, soft-bounced another and is trying it again, and took four more twenty minutes ago and has said nothing of them since. It usually says within seconds, but it can hold emails for hours.",
   );
   const title = "March on Saturday";
   const id = addDue(flowDatabase, title, staffEmail());
-  // As sending leaves it, started at 11:30: one delivered, five Postmark took at 11:40 and said no more of, one to go.
+  // As sending leaves it, started at 11:30: one delivered, one soft-bounced, four Postmark took at 11:40 and said no
+  // more of, one to go.
   runSql(
     flowDatabase,
     `UPDATE mailings SET send_by = 'postmark', state = 'sending', due_at = '2026-10-16T11:30:00Z',
@@ -998,30 +999,35 @@ test("Postmark loses an email's copies", async ({ page, request, flowDatabase })
          CASE WHEN p.n = 1 THEN 'delivered' WHEN p.n = 7 THEN 'scheduled' ELSE 'sent' END,
          json_build_object('name', 'Person ' || p.n, 'place', 'Leeds', 'values', json_build_object('firstName', 'Person'), 'meets', '[]'::json),
          CASE WHEN p.n < 7 THEN '2026-10-16T11:40:00Z'::timestamptz END,
-         CASE WHEN p.n < 7 THEN 'pm-lost-' || p.n END
-       FROM people p WHERE p.n <= 7 RETURNING id, status)
-     INSERT INTO broadcast_message_events (message_id, kind, at)
-     SELECT id, 'delivered', '2026-10-16T11:40:02Z' FROM c WHERE status = 'delivered'`,
+         CASE WHEN p.n < 7 THEN 'pm-silent-' || p.n END
+       FROM people p WHERE p.n <= 7 RETURNING id, status, address)
+     INSERT INTO broadcast_message_events (message_id, kind, at, details)
+     SELECT id, CASE WHEN status = 'delivered' THEN 'delivered' ELSE 'soft-bounced' END, '2026-10-16T11:40:02Z',
+       CASE WHEN status = 'delivered' THEN '{}'::jsonb ELSE '{"reason": "Mailbox full"}'::jsonb END
+     FROM c WHERE status = 'delivered' OR address = 'person2@example.com'`,
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
-  await frame(page, "The email's page, five lost");
-  story("The lost count lists who Postmark took copies for and said nothing more of.");
-  await page.getByRole("link", { name: `5 ${stateWords.counts.lost}` }).click();
-  await expect(page.getByRole("heading", { name: stateWords.tabs.lost })).toBeVisible();
-  await frame(page, "Those Postmark lost");
+  await frame(page, "The email's page, five delayed");
+  story("The delayed count lists those Postmark is still trying, and those it has said nothing of, each saying which.");
+  await page.getByRole("link", { name: `5 ${stateWords.counts.held}` }).click();
+  await expect(page.getByRole("heading", { name: stateWords.tabs.held })).toBeVisible();
+  await frame(page, "Those delayed");
   story(
-    "With five lost, the hourly sending stops the email rather than give Postmark any more, and tells whoever scheduled it how many didn't get it.",
+    "The hourly sending takes the last one, whose consent has ended, so it isn't sent. With nothing left to go, the email is sent, five still delayed. Nothing stops it.",
   );
   await runSending(request);
-  const told = newestEmail(
-    (one) => one.Subject === broadcastsCopy.notifications.broadcastGaveUp.subject(title, "lost"),
-  )!;
-  await emailFrame(page, told, "The email saying it stopped");
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
-  await expect(page.getByText(copy.gaveUpLost)).toBeVisible();
-  await frame(page, "Stopped");
+  await expect(page.getByRole("button", { name: mailingCopy.stopSending })).toHaveCount(0);
+  await frame(page, "Sent, five still delayed");
+  story(
+    "Seven days after it was due, those still delayed never will arrive, so each is an error, saying what delayed it.",
+  );
+  runSql(flowDatabase, `UPDATE mailings SET due_at = due_at - interval '7 days' WHERE id = ${id}`);
+  await page.goto(`${BASE}/staff/broadcasts/${id}?tab=error`);
+  await expect(page.getByRole("heading", { name: stateWords.tabs.error })).toBeVisible();
+  await frame(page, "Errors once its days ran out");
 });
 
 test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => {
