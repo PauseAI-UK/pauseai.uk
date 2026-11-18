@@ -16,11 +16,36 @@ import { reloadPage } from "@/lib/leave-page.client";
  * (https://nextjs.org/docs/app/guides/server-actions#deployment-considerations).
  * That isn't a fault to tell of: the page reloads, as the new build, and the
  * person tries again.
+ *
+ * Such a page also asks for the old build's scripts as it goes to another
+ * page, and the site no longer has them: Turbopack throws a ChunkLoadError,
+ * having already tried again itself if the network failed. That page
+ * reloads too, once: the new build names its own scripts, so the same
+ * script failing again is a fault, and is told.
  */
 export function useErrorTold(error: unknown, report = reportBrowserError, reload = reloadPage): void {
   useEffect(() => {
     if (unstable_isUnrecognizedActionError(error)) return reload();
+    if (error instanceof Error && error.name === "ChunkLoadError" && firstTimeFailing(error.message)) return reload();
     const fromServer = typeof error === "object" && error !== null && "digest" in error;
     if (!fromServer) report("browser-page", error);
   }, [error, report, reload]);
+}
+
+/** The script failed to load, in Turbopack's words, kept across the reload by the tab. */
+const LAST_CHUNK_FAILED = "chunk-load-failed";
+
+/**
+ * Whether this script hasn't failed in this tab before, so a reload may mend
+ * it. Without the tab's storage it can't be known, so it's told rather than
+ * risk reloading for ever.
+ */
+function firstTimeFailing(message: string): boolean {
+  try {
+    if (sessionStorage.getItem(LAST_CHUNK_FAILED) === message) return false;
+    sessionStorage.setItem(LAST_CHUNK_FAILED, message);
+    return true;
+  } catch {
+    return false;
+  }
 }
