@@ -19,6 +19,14 @@ export const supporterBadgesGallery: Example[] = [
         ),
       },
       {
+        label: "Large, as on their own page",
+        render: () => (
+          <StaffPage as="div">
+            <SupporterBadges supporter={exampleSupporter} large />
+          </StaffPage>
+        ),
+      },
+      {
         label: "A member",
         render: () => (
           <StaffPage as="div">

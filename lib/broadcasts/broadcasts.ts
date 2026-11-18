@@ -121,6 +121,63 @@ export function waitEndsAt(waitingSince: Date, sending: { dueAt: Date } | null):
 }
 
 /**
+ * Why nothing of a broadcast is going out for now, though it's sending, or
+ * past its time: it waits for CiviCRM, till it answers or the wait ends; it
+ * rests after its sends failed, till when; all it has left are texts
+ * WhatsApp held, how many, when the first is next tried, and when it stops
+ * if they haven't gone; or what sends it can send no more today. The list
+ * of broadcasts and a broadcast's own page both say it from this.
+ */
+export type SendingPause =
+  | { kind: "waiting"; reason: "civicrm" | "pull"; said: string | null; endsAt: Date }
+  | { kind: "resting"; until: Date }
+  | { kind: "held"; held: number; until: Date; stopsAt: Date }
+  | { kind: "limit"; channel: BroadcastChannel };
+
+/**
+ * A broadcast's pause (SendingPause), the first that applies, or none: one
+ * scheduled can only be waiting for CiviCRM, past its time; one sending can
+ * be any. `toGo` is how many of its copies can go now, `held` how many
+ * WhatsApp held, the first tried again at `heldTill`; `atLimit`, whether
+ * what sends it can send no more today.
+ */
+export function sendingPause(broadcast: {
+  state: string;
+  channel: BroadcastChannel;
+  dueAt: Date | null;
+  waitingSince: Date | null;
+  waitReason: string | null;
+  waitSaid: string | null;
+  restingUntil: Date | null;
+  toGo: number;
+  held: number;
+  heldTill: Date | null;
+  atLimit: boolean;
+}): SendingPause | null {
+  const sending = broadcast.state === "sending" && broadcast.dueAt ? { dueAt: broadcast.dueAt } : null;
+  if (!sending && broadcast.state !== "scheduled") return null;
+  if (broadcast.waitingSince) {
+    return {
+      kind: "waiting",
+      reason: broadcast.waitReason === "pull" ? "pull" : "civicrm",
+      said: broadcast.waitSaid,
+      endsAt: waitEndsAt(broadcast.waitingSince, sending),
+    };
+  }
+  if (!sending) return null;
+  if (broadcast.restingUntil) return { kind: "resting", until: broadcast.restingUntil };
+  if (broadcast.toGo === 0 && broadcast.heldTill) {
+    return {
+      kind: "held",
+      held: broadcast.held,
+      until: broadcast.heldTill,
+      stopsAt: sendingStopsAt(sending.dueAt),
+    };
+  }
+  return broadcast.atLimit ? { kind: "limit", channel: broadcast.channel } : null;
+}
+
+/**
  * What can send an email to supporters, and whether it can yet: Postmark's
  * broadcast stream, or the connected Gmail of the address it's from
  * (BROADCAST_SENDER). The stream manages no unsubscribes of its own: each

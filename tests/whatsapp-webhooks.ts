@@ -27,12 +27,15 @@ export const templateStatus = (name: string, event: string, reason = "NONE") =>
     reason,
   });
 
-/** A message to us from `number` (digits alone), quoting our text `quoted`: words, or a press of its button. */
+/**
+ * A message to us from `number` (digits alone), quoting our text `quoted`:
+ * words, a press of its button, or a photo with a caption.
+ */
 export const messageFrom = (
   number: string,
   id: string,
   quoted: string,
-  said: { text: string } | { button: string },
+  said: { text: string } | { button: string } | { photo: string },
   minutes = 0,
 ) =>
   webhook("messages", {
@@ -46,7 +49,25 @@ export const messageFrom = (
         context: { from: "447700900000", id: quoted },
         ...("text" in said
           ? { type: "text", text: { body: said.text } }
-          : { type: "button", button: { text: said.button, payload: said.button } }),
+          : "button" in said
+            ? { type: "button", button: { text: said.button, payload: said.button } }
+            : { type: "image", image: { caption: said.photo, mime_type: "image/jpeg", id: "fixture-media" } }),
+      },
+    ],
+  });
+
+/** A reaction from `number` to our message `to`, with `emoji`; with none, the reaction taken back. */
+export const reactionFrom = (number: string, id: string, to: string, emoji?: string, minutes = 0) =>
+  webhook("messages", {
+    messaging_product: "whatsapp",
+    metadata: { display_phone_number: "447700900000", phone_number_id: "fixture-phone" },
+    messages: [
+      {
+        from: number,
+        id,
+        timestamp: at(minutes),
+        type: "reaction",
+        reaction: { message_id: to, ...(emoji && { emoji }) },
       },
     ],
   });

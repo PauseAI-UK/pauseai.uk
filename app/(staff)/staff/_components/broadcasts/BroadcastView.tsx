@@ -4,8 +4,8 @@ import { Muted } from "@/components/ui/Text";
 import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import type { BroadcastPageData, BroadcastSummary, MessageRecipient } from "@/lib/broadcasts/pages.server";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import { londonClock, londonDate, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
-import { FIELD_WORDS, waitEndsAt, type BroadcastChannel } from "@/lib/broadcasts/broadcasts";
+import { londonClock, londonDate, londonWhen, londonWhenShort, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
+import { FIELD_WORDS, type BroadcastChannel, type SendingPause } from "@/lib/broadcasts/broadcasts";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import Strip from "../ui/Strip";
 import { phoneWords } from "@/lib/phone";
@@ -72,19 +72,53 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
 }
 
 /**
- * Whether a broadcast is waiting for CiviCRM, since when, why and when it
- * stops; or resting after its sends failed, till when; or, `atLimit`, for
- * what sends it to send more tomorrow; or that it stopped by itself, and
- * why, with `resume`, the button that sets it going again. Nothing
- * otherwise.
+ * A pause in a few words, for the list of broadcasts and over a
+ * broadcast's bar: the word for it, and what it waits for or till when, as
+ * the sending's next run after then, in London, with the day for one days off.
+ */
+export function pauseInBrief(pause: SendingPause): { word: string; till: string } {
+  const words = copy.paused;
+  switch (pause.kind) {
+    case "waiting":
+      return { word: words.word, till: words.forCiviCrm };
+    case "resting":
+      return { word: words.word, till: words.till(londonClock(sendsAt(pause.until))) };
+    case "held":
+      return { word: words.word, till: words.till(londonWhenShort(pause.until)) };
+    case "limit":
+      return { word: words.word, till: words.tillTomorrow };
+  }
+}
+
+/** A pause in full, as its strip says it on a broadcast's page. */
+function pauseInFull(pause: SendingPause): string {
+  switch (pause.kind) {
+    case "waiting":
+      return copy.waiting(pause.reason, londonDate(pause.endsAt), pause.said);
+    case "resting":
+      return copy.resting(staffTime(pause.until));
+    case "held":
+      return copy.heldLeft(pause.held, londonWhen(pause.until, "short"), londonDate(pause.stopsAt));
+    case "limit":
+      return pause.channel === "text" ? copy.moreTomorrowText : copy.moreTomorrow;
+  }
+}
+
+/**
+ * Why nothing of a broadcast is going out for now (`pause`), in full, each
+ * the same amber strip with a clock: it waits for CiviCRM, why and when
+ * that stops; it rests after its sends failed, till when; all it has left
+ * are texts WhatsApp held, the next tried when; or what sends it sends more
+ * tomorrow. Or, in red, that it stopped by itself, and why, with `resume`,
+ * the button that sets it going again. Nothing otherwise.
  */
 export function BroadcastWaiting({
   written,
-  atLimit,
+  pause,
   resume,
 }: {
   written: WrittenBroadcast;
-  atLimit?: boolean;
+  pause: SendingPause | null;
   resume?: ReactNode;
 }) {
   if (written.gaveUp) {
@@ -101,18 +135,11 @@ export function BroadcastWaiting({
       </Strip>
     );
   }
-  if (written.waitingSince) {
-    // One waiting, not stopped, waits for CiviCRM.
-    const reason = written.waitReason as "civicrm" | "pull";
-    const sending = written.state === "sending" && written.dueAt ? { dueAt: written.dueAt } : null;
-    return (
-      <Strip tone="blue" waiting>
-        {copy.waiting(reason, londonDate(waitEndsAt(written.waitingSince, sending)), written.waitSaid)}
-      </Strip>
-    );
-  }
-  if (written.restingUntil) return <Strip tone="amber">{copy.resting(staffTime(written.restingUntil))}</Strip>;
-  return atLimit ? <Strip tone="amber">{copy.moreTomorrow}</Strip> : null;
+  return pause ? (
+    <Strip tone="amber" waiting>
+      {pauseInFull(pause)}
+    </Strip>
+  ) : null;
 }
 
 /** Whether a copy went, so has a page of its own. */
@@ -257,11 +284,12 @@ export default function BroadcastView({
         stop={stop}
         reschedule={reschedule}
         line={copy.scheduledLine(summary.to, written.channel, written.fromName || written.sentFrom!)}
-        due={written.waitingSince ? copy.waitingDue : undefined}
+        due={summary.pause ? copy.waitingDue : undefined}
+        paused={summary.pause ? copy.paused.bar(summary.sent, summary.to) : undefined}
       />
       <BroadcastWaiting
         written={written}
-        atLimit={data.atLimit}
+        pause={summary.pause}
         resume={<ResumeBroadcast id={written.id} action={resume} />}
       />
       <Grid>

@@ -681,6 +681,17 @@ job all leave broadcasts out.
   CiviCRM doesn't come back: three days on, or sooner if its seven run out
   first (`waitEndsAt`). It goes by itself
   when it can. A scheduled one's page says quietly when it would stop.
+- **Pauses.** A broadcast that's sending, or past its time, with nothing
+  going out for now is paused, for the first of these that applies
+  (`sendingPause` in `lib/broadcasts/broadcasts.ts`): it waits for
+  CiviCRM; it rests after its sends failed; all it has left are texts
+  WhatsApp held, till the first is tried again; or what sends it can send
+  no more today. The list of broadcasts and a broadcast's own page say it
+  from the same pause (`BroadcastSummary.pause`), the same way: in the
+  list, in place of "Sending now", that it's waiting, over what for or
+  till when, as the sending's next run after then; on both, its bar grey
+  and saying so; on its page, an amber strip with a clock saying it in
+  full. While any copy can go, one sending isn't paused, whatever is held.
 - **Stopping.** A broadcast that has waited for CiviCRM for three days
   (`WAIT_DAYS`), from when it first couldn't go, whether at its time or
   days into sending, or one still sending, at a day's limit of emails, seven
@@ -719,7 +730,7 @@ job all leave broadcasts out.
 - **What WhatsApp reports**, by its webhook, `/api/whatsapp`, signed with
   the Meta app's secret (`lib/broadcasts/whatsapp-webhooks.server.ts`): each text
   delivered, read or failed; a message to us, which answers the text it
-  quotes, or else the newest sent to that number, and is kept as a reply,
+  quotes or reacts to, or else the newest sent to that number, and is kept as a reply,
   or is a stop of the topics that text went under if it says "stop" or
   "unsubscribe", in any case, which the site answers once, in the day
   WhatsApp takes words of ours: what it stopped, and a link to the contact
@@ -736,7 +747,17 @@ job all leave broadcasts out.
   waits for staff, who record it as an opt-out, of what the copy went under
   or of every bulk email (every text, for a text's), or as nothing to do;
   an automatic one never waits. A reply to a text is its words, as
-  WhatsApp's webhook gives them. The broadcast's page counts replies, and those to look at in
+  WhatsApp's webhook gives them. One that's more than words has its kind
+  too (`broadcast_replies.kind`, WhatsApp's name for it, or `voice` for a
+  voice note; `messageWords` in `lib/broadcasts/whatsapp-messages.ts`), and
+  whatever words it came with: a photo's, video's or document's caption, a
+  place's name, address and a link to a map, a contact card's name,
+  numbers and addresses. Its files aren't fetched, so its bubble says
+  what it was, which only the WhatsApp app shows. A reaction is a reply as
+  any other, its words its emoji, to the message of ours WhatsApp names
+  (`reaction_to`): the text, or our answer, whose start its bubble quotes.
+  One taken back, or with another put in its place, is marked removed
+  (`removed_at`) and stays in the thread. The broadcast's page counts replies, and those to look at in
   amber, which come first among its recipients; the staff home says how
   many wait. A message from the mailbox's own address in the thread is an
   answer of ours sent from its Gmail, and isn't kept as a reply.

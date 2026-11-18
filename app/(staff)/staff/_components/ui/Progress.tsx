@@ -3,8 +3,9 @@ import styles from "./Progress.module.css";
 
 /**
  * How far something has got: its words, then a bar filled `value` of
- * `max`, blue for sending, green for answers (docs/style-guide.md,
- * "Staff pages"). `big` on a page of its own, thin in a list's row.
+ * `max`, blue for sending, grey while that's paused, green for answers
+ * (docs/style-guide.md, "Staff pages"). `big` on a page of its own, thin
+ * in a list's row.
  */
 export default function Progress({
   value,
@@ -16,7 +17,7 @@ export default function Progress({
 }: {
   value: number;
   max: number;
-  tone: "blue" | "green";
+  tone: "blue" | "green" | "grey";
   /** What the bar measures, for a screen reader. */
   label: string;
   big?: boolean;

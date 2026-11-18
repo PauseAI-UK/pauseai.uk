@@ -24,12 +24,13 @@ export function supporterBadgeWords(supporter: SupporterSummary): string {
  * calendar, registered for events, wrote to their MP, signed up for the
  * march, on a paper sign-up form, in our WhatsApp community. Coloured by how
  * involved it shows them to be: green for a member, blue for having taken
- * part (an event, a letter), and grey for having signed up.
+ * part (an event, a letter), and grey for having signed up. Small in the
+ * list, to keep its rows low; `large` on their own page, which has the room.
  */
-export default function SupporterBadges({ supporter }: { supporter: SupporterSummary }) {
+export default function SupporterBadges({ supporter, large }: { supporter: SupporterSummary; large?: boolean }) {
   const badges = supportersCopy.supporters.badges;
   return (
-    <span className={styles.badges}>
+    <span className={large ? `${styles.badges} ${styles.large}` : styles.badges}>
       {supporter.member && <Tag tone="green">{badges.member}</Tag>}
       {supporter.lumaContact && <Tag>{badges.lumaContact}</Tag>}
       {supporter.events > 0 && <Tag tone="blue">{badges.registered}</Tag>}

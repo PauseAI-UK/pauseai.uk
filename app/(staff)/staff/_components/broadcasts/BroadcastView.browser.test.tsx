@@ -19,8 +19,9 @@ import { mailingsCopy } from "../mailings/copy";
 import { lettersCopy } from "../letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { londonDate } from "@/lib/staff-time";
-import { sendingStopsAt, waitStopsAt } from "@/lib/broadcasts/broadcasts";
-import { BroadcastWaiting } from "./BroadcastView";
+import type { SendingPause } from "@/lib/broadcasts/broadcasts";
+import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
+import { BroadcastWaiting, pauseInBrief } from "./BroadcastView";
 import { BroadcastViewExample } from "./BroadcastView.gallery.client";
 
 const copy = broadcastsCopy.broadcastPages;
@@ -212,9 +213,10 @@ describe("a broadcast's page", () => {
 
   it("says one past its time that waits for CiviCRM is waiting to go, not when it sends", async () => {
     const due = new Date("2026-11-07T07:18:00Z");
+    const pause: SendingPause = { kind: "waiting", reason: "pull", said: null, endsAt: due };
     const data = {
       ...exampleBroadcastSent,
-      summary: { ...exampleBroadcastSummary, state: "scheduled" as const },
+      summary: { ...exampleBroadcastSummary, state: "scheduled" as const, pause },
       written: {
         ...exampleBroadcastSent.written,
         state: "scheduled" as const,
@@ -229,15 +231,25 @@ describe("a broadcast's page", () => {
     expect(document.body.textContent).not.toContain(mailingsCopy.mailingPages.sendsIn("").trim());
   });
 
-  it("says the rest of one sending go tomorrow, once what sends it can send no more today", async () => {
-    const data = {
+  it("says the rest of one sending go tomorrow, once what sends it can send no more today, its bar grey and saying it's paused", async () => {
+    const sending = {
       ...exampleBroadcastSent,
-      atLimit: true,
       summary: { ...exampleBroadcastSummary, state: "sending" as const },
       written: { ...exampleBroadcastSent.written, state: "sending" as const },
     };
-    await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
+    const { sent, to } = exampleBroadcastSummary;
+    const bar = () => page.getByRole("progressbar", { name: mailingsCopy.mailingPages.sentLabel }).element();
+    const view = await render(<BroadcastView data={sending} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByText(mailingsCopy.mailingPages.sendingBar(sent, to))).toBeVisible();
+    // The bar's tone is its class.
+    const going = bar().className;
+    const pause: SendingPause = { kind: "limit", channel: "email" };
+    const paused = { ...sending, summary: { ...sending.summary, pause } };
+    await view.rerender(<BroadcastView data={paused} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(copy.moreTomorrow)).toBeVisible();
+    await expect.element(page.getByText(copy.paused.bar(sent, to))).toBeVisible();
+    expect(document.body.textContent).not.toContain(mailingsCopy.mailingPages.sendingBar(sent, to));
+    expect(bar().className).not.toBe(going);
   });
 
   it("says why one stopped before it had all gone: CiviCRM, or a day's limit of emails", async () => {
@@ -375,70 +387,70 @@ describe("BroadcastCounts", () => {
 });
 
 describe("BroadcastWaiting", () => {
-  it("says that one is waiting and why, or that it stopped; nothing for one scheduled", async () => {
-    const due = new Date("2026-11-07T07:18:00Z");
-    // Days into sending when it began to wait: it gives up that long after, not after its time.
-    const began = new Date("2026-11-11T07:18:00Z");
-    const { rerender } = await render(
+  const sending = { ...exampleBroadcastEmail, state: "sending" as const };
+
+  it("says each pause in full, in an amber strip with a clock; nothing for one with none", async () => {
+    const endsAt = new Date("2026-11-14T07:18:00Z");
+    const until = new Date("2026-11-11T07:43:00Z");
+    const stopsAt = new Date("2026-11-14T07:18:00Z");
+    const pauses: [SendingPause, string][] = [
+      [{ kind: "waiting", reason: "pull", said: null, endsAt }, copy.waiting("pull", londonDate(endsAt), null)],
+      [
+        { kind: "waiting", reason: "civicrm", said: "Down", endsAt },
+        copy.waiting("civicrm", londonDate(endsAt), "Down"),
+      ],
+      [{ kind: "resting", until }, copy.resting(staffTime(until))],
+      [{ kind: "held", held: 20, until, stopsAt }, copy.heldLeft(20, londonWhen(until, "short"), londonDate(stopsAt))],
+      [{ kind: "limit", channel: "email" }, copy.moreTomorrow],
+      [{ kind: "limit", channel: "text" }, copy.moreTomorrowText],
+    ];
+    const view = await render(<BroadcastWaiting written={sending} pause={null} />);
+    expect(view.container.textContent).toBe("");
+    for (const [pause, words] of pauses) {
+      await view.rerender(<BroadcastWaiting written={sending} pause={pause} />);
+      await expect.element(page.getByText(words)).toBeVisible();
+    }
+  });
+
+  it("says that one stopped by itself, and why, whatever its pause was", async () => {
+    const stopped = (waitReason: WrittenBroadcast["waitReason"]) => (
       <BroadcastWaiting
-        written={{ ...exampleBroadcastEmail, state: "sending", dueAt: due, waitingSince: began, waitReason: "pull" }}
-      />,
+        written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason }}
+        pause={null}
+      />
     );
-    await expect.element(page.getByText(copy.waiting("pull", londonDate(waitStopsAt(began)), null))).toBeVisible();
-    // Begun later still, its seven days run out before its three of waiting do: it says the sooner.
-    const later = new Date("2026-11-13T07:18:00Z");
-    await rerender(
-      <BroadcastWaiting
-        written={{
-          ...exampleBroadcastEmail,
-          state: "sending",
-          dueAt: due,
-          waitingSince: later,
-          waitReason: "civicrm",
-          waitSaid: "Down",
-        }}
-      />,
-    );
-    await expect
-      .element(page.getByText(copy.waiting("civicrm", londonDate(sendingStopsAt(due)), "Down")))
-      .toBeVisible();
-    await rerender(
-      <BroadcastWaiting
-        written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason: "civicrm" }}
-      />,
-    );
+    const { rerender } = await render(stopped("civicrm"));
     await expect.element(page.getByText(copy.gaveUp)).toBeVisible();
-    await rerender(
-      <BroadcastWaiting
-        written={{
-          ...exampleBroadcastEmail,
-          channel: "text",
-          state: "cancelled",
-          gaveUp: true,
-          waitReason: "template",
-        }}
-      />,
-    );
-    await expect.element(page.getByText(copy.gaveUpTemplate)).toBeVisible();
-    // Its seven days ran out while CiviCRM was down; its copies kept failing; Postmark lost its copies.
+    // A text whose template WhatsApp paused; its seven days ran out, at a day's limit or while CiviCRM was down;
+    // its copies kept failing; Postmark lost its copies.
     for (const [waitReason, words] of [
+      ["template", copy.gaveUpTemplate],
+      ["limit", copy.gaveUpLimit],
       ["late", copy.gaveUpLate],
       ["failing", copy.gaveUpFailing],
       ["lost", copy.gaveUpLost],
     ] as const) {
-      await rerender(
-        <BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason }} />,
-      );
+      await rerender(stopped(waitReason));
       await expect.element(page.getByText(words)).toBeVisible();
     }
-    // Resting after its copies failed, till when.
-    const until = new Date("2026-11-11T07:43:00Z");
-    await rerender(<BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "sending", restingUntil: until }} />);
-    await expect.element(page.getByText(copy.resting(staffTime(until)))).toBeVisible();
-    const { container } = await render(
-      <BroadcastWaiting written={{ ...exampleBroadcastEmail, channel: "text", state: "scheduled", dueAt: due }} />,
-    );
-    expect(container.textContent).toBe("");
+  });
+});
+
+describe("pauseInBrief", () => {
+  it("is the word for a pause, and what it waits for or till when, as the sending's next run in London", () => {
+    const word = copy.paused.word;
+    const until = new Date("2026-11-19T10:07:00Z");
+    expect(pauseInBrief({ kind: "waiting", reason: "pull", said: null, endsAt: until })).toEqual({
+      word,
+      till: copy.paused.forCiviCrm,
+    });
+    // The run after 10:07 is 10:18.
+    expect(pauseInBrief({ kind: "resting", until })).toEqual({ word, till: copy.paused.till("10:18") });
+    expect(pauseInBrief({ kind: "held", held: 2, until, stopsAt: until })).toEqual({
+      word,
+      till: copy.paused.till("Thu 19 Nov, 10:18"),
+    });
+    expect(pauseInBrief({ kind: "limit", channel: "text" })).toEqual({ word, till: copy.paused.tillTomorrow });
   });
 });
 

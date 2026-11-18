@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import StaffPage from "../ui/StaffPage";
 import SupporterBadges from "./SupporterBadges";
 import { exampleMemberDetails, exampleSupporter } from "./SupportersTable.examples";
 import { supportersCopy } from "./copy";
@@ -24,6 +25,24 @@ describe("SupporterBadges", () => {
     await expect.element(page.getByText(supportersCopy.supporters.badges.march)).toBeVisible();
     await expect.element(page.getByText(supportersCopy.supporters.badges.paper)).toBeVisible();
     await expect.element(page.getByText(supportersCopy.supporters.badges.whatsapp, { exact: true })).toBeVisible();
+  });
+
+  it("is larger on their own page than in the list", async () => {
+    const height = () =>
+      page.getByText(supportersCopy.supporters.badges.registered).element().getBoundingClientRect().height;
+    // On a staff page, whose lozenges are small.
+    const view = await render(
+      <StaffPage as="div">
+        <SupporterBadges supporter={exampleSupporter} />
+      </StaffPage>,
+    );
+    const small = height();
+    await view.rerender(
+      <StaffPage as="div">
+        <SupporterBadges supporter={exampleSupporter} large />
+      </StaffPage>,
+    );
+    expect(height()).toBeGreaterThan(small);
   });
 
   it("marks a member, but not a member no longer", async () => {

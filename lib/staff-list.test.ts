@@ -60,10 +60,37 @@ describe("toCsv", () => {
   });
 });
 
+type Timed = { at: Date | null; first: Date };
+const timed: DownloadColumn<Timed>[] = [
+  { key: "at", label: "When", text: (r) => r.at },
+  { key: "first", label: "First seen", day: true, text: (r) => r.first },
+];
+
+describe("toCsv, of times", () => {
+  it("writes a time to the minute in London, and a column of days as its day alone", () => {
+    const rows: Timed[] = [
+      // Winter, when London is on UTC; and summer, when it's an hour ahead, here over midnight.
+      { at: new Date("2026-11-18T10:23:45Z"), first: new Date("2026-11-18T09:05:00Z") },
+      { at: new Date("2026-07-01T23:30:00Z"), first: new Date("2026-07-01T23:30:00Z") },
+      { at: null, first: new Date("2026-01-02T03:04:00Z") },
+    ];
+    expect(toCsv(timed, rows)).toBe(
+      "When,First seen\r\n2026-11-18 10:23,2026-11-18\r\n2026-07-02 00:30,2026-07-02\r\n,2026-01-02\r\n",
+    );
+  });
+});
+
 describe("toJson", () => {
   it("gives each row its values by key", () => {
     expect(JSON.parse(toJson(columns, [{ name: "Ann", count: 2, ok: true, note: null }]))).toEqual([
       { name: "Ann", count: 2, ok: true, note: null },
+    ]);
+  });
+
+  it("gives a time in full, a column of days too", () => {
+    const at = new Date("2026-11-18T10:23:45Z");
+    expect(JSON.parse(toJson(timed, [{ at, first: at }]))).toEqual([
+      { at: "2026-11-18T10:23:45.000Z", first: "2026-11-18T10:23:45.000Z" },
     ]);
   });
 });

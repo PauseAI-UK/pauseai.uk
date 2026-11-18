@@ -1359,6 +1359,9 @@ CREATE TABLE public.broadcast_replies (
     dealt_at timestamp with time zone,
     provider_message_id text,
     body text,
+    kind text,
+    reaction_to text,
+    removed_at timestamp with time zone,
     CONSTRAINT broadcast_replies_check CHECK (((outcome IS NULL) = (dealt_by IS NULL))),
     CONSTRAINT broadcast_replies_check1 CHECK (((outcome IS NULL) = (dealt_at IS NULL))),
     CONSTRAINT broadcast_replies_check2 CHECK ((NOT (automatic AND (outcome IS NOT NULL)))),
@@ -1368,6 +1371,7 @@ CREATE TABLE public.broadcast_replies (
     CONSTRAINT broadcast_replies_number_check CHECK (((provider_message_id IS NULL) OR (NOT (((from_address)::public.phone)::text IS DISTINCT FROM from_address)))),
     CONSTRAINT broadcast_replies_one_kind CHECK ((num_nonnulls(gmail_message_id, provider_message_id) = 1)),
     CONSTRAINT broadcast_replies_outcome_check CHECK ((outcome = ANY (ARRAY['opted-out'::text, 'nothing'::text, 'answered'::text]))),
+    CONSTRAINT broadcast_replies_reaction CHECK (((NOT (kind IS DISTINCT FROM 'reaction'::text)) OR (num_nonnulls(reaction_to, removed_at) = 0))),
     CONSTRAINT broadcast_replies_whatsapp CHECK (((provider_message_id IS NULL) = (body IS NULL)))
 );
 
@@ -3406,6 +3410,12 @@ CREATE INDEX broadcast_messages_supporter ON public.broadcast_messages USING btr
 --
 
 CREATE INDEX broadcast_replies_message ON public.broadcast_replies USING btree (message_id);
+
+--
+-- Name: broadcast_replies_reaction_to; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX broadcast_replies_reaction_to ON public.broadcast_replies USING btree (reaction_to) WHERE (reaction_to IS NOT NULL);
 
 --
 -- Name: broadcast_replies_waiting; Type: INDEX; Schema: public; Owner: -

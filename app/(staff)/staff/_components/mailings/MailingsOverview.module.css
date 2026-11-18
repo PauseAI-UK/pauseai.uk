@@ -61,6 +61,12 @@
   text-transform: uppercase;
 }
 
+/* In place of how long: that nothing of it is going out for now, in amber, as it's waiting. */
+.dueIn .paused {
+  color: var(--status-amber);
+  font-size: var(--text-md);
+}
+
 /* The title, and under it who it's from and its ask. */
 .what {
   display: grid;

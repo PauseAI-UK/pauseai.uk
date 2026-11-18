@@ -57,6 +57,51 @@ describe("BroadcastsOverview", () => {
     expect(page.getByRole("link", { name: new RegExp(stateWords.counts.error!) }).elements()).toHaveLength(1);
   });
 
+  it("says one sending with nothing going out is waiting, and for what, in place of sending now, its bar another tone", async () => {
+    const sending = (id: number, pause: BroadcastSummary["pause"]): BroadcastSummary => ({
+      ...exampleBroadcastSummary,
+      id,
+      title: `Broadcast ${id}`,
+      state: "sending",
+      dueAt: new Date("2026-11-05T11:00:00Z"),
+      to: 7,
+      sent: 4,
+      failed: 0,
+      pause,
+    });
+    const until = new Date("2026-11-06T10:07:00Z");
+    await render(
+      <BroadcastsOverview
+        groups={mailingGroups<BroadcastSummary>(
+          {
+            drafts: [],
+            comingUp: [
+              sending(4, null),
+              sending(6, { kind: "held", held: 3, until, stopsAt: until }),
+              // Scheduled, past its time, waiting for CiviCRM: it has no bar.
+              { ...sending(8, { kind: "waiting", reason: "pull", said: null, endsAt: until }), state: "scheduled" },
+            ],
+            sent: [],
+          },
+          new Date(now),
+        )}
+        now={now}
+      />,
+    );
+    const row = (id: number) => page.getByRole("listitem").filter({ hasText: `Broadcast ${id}` });
+    const bar = (id: number) => row(id).getByRole("progressbar").element();
+    await expect.element(row(4).getByText(mailingsCopy.mailingPages.sendingNow, { exact: true })).toBeVisible();
+    await expect.element(row(4).getByText(mailingsCopy.mailingPages.sendingBar(4, 7))).toBeVisible();
+    await expect.element(row(6).getByText(copy.paused.word, { exact: true })).toBeVisible();
+    await expect.element(row(6).getByText(copy.paused.till("Fri 6 Nov, 10:18"))).toBeVisible();
+    await expect.element(row(6).getByText(copy.paused.bar(4, 7))).toBeVisible();
+    expect(row(6).element().textContent).not.toContain(mailingsCopy.mailingPages.sendingNow);
+    expect(bar(6).className).not.toBe(bar(4).className);
+    await expect.element(row(8).getByText(copy.paused.word, { exact: true })).toBeVisible();
+    await expect.element(row(8).getByText(copy.paused.forCiviCrm)).toBeVisible();
+    expect(row(8).getByRole("progressbar").elements()).toHaveLength(0);
+  });
+
   it("lists emails and texts, each with its channel, leading to its page", async () => {
     const waiting = {
       ...exampleBroadcastSummary,

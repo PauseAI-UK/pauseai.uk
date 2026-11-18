@@ -11,6 +11,7 @@ import {
   exampleBroadcastSummary,
   exampleMessageCopy,
   exampleTextAnswers,
+  exampleTextKinds,
   exampleTextReplies,
   exampleTextReplyPastDay,
 } from "./BroadcastWriter.examples";
@@ -369,6 +370,61 @@ describe("replies to broadcasts", () => {
     const last = page.getByText("Glad to help.").element();
     const followUp = page.getByRole("button", { name: copy.replies.followUp }).element();
     expect(last.compareDocumentPosition(followUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("to a text that are more than words say what they were: a reaction its emoji under the message it's to, any other its kind over its words", async () => {
+    await render(
+      <MessageCopyView
+        one={{
+          ...exampleMessageCopy,
+          replies: [exampleTextReplies[0], ...exampleTextKinds],
+          answers: exampleTextAnswers,
+        }}
+        actions={{ deal: vi.fn(), answer: vi.fn<AnswerAction>() }}
+      />,
+    );
+    const bubble = (words: string) => page.getByText(words, { exact: true }).element().parentElement!;
+    const [thumb, , lost] = exampleTextKinds;
+    // A thumbs up to the broadcast, quoting its start, then taken back.
+    expect(bubble("👍").textContent).toContain("Hi Jane, the march meets at 11:00 at Parliament Square.");
+    expect(bubble("👍").textContent).toContain(copy.replies.reactionRemoved(staffTime(thumb.removedAt!)));
+    await expect.element(page.getByText(`${copy.replies.reacted} · ${staffTime(thumb.receivedAt)}`)).toBeVisible();
+    // A heart to our answer, quoting that, and still there.
+    expect(bubble("❤️").textContent).toContain("Yes, Parliament Square, by the statue.");
+    expect(bubble("❤️").textContent).not.toContain(copy.replies.reactionRemoved("").trim());
+    // One from before emojis were kept says so, with nothing in place of its emoji.
+    await expect
+      .element(page.getByText(`${copy.replies.reactedNotKept} · ${staffTime(lost.receivedAt)}`))
+      .toBeVisible();
+    // A photo, over its caption; a place, its link to a map a link; a voice note and a kind with no name, alone.
+    expect(bubble("Our banner from last time").textContent).toContain(copy.replies.kinds.image);
+    await expect.element(page.getByText(copy.replies.kinds.location)).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: /google\.com\/maps/ }))
+      .toHaveAttribute("href", expect.stringContaining("query=51.5007,-0.1268"));
+    await expect.element(page.getByText(copy.replies.kinds.voice)).toBeVisible();
+    await expect.element(page.getByText(copy.replies.kindOther("poll"))).toBeVisible();
+    // None of them says there's no text to show.
+    expect(document.body.textContent).not.toContain(copy.replies.noText);
+  });
+
+  it("quote a text whose merge values weren't kept with its fields as words, and never an answer still being sent", async () => {
+    const [thumb, , lost] = exampleTextKinds;
+    await render(
+      <MessageCopyView
+        one={{
+          ...exampleMessageCopy,
+          merge: null,
+          // A reaction from before what it's to was kept, beside an answer WhatsApp has no ID for yet.
+          replies: [thumb, lost],
+          answers: [{ ...exampleTextAnswers[0], providerId: null, replyId: thumb.id }],
+        }}
+      />,
+    );
+    const quotes = page.getByText(/the march meets at 11:00 at Parliament Square\./).elements();
+    // The text itself, and the quote over each reaction.
+    expect(quotes).toHaveLength(3);
+    expect(quotes[1].textContent).not.toContain("Jane");
   });
 
   it("to a text say WhatsApp won't take an answer only under their latest message, while it's unanswered", async () => {

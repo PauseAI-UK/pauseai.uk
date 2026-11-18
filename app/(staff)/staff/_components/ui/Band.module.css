@@ -150,3 +150,14 @@
   font-size: var(--text-xs);
   font-weight: 400;
 }
+
+/* A fact whose value has no line under it, such as lozenges: as tall as the facts beside it, its value at its
+   foot, so its bottom is level with the bottom of their words. */
+.foot {
+  display: flex;
+  flex-direction: column;
+}
+
+.foot dd {
+  margin-top: auto;
+}

@@ -58,6 +58,21 @@ export const bandGallery: Example[] = [
           </StaffPage>
         ),
       },
+      {
+        label: "A fact of lozenges at its foot, their bottom level with the bottom of the words beside them",
+        render: () => (
+          <StaffPage as="div">
+            <Band title="A supporter">
+              <BandFact label="Place" detail="from their postcode, M1 1AE">
+                Manchester, England
+              </BandFact>
+              <BandFact label="Activities" foot>
+                <Tag tone="blue">Luma events</Tag>
+              </BandFact>
+            </Band>
+          </StaffPage>
+        ),
+      },
     ],
   },
   {
