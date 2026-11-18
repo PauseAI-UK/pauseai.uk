@@ -2,6 +2,7 @@ import "server-only";
 import { ARRIVED, MAILING_FAILED, statusIn } from "@/lib/letters/status";
 import { LETTER_STATES, letterStateSql, type CountedLetterState, type SkipReason } from "@/lib/letters/copy-states";
 import type { AskStatus } from "@/lib/asks/asks";
+import { answerSql } from "@/lib/asks/invited";
 import { mailingGroups, type MailingGroup } from "./groups";
 import { now } from "@/lib/now";
 import { query } from "@/lib/server/db.server";
@@ -85,7 +86,8 @@ export type RecipientTab = (typeof RECIPIENT_TABS)[number];
 
 /** Whether the politician of the letter `l` has answered the ask `ask`, an SQL expression. */
 const answeredAsk = (ask: string) =>
-  `EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = l.notable_person_id AND st.ask = ${ask})`;
+  `EXISTS (SELECT 1 FROM ask_statuses st
+    WHERE st.notable_person_id = l.notable_person_id AND st.ask = ${ask} AND ${answerSql("st.status")})`;
 
 /** A mailing's letter's state (letterStateSql), its mailing `m`. */
 const LETTER_STATE = letterStateSql(answeredAsk("m.ask"));
@@ -209,7 +211,7 @@ export async function getMailing(id: number, page = 1, tab: RecipientTab = "all"
          l.replied_at AS "repliedAt",
          EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = l.id AND e.status = 'auto_reply') AS "autoReplied",
          (SELECT count(*)::int FROM letter_replies r WHERE r.letter_id = l.id AND NOT r.from_us) AS replies, p.personalised, p.skip_reason AS "skipReason",
-         (SELECT s.status FROM ask_statuses s WHERE s.notable_person_id = n.id AND s.ask = $4) AS answer
+         (SELECT s.status FROM ask_statuses s WHERE s.notable_person_id = n.id AND s.ask = $4 AND ${answerSql("s.status")}) AS answer
        ${from} ORDER BY n.name COLLATE english, l.id LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE, mailing.ask],
     ),

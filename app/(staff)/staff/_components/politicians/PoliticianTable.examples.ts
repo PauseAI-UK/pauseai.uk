@@ -67,6 +67,7 @@ export const examplePolitician: Politician = {
       updatedBy: "jo@pauseai.uk",
     },
   },
+  askedByLetter: {},
 };
 
 /** The politicians page's list of Polly alone, with nothing else for a search to say. */

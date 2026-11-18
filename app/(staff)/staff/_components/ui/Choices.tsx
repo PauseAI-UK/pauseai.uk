@@ -6,7 +6,9 @@ import styles from "./FilterBar.module.css";
 
 /**
  * A list of choices, in their groups, each a link, those chosen marked; or
- * each what `row` draws. With `search`, a box over it that narrows it.
+ * each what `row` draws. One `under` another listed is set in beneath it,
+ * and one under that further in.
+ * With `search`, a box over it that narrows it.
  */
 export default function Choices({
   options,
@@ -21,6 +23,11 @@ export default function Choices({
   search?: string;
   row?: (option: FilterOption) => ReactNode;
 }) {
+  // How far in a choice is set: one more than the choice it's under, if that's listed.
+  const depth = (option: FilterOption): number => {
+    const above = options.find((one) => option.under !== undefined && one.value === option.under);
+    return above ? depth(above) + 1 : 0;
+  };
   return (
     <>
       {search && <ChoiceSearch label={search} />}
@@ -33,7 +40,7 @@ export default function Choices({
                 {option.group.label}
               </li>
             )}
-            <li className={option.group ? styles.inGroup : undefined}>
+            <li className={option.group ? styles.inGroup : [undefined, styles.under, styles.underTwice][depth(option)]}>
               {row ? (
                 row(option)
               ) : (

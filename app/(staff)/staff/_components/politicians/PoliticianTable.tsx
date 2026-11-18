@@ -2,6 +2,8 @@ import AnswerWord from "../asks/AnswerWord";
 import { AskTitle } from "../asks/AskLine";
 import StaffLink from "../ui/StaffLink";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { isAnswer, standing } from "@/lib/asks/asks";
+import { standingWord } from "@/lib/asks/copy";
 import { POLITICIANS_LIST, type PoliticianSort } from "@/lib/staff-lists";
 import type { Ask } from "@/lib/asks/records.server";
 import type { Politician } from "@/lib/politicians/records.server";
@@ -49,7 +51,8 @@ const marks = (p: Politician) => {
  * The politicians list's columns: who they are (name, house, constituency
  * and party), how they stand (whether they're in office, the marks on
  * them, each ask they've answered and their answer beside it, a line
- * each, a long title cut short), how
+ * each, a long title cut short; or, filtered by an ask, a column headed
+ * with its title saying how each stands on it, answered or not), how
  * many emails went to them and came from them, and when they first and
  * last did anything with us. Which show is the filters' doing, not the
  * rows': a
@@ -87,7 +90,46 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       {label}
     </SortHeading>
   );
-  const answered = (p: Politician) => asks.filter((ask) => p.statuses[ask.slug]);
+  // Filtered by an ask, the Asks column is that ask's own: how each stands on it.
+  const filteredBy = asks.find((ask) => ask.slug === firstOf(search.ask));
+  const answered = (p: Politician) => asks.filter((ask) => isAnswer(p.statuses[ask.slug]?.status));
+  const askColumn: ListColumn<Politician> = filteredBy
+    ? {
+        key: "asks",
+        label: filteredBy.title,
+        text: (p) => standingWord(standing(p, filteredBy.slug), filteredBy.kind),
+        cell: (p) => (
+          <span className={styles.answer}>
+            <AnswerWord status={standing(p, filteredBy.slug)} kind={filteredBy.kind} />
+          </span>
+        ),
+      }
+    : {
+        key: "asks",
+        label: politiciansCopy.politicians.columns.asks,
+        heading: heading("asks", politiciansCopy.politicians.columns.asks),
+        text: (p) =>
+          answered(p)
+            .map((ask) => `${standingWord(standing(p, ask.slug), ask.kind)}: ${ask.title}`)
+            .join("; "),
+        cell: (p) =>
+          answered(p).length ? (
+            <ul className={styles.asks}>
+              {answered(p).map((ask) => (
+                <li key={ask.slug}>
+                  <span className={styles.ask} title={ask.title}>
+                    <AskTitle ask={ask} />
+                  </span>{" "}
+                  <span className={styles.answer}>
+                    <AnswerWord status={standing(p, ask.slug)} kind={ask.kind} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Muted>{politiciansCopy.politicians.noAsks}</Muted>
+          ),
+      };
   const columns: (ListColumn<Politician> | false)[] = [
     {
       key: "name",
@@ -155,32 +197,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
         </span>
       ),
     },
-    {
-      key: "asks",
-      label: politiciansCopy.politicians.columns.asks,
-      heading: heading("asks", politiciansCopy.politicians.columns.asks),
-      text: (p) =>
-        answered(p)
-          .map((ask) => `${staffVocabulary.statuses[p.statuses[ask.slug].status]}: ${ask.title}`)
-          .join("; "),
-      cell: (p) =>
-        answered(p).length ? (
-          <ul className={styles.asks}>
-            {answered(p).map((ask) => (
-              <li key={ask.slug}>
-                <span className={styles.ask} title={ask.title}>
-                  <AskTitle ask={ask} />
-                </span>{" "}
-                <strong className={styles.answer}>
-                  <AnswerWord status={p.statuses[ask.slug].status} />
-                </strong>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Muted>{politiciansCopy.politicians.noAsks}</Muted>
-        ),
-    },
+    askColumn,
     {
       key: "emailsToThem",
       label: politiciansCopy.politicians.columns.emailsToThem,
@@ -241,7 +258,7 @@ export function politicianContact(asks: Ask[]): (p: Politician) => Contact {
       `${politiciansCopy.politicians.columns.emailsToThem}: ${p.emailsToThem}`,
       `${politiciansCopy.politicians.columns.emailsFromThem}: ${p.emailsFromThem}`,
       ...asks
-        .filter((ask) => p.statuses[ask.slug])
+        .filter((ask) => isAnswer(p.statuses[ask.slug]?.status))
         .map((ask) => `${staffVocabulary.statuses[p.statuses[ask.slug].status]}: ${ask.title}`),
     ].filter(Boolean),
     url: `/staff/politicians/${p.id}`,

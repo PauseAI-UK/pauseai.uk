@@ -148,17 +148,20 @@ describeWithDatabase("mailings", () => {
     await addLetter(EDINBURGH, kim, { status: "spam_complaint" });
     await addLetter(EDINBURGH, lee, { replied: "2026-10-05" });
     await addLetter(EDINBURGH, ann);
-    // Polly answered, and so did Dora, whose letter bounced: a letter that didn't go is in its own state.
+    // Polly answered, and so did Dora, whose letter bounced: a letter that didn't go is in its own state. Staff
+    // marked Ann invited as well, which is no answer.
     await query(
       `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by)
-       VALUES ($1, 'edinburgh-conference-2026', 'event', 'going', 'staff'), ($2, 'edinburgh-conference-2026', 'event', 'going', 'staff')`,
-      [polly, dora],
+       VALUES ($1, 'edinburgh-conference-2026', 'event', 'going', 'staff'), ($2, 'edinburgh-conference-2026', 'event', 'going', 'staff'),
+         ($3, 'edinburgh-conference-2026', 'event', 'invited', 'staff')`,
+      [polly, dora, ann],
     );
     const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM mailings WHERE title = $1", [EDINBURGH]);
     const names = async (tab: RecipientTab) => (await getMailing(id, 1, tab))!.recipients.map((r) => r.name);
     expect(await names("answered")).toEqual(["Polly Placeholder"]);
     expect(await names("replied")).toEqual(["Lee Example"]);
     expect(await names("sent")).toEqual(["Ann Example"]);
+    expect((await getMailing(id, 1, "sent"))!.recipients[0].answer).toBeNull();
     expect(await names("spam")).toEqual(["Kim Example"]);
     expect(await names("error")).toEqual(["Sam Example"]);
     expect(await names("unreached")).toEqual(["Dora Dummy"]);

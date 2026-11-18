@@ -2,6 +2,18 @@
 // pages: the asks list, an ask's page and its form, and how an ask leads
 // into a politician's answer to it.
 import { count, plural } from "@/lib/content/plural";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { isAnswer, type AskKind, type RecordedStatus } from "./asks";
+
+/**
+ * Where someone stands on an ask (standing(), lib/asks/asks.ts), in words:
+ * their answer, or that they were asked, or with null never were, each of
+ * the last two in the words of the ask's `kind`.
+ */
+export function standingWord(status: RecordedStatus | null, kind: AskKind): string {
+  if (isAnswer(status)) return staffVocabulary.statuses[status];
+  return (status ? staffVocabulary.invited : staffVocabulary.neverAsked)[kind];
+}
 
 /**
  * What can't be done to an ask, said on its form and, the same words, when a
@@ -82,19 +94,12 @@ export const asksCopy = {
       replied: "replies",
       howWeAsked: "How we asked",
       answersTitle: "Answers",
-      // Pressing the answer chosen goes back to all its columns.
-      showAll: "Show all the answers",
-      // The column of the "other" answers, each tagged with its note.
-      otherAnswers: "Other answers",
-      // At the foot of a column with more people than it shows.
-      allOf: (n: number) => `All ${n.toLocaleString("en-GB")} →`,
+      // At the foot of a column: leads to all of them on the politicians list. With more than it shows, how many;
+      // with every one shown, where it leads.
+      allOf: (n: number) => `Open all ${n.toLocaleString("en-GB")} as a list →`,
+      asList: "Open as a list →",
       none: "No answers yet.",
       noWay: "No mailing or campaign has put this.",
-      politician: "Politician",
-      answer: "Answer",
-      lastWrittenTo: "Last written to",
-      // Under the answers: leads to the politicians list, filtered to those who answered this ask.
-      everyone: "All answers in Politicians →",
       letters: (n: number) => count(n, "letter", "letters"),
     },
     askedBy: { supporters: "Supporters", pauseai: "PauseAI", controlai: "ControlAI" },

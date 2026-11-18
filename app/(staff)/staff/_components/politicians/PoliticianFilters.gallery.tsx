@@ -30,7 +30,7 @@ export const politicianFiltersGallery: Example[] = [
                 nation: ["wales"],
                 email: ["blocked"],
                 ask: "edinburgh-conference-2026",
-                answer: ["declined", "none"],
+                answer: ["invited", "declined"],
               }}
               asks={exampleAsks}
               parties={parties}

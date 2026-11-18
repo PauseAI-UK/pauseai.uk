@@ -302,7 +302,7 @@ export const supportersCopy = {
         "luma-registered": "Registered for",
         "luma-hosted": "Became host for",
         letter: "Wrote to",
-        "letter-replied": "Letter answered by",
+        "letter-replied": "Letter replied to by",
         "form-entry": "Filled in",
         "whatsapp-joined": "In the WhatsApp group",
         "member-joined": "Joined PauseAI",

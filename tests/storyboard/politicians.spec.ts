@@ -4,7 +4,7 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { connectPolicyMailboxes } from "./gmail-steps";
 import { addFilter, changeFilter } from "./list-steps";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
-import { addPauseaiEmails, importPoliticians, PM_LETTER, recordAnswers } from "./politician-steps";
+import { addPauseaiEmails, importPoliticians, markInvited, PM_LETTER, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { openBubble } from "./settle";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
@@ -16,6 +16,7 @@ import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/cop
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 import { notesCopy } from "@/app/(staff)/staff/_components/notes/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
@@ -206,10 +207,12 @@ test("An answer to a new ask", async ({ page, request, flowDatabase }) => {
   const menu = page.getByRole("list", { name: copy.otherAsk });
   await expect(menu.getByRole("button", { name: "Giant pause button" })).toBeVisible();
   await frame(page, "The other asks", { window: true });
-  story("Choosing one adds a row for it, like the others, with no answer yet. Staff note how they know her answer.");
+  story(
+    "Choosing one adds a row for it, like the others, which says she was never asked. Staff note how they know her answer.",
+  );
   await openBubble(menu.getByRole("button", { name: "Giant pause button" }));
   const row = asks.getByRole("group", { name: "Giant pause button" });
-  await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.noAnswer}`));
+  await expect(row.locator("[class*=answer]")).toContainText(staffVocabulary.neverAsked.letter);
   await row.getByLabel(copy.note).fill("Said yes on the phone");
   await frame(page, "The new row, with a note", { window: true });
   story("She signed it. Once saved, the answer and its note show like any other.");
@@ -244,16 +247,71 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   await frame(page, "The letter, declined");
 
   story(
-    "It was entered by mistake. Staff clear the answer, with a note saying why. The row goes, and her history says the answer was cleared.",
+    "It was entered by mistake. Staff set her back to never asked, with a note saying why. The row goes, and her history says the answer was cleared.",
   );
   await openBubble(row.getByText(copy.edit, { exact: true }));
-  await row.getByRole("radio", { name: copy.clearAnswer }).click();
+  await row.getByRole("radio", { name: staffVocabulary.neverAsked.letter }).click();
   await row.getByLabel(copy.note).fill("Entered by mistake");
   await row.getByRole("button", { name: copy.save }).click();
   await expect(asks.getByRole("group", { name: PM_LETTER })).toHaveCount(0);
   await expect(history).toContainText(copy.statusCleared.before);
   await expect(history).toContainText("Entered by mistake");
   await frame(page, "The answer, cleared", { of: history });
+});
+
+test("Invited, with no answer yet", async ({ page, request, flowDatabase }) => {
+  story(
+    "PauseAI's mailing invited Morag to the Edinburgh conference, and she hasn't answered. Nobody recorded anything, but the conference is among her asks, as invited on the day the email went.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  addPauseaiEmails(flowDatabase);
+  await openPolitician(page, "Morag Example");
+  const asks = page.getByRole("region", { name: copy.statusesTitle });
+  const conference = asks.getByRole("group", { name: "Edinburgh conference" });
+  await expect(conference.locator("[class*=answer]")).toContainText(staffVocabulary.invited.event);
+  await frame(page, "Morag's asks, the conference among them");
+
+  story(
+    "Its form starts from invited, with the answers to pick from. There's no way to say she was never invited, as the email went.",
+  );
+  await openBubble(conference.getByText(copy.edit, { exact: true }));
+  await expect(conference.getByRole("radio", { name: staffVocabulary.noReplyYet.event })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(conference.getByRole("radio", { name: staffVocabulary.neverAsked.event })).toHaveCount(0);
+  await frame(page, "The form, on invited", { window: true });
+  await page.keyboard.press("Escape");
+
+  story(
+    "Dora wasn't on the mailing. A colleague invited her at a reception, so staff add the conference to her asks and mark her invited, noting how.",
+  );
+  await openPolitician(page, "Ms Dora Dummy");
+  await openBubble(asks.getByRole("button", { name: copy.otherAsk }));
+  await openBubble(
+    page.getByRole("list", { name: copy.otherAsk }).getByRole("button", { name: "Edinburgh conference" }),
+  );
+  await conference.getByRole("radio", { name: staffVocabulary.noReplyYet.event }).click();
+  await conference.getByLabel(copy.note).fill("Invited at the reception");
+  await frame(page, "Marking Dora invited, with a note", { window: true });
+  await conference.getByRole("button", { name: copy.save }).click();
+  await expect(conference.locator("[class*=answer]")).toContainText(staffVocabulary.invited.event);
+  await expect(conference.getByText(/Invited at the reception/)).toBeVisible();
+  await frame(page, "Dora, invited");
+
+  story(
+    "The conference's own page has a column of those invited, first: Polly and Morag, whom the mailing invited, and Dora. It opens them as a list, to chase.",
+  );
+  await page.goto(`${BASE}/staff/asks/edinburgh-conference-2026`);
+  await expect(page.getByRole("link", { name: `${staffVocabulary.noReplyYet.event} 3`, exact: true })).toBeVisible();
+  await frame(page, "The conference's page, three invited");
+  await page.getByRole("link", { name: asksCopy.asks.page.asList }).first().click();
+  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=invited/);
+  const rows = page.getByRole("row");
+  await expect(rows.filter({ hasText: "Morag Example" })).toContainText(staffVocabulary.invited.event);
+  await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.invited.event);
+  await frame(page, "Those invited who haven't answered, to chase");
 });
 
 test("Peers, MSPs and former MPs", async ({ page, request, flowDatabase }) => {
@@ -331,13 +389,15 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   await addFilter(page, filters.ask, "Edinburgh conference");
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026$/);
   await frame(page, "The Edinburgh conference's chip");
-  story("Staff choose those with no answer yet. Clear filters then brings back the whole list.");
+  story(
+    "Staff choose those never invited to it, the ones to invite. The Asks column becomes the conference's, saying so on each row. Clear filters then brings back the whole list.",
+  );
   // The answer is chosen in the second half of the ask's chip.
-  await changeFilter(page, filters.anyAnswer, filters.noAnswer);
-  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=none/);
+  await changeFilter(page, staffVocabulary.everyoneAsked.event, staffVocabulary.neverAsked.event);
+  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=never/);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
-  await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toBeVisible();
-  await frame(page, "No answer to the conference yet");
+  await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.neverAsked.event);
+  await frame(page, "Never invited to the conference");
 
   await page.getByRole("link", { name: staffVocabulary.resetFilters }).click();
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
@@ -345,36 +405,39 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
 });
 
 test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
-  story("Staff want those going to the Edinburgh conference or who haven't answered, for a reminder.");
+  story(
+    "Staff want those going to the Edinburgh conference, and those invited who haven't answered, for a reminder. Dora was invited in person, and staff marked her so.",
+  );
   await importPoliticians(request, BASE, flowDatabase);
   recordAnswers(flowDatabase);
+  markInvited(flowDatabase, "recDummy", "edinburgh-conference-2026");
   await logIn(page, flowDatabase);
-  const filters = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   await page.goto(`${BASE}/staff/politicians?ask=edinburgh-conference-2026`);
-  const menu = await openBubble(page.getByRole("button", { name: filters.anyAnswer }));
+  const menu = await openBubble(page.getByRole("button", { name: staffVocabulary.everyoneAsked.event }));
   await frame(page, "The answers, a row each");
 
-  story("+ Add turns the rows to boxes. Any answer isn't one of them: it's what ticking none means.");
+  story("+ Add turns the rows to boxes. Everyone invited isn't one of them: it's what ticking none means.");
   await menu.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
-  await frame(page, "Boxes, with Any answer gone");
+  await frame(page, "Boxes, with Everyone invited gone");
 
   story("Each tick changes the list at once, with the menu open. The chip's second half says both.");
+  await menu.getByRole("checkbox", { name: staffVocabulary.noReplyYet.event, exact: true }).check();
+  await expect(page).toHaveURL(/answer=invited$/);
   await menu.getByRole("checkbox", { name: staffVocabulary.statuses.going, exact: true }).check();
-  await expect(page).toHaveURL(/answer=going$/);
-  await menu.getByRole("checkbox", { name: filters.noAnswer }).check();
-  await expect(page).toHaveURL(/answer=going&answer=none/);
-  await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toBeVisible();
-  const both = staffVocabulary.filters.anyOf([staffVocabulary.statuses.going, filters.noAnswer]);
+  await expect(page).toHaveURL(/answer=invited&answer=going/);
+  await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.invited.event);
+  await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
+  const both = staffVocabulary.filters.anyOf([staffVocabulary.noReplyYet.event, staffVocabulary.statuses.going]);
   await expect(page.getByRole("button", { name: both })).toBeVisible();
-  await frame(page, "Those going, or who haven't answered, the menu still open");
+  await frame(page, "Those invited, or going, the menu still open");
   await page.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
-  await frame(page, "Those going, or who haven't answered");
+  await frame(page, "Those invited, or going");
 
   story("A download keeps both answers, and says so in its name.");
   const download = await page.request.get(
-    `${BASE}/staff/politicians/download?format=json&ask=edinburgh-conference-2026&answer=going&answer=none`,
+    `${BASE}/staff/politicians/download?format=json&ask=edinburgh-conference-2026&answer=invited&answer=going`,
   );
   expect(download.headers()["content-disposition"]).toContain("or");
 
@@ -382,8 +445,9 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   await page.getByRole("button", { name: "Edinburgh conference" }).click();
   await menu.getByRole("link").filter({ hasNotText: "Edinburgh conference" }).first().click();
   await expect(page).not.toHaveURL(/answer=/);
-  await expect(page.getByRole("button", { name: filters.anyAnswer })).toBeVisible();
-  await frame(page, "Another ask, any answer");
+  const everyone = Object.values(staffVocabulary.everyoneAsked).join("|");
+  await expect(page.getByRole("button", { name: new RegExp(`^(${everyone})$`) })).toBeVisible();
+  await frame(page, "Another ask, everyone asked");
 });
 
 test("The house tabs", async ({ page, request, flowDatabase }) => {

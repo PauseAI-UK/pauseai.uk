@@ -155,21 +155,58 @@ within these rules:
 
 - The slug is made from the title and the date's month and year, and never
   changes.
-- The kind is fixed once anyone has answered.
+- The kind is fixed once anyone has answered. Those staff marked invited
+  (below) haven't, and follow a change of kind.
 - An ask can be deleted only while no answer, campaign or mailing refers to
-  it.
+  it, and nobody is marked invited to it.
 - The asks `lib/asks/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and
   ControlAI's letter) can be changed there but never deleted, as campaigns,
   the public list of signatories and the ControlAI import depend on them.
 
 A person's answer to an ask is a status (`ask_statuses`): one row per
 person per ask, with a status, a date, a note, and who set it. Someone who
-hasn't answered has no row. Each kind allows its own statuses
+hasn't answered has no row, unless staff marked them invited. Each kind allows its own statuses
 (`ask_kind_statuses`, mirrored by `ASK_STATUSES`): a letter allows `signed`,
 `other` or `declined`, and an event `going`, `other` or `declined`. An
 `other` answer's note says what it was,
 such as "Tentatively said yes". A foreign key on `(ask_kind, status)`
 refuses any status not in that table, and a new status is a row there.
+
+**Invited.** Someone asked who hasn't answered is invited. It's worked out,
+not kept, for anyone a letter put the ask to: a supporter's letter puts its
+campaign's ask, and one of ours its mailing's, once it has arrived, may
+have, or is on its way (`ASKING_STATUSES`, `askingLetters()` in
+`lib/asks/invited.ts`). A letter that bounced, or was refused, stopped or
+skipped, never reached them. For someone asked another way, in person or by
+a one-off email, staff mark them: a row with the status `invited`
+(`INVITED`), which either kind allows, with a note of how they were asked.
+So where someone stands on an ask is one of three things (`standing()` in
+`lib/asks/asks.ts`):
+
+- an answer, whatever letters went;
+- invited, by that row or, with no row, by a letter;
+- never asked, with neither.
+
+Invited isn't an answer. Whatever counts or finds answers leaves the row
+out (`answerSql()`, `isAnswer()`): an ask's counts, "Any reply" in the
+politicians list's filter, a mailing's and a campaign's count of who
+answered, the parts of a mailing that are for one answer, the kind being
+fixed, and what Email your MP is told of an MP. The words for it follow the
+ask's kind, as the yes does: asked to sign a letter, invited to an event
+(`standingWord()` in `lib/asks/copy.ts`).
+
+A politician's page lists the asks they've answered or are invited to, and
+its form sets any of the three: invited, an answer, or never asked, which
+clears the row. When a letter asked them, never asked isn't offered, and
+invited is what clears an answer. The politicians list's Ask filter finds
+everyone asked, answered or not, until it's told one way or more: those
+asked with no reply yet, any reply (`REPLIED`) or one answer, or those never
+asked (with no ask chosen, no answer is offered or taken from the address).
+A choice like "Asked (no reply)" names the waiting state wherever it's
+one choice among the answers: that filter, a politician's form and the
+ask page's columns. Its Asks column
+lists answers. Filtered by an ask, that column is the ask's own instead,
+headed with its title and saying how each stands on it.
 
 Staff set statuses by hand, with a note, for every ask but two, which
 imports set from controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`):
@@ -183,12 +220,15 @@ its run. Statuses with `updated_by` `airtable` were copied from Airtable's
 records before the site kept answers itself. Staff change them like any
 other.
 
-`/staff/asks` lists the asks, newest first: who asks each, how many gave
-each answer, how many were written to and how they were asked. An ask's own
-page (`/staff/asks/[slug]`) says what was asked, in the words a politician's
-page uses, then lists the campaigns and mailings that put it, by date,
-beside its answers. It has no letters of its own. Its form is at
-`/staff/asks/[slug]/edit`.
+`/staff/asks` lists the asks, newest first: who asks each, how many are
+invited and how many gave each answer, how many were written to and how
+they were asked. An ask's own page (`/staff/asks/[slug]`) says what was
+asked, in the words a politician's page uses, then has a column of those
+invited, then one for each answer, each with its first few people, and
+lists the campaigns and mailings that put it, by date. A column leads to all
+its people on the politicians list, out of office too when any of them are.
+Both pages leave out the test politicians, as that list does. An ask has no
+letters of its own. Its form is at `/staff/asks/[slug]/edit`.
 
 ## Campaigns
 

@@ -5,6 +5,7 @@
 // lib/broadcasts/pages.server.ts; a letter's are here, as its tag needs them
 // wherever it's shown.
 
+import { answerSql } from "@/lib/asks/invited";
 import { statusIn } from "./status";
 
 /** A state's colour: red bad, amber sad, green good, blue for staff to do; none for normal, grey. */
@@ -94,8 +95,8 @@ export function letterStateSql(answered: string): string {
 }
 
 /** Whether the politician of a campaign `c`'s letter `l` has answered its ask, in SQL. */
-export const CAMPAIGN_ANSWERED =
-  "EXISTS (SELECT 1 FROM ask_statuses st WHERE st.notable_person_id = l.notable_person_id AND st.ask = c.ask)";
+export const CAMPAIGN_ANSWERED = `EXISTS (SELECT 1 FROM ask_statuses st
+  WHERE st.notable_person_id = l.notable_person_id AND st.ask = c.ask AND ${answerSql("st.status")})`;
 
 /** A campaign `c`'s letter `l`'s state (letterStateSql). */
 export const CAMPAIGN_LETTER_STATE = letterStateSql(CAMPAIGN_ANSWERED);

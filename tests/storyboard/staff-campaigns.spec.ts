@@ -61,24 +61,6 @@ test("Campaigns", async ({ page, flowDatabase }) => {
   await frame(page, "The letters sent");
 });
 
-test("No answer yet", async ({ page, flowDatabase }) => {
-  story("Jane writes to her MP about the letter to the Prime Minister. They haven't answered yet.");
-  await sentLetterId(page, flowDatabase, madeUpAddress("Jane Smith", 42));
-  await page.goto(`${BASE}/staff/asks/${campaigns[0].ask}`);
-  await expect(page.getByRole("heading", { name: asksCopy.asks.page.howWeAsked })).toBeVisible();
-  await expect(page.getByRole("link", { name: campaigns[0].title, exact: true })).toBeVisible();
-
-  story(
-    "No answer's column is the whole of who's been written to and hasn't answered. Pressed, it lists them, longest wait first.",
-  );
-  await frame(page, "The ask's answers");
-  const unanswered = page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.noAnswer} \\d`) });
-  await unanswered.click();
-  await expect(page).toHaveURL(/answer=none/);
-  await expect(unanswered).toHaveAttribute("aria-current", "true");
-  await frame(page, "Those with no answer");
-});
-
 test("Asks", async ({ page, request, flowDatabase }) => {
   story("The asks page lists each ask as the mailings page does: who asked, what they answered, and how it stands.");
   await importPoliticians(request, BASE, flowDatabase);
@@ -94,12 +76,11 @@ test("Asks", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { name: asksCopy.asks.page.howWeAsked })).toBeVisible();
   await frame(page, "An event's page");
 
-  story("Pressing an answer's column lists those who gave it, with when they were last written to.");
-  const going = page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.going} \\d`) });
-  await going.click();
-  await expect(page).toHaveURL(/answer=going/);
-  await expect(going).toHaveAttribute("aria-current", "true");
-  await frame(page, "Those going");
+  story("Pressing an answer's column opens those who gave it as a list: the politicians list, filtered to them.");
+  await page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.going} \\d`) }).click();
+  await expect(page).toHaveURL(/\/staff\/politicians\?ask=edinburgh-conference-2026&answer=going/);
+  await expect(page.getByRole("row").filter({ hasText: "Morag Example" })).toBeVisible();
+  await frame(page, "Those going, on the politicians list");
 
   story("An ask staff made can be edited, on its own page.");
   runSql(
@@ -116,7 +97,7 @@ test("Asks", async ({ page, request, flowDatabase }) => {
 
 test("An ask's pages", async ({ page, flowDatabase }) => {
   story(
-    "A hundred and fifty politicians have signed. Their column shows the first few, and leads to them all, a hundred to a page.",
+    "A hundred and fifty politicians have signed, and twelve declined. Each column shows the first few, and leads to them all as a list.",
   );
   runSql(
     flowDatabase,
@@ -133,29 +114,23 @@ test("An ask's pages", async ({ page, flowDatabase }) => {
   );
   await logIn(page, flowDatabase, ["supporters"]);
   await page.goto(`${BASE}/staff/asks/our-letter`);
-  await frame(page, "The column of those who signed");
+  await frame(page, "The columns of those who signed and declined");
+
+  story("Open all as a list leads to the politicians list, filtered to those who signed.");
   await page.getByRole("link", { name: asksCopy.asks.page.allOf(150) }).click();
+  await expect(page).toHaveURL(/\/staff\/politicians\?ask=our-letter&answer=signed$/);
   await expect(page.getByText(staffVocabulary.politicians(150))).toBeVisible();
-  await frame(page, "The first page");
+  await frame(page, "Those who signed, on the politicians list");
 
-  story("Next shows the rest, and the answer chosen stays chosen.");
-  await page.getByRole("link", { name: staffVocabulary.paging.next }).click();
-  await expect(page).toHaveURL(/page=2/);
-  await expect(page.getByRole("link", { name: `${staffVocabulary.statuses.signed} 150` })).toHaveAttribute(
-    "aria-current",
-    "true",
-  );
-  await frame(page, "The second page");
-
-  story("The other answer's column top chooses that answer instead.");
-  await page.getByRole("link", { name: `${staffVocabulary.statuses.declined} 12` }).click();
+  story("One who declined has since retired. Their column says so, and its list includes those out of office.");
+  runSql(flowDatabase, "UPDATE notable_people SET status = 'retired' WHERE name = 'Signer 151'");
+  await page.goto(`${BASE}/staff/asks/our-letter`);
+  await expect(page.getByText(`Example Party · ${staffVocabulary.personStatuses.retired}`)).toBeVisible();
+  await frame(page, "One who declined, retired");
+  await page.getByRole("link", { name: asksCopy.asks.page.allOf(12) }).click();
+  await expect(page).toHaveURL(/\/staff\/politicians\?ask=our-letter&answer=declined&status=any$/);
   await expect(page.getByText(staffVocabulary.politicians(12))).toBeVisible();
-  await frame(page, "Those who declined");
-
-  story("Under the answers, a link leads to everyone who answered, in office or not, on the politicians list.");
-  await page.getByRole("link", { name: asksCopy.asks.page.everyone }).click();
-  await expect(page).toHaveURL(/\/staff\/politicians\?ask=our-letter&status=any/);
-  await frame(page, "Those who answered, on the politicians list");
+  await frame(page, "Those who declined, in office or not");
 });
 
 test("Sent emails", async ({ page, flowDatabase }) => {

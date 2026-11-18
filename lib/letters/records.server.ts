@@ -3,6 +3,7 @@ import { cache } from "react";
 import { CAMPAIGN_LETTER_STATE, type SkipReason } from "./copy-states";
 import { config } from "@/lib/server/config.server";
 import type { AskStatus } from "@/lib/asks/asks";
+import { answerSql } from "@/lib/asks/invited";
 import type { Permission } from "@/lib/accounts/permissions";
 import type { LetterBackend, LetterFilter, LetterTab } from "@/lib/staff-search";
 import { messageIdSearch, POLICY_GMAIL_SINCE, postmarkSearch, sentNearSearch, type GmailFind } from "./links";
@@ -193,7 +194,7 @@ async function letterRows({
   const rows = await query<Omit<LetterSummary, "events"> & { events: AsJson<LetterEvent>[]; total: number }>(
     sql`${sql.raw(`SELECT l.id::int AS id, s.campaign, c.title AS "campaignTitle", l.status, f.name AS "senderName", f.email AS "senderEmail",
        n.name AS "mpName", n.id::int AS "politicianId", p.is_test AS "isTest", p.constituency, p.party,
-       (SELECT st.status FROM ask_statuses st WHERE st.notable_person_id = n.id AND st.ask = c.ask) AS answer, s.own_words AS "ownWords", ${BACKEND} AS backend, l.created_at AS "createdAt", l.sent_at AS "sentAt", l.replied_at AS "repliedAt",
+       (SELECT st.status FROM ask_statuses st WHERE st.notable_person_id = n.id AND st.ask = c.ask AND ${answerSql("st.status")}) AS answer, s.own_words AS "ownWords", ${BACKEND} AS backend, l.created_at AS "createdAt", l.sent_at AS "sentAt", l.replied_at AS "repliedAt",
        ${AUTO_REPLIED_AT} AS "autoRepliedAt",
        (SELECT k.supporter_id::int FROM supporter_links k WHERE k.form_entry_id = s.entry_id) AS "supporterId",
        coalesce((SELECT json_agg(json_build_object('at', e.at, 'status', e.status, 'details', e.details) ORDER BY e.at DESC, e.id DESC)

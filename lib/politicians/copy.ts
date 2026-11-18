@@ -5,6 +5,7 @@
 // app/(staff)/staff/_components/politicians/copy.ts.
 import type { Body } from "./import-changes";
 import { count, plural } from "@/lib/content/plural";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 /** Each body, as a sentence names it after its start. */
 const bodyNames: Record<Body, string> = {
@@ -34,15 +35,14 @@ export const politiciansCopy = {
       blocked: "Address blocked",
     } as Record<string, string>,
     flag: "Marked",
-    ask: "Answered ask",
-    // An answer to the ask chosen, in the second half of the ask's chip, its menu named after the ask. With no
-    // ask, as a link from the dashboard can have it, its own chip.
+    ask: "Ask",
+    // How they stand on the ask chosen, in the second half of the ask's chip, its menu named after the ask. With
+    // no ask, as a link from the dashboard can have it, its own chip.
     answer: "Answer",
-    // In the second half of the ask's chip, before an answer is chosen.
-    anyAnswer: "Any answer",
+    // In the ask's menu, under everyone asked: those who gave any answer, the answers set in under it.
+    anyReply: "Any reply",
     // A filter: those a mailing about an ask has gone or is going to.
     mailed: "Mailed about",
-    noAnswer: "Not answered",
     none: "None found.",
     // Over the list: how many there are.
     total: (total: number) => count(total, "politician", "politicians"),
@@ -136,8 +136,6 @@ export const politiciansCopy = {
     // Under the answer to an ask staff record: opens the form to change it.
     edit: "Edit",
     save: "Save",
-    // In the form's row of answers, set apart from them, once there's an answer: picked and saved, it clears it.
-    clearAnswer: "No answer",
     // Under the asks, the small button whose menu lists the other asks staff record, to add one to the card.
     otherAsk: "Add another answer",
     // The fields of the box at the top.
@@ -184,10 +182,10 @@ export const politiciansCopy = {
     // What each line of the history was: a letter, a reply, or an entry of the audit log about them.
     history: {
       letter: "Letter from",
-      "letter-replied": "Answered the letter from",
+      "letter-replied": "Replied to the letter from",
       // Without the supporters permission, a letter doesn't say who wrote it.
       unsignedLetter: "Letter written to them",
-      "unsigned-letter-replied": "Answered a letter",
+      "unsigned-letter-replied": "Replied to a letter",
       // A letter of one of PauseAI's mailings, by its mailing, and how it was written.
       "pauseai-letter": "Email from PauseAI:",
       "add politician": "Added",
@@ -356,13 +354,8 @@ export const politiciansCopy = {
     // A problem of the run: Wikidata couldn't be asked who's Sir or Dame, so no salutation was checked for it.
     honourLookupFailed: "Couldn't ask Wikidata who's Sir or Dame, so no salutation was checked for it",
   },
-  // Whether a notable person is in office.
-  personStatuses: {
-    in_office: "In office",
-    died: "Died",
-    retired: "Retired",
-    left_office: "No longer in office",
-  } as Record<string, string>,
+  // Whether a notable person is in office: the shared words, as asks' pages say it too.
+  personStatuses: staffVocabulary.personStatuses,
   // The emails to the notification inbox (lib/email/notifications.server.ts) about a body's import.
   notifications: {
     // A body's import is held, as it would change too much: which import, how many politicians, and its page.

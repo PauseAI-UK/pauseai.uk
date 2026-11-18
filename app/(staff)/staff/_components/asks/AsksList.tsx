@@ -1,6 +1,6 @@
 import Tag, { type TagTone } from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
-import { ASK_STATUSES, askHref } from "@/lib/asks/asks";
+import { askAnswersHref, ASK_STATUSES, askHref, INVITED } from "@/lib/asks/asks";
 import { askGroups, askPeriod } from "@/lib/asks/ask-groups";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { AskWithCounts } from "@/lib/asks/records.server";
@@ -13,7 +13,7 @@ import Grid, { spanClass } from "../ui/Grid";
 import Strip from "../ui/Strip";
 import StaffLink from "../ui/StaffLink";
 import styles from "./AsksList.module.css";
-import { asksCopy } from "@/lib/asks/copy";
+import { asksCopy, standingWord } from "@/lib/asks/copy";
 
 const copy = asksCopy.asks;
 
@@ -41,24 +41,33 @@ export function askCounts(ask: AskWithCounts) {
   ];
 }
 
+const lowercase = (words: string) => words.toLocaleLowerCase("en-GB");
+
 /** An answer's name after its number, as a mailing's counts are: "12 signed". */
-const answerWords = (status: string) => staffVocabulary.statuses[status]!.toLocaleLowerCase("en-GB");
+const answerWords = (status: string) => lowercase(staffVocabulary.statuses[status]!);
 
 /**
- * An ask's lozenges: how many gave each answer its kind allows, then those
- * written to with no answer, each its number first, as a mailing's counts
- * are, and leading to the ask's page with that answer chosen.
+ * An ask's lozenges: those asked who haven't answered, then how many gave
+ * each answer its kind allows, in the order of its page's columns; each its
+ * number first, as a mailing's counts are, and leading to those who gave it
+ * on the politicians list.
  */
 function Answers({ ask }: { ask: AskWithCounts }) {
-  if (answersOf(ask).length === 0 && !ask.noAnswer)
+  if (answersOf(ask).length === 0 && !ask.invited)
     return (
       <span className={styles.nothing}>
         <Muted>{copy.noAnswers}</Muted>
       </span>
     );
-  const href = (answer: string) => `${askHref(ask.slug)}?answer=${answer}`;
+  // Out of office too, as its counts are.
+  const href = (answer: string) => askAnswersHref(ask.slug, answer, true);
   return (
     <div className={styles.answers}>
+      {ask.invited > 0 && (
+        <StaffLink href={href(INVITED)} className={`${styles.answer} ${styles.invited}`}>
+          {ask.invited.toLocaleString("en-GB")} {lowercase(standingWord(INVITED, ask.kind))}
+        </StaffLink>
+      )}
       {answersOf(ask).map((status) => (
         <StaffLink key={status} href={href(status)} className={styles.answer}>
           <Tag tone={ANSWER_TONES[status]}>
@@ -66,11 +75,6 @@ function Answers({ ask }: { ask: AskWithCounts }) {
           </Tag>
         </StaffLink>
       ))}
-      {ask.noAnswer > 0 && (
-        <StaffLink href={href("none")} className={`${styles.answer} ${styles.noAnswer}`}>
-          {ask.noAnswer.toLocaleString("en-GB")} {answerWords("noAnswer")}
-        </StaffLink>
-      )}
     </div>
   );
 }

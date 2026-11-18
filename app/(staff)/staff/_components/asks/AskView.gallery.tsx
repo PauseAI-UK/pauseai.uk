@@ -3,7 +3,7 @@
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import AskView from "./AskView";
-import { exampleAskPage } from "./AsksList.examples";
+import { exampleAskPage, exampleEventAskPage } from "./AsksList.examples";
 
 export const askViewGallery: Example[] = [
   {
@@ -11,10 +11,10 @@ export const askViewGallery: Example[] = [
     file: "app/(staff)/staff/_components/asks/AskView.tsx",
     variants: [
       {
-        label: "A letter, asked by a campaign and a mailing, answered",
+        label: "A letter, asked by a campaign and a mailing: those asked first, one retired, then the answers",
         render: () => (
           <StaffPage as="div">
-            <AskView ask={exampleAskPage} answer="" />
+            <AskView ask={exampleAskPage} />
           </StaffPage>
         ),
       },
@@ -22,35 +22,7 @@ export const askViewGallery: Example[] = [
         label: "An event, each other answer tagged with what it was",
         render: () => (
           <StaffPage as="div">
-            <AskView
-              ask={{
-                ...exampleAskPage,
-                kind: "event",
-                counts: { going: 0, other: 2, declined: 1 },
-                groups: [
-                  { key: "going", total: 0, people: [] },
-                  {
-                    key: "other",
-                    total: 2,
-                    people: [
-                      { ...exampleAskPage.groups[0].people[0], status: "other", note: "Tentatively said yes" },
-                      { ...exampleAskPage.groups[2].people[0], status: "other", note: "" },
-                    ],
-                  },
-                  { key: "declined", total: 1, people: exampleAskPage.groups[1].people },
-                ],
-                noAnswer: 0,
-              }}
-              answer=""
-            />
-          </StaffPage>
-        ),
-      },
-      {
-        label: "A letter, with one answer chosen",
-        render: () => (
-          <StaffPage as="div">
-            <AskView ask={exampleAskPage} answer="signed" />
+            <AskView ask={exampleEventAskPage} />
           </StaffPage>
         ),
       },
@@ -60,17 +32,13 @@ export const askViewGallery: Example[] = [
           <StaffPage as="div">
             <AskView
               ask={{
-                ...exampleAskPage,
-                kind: "event",
+                ...exampleEventAskPage,
                 url: "/events",
                 counts: {},
                 writtenTo: 0,
-                noAnswer: 0,
                 ways: [],
                 groups: [],
-                answers: [],
               }}
-              answer=""
             />
           </StaffPage>
         ),

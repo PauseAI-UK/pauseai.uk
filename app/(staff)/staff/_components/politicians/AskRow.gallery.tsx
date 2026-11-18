@@ -8,8 +8,15 @@ export const askRowGallery: Example[] = [
     name: "AskRow",
     file: "app/(staff)/staff/_components/politicians/AskRow.tsx",
     variants: [
-      { label: "An answer from Airtable, and an ask staff record with none yet", render: () => <AskRowExample /> },
+      {
+        label: "An answer from Airtable, and an ask staff record they were never asked",
+        render: () => <AskRowExample />,
+      },
       { label: "A letter they declined, crossed", render: () => <AskRowExample declined /> },
+      {
+        label: "No answer yet: an event a letter invited them to, and a letter staff marked them asked to sign",
+        render: () => <AskRowExample invited />,
+      },
     ],
   },
   {

@@ -5,7 +5,8 @@ import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
 import { FilterForm } from "@/components/ui/Form";
-import { ANSWER_CHOICES } from "@/lib/asks/asks";
+import { ANSWER_CHOICES, INVITED, standing } from "@/lib/asks/asks";
+import { standingWord } from "@/lib/asks/copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { answeredByHand } from "@/lib/email-your-mp";
 import type { Ask } from "@/lib/asks/records.server";
@@ -25,13 +26,17 @@ const copy = politiciansCopy.politician;
 type SetStatus = (form: FormData) => void | Promise<void>;
 
 /**
- * Setting their answer to an ask staff record, with a note: one of the
- * answers its kind allows, all of them in a row to pick from (ANSWER_CHOICES),
- * and Save, which sends the one picked. Once there's an answer, no answer is
- * one to pick too, set apart from the rest, to clear it.
+ * Setting where they stand on an ask staff record, with a note: that they
+ * were asked, then the answers its kind allows (ANSWER_CHOICES), all in a row
+ * to pick from, and Save, which sends the one picked. Once something's
+ * recorded, that they were never asked is one to pick too, set apart from the
+ * rest, to clear it. Not when a letter put the ask to them, as then they
+ * were asked whatever's recorded: asked is what clears it, and stands for
+ * nothing recorded.
  */
 function AnswerForm({ politician, ask, setStatus }: { politician: Politician; ask: Ask; setStatus: SetStatus }) {
   const current = politician.statuses[ask.slug]?.status ?? "";
+  const byLetter = Boolean(politician.askedByLetter[ask.slug]);
   const [chosen, setChosen] = useState<string>(current);
   return (
     <FilterForm action={setStatus} aria-label={`${copy.setStatus}: ${ask.title}`}>
@@ -41,11 +46,12 @@ function AnswerForm({ politician, ask, setStatus }: { politician: Politician; as
         <Segmented
           label={copy.status}
           options={[
+            { value: byLetter && current !== INVITED ? "" : INVITED, label: staffVocabulary.noReplyYet[ask.kind] },
             ...ANSWER_CHOICES[ask.kind].map((value) => ({
               value: value as string,
               label: staffVocabulary.statuses[value],
             })),
-            ...(current ? [{ value: "", label: copy.clearAnswer, quiet: true }] : []),
+            ...(current && !byLetter ? [{ value: "", label: standingWord(null, ask.kind), quiet: true }] : []),
           ]}
           value={chosen}
           onChange={setChosen}
@@ -72,9 +78,11 @@ export function AskRows({ children }: { children: ReactNode }) {
 /**
  * One ask, a row of the asks card: who asked them to do what, and when,
  * leading into the ask's title; the note and who set the answer, or which
- * import; beside it, in a column of its own, their answer and its date, a
- * yes ticked in green and a no crossed, and for an ask staff record, Edit
- * under it, which opens the form to change it in a bubble below. `open`
+ * import; beside it, in a column of its own, where they stand on it
+ * (standing(), lib/asks/asks.ts) and its date, a yes ticked in green and a
+ * no crossed, and for an ask staff record, Edit under it, which opens the
+ * form to change it in a bubble below. With nothing recorded, the date is
+ * that of the last letter that put the ask to them. `open`
  * opens it at once, scrolled to, for an ask just added to the card, and `onClose` is
  * told when it closes.
  */
@@ -92,6 +100,7 @@ export default function AskRow({
   onClose?: () => void;
 }) {
   const status = politician.statuses[ask.slug];
+  const when = status ? status.date && new Date(status.date) : politician.askedByLetter[ask.slug];
   const byHand = answeredByHand(ask.slug);
   const editId = `edit-${ask.slug}`;
   const popover = useRef<HTMLDivElement>(null);
@@ -132,8 +141,8 @@ export default function AskRow({
         )}
       </div>
       <div className={styles.answer}>
-        <AnswerWord status={status?.status ?? null} />
-        {status?.date && <span className={styles.askMeta}>{staffDate(new Date(status.date))}</span>}
+        <AnswerWord status={standing(politician, ask.slug)} kind={ask.kind} waiting />
+        {when && <span className={styles.askMeta}>{staffDate(when)}</span>}
         {byHand && (
           <button type="button" className={styles.edit} {...bubbleTrigger(editId)}>
             {copy.edit}
@@ -157,12 +166,13 @@ export default function AskRow({
 }
 
 /**
- * A politician's asks card: a row for each ask they've answered, then under
- * them a small button whose menu lists the other asks staff record by hand.
- * One chosen joins the rows in its place, as the asks are ordered, with no
- * answer and its form open; closed unanswered, it's back in the menu at
- * once. Once answered, it's one of theirs, and if its answer is cleared,
- * it's back in the menu.
+ * A politician's asks card: a row for each ask they've answered or been
+ * asked, then under them a small button whose menu lists the other asks
+ * staff record by hand. One chosen joins the rows in its place, as the asks
+ * are ordered, as never asked and its form open; closed with nothing set,
+ * it's back in the menu at once. Once something's recorded, it's one of
+ * theirs, and if that's cleared, with no letter having asked them, it's back
+ * in the menu.
  */
 export function PoliticianAsks({
   politician,
@@ -174,11 +184,11 @@ export function PoliticianAsks({
   setStatus: SetStatus;
 }) {
   const [added, setAdded] = useState<string[]>([]);
-  const answered = (ask: Ask) => Boolean(politician.statuses[ask.slug]);
-  // One answered is a row of its own now, so it's no longer one added here.
-  const still = added.filter((slug) => asks.some((ask) => ask.slug === slug && !answered(ask)));
+  const asked = (ask: Ask) => standing(politician, ask.slug) !== null;
+  // One they've been asked is a row of its own now, so it's no longer one added here.
+  const still = added.filter((slug) => asks.some((ask) => ask.slug === slug && !asked(ask)));
   if (still.length < added.length) setAdded(still);
-  const rows = asks.filter((ask) => answered(ask) || added.includes(ask.slug));
+  const rows = asks.filter((ask) => asked(ask) || added.includes(ask.slug));
   const left = asks.filter((ask) => answeredByHand(ask.slug) && !rows.includes(ask));
   return (
     <AskRows>
@@ -188,8 +198,8 @@ export function PoliticianAsks({
           politician={politician}
           ask={ask}
           setStatus={setStatus}
-          open={!answered(ask)}
-          onClose={answered(ask) ? undefined : () => setAdded((now) => now.filter((slug) => slug !== ask.slug))}
+          open={!asked(ask)}
+          onClose={asked(ask) ? undefined : () => setAdded((now) => now.filter((slug) => slug !== ask.slug))}
         />
       ))}
       {left.length > 0 && (

@@ -8,6 +8,8 @@
 import { count, plural } from "@/lib/content/plural";
 
 const META_TITLE = "PauseAI Staff";
+const INVITED_WORDS = { letter: "Asked", event: "Invited" };
+const NO_REPLY = "(no reply)";
 
 export const staffVocabulary = {
   metaTitle: META_TITLE,
@@ -42,10 +44,29 @@ export const staffVocabulary = {
   statuses: {
     signed: "Signed",
     going: "Going",
-    other: "Other",
+    other: "Other reply",
     declined: "Declined",
-    // No answer to an ask, of any kind.
-    noAnswer: "No answer",
+  } as Record<string, string>,
+  // Someone asked who hasn't answered, by the ask's kind (standingWord).
+  invited: INVITED_WORDS as Record<string, string>,
+  // The same, as a choice beside the answers, which has room to say they haven't answered: the politicians list's
+  // filter, a politician's form and its asks card, and the columns of an ask's page. The card breaks the line before
+  // the words after it.
+  noReplyYet: {
+    letter: `${INVITED_WORDS.letter} ${NO_REPLY}`,
+    event: `${INVITED_WORDS.event} ${NO_REPLY}`,
+  } as Record<string, string>,
+  noReplyYetAfter: NO_REPLY,
+  // Someone never asked: no letter put the ask to them, and nothing's recorded. By the ask's kind, as above.
+  neverAsked: { letter: "Never asked", event: "Never invited" } as Record<string, string>,
+  // Everyone asked, answered or not: the politicians list's ask filter before one way is chosen.
+  everyoneAsked: { letter: "Everyone asked", event: "Everyone invited" } as Record<string, string>,
+  // Whether a notable person is in office, on a politician's page and the list, and beside an ask's answers.
+  personStatuses: {
+    in_office: "In office",
+    died: "Died",
+    retired: "Retired",
+    left_office: "No longer in office",
   } as Record<string, string>,
   // The politicians' markers (lib/politician-flags.ts), which the politicians', letters' and every email's lists
   // filter by, and a test politician's tag beside their name.

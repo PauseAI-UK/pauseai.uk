@@ -3,6 +3,7 @@
 // added by staff on /staff/asks or by a migration; a person's answer to one
 // is a status (ask_statuses), and each kind of ask allows its own statuses,
 // as the table ask_kind_statuses does, so a new status needs a migration.
+// Someone asked who hasn't answered is invited (INVITED).
 
 /**
  * Each kind's answers, in the order they're shown: a yes, "other", a no.
@@ -22,6 +23,44 @@ export const ANSWER_CHOICES: Record<AskKind, readonly AskStatus[]> = {
   event: ["going", "declined", "other"],
 };
 
+/**
+ * Asked, with no answer yet: a status either kind of ask allows, which staff
+ * set for someone asked some other way than by a letter. A letter that put
+ * the ask to them means the same with no status at all (standing(), and
+ * lib/asks/invited.ts in SQL). It isn't an answer, so nothing that counts or
+ * finds answers includes it.
+ */
+export const INVITED = "invited" as const;
+
+/** What's recorded for someone against an ask (ask_statuses): their answer, or that they were asked. */
+export type RecordedStatus = AskStatus | typeof INVITED;
+
+/** Whether what's recorded, if anything, is an answer. */
+export function isAnswer(status: RecordedStatus | null | undefined): status is AskStatus {
+  return Boolean(status) && status !== INVITED;
+}
+
+/** In a filter of people by where they stand on an ask: those never asked, with nothing recorded and no letter. */
+export const NEVER_ASKED = "never";
+
+/** In the same filter: those who gave any answer. With none chosen, it finds everyone asked, answered or not. */
+export const REPLIED = "replied";
+
+/** Someone's record against each ask, and the asks a letter put to them, each by the ask's slug. */
+export type Asked = {
+  statuses: Record<string, { status: RecordedStatus }>;
+  askedByLetter: Record<string, unknown>;
+};
+
+/**
+ * Where someone stands on an ask: what's recorded for them; with nothing
+ * recorded, INVITED if a letter put it to them; else null, as they were
+ * never asked.
+ */
+export function standing(person: Asked, slug: string): RecordedStatus | null {
+  return person.statuses[slug]?.status ?? (person.askedByLetter[slug] ? INVITED : null);
+}
+
 /** Who asks it: supporters, in their letters or in person, PauseAI, in its own emails, or ControlAI. */
 export type Asker = "supporters" | "pauseai" | "controlai";
 
@@ -36,12 +75,21 @@ export type AskStatuses = Partial<Record<string, AskStatus>>;
 export const AGREED_STATUSES: readonly AskStatus[] = ["signed", "going"];
 
 /** How many asks someone agreed to, by their answers (AGREED_STATUSES). */
-export function asksAgreed(statuses: Record<string, { status: AskStatus }>): number {
-  return Object.values(statuses).filter((answer) => AGREED_STATUSES.includes(answer.status)).length;
+export function asksAgreed(statuses: Record<string, { status: RecordedStatus }>): number {
+  return Object.values(statuses).filter((answer) => (AGREED_STATUSES as readonly string[]).includes(answer.status))
+    .length;
 }
 
 /** Where an ask's name leads: its own page. */
 export const askHref = (slug: string) => `/staff/asks/${slug}`;
+
+/**
+ * The politicians list of those who stand on an ask as `answer` says, an
+ * answer or INVITED: those in office, as the list is unless told otherwise,
+ * or with `anyStatus`, those out of office too.
+ */
+export const askAnswersHref = (slug: string, answer: string, anyStatus: boolean) =>
+  `/staff/politicians?ask=${slug}&answer=${answer}${anyStatus ? "&status=any" : ""}`;
 
 /** PauseAI's frontier AI letter to the Prime Minister. */
 export const FRONTIER_AI_LETTER_ASK = "frontier-ai-letter";

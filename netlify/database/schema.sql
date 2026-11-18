@@ -3811,7 +3811,7 @@ CREATE INDEX unmatched_mail_waiting ON public.unmatched_mail USING btree (found_
 --
 
 ALTER TABLE ONLY public.ask_statuses
-    ADD CONSTRAINT ask_statuses_ask_ask_kind_fkey FOREIGN KEY (ask, ask_kind) REFERENCES public.asks(slug, kind);
+    ADD CONSTRAINT ask_statuses_ask_ask_kind_fkey FOREIGN KEY (ask, ask_kind) REFERENCES public.asks(slug, kind) ON UPDATE CASCADE;
 
 --
 -- Name: ask_statuses ask_statuses_ask_kind_status_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

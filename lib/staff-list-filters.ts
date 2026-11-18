@@ -6,7 +6,8 @@
 // such as the parties, the events, or who's in the log.
 import { staffMemberText } from "@/lib/staff-member";
 import type { ReactNode } from "react";
-import { ASK_STATUSES } from "@/lib/asks/asks";
+import { ANSWER_CHOICES, INVITED, NEVER_ASKED, REPLIED } from "@/lib/asks/asks";
+import { standingWord } from "@/lib/asks/copy";
 import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
@@ -39,13 +40,16 @@ import { oversightCopy } from "@/lib/oversight/copy";
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
  * the group named on the chip too, or the chip named `chip` for it in place
- * of the filter's name; a `detail` is said quietly after the words.
+ * of the filter's name; a `detail` is said quietly after the words. One
+ * `under` another, whose value it names, is set in beneath it, as one of
+ * what that one finds, when that one's offered too.
  */
 export type FilterOption = {
   value: string;
   label: string;
   group?: { label: string; icon: ReactNode; chip?: string };
   detail?: string;
+  under?: string;
 };
 
 /**
@@ -204,7 +208,9 @@ export type PoliticianChoices = { ask: string; parties: string[]; asks: Ask[] };
  * The politicians list's filters: the table's columns in its order, with
  * the nation after the party and whether we can email them after the
  * status. Status is those in office unless another is chosen. An answer is
- * offered once there's an ask, from those its kind allows, and goes with it.
+ * offered once there's an ask, and goes with it: in the order things happen,
+ * those asked with no answer yet, the answers its kind allows as staff pick
+ * from them, then those never asked.
  * Party, nation, email, the markers, the asks they've been mailed about and
  * the answers can each be chosen more than once, the first three having one
  * value each; Except on the asks finds those not yet mailed about it. How
@@ -251,13 +257,22 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
       label: ask?.title ?? copy.answer,
       after: "ask",
       options: [
-        { value: "", label: copy.anyAnswer },
-        // With no ask, as a link from the dashboard can have it, any ask's answers.
-        ...(ask ? ASK_STATUSES[ask.kind] : [...new Set(Object.values(ASK_STATUSES).flat())]).map((value) => ({
-          value,
-          label: staffVocabulary.statuses[value],
-        })),
-        { value: "none", label: copy.noAnswer },
+        { value: "", label: staffVocabulary.everyoneAsked[ask?.kind ?? "letter"] },
+        // An answer is only ever to the ask chosen (politiciansSearch), so with none there's nothing more to offer.
+        // Set in under everyone asked, those who haven't answered and those who have, and under them each answer;
+        // then, the other way, those never asked.
+        ...(ask
+          ? [
+              { value: INVITED, label: staffVocabulary.noReplyYet[ask.kind], under: "" },
+              { value: REPLIED, label: copy.anyReply, under: "" },
+              ...ANSWER_CHOICES[ask.kind].map((value) => ({
+                value,
+                label: staffVocabulary.statuses[value],
+                under: REPLIED,
+              })),
+              { value: NEVER_ASKED, label: standingWord(null, ask.kind) },
+            ]
+          : []),
       ],
     },
   };

@@ -2,7 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { windowStart } from "@/lib/time-windows";
 import { now } from "@/lib/now";
-import { AGREED_STATUSES, type AskStatus } from "@/lib/asks/asks";
+import { AGREED_STATUSES, INVITED, NEVER_ASKED, REPLIED, type AskStatus, type RecordedStatus } from "@/lib/asks/asks";
+import { answerSql, askingLetters } from "@/lib/asks/invited";
 import { MAILED, statusIn } from "@/lib/letters/status";
 import type { Mp, MpStatuses } from "@/lib/email-your-mp";
 import type { SortSpec } from "@/lib/staff-sort";
@@ -30,7 +31,7 @@ export { COUNTRIES, HOUSES, PERSON_STATUSES } from "./filters";
 export type { Country, EmailState, House, PersonStatus } from "./filters";
 
 export type StatusRecord = {
-  status: AskStatus;
+  status: RecordedStatus;
   /** yyyy-mm-dd, if known. */
   date: string | null;
   note: string;
@@ -67,8 +68,10 @@ export type Politician = {
   /** Their first and last activity with us: a letter to them, a reply, an answer to an ask, a one-off email either way (POLITICIAN_ACTIVITY). */
   firstActivityAt: Date | null;
   lastActivityAt: Date | null;
-  /** Their answer to each ask, by the ask's slug. */
+  /** What's recorded for them against each ask, by the ask's slug: their answer, or that staff marked them invited. */
   statuses: Record<string, StatusRecord>;
+  /** The asks a letter put to them (askingLetters), by slug, each with when the last went. */
+  askedByLetter: Record<string, Date>;
 };
 
 /** An MP the form can write to, with their row's ID. */
@@ -99,15 +102,16 @@ export async function findTestMp(postcode: string): Promise<FoundMp | undefined>
 /** What one politician has answered to the letters we've asked them to sign, by ask. */
 export async function statusesOf(politicianId: number): Promise<MpStatuses> {
   const rows = await query<{ ask: string; status: AskStatus }>(
-    "SELECT ask, status FROM ask_statuses WHERE notable_person_id = $1 AND ask_kind = 'letter'",
+    `SELECT ask, status FROM ask_statuses WHERE notable_person_id = $1 AND ask_kind = 'letter' AND ${answerSql("status")}`,
     [politicianId],
   );
   return Object.fromEntries(rows.map((row) => [row.ask, row.status]));
 }
 
-/** As SELECT_POLITICIANS gives it: the statuses built with json_build_object, so their times as text. */
-type Row = Omit<Politician, "statuses"> & {
+/** As SELECT_POLITICIANS gives it: the statuses and the letters' asks built as JSON, so their times as text. */
+type Row = Omit<Politician, "statuses" | "askedByLetter"> & {
   statuses: Record<string, Omit<StatusRecord, "updatedAt"> & { updatedAt: string }> | null;
+  askedByLetter: Record<string, string> | null;
 };
 
 /**
@@ -140,18 +144,22 @@ const SELECT_POLITICIANS = `
     json_object_agg(s.ask, json_build_object(
       'status', s.status, 'date', to_char(s.status_date, 'YYYY-MM-DD'), 'note', s.note,
       'updatedAt', s.updated_at, 'updatedBy', s.updated_by
-    )) FILTER (WHERE s.ask IS NOT NULL) AS statuses
+    )) FILTER (WHERE s.ask IS NOT NULL) AS statuses,
+    (SELECT json_object_agg(w.ask, w.at) FROM (
+      SELECT x.ask, max(x.at) AS at FROM (${askingLetters("l.notable_person_id = n.id")}) x GROUP BY x.ask
+    ) w) AS "askedByLetter"
   FROM ${POLITICIANS} ${EMAIL_COUNTS.join} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id`;
 
 const SELECT = sql.raw(SELECT_POLITICIANS);
 
-function toPolitician({ statuses, ...row }: Row): Politician {
+function toPolitician({ statuses, askedByLetter, ...row }: Row): Politician {
   const records = Object.entries(statuses ?? {}).map(([ask, record]) => [
     ask,
     { ...record, updatedAt: new Date(record.updatedAt) },
   ]);
+  const letters = Object.entries(askedByLetter ?? {}).map(([ask, at]) => [ask, new Date(at)]);
   const photoUrl = row.photoUrl && config.fixtures ? STAND_IN_PHOTO : row.photoUrl;
-  return { ...row, photoUrl, statuses: Object.fromEntries(records) };
+  return { ...row, photoUrl, statuses: Object.fromEntries(records), askedByLetter: Object.fromEntries(letters) };
 }
 
 /** The filters that repeat, which can leave out as well as find. */
@@ -176,9 +184,12 @@ export type PoliticianWho = {
   email?: EmailState[];
   /** Those a mailing about any of these asks, by slug, went to or is going to. */
   mailed?: string[];
-  /** Only those who answered this ask: in the way `answer` says, if given. */
+  /** Only those asked this ask, answered or not, or who stand on it as `answer` says, if given. */
   ask?: string;
-  /** Only those who gave any of these answers, to `ask` or, without one, to any ask; "none" for those who gave none. */
+  /**
+   * Only those who stand in any of these ways on `ask`: an answer they gave; REPLIED, any answer; INVITED, asked
+   * with no answer yet; or NEVER_ASKED. Nothing without an ask.
+   */
   answer?: string[];
   /** Only those who agreed to an ask (AGREED_STATUSES), not by Airtable's record, in the last so many days. */
   agreedDays?: number;
@@ -198,7 +209,8 @@ const POLITICIANS_PAGE_SIZE = 100;
 /**
  * Each sort's column in the query, by its name in the list's URL
  * (POLITICIANS_LIST). The Asks column sorts by when their newest answer was
- * recorded; first and last activity by the times POLITICIAN_ACTIVITY gives.
+ * recorded, not when staff marked them invited; first and last activity by
+ * the times POLITICIAN_ACTIVITY gives.
  */
 const POLITICIAN_COLUMNS: Record<PoliticianSort, string> = {
   name: "n.name COLLATE english",
@@ -207,7 +219,7 @@ const POLITICIAN_COLUMNS: Record<PoliticianSort, string> = {
   party: "p.party",
   emailsToThem: '"emailsToThem"',
   emailsFromThem: '"emailsFromThem"',
-  asks: "(SELECT max(a.updated_at) FROM ask_statuses a WHERE a.notable_person_id = n.id)",
+  asks: `(SELECT max(a.updated_at) FROM ask_statuses a WHERE a.notable_person_id = n.id AND ${answerSql("a.status")})`,
   first: '"firstActivityAt"',
   active: '"lastActivityAt"',
 };
@@ -240,18 +252,33 @@ function anyOf(filter: Pick<PoliticianWho, NegatablePoliticianFilter>): Sql[] {
   return conditions;
 }
 
-/** Whether a politician gave an answer to an ask: `filter`'s, or any; one of its answers, or any. */
-function answered(filter: Pick<PoliticianWho, "ask" | "answer">): Sql {
-  const ask = filter.ask ? sql` AND a.ask = ${filter.ask}` : sql``;
-  const given = filter.answer?.filter((answer) => answer !== "none") ?? [];
+/**
+ * Whether a politician stands on `ask` in one of the ways `answer` says: an
+ * answer they gave; REPLIED, any answer; INVITED, staff having marked them
+ * so, or a letter having put the ask to them with nothing recorded for it;
+ * NEVER_ASKED, with nothing recorded and no such letter. With no `answer`,
+ * whether they were asked at all: anything recorded, or such a letter.
+ */
+function answered(ask: string, answer?: string[]): Sql {
+  const recorded = (status: Sql) =>
+    sql`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id AND a.ask = ${ask}${status})`;
+  // A letter that put the ask to them, with `where` true of it.
+  const letter = (where: Sql) =>
+    sql`EXISTS (SELECT 1 FROM (${sql.raw(askingLetters("l.notable_person_id = n.id"))}) w
+      WHERE w.ask = ${ask} AND ${where})`;
+  // With nothing chosen, everyone asked: anything recorded, or a letter.
+  if (!answer) return sql.or([recorded(sql``), letter(sql`true`)]);
+  const given = answer.filter((one) => one !== INVITED && one !== NEVER_ASKED && one !== REPLIED);
   const conditions: Sql[] = [];
-  if (filter.answer?.includes("none")) {
-    conditions.push(sql`NOT EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask})`);
+  if (answer.includes(REPLIED)) conditions.push(recorded(sql` AND ${sql.raw(answerSql("a.status"))}`));
+  if (answer.includes(INVITED)) {
+    conditions.push(
+      recorded(sql` AND a.status = ${INVITED}`),
+      letter(sql`NOT EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id AND a.ask = w.ask)`),
+    );
   }
-  if (given.length > 0 || !filter.answer) {
-    const answer = given.length > 0 ? sql` AND a.status = ANY(${given})` : sql``;
-    conditions.push(sql`EXISTS (SELECT 1 FROM ask_statuses a WHERE a.notable_person_id = n.id${ask}${answer})`);
-  }
+  if (given.length > 0) conditions.push(recorded(sql` AND a.status = ANY(${given})`));
+  if (answer.includes(NEVER_ASKED)) conditions.push(sql`NOT (${recorded(sql``)} OR ${letter(sql`true`)})`);
   return sql.or(conditions);
 }
 
@@ -289,7 +316,7 @@ function politicianConditions(filter: PoliticianWho, closest = false): Sql[] {
   }
   // What's left out: a filter's condition not true, so one with no value, such as no party, is kept.
   if (filter.not) where.push(...anyOf(filter.not).map((condition) => sql`(${condition}) IS NOT TRUE`));
-  if (filter.ask || filter.answer) where.push(answered(filter));
+  if (filter.ask) where.push(answered(filter.ask, filter.answer));
   return where;
 }
 
@@ -588,10 +615,10 @@ export const getPolitician = cache(async function getPolitician(id: number): Pro
   return row && toPolitician(row);
 });
 
-export type StatusChange = { status: AskStatus | null; date: string | null; note: string };
+export type StatusChange = { status: RecordedStatus | null; date: string | null; note: string };
 
 /**
- * Sets, or with a null status clears, one politician's answer to one ask.
+ * Sets, or with a null status clears, what's recorded for one politician against one ask.
  * The ask's kind comes from the asks table, whose foreign keys refuse a
  * status the kind doesn't allow.
  */
@@ -666,7 +693,7 @@ export async function mailingPoliticians(who: PoliticianWho): Promise<MailingPol
   return query<MailingPolitician>(
     sql`SELECT n.id::int AS id, n.name, n.salutation, p.constituency, p.party, p.house, n.email, ${sql.raw(BLOCKED)} AS blocked,
        coalesce(array_agg(s.ask || ':' || s.status ORDER BY s.ask) FILTER (WHERE s.ask IS NOT NULL), '{}') AS answers
-     FROM ${sql.raw(POLITICIANS)} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id
+     FROM ${sql.raw(POLITICIANS)} LEFT JOIN ask_statuses s ON s.notable_person_id = n.id AND ${sql.raw(answerSql("s.status"))}
      ${politicianWhere(who)}
      GROUP BY n.id, p.id ORDER BY n.name COLLATE english, n.id`,
   );

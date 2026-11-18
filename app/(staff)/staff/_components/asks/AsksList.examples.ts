@@ -61,7 +61,7 @@ const mailingWay: AskWay = {
   letters: 40,
 };
 
-/** The asks with how many gave each answer: a letter signed and declined, an event answered every way it allows, and one nobody has answered. */
+/** The asks with how many gave each answer, and how many were asked and haven't: a letter signed and declined, an event answered every way it allows, and one nobody has answered. */
 export const exampleAsksWithCounts: AskWithCounts[] = [
   {
     ...exampleAsks[0],
@@ -70,7 +70,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     lastLetter: null,
     writtenTo: 186,
     replied: 20,
-    noAnswer: 132,
+    invited: 132,
     campaigns: 0,
     mailings: 1,
     ways: [mailingWay],
@@ -82,7 +82,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     lastLetter: null,
     writtenTo: 0,
     replied: 0,
-    noAnswer: 0,
+    invited: 0,
     campaigns: 0,
     mailings: 0,
     ways: [],
@@ -94,7 +94,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     lastLetter: null,
     writtenTo: 4,
     replied: 0,
-    noAnswer: 4,
+    invited: 4,
     campaigns: 1,
     mailings: 0,
     ways: [campaignWay],
@@ -106,7 +106,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     lastLetter: "2026-11-04",
     writtenTo: 40,
     replied: 0,
-    noAnswer: 28,
+    invited: 28,
     campaigns: 1,
     mailings: 2,
     ways: [
@@ -117,21 +117,21 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
   },
 ];
 
-/** An ask a campaign and a mailing put, signed and declined. */
+/**
+ * An ask a campaign and a mailing put: some asked who haven't answered, the
+ * first of them retired, then those who signed, more than a column shows,
+ * and one who declined.
+ */
 export const exampleAskPage: AskPageData = {
   ...exampleAsks[3],
-  counts: { signed: 2, declined: 1 },
+  counts: { signed: 7, declined: 1 },
   firstLetter: "2026-06-18",
   lastLetter: "2026-11-04",
   writtenTo: 40,
   replied: 5,
   campaigns: 1,
   mailings: 1,
-  noAnswer: 37,
-  answersTotal: 3,
-  page: 1,
-  pages: 1,
-  pageSize: 100,
+  invited: 37,
   ways: [
     {
       kind: "campaign",
@@ -148,75 +148,75 @@ export const exampleAskPage: AskPageData = {
   ],
   groups: [
     {
-      key: "signed",
-      total: 2,
-      people: [
-        {
-          politicianId: 1,
-          name: "Polly Placeholder",
-          isTest: false,
-          constituency: "Seat One",
-          party: "Example Party",
-          status: "signed",
-          note: "",
-          lastWrittenTo: new Date("2026-10-01T09:00:00Z"),
-        },
-      ],
-    },
-    {
-      key: "declined",
-      total: 1,
-      people: [
-        {
-          politicianId: 2,
-          name: "Dee Dummy",
-          isTest: false,
-          constituency: null,
-          party: null,
-          status: "declined",
-          note: "",
-          lastWrittenTo: null,
-        },
-      ],
-    },
-    {
-      key: "none",
+      key: "invited",
       total: 37,
+      outOfOffice: 1,
       people: [
         {
           politicianId: 3,
           name: "Nia Nobody",
-          isTest: false,
+          personStatus: "retired",
           constituency: null,
           party: "Example Party",
-          status: null,
+          status: "invited",
           note: "",
-          lastWrittenTo: null,
+        },
+      ],
+    },
+    {
+      key: "signed",
+      total: 7,
+      outOfOffice: 0,
+      people: ["Polly Placeholder", "Sam Signer", "Tia Townsend", "Uma Underwood", "Vic Vaughan"].map((name, i) => ({
+        politicianId: 10 + i,
+        name,
+        personStatus: "in_office",
+        constituency: "Seat One",
+        party: "Example Party",
+        status: "signed" as const,
+        note: "",
+      })),
+    },
+    { key: "other", total: 0, outOfOffice: 0, people: [] },
+    {
+      key: "declined",
+      total: 1,
+      outOfOffice: 0,
+      people: [
+        {
+          politicianId: 2,
+          name: "Dee Dummy",
+          personStatus: "in_office",
+          constituency: null,
+          party: null,
+          status: "declined",
+          note: "",
         },
       ],
     },
   ],
-  answers: [
+};
+
+const [, signed, , declined] = exampleAskPage.groups;
+
+/** An event nobody is invited to now: nobody going, two other answers, one with no note, and one who declined. */
+export const exampleEventAskPage: AskPageData = {
+  ...exampleAskPage,
+  kind: "event",
+  counts: { other: 2, declined: 1 },
+  invited: 0,
+  groups: [
+    { key: "going", total: 0, outOfOffice: 0, people: [] },
     {
-      politicianId: 1,
-      name: "Polly Placeholder",
-      isTest: false,
-      constituency: "Seat One",
-      party: "Example Party",
-      status: "signed",
-      note: "",
-      lastWrittenTo: new Date("2026-10-01T09:00:00Z"),
+      key: "other",
+      total: 2,
+      outOfOffice: 0,
+      people: [
+        { ...signed.people[0], status: "other", note: "Tentatively said yes" },
+        { ...signed.people[1], status: "other", note: "" },
+      ],
     },
-    {
-      politicianId: 2,
-      name: "Dee Dummy",
-      isTest: true,
-      constituency: null,
-      party: null,
-      status: "declined",
-      note: "",
-      lastWrittenTo: null,
-    },
+    declined,
   ],
 };
 

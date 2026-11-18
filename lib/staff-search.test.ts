@@ -561,6 +561,8 @@ describe("politiciansSearch", () => {
       saved: "",
     };
     expect(politiciansSearch({})).toEqual({ ...blank, filter: none });
+    // An answer is to the ask chosen, so without one it's left out, as typed too.
+    expect(politiciansSearch({ answer: "invited" })).toEqual({ ...blank, filter: none });
     // A draft's ID is a number; the ticked tab is "1"; the lines pasted are a list.
     expect(politiciansSearch({ mailing: "12x", tab: "yes" })).toMatchObject({ mailing: "", tab: "" });
     expect(politiciansSearch({ mailing: "12", tab: "ticked", pasted: ["Jo", "Al"] })).toMatchObject({

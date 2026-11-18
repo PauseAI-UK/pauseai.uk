@@ -980,7 +980,8 @@ describe("PoliticianDetails", () => {
       .toBeVisible();
     await expect.element(event.getByRole("button", { name: politiciansCopy.politician.edit })).toBeVisible();
 
-    // The form, behind Edit: a letter's answers in a row, starting from theirs, and Clear answer set apart.
+    // The form, behind Edit: that they were asked, then a letter's answers, in a row, starting from theirs, and
+    // that they never were set apart, which clears it.
     expect(letter.getByRole("radiogroup").query()).toBeNull();
     await letter.getByText(politiciansCopy.politician.edit, { exact: true }).click();
     const choices = letter.getByRole("radiogroup", { name: politiciansCopy.politician.status });
@@ -993,12 +994,13 @@ describe("PoliticianDetails", () => {
         .all()
         .map((r) => r.element().textContent),
     ).toEqual([
+      staffVocabulary.noReplyYet.letter,
       staffVocabulary.statuses.signed,
       staffVocabulary.statuses.declined,
       staffVocabulary.statuses.other,
-      politiciansCopy.politician.clearAnswer,
+      staffVocabulary.neverAsked.letter,
     ]);
-    const clear = choices.getByRole("radio", { name: politiciansCopy.politician.clearAnswer });
+    const clear = choices.getByRole("radio", { name: staffVocabulary.neverAsked.letter });
     expect(clear.element().className).toMatch(/quiet/);
     await clear.click();
     await letter.getByLabelText(politiciansCopy.politician.note).fill("Their office wrote");
@@ -1037,15 +1039,22 @@ describe("PoliticianDetails", () => {
       .getByRole("button", { name: ask("frontier-ai-letter").title })
       .click();
     const letter = page.getByRole("group", { name: ask("frontier-ai-letter").title });
-    await expect.element(letter.getByText(staffVocabulary.statuses.noAnswer, { exact: true }).first()).toBeVisible();
-    // With no answer yet, there's none to clear, and Save waits for one to be picked.
+    expect(letter.element().querySelector("[class*=answer]")!.firstElementChild!.textContent).toBe(
+      staffVocabulary.neverAsked.letter,
+    );
+    // With nothing recorded yet, there's nothing to clear, and Save waits for one to be picked.
     const choices = letter.getByRole("radiogroup", { name: politiciansCopy.politician.status });
     expect(
       choices
         .getByRole("radio")
         .all()
         .map((r) => r.element().textContent),
-    ).toEqual([staffVocabulary.statuses.signed, staffVocabulary.statuses.declined, staffVocabulary.statuses.other]);
+    ).toEqual([
+      staffVocabulary.noReplyYet.letter,
+      staffVocabulary.statuses.signed,
+      staffVocabulary.statuses.declined,
+      staffVocabulary.statuses.other,
+    ]);
     const save = letter.getByRole("button", { name: politiciansCopy.politician.save });
     await expect.element(save).toBeDisabled();
     await choices.getByRole("radio", { name: staffVocabulary.statuses.declined }).click();
@@ -1057,6 +1066,153 @@ describe("PoliticianDetails", () => {
     await save.click();
     await vi.waitFor(() => expect(sent).toHaveLength(1));
     expect(sent[0]).toEqual({ politicianId: "7", ask: "frontier-ai-letter", status: "declined", note: "They emailed" });
+  });
+
+  it("gives an ask a letter put to them a row, as asked on the letter's day, which an answer is cleared back to", async () => {
+    const { fn, sent } = action();
+    const written = { "frontier-ai-letter": new Date("2026-10-12T09:00:00Z") };
+    const details = (statuses: typeof MP.statuses) => (
+      <PoliticianDetails
+        {...none}
+        politician={{ ...MP, statuses, askedByLetter: written }}
+        setStatus={fn}
+        unblock={vi.fn()}
+      />
+    );
+    const { rerender } = await render(details({}));
+    const letter = page.getByRole("group", { name: ask("frontier-ai-letter").title });
+    const answer = () => letter.element().querySelector("[class*=answer]")!;
+    // Nothing's recorded, so it says they were asked, plainly, and when the letter went.
+    expect(answer().textContent).toBe(
+      `${staffVocabulary.noReplyYet.letter}12 Oct 2026${politiciansCopy.politician.edit}`,
+    );
+    expect(answer().firstElementChild!.className).not.toMatch(/yes|no/);
+    // It's theirs already, so it isn't one to add.
+    await page.getByRole("button", { name: politiciansCopy.politician.otherAsk }).click();
+    const offered = page.getByRole("list", { name: politiciansCopy.politician.otherAsk }).getByRole("button");
+    expect(offered.all().map((b) => b.element().textContent)).not.toContain(ask("frontier-ai-letter").title);
+    await userEvent.keyboard("{Escape}");
+    // The form starts from asked, with no way to say they never were, and Save waits for an answer.
+    await letter.getByText(politiciansCopy.politician.edit, { exact: true }).click();
+    const choices = letter.getByRole("radiogroup", { name: politiciansCopy.politician.status });
+    const radios = () =>
+      choices
+        .getByRole("radio")
+        .all()
+        .map((r) => r.element().textContent);
+    const asked = [
+      staffVocabulary.noReplyYet.letter,
+      staffVocabulary.statuses.signed,
+      staffVocabulary.statuses.declined,
+      staffVocabulary.statuses.other,
+    ];
+    expect(radios()).toEqual(asked);
+    await expect
+      .element(choices.getByRole("radio", { name: staffVocabulary.noReplyYet.letter }))
+      .toHaveAttribute("aria-checked", "true");
+    await expect.element(letter.getByRole("button", { name: politiciansCopy.politician.save })).toBeDisabled();
+
+    // Once they've answered, asked is what clears the answer: it sends nothing to record.
+    await rerender(details({ "frontier-ai-letter": MP.statuses["frontier-ai-letter"] }));
+    expect(answer().firstElementChild!.textContent).toBe(staffVocabulary.statuses.signed);
+    await letter.getByText(politiciansCopy.politician.edit, { exact: true }).click();
+    expect(radios()).toEqual(asked);
+    await choices.getByRole("radio", { name: staffVocabulary.noReplyYet.letter }).click();
+    await letter.getByLabelText(politiciansCopy.politician.note).fill("Signed by mistake");
+    await letter.getByRole("button", { name: politiciansCopy.politician.save }).click();
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toEqual({ politicianId: "7", ask: "frontier-ai-letter", status: "", note: "Signed by mistake" });
+  });
+
+  it("marks them asked by hand, for one asked another way, with its note, and can say they never were", async () => {
+    const { fn, sent } = action();
+    const event = ask("edinburgh-conference-2026");
+    const marked = {
+      status: "invited" as const,
+      date: "2026-11-02",
+      note: "At a dinner",
+      updatedAt: new Date("2026-11-02T10:00:00Z"),
+      updatedBy: "jo@pauseai.uk",
+    };
+    const details = (statuses: typeof MP.statuses, askedByLetter: Record<string, Date> = {}) => (
+      <PoliticianDetails
+        {...none}
+        asks={[event]}
+        politician={{ ...MP, statuses, askedByLetter }}
+        setStatus={fn}
+        unblock={vi.fn()}
+      />
+    );
+    const { rerender } = await render(details({}));
+    await page.getByRole("button", { name: politiciansCopy.politician.otherAsk }).click();
+    await page.getByRole("button", { name: event.title }).click();
+    const row = page.getByRole("group", { name: event.title });
+    await row.getByRole("radio", { name: staffVocabulary.noReplyYet.event }).click();
+    await row.getByLabelText(politiciansCopy.politician.note).fill("At a dinner");
+    await row.getByRole("button", { name: politiciansCopy.politician.save }).click();
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toEqual({ politicianId: "7", ask: event.slug, status: "invited", note: "At a dinner" });
+
+    // Marked: invited, the day it was set, with the note and who set it; and never invited is there to clear it.
+    await rerender(details({ [event.slug]: marked }));
+    expect(row.element().querySelector("[class*=answer]")!.textContent).toBe(
+      `${staffVocabulary.noReplyYet.event}2 Nov 2026${politiciansCopy.politician.edit}`,
+    );
+    await expect
+      .element(row.getByText(`At a dinner · ${politiciansCopy.politician.setBy("jo@pauseai.uk", "2 Nov 2026")}`))
+      .toBeVisible();
+    await row.getByText(politiciansCopy.politician.edit, { exact: true }).click();
+    const radios = () =>
+      row
+        .getByRole("radio")
+        .all()
+        .map((r) => [r.element().textContent, r.element().getAttribute("aria-checked")]);
+    expect(radios()).toEqual([
+      [staffVocabulary.noReplyYet.event, "true"],
+      [staffVocabulary.statuses.going, "false"],
+      [staffVocabulary.statuses.declined, "false"],
+      [staffVocabulary.statuses.other, "false"],
+      [staffVocabulary.neverAsked.event, "false"],
+    ]);
+    // A letter went to them as well: they were invited whatever's recorded, so never invited isn't offered. The
+    // form is still open, as what's recorded is the same.
+    await rerender(details({ [event.slug]: marked }, { [event.slug]: new Date("2026-10-12T09:00:00Z") }));
+    expect(radios().map(([words]) => words)).toEqual([
+      staffVocabulary.noReplyYet.event,
+      staffVocabulary.statuses.going,
+      staffVocabulary.statuses.declined,
+      staffVocabulary.statuses.other,
+    ]);
+    expect(radios()[0][1]).toBe("true");
+  });
+
+  it("says in their history that they were marked asked, in the ask's kind's words, or a letter's for an ask gone", async () => {
+    const set = (id: number, slug: string) => ({
+      id,
+      at: new Date(`2026-11-0${id}T10:00:00Z`),
+      actor: "jo@pauseai.uk",
+      action: "set status",
+      details: { politicianId: 7, ask: slug, status: "invited", date: null, note: "" },
+    });
+    await render(
+      <PoliticianDetails
+        {...none}
+        politician={MP}
+        unblock={vi.fn()}
+        history={[set(2, "edinburgh-conference-2026"), set(1, "an-old-ask")]}
+      />,
+    );
+    openFolds();
+    const lines = page
+      .getByRole("list", { name: politiciansCopy.politician.historyTitle })
+      .getByRole("listitem")
+      .all()
+      .map((item) => item.element().textContent);
+    const words = politiciansCopy.politician.statusSet;
+    expect(lines[0]).toContain(
+      `${words(staffVocabulary.invited.event).before}${ask("edinburgh-conference-2026").title}`,
+    );
+    expect(lines[1]).toContain(`${words(staffVocabulary.invited.letter).before}an-old-ask`);
   });
 
   it("crosses a letter they declined", async () => {
@@ -1096,7 +1252,7 @@ describe("PoliticianDetails", () => {
     await page.getByRole("button", { name: "Example Event" }).click();
     const row = page.getByRole("group", { name: "Example Event" });
     expect(row.element().querySelector("[class*=answer]")!.textContent).toBe(
-      `${staffVocabulary.statuses.noAnswer}${politiciansCopy.politician.edit}`,
+      `${staffVocabulary.neverAsked.event}${politiciansCopy.politician.edit}`,
     );
     expect(row.getByRole("radio", { checked: true }).query()).toBeNull();
     await row.getByRole("radio", { name: staffVocabulary.statuses.going }).click();
@@ -1161,7 +1317,7 @@ describe("PoliticianDetails", () => {
     await expect.poll(() => menu.query()).toBeNull();
     const row = page.getByRole("group", { name: "Giant Pause Button" });
     expect(row.element().querySelector("[class*=answer]")!.textContent).toBe(
-      `${staffVocabulary.statuses.noAnswer}${politiciansCopy.politician.edit}`,
+      `${staffVocabulary.neverAsked.letter}${politiciansCopy.politician.edit}`,
     );
     await expect.element(row.getByRole("radiogroup", { name: politiciansCopy.politician.status })).toBeVisible();
     await row.getByRole("radio", { name: staffVocabulary.statuses.signed }).click();
@@ -1438,7 +1594,7 @@ describe("PoliticianDetails's examples in the gallery", () => {
       .getByRole("region", { name: politiciansCopy.politician.statusesTitle })
       .getByRole("group", { name: "Example Letter to the PM" });
     await letter.getByText(politiciansCopy.politician.edit, { exact: true }).click();
-    await letter.getByRole("radio", { name: politiciansCopy.politician.clearAnswer }).click();
+    await letter.getByRole("radio", { name: staffVocabulary.neverAsked.letter }).click();
     await letter.getByLabelText(politiciansCopy.politician.note).fill("Their office wrote");
     await letter.getByRole("button", { name: politiciansCopy.politician.save }).click();
     await expect

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { ASK_STATUSES } from "@/lib/asks/asks";
+import { ANSWER_CHOICES } from "@/lib/asks/asks";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import PoliticianFilters from "./PoliticianFilters";
 import { emptyPoliticiansSearch } from "./PoliticianTable.examples";
@@ -43,12 +43,26 @@ describe("PoliticianFilters", () => {
       edinburgh,
       staffVocabulary.statuses.declined,
     ]);
-    // Any answer, then the answers of the ask's kind, and none; another ask takes the answer away.
-    expect((await menu(staffVocabulary.statuses.declined)).map(([text]) => text)).toEqual([
-      copy.anyAnswer,
-      ...ASK_STATUSES.event.map((s) => staffVocabulary.statuses[s]),
-      copy.noAnswer,
+    // Everyone invited; set in under it, those who haven't replied and any reply, and under that the replies of the
+    // ask's kind as staff pick from them; then those never invited. Another ask takes the answer away.
+    const everyone = staffVocabulary.everyoneAsked.event;
+    const answer = await menu(staffVocabulary.statuses.declined);
+    expect(answer.map(([text]) => text)).toEqual([
+      everyone,
+      staffVocabulary.noReplyYet.event,
+      copy.anyReply,
+      ...ANSWER_CHOICES.event.map((s) => staffVocabulary.statuses[s]),
+      staffVocabulary.neverAsked.event,
     ]);
+    expect(answer.find(([text]) => text === copy.anyReply)![1]).toContain("answer=replied");
+    const rows = [...document.querySelectorAll("#filter-answer-found li")];
+    const inset = (text: string) =>
+      parseFloat(getComputedStyle(rows.find((li) => li.textContent === text)!.querySelector("a")!).paddingLeft);
+    expect(inset(copy.anyReply)).toBeGreaterThan(inset(everyone));
+    expect(inset(staffVocabulary.noReplyYet.event)).toBe(inset(copy.anyReply));
+    expect(inset(staffVocabulary.statuses.going)).toBeGreaterThan(inset(copy.anyReply));
+    expect(inset(staffVocabulary.statuses.declined)).toBe(inset(staffVocabulary.statuses.going));
+    expect(inset(staffVocabulary.neverAsked.event)).toBe(inset(everyone));
     const asks = await menu(edinburgh);
     expect(asks.find(([text]) => text === ask("frontier-ai-letter").title)![1]).toBe(
       "/staff/politicians?q=blake&house=lords&status=retired&party=Labour&ask=frontier-ai-letter&sort=asks&dir=asc",
@@ -90,6 +104,39 @@ describe("PoliticianFilters", () => {
       copy.mailed,
     ]);
     expect(page.getByRole("link", { name: staffVocabulary.resetFilters }).query()).toBeNull();
+  });
+
+  it("says a letter's invited and never in a letter's words", async () => {
+    await render(
+      <PoliticianFilters
+        search={{ ...emptyPoliticiansSearch, ask: "frontier-ai-letter", answer: ["never"] }}
+        asks={exampleAsks}
+        parties={[]}
+      />,
+    );
+    expect(chips()).toEqual([ask("frontier-ai-letter").title, staffVocabulary.neverAsked.letter]);
+    expect((await menu(staffVocabulary.neverAsked.letter)).map(([text]) => text)).toEqual(
+      expect.arrayContaining([staffVocabulary.everyoneAsked.letter, staffVocabulary.noReplyYet.letter]),
+    );
+  });
+
+  it("finds everyone asked until one way is chosen, and says any reply as such", async () => {
+    const { rerender } = await render(
+      <PoliticianFilters
+        search={{ ...emptyPoliticiansSearch, ask: "frontier-ai-letter" }}
+        asks={exampleAsks}
+        parties={[]}
+      />,
+    );
+    expect(chips()).toEqual([ask("frontier-ai-letter").title, staffVocabulary.everyoneAsked.letter]);
+    await rerender(
+      <PoliticianFilters
+        search={{ ...emptyPoliticiansSearch, ask: "frontier-ai-letter", answer: ["replied"] }}
+        asks={exampleAsks}
+        parties={[]}
+      />,
+    );
+    expect(chips()).toEqual([ask("frontier-ai-letter").title, copy.anyReply]);
   });
 });
 

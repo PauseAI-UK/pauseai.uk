@@ -13,15 +13,17 @@
 }
 
 /* The asks they've answered, as a small table in the cell: each ask's
-   title, in the secondary colour, and at its right their answer, in bold,
-   ticked or crossed. The answers' column is as wide as the longest of
+   title, in the secondary colour, and at its right their answer, ticked or
+   crossed. The answers' column is as wide as the longest of
    them, "✕ Declined", so they start level with each other down the whole
    list. Never wider than a title needs. */
 .asks {
+  --answer-width: 5.5rem;
+
   display: grid;
-  grid-template-columns: minmax(7rem, 1fr) 5.5rem;
+  grid-template-columns: minmax(7rem, 1fr) var(--answer-width);
   gap: var(--space-1) var(--space-2);
-  max-width: 19rem;
+  max-width: calc(13.5rem + var(--answer-width));
   margin: 0;
   padding: 0;
   list-style: none;
