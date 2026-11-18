@@ -44,9 +44,9 @@ page's Open Graph tags
 A page with no `og:description` got no card, as Meta's rules say: title,
 description and URL must not be empty.
 
-Whether a page with an `og:image` gets a picture in a template's card is
-unknown: the page seen, a Google Doc, showed none. Test with one of our
-pages.
+A template's card has no picture even when the page has one: the Google
+Doc seen has an `og:image` of 1200 × 630 px, yet its card showed none. A
+picture needs phase 2's header.
 
 ## Phase 1: the preview as it arrives (built)
 
@@ -61,24 +61,27 @@ show a text as the phone did:
   (`lib/server/outside-services/link-pages.server.ts`).
 
 The 5 is the rule for a text with a link and no button, which is every
-text we send now. A line's width is the preview's, a 393 px phone's, so
-where the fold falls is close, not exact.
+text we send now. The preview's words wrap where they did on a Fairphone
+5 at WhatsApp's default font size, measured with a march text. An iPhone
+13 Pro Max showed about two lines more of it, and the Fairphone on Large
+two lines less. So the preview shows what most people see at least.
 
 Left for later: the card on the broadcast's page and in the storyboard's
 picture of a text arriving (`tests/fixtures/text-view.ts`).
 
-## Phase 2: a picture and a button
+## Phase 2: a picture and buttons, if staff add them
 
-Staff give a broadcast's text a link to a page, optionally. The text
-then goes with:
+Staff can add to a text's words, each by choice, none by default:
 
-- **a picture**: the page's `og:image`, as an `IMAGE` header;
-- **a button**: a URL button to the page, labelled with a word staff
-  choose (25 characters at most);
+- **a picture**: from a page they give a link to, its `og:image`, as an
+  `IMAGE` header;
+- **buttons**: up to two URL buttons, as Meta allows, each with a link
+  and words staff write (25 characters at most);
 - the words as now, with the "Reply STOP" footer.
 
-With a header and a button, the words fold at 3 lines, not 5: that's the
-trade for the picture, and the preview's fold follows it.
+The fold follows what's added, by Meta's rules: 3 lines with a picture;
+4 with a button but no picture; 5 with neither, if the words have a link.
+So a picture costs two lines of words, and the preview shows it.
 
 The page's `og:image` is read when staff add the link, and shown in the
 writer's phone preview at once. Our own pages' tags already meet
@@ -113,27 +116,23 @@ Worth trying once ours is.
 
 ### The changes
 
-1. **Schema**: a migration adding the link, the button's label and the
-   image's address to `whatsapp_templates`, as a template's look is
-   approved with it. No personal data.
+1. **Schema**: a migration adding to `whatsapp_templates` the picture's
+   page and image address, and each button's link and words, as a
+   template's look is approved with it. No personal data.
 2. **Meta calls** (`whatsapp.server.ts`): `createTemplate` takes an
-   optional header handle and button; an upload for the handle;
+   optional header handle and buttons; an upload for the handle;
    `sendTemplate` takes the image's link. The fixture
    (`lib/server/fixtures/whatsapp.ts`) answers the upload and checks the
    new parts.
 3. **Reading a page's tags**: `og:image` added to phase 1's reading.
-4. **Writer** (`BroadcastWriter`): a link field, the button's label, the
-   picture in the preview, the fold at 3 lines.
-5. **Copy**: the field labels, the button label's default, the message
-   when a page has no usable image, as placeholders to be approved.
-6. **Storyboard**: a flow writing a text with a link and a picture, and
+4. **Writer** (`BroadcastWriter`): Add a picture, with its page's link;
+   Add a button, twice at most, each with its link and words; the
+   picture and buttons in the preview, the fold at 3, 4 or 5 lines.
+5. **Copy**: the controls' labels, and the message when a page has no
+   usable image, as placeholders to be approved.
+6. **Storyboard**: a flow adding a picture and a button to a text, and
    the text as it arrives.
 7. **Docs**: `docs/development.md`, "WhatsApp", for `WHATSAPP_APP_ID`.
-
-### Questions
-
-- Should every text with a link get the picture, or only when staff ask?
-- The button's label: one fixed word, or staff's choice each time?
 
 ## Not in this plan
 
