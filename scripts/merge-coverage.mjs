@@ -5,31 +5,29 @@
 //
 //   node scripts/merge-coverage.mjs <coverage-final.json>...
 //
-// Each shard reports every file the coverage includes. One its tests didn't
-// load it reports as all zeros, transformed as a Node module, whose map of
-// a component can differ from the browser's: a statement ending at a column
-// in one ends at the line's end in the other. Merged, those are two
-// statements, one never run. So a shard's all-zero report of a file is
-// dropped when another shard ran it: it can add nothing covered, only
-// statements mapped another way. A file no shard ran keeps its zeros.
+// The node and browser projects can map one statement to different ranges:
+// a hook's call ends at a column in one and at the line's end in the other,
+// and only the browser counts an import as a statement. A shard reports a
+// file its tests didn't load as the node project maps it, all zeros. Istanbul
+// merges a range with no match by adding the count of the nearest range
+// around it, which is how one whole run comes out covered. A range that runs
+// to its line's end has the column Infinity, which JSON writes as null, so
+// the shards' files are read with a null column as Infinity: read as null,
+// no range is around another, and the merge keeps a twin never run.
 import { readFileSync } from "node:fs";
 import { createCoverageMap } from "@vitest/istanbul-lib-coverage";
 
 const METRICS = ["statements", "branches", "functions", "lines"];
 
-/** Whether any of a file's statements, functions or branches ran. */
-function ran(file) {
-  return [...Object.values(file.s), ...Object.values(file.f), ...Object.values(file.b).flat()].some((n) => n > 0);
+/** A coverage-final.json's text, parsed with a null column as Infinity. */
+export function parseCoverage(text) {
+  return JSON.parse(text, (key, value) => (key === "column" && value === null ? Infinity : value));
 }
 
-/** The shards' coverage, each as coverage-final.json has it, merged. */
+/** The shards' coverage, each parsed by parseCoverage, merged. */
 export function mergeShards(shards) {
   const map = createCoverageMap({});
-  for (const path of new Set(shards.flatMap((shard) => Object.keys(shard)))) {
-    const reports = shards.map((shard) => shard[path]).filter(Boolean);
-    const kept = reports.some(ran) ? reports.filter(ran) : reports;
-    for (const report of kept) map.merge({ [path]: report });
-  }
+  for (const shard of shards) map.merge(shard);
   return map;
 }
 
@@ -45,7 +43,7 @@ export function shortfalls(map, root = "") {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const map = mergeShards(process.argv.slice(2).map((file) => JSON.parse(readFileSync(file, "utf8"))));
+  const map = mergeShards(process.argv.slice(2).map((file) => parseCoverage(readFileSync(file, "utf8"))));
   const short = shortfalls(map, process.cwd());
   const total = map.getCoverageSummary();
   for (const metric of METRICS) console.log(`${metric}: ${total[metric].covered}/${total[metric].total}`);

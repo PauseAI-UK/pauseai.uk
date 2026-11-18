@@ -33,11 +33,13 @@ start`), so it is slower. Use it only for what Vitest can't see:
 
 CI splits the tests between two jobs (Vitest's `--shard`), each writing its
 coverage with the thresholds off, and its Test job merges the two and fails
-on any file under 100% (`scripts/merge-coverage.mjs`). A shard reports a
-file its tests didn't load as all zeros, mapped as a Node module, which can
-differ from the browser's map of a component, so the merge drops that report
-when the other shard ran the file. Vitest's own `--merge-reports` keeps it,
-and fails a few components on statements a whole run covers.
+on any file under 100% (`scripts/merge-coverage.mjs`). The node and browser
+projects can map a statement to different ranges, and a range that runs to
+its line's end ends at column `Infinity`, which JSON writes as `null`. Merged
+as written, the two ranges stay apart, one never run, and a few components
+fail on statements a whole run covers; Vitest's own `--merge-reports` does
+the same. So the merge reads a `null` column as `Infinity`, and a range then
+takes the count of the one around it, as in a whole run.
 
 While writing tests, `npm run test:changed` is quicker. It:
 
