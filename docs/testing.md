@@ -1009,7 +1009,7 @@ that drives it or why nothing does.
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
   - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
-  - a text partly sent, its copies still to go counted apart: one held by WhatsApp, with when it's tried again, and one waiting its turn, made in the database as sending would leave them;
+  - a text partly sent, its copies still to go counted apart: one held by WhatsApp, with when it's tried again, and one waiting its turn, made in the database as sending would leave them; then, with only the held one left, paused, on its page and in the list;
   - an email sent by the sending job, by hello@'s Gmail, and a copy as the supporter gets it, with its unsubscribe link;
   - an email with more copies than hello@'s Gmail can send today: some sent and the rest tomorrow, then stopped three days after its time, with the email saying so, and set going again by Resume sending;
   - one waiting for CiviCRM, with the email saying so and its page;
@@ -1019,6 +1019,7 @@ that drives it or why nothing does.
   - one to the newsletter's and events' yeses both, ticked as about our events;
   - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
   - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
+  - a reaction to a text by WhatsApp's webhook, as a bubble quoting the text, then taken back, and a photo kept as its caption;
   - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;
   - our answer to a text that WhatsApp's webhook says failed, why under its bubble, and their reply back to check;
   - Stop pressed in WhatsApp, on the copy and the supporter's page.
@@ -1140,7 +1141,7 @@ that drives it or why nothing does.
 - `/api/backup/messages`: Not driven: it's for the backup's container, and shows nothing. Vitest-tested.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
-- `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, our answer delivered, read and failed, and Stop pressed. Its check of the callback URL is Vitest-tested.
+- `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, a reaction made and taken back, a photo, our answer delivered, read and failed, and Stop pressed. Its check of the callback URL is Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `supporters.spec.ts`), and the redelivery that changes nothing.
 - `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `staff-login.spec.ts`).
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.

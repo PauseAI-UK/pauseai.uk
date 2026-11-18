@@ -4,3 +4,10 @@
   flex-wrap: wrap;
   gap: var(--space-1);
 }
+
+/* On their own page: a little larger, taller more than wider, as the band's facts have little width to spare
+   before its counts go under them. */
+.large {
+  --tag-font-size: 13px;
+  --tag-padding: 2px 6px;
+}

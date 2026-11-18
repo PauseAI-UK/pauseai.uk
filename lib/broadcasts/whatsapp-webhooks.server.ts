@@ -16,6 +16,7 @@ import { problem } from "@/lib/server/problems.server";
 import { numberOf, recordWhatsAppResume, recordWhatsAppStop, stoppedTopics } from "./whatsapp-stops.server";
 import { markUnreachable, WHATSAPP_ERRORS } from "./whatsapp-texts.server";
 import { applyTemplateStatus } from "./whatsapp-templates.server";
+import { keptInWords, messageWords, type WhatsAppMessage } from "./whatsapp-messages";
 import { broadcastsCopy } from "./copy";
 
 // What WhatsApp's webhook tells us (app/api/whatsapp/route.ts), each change
@@ -36,16 +37,7 @@ type Status = {
   errors?: { code?: number; title?: string }[];
 };
 
-type Message = {
-  id: string;
-  from: string;
-  timestamp: string;
-  type: string;
-  text?: { body?: string };
-  /** A button pressed on a template that has one, such as one made in WhatsApp Manager: a reply. */
-  button?: { text?: string; payload?: string };
-  context?: { id?: string };
-};
+type Message = WhatsAppMessage;
 
 type Preference = { wa_id: string; category?: string; value?: string; timestamp?: string | number };
 
@@ -179,14 +171,9 @@ async function copyAnswered(number: string, quoted: string | undefined): Promise
   return copy?.id;
 }
 
-/** A message's words, or what it is when it has none, such as a photo. */
-function wordsOf(message: Message): string {
-  return message.text?.body ?? message.button?.text ?? broadcastsCopy.broadcastPages.replies.notWords(message.type);
-}
-
 /** Whether a message asks to stop: its words say so, whatever their case. */
 function asksToStop(message: Message): boolean {
-  const words = wordsOf(message).trim().toLowerCase();
+  const words = (message.text?.body ?? "").trim().toLowerCase();
   return message.type === "text" && STOP_WORDS.includes(words);
 }
 
@@ -199,7 +186,7 @@ async function keepStop(copyId: number, number: string, message: Message, at: Da
     `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic,
        outcome, dealt_by, dealt_at)
      VALUES ($1, $2, $3, '', $4, $5, false, 'opted-out', $6, $2) RETURNING id::int AS id`,
-    [copyId, at, number, message.id, wordsOf(message), SITE_ACTOR],
+    [copyId, at, number, message.id, message.text!.body, SITE_ACTOR],
   );
   return id;
 }
@@ -235,15 +222,34 @@ async function answerStop(number: string, topics: Topic[], replyId?: number): Pr
 }
 
 /**
+ * A reaction taken back: theirs to that message of ours, not yet removed,
+ * is from then on. Says whether there was one.
+ */
+async function removeReaction(number: string, to: string | null, at: Date): Promise<boolean> {
+  const removed = await query(
+    `UPDATE broadcast_replies SET removed_at = $3
+     WHERE kind = 'reaction' AND from_address = $1 AND reaction_to = $2 AND removed_at IS NULL RETURNING id`,
+    [number, to, at],
+  );
+  return removed.length > 0;
+}
+
+/**
  * A message someone sent us: a stop, if it asks to, the first time kept as
  * a reply to the copy it answers, if any, and answered; else a reply to the
- * copy it answers, kept once, for staff; else, as it answers no text,
- * emailed to staff.
+ * copy it answers, kept once, for staff, with its kind where it's more than
+ * words; else, as it answers no text, emailed to staff. A reaction answers
+ * the message it's to, and is a reply as any other, its emoji its words:
+ * one in place of another of theirs to the same message removes that one,
+ * and one taken back, which has no emoji, is only marked removed.
  */
 async function applyMessage(message: Message): Promise<boolean> {
   const number = numberOf(message.from);
   const at = timeOf(message.timestamp);
-  const copyId = await copyAnswered(number, message.context?.id);
+  const reactionTo = message.type === "reaction" ? (message.reaction?.message_id ?? null) : null;
+  const kept = messageWords(message);
+  if (message.type === "reaction" && !kept.body) return removeReaction(number, reactionTo, at);
+  const copyId = await copyAnswered(number, reactionTo ?? message.context?.id);
   if (asksToStop(message)) {
     const recorded = await recordWhatsAppStop(number, "reply", message.id, at, copyId);
     if (recorded) {
@@ -254,17 +260,27 @@ async function applyMessage(message: Message): Promise<boolean> {
   }
   if (!copyId) {
     const email = broadcastsCopy.notifications.whatsAppMessage;
-    await notifyStaff(email.subject(number), email.body(number, wordsOf(message)), null, "staff-alert");
+    await notifyStaff(email.subject(number), email.body(number, keptInWords(kept)), null, "staff-alert");
     return true;
   }
   return transaction(async (db) => {
-    const kept = await query(
-      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
-       VALUES ($1, $2, $3, '', $4, $5, false) ON CONFLICT (provider_message_id) DO NOTHING RETURNING id`,
-      [copyId, at, number, message.id, wordsOf(message)],
+    const added = await query(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic,
+         kind, reaction_to)
+       VALUES ($1, $2, $3, '', $4, $5, false, $6, $7) ON CONFLICT (provider_message_id) DO NOTHING RETURNING id::int AS id`,
+      [copyId, at, number, message.id, kept.body, kept.kind, reactionTo],
       db,
     );
-    if (kept.length === 0) return false;
+    if (added.length === 0) return false;
+    if (reactionTo) {
+      // Their reaction to a message is one emoji: this one is in place of any before it.
+      await query(
+        `UPDATE broadcast_replies SET removed_at = $4
+         WHERE kind = 'reaction' AND from_address = $1 AND reaction_to = $2 AND removed_at IS NULL AND id <> $3`,
+        [number, reactionTo, added[0].id, at],
+        db,
+      );
+    }
     await query(
       "INSERT INTO broadcast_message_events (message_id, kind, at) VALUES ($1, 'replied', $2)",
       [copyId, at],

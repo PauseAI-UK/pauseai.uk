@@ -47,6 +47,13 @@ export type OverviewLook<T extends MailingBase> = {
   from?: (mailing: T) => string | undefined;
   /** Where one stands, as a sentence after a dot in its colour, where it has more to say than a mailing does. */
   sentence?: (mailing: T) => Sentence | undefined;
+  /**
+   * For one with nothing going out for now, though it's sending or past its
+   * time: the word for that, over what it waits for or till when, in place of
+   * how long till it goes, or that it's sending now, over when. Its bar is
+   * grey, as nothing is going.
+   */
+  paused?: (mailing: T) => { word: string; till: string } | undefined;
   /** Every count shows, none folded behind how many are fine: a mailing's replies and answers are what staff look for. */
   unfolded?: boolean;
 };
@@ -76,10 +83,29 @@ const MAILINGS_LOOK: OverviewLook<MailingSummary> = {
 /**
  * When, at a row's left: when a draft was last saved; how long till one
  * scheduled goes, or that one is sending now, in blue, as it's going out,
- * over when; the day one went, with its year when that's not `year`.
+ * over when; for one `paused`, that, in amber, as it's waiting, over what
+ * for; the day one went, with its year when that's not `year`.
  */
-function When({ mailing, year, now }: { mailing: MailingBase; year: string; now: Date }) {
+function When({
+  mailing,
+  year,
+  now,
+  paused,
+}: {
+  mailing: MailingBase;
+  year: string;
+  now: Date;
+  paused?: { word: string; till: string };
+}) {
   if (mailing.state === "draft") return <Muted>{copy.savedAt(staffDate(mailing.updatedAt))}</Muted>;
+  if (paused) {
+    return (
+      <span className={styles.dueIn}>
+        <strong className={styles.paused}>{paused.word}</strong>
+        <span>{paused.till}</span>
+      </span>
+    );
+  }
   if (mailing.state === "scheduled" || mailing.state === "sending") {
     return (
       <span className={styles.dueIn}>
@@ -97,17 +123,32 @@ function When({ mailing, year, now }: { mailing: MailingBase; year: string; now:
 /**
  * How it stands, at a row's right: its sentence after its dot; while
  * sending, the sentence over the bar of how far it's got, no dot, as the bar
- * says it, the bar leading to it; and once any went, its counts: every one,
- * where the look says so, or what needs a look, the rest folded behind how
- * many are fine.
+ * says it, the bar leading to it, grey while it's `paused`; and once any
+ * went, its counts: every one, where the look says so, or what needs a
+ * look, the rest folded behind how many are fine.
  */
-function Standing<T extends MailingBase>({ mailing, href, look }: { mailing: T; href: string; look: OverviewLook<T> }) {
+function Standing<T extends MailingBase>({
+  mailing,
+  href,
+  look,
+  paused,
+}: {
+  mailing: T;
+  href: string;
+  look: OverviewLook<T>;
+  paused: boolean;
+}) {
   const { tone, text } = look.sentence?.(mailing) ?? mailingSentence(mailing);
   return (
     <span className={styles.stands}>
       {mailing.state === "sending" ? (
         <StaffLink href={href} className={styles.bar}>
-          <Progress value={mailing.sent + mailing.failed} max={mailing.to} tone="blue" label={copy.sentLabel}>
+          <Progress
+            value={mailing.sent + mailing.failed}
+            max={mailing.to}
+            tone={paused ? "grey" : "blue"}
+            label={copy.sentLabel}
+          >
             <span className={styles.sentence}>{text}</span>
           </Progress>
         </StaffLink>
@@ -161,10 +202,11 @@ function Row<T extends MailingBase>({
       : named(mailing.fromName === mailing.sentFrom ? null : mailing.fromName, mailing.sentFrom));
   // Mostly the policy inbox, so also who wrote it, where the look has no From of its own.
   const by = !look.from && mailing.createdBy ? copy.by(staffMemberText(mailing.createdBy)) : null;
+  const paused = look.paused?.(mailing);
   return (
     <li className={styles.row} data-pulse={pulse || undefined}>
       <span className={styles.when}>
-        <When mailing={mailing} year={year} now={now} />
+        <When mailing={mailing} year={year} now={now} paused={paused} />
       </span>
       <span className={styles.what}>
         {/* A list with a mark has it before each title, as an icon is before words (IconText). */}
@@ -197,7 +239,7 @@ function Row<T extends MailingBase>({
         </Muted>
       </span>
       <span className={styles.standing}>
-        <Standing mailing={mailing} href={href} look={look} />
+        <Standing mailing={mailing} href={href} look={look} paused={Boolean(paused)} />
       </span>
     </li>
   );

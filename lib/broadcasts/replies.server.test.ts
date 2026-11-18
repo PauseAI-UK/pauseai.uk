@@ -241,9 +241,32 @@ describeWithDatabase("replies to texts", () => {
       (await query<{ copy: number }>("SELECT message_id::int AS copy FROM broadcast_replies WHERE id = $1", [id]))[0]
         .copy;
     expect(await repliesTo(await copyOf(recent))).toMatchObject([
-      { id: recent, text: "Please stop", answerable: true },
+      { id: recent, text: "Please stop", answerable: true, kind: null, reactionTo: null, removedAt: null },
     ]);
     expect(await repliesTo(await copyOf(old))).toMatchObject([{ id: old, text: "Please stop", answerable: false }]);
+  });
+
+  it("gives a text's reply that's more than words its kind, and a reaction what it's to and when it was removed", async () => {
+    const id = await textReply("1 hour");
+    const removed = new Date("2026-11-07T08:06:00Z");
+    await query(
+      "UPDATE broadcast_replies SET kind = 'reaction', body = '👍', reaction_to = 'wamid.out-1', removed_at = $2 WHERE id = $1",
+      [id, removed],
+    );
+    const [{ copy }] = await query<{ copy: number }>(
+      "SELECT message_id::int AS copy FROM broadcast_replies WHERE id = $1",
+      [id],
+    );
+    expect(await repliesTo(copy)).toMatchObject([
+      { id, text: "👍", kind: "reaction", reactionTo: "wamid.out-1", removedAt: removed },
+    ]);
+    // Only a reaction is to a message, or removed.
+    await expect(query("UPDATE broadcast_replies SET kind = 'image' WHERE id = $1", [id])).rejects.toThrow(
+      /broadcast_replies_reaction/,
+    );
+    await expect(query("UPDATE broadcast_replies SET kind = NULL WHERE id = $1", [id])).rejects.toThrow(
+      /broadcast_replies_reaction/,
+    );
   });
 
   it("records a text's reply as a stop of texts: of what it went under, or of every text", async () => {

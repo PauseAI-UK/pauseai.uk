@@ -238,7 +238,6 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   waitReason: null,
   waitSaid: null,
   gaveUp: false,
-  restingUntil: null,
 };
 
 /** A draft text with nothing chosen. */
@@ -296,6 +295,7 @@ const summary: BroadcastSummary = {
     held: 0,
     "to-go": 0,
   },
+  pause: null,
 };
 
 /** A broadcast as the list has it. */
@@ -309,7 +309,6 @@ export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" 
   choices: exampleSupporterChoices,
   parts: Object.fromEntries(exampleParts.map((part) => [part.id, part.label])),
   tab: "all",
-  atLimit: false,
   recipientsTotal: 5,
   page: 1,
   pages: 1,
@@ -426,6 +425,9 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtAt: null,
     doNotEmail: false,
     answerable: true,
+    kind: null,
+    reactionTo: null,
+    removedAt: null,
   },
   {
     id: 2,
@@ -440,6 +442,9 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtAt: new Date("2026-11-07T10:00:00Z"),
     doNotEmail: false,
     answerable: true,
+    kind: null,
+    reactionTo: null,
+    removedAt: null,
   },
   {
     id: 4,
@@ -454,6 +459,9 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtAt: new Date("2026-11-07T10:05:00Z"),
     doNotEmail: false,
     answerable: true,
+    kind: null,
+    reactionTo: null,
+    removedAt: null,
   },
   {
     id: 1,
@@ -468,6 +476,9 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtAt: null,
     doNotEmail: false,
     answerable: true,
+    kind: null,
+    reactionTo: null,
+    removedAt: null,
   },
 ];
 
@@ -508,6 +519,9 @@ export const exampleTextReplies: BroadcastReply[] = [
     dealtAt: new Date("2026-11-07T07:45:00Z"),
     doNotEmail: false,
     answerable: true,
+    kind: null,
+    reactionTo: null,
+    removedAt: null,
   },
   {
     id: 12,
@@ -522,6 +536,9 @@ export const exampleTextReplies: BroadcastReply[] = [
     dealtAt: null,
     doNotEmail: false,
     answerable: true,
+    kind: null,
+    reactionTo: null,
+    removedAt: null,
   },
 ];
 
@@ -542,6 +559,92 @@ export const exampleTextAnswers: BroadcastAnswer[] = [
       { at: new Date("2026-11-07T07:50:00Z"), kind: "read", details: {} },
       { at: new Date("2026-11-07T07:46:00Z"), kind: "delivered", details: {} },
     ],
+  },
+];
+
+/**
+ * Replies to a text that are more than words, oldest first: a thumbs up to
+ * the broadcast, which Jane then took back; a heart to Jo's answer
+ * (exampleTextAnswers); a reaction from before emojis were kept; a photo
+ * with a caption; a place; a voice note; and a kind with no name here.
+ */
+export const exampleTextKinds: BroadcastReply[] = [
+  {
+    ...exampleTextReplies[1],
+    id: 21,
+    providerId: "wamid.example-21",
+    receivedAt: new Date("2026-11-07T08:05:00Z"),
+    text: "👍",
+    kind: "reaction",
+    reactionTo: exampleMessageCopy.providerId,
+    removedAt: new Date("2026-11-07T08:06:00Z"),
+    outcome: "nothing",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T08:30:00Z"),
+  },
+  {
+    ...exampleTextReplies[1],
+    id: 22,
+    providerId: "wamid.example-22",
+    receivedAt: new Date("2026-11-07T08:07:00Z"),
+    text: "❤️",
+    kind: "reaction",
+    reactionTo: exampleTextAnswers[0].providerId,
+    outcome: "nothing",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T08:30:00Z"),
+  },
+  {
+    ...exampleTextReplies[1],
+    id: 23,
+    providerId: "wamid.example-23",
+    receivedAt: new Date("2026-11-07T08:08:00Z"),
+    text: null,
+    kind: "reaction",
+    outcome: "nothing",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T08:30:00Z"),
+  },
+  {
+    ...exampleTextReplies[1],
+    id: 24,
+    providerId: "wamid.example-24",
+    receivedAt: new Date("2026-11-07T08:10:00Z"),
+    text: "Our banner from last time",
+    kind: "image",
+    outcome: "nothing",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T08:30:00Z"),
+  },
+  {
+    ...exampleTextReplies[1],
+    id: 25,
+    providerId: "wamid.example-25",
+    receivedAt: new Date("2026-11-07T08:12:00Z"),
+    text: "Parliament Square\nLondon SW1P 3JX\nhttps://www.google.com/maps/search/?api=1&query=51.5007,-0.1268",
+    kind: "location",
+    outcome: "nothing",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T08:30:00Z"),
+  },
+  {
+    ...exampleTextReplies[1],
+    id: 26,
+    providerId: "wamid.example-26",
+    receivedAt: new Date("2026-11-07T08:14:00Z"),
+    text: null,
+    kind: "voice",
+    outcome: "nothing",
+    dealtBy: "jo@pauseai.uk",
+    dealtAt: new Date("2026-11-07T08:30:00Z"),
+  },
+  {
+    ...exampleTextReplies[1],
+    id: 27,
+    providerId: "wamid.example-27",
+    receivedAt: new Date("2026-11-07T08:16:00Z"),
+    text: null,
+    kind: "poll",
   },
 ];
 

@@ -3,7 +3,7 @@
 // broadcasts, the problems of sending them and of WhatsApp, and the emails
 // to staff about them. The staff pages read them here too, as they have no
 // words of their own.
-import { count } from "@/lib/content/plural";
+import { count, plural } from "@/lib/content/plural";
 import { mailingsCopy } from "@/lib/mailings/copy";
 import { daysInWords, FAILURES_TO_STOP, LOST_MINUTES, SENDING_DAYS, WAIT_DAYS } from "./days";
 
@@ -277,8 +277,27 @@ export const broadcastsCopy = {
       undelivered: (why: string | null) =>
         why ? `WhatsApp couldn't deliver this: ${why}` : "WhatsApp couldn't deliver this",
       noText: "No text to show. Open it in Gmail.",
-      // A reply to a text with no words, such as a photo or a voice note, which only WhatsApp shows: what it is.
-      notWords: (type: string) => `[A ${type} message, which only the WhatsApp app shows]`,
+      // A reply to a text that's more than words, in grey over whatever words it came with, such as a photo's
+      // caption: what it is. Its file isn't kept, so the site can't show that; a place and a contact card are
+      // kept whole.
+      kinds: {
+        image: "A photo, which this site can't show",
+        video: "A video, which this site can't show",
+        document: "A document, which this site can't show",
+        audio: "An audio file, which this site can't show",
+        voice: "A voice note, which this site can't show",
+        sticker: "A sticker, which this site can't show",
+        location: "A location they shared",
+        contacts: "A contact card they shared",
+      } as Record<string, string>,
+      // Any other kind, by WhatsApp's name for it.
+      kindOther: (type: string) => `A message of a kind this site can't show (${type})`,
+      // A reaction to one of our messages: over its emoji, the start of the message it's to; under it, that it's
+      // a reaction; one from before emojis were kept; and, on a line under that, when they took it back, or put
+      // another in its place.
+      reacted: "Reacted",
+      reactedNotKept: "A reaction, emoji lost",
+      reactionRemoved: (when: string) => `Removed reaction · ${when}`,
       // For a reply to a text: an opt-out of every text, in place of all bulk email; how they told us.
       allTexts: "Every text",
       topicsText: (topics: string) => `${topics} (this text)`,
@@ -310,6 +329,22 @@ export const broadcastsCopy = {
     resting: (until: string) => `Paused, as sending failed. It will try again at ${until}.`,
     // On one sending by Gmail that can send no more today, under the bar that says how far it's got.
     moreTomorrow: "Gmail has reached today's limit. The rest will be sent tomorrow.",
+    // The same, for a text, our number having texted as many people as WhatsApp lets it in a day.
+    moreTomorrowText: "Our WhatsApp number has reached today's limit. The rest will be sent tomorrow.",
+    // On one sending whose only texts left are those WhatsApp held: how many, when the first is next tried, and
+    // the day it stops if they still haven't gone.
+    heldLeft: (n: number, next: string, stops: string) =>
+      `WhatsApp has delayed ${plural(n, "the last text", `the last ${n} texts`)}, as ${plural(n, "that person has", "those people have")} had too many marketing messages from businesses recently. It will try again on ${next}, and give up on ${stops}.`,
+    // One with nothing going out for now, though it's sending or past its time (SendingPause), in a few words. In
+    // the list, in place of "Sending now" over when it went: the word, over what it waits for or till when. And
+    // over its bar, in the list and on its page, in place of "Sending:".
+    paused: {
+      word: "Waiting",
+      forCiviCrm: "for CiviCRM",
+      till: (when: string) => `till ${when}`,
+      tillTomorrow: "till tomorrow",
+      bar: (n: number, of: number) => `Waiting: ${n} of ${of} sent`,
+    },
     recipientsTitle: "Recipients",
     recipientsCount: (n: number) => count(n, "recipient", "recipients"),
     noRecipients: "No recipients here.",

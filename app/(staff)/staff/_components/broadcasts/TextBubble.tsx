@@ -45,7 +45,7 @@ export function ChatBubble({
   children,
 }: {
   who: string;
-  when: string;
+  when: ReactNode;
   ours?: boolean;
   receipt?: Receipt;
   children: ReactNode;

@@ -1100,6 +1100,23 @@ describe("Band", () => {
   // Where a fact's words are on the page.
   const box = (text: string) => page.getByText(text, { exact: true }).element().getBoundingClientRect();
 
+  it("puts a fact's value that isn't words level with the words of the value beside it", async () => {
+    await render(
+      <Band title="A supporter">
+        <BandFact label="Place" detail="from their postcode">
+          Manchester
+        </BandFact>
+        <BandFact label="Activities" level>
+          <span style={{ display: "block", fontSize: "12px", lineHeight: "14px" }}>lozenges</span>
+        </BandFact>
+      </Band>,
+    );
+    // Their middles level, the lozenges above the line under the value beside them.
+    const middle = (text: string) => (box(text).top + box(text).bottom) / 2;
+    expect(Math.abs(middle("lozenges") - middle("Manchester"))).toBeLessThan(1);
+    expect(box("lozenges").bottom).toBeLessThan(box("from their postcode").top);
+  });
+
   it("under 70rem wide, has what's aside beside the facts if they fit, and under them at the right if not", async () => {
     const band = (to: string) => (
       <div style={{ width: "40rem" }}>

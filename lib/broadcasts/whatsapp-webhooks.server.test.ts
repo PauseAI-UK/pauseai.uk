@@ -182,9 +182,83 @@ describeWithDatabase("WhatsApp's webhook", () => {
     expect((await copyOf(quoted)).events).toEqual([{ kind: "replied", details: {} }]);
     await query("UPDATE broadcast_messages SET sent_at = now() - interval '1 day' WHERE id = $1", [quoted]);
     const newest = await sentCopy("wamid.out-2");
-    expect(await recordWhatsAppWebhook(message({ id: "wamid.in-2", type: "image" }))).toBe(1);
-    expect(await query("SELECT body FROM broadcast_replies WHERE message_id = $1", [newest])).toEqual([
-      { body: broadcastsCopy.broadcastPages.replies.notWords("image") },
+    // One that's more than words is kept as its kind, with the words it came with.
+    expect(
+      await recordWhatsAppWebhook(message({ id: "wamid.in-2", type: "image", image: { caption: "Our banner" } })),
+    ).toBe(1);
+    expect(await query("SELECT kind, body FROM broadcast_replies WHERE message_id = $1", [newest])).toEqual([
+      { kind: "image", body: "Our banner" },
+    ]);
+    // One with no words at all, a voice note, is kept as its kind alone.
+    expect(await recordWhatsAppWebhook(message({ id: "wamid.in-3", type: "audio", audio: { voice: true } }))).toBe(1);
+    expect(await query("SELECT kind, body FROM broadcast_replies WHERE provider_message_id = 'wamid.in-3'")).toEqual([
+      { kind: "voice", body: null },
+    ]);
+  });
+
+  /** The reactions kept, oldest first. */
+  const reactions = () =>
+    query(
+      `SELECT message_id::int AS copy, body, reaction_to AS to, removed_at AS removed, outcome
+       FROM broadcast_replies WHERE kind = 'reaction' ORDER BY id`,
+    );
+  /** A reaction to our message `to`, with `emoji`, or none for one taken back. */
+  const reaction = (id: string, to: string, emoji?: string, seconds = SECONDS) =>
+    message({ id, type: "reaction", timestamp: seconds, reaction: { message_id: to, ...(emoji && { emoji }) } });
+
+  it("keeps a reaction, once, as a reply to the text it's to, not the newest, its emoji its words", async () => {
+    const reacted = await sentCopy("wamid.out-1");
+    await sentCopy("wamid.out-2");
+    expect(await recordWhatsAppWebhook(reaction("wamid.in-1", "wamid.out-1", "👍"))).toBe(1);
+    expect(await recordWhatsAppWebhook(reaction("wamid.in-1", "wamid.out-1", "👍"))).toBe(0);
+    expect(await reactions()).toEqual([{ copy: reacted, body: "👍", to: "wamid.out-1", removed: null, outcome: null }]);
+    // A reply as any other: in the copy's history, and waiting for staff.
+    expect((await copyOf(reacted)).events).toEqual([{ kind: "replied", details: {} }]);
+  });
+
+  it("marks a reaction removed when they take it back, or put another in its place, which is kept too", async () => {
+    const copy = await sentCopy("wamid.out-1");
+    const later = (minutes: number) => String(Number(SECONDS) + minutes * 60);
+    const at = (minutes: number) => new Date(AT.getTime() + minutes * 60 * 1000);
+    await recordWhatsAppWebhook(reaction("wamid.in-1", "wamid.out-1", "👍"));
+    // Another in its place: the first is removed from then.
+    expect(await recordWhatsAppWebhook(reaction("wamid.in-2", "wamid.out-1", "❤️", later(1)))).toBe(1);
+    expect(await reactions()).toMatchObject([
+      { copy, body: "👍", removed: at(1) },
+      { copy, body: "❤️", removed: null },
+    ]);
+    // Taken back, which has no emoji: marked removed, once, and nothing new kept.
+    expect(await recordWhatsAppWebhook(reaction("wamid.in-3", "wamid.out-1", undefined, later(2)))).toBe(1);
+    expect(await recordWhatsAppWebhook(reaction("wamid.in-3", "wamid.out-1", undefined, later(2)))).toBe(0);
+    expect(await reactions()).toMatchObject([
+      { body: "👍", removed: at(1) },
+      { body: "❤️", removed: at(2) },
+    ]);
+    // One taken back that was never kept, or that names no message, changes nothing.
+    expect(await recordWhatsAppWebhook(reaction("wamid.in-4", "wamid.unknown"))).toBe(0);
+    expect(await recordWhatsAppWebhook(message({ id: "wamid.in-5", type: "reaction" }))).toBe(0);
+    expect(await reactions()).toHaveLength(2);
+  });
+
+  it("keeps a reaction to our answer under the text the answer's reply was to, and one to no message of ours under the newest", async () => {
+    const copy = await sentCopy();
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+       VALUES ($1, now(), '+447700900123', '', 'wamid.in-0', 'When is it?', false) RETURNING id::int AS reply`,
+      [copy],
+    );
+    await query(
+      `INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, sent_at, provider_message_id)
+       VALUES ($1, gen_random_uuid(), 'jo@pauseai.uk', '{}', 'sent', now(), 'wamid.answer')`,
+      [reply],
+    );
+    await query("UPDATE broadcast_messages SET sent_at = now() - interval '1 day' WHERE id = $1", [copy]);
+    const newest = await sentCopy("wamid.out-2");
+    await recordWhatsAppWebhook(reaction("wamid.in-1", "wamid.answer", "🙏"));
+    await recordWhatsAppWebhook(reaction("wamid.in-2", "wamid.gone", "👀"));
+    expect(await reactions()).toMatchObject([
+      { copy, body: "🙏", to: "wamid.answer" },
+      { copy: newest, body: "👀", to: "wamid.gone" },
     ]);
   });
 
@@ -369,6 +443,21 @@ describeWithDatabase("WhatsApp's webhook", () => {
         Subject: broadcastsCopy.notifications.whatsAppMessage.subject("+447700900999"),
         TextBody: expect.stringContaining("Hello, is this PauseAI?"),
       }),
+    ]);
+  });
+
+  it("emails staff one that's more than words as what it was, then its words", async () => {
+    const replies = broadcastsCopy.broadcastPages.replies;
+    await recordWhatsAppWebhook(message({ type: "image", image: { caption: "Our banner" } }, "447700900999"));
+    await recordWhatsAppWebhook(
+      message(
+        { id: "wamid.in-2", type: "reaction", reaction: { message_id: "wamid.gone", emoji: "👍" } },
+        "447700900999",
+      ),
+    );
+    expect(sent.map((email) => email.TextBody)).toEqual([
+      expect.stringContaining(`${replies.kinds.image}\nOur banner`),
+      expect.stringContaining(`${replies.reacted}\n👍`),
     ]);
   });
 

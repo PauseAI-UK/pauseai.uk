@@ -150,3 +150,11 @@
   font-size: var(--text-xs);
   font-weight: 400;
 }
+
+/* A fact whose value isn't words, such as lozenges: on the line the facts beside it have their values on, its
+   middle level with the middle of their words. */
+.level dd {
+  display: flex;
+  align-items: center;
+  min-height: 1lh;
+}

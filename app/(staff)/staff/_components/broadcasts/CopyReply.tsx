@@ -17,7 +17,10 @@ import { MailingLetter } from "../mailings/MailingLetter";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";
-import { SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
+import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
+import { kindWords } from "@/lib/broadcasts/whatsapp-messages";
+import { toText } from "@/lib/letters/format";
+import { letterFor } from "@/lib/mailings/doc";
 import styles from "./MessageCopyView.module.css";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { receiptOf } from "@/lib/broadcasts/receipts";
@@ -31,6 +34,16 @@ const sender = (reply: BroadcastReply, one: MessageCopy) => {
   if (one.channel === "text") return name || phoneWords(reply.from);
   return named(name, reply.from);
 };
+
+/**
+ * The words of the message of ours a reaction is to, for the bubble to
+ * quote the start of: our answer WhatsApp calls that, or else the
+ * broadcast's own text.
+ */
+function reactedTo(reply: BroadcastReply, one: MessageCopy): string {
+  const answer = one.answers.find((each) => each.providerId !== null && each.providerId === reply.reactionTo);
+  return toText(answer ? answer.body : letterFor(one.body, one.merge ?? FIELDS_AS_WORDS));
+}
 
 /**
  * Our answer to a reply, in the thread after it: who sent it, or that it may
@@ -110,11 +123,38 @@ export default function Reply({
   const when = reply.dealtAt && staffTime(reply.dealtAt);
   const text = one.channel === "text";
   const ours = text ? TEXT_SENDER_NAME : named(one.fromName, one.sentFrom);
-  // A text's words as WhatsApp shows them, each web address a link.
-  const words = reply.text ? (
-    <p className={styles.text}>{text ? <LinkedText text={reply.text} /> : reply.text}</p>
+  const reaction = reply.kind === "reaction";
+  const kind = kindWords(reply.kind);
+  // A text's words as WhatsApp shows them, each web address a link; a reaction's, its emoji, large.
+  const said = reply.text && (
+    <p className={reaction ? styles.emoji : styles.text}>{text ? <LinkedText text={reply.text} /> : reply.text}</p>
+  );
+  // What they sent: for a reaction, the start of our message it's to, then its emoji; for any other that's more
+  // than words, what it was, over the words it came with; else its words.
+  const words = reaction ? (
+    <>
+      <span className={styles.quote}>{reactedTo(reply, one)}</span>
+      {said}
+    </>
+  ) : kind ? (
+    <>
+      <span className={styles.kind}>{kind}</span>
+      {said}
+    </>
   ) : (
-    <Muted>{copy.replies.noText}</Muted>
+    said || <Muted>{copy.replies.noText}</Muted>
+  );
+  // Under a reaction, that it is one, before when; then, on a line under that, when they took it back, if they did.
+  const reacted = reaction ? `${reply.text ? copy.replies.reacted : copy.replies.reactedNotKept} · ` : "";
+  const came = `${reacted}${staffTime(reply.receivedAt)}`;
+  const cameAndWent = reply.removedAt ? (
+    <>
+      {came}
+      <br />
+      {copy.replies.reactionRemoved(staffTime(reply.removedAt))}
+    </>
+  ) : (
+    came
   );
   // What it was recorded as, but answered, which our answer after it says.
   const recorded = reply.outcome && reply.outcome !== "answered" && (
@@ -167,7 +207,7 @@ export default function Reply({
     return (
       <div className={styles.textReply}>
         <ChatWall>
-          <ChatBubble who={sender(reply, one)} when={staffTime(reply.receivedAt)}>
+          <ChatBubble who={sender(reply, one)} when={cameAndWent}>
             {words}
           </ChatBubble>
         </ChatWall>

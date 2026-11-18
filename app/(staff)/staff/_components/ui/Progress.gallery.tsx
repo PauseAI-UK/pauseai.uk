@@ -9,7 +9,7 @@ export const progressGallery: Example[] = [
     file: "app/(staff)/staff/_components/ui/Progress.tsx",
     variants: [
       {
-        label: "Sending, in a list's row, and big, on a page; answers, in green",
+        label: "Sending, in a list's row, and big, on a page; paused, in grey; answers, in green",
         render: () => (
           <StaffPage as="div">
             <div style={{ display: "grid", gap: "24px", maxWidth: "40rem" }}>
@@ -18,6 +18,9 @@ export const progressGallery: Example[] = [
               </Progress>
               <Progress value={40} max={86} tone="blue" label="Sent" big>
                 Sending: 40 of 86 sent
+              </Progress>
+              <Progress value={480} max={500} tone="grey" label="Sent" big>
+                Waiting: 480 of 500 sent
               </Progress>
               <Progress value={14} max={127} tone="green" label="Answered the ask" big>
                 Sent: ✓ 14 of 127 answered the ask

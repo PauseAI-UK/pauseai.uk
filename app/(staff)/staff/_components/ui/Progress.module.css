@@ -45,6 +45,14 @@
   background: var(--status-green);
 }
 
+.grey::-webkit-progress-value {
+  background: var(--muted);
+}
+
+.grey::-moz-progress-bar {
+  background: var(--muted);
+}
+
 /* On a page of its own: bigger words and a thicker bar. */
 .big .words {
   font-size: var(--text-md);

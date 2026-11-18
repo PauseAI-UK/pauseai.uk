@@ -95,6 +95,16 @@ export type BroadcastReply = {
   subject: string;
   /** Its words, without the mail it quotes; null if it has none we can read. */
   text: string | null;
+  /**
+   * For a text's that's more than words, what kind of WhatsApp message it
+   * was (KeptWords in whatsapp-messages.ts); null for words alone. A
+   * reaction's words are its emoji; it's to the message of ours WhatsApp
+   * calls `reactionTo`, and they took it back, or put another in its place,
+   * at `removedAt`.
+   */
+  kind: string | null;
+  reactionTo: string | null;
+  removedAt: Date | null;
   automatic: boolean;
   /** What staff made of it, by whom and when; null while it waits, and for an automatic reply, which never does. */
   outcome: "opted-out" | "nothing" | "answered" | null;
@@ -114,7 +124,8 @@ export async function repliesTo(copyId: number): Promise<BroadcastReply[]> {
     Omit<BroadcastReply, "text" | "answerable"> & { blobKey: string | null; body: string | null }
   >(
     `SELECT id::int AS id, received_at AS "receivedAt", from_address AS from, subject, automatic, outcome,
-       dealt_by AS "dealtBy", dealt_at AS "dealtAt", blob_key AS "blobKey", body,
+       dealt_by AS "dealtBy", dealt_at AS "dealtAt", blob_key AS "blobKey", body, kind, reaction_to AS "reactionTo",
+       removed_at AS "removedAt",
        coalesce(provider_message_id, gmail_message_id) AS "providerId",
        EXISTS (SELECT 1 FROM contact_permission('newsletter', 'email', from_address) d WHERE d.reason = 'do-not-email')
          AS "doNotEmail"

@@ -1,3 +1,5 @@
+import { londonDayTime } from "./staff-time";
+
 // A staff list's parts that aren't drawn: which page numbers its paging
 // offers, its rows as a download, and the download's filename.
 
@@ -16,13 +18,17 @@ export type DownloadValue = string | number | boolean | Date | null;
 /**
  * One column of a list as a download: its key in JSON, its heading in CSV,
  * and each row's value. A column without `text`, such as a button, is left
- * out of downloads.
+ * out of downloads. One whose times the list shows as a day alone says so
+ * (`day`), and a CSV gives its day alone too.
  */
-export type DownloadColumn<Row> = { key: string; label: string; text?: (row: Row) => DownloadValue };
+export type DownloadColumn<Row> = { key: string; label: string; text?: (row: Row) => DownloadValue; day?: boolean };
+
+/** A column a download has: one with a value. */
+type Downloaded<Row> = DownloadColumn<Row> & { text: (row: Row) => DownloadValue };
 
 /** The columns a download has: those with a value. */
 function downloaded<Row>(columns: DownloadColumn<Row>[]) {
-  return columns.filter((c): c is Required<DownloadColumn<Row>> => Boolean(c.text));
+  return columns.filter((c): c is Downloaded<Row> => Boolean(c.text));
 }
 
 /**
@@ -37,14 +43,25 @@ export function pageRange(page: number, pages: number): (number | "gap")[] {
 }
 
 /**
+ * A time as a CSV has it, in London: "2026-11-18 10:23", or its `day`
+ * alone, "2026-11-18". A spreadsheet reads either as a date, and sorts by it.
+ */
+function csvTime(at: Date, day: boolean): string {
+  const london = londonDayTime(at);
+  const two = (n: number) => String(n).padStart(2, "0");
+  return day ? london.day : `${london.day} ${two(london.hour)}:${two(london.minute)}`;
+}
+
+/**
  * A CSV field: quoted when it holds a comma, a quote or a line break, its
  * quotes doubled. Text a spreadsheet would run as a formula (starting =, +,
  * -, @, a tab or a carriage return) starts with an apostrophe, so a name
  * someone typed can't
- * ([OWASP](https://owasp.org/www-community/attacks/CSV_Injection)).
+ * ([OWASP](https://owasp.org/www-community/attacks/CSV_Injection)). A time
+ * is written as csvTime does, its day alone for a column of days (`day`).
  */
-function csvField(value: DownloadValue): string {
-  const raw = value === null ? "" : String(value);
+function csvField(value: DownloadValue, day = false): string {
+  const raw = value === null ? "" : value instanceof Date ? csvTime(value, day) : String(value);
   const text = typeof value === "string" && /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
@@ -54,12 +71,12 @@ export function toCsv<Row>(all: DownloadColumn<Row>[], rows: Row[]): string {
   const columns = downloaded(all);
   const lines = [
     columns.map((c) => csvField(c.label)),
-    ...rows.map((row) => columns.map((c) => csvField(c.text(row)))),
+    ...rows.map((row) => columns.map((c) => csvField(c.text(row), c.day))),
   ];
   return lines.map((fields) => fields.join(",")).join("\r\n") + "\r\n";
 }
 
-/** Rows as a JSON array, each an object of its columns' values by key. */
+/** Rows as a JSON array, each an object of its columns' values by key, a time in full (ISO 8601). */
 export function toJson<Row>(all: DownloadColumn<Row>[], rows: Row[]): string {
   const columns = downloaded(all);
   return JSON.stringify(
