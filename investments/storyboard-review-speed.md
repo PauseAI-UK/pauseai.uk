@@ -24,6 +24,7 @@ In order of what each would save:
 2. Show the review as it fills: open the page at once, and add main's side as it arrives.
 3. Place a migration by the tables each flow uses, measured rather than read from the code. Each flow has a database of its own, so before it's dropped, `pg_stat_user_tables` in it says which tables the flow read or wrote, views' and functions' tables included; kept beside `opened`, a migration then reruns the flows that used what it alters, and every flow only for a collation or anything it can't place. Postgres keeps a connection's counts for up to a second or so before they show (https://www.postgresql.org/docs/current/monitoring-stats.html), so check none is missed before trusting it.
 4. An audit of the map that can be run again, after a change to how the site is built (a new Next, another bundler): the check below was made with scripts that weren't kept.
+5. Keep each flow's pages in the repo, so a checkout with no kept run near it chooses its flows in seconds, as CI could (`ci-speed.md`, "Each flow's pages, kept in the repo").
 
 ## Placing a migration by the code that names its tables
 
