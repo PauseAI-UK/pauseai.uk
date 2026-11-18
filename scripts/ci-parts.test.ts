@@ -41,16 +41,40 @@ describe("deal", () => {
 describe("TimedSequencer", () => {
   it("gives a shard the files dealt to it by Vitest's cached times", async () => {
     const durations: Record<string, number | undefined> = { slow: 60_000, a: 10_000, b: 10_000, c: undefined };
-    const files = Object.keys(durations).map((moduleId) => ({ moduleId, project: { name: "node" } }));
-    const ctx = (index: number) =>
-      ({
-        config: { shard: { index, count: 2 } },
-        cache: { getTestSpecificationResult: (spec: { moduleId: string }) => ({ duration: durations[spec.moduleId] }) },
-      }) as unknown as Vitest;
-    const shard = async (index: number) =>
-      (await new TimedSequencer(ctx(index)).shard(files as unknown as TestSpecification[])).map((s) => s.moduleId);
-    expect(await shard(1)).toEqual(["slow"]);
-    expect(await shard(2)).toEqual(["a", "b", "c"]);
+    const files = Object.keys(durations).map((name) => ({ moduleId: `/repo/${name}`, project: { name: "node" } }));
+    const shard = async (index: number, listed = files) => {
+      const ctx = {
+        config: { root: "/repo", shard: { index, count: 2 } },
+        cache: {
+          getTestSpecificationResult: (spec: { moduleId: string }) => ({
+            duration: durations[spec.moduleId.slice("/repo/".length)],
+          }),
+        },
+      } as unknown as Vitest;
+      const specs = await new TimedSequencer(ctx).shard(listed as unknown as TestSpecification[]);
+      return specs.map((spec) => spec.moduleId);
+    };
+    expect(await shard(1)).toEqual(["/repo/slow"]);
+    expect(await shard(2)).toEqual(["/repo/a", "/repo/b", "/repo/c"]);
+  });
+
+  it("deals the same parts on a machine that lists the files in another order, with no times", async () => {
+    const names = ["a", "b", "c", "d", "e", "f", "g"];
+    const files = names.map((name) => ({ moduleId: `/repo/${name}`, project: { name: "node" } }));
+    const parts = async (listed: typeof files) => {
+      const shard = async (index: number) => {
+        const ctx = {
+          config: { root: "/repo", shard: { index, count: 3 } },
+          cache: { getTestSpecificationResult: () => undefined },
+        } as unknown as Vitest;
+        const specs = await new TimedSequencer(ctx).shard(listed as unknown as TestSpecification[]);
+        return specs.map((spec) => spec.moduleId).sort();
+      };
+      return [await shard(1), await shard(2), await shard(3)];
+    };
+    const dealt = await parts(files);
+    expect(await parts([...files].reverse())).toEqual(dealt);
+    expect(dealt.flat().sort()).toEqual(files.map((file) => file.moduleId));
   });
 });
 

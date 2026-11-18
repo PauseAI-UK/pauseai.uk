@@ -58,13 +58,17 @@ export function deal(items, count) {
 /** Vitest's sequencer, sharding by the times in its results cache rather than by count. */
 export class TimedSequencer extends BaseSequencer {
   async shard(files) {
-    const { index, count } = this.ctx.config.shard;
-    const items = files.map((spec, i) => ({
-      key: String(i),
+    const { root, shard } = this.ctx.config;
+    const { index, count } = shard;
+    // By project and path, not by place in `files`: each part's machine lists
+    // the files in an order of its own, and every part must deal the same.
+    const byKey = new Map(files.map((spec) => [`${spec.project.name} ${relative(root, spec.moduleId)}`, spec]));
+    const items = [...byKey].map(([key, spec]) => ({
+      key,
       group: spec.project.name,
       ms: this.ctx.cache.getTestSpecificationResult(spec)?.duration,
     }));
-    return deal(items, count)[index - 1].map((key) => files[Number(key)]);
+    return deal(items, count)[index - 1].map((key) => byKey.get(key));
   }
 }
 
