@@ -51,7 +51,10 @@ const NoBlankLines = Extension.create({
   ],
 });
 
-/** Where, in `node` starting at `start`, two bullet lists touch: the position between each two, inner ones too. */
+/**
+ * Where, in `node` starting at `start`, two bullet lists touch: the
+ * position between each two, inner ones too, in the document's order.
+ */
 function touching(node: Node, start: number): number[] {
   const found: number[] = [];
   node.forEach((child, offset, i) => {
@@ -77,8 +80,9 @@ const JoinTouching = Extension.create({
         const joins = touching(state.doc, 0);
         if (!joins.length) return null;
         const tr = state.tr;
-        // From the last, so each join leaves the positions before it as they were.
-        for (const at of joins.sort((a, b) => b - a)) tr.join(at);
+        // From the last (touching gives them in the document's order), so each join leaves the positions before
+        // it as they were.
+        for (const at of joins.reverse()) tr.join(at);
         return tr;
       },
     }),

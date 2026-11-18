@@ -18,8 +18,11 @@ const HREF = "https://pauseai.uk/join";
 
 let current: Editor;
 
-/** A letter editor with the bubble under its links, and, once it's pressed, the words "Editing" for the link bar. */
-function Harness({ content }: { content: string }) {
+/**
+ * A letter editor, `above` pixels down the page, with the bubble under its
+ * links, and, once it's pressed, the words "Editing" for the link bar.
+ */
+function Harness({ content, above = 40 }: { content: string; above?: number }) {
   const editor = useEditor({
     extensions: letterExtensions,
     content,
@@ -30,7 +33,7 @@ function Harness({ content }: { content: string }) {
   const [editing, setEditing] = useState(false);
   if (!editor) return null;
   return (
-    <div style={{ height: "200vh", paddingTop: 40 }}>
+    <div style={{ minHeight: "200vh", paddingTop: above }}>
       {editing ? <p>Editing</p> : <LinkPeek editor={editor} words={WORDS} onEdit={() => setEditing(true)} />}
       <EditorContent editor={editor} />
       <button type="button">Elsewhere</button>
@@ -77,6 +80,21 @@ describe("LinkPeek", () => {
     await expect.element(peek()).toBeVisible();
     await userEvent.keyboard("!");
     await expect.element(peek()).not.toBeInTheDocument();
+  });
+
+  it("shows it over a link at the foot of the window, where there's no room under it", async () => {
+    await render(<Harness content={`<p>Top</p><p><a href="${HREF}">Join us</a></p>`} above={window.innerHeight} />);
+    await letter().getByText("Join us").click();
+    await expect.element(peek()).toBeVisible();
+    // Scrolled till the link's line is just above the window's foot, the bubble moves over it.
+    const at = letter().getByRole("link").element().getBoundingClientRect();
+    window.scrollBy(0, at.bottom - window.innerHeight + 8);
+    const over = () =>
+      peek().element().getBoundingClientRect().bottom <=
+      letter().getByRole("link").element().getBoundingClientRect().top;
+    await expect.poll(over).toBe(true);
+    expect(peek().element().getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    window.scrollTo(0, 0);
   });
 
   it("selects the whole link when pressed, keeping the letter's focus, and says to change it", async () => {

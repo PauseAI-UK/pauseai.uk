@@ -115,10 +115,17 @@ describe("LetterEditor", () => {
   });
 
   it("joins every two lists that touch at the next change, but not two quotes", async () => {
-    const { last } = await renderEditor([list("One"), list("Two"), p("Mid"), quote(p("Three")), quote(p("Four"))]);
+    const { last } = await renderEditor([
+      list("One"),
+      list("Two"),
+      list("Three"),
+      p("Mid"),
+      quote(p("Four")),
+      quote(p("Five")),
+    ]);
     await cursorAt("Mid", true);
     await userEvent.keyboard("!");
-    expect(last().content).toEqual([list("One", "Two"), p("Mid!"), quote(p("Three")), quote(p("Four"))]);
+    expect(last().content).toEqual([list("One", "Two", "Three"), p("Mid!"), quote(p("Four")), quote(p("Five"))]);
   });
 
   it("shows where a link goes under it, and opens the link bar from there", async () => {
