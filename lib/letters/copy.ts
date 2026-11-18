@@ -289,7 +289,7 @@ export const lettersCopy = {
       // A broadcast's copy whose turn hasn't come yet, or that's being sent.
       "to-go": "queued",
       // A broadcast's copy Postmark took and has said nothing of since (LOST_MINUTES).
-      lost: "⁂ lost",
+      lost: "lost",
     } as Record<string, string>,
     tabs: {
       sent: "Sent",
@@ -305,7 +305,7 @@ export const lettersCopy = {
       "not-sent": "Not sent",
       held: "Delayed, they're at WhatsApp's marketing limit",
       "to-go": "Queued",
-      lost: "⁂ Lost: Postmark took them and has said nothing since",
+      lost: "Lost: no word from Postmark",
     } as Record<string, string>,
     // On its page, its counts in groups, each under its total: those that went, those still to go, and those that didn't.
     groups: { went: "went", toGo: "still to go", gone: "didn't go" },
@@ -346,9 +346,9 @@ export const lettersCopy = {
       "error:template": "Error: template paused",
       "error:late": "Error: out of time, CiviCRM down",
       "error:failing": "Error: sending kept failing",
-      "error:lost": "⁂ Error: stopped, as Postmark lost emails",
+      "error:lost": "Error: stopped, as Postmark lost emails",
       // A broadcast's copy Postmark took and has said nothing of since (LOST_MINUTES).
-      lost: "⁂ Lost: no word from Postmark",
+      lost: "Lost: no word from Postmark",
       "unreached:bounced": "Didn't reach: bounced",
       "unreached:not-on-whatsapp": "Didn't reach: not on WhatsApp",
       "not-sent": "Not sent",
