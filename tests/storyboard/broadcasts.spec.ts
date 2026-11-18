@@ -434,7 +434,7 @@ test("A text's preview, as WhatsApp shows it", async ({ page, request, flowDatab
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
-  await page.getByLabel(copy.templateLabel).first().selectOption({ label: copy.newTemplate });
+  await chooseTemplate(page, copy.newTemplate);
   await page.getByRole("textbox", { name: copy.templateWords }).click();
   await page.keyboard.type("The march meets at 11:00 at Parliament Square. Details: https://pauseai.uk/march");
   for (const line of ["Bring water.", "Wear orange.", "Look for the flags."]) {
