@@ -7,7 +7,7 @@ import { WEBHOOK_AUTH } from "./postmark-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
-import { caretAt, editor, newParagraphAboveSignOff, paste, toolbar } from "./editor-steps";
+import { caretAt, caretInLink, editor, newParagraphAboveSignOff, paste, toolbar } from "./editor-steps";
 import { wholePage } from "./settle";
 import type { Section } from "./report/frames";
 
@@ -176,7 +176,7 @@ test("Formatting the letter", async ({ page, flowDatabase }) => {
   await frame(page, "The pasted text");
   story("With the cursor in the link, where it goes shows under it, to press to change it.");
 
-  await letter.locator('a[href="https://example.com/"]').click();
+  await caretInLink(letter, letter.locator('a[href="https://example.com/"]'));
   await expect(page.getByRole("button", { name: "https://example.com/" })).toBeVisible();
   await frame(page, "Where the link goes, under it", { window: true });
   story("The preview shows the letter formatted as she wrote it.");

@@ -10,6 +10,8 @@ export const editor = (page: Page) => page.getByRole("textbox", { name: copy.for
 /** The editor's element: Tiptap puts the editor on it, and so where it has the caret. */
 type TiptapElement = HTMLElement & {
   editor: {
+    isFocused: boolean;
+    isActive: (mark: string) => boolean;
     state: {
       doc: { content: { size: number } };
       selection: {
@@ -51,6 +53,26 @@ async function caretSettled(page: Page, text: string, at?: "start" | "end") {
 async function focusEditor(page: Page, box = editor(page)) {
   await box.focus();
   await box.evaluate(() => new Promise((done) => setTimeout(done, 25)));
+}
+
+/**
+ * Puts the caret in `link`, a link in the Tiptap editor `box`, with a click,
+ * and waits until it's there: a link's bubble (LinkPeek) shows for the
+ * caret in it, and for the mouse over it, so seen while the click's caret
+ * was lost (focusEditor) it would go once a frame hid what's under the
+ * mouse. Clicked again until it lands. Not focusEditor first: its focus
+ * scrolls the page to the editor's top.
+ */
+export async function caretInLink(box: Locator, link: Locator) {
+  await expect(async () => {
+    await link.click();
+    expect(
+      await box.evaluate((el) => {
+        const { editor } = el as TiptapElement;
+        return editor.isFocused && editor.isActive("link");
+      }),
+    ).toBe(true);
+  }).toPass();
 }
 
 /** Puts the caret in the empty paragraph `index` (from 0) of the Tiptap editor `box`, such as a broadcast's line under its greeting. */

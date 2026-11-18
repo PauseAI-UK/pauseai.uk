@@ -8,7 +8,7 @@ import { newestEmail } from "./outbox-steps";
 import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
 import { WEBHOOK_AUTH } from "./postmark-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
-import { caretAtEnd } from "./editor-steps";
+import { caretAtEnd, caretInLink } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { openBubble, scrollSettled } from "./settle";
@@ -202,7 +202,7 @@ test("A link, and a part made for everyone", async ({ page, request, flowDatabas
   await scrollSettled(page);
   story("With the cursor in the link, where it goes shows under it.");
 
-  await letter.getByRole("link", { name: "pauseai.uk/march" }).click();
+  await caretInLink(letter, letter.getByRole("link", { name: "pauseai.uk/march" }));
   const peek = page.getByRole("button", { name: "https://pauseai.uk/march" });
   await expect(peek).toBeVisible();
   await frame(page, "Where a link goes, under it", { window: true });
