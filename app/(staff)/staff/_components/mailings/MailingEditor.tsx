@@ -5,7 +5,7 @@ import { NodeRange } from "@tiptap/pm/model";
 import { Plugin, type EditorState, type Transaction } from "@tiptap/pm/state";
 import { liftTarget } from "@tiptap/pm/transform";
 import type { EditorView } from "@tiptap/pm/view";
-import { useCallback, useId, useMemo, useRef, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { iconButtonClass } from "@/components/ui/IconButton";
 import { useFollowScroll } from "@/components/ui/useFollowScroll";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
@@ -350,17 +350,19 @@ function SelectionMenu({ editor }: { editor: Editor }) {
     selector: ({ editor }) => String(editor.getAttributes("onlyFor").condition ?? "").startsWith(NOT_CONDITION),
   });
   useFollowScroll(at !== null);
-  const open = useCallback((menu: HTMLDivElement | null) => menu?.showPopover(), []);
+  // Placed once it's drawn: under the selection's end, kept inside the window at its right.
+  const box = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const menu = box.current;
+    if (!menu || at === null) return;
+    if (!menu.matches(":popover-open")) menu.showPopover();
+    const end = editor.view.coordsAtPos(at);
+    menu.style.top = `${end.bottom}px`;
+    menu.style.left = `${Math.max(0, Math.min(end.left, document.documentElement.clientWidth - menu.offsetWidth))}px`;
+  });
   if (at === null) return null;
-  const end = editor.view.coordsAtPos(at);
   return (
-    <div
-      ref={open}
-      popover="manual"
-      role="menu"
-      className={styles.selectionMenu}
-      style={{ top: end.bottom, left: end.left }}
-    >
+    <div ref={box} popover="manual" role="menu" className={styles.selectionMenu}>
       <button
         type="button"
         role="menuitem"
