@@ -19,6 +19,7 @@ import {
   CheckboxExample,
   RadioExample,
   LinkBarExample,
+  LinkPeekExample,
   LinkButtonExample,
   SegmentedExample,
   StatusMessageUndoExample,
@@ -322,6 +323,16 @@ export const forms: Group = {
         {
           label: "Under a letter editor's toolbar, on a link",
           render: () => <Densities>{() => <LinkBarExample />}</Densities>,
+        },
+      ],
+    },
+    {
+      name: "LinkPeek",
+      file: "components/ui/LinkPeek.tsx",
+      variants: [
+        {
+          label: "A link in a letter editor: its address shows under it on hover, or with the cursor in it",
+          render: () => <LinkPeekExample />,
         },
       ],
     },

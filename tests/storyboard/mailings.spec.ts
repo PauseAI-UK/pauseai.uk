@@ -180,6 +180,58 @@ test("A new mailing from the whole list", async ({ page, request, flowDatabase }
   await frame(page, "Choosing, with no one ticked", { window: true });
 });
 
+test("A link, and a part made for everyone", async ({ page, request, flowDatabase }) => {
+  story("Staff mail the Lords, and write a line, which they link to the march's page.");
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  await startFromList(page, "house=lords", 1);
+  await page.getByLabel(copy.subject).fill("The march");
+  const letter = page.getByRole("textbox", { name: copy.letter });
+  const words = mailingsCopy.mailingEditor;
+  await caretAtEnd(letter);
+  await page.keyboard.type("Join us at the march.");
+  await page.keyboard.press("Shift+Home");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("textbox", { name: words.linkBar.address }).fill("pauseai.uk/march");
+  await page.keyboard.press("Enter");
+  story("With the cursor in the link, where it goes shows under it.");
+
+  await letter.getByText("Join us at the march.").click();
+  const peek = page.getByRole("button", { name: "https://pauseai.uk/march" });
+  await expect(peek).toBeVisible();
+  await frame(page, "Where a link goes, under it", { window: true });
+  story("Pressing it opens the link bar, to change where it goes.");
+
+  await peek.click();
+  await expect(page.getByRole("textbox", { name: words.linkBar.address })).toHaveValue("https://pauseai.uk/march");
+  await frame(page, "The link bar, from where the link goes", { window: true });
+  story(
+    "On a line of its own, they write a thank-you, and make it only for some. The part has a × at its corner, and For everyone in the toolbar is orange.",
+  );
+
+  await page.getByRole("button", { name: words.linkBar.cancel }).click();
+  await caretAtEnd(letter);
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Thank you for your answer.");
+  const menu = await openBubble(page.getByRole("button", { name: words.addOnlyFor }));
+  await menu.getByRole("menuitem").first().click();
+  await menu.getByRole("menuitem").first().click();
+  const cross = letter.getByRole("button", { name: words.forEveryone });
+  await expect(cross).toBeVisible();
+  await frame(page, "A part only for some", { window: true });
+  story("Selecting words in it shows For everyone over them too.");
+
+  await letter.getByText("Thank you for your answer.").click({ clickCount: 3 });
+  await expect(page.getByRole("button", { name: words.forEveryone })).toHaveCount(3);
+  await frame(page, "Words selected in the part", { window: true });
+  story("The × takes the part away, and keeps its words, for everyone.");
+
+  await cross.click();
+  await expect(cross).toHaveCount(0);
+  await expect(letter).toContainText("Thank you for your answer.");
+  await frame(page, "The part made for everyone", { window: true });
+});
+
 test("Changing and deleting a draft", async ({ page, request, flowDatabase }) => {
   story(
     "On the politicians list, staff choose the Lords and press Mail these: everyone the list finds is ticked for it.",

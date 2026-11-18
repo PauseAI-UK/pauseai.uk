@@ -8,8 +8,15 @@ import { FieldError } from "./Field";
 import { linkHref } from "@/lib/letters/format";
 import styles from "./LinkBar.module.css";
 
-/** The link bar's words, from the copy of the editor it's in. */
-export type LinkWords = { address: string; save: string; remove: string; cancel: string; invalid: string };
+/** The link bar's words, from the copy of the editor it's in; `edit`, the hint on a link's address under it (LinkPeek). */
+export type LinkWords = {
+  address: string;
+  save: string;
+  remove: string;
+  cancel: string;
+  invalid: string;
+  edit: string;
+};
 
 /**
  * Under a letter editor's toolbar: where the link at the cursor goes, or a

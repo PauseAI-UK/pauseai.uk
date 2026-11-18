@@ -32,7 +32,8 @@
   border-bottom: 1px solid var(--border-strong);
 }
 
-.toolbar button {
+/* The formatting buttons, which can be pressed; For everyone is a Button of its own. */
+.toolbar button[aria-pressed] {
   min-width: 2.25rem;
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-strong);
@@ -44,7 +45,7 @@
   cursor: pointer;
 }
 
-.toolbar button:hover {
+.toolbar button[aria-pressed]:hover {
   border-color: var(--accent);
 }
 
@@ -177,8 +178,10 @@
 }
 
 .onlyFor {
+  position: relative;
   margin: 0 0 var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  /* Room at the right for its ×. */
+  padding: var(--space-2) calc(var(--space-3) + 22px) var(--space-2) var(--space-3);
   border: 1px dashed var(--status-green);
   border-radius: var(--radius-md);
   background: var(--status-green-bg);
@@ -203,6 +206,27 @@
 
 .onlyFor > div > :last-child {
   margin-bottom: 0;
+}
+
+/* A part's ×, which makes it for everyone: in its top right corner. */
+.forEveryoneBox {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+}
+
+/* For everyone, over words selected in a part (ForEveryoneMenu): in the
+   page's top layer, just above the selection's start, so a popover's own
+   place and look give way to it. */
+.selectionMenu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  overflow: visible;
+  transform: translateY(calc(-100% - var(--space-1)));
 }
 
 /* The fields typing { offers, under the cursor. */

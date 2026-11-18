@@ -1,10 +1,19 @@
 "use client";
 
 import { EditorContent, Node, useEditor, useEditorState, type Editor, type JSONContent } from "@tiptap/react";
-import { useId, useMemo, useRef, useState } from "react";
+import { NodeRange } from "@tiptap/pm/model";
+import { Plugin } from "@tiptap/pm/state";
+import { liftTarget } from "@tiptap/pm/transform";
+import type { EditorView } from "@tiptap/pm/view";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { iconButtonClass } from "@/components/ui/IconButton";
+import { useFollowScroll } from "@/components/ui/useFollowScroll";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import LinkBar from "@/components/ui/LinkBar";
+import LinkPeek from "@/components/ui/LinkPeek";
 import { isLinkKey, letterExtensions, unlinkedExtensions, withoutLinks } from "@/lib/letters/extensions";
+import { isQuoted, toggleQuote } from "@/lib/letters/quotes";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { NOT_CONDITION } from "@/lib/mailings/doc";
 import { partFor, type MailingChoice } from "@/lib/mailings/fields";
@@ -72,8 +81,17 @@ const MergeField = Node.create<{ labels: Record<string, string> }>({
   },
 });
 
+/** Takes everything in the part only for some whose × is `button` out of it, for everyone. */
+function forEveryone(view: EditorView, button: Element) {
+  const $start = view.state.doc.resolve(view.posAtDOM(button.parentElement!.querySelector("[data-body]")!, 0));
+  const range = new NodeRange($start, view.state.doc.resolve($start.end()), $start.depth);
+  view.dispatch(view.state.tr.lift(range, liftTarget(range)!));
+  view.focus();
+}
+
 // A part only some recipients get: paragraphs, lists or quotes in a box, with who
-// it's for on the box. Enter on an empty last line takes it out of the box,
+// it's for on the box, and an × at its top right that makes it for everyone,
+// keeping its words. Enter on an empty last line takes it out of the box,
 // as ProseMirror does for any such box. So does Backspace at the box's start:
 // left to ProseMirror, it would join the box to one just before it, and its
 // text would quietly go to that box's recipients instead.
@@ -83,6 +101,29 @@ const OnlyFor = Node.create<{ labels: Record<string, string> }>({
   content: "(paragraph | bulletList | blockquote)+",
   defining: true,
   addOptions: () => ({ labels: {} }),
+  addProseMirrorPlugins: () => [
+    new Plugin({
+      props: {
+        handleDOMEvents: {
+          // Not to ProseMirror, which would put the cursor where it was pressed.
+          mousedown: (_, event) => {
+            if (!(event.target as Element).closest("[data-for-everyone]")) return false;
+            event.preventDefault();
+            return true;
+          },
+          // Enter or space on the × is the button's, to press it, not ProseMirror's.
+          keydown: (_, event) => Boolean((event.target as Element).closest("[data-for-everyone]")),
+          // A press, or Enter or space on it.
+          click: (view, event) => {
+            const button = (event.target as Element).closest("[data-for-everyone]");
+            if (!button) return false;
+            forEveryone(view, button);
+            return true;
+          },
+        },
+      },
+    }),
+  ],
   addKeyboardShortcuts() {
     return {
       Backspace: ({ editor }) => {
@@ -115,6 +156,18 @@ const OnlyFor = Node.create<{ labels: Record<string, string> }>({
         { class: styles.onlyForLabel, contenteditable: "false" },
         partFor(node.attrs.condition, this.options.labels),
       ],
+      [
+        "button",
+        {
+          type: "button",
+          class: iconButtonClass("outline", styles.forEveryoneBox),
+          contenteditable: "false",
+          "data-for-everyone": "",
+          "aria-label": copy.forEveryone,
+          title: copy.forEveryone,
+        },
+        "×",
+      ],
       ["div", { "data-body": "" }, 0],
     ];
   },
@@ -133,7 +186,7 @@ function Toolbar({ editor, onLink }: { editor: Editor; onLink?: () => void }) {
       italic: editor.isActive("italic"),
       link: editor.isActive("link"),
       bulletList: editor.isActive("bulletList"),
-      blockquote: editor.isActive("blockquote"),
+      blockquote: isQuoted(editor.state),
       onlyFor: editor.isActive("onlyFor"),
     }),
   });
@@ -180,7 +233,12 @@ function Toolbar({ editor, onLink }: { editor: Editor; onLink?: () => void }) {
         </>
       ),
       pressed: active.blockquote,
-      run: () => editor.chain().focus().toggleBlockquote().run(),
+      run: () =>
+        editor
+          .chain()
+          .focus()
+          .command(({ tr }) => toggleQuote(tr))
+          .run(),
     },
   ];
   return (
@@ -198,10 +256,51 @@ function Toolbar({ editor, onLink }: { editor: Editor; onLink?: () => void }) {
         </button>
       ))}
       {active.onlyFor && (
-        <button type="button" onClick={() => editor.chain().focus().lift("onlyFor").run()}>
+        <Button
+          type="button"
+          variant="primary"
+          size="small"
+          fit
+          onClick={() => editor.chain().focus().lift("onlyFor").run()}
+        >
           {copy.forEveryone}
-        </button>
+        </Button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Over words selected in a part for only some: For everyone, which takes
+ * the paragraphs selected out of the part, as the toolbar's does. It's in
+ * the page's top layer, over the selection's start, and follows it as the
+ * page scrolls.
+ */
+function ForEveryoneMenu({ editor }: { editor: Editor }) {
+  const at = useEditorState({
+    editor,
+    selector: ({ editor }) =>
+      editor.isFocused && !editor.state.selection.empty && editor.isActive("onlyFor")
+        ? editor.state.selection.from
+        : null,
+  });
+  useFollowScroll(at !== null);
+  const open = useCallback((menu: HTMLDivElement | null) => menu?.showPopover(), []);
+  if (at === null) return null;
+  const start = editor.view.coordsAtPos(at);
+  return (
+    <div ref={open} popover="manual" className={styles.selectionMenu} style={{ top: start.top, left: start.left }}>
+      <Button
+        type="button"
+        variant="primary"
+        size="small"
+        fit
+        // So the letter keeps its selection.
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => editor.chain().focus().lift("onlyFor").run()}
+      >
+        {copy.forEveryone}
+      </Button>
     </div>
   );
 }
@@ -474,7 +573,11 @@ export default function MailingEditor({
           />
         )}
         {editor && linking && <LinkBar editor={editor} words={copy.linkBar} onClose={() => setLinking(false)} />}
+        {editor && !linking && !whatsApp && (
+          <LinkPeek editor={editor} words={copy.linkBar} onEdit={() => setLinking(true)} />
+        )}
         <EditorContent editor={editor} />
+        {editor && <ForEveryoneMenu editor={editor} />}
         {picker && (
           <div
             className={styles.picker}

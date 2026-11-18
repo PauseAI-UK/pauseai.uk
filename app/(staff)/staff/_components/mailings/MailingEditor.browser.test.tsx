@@ -150,8 +150,61 @@ describe("MailingEditor", () => {
     await except.getByRole("menuitem", { name: "Edinburgh" }).click();
     await except.getByRole("menuitem", { name: /Going/ }).click();
     expect(last(onChange).content![0]).toMatchObject({ type: "onlyFor", attrs: { condition: `!${conditions[1].id}` } });
-    await page.getByRole("button", { name: copy.forEveryone }).click();
+    await page.getByRole("toolbar").getByRole("button", { name: copy.forEveryone }).click();
     expect(last(onChange).content![0]).toMatchObject({ type: "paragraph" });
+  });
+
+  const box = (...content: JSONContent[]): JSONContent => ({
+    type: "onlyFor",
+    attrs: { condition: conditions[0].id },
+    content,
+  });
+  /** The × on the part for only some. */
+  const cross = () => editor().getByRole("button", { name: copy.forEveryone });
+
+  it("makes a whole part for everyone from its ×, keeping its words and the cursor in the letter", async () => {
+    const onChange = await renderEditor([
+      paragraph(text("Dear all")),
+      box(paragraph(text("Thank you.")), paragraph(text("See you there."))),
+    ]);
+    await expect.element(cross()).toHaveAttribute("title", copy.forEveryone);
+    // Pressed, the cursor stays where it was, not where the × is.
+    await cursorAt("Dear all", "end");
+    await cross().click();
+    expect(last(onChange).content).toEqual([
+      paragraph(text("Dear all")),
+      paragraph(text("Thank you.")),
+      paragraph(text("See you there.")),
+    ]);
+    await expect.element(editor()).toHaveFocus();
+    await expect.element(cross()).not.toBeInTheDocument();
+  });
+
+  it("makes a part for everyone from its × by the keyboard too", async () => {
+    const onChange = await renderEditor([box(paragraph(text("Thank you.")))]);
+    (cross().element() as HTMLButtonElement).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(last(onChange).content).toEqual([paragraph(text("Thank you."))]);
+  });
+
+  it("offers For everyone over words selected in a part, and the toolbar's in orange, for just what's selected", async () => {
+    const onChange = await renderEditor([box(paragraph(text("Thank you.")), paragraph(text("See you there.")))]);
+    const menu = () => page.getByRole("button", { name: copy.forEveryone }).and(page.getByText(copy.forEveryone));
+    const toolbar = () => page.getByRole("toolbar").getByRole("button", { name: copy.forEveryone });
+    // The cursor alone in a part: the toolbar's, and no menu.
+    await cursorAt("See you there.", "start");
+    await expect.element(toolbar()).toHaveClass(/primary/);
+    expect(document.querySelectorAll(":popover-open")).toHaveLength(0);
+    await userEvent.keyboard("{Shift>}{End}{/Shift}");
+    await expect.poll(() => document.querySelectorAll(":popover-open")).toHaveLength(1);
+    const over = document.querySelector(":popover-open")!.getBoundingClientRect();
+    const words = editor().getByText("See you there.").element().getBoundingClientRect();
+    expect(over.bottom).toBeLessThanOrEqual(words.top);
+    await expect.element(menu().last()).toBeVisible();
+    await page.elementLocator(document.querySelector(":popover-open button")!).click();
+    expect(last(onChange).content).toEqual([box(paragraph(text("Thank you."))), paragraph(text("See you there."))]);
+    // Selected outside a part, none.
+    await expect.poll(() => document.querySelectorAll(":popover-open")).toHaveLength(0);
   });
 
   it("searches a group of many, showing none till something's typed, then those with it", async () => {
@@ -352,6 +405,27 @@ describe("MailingEditor", () => {
     expect(last(onChange).content![0]).toMatchObject({ type: "blockquote", content: [{ type: "paragraph" }] });
   });
 
+  it("quotes in a part for only some, but not across one, as a quote can't hold one", async () => {
+    const box: JSONContent = {
+      type: "onlyFor",
+      attrs: { condition: conditions[0].id },
+      content: [paragraph(text("Thank you."))],
+    };
+    const onChange = await renderEditor([paragraph(text("Dear all")), box]);
+    await cursorAt("Thank you.", "start");
+    await page.getByRole("button", { name: copy.quote }).click();
+    expect(last(onChange).content![1]).toEqual({
+      ...box,
+      content: [{ type: "blockquote", content: [paragraph(text("Thank you."))] }],
+    });
+    await page.getByRole("button", { name: copy.quote }).click();
+    expect(last(onChange).content![1]).toEqual(box);
+    const changes = onChange.mock.calls.length;
+    await userEvent.keyboard("{Control>}a{/Control}");
+    await page.getByRole("button", { name: copy.quote }).click();
+    expect(onChange.mock.calls.length).toBe(changes);
+  });
+
   it("makes no blank lines: Enter on an empty line, or at the start of a line after one, does nothing", async () => {
     const onChange = await renderEditor([paragraph(text("One")), EMPTY, paragraph(text("Two"))]);
     await cursorAt("One", "end");
@@ -413,6 +487,20 @@ describe("MailingEditor", () => {
     expect(last(onChange).content).toEqual([paragraph(text("StartA")), paragraph(text("B"))]);
     paste("<ul><li><p>C</p></li></ul><p></p><ul><li><p>D</p></li></ul>");
     expect(JSON.stringify(last(onChange))).not.toContain('{"type":"paragraph"}');
+  });
+
+  it("shows where a link goes under it, and opens the link bar from there", async () => {
+    const linked: JSONContent = {
+      type: "text",
+      text: "Join us",
+      marks: [{ type: "link", attrs: { href: "https://pauseai.uk/join" } }],
+    };
+    await renderEditor([paragraph(linked)]);
+    await editor().getByText("Join us").hover();
+    await page.getByRole("button", { name: "https://pauseai.uk/join" }).click();
+    await expect
+      .element(page.getByRole("textbox", { name: copy.linkBar.address }))
+      .toHaveValue("https://pauseai.uk/join");
   });
 
   it("opens WhatsApp's words with a link in them as their words alone, as a text shows them", async () => {

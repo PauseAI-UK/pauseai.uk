@@ -872,7 +872,7 @@ that drives it or why nothing does.
 - `public-pages.spec.ts`: Every public route: 200, one `<h1>`, no console errors or hydration warnings, no broken same-site links, fixture text where a page shows data.
 - `campaigns.spec.ts`: Email your MP, end to end:
   - the postcode, the letter, the preview and the sent page, and the letter the MP gets;
-  - the editor's toolbar and a paste, and the letter as sent;
+  - the editor's toolbar and a paste, where a link goes shown under it, and the letter as sent;
   - the draft kept through Edit, back and reload;
   - going back;
   - an email typed in the address's first line, refused;
@@ -984,6 +984,7 @@ that drives it or why nothing does.
   - New mailing, then who it's for ticked on the politicians list, with its strip and the bar at the foot;
   - New mailing on the list with no filter, which makes an empty draft with no one ticked;
   - the new mailing written, previewed and sent to yourself as a test (the email pictured);
+  - a line linked, with where the link goes under it and the link bar opened from there; a part only for some, with its × and the orange For everyone, words selected in it with For everyone over them, and the × making it for everyone;
   - Mail these on the list, with everyone it found ticked;
   - Change who, back on the list's ticked tab, with one more searched for and ticked, then everyone unticked to start again and one ticked;
   - the draft naming her, and the draft deleted;

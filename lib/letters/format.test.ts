@@ -153,12 +153,12 @@ describe("toHtml and toText", () => {
     p(text("Name"), { type: "hardBreak" }, text("Street")),
   );
 
-  it("writes HTML from only what's allowed, escaped", () => {
+  it("writes HTML from only what's allowed, escaped, a bullet of one paragraph as its words alone", () => {
     expect(toHtml(letter)).toBe(
       [
         "<p>Dear <strong><em>&lt;Ms&gt; &amp; &quot;Co&quot;</em></strong>,</p>",
         "<p></p>",
-        "<ul><li><p>one</p><p>more on one</p><ul><li><p>nested</p></li></ul></li><li><p>two</p></li><li></li></ul>",
+        "<ul><li><p>one</p><p>more on one</p><ul><li>nested</li></ul></li><li>two</li><li></li></ul>",
         "<p>Name<br>Street</p>",
       ].join("\n"),
     );
@@ -192,7 +192,7 @@ describe("toHtml and toText", () => {
     expect(toHtml(quoting)).toBe(
       [
         '<p>See <a href="https://pauseai.uk/join">our </a><a href="https://pauseai.uk/join"><strong>form</strong></a>, <a href="https://pauseai.uk/">pauseai.uk</a> or <a href="mailto:policy@pauseai.uk">policy@pauseai.uk</a>.</p>',
-        '<blockquote style="margin-left: 0; margin-right: 0; padding-left: 1em; border-left: 3px solid #ccc; color: #555;"><p>Said once,<br>twice.</p><p></p><ul><li><p>and listed</p></li></ul></blockquote>',
+        '<blockquote style="margin-left: 0; margin-right: 0; padding-left: 1em; border-left: 3px solid #ccc; color: #555;"><p>Said once,<br>twice.</p><p></p><ul><li>and listed</li></ul></blockquote>',
         '<ul><li><blockquote style="margin-left: 0; margin-right: 0; padding-left: 1em; border-left: 3px solid #ccc; color: #555;"><p>quoted in a list</p></blockquote></li></ul>',
       ].join("\n"),
     );
