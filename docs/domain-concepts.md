@@ -615,7 +615,9 @@ job all leave broadcasts out.
     (`SENDING_DAYS`) can't be scheduled (`too-slow`), nor one while `hello@`'s Gmail isn't
     connected. Its bounces are read from the mailbox, as a mailing's are.
   - **Postmark**'s broadcast stream, apart from the site's transactional
-    mail, with no limit of ours. A new email goes by it unless its writer
+    mail, 180ms apart: 20,000 an hour sending without a break, which
+    Postmark asks a new broadcast stream not to go over, and about 16,000
+    an hour as the sending runs, with no daily limit. A new email goes by it unless its writer
     chooses Gmail (`DEFAULT_SEND_BY`). The stream manages no unsubscribes
     of its own, so it adds no `List-Unsubscribe` headers and keeps no list:
     each copy's own link and headers, and the check before each send, are

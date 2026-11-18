@@ -169,7 +169,24 @@ describeWithDatabase("sending broadcasts", () => {
     ]);
   });
 
-  it("sends by Postmark's broadcast stream one that says so, at no pace of ours", async () => {
+  it("sends by Postmark 180ms apart, so 20,000 an hour at most, as Postmark asks", async () => {
+    const at: number[] = [];
+    server.use(
+      http.post(POSTMARK, () => {
+        at.push(performance.now());
+        return HttpResponse.json({ ErrorCode: 0, MessageID: `pm-${at.length}` });
+      }),
+    );
+    for (const name of ["ann", "bo", "cy"]) await addFollower(`usr-${name}`, `${name}@example.com`, name);
+    await pulled();
+    await broadcast("email:events:yes", "postmark");
+    await startDueBroadcasts();
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 3, left: 0 });
+    expect(at).toHaveLength(3);
+    for (const i of [1, 2]) expect(at[i] - at[i - 1]).toBeGreaterThanOrEqual(175);
+  });
+
+  it("sends by Postmark's broadcast stream one that says so", async () => {
     const sent = postmark();
     await addFollower("usr-jane", "jane@example.com", "Jane Smith");
     await pulled();

@@ -17,9 +17,13 @@ import { broadcastsCopy } from "./copy";
 
 /** The channel each way of sending an email to supporters goes by, and the gap it keeps between two sends, in ms. */
 const EMAIL_CHANNELS: Record<BroadcastSendBy, { channel: MailingChannel; gapMs: number }> = {
-  // Gmail takes 60 a minute from one account.
+  // Gmail takes 60 a minute from one account: 3,600 an hour.
   gmail: { channel: gmailEmail, gapMs: 1000 },
-  postmark: { channel: postmarkBroadcast, gapMs: 0 },
+  // Postmark asks for no more than 20,000 an hour on a broadcast stream's first day
+  // (https://postmarkapp.com/support/article/can-i-send-bulk-emails). 180ms apart is 333 a minute, 20,000 an hour
+  // sending without a break; as the sending runs about 12 minutes in each 15 (RUN_MS in
+  // netlify/functions/send-mailings-background), about 16,000 an hour in all.
+  postmark: { channel: postmarkBroadcast, gapMs: 180 },
 };
 
 /** What an email to supporters goes by, and its pace. */
