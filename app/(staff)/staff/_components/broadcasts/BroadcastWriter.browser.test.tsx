@@ -801,7 +801,7 @@ describe("BroadcastWriter, by text", () => {
 
   it("shows the card WhatsApp makes for the words' first link, asking about each link once it's typed, and once only", async () => {
     const actions = await renderWriter({ draft: exampleBroadcastText });
-    await pick("new");
+    await pick(copy.newTemplate);
     const words = page.getByRole("textbox", { name: copy.templateWords });
     await words.fill("See you there https://pauseai.uk/march");
     await expect.element(page.getByText(exampleLinkCard.title)).toBeVisible();
