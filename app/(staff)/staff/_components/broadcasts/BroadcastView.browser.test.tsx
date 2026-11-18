@@ -178,6 +178,7 @@ describe("a broadcast's page", () => {
           sentAt: null,
           heldTill,
           state: "held" as const,
+          why: "whatsapp-limit",
         },
       ],
     };
@@ -187,9 +188,11 @@ describe("a broadcast's page", () => {
       .element(page.getByRole("link", { name: `1 ${stateWords.counts.held}` }))
       .toHaveAttribute("href", "/staff/broadcasts/5?tab=held");
     await expect.element(page.getByRole("link", { name: `2 ${stateWords.counts["to-go"]}` })).toBeVisible();
-    // The went group leaves them out.
-    await expect.element(page.getByRole("group", { name: `276 ${stateWords.groups.went}` })).toBeVisible();
-    await expect.element(page.getByText(stateWords.tags.held!, { exact: true })).toBeVisible();
+    // The went group leaves them out, and comes after.
+    const groups = page.getByRole("group");
+    await expect.element(groups.nth(0)).toHaveAccessibleName(`3 ${stateWords.groups.toGo}`);
+    await expect.element(groups.nth(1)).toHaveAccessibleName(`276 ${stateWords.groups.went}`);
+    await expect.element(page.getByText(stateWords.tags["held:whatsapp-limit"]!, { exact: true })).toBeVisible();
     // The sending's next run after then, in London.
     await expect.element(page.getByText(copy.heldTill("19 Oct 2026, 11:03"))).toBeVisible();
     // Not gone yet, so no way to its copy.
@@ -315,7 +318,6 @@ describe("BroadcastCounts", () => {
     error: 1,
     unreached: 2,
     "not-sent": 6,
-    lost: 0,
     held: 0,
     "to-go": 0,
   };
@@ -423,13 +425,12 @@ describe("BroadcastWaiting", () => {
     const { rerender } = await render(stopped("civicrm"));
     await expect.element(page.getByText(copy.gaveUp)).toBeVisible();
     // A text whose template WhatsApp paused; its seven days ran out, at a day's limit or while CiviCRM was down;
-    // its copies kept failing; Postmark lost its copies.
+    // its copies kept failing.
     for (const [waitReason, words] of [
       ["template", copy.gaveUpTemplate],
       ["limit", copy.gaveUpLimit],
       ["late", copy.gaveUpLate],
       ["failing", copy.gaveUpFailing],
-      ["lost", copy.gaveUpLost],
     ] as const) {
       await rerender(stopped(waitReason));
       await expect.element(page.getByText(words)).toBeVisible();

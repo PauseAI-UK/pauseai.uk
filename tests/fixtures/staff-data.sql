@@ -1153,7 +1153,10 @@ INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM held;
 INSERT INTO job_presses (job, started_by) VALUES ('tidy-logs', 'jo@pauseai.uk');
 
 -- Broadcasts to supporters, by email and by text, in each state a mailing has:
--- a draft, one scheduled, one sending, one sent and one stopped. A text's
+-- a draft, one scheduled, one sending, one sent and one stopped; and two
+-- emails by Postmark, sent, one yesterday with copies still delayed and one
+-- whose days ran out with them, and a text whose days ran out while WhatsApp
+-- held one of its copies. A text's
 -- draft also comes with no template yet, an approved one, new words, new
 -- words waiting for WhatsApp's approval, and words it rejected. After the
 -- rest, so no ID above moves.
@@ -1198,7 +1201,10 @@ SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
   ('PauseCon room change', 'text', 'sent', interval '-3 days', 'PauseCon room change', NULL),
   ('We are flyering on Saturday.', 'text', 'cancelled', interval '-6 days', 'We are flyering on Saturday.', NULL),
   ('End of summer social', 'email', 'sent', interval '-65 days', NULL, 'join us for an end of summer social in London next Saturday.'),
-  ('Volunteer evening', 'email', 'cancelled', interval '-8 days', NULL, 'volunteers meet on Thursday evening to plan the month.')
+  ('Volunteer evening', 'email', 'cancelled', interval '-8 days', NULL, 'volunteers meet on Thursday evening to plan the month.'),
+  ('Banner drop on Sunday', 'email', 'sent', interval '-1 day', NULL, 'we are dropping a banner on Sunday. Come and hold one end.'),
+  ('Leafleting last week', 'email', 'sent', interval '-9 days', NULL, 'thank you to everyone who leafleted last week.'),
+  ('Thank you for coming.', 'text', 'cancelled', interval '-9 days', 'Thank you for coming.', NULL)
 ) m (title, channel, state, due, template, words);
 INSERT INTO mailings (id, title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, template_id, created_at, opened_at)
   OVERRIDING SYSTEM VALUE
@@ -1219,6 +1225,10 @@ FROM seed_broadcasts m LEFT JOIN whatsapp_templates t ON t.name = m.template;
 -- (sendingStopsAt), so it offers to resume.
 UPDATE mailings SET gave_up = true, wait_reason = 'limit', waiting_since = due_at + interval '7 days'
 WHERE audience = 'supporters' AND title = 'Volunteer evening';
+-- Thank you for coming. stopped the same way, as WhatsApp held its last copy till the days ran out.
+UPDATE mailings SET gave_up = true, wait_reason = 'limit', waiting_since = due_at + interval '7 days'
+WHERE audience = 'supporters' AND title = 'Thank you for coming.';
+UPDATE mailings SET send_by = 'postmark' WHERE audience = 'supporters' AND title IN ('Banner drop on Sunday', 'Leafleting last week');
 
 -- Each copy of those sent, sending or stopped, as sending left it: one for
 -- each supporter the broadcast's Consent found when it went, at their
@@ -1295,7 +1305,18 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
     ('Thank you for marching', 'usr-seed-12', 'failed', NULL, 'failed', false, false),
     ('Thank you for marching', 'usr-seed-11', 'skipped', 'no-permission', NULL, false, false),
     -- Omar's, after the rest for the same reason, whose reply Jo answered and WhatsApp couldn't deliver.
-    ('PauseCon room change', 'usr-seed-7', 'delivered', NULL, 'delivered', true, false)
+    ('PauseCon room change', 'usr-seed-7', 'delivered', NULL, 'delivered', true, false),
+    -- By Postmark, after the rest: one delivered, one Postmark soft-bounced and is trying again, and one it took and
+    -- has said nothing of, delayed a day; the same, nine days on, so its seven days have run out.
+    ('Banner drop on Sunday', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('Banner drop on Sunday', 'usr-fixture-3', 'sent', NULL, 'soft-bounced', false, false),
+    ('Banner drop on Sunday', 'usr-fixture-6', 'sent', NULL, NULL, false, false),
+    ('Leafleting last week', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('Leafleting last week', 'usr-fixture-3', 'sent', NULL, 'soft-bounced', false, false),
+    ('Leafleting last week', 'usr-fixture-6', 'sent', NULL, NULL, false, false),
+    -- A text delivered, and one WhatsApp held till its days ran out, so it was cancelled.
+    ('Thank you for coming.', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('Thank you for coming.', 'usr-seed-10', 'cancelled', NULL, NULL, false, false)
   ) v (title, luma_user, status, reason, report, was_read, stopped)) c
   JOIN mailings m ON m.audience = 'supporters' AND m.title = c.title
   LEFT JOIN supporter_links k ON k.luma_user_id = c.luma_user
@@ -1329,13 +1350,21 @@ UNION ALL SELECT id, due_at + CASE WHEN refused THEN interval '0' ELSE interval 
   FROM seed_copies WHERE report IS NOT NULL
 UNION ALL SELECT id, due_at + interval '20 minutes', 'read' FROM seed_copies WHERE was_read
 UNION ALL SELECT id, due_at + interval '2 hours', 'opted-out' FROM seed_copies WHERE stopped;
--- Why each failed or bounced, as its provider said it: Postmark's bounce,
--- WhatsApp's error, Gmail's refusal.
+-- Why each failed or bounced, as its provider said it: Postmark's bounce and
+-- soft bounce, WhatsApp's error, Gmail's refusal.
 UPDATE broadcast_message_events e SET details = CASE
     WHEN e.kind = 'bounced' THEN '{"reason": "No such mailbox"}'::jsonb
+    WHEN e.kind = 'soft-bounced' THEN '{"reason": "Mailbox full"}'::jsonb
     WHEN s.channel = 'text' THEN '{"code": 131000, "title": "Something went wrong"}'::jsonb
     ELSE '{"reason": "Recipient address rejected"}'::jsonb END
-FROM seed_copies s WHERE s.id = e.message_id AND e.kind IN ('failed', 'bounced');
+FROM seed_copies s WHERE s.id = e.message_id AND e.kind IN ('failed', 'bounced', 'soft-bounced');
+-- Copies WhatsApp held, as the person had had enough marketing messages
+-- lately (holdCopy): Our next event is on Saturday.'s last, till this
+-- evening, so all that text has left is held; and Thank you for coming.'s,
+-- held till after its days ran out.
+UPDATE broadcast_messages c SET not_before = CASE m.title WHEN 'Thank you for coming.' THEN m.due_at + interval '7 days' ELSE now() + interval '6 hours' END
+FROM seed_copies s JOIN mailings m ON m.id = s.mailing_id
+WHERE s.id = c.id AND s.luma_user = 'usr-seed-10' AND m.title IN ('Our next event is on Saturday.', 'Thank you for coming.');
 -- The number WhatsApp said isn't on it, which texts skip from then on.
 INSERT INTO whatsapp_unreachable (number, at, message_id)
 SELECT coalesce(c.address, '+447700900099'), s.due_at, c.id

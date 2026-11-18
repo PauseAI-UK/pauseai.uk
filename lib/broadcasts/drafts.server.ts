@@ -27,7 +27,6 @@ import {
   type BroadcastTerms,
 } from "./broadcasts";
 import { now } from "@/lib/now";
-import { LOST_MINUTES } from "./days";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { gmailAccount, GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-accounts.server";
@@ -119,7 +118,7 @@ export type WrittenBroadcast = WrittenMailing & {
    * itself, and why (StopReason in broadcast-sending.server.ts).
    */
   waitingSince: Date | null;
-  waitReason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | "lost" | null;
+  waitReason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | null;
   /** What CiviCRM's check last said, as it failed, while it waits for it; null otherwise. */
   waitSaid: string | null;
   gaveUp: boolean;
@@ -460,21 +459,6 @@ export const SEND_AGAIN = `c.status = 'failed'
                   AND (e.kind = 'bounced' OR (e.kind = 'failed' AND e.details ? 'unfinished')))`;
 
 /**
- * A copy `c` that Postmark took and has said nothing of since: no delivery,
- * bounce, soft bounce or complaint. Gmail and WhatsApp aren't asked, as
- * Gmail never says, and a text's receipts are WhatsApp's own.
- */
-const UNHEARD = `c.status = 'sent' AND c.sent_at IS NOT NULL
-  AND EXISTS (SELECT 1 FROM mailings g WHERE g.id = c.mailing_id AND g.channel = 'email' AND g.send_by = 'postmark')
-  AND NOT EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind <> 'sent')`;
-
-/** A copy `c` lost: Postmark took it LOST_MINUTES ago or more, and has said nothing of it since. */
-export const LOST = `(${UNHEARD} AND c.sent_at <= now() - make_interval(mins => ${LOST_MINUTES}))`;
-
-/** A copy `c` Postmark took less than LOST_MINUTES ago and hasn't said anything of yet: not done with. */
-export const AWAITED = `(${UNHEARD} AND c.sent_at > now() - make_interval(mins => ${LOST_MINUTES}))`;
-
-/**
  * Sets going again a broadcast that stopped as it hadn't all gone in time
  * (gave_up): its copies that never went are to go again, or, for one that
  * never started, it's scheduled again. From now, so it has its days to go
@@ -482,9 +466,7 @@ export const AWAITED = `(${UNHEARD} AND c.sent_at > now() - make_interval(mins =
  * too (waitStopsAt); nor resting after tries that failed before it stopped,
  * so it goes at the next run. One that stopped as its copies kept failing
  * sends again those its channel refused too (SEND_AGAIN), as whatever
- * failed them should be fixed by now. Its lost copies aren't sent again,
- * nor do they stop it again (LOST_TO_STOP), as it counts only those lost
- * since it was resumed. Says whether it did.
+ * failed them should be fixed by now. Says whether it did.
  */
 export async function resumeBroadcast(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {

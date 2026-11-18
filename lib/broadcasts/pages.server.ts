@@ -27,7 +27,6 @@ import {
   broadcastSender,
   TOPICS_OF,
   getWrittenBroadcast,
-  LOST,
   type WhatsAppTemplate,
   type WrittenBroadcast,
 } from "./drafts.server";
@@ -37,6 +36,7 @@ import { howOptedOutFrom, optedOutFrom } from "@/lib/supporters/opt-outs.server"
 import { checkStoredFilter, filterProblems } from "@/lib/server/stored-filters.server";
 import { supporterChoices, type SupporterChoices } from "@/lib/supporters/records.server";
 import { broadcastsCopy } from "./copy";
+import { SENDING_DAYS, SILENT_MINUTES } from "./days";
 
 // What the pages of broadcasts to supporters show: the list of them, a draft
 // to write, one scheduled or sent with its recipients, and one copy as sent.
@@ -94,14 +94,13 @@ const UNFINISHED = `EXISTS (SELECT 1 FROM broadcast_message_events e
 /**
  * Where a copy stands, one state each, the first that applies: a reply to
  * check; they opted out because of it; something broke (its provider
- * refused it, its send cut off, its broadcast gave up); it didn't reach them
- * (a bounce, or a number found not on WhatsApp); not sent, as expected (they'd
- * opted out before, their consent ended, an address already blocked, we
- * cancelled); replied; read; lost, as Postmark took it and has said nothing
- * of it since (LOST), counted as still to go; delivered; sent; or still to go:
- * held, as WhatsApp turned it away till the person has had fewer marketing
- * messages (holdCopy, in sending.server.ts), or to go, its turn yet to come
- * or being sent. Each count and tab on a broadcast's page is one of these.
+ * refused it, its send cut off, its broadcast gave up, or it was delayed
+ * till its broadcast's SENDING_DAYS ran out); it didn't reach them (a bounce,
+ * or a number found not on WhatsApp); not sent, as expected (they'd opted
+ * out before, their consent ended, an address already blocked, we
+ * cancelled); replied; read; delivered; sent; or still to go: held, which
+ * its tag calls delayed (DELAYED), or to go, its turn yet to come or being
+ * sent. Each count and tab on a broadcast's page is one of these.
  */
 export const COPY_STATES = [
   "look",
@@ -113,15 +112,26 @@ export const COPY_STATES = [
   "read",
   "delivered",
   "sent",
-  "lost",
   "held",
   "to-go",
 ] as const;
 /** A copy's state, or, for one of a broadcast not yet sending, which has no copies, scheduled (scheduledRecipients). */
 export type CopyState = (typeof COPY_STATES)[number] | "scheduled";
 
-// Held by WhatsApp: put back to go no sooner than a time still to come.
+// Held by WhatsApp, as the person has had enough marketing messages lately (holdCopy, in sending.server.ts): put
+// back to go no sooner than a time still to come.
 const HELD = "c.status = 'scheduled' AND c.not_before > now()";
+const SOFT_BOUNCED =
+  "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'soft-bounced')";
+// Postmark took it SILENT_MINUTES ago or more and has said nothing of it since: no delivery, bounce, soft bounce or
+// complaint. Gmail and WhatsApp aren't asked, as Gmail never says, and a text's receipts are WhatsApp's own.
+const SILENT = `c.sent_at <= now() - make_interval(mins => ${SILENT_MINUTES})
+  AND EXISTS (SELECT 1 FROM mailings g WHERE g.id = c.mailing_id AND g.channel = 'email' AND g.send_by = 'postmark')
+  AND NOT EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind <> 'sent')`;
+// Sent, and not there yet, as Postmark is still trying it (a soft bounce) or has said nothing of it (SILENT).
+const DELAYED = `c.status = 'sent' AND (${SOFT_BOUNCED} OR (${SILENT}))`;
+// Its broadcast's SENDING_DAYS are over, so a copy still delayed never will arrive. In hours, as sendingStopsAt counts.
+const DAYS_OUT = `(SELECT g.due_at + make_interval(hours => ${SENDING_DAYS * 24}) FROM mailings g WHERE g.id = c.mailing_id) <= now()`;
 
 const COPY_STATE = `CASE
   WHEN ${TO_LOOK_AT} THEN 'look'
@@ -133,17 +143,27 @@ const COPY_STATE = `CASE
   WHEN c.status IN ('skipped', 'cancelled') THEN 'not-sent'
   WHEN ${REPLIED} THEN 'replied'
   WHEN ${WAS_READ} THEN 'read'
-  WHEN ${LOST} THEN 'lost'
+  WHEN ${DELAYED} AND ${DAYS_OUT} THEN 'error'
+  WHEN ${DELAYED} THEN 'held'
   WHEN c.status = 'delivered' THEN 'delivered'
   ELSE 'sent' END`;
 
+// What delayed a copy, or made it an error once its days ran out: WhatsApp's limit, which leaves it to go (or, once
+// its broadcast stopped as its days ran out, cancelled); a soft bounce; or Postmark's silence.
+const DELAYED_BY = `CASE WHEN c.status IN ('scheduled', 'cancelled') THEN 'whatsapp-limit'
+  WHEN ${SOFT_BOUNCED} THEN 'soft-bounce' ELSE 'postmark-silent' END`;
+
 // Why it's in its state, where that has a why: how they opted out; what broke (Gmail, Postmark or WhatsApp
-// refusing it, a send cut off, or why its broadcast gave up); bounced or not on WhatsApp; why it wasn't sent (a
-// skip reason, cancelled, or opted out in WhatsApp before).
+// refusing it, a send cut off, delayed till its days ran out, or why its broadcast gave up); what's delaying it;
+// bounced or not on WhatsApp; why it wasn't sent (a skip reason, cancelled, or opted out in WhatsApp before).
 const COPY_WHY = `CASE ${COPY_STATE}
   WHEN 'opted-out' THEN ${STOPPED_VIA}
-  WHEN 'error' THEN coalesce(${STOPPED_BY}, CASE WHEN ${UNFINISHED} THEN 'unfinished'
-    ELSE (SELECT CASE WHEN g.channel = 'text' THEN 'whatsapp' ELSE g.send_by END FROM mailings g WHERE g.id = c.mailing_id) END)
+  WHEN 'held' THEN ${DELAYED_BY}
+  WHEN 'error' THEN CASE
+    WHEN c.status = 'sent' OR (c.status = 'cancelled' AND c.not_before IS NOT NULL AND ${STOPPED_BY} IN ('limit', 'late'))
+      THEN ${DELAYED_BY}
+    ELSE coalesce(${STOPPED_BY}, CASE WHEN ${UNFINISHED} THEN 'unfinished'
+      ELSE (SELECT CASE WHEN g.channel = 'text' THEN 'whatsapp' ELSE g.send_by END FROM mailings g WHERE g.id = c.mailing_id) END) END
   WHEN 'unreached' THEN CASE WHEN ${BOUNCED} THEN 'bounced' ELSE 'not-on-whatsapp' END
   WHEN 'not-sent' THEN CASE WHEN c.status = 'cancelled' THEN 'cancelled'
     WHEN c.skip_reason = 'unsubscribed' AND ${STOPPED_VIA} = 'whatsapp-refused' THEN 'whatsapp'
@@ -161,10 +181,10 @@ const SELECT_BROADCASTS = `
     m.try_failed_at AS "tryFailedAt", min(c.not_before) FILTER (WHERE ${HELD}) AS "heldTill",
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",
-    -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent. A lost
-    -- copy is neither.
-    count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered') AND s.state <> 'lost')::int AS sent,
-    count(c.id) FILTER (WHERE c.status IN ('failed', 'skipped', 'cancelled'))::int AS failed,
+    -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent, which
+    -- takes in one delayed till its days ran out.
+    count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered') AND s.state <> 'error')::int AS sent,
+    count(c.id) FILTER (WHERE c.status IN ('failed', 'skipped', 'cancelled') OR s.state = 'error')::int AS failed,
     0 AS answered,
     -- How many are in each state.
     json_build_object(${COPY_STATES.map((one) => `'${one}', count(c.id) FILTER (WHERE s.state = '${one}')`).join(", ")}) AS states
@@ -186,6 +206,7 @@ async function withPause(row: SummaryRow): Promise<BroadcastSummary> {
     waitSaid,
     restingUntil: restsTill && restsTill > now() ? restsTill : null,
     toGo: summary.states["to-go"],
+    // Only a text is held by WhatsApp, and only an email delayed by Postmark, so all a text's held are WhatsApp's.
     held: summary.states.held,
     heldTill,
   };

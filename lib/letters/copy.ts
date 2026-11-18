@@ -284,12 +284,11 @@ export const lettersCopy = {
       error: "error",
       unreached: "didn't reach",
       "not-sent": "not sent",
-      // A broadcast's copy WhatsApp turned away for now, as the person has had too many marketing messages lately.
+      // A broadcast's copy not there yet and still being tried: WhatsApp turned it away for now, Postmark soft-bounced
+      // it, or Postmark has said nothing of it.
       held: "delayed",
       // A broadcast's copy whose turn hasn't come yet, or that's being sent.
       "to-go": "queued",
-      // A broadcast's copy Postmark took and has said nothing of since (LOST_MINUTES).
-      lost: "lost",
     } as Record<string, string>,
     tabs: {
       sent: "Sent",
@@ -303,9 +302,8 @@ export const lettersCopy = {
       error: "Something went wrong",
       unreached: "Didn't reach them",
       "not-sent": "Not sent",
-      held: "Delayed, they're at WhatsApp's marketing limit",
+      held: "⁂ Delayed: not there yet, and still being tried",
       "to-go": "Queued",
-      lost: "Lost: no word from Postmark",
     } as Record<string, string>,
     // On its page, its counts in groups, each under its total: those that went, those still to go, and those that didn't.
     groups: { went: "went", toGo: "still to go", gone: "didn't go" },
@@ -317,7 +315,12 @@ export const lettersCopy = {
       queued: "Queued",
       scheduled: "Scheduled",
       sending: "Sending",
-      held: "Delayed",
+      // A broadcast's copy not there yet, by what's delaying it: WhatsApp turned it away, as the person has had too many
+      // marketing messages lately; Postmark soft-bounced it, and is trying again; or Postmark took it and has said
+      // nothing of it for SILENT_MINUTES.
+      "held:whatsapp-limit": "Delayed: WhatsApp limit",
+      "held:soft-bounce": "Delayed: soft bounce",
+      "held:postmark-silent": "Delayed: Postmark silent",
       "to-go": "Queued",
       sent: "Sent",
       // A letter that only an automatic reply has come back to, such as an out-of-office.
@@ -347,9 +350,10 @@ export const lettersCopy = {
       "error:template": "Error: broadcast stopped",
       "error:late": "Error: broadcast stopped",
       "error:failing": "Error: broadcast stopped",
-      "error:lost": "Error: broadcast stopped",
-      // A broadcast's copy Postmark took and has said nothing of since (LOST_MINUTES).
-      lost: "Lost: no word from Postmark",
+      // A broadcast's copy still delayed when its days ran out (SENDING_DAYS), by what delayed it.
+      "error:whatsapp-limit": "Error: WhatsApp limit",
+      "error:soft-bounce": "Error: soft bounce",
+      "error:postmark-silent": "Error: Postmark silent",
       "unreached:bounced": "Didn't reach: bounced",
       "unreached:not-on-whatsapp": "Didn't reach: not on WhatsApp",
       "not-sent": "Not sent",

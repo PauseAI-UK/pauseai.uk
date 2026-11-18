@@ -210,7 +210,6 @@ describe("BroadcastsOverview", () => {
               went(6, "Template paused", gaveUp("template")),
               went(7, "Late", gaveUp("late")),
               went(8, "Failing", gaveUp("failing")),
-              went(9, "Lost", gaveUp("lost")),
             ],
           },
           new Date(now),
@@ -226,7 +225,6 @@ describe("BroadcastsOverview", () => {
       words.gaveUp.template!(3, 5),
       words.gaveUp.late!(3, 5),
       words.gaveUp.failing!(3, 5),
-      words.gaveUp.lost!(3, 5),
     ]) {
       await expect.element(page.getByText(said)).toBeVisible();
     }

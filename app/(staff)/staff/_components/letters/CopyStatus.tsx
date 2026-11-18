@@ -17,14 +17,15 @@ export function stateCounts<K extends string>(states: Record<K, number>, keys: K
 }
 
 /**
- * Counts in groups, each under its total: those that went, those still to go
- * (STILL_TO_GO), then those that didn't (DIDNT_GO).
+ * Counts in groups, each under its total: those still to go (STILL_TO_GO),
+ * first while there are any, then those that went, then those that didn't
+ * (DIDNT_GO).
  */
 export function wentAndGone(counts: Count[]): CountGroup[] {
   const went = (count: Count) => !DIDNT_GO.has(count.key) && !STILL_TO_GO.has(count.key);
   return [
-    { key: "went", label: words.groups.went, counts: counts.filter(went) },
     { key: "to-go", label: words.groups.toGo, counts: counts.filter((count) => STILL_TO_GO.has(count.key)) },
+    { key: "went", label: words.groups.went, counts: counts.filter(went) },
     { key: "gone", label: words.groups.gone, counts: counts.filter((count) => DIDNT_GO.has(count.key)) },
   ];
 }

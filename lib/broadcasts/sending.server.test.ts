@@ -209,10 +209,6 @@ describeWithDatabase("sending broadcasts", () => {
     expect(await query("SELECT backend, broadcast_message_id IS NOT NULL AS copy FROM email_sends")).toEqual([
       { backend: "postmark", copy: true },
     ]);
-    // Sent once Postmark says it was delivered.
-    expect((await stateOf(id)).state).toBe("sending");
-    await query("UPDATE broadcast_messages SET status = 'delivered'");
-    await sendDueBroadcasts(LATER);
     expect((await stateOf(id)).state).toBe("sent");
   });
 
@@ -542,50 +538,19 @@ describeWithDatabase("sending broadcasts", () => {
     expect(sent.at(-1)!.TextBody).toContain(words.body("See you there", "failing", 6, "", "email").trim());
   });
 
-  it("marks one by Postmark sent only once Postmark has said what became of each copy", async () => {
+  it("marks one by Postmark sent once every copy has gone, though Postmark has said nothing of them yet", async () => {
     postmark();
     for (const name of ["ann", "bo"]) await addFollower(`usr-${name}`, `${name}@example.com`, name);
     await pulled();
     const id = await broadcast("email:events:yes", "postmark");
     await startDueBroadcasts();
-    await sendDueBroadcasts(LATER);
-    expect((await stateOf(id)).state).toBe("sending");
-    // Delivered, and a soft bounce, which Postmark is trying again: both said of, so nothing is lost.
-    await query("UPDATE broadcast_messages SET status = 'delivered' WHERE address = 'ann@example.com'");
-    await query(
-      `INSERT INTO broadcast_message_events (message_id, kind) SELECT id, 'soft-bounced' FROM broadcast_messages
-       WHERE address = 'bo@example.com'`,
-    );
-    await query("UPDATE broadcast_messages SET sent_at = sent_at - interval '10 minutes'");
-    await sendDueBroadcasts(LATER);
+    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 2, left: 0 });
     expect(await stateOf(id)).toEqual({ state: "sent", waiting: false, reason: null, gaveUp: false });
   });
 
-  it("stops, never sends, one by Postmark that's done with any copy lost, though too few to stop it while sending", async () => {
-    const all = notifications() as (Notification & { MessageStream: string })[];
-    for (const name of ["ann", "bo"]) await addFollower(`usr-${name}`, `${name}@example.com`, name);
-    await pulled();
-    const id = await broadcast("email:events:yes", "postmark");
-    await startDueBroadcasts();
-    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 2, left: 0 });
-    // All gone, but Postmark has said nothing yet: still sending.
-    expect((await stateOf(id)).state).toBe("sending");
-    // Delivered, and one it says nothing of for ten minutes: lost.
-    await query("UPDATE broadcast_messages SET status = 'delivered' WHERE address = 'ann@example.com'");
-    await query("UPDATE broadcast_messages SET sent_at = sent_at - interval '10 minutes'");
-    await sendDueBroadcasts(LATER);
-    expect(await stateOf(id)).toMatchObject({ state: "cancelled", reason: "lost", gaveUp: true });
-    const told = all.filter((email) => email.MessageStream !== "broadcast").at(-1)!;
-    expect(told.TextBody).toContain(
-      broadcastsCopy.notifications.broadcastGaveUp.body("See you there", "lost", 1, "", "email").trim(),
-    );
-  });
-
-  it("stops one by Postmark once five of its copies are lost, sending no more, telling who scheduled it", async () => {
+  it("never stops one by Postmark for copies it says nothing of, sending the rest and telling nobody", async () => {
     // Every email Postmark takes: the broadcast's copies, and staff's.
     const all = notifications() as (Notification & { MessageStream: string })[];
-    const taken = () => all.filter((email) => email.MessageStream === "broadcast");
-    const sent = () => all.filter((email) => email.MessageStream !== "broadcast");
     for (const name of ["ann", "bo", "cy", "di", "ed", "fi", "gus"]) {
       await addFollower(`usr-${name}`, `${name}@example.com`, name);
     }
@@ -593,61 +558,21 @@ describeWithDatabase("sending broadcasts", () => {
     const id = await broadcast("email:events:yes", "postmark");
     await startDueBroadcasts();
     await sendDueBroadcasts(LATER);
-    // Five lost; one still awaited; one not sent yet, as if its turn hadn't come. All since it started.
-    await query("UPDATE mailings SET updated_at = updated_at - interval '1 hour' WHERE id = $1", [id]);
+    // Six Postmark took eleven minutes ago and has said nothing of since; one not sent yet, as if its turn hadn't come.
+    await query("UPDATE mailings SET state = 'sending' WHERE id = $1", [id]);
     await query(
-      "UPDATE broadcast_messages SET sent_at = sent_at - interval '11 minutes' WHERE address NOT IN ('fi@example.com', 'gus@example.com')",
+      "UPDATE broadcast_messages SET sent_at = sent_at - interval '11 minutes' WHERE address <> 'gus@example.com'",
     );
     await query(
       "UPDATE broadcast_messages SET status = 'scheduled', sent_at = NULL, provider_message_id = NULL WHERE address = 'gus@example.com'",
     );
-    expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0, left: 0 });
-    expect(await stateOf(id)).toMatchObject({ state: "cancelled", reason: "lost", gaveUp: true });
-    expect(taken()).toHaveLength(7);
-    expect((await copies()).map((copy) => copy.status)).toEqual([
-      "sent",
-      "sent",
-      "sent",
-      "sent",
-      "sent",
-      "sent",
-      "cancelled",
-    ]);
-    const words = broadcastsCopy.notifications.broadcastGaveUp;
-    expect(sent().at(-1)!.Subject).toBe(words.subject("See you there", "lost"));
-    // The five lost and the one cancelled didn't get it.
-    expect(sent().at(-1)!.TextBody).toContain(words.body("See you there", "lost", 6, "", "email").trim());
-  });
-
-  it("sends, once resumed, those never tried, as only copies lost since stop it while sending; done, it stops again", async () => {
-    notifications();
-    postmark();
-    for (const name of ["ann", "bo", "cy", "di", "ed", "fi"]) {
-      await addFollower(`usr-${name}`, `${name}@example.com`, name);
-    }
-    await pulled();
-    const id = await broadcast("email:events:yes", "postmark");
-    await startDueBroadcasts();
-    await sendDueBroadcasts(LATER);
-    await query("UPDATE mailings SET updated_at = updated_at - interval '1 hour' WHERE id = $1", [id]);
-    await query(
-      "UPDATE broadcast_messages SET sent_at = sent_at - interval '11 minutes' WHERE address <> 'fi@example.com'",
-    );
-    await query(
-      "UPDATE broadcast_messages SET status = 'scheduled', sent_at = NULL, provider_message_id = NULL WHERE address = 'fi@example.com'",
-    );
-    await sendDueBroadcasts(LATER);
-    expect((await stateOf(id)).reason).toBe("lost");
-    expect(await resumeBroadcast(id, "jo@pauseai.uk")).toBe(true);
-    // The one never tried goes; the five lost stay lost, and don't stop it.
     expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 1, left: 0 });
-    // Done, with five still lost: stopped again, never sent.
-    await query("UPDATE broadcast_messages SET status = 'delivered' WHERE address = 'fi@example.com'");
-    await sendDueBroadcasts(LATER);
-    expect(await stateOf(id)).toMatchObject({ state: "cancelled", reason: "lost", gaveUp: true });
+    expect(await stateOf(id)).toEqual({ state: "sent", waiting: false, reason: null, gaveUp: false });
+    expect(all.filter((email) => email.MessageStream === "broadcast")).toHaveLength(8);
+    expect(all.filter((email) => email.MessageStream !== "broadcast")).toHaveLength(0);
   });
 
-  it("never counts a copy by Gmail as lost, as Gmail says nothing of what arrives", async () => {
+  it("marks one by Gmail sent once every copy has gone, as Gmail says nothing of what arrives", async () => {
     recordGmail();
     for (const name of ["ann", "bo", "cy", "di", "ed"]) {
       await addFollower(`usr-${name}`, `${name}@example.com`, name);

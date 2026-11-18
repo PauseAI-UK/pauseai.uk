@@ -60,10 +60,9 @@ export function broadcastCounts(broadcast: BroadcastSummary): Count[] {
     "replied",
     "look",
     "opted-out",
-    // Those still to go: waiting their turn, held by WhatsApp, then lost by Postmark.
+    // Those still to go: waiting their turn, then delayed.
     "to-go",
     "held",
-    "lost",
     // Those that didn't go: not sent, as expected, first; then what went wrong.
     "not-sent",
     "error",
@@ -128,7 +127,6 @@ export function BroadcastWaiting({
       template: copy.gaveUpTemplate,
       late: copy.gaveUpLate,
       failing: copy.gaveUpFailing,
-      lost: copy.gaveUpLost,
     }[written.waitReason as string];
     return (
       <Strip tone="red" action={resume}>

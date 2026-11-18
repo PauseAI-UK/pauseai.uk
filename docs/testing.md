@@ -1013,7 +1013,7 @@ that drives it or why nothing does.
   - an email sent by the sending job, by hello@'s Gmail, and a copy as the supporter gets it, with its unsubscribe link;
   - an email with more copies than hello@'s Gmail can send today: some sent and the rest tomorrow, then stopped three days after its time, with the email saying so, and set going again by Resume sending;
   - one waiting for CiviCRM, with the email saying so and its page;
-  - an email by Postmark whose copies Postmark took and said no more of: counted as lost, still to go, then stopped by the sending job, with the email saying so and its page, made in the database as sending would leave it;
+  - an email by Postmark that soft-bounced a copy and said nothing more of others: counted as delayed, still to go, then sent by the sending job all the same, and each delayed an error once its seven days are over, made in the database as sending would leave it;
   - a reply asking to stop, to look at on the email's page, recorded as an opt-out from its thread;
   - a reply answered from its thread, by Gmail from hello@, and the email the person gets;
   - one to the newsletter's and events' yeses both, ticked as about our events;

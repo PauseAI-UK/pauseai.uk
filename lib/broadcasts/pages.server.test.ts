@@ -382,38 +382,90 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await broadcastPageData(id, { tab: "to-go" }, JO)).toMatchObject({ tab: "to-go", recipientsTotal: 2 });
   });
 
-  it("counts as lost, not sent, a copy Postmark took ten minutes ago and has said nothing of; never one by Gmail", async () => {
-    for (const n of [1, 2, 3, 4, 5]) await addFollower(`usr-${n}`, `p${n}@example.com`, `Person ${n}`);
+  it("counts as delayed a copy Postmark soft-bounced or has said nothing of for ten minutes, an error once its days run out", async () => {
+    for (const n of [1, 2, 3, 4, 5, 6]) await addFollower(`usr-${n}`, `p${n}@example.com`, `Person ${n}`);
     const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS, sendBy: "postmark" });
     const copies = await sent(id, [
       ["delivered", null],
       ["sent", null],
       ["sent", null],
       ["sent", null],
+      ["delivered", null],
       ["sent", null],
     ]);
-    // Four went eleven minutes ago, one just now; of the four, Postmark soft-bounced one, and is trying it again.
+    // Five went eleven minutes ago, one just now. Postmark soft-bounced one, and is trying it again; soft-bounced
+    // another, then delivered it; and said the last was marked as spam, so it reached them.
     await query("UPDATE broadcast_messages SET sent_at = now() - interval '11 minutes' WHERE mailing_id = $1", [id]);
-    await query("UPDATE broadcast_messages SET sent_at = now() WHERE id = $1", [copies[4]]);
-    await query("INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'soft-bounced')", [copies[3]]);
-    const data = await broadcastPageData(id, {}, JO);
-    expect(data!.kind === "written" && data!.summary).toMatchObject({
-      sent: 3,
-      states: { delivered: 1, sent: 2, lost: 2 },
+    await query("UPDATE broadcast_messages SET sent_at = now() WHERE id = $1", [copies[3]]);
+    await query(
+      "INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'soft-bounced'), ($2, 'soft-bounced'), ($3, 'opted-out')",
+      [copies[2], copies[4], copies[5]],
+    );
+    const stands = async () => {
+      const data = await broadcastPageData(id, {}, JO);
+      const rows = data!.kind === "written" ? data!.recipients : [];
+      return {
+        summary: data!.kind === "written" && data!.summary,
+        rows: copies.map((copy) => rows.find((one) => one.copyId === copy)!).map((one) => [one.state, one.why]),
+      };
+    };
+    expect(await stands()).toMatchObject({
+      summary: { sent: 6, failed: 0, states: { delivered: 2, sent: 1, held: 2, "opted-out": 1, error: 0 } },
+      rows: [
+        ["delivered", null],
+        ["held", "postmark-silent"],
+        ["held", "soft-bounce"],
+        ["sent", null],
+        ["delivered", null],
+        ["opted-out", null],
+      ],
     });
-    const rows = data!.kind === "written" ? data!.recipients : [];
-    expect(copies.map((copy) => rows.find((one) => one.copyId === copy)!.state)).toEqual([
-      "delivered",
-      "lost",
-      "lost",
-      "sent",
-      "sent",
+    expect(await broadcastPageData(id, { tab: "held" }, JO)).toMatchObject({ tab: "held", recipientsTotal: 2 });
+    // Its seven days over, those still delayed never will arrive: errors, done with but not sent.
+    await query("UPDATE mailings SET due_at = now() - interval '7 days' WHERE id = $1", [id]);
+    expect(await stands()).toMatchObject({
+      summary: { sent: 4, failed: 2, states: { held: 0, error: 2 } },
+      rows: [
+        ["delivered", null],
+        ["error", "postmark-silent"],
+        ["error", "soft-bounce"],
+        ["sent", null],
+        ["delivered", null],
+        ["opted-out", null],
+      ],
+    });
+    // By Gmail, nothing is ever said of what arrives, so nothing's delayed for silence.
+    await query("UPDATE mailings SET send_by = 'gmail', due_at = now() WHERE id = $1", [id]);
+    expect(await stands()).toMatchObject({ summary: { states: { sent: 2, held: 1 } } });
+  });
+
+  it("says a text WhatsApp held till its broadcast's days ran out is an error of WhatsApp's limit; one stopped otherwise, that it stopped", async () => {
+    for (const n of [1, 2, 3]) await addFollower(`usr-${n}`, `p${n}@example.com`, `Person ${n}`);
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });
+    const copies = await sent(id, [
+      ["delivered", null],
+      ["cancelled", null],
+      ["cancelled", null],
     ]);
-    expect(await broadcastPageData(id, { tab: "lost" }, JO)).toMatchObject({ tab: "lost", recipientsTotal: 2 });
-    // By Gmail, nothing is ever said of what arrives, so nothing is lost.
-    await query("UPDATE mailings SET send_by = 'gmail' WHERE id = $1", [id]);
-    const gmail = await broadcastPageData(id, {}, JO);
-    expect(gmail!.kind === "written" && gmail!.summary).toMatchObject({ sent: 5, states: { sent: 4, lost: 0 } });
+    // Held once, then cancelled as its days ran out; and one cancelled with it, never held.
+    await query("UPDATE broadcast_messages SET not_before = now() - interval '1 day' WHERE id = $1", [copies[1]]);
+    await query(
+      "UPDATE mailings SET state = 'cancelled', gave_up = true, wait_reason = 'limit', waiting_since = now() WHERE id = $1",
+      [id],
+    );
+    const whys = async () => {
+      const data = await broadcastPageData(id, {}, JO);
+      const rows = data!.kind === "written" ? data!.recipients : [];
+      return copies.map((copy) => rows.find((one) => one.copyId === copy)!).map((one) => [one.state, one.why]);
+    };
+    expect(await whys()).toEqual([
+      ["delivered", null],
+      ["error", "whatsapp-limit"],
+      ["error", "limit"],
+    ]);
+    // Stopped as its sending kept failing, a copy once held is one that broadcast stopped.
+    await query("UPDATE mailings SET wait_reason = 'failing' WHERE id = $1", [id]);
+    expect((await whys())[1]).toEqual(["error", "failing"]);
   });
 
   it("says which drafts are waiting for WhatsApp to approve their words, which it approved, and which it rejected", async () => {

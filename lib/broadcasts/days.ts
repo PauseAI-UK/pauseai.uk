@@ -7,7 +7,11 @@ import { plural } from "@/lib/content/plural";
 /** How long a broadcast waits for CiviCRM, from when it first couldn't go, before it stops. */
 export const WAIT_DAYS = 3;
 
-/** How long after its time a broadcast has to all go, at a day's limit of emails, before it stops. */
+/**
+ * How long after its time a broadcast has to all go, at a day's limit of
+ * emails, before it stops; and how long a copy can be delayed, held by
+ * WhatsApp or still being tried by Postmark, before it counts as an error.
+ */
 export const SENDING_DAYS = 7;
 
 /**
@@ -19,13 +23,10 @@ export const FAILURES_TO_STOP = 5;
 
 /**
  * How long Postmark has to say what became of a copy it took, before the
- * copy counts as lost: it usually says within seconds, and within a few
- * minutes at worst.
+ * copy counts as delayed: it usually says within seconds, but can hold
+ * copies for hours.
  */
-export const LOST_MINUTES = 10;
-
-/** How many of a broadcast's copies can be lost, since it last started or was resumed, before it stops. */
-export const LOST_TO_STOP = 5;
+export const SILENT_MINUTES = 10;
 
 const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 
