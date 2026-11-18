@@ -27,8 +27,8 @@ describe("LinkedText", () => {
 
 describe("TextBubble", () => {
   it("shows a text as WhatsApp does: bold, italic, a list, a quote, web addresses linked and a link's mark not", async () => {
-    await render(<TextBubble from="PauseAI UK" words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />);
-    const bubble = page.getByText("PauseAI UK").element().parentElement!;
+    await render(<TextBubble words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />);
+    const bubble = page.getByText("07:18").element().parentElement!;
     expect(bubble.querySelector("strong")?.textContent).toBe("11:00");
     expect(bubble.querySelector("strong em")?.textContent).toBe("Parliament Square");
     expect([...bubble.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Bring water", "Wear orange"]);
@@ -44,7 +44,7 @@ describe("TextBubble's card and fold", () => {
     content: texts.map((text) => ({ type: "paragraph", content: [{ type: "text", text }] })),
   });
   const bubble = (words: TextDoc, card?: LinkCard | null) => (
-    <TextBubble from="PauseAI UK" words={words} card={card} footer={TEMPLATE_FOOTER} time="07:18" />
+    <TextBubble words={words} card={card} footer={TEMPLATE_FOOTER} time="07:18" />
   );
   const readMore = () => page.getByRole("button", { name: broadcastsCopy.broadcastPages.readMore });
 

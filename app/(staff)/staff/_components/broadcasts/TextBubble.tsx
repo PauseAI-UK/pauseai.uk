@@ -166,16 +166,15 @@ function LinkCardView({ card }: { card: LinkCard }) {
  * A text as a messaging app shows it, a phone's width: the words in a bubble
  * from us, on the left as it is on their phone, formatted as WhatsApp does,
  * under the card for their link if there is one, folded at five lines, with
- * its footer, the grey line saying how to stop, and the time.
+ * its footer, the grey line saying how to stop, and the time. No name on it,
+ * as WhatsApp puts none on a bubble in a chat with one business.
  */
 export default function TextBubble({
-  from,
   words,
   card,
   footer,
   time,
 }: {
-  from: string;
   words: TextDoc;
   card?: LinkCard | null;
   footer: string;
@@ -184,8 +183,7 @@ export default function TextBubble({
   return (
     <div className={styles.phone}>
       <ChatWall>
-        <div className={styles.bubble}>
-          <span className={`${styles.name} ${styles.ourName}`}>{from}</span>
+        <div className={`${styles.bubble} ${styles.phoneBubble}`}>
           {card && <LinkCardView card={card} />}
           <TextFold>
             <Blocks blocks={words.content} />

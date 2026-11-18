@@ -22,10 +22,13 @@
   background: var(--chat-wall);
 }
 
+/* A bubble, as WhatsApp draws one: its tail at the top corner on its own
+   side, theirs the left, ours the right. */
 .bubble {
+  position: relative;
   align-self: flex-start;
   margin-right: var(--space-8);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2);
   border-radius: var(--radius-md);
   border-top-left-radius: 0;
   background: var(--surface);
@@ -36,6 +39,17 @@
   overflow-wrap: anywhere;
 }
 
+.bubble::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 8px;
+  height: 13px;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
 .ours {
   align-self: flex-end;
   margin-right: 0;
@@ -43,6 +57,12 @@
   border-top-left-radius: var(--radius-md);
   border-top-right-radius: 0;
   background: var(--chat-ours);
+}
+
+.ours::before {
+  right: auto;
+  left: 100%;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
 .name {
@@ -58,7 +78,6 @@
 
 .time {
   display: block;
-  margin-top: var(--space-1);
   color: var(--text-secondary);
   font-size: var(--text-xs);
   text-align: right;
@@ -80,7 +99,7 @@
 /* A text's footer: the grey line under its words, saying how to stop. */
 .footer {
   display: block;
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
   color: var(--text-secondary);
   font-size: var(--text-xs);
 }
@@ -154,6 +173,19 @@
   max-width: 393px;
 }
 
+/* A text's bubble in the preview, its words wrapping where they did in
+   WhatsApp on a Fairphone 5, a mid-range Android phone of ordinary width,
+   at WhatsApp's default font size (Medium), measured: a march text's five
+   lines ending "in central London at All Soul…". On Large, the same text
+   ended two lines sooner; on an iPhone 13 Pro Max, at its default text
+   size, about two lines later, at "is here: https://". How many words fit
+   a line depends on each phone's width and font size settings, so the
+   preview folds as the narrower phone did: what staff see before Read more,
+   most people see at least. */
+.phoneBubble {
+  max-width: calc(200px + 2 * var(--space-2));
+}
+
 /* A text's words as WhatsApp lays them out: its lines a blank line apart, a
    list's bullets set in, a quote with a bar beside it. The blank line is a
    line of its own, not a margin, so the fold counts it, as WhatsApp does. */
@@ -194,11 +226,12 @@
 
 /* The card at the top of a text for its link, as WhatsApp shows one with
    no picture: the page's title in bold, at most two lines, then a line of
-   its description and its site, in grey. */
+   its description and its site, in grey; set into the bubble's top
+   corners, closer to its edges than the words are. */
 .linkCard {
   display: grid;
-  margin-bottom: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  margin: calc(var(--space-1) - var(--space-2)) calc(var(--space-1) - var(--space-2)) var(--space-2);
+  padding: var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--chat-card);
   white-space: normal;

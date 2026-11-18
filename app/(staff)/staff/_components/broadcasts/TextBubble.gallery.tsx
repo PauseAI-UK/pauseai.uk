@@ -11,20 +11,12 @@ export const textBubbleGallery: Example[] = [
     variants: [
       {
         label: "A text with its footer, folded at five lines",
-        render: () => (
-          <TextBubble from="PauseAI UK" words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />
-        ),
+        render: () => <TextBubble words={exampleWhatsAppWords} footer={TEMPLATE_FOOTER} time="07:18" />,
       },
       {
         label: "With the card for its link",
         render: () => (
-          <TextBubble
-            from="PauseAI UK"
-            words={exampleWhatsAppWords}
-            card={exampleLinkCard}
-            footer={TEMPLATE_FOOTER}
-            time="07:18"
-          />
+          <TextBubble words={exampleWhatsAppWords} card={exampleLinkCard} footer={TEMPLATE_FOOTER} time="07:18" />
         ),
       },
     ],

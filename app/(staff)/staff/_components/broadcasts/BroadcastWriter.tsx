@@ -260,9 +260,7 @@ function TextPreview({
     );
     return () => clearTimeout(timer);
   }, [link, cards, linkCard]);
-  return (
-    <TextBubble from={TEXT_SENDER_NAME} words={words} card={link ? cards[link] : null} footer={footer} time={time} />
-  );
+  return <TextBubble words={words} card={link ? cards[link] : null} footer={footer} time={time} />;
 }
 
 /**
