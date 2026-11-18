@@ -1,11 +1,11 @@
-/* The lozenge. Its size follows the density (styles/tokens.css). Plain,
-   it's the page's second surface, or `--tag-plain-bg` where the density
-   sets one: on a staff page, a beige that stands off that surface too. */
+/* The lozenge. Its size and plain colour follow the density
+   (styles/tokens.css): on a staff page, a beige that stands off the page's
+   second surface as well as white. */
 .tag {
   display: inline-block;
   padding: var(--tag-padding);
   border-radius: var(--radius-pill);
-  background: var(--tag-plain-bg, var(--surface-2));
+  background: var(--tag-plain-bg);
   color: var(--text);
   font-size: var(--tag-font-size);
   font-weight: 400;
