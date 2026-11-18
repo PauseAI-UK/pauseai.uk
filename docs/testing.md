@@ -1461,7 +1461,7 @@ mistake. `--fast` stops after them anyway.
 **What CI runs**, in four lanes at once, as CI's jobs run:
 
 - `npm run typecheck`, then `npm run storyboard -- --no-open` (the
-  storyboard waits for the types, as in CI, and both write `.next`). It's
+  storyboard waits for the types, as both write `.next`). It's
   the review, of the flows a change can reach ("Which flows a review
   runs"), so it counts for the review too, and finds nothing to run if one
   has already run on the same code;

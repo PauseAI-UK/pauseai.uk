@@ -93,6 +93,9 @@ function securityHeaders() {
 }
 
 const nextConfig: NextConfig = {
+  // CI's storyboard builds skip the types, which its own job checks beside
+  // them (.github/workflows/ci.yml); every other build checks them.
+  typescript: { ignoreBuildErrors: process.env.SKIP_BUILD_TYPES === "1" },
   env: {
     // Netlify's deploy context ("production", "deploy-preview", ...), fixed
     // at build time. Outside production, letters go only to the test MP

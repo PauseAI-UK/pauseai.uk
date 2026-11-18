@@ -11,8 +11,7 @@
 // then the types, ESLint and Stylelint check them, and new migrations are
 // checked to come after main's (scripts/migration-order.mjs). If one fails, the gate
 // stops there. Then what .github/workflows/ci.yml runs, in parallel lanes as
-// CI's jobs are: the types then the storyboard (CI's Storyboard job needs
-// Types, and both write .next), the tests with coverage, the linters and the
+// CI's jobs are: the types then the storyboard (both write .next), the tests with coverage, the linters and the
 // placeholder check one after another, and the backup Worker's package. Not
 // `next build`: the storyboard builds the site. Nothing is fetched;
 // origin/main is as last fetched.

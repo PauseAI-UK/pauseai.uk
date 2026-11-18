@@ -72,9 +72,10 @@ jobs:
         run: npm run placeholders
 
   # The types, on their own, so a type error is one red job saying what's
-  # wrong in seconds. The jobs that build the site wait for this one, as
-  # `next build` checks types too, and show as skipped rather than failing
-  # with the same error at the end of a long log. It first checks that no
+  # wrong in seconds. The Build job waits for this one, as `next build`
+  # checks types too, and shows as skipped rather than failing with the same
+  # error at the end of a long log. The storyboard doesn't wait: its builds
+  # skip the types (SKIP_BUILD_TYPES, next.config.ts). It first checks that no
   # migration already pushed has changed, and that new ones come after
   # main's, either of which would fail the deploy.
   types:
@@ -298,7 +299,6 @@ jobs:
   # number of flows, not their length, so the parts aren't the same length.
   storyboard-shard:
     name: Storyboard (${{ matrix.shard }} of 3)
-    needs: types
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -327,6 +327,8 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: postgres
       LOCAL_POSTGRES_HOST: postgres
+      # The Types job checks them, beside this one (next.config.ts).
+      SKIP_BUILD_TYPES: "1"
     steps:
       # Git, for the checkout, and psql 18, to match the server: each flow's
       # database is made with it (scripts/fresh-database.mjs). Retried as in
@@ -391,11 +393,11 @@ jobs:
 
   # One result for the three parts, under the storyboard check's own name.
   # It runs whatever they did, so a failed part fails it, rather than
-  # leaving it skipped; only a type error, when no part ran, skips it.
+  # leaving it skipped.
   storyboard:
     name: Storyboard
-    needs: [types, storyboard-shard]
-    if: ${{ always() && needs.types.result == 'success' }}
+    needs: storyboard-shard
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Every part passed
