@@ -185,7 +185,8 @@ export default function TextBubble({
       <ChatWall>
         <div className={`${styles.bubble} ${styles.phoneBubble}`}>
           {card && <LinkCardView card={card} />}
-          <TextFold>
+          {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
+          <TextFold key={JSON.stringify(words.content)}>
             <Blocks blocks={words.content} />
           </TextFold>
           <span className={styles.footer}>{footer}</span>

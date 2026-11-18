@@ -4,7 +4,7 @@ import { EditorContent, Node, useEditor, useEditorState, type Editor, type JSONC
 import { useId, useMemo, useRef, useState } from "react";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import LinkBar from "@/components/ui/LinkBar";
-import { isLinkKey, letterExtensions } from "@/lib/letters/extensions";
+import { isLinkKey, letterExtensions, unlinkedExtensions, withoutLinks } from "@/lib/letters/extensions";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { NOT_CONDITION } from "@/lib/mailings/doc";
 import { partFor, type MailingChoice } from "@/lib/mailings/fields";
@@ -414,20 +414,25 @@ export default function MailingEditor({
   const [linking, setLinking] = useState(false);
   const extensions = useMemo(
     () => [
-      ...letterExtensions,
+      ...(whatsApp ? unlinkedExtensions : letterExtensions),
       MergeField.configure({ labels: Object.fromEntries(fields.map((field) => [field.id, field.label])) }),
       OnlyFor.configure({ labels: Object.fromEntries(conditions.map((condition) => [condition.id, condition.label])) }),
     ],
-    [fields, conditions],
+    [fields, conditions, whatsApp],
   );
   const editor = useEditor({
     extensions,
-    content: initial,
+    content: whatsApp ? withoutLinks(initial) : initial,
     autofocus: autoFocus ? "end" : false,
     // Rendered on the server too, where there's no editor yet.
     immediatelyRender: false,
     editorProps: {
-      attributes: { role: "textbox", "aria-multiline": "true", "aria-labelledby": labelledBy, class: styles.editor },
+      attributes: {
+        role: "textbox",
+        "aria-multiline": "true",
+        "aria-labelledby": labelledBy,
+        class: whatsApp ? `${styles.editor} ${styles.short}` : styles.editor,
+      },
       handleKeyDown: (_, event) => {
         if (whatsApp || !isLinkKey(event)) return false;
         setLinking(true);

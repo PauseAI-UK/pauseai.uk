@@ -72,6 +72,16 @@ describe("TextBubble's card and fold", () => {
     await expect.element(readMore()).not.toBeInTheDocument();
     expect(words.clientHeight).toBeCloseTo(7 * line, 0);
   });
+
+  it("stays open as its card comes, and folds again once its words change", async () => {
+    const { rerender } = await render(bubble(paragraphs("One", "Two", "Three", "Four")));
+    await readMore().click();
+    await rerender(bubble(paragraphs("One", "Two", "Three", "Four"), exampleLinkCard));
+    await expect.element(page.getByText(exampleLinkCard.title)).toBeVisible();
+    expect(readMore().query()).toBeNull();
+    await rerender(bubble(paragraphs("One", "Two", "Three", "Four", "Five"), exampleLinkCard));
+    await expect.element(readMore()).toBeVisible();
+  });
 });
 
 describe("ChatBubble", () => {

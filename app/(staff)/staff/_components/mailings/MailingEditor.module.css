@@ -127,6 +127,12 @@
   outline: none;
 }
 
+/* WhatsApp's words: a text, shorter than an email, so the box starts three
+   lines shorter; it grows with the words all the same. */
+.short {
+  min-height: 9rem;
+}
+
 .editor p {
   margin: 0 0 var(--space-3);
 }
