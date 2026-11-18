@@ -191,6 +191,13 @@ async function repaint(page: Page, hovered: boolean): Promise<void> {
       document.head.append(hide);
       await tick();
       hide.remove();
+      // What holds the focus stays shown, so its selection is drawn as it
+      // was: after an editor changes what's selected, sometimes without it.
+      // Set again, it's drawn where it is.
+      const selection = getSelection()!;
+      const ranges = Array.from({ length: selection.rangeCount }, (_, i) => selection.getRangeAt(i));
+      selection.removeAllRanges();
+      for (const range of ranges) selection.addRange(range);
       await tick();
     }, hovered)
     // A page that navigated away: take the picture anyway.

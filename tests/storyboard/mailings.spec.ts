@@ -258,9 +258,7 @@ test("Changing and deleting a draft", async ({ page, request, flowDatabase }) =>
   const list = await stayOnPage(page, /\/staff\/politicians/);
   const changeWho = page.getByRole("link", { name: copy.changeWho });
   // From the top, where the button shows on a phone too, rather than wherever filling in the subject scrolled.
-  await scrollSettled(page);
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-  await scrollSettled(page);
   await changeWho.click();
   await expect(changeWho.locator("[aria-hidden]")).toBeVisible();
   await frame(page, "Change who, waiting", {
@@ -651,11 +649,8 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   // Yours connected, there's no link to connect it, and the name is the Gmail's, filled in.
   await expect(from.getByRole("link", { name: copy.connectOne })).toHaveCount(0);
   await expect(page.getByLabel(copy.fromNameLabel, { exact: false })).not.toHaveValue("");
-  // At the top, where Sent from shows whole, the same each run. The page may still be in the smooth scroll
-  // typing the letter started, and an instant scroll then lands short of the top, so that ends first.
-  await scrollSettled(page);
+  // At the top, where Sent from shows whole, the same each run.
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-  await scrollSettled(page);
   await frame(page, "Sent from their Gmail", {
     window: true,
   });

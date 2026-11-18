@@ -599,10 +599,7 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
   const editor = page.getByRole("textbox", { name: copy.replies.answerLabel });
   await expect(editor).toBeFocused();
   await editor.pressSequentially("Yes, there's a lift by the main doors.");
-  // Each keystroke scrolls the cursor into view, smoothly, and where those
-  // scrolls come to rest depends on how they overlap on a busy machine. Once
-  // they have, the picture is of the answer at the window's foot.
-  await scrollSettled(page);
+  // The answer at the window's foot.
   await editor.evaluate((box) => box.scrollIntoView({ block: "end", behavior: "instant" }));
   await frame(page, "Writing an answer", { window: true });
   await page.getByRole("button", { name: copy.replies.send }).click();
