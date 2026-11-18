@@ -117,6 +117,13 @@ describeWithDatabase("filterProblems", () => {
       }),
     ).toEqual([]);
     expect(await filterProblems({ list: "politicians", params: { answer: "going" } })).toEqual([]);
+    // Those invited, and those never asked, as the answer's choices have them.
+    expect(
+      await filterProblems({
+        list: "politicians",
+        params: { ask: "frontier-ai-letter", answer: ["invited", "never"] },
+      }),
+    ).toEqual([]);
     await logChange("jo@pauseai.uk", "add note", { noteId: 1, politicianId: 1 });
     expect(
       await filterProblems({

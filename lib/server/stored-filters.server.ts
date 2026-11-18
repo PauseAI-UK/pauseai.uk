@@ -1,5 +1,5 @@
 import "server-only";
-import { ASK_STATUSES } from "@/lib/asks/asks";
+import { ASK_STATUSES, INVITED, NEVER_ASKED } from "@/lib/asks/asks";
 import { contactState } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { campaignBySlug } from "@/lib/email-your-mp";
@@ -91,7 +91,7 @@ async function politicianValues(params: Params): Promise<Known> {
     nation: COUNTRIES,
     email: EMAIL_STATES,
     ask: asks.map((one) => one.slug),
-    answer: [...answers, "none"],
+    answer: [...answers, INVITED, NEVER_ASKED],
     mailed: asks.map((one) => one.slug),
   };
 }

@@ -69,14 +69,14 @@ test("No answer yet", async ({ page, flowDatabase }) => {
   await expect(page.getByRole("link", { name: campaigns[0].title, exact: true })).toBeVisible();
 
   story(
-    "No answer's column is the whole of who's been written to and hasn't answered. Pressed, it lists them, longest wait first.",
+    "The column of those asked to sign is the whole of who's been written to and hasn't answered. Pressed, it lists them, longest wait first.",
   );
   await frame(page, "The ask's answers");
-  const unanswered = page.getByRole("link", { name: new RegExp(`^${staffVocabulary.statuses.noAnswer} \\d`) });
+  const unanswered = page.getByRole("link", { name: new RegExp(`^${staffVocabulary.invited.letter} \\d`) });
   await unanswered.click();
-  await expect(page).toHaveURL(/answer=none/);
+  await expect(page).toHaveURL(/answer=invited/);
   await expect(unanswered).toHaveAttribute("aria-current", "true");
-  await frame(page, "Those with no answer");
+  await frame(page, "Those asked who haven't answered");
 });
 
 test("Asks", async ({ page, request, flowDatabase }) => {
