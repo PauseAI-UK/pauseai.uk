@@ -157,7 +157,7 @@ describe("PoliticianTable", () => {
     expect(page.getByRole("button").all()).toHaveLength(0);
   });
 
-  it("lists only answers, but for the ask the list is filtered by, which says how each stands on it", async () => {
+  it("lists only answers, but filtered by an ask has that ask's column, saying how each stands on it", async () => {
     const edinburgh = ask("edinburgh-conference-2026");
     const invited = { ...MP.statuses["frontier-ai-letter"], status: "invited" as const };
     const rows = [
@@ -183,27 +183,29 @@ describe("PoliticianTable", () => {
     // With no ask chosen, being asked isn't an answer, by a letter or by staff's mark.
     expect(answers("Wendy Written")).toEqual([]);
     expect(answers("Neil Never")).toEqual([]);
+    // Filtered by an ask, the column is headed with its title, unsorted, and says only how each stands on it.
     await rerender(<PoliticianTable politicians={rows} asks={exampleAsks} search={{ ask: edinburgh.slug }} />);
-    expect(answers("Wendy Written")).toEqual([`${edinburgh.title} ${staffVocabulary.invited.event}`]);
-    expect(answers("Neil Never")).toEqual([`${edinburgh.title} ${staffVocabulary.neverAsked.event}`]);
-    // Neither is an answer, so neither is in bold, as Dee's are, and the words fit on their line.
-    const word = (name: string, words: string) =>
-      page.getByRole("row").filter({ hasText: name }).getByText(words, { exact: true }).element();
-    const never = word("Neil Never", staffVocabulary.neverAsked.event);
-    expect(never.closest("strong")).toBeNull();
-    expect(word("Dee Declined", staffVocabulary.statuses.declined).closest("strong")).not.toBeNull();
-    expect(never.getBoundingClientRect().right).toBeLessThanOrEqual(
-      never.closest("ul")!.getBoundingClientRect().right + 1,
-    );
-    // One who answered it has their line as ever, once, among their other answers.
-    expect(answers("Dee Declined")).toEqual([
-      `${edinburgh.title} ${staffVocabulary.statuses.declined}`,
-      `${ask("frontier-ai-letter").title} ${staffVocabulary.statuses.signed}`,
-    ]);
+    const th = page.getByRole("columnheader", { name: edinburgh.title, exact: true });
+    await expect.element(th).toBeVisible();
+    expect(th.element().querySelector("a")).toBeNull();
+    const cell = (name: string) =>
+      page.getByRole("row").filter({ hasText: name }).element().querySelectorAll("td")[th.element().cellIndex];
+    expect(cell("Wendy Written").textContent).toBe(staffVocabulary.invited.event);
+    expect(cell("Neil Never").textContent).toBe(staffVocabulary.neverAsked.event);
+    expect(cell("Dee Declined").textContent).toBe(staffVocabulary.statuses.declined);
+    expect(answers("Dee Declined")).toEqual([]);
+    // An answer in bold; being asked, or never, plain.
+    expect(cell("Neil Never").querySelector("strong")).toBeNull();
+    expect(cell("Wendy Written").querySelector("strong")).toBeNull();
+    expect(cell("Dee Declined").querySelector("strong")).not.toBeNull();
     // A download says the same, and a card has only answers.
     const column = politicianColumns(exampleAsks, { ask: "frontier-ai-letter" }).find((c) => c.key === "asks")!;
-    expect(column.text!(rows[0])).toBe(`${staffVocabulary.invited.letter}: ${ask("frontier-ai-letter").title}`);
+    expect(column.label).toBe(ask("frontier-ai-letter").title);
+    expect(column.text!(rows[0])).toBe(staffVocabulary.invited.letter);
     expect(politicianContact(exampleAsks)(rows[0]).note!.join()).not.toContain(staffVocabulary.invited.letter);
+    // An ask that doesn't exist leaves the Asks column as it is.
+    await rerender(<PoliticianTable politicians={rows} asks={exampleAsks} search={{ ask: "gone" }} />);
+    await expect.element(page.getByRole("link", { name: politiciansCopy.politicians.columns.asks })).toBeVisible();
   });
 
   it("says when nobody matches", async () => {

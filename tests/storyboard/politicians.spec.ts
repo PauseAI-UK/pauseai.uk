@@ -390,7 +390,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026$/);
   await frame(page, "The Edinburgh conference's chip");
   story(
-    "Staff choose those never invited to it, the ones to invite. Each row says so beside the conference. Clear filters then brings back the whole list.",
+    "Staff choose those never invited to it, the ones to invite. The Asks column becomes the conference's, saying so on each row. Clear filters then brings back the whole list.",
   );
   // The answer is chosen in the second half of the ask's chip.
   await changeFilter(page, filters.anyAnswer, staffVocabulary.neverAsked.event);

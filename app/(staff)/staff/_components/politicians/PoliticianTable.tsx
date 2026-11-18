@@ -51,8 +51,8 @@ const marks = (p: Politician) => {
  * The politicians list's columns: who they are (name, house, constituency
  * and party), how they stand (whether they're in office, the marks on
  * them, each ask they've answered and their answer beside it, a line
- * each, a long title cut short, and with them the ask the list is
- * filtered by, however they stand on it), how
+ * each, a long title cut short; or, filtered by an ask, a column headed
+ * with its title saying how each stands on it, answered or not), how
  * many emails went to them and came from them, and when they first and
  * last did anything with us. Which show is the filters' doing, not the
  * rows': a
@@ -90,10 +90,49 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       {label}
     </SortHeading>
   );
-  // The asks in their Asks cell: those they've answered, and the one the list is filtered by, however they stand on it.
-  const filteredBy = firstOf(search.ask);
-  const shown = (p: Politician) =>
-    asks.filter((ask) => isAnswer(p.statuses[ask.slug]?.status) || ask.slug === filteredBy);
+  // Filtered by an ask, the Asks column is that ask's own: how each stands on it, an answer in bold.
+  const filteredBy = asks.find((ask) => ask.slug === firstOf(search.ask));
+  const answered = (p: Politician) => asks.filter((ask) => isAnswer(p.statuses[ask.slug]?.status));
+  const askColumn: ListColumn<Politician> = filteredBy
+    ? {
+        key: "asks",
+        label: filteredBy.title,
+        text: (p) => standingWord(standing(p, filteredBy.slug), filteredBy.kind),
+        cell: (p) => {
+          const Word = isAnswer(p.statuses[filteredBy.slug]?.status) ? "strong" : "span";
+          return (
+            <Word className={styles.answer}>
+              <AnswerWord status={standing(p, filteredBy.slug)} kind={filteredBy.kind} />
+            </Word>
+          );
+        },
+      }
+    : {
+        key: "asks",
+        label: politiciansCopy.politicians.columns.asks,
+        heading: heading("asks", politiciansCopy.politicians.columns.asks),
+        text: (p) =>
+          answered(p)
+            .map((ask) => `${standingWord(standing(p, ask.slug), ask.kind)}: ${ask.title}`)
+            .join("; "),
+        cell: (p) =>
+          answered(p).length ? (
+            <ul className={styles.asks}>
+              {answered(p).map((ask) => (
+                <li key={ask.slug}>
+                  <span className={styles.ask} title={ask.title}>
+                    <AskTitle ask={ask} />
+                  </span>{" "}
+                  <strong className={styles.answer}>
+                    <AnswerWord status={standing(p, ask.slug)} kind={ask.kind} />
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Muted>{politiciansCopy.politicians.noAsks}</Muted>
+          ),
+      };
   const columns: (ListColumn<Politician> | false)[] = [
     {
       key: "name",
@@ -161,36 +200,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
         </span>
       ),
     },
-    {
-      key: "asks",
-      label: politiciansCopy.politicians.columns.asks,
-      heading: heading("asks", politiciansCopy.politicians.columns.asks),
-      text: (p) =>
-        shown(p)
-          .map((ask) => `${standingWord(standing(p, ask.slug), ask.kind)}: ${ask.title}`)
-          .join("; "),
-      cell: (p) =>
-        shown(p).length ? (
-          <ul className={filteredBy ? `${styles.asks} ${styles.withStanding}` : styles.asks}>
-            {shown(p).map((ask) => {
-              // An answer in bold; that they were asked, or never were, plain.
-              const Word = isAnswer(p.statuses[ask.slug]?.status) ? "strong" : "span";
-              return (
-                <li key={ask.slug}>
-                  <span className={styles.ask} title={ask.title}>
-                    <AskTitle ask={ask} />
-                  </span>{" "}
-                  <Word className={styles.answer}>
-                    <AnswerWord status={standing(p, ask.slug)} kind={ask.kind} />
-                  </Word>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <Muted>{politiciansCopy.politicians.noAsks}</Muted>
-        ),
-    },
+    askColumn,
     {
       key: "emailsToThem",
       label: politiciansCopy.politicians.columns.emailsToThem,

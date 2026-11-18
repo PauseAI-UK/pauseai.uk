@@ -201,8 +201,8 @@ clears the row. When a letter asked them, never asked isn't offered, and
 invited is what clears an answer. The politicians list's Ask filter finds
 those who stand on an ask in any of the ways chosen (with no ask chosen,
 no answer is offered or taken from the address), and its Asks column
-lists answers, with the ask the list is filtered by among them however they
-stand on it.
+lists answers. Filtered by an ask, that column is the ask's own instead,
+headed with its title and saying how each stands on it.
 
 Staff set statuses by hand, with a note, for every ask but two, which
 imports set from controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`):

@@ -29,13 +29,6 @@
   list-style: none;
 }
 
-/* Filtered by an ask, its line says how each stands on it, which may be
-   that they were asked or never were: longer words than an answer, so their
-   column is wider, and the list with it. */
-.withStanding {
-  --answer-width: 7.5rem;
-}
-
 .asks li {
   display: grid;
   grid-column: 1 / -1;
