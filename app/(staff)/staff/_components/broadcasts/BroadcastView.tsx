@@ -90,16 +90,16 @@ export function pauseInBrief(pause: SendingPause): { word: string; till: string 
   }
 }
 
-/** A pause in full, as its strip says it on a broadcast's page. */
+/** A pause in full, as its strip says it on a broadcast's page: till when as the sending's next run after then, as pauseInBrief says it. */
 function pauseInFull(pause: SendingPause): string {
   switch (pause.kind) {
     case "waiting":
       return copy.waiting(pause.reason, staffDate(pause.endsAt), pause.said);
     case "resting":
-      return copy.resting(staffTime(pause.until));
+      return copy.resting(staffTime(sendsAt(pause.until)));
     case "held":
       // When, as each held recipient's row under it says its own.
-      return copy.heldLeft(pause.held, staffTime(pause.until), staffDate(pause.stopsAt));
+      return copy.heldLeft(pause.held, staffTime(sendsAt(pause.until)), staffDate(pause.stopsAt));
     case "limit":
       return pause.channel === "text" ? copy.moreTomorrowText : copy.moreTomorrow;
   }
@@ -176,7 +176,7 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
           <span className={styles.stack}>
             <CopyStatus copyOf={r} />
             {r.sentAt && <Muted>{staffDate(r.sentAt)}</Muted>}
-            {r.heldTill && <Muted>{copy.heldTill(staffTime(r.heldTill))}</Muted>}
+            {r.heldTill && <Muted>{copy.heldTill(staffTime(sendsAt(r.heldTill)))}</Muted>}
             {copyWent(r) && (
               <StaffLink href={`/staff/broadcasts/${broadcast.id}/${r.copyId}`}>{copy.threadLink}</StaffLink>
             )}

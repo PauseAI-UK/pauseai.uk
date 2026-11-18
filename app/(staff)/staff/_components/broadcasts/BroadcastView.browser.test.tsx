@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
+import { londonWhen, staffDate } from "@/lib/staff-time";
 import BroadcastView, { broadcastCounts } from "./BroadcastView";
 import { CountGroups, NeedsAndFine } from "../mailings/CopyCounts";
 import { CopyStatus, copyStatus } from "../letters/CopyStatus";
@@ -190,7 +190,8 @@ describe("a broadcast's page", () => {
     // The went group leaves them out.
     await expect.element(page.getByRole("group", { name: `276 ${stateWords.groups.went}` })).toBeVisible();
     await expect.element(page.getByText(stateWords.tags.held!, { exact: true })).toBeVisible();
-    await expect.element(page.getByText(copy.heldTill(staffTime(heldTill)))).toBeVisible();
+    // The sending's next run after then, in London.
+    await expect.element(page.getByText(copy.heldTill("19 Oct 2026, 11:03"))).toBeVisible();
     // Not gone yet, so no way to its copy.
     await expect.element(page.getByRole("link", { name: copy.threadLink })).not.toBeInTheDocument();
   });
@@ -398,8 +399,9 @@ describe("BroadcastWaiting", () => {
         { kind: "waiting", reason: "civicrm", said: "Down", endsAt },
         copy.waiting("civicrm", staffDate(endsAt), "Down"),
       ],
-      [{ kind: "resting", until }, copy.resting(staffTime(until))],
-      [{ kind: "held", held: 20, until, stopsAt }, copy.heldLeft(20, staffTime(until), staffDate(stopsAt))],
+      // Till the sending's next run after `until`.
+      [{ kind: "resting", until }, copy.resting("11 Nov 2026, 07:48")],
+      [{ kind: "held", held: 20, until, stopsAt }, copy.heldLeft(20, "11 Nov 2026, 07:48", staffDate(stopsAt))],
       [{ kind: "limit", channel: "email" }, copy.moreTomorrow],
       [{ kind: "limit", channel: "text" }, copy.moreTomorrowText],
     ];
