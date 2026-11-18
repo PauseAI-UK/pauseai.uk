@@ -1,7 +1,7 @@
 import type { AnswerStatus } from "@/lib/broadcasts/answers.server";
 import { expect, it } from "vitest";
 import { ASK_STATUSES, ASKERS } from "@/lib/asks/asks";
-import { TOPICS, WAYS, type Topic } from "@/lib/supporters/contact-permissions";
+import { CHANNELS, TOPICS, WAYS, type Topic } from "@/lib/supporters/contact-permissions";
 import { ERROR_KINDS } from "@/lib/oversight/error-key";
 import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
 import { RECORDED_LETTER_EVENTS } from "@/lib/letters/status";
@@ -75,6 +75,7 @@ const LISTED: Record<string, readonly string[]> = {
     "bulk-notice",
     "broadcast-answer",
   ]),
+  "kept_permissions.channel": CHANNELS,
   "preference_choices.way": WAYS,
   "preference_choices.topic": every<Topic | "bulk">()(["newsletter", "events", "volunteering", "bulk"]),
   "errors_seen.kind": ERROR_KINDS,
