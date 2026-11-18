@@ -58,6 +58,31 @@ describe("TimedSequencer", () => {
     expect(await shard(2)).toEqual(["/repo/a", "/repo/b", "/repo/c"]);
   });
 
+  it("gives every shard its share of each project, dealt on its own", async () => {
+    // Dealt as one, both browser files would go to one shard and both node
+    // files to the other, 61s and 60s; each project on its own, each shard
+    // gets a file of each.
+    const durations: Record<string, number> = { "x.browser": 60_000, "y.browser": 1_000, a: 30_000, b: 30_000 };
+    const files = Object.keys(durations).map((name) => ({
+      moduleId: `/repo/${name}`,
+      project: { name: name.endsWith(".browser") ? "browser" : "node" },
+    }));
+    const shard = async (index: number) => {
+      const ctx = {
+        config: { root: "/repo", shard: { index, count: 2 } },
+        cache: {
+          getTestSpecificationResult: (spec: { moduleId: string }) => ({
+            duration: durations[spec.moduleId.slice("/repo/".length)],
+          }),
+        },
+      } as unknown as Vitest;
+      const specs = await new TimedSequencer(ctx).shard(files as unknown as TestSpecification[]);
+      return specs.map((spec) => spec.moduleId);
+    };
+    expect(await shard(1)).toEqual(["/repo/x.browser", "/repo/a"]);
+    expect(await shard(2)).toEqual(["/repo/y.browser", "/repo/b"]);
+  });
+
   it("deals the same parts on a machine that lists the files in another order, with no times", async () => {
     const names = ["a", "b", "c", "d", "e", "f", "g"];
     const files = names.map((name) => ({ moduleId: `/repo/${name}`, project: { name: "node" } }));

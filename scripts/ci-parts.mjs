@@ -55,7 +55,12 @@ export function deal(items, count) {
   return parts.map((part) => part.items.sort((a, b) => a.order - b.order).map((item) => item.key));
 }
 
-/** Vitest's sequencer, sharding by the times in its results cache rather than by count. */
+/**
+ * Vitest's sequencer, sharding by the times in its results cache rather than
+ * by count. Each project's files are dealt on their own, so every part gets
+ * its share of each: the browser's files run fewer at once than Node's, so a
+ * part with more of them takes longer, whatever its files' times add up to.
+ */
 export class TimedSequencer extends BaseSequencer {
   async shard(files) {
     const { root, shard } = this.ctx.config;
@@ -68,7 +73,16 @@ export class TimedSequencer extends BaseSequencer {
       group: spec.project.name,
       ms: this.ctx.cache.getTestSpecificationResult(spec)?.duration,
     }));
-    return deal(items, count)[index - 1].map((key) => byKey.get(key));
+    const projects = [...new Set(items.map((item) => item.group))].sort();
+    return projects
+      .flatMap(
+        (project) =>
+          deal(
+            items.filter((item) => item.group === project),
+            count,
+          )[index - 1],
+      )
+      .map((key) => byKey.get(key));
   }
 }
 
