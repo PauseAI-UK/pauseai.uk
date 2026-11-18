@@ -188,23 +188,20 @@ test("A link, and a part made for everyone", async ({ page, request, flowDatabas
   await page.getByLabel(copy.subject).fill("The march");
   const letter = page.getByRole("textbox", { name: copy.letter });
   const words = mailingsCopy.mailingEditor;
-  // The editor scrolls smoothly to keep the cursor in sight, and a scroll
-  // started partway through another lands somewhere else each run: so each
-  // comes to rest before the next step.
+  // Each change is saved a moment after it's made, so a frame after one waits for that.
+  const saved = () => expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
   await caretAtEnd(letter);
-  await scrollSettled(page);
   await page.keyboard.type("Join us at the march: ");
-  await scrollSettled(page);
   // With nothing selected, the address goes in as a link to itself.
   await page.keyboard.press("Control+k");
   await page.getByRole("textbox", { name: words.linkBar.address }).fill("pauseai.uk/march");
   await page.keyboard.press("Enter");
-  await scrollSettled(page);
   story("With the cursor in the link, where it goes shows under it.");
 
   await caretInLink(letter, letter.getByRole("link", { name: "pauseai.uk/march" }));
   const peek = page.getByRole("button", { name: "https://pauseai.uk/march" });
   await expect(peek).toBeVisible();
+  await saved();
   await frame(page, "Where a link goes, under it", { window: true });
   story("Pressing it opens the link bar, to change where it goes.");
 
@@ -224,7 +221,7 @@ test("A link, and a part made for everyone", async ({ page, request, flowDatabas
   await menu.getByRole("menuitem").first().click();
   const cross = letter.getByRole("button", { name: words.forEveryone });
   await expect(cross).toBeVisible();
-  await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
+  await saved();
   await frame(page, "A part only for some", { window: true });
   story("Selecting a whole line in it shows Remove only those under it too.");
 
@@ -236,7 +233,7 @@ test("A link, and a part made for everyone", async ({ page, request, flowDatabas
   await cross.click();
   await expect(cross).toHaveCount(0);
   await expect(letter).toContainText("Thank you for your answer.");
-  await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
+  await saved();
   await frame(page, "The part made for everyone", { window: true });
 });
 
