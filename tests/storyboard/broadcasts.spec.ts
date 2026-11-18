@@ -1015,7 +1015,7 @@ test("Postmark says nothing of an email's copies", async ({ page, request, flowD
   await expect(page.getByRole("heading", { name: stateWords.tabs.held })).toBeVisible();
   await frame(page, "Those delayed");
   story(
-    "The hourly sending sends the last one, and with every copy gone to Postmark, the email is sent. Nothing stops it.",
+    "The hourly sending takes the last one, whose consent has ended, so it isn't sent. With nothing left to go, the email is sent, five still delayed. Nothing stops it.",
   );
   await runSending(request);
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
