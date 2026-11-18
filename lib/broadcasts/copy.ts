@@ -287,8 +287,8 @@ export const broadcastsCopy = {
         audio: "An audio file, which this site can't show",
         voice: "A voice note, which this site can't show",
         sticker: "A sticker, which this site can't show",
-        location: "A location, which this site can't show",
-        contacts: "A contact card, which this site can't show",
+        location: "A location they shared",
+        contacts: "A contact card they shared",
       } as Record<string, string>,
       // Any other kind, by WhatsApp's name for it.
       kindOther: (type: string) => `A message of a kind this site can't show (${type})`,
@@ -296,7 +296,7 @@ export const broadcastsCopy = {
       // a reaction; one from before emojis were kept; and, on a line under that, when they took it back, or put
       // another in its place.
       reacted: "Reacted",
-      reactedNotKept: "Reacted, with an emoji that they removed",
+      reactedNotKept: "A reaction, emoji lost",
       reactionRemoved: (when: string) => `Removed reaction · ${when}`,
       // For a reply to a text: an opt-out of every text, in place of all bulk email; how they told us.
       allTexts: "Every text",
