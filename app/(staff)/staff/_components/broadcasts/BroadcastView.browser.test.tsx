@@ -400,7 +400,7 @@ describe("BroadcastWaiting", () => {
         copy.waiting("civicrm", londonDate(endsAt), "Down"),
       ],
       [{ kind: "resting", until }, copy.resting(staffTime(until))],
-      [{ kind: "held", held: 20, until, stopsAt }, copy.heldLeft(20, londonWhen(until, "short"), londonDate(stopsAt))],
+      [{ kind: "held", held: 20, until, stopsAt }, copy.heldLeft(20, staffTime(until), londonDate(stopsAt))],
       [{ kind: "limit", channel: "email" }, copy.moreTomorrow],
       [{ kind: "limit", channel: "text" }, copy.moreTomorrowText],
     ];

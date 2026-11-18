@@ -10,5 +10,5 @@
   gap: var(--space-2);
 
   --tag-font-size: var(--text-sm);
-  --tag-padding: 2px var(--space-3);
+  --tag-padding: 1px var(--space-2);
 }

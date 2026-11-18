@@ -80,7 +80,15 @@ const sending = (id: number, title: string, pause: SendingPause | null) => ({
   to: 500,
   sent: 480,
   failed: 0,
-  states: { ...exampleBroadcastSummary.states, "opted-out": 0, error: 0, unreached: 0, sent: 480, held: 20 },
+  states: {
+    ...exampleBroadcastSummary.states,
+    "opted-out": 0,
+    error: 0,
+    unreached: 0,
+    "not-sent": 0,
+    sent: 480,
+    held: 20,
+  },
   pause,
 });
 const until = new Date("2026-11-06T10:07:00Z");
