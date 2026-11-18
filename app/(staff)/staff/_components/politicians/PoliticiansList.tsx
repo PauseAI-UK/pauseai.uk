@@ -6,13 +6,19 @@ import { Muted } from "@/components/ui/Text";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Ask } from "@/lib/asks/records.server";
 import type { Choosing } from "@/lib/politicians/filters";
-import type { Pasted, Politician, PoliticiansPage } from "@/lib/politicians/records.server";
+import type { Politician, PoliticiansPage } from "@/lib/politicians/records.server";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 import { storedFilter } from "@/lib/staff-search";
 import { filtersPath, pageParam, valuesOf, type Params } from "@/lib/list-params";
 import PasteForm from "./PasteForm";
 import PickBox from "./PickBox";
-import PoliticianTable, { politicianColumns } from "./PoliticianTable";
+import PoliticianTable, {
+  pastedColumns,
+  pastedRows,
+  politicianColumns,
+  type PastedLine,
+  type PastedRow,
+} from "./PoliticianTable";
 import styles from "./PoliticiansList.module.css";
 import Bubble from "@/components/ui/Bubble";
 import ListFrame, { ListTable, type ListColumn } from "../ui/ListFrame";
@@ -49,7 +55,7 @@ export function HouseTabs({ search, choosing }: { search: PoliticiansSearch; cho
           },
         ]
       : []),
-    ...(choosing && search.pasted.length
+    ...(choosing?.pasted
       ? [{ key: "pasted", label: mailingCopy.pastedTab, href: filtersPath(PATH, filters, { tab: "pasted" }) }]
       : []),
   ];
@@ -165,11 +171,7 @@ function ChoosingBar({
           label={mailingCopy.pasteNames}
           className={styles.pasteBubble}
         >
-          <PasteForm
-            action={actions.paste}
-            back={filtersPath(PATH, { ...search, pasted: [], tab: "" })}
-            className={styles.paste}
-          />
+          <PasteForm action={actions.paste} back={filtersPath(PATH, { ...search, tab: "" })} className={styles.paste} />
         </Bubble>
       </div>
       {/* A new mailing with no one ticked has it greyed, so the bar is the same either way. */}
@@ -186,28 +188,10 @@ function ChoosingBar({
   );
 }
 
-/** A line of names pasted, and who it found (findPasted), or those it might be. */
-export type PastedLine = Pasted & { line: string };
-
-/** A row of the paste tab's table: someone a line found, and why. */
-type PastedRow = { key: string; line: string; one: Politician; why: string };
-
-/** Each line pasted as rows, one for each person it found. */
-function pastedRows(lines: PastedLine[]): PastedRow[] {
-  return lines.flatMap(({ line, matches, by, choices, near }, i) => {
-    // As a row copied from a table has it, with its cells' tabs as dots.
-    const said = line.replace(/\s*\t\s*/g, " · ");
-    const found = [
-      ...matches.map((one) => ({ one, why: mailingCopy.pastedBy[by[one.id]] })),
-      ...choices.map((one) => ({ one, why: near ? mailingCopy.pastedNone : mailingCopy.pastedSome })),
-    ];
-    return found.map(({ one, why }) => ({ key: `${i}-${one.id}`, line: said, one, why }));
-  });
-}
-
 /**
  * The paste tab, after a paste (Paste names, in the bar at the foot): the
- * politicians list's table, a row for each person each line found, with
+ * politicians list's frame, with how many the paste found and its
+ * downloads, of the rows it shows; its table, a row for each person each line found, with
  * their tick box, unticked till they're ticked here, and last the reason
  * they're there (by their name, more than one match, or only near it) and
  * the line. Lines that found no one are only counted, under it; if none
@@ -218,12 +202,14 @@ function PasteTab({
   lines,
   skipped,
   choosing,
+  search,
   asks,
   actions,
 }: {
   lines: PastedLine[];
   skipped: number;
   choosing: Choosing;
+  search: PoliticiansSearch;
   asks: Ask[];
   actions: ChoosingActions;
 }) {
@@ -232,13 +218,6 @@ function PasteTab({
   // Everyone the paste found, once each, for the box over them.
   const found = [...new Set(rows.map(({ one }) => one.id))];
   const all = found.length > 0 && found.every((id) => ticked.has(id));
-  // The politicians list's columns, with no sorting, as this is its own table, and no status, as they're all in office.
-  const theirs: ListColumn<PastedRow>[] = politicianColumns(asks, { status: "" }).map((column) => ({
-    ...column,
-    heading: undefined,
-    text: undefined,
-    cell: ({ one }) => column.cell(one),
-  }));
   const columns: ListColumn<PastedRow>[] = [
     {
       key: "tick",
@@ -262,24 +241,25 @@ function PasteTab({
         />
       ),
     },
-    ...theirs,
-    {
-      key: "reason",
-      label: mailingCopy.pastedFound,
-      cell: ({ why, line }) => (
-        <>
-          {why}
-          <br />
-          <Muted>“{line}”</Muted>
-        </>
-      ),
-    },
+    ...pastedColumns(asks),
   ];
   return (
     <section className={styles.pasted} aria-label={mailingCopy.pastedTitle}>
       {rows.length > 0 ? (
         <>
-          <ListTable columns={columns} rows={rows} rowKey={(row) => row.key} />
+          <ListFrame
+            count={copy.total(found.length)}
+            total={rows.length}
+            page={1}
+            pages={1}
+            pageSize={rows.length}
+            download={(format) => filtersPath(`${PATH}/download`, { ...search, page: "" }, { format })}
+            formats={["csv", "json", "vcf"]}
+            columns={columns}
+            rows={rows}
+            rowKey={(row) => row.key}
+            empty={mailingCopy.pastedNoOne}
+          />
           {skipped > 0 && (
             <p>
               <Muted>{mailingCopy.pastedSkipped(skipped)}</Muted>
@@ -381,7 +361,7 @@ export default function PoliticiansList({
   if (choosing && search.tab === "pasted") {
     return (
       <>
-        <PasteTab lines={pasted} skipped={skipped} choosing={choosing} asks={asks} actions={actions} />
+        <PasteTab lines={pasted} skipped={skipped} choosing={choosing} search={search} asks={asks} actions={actions} />
         <ChoosingBar choosing={choosing} search={search} actions={actions} />
       </>
     );

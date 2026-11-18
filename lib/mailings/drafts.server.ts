@@ -15,7 +15,14 @@ import type { ChannelResult } from "@/lib/letters/channels.server";
 import { politicianAudience, type PoliticianRecipient } from "./recipients.server";
 import type { Attachment } from "@/lib/server/outside-services/postmark.server";
 import type { Choosing } from "@/lib/politicians/filters";
-import { mailingPoliticians } from "@/lib/politicians/records.server";
+import {
+  findPastedLines,
+  listPoliticians,
+  mailingPoliticians,
+  type Pasted,
+  type PastedBy,
+  type Politician,
+} from "@/lib/politicians/records.server";
 import { politiciansSearch } from "@/lib/staff-search";
 import { storedFilter, type Picked, type StoredFilter } from "@/lib/staff-search";
 import { type Params } from "@/lib/list-params";
@@ -207,12 +214,64 @@ export async function changePicks(id: number, change: PickChange): Promise<boole
 export async function choosingFor(mailing: string): Promise<Choosing | undefined> {
   const draft = /^\d+$/.test(mailing) ? await getWrittenMailing(Number(mailing)) : undefined;
   if (draft?.state !== "draft") return undefined;
+  const [ticked, [{ pasted }]] = await Promise.all([
+    pickedIds(draft.filter),
+    query<{ pasted: boolean }>("SELECT pasted IS NOT NULL AS pasted FROM mailings WHERE id = $1", [draft.id]),
+  ]);
   return {
     id: draft.id,
     title: draft.subject || mailingsCopy.mailingPages.untitled,
     blank: !draft.subject && isBlankMailing(draft.body) && draft.attachments.length === 0,
-    ticked: await pickedIds(draft.filter),
+    ticked,
+    pasted,
   };
+}
+
+/** A line of names pasted, as a draft keeps it: who it found, by ID (Pasted). */
+type KeptLine = { line: string; matches: number[]; by: Record<number, PastedBy>; choices: number[]; near?: boolean };
+
+/** The lines of names pasted for a draft, each with who it found, and how many lines found no one. */
+export type PastedLines = { lines: (Pasted & { line: string })[]; skipped: number };
+
+/**
+ * Looks for who each line pasted while choosing for draft `id` is
+ * (findPastedLines), and keeps that for its Paste names tab, in place of
+ * the paste before. Says whether it did: not for what's no draft to
+ * politicians.
+ */
+export async function keepPasted(id: number, lines: string[]): Promise<boolean> {
+  const found = await findPastedLines(lines);
+  const ids = (people: Politician[]) => people.map((one) => one.id);
+  const kept: KeptLine[] = found.lines.map(({ line, matches, by, choices, near }) => ({
+    line,
+    matches: ids(matches),
+    by,
+    choices: ids(choices),
+    ...(near && { near }),
+  }));
+  const rows = await query(
+    `UPDATE mailings SET pasted = $2
+     WHERE id = $1 AND state = 'draft' AND audience = 'politicians' AND body IS NOT NULL RETURNING id`,
+    [id, JSON.stringify({ lines: kept, skipped: found.skipped })],
+  );
+  return rows.length > 0;
+}
+
+/**
+ * The names last pasted for draft `id`, each line with who it found as they
+ * are now, leaving out anyone since gone; none if nothing's been pasted.
+ */
+export async function pastedFor(id: number): Promise<PastedLines> {
+  const [row] = await query<{ pasted: { lines: KeptLine[]; skipped: number } | null }>(
+    "SELECT pasted FROM mailings WHERE id = $1",
+    [id],
+  );
+  if (!row?.pasted) return { lines: [], skipped: 0 };
+  const { lines, skipped } = row.pasted;
+  const everyone = [...new Set(lines.flatMap((one) => [...one.matches, ...one.choices]))];
+  const people = new Map((await listPoliticians({ ids: everyone }, null)).map((one) => [one.id, one]));
+  const them = (ids: number[]) => ids.flatMap((one) => people.get(one) ?? []);
+  return { lines: lines.map((one) => ({ ...one, matches: them(one.matches), choices: them(one.choices) })), skipped };
 }
 
 /** A mailing written here to `audience`, as stored; undefined for none, or one imported from Airtable. */

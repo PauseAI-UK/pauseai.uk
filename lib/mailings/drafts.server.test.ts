@@ -10,6 +10,8 @@ import {
   addAttachment,
   changePicks,
   choosingFor,
+  keepPasted,
+  pastedFor,
   createDraft,
   deleteDraft,
   deleteForgottenDrafts,
@@ -139,6 +141,50 @@ describeWithDatabase("mailing drafts", () => {
     expect(await changePicks(999999, { tick: [polly] })).toBe(false);
   });
 
+  it("keeps who a paste found with a draft, in place of the last, and gives them as they are now", async () => {
+    const polly = await addTestPolitician();
+    const twin = await addTestPolitician({ name: "Sam Twin", airtableId: "rec-twin1", email: "sam.twin1@example.org" });
+    await addTestPolitician({
+      name: "Sam Twin",
+      airtableId: "rec-twin2",
+      constituency: "Twinham",
+      email: "sam.twin2@example.org",
+    });
+    const { id } = await createDraft(STAFF, POLITICIANS, {});
+    expect(await pastedFor(id)).toEqual({ lines: [], skipped: 0 });
+    expect(await keepPasted(id, ["Polly Placeholder", "Sam Twin", "Polly Plaseholder", "Nobody Atall"])).toBe(true);
+    const pasted = await pastedFor(id);
+    expect(pasted.skipped).toBe(1);
+    expect(
+      pasted.lines.map(({ line, matches, choices, near }) => [line, matches.length, choices.length, near]),
+    ).toEqual([
+      ["Polly Placeholder", 1, 0, undefined],
+      ["Sam Twin", 0, 2, undefined],
+    ]);
+    expect(pasted.lines[0]).toMatchObject({
+      matches: [{ id: polly, name: "Polly Placeholder" }],
+      by: { [polly]: "name" },
+    });
+    expect(await choosingFor(String(id))).toMatchObject({ pasted: true });
+    // A name only near, offered as near.
+    await keepPasted(id, ["Poly Placeholdr"]);
+    expect((await pastedFor(id)).lines).toEqual([
+      expect.objectContaining({ near: true, choices: [expect.anything()] }),
+    ]);
+    // Someone found who's since gone is left out.
+    await keepPasted(id, ["Sam Twin"]);
+    await query("DELETE FROM politicians WHERE id = $1", [twin]);
+    expect((await pastedFor(id)).lines[0].choices).toHaveLength(1);
+    // Not for a mailing that's no draft, nor a broadcast's, nor none.
+    await query(
+      "UPDATE mailings SET state = 'cancelled', due_at = now(), sent_from = 'jo@pauseai.uk', from_name = '' WHERE id = $1",
+      [id],
+    );
+    expect(await keepPasted(id, ["Polly Placeholder"])).toBe(false);
+    expect(await keepPasted(999999, ["Polly Placeholder"])).toBe(false);
+    expect(await pastedFor(999999)).toEqual({ lines: [], skipped: 0 });
+  });
+
   it("says which draft the politicians list is choosing for, whether it's just made, and who's ticked", async () => {
     const polly = await addTestPolitician();
     const { id } = await createDraft(STAFF, { list: "politicians", params: {}, picked: { ids: [polly] } }, {});
@@ -147,6 +193,7 @@ describeWithDatabase("mailing drafts", () => {
       title: mailingsCopy.mailingPages.untitled,
       blank: true,
       ticked: [polly],
+      pasted: false,
     });
     await saveDraft(id, 1, { subject: "Hello" });
     expect(await choosingFor(String(id))).toMatchObject({ title: "Hello", blank: false });

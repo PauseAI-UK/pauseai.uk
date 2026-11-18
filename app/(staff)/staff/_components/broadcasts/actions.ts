@@ -73,11 +73,14 @@ export async function newBroadcastWith(consent: string): Promise<void> {
   redirect(`${LIST}/${id}`);
 }
 
-/** Changes the Consent draft `id` goes under, as its writer's lozenges are pressed; says whether it did. */
-export async function changeBroadcastConsentNow(id: number, consent: string): Promise<boolean> {
+/**
+ * Changes the Consent draft `id` goes under, as its writer's lozenges are
+ * pressed; says the draft's version it made, or false if it didn't.
+ */
+export async function changeBroadcastConsentNow(id: number, consent: string): Promise<number | false> {
   const { email } = await requireStaff("supporters");
   const changed = await changeBroadcastConsent(id, consent, email);
-  if (changed) revalidatePath(`${LIST}/${id}`);
+  if (changed !== false) revalidatePath(`${LIST}/${id}`);
   return changed;
 }
 

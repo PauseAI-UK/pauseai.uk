@@ -117,8 +117,6 @@ export const POLITICIANS_LIST = defineStaffList({
      * and who each found. Blank for the list.
      */
     tab: "one",
-    /** While choosing, the lines of names pasted, to show on the pasted tab. */
-    pasted: "many",
     /** The saved filter loaded, by ID. */
     saved: "one",
   },

@@ -498,17 +498,45 @@ export function emailsIn(text: string): string[] {
  * near.
  */
 export async function findPasted(line: string): Promise<Pasted> {
+  return pastedFrom(line, (await namedIn([line]))[0]);
+}
+
+/**
+ * Everyone each of `lines` names, among those in office, a list for each
+ * line, by name: whose whole name is in it, whose constituency is, as
+ * written, capitals and all, or whose email address is. One query for
+ * every line, however many are pasted.
+ */
+async function namedIn(lines: string[]): Promise<Politician[][]> {
+  const emails = lines.flatMap((line, i) => emailsIn(line).map((email) => ({ i: i + 1, email })));
+  // Each line's words and each politician's worked out once, not again for every pair compared: a paste of
+  // 1,500 lines among 1,800 politicians then takes under a second rather than ten.
+  const pairs = await query<{ i: number; id: number }>(
+    sql`WITH l AS MATERIALIZED (
+          SELECT i::int AS i, ${asWords(sql`line`)} AS words, ${asCasedWords(sql`line`)} AS cased
+          FROM unnest(${lines}::text[]) WITH ORDINALITY AS t(line, i)
+        ), them AS MATERIALIZED (
+          SELECT n.id::int AS id, ${asWords(sql`n.name`)} AS words, lower(n.email) AS email,
+            CASE WHEN p.constituency <> '' THEN ${asCasedWords(sql`p.constituency`)} END AS place
+          FROM ${sql.raw(POLITICIANS)} ${politicianWhere(PASTE_AMONG)}
+        )
+        SELECT l.i, them.id FROM l JOIN them ON l.words LIKE '%' || them.words || '%' OR l.cased LIKE '%' || them.place || '%'
+        UNION
+        SELECT e.i::int, them.id FROM unnest(${emails.map((one) => one.i)}::int[], ${emails.map((one) => one.email)}::text[])
+          AS e(i, email) JOIN them ON them.email = e.email`,
+  );
+  // In the list's order, by name.
+  const people = await listPoliticians({ ids: [...new Set(pairs.map((pair) => pair.id))] }, null);
+  return lines.map((_, i) => {
+    const ids = new Set(pairs.filter((pair) => pair.i === i + 1).map((pair) => pair.id));
+    return people.filter((one) => ids.has(one.id));
+  });
+}
+
+/** Who a line pasted is, given those it names (namedIn), findPasted's way. */
+async function pastedFrom(line: string, named: Politician[]): Promise<Pasted> {
   const text = pastedName(line);
   if (!text) return { matches: [], by: {}, choices: [] };
-  const named = (
-    await query<Row>(
-      sql`${SELECT} ${politicianWhere(PASTE_AMONG)}
-       AND (${asWords(sql`${line}`)} LIKE '%' || ${asWords(sql`n.name`)} || '%'
-         OR (p.constituency <> '' AND ${asCasedWords(sql`${line}`)} LIKE '%' || ${asCasedWords(sql`p.constituency`)} || '%')
-         OR lower(n.email) = ANY(${emailsIn(line)}::text[]))
-       GROUP BY n.id, p.id ORDER BY n.name COLLATE english, n.id`,
-    )
-  ).map(toPolitician);
   if (named.length) {
     const shared = (one: Politician) => named.filter((other) => other.name === one.name).length > 1;
     const emails = emailsIn(line);
@@ -553,7 +581,8 @@ export async function findPasted(line: string): Promise<Pasted> {
 export async function findPastedLines(
   lines: string[],
 ): Promise<{ lines: (Pasted & { line: string })[]; skipped: number }> {
-  const found = await Promise.all(lines.map(async (line) => ({ line, ...(await findPasted(line)) })));
+  const named = await namedIn(lines);
+  const found = await Promise.all(lines.map(async (line, i) => ({ line, ...(await pastedFrom(line, named[i])) })));
   const seen = new Set<number>();
   const fresh = (people: Politician[]) => people.filter((one) => !seen.has(one.id));
   const kept: (Pasted & { line: string })[] = [];

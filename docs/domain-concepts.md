@@ -317,6 +317,10 @@ row adds what its kind has, joined as notable people are:
     can say who it's to as that group, plus or minus a few
     (`lib/mailings/picks.ts`). A draft made before ticks holds the list's
     filter instead, as its URL parameters, until its first tick.
+  - The names last pasted for it with Paste names, as who each line found,
+    by ID (`mailings.pasted`, `keepPasted`), for the list's Paste names tab.
+    It's kept with the draft rather than in the list's URL, so a paste can
+    be any length. Every line is looked for in one query.
   - Its letter, a document with merge fields and parts only some
     recipients get (`lib/mailings/doc.ts`).
 

@@ -6,14 +6,22 @@ import type { MailingRecipientValues } from "./doc";
 import { listAsks, type Ask } from "@/lib/asks/records.server";
 import { gmailAccounts, type GmailAccount } from "@/lib/email/gmail-accounts.server";
 import { mailingChannel } from "./channels.server";
-import { choosingFor, getWrittenMailing, openWrittenMailing, type WrittenMailing } from "./drafts.server";
+import {
+  choosingFor,
+  getWrittenMailing,
+  openWrittenMailing,
+  pastedFor,
+  type PastedLines,
+  type WrittenMailing,
+} from "./drafts.server";
 import { politicianAudience, type LeftOut } from "./recipients.server";
 import {
   countPoliticians,
-  findPastedLines,
   listParties,
+  listPoliticians,
   politicianNames,
   politiciansPage,
+  type PoliticianFilter,
 } from "@/lib/politicians/records.server";
 import { politiciansSearch, type PoliticiansSearch } from "@/lib/staff-search";
 import type { ParamValue } from "@/lib/list-params";
@@ -125,6 +133,40 @@ export async function mailingPageData(
   return { kind: "written", mailing, written, filter: written.filter, asks, parties, names };
 }
 
+const NOTHING_PASTED: PastedLines = { lines: [], skipped: 0 };
+
+/**
+ * Who the politicians list's URL shows: while it's choosing who a draft is
+ * for, on the ticked tab, those ticked, whatever its filters; otherwise
+ * those its filters find. With its search, the filter its URL says, and the
+ * draft it's choosing for, if any.
+ */
+async function politiciansShown(params: Partial<Record<keyof PoliticiansSearch, ParamValue>>) {
+  const { filter, ...search } = politiciansSearch(params);
+  const choosing = await choosingFor(search.mailing);
+  const shown: PoliticianFilter =
+    choosing && search.tab === "ticked" ? { ids: choosing.ticked, sort: filter.sort, page: filter.page } : filter;
+  return { filter, search, choosing, shown };
+}
+
+/**
+ * The politicians list's download, from its URL: while it's choosing, on
+ * the paste tab, the lines pasted, each with who it found; otherwise every
+ * politician the list shows (politiciansShown), on every page. With the
+ * list's search, and every ask and party, for its columns and filters.
+ */
+export async function politiciansDownloadData(params: Partial<Record<keyof PoliticiansSearch, ParamValue>>) {
+  const { search, choosing, shown } = await politiciansShown(params);
+  const [asks, parties, rows] = await Promise.all([
+    listAsks(),
+    listParties(),
+    choosing && search.tab === "pasted"
+      ? pastedFor(choosing.id).then((pasted) => ({ kind: "pasted" as const, pasted: pasted.lines }))
+      : listPoliticians({ ...shown, page: 1 }, null).then((politicians) => ({ kind: "list" as const, politicians })),
+  ]);
+  return { search, asks, parties, ...rows };
+}
+
 /**
  * The politicians page, from its URL: the list, and the asks and parties
  * its filters choose among; while it's choosing who a draft is for, that
@@ -134,16 +176,13 @@ export async function mailingPageData(
  * filters are hidden.
  */
 export async function politiciansPageData(params: Partial<Record<keyof PoliticiansSearch, ParamValue>>) {
-  const { filter, ...search } = politiciansSearch(params);
-  const choosing = await choosingFor(search.mailing);
-  const onTicked = Boolean(choosing && search.tab === "ticked");
-  const shown = onTicked ? { ids: choosing!.ticked, sort: filter.sort, page: filter.page } : filter;
+  const { filter, search, choosing, shown } = await politiciansShown(params);
   const [list, asks, parties, tickedHere, pasted] = await Promise.all([
     politiciansPage(shown),
     listAsks(),
     listParties(),
     choosing ? countPoliticians({ ...filter, ids: choosing.ticked }) : 0,
-    choosing ? findPastedLines(search.pasted) : { lines: [], skipped: 0 },
+    choosing ? pastedFor(choosing.id) : NOTHING_PASTED,
   ]);
   // The filters choose only the list's own view, not the ticked or pasted tabs.
   return { search, choosing, filtersHidden: Boolean(choosing && search.tab), list, asks, parties, tickedHere, pasted };

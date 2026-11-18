@@ -6,7 +6,7 @@ import { isAnswer, standing } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
 import { POLITICIANS_LIST, type PoliticianSort } from "@/lib/staff-lists";
 import type { Ask } from "@/lib/asks/records.server";
-import type { Politician } from "@/lib/politicians/records.server";
+import type { Pasted, Politician } from "@/lib/politicians/records.server";
 import { anyAndNone, firstOf, valuesOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import { sortHref } from "@/lib/staff-sort";
@@ -263,6 +263,56 @@ export function politicianContact(asks: Ask[]): (p: Politician) => Contact {
     ].filter(Boolean),
     url: `/staff/politicians/${p.id}`,
   });
+}
+
+/** A line of names pasted, and who it found (findPasted), or those it might be. */
+export type PastedLine = Pasted & { line: string };
+
+/** A row of the paste tab's table: someone a line found, and why. */
+export type PastedRow = { key: string; line: string; one: Politician; why: string };
+
+/** Each line pasted as rows, one for each person it found. */
+export function pastedRows(lines: PastedLine[]): PastedRow[] {
+  const choosing = politiciansCopy.choosing;
+  return lines.flatMap(({ line, matches, by, choices, near }, i) => {
+    // As a row copied from a table has it, with its cells' tabs as dots.
+    const said = line.replace(/\s*\t\s*/g, " · ");
+    const found = [
+      ...matches.map((one) => ({ one, why: choosing.pastedBy[by[one.id]] })),
+      ...choices.map((one) => ({ one, why: near ? choosing.pastedNone : choosing.pastedSome })),
+    ];
+    return found.map(({ one, why }) => ({ key: `${i}-${one.id}`, line: said, one, why }));
+  });
+}
+
+/**
+ * The paste tab's columns: the list's, with no sorting, as it's a table of
+ * its own, and no status, as they're all in office; and last the reason
+ * each is there and the line that found them. A download has the same.
+ */
+export function pastedColumns(asks: Ask[]): ListColumn<PastedRow>[] {
+  const theirs: ListColumn<PastedRow>[] = politicianColumns(asks, { status: "" }).map(({ text, cell, ...column }) => ({
+    ...column,
+    heading: undefined,
+    // Every politician column has its text.
+    text: ({ one }) => text!(one),
+    cell: ({ one }) => cell(one),
+  }));
+  return [
+    ...theirs,
+    {
+      key: "reason",
+      label: politiciansCopy.choosing.pastedFound,
+      text: ({ why, line }) => `${why} “${line}”`,
+      cell: ({ why, line }) => (
+        <>
+          {why}
+          <br />
+          <Muted>“{line}”</Muted>
+        </>
+      ),
+    },
+  ];
 }
 
 /** Politicians, a row each, in the list's columns; or that there are none. */

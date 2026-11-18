@@ -29,7 +29,7 @@ function fakeActions() {
     sendTest: action(() => ({ sent: true, id: "m", to: "me@pauseai.uk" })),
     schedule: action(() => ({ scheduled: true })),
     deleteDraft: vi.fn(async () => {}),
-    changeConsent: action(() => true),
+    changeConsent: action(() => 5),
     setAboutEvents: action(() => true),
     create: vi.fn(async () => {}),
     submitTemplate: action(() => "submitted"),

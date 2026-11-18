@@ -287,6 +287,15 @@ test("Pasting names", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("link", { name: choosing.pastedTab })).toHaveAttribute("aria-current", "page");
   await expect(pasted.getByRole("checkbox", { name: choosing.tick("Morag Example") })).not.toBeChecked();
   await frame(page, "The Paste names tab", { window: true });
+  story("Its Download menu downloads just the rows the tab shows, each with why it's there.");
+
+  const menu = await openBubble(pasted.getByRole("button", { name: staffVocabulary.lists.download }));
+  const csv = menu.getByRole("link", { name: staffVocabulary.lists.formats.csv });
+  const download = await (await page.request.get(`${BASE}${await csv.getAttribute("href")}`)).text();
+  expect(download).toContain("Morag Example");
+  expect(download).not.toContain("Mo Example");
+  await frame(page, "The Paste names tab's downloads", { window: true });
+  await page.keyboard.press("Escape");
   story("The box over them ticks everyone found: four ticked.");
 
   await pasted.getByRole("checkbox", { name: choosing.pastedTickAll(3) }).check();

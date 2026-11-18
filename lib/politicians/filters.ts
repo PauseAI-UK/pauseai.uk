@@ -27,7 +27,7 @@ export function isPersonStatus(value: string): value is PersonStatus {
 
 /**
  * The draft mailing the politicians list is choosing for: its ID, its title,
- * whether nothing's been written in it yet, as a new mailing's, and who's
- * ticked.
+ * whether nothing's been written in it yet, as a new mailing's, who's
+ * ticked, and whether names have been pasted for it (Paste names).
  */
-export type Choosing = { id: number; title: string; blank: boolean; ticked: number[] };
+export type Choosing = { id: number; title: string; blank: boolean; ticked: number[]; pasted: boolean };

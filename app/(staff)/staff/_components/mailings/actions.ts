@@ -13,6 +13,7 @@ import {
   deleteDraft,
   foundIds,
   getWrittenMailing,
+  keepPasted,
   mailingChangesFrom,
   picksOf,
   removeAttachment,
@@ -179,12 +180,11 @@ export async function untickAll(mailing: number): Promise<void> {
   revalidatePath("/staff/politicians");
 }
 
-/** The most lines of names pasted that are looked for at once. */
-const MOST_PASTED = 100;
-
 /**
- * Goes to the paste tab of the list on `back` with the form's names, a
- * line each, to show who each found, unticked till they're ticked there.
+ * Looks for who each line of the form's names is, for the draft the list on
+ * `back` is choosing for, and keeps that with the draft; then goes to the
+ * list's paste tab, to show who each found, unticked till they're ticked
+ * there. With no draft to keep it for, back to the list.
  */
 export async function pasteNames(form: FormData): Promise<void> {
   await requireStaff();
@@ -192,15 +192,14 @@ export async function pasteNames(form: FormData): Promise<void> {
   const back = staffBack(String(form.get("back") ?? ""), "/staff/politicians");
   if (typeof text !== "string") return;
   const url = new URL(back, "http://staff");
-  url.searchParams.delete("pasted");
-  for (const line of text
+  const mailing = Number(url.searchParams.get("mailing"));
+  const lines = text
     .split(/\r?\n/)
     .map((one) => one.trim())
-    .filter(Boolean)
-    .slice(0, MOST_PASTED)) {
-    url.searchParams.append("pasted", line);
+    .filter(Boolean);
+  if (Number.isSafeInteger(mailing) && mailing > 0 && (await keepPasted(mailing, lines))) {
+    url.searchParams.set("tab", "pasted");
   }
-  url.searchParams.set("tab", "pasted");
   redirect(`${url.pathname}${url.search}`);
 }
 

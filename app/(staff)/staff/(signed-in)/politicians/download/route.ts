@@ -1,30 +1,48 @@
 import type { NextRequest } from "next/server";
 import { politicianWords } from "../../../_components/politicians/PoliticianFilters";
-import { politicianColumns, politicianContact } from "../../../_components/politicians/PoliticianTable";
-import { listAsks } from "@/lib/asks/records.server";
-import { listParties, listPoliticians } from "@/lib/politicians/records.server";
-import { politiciansSearch } from "@/lib/staff-search";
+import {
+  pastedColumns,
+  pastedRows,
+  politicianColumns,
+  politicianContact,
+  type PastedRow,
+} from "../../../_components/politicians/PoliticianTable";
+import type { Politician } from "@/lib/politicians/records.server";
+import { politiciansDownloadData } from "@/lib/mailings/pages.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
-import { staffDownload } from "@/lib/server/staff-download.server";
+import { staffDownload, type Download } from "@/lib/server/staff-download.server";
 import { politiciansCopy } from "../../../_components/politicians/copy";
 
-/** Every politician the list's filters find, in the columns the list shows, named for its house and filters. */
+/**
+ * What the list shows, in its columns, named for its house and filters:
+ * every politician its filters find, or on the ticked tab those ticked; on
+ * the paste tab, a row for each person each line pasted found, and why.
+ */
 export async function GET(request: NextRequest) {
   const { email } = await requireStaff();
   return staffDownload(request, email, async (params) => {
-    const { filter, ...search } = politiciansSearch(params);
-    const [politicians, asks, parties] = await Promise.all([
-      listPoliticians({ ...filter, page: 1 }, null),
-      listAsks(),
-      listParties(),
-    ]);
-    const filters = { ...search, page: "" };
-    return {
-      what: politiciansCopy.politicians.title,
-      filters: politicianWords(search, parties, asks),
-      columns: politicianColumns(asks, filters),
-      rows: politicians,
-      contact: politicianContact(asks),
+    const data = await politiciansDownloadData(params);
+    const { search, asks, parties } = data;
+    const what = politiciansCopy.politicians.title;
+    const filters = politicianWords(search, parties, asks);
+    const contact = politicianContact(asks);
+    if (data.kind === "pasted") {
+      const pasted: Download<PastedRow> = {
+        what,
+        filters,
+        columns: pastedColumns(asks),
+        rows: pastedRows(data.pasted),
+        contact: (row) => contact(row.one),
+      };
+      return pasted as Download<unknown>;
+    }
+    const listed: Download<Politician> = {
+      what,
+      filters,
+      columns: politicianColumns(asks, { ...search, page: "" }),
+      rows: data.politicians,
+      contact,
     };
+    return listed as Download<unknown>;
   });
 }

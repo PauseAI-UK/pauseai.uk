@@ -111,8 +111,8 @@ export type BroadcastWriterActions = DraftActions & {
   sendTest: (id: number, meets: string[], to: string) => Promise<(ChannelResult & { to: string }) | undefined>;
   schedule: (id: number, version: number) => Promise<BroadcastScheduleResult>;
   deleteDraft: (form: FormData) => void | Promise<void>;
-  /** Changes the Consent a draft goes under; says whether it did. */
-  changeConsent: (id: number, consent: string) => Promise<boolean>;
+  /** Changes the Consent a draft goes under; says the draft's version it made, or false if it didn't. */
+  changeConsent: (id: number, consent: string) => Promise<number | false>;
   /** Makes a draft under a Consent, from New broadcast, and opens it. */
   create: (consent: string) => Promise<void>;
   /** Sends a text's new words to WhatsApp for approval, by the name they're given. */
@@ -559,14 +559,16 @@ export default function BroadcastWriter({
   const title = email ? values.subject.trim() || copy.newTitle.email : values.title.trim() || copy.newTitle.text;
   const whoPath = filtersPath("/staff/supporters", { ...data.filter.params, broadcast: String(id) });
   const hasOwnWords = hasWords({ subject: values.subject, body, templateId: values.templateId });
-  // Choosing a Consent: on New broadcast, makes the draft; on a draft, saves what's typed, then changes it.
+  // Choosing a Consent: on New broadcast, makes the draft; on a draft, saves what's typed, then changes it, and
+  // what's typed next is saved at the version that made.
   const pickConsent = async (consent: string) => {
     setPicking(true);
     try {
       if (creating) return await actions.create(consent);
       await saveNow();
       startChange(async () => {
-        await actions.changeConsent(id, consent);
+        const made = await actions.changeConsent(id, consent);
+        if (made !== false) version.current = made;
       });
     } finally {
       setPicking(false);

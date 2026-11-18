@@ -26,7 +26,7 @@ export const politiciansListGallery: Example[] = [
           <StaffPage as="div">
             <HouseTabs
               search={{ ...emptyPoliticiansSearch, mailing: "12", tab: "ticked" }}
-              choosing={{ id: 12, title: "Edinburgh thank-you", blank: false, ticked: [1, 2, 3] }}
+              choosing={{ id: 12, title: "Edinburgh thank-you", blank: false, ticked: [1, 2, 3], pasted: false }}
             />
           </StaffPage>
         ),

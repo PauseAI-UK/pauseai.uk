@@ -987,7 +987,7 @@ that drives it or why nothing does.
   - Mail these on the list, with everyone it found ticked;
   - Change who, back on the list's ticked tab, with one more searched for and ticked, then everyone unticked to start again and one ticked;
   - the draft naming her, and the draft deleted;
-  - names pasted from the bar's Paste names, its box opening above it: a row copied from the table found by the name in it, one name found by constituency and one near a typo, a row each on the Paste names tab, and all ticked with the box over them;
+  - names pasted from the bar's Paste names, its box opening above it: a row copied from the table found by the name in it, one name found by constituency and one near a typo, a row each on the Paste names tab, its Download menu, of just those rows, and all ticked with the box over them;
   - one unticked on the ticked tab, and the draft saying who it's to as the group found less one;
   - a scheduled mailing given a new time, then unscheduled and a draft again;
   - one sending, and one sent with its failed tab, leading to the bounced letter's page under the mailing;
@@ -996,7 +996,7 @@ that drives it or why nothing does.
   - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;
   - one sent from your Gmail in a From name of its own, by the sending job, and the reply read from it.
 - `broadcasts.spec.ts`: Broadcasts to supporters:
-  - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed;
+  - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed, and what's written after is saved;
   - the list's Broadcast button with a Consent filter;
   - an email written, from hello@ by Postmark, or by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
   - a text on an approved template, chosen from the dropdown, each template's facts under its name;

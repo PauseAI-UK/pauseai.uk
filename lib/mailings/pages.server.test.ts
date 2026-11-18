@@ -4,8 +4,8 @@ import { afterEach, vi } from "vitest";
 import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-accounts.server";
 import { query } from "@/lib/server/db.server";
-import { createDraft, saveDraft } from "./drafts.server";
-import { mailingPageData, politiciansPageData, type MailingPageData } from "./pages.server";
+import { createDraft, keepPasted, saveDraft } from "./drafts.server";
+import { mailingPageData, politiciansDownloadData, politiciansPageData, type MailingPageData } from "./pages.server";
 
 describeWithDatabase("the mailing pages' data", () => {
   useTestDatabase();
@@ -61,17 +61,21 @@ describeWithDatabase("the mailing pages' data", () => {
       constituency: null,
       email: "lord.sample@example.org",
     });
-    const plain = await politiciansPageData({ house: "commons", mailing: "999999", pasted: ["Polly Placeholder"] });
+    const plain = await politiciansPageData({ house: "commons", mailing: "999999" });
     expect(plain).toMatchObject({ choosing: undefined, filtersHidden: false, tickedHere: 0 });
     expect(plain.pasted).toEqual({ lines: [], skipped: 0 });
     expect(plain.list.politicians.map((p) => p.id)).toEqual([polly]);
     const { id } = await createDraft("jo@pauseai.uk", { list: "politicians", params: {}, picked: { ids: [lord] } }, {});
-    const choosing = await politiciansPageData({
-      house: "commons",
-      mailing: String(id),
-      pasted: ["Polly Placeholder", "Labour"],
+    // Nothing pasted yet.
+    const unpasted = await politiciansPageData({ house: "commons", mailing: String(id) });
+    expect(unpasted).toMatchObject({ choosing: { id, pasted: false }, pasted: { lines: [], skipped: 0 } });
+    await keepPasted(id, ["Polly Placeholder", "Labour"]);
+    const choosing = await politiciansPageData({ house: "commons", mailing: String(id) });
+    expect(choosing).toMatchObject({
+      choosing: { id, ticked: [lord], pasted: true },
+      filtersHidden: false,
+      tickedHere: 0,
     });
-    expect(choosing).toMatchObject({ choosing: { id, ticked: [lord] }, filtersHidden: false, tickedHere: 0 });
     expect(choosing.pasted).toEqual({
       lines: [
         expect.objectContaining({ line: "Polly Placeholder", matches: [expect.objectContaining({ id: polly })] }),
@@ -85,6 +89,36 @@ describeWithDatabase("the mailing pages' data", () => {
     const pastedTab = await politiciansPageData({ house: "commons", mailing: String(id), tab: "pasted" });
     expect(pastedTab.filtersHidden).toBe(true);
     expect(pastedTab.list.politicians.map((p) => p.id)).toEqual([polly]);
+  });
+
+  it("downloads what the list shows: who its filters find, those ticked on the ticked tab, or the paste on its tab", async () => {
+    const polly = await addTestPolitician();
+    const lord = await addTestPolitician({
+      name: "Lord Sample",
+      airtableId: "rec2",
+      house: "lords",
+      constituency: null,
+      email: "lord.sample@example.org",
+    });
+    const ids = async (params: Parameters<typeof politiciansDownloadData>[0]) => {
+      const data = await politiciansDownloadData(params);
+      return data.kind === "list" ? data.politicians.map((p) => p.id) : [];
+    };
+    // Every page of who the filters find.
+    expect(await ids({ house: "commons", page: "3" })).toEqual([polly]);
+    const { id } = await createDraft("jo@pauseai.uk", { list: "politicians", params: {}, picked: { ids: [lord] } }, {});
+    expect(await ids({ house: "commons", mailing: String(id) })).toEqual([polly]);
+    // Those ticked, whatever the filters, as the ticked tab shows them.
+    expect(await ids({ house: "commons", mailing: String(id), tab: "ticked" })).toEqual([lord]);
+    // The paste, line by line.
+    await keepPasted(id, ["Polly Placeholder"]);
+    const pasted = await politiciansDownloadData({ house: "commons", mailing: String(id), tab: "pasted" });
+    expect(await ids({ house: "commons", mailing: String(id), tab: "pasted" })).toEqual([]);
+    expect(pasted).toMatchObject({ kind: "pasted" });
+    expect(pasted.kind === "pasted" && pasted.pasted).toEqual([
+      expect.objectContaining({ line: "Polly Placeholder", matches: [expect.objectContaining({ id: polly })] }),
+    ]);
+    expect(pasted).toMatchObject({ search: { tab: "pasted" }, asks: expect.any(Array), parties: expect.any(Array) });
   });
 
   it("gives a draft to write, an imported mailing, one written and scheduled with a tab, or nothing", async () => {

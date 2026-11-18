@@ -248,9 +248,10 @@ export async function changeBroadcastFilter(id: number, params: Params): Promise
  * Changes the Consent a draft goes under to `value`, topics answered yes,
  * keeping its other filters and the consents it leaves out. To the other channel only while it has no words
  * of its own (hasWords), starting it afresh as one new on that channel is.
- * Says whether it did.
+ * Says the draft's version it made, for its writer to save at next, or
+ * false if it didn't change it.
  */
-export async function changeBroadcastConsent(id: number, value: string, by: string): Promise<boolean> {
+export async function changeBroadcastConsent(id: number, value: string, by: string): Promise<number | false> {
   const broadcast = await getWrittenBroadcast(id);
   const terms = choiceTerms(value);
   if (broadcast?.state !== "draft" || !terms) return false;
@@ -261,7 +262,7 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
     contact: [...termsValues(terms), ...consentLeftOut(broadcast.filter.params.contact)],
   });
   const sender = await senderOf(terms.channel);
-  await query(
+  const [{ version }] = await query<{ version: number }>(
     `UPDATE mailings SET channel = $2, topic = $3, filter = $4, also_topics = $8,
        subject = CASE WHEN $5 THEN '' ELSE subject END,
        body = CASE WHEN $5 THEN '{"type": "doc", "content": []}'::jsonb ELSE body END,
@@ -270,7 +271,7 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
        sent_from = CASE WHEN $5 THEN $6 ELSE sent_from END,
        from_name = CASE WHEN $5 THEN $7 ELSE from_name END,
        version = version + 1, updated_at = now()
-     WHERE id = $1`,
+     WHERE id = $1 RETURNING version::int AS version`,
     [
       id,
       terms.channel,
@@ -283,7 +284,7 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
     ],
   );
   await logChange(by, "change broadcast consent", { id, ...terms });
-  return true;
+  return version;
 }
 
 /** Whether a filter's terms are the broadcast's own. */

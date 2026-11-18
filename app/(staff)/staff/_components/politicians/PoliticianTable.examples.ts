@@ -1,5 +1,5 @@
 import type { Choosing } from "@/lib/politicians/filters";
-import type { PastedLine } from "./PoliticiansList";
+import type { PastedLine } from "./PoliticianTable";
 import type { Politician, PoliticianChange, PoliticiansPage } from "@/lib/politicians/records.server";
 import type { PoliticianAliases } from "@/lib/politicians/aliases.server";
 import type { PoliticiansSearch } from "@/lib/staff-search";
@@ -101,7 +101,6 @@ export const emptyPoliticiansSearch: PoliticiansSearch = {
   page: "",
   mailing: "",
   tab: "",
-  pasted: [],
   saved: "",
 };
 
@@ -111,6 +110,7 @@ export const exampleChoosing: Choosing = {
   title: "Edinburgh thank-you",
   blank: false,
   ticked: [examplePolitician.id],
+  pasted: false,
 };
 
 /** Names pasted: a row copied from the table, which found Polly by her name; and a typo near her. */
