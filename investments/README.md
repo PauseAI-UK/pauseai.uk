@@ -54,7 +54,7 @@ Once a month, add the month's hits and choose what's next.
 - read `storyboard.json` with a script
 - edited with `sed -i` or inline Python
 
-It also counts the sessions that ran out of context, those with the Bash-first experiment on, and the rebase conflicts in each file (`scripts/README.md`). It writes only counts and the paths of files in the repo, to `tmp/friction-sweep.txt`. Add each week's count as a hit to the item it bears on, such as "Week of 2026-11-09 (x6): sessions set TEST_DATABASE_URL by hand".
+It also counts the sessions with the Bash-first experiment on, and the rebase conflicts in each file (`scripts/README.md`). It writes only counts and the paths of files in the repo, to `tmp/friction-sweep.txt`. Add each week's count as a hit to the item it bears on, such as "Week of 2026-11-09 (x6): sessions set TEST_DATABASE_URL by hand".
 
 About one PR in five should be one of these, each in its own PR. The PR that finishes an item deletes its file. An architecture item done in steps keeps its file until the last step, and its Fix says what's left.
 

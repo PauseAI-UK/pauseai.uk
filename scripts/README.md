@@ -80,7 +80,6 @@ Each command has a time limit and a log in `tmp/gate/`, and the gate ends with a
 - killed a server on a port;
 - read `storyboard.json` with a script;
 - edited files with `sed -i` or inline Python;
-- ran out of context;
 - had the Bash-first experiment on.
 
 The logs hold private data, so the script writes only counts and the paths of files in the repo. `--logs <folder>` reads another folder. The sweep is for the monthly review (`investments/README.md`).
