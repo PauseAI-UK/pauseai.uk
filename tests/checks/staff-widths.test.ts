@@ -26,6 +26,8 @@ const ALLOWED: Record<string, string> = {
   "StaffNav.module.css .menu > div": "the menu's dropdown",
   // A picture of a phone: a text's preview, as wide as theirs.
   "Broadcasts.module.css .phone": "a phone's screen",
+  // Its bubble, wrapping the words where a phone did, so the fold falls where it did.
+  "Broadcasts.module.css .phoneBubble": "a phone's line of words",
   // The login page: one card in the middle of the window, with no grid.
   "LoginCard.module.css .login": "the login page",
   "DevLogin.module.css .dev": "the login page",
