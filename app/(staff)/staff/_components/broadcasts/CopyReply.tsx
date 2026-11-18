@@ -129,15 +129,12 @@ export default function Reply({
   const said = reply.text && (
     <p className={reaction ? styles.emoji : styles.text}>{text ? <LinkedText text={reply.text} /> : reply.text}</p>
   );
-  // What they sent: for a reaction, the start of our message it's to, then its emoji, then that they took it back,
-  // if they did; for any other that's more than words, what it was, over the words it came with; else its words.
+  // What they sent: for a reaction, the start of our message it's to, then its emoji; for any other that's more
+  // than words, what it was, over the words it came with; else its words.
   const words = reaction ? (
     <>
       <span className={styles.quote}>{reactedTo(reply, one)}</span>
       {said}
-      {reply.removedAt && (
-        <span className={styles.kind}>{copy.replies.reactionRemoved(staffTime(reply.removedAt))}</span>
-      )}
     </>
   ) : kind ? (
     <>
@@ -147,8 +144,18 @@ export default function Reply({
   ) : (
     said || <Muted>{copy.replies.noText}</Muted>
   );
-  // Under a reaction, that it is one, before when.
+  // Under a reaction, that it is one, before when; then, on a line under that, when they took it back, if they did.
   const reacted = reaction ? `${reply.text ? copy.replies.reacted : copy.replies.reactedNotKept} · ` : "";
+  const came = `${reacted}${staffTime(reply.receivedAt)}`;
+  const cameAndWent = reply.removedAt ? (
+    <>
+      {came}
+      <br />
+      {copy.replies.reactionRemoved(staffTime(reply.removedAt))}
+    </>
+  ) : (
+    came
+  );
   // What it was recorded as, but answered, which our answer after it says.
   const recorded = reply.outcome && reply.outcome !== "answered" && (
     <p className={styles.dealt}>
@@ -200,7 +207,7 @@ export default function Reply({
     return (
       <div className={styles.textReply}>
         <ChatWall>
-          <ChatBubble who={sender(reply, one)} when={`${reacted}${staffTime(reply.receivedAt)}`}>
+          <ChatBubble who={sender(reply, one)} when={cameAndWent}>
             {words}
           </ChatBubble>
         </ChatWall>

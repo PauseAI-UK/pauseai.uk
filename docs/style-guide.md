@@ -447,10 +447,10 @@ supporter, a mailing) starts with a tinted band. The band has:
   icon before it, email or text;
 - its facts (`BandFact`), each with a quiet line under it, which can say
   more of the same fact so it needs no fact of its own: who a mailing is
-  from has what sent it under it ("via Gmail"). A fact of lozenges has no
-  line under it, so it sits at its foot (`foot`), the lozenges' bottom
-  level with the bottom of the words beside them; a supporter's are
-  larger there than in the list, whose rows they keep low;
+  from has what sent it under it ("via Gmail"). A fact of lozenges is on the
+  line the values beside it are on (`level`), the lozenges' middle level
+  with the middle of those words; a supporter's are larger there than in
+  the list, whose rows they keep low;
 - at the facts' right, its numbers in one white box (`ui/Counts`), or for
   a mailing, broadcast or campaign, in two groups (`CountGroups`, "Status
   colours" below). Each number is a link (`StaffLink`, below) to what it

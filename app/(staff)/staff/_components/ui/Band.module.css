@@ -151,15 +151,10 @@
   font-weight: 400;
 }
 
-/* A fact whose value has no line under it, such as lozenges: as tall as the facts beside it, its value at its
-   foot, so its bottom is level with the bottom of their words: the feet of the letters of the line under each,
-   which are a little above the bottom of that line. */
-.foot {
+/* A fact whose value isn't words, such as lozenges: on the line the facts beside it have their values on, its
+   middle level with the middle of their words. */
+.level dd {
   display: flex;
-  flex-direction: column;
-}
-
-.foot dd {
-  margin-top: auto;
-  margin-bottom: 3px;
+  align-items: center;
+  min-height: 1lh;
 }

@@ -632,7 +632,7 @@ test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }
   await expect(page.getByText(/removed this reaction/)).toBeVisible();
   await frame(page, "The reaction, taken back");
   story(
-    "Then they send a photo with a caption. The site keeps the caption and says a photo came with it, which only the WhatsApp app shows.",
+    "Then they send a photo with a caption. The site keeps the caption and says a photo came with it, which it can't show.",
   );
   await postWhatsAppWebhook(
     request,

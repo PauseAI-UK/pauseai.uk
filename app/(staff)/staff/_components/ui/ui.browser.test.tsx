@@ -1100,22 +1100,21 @@ describe("Band", () => {
   // Where a fact's words are on the page.
   const box = (text: string) => page.getByText(text, { exact: true }).element().getBoundingClientRect();
 
-  it("puts a fact's value at its foot, level with the bottom of the words of the fact beside it", async () => {
+  it("puts a fact's value that isn't words level with the words of the value beside it", async () => {
     await render(
       <Band title="A supporter">
         <BandFact label="Place" detail="from their postcode">
           Manchester
         </BandFact>
-        <BandFact label="Activities" foot>
-          <span style={{ display: "block", fontSize: "12px" }}>lozenges</span>
+        <BandFact label="Activities" level>
+          <span style={{ display: "block", fontSize: "12px", lineHeight: "14px" }}>lozenges</span>
         </BandFact>
       </Band>,
     );
-    // Level with the feet of the letters of the line under the fact beside it, a little above that line's bottom.
-    const under = box("from their postcode").bottom - box("lozenges").bottom;
-    expect(under).toBeGreaterThan(0);
-    expect(under).toBeLessThan(5);
-    expect(box("lozenges").top).toBeGreaterThan(box("Manchester").top);
+    // Their middles level, the lozenges above the line under the value beside them.
+    const middle = (text: string) => (box(text).top + box(text).bottom) / 2;
+    expect(Math.abs(middle("lozenges") - middle("Manchester"))).toBeLessThan(1);
+    expect(box("lozenges").bottom).toBeLessThan(box("from their postcode").top);
   });
 
   it("under 70rem wide, has what's aside beside the facts if they fit, and under them at the right if not", async () => {

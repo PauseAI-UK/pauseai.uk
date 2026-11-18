@@ -753,7 +753,7 @@ job all leave broadcasts out.
   whatever words it came with: a photo's, video's or document's caption, a
   place's name, address and a link to a map, a contact card's name,
   numbers and addresses. Its files aren't fetched, so its bubble says
-  what it was, which only the WhatsApp app shows. A reaction is a reply as
+  what it was, and that the site can't show it. A reaction is a reply as
   any other, its words its emoji, to the message of ours WhatsApp names
   (`reaction_to`): the text, or our answer, whose start its bubble quotes.
   One taken back, or with another put in its place, is marked removed

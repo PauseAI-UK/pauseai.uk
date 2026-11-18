@@ -275,7 +275,7 @@ function SupporterBand({ supporter, counted }: { supporter: Details; counted: Co
       )}
       <Active first={summary.firstSeenAt} last={summary.lastActiveAt} source={first?.source} />
       {supporterBadgeWords(summary) && (
-        <BandFact label={copy.columns.badges} foot>
+        <BandFact label={copy.columns.badges} level>
           <SupporterBadges supporter={summary} large />
         </BandFact>
       )}
