@@ -2,6 +2,8 @@ import AnswerWord from "../asks/AnswerWord";
 import { AskTitle } from "../asks/AskLine";
 import StaffLink from "../ui/StaffLink";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { isAnswer, standing } from "@/lib/asks/asks";
+import { standingWord } from "@/lib/asks/copy";
 import { POLITICIANS_LIST, type PoliticianSort } from "@/lib/staff-lists";
 import type { Ask } from "@/lib/asks/records.server";
 import type { Politician } from "@/lib/politicians/records.server";
@@ -49,7 +51,8 @@ const marks = (p: Politician) => {
  * The politicians list's columns: who they are (name, house, constituency
  * and party), how they stand (whether they're in office, the marks on
  * them, each ask they've answered and their answer beside it, a line
- * each, a long title cut short), how
+ * each, a long title cut short, and with them the ask the list is
+ * filtered by, however they stand on it), how
  * many emails went to them and came from them, and when they first and
  * last did anything with us. Which show is the filters' doing, not the
  * rows': a
@@ -87,7 +90,10 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       {label}
     </SortHeading>
   );
-  const answered = (p: Politician) => asks.filter((ask) => p.statuses[ask.slug]);
+  // The asks in their Asks cell: those they've answered, and the one the list is filtered by, however they stand on it.
+  const filteredBy = firstOf(search.ask);
+  const shown = (p: Politician) =>
+    asks.filter((ask) => isAnswer(p.statuses[ask.slug]?.status) || ask.slug === filteredBy);
   const columns: (ListColumn<Politician> | false)[] = [
     {
       key: "name",
@@ -160,22 +166,26 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       label: politiciansCopy.politicians.columns.asks,
       heading: heading("asks", politiciansCopy.politicians.columns.asks),
       text: (p) =>
-        answered(p)
-          .map((ask) => `${staffVocabulary.statuses[p.statuses[ask.slug].status]}: ${ask.title}`)
+        shown(p)
+          .map((ask) => `${standingWord(standing(p, ask.slug), ask.kind)}: ${ask.title}`)
           .join("; "),
       cell: (p) =>
-        answered(p).length ? (
-          <ul className={styles.asks}>
-            {answered(p).map((ask) => (
-              <li key={ask.slug}>
-                <span className={styles.ask} title={ask.title}>
-                  <AskTitle ask={ask} />
-                </span>{" "}
-                <strong className={styles.answer}>
-                  <AnswerWord status={p.statuses[ask.slug].status} />
-                </strong>
-              </li>
-            ))}
+        shown(p).length ? (
+          <ul className={filteredBy ? `${styles.asks} ${styles.withStanding}` : styles.asks}>
+            {shown(p).map((ask) => {
+              // An answer in bold; that they were asked, or never were, plain.
+              const Word = isAnswer(p.statuses[ask.slug]?.status) ? "strong" : "span";
+              return (
+                <li key={ask.slug}>
+                  <span className={styles.ask} title={ask.title}>
+                    <AskTitle ask={ask} />
+                  </span>{" "}
+                  <Word className={styles.answer}>
+                    <AnswerWord status={standing(p, ask.slug)} kind={ask.kind} />
+                  </Word>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <Muted>{politiciansCopy.politicians.noAsks}</Muted>
@@ -241,7 +251,7 @@ export function politicianContact(asks: Ask[]): (p: Politician) => Contact {
       `${politiciansCopy.politicians.columns.emailsToThem}: ${p.emailsToThem}`,
       `${politiciansCopy.politicians.columns.emailsFromThem}: ${p.emailsFromThem}`,
       ...asks
-        .filter((ask) => p.statuses[ask.slug])
+        .filter((ask) => isAnswer(p.statuses[ask.slug]?.status))
         .map((ask) => `${staffVocabulary.statuses[p.statuses[ask.slug].status]}: ${ask.title}`),
     ].filter(Boolean),
     url: `/staff/politicians/${p.id}`,

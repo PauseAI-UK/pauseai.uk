@@ -7,7 +7,11 @@ import { politicianWords } from "./PoliticianFilters";
 import PoliticianTable, { politicianColumns, politicianContact } from "./PoliticianTable";
 import { emptyPoliticiansSearch, examplePolitician } from "./PoliticianTable.examples";
 import { politiciansCopy } from "./copy";
-import { PoliticianTableEmptyExample, PoliticianTableExample } from "./PoliticianTable.gallery.client";
+import {
+  PoliticianTableByAskExample,
+  PoliticianTableEmptyExample,
+  PoliticianTableExample,
+} from "./PoliticianTable.gallery.client";
 import { exampleAsks } from "../asks/AsksList.examples";
 
 const MP = examplePolitician;
@@ -153,6 +157,55 @@ describe("PoliticianTable", () => {
     expect(page.getByRole("button").all()).toHaveLength(0);
   });
 
+  it("lists only answers, but for the ask the list is filtered by, which says how each stands on it", async () => {
+    const edinburgh = ask("edinburgh-conference-2026");
+    const invited = { ...MP.statuses["frontier-ai-letter"], status: "invited" as const };
+    const rows = [
+      // Written to about it, with nothing recorded; and marked as asked to sign the letter to the PM.
+      {
+        ...MP,
+        id: 1,
+        name: "Wendy Written",
+        statuses: { "frontier-ai-letter": invited },
+        askedByLetter: { [edinburgh.slug]: new Date("2026-10-12T09:00:00Z") },
+      },
+      { ...MP, id: 2, name: "Neil Never", statuses: {} },
+      { ...MP, id: 3, name: "Dee Declined" },
+    ];
+    const answers = (name: string) =>
+      page
+        .getByRole("row")
+        .filter({ hasText: name })
+        .getByRole("listitem")
+        .all()
+        .map((li) => li.element().textContent);
+    const { rerender } = await render(<PoliticianTable politicians={rows} asks={exampleAsks} />);
+    // With no ask chosen, being asked isn't an answer, by a letter or by staff's mark.
+    expect(answers("Wendy Written")).toEqual([]);
+    expect(answers("Neil Never")).toEqual([]);
+    await rerender(<PoliticianTable politicians={rows} asks={exampleAsks} search={{ ask: edinburgh.slug }} />);
+    expect(answers("Wendy Written")).toEqual([`${edinburgh.title} ${staffVocabulary.invited.event}`]);
+    expect(answers("Neil Never")).toEqual([`${edinburgh.title} ${staffVocabulary.neverAsked.event}`]);
+    // Neither is an answer, so neither is in bold, as Dee's are, and the words fit on their line.
+    const word = (name: string, words: string) =>
+      page.getByRole("row").filter({ hasText: name }).getByText(words, { exact: true }).element();
+    const never = word("Neil Never", staffVocabulary.neverAsked.event);
+    expect(never.closest("strong")).toBeNull();
+    expect(word("Dee Declined", staffVocabulary.statuses.declined).closest("strong")).not.toBeNull();
+    expect(never.getBoundingClientRect().right).toBeLessThanOrEqual(
+      never.closest("ul")!.getBoundingClientRect().right + 1,
+    );
+    // One who answered it has their line as ever, once, among their other answers.
+    expect(answers("Dee Declined")).toEqual([
+      `${edinburgh.title} ${staffVocabulary.statuses.declined}`,
+      `${ask("frontier-ai-letter").title} ${staffVocabulary.statuses.signed}`,
+    ]);
+    // A download says the same, and a card has only answers.
+    const column = politicianColumns(exampleAsks, { ask: "frontier-ai-letter" }).find((c) => c.key === "asks")!;
+    expect(column.text!(rows[0])).toBe(`${staffVocabulary.invited.letter}: ${ask("frontier-ai-letter").title}`);
+    expect(politicianContact(exampleAsks)(rows[0]).note!.join()).not.toContain(staffVocabulary.invited.letter);
+  });
+
   it("says when nobody matches", async () => {
     await render(<PoliticianTable politicians={[]} asks={exampleAsks} />);
     await expect.element(page.getByText(politiciansCopy.politicians.none)).toBeVisible();
@@ -210,6 +263,13 @@ describe("PoliticianTable's examples in the gallery", () => {
   it("lists politicians with no buttons", async () => {
     await render(<PoliticianTableExample />);
     expect(page.getByRole("button").all()).toHaveLength(0);
+  });
+
+  it("says how each stands on the ask the list is filtered by", async () => {
+    await render(<PoliticianTableByAskExample />);
+    const row = (name: string) => page.getByRole("row").filter({ hasText: name }).element().textContent;
+    expect(row("Wendy Written")).toContain(staffVocabulary.invited.event);
+    expect(row("Neil Never")).toContain(staffVocabulary.neverAsked.event);
   });
 
   it("says when no politician matches", async () => {

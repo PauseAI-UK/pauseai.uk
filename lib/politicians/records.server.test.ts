@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { addAuditEntry, addTestMp, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import {
+  addAuditEntry,
+  addTestLetter,
+  addTestMp,
+  addTestPolitician,
+  describeWithDatabase,
+  useTestDatabase,
+} from "@/tests/database";
+import { INVITED, NEVER_ASKED } from "@/lib/asks/asks";
 import { query, transaction } from "@/lib/server/db.server";
 import {
   addPolitician,
@@ -10,6 +18,7 @@ import {
   getPolitician,
   listParties,
   listPoliticians,
+  mailingPoliticians,
   politicianHistory,
   politiciansPage,
   setStatus,
@@ -376,6 +385,7 @@ describeWithDatabase("politicians", () => {
       firstActivityAt: null,
       lastActivityAt: null,
       statuses: {},
+      askedByLetter: {},
     });
     // The Asks column sorts by when their newest answer was recorded, newest first, those without last.
     await setStatus(mp, PM, { status: "signed", date: null, note: "" }, "jo@pauseai.uk");
@@ -462,13 +472,15 @@ describeWithDatabase("politicians", () => {
     expect(await ids({ not: { email: ["blocked"] } })).toEqual([mp, retired].sort());
     expect(await ids({ ask: EDINBURGH })).toEqual([mp, peer].sort());
     expect(await ids({ ask: EDINBURGH, answer: ["going"] })).toEqual([peer]);
-    expect(await ids({ ask: EDINBURGH, answer: ["none"] })).toEqual([retired]);
-    // Several answers find any of them, no answer among them.
+    expect(await ids({ ask: EDINBURGH, answer: [NEVER_ASKED] })).toEqual([retired]);
+    // Several answers find any of them, those never asked among them.
     expect(await ids({ ask: EDINBURGH, answer: ["going", "declined"] })).toEqual([mp, peer].sort());
-    expect(await ids({ ask: EDINBURGH, answer: ["going", "none"] })).toEqual([peer, retired].sort());
-    // An answer to any ask, or none to any.
+    expect(await ids({ ask: EDINBURGH, answer: ["going", NEVER_ASKED] })).toEqual([peer, retired].sort());
+    // An answer to any ask, or never asked any.
     expect(await ids({ answer: ["going"] })).toEqual([peer]);
-    expect(await ids({ answer: ["none"] })).toEqual([retired]);
+    expect(await ids({ answer: [NEVER_ASKED] })).toEqual([retired]);
+    // One no ask allows finds no one.
+    expect(await ids({ ask: EDINBURGH, answer: ["maybe"] })).toEqual([]);
     // Mailed about an ask: a mailing about it went or is going to them, not one stopped or skipped.
     const [{ id: mailing }] = await query<{ id: number }>(
       `INSERT INTO mailings (title, ask, audience, channel, state, airtable_sent_between)
@@ -489,6 +501,75 @@ describeWithDatabase("politicians", () => {
     expect(await ids({ not: { mailed: [EDINBURGH] } })).toEqual([peer, retired].sort());
     // The parties to choose from, without the blank one.
     expect(await listParties()).toEqual(["Crossbench", "Labour (Co-op)"]);
+  });
+
+  it("knows who's invited to an ask, by a letter that reached them or as staff marked them, and who was never asked", async () => {
+    const written = await addTestPolitician({ airtableId: "rec1", name: "Wendy Written" });
+    const marked = await addTestPolitician({ airtableId: "rec2", name: "Mark Marked" });
+    const answered = await addTestPolitician({ airtableId: "rec3", name: "Anna Answered" });
+    const never = await addTestPolitician({ airtableId: "rec4", name: "Neil Never" });
+    const bounced = await addTestPolitician({ airtableId: "rec5", name: "Bob Bounced" });
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, ask, audience, channel, state, airtable_sent_between)
+       VALUES ('Edinburgh', $1, 'politicians', 'email', 'sent', '[2026-01-01,2026-01-02)') RETURNING id::int AS id`,
+      [EDINBURGH],
+    );
+    const mail = async (who: number, status: string, sentAt: string) => {
+      const [{ id }] = await query<{ id: number }>(
+        "INSERT INTO letters (kind, notable_person_id, status, sent_at) VALUES ('pauseai', $1, $2, $3) RETURNING id::int AS id",
+        [who, status, sentAt],
+      );
+      await query("INSERT INTO letters_from_pauseai (id, mailing_id) VALUES ($1, $2)", [id, mailing]);
+    };
+    // Our mailing put Edinburgh to three, one of whom answered, and its letter to a fourth bounced.
+    await mail(written, "sent", "2026-01-01T09:00:00Z");
+    await mail(written, "sent", "2026-01-05T09:00:00Z");
+    await mail(answered, "sent", "2026-01-01T09:00:00Z");
+    await mail(bounced, "bounced", "2026-01-01T09:00:00Z");
+    await setStatus(answered, EDINBURGH, { status: "going", date: null, note: "" }, "jo@pauseai.uk");
+    // Staff marked one invited, asked another way. A supporter's letter put its campaign's ask, the letter to the PM.
+    await setStatus(marked, EDINBURGH, { status: INVITED, date: "2026-01-02", note: "At a dinner" }, "jo@pauseai.uk");
+    await addTestLetter({ politicianId: written, sentAt: "2026-02-01T09:00:00Z" });
+    await addTestLetter({ politicianId: marked, status: "queued" });
+
+    // Each record says which asks a letter put to them, and when the last did.
+    const wendy = (await getPolitician(written))!;
+    expect(wendy.askedByLetter).toEqual({
+      [EDINBURGH]: new Date("2026-01-05T09:00:00Z"),
+      [PM]: new Date("2026-02-01T09:00:00Z"),
+    });
+    expect(wendy.statuses).toEqual({});
+    expect((await getPolitician(bounced))!.askedByLetter).toEqual({});
+    expect((await getPolitician(marked))!.statuses[EDINBURGH]).toMatchObject({ status: INVITED, note: "At a dinner" });
+    expect(Object.keys((await getPolitician(marked))!.askedByLetter)).toEqual([PM]);
+
+    const ids = async (filter: Parameters<typeof listPoliticians>[0]) =>
+      (await listPoliticians(filter)).map((p) => p.id).sort();
+    // Invited to it: written to, or marked, with no answer. Not one who answered, nor one whose letter bounced.
+    expect(await ids({ ask: EDINBURGH, answer: [INVITED] })).toEqual([written, marked].sort());
+    expect(await ids({ ask: EDINBURGH, answer: [NEVER_ASKED] })).toEqual([never, bounced].sort());
+    expect(await ids({ ask: EDINBURGH, answer: [INVITED, "going"] })).toEqual([written, marked, answered].sort());
+    expect(await ids({ ask: EDINBURGH, answer: [INVITED, NEVER_ASKED] })).toEqual(
+      [written, marked, never, bounced].sort(),
+    );
+    // Being marked invited isn't an answer.
+    expect(await ids({ ask: EDINBURGH })).toEqual([answered]);
+    expect(await ids({ ask: PM, answer: [INVITED] })).toEqual([written, marked].sort());
+    // With no ask: invited to any, and never asked any.
+    expect(await ids({ answer: [INVITED] })).toEqual([written, marked].sort());
+    expect(await ids({ answer: [NEVER_ASKED] })).toEqual([never, bounced].sort());
+    expect(await countPoliticians({ ask: EDINBURGH, answer: [INVITED] })).toBe(2);
+
+    // Email your MP isn't told of a mark, a mailing's parts aren't for it, and the Asks column doesn't sort by it.
+    await setStatus(marked, PM, { status: INVITED, date: null, note: "By phone" }, "jo@pauseai.uk");
+    expect(await statusesOf(marked)).toEqual({});
+    const recipients = await mailingPoliticians({ ids: [marked, answered] });
+    expect(recipients.map((r) => [r.id, r.answers])).toEqual([
+      [answered, [`${EDINBURGH}:going`]],
+      [marked, []],
+    ]);
+    const byAsks = await listPoliticians({ sort: { key: "asks", dir: "desc" } });
+    expect(byAsks[0].id).toBe(answered);
   });
 
   it("adds a politician, as their two rows, and a test MP by their postcode", async () => {

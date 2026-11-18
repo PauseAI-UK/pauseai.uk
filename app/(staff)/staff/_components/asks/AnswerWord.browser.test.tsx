@@ -14,13 +14,16 @@ describe("AnswerWord", () => {
         <AnswerWord status="going" />
         <AnswerWord status="declined" />
         <AnswerWord status="other" />
-        <AnswerWord status={null} />
+        <AnswerWord status="invited" kind="event" />
+        <AnswerWord status={null} kind="letter" />
       </>,
     );
     expect(mark(staffVocabulary.statuses.signed)).toContain("✓");
     expect(mark(staffVocabulary.statuses.going)).toContain("✓");
     expect(mark(staffVocabulary.statuses.declined)).toContain("✕");
     expect(mark(staffVocabulary.statuses.other)).toBe("none");
-    expect(mark(staffVocabulary.statuses.noAnswer)).toBe("none");
+    // That they were asked, or never were, each in the words of the ask's kind.
+    expect(mark(staffVocabulary.invited.event)).toBe("none");
+    expect(mark(staffVocabulary.neverAsked.letter)).toBe("none");
   });
 });

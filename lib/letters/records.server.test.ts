@@ -171,12 +171,15 @@ describeWithDatabase("recentLetters", () => {
       "UPDATE letters_from_supporters SET draft = 'x', draft_approximate = false, own_words = 0.2 WHERE id = 2",
     );
     await query(
-      "INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by) VALUES ($1, 'frontier-ai-letter', 'letter', 'signed', 'test')",
-      [polly],
+      `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by)
+       VALUES ($1, 'frontier-ai-letter', 'letter', 'signed', 'test'), ($2, 'frontier-ai-letter', 'letter', 'invited', 'test')`,
+      [polly, dora],
     );
     const ids = async (tab: LetterTab) => (await recentLetters({ tab })).map((l) => l.id);
-    // Each letter in one state: Polly's answered the ask, so hers isn't counted as sent.
+    // Each letter in one state: Polly's answered the ask, so hers isn't counted as sent. Dora, whom staff marked
+    // as asked, hasn't answered it.
     expect(await ids("answered")).toEqual([1]);
+    expect((await recentLetters({ tab: "sent" })).map((l) => l.answer)).toEqual([null]);
     expect(await ids("unreached")).toEqual([2]);
     expect(await ids("replied")).toEqual([3]);
     expect(await ids("sent")).toEqual([4]);

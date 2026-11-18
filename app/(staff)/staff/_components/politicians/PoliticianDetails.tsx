@@ -2,7 +2,8 @@ import Image from "next/image";
 import StaffLink from "../ui/StaffLink";
 import type { ReactNode } from "react";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { asksAgreed } from "@/lib/asks/asks";
+import { asksAgreed, INVITED } from "@/lib/asks/asks";
+import { standingWord } from "@/lib/asks/copy";
 import type { Ask } from "@/lib/asks/records.server";
 import { AskTitle } from "../asks/AskLine";
 import { PoliticianAsks } from "./AskRow";
@@ -176,7 +177,11 @@ function Detail({ change, asks }: { change: PoliticianChange; asks: Ask[] }) {
   switch (change.action) {
     case "set status": {
       const ask = asks.find((a) => a.slug === details.ask);
-      const label = staffVocabulary.statuses[text("status")] ?? text("status");
+      // That they were asked is in the words of the ask's kind, as it is in the asks card.
+      const label =
+        details.status === INVITED
+          ? standingWord(INVITED, ask?.kind)
+          : (staffVocabulary.statuses[text("status")] ?? text("status"));
       const words = details.status === null ? copy.statusCleared : copy.statusSet(ANSWER);
       const [lead, rest = ""] = words.before.split(ANSWER);
       return (

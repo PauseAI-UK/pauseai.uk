@@ -9,13 +9,23 @@ export const answerWordGallery: Example[] = [
     file: "app/(staff)/staff/_components/asks/AnswerWord.tsx",
     variants: [
       {
-        label: "A yes, a no, one in between, and none",
+        label: "A yes, a no, and one in between",
         render: () => (
           <div style={{ display: "grid" }}>
             <AnswerWord status="signed" />
             <AnswerWord status="declined" />
             <AnswerWord status="other" />
-            <AnswerWord status={null} />
+          </div>
+        ),
+      },
+      {
+        label: "Asked with no answer yet, and never asked: for a letter, then an event",
+        render: () => (
+          <div style={{ display: "grid" }}>
+            <AnswerWord status="invited" kind="letter" />
+            <AnswerWord status={null} kind="letter" />
+            <AnswerWord status="invited" kind="event" />
+            <AnswerWord status={null} kind="event" />
           </div>
         ),
       },

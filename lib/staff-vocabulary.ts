@@ -44,9 +44,14 @@ export const staffVocabulary = {
     going: "Going",
     other: "Other",
     declined: "Declined",
-    // No answer to an ask, of any kind.
-    noAnswer: "No answer",
   } as Record<string, string>,
+  // Someone asked who hasn't answered, by the ask's kind; "any" where the ask isn't known (standingWord).
+  invited: { letter: "⁂ Asked", event: "⁂ Invited", any: "⁂ Asked or invited" } as Record<string, string>,
+  // Someone never asked: no letter put the ask to them, and nothing's recorded. By the ask's kind, as above.
+  neverAsked: { letter: "⁂ Never asked", event: "⁂ Never invited", any: "⁂ Never asked or invited" } as Record<
+    string,
+    string
+  >,
   // The politicians' markers (lib/politician-flags.ts), which the politicians', letters' and every email's lists
   // filter by, and a test politician's tag beside their name.
   politicianFlags: {

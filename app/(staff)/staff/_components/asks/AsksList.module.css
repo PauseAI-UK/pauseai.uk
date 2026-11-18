@@ -150,8 +150,8 @@
   text-decoration: none;
 }
 
-/* The same size as the tags beside it, only outlined: nothing was answered. */
-.answers .noAnswer {
+/* The same size as the tags beside it, only outlined: those asked who haven't answered. */
+.answers .invited {
   padding: var(--tag-padding);
   border-radius: var(--radius-pill);
   box-shadow: inset 0 0 0 1px var(--border-strong);

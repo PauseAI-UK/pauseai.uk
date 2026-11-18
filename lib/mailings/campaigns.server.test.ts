@@ -26,11 +26,13 @@ describeWithDatabase("campaigns", () => {
       createdAt: "2026-08-01",
     });
     await query(
-      "INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by) VALUES ($1, 'frontier-ai-letter', 'letter', 'signed', 'test')",
-      [polly],
+      `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by)
+       VALUES ($1, 'frontier-ai-letter', 'letter', 'signed', 'test'), ($2, 'frontier-ai-letter', 'letter', 'invited', 'test')`,
+      [polly, dora],
     );
     const campaign = await getCampaignSummary(slug);
-    // Polly answered, and her letter that bounced is in its own state; Dora replied.
+    // Polly answered, and her letter that bounced is in its own state; Dora replied, and staff marking her as asked
+    // is no answer.
     expect(campaign).toMatchObject({
       letters: 3,
       states: { sent: 0, replied: 1, answered: 1, spam: 0, error: 0, unreached: 1, "not-sent": 0 },

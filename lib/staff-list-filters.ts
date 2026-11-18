@@ -6,7 +6,8 @@
 // such as the parties, the events, or who's in the log.
 import { staffMemberText } from "@/lib/staff-member";
 import type { ReactNode } from "react";
-import { ASK_STATUSES } from "@/lib/asks/asks";
+import { ALL_ANSWERS, ANSWER_CHOICES, INVITED, NEVER_ASKED } from "@/lib/asks/asks";
+import { standingWord } from "@/lib/asks/copy";
 import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
@@ -204,7 +205,9 @@ export type PoliticianChoices = { ask: string; parties: string[]; asks: Ask[] };
  * The politicians list's filters: the table's columns in its order, with
  * the nation after the party and whether we can email them after the
  * status. Status is those in office unless another is chosen. An answer is
- * offered once there's an ask, from those its kind allows, and goes with it.
+ * offered once there's an ask, and goes with it: in the order things happen,
+ * those asked with no answer yet, the answers its kind allows as staff pick
+ * from them, then those never asked.
  * Party, nation, email, the markers, the asks they've been mailed about and
  * the answers can each be chosen more than once, the first three having one
  * value each; Except on the asks finds those not yet mailed about it. How
@@ -252,12 +255,13 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
       after: "ask",
       options: [
         { value: "", label: copy.anyAnswer },
+        { value: INVITED, label: standingWord(INVITED, ask?.kind) },
         // With no ask, as a link from the dashboard can have it, any ask's answers.
-        ...(ask ? ASK_STATUSES[ask.kind] : [...new Set(Object.values(ASK_STATUSES).flat())]).map((value) => ({
+        ...(ask ? ANSWER_CHOICES[ask.kind] : ALL_ANSWERS).map((value) => ({
           value,
           label: staffVocabulary.statuses[value],
         })),
-        { value: "none", label: copy.noAnswer },
+        { value: NEVER_ASKED, label: standingWord(null, ask?.kind) },
       ],
     },
   };

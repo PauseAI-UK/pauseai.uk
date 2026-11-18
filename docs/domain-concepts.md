@@ -155,21 +155,53 @@ within these rules:
 
 - The slug is made from the title and the date's month and year, and never
   changes.
-- The kind is fixed once anyone has answered.
+- The kind is fixed once anyone has answered. Those staff marked invited
+  (below) haven't, and follow a change of kind.
 - An ask can be deleted only while no answer, campaign or mailing refers to
-  it.
+  it, and nobody is marked invited to it.
 - The asks `lib/asks/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and
   ControlAI's letter) can be changed there but never deleted, as campaigns,
   the public list of signatories and the ControlAI import depend on them.
 
 A person's answer to an ask is a status (`ask_statuses`): one row per
 person per ask, with a status, a date, a note, and who set it. Someone who
-hasn't answered has no row. Each kind allows its own statuses
+hasn't answered has no row, unless staff marked them invited. Each kind allows its own statuses
 (`ask_kind_statuses`, mirrored by `ASK_STATUSES`): a letter allows `signed`,
 `other` or `declined`, and an event `going`, `other` or `declined`. An
 `other` answer's note says what it was,
 such as "Tentatively said yes". A foreign key on `(ask_kind, status)`
 refuses any status not in that table, and a new status is a row there.
+
+**Invited.** Someone asked who hasn't answered is invited. It's worked out,
+not kept, for anyone a letter put the ask to: a supporter's letter puts its
+campaign's ask, and one of ours its mailing's, once it has arrived, may
+have, or is on its way (`ASKING_STATUSES`, `askingLetters()` in
+`lib/asks/invited.ts`). A letter that bounced, or was refused, stopped or
+skipped, never reached them. For someone asked another way, in person or by
+a one-off email, staff mark them: a row with the status `invited`
+(`INVITED`), which either kind allows, with a note of how they were asked.
+So where someone stands on an ask is one of three things (`standing()` in
+`lib/asks/asks.ts`):
+
+- an answer, whatever letters went;
+- invited, by that row or, with no row, by a letter;
+- never asked, with neither.
+
+Invited isn't an answer. Whatever counts or finds answers leaves the row
+out (`answerSql()`, `isAnswer()`): an ask's counts, "Any answer" in the
+politicians list's filter, a mailing's and a campaign's count of who
+answered, the parts of a mailing that are for one answer, the kind being
+fixed, and what Email your MP is told of an MP. The words for it follow the
+ask's kind, as the yes does: asked to sign a letter, invited to an event
+(`standingWord()` in `lib/asks/copy.ts`).
+
+A politician's page lists the asks they've answered or are invited to, and
+its form sets any of the three: invited, an answer, or never asked, which
+clears the row. When a letter asked them, never asked isn't offered, and
+invited is what clears an answer. The politicians list's Ask filter finds
+those who stand on an ask in any of the ways chosen, and its Asks column
+lists answers, with the ask the list is filtered by among them however they
+stand on it.
 
 Staff set statuses by hand, with a note, for every ask but two, which
 imports set from controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`):
@@ -184,10 +216,11 @@ records before the site kept answers itself. Staff change them like any
 other.
 
 `/staff/asks` lists the asks, newest first: who asks each, how many gave
-each answer, how many were written to and how they were asked. An ask's own
-page (`/staff/asks/[slug]`) says what was asked, in the words a politician's
-page uses, then lists the campaigns and mailings that put it, by date,
-beside its answers. It has no letters of its own. Its form is at
+each answer, how many are invited, how many were written to and how they
+were asked. An ask's own page (`/staff/asks/[slug]`) says what was asked, in
+the words a politician's page uses, then lists the campaigns and mailings
+that put it, by date, beside its answers and those invited, and leads to
+either on the politicians list. It has no letters of its own. Its form is at
 `/staff/asks/[slug]/edit`.
 
 ## Campaigns

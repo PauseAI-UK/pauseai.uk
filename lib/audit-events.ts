@@ -3,7 +3,7 @@
 // log's pages read StoredAuditDetails, which adds what rows logged earlier
 // may still hold, as the log keeps a politician's history while they're here
 // and everything else for a month (lib/jobs/log-retention.server.ts).
-import type { AskStatus } from "@/lib/asks/asks";
+import type { RecordedStatus } from "@/lib/asks/asks";
 import type { BroadcastTerms } from "@/lib/broadcasts/broadcasts";
 import type { FieldChange } from "./field-changes";
 import type { PoliticianImportJob } from "./import-runs";
@@ -77,7 +77,7 @@ export type DownloadAction = "download supporters" | "download blocked emails";
 
 /** Each action logChange logs, and its details. */
 export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
-  "set status": { politicianId: number; ask: string; status: AskStatus | null; date: string | null; note: string };
+  "set status": { politicianId: number; ask: string; status: RecordedStatus | null; date: string | null; note: string };
   /** By an import, from their body's list. */
   "add politician": { id: number } & ImportedFields;
   /** An import's or a staff member's edit; an import's change of status, with when it happened and why. */

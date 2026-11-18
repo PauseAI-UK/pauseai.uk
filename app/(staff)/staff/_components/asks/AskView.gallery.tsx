@@ -39,7 +39,7 @@ export const askViewGallery: Example[] = [
                   },
                   { key: "declined", total: 1, people: exampleAskPage.groups[1].people },
                 ],
-                noAnswer: 0,
+                invited: 0,
               }}
               answer=""
             />
@@ -65,7 +65,7 @@ export const askViewGallery: Example[] = [
                 url: "/events",
                 counts: {},
                 writtenTo: 0,
-                noAnswer: 0,
+                invited: 0,
                 ways: [],
                 groups: [],
                 answers: [],

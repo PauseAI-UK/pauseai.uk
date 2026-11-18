@@ -14,10 +14,14 @@ describe("staff vocabulary", () => {
       "ni-assembly",
       "other",
     ]);
-    // Every status any kind of ask allows, and the words for no answer.
+    // Every answer any kind of ask allows.
     expect(Object.keys(staffVocabulary.statuses).sort()).toEqual(
-      [...new Set(Object.values(ASK_STATUSES).flat()), "noAnswer"].sort(),
+      [...new Set(Object.values(ASK_STATUSES).flat())].sort(),
     );
+    // That they were asked, and never were, in each kind's words and in words for any.
+    const kinds = [...Object.keys(ASK_STATUSES), "any"].sort();
+    expect(Object.keys(staffVocabulary.invited).sort()).toEqual(kinds);
+    expect(Object.keys(staffVocabulary.neverAsked).sort()).toEqual(kinds);
     expect(Object.keys(politiciansCopy.personStatuses)).toEqual([...PERSON_STATUSES]);
     expect(Object.keys(staffVocabulary.countries)).toEqual([...COUNTRIES]);
   });

@@ -54,6 +54,8 @@ describe("statusFrom", () => {
       note: "At the march",
     });
     expect(statusFrom(form({ ...base, status: "" }))!.status).toBeNull();
+    // That they were asked, which either kind of ask allows.
+    expect(statusFrom(form({ ...base, status: "invited" }))!.status).toBe("invited");
   });
 
   it("refuses an unknown politician or status, an ask an import fills, or no note", () => {

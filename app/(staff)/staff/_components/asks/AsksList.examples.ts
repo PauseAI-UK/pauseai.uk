@@ -61,7 +61,7 @@ const mailingWay: AskWay = {
   letters: 40,
 };
 
-/** The asks with how many gave each answer: a letter signed and declined, an event answered every way it allows, and one nobody has answered. */
+/** The asks with how many gave each answer, and how many were asked and haven't: a letter signed and declined, an event answered every way it allows, and one nobody has answered. */
 export const exampleAsksWithCounts: AskWithCounts[] = [
   {
     ...exampleAsks[0],
@@ -70,7 +70,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     lastLetter: null,
     writtenTo: 186,
     replied: 20,
-    noAnswer: 132,
+    invited: 132,
     campaigns: 0,
     mailings: 1,
     ways: [mailingWay],
@@ -82,7 +82,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     lastLetter: null,
     writtenTo: 0,
     replied: 0,
-    noAnswer: 0,
+    invited: 0,
     campaigns: 0,
     mailings: 0,
     ways: [],
@@ -94,7 +94,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     lastLetter: null,
     writtenTo: 4,
     replied: 0,
-    noAnswer: 4,
+    invited: 4,
     campaigns: 1,
     mailings: 0,
     ways: [campaignWay],
@@ -106,7 +106,7 @@ export const exampleAsksWithCounts: AskWithCounts[] = [
     lastLetter: "2026-11-04",
     writtenTo: 40,
     replied: 0,
-    noAnswer: 28,
+    invited: 28,
     campaigns: 1,
     mailings: 2,
     ways: [
@@ -127,7 +127,7 @@ export const exampleAskPage: AskPageData = {
   replied: 5,
   campaigns: 1,
   mailings: 1,
-  noAnswer: 37,
+  invited: 37,
   answersTotal: 3,
   page: 1,
   pages: 1,
@@ -180,7 +180,7 @@ export const exampleAskPage: AskPageData = {
       ],
     },
     {
-      key: "none",
+      key: "invited",
       total: 37,
       people: [
         {
@@ -189,7 +189,7 @@ export const exampleAskPage: AskPageData = {
           isTest: false,
           constituency: null,
           party: "Example Party",
-          status: null,
+          status: "invited",
           note: "",
           lastWrittenTo: null,
         },

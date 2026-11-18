@@ -2,7 +2,11 @@
 // (app/(tools)/gallery/_examples/staff-politicians.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
-import { PoliticianTableEmptyExample, PoliticianTableExample } from "./PoliticianTable.gallery.client";
+import {
+  PoliticianTableByAskExample,
+  PoliticianTableEmptyExample,
+  PoliticianTableExample,
+} from "./PoliticianTable.gallery.client";
 
 export const politicianTableGallery: Example[] = [
   {
@@ -14,6 +18,14 @@ export const politicianTableGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <PoliticianTableExample />
+          </StaffPage>
+        ),
+      },
+      {
+        label: "Filtered by an ask: how each stands on it, an answer, invited or never invited",
+        render: () => (
+          <StaffPage as="div">
+            <PoliticianTableByAskExample />
           </StaffPage>
         ),
       },

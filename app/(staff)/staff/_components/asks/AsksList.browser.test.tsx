@@ -35,7 +35,12 @@ describe("AsksList", () => {
     expect(first).toContain(`186 ${copy.page.writtenTo}`);
     // No answers, nobody written to, nor any way of asking.
     expect(text(exampleAsks[2].title)).toContain(`0 ${copy.page.replied}`);
-    expect(text(exampleAsks[2].title)).toContain(lozenge(staffVocabulary.statuses.noAnswer, 4));
+    // Those asked who haven't answered, in its kind's words, leading to them on its page.
+    expect(text(exampleAsks[2].title)).toContain(lozenge(staffVocabulary.invited.letter, 4));
+    expect(text(exampleAsks[0].title)).toContain(lozenge(staffVocabulary.invited.event, 132));
+    await expect
+      .element(row(exampleAsks[2].title).getByRole("link", { name: lozenge(staffVocabulary.invited.letter, 4) }))
+      .toHaveAttribute("href", `/staff/asks/${exampleAsks[2].slug}?answer=invited`);
     expect(text(exampleAsks[1].title)).toContain(`0 ${copy.page.writtenTo}`);
     expect(
       row(exampleAsks[1].title)
@@ -66,8 +71,8 @@ describe("AsksList", () => {
       .element(row(exampleAsks[0].title).getByRole("link", { name: lozenge(staffVocabulary.statuses.other, 1) }))
       .toHaveAttribute("href", `/staff/asks/${exampleAsks[0].slug}?answer=other`);
     await expect
-      .element(page.getByRole("link", { name: lozenge(staffVocabulary.statuses.noAnswer, 132) }))
-      .toHaveAttribute("href", expect.stringMatching(/\?answer=none$/));
+      .element(page.getByRole("link", { name: lozenge(staffVocabulary.invited.event, 132) }))
+      .toHaveAttribute("href", expect.stringMatching(/\?answer=invited$/));
     // How far it has gone, a sentence after a dot.
     expect(first).toContain(`186 ${copy.page.writtenTo} · 40 ${copy.page.lettersWord(40)} · 20 ${copy.page.replied}`);
     expect(page.getByRole("status").query()).toBeNull();
@@ -104,7 +109,7 @@ describe("AsksList", () => {
     );
     await expect.element(page.getByRole("status")).toHaveTextContent(copy.notices["in-use"]);
     await expect.element(row()).toHaveAttribute("aria-current", "true");
-    await rerender(<AsksList now={new Date("2026-11-06T12:00:00Z")} asks={[{ ...added, counts: {}, noAnswer: 0 }]} />);
+    await rerender(<AsksList now={new Date("2026-11-06T12:00:00Z")} asks={[{ ...added, counts: {}, invited: 0 }]} />);
     await expect.element(row().getByText(copy.noAnswers)).toBeVisible();
     await rerender(<AsksList now={new Date("2026-11-06T12:00:00Z")} asks={[]} />);
     await expect.element(page.getByText(copy.none)).toBeVisible();

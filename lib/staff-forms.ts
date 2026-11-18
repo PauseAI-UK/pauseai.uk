@@ -1,6 +1,6 @@
 // Reads the staff interface's forms. Anything that doesn't fit is refused
 // (undefined) rather than guessed at.
-import { ASK_STATUSES, ASKERS, type Asker, type AskKind, type AskStatus } from "@/lib/asks/asks";
+import { ASK_STATUSES, ASKERS, INVITED, type Asker, type AskKind, type RecordedStatus } from "@/lib/asks/asks";
 import { answeredByHand } from "@/lib/email-your-mp";
 import { SAVED, SAVED_LISTS, type SavedList } from "@/lib/saved-filters";
 import { PERMISSIONS, type Permission } from "@/lib/accounts/permissions";
@@ -46,22 +46,22 @@ export function savedNameFrom(form: FormData): string {
   return text(form, "name").replace(/\s+/g, " ");
 }
 
-export type StatusForm = { politicianId: number; ask: string; status: AskStatus | null; note: string };
+export type StatusForm = { politicianId: number; ask: string; status: RecordedStatus | null; note: string };
 
 /**
  * Setting an answer to an ask on a politician's page: only an ask staff
- * record by hand (answeredByHand), and a status some kind of ask allows, or
- * blank to clear it, with a note of how they know. Whether the ask's kind
- * allows it is the database's to say.
+ * record by hand (answeredByHand), and a status some kind of ask allows,
+ * INVITED among them, or blank to clear it, with a note of how they know.
+ * Whether the ask's kind allows it is the database's to say.
  */
 export function statusFrom(form: FormData): StatusForm | undefined {
   const politicianId = idFrom(form, "politicianId");
   const ask = text(form, "ask");
   const status = text(form, "status");
-  const statuses: readonly string[] = Object.values(ASK_STATUSES).flat();
+  const statuses: readonly string[] = [...Object.values(ASK_STATUSES).flat(), INVITED];
   const note = text(form, "note");
   if (!politicianId || !answeredByHand(ask) || (status && !statuses.includes(status)) || !note) return undefined;
-  return { politicianId, ask, status: (status as AskStatus) || null, note };
+  return { politicianId, ask, status: (status as RecordedStatus) || null, note };
 }
 
 /** A link to a Google Doc, or to anything else in Google Drive: what an event's doc box takes, as its pattern attribute says it. */

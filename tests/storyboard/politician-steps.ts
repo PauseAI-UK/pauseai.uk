@@ -88,6 +88,19 @@ export function recordAnswers(database: string) {
 }
 
 /**
+ * Marks a fixture politician, by their Airtable record, as invited to an
+ * ask, as staff would on their page for someone asked in person.
+ */
+export function markInvited(database: string, record: string, ask: string) {
+  runSql(
+    database,
+    `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, note, updated_by)
+     SELECT n.id, a.slug, a.kind, 'invited', 'Invited in person', 'staff@pauseai.uk'
+     FROM notable_people n, asks a WHERE n.airtable_id = '${record}' AND a.slug = '${ask}'`,
+  );
+}
+
+/**
  * PauseAI's emails to politicians, as they were copied from Airtable's Emails
  * table: one of each mailing, by its tick box, or the DeepMind letter's by
  * when it went, to the politicians the sync copied. Needs the politicians.

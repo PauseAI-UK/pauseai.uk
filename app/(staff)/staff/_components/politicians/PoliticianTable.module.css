@@ -18,13 +18,22 @@
    them, "✕ Declined", so they start level with each other down the whole
    list. Never wider than a title needs. */
 .asks {
+  --answer-width: 5.5rem;
+
   display: grid;
-  grid-template-columns: minmax(7rem, 1fr) 5.5rem;
+  grid-template-columns: minmax(7rem, 1fr) var(--answer-width);
   gap: var(--space-1) var(--space-2);
-  max-width: 19rem;
+  max-width: calc(13.5rem + var(--answer-width));
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Filtered by an ask, its line says how each stands on it, which may be
+   that they were asked or never were: longer words than an answer, so their
+   column is wider, and the list with it. */
+.withStanding {
+  --answer-width: 7.5rem;
 }
 
 .asks li {

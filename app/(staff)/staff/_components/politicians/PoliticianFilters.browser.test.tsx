@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
-import { ASK_STATUSES } from "@/lib/asks/asks";
+import { ALL_ANSWERS, ANSWER_CHOICES, INVITED } from "@/lib/asks/asks";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import PoliticianFilters from "./PoliticianFilters";
 import { emptyPoliticiansSearch } from "./PoliticianTable.examples";
@@ -43,11 +43,13 @@ describe("PoliticianFilters", () => {
       edinburgh,
       staffVocabulary.statuses.declined,
     ]);
-    // Any answer, then the answers of the ask's kind, and none; another ask takes the answer away.
+    // Any answer; then, as things happen, those invited, the answers of the ask's kind as staff pick from them,
+    // and those never invited. Another ask takes the answer away.
     expect((await menu(staffVocabulary.statuses.declined)).map(([text]) => text)).toEqual([
       copy.anyAnswer,
-      ...ASK_STATUSES.event.map((s) => staffVocabulary.statuses[s]),
-      copy.noAnswer,
+      staffVocabulary.invited.event,
+      ...ANSWER_CHOICES.event.map((s) => staffVocabulary.statuses[s]),
+      staffVocabulary.neverAsked.event,
     ]);
     const asks = await menu(edinburgh);
     expect(asks.find(([text]) => text === ask("frontier-ai-letter").title)![1]).toBe(
@@ -90,6 +92,35 @@ describe("PoliticianFilters", () => {
       copy.mailed,
     ]);
     expect(page.getByRole("link", { name: staffVocabulary.resetFilters }).query()).toBeNull();
+  });
+
+  it("with an answer and no ask, as a link can have it, offers every kind's answers, and words for any kind", async () => {
+    await render(
+      <PoliticianFilters search={{ ...emptyPoliticiansSearch, answer: [INVITED] }} asks={exampleAsks} parties={[]} />,
+    );
+    const chip = `${copy.answer}: ${staffVocabulary.invited.any}`;
+    expect(chips()).toEqual([chip]);
+    expect((await menu(chip)).map(([text]) => text)).toEqual(
+      expect.arrayContaining([
+        staffVocabulary.invited.any,
+        ...ALL_ANSWERS.map((s) => staffVocabulary.statuses[s]),
+        staffVocabulary.neverAsked.any,
+      ]),
+    );
+  });
+
+  it("says a letter's invited and never in a letter's words", async () => {
+    await render(
+      <PoliticianFilters
+        search={{ ...emptyPoliticiansSearch, ask: "frontier-ai-letter", answer: ["never"] }}
+        asks={exampleAsks}
+        parties={[]}
+      />,
+    );
+    expect(chips()).toEqual([ask("frontier-ai-letter").title, staffVocabulary.neverAsked.letter]);
+    expect((await menu(staffVocabulary.neverAsked.letter)).map(([text]) => text)).toContain(
+      staffVocabulary.invited.letter,
+    );
   });
 });
 

@@ -34,15 +34,14 @@ export const politiciansCopy = {
       blocked: "Address blocked",
     } as Record<string, string>,
     flag: "Marked",
-    ask: "Answered ask",
-    // An answer to the ask chosen, in the second half of the ask's chip, its menu named after the ask. With no
-    // ask, as a link from the dashboard can have it, its own chip.
+    ask: "Ask",
+    // How they stand on the ask chosen, in the second half of the ask's chip, its menu named after the ask. With
+    // no ask, as a link from the dashboard can have it, its own chip.
     answer: "Answer",
     // In the second half of the ask's chip, before an answer is chosen.
     anyAnswer: "Any answer",
     // A filter: those a mailing about an ask has gone or is going to.
     mailed: "Mailed about",
-    noAnswer: "Not answered",
     none: "None found.",
     // Over the list: how many there are.
     total: (total: number) => count(total, "politician", "politicians"),
@@ -136,8 +135,6 @@ export const politiciansCopy = {
     // Under the answer to an ask staff record: opens the form to change it.
     edit: "Edit",
     save: "Save",
-    // In the form's row of answers, set apart from them, once there's an answer: picked and saved, it clears it.
-    clearAnswer: "No answer",
     // Under the asks, the small button whose menu lists the other asks staff record, to add one to the card.
     otherAsk: "Add another answer",
     // The fields of the box at the top.

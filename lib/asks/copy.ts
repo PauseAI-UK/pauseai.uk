@@ -2,6 +2,18 @@
 // pages: the asks list, an ask's page and its form, and how an ask leads
 // into a politician's answer to it.
 import { count, plural } from "@/lib/content/plural";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { isAnswer, type AskKind, type RecordedStatus } from "./asks";
+
+/**
+ * Where someone stands on an ask (standing(), lib/asks/asks.ts), in words:
+ * their answer, or that they were asked, or with null never were, each of
+ * the last two in the words of the ask's `kind`, or of any kind without one.
+ */
+export function standingWord(status: RecordedStatus | null, kind: AskKind | "any" = "any"): string {
+  if (isAnswer(status)) return staffVocabulary.statuses[status];
+  return (status ? staffVocabulary.invited : staffVocabulary.neverAsked)[kind];
+}
 
 /**
  * What can't be done to an ask, said on its form and, the same words, when a
@@ -95,6 +107,8 @@ export const asksCopy = {
       lastWrittenTo: "Last written to",
       // Under the answers: leads to the politicians list, filtered to those who answered this ask.
       everyone: "All answers in Politicians →",
+      // Beside it, when some were asked and haven't answered: the same list, filtered to them.
+      invited: "⁂ Those yet to answer in Politicians →",
       letters: (n: number) => count(n, "letter", "letters"),
     },
     askedBy: { supporters: "Supporters", pauseai: "PauseAI", controlai: "ControlAI" },
