@@ -202,7 +202,7 @@ invited is what clears an answer. The politicians list's Ask filter finds
 everyone asked, answered or not, until it's told one way or more: those
 asked with no reply yet, any reply (`REPLIED`) or one answer, or those never
 asked (with no ask chosen, no answer is offered or taken from the address).
-A choice like "Asked (no reply yet)" names the waiting state wherever it's
+A choice like "Asked (no reply)" names the waiting state wherever it's
 one choice among the answers: that filter, a politician's form and the
 ask page's columns. Its Asks column
 lists answers. Filtered by an ask, that column is the ask's own instead,

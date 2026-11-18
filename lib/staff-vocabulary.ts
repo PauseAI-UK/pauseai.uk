@@ -9,7 +9,7 @@ import { count, plural } from "@/lib/content/plural";
 
 const META_TITLE = "PauseAI Staff";
 const INVITED_WORDS = { letter: "Asked", event: "Invited" };
-const NO_REPLY_YET = "(no reply yet)";
+const NO_REPLY = "(no reply)";
 
 export const staffVocabulary = {
   metaTitle: META_TITLE,
@@ -53,10 +53,10 @@ export const staffVocabulary = {
   // filter, a politician's form and its asks card, and the columns of an ask's page. The card breaks the line before
   // the words after it.
   noReplyYet: {
-    letter: `${INVITED_WORDS.letter} ${NO_REPLY_YET}`,
-    event: `${INVITED_WORDS.event} ${NO_REPLY_YET}`,
+    letter: `${INVITED_WORDS.letter} ${NO_REPLY}`,
+    event: `${INVITED_WORDS.event} ${NO_REPLY}`,
   } as Record<string, string>,
-  noReplyYetAfter: NO_REPLY_YET,
+  noReplyYetAfter: NO_REPLY,
   // Someone never asked: no letter put the ask to them, and nothing's recorded. By the ask's kind, as above.
   neverAsked: { letter: "Never asked", event: "Never invited" } as Record<string, string>,
   // Everyone asked, answered or not: the politicians list's ask filter before one way is chosen.
