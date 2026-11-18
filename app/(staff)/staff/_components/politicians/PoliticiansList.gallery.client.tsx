@@ -50,7 +50,7 @@ export function ChoosingListExample({ pasted = false }: { pasted?: boolean }) {
         ...emptyPoliticiansSearch,
         house: "commons",
         mailing: "12",
-        ...(pasted && { tab: "pasted", pasted: examplePasted.map((one) => one.line) }),
+        ...(pasted && { tab: "pasted" }),
       }}
       asks={exampleAsks}
       choosing={exampleChoosing}

@@ -872,7 +872,7 @@ that drives it or why nothing does.
 - `public-pages.spec.ts`: Every public route: 200, one `<h1>`, no console errors or hydration warnings, no broken same-site links, fixture text where a page shows data.
 - `campaigns.spec.ts`: Email your MP, end to end:
   - the postcode, the letter, the preview and the sent page, and the letter the MP gets;
-  - the editor's toolbar and a paste, and the letter as sent;
+  - the editor's toolbar and a paste, where a link goes shown under it, and the letter as sent;
   - the draft kept through Edit, back and reload;
   - going back;
   - an email typed in the address's first line, refused;
@@ -984,10 +984,11 @@ that drives it or why nothing does.
   - New mailing, then who it's for ticked on the politicians list, with its strip and the bar at the foot;
   - New mailing on the list with no filter, which makes an empty draft with no one ticked;
   - the new mailing written, previewed and sent to yourself as a test (the email pictured);
+  - a line linked, with where the link goes under it and the link bar opened from there; a part only for some, with its × and the orange Only those, a line selected in it with Remove only those under it, and the × making it for everyone;
   - Mail these on the list, with everyone it found ticked;
   - Change who, back on the list's ticked tab, with one more searched for and ticked, then everyone unticked to start again and one ticked;
   - the draft naming her, and the draft deleted;
-  - names pasted from the bar's Paste names, its box opening above it: a row copied from the table found by the name in it, one name found by constituency and one near a typo, a row each on the Paste names tab, and all ticked with the box over them;
+  - names pasted from the bar's Paste names, its box opening above it: a row copied from the table found by the name in it, one name found by constituency and one near a typo, a row each on the Paste names tab, its Download menu, of just those rows, and all ticked with the box over them;
   - one unticked on the ticked tab, and the draft saying who it's to as the group found less one;
   - a scheduled mailing given a new time, then unscheduled and a draft again;
   - one sending, and one sent with its failed tab, leading to the bounced letter's page under the mailing;
@@ -996,7 +997,7 @@ that drives it or why nothing does.
   - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;
   - one sent from your Gmail in a From name of its own, by the sending job, and the reply read from it.
 - `broadcasts.spec.ts`: Broadcasts to supporters:
-  - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed;
+  - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed, and what's written after is saved;
   - the list's Broadcast button with a Consent filter;
   - an email written, from hello@ by Postmark, or by its Gmail with what it can send today, previewed, sent as a test, scheduled and unscheduled;
   - a text on an approved template, chosen from the dropdown, each template's facts under its name;

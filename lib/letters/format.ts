@@ -186,11 +186,22 @@ function inlineHtml(inline: Inline[] = []): string {
  */
 const QUOTE_STYLE = "margin-left: 0; margin-right: 0; padding-left: 1em; border-left: 3px solid #ccc; color: #555;";
 
+/**
+ * A bullet's HTML: a bullet of one paragraph is its words alone, as a
+ * paragraph in it would take a paragraph's space above and below in Gmail
+ * and Outlook, setting the bullets apart; one of more keeps its blocks.
+ */
+function itemHtml(item: ListItem): string {
+  const [only, ...rest] = item.content;
+  if (only?.type === "paragraph" && rest.length === 0) return `<li>${inlineHtml(only.content)}</li>`;
+  return `<li>${item.content.map(blockHtml).join("")}</li>`;
+}
+
 function blockHtml(block: Block): string {
   if (block.type === "paragraph") return `<p>${inlineHtml(block.content)}</p>`;
   if (block.type === "blockquote")
     return `<blockquote style="${QUOTE_STYLE}">${block.content.map(blockHtml).join("")}</blockquote>`;
-  return `<ul>${block.content.map((item) => `<li>${item.content.map(blockHtml).join("")}</li>`).join("")}</ul>`;
+  return `<ul>${block.content.map(itemHtml).join("")}</ul>`;
 }
 
 /** The letter as HTML, built only from what's allowed. */

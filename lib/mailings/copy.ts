@@ -37,6 +37,15 @@ export const mailingsCopy = {
     exceptLabel: (who: string) => `Except those who ${who}`,
     // Takes the part at the cursor out of its box, so everyone gets it.
     forEveryone: "For everyone",
+    // In the toolbar, pressed while the cursor is in such a part: pressing it takes the part out of its box.
+    onlyThose: "Only those",
+    // The same, in a part everyone but some get.
+    exceptThose: "Except those",
+    // Under a whole line or more selected in a part: what takes the lines out of it, for everyone.
+    remove: {
+      onlyFor: "Remove only those",
+      except: "Remove except those",
+    },
     // The menu typing { opens, of the merge fields.
     pickField: "Insert a field",
     // Each merge field of a mailing to politicians, as its chip says it.

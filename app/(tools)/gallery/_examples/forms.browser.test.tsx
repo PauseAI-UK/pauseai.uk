@@ -7,6 +7,7 @@ import {
   CheckboxExample,
   RadioExample,
   LinkBarExample,
+  LinkPeekExample,
   LinkButtonExample,
   SegmentedExample,
   TogglesExample,
@@ -80,5 +81,12 @@ describe("the forms group's examples", () => {
     await expect.element(page.getByRole("textbox", { name: "Example address" })).toHaveValue("https://pauseai.uk/join");
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect.element(page.getByRole("textbox", { name: "Example address" })).toBeVisible();
+  });
+
+  it("shows a link's address under it on hover, its press logged", async () => {
+    await render(<LinkPeekExample />);
+    await page.getByRole("link", { name: "pauseai.uk/join" }).hover();
+    await page.getByRole("button", { name: "https://pauseai.uk/join" }).click();
+    await expect.element(log().first()).toHaveTextContent("onEdit()");
   });
 });

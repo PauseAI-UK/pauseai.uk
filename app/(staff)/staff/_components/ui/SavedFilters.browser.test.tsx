@@ -173,12 +173,12 @@ describe("SavedFilters' list", () => {
   const rows = [row(1, "Conservatives who replied"), row(2, "Scottish MPs", { nation: "scotland" })];
 
   it("lists each with its summary, who made it and when; a row is a link that loads it, keeping who a mailing's for", async () => {
-    await bar({ mailing: "12", pasted: ["Jo"] }, { rows });
+    await bar({ mailing: "12" }, { rows });
     await chip().click();
     const link = page.getByRole("link", { name: /Conservatives who replied/ });
     await says(/Conservatives who replied/, "jane.smith+1@pauseai.uk · ");
     await says(/Conservatives who replied/, "Labour");
-    await expect.element(link).toHaveAttribute("href", "/staff/politicians?party=Labour&mailing=12&pasted=Jo&saved=1");
+    await expect.element(link).toHaveAttribute("href", "/staff/politicians?party=Labour&mailing=12&saved=1");
     await expect.element(page.getByText(copy.count(2))).toBeVisible();
     const wide = document.querySelector<HTMLElement>("#saved-filters")!;
     expect(wide.getBoundingClientRect().width).toBeGreaterThan(22 * 16);

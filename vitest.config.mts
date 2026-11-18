@@ -110,6 +110,7 @@ export default defineConfig({
             "@tiptap/extension-blockquote",
             "@tiptap/pm/model",
             "@tiptap/pm/state",
+            "@tiptap/pm/transform",
             "unpdf",
           ],
         },

@@ -174,6 +174,11 @@ test("Formatting the letter", async ({ page, flowDatabase }) => {
   await expect(letter.locator("ul").last().locator("li")).toHaveText(["Numbered one"]);
   await wholePage(page);
   await frame(page, "The pasted text");
+  story("With the cursor in the link, where it goes shows under it, to press to change it.");
+
+  await letter.locator('a[href="https://example.com/"]').click();
+  await expect(page.getByRole("button", { name: "https://example.com/" })).toBeVisible();
+  await frame(page, "Where the link goes, under it", { window: true });
   story("The preview shows the letter formatted as she wrote it.");
 
   await fillAndPreview(page, sender);
@@ -193,7 +198,7 @@ test("Formatting the letter", async ({ page, flowDatabase }) => {
 
   const sent = sentEmail(flowDatabase, letterIdOf(flowDatabase, sender), "letter");
   expect(sent.HtmlBody).toContain("<strong>Please reply.</strong>");
-  expect(sent.HtmlBody).toMatch(/<ul>\s*<li><p>First reason<\/p><\/li>\s*<li><p>Second reason<\/p><\/li>\s*<\/ul>/);
+  expect(sent.HtmlBody).toMatch(/<ul>\s*<li>First reason<\/li>\s*<li>Second reason<\/li>\s*<\/ul>/);
   expect(sent.HtmlBody).toContain('See <a href="https://example.com/">this report</a> and red words.');
   expect(sent.HtmlBody).not.toMatch(/<h1|<ol|style=/);
   // The drafted letter's address, which the HTML links, and the pasted link, kept.

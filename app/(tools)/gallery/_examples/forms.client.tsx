@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Checkbox, Radio, Segmented, Toggles } from "@/components/ui/Controls";
 import { Label } from "@/components/ui/Field";
 import LinkBar from "@/components/ui/LinkBar";
+import LinkPeek from "@/components/ui/LinkPeek";
 import LinkButton from "@/components/ui/LinkButton";
 import { letterExtensions } from "@/lib/letters/extensions";
 import StatusMessage from "@/components/ui/StatusMessage";
@@ -121,6 +122,7 @@ export function LinkBarExample() {
           remove: "Remove",
           cancel: "Cancel",
           invalid: "Not an address",
+          edit: "Example hint",
         }}
         onClose={() => {}}
       />
@@ -128,6 +130,37 @@ export function LinkBarExample() {
         <EditorContent editor={editor} />
       </div>
     </div>
+  );
+}
+
+/** A letter with a link in it, its address shown under it on hover, or with the cursor in it; pressing that is logged. */
+export function LinkPeekExample() {
+  const editor = useEditor({
+    extensions: letterExtensions,
+    content: '<p>Join us at <a href="https://pauseai.uk/join">pauseai.uk/join</a>.</p>',
+    immediatelyRender: false,
+  });
+  if (!editor) return null;
+  return (
+    <Logged>
+      {(log) => (
+        <div style={{ padding: "var(--space-3)", border: "1px solid var(--border-strong)" }}>
+          <LinkPeek
+            editor={editor}
+            words={{
+              address: "Example address",
+              save: "Save",
+              remove: "Remove",
+              cancel: "Cancel",
+              invalid: "Not an address",
+              edit: "Example hint",
+            }}
+            onEdit={log("onEdit")}
+          />
+          <EditorContent editor={editor} />
+        </div>
+      )}
+    </Logged>
   );
 }
 

@@ -103,7 +103,7 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
 
   it("changes a draft's Consent, and says when it didn't", async () => {
     const id = await draft();
-    expect(await changeBroadcastConsentNow(id, "email:newsletter:yes")).toBe(true);
+    expect(await changeBroadcastConsentNow(id, "email:newsletter:yes")).toBe((await getWrittenBroadcast(id))!.version);
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}`);
     expect((await getWrittenBroadcast(id))!.topics).toEqual(["newsletter"]);
     vi.mocked(revalidatePath).mockClear();
@@ -113,9 +113,9 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
 
   it("changes a draft to several topics' yeses, and back to one", async () => {
     const id = await draft();
-    expect(await changeBroadcastConsentNow(id, "email:newsletter:yes email:events:yes")).toBe(true);
+    expect(await changeBroadcastConsentNow(id, "email:newsletter:yes email:events:yes")).toEqual(expect.any(Number));
     expect((await getWrittenBroadcast(id))!.topics).toEqual(["newsletter", "events"]);
-    expect(await changeBroadcastConsentNow(id, "email:events:yes")).toBe(true);
+    expect(await changeBroadcastConsentNow(id, "email:events:yes")).toEqual(expect.any(Number));
     expect((await getWrittenBroadcast(id))!.topics).toEqual(["events"]);
   });
 

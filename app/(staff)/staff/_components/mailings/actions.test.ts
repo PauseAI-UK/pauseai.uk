@@ -2,7 +2,13 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
-import { createDraft, getWrittenMailing, saveDraft, type MailingChanges } from "@/lib/mailings/drafts.server";
+import {
+  createDraft,
+  getWrittenMailing,
+  pastedFor,
+  saveDraft,
+  type MailingChanges,
+} from "@/lib/mailings/drafts.server";
 import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import { createSession } from "@/lib/accounts/auth.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -123,21 +129,34 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     expect((await getWrittenMailing(id))!.filter.picked).toEqual({ ids: [] });
   });
 
-  it("goes to the paste tab with the names pasted, a line each, ticking no one; and ticks many at once", async () => {
+  it("keeps who the names pasted found, a line each, with the draft, ticking no one; and ticks many at once", async () => {
     const polly = await addTestPolitician();
     const { id } = await draft();
-    const back = `/staff/politicians?q=pol&mailing=${id}&pasted=old`;
+    const back = `/staff/politicians?q=pol&mailing=${id}`;
+    // However many lines: the paste isn't in the page's address.
+    const many = Array.from({ length: 300 }, (_, i) => `Nobody Number${i}`).join("\n");
     const to = await expectRedirect(() =>
-      pasteNames(form({ back, names: "  Polly Placeholder MP \r\n\nNobody Atall\n" })),
+      pasteNames(form({ back, names: `  Polly Placeholder MP \r\n\nNobody Atall\n${many}` })),
     );
-    expect(to).toBe(
-      `/staff/politicians?q=pol&mailing=${id}&pasted=Polly+Placeholder+MP&pasted=Nobody+Atall&tab=pasted`,
-    );
+    expect(to).toBe(`/staff/politicians?q=pol&mailing=${id}&tab=pasted`);
+    expect(await pastedFor(id)).toEqual({
+      lines: [
+        expect.objectContaining({ line: "Polly Placeholder MP", matches: [expect.objectContaining({ id: polly })] }),
+      ],
+      skipped: 301,
+    });
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([]);
-    // Back somewhere that isn't a staff page goes to the list; no names, nowhere.
+    // Back somewhere that isn't a staff page goes to the list, and with no draft there, there's nothing to keep.
     expect(await expectRedirect(() => pasteNames(form({ back: "https://example.org", names: "x" })))).toBe(
-      "/staff/politicians?pasted=x&tab=pasted",
+      "/staff/politicians",
     );
+    expect(await expectRedirect(() => pasteNames(form({ back: "/staff/politicians?mailing=0", names: "x" })))).toBe(
+      "/staff/politicians?mailing=0",
+    );
+    expect(
+      await expectRedirect(() => pasteNames(form({ back: "/staff/politicians?mailing=999999", names: "x" }))),
+    ).toBe("/staff/politicians?mailing=999999");
+    // No names, nowhere.
     await pasteNames(form({}));
     await pickMany(id, [polly], true);
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([polly]);

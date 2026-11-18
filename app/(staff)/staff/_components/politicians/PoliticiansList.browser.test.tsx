@@ -54,12 +54,11 @@ describe("HouseTabs", () => {
       .toHaveAttribute("href", "/staff/politicians?house=senedd&mailing=12");
     // Once names are pasted, the paste tab after it.
     expect(page.getByRole("link", { name: politiciansCopy.choosing.pastedTab }).all()).toHaveLength(0);
-    await rerender(<HouseTabs search={{ ...search, tab: "pasted", pasted: ["Jo"] }} choosing={choosing} />);
+    await rerender(<HouseTabs search={{ ...search, tab: "pasted" }} choosing={{ ...choosing, pasted: true }} />);
     const pasted = page.getByRole("link", { name: politiciansCopy.choosing.pastedTab });
     await expect.element(pasted).toHaveAttribute("aria-current", "page");
-    await expect
-      .element(ticked)
-      .toHaveAttribute("href", "/staff/politicians?house=lords&mailing=12&tab=ticked&pasted=Jo");
+    await expect.element(pasted).toHaveAttribute("href", "/staff/politicians?house=lords&mailing=12&tab=pasted");
+    await expect.element(ticked).toHaveAttribute("href", "/staff/politicians?house=lords&mailing=12&tab=ticked");
   });
 });
 
@@ -324,7 +323,7 @@ describe("PoliticiansList", () => {
     await rerender(
       <PoliticiansList
         list={examplePoliticiansPage}
-        search={{ ...search, mailing: "12", tab: "pasted", pasted: examplePasted.map((one) => one.line) }}
+        search={{ ...search, mailing: "12", tab: "pasted" }}
         asks={exampleAsks}
         newMailing={vi.fn()}
         choosing={exampleChoosing}
@@ -336,9 +335,15 @@ describe("PoliticiansList", () => {
         actions={act}
       />,
     );
-    // In place of the list: a row for each person found, after the heading, then how many lines found no one.
+    // In place of the list: how many it found, a row for each person found, after the heading, then how many lines
+    // found no one; and its downloads, of what it shows.
     const pasted = page.getByRole("region", { name: mailingCopy.pastedTitle });
+    await expect.element(pasted.getByText(politiciansCopy.politicians.total(2))).toBeVisible();
     expect(pasted.getByRole("row").all()).toHaveLength(1 + 1 + 1 + 2);
+    await pasted.getByRole("button", { name: staffVocabulary.lists.download }).click();
+    await expect
+      .element(pasted.getByRole("link", { name: staffVocabulary.lists.formats.csv }))
+      .toHaveAttribute("href", "/staff/politicians/download?q=pol&mailing=12&tab=pasted&format=csv");
     await expect.element(pasted.getByText(mailingCopy.pastedSkipped(2))).toBeVisible();
     // Each reason, in its cell over the line it came from.
     await expect.element(pasted.getByText(mailingCopy.pastedBy.name, { exact: false })).toBeVisible();
@@ -360,7 +365,7 @@ describe("PoliticiansList", () => {
     await rerender(
       <PoliticiansList
         list={examplePoliticiansPage}
-        search={{ ...search, mailing: "12", tab: "pasted", pasted: ["Polly"] }}
+        search={{ ...search, mailing: "12", tab: "pasted" }}
         asks={exampleAsks}
         newMailing={vi.fn()}
         choosing={exampleChoosing}
@@ -374,7 +379,7 @@ describe("PoliticiansList", () => {
     await rerender(
       <PoliticiansList
         list={examplePoliticiansPage}
-        search={{ ...search, mailing: "12", tab: "pasted", pasted: ["Labour"] }}
+        search={{ ...search, mailing: "12", tab: "pasted" }}
         asks={exampleAsks}
         newMailing={vi.fn()}
         choosing={exampleChoosing}

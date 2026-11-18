@@ -203,6 +203,10 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
     saidYes.getByRole("radio", { name: supportersCopy.supporters.subscriptions.consents["email:newsletter"] }),
   ).toHaveAttribute("aria-checked", "true");
   await frame(page, "Under the newsletter in place of events");
+  story("What's written after the change is saved, as anything written is.");
+  await savedAfter(page, () => page.getByLabel(copy.subject).fill("This month's news"));
+  await expect(page.getByText(mailingCopy.saveStates.conflict)).toHaveCount(0);
+  await frame(page, "Written after the change, and saved", { window: true });
 });
 
 test("A broadcast by email", async ({ page, request, flowDatabase }) => {

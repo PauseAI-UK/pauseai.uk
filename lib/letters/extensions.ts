@@ -51,6 +51,44 @@ const NoBlankLines = Extension.create({
   ],
 });
 
+/**
+ * Where, in `node` starting at `start`, two bullet lists touch: the
+ * position between each two, inner ones too, in the document's order.
+ */
+function touching(node: Node, start: number): number[] {
+  const found: number[] = [];
+  node.forEach((child, offset, i) => {
+    const at = start + offset;
+    if (i > 0 && child.type.name === "bulletList" && node.child(i - 1).type === child.type) found.push(at);
+    if (!child.isTextblock) found.push(...touching(child, at + 1));
+  });
+  return found;
+}
+
+/**
+ * Two bullet lists with nothing between them are one list: after any
+ * change, such as deleting the line between two or pasting a list after
+ * one, they're joined, as two would look like one with a wider gap at one
+ * place.
+ */
+const JoinTouching = Extension.create({
+  name: "joinTouching",
+  addProseMirrorPlugins: () => [
+    new Plugin({
+      appendTransaction: (transactions, _, state) => {
+        if (!transactions.some((tr) => tr.docChanged)) return null;
+        const joins = touching(state.doc, 0);
+        if (!joins.length) return null;
+        const tr = state.tr;
+        // From the last (touching gives them in the document's order), so each join leaves the positions before
+        // it as they were.
+        for (const at of joins.reverse()) tr.join(at);
+        return tr;
+      },
+    }),
+  ],
+});
+
 /** Ctrl+K, or Cmd+K on a Mac: what opens an editor's link bar. */
 export function isLinkKey(event: KeyboardEvent): boolean {
   return (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "k";
@@ -81,6 +119,7 @@ function extensions(links: boolean) {
     }),
     Blockquote.extend({ content: "(paragraph | bulletList)+" }),
     NoBlankLines,
+    JoinTouching,
   ];
 }
 

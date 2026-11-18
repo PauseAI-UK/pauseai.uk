@@ -23,7 +23,6 @@ describe("savedParams", () => {
         page: "3",
         mailing: "12",
         tab: "ticked",
-        pasted: ["Jo"],
         saved: "4",
       }),
     ).toEqual({ q: "dummy", house: "commons", party: ["Labour", "!Green"], sort: "name", dir: "desc" });
@@ -50,10 +49,7 @@ describe("choosingParams", () => {
 
 describe("carriedParams", () => {
   it("is only who a mailing is being chosen for", () => {
-    expect(carriedParams({ mailing: "12", pasted: ["Jo", "Al"], tab: "pasted", q: "x" })).toEqual({
-      mailing: "12",
-      pasted: ["Jo", "Al"],
-    });
+    expect(carriedParams({ mailing: "12", tab: "pasted", q: "x" })).toEqual({ mailing: "12" });
   });
 
   it("is only who a message is being chosen for", () => {

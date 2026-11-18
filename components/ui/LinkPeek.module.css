@@ -1,0 +1,25 @@
+/* Where a link goes, just under it (LinkPeek.tsx): over the page, in its
+   top layer, so a popover's own place and look give way to the link's. */
+.peek {
+  position: fixed;
+  inset: auto;
+  max-width: min(24rem, calc(100vw - 2 * var(--space-4)));
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: 0 4px 12px var(--shadow-strong);
+  overflow: hidden;
+}
+
+/* A long address is cut short with an ellipsis, rather than run off the
+   window. Its border is rounded as the bubble is, so the bubble's corners
+   don't cut it off. */
+.peek button {
+  max-width: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

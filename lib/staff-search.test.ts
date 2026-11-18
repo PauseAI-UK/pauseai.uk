@@ -493,7 +493,6 @@ describe("politiciansSearch", () => {
       ...typed,
       tab: "",
       agreed: "",
-      pasted: [],
       saved: "",
       filter: {
         search: "Jo",
@@ -557,19 +556,14 @@ describe("politiciansSearch", () => {
       page: "",
       mailing: "",
       tab: "",
-      pasted: [],
       saved: "",
     };
     expect(politiciansSearch({})).toEqual({ ...blank, filter: none });
     // An answer is to the ask chosen, so without one it's left out, as typed too.
     expect(politiciansSearch({ answer: "invited" })).toEqual({ ...blank, filter: none });
-    // A draft's ID is a number; the ticked tab is "1"; the lines pasted are a list.
+    // A draft's ID is a number; the tab is ticked or pasted.
     expect(politiciansSearch({ mailing: "12x", tab: "yes" })).toMatchObject({ mailing: "", tab: "" });
-    expect(politiciansSearch({ mailing: "12", tab: "ticked", pasted: ["Jo", "Al"] })).toMatchObject({
-      mailing: "12",
-      tab: "ticked",
-      pasted: ["Jo", "Al"],
-    });
+    expect(politiciansSearch({ mailing: "12", tab: "ticked" })).toMatchObject({ mailing: "12", tab: "ticked" });
     const unknown = {
       house: "hogwarts",
       status: "sitting",

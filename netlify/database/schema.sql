@@ -2044,6 +2044,7 @@ CREATE TABLE public.mailings (
     held_back_since timestamp with time zone,
     held_back_told boolean DEFAULT false NOT NULL,
     wait_said text,
+    pasted jsonb,
     CONSTRAINT mailings_also_topics CHECK (((cardinality(also_topics) = 0) OR ((topic IS NOT NULL) AND (NOT (topic = ANY (also_topics)))))),
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),

@@ -30,7 +30,7 @@ export function broadcastActions(log: (name: string) => (...args: unknown[]) => 
     sendTest: logged("sendBroadcastTestNow", { sent: true as const, id: "example", to: "me@example.com" }),
     schedule: logged("scheduleBroadcastNow", { scheduled: false as const, problems: [] }),
     deleteDraft: log("deleteBroadcastDraft"),
-    changeConsent: logged("changeBroadcastConsentNow", true),
+    changeConsent: logged("changeBroadcastConsentNow", 5),
     create: logged("newBroadcastWith", undefined),
     submitTemplate: logged("submitTemplateNow", "submitted" as const),
     withdrawTemplate: logged("withdrawTemplateNow", true),

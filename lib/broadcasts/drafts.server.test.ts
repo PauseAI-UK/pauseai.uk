@@ -248,9 +248,9 @@ describeWithDatabase("broadcasts to supporters", () => {
       contact: ["email:volunteering:yes", "!text:newsletter:yes", "email:newsletter:yes"],
     }))!;
     expect(await getWrittenBroadcast(id)).toMatchObject({ topics: ["newsletter", "volunteering"] });
-    expect(await changeBroadcastConsent(id, "email:newsletter:yes email:events:yes email:volunteering:yes", JO)).toBe(
-      true,
-    );
+    expect(
+      await changeBroadcastConsent(id, "email:newsletter:yes email:events:yes email:volunteering:yes", JO),
+    ).toEqual(expect.any(Number));
     expect(await getWrittenBroadcast(id)).toMatchObject({
       topics: ["newsletter", "events", "volunteering"],
       filter: {
@@ -680,7 +680,9 @@ describeWithDatabase("broadcasts to supporters", () => {
     const id = await draftOf({ ...EMAIL_FILTER, near: "LS1" });
     // By email still, keeping the rest of the filter and what's written.
     await readied(id, { subject: "Events", body: EVENT_WORDS });
-    expect(await changeBroadcastConsent(id, "email:newsletter:yes", JO)).toBe(true);
+    // It says the version it made, which the draft's writer saves at next.
+    const made = await changeBroadcastConsent(id, "email:newsletter:yes", JO);
+    expect(made).toBe((await getWrittenBroadcast(id))!.version);
     expect(await getWrittenBroadcast(id)).toMatchObject({
       channel: "email",
       topics: ["newsletter"],
@@ -693,7 +695,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await changeBroadcastConsent(999, TEXT_FILTER.contact, JO)).toBe(false);
     // With none, to a text, starting afresh as one, from the business account.
     const blank = await draftOf(EMAIL_FILTER);
-    expect(await changeBroadcastConsent(blank, TEXT_FILTER.contact, JO)).toBe(true);
+    expect(await changeBroadcastConsent(blank, TEXT_FILTER.contact, JO)).toEqual(expect.any(Number));
     expect(await getWrittenBroadcast(blank)).toMatchObject({
       channel: "text",
       topics: ["events"],

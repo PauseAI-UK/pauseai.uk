@@ -4,9 +4,11 @@ import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/r
 import { useState } from "react";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import LinkBar from "@/components/ui/LinkBar";
+import LinkPeek from "@/components/ui/LinkPeek";
 import { letterEditorCopy as copy } from "@/lib/content/letter-editor";
 import { isLinkKey, letterExtensions } from "@/lib/letters/extensions";
 import type { LetterDoc } from "@/lib/letters/format";
+import { isQuoted, toggleQuote } from "@/lib/letters/quotes";
 import styles from "./LetterEditor.module.css";
 
 type Props = {
@@ -26,7 +28,7 @@ function Toolbar({ editor, labelledBy, onLink }: { editor: Editor; labelledBy: s
       italic: editor.isActive("italic"),
       link: editor.isActive("link"),
       bulletList: editor.isActive("bulletList"),
-      blockquote: editor.isActive("blockquote"),
+      blockquote: isQuoted(editor.state),
     }),
   });
   const buttons = [
@@ -68,7 +70,12 @@ function Toolbar({ editor, labelledBy, onLink }: { editor: Editor; labelledBy: s
         </>
       ),
       pressed: active.blockquote,
-      run: () => editor.chain().focus().toggleBlockquote().run(),
+      run: () =>
+        editor
+          .chain()
+          .focus()
+          .command(({ tr }) => toggleQuote(tr))
+          .run(),
     },
   ];
   return (
@@ -127,6 +134,7 @@ export default function LetterEditor({ initial, onChange, labelledBy, describedB
         />
       )}
       {editor && linking && <LinkBar editor={editor} words={copy.linkBar} onClose={() => setLinking(false)} />}
+      {editor && !linking && <LinkPeek editor={editor} words={copy.linkBar} onEdit={() => setLinking(true)} />}
       <EditorContent editor={editor} />
     </div>
   );

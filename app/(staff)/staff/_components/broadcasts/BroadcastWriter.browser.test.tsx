@@ -45,7 +45,7 @@ function fakeActions() {
     sendTest: action(() => ({ sent: true, id: "m", to: "me@pauseai.uk" })),
     schedule: action(() => ({ scheduled: true })),
     deleteDraft: vi.fn(async () => {}),
-    changeConsent: action(() => true),
+    changeConsent: action(() => ++version),
     setAboutEvents: action(() => true),
     create: vi.fn(async () => {}),
     submitTemplate: action(() => "submitted"),
@@ -204,6 +204,21 @@ describe("BroadcastWriter's Consent", () => {
     await choose(copy.facts.saidYes, consents["email:events"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledTimes(2), WAIT);
     expect(navigation.refreshes).toBe(refreshes);
+  });
+
+  it("saves what's typed after changing the Consent, at the version the change made", async () => {
+    const actions = await renderWriter();
+    // As the server does: each change makes a new version, and a save at any other is refused.
+    let version = 4;
+    actions.changeConsent.mockImplementation(async () => ++version);
+    actions.save.mockImplementation(async (_id, at) =>
+      at === version ? { saved: true, version: ++version } : { saved: false, reason: "conflict" },
+    );
+    await choose(copy.facts.saidYes, consents["email:events"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalled(), WAIT);
+    await page.getByLabelText(copy.subject).fill("After the change");
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.saved), WAIT).toBeInTheDocument();
+    expect(page.getByText(mailingsCopy.mailingPages.saveStates.conflict).query()).toBeNull();
   });
 
   it("shows a spinner on the topic pressed, chosen, added or taken off, till its change is done", async () => {
