@@ -7,6 +7,7 @@ import { logIn, staffEmail } from "./login-steps";
 import { importPoliticians } from "./politician-steps";
 import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
+import { openBubble } from "./settle";
 import type { Section } from "./report/frames";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
@@ -53,15 +54,15 @@ test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase 
   await frame(page, "A filter on, and Save");
 
   story("Save opens a small form, with a name filled in from the filters, ready to type over.");
-  await save(page).click();
-  const name = page.getByRole("textbox", { name: copy.name });
+  const form = await openBubble(save(page));
+  const name = form.getByRole("textbox", { name: copy.name });
   await expect(name).toHaveValue(`${staffVocabulary.fields.party}: Labour`);
   await frame(page, "Naming it");
 
   story("Saving loads it, and the chip is named for it, with nothing left to save.");
   await name.fill("Labour MPs");
   const saving = await lockTable(flowDatabase, "saved_filters");
-  const saveIt = page.locator("[popover]:popover-open").getByRole("button", { name: copy.save, exact: true });
+  const saveIt = form.getByRole("button", { name: copy.save, exact: true });
   await saveIt.click();
   await expect(saveIt).toHaveAttribute("aria-busy", "true");
   await frame(page, "Saving, the form still up", { window: true });
@@ -127,10 +128,10 @@ test("Loading a saved filter, then editing it", { tag: "@phone" }, async ({ page
   story("Editing again, Save as new opens the same form, and loads the new one, leaving the first as it was.");
   await changeFilter(page, `${politiciansCopy.politician.country}: ${staffVocabulary.countries.scotland}`);
   await save(page).click();
-  await page.getByRole("button", { name: copy.saveAsNew }).click();
-  await page.getByRole("textbox", { name: copy.name }).fill("Labour MPs everywhere");
+  const asNew = await openBubble(page.getByRole("button", { name: copy.saveAsNew }));
+  await asNew.getByRole("textbox", { name: copy.name }).fill("Labour MPs everywhere");
   await frame(page, "Saving as new");
-  await page.locator("[popover]:popover-open").getByRole("button", { name: copy.save, exact: true }).last().click();
+  await asNew.getByRole("button", { name: copy.save, exact: true }).last().click();
   await expect(page.getByRole("button", { name: "Labour MPs everywhere" })).toBeVisible();
   await frame(page, "The new one, loaded");
 });
@@ -171,10 +172,10 @@ test("Renaming and deleting a saved filter", async ({ page, request, flowDatabas
   await frame(page, "A row's menu");
 
   story("Rename opens the name's form, filled in. Saving it changes the name for everyone, and stays on the page.");
-  await page.getByRole("button", { name: copy.rename, exact: true }).click();
-  await page.getByRole("textbox", { name: copy.name }).fill("Everyone in the Lords");
+  const rename = await openBubble(page.getByRole("button", { name: copy.rename, exact: true }));
+  await rename.getByRole("textbox", { name: copy.name }).fill("Everyone in the Lords");
   await frame(page, "Renaming it");
-  await page.locator("[popover]:popover-open").getByRole("button", { name: copy.save, exact: true }).last().click();
+  await rename.getByRole("button", { name: copy.save, exact: true }).last().click();
   await expect(page).toHaveURL(POLITICIANS);
   await expect(page.getByRole("searchbox", { name: copy.find })).toBeHidden();
   await openList(page);
@@ -244,10 +245,10 @@ test("A saved filter on Events", async ({ page, flowDatabase }) => {
   story("Events has saved filters too, kept with their tab. Saving what's on the Past tab keeps it there.");
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/events?when=past&q=talk`);
-  await save(page).click();
-  await page.getByRole("textbox", { name: copy.name }).fill("Past talks");
+  const form = await openBubble(save(page));
+  await form.getByRole("textbox", { name: copy.name }).fill("Past talks");
   await frame(page, "Saving it");
-  await page.locator("[popover]:popover-open").getByRole("button", { name: copy.save, exact: true }).click();
+  await form.getByRole("button", { name: copy.save, exact: true }).click();
   await expect(page.getByRole("button", { name: "Past talks" })).toBeVisible();
   await expect(page).toHaveURL(/when=past/);
   await frame(page, "Loaded, on its tab");

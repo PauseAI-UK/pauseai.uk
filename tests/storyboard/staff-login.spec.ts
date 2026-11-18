@@ -5,6 +5,7 @@ import { addStaffAccount, logIn, staffEmail } from "./login-steps";
 import { newestEmailTo } from "./outbox-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, flowStorageState, frame, story, test } from "./fixtures";
+import { openBubble } from "./settle";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
@@ -185,7 +186,7 @@ test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
   await frame(page, "The staff accounts page");
   story("Add staff asks for a colleague's address.");
   // Added from Add staff, at the top right, at once: an account with no permissions.
-  await page.getByRole("button", { name: accountsCopy.accounts.addStaff }).click();
+  await openBubble(page.getByRole("button", { name: accountsCopy.accounts.addStaff }));
   await page.getByRole("textbox", { name: accountsCopy.accounts.addLabel }).fill(colleague);
   await frame(page, "Add staff");
   story("Added, the colleague has an account with no permissions.");
@@ -196,7 +197,7 @@ test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
   story("Edit shows a box for each permission. They tick Supporters, and save.");
 
   // Edit opens a box for each; Save saves those ticked: still there after a reload.
-  await row.getByRole("button", { name: accountsCopy.accounts.edit }).click();
+  await openBubble(row.getByRole("button", { name: accountsCopy.accounts.edit }));
   const permissions = page.getByRole("form", { name: accountsCopy.accounts.editLabel(colleague) });
   await permissions.getByRole("checkbox", { name: accountsCopy.accounts.names.supporters }).check();
   await frame(page, "The colleague's permissions");

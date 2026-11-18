@@ -16,6 +16,7 @@ import { importPoliticians } from "./politician-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
+import { openBubble } from "./settle";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
@@ -64,8 +65,8 @@ async function postLumaWebhook(
 
 /** Changes the Consent filter's topic, from its chip, to `topic` by email: the first of its ways in the menu. */
 async function changeTopic(page: Page, chip: string, topic: string) {
-  await page.getByRole("button", { name: chip }).click();
-  await page.locator("[popover]:popover-open").getByRole("link", { name: topic, exact: true }).first().click();
+  const menu = await openBubble(page.getByRole("button", { name: chip }));
+  await menu.getByRole("link", { name: topic, exact: true }).first().click();
 }
 
 /** A reason's words on a supporter's page, from `source`, without its date, which a flow's fixture data moves. */
@@ -172,20 +173,17 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   const march = copy.filters.eventChoice("PauseAI London March", staffDate(new Date("2026-02-14T12:00:00Z")));
-  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
-  await expect(page.locator("[popover]:popover-open").getByText(staffVocabulary.filters.exceptHeading)).toBeVisible();
+  const menu = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except }));
+  await expect(menu.getByText(staffVocabulary.filters.exceptHeading)).toBeVisible();
   await frame(page, "Except, open");
   story('They choose Event, and type "march" to find it.');
-  await page.locator("[popover]:popover-open summary", { hasText: new RegExp(`^${copy.filters.event}$`) }).click();
+  await menu.locator("summary", { hasText: new RegExp(`^${copy.filters.event}$`) }).click();
   // Its events show once something's typed in its box.
-  await page
-    .locator("[popover]:popover-open")
-    .getByRole("searchbox", { name: staffVocabulary.filters.narrow })
-    .fill("march");
-  await expect(page.locator("[popover]:popover-open").getByRole("link", { name: march, exact: true })).toBeVisible();
+  await menu.getByRole("searchbox", { name: staffVocabulary.filters.narrow }).fill("march");
+  await expect(menu.getByRole("link", { name: march, exact: true })).toBeVisible();
   await frame(page, "Except's events, narrowed");
   story("Three supporters weren't at the march: Dee, who declined, and Fay and a host, who never registered.");
-  await page.locator("[popover]:popover-open").getByRole("link", { name: march, exact: true }).click();
+  await menu.getByRole("link", { name: march, exact: true }).click();
   await expect(page).toHaveURL(/\/staff\/supporters\?event=%21/);
   // Four guests were approved for it; Dee declined, Fay follows the calendar but never registered, and the
   // protest's host with no name never registered either.
@@ -195,13 +193,11 @@ test("Supporters not at an event", async ({ page, request, flowDatabase }) => {
   );
   await frame(page, "Supporters not at the London March");
   story("The filter's chip has a menu. Only this turns the filter round.");
-  await page.getByRole("button", { name: staffVocabulary.filters.notChip(copy.filters.event, march) }).click();
-  await expect(
-    page.locator("[popover]:popover-open").getByRole("link", { name: staffVocabulary.filters.onlyThis }),
-  ).toBeVisible();
+  await openBubble(page.getByRole("button", { name: staffVocabulary.filters.notChip(copy.filters.event, march) }));
+  await expect(menu.getByRole("link", { name: staffVocabulary.filters.onlyThis })).toBeVisible();
   await frame(page, "The chip's menu");
   story("Now the list is the four guests approved for the march, with a column for each one's registration.");
-  await page.locator("[popover]:popover-open").getByRole("link", { name: staffVocabulary.filters.onlyThis }).click();
+  await menu.getByRole("link", { name: staffVocabulary.filters.onlyThis }).click();
   await expect(page.getByText(copy.total(4), { exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: copy.columns.registrations })).toBeVisible();
   await expect(page.locator("tbody").getByText(copy.detail.registered).first()).toBeVisible();
@@ -219,17 +215,14 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   const mp = politiciansCopy.politician.roles.commons;
   const mo = copy.filters.mpChoice("Mo Example", "Manchester Central");
-  await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
-  await page.locator("[popover]:popover-open summary", { hasText: new RegExp(`^${mp}$`) }).click();
+  const menu = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add }));
+  await menu.locator("summary", { hasText: new RegExp(`^${mp}$`) }).click();
   // The MPs show once something's typed in the box.
-  await page
-    .locator("[popover]:popover-open")
-    .getByRole("searchbox", { name: staffVocabulary.filters.narrow })
-    .fill("manc");
-  await expect(page.locator("[popover]:popover-open").getByRole("link", { name: mo, exact: true })).toBeVisible();
+  await menu.getByRole("searchbox", { name: staffVocabulary.filters.narrow }).fill("manc");
+  await expect(menu.getByRole("link", { name: mo, exact: true })).toBeVisible();
   await frame(page, "The MP filter, narrowed");
   story("Only Jane Fixture's postcode is in Manchester Central. The page's title names the filter.");
-  await page.locator("[popover]:popover-open").getByRole("link", { name: mo, exact: true }).click();
+  await menu.getByRole("link", { name: mo, exact: true }).click();
   await expect(page).toHaveURL(/\/staff\/supporters\?mp=\d+$/);
   // Jane's postcode is the one in Manchester Central.
   await expect(page.getByText(copy.total(1), { exact: true })).toBeVisible();
@@ -547,12 +540,8 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   story("Staff filter to those they can email about events. Jane isn't there, as she unsubscribed.");
 
   // Consent has its own button, as it's what lets a message go.
-  await page.getByRole("button", { name: copy.columns.subscriptions, exact: true }).click();
-  await page
-    .locator("[popover]:popover-open")
-    .getByRole("link", { name: copy.filters.topics["events"] })
-    .first()
-    .click();
+  const consent = await openBubble(page.getByRole("button", { name: copy.columns.subscriptions, exact: true }));
+  await consent.getByRole("link", { name: copy.filters.topics["events"] }).first().click();
   await expect(page).toHaveURL(/contact=email%3Aevents%3Ayes/);
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toHaveCount(0);
   await frame(page, "Those who can be emailed about events");
@@ -570,8 +559,7 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   story(
     "Except leaves out those we can email about events, so they see who gets the newsletter but not events emails. Jane is still there.",
   );
-  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
-  const except = page.locator("[popover]:popover-open");
+  const except = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except }));
   await except.getByText(copy.columns.subscriptions, { exact: true }).click();
   await except.getByRole("link", { name: copy.filters.topics.events }).first().click();
   await expect(page).toHaveURL(/contact=%21email%3Aevents%3Ayes/);
@@ -591,8 +579,7 @@ test("Subscriptions to more than one topic", async ({ page, request, flowDatabas
   await page.goto(`${BASE}/staff/supporters?contact=email:events:yes`);
   const { topics } = copy.filters;
   const label = copy.filters.wayChips.email;
-  const menu = page.locator("[popover]:popover-open");
-  await page.getByRole("button", { name: `${label}: ${topics.events}` }).click();
+  const menu = await openBubble(page.getByRole("button", { name: `${label}: ${topics.events}` }));
   await menu.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
   await expect(menu.getByRole("checkbox", { name: topics.events })).toBeChecked();
   await frame(page, "Email's topics, events ticked");
@@ -606,7 +593,7 @@ test("Subscriptions to more than one topic", async ({ page, request, flowDatabas
   await frame(page, "One chip for both");
 
   story("Except these turns the chip round: everyone we can't email about either.");
-  await page.getByRole("button", { name: both }).click();
+  await openBubble(page.getByRole("button", { name: both }));
   await menu.getByRole("link", { name: staffVocabulary.filters.exceptThese }).click();
   const neither = staffVocabulary.filters.notChip(
     label,
@@ -640,7 +627,7 @@ test("A member with No bulk emails", async ({ page, request, flowDatabase }) => 
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Rhea Member" }).click();
   await expect(page.getByText(said("no-bulk-email", "civicrm"), { exact: false }).first()).toBeVisible();
-  await page.getByRole("button", { name: copy.detail.permissions.why }).first().click();
+  await openBubble(page.getByRole("button", { name: copy.detail.permissions.why }).first());
   await expect(page.getByText(copy.detail.permissions.details.newsletter.about)).toBeVisible();
   await frame(page, "Rhea's page");
 });
@@ -749,7 +736,7 @@ test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   await expect(row).toContainText(emailCopy.emails.kinds.hold);
   await frame(page, "Bounced emails");
   story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
-  await row.getByRole("button", { name: emailCopy.emails.unblockOpen }).click();
+  await openBubble(row.getByRole("button", { name: emailCopy.emails.unblockOpen }));
   await row.getByLabel(emailCopy.emails.note).fill("Global say the address works again");
   await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();

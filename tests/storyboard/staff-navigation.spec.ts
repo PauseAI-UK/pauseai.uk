@@ -315,8 +315,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/audit-log`);
   await expect(page.getByRole("cell", { name: "set status" }).first()).toBeVisible();
   await frame(page, "The audit log");
-  await page.getByRole("button", { name: staffVocabulary.logged.json }).first().click();
-  await expect(page.locator(":popover-open")).toBeVisible();
+  await openBubble(page.getByRole("button", { name: staffVocabulary.logged.json }).first());
   await frame(page, "What was logged", { window: true });
   await page.keyboard.press("Escape");
 

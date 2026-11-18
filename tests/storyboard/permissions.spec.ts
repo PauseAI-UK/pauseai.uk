@@ -10,6 +10,7 @@ import { WEBHOOK_AUTH } from "./postmark-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } from "./fixtures";
+import { openBubble } from "./settle";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
@@ -255,7 +256,7 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   await frame(page, "Bounced emails");
 
   story("Staff unblock it. Its row's button asks why first, for the audit log.");
-  await row.getByRole("button", { name: emailCopy.emails.unblockOpen }).click();
+  await openBubble(row.getByRole("button", { name: emailCopy.emails.unblockOpen }));
   await row.getByLabel(emailCopy.emails.note).fill("She gave us a new one");
   await frame(page, "Why they're unblocking it");
   await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();

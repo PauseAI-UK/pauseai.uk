@@ -21,6 +21,19 @@ const SCHEMA_CHANGE_RULES = [
   { selector: `TemplateElement[value.raw=${SCHEMA_CHANGE}]`, message: SCHEMA_CHANGE_MESSAGE },
 ];
 
+// A storyboard flow opens a bubble or a menu with openBubble
+// (tests/storyboard/settle.ts), which waits for the scroll a bubble starts as
+// it opens and returns what's open. A flow that presses the button and finds
+// the popover by its selector can take its frame, or press inside the bubble,
+// while the page still scrolls, so the selector is kept to settle.ts, and to
+// frame.ts, which only asks whether one is open.
+const OPEN_BUBBLE_MESSAGE =
+  "Open a bubble with openBubble (tests/storyboard/settle.ts), which waits for the scroll it starts, and returns the open bubble.";
+const OPEN_BUBBLE_RULES = [
+  { selector: "Literal[value=/:popover-open/]", message: OPEN_BUBBLE_MESSAGE },
+  { selector: "TemplateElement[value.raw=/:popover-open/]", message: OPEN_BUBBLE_MESSAGE },
+];
+
 // The site's settings are read from the environment only in
 // lib/server/config.server.ts, which gives each one shape for every caller. The
 // database's connection string has its own rule, above.
@@ -467,6 +480,12 @@ const eslintConfig = defineConfig([
       "scripts/migrations-unchanged.test.ts",
     ],
     rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...EXTERNAL_LINK_RULES] },
+  },
+  // The storyboard's flows and their steps, which open bubbles with openBubble.
+  {
+    files: ["tests/storyboard/**/*.ts"],
+    ignores: ["tests/storyboard/settle.ts", "tests/storyboard/frame.ts", "**/*.test.ts"],
+    rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...EXTERNAL_LINK_RULES, ...OPEN_BUBBLE_RULES] },
   },
   // The bindings' tests, which call outsideFetch and Postmark's binding directly.
   { files: [`${OUTSIDE}/**/*.test.ts`], rules: { "no-restricted-imports": ["error", { paths: [PG_IMPORT] }] } },

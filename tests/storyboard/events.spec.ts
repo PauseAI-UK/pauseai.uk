@@ -7,7 +7,7 @@ import { newestEmail } from "./outbox-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { importLuma } from "./supporter-steps";
 import { emailFrame } from "./email-frame";
-import { handled } from "./settle";
+import { handled, openBubble } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { eventsCopy } from "@/lib/events/copy";
@@ -56,7 +56,7 @@ test("Event owners", async ({ page, request, flowDatabase }) => {
   await frame(page, "The events to come");
   story("Sean has an account now. Staff edit the talk, choose Sean as its owner and paste in its Google Doc.");
 
-  await talk.getByRole("button", { name: copy.edit }).click();
+  await openBubble(talk.getByRole("button", { name: copy.edit }));
   const form = page.getByRole("form", { name: copy.editLabel("AI risk talk") });
   await expect(form.getByRole("button", { name: copy.save })).toBeDisabled();
   await form.getByLabel(copy.owner).selectOption("sean@pauseai.uk");
@@ -233,11 +233,9 @@ const listHeadings = (page: Page) => page.locator("section:not(nav section) h2")
 
 /** Shows what's found as `choice` says, from the Group by chip's menu. */
 async function groupBy(page: Page, choice: keyof typeof copy.group.choices) {
+  const menu = await openBubble(page.getByRole("button", { name: new RegExp(`^${copy.group.chip}`) }));
+  const link = menu.getByRole("link", { name: copy.group.choices[choice], exact: true });
   // The menu opens before the page has hydrated, and a choice pressed then goes nowhere.
-  await page.getByRole("button", { name: new RegExp(`^${copy.group.chip}`) }).click();
-  const link = page
-    .locator("[popover]:popover-open")
-    .getByRole("link", { name: copy.group.choices[choice], exact: true });
   await handled(link);
   await link.click();
 }
@@ -280,11 +278,9 @@ test("Events by owner", async ({ page, flowDatabase }) => {
   await frame(page, "Joseph's events, unfolded");
 
   story("Someone takes the Oxford talk: Edit on its line opens the same bubble as Future's table.");
-  await noOwner
-    .getByRole("listitem")
-    .filter({ hasText: "Oxford AI risk talk" })
-    .getByRole("button", { name: copy.edit })
-    .click();
+  await openBubble(
+    noOwner.getByRole("listitem").filter({ hasText: "Oxford AI risk talk" }).getByRole("button", { name: copy.edit }),
+  );
   const form = page.getByRole("form", { name: copy.editLabel("Oxford AI risk talk") });
   await form.getByLabel(copy.owner).selectOption("sean@pauseai.uk");
   await frame(page, "The Oxford talk, being given to Sean");
@@ -324,7 +320,7 @@ test("Events by tag", async ({ page, flowDatabase }) => {
       .filter({ hasText: "Scotland organisers' call" });
   await expect(call("Scotland")).toContainText(copy.lists.also("Online"));
   await expect(call("Online")).toContainText(copy.lists.also("Scotland"));
-  await call("Online").getByRole("button", { name: copy.edit }).click();
+  await openBubble(call("Online").getByRole("button", { name: copy.edit }));
   await expect(call("Online").getByRole("form", { name: copy.editLabel("Scotland organisers' call") })).toBeVisible();
   await frame(page, "The Scotland call's Edit, in Online's list");
   await page.keyboard.press("Escape");
@@ -347,9 +343,8 @@ test("In-person events by owner", async ({ page, flowDatabase }) => {
   await frame(page, "Every event to come, by owner");
 
   story("From Except, he leaves out Online. The calls and the welcome go, and the lists stay by owner.");
-  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
-  const place = page
-    .locator("[popover]:popover-open details")
+  const place = (await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except })))
+    .locator("details")
     .filter({ has: page.locator("summary", { hasText: new RegExp(`^${copy.filters.place}$`) }) });
   await place.locator("summary").click();
   await place.getByRole("link", { name: copy.online, exact: true }).click();

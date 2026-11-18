@@ -151,17 +151,27 @@ export async function scrollSettled(page: Page): Promise<number> {
  * waits for the page to come to rest. Once open, the bubble scrolls the page
  * to show itself, on its toggle event, a task after the press returns; on a
  * busy machine that lands while a press inside it is under way, which then
- * lands where its button was, outside the bubble, and closes it.
+ * lands where its button was, outside the bubble, and closes it; a frame
+ * taken then shows the page wherever the scroll had got to. A menu
+ * (Menu.tsx) opens the same way, though it scrolls nothing.
+ *
+ * Returns what's open, to find things in, and to check it has closed
+ * (`toHaveCount(0)`). It's every open popover, so with a bubble opened from
+ * inside a menu it's both, the bubble last. A flow can't find an open popover
+ * by its selector instead: ESLint keeps `:popover-open` out of the rest of
+ * tests/storyboard (eslint.config.mjs, OPEN_BUBBLE_RULES).
  */
-export async function openBubble(trigger: Locator): Promise<void> {
+export async function openBubble(trigger: Locator): Promise<Locator> {
   const page = trigger.page();
+  const open = page.locator("[popover]:popover-open");
   await trigger.click();
-  await expect(page.locator(":popover-open").first()).toBeVisible();
+  await expect(open.first()).toBeVisible();
   // The toggle event's task, and the frame after it.
   await page.evaluate(
     () => new Promise<void>((done) => setTimeout(() => requestAnimationFrame(() => setTimeout(done)))),
   );
   await scrollSettled(page);
+  return open;
 }
 
 /**
