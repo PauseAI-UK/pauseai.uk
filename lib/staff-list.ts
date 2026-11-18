@@ -42,13 +42,14 @@ export function pageRange(page: number, pages: number): (number | "gap")[] {
   return shown.flatMap((n, i) => (i > 0 && n - shown[i - 1] > 1 ? ["gap" as const, n] : [n]));
 }
 
+const two = (n: number) => String(n).padStart(2, "0");
+
 /**
  * A time as a CSV has it, in London: "2026-11-18 10:23", or its `day`
  * alone, "2026-11-18". A spreadsheet reads either as a date, and sorts by it.
  */
 function csvTime(at: Date, day: boolean): string {
   const london = londonDayTime(at);
-  const two = (n: number) => String(n).padStart(2, "0");
   return day ? london.day : `${london.day} ${two(london.hour)}:${two(london.minute)}`;
 }
 
@@ -98,11 +99,11 @@ function fileWords(text: string): string {
 
 /**
  * A download's filename: what it is, then each filter in words, then when,
- * in UTC to the minute, all lower case with underscores.
+ * in London to the minute, all lower case with underscores.
  * "politicians_party_labour_2026_10_27_1430.csv".
  */
 export function downloadName(what: string, filters: string[], at: Date, format: DownloadFormat): string {
-  const iso = at.toISOString();
-  const when = `${iso.slice(0, 4)}_${iso.slice(5, 7)}_${iso.slice(8, 10)}_${iso.slice(11, 13)}${iso.slice(14, 16)}`;
+  const london = londonDayTime(at);
+  const when = `${london.day.replaceAll("-", "_")}_${two(london.hour)}${two(london.minute)}`;
   return `${[what, ...filters].map(fileWords).filter(Boolean).join("_")}_${when}.${format}`;
 }

@@ -4,6 +4,7 @@ import { now } from "@/lib/now";
 import { signupEventChoices } from "@/lib/supporters/signup-uploads.server";
 import { SIGNUP_UPLOADS_PATH } from "@/lib/supporters/signup-csv";
 import { requireStaff } from "@/lib/accounts/auth.server";
+import { londonDayTime } from "@/lib/staff-time";
 import SignupUploadForm from "../../../_components/supporters/SignupUploadForm";
 import Page from "../../../_components/ui/Page";
 import PageHead from "../../../_components/ui/PageHead";
@@ -33,7 +34,7 @@ export default async function SignupUploadPage() {
       </PageHead>
       <SignupUploadForm
         events={events}
-        today={now().toISOString().slice(0, 10)}
+        today={londonDayTime(now()).day}
         actions={{ preview: previewSignupUpload, finish: importSignupUpload }}
       />
     </Page>

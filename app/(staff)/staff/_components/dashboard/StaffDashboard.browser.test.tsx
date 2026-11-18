@@ -43,8 +43,8 @@ describe("StaffDashboard", () => {
     expect(items.map((item) => item.element().textContent)).toEqual([
       `${copy.actions.heldImport(importRunsCopy.jobTitles["import-parliament"], 24)}${copy.actions.heldImportDetail}${copy.actions.decide}`,
       `${copy.actions.blockedMp("Bouncy McTestface MP")} ${staffVocabulary.politicianFlags.test}${copy.actions.blockedMpDetail}${copy.actions.openMp}`,
-      `${copy.actions.failedImport(importRunsCopy.jobTitles["import-controlai"])}${copy.actions.failedImportDetail("No PDF linked", "21 Oct 2026, 02:00")}${copy.actions.seeRun}`,
-      `${lettersCopy.lettersInbox.alert.subject(2, "fixture-letters@pauseai.uk")}${copy.actions.lettersInboxDetail("21 Oct 2026, 03:20")}${copy.actions.lettersInboxButton}`,
+      `${copy.actions.failedImport(importRunsCopy.jobTitles["import-controlai"])}${copy.actions.failedImportDetail("No PDF linked", "21 Oct 2026, 03:00")}${copy.actions.seeRun}`,
+      `${lettersCopy.lettersInbox.alert.subject(2, "fixture-letters@pauseai.uk")}${copy.actions.lettersInboxDetail("21 Oct 2026, 04:20")}${copy.actions.lettersInboxButton}`,
     ]);
     await expect
       .element(page.getByRole("link", { name: copy.actions.decide }))

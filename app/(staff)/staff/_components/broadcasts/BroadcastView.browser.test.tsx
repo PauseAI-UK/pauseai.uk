@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { londonWhen, staffTime } from "@/lib/staff-time";
+import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
 import BroadcastView, { broadcastCounts } from "./BroadcastView";
 import { CountGroups, NeedsAndFine } from "../mailings/CopyCounts";
 import { CopyStatus, copyStatus } from "../letters/CopyStatus";
@@ -18,7 +18,6 @@ import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { lettersCopy } from "../letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
-import { londonDate } from "@/lib/staff-time";
 import type { SendingPause } from "@/lib/broadcasts/broadcasts";
 import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import { BroadcastWaiting, pauseInBrief } from "./BroadcastView";
@@ -394,13 +393,13 @@ describe("BroadcastWaiting", () => {
     const until = new Date("2026-11-11T07:43:00Z");
     const stopsAt = new Date("2026-11-14T07:18:00Z");
     const pauses: [SendingPause, string][] = [
-      [{ kind: "waiting", reason: "pull", said: null, endsAt }, copy.waiting("pull", londonDate(endsAt), null)],
+      [{ kind: "waiting", reason: "pull", said: null, endsAt }, copy.waiting("pull", staffDate(endsAt), null)],
       [
         { kind: "waiting", reason: "civicrm", said: "Down", endsAt },
-        copy.waiting("civicrm", londonDate(endsAt), "Down"),
+        copy.waiting("civicrm", staffDate(endsAt), "Down"),
       ],
       [{ kind: "resting", until }, copy.resting(staffTime(until))],
-      [{ kind: "held", held: 20, until, stopsAt }, copy.heldLeft(20, staffTime(until), londonDate(stopsAt))],
+      [{ kind: "held", held: 20, until, stopsAt }, copy.heldLeft(20, staffTime(until), staffDate(stopsAt))],
       [{ kind: "limit", channel: "email" }, copy.moreTomorrow],
       [{ kind: "limit", channel: "text" }, copy.moreTomorrowText],
     ];

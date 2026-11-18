@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
@@ -33,6 +33,7 @@ const statuses = () =>
 
 describeWithDatabase("importControlAiLetter", () => {
   useTestDatabase();
+  afterEach(() => vi.unstubAllEnvs());
 
   it("sets the bill's status for each signatory in our table, and reports the names it can't place", async () => {
     // The fixture letter is signed by Polly Placeholder MP, Dora Dummy MP, Lord
@@ -47,6 +48,8 @@ describeWithDatabase("importControlAiLetter", () => {
     // Gone from the Commons, so not matched.
     await addTestPolitician({ airtableId: "rec4", name: "Baroness Nobody", status: "left_office" });
     await addTestMp();
+    // Past midnight in London in summer time, the day before in UTC.
+    vi.stubEnv("FIXTURE_NOW", "2026-09-30T23:30:00Z");
 
     expect(await recentControlAiImports()).toEqual([]);
     const result = await importControlAiLetter("jo@pauseai.uk");
@@ -80,11 +83,11 @@ describeWithDatabase("importControlAiLetter", () => {
          WHERE a.action = 'set status' AND a.actor = 'controlai' ORDER BY p.name`,
       ),
     ).toEqual([
-      // Those who signed before the letter was delivered on its day; Sam Smith, who signed later, today.
+      // Those who signed before the letter was delivered on its day; Sam Smith, who signed later, today in London.
       { name: "Lord Example", status: "signed", date: "2026-09-11" },
       { name: "Ms Dora Dummy", status: "signed", date: "2026-09-11" },
       { name: "Polly Placeholder", status: "signed", date: "2026-09-11" },
-      { name: "Sam Smith", status: "signed", date: (await query<{ d: string }>("SELECT now()::date::text AS d"))[0].d },
+      { name: "Sam Smith", status: "signed", date: "2026-10-01" },
     ]);
     expect(
       await query("SELECT DISTINCT status_date::text AS date FROM ask_statuses WHERE ask = $1 ORDER BY 1", [

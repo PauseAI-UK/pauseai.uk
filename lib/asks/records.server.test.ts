@@ -34,7 +34,8 @@ describeWithDatabase("asks and campaigns", () => {
     await setStatus(polly, "deepmind-letter", { status: "signed", date: null, note: "" }, "test");
     await setStatus(dora, "deepmind-letter", { status: "declined", date: null, note: "" }, "test");
     const [{ id }] = await query<{ id: number }>(
-      `INSERT INTO letters (kind, notable_person_id, status, sent_at) VALUES ('pauseai', $1, 'sent', '2025-07-01') RETURNING id::int AS id`,
+      // 00:30 on 1 July in London: the day its letters began.
+      `INSERT INTO letters (kind, notable_person_id, status, sent_at) VALUES ('pauseai', $1, 'sent', '2025-06-30 23:30+00') RETURNING id::int AS id`,
       [polly],
     );
     await query(

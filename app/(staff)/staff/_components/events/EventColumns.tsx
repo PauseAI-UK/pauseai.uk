@@ -20,7 +20,7 @@ import ExternalLink from "../ui/ExternalLink";
 import Grid, { Card, Column } from "../ui/Grid";
 import Rows, { Row } from "../ui/Rows";
 import StaffMember from "../ui/StaffMember";
-import { londonDate } from "@/lib/staff-time";
+import { staffDate } from "@/lib/staff-time";
 import styles from "./EventColumns.module.css";
 import { eventsCopy } from "@/lib/events/copy";
 
@@ -85,7 +85,7 @@ function List({
   const line = (event: StaffEvent) => (
     <Row
       key={event.id}
-      lead={<span className={styles.day}>{londonDate(event.startAt)}</span>}
+      lead={<span className={styles.day}>{staffDate(event.startAt)}</span>}
       second={
         <span className={styles.detail}>
           <Detail event={event} grouping={grouping} list={list.title} needed={needed(event)} />

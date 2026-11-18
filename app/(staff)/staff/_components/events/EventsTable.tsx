@@ -16,7 +16,7 @@ import {
 import { type EventsSearch } from "@/lib/staff-search";
 import { among, filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { parseSort, sortHref } from "@/lib/staff-sort";
-import { londonDate } from "@/lib/staff-time";
+import { staffDate } from "@/lib/staff-time";
 import AlertIcon from "../ui/AlertIcon";
 import { EventEdit, EventsEditing, type SaveEvent } from "./EventEdit";
 import SortHeading from "../ui/SortHeading";
@@ -188,7 +188,7 @@ function eventColumns(
       label: copy.columns.when,
       heading: heading("start", copy.columns.when),
       short: true,
-      cell: (event) => londonDate(event.startAt),
+      cell: (event) => staffDate(event.startAt),
     },
     {
       key: "name",

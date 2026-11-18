@@ -696,7 +696,7 @@ describe("SupporterDetails, a member", () => {
     expect(lines).toEqual([
       `10 Jul 2026${copy.detail.kinds["member-joined"]} `,
       `10 Jul 2026${copy.detail.kinds["member-joined"]} `,
-      `10 Jul 2026, 00:00${copy.detail.kinds["member-left"]} `,
+      `10 Jul 2026, 01:00${copy.detail.kinds["member-left"]} `,
     ]);
   });
 });

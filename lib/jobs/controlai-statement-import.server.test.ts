@@ -46,6 +46,18 @@ describeWithDatabase("importControlAiStatement", () => {
     expect(await importControlAiStatement(NIGHTLY)).toMatchObject({ added: 0, removed: 0 });
   });
 
+  it("dates those it marks today in London", async () => {
+    await importEveryone();
+    // Past midnight in London in summer time, the day before in UTC.
+    vi.stubEnv("FIXTURE_NOW", "2026-07-01T23:30:00Z");
+    await importControlAiStatement(NIGHTLY);
+    expect(
+      await query("SELECT DISTINCT status_date::text AS date FROM ask_statuses WHERE ask = $1", [
+        CONTROLAI_STATEMENT_ASK,
+      ]),
+    ).toEqual([{ date: "2026-07-02" }]);
+  });
+
   it("takes off someone no longer linked, and reports a link to no one here as a problem of the run", async () => {
     await importEveryone();
     await importControlAiStatement(NIGHTLY);

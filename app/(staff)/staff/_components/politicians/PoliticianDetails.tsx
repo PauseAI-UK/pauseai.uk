@@ -15,7 +15,7 @@ import type { OneOffThreadRow } from "@/lib/letters/one-off-emails.server";
 import type { LetterSummary, PauseaiLetter, PoliticianLetters, UnsignedLetter } from "@/lib/letters/records.server";
 import type { Politician, PoliticianChange } from "@/lib/politicians/records.server";
 import { correspondenceThreads, hasReply, type ThreadMessages } from "@/lib/politicians/threads";
-import { staffDate, staffTime } from "@/lib/staff-time";
+import { londonDayTime, staffDate, staffTime } from "@/lib/staff-time";
 import styles from "../ui/Details.module.css";
 import Band, { BandFact } from "../ui/Band";
 import Counts, { type Count } from "../ui/Counts";
@@ -55,7 +55,7 @@ type Entry = { key: string; at: Date; day?: boolean; what: ReactNode };
  */
 function whenOf(change: PoliticianChange): { at: Date; day: boolean } {
   const date = change.action === "set status" && typeof change.details.date === "string" ? change.details.date : "";
-  return date && date < change.at.toISOString().slice(0, 10)
+  return date && date < londonDayTime(change.at).day
     ? { at: new Date(date), day: true }
     : { at: change.at, day: false };
 }

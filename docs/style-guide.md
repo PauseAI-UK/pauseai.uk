@@ -1178,7 +1178,7 @@ march sign-up").
 - **Sentence case** for labels, buttons and headings: "Your name", "Find my MP", "Send email". Not "Your Name" or "Find My MP". Proper nouns keep their capitals: "MP", "PauseAI", "Airtable".
 - **Full stops** on messages that are sentences: errors, notices, hints and confirmations. "Please enter your name.", "Postcode not found."
 - **No full stops** on labels, buttons, headings, or a word or two of status: "Your email", "Preview", "Sending".
-- **Dates as people say them**: "23 Oct 2026", and with a time, "23 Oct 2026, 10:34", never "2026-10-23". The staff pages' dates are in UTC (`staffDate` and `staffTime` in `lib/staff-time.ts`). A download is for a spreadsheet to read and sort, so a CSV's times are "2026-10-23 10:34", in London, or "2026-10-23" in a column the list shows as days (`day` on its column, `lib/staff-list.ts`); JSON has each in full, as ISO 8601.
+- **Dates as people say them**: "23 Oct 2026", and with a time, "23 Oct 2026, 10:34", never "2026-10-23". Every date and time on the staff pages, and in the emails staff get, is London's, summer time included (`staffDate`, `staffTime`, `staffClock` and `staffDay` in `lib/staff-time.ts`), and so is the day anything is put under, counted as today, or dated: a time is never cut to its day in UTC (`toISOString().slice(0, 10)`, or `::date` in SQL). A download is for a spreadsheet to read and sort, so a CSV's times are "2026-10-23 10:34", in London, or "2026-10-23" in a column the list shows as days (`day` on its column, `lib/staff-list.ts`); JSON has each in full, as ISO 8601.
 
 ## Imagery
 

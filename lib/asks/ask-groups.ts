@@ -1,6 +1,6 @@
 import { monthsAndYears, type DatedGroup } from "@/lib/dated-groups";
 import type { AskWithCounts } from "./records.server";
-import { staffDate } from "@/lib/staff-time";
+import { londonDayTime, staffDate } from "@/lib/staff-time";
 import { asksCopy } from "./copy";
 
 const month = (day: string, year: boolean) =>
@@ -25,12 +25,12 @@ const lastDay = (ask: AskWithCounts) => (ask.kind === "letter" && ask.lastLetter
 
 /**
  * The asks list's groups, as their dates mean different things: Coming up, of
- * events today or later, a day to work towards, soonest first; then the rest,
- * a day going by, under their months and years (monthsAndYears), and last and
- * with no heading those with no day at all.
+ * events today in London or later, a day to work towards, soonest first;
+ * then the rest, a day going by, under their months and years
+ * (monthsAndYears), and last and with no heading those with no day at all.
  */
 export function askGroups(asks: AskWithCounts[], now: Date): DatedGroup<AskWithCounts>[] {
-  const today = now.toISOString().slice(0, 10);
+  const today = londonDayTime(now).day;
   const isComing = (ask: AskWithCounts) => ask.kind === "event" && Boolean(ask.date) && ask.date! >= today;
   const coming = asks.filter(isComing).sort((a, b) => a.date!.localeCompare(b.date!));
   return [

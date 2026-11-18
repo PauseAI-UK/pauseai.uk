@@ -61,13 +61,13 @@ describe("ImportOverview", () => {
       jobsCopy.import.nightly,
     ]);
     const cards = [...document.querySelectorAll("section")];
-    // Each ends with when it next runs, in UTC as the staff pages' times are: Luma's at 2 minutes past each five,
+    // Each ends with when it next runs, in London as the staff pages' times are: Luma's at 2 minutes past each five,
     // sending's at 3 past each quarter, Parliament's tomorrow morning; and not what it does, which its own page says.
     const words = jobsCopy.import;
-    expect(cards[0].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.minutes(2), "11:52"));
-    expect(cards[2].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.minutes(13), "12:03"));
-    expect(cards[4].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.hours(19), "06:21"));
-    expect(cards[1].textContent).toContain(words.runsAgain(staffVocabulary.dueIn.minutes(5), "11:55"));
+    expect(cards[0].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.minutes(2), "12:52"));
+    expect(cards[2].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.minutes(13), "13:03"));
+    expect(cards[4].lastElementChild!.textContent).toBe(words.runsAgain(staffVocabulary.dueIn.hours(19), "07:21"));
+    expect(cards[1].textContent).toContain(words.runsAgain(staffVocabulary.dueIn.minutes(5), "12:55"));
     expect(document.body.textContent).not.toContain(politiciansCopy.politicianImports.intros["import-parliament"].link);
     expect(cards.map((card) => card.querySelector("h3 a")!.getAttribute("href"))).toEqual([
       "/staff/scheduled-jobs/luma",
@@ -98,7 +98,7 @@ describe("ImportOverview", () => {
     // Under the name, its newest run on a line: how it ended, after a dot of its colour, when, and what it found.
     const status = (i: number) => cards[i].querySelector("h3")!.parentElement!.nextElementSibling!.firstElementChild!;
     const tone = (i: number) => status(i).querySelector("[data-tone]")?.getAttribute("data-tone");
-    expect(status(0).textContent).toMatch(new RegExp(`^${jobsCopy.runs.status.incomplete}21 Oct 2026, 11:17.`));
+    expect(status(0).textContent).toMatch(new RegExp(`^${jobsCopy.runs.status.incomplete}21 Oct 2026, 12:17.`));
     expect([0, 1, 3, 4, 5, 8].map(tone)).toEqual(["amber", "green", "green", "amber", "green", "red"]);
     expect(status(8).textContent).toContain(jobsCopy.runs.error("No PDF linked"));
     expect(tone(2)).toBeUndefined();
@@ -248,7 +248,7 @@ describe("ImportJobPage", () => {
     expect(facts()).toEqual([
       [said.now, jobsCopy.runs.status.held],
       [said.lastRun, staffTime(exampleHeldImport.at)],
-      [said.nextRun, jobsCopy.import.nextRunAt(staffVocabulary.dueIn.hours(19), "06:21")],
+      [said.nextRun, jobsCopy.import.nextRunAt(staffVocabulary.dueIn.hours(19), "07:21")],
       [said.runs, jobsCopy.import.nightly],
     ]);
     // No strip under the band, with nothing running.
@@ -268,7 +268,7 @@ describe("ImportJobPage", () => {
     await expect.element(page.getByText(jobsCopy.controlAiStatement.never)).toBeVisible();
     // Never run: nothing to say of how it stands or when it last ran.
     expect(facts()).toEqual([
-      [jobsCopy.import.facts.nextRun, jobsCopy.import.nextRunAt(staffVocabulary.dueIn.hours(19), "06:26")],
+      [jobsCopy.import.facts.nextRun, jobsCopy.import.nextRunAt(staffVocabulary.dueIn.hours(19), "07:26")],
       [jobsCopy.import.facts.runs, jobsCopy.import.nightly],
     ]);
     await expect.element(page.getByRole("img", { name: jobsCopy.import.controlai })).toBeVisible();

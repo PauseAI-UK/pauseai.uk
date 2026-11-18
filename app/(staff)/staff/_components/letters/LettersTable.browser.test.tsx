@@ -65,15 +65,15 @@ describe("LettersTable", () => {
     await expect.element(page.getByRole("cell", { name: staffTime(letter.sentAt!), exact: true })).toBeInTheDocument();
     await expect.element(page.getByRole("cell", { name: "–", exact: true })).toBeInTheDocument();
     expect(page.getByText(staffVocabulary.politicianFlags.test).all()).toHaveLength(1);
-    await expect.element(page.getByRole("cell", { name: "13 Oct 2026, 09:00", exact: true })).toBeInTheDocument();
+    await expect.element(page.getByRole("cell", { name: "13 Oct 2026, 10:00", exact: true })).toBeInTheDocument();
     // The written reply's, though an automatic one came first.
-    expect(document.body.textContent).not.toContain("12 Oct 2026, 10:00");
+    expect(document.body.textContent).not.toContain("12 Oct 2026, 11:00");
   });
 
   it("says when only an automatic reply came, greyed, with when", async () => {
     await render(<LettersTable letters={[{ ...letter, autoRepliedAt: new Date("2026-10-12T11:00:00Z") }]} />);
     const muted = document.querySelector("tbody tr td:last-child span")!;
-    expect(muted.textContent).toBe(`${lettersCopy.letters.status.auto_reply}12 Oct 2026, 11:00`);
+    expect(muted.textContent).toBe(`${lettersCopy.letters.status.auto_reply}12 Oct 2026, 12:00`);
     expect(muted.querySelector("br")).not.toBeNull();
   });
 

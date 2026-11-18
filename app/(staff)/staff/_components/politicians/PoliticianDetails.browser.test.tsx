@@ -797,18 +797,18 @@ describe("PoliticianDetails", () => {
       .all();
     const copy = politiciansCopy.politician.history;
     expect(history.map((item) => item.element().textContent)).toEqual([
-      `15 Oct 2026, 09:00${copy["letter-replied"]} Anon Writer · ${pm.title} · ${staffVocabulary.theLetter}`,
-      `13 Oct 2026, 08:00${copy.letter} Anon Writer · ${pm.title} · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
-      `12 Oct 2026, 09:00${copy.letter} ${exampleLetter.senderName} · ${pm.title} · ${lettersCopy.letters.status.bounced} · ${staffVocabulary.theLetter}`,
-      `3 Oct 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${politiciansCopy.politician.personalised} · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `15 Oct 2026, 10:00${copy["letter-replied"]} Anon Writer · ${pm.title} · ${staffVocabulary.theLetter}`,
+      `13 Oct 2026, 09:00${copy.letter} Anon Writer · ${pm.title} · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `12 Oct 2026, 10:00${copy.letter} ${exampleLetter.senderName} · ${pm.title} · ${lettersCopy.letters.status.bounced} · ${staffVocabulary.theLetter}`,
+      `3 Oct 2026, 09:00${copy["pauseai-letter"]} Example Mailing · ${politiciansCopy.politician.personalised} · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
       // Dated the day before it was recorded, so on that day.
       `1 Oct 2026${statusLine(politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed), ask("frontier-ai-letter").title)} · Told us at the march · jo@pauseai.uk`,
-      `2 Sept 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
-      `1 Sept 2026, 10:00${statusLine(politiciansCopy.politician.statusCleared, "gone")} · jo@pauseai.uk`,
-      `15 Aug 2026, 10:00${statusLine(politiciansCopy.politician.statusSet("odd"), pm.title)} · jo@pauseai.uk`,
-      `12 Aug 2026, 10:00${statusLine(politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed), "an-old-ask")} · airtable`,
-      `1 Jul 2026, 08:00${copy.letter} Old Writer · Old campaign, from pauseai.info · mislaid · ${staffVocabulary.theLetter}`,
-      `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffVocabulary.theLetter}`,
+      `2 Sept 2026, 09:00${copy["pauseai-letter"]} Example Mailing · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `1 Sept 2026, 11:00${statusLine(politiciansCopy.politician.statusCleared, "gone")} · jo@pauseai.uk`,
+      `15 Aug 2026, 11:00${statusLine(politiciansCopy.politician.statusSet("odd"), pm.title)} · jo@pauseai.uk`,
+      `12 Aug 2026, 11:00${statusLine(politiciansCopy.politician.statusSet(staffVocabulary.statuses.signed), "an-old-ask")} · airtable`,
+      `1 Jul 2026, 09:00${copy.letter} Old Writer · Old campaign, from pauseai.info · mislaid · ${staffVocabulary.theLetter}`,
+      `1 Jun 2026, 09:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffVocabulary.theLetter}`,
     ]);
     // What changed their record, with who, apart from the answers.
     const record = page
@@ -817,17 +817,17 @@ describe("PoliticianDetails", () => {
       .closest("details")!;
     // A timeline, newest first: what, then when and who.
     expect([...record.querySelectorAll("ol li")].map((row) => row.textContent)).toEqual([
-      `${copy["unblock address"]} polly.placeholder.mp@parliament.uk · Fixed in Airtable14 Oct 2026, 09:30 · jo@pauseai.uk`,
-      `${copy["block address"]} polly.placeholder.mp@parliament.uk · ${emailCopy.emails.kinds.hard}12 Oct 2026, 09:10 · postmark`,
-      `${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk30 Sept 2026, 10:00 · samuel.whitlock@pauseai.uk`,
-      `${copy["block address"]} polly@example.org · weird10 Aug 2026, 10:00 · postmark`,
-      "strange 1 Aug 2026, 10:00 · x",
+      `${copy["unblock address"]} polly.placeholder.mp@parliament.uk · Fixed in Airtable14 Oct 2026, 10:30 · jo@pauseai.uk`,
+      `${copy["block address"]} polly.placeholder.mp@parliament.uk · ${emailCopy.emails.kinds.hard}12 Oct 2026, 10:10 · postmark`,
+      `${copy["edit politician"]} Polly Placeholder · polly.placeholder.mp@parliament.uk30 Sept 2026, 11:00 · samuel.whitlock@pauseai.uk`,
+      `${copy["block address"]} polly@example.org · weird10 Aug 2026, 11:00 · postmark`,
+      "strange 1 Aug 2026, 11:00 · x",
       // A change of email, with why.
-      `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.email} a@example.org → b@example.org · Her office asked25 Jul 2026, 10:00 · jo@pauseai.uk`,
+      `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.email} a@example.org → b@example.org · Her office asked25 Jul 2026, 11:00 · jo@pauseai.uk`,
       // An address added, by which, and why.
-      `${copy["add politician address"]} polly.home@example.org · She writes from it22 Jul 2026, 10:00 · jo@pauseai.uk`,
-      `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.party} Labour → Labour (Co-op)20 Jul 2026, 10:00 · sync`,
-      `${copy["add politician"]} Polly Placeholder15 Jul 2026, 10:00 · import`,
+      `${copy["add politician address"]} polly.home@example.org · She writes from it22 Jul 2026, 11:00 · jo@pauseai.uk`,
+      `${copy["edit politician"]} Polly Placeholder · ${staffVocabulary.fields.party} Labour → Labour (Co-op)20 Jul 2026, 11:00 · sync`,
+      `${copy["add politician"]} Polly Placeholder15 Jul 2026, 11:00 · import`,
     ]);
     // An answer leads to everyone who gave it, the ask to the letter as in the asks card, PauseAI's email to its
     // mailing, an address to its block.
@@ -914,11 +914,11 @@ describe("PoliticianDetails", () => {
         .all()
         .map((item) => item.element().textContent),
     ).toEqual([
-      `15 Oct 2026, 09:00${copy["unsigned-letter-replied"]} · ${pm.title}`,
-      `13 Oct 2026, 08:00${copy.unsignedLetter} · ${pm.title} · ${lettersCopy.letters.status.sent}`,
-      `1 Jul 2026, 08:00${copy.unsignedLetter} · Old campaign, from pauseai.info · mislaid`,
-      `1 Jun 2026, 08:00${copy["pauseai-letter"]} Example Mailing · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
-      `1 May 2026, 08:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffVocabulary.theLetter}`,
+      `15 Oct 2026, 10:00${copy["unsigned-letter-replied"]} · ${pm.title}`,
+      `13 Oct 2026, 09:00${copy.unsignedLetter} · ${pm.title} · ${lettersCopy.letters.status.sent}`,
+      `1 Jul 2026, 09:00${copy.unsignedLetter} · Old campaign, from pauseai.info · mislaid`,
+      `1 Jun 2026, 09:00${copy["pauseai-letter"]} Example Mailing · ${lettersCopy.letters.status.sent} · ${staffVocabulary.theLetter}`,
+      `1 May 2026, 09:00${copy["pauseai-letter"]} Example Mailing · made-up · ${staffVocabulary.theLetter}`,
     ]);
     expect(list.element().querySelector('a[href^="/staff/letters"]')).toBeNull();
     // Without `supporters`, whose campaign pages these are, a campaign's name is plain.
@@ -1186,6 +1186,38 @@ describe("PoliticianDetails", () => {
     expect(radios()[0][1]).toBe("true");
   });
 
+  it("puts an answer dated before the day it was logged, in London, on its own day", async () => {
+    const set = (id: number, at: string, date: string) => ({
+      id,
+      at: new Date(at),
+      actor: "airtable",
+      action: "set status",
+      details: { politicianId: 7, ask: "frontier-ai-letter", status: "signed", date, note: "" },
+    });
+    await render(
+      <PoliticianDetails
+        {...none}
+        politician={MP}
+        unblock={vi.fn()}
+        history={[
+          // Logged at 00:30 on 2 July in London, so dated the day before.
+          set(2, "2026-07-01T23:30:00Z", "2026-07-01"),
+          // Logged on the day it's dated, so when it was logged.
+          set(1, "2026-06-30T23:30:00Z", "2026-07-01"),
+        ]}
+      />,
+    );
+    openFolds();
+    const lines = page
+      .getByRole("list", { name: politiciansCopy.politician.historyTitle })
+      .getByRole("listitem")
+      .all()
+      .map((item) => item.element().textContent);
+    expect(lines[0]).toContain("1 Jul 2026");
+    expect(lines[0]).not.toContain("00:30");
+    expect(lines[1]).toContain("1 Jul 2026, 00:30");
+  });
+
   it("says in their history that they were marked asked, in the ask's kind's words, or a letter's for an ask gone", async () => {
     const set = (id: number, slug: string) => ({
       id,
@@ -1412,7 +1444,7 @@ describe("PoliticianDetails", () => {
     // Without a way to edit their email, the only choice here is that it's right.
     expect([...notice.element().querySelectorAll("h3")].map((h) => h.textContent)).toEqual([copy.right.title]);
     expect(notice.element().querySelector("p")!.textContent).toBe(
-      `${copy.why.before}${MP.email}${copy.why.after(exampleBlock.reason, "12 Oct 2026, 09:10")}`,
+      `${copy.why.before}${MP.email}${copy.why.after(exampleBlock.reason, "12 Oct 2026, 10:10")}`,
     );
     expect(notice.element().querySelector("p strong")!.textContent).toBe(MP.email);
     // The example's reason ends in a full stop, so the sentence doesn't add a second.

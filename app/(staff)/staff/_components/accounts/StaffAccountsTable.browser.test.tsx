@@ -81,16 +81,16 @@ describe("StaffAccountsTable", () => {
         .map((cell) => cell.element().textContent);
     const copy = accountsCopy.accounts;
     expect(row("jo@pauseai.uk").slice(2, 7)).toEqual([
-      `20 Oct 2026, 09:00 ${copy.addedBy("admin@pauseai.uk")}`,
+      `20 Oct 2026, 10:00 ${copy.addedBy("admin@pauseai.uk")}`,
       copy.never,
       copy.never,
       "0",
-      `${copy.gmailConnected} 21 Oct 2026, 09:00`,
+      `${copy.gmailConnected} 21 Oct 2026, 10:00`,
     ]);
     expect(row("samuel.whitlock@pauseai.uk").slice(2, 7)).toEqual([
-      `21 Oct 2026, 10:30 ${copy.addedByLogin}`,
-      "21 Oct 2026, 10:30",
-      "21 Oct 2026, 11:00",
+      `21 Oct 2026, 11:30 ${copy.addedByLogin}`,
+      "21 Oct 2026, 11:30",
+      "21 Oct 2026, 12:00",
       `1${copy.endSessions}`,
       copy.gmailNot,
     ]);
@@ -113,7 +113,7 @@ describe("StaffAccountsTable", () => {
   it("lists every account, centred in its row, with its permissions by name, Remove at the right, and a key to the permissions", async () => {
     const { remove } = await renderTable();
     const copy = accountsCopy.accounts;
-    const cell = page.getByRole("cell", { name: "22 Oct 2026, 08:00", exact: true });
+    const cell = page.getByRole("cell", { name: "22 Oct 2026, 09:00", exact: true });
     await expect.element(cell).toBeVisible();
     expect(getComputedStyle(cell.element()).verticalAlign).toBe("middle");
     // Each account's permissions by name, then Edit; none, a dash. Its bubble is shut.

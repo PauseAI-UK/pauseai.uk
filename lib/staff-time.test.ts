@@ -6,8 +6,6 @@ import {
   fromLondon,
   notTooSoon,
   londonDayTime,
-  londonClock,
-  londonDate,
   londonStart,
   londonWhen,
   londonWhenShort,
@@ -19,14 +17,28 @@ import {
 } from "./staff-time";
 import { staffVocabulary } from "./staff-vocabulary";
 
-it("names the day, in UTC", () => {
+it("names the day, in London", () => {
   expect(staffDate(new Date("2026-11-03T10:34:56Z"))).toBe("3 Nov 2026");
-  expect(staffDate(new Date("2026-10-16T23:30:00-05:00"))).toBe("17 Oct 2026");
+  // Past midnight in London in summer time, still the day before in UTC.
+  expect(staffDate(new Date("2026-07-01T23:30:00Z"))).toBe("2 Jul 2026");
+  expect(staffDate(new Date("2026-07-01T22:59:00Z"))).toBe("1 Jul 2026");
 });
 
-it("is the day and the time to the minute, in UTC", () => {
-  expect(staffTime(new Date("2026-10-16T10:34:56.789Z"))).toBe("16 Oct 2026, 10:34");
-  expect(staffTime(new Date("2026-10-16T23:30:00+01:00"))).toBe("16 Oct 2026, 22:30");
+it("is the day and the time to the minute, in London", () => {
+  expect(staffTime(new Date("2026-10-16T10:34:56.789Z"))).toBe("16 Oct 2026, 11:34");
+  expect(staffTime(new Date("2026-11-16T10:34:56.789Z"))).toBe("16 Nov 2026, 10:34");
+  expect(staffTime(new Date("2026-07-01T23:30:00Z"))).toBe("2 Jul 2026, 00:30");
+});
+
+it("goes into summer time at 01:00 UTC on the last Sunday of March, and out of it on the last of October", () => {
+  expect(staffTime(new Date("2026-03-29T00:59:00Z"))).toBe("29 Mar 2026, 00:59");
+  expect(staffTime(new Date("2026-03-29T01:00:00Z"))).toBe("29 Mar 2026, 02:00");
+  expect(staffTime(new Date("2026-03-28T23:30:00Z"))).toBe("28 Mar 2026, 23:30");
+  expect(staffTime(new Date("2026-03-29T23:30:00Z"))).toBe("30 Mar 2026, 00:30");
+  expect(staffTime(new Date("2026-10-25T00:59:00Z"))).toBe("25 Oct 2026, 01:59");
+  expect(staffTime(new Date("2026-10-25T01:00:00Z"))).toBe("25 Oct 2026, 01:00");
+  expect(staffTime(new Date("2026-10-24T23:30:00Z"))).toBe("25 Oct 2026, 00:30");
+  expect(staffTime(new Date("2026-10-25T23:30:00Z"))).toBe("25 Oct 2026, 23:30");
 });
 
 it("holds each date in some words together with no-break spaces, the time with it, and leaves the rest", () => {
@@ -35,14 +47,16 @@ it("holds each date in some words together with no-break spaces, the time with i
   expect(datesHeldTogether("No date here, 2026")).toBe("No date here, 2026");
 });
 
-it("names the weekday, day and month, in UTC", () => {
+it("names the weekday, day and month, in London", () => {
   expect(staffDay(new Date("2026-10-16T12:00:00Z"))).toBe("Friday 16 October");
-  expect(staffDay(new Date("2026-10-16T23:30:00-05:00"))).toBe("Saturday 17 October");
+  expect(staffDay(new Date("2026-07-01T23:30:00Z"))).toBe("Thursday 2 July");
+  expect(staffDay(new Date("2026-11-16T23:30:00Z"))).toBe("Monday 16 November");
 });
 
-it("is the time of day to the minute, in UTC", () => {
-  expect(staffClock(new Date("2026-10-16T09:04:56.789Z"))).toBe("09:04");
-  expect(staffClock(new Date("2026-10-16T23:30:00+01:00"))).toBe("22:30");
+it("is the time of day to the minute, in London", () => {
+  expect(staffClock(new Date("2026-11-16T09:04:56.789Z"))).toBe("09:04");
+  expect(staffClock(new Date("2026-10-16T09:04:56.789Z"))).toBe("10:04");
+  expect(staffClock(new Date("2026-07-02T23:18:00Z"))).toBe("00:18");
 });
 
 describe("London's time, for when a mailing goes", () => {
@@ -77,7 +91,6 @@ it("sends a mailing at the first run of the sending at or after its time, or ove
   expect(sendsAt(new Date("2026-10-30T09:50:00.000Z"))).toEqual(new Date("2026-10-30T10:03:00.000Z"));
   expect(sendsAt(new Date("2026-10-30T23:50:00.000Z"))).toEqual(new Date("2026-10-31T06:03:00.000Z"));
   expect(sendsAt(new Date("2026-10-30T00:00:00.000Z"))).toEqual(new Date("2026-10-30T06:03:00.000Z"));
-  expect(londonClock(new Date("2026-07-02T23:18:00Z"))).toBe("00:18");
 });
 
 describe("the first time a mailing can go", () => {
@@ -109,12 +122,6 @@ describe("the first time a mailing can go", () => {
       minute: 3,
     });
   });
-});
-
-it("says the day something happens, in London, with its year", () => {
-  expect(londonDate(new Date("2026-10-27T12:00:00Z"))).toBe("27 Oct 2026");
-  // Past midnight in London, still the day before in UTC.
-  expect(londonDate(new Date("2026-07-02T23:30:00Z"))).toBe("3 Jul 2026");
 });
 
 it("says when something starts, in London, with its year", () => {
