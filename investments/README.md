@@ -31,6 +31,12 @@ Log a hit when you:
 
 The repo is public. A hit names no one and quotes no data, and says nothing about how you used production services or the database.
 
+## Keeping a file true
+
+A hit is the least a file gets. Whenever your work changes what a file should say, rewrite its Problem and Fix in the same PR, so they say how things stand: the cause you found, the part now fixed, what's left to do. Do it without being asked, and don't leave it at a hit beside a Problem that's no longer true. The hits stay as they were written: they're the record of what it cost.
+
+If nothing is left to do, the item is finished: delete its file ("Picking the next one", below).
+
 ## Picking the next one
 
 `npm run investments` lists every item, most hits first, with its size and kind. It writes the same list to `investments/ranked.txt`, which isn't committed, and ends by naming that file. Each line starts with the item's file name, so an editor can open it (`gf` in Vim). The Git hooks write it again after each checkout or merge (`docs/development.md`). There's no list kept by hand: the files are the list.

@@ -1,28 +1,45 @@
-# A bubble opening on a phone sometimes scrolls 43px further
+# A flow can still open a bubble without waiting for its scroll
 
 Size: S. Kind: small fix.
 
 ## Problem
 
-In "Writing to a Lord" (`tests/storyboard/politicians.spec.ts`), on the
-phone, both frames sometimes show the page scrolled to 171px rather than
-128px, with the same build. The bubble under "add email" opens near the foot
-of the window, and `BubbleBox` (`components/ui/Bubble.tsx`) scrolls the page
-on its `toggle` event by however far its foot hangs below the window.
+A bubble (`components/ui/Bubble.tsx`) scrolls the page to show itself on
+its `toggle` event, a task after the press that opens it. A flow that
+presses the button and goes straight on can take its frame, or press inside
+the bubble, while that scroll is still going. In "Writing to a Lord"
+(`tests/storyboard/politicians.spec.ts`), on the phone, both frames showed
+the page at 171px in some runs and 128px in others, on the same build.
 
-With logging added, the bubble measured the same in every run (its top 564px
-down the window, 212px tall, fonts loaded, the page at the top), and the page
-always ended at 128px. That held even in the runs where the `toggle` event
-came after Playwright had moved on to filling the bubble's first field. So
-the extra 43px comes from something not yet found: a scroll from filling a
-field, or from the frame itself, or a layout above the bubble that hadn't
-settled when it was measured.
+Flows open a bubble with `openBubble` (`tests/storyboard/settle.ts`), which
+waits for the scroll. With every flow opening its bubbles that way, three
+runs of all of them, on both viewports, gave the same frames, each the same
+as main's. ESLint keeps `:popover-open` out of the flows, so none finds an
+open bubble by its selector instead.
+
+Two things are left:
+
+- Nothing stops a flow pressing a bubble's button itself and finding what's
+  in it by role or label, which the lint can't see. Twelve flows did.
+- Why a late scroll lands 43px further, rather than in the same place, isn't
+  known. With logging added, the bubble measured the same in every run (its
+  top 564px down the window, 212px tall, fonts loaded, the page at the top),
+  and the page ended at 128px even in runs where the `toggle` event came
+  after Playwright had moved on to filling the bubble's first field. If
+  it's something the site does, a person pressing quickly could meet it too.
 
 ## Fix
 
-Catch a run that lands at 171px with the scroll position logged at each step
-and inside the `toggle` handler, find what moves it, and make the opening
-scroll not depend on it.
+A listener for `toggle` events in the storyboard's page fixture
+(`tests/storyboard/fixtures.ts`), which fails a flow when a popover with
+`Bubble`'s class opens outside `openBubble`. The gallery's staff-politicians
+page has a bubble that opens itself as the page loads, with no button to
+press, so it needs a way to say that's meant.
+
+Then, if it's wanted, find the 43px: take "Writing to a Lord" back to a
+plain press on a branch, catch a run that lands at 171px with the scroll
+position logged at each step and inside the `toggle` handler, and see what
+moves it.
 
 ## Hits
 
