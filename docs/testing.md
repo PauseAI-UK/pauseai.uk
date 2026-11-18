@@ -31,7 +31,8 @@ start`), so it is slower. Use it only for what Vitest can't see:
 `coverage/`. CI fails if it drops below the thresholds in
 `vitest.config.mts`.
 
-CI splits the tests between three jobs (Vitest's `--shard`), each writing its
+CI splits the tests between three jobs (Vitest's `--shard`, dealt by how
+long each file last took, `scripts/ci-parts.mjs`), each writing its
 coverage with the thresholds off, and its Test job merges them and fails
 on any file under 100% (`scripts/merge-coverage.mjs`). The node and browser
 projects can map a statement to different ranges, and a range that runs to
@@ -291,7 +292,11 @@ npm run test:report       # Playwright's own report, with the trace of a failed 
 **CI's run** fails only on a flow's checks, never on how a page looks. CI
 runs every flow, in three parts at once, each a job of its own
 ("Storyboard (1 of 3)" and so on), and the Storyboard check passes when
-all three have passed. `.github/workflows/ci.yml` says why. Locally, the
+all three have passed. The flows are dealt into parts by how long each
+took in the last run, kept in the Actions cache, so the parts take about
+as long as each other (`scripts/ci-parts.mjs`; a flow with no time yet is
+taken as long as the middle one of its section). `.github/workflows/ci.yml`
+says why. Locally, the
 gate's storyboard is the review (`npm run gate`, below), so one run checks
 the flows and pictures them.
 

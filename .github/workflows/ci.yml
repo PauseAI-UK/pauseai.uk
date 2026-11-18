@@ -119,9 +119,11 @@ jobs:
       - name: Check types
         run: npm run typecheck
 
-  # The tests split between three jobs. Each writes its coverage, with
-  # Vitest's thresholds off, as a shard can't know what the others cover; the
-  # Test job merges and checks them.
+  # The tests split between three jobs, dealt by how long each file took
+  # when last run (scripts/ci-parts.mjs), so the parts take about as long as
+  # each other. Each writes its coverage, with Vitest's thresholds off, as a
+  # shard can't know what the others cover; the Test job merges and checks
+  # them, and keeps the times for the next run.
   test-shard:
     name: Test (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
@@ -193,7 +195,16 @@ jobs:
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
-      # Both Vitest projects (node and browser), a third of each. The
+      # How long each test file took, in Vitest's own results cache, as the
+      # Test job kept it from the latest run: on main, or this branch's.
+      - name: Restore the tests' times
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/vitest
+          key: test-times-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: test-times-
+
+      # Both Vitest projects (node and browser), a third of each by time. The
       # browser project renders components in the image's Chromium.
       - name: Test
         run: >-
@@ -205,6 +216,14 @@ jobs:
         with:
           name: coverage-${{ matrix.shard }}
           path: coverage/coverage-final.json
+          retention-days: 1
+
+      - name: Upload the tests' times
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-times-${{ matrix.shard }}
+          path: node_modules/.vite/vitest
+          include-hidden-files: true
           retention-days: 1
 
   # One result for the parts, under the test check's own name: it fails if
@@ -248,6 +267,20 @@ jobs:
 
       - name: Every file at 100% coverage
         run: node scripts/merge-coverage.mjs coverage-*/coverage-final.json
+
+      - name: Download the tests' times
+        uses: actions/download-artifact@v7
+        with:
+          pattern: test-times-*
+
+      - name: Merge the tests' times
+        run: node scripts/ci-parts.mjs merge-vitest node_modules/.vite/vitest test-times-*/*/results.json
+
+      - name: Keep the tests' times
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/vitest
+          key: test-times-${{ github.run_id }}-${{ github.run_attempt }}
 
   build:
     name: Build
@@ -294,9 +327,9 @@ jobs:
         run: npx next build
 
   # The flows split between three jobs, each building the site: the flows
-  # are most of the time, the setup and the build a minute or so. Three
-  # brings the slowest part under the Test job's time; Playwright splits by
-  # number of flows, not their length, so the parts aren't the same length.
+  # are most of the time, the setup and the build a minute or so. They're
+  # dealt by how long each took when last run, not by count, as the gallery's
+  # and the broadcasts' take far longer than most.
   storyboard-shard:
     name: Storyboard (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
@@ -378,8 +411,31 @@ jobs:
       # playwright.config.ts's webServer builds and starts the app itself, so
       # there is no separate build step here. The gate takes no screenshots;
       # the comparison with main (npm run storyboard) is run by hand.
+      # How long each flow took, as the Storyboard job kept it from the
+      # latest run: on main, or this branch's.
+      - name: Restore the flows' times
+        uses: actions/cache/restore@v6
+        with:
+          path: storyboard-times.json
+          key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: storyboard-times-
+
+      # A third of the flows by time (scripts/ci-parts.mjs): every part deals
+      # the same, from the same times, and runs its own.
+      - name: Choose this part's flows
+        run: node scripts/ci-parts.mjs storyboard ${{ matrix.shard }}/3 storyboard-times.json part-flows.txt
+
       - name: Storyboard
-        run: npm run test:storyboard -- --shard=${{ matrix.shard }}/3
+        run: npm run test:storyboard -- --test-list=part-flows.txt
+        env:
+          STORYBOARD_TIMES: part-times.json
+
+      - name: Upload the flows' times
+        uses: actions/upload-artifact@v7
+        with:
+          name: storyboard-times-${{ matrix.shard }}
+          path: part-times.json
+          retention-days: 1
 
       - name: Upload report on failure
         if: failure()
@@ -393,7 +449,8 @@ jobs:
 
   # One result for the three parts, under the storyboard check's own name.
   # It runs whatever they did, so a failed part fails it, rather than
-  # leaving it skipped.
+  # leaving it skipped. When they all passed, it keeps their flows' times
+  # for the next run, as one file.
   storyboard:
     name: Storyboard
     needs: storyboard-shard
@@ -402,6 +459,20 @@ jobs:
     steps:
       - name: Every part passed
         run: test "${{ needs.storyboard-shard.result }}" = success
+
+      - name: Download the flows' times
+        uses: actions/download-artifact@v7
+        with:
+          pattern: storyboard-times-*
+
+      - name: Merge the flows' times
+        run: jq -s add storyboard-times-*/part-times.json > storyboard-times.json
+
+      - name: Keep the flows' times
+        uses: actions/cache/save@v6
+        with:
+          path: storyboard-times.json
+          key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
 
   # The database backup's own package (backup/README.md): its tests, with
   # their coverage gate, and its types.

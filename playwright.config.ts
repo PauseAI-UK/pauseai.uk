@@ -36,14 +36,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // A flaky flow is fixed, not retried (docs/testing.md).
   retries: 0,
-  // The terminal, Playwright's own report (traces), the storyboard's, and
-  // how far the run is, for anything outside it (docs/testing.md, "The
-  // storyboard's progress").
+  // The terminal, Playwright's own report (traces), the storyboard's, how
+  // far the run is, for anything outside it (docs/testing.md, "The
+  // storyboard's progress"), and each flow's time, for CI's parts.
   reporter: [
     ["list"],
     ["html", { open: "never" }],
     ["./tests/storyboard/report/reporter.ts"],
     ["./tests/storyboard/report/progress.ts"],
+    ["./tests/storyboard/report/times.ts"],
   ],
   // Playwright empties this before every run. The storyboard's page and
   // pictures are beside it in test-results/storyboard, so a gate run after a
