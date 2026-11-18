@@ -11,7 +11,7 @@ reads them.
   finished sentence as `what`, and `alertIfNew` in
   `lib/server/import-runs.server.ts` compares those sentences with the run
   before's. So rewording a problem's copy alerts staff to a "new" problem.
-  It's called in about 80 places, its second argument sometimes a caught
+  It's called all over the code, its second argument sometimes a caught
   error, sometimes a value we built.
 - `inactiveAddresses()` in `lib/email/email.server.ts` gets the addresses
   by parsing Postmark's error message.
