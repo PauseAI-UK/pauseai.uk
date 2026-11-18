@@ -90,7 +90,7 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
       {label}
     </SortHeading>
   );
-  // Filtered by an ask, the Asks column is that ask's own: how each stands on it, an answer in bold.
+  // Filtered by an ask, the Asks column is that ask's own: how each stands on it.
   const filteredBy = asks.find((ask) => ask.slug === firstOf(search.ask));
   const answered = (p: Politician) => asks.filter((ask) => isAnswer(p.statuses[ask.slug]?.status));
   const askColumn: ListColumn<Politician> = filteredBy
@@ -98,14 +98,11 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
         key: "asks",
         label: filteredBy.title,
         text: (p) => standingWord(standing(p, filteredBy.slug), filteredBy.kind),
-        cell: (p) => {
-          const Word = isAnswer(p.statuses[filteredBy.slug]?.status) ? "strong" : "span";
-          return (
-            <Word className={styles.answer}>
-              <AnswerWord status={standing(p, filteredBy.slug)} kind={filteredBy.kind} />
-            </Word>
-          );
-        },
+        cell: (p) => (
+          <span className={styles.answer}>
+            <AnswerWord status={standing(p, filteredBy.slug)} kind={filteredBy.kind} />
+          </span>
+        ),
       }
     : {
         key: "asks",
@@ -123,9 +120,9 @@ export function politicianColumns(asks: Ask[], search: Params = {}): ListColumn<
                   <span className={styles.ask} title={ask.title}>
                     <AskTitle ask={ask} />
                   </span>{" "}
-                  <strong className={styles.answer}>
+                  <span className={styles.answer}>
                     <AnswerWord status={standing(p, ask.slug)} kind={ask.kind} />
-                  </strong>
+                  </span>
                 </li>
               ))}
             </ul>

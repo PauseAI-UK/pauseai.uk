@@ -94,8 +94,6 @@ export const asksCopy = {
       replied: "replies",
       howWeAsked: "How we asked",
       answersTitle: "Answers",
-      // The column of the "other" answers, each tagged with its note.
-      otherAnswers: "Other answers",
       // At the foot of a column: leads to all of them on the politicians list. With more than it shows, how many;
       // with every one shown, where it leads.
       allOf: (n: number) => `Open all ${n.toLocaleString("en-GB")} as a list →`,

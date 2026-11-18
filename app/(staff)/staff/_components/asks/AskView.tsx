@@ -17,15 +17,17 @@ import IconText from "../ui/IconText";
 import AskWays from "./AskWays";
 import styles from "./AskView.module.css";
 import ExternalLink from "../ui/ExternalLink";
-import { asksCopy, standingWord } from "@/lib/asks/copy";
+import { asksCopy } from "@/lib/asks/copy";
 
 const copy = asksCopy.asks;
 const page = copy.page;
 
-/** What a column of answers is called: its answer, or for those invited, the words of the ask's kind. */
+/**
+ * What a column of answers is called, as a politician's form and the politicians list's filter say it: its answer,
+ * or for those asked who haven't, the words of the ask's kind.
+ */
 function groupName(key: string, kind: AskKind): string {
-  if (key === "other") return page.otherAnswers;
-  return key === INVITED ? standingWord(INVITED, kind) : staffVocabulary.statuses[key];
+  return key === INVITED ? staffVocabulary.noReplyYet[kind] : staffVocabulary.statuses[key];
 }
 
 /**

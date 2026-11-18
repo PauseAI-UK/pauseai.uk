@@ -305,6 +305,16 @@
   padding-left: calc(var(--space-2) + 12px + var(--space-2));
 }
 
+/* A choice that's one of what the choice above it finds, set in beneath it;
+   one of what that one finds, further in. */
+.under :is(a, button) {
+  padding-left: calc(var(--space-2) + var(--space-4));
+}
+
+.underTwice :is(a, button) {
+  padding-left: calc(var(--space-2) + 2 * var(--space-4));
+}
+
 .detail {
   color: var(--text-secondary);
   font-size: var(--text-xs);

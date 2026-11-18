@@ -276,7 +276,7 @@ test("Invited, with no answer yet", async ({ page, request, flowDatabase }) => {
     "Its form starts from invited, with the answers to pick from. There's no way to say she was never invited, as the email went.",
   );
   await openBubble(conference.getByText(copy.edit, { exact: true }));
-  await expect(conference.getByRole("radio", { name: staffVocabulary.invited.event })).toHaveAttribute(
+  await expect(conference.getByRole("radio", { name: staffVocabulary.noReplyYet.event })).toHaveAttribute(
     "aria-checked",
     "true",
   );
@@ -292,7 +292,7 @@ test("Invited, with no answer yet", async ({ page, request, flowDatabase }) => {
   await openBubble(
     page.getByRole("list", { name: copy.otherAsk }).getByRole("button", { name: "Edinburgh conference" }),
   );
-  await conference.getByRole("radio", { name: staffVocabulary.invited.event }).click();
+  await conference.getByRole("radio", { name: staffVocabulary.noReplyYet.event }).click();
   await conference.getByLabel(copy.note).fill("Invited at the reception");
   await frame(page, "Marking Dora invited, with a note", { window: true });
   await conference.getByRole("button", { name: copy.save }).click();
@@ -304,7 +304,7 @@ test("Invited, with no answer yet", async ({ page, request, flowDatabase }) => {
     "The conference's own page has a column of those invited, first: Polly and Morag, whom the mailing invited, and Dora. It opens them as a list, to chase.",
   );
   await page.goto(`${BASE}/staff/asks/edinburgh-conference-2026`);
-  await expect(page.getByRole("link", { name: `${staffVocabulary.invited.event} 3`, exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: `${staffVocabulary.noReplyYet.event} 3`, exact: true })).toBeVisible();
   await frame(page, "The conference's page, three invited");
   await page.getByRole("link", { name: asksCopy.asks.page.asList }).first().click();
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=invited/);
@@ -393,7 +393,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
     "Staff choose those never invited to it, the ones to invite. The Asks column becomes the conference's, saying so on each row. Clear filters then brings back the whole list.",
   );
   // The answer is chosen in the second half of the ask's chip.
-  await changeFilter(page, filters.anyAnswer, staffVocabulary.neverAsked.event);
+  await changeFilter(page, staffVocabulary.everyoneAsked.event, staffVocabulary.neverAsked.event);
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=never/);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.neverAsked.event);
@@ -412,24 +412,23 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   recordAnswers(flowDatabase);
   markInvited(flowDatabase, "recDummy", "edinburgh-conference-2026");
   await logIn(page, flowDatabase);
-  const filters = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   await page.goto(`${BASE}/staff/politicians?ask=edinburgh-conference-2026`);
-  const menu = await openBubble(page.getByRole("button", { name: filters.anyAnswer }));
+  const menu = await openBubble(page.getByRole("button", { name: staffVocabulary.everyoneAsked.event }));
   await frame(page, "The answers, a row each");
 
-  story("+ Add turns the rows to boxes. Any answer isn't one of them: it's what ticking none means.");
+  story("+ Add turns the rows to boxes. Everyone invited isn't one of them: it's what ticking none means.");
   await menu.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
-  await frame(page, "Boxes, with Any answer gone");
+  await frame(page, "Boxes, with Everyone invited gone");
 
   story("Each tick changes the list at once, with the menu open. The chip's second half says both.");
-  await menu.getByRole("checkbox", { name: staffVocabulary.invited.event, exact: true }).check();
+  await menu.getByRole("checkbox", { name: staffVocabulary.noReplyYet.event, exact: true }).check();
   await expect(page).toHaveURL(/answer=invited$/);
   await menu.getByRole("checkbox", { name: staffVocabulary.statuses.going, exact: true }).check();
   await expect(page).toHaveURL(/answer=invited&answer=going/);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.invited.event);
   await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
-  const both = staffVocabulary.filters.anyOf([staffVocabulary.invited.event, staffVocabulary.statuses.going]);
+  const both = staffVocabulary.filters.anyOf([staffVocabulary.noReplyYet.event, staffVocabulary.statuses.going]);
   await expect(page.getByRole("button", { name: both })).toBeVisible();
   await frame(page, "Those invited, or going, the menu still open");
   await page.keyboard.press("Escape");
@@ -446,8 +445,9 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   await page.getByRole("button", { name: "Edinburgh conference" }).click();
   await menu.getByRole("link").filter({ hasNotText: "Edinburgh conference" }).first().click();
   await expect(page).not.toHaveURL(/answer=/);
-  await expect(page.getByRole("button", { name: filters.anyAnswer })).toBeVisible();
-  await frame(page, "Another ask, any answer");
+  const everyone = Object.values(staffVocabulary.everyoneAsked).join("|");
+  await expect(page.getByRole("button", { name: new RegExp(`^(${everyone})$`) })).toBeVisible();
+  await frame(page, "Another ask, everyone asked");
 });
 
 test("The house tabs", async ({ page, request, flowDatabase }) => {

@@ -92,7 +92,7 @@ describe("PoliticianTable", () => {
         .all()
         .map((c) => c.element().textContent);
     // Whether they're in office, the counts of emails to them and from them, each heading a sort, and their answer to each
-    // ask they've answered, a line each, in the asks' order, the answer in bold first.
+    // ask they've answered, a line each, in the asks' order.
     const flags = staffVocabulary.politicianFlags;
     expect(cells("Polly Placeholder").slice(4, 6)).toEqual([politiciansCopy.personStatuses.in_office, flags.important]);
     expect(cells("Polly Placeholder").slice(7, 9)).toEqual(["4", "1"]);
@@ -110,11 +110,11 @@ describe("PoliticianTable", () => {
       `${ask("edinburgh-conference-2026").title} ${staffVocabulary.statuses.declined}`,
       `${ask("frontier-ai-letter").title} ${staffVocabulary.statuses.signed}`,
     ]);
-    // The answer in bold, a no crossed and a yes ticked in green, each at its ask's right and level with the other.
+    // The answer plain, a no crossed and a yes ticked in green, each at its ask's right and level with the other.
     const pollys = page.getByRole("row").filter({ hasText: "Polly Placeholder" });
     const declined = pollys.getByText(staffVocabulary.statuses.declined).element();
     const signed = pollys.getByText(staffVocabulary.statuses.signed).element();
-    expect(declined.closest("strong")).not.toBeNull();
+    expect(declined.closest("strong")).toBeNull();
     expect(getComputedStyle(declined, "::before").content).toContain("✕");
     expect(getComputedStyle(signed, "::before").content).toContain("✓");
     expect(getComputedStyle(signed).color).not.toBe(getComputedStyle(declined).color);
@@ -189,15 +189,15 @@ describe("PoliticianTable", () => {
     await expect.element(th).toBeVisible();
     expect(th.element().querySelector("a")).toBeNull();
     const cell = (name: string) =>
-      page.getByRole("row").filter({ hasText: name }).element().querySelectorAll("td")[th.element().cellIndex];
+      page.getByRole("row").filter({ hasText: name }).element().querySelectorAll("td")[
+        (th.element() as HTMLTableCellElement).cellIndex
+      ];
     expect(cell("Wendy Written").textContent).toBe(staffVocabulary.invited.event);
     expect(cell("Neil Never").textContent).toBe(staffVocabulary.neverAsked.event);
     expect(cell("Dee Declined").textContent).toBe(staffVocabulary.statuses.declined);
     expect(answers("Dee Declined")).toEqual([]);
-    // An answer in bold; being asked, or never, plain.
-    expect(cell("Neil Never").querySelector("strong")).toBeNull();
-    expect(cell("Wendy Written").querySelector("strong")).toBeNull();
-    expect(cell("Dee Declined").querySelector("strong")).not.toBeNull();
+    // Nothing in bold.
+    expect(cell("Dee Declined").querySelector("strong")).toBeNull();
     // A download says the same, and a card has only answers.
     const column = politicianColumns(exampleAsks, { ask: "frontier-ai-letter" }).find((c) => c.key === "asks")!;
     expect(column.label).toBe(ask("frontier-ai-letter").title);

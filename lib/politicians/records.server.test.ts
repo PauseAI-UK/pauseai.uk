@@ -7,7 +7,7 @@ import {
   describeWithDatabase,
   useTestDatabase,
 } from "@/tests/database";
-import { INVITED, NEVER_ASKED } from "@/lib/asks/asks";
+import { INVITED, NEVER_ASKED, REPLIED } from "@/lib/asks/asks";
 import { query, transaction } from "@/lib/server/db.server";
 import {
   addPolitician,
@@ -547,8 +547,11 @@ describeWithDatabase("politicians", () => {
     expect(await ids({ ask: EDINBURGH, answer: [INVITED, NEVER_ASKED] })).toEqual(
       [written, marked, never, bounced].sort(),
     );
-    // Being marked invited isn't an answer.
-    expect(await ids({ ask: EDINBURGH })).toEqual([answered]);
+    // Everyone asked, answered or not: all but those never asked. Any reply is an answer, which being marked invited
+    // isn't.
+    expect(await ids({ ask: EDINBURGH })).toEqual([written, marked, answered].sort());
+    expect(await ids({ ask: EDINBURGH, answer: [REPLIED] })).toEqual([answered]);
+    expect(await ids({ ask: EDINBURGH, answer: [REPLIED, INVITED] })).toEqual([written, marked, answered].sort());
     expect(await ids({ ask: PM, answer: [INVITED] })).toEqual([written, marked].sort());
     expect(await countPoliticians({ ask: EDINBURGH, answer: [INVITED] })).toBe(2);
 

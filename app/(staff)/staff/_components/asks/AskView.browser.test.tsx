@@ -58,13 +58,15 @@ describe("AskView", () => {
     await render(<AskView ask={exampleAskPage} />);
     const heads = [...document.querySelectorAll("h2")].map((h) => h.textContent);
     expect(heads.slice(0, 4)).toEqual([
-      `${staffVocabulary.invited.letter} 37`,
+      `${staffVocabulary.noReplyYet.letter} 37`,
       `${staffVocabulary.statuses.signed} 7`,
-      `${words.otherAnswers} 0`,
+      `${staffVocabulary.statuses.other} 0`,
       `${staffVocabulary.statuses.declined} 1`,
     ]);
     // Those asked are in the words of its kind, a letter. One of them is out of office, so their list is too.
-    await expect.element(link(`${staffVocabulary.invited.letter} 37`)).toHaveAttribute("href", list("invited", true));
+    await expect
+      .element(link(`${staffVocabulary.noReplyYet.letter} 37`))
+      .toHaveAttribute("href", list("invited", true));
     await expect.element(link(words.allOf(37))).toHaveAttribute("href", list("invited", true));
     // Those who signed are all in office, so their list is of those in office, as the list is unless told.
     await expect.element(link(`${staffVocabulary.statuses.signed} 7`)).toHaveAttribute("href", list("signed"));
@@ -77,16 +79,15 @@ describe("AskView", () => {
     // Nobody in a yes or no column is tagged: the column's name says their answer.
     expect(page.getByText(staffVocabulary.statuses.signed, { exact: true }).all()).toHaveLength(1);
     // Nobody gave it: no link, and it says so.
-    expect(link(`${words.otherAnswers} 0`).query()).toBeNull();
+    expect(link(`${staffVocabulary.statuses.other} 0`).query()).toBeNull();
     await says(words.none);
   });
 
   it("tags each other answer with what it was, and has no column of those asked when there are none", async () => {
     await render(<AskView ask={exampleEventAskPage} />);
-    await says(`${words.otherAnswers} 2`);
+    await says(`${staffVocabulary.statuses.other} 2`);
     await says("Tentatively said yes");
-    expect(page.getByText(staffVocabulary.statuses.other, { exact: true }).query()).toBeNull();
-    expect(document.body.textContent).not.toContain(staffVocabulary.invited.event);
+    expect(document.body.textContent).not.toContain(staffVocabulary.noReplyYet.event);
   });
 
   it("an event: Edit, a link on our site or another's, and when there's nothing", async () => {
@@ -111,8 +112,8 @@ describe("AskView", () => {
     await says(words.none);
     // Nobody has answered, but some were asked: their column still shows, and for an event says they're invited.
     await rerender(<AskView ask={{ ...exampleAskPage, counts: {} }} />);
-    await expect.element(link(`${staffVocabulary.invited.letter} 37`)).toBeVisible();
+    await expect.element(link(`${staffVocabulary.noReplyYet.letter} 37`)).toBeVisible();
     await rerender(<AskView ask={{ ...exampleAskPage, kind: "event", counts: {} }} />);
-    await expect.element(link(`${staffVocabulary.invited.event} 37`)).toBeVisible();
+    await expect.element(link(`${staffVocabulary.noReplyYet.event} 37`)).toBeVisible();
   });
 });

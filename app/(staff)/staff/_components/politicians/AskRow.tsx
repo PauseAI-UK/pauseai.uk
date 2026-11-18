@@ -46,7 +46,7 @@ function AnswerForm({ politician, ask, setStatus }: { politician: Politician; as
         <Segmented
           label={copy.status}
           options={[
-            { value: byLetter && current !== INVITED ? "" : INVITED, label: standingWord(INVITED, ask.kind) },
+            { value: byLetter && current !== INVITED ? "" : INVITED, label: staffVocabulary.noReplyYet[ask.kind] },
             ...ANSWER_CHOICES[ask.kind].map((value) => ({
               value: value as string,
               label: staffVocabulary.statuses[value],
@@ -141,7 +141,7 @@ export default function AskRow({
         )}
       </div>
       <div className={styles.answer}>
-        <AnswerWord status={standing(politician, ask.slug)} kind={ask.kind} />
+        <AnswerWord status={standing(politician, ask.slug)} kind={ask.kind} waiting />
         {when && <span className={styles.askMeta}>{staffDate(when)}</span>}
         {byHand && (
           <button type="button" className={styles.edit} {...bubbleTrigger(editId)}>

@@ -188,7 +188,7 @@ So where someone stands on an ask is one of three things (`standing()` in
 - never asked, with neither.
 
 Invited isn't an answer. Whatever counts or finds answers leaves the row
-out (`answerSql()`, `isAnswer()`): an ask's counts, "Any answer" in the
+out (`answerSql()`, `isAnswer()`): an ask's counts, "Any reply" in the
 politicians list's filter, a mailing's and a campaign's count of who
 answered, the parts of a mailing that are for one answer, the kind being
 fixed, and what Email your MP is told of an MP. The words for it follow the
@@ -199,8 +199,12 @@ A politician's page lists the asks they've answered or are invited to, and
 its form sets any of the three: invited, an answer, or never asked, which
 clears the row. When a letter asked them, never asked isn't offered, and
 invited is what clears an answer. The politicians list's Ask filter finds
-those who stand on an ask in any of the ways chosen (with no ask chosen,
-no answer is offered or taken from the address), and its Asks column
+everyone asked, answered or not, until it's told one way or more: those
+asked with no reply yet, any reply (`REPLIED`) or one answer, or those never
+asked (with no ask chosen, no answer is offered or taken from the address).
+A choice like "Asked (no reply yet)" names the waiting state wherever it's
+one choice among the answers: that filter, a politician's form and the
+ask page's columns. Its Asks column
 lists answers. Filtered by an ask, that column is the ask's own instead,
 headed with its title and saying how each stands on it.
 

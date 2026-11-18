@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { windowStart } from "@/lib/time-windows";
 import { now } from "@/lib/now";
-import { AGREED_STATUSES, INVITED, NEVER_ASKED, type AskStatus, type RecordedStatus } from "@/lib/asks/asks";
+import { AGREED_STATUSES, INVITED, NEVER_ASKED, REPLIED, type AskStatus, type RecordedStatus } from "@/lib/asks/asks";
 import { answerSql, askingLetters } from "@/lib/asks/invited";
 import { MAILED, statusIn } from "@/lib/letters/status";
 import type { Mp, MpStatuses } from "@/lib/email-your-mp";
@@ -184,11 +184,11 @@ export type PoliticianWho = {
   email?: EmailState[];
   /** Those a mailing about any of these asks, by slug, went to or is going to. */
   mailed?: string[];
-  /** Only those who answered this ask, or stand on it as `answer` says, if given. */
+  /** Only those asked this ask, answered or not, or who stand on it as `answer` says, if given. */
   ask?: string;
   /**
-   * Only those who stand in any of these ways on `ask`: an answer they gave; INVITED, asked with no answer yet; or
-   * NEVER_ASKED. Nothing without an ask.
+   * Only those who stand in any of these ways on `ask`: an answer they gave; REPLIED, any answer; INVITED, asked
+   * with no answer yet; or NEVER_ASKED. Nothing without an ask.
    */
   answer?: string[];
   /** Only those who agreed to an ask (AGREED_STATUSES), not by Airtable's record, in the last so many days. */
@@ -254,10 +254,10 @@ function anyOf(filter: Pick<PoliticianWho, NegatablePoliticianFilter>): Sql[] {
 
 /**
  * Whether a politician stands on `ask` in one of the ways `answer` says: an
- * answer they gave; INVITED, staff having marked them so, or a letter having
- * put the ask to them with nothing recorded for it; NEVER_ASKED, with
- * nothing recorded and no such letter. With no `answer`, whether they gave
- * any.
+ * answer they gave; REPLIED, any answer; INVITED, staff having marked them
+ * so, or a letter having put the ask to them with nothing recorded for it;
+ * NEVER_ASKED, with nothing recorded and no such letter. With no `answer`,
+ * whether they were asked at all: anything recorded, or such a letter.
  */
 function answered(ask: string, answer?: string[]): Sql {
   const recorded = (status: Sql) =>
@@ -266,9 +266,11 @@ function answered(ask: string, answer?: string[]): Sql {
   const letter = (where: Sql) =>
     sql`EXISTS (SELECT 1 FROM (${sql.raw(askingLetters("l.notable_person_id = n.id"))}) w
       WHERE w.ask = ${ask} AND ${where})`;
-  if (!answer) return recorded(sql` AND ${sql.raw(answerSql("a.status"))}`);
-  const given = answer.filter((one) => one !== INVITED && one !== NEVER_ASKED);
+  // With nothing chosen, everyone asked: anything recorded, or a letter.
+  if (!answer) return sql.or([recorded(sql``), letter(sql`true`)]);
+  const given = answer.filter((one) => one !== INVITED && one !== NEVER_ASKED && one !== REPLIED);
   const conditions: Sql[] = [];
+  if (answer.includes(REPLIED)) conditions.push(recorded(sql` AND ${sql.raw(answerSql("a.status"))}`));
   if (answer.includes(INVITED)) {
     conditions.push(
       recorded(sql` AND a.status = ${INVITED}`),

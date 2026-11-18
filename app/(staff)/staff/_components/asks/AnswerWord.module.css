@@ -9,3 +9,8 @@
 .no::before {
   content: "✕ " / "";
 }
+
+/* The words after asked, where there's room for them: a line of their own. */
+.after {
+  display: block;
+}

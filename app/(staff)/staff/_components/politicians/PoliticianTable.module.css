@@ -13,8 +13,8 @@
 }
 
 /* The asks they've answered, as a small table in the cell: each ask's
-   title, in the secondary colour, and at its right their answer, in bold,
-   ticked or crossed. The answers' column is as wide as the longest of
+   title, in the secondary colour, and at its right their answer, ticked or
+   crossed. The answers' column is as wide as the longest of
    them, "✕ Declined", so they start level with each other down the whole
    list. Never wider than a title needs. */
 .asks {

@@ -994,7 +994,7 @@ describe("PoliticianDetails", () => {
         .all()
         .map((r) => r.element().textContent),
     ).toEqual([
-      staffVocabulary.invited.letter,
+      staffVocabulary.noReplyYet.letter,
       staffVocabulary.statuses.signed,
       staffVocabulary.statuses.declined,
       staffVocabulary.statuses.other,
@@ -1050,7 +1050,7 @@ describe("PoliticianDetails", () => {
         .all()
         .map((r) => r.element().textContent),
     ).toEqual([
-      staffVocabulary.invited.letter,
+      staffVocabulary.noReplyYet.letter,
       staffVocabulary.statuses.signed,
       staffVocabulary.statuses.declined,
       staffVocabulary.statuses.other,
@@ -1083,7 +1083,9 @@ describe("PoliticianDetails", () => {
     const letter = page.getByRole("group", { name: ask("frontier-ai-letter").title });
     const answer = () => letter.element().querySelector("[class*=answer]")!;
     // Nothing's recorded, so it says they were asked, plainly, and when the letter went.
-    expect(answer().textContent).toBe(`${staffVocabulary.invited.letter}12 Oct 2026${politiciansCopy.politician.edit}`);
+    expect(answer().textContent).toBe(
+      `${staffVocabulary.noReplyYet.letter}12 Oct 2026${politiciansCopy.politician.edit}`,
+    );
     expect(answer().firstElementChild!.className).not.toMatch(/yes|no/);
     // It's theirs already, so it isn't one to add.
     await page.getByRole("button", { name: politiciansCopy.politician.otherAsk }).click();
@@ -1099,14 +1101,14 @@ describe("PoliticianDetails", () => {
         .all()
         .map((r) => r.element().textContent);
     const asked = [
-      staffVocabulary.invited.letter,
+      staffVocabulary.noReplyYet.letter,
       staffVocabulary.statuses.signed,
       staffVocabulary.statuses.declined,
       staffVocabulary.statuses.other,
     ];
     expect(radios()).toEqual(asked);
     await expect
-      .element(choices.getByRole("radio", { name: staffVocabulary.invited.letter }))
+      .element(choices.getByRole("radio", { name: staffVocabulary.noReplyYet.letter }))
       .toHaveAttribute("aria-checked", "true");
     await expect.element(letter.getByRole("button", { name: politiciansCopy.politician.save })).toBeDisabled();
 
@@ -1115,7 +1117,7 @@ describe("PoliticianDetails", () => {
     expect(answer().firstElementChild!.textContent).toBe(staffVocabulary.statuses.signed);
     await letter.getByText(politiciansCopy.politician.edit, { exact: true }).click();
     expect(radios()).toEqual(asked);
-    await choices.getByRole("radio", { name: staffVocabulary.invited.letter }).click();
+    await choices.getByRole("radio", { name: staffVocabulary.noReplyYet.letter }).click();
     await letter.getByLabelText(politiciansCopy.politician.note).fill("Signed by mistake");
     await letter.getByRole("button", { name: politiciansCopy.politician.save }).click();
     await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -1145,7 +1147,7 @@ describe("PoliticianDetails", () => {
     await page.getByRole("button", { name: politiciansCopy.politician.otherAsk }).click();
     await page.getByRole("button", { name: event.title }).click();
     const row = page.getByRole("group", { name: event.title });
-    await row.getByRole("radio", { name: staffVocabulary.invited.event }).click();
+    await row.getByRole("radio", { name: staffVocabulary.noReplyYet.event }).click();
     await row.getByLabelText(politiciansCopy.politician.note).fill("At a dinner");
     await row.getByRole("button", { name: politiciansCopy.politician.save }).click();
     await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -1154,7 +1156,7 @@ describe("PoliticianDetails", () => {
     // Marked: invited, the day it was set, with the note and who set it; and never invited is there to clear it.
     await rerender(details({ [event.slug]: marked }));
     expect(row.element().querySelector("[class*=answer]")!.textContent).toBe(
-      `${staffVocabulary.invited.event}2 Nov 2026${politiciansCopy.politician.edit}`,
+      `${staffVocabulary.noReplyYet.event}2 Nov 2026${politiciansCopy.politician.edit}`,
     );
     await expect
       .element(row.getByText(`At a dinner · ${politiciansCopy.politician.setBy("jo@pauseai.uk", "2 Nov 2026")}`))
@@ -1166,7 +1168,7 @@ describe("PoliticianDetails", () => {
         .all()
         .map((r) => [r.element().textContent, r.element().getAttribute("aria-checked")]);
     expect(radios()).toEqual([
-      [staffVocabulary.invited.event, "true"],
+      [staffVocabulary.noReplyYet.event, "true"],
       [staffVocabulary.statuses.going, "false"],
       [staffVocabulary.statuses.declined, "false"],
       [staffVocabulary.statuses.other, "false"],
@@ -1176,7 +1178,7 @@ describe("PoliticianDetails", () => {
     // form is still open, as what's recorded is the same.
     await rerender(details({ [event.slug]: marked }, { [event.slug]: new Date("2026-10-12T09:00:00Z") }));
     expect(radios().map(([words]) => words)).toEqual([
-      staffVocabulary.invited.event,
+      staffVocabulary.noReplyYet.event,
       staffVocabulary.statuses.going,
       staffVocabulary.statuses.declined,
       staffVocabulary.statuses.other,

@@ -39,8 +39,8 @@ export const politiciansCopy = {
     // How they stand on the ask chosen, in the second half of the ask's chip, its menu named after the ask. With
     // no ask, as a link from the dashboard can have it, its own chip.
     answer: "Answer",
-    // In the second half of the ask's chip, before an answer is chosen.
-    anyAnswer: "Any answer",
+    // In the ask's menu, under everyone asked: those who gave any answer, the answers set in under it.
+    anyReply: "Any reply",
     // A filter: those a mailing about an ask has gone or is going to.
     mailed: "Mailed about",
     none: "None found.",
@@ -182,10 +182,10 @@ export const politiciansCopy = {
     // What each line of the history was: a letter, a reply, or an entry of the audit log about them.
     history: {
       letter: "Letter from",
-      "letter-replied": "Answered the letter from",
+      "letter-replied": "Replied to the letter from",
       // Without the supporters permission, a letter doesn't say who wrote it.
       unsignedLetter: "Letter written to them",
-      "unsigned-letter-replied": "Answered a letter",
+      "unsigned-letter-replied": "Replied to a letter",
       // A letter of one of PauseAI's mailings, by its mailing, and how it was written.
       "pauseai-letter": "Email from PauseAI:",
       "add politician": "Added",

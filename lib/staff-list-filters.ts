@@ -6,7 +6,7 @@
 // such as the parties, the events, or who's in the log.
 import { staffMemberText } from "@/lib/staff-member";
 import type { ReactNode } from "react";
-import { ANSWER_CHOICES, INVITED, NEVER_ASKED } from "@/lib/asks/asks";
+import { ANSWER_CHOICES, INVITED, NEVER_ASKED, REPLIED } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
 import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
@@ -40,13 +40,16 @@ import { oversightCopy } from "@/lib/oversight/copy";
 /**
  * A choice. Choices in a `group` come under its heading, its icon once,
  * the group named on the chip too, or the chip named `chip` for it in place
- * of the filter's name; a `detail` is said quietly after the words.
+ * of the filter's name; a `detail` is said quietly after the words. One
+ * `under` another, whose value it names, is set in beneath it, as one of
+ * what that one finds, when that one's offered too.
  */
 export type FilterOption = {
   value: string;
   label: string;
   group?: { label: string; icon: ReactNode; chip?: string };
   detail?: string;
+  under?: string;
 };
 
 /**
@@ -254,12 +257,19 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
       label: ask?.title ?? copy.answer,
       after: "ask",
       options: [
-        { value: "", label: copy.anyAnswer },
+        { value: "", label: staffVocabulary.everyoneAsked[ask?.kind ?? "letter"] },
         // An answer is only ever to the ask chosen (politiciansSearch), so with none there's nothing more to offer.
+        // Set in under everyone asked, those who haven't answered and those who have, and under them each answer;
+        // then, the other way, those never asked.
         ...(ask
           ? [
-              { value: INVITED, label: standingWord(INVITED, ask.kind) },
-              ...ANSWER_CHOICES[ask.kind].map((value) => ({ value, label: staffVocabulary.statuses[value] })),
+              { value: INVITED, label: staffVocabulary.noReplyYet[ask.kind], under: "" },
+              { value: REPLIED, label: copy.anyReply, under: "" },
+              ...ANSWER_CHOICES[ask.kind].map((value) => ({
+                value,
+                label: staffVocabulary.statuses[value],
+                under: REPLIED,
+              })),
               { value: NEVER_ASKED, label: standingWord(null, ask.kind) },
             ]
           : []),

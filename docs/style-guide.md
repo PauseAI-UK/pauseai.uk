@@ -767,16 +767,18 @@ are:
 - A filter can come after another (`after`). Once the first filter is on,
   the two are one chip in two halves, and each half opens its own choices.
   The second filter goes when the first does. An ask's chip is "Edinburgh
-  conference | Declined", with "Any answer" in the second half until an
+  conference | Declined", with "Any reply" in the second half until an
   answer is chosen. When the second filter is on without the first, as it
   can be from a link, it's an ordinary chip: "Answer: Signed".
 - When the filter that comes `after` another repeats, as an ask's answers
   do, the menu of the chip's second half has "+ Add": "Edinburgh
   conference | Going or Declined". Ticking nothing means its blank choice,
-  "Any answer". Changing the first half clears the second. A filter like
+  "Any reply". Changing the first half clears the second. A filter like
   this can't leave choices out.
 - A choice list can have headings (an option's `group`, its icon once)
-  and a quiet `detail` after a choice. A repeating filter whose choices
+  and a quiet `detail` after a choice. A choice that's one of what
+  another finds is set in beneath it (`under`), as Signed, Declined and
+  Other reply are under Any reply. A repeating filter whose choices
   are in groups has a chip for each group it finds, and one for each it
   leaves out, the group's icon first. A group can name its chip (its
   `chip`): "✉ Email consent: Newsletter or Events only" and "💬 Text

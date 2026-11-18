@@ -43,6 +43,9 @@ export function isAnswer(status: RecordedStatus | null | undefined): status is A
 /** In a filter of people by where they stand on an ask: those never asked, with nothing recorded and no letter. */
 export const NEVER_ASKED = "never";
 
+/** In the same filter: those who gave any answer. With none chosen, it finds everyone asked, answered or not. */
+export const REPLIED = "replied";
+
 /** Someone's record against each ask, and the asks a letter put to them, each by the ask's slug. */
 export type Asked = {
   statuses: Record<string, { status: RecordedStatus }>;
