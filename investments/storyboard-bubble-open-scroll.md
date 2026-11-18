@@ -38,5 +38,10 @@ scroll not depend on it.
   giving two scroll positions on different runs: the bubble's opening scroll
   raced the flow's frame. The flow now opens it with `openBubble`
   (`tests/storyboard/settle.ts`), which waits for that scroll, as every
-  flow does, and ESLint keeps flows from reaching an open bubble any other
-  way
+  flow does, and ESLint keeps flows from finding an open bubble by
+  `:popover-open`
+- 2026-11-18: twelve more flows opened a bubble with a plain press and found
+  what's in it by role or label, which that lint can't see. Found by a
+  listener for `toggle` events put in the page fixture for one run of every
+  flow, naming each popover that opened outside `openBubble`, then taken out
+  again, ~20 min
