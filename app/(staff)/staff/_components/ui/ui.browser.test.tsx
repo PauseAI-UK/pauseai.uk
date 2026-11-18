@@ -1100,6 +1100,21 @@ describe("Band", () => {
   // Where a fact's words are on the page.
   const box = (text: string) => page.getByText(text, { exact: true }).element().getBoundingClientRect();
 
+  it("puts a fact's value at its foot, level with the bottom of the words of the fact beside it", async () => {
+    await render(
+      <Band title="A supporter">
+        <BandFact label="Place" detail="from their postcode">
+          Manchester
+        </BandFact>
+        <BandFact label="Activities" foot>
+          <span style={{ display: "block", fontSize: "12px" }}>lozenges</span>
+        </BandFact>
+      </Band>,
+    );
+    expect(box("lozenges").bottom).toBe(box("from their postcode").bottom);
+    expect(box("lozenges").top).toBeGreaterThan(box("Manchester").top);
+  });
+
   it("under 70rem wide, has what's aside beside the facts if they fit, and under them at the right if not", async () => {
     const band = (to: string) => (
       <div style={{ width: "40rem" }}>

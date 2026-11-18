@@ -9,17 +9,20 @@ export function BandFact({
   label,
   detail,
   tall,
+  foot,
   children,
 }: {
   label: string;
   detail?: ReactNode;
   /** Taller than the rest, such as pills: where the facts are short of room, a column of its own. */
   tall?: boolean;
+  /** Its value at its foot, such as lozenges with no line under them: their bottom level with the bottom of the words of the facts beside it. */
+  foot?: boolean;
   children: ReactNode;
 }) {
   if (!children) return null;
   return (
-    <div className={tall ? styles.tall : undefined}>
+    <div className={tall ? styles.tall : foot ? styles.foot : undefined}>
       <dt>{label}</dt>
       <dd>{children}</dd>
       {detail && <dd className={styles.detail}>{detail}</dd>}

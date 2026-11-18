@@ -26,6 +26,35 @@
   overflow-wrap: anywhere;
 }
 
+/* In a text's reply that's more than words: what it was, or that a reaction was taken back, in grey, a line of
+   its own. */
+.kind {
+  display: block;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* Over a reaction: the start of our message it's to, one line, cut short where the wall ends, a bar at its
+   left, as WhatsApp quotes a message answered. */
+.quote {
+  display: block;
+  margin-bottom: var(--space-1);
+  padding-left: var(--space-2);
+  overflow: hidden;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A reaction's emoji, large, as WhatsApp shows a message that's one emoji. */
+.emoji {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
 /* What staff made of a reply, under its words, apart from them. */
 .dealt {
   margin: var(--space-3) 0 0;

@@ -9,10 +9,13 @@ import { firstOf, pageNumber, type Params, type ParamValue } from "@/lib/list-pa
 import {
   BROADCAST_SENDER,
   DEFAULT_SEND_BY,
+  restsUntil,
+  sendingPause,
   termsValues,
   type BroadcastChannel,
   type BroadcastSendBy,
   type BroadcastTerms,
+  type SendingPause,
 } from "./broadcasts";
 import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
 import { answersTo, type BroadcastAnswer } from "./answers.server";
@@ -56,6 +59,17 @@ export type BroadcastSummary = MailingBase & {
   waitReason: string | null;
   /** How many of its copies are in each state (COPY_STATES). */
   states: Record<(typeof COPY_STATES)[number], number>;
+  /** Why nothing of it is going out for now, if it's sending or past its time and nothing is (sendingPause). */
+  pause: SendingPause | null;
+};
+
+/** A broadcast as SELECT_BROADCASTS reads it: its summary, with what its pause is worked out from in place of it (withPause). */
+type SummaryRow = Omit<BroadcastSummary, "pause"> & {
+  waitingSince: Date | null;
+  waitSaid: string | null;
+  tryFailedAt: Date | null;
+  /** When the first of the copies WhatsApp held is next tried (HELD); null with none held. */
+  heldTill: Date | null;
 };
 
 // Why a copy's broadcast stopped by itself, when it did (its wait_reason), so a copy it left unsent can say so.
@@ -143,7 +157,8 @@ const SELECT_BROADCASTS = `
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'pending') AS waiting,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'approved') AS approved,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
-    m.gave_up AS "gaveUp", m.wait_reason AS "waitReason",
+    m.gave_up AS "gaveUp", m.wait_reason AS "waitReason", m.waiting_since AS "waitingSince", m.wait_said AS "waitSaid",
+    m.try_failed_at AS "tryFailedAt", min(c.not_before) FILTER (WHERE ${HELD}) AS "heldTill",
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",
     -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent. A lost
@@ -157,28 +172,54 @@ const SELECT_BROADCASTS = `
   LEFT JOIN LATERAL (SELECT ${COPY_STATE} AS state) s ON true
   WHERE m.audience = 'supporters'`;
 
+/**
+ * A broadcast's summary with its pause (sendingPause), from its row: it
+ * rests for REST_MINUTES after a failed try, and only one sending, with
+ * nothing else pausing it, asks what sends it whether it can send more today.
+ */
+async function withPause(row: SummaryRow): Promise<BroadcastSummary> {
+  const { waitingSince, waitSaid, tryFailedAt, heldTill, ...summary } = row;
+  const restsTill = tryFailedAt && restsUntil(tryFailedAt);
+  const facts = {
+    ...summary,
+    waitingSince,
+    waitSaid,
+    restingUntil: restsTill && restsTill > now() ? restsTill : null,
+    toGo: summary.states["to-go"],
+    held: summary.states.held,
+    heldTill,
+  };
+  const pause = sendingPause({ ...facts, atLimit: false });
+  if (pause || summary.state !== "sending") return { ...summary, pause };
+  const atLimit = (await broadcastSender(summary)).remaining === 0;
+  return { ...summary, pause: sendingPause({ ...facts, atLimit }) };
+}
+
 /** The page of broadcasts: what's coming up, and those sent under their months and years; and now, which says which year needn't be written. */
 export async function broadcastsPage(): Promise<{ groups: MailingGroup<BroadcastSummary>[]; now: string }> {
   // A draft or one scheduled has no messages yet, so how many it goes to is who its filters find now.
-  const [unsent, all] = await Promise.all([
-    query<BroadcastSummary & { filter: unknown; topics: BroadcastTerms["topics"] }>(
+  const [unsent, rows] = await Promise.all([
+    query<SummaryRow & { filter: unknown; topics: BroadcastTerms["topics"] }>(
       `SELECT d.*, f.filter, f.topics
        FROM (${SELECT_BROADCASTS} AND m.state IN ('draft', 'scheduled') GROUP BY m.id) d
        JOIN (SELECT id::int AS id, filter, ${TOPICS_OF} AS topics FROM mailings) f USING (id)
        ORDER BY d."updatedAt" DESC, d.id DESC`,
     ),
-    query<BroadcastSummary>(
+    query<SummaryRow>(
       `${SELECT_BROADCASTS} AND m.state NOT IN ('draft', 'scheduled') GROUP BY m.id
        ORDER BY min(c.sent_at) DESC NULLS FIRST, m.id DESC`,
     ),
   ]);
-  const counted = await Promise.all(
-    unsent.map(async ({ filter, topics, ...broadcast }) => ({
-      ...broadcast,
-      to: (await supporterAudience(checkStoredFilter(filter)!, { channel: broadcast.channel, topics })).recipients
-        .length,
-    })),
-  );
+  const [counted, all] = await Promise.all([
+    Promise.all(
+      unsent.map(async ({ filter, topics, ...broadcast }) => ({
+        ...(await withPause(broadcast)),
+        to: (await supporterAudience(checkStoredFilter(filter)!, { channel: broadcast.channel, topics })).recipients
+          .length,
+      })),
+    ),
+    Promise.all(rows.map(withPause)),
+  ]);
   const at = now();
   return {
     groups: mailingGroups(
@@ -253,8 +294,6 @@ export type BroadcastPageData =
       /** What each part its words can be only for says, as its box shows it. */
       parts: Record<string, string>;
       tab: MessageTab;
-      /** Whether it's sending by what can send no more today, so the rest wait for tomorrow. */
-      atLimit: boolean;
       recipients: MessageRecipient[];
       recipientsTotal: number;
       page: number;
@@ -328,7 +367,6 @@ export async function newBroadcastPageData(
       waitReason: null,
       waitSaid: null,
       gaveUp: false,
-      restingUntil: null,
     },
     data: {
       filter,
@@ -362,8 +400,8 @@ export async function broadcastPageData(
   const tab = MESSAGE_TABS.find((one) => one === firstOf(search.tab)) ?? "all";
   const page = pageNumber(firstOf(search.page));
   const from = `FROM broadcast_messages c WHERE c.mailing_id = $1 AND ${tabCondition(tab)}`;
-  const [[summary], recipients, [{ total }], choices, parts] = await Promise.all([
-    query<BroadcastSummary>(`${SELECT_BROADCASTS} AND m.id = $1 GROUP BY m.id`, [id]),
+  const [summary, recipients, [{ total }], choices, parts] = await Promise.all([
+    query<SummaryRow>(`${SELECT_BROADCASTS} AND m.id = $1 GROUP BY m.id`, [id]).then(([row]) => withPause(row)),
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
@@ -378,18 +416,16 @@ export async function broadcastPageData(
   ]);
   // One scheduled has no messages yet: it goes to whoever its filters find when it's sent, so for now, who they
   // find, a page at a time, each yet to be sent.
-  const now = written.state === "scheduled" ? await scheduledRecipients(written, page) : undefined;
-  const sender = written.state === "sending" ? await broadcastSender(written) : undefined;
-  const listed = now?.total ?? total;
+  const found = written.state === "scheduled" ? await scheduledRecipients(written, page) : undefined;
+  const listed = found?.total ?? total;
   return {
     kind: "written",
     written,
-    summary: { ...summary, to: now?.total ?? summary.to },
+    summary: { ...summary, to: found?.total ?? summary.to },
     choices,
     parts: Object.fromEntries(parts.map((part) => [part.id, part.label])),
     tab,
-    atLimit: sender?.remaining === 0,
-    recipients: now?.rows ?? recipients,
+    recipients: found?.rows ?? recipients,
     recipientsTotal: listed,
     page,
     pages: Math.max(1, Math.ceil(listed / RECIPIENTS_PAGE_SIZE)),

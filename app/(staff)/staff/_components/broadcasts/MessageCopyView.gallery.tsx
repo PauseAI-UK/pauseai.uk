@@ -41,6 +41,15 @@ export const messageCopyViewGallery: Example[] = [
           </StaffPage>
         ),
       },
+      {
+        label:
+          "A text's replies that are more than words: a reaction taken back, one to our answer, one whose emoji wasn't kept, a photo, a place, a voice note, and a kind with no name here",
+        render: () => (
+          <StaffPage as="div">
+            <MessageCopyViewExample kinds />
+          </StaffPage>
+        ),
+      },
     ],
   },
 ];

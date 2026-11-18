@@ -16,6 +16,7 @@ import {
   withChoosing,
 } from "./pages.server";
 import { broadcastsCopy } from "./copy";
+import { restsUntil, sendingStopsAt, waitEndsAt } from "./broadcasts";
 
 const JO = "jo@pauseai.uk";
 const HELLO = "hello@pauseai.uk";
@@ -178,14 +179,78 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await textSender()).toEqual({ byGmail: false, connected: false, remaining: null, daily: null });
   });
 
-  it("says one sending is at its limit once hello@ can send no more today", async () => {
+  /** A broadcast's pause, as its own page has it and as the list of broadcasts does. */
+  async function pauses(id: number) {
+    const data = await broadcastPageData(id, {}, JO);
+    const { groups } = await broadcastsPage();
+    const listed = groups.flatMap((group) => group.mailings).find((one) => one.id === id)!;
+    return { page: data!.kind === "written" && data!.summary.pause, list: listed.pause };
+  }
+
+  it("says one sending is paused at its limit once hello@ can send no more today", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane Smith");
     const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS, sendBy: "gmail" });
-    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ kind: "written", atLimit: false });
+    expect(await pauses(id)).toEqual({ page: null, list: null });
     await startSending(id);
-    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ atLimit: false });
+    expect(await pauses(id)).toEqual({ page: null, list: null });
     await sentByHello(1800);
-    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ atLimit: true });
+    const limit = { kind: "limit", channel: "email" };
+    expect(await pauses(id)).toEqual({ page: limit, list: limit });
+  });
+
+  it("says one past its time, or sending, that waits for CiviCRM is paused, why, and when the wait ends", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith");
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });
+    const since = new Date("2026-11-11T07:18:00Z");
+    await query("UPDATE mailings SET waiting_since = $2, wait_reason = 'civicrm', wait_said = 'Down' WHERE id = $1", [
+      id,
+      since,
+    ]);
+    const waiting = { kind: "waiting", reason: "civicrm", said: "Down", endsAt: waitEndsAt(since, null) };
+    expect(await pauses(id)).toEqual({ page: waiting, list: waiting });
+    // Sending, it stops when its days run out, if that's sooner.
+    await startSending(id);
+    const { dueAt } = (await getWrittenBroadcast(id))!;
+    const sooner = { ...waiting, endsAt: waitEndsAt(since, { dueAt: dueAt! }) };
+    expect(await pauses(id)).toEqual({ page: sooner, list: sooner });
+  });
+
+  it("says one sending rests after its sends failed, till when, and not once that's past, or for one not sending", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith");
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });
+    const failedAt = new Date(Date.now() - 5 * 60 * 1000);
+    await query("UPDATE mailings SET try_failed_at = $2 WHERE id = $1", [id, failedAt]);
+    // Scheduled, not sending: it isn't resting.
+    expect(await pauses(id)).toEqual({ page: null, list: null });
+    await startSending(id);
+    const resting = { kind: "resting", until: restsUntil(failedAt) };
+    expect(await pauses(id)).toEqual({ page: resting, list: resting });
+    await query("UPDATE mailings SET try_failed_at = now() - interval '1 hour' WHERE id = $1", [id]);
+    expect(await pauses(id)).toEqual({ page: null, list: null });
+  });
+
+  it("says one sending is paused once all it has left are texts WhatsApp held, till the first is tried again", async () => {
+    for (const n of [1, 2, 3]) await addFollower(`usr-${n}`, `p${n}@example.com`, `Person ${n}`);
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });
+    const copies = await sent(id, [
+      ["delivered", null],
+      ["scheduled", null],
+      ["scheduled", null],
+    ]);
+    await query("UPDATE mailings SET state = 'sending' WHERE id = $1", [id]);
+    await query("UPDATE broadcast_messages SET sent_at = NULL WHERE id = ANY($1)", [copies.slice(1)]);
+    // One held, one waiting its turn: it's still going.
+    await query("UPDATE broadcast_messages SET not_before = now() + interval '2 days' WHERE id = $1", [copies[1]]);
+    expect(await pauses(id)).toEqual({ page: null, list: null });
+    // Both held: paused till the sooner.
+    await query("UPDATE broadcast_messages SET not_before = now() + interval '1 day' WHERE id = $1", [copies[2]]);
+    const [{ sooner }] = await query<{ sooner: Date }>(
+      "SELECT not_before AS sooner FROM broadcast_messages WHERE id = $1",
+      [copies[2]],
+    );
+    const { dueAt } = (await getWrittenBroadcast(id))!;
+    const held = { kind: "held", held: 2, until: sooner, stopsAt: sendingStopsAt(dueAt!) };
+    expect(await pauses(id)).toEqual({ page: held, list: held });
   });
 
   it("gives New broadcast an email to no one yet, by Postmark", async () => {

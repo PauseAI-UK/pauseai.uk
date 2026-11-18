@@ -447,7 +447,10 @@ supporter, a mailing) starts with a tinted band. The band has:
   icon before it, email or text;
 - its facts (`BandFact`), each with a quiet line under it, which can say
   more of the same fact so it needs no fact of its own: who a mailing is
-  from has what sent it under it ("via Gmail");
+  from has what sent it under it ("via Gmail"). A fact of lozenges has no
+  line under it, so it sits at its foot (`foot`), the lozenges' bottom
+  level with the bottom of the words beside them; a supporter's are
+  larger there than in the list, whose rows they keep low;
 - at the facts' right, its numbers in one white box (`ui/Counts`), or for
   a mailing, broadcast or campaign, in two groups (`CountGroups`, "Status
   colours" below). Each number is a link (`StaffLink`, below) to what it
@@ -472,6 +475,13 @@ tile's link is hidden ("Filters", below).
 **Progress** (`ui/Progress`). How far something has got is a sentence
 over a thin bar: blue while it's going out, green for answers. It goes in
 its own card under a band, and is thin in a list's row.
+
+**A pause.** Something going out that has nothing going for now, such as
+a broadcast at a day's limit, looks the same wherever it's shown. Its bar
+is grey, with words that say it's waiting. In a list its row leads with
+that in amber, over what it waits for or till when, in place of the blue
+"Sending now". On its own page an amber strip with a clock (`waiting`)
+says why in full, under the bar.
 
 **Status colours.** A colour means how a status feels, the same everywhere:
 
@@ -1166,7 +1176,7 @@ march sign-up").
 - **Sentence case** for labels, buttons and headings: "Your name", "Find my MP", "Send email". Not "Your Name" or "Find My MP". Proper nouns keep their capitals: "MP", "PauseAI", "Airtable".
 - **Full stops** on messages that are sentences: errors, notices, hints and confirmations. "Please enter your name.", "Postcode not found."
 - **No full stops** on labels, buttons, headings, or a word or two of status: "Your email", "Preview", "Sending".
-- **Dates as people say them**: "23 Oct 2026", and with a time, "23 Oct 2026, 10:34", never "2026-10-23". The staff pages' dates are in UTC (`staffDate` and `staffTime` in `lib/staff-time.ts`). A download keeps the ISO form, for a spreadsheet to read.
+- **Dates as people say them**: "23 Oct 2026", and with a time, "23 Oct 2026, 10:34", never "2026-10-23". The staff pages' dates are in UTC (`staffDate` and `staffTime` in `lib/staff-time.ts`). A download is for a spreadsheet to read and sort, so a CSV's times are "2026-10-23 10:34", in London, or "2026-10-23" in a column the list shows as days (`day` on its column, `lib/staff-list.ts`); JSON has each in full, as ISO 8601.
 
 ## Imagery
 

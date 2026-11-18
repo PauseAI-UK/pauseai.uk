@@ -16,7 +16,7 @@ import { BASE, expect, frame, story, test } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import type { Section } from "./report/frames";
-import { messageFrom, postWhatsAppWebhook, statusOf, templateStatus } from "../whatsapp-webhooks";
+import { messageFrom, postWhatsAppWebhook, reactionFrom, statusOf, templateStatus } from "../whatsapp-webhooks";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
@@ -612,6 +612,34 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
   await textFrame(page, OUR_CHAT, shownText(flowDatabase, answer), "The answer, as they get it");
 });
 
+test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter reacts to a text with a thumbs up. WhatsApp's webhook says which message it's to and the emoji, so it shows on the text's page as a reply, for staff to check as any other.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  await postWhatsAppWebhook(request, BASE, reactionFrom(sent.number, "wamid.flow-reaction", sent.wamid, "👍"));
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText("👍")).toBeVisible();
+  await frame(page, "The reaction, as a bubble");
+  story("They take the reaction back, which WhatsApp tells us too. The bubble stays, saying so.");
+  await postWhatsAppWebhook(request, BASE, reactionFrom(sent.number, "wamid.flow-unreact", sent.wamid, undefined, 2));
+  await page.goto(page.url());
+  await expect(page.getByText(/removed this reaction/)).toBeVisible();
+  await frame(page, "The reaction, taken back");
+  story(
+    "Then they send a photo with a caption. The site keeps the caption and says a photo came with it, which only the WhatsApp app shows.",
+  );
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    messageFrom(sent.number, "wamid.flow-photo", sent.wamid, { photo: "Our banner from last time" }, 3),
+  );
+  await page.goto(page.url());
+  await expect(page.getByText("Our banner from last time")).toBeVisible();
+  await frame(page, "A photo's caption");
+});
+
 /** A reply to a text, answered from its thread: the text, and WhatsApp's ID for our answer. */
 async function textAnswered(page: Page, request: APIRequestContext, database: string) {
   const sent = await textSent(request, database);
@@ -829,6 +857,21 @@ test("A text partly sent", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: `1 ${stateWords.counts.held}` }).click();
   await expect(page.getByRole("heading", { name: stateWords.tabs.held })).toBeVisible();
   await frame(page, "Those held by WhatsApp");
+  story(
+    "The other copy goes. Now the held one is all that's left, so nothing is going out till it's tried again. The page says so, and its bar goes grey.",
+  );
+  runSql(
+    flowDatabase,
+    `UPDATE broadcast_messages SET status = 'sent', sent_at = now()
+     WHERE mailing_id = ${sent.id} AND status = 'scheduled' AND not_before IS NULL`,
+  );
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByText(/^. WhatsApp is holding the last text/)).toBeVisible();
+  await frame(page, "The text's page, waiting for the held one");
+  story("The list of broadcasts says the same of it, in place of Sending now.");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.paused.word, { exact: true })).toBeVisible();
+  await frame(page, "The list, with the text waiting");
 });
 
 /** An email to those who follow the calendar, scheduled for an hour ago, as scheduling leaves one; its ID. */

@@ -130,7 +130,9 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
  * Unschedule; how far one sending has got, with Stop
  * sending; once sent, how many of everyone it went to have answered its ask.
  * Nothing for one with no ask. `due` replaces how long till one scheduled
- * sends, as for a broadcast past its time that waits.
+ * sends, as for a broadcast past its time that waits. `paused` replaces the
+ * words over the bar of one sending with nothing going out for now, and its
+ * bar is grey.
  */
 export function MailingStanding({
   mailing,
@@ -139,6 +141,7 @@ export function MailingStanding({
   reschedule,
   line,
   due,
+  paused,
 }: {
   mailing: Pick<Mailing, "ask" | "to" | "sent" | "failed" | "answered">;
   written?: WrittenMailing;
@@ -146,6 +149,7 @@ export function MailingStanding({
   reschedule: FormAction;
   line?: string;
   due?: string;
+  paused?: string;
 }) {
   if (written?.state === "scheduled") {
     return (
@@ -171,8 +175,14 @@ export function MailingStanding({
         <Card span={6} as="div">
           <div className={styles.standing}>
             <div className={styles.bar}>
-              <Progress value={mailing.sent + mailing.failed} max={mailing.to} tone="blue" label={copy.sentLabel} big>
-                {copy.sendingBar(mailing.sent, mailing.to)}
+              <Progress
+                value={mailing.sent + mailing.failed}
+                max={mailing.to}
+                tone={paused ? "grey" : "blue"}
+                label={copy.sentLabel}
+                big
+              >
+                {paused ?? copy.sendingBar(mailing.sent, mailing.to)}
               </Progress>
             </div>
             <div className={styles.actions}>

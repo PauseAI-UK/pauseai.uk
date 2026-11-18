@@ -16,7 +16,6 @@ import {
   choiceTerms,
   isAvailableSendBy,
   rejectionWords,
-  restsUntil,
   sameWords,
   termsValues,
   BROADCAST_SENDER,
@@ -124,8 +123,6 @@ export type WrittenBroadcast = WrittenMailing & {
   /** What CiviCRM's check last said, as it failed, while it waits for it; null otherwise. */
   waitSaid: string | null;
   gaveUp: boolean;
-  /** Till when it rests, as its sends failed or what sends it couldn't for now (REST_MINUTES); null if it isn't. */
-  restingUntil: Date | null;
 };
 
 const SELECT_TEMPLATES = `
@@ -163,27 +160,24 @@ const topicColumns = (terms: BroadcastTerms): [Topic, Topic[]] => [terms.topics[
 export async function getWrittenBroadcast(id: number, opening = false): Promise<WrittenBroadcast | undefined> {
   const written = await (opening ? openWrittenMailing : getWrittenMailing)(id, "supporters");
   if (!written) return undefined;
-  const [{ templateId, tryFailedAt, ...own }] = await query<
+  const [{ templateId, ...own }] = await query<
     Pick<
       WrittenBroadcast,
       "title" | "channel" | "topics" | "sendBy" | "waitingSince" | "waitReason" | "waitSaid" | "gaveUp"
     > & {
       templateId: number | null;
-      tryFailedAt: Date | null;
     }
   >(
     `SELECT title, channel, ${TOPICS_OF} AS topics, template_id::int AS "templateId", send_by AS "sendBy",
        waiting_since AS "waitingSince",
-       wait_reason AS "waitReason", wait_said AS "waitSaid", gave_up AS "gaveUp", try_failed_at AS "tryFailedAt"
+       wait_reason AS "waitReason", wait_said AS "waitSaid", gave_up AS "gaveUp"
      FROM mailings WHERE id = $1`,
     [id],
   );
   const [template] = templateId
     ? await query<WhatsAppTemplate>(`${SELECT_TEMPLATES} WHERE t.id = $1`, [templateId])
     : [];
-  const restsTill = tryFailedAt && restsUntil(tryFailedAt);
-  const restingUntil = written.state === "sending" && restsTill && restsTill > now() ? restsTill : null;
-  return { ...written, ...own, restingUntil, template: template ?? null };
+  return { ...written, ...own, template: template ?? null };
 }
 
 /**

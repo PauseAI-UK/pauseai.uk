@@ -428,8 +428,14 @@ describe("MailingEditor", () => {
   it("makes no links in WhatsApp's words, which have none: not from an address pasted over words, nor pasted, nor typed", async () => {
     const onChange = await renderEditor([paragraph(text("Details here"))], { fields, conditions }, undefined, true);
     await toEnd();
-    await userEvent.keyboard("{Shift>}{Home}{/Shift}");
-    await expect.poll(() => document.getSelection()?.toString()).toBe("Details here");
+    // Pressed till the words are selected, as cursorAt presses its key: a press that lands before the editor has
+    // its cursor selects nothing, and nothing would press it again.
+    await expect
+      .poll(async () => {
+        await userEvent.keyboard("{Control>}{End}{/Control}{Shift>}{Home}{/Shift}");
+        return document.getSelection()?.toString();
+      })
+      .toBe("Details here");
     const paste = (type: string, data: string) => {
       const pasted = new DataTransfer();
       pasted.setData(type, data);

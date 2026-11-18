@@ -17,7 +17,10 @@ import {
   broadcastTerms,
   isAvailableSendBy,
   sendingDays,
+  sendingPause,
+  sendingStopsAt,
   textSender,
+  waitEndsAt,
   type SchedulingBroadcast,
 } from "./broadcasts";
 import { broadcastsCopy } from "./copy";
@@ -340,6 +343,74 @@ describe("sendingDays", () => {
     expect(sendingDays(250, 100, 50)).toBe(4);
     expect(sendingDays(1_000_000, null, null)).toBe(1);
     expect(sendingDays(1_000_000, 0, null)).toBe(1);
+  });
+});
+
+describe("sendingPause", () => {
+  const dueAt = new Date("2026-11-07T07:18:00Z");
+  const going = {
+    state: "sending",
+    channel: "text" as const,
+    dueAt,
+    waitingSince: null,
+    waitReason: null,
+    waitSaid: null,
+    restingUntil: null,
+    toGo: 3,
+    held: 0,
+    heldTill: null,
+    atLimit: false,
+  };
+
+  it("is none for one going out, or one not scheduled or sending, whatever else is so", () => {
+    expect(sendingPause(going)).toBeNull();
+    const since = new Date("2026-11-08T07:18:00Z");
+    for (const state of ["draft", "sent", "cancelled"]) {
+      expect(sendingPause({ ...going, state, waitingSince: since, restingUntil: since, atLimit: true })).toBeNull();
+    }
+  });
+
+  it("is waiting for CiviCRM first, for one scheduled or sending, till the wait ends", () => {
+    const since = new Date("2026-11-08T07:18:00Z");
+    const waiting = { ...going, waitingSince: since, waitSaid: "Down", restingUntil: since, atLimit: true };
+    expect(sendingPause({ ...waiting, waitReason: "civicrm" })).toEqual({
+      kind: "waiting",
+      reason: "civicrm",
+      said: "Down",
+      endsAt: waitEndsAt(since, { dueAt }),
+    });
+    // Scheduled, past its time: its days to send haven't begun, so only the wait ends it.
+    expect(sendingPause({ ...waiting, state: "scheduled", waitReason: "pull" })).toEqual({
+      kind: "waiting",
+      reason: "pull",
+      said: "Down",
+      endsAt: waitEndsAt(since, null),
+    });
+  });
+
+  it("is nothing else for one scheduled", () => {
+    const until = new Date("2026-11-08T07:43:00Z");
+    expect(sendingPause({ ...going, state: "scheduled", restingUntil: until, toGo: 0, heldTill: until })).toBeNull();
+    expect(sendingPause({ ...going, state: "scheduled", atLimit: true })).toBeNull();
+    // One sending with no time, which none has, is none either.
+    expect(sendingPause({ ...going, dueAt: null, atLimit: true })).toBeNull();
+  });
+
+  it("is resting, then held, then at its limit", () => {
+    const until = new Date("2026-11-08T07:43:00Z");
+    const heldTill = new Date("2026-11-09T10:07:00Z");
+    const all = { ...going, restingUntil: until, toGo: 0, held: 2, heldTill, atLimit: true };
+    expect(sendingPause(all)).toEqual({ kind: "resting", until });
+    expect(sendingPause({ ...all, restingUntil: null })).toEqual({
+      kind: "held",
+      held: 2,
+      until: heldTill,
+      stopsAt: sendingStopsAt(dueAt),
+    });
+    // With any that can go now, the held ones don't pause it.
+    expect(sendingPause({ ...all, restingUntil: null, toGo: 1 })).toEqual({ kind: "limit", channel: "text" });
+    expect(sendingPause({ ...all, restingUntil: null, heldTill: null })).toEqual({ kind: "limit", channel: "text" });
+    expect(sendingPause({ ...all, restingUntil: null, toGo: 1, atLimit: false })).toBeNull();
   });
 });
 

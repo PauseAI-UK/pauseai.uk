@@ -809,22 +809,6 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect((await getWrittenBroadcast(id))!.template).toMatchObject({ id: template });
   });
 
-  it("says till when one sending rests after its sends failed, and nothing once that's past, or for one not sending", async () => {
-    await addFollower("usr-1", "jane@example.com", "Jane");
-    const id = await draftOf(EMAIL_FILTER);
-    await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
-    const failedAt = new Date(Date.now() - 5 * 60 * 1000);
-    await query("UPDATE mailings SET try_failed_at = $2 WHERE id = $1", [id, failedAt]);
-    // Scheduled, not sending: it isn't resting.
-    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
-    await startSending(id);
-    expect((await getWrittenBroadcast(id))!.restingUntil).toEqual(new Date(failedAt.getTime() + 25 * 60 * 1000));
-    await query("UPDATE mailings SET try_failed_at = now() - interval '1 hour' WHERE id = $1", [id]);
-    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
-    await query("UPDATE mailings SET try_failed_at = NULL WHERE id = $1", [id]);
-    expect((await getWrittenBroadcast(id))!.restingUntil).toBeNull();
-  });
-
   it("stops one sending: sends no more, and says so of those not sent", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane");
     const id = await draftOf(EMAIL_FILTER);
