@@ -33,9 +33,13 @@ The repo is public. A hit names no one and quotes no data, and says nothing abou
 
 ## Keeping a file true
 
-A hit is the least a file gets. Whenever your work changes what a file should say, rewrite its Problem and Fix in the same PR, so they say how things stand: the cause you found, the part now fixed, what's left to do. Do it without being asked, and don't leave it at a hit beside a Problem that's no longer true. The hits stay as they were written: they're the record of what it cost.
+A file says only what's still wrong. Whenever your work fixes part of an item, or finds its cause, rewrite the file in the same PR, without being asked:
 
-If nothing is left to do, the item is finished: delete its file ("Picking the next one", below).
+- Problem and Fix say how things stand now: what's left to do, not what was done.
+- Hits for what's now fixed come out, so the count is of what still costs time.
+- The title and the file's name change if what's left is something else.
+
+Don't add a hit saying you fixed something: that's in the commit. If nothing is left to do, the item is finished: delete its file ("Picking the next one", below).
 
 ## Picking the next one
 
