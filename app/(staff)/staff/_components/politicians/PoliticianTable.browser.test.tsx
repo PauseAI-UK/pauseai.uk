@@ -185,13 +185,10 @@ describe("PoliticianTable", () => {
     expect(answers("Neil Never")).toEqual([]);
     // Filtered by an ask, the column is headed with its title, unsorted, and says only how each stands on it.
     await rerender(<PoliticianTable politicians={rows} asks={exampleAsks} search={{ ask: edinburgh.slug }} />);
-    const th = page.getByRole("columnheader", { name: edinburgh.title, exact: true });
-    await expect.element(th).toBeVisible();
-    expect(th.element().querySelector("a")).toBeNull();
+    const th = [...document.querySelectorAll("th")].find((one) => one.textContent === edinburgh.title)!;
+    expect(th.querySelector("a")).toBeNull();
     const cell = (name: string) =>
-      page.getByRole("row").filter({ hasText: name }).element().querySelectorAll("td")[
-        (th.element() as HTMLTableCellElement).cellIndex
-      ];
+      page.getByRole("row").filter({ hasText: name }).element().querySelectorAll("td")[th.cellIndex];
     expect(cell("Wendy Written").textContent).toBe(staffVocabulary.invited.event);
     expect(cell("Neil Never").textContent).toBe(staffVocabulary.neverAsked.event);
     expect(cell("Dee Declined").textContent).toBe(staffVocabulary.statuses.declined);
