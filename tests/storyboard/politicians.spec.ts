@@ -352,8 +352,7 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   const filters = politiciansCopy.politicians;
   const rows = page.getByRole("row");
   await page.goto(`${BASE}/staff/politicians?ask=edinburgh-conference-2026`);
-  await page.getByRole("button", { name: filters.anyAnswer }).click();
-  const menu = page.locator("[popover]:popover-open");
+  const menu = await openBubble(page.getByRole("button", { name: filters.anyAnswer }));
   await frame(page, "The answers, a row each");
 
   story("+ Add turns the rows to boxes. Any answer isn't one of them: it's what ticking none means.");
@@ -575,8 +574,7 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
   await page.goto(`${BASE}/staff/politicians/${polly}`);
   const aliases = copy.aliases;
-  await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
-  const bubble = page.locator("[popover]:popover-open");
+  const bubble = await openBubble(page.getByRole("button", { name: /^\+\d+ more$/ }));
   await expect(bubble.getByRole("heading", { name: aliases.title })).toBeVisible();
   await frame(page, "Her linked addresses", { window: true });
 
@@ -649,8 +647,7 @@ test("Writing to a Lord", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await openPolitician(page, "Lord Seedling of Example");
   const words = copy.editDetails;
-  await openBubble(page.getByRole("button", { name: words.add }));
-  const bubble = page.locator("[popover]:popover-open");
+  const bubble = await openBubble(page.getByRole("button", { name: words.add }));
   await expect(bubble.getByText(words.emailHint)).toBeVisible();
   await bubble.getByRole("textbox", { name: words.email }).fill("seedling@lords.example");
   await bubble.getByRole("textbox", { name: words.note }).fill("On his website");
@@ -670,8 +667,7 @@ test("Changing an MP's email", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await openPolitician(page, "Polly Placeholder");
   const words = copy.editDetails;
-  await page.getByRole("button", { name: /^\+\d+ more$/ }).click();
-  const bubble = page.locator("[popover]:popover-open");
+  const bubble = await openBubble(page.getByRole("button", { name: /^\+\d+ more$/ }));
   await expect(bubble.getByText(copy.aliases.sources.parliament("commons")).first()).toBeVisible();
   await frame(page, "Her main address, from Parliament", { window: true });
 
@@ -720,8 +716,7 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   story(
     "Staff press edit by it. Its bubble says it's just her name, and offers Ms Example and Mr Example. They press Ms Example, which puts it in the field, and say why.",
   );
-  await page.getByRole("button", { name: words.edit }).click();
-  const bubble = page.locator("[popover]:popover-open");
+  const bubble = await openBubble(page.getByRole("button", { name: words.edit }));
   await expect(bubble.getByText(words.fromName)).toBeVisible();
   await expect(bubble.getByRole("button", { name: "Ms Example" })).toBeVisible();
   await frame(page, "The salutations it most likely is", { window: true });

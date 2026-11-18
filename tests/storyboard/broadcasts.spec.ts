@@ -11,7 +11,7 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { caretInEmpty } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { holdActions } from "./loading-steps";
-import { hydrated, scrollSettled } from "./settle";
+import { hydrated, openBubble, scrollSettled } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
@@ -736,8 +736,7 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
     "Except offers the Consents all the same, as leaving some out only narrows it: here those we can text about events, who'll get a text instead.",
   );
   const { topics } = supportersCopy.supporters.filters;
-  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
-  const except = page.locator("[popover]:popover-open");
+  const except = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except }));
   await except.getByText(supportersCopy.supporters.columns.subscriptions, { exact: true }).click();
   await except.getByRole("link", { name: topics.events, exact: true }).click();
   await expect(page).toHaveURL(/contact=%21text%3Aevents%3Ayes/);

@@ -34,3 +34,9 @@ scroll not depend on it.
   (the review, then `-g "Writing to a Lord"` three times), against main's
   128px, made in the main worktree: a checkout where it reproduces every
   time, ~10 min
+- 2026-11-18: "Writing to a Lord" flaked on the phone again, main's build
+  giving two scroll positions on different runs: the bubble's opening scroll
+  raced the flow's frame. The flow now opens it with `openBubble`
+  (`tests/storyboard/settle.ts`), which waits for that scroll, as every
+  flow does, and ESLint keeps flows from reaching an open bubble any other
+  way

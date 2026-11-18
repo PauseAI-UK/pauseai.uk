@@ -820,6 +820,12 @@ order, alongside the others:
   - `hydrated`: mounted, fonts in, console quiet;
   - `scrollSettled`: a smooth scroll at rest;
   - `layoutSettled`: images in, nothing moving;
+  - `openBubble`: presses the button that opens a bubble or a menu, waits
+    for the scroll a bubble starts as it opens, and returns what's open.
+    Every flow opens them with it: one that presses the button itself can
+    take its frame, or press inside the bubble, while the page still
+    scrolls. ESLint keeps `:popover-open` out of the flows, so there's no
+    other way to reach an open one;
   - `wholePage`: back at the top, and staying there, for a frame after a
     click, typing or going back has left the window somewhere that varies
     between runs.

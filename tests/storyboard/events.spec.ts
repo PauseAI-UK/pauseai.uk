@@ -7,7 +7,7 @@ import { newestEmail } from "./outbox-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { importLuma } from "./supporter-steps";
 import { emailFrame } from "./email-frame";
-import { handled } from "./settle";
+import { handled, openBubble } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { eventsCopy } from "@/lib/events/copy";
@@ -233,11 +233,9 @@ const listHeadings = (page: Page) => page.locator("section:not(nav section) h2")
 
 /** Shows what's found as `choice` says, from the Group by chip's menu. */
 async function groupBy(page: Page, choice: keyof typeof copy.group.choices) {
+  const menu = await openBubble(page.getByRole("button", { name: new RegExp(`^${copy.group.chip}`) }));
+  const link = menu.getByRole("link", { name: copy.group.choices[choice], exact: true });
   // The menu opens before the page has hydrated, and a choice pressed then goes nowhere.
-  await page.getByRole("button", { name: new RegExp(`^${copy.group.chip}`) }).click();
-  const link = page
-    .locator("[popover]:popover-open")
-    .getByRole("link", { name: copy.group.choices[choice], exact: true });
   await handled(link);
   await link.click();
 }
@@ -347,9 +345,8 @@ test("In-person events by owner", async ({ page, flowDatabase }) => {
   await frame(page, "Every event to come, by owner");
 
   story("From Except, he leaves out Online. The calls and the welcome go, and the lists stay by owner.");
-  await page.getByRole("button", { name: staffVocabulary.filters.except }).click();
-  const place = page
-    .locator("[popover]:popover-open details")
+  const place = (await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except })))
+    .locator("details")
     .filter({ has: page.locator("summary", { hasText: new RegExp(`^${copy.filters.place}$`) }) });
   await place.locator("summary").click();
   await place.getByRole("link", { name: copy.online, exact: true }).click();

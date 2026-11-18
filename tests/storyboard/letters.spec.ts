@@ -9,6 +9,7 @@ import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
+import { openBubble } from "./settle";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { TEST_MPS } from "@/lib/politicians/test-mps";
 import type { Section } from "./report/frames";
@@ -246,15 +247,16 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   ).toBeVisible();
   await frame(page, "Jane's letter, bounced");
   story("The button beside the bounce in the letter's history shows what the bounce said.");
-  await page
-    .getByRole("list", { name: lettersCopy.letters.detail.historyTitle })
-    .getByRole("listitem")
-    .filter({ hasText: new RegExp(`^${lettersCopy.letters.status.bounced}`) })
-    // The bounce's own, not that of the notice to Jane under it.
-    .getByRole("button")
-    .first()
-    .click();
-  await expect(page.locator(":popover-open")).toContainText('"reason"');
+  const logged = await openBubble(
+    page
+      .getByRole("list", { name: lettersCopy.letters.detail.historyTitle })
+      .getByRole("listitem")
+      .filter({ hasText: new RegExp(`^${lettersCopy.letters.status.bounced}`) })
+      // The bounce's own, not that of the notice to Jane under it.
+      .getByRole("button")
+      .first(),
+  );
+  await expect(logged).toContainText('"reason"');
   await frame(page, "What the bounce said", { window: true });
   await page.keyboard.press("Escape");
   story("The way back leads to the letter's campaign.");
