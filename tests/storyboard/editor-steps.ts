@@ -13,6 +13,7 @@ type TiptapElement = HTMLElement & {
     state: {
       doc: { content: { size: number } };
       selection: {
+        empty: boolean;
         $to: { parentOffset: number; parent: { textContent: string; content: { size: number } }; after: () => number };
       };
     };
@@ -66,7 +67,12 @@ export async function caretInEmpty(box: Locator, index: number) {
     .toBe(true);
 }
 
-/** Puts the caret at the end of the letter in `box`, a Tiptap editor such as a mailing's, to write under what's there. */
+/**
+ * Puts the caret at the end of the letter in `box`, a Tiptap editor such as
+ * a mailing's, to write under what's there: a caret, not a selection, as a
+ * link selected at the letter's end ends there too, and a key pressed then
+ * would replace it.
+ */
 export async function caretAtEnd(box: Locator) {
   await focusEditor(box.page(), box);
   await box.press("Control+End");
@@ -75,7 +81,7 @@ export async function caretAtEnd(box: Locator) {
       box.evaluate((el) => {
         const { doc, selection } = (el as TiptapElement).editor.state;
         const { $to } = selection;
-        return $to.parentOffset === $to.parent.content.size && $to.after() === doc.content.size;
+        return selection.empty && $to.parentOffset === $to.parent.content.size && $to.after() === doc.content.size;
       }),
     )
     .toBe(true);
