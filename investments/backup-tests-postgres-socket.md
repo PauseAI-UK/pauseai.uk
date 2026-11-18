@@ -15,3 +15,4 @@ Have the backup's tests find the server as `defaultHost` does, or the gate pass 
 ## Hits
 
 - 2026-11-18: `/var/run/postgresql` wasn't writable in the dev container, so Postgres was started with its socket in `/tmp`; the gate's backup tests failed until it was run with `PGHOST=/tmp`, ~10 min
+- 2026-11-18: the same, in another checkout, while a broadcast change ran the gate, ~5 min
