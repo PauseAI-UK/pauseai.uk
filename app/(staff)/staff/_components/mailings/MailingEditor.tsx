@@ -353,8 +353,8 @@ function SelectionMenu({ editor }: { editor: Editor }) {
   // Placed once it's drawn: under the selection's end, kept inside the window at its right.
   const box = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    const menu = box.current;
-    if (!menu || at === null) return;
+    if (at === null) return;
+    const menu = box.current!;
     if (!menu.matches(":popover-open")) menu.showPopover();
     const end = editor.view.coordsAtPos(at);
     menu.style.top = `${end.bottom}px`;
