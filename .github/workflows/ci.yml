@@ -72,9 +72,10 @@ jobs:
         run: npm run placeholders
 
   # The types, on their own, so a type error is one red job saying what's
-  # wrong in seconds. The jobs that build the site wait for this one, as
-  # `next build` checks types too, and show as skipped rather than failing
-  # with the same error at the end of a long log. It first checks that no
+  # wrong in seconds. The Build job waits for this one, as `next build`
+  # checks types too, and shows as skipped rather than failing with the same
+  # error at the end of a long log. The storyboard doesn't wait: its builds
+  # skip the types (SKIP_BUILD_TYPES, next.config.ts). It first checks that no
   # migration already pushed has changed, and that new ones come after
   # main's, either of which would fail the deploy.
   types:
@@ -118,9 +119,18 @@ jobs:
       - name: Check types
         run: npm run typecheck
 
-  test:
-    name: Test
+  # The tests split between three jobs, dealt by how long each file took
+  # when last run (scripts/ci-parts.mjs), so the parts take about as long as
+  # each other. Each writes its coverage, with Vitest's thresholds off, as a
+  # shard can't know what the others cover; the Test job merges and checks
+  # them, and keeps the times for the next run.
+  test-shard:
+    name: Test (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     # Playwright's image, with Chromium and the system packages it needs, so
     # the job installs neither (https://playwright.dev/docs/ci#via-containers).
     # Its version is @playwright/test's, which Dependabot bumps and the image
@@ -185,10 +195,92 @@ jobs:
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
-      # Both Vitest projects (node and browser), gated on coverage. The
+      # How long each test file took, in Vitest's own results cache, as the
+      # Test job kept it from the latest run: on main, or this branch's.
+      - name: Restore the tests' times
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/vitest
+          key: test-times-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: test-times-
+
+      # Both Vitest projects (node and browser), a third of each by time. The
       # browser project renders components in the image's Chromium.
-      - name: Test with coverage
-        run: npm test
+      - name: Test
+        run: >-
+          npx vitest run --coverage --shard=${{ matrix.shard }}/3
+          --coverage.reporter=json --coverage.thresholds.100=false --coverage.thresholds.perFile=false
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.shard }}
+          path: coverage/coverage-final.json
+          retention-days: 1
+
+      - name: Upload the tests' times
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-times-${{ matrix.shard }}
+          path: node_modules/.vite/vitest
+          include-hidden-files: true
+          retention-days: 1
+
+  # One result for the parts, under the test check's own name: it fails if
+  # any part did, and otherwise merges their coverage and checks every
+  # file is at 100%, as `npm test` does (scripts/merge-coverage.mjs).
+  test:
+    name: Test
+    needs: test-shard
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every part passed
+        run: test "${{ needs.test-shard.result }}" = success
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        id: node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+
+      # As the first job does: node_modules, kept for each lockfile and Node version.
+      - name: Cache dependencies
+        id: node-modules
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ steps.node.outputs.node-version }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Download coverage
+        uses: actions/download-artifact@v7
+        with:
+          pattern: coverage-*
+
+      - name: Every file at 100% coverage
+        run: node scripts/merge-coverage.mjs coverage-*/coverage-final.json
+
+      - name: Download the tests' times
+        uses: actions/download-artifact@v7
+        with:
+          pattern: test-times-*
+
+      - name: Merge the tests' times
+        run: node scripts/ci-parts.mjs merge-vitest node_modules/.vite/vitest test-times-*/*/results.json
+
+      - name: Keep the tests' times
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/vitest
+          key: test-times-${{ github.run_id }}-${{ github.run_attempt }}
 
   build:
     name: Build
@@ -235,12 +327,11 @@ jobs:
         run: npx next build
 
   # The flows split between three jobs, each building the site: the flows
-  # are most of the time, the setup and the build a minute or so. Three
-  # brings the slowest part under the Test job's time; Playwright splits by
-  # number of flows, not their length, so the parts aren't the same length.
+  # are most of the time, the setup and the build a minute or so. They're
+  # dealt by how long each took when last run, not by count, as the gallery's
+  # and the broadcasts' take far longer than most.
   storyboard-shard:
     name: Storyboard (${{ matrix.shard }} of 3)
-    needs: types
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -269,6 +360,8 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: postgres
       LOCAL_POSTGRES_HOST: postgres
+      # The Types job checks them, beside this one (next.config.ts).
+      SKIP_BUILD_TYPES: "1"
     steps:
       # Git, for the checkout, and psql 18, to match the server: each flow's
       # database is made with it (scripts/fresh-database.mjs). Retried as in
@@ -318,8 +411,31 @@ jobs:
       # playwright.config.ts's webServer builds and starts the app itself, so
       # there is no separate build step here. The gate takes no screenshots;
       # the comparison with main (npm run storyboard) is run by hand.
+      # How long each flow took, as the Storyboard job kept it from the
+      # latest run: on main, or this branch's.
+      - name: Restore the flows' times
+        uses: actions/cache/restore@v6
+        with:
+          path: storyboard-times.json
+          key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: storyboard-times-
+
+      # A third of the flows by time (scripts/ci-parts.mjs): every part deals
+      # the same, from the same times, and runs its own.
+      - name: Choose this part's flows
+        run: node scripts/ci-parts.mjs storyboard ${{ matrix.shard }}/3 storyboard-times.json part-flows.txt
+
       - name: Storyboard
-        run: npm run test:storyboard -- --shard=${{ matrix.shard }}/3
+        run: npm run test:storyboard -- --test-list=part-flows.txt
+        env:
+          STORYBOARD_TIMES: part-times.json
+
+      - name: Upload the flows' times
+        uses: actions/upload-artifact@v7
+        with:
+          name: storyboard-times-${{ matrix.shard }}
+          path: part-times.json
+          retention-days: 1
 
       - name: Upload report on failure
         if: failure()
@@ -333,15 +449,30 @@ jobs:
 
   # One result for the three parts, under the storyboard check's own name.
   # It runs whatever they did, so a failed part fails it, rather than
-  # leaving it skipped; only a type error, when no part ran, skips it.
+  # leaving it skipped. When they all passed, it keeps their flows' times
+  # for the next run, as one file.
   storyboard:
     name: Storyboard
-    needs: [types, storyboard-shard]
-    if: ${{ always() && needs.types.result == 'success' }}
+    needs: storyboard-shard
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Every part passed
         run: test "${{ needs.storyboard-shard.result }}" = success
+
+      - name: Download the flows' times
+        uses: actions/download-artifact@v7
+        with:
+          pattern: storyboard-times-*
+
+      - name: Merge the flows' times
+        run: jq -s add storyboard-times-*/part-times.json > storyboard-times.json
+
+      - name: Keep the flows' times
+        uses: actions/cache/save@v6
+        with:
+          path: storyboard-times.json
+          key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
 
   # The database backup's own package (backup/README.md): its tests, with
   # their coverage gate, and its types.

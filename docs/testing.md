@@ -31,6 +31,17 @@ start`), so it is slower. Use it only for what Vitest can't see:
 `coverage/`. CI fails if it drops below the thresholds in
 `vitest.config.mts`.
 
+CI splits the tests between three jobs (Vitest's `--shard`, dealt by how
+long each file last took, `scripts/ci-parts.mjs`), each writing its
+coverage with the thresholds off, and its Test job merges them and fails
+on any file under 100% (`scripts/merge-coverage.mjs`). The node and browser
+projects can map a statement to different ranges, and a range that runs to
+its line's end ends at column `Infinity`, which JSON writes as `null`. Merged
+as written, the two ranges stay apart, one never run, and a few components
+fail on statements a whole run covers; Vitest's own `--merge-reports` does
+the same. So the merge reads a `null` column as `Infinity`, and a range then
+takes the count of the one around it, as in a whole run.
+
 While writing tests, `npm run test:changed` is quicker. It:
 
 - runs only the tests for the files changed since `origin/main`, committed
@@ -281,7 +292,11 @@ npm run test:report       # Playwright's own report, with the trace of a failed 
 **CI's run** fails only on a flow's checks, never on how a page looks. CI
 runs every flow, in three parts at once, each a job of its own
 ("Storyboard (1 of 3)" and so on), and the Storyboard check passes when
-all three have passed. `.github/workflows/ci.yml` says why. Locally, the
+all three have passed. The flows are dealt into parts by how long each
+took in the last run, kept in the Actions cache, so the parts take about
+as long as each other (`scripts/ci-parts.mjs`; a flow with no time yet is
+taken as long as the middle one of its section). `.github/workflows/ci.yml`
+says why. Locally, the
 gate's storyboard is the review (`npm run gate`, below), so one run checks
 the flows and pictures them.
 
@@ -1395,7 +1410,7 @@ npm run gate              # the CI gate: the fast checks on the changed files, t
 npm run gate -- --fast    # the fast checks alone
 npm run gate -- --only test   # one group of the gate's commands or more (checks, test, flows), kept in its status
 npm run typecheck         # types (also runs in npm run build)
-npm test                  # both Vitest projects, with the coverage gate (what CI runs)
+npm test                  # both Vitest projects, with the coverage gate (what CI runs, in three parts)
 npm run test:changed      # the tests for the files changed since origin/main, and those files' uncovered lines and branches
 npm run test:node         # Vitest node project (also runs in npm run build)
 npm run lint              # ESLint, failing on warnings too (also runs in npm run build)
@@ -1453,7 +1468,7 @@ mistake. `--fast` stops after them anyway.
 **What CI runs**, in four lanes at once, as CI's jobs run:
 
 - `npm run typecheck`, then `npm run storyboard -- --no-open` (the
-  storyboard waits for the types, as in CI, and both write `.next`). It's
+  storyboard waits for the types, as both write `.next`). It's
   the review, of the flows a change can reach ("Which flows a review
   runs"), so it counts for the review too, and finds nothing to run if one
   has already run on the same code;
