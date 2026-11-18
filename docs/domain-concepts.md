@@ -1517,10 +1517,22 @@ One place decides whether we may contact an email address or a phone
 number about each topic by each way, and why: `contact_permission()`
 (`netlify/database/migrations/0100_consents.sql`, where each reason is
 explained), read through the `email_permissions` and `phone_permissions`
-views and `contact_permissions`, both of them. Everything that asks reads
-those: the supporter's page and the list's Consent, Email and Phone
-columns, through `permissionsFor()` in `lib/supporters/permissions-for.server.ts`;
-the list's Consent filter; and who a broadcast goes to. Their stops are
+views and `contact_permissions`, both of them.
+
+Pages that count or filter thousands of answers read them kept, worked
+out ahead, from `contact_permissions_kept`
+(`netlify/database/migrations/0142_kept_permissions.sql`): the supporter's
+page and the list's Consent, Email and Phone columns, through
+`permissionsFor()` in `lib/supporters/permissions-for.server.ts`; the
+list's Consent filter; and so who a broadcast's draft goes to. A trigger on
+every table the rules read works out again, in the same statement, every
+answer of each address or number a change touches, so the kept answers are
+never behind. The one rule that turns on the time, not a write, a day's
+texts ending, is kept with when it ends, and worked out afresh once it has.
+`lib/supporters/permissions-for.server.test.ts` checks the kept answers
+match the rules after every test, and that every table the rules read has
+the trigger. Sending doesn't trust them: each copy asks
+`contact_permission()` just before it goes. Their stops are
 read through the `contact_unsubscribes` view, by the list's Unsubscribed
 filter and the staff home's count of new opt-outs. Nothing else reads `opt_outs` to answer it, and
 `tests/checks/opt-outs.test.ts` fails if code outside

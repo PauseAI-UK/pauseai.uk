@@ -1,7 +1,7 @@
-import { expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import type { Topic, Way } from "./contact-permissions";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
-import { query } from "@/lib/server/db.server";
+import { query, transaction } from "@/lib/server/db.server";
 import { permissionsFor } from "./permissions-for.server";
 import { isInternational } from "@/lib/phone";
 import { PHONE_NUMBERS } from "@/tests/phone-numbers";
@@ -124,8 +124,23 @@ async function phoneAnswer(number: string, topic: Topic, way: Way = "text") {
   return found && [found.send, found.reason, found.at && new Date(found.at).toISOString(), found.source];
 }
 
+/** The answers the kept ones (contact_permissions_kept) and the rules (contact_permissions) don't share, each marked with which has it. */
+async function keptDifferences() {
+  const columns = "topic, way, channel, address, send, reason, at, source";
+  return query(
+    `(SELECT 'kept' AS only, ${columns} FROM contact_permissions_kept EXCEPT ALL SELECT 'kept', ${columns} FROM contact_permissions)
+     UNION ALL
+     (SELECT 'rules', ${columns} FROM contact_permissions EXCEPT ALL SELECT 'rules', ${columns} FROM contact_permissions_kept)`,
+  );
+}
+
 describeWithDatabase("permissionsFor", () => {
   useTestDatabase();
+
+  // Every answer each test leads to is kept as the rules give it.
+  afterEach(async () => {
+    expect(await keptDifferences()).toEqual([]);
+  });
 
   it("answers each address in the order asked, then each number, a topic at a time, text before call", async () => {
     await luma("b@example.com", "2026-09-01T00:00:00Z");
@@ -480,5 +495,139 @@ describeWithDatabase("permissionsFor", () => {
       /phone_check/,
     );
     await query("INSERT INTO whatsapp_unreachable (number) VALUES ('+447700900123')");
+  });
+
+  it("works the answers out again when a row the rules read changes or goes, and for the numbers it reaches", async () => {
+    await civicrm("c@example.com", "2026-09-01T00:00:00Z", { newsletter: "subscribed", phone: "+447700900040" });
+    await luma("l@example.com", "2026-09-01T00:00:00Z");
+    await lumaGuest("l@example.com", "+447700900041");
+    await optOut("c@example.com", "2026-10-01T00:00:00Z", { list: "newsletter" });
+    expect(await answer("c@example.com", "newsletter")).toEqual([
+      "no",
+      "unsubscribed",
+      expect.any(String),
+      "luma-webhook",
+    ]);
+
+    // An opt-out lifted, then gone.
+    await query("UPDATE opt_outs SET resubscribed_at = '2026-10-02T00:00:00Z' WHERE address = 'c@example.com'");
+    expect(await answer("c@example.com", "newsletter")).toEqual(["yes", "subscribed", expect.any(String), "civicrm"]);
+    await optOut("c@example.com", "2026-10-03T00:00:00Z", { list: "newsletter" });
+    await query("DELETE FROM opt_outs WHERE address = 'c@example.com'");
+    expect(await answer("c@example.com", "newsletter")).toEqual(["yes", "subscribed", expect.any(String), "civicrm"]);
+
+    // A CiviCRM flag set, and the contact gone.
+    await query("UPDATE civicrm_contacts SET do_not_email = true WHERE email = 'c@example.com'");
+    expect(await answer("c@example.com", "newsletter")).toEqual(["no", "do-not-email", expect.any(String), "civicrm"]);
+    await query("DELETE FROM civicrm_contacts WHERE email = 'c@example.com'");
+    expect(await permissionsFor(["c@example.com"], ["+447700900040"])).toEqual([]);
+
+    // The Luma account's opt-out of events by email, and its leaving the calendar, reach the number it gave.
+    await optOut("l@example.com", "2026-10-05T00:00:00Z");
+    expect(await phoneAnswer("+447700900041", "events")).toEqual(["no", "unsubscribed", expect.any(String), "luma"]);
+    await query("DELETE FROM opt_outs WHERE address = 'l@example.com'");
+    await query("UPDATE luma_people SET contact_since = NULL WHERE email = 'l@example.com'");
+    expect(await phoneAnswer("+447700900041", "events")).toEqual(["no", "not-following", null, "luma"]);
+    await query("DELETE FROM luma_people WHERE email = 'l@example.com'");
+    expect(await permissionsFor(["l@example.com"], ["+447700900041"])).toEqual([]);
+
+    // A block, its problem changed, and lifted.
+    await luma("b@example.com", "2026-09-01T00:00:00Z");
+    await block("b@example.com", "soft", "2026-10-06T00:00:00Z");
+    expect(await answer("b@example.com", "events")).toEqual(["no", "blocked", expect.any(String), "soft"]);
+    await query("UPDATE email_problems SET kind = 'hard' WHERE address = 'b@example.com'");
+    expect(await answer("b@example.com", "events")).toEqual(["no", "blocked", expect.any(String), "hard"]);
+    await query("DELETE FROM email_blocks WHERE address = 'b@example.com'");
+    expect(await answer("b@example.com", "events")).toEqual(["yes", "following", expect.any(String), "luma"]);
+
+    // A box ticked on the email settings page, then its form entry's address changed.
+    await query(
+      `INSERT INTO preference_choices (address, way, topic, wording) VALUES ('p@example.com', 'email', 'events', 'w')`,
+    );
+    expect(await answer("p@example.com", "events")).toEqual(["yes", "chose", expect.any(String), "preferences"]);
+    await formEntry(" F@Example.com ", "web-form", null, true, "2026-10-07T00:00:00Z");
+    await query("UPDATE form_entries SET email = 'g@example.com' WHERE email = ' F@Example.com '");
+    expect(await permissionsFor(["f@example.com"])).toEqual([]);
+    expect(await answer("g@example.com", "newsletter")).toEqual(["yes", "asked", expect.any(String), "web-form"]);
+    expect(await query("SELECT * FROM kept_permissions_locks")).toEqual([]);
+  });
+
+  it("works afresh an answer that a day's texts ending changes, once it has ended", async () => {
+    // In one transaction, so the day hasn't ended when the answer is kept, however slow the machine.
+    await query(
+      `UPDATE day_texts SET ends_at = now() + interval '200 milliseconds' WHERE form = 'march-2026-11';
+       INSERT INTO form_entries (form, created_at, name, email, phone, contact_consent)
+       VALUES ('march-2026-11', '2026-11-01T00:00:00Z', 'X', 'm@example.com', '+447700900023', false)`,
+    );
+    const [kept] = await query<{ send: string; ended: boolean }>(
+      `SELECT k.send, k.until = d.ends_at AS ended FROM kept_permissions k, day_texts d
+       WHERE k.address = '+447700900023' AND k.topic = 'events' AND d.form = 'march-2026-11'`,
+    );
+    expect(kept).toEqual({ send: "yes", ended: true });
+    while (
+      (await query("SELECT 1 FROM day_texts WHERE form = 'march-2026-11' AND ends_at > clock_timestamp()")).length
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    expect(await phoneAnswer("+447700900023", "events")).toEqual(["no", "ended", expect.any(String), "march-2026-11"]);
+  });
+
+  it("keeps the answer of the transaction that commits second, worked out once the first has", async () => {
+    let commitFirst = () => {};
+    const committing = new Promise<void>((resolve) => (commitFirst = resolve));
+    let optedOut = () => {};
+    const inserted = new Promise<void>((resolve) => (optedOut = resolve));
+    const first = transaction(async (db) => {
+      await db.query(
+        `INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at)
+         VALUES ('t@example.com', 'newsletter', 'email', 'link', 'r', '2026-10-01T00:00:00Z')`,
+      );
+      optedOut();
+      await committing;
+    });
+    await inserted;
+    let pid = 0;
+    const second = transaction(async (db) => {
+      pid = (await db.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0].pid;
+      await db.query(
+        `INSERT INTO form_entries (form, created_at, name, email, contact_consent)
+         VALUES ('web-form', '2026-10-02T00:00:00Z', 'T', 't@example.com', true)`,
+      );
+    });
+    // The first commits only once the second waits for it, as it does for the address.
+    while (
+      !pid ||
+      !(await query("SELECT 1 FROM pg_stat_activity WHERE pid = $1 AND wait_event_type = 'Lock'", [pid])).length
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    commitFirst();
+    await Promise.all([first, second]);
+    expect(await answer("t@example.com", "newsletter")).toEqual(["yes", "asked", expect.any(String), "web-form"]);
+  });
+
+  it("keeps the answers up to date by a trigger on every table the rules read", async () => {
+    // The tables contact_permission() and the views read; a function's body, unlike a view's, isn't a dependency
+    // Postgres records, so it's read for the tables it names.
+    const [{ body }] = await query<{ body: string }>(
+      "SELECT string_agg(pg_get_functiondef(p.oid), ' ') AS body FROM pg_proc p WHERE p.proname = 'contact_permission'",
+    );
+    const read = await query<{ name: string }>(
+      `SELECT DISTINCT t.tablename AS name FROM pg_tables t
+       WHERE t.schemaname = 'public' AND ($1 ~ ('\\m(FROM|JOIN) ' || t.tablename || '\\M')
+         OR t.tablename IN (SELECT DISTINCT c.relname FROM pg_depend d
+           JOIN pg_rewrite r ON r.oid = d.objid JOIN pg_class c ON c.oid = d.refobjid
+           WHERE r.ev_class IN ('email_permissions'::regclass, 'phone_permissions'::regclass) AND c.relkind = 'r'))
+       ORDER BY 1`,
+      [body],
+    );
+    const triggered = await query<{ name: string }>(
+      `SELECT c.relname AS name FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
+       WHERE t.tgname LIKE 'keep_permissions_%' GROUP BY c.relname HAVING count(*) = 3 ORDER BY 1`,
+    );
+    expect(read.map((row) => row.name)).toEqual(triggered.map((row) => row.name));
+    expect(read.length).toBeGreaterThan(0);
+    // A rule that turns on the time, not on a write, needs kept_permissions.until to say when (migration 0142).
+    expect(body.match(/now\(\)[^\n]*/g)).toEqual(["now() < d.ends_at", "now() >= d.ends_at"]);
   });
 });

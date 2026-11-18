@@ -2,9 +2,9 @@ import "server-only";
 import { TOPICS, WAYS, type ContactPermission } from "./contact-permissions";
 import { query } from "@/lib/server/db.server";
 
-// What we may contact each address and number about, from the
-// contact_permissions view, which holds the rules
-// (lib/supporters/contact-permissions.ts).
+// What we may contact each address and number about, from the answers kept
+// by the rules (contact_permissions_kept, which migration 0142 explains;
+// lib/supporters/contact-permissions.ts).
 
 /**
  * Every consent's answer for each of `emails`, then each of `phones` (in
@@ -17,7 +17,7 @@ export async function permissionsFor(emails: string[], phones: string[] = []): P
   // answer: slow for a broadcast's thousands. Filtering by ANY() as well lets Postgres look each one up.
   return query<ContactPermission>(
     `SELECT p.topic, p.way, p.channel, p.address, p.send, p.reason, p.at, p.source
-     FROM contact_permissions p
+     FROM contact_permissions_kept p
      JOIN (SELECT 'email' AS channel, u.address, u.n FROM unnest($1::text[]) WITH ORDINALITY u (address, n)
        UNION ALL SELECT 'phone', u.address, u.n FROM unnest($2::text[]) WITH ORDINALITY u (address, n)) w
        ON w.channel = p.channel AND w.address = p.address

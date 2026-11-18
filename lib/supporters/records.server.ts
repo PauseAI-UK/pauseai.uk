@@ -236,7 +236,8 @@ const milesFrom = (lat: number, lon: number) =>
  * The conditions of the filters that repeat, those that are on: each finds
  * those with any of its values. An event is one they registered for, but
  * for declined. A contact one is an answer for any of their addresses, or
- * any of their numbers, for its consent: any answer, or one, or one reason.
+ * any of their numbers, for its consent: any answer, or one, or one reason,
+ * as kept (contact_permissions_kept).
  */
 function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
   const conditions: Sql[] = [];
@@ -258,13 +259,13 @@ function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
       ...(emails.length
         ? [
             sql`s.id IN (SELECT i.supporter_id FROM supporter_identity i
-               JOIN email_permissions p ON p.address = i.email WHERE ${sql.or(emails)})`,
+               JOIN contact_permissions_kept p ON p.channel = 'email' AND p.address = i.email WHERE ${sql.or(emails)})`,
           ]
         : []),
       ...(phones.length
         ? [
             sql`s.id IN (SELECT c.supporter_id FROM supporter_contact c
-               JOIN phone_permissions p ON p.address = c.phone WHERE ${sql.or(phones)})`,
+               JOIN contact_permissions_kept p ON p.channel = 'phone' AND p.address = c.phone WHERE ${sql.or(phones)})`,
           ]
         : []),
     ];

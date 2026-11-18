@@ -238,6 +238,91 @@ LIMIT 1
 $$;
 
 --
+-- Name: keep_permissions(text[], text[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.keep_permissions(emails text[], phones text[]) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  emails := ARRAY(SELECT DISTINCT lower(trim(e)) FROM unnest(emails) e WHERE e IS NOT NULL);
+  phones := ARRAY(SELECT DISTINCT p FROM unnest(phones) p WHERE p IS NOT NULL);
+  IF cardinality(emails) = 0 AND cardinality(phones) = 0 THEN
+    RETURN;
+  END IF;
+  INSERT INTO kept_permissions_locks (channel, address)
+  SELECT * FROM (SELECT 'email', e FROM unnest(emails) e UNION ALL SELECT 'phone', p FROM unnest(phones) p) k
+  ORDER BY 1, 2
+  ON CONFLICT DO NOTHING;
+  DELETE FROM kept_permissions k
+  WHERE (k.channel = 'email' AND k.address = ANY(emails)) OR (k.channel = 'phone' AND k.address = ANY(phones));
+  INSERT INTO kept_permissions (channel, address, topic, way, send, reason, at, source, until)
+  SELECT p.channel, p.address, p.topic, p.way, p.send, p.reason, p.at, p.source,
+    CASE WHEN p.channel = 'phone' AND p.topic = 'events' AND p.way = 'text' THEN
+      (SELECT min(d.ends_at) FROM form_entries f JOIN day_texts d ON d.form = f.form
+       WHERE f.phone = p.address AND d.ends_at > now())
+    END
+  FROM contact_permissions p
+  WHERE (p.channel = 'email' AND p.address = ANY(emails)) OR (p.channel = 'phone' AND p.address = ANY(phones));
+  DELETE FROM kept_permissions_locks k
+  WHERE (k.channel = 'email' AND k.address = ANY(emails)) OR (k.channel = 'phone' AND k.address = ANY(phones));
+END
+$$;
+
+--
+-- Name: keep_permissions_after(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.keep_permissions_after() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+  changed text := CASE TG_OP
+    WHEN 'INSERT' THEN 'SELECT * FROM new_rows'
+    WHEN 'DELETE' THEN 'SELECT * FROM old_rows'
+    ELSE 'SELECT * FROM new_rows UNION ALL SELECT * FROM old_rows'
+  END;
+  touched text := CASE TG_TABLE_NAME
+    WHEN 'opt_outs' THEN
+      $q$SELECT CASE WHEN o.way = 'email' THEN 'email' ELSE 'phone' END, o.address FROM changed o
+         UNION ALL
+         SELECT 'phone', g.phone FROM changed o
+           JOIN luma_people l ON l.email = o.address JOIN luma_guests g ON g.user_id = l.user_id
+         WHERE o.way = 'email'$q$
+    WHEN 'preference_choices' THEN
+      $q$SELECT CASE WHEN c.way = 'email' THEN 'email' ELSE 'phone' END, c.address FROM changed c$q$
+    WHEN 'form_entries' THEN
+      $q$SELECT 'email', f.email FROM changed f UNION ALL SELECT 'phone', f.phone FROM changed f$q$
+    WHEN 'civicrm_contacts' THEN
+      $q$SELECT 'email', c.email FROM changed c UNION ALL SELECT 'phone', c.phone FROM changed c$q$
+    WHEN 'luma_people' THEN
+      $q$SELECT 'email', l.email FROM changed l
+         UNION ALL
+         SELECT 'phone', g.phone FROM changed l JOIN luma_guests g ON g.user_id = l.user_id$q$
+    WHEN 'luma_guests' THEN
+      $q$SELECT 'phone', g.phone FROM changed g$q$
+    WHEN 'day_texts' THEN
+      $q$SELECT 'phone', f.phone FROM changed d JOIN form_entries f ON f.form = d.form$q$
+    WHEN 'email_blocks' THEN
+      $q$SELECT 'email', b.address FROM changed b$q$
+    WHEN 'email_problems' THEN
+      $q$SELECT 'email', b.address FROM changed p JOIN email_blocks b ON b.problem_id = p.id$q$
+  END;
+  emails text[];
+  phones text[];
+BEGIN
+  EXECUTE format(
+    'WITH changed AS (%s)
+     SELECT array_agg(a.address) FILTER (WHERE a.channel = ''email''), array_agg(a.address) FILTER (WHERE a.channel = ''phone'')
+     FROM (%s) a (channel, address)',
+    changed, touched
+  ) INTO emails, phones;
+  PERFORM keep_permissions(emails, phones);
+  RETURN NULL;
+END
+$_$;
+
+--
 -- Name: merge_supporters_by_phone(bigint[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1609,6 +1694,51 @@ UNION ALL
    FROM public.phone_permissions;
 
 --
+-- Name: kept_permissions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.kept_permissions (
+    channel text NOT NULL,
+    address text NOT NULL,
+    topic text NOT NULL,
+    way text NOT NULL,
+    send text,
+    reason text,
+    at timestamp with time zone,
+    source text,
+    until timestamp with time zone,
+    CONSTRAINT kept_permissions_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'phone'::text])))
+);
+
+--
+-- Name: contact_permissions_kept; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.contact_permissions_kept AS
+ SELECT k.topic,
+    k.way,
+    k.channel,
+    k.address,
+    k.send,
+    k.reason,
+    k.at,
+    k.source
+   FROM public.kept_permissions k
+  WHERE ((k.until IS NULL) OR (now() < k.until))
+UNION ALL
+ SELECT k.topic,
+    k.way,
+    k.channel,
+    k.address,
+    d.send,
+    d.reason,
+    d.at,
+    d.source
+   FROM (public.kept_permissions k
+     CROSS JOIN LATERAL public.contact_permission(k.topic, k.way, k.address) d(send, reason, at, source))
+  WHERE (k.until <= now());
+
+--
 -- Name: contact_unsubscribes; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -1829,6 +1959,15 @@ CREATE TABLE public.job_presses (
     job text NOT NULL,
     started_by text NOT NULL,
     started_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: kept_permissions_locks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.kept_permissions_locks (
+    channel text NOT NULL,
+    address text NOT NULL
 );
 
 --
@@ -2866,6 +3005,20 @@ ALTER TABLE ONLY public.job_presses
     ADD CONSTRAINT job_presses_pkey PRIMARY KEY (job);
 
 --
+-- Name: kept_permissions_locks kept_permissions_locks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.kept_permissions_locks
+    ADD CONSTRAINT kept_permissions_locks_pkey PRIMARY KEY (channel, address);
+
+--
+-- Name: kept_permissions kept_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.kept_permissions
+    ADD CONSTRAINT kept_permissions_pkey PRIMARY KEY (channel, address, topic, way);
+
+--
 -- Name: letter_events letter_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3539,6 +3692,12 @@ CREATE INDEX form_entries_phone ON public.form_entries USING btree (phone);
 CREATE INDEX import_runs_job_at ON public.import_runs USING btree (job, at DESC, id DESC);
 
 --
+-- Name: kept_permissions_until; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX kept_permissions_until ON public.kept_permissions USING btree (until) WHERE (until IS NOT NULL);
+
+--
 -- Name: letter_events_letter_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3805,6 +3964,168 @@ CREATE UNIQUE INDEX supporters_list_id ON public.supporters_list USING btree (id
 --
 
 CREATE INDEX unmatched_mail_waiting ON public.unmatched_mail USING btree (found_at) WHERE (reported_at IS NULL);
+
+--
+-- Name: civicrm_contacts keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.civicrm_contacts REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: day_texts keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.day_texts REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: email_blocks keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.email_blocks REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: email_problems keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.email_problems REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: form_entries keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.form_entries REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: luma_guests keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.luma_guests REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: luma_people keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.luma_people REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: opt_outs keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.opt_outs REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: preference_choices keep_permissions_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_delete AFTER DELETE ON public.preference_choices REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: civicrm_contacts keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.civicrm_contacts REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: day_texts keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.day_texts REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: email_blocks keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.email_blocks REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: email_problems keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.email_problems REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: form_entries keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.form_entries REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: luma_guests keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.luma_guests REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: luma_people keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.luma_people REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: opt_outs keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.opt_outs REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: preference_choices keep_permissions_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_insert AFTER INSERT ON public.preference_choices REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: civicrm_contacts keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.civicrm_contacts REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: day_texts keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.day_texts REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: email_blocks keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.email_blocks REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: email_problems keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.email_problems REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: form_entries keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.form_entries REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: luma_guests keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.luma_guests REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: luma_people keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.luma_people REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: opt_outs keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.opt_outs REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
+
+--
+-- Name: preference_choices keep_permissions_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER keep_permissions_update AFTER UPDATE ON public.preference_choices REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.keep_permissions_after();
 
 --
 -- Name: ask_statuses ask_statuses_ask_ask_kind_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
