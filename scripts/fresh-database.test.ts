@@ -36,6 +36,13 @@ describe("isLocal", () => {
       expect(isLocal(url), url).toBe(false);
     }
   });
+
+  it("accepts the host LOCAL_POSTGRES_HOST names, as CI's container jobs reach their service", () => {
+    const url = "postgresql://u:p@localhost/a?host=postgres";
+    expect(isLocal(url, {})).toBe(false);
+    expect(isLocal(url, { LOCAL_POSTGRES_HOST: "postgres" })).toBe(true);
+    expect(isLocal("postgresql://u:p@db.example.org/a", { LOCAL_POSTGRES_HOST: "postgres" })).toBe(false);
+  });
 });
 
 describe("defaultHost", () => {

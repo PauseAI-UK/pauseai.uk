@@ -24,11 +24,22 @@ const MIGRATIONS = join(process.cwd(), "netlify", "database", "migrations");
 const TEST_MPS = JSON.parse(readFileSync(join(process.cwd(), "lib", "politicians", "test-mps.json"), "utf8"));
 const FIXTURE_DATA = join(process.cwd(), "tests", "fixtures", "staff-data.sql");
 
-/** Whether a database URL points at this machine: localhost, or a Unix socket. */
-export function isLocal(url) {
+/**
+ * Whether a database URL points at this machine: localhost, a Unix socket,
+ * or the host LOCAL_POSTGRES_HOST names. CI's jobs that run in a container
+ * reach their Postgres service by its name, `postgres`, and say so there.
+ */
+export function isLocal(url, env = process.env) {
   const { hostname, searchParams } = new URL(url);
   const host = searchParams.get("host") ?? hostname;
-  return host === "" || host.startsWith("/") || ["localhost", "127.0.0.1", "[::1]", "::1"].includes(host);
+  const local = [
+    "localhost",
+    "127.0.0.1",
+    "[::1]",
+    "::1",
+    ...(env.LOCAL_POSTGRES_HOST ? [env.LOCAL_POSTGRES_HOST] : []),
+  ];
+  return host === "" || host.startsWith("/") || local.includes(host);
 }
 
 /** Where a local server listens when PGHOST doesn't say. */

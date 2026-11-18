@@ -1291,7 +1291,9 @@ not a mock.
   So in the dev container, with Postgres started (`pg-start`), nothing
   needs setting. When no server answers, the tests stop, saying where they
   looked and what to do (`noServer` in `scripts/fresh-database.mjs`). CI
-  runs a Postgres service.
+  runs a Postgres service. The jobs that run in Playwright's image reach it
+  by its name, `postgres`, which `LOCAL_POSTGRES_HOST` names as on this
+  machine, as the migrations refuse a database anywhere else.
 
 - **Netlify's build has no Postgres**, so `npm run build` skips these tests
   there (`NETLIFY=true`), and the global setup makes no template. CI runs
