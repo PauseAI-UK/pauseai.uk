@@ -303,6 +303,7 @@ describe("BroadcastCounts", () => {
     error: 1,
     unreached: 2,
     "not-sent": 6,
+    lost: 0,
     held: 0,
     "to-go": 0,
   };
@@ -419,10 +420,11 @@ describe("BroadcastWaiting", () => {
       />,
     );
     await expect.element(page.getByText(copy.gaveUpTemplate)).toBeVisible();
-    // Its seven days ran out while CiviCRM was down; its copies kept failing.
+    // Its seven days ran out while CiviCRM was down; its copies kept failing; Postmark lost its copies.
     for (const [waitReason, words] of [
       ["late", copy.gaveUpLate],
       ["failing", copy.gaveUpFailing],
+      ["lost", copy.gaveUpLost],
     ] as const) {
       await rerender(
         <BroadcastWaiting written={{ ...exampleBroadcastEmail, state: "cancelled", gaveUp: true, waitReason }} />,

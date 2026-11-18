@@ -317,6 +317,40 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await broadcastPageData(id, { tab: "to-go" }, JO)).toMatchObject({ tab: "to-go", recipientsTotal: 2 });
   });
 
+  it("counts as lost, not sent, a copy Postmark took ten minutes ago and has said nothing of; never one by Gmail", async () => {
+    for (const n of [1, 2, 3, 4, 5]) await addFollower(`usr-${n}`, `p${n}@example.com`, `Person ${n}`);
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS, sendBy: "postmark" });
+    const copies = await sent(id, [
+      ["delivered", null],
+      ["sent", null],
+      ["sent", null],
+      ["sent", null],
+      ["sent", null],
+    ]);
+    // Four went eleven minutes ago, one just now; of the four, Postmark soft-bounced one, and is trying it again.
+    await query("UPDATE broadcast_messages SET sent_at = now() - interval '11 minutes' WHERE mailing_id = $1", [id]);
+    await query("UPDATE broadcast_messages SET sent_at = now() WHERE id = $1", [copies[4]]);
+    await query("INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'soft-bounced')", [copies[3]]);
+    const data = await broadcastPageData(id, {}, JO);
+    expect(data!.kind === "written" && data!.summary).toMatchObject({
+      sent: 3,
+      states: { delivered: 1, sent: 2, lost: 2 },
+    });
+    const rows = data!.kind === "written" ? data!.recipients : [];
+    expect(copies.map((copy) => rows.find((one) => one.copyId === copy)!.state)).toEqual([
+      "delivered",
+      "lost",
+      "lost",
+      "sent",
+      "sent",
+    ]);
+    expect(await broadcastPageData(id, { tab: "lost" }, JO)).toMatchObject({ tab: "lost", recipientsTotal: 2 });
+    // By Gmail, nothing is ever said of what arrives, so nothing is lost.
+    await query("UPDATE mailings SET send_by = 'gmail' WHERE id = $1", [id]);
+    const gmail = await broadcastPageData(id, {}, JO);
+    expect(gmail!.kind === "written" && gmail!.summary).toMatchObject({ sent: 5, states: { sent: 4, lost: 0 } });
+  });
+
   it("says which drafts are waiting for WhatsApp to approve their words, which it approved, and which it rejected", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const plain = (await createBroadcastDraft(JO, TEXT_FILTER))!;

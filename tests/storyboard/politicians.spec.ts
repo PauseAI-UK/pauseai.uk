@@ -649,7 +649,7 @@ test("Writing to a Lord", async ({ page, request, flowDatabase }) => {
   await logIn(page, flowDatabase);
   await openPolitician(page, "Lord Seedling of Example");
   const words = copy.editDetails;
-  await page.getByRole("button", { name: words.add }).click();
+  await openBubble(page.getByRole("button", { name: words.add }));
   const bubble = page.locator("[popover]:popover-open");
   await expect(bubble.getByText(words.emailHint)).toBeVisible();
   await bubble.getByRole("textbox", { name: words.email }).fill("seedling@lords.example");

@@ -288,6 +288,8 @@ export const lettersCopy = {
       held: "delayed",
       // A broadcast's copy whose turn hasn't come yet, or that's being sent.
       "to-go": "queued",
+      // A broadcast's copy Postmark took and has said nothing of since (LOST_MINUTES).
+      lost: "lost",
     } as Record<string, string>,
     tabs: {
       sent: "Sent",
@@ -303,6 +305,7 @@ export const lettersCopy = {
       "not-sent": "Not sent",
       held: "Delayed, they're at WhatsApp's marketing limit",
       "to-go": "Queued",
+      lost: "Lost: no word from Postmark",
     } as Record<string, string>,
     // On its page, its counts in groups, each under its total: those that went, those still to go, and those that didn't.
     groups: { went: "went", toGo: "still to go", gone: "didn't go" },
@@ -337,12 +340,16 @@ export const lettersCopy = {
       "error:postmark": "Error: Postmark refused it",
       "error:whatsapp": "Error: WhatsApp refused it",
       "error:unfinished": "Error: send cut off",
-      "error:limit": "Error: out of time",
-      "error:civicrm": "Error: CiviCRM down",
-      "error:pull": "Error: CiviCRM down",
-      "error:template": "Error: template paused",
-      "error:late": "Error: out of time, CiviCRM down",
-      "error:failing": "Error: sending kept failing",
+      // A broadcast's copy it never sent, as it stopped by itself, whyever: its page's strip says why.
+      "error:limit": "Error: broadcast stopped",
+      "error:civicrm": "Error: broadcast stopped",
+      "error:pull": "Error: broadcast stopped",
+      "error:template": "Error: broadcast stopped",
+      "error:late": "Error: broadcast stopped",
+      "error:failing": "Error: broadcast stopped",
+      "error:lost": "Error: broadcast stopped",
+      // A broadcast's copy Postmark took and has said nothing of since (LOST_MINUTES).
+      lost: "Lost: no word from Postmark",
       "unreached:bounced": "Didn't reach: bounced",
       "unreached:not-on-whatsapp": "Didn't reach: not on WhatsApp",
       "not-sent": "Not sent",

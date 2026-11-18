@@ -102,7 +102,7 @@ describeWithDatabase("handleDeliveryProblem", () => {
     },
   );
 
-  it("marks a copy of a broadcast that bounced failed, notes a complaint, and lets a soft bounce be", async () => {
+  it("marks a copy of a broadcast that bounced failed, notes a complaint, and notes a soft bounce, changing nothing", async () => {
     postmark();
     const [{ mailing }] = await query<{ mailing: number }>(
       `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
@@ -130,6 +130,7 @@ describeWithDatabase("handleDeliveryProblem", () => {
     expect(await query("SELECT kind, details FROM broadcast_message_events ORDER BY id")).toEqual([
       { kind: "bounced", details: { reason: "Nope" } },
       { kind: "opted-out", details: { reason: "Nope" } },
+      { kind: "soft-bounced", details: { reason: "Nope" } },
     ]);
   });
 

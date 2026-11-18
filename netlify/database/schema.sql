@@ -1282,7 +1282,7 @@ CREATE TABLE public.broadcast_message_events (
     details jsonb DEFAULT '{}'::jsonb NOT NULL,
     answer_id bigint,
     CONSTRAINT broadcast_message_events_copy_or_answer CHECK ((num_nonnulls(message_id, answer_id) = 1)),
-    CONSTRAINT broadcast_message_events_kind_check CHECK ((kind = ANY (ARRAY['sent'::text, 'delivered'::text, 'read'::text, 'failed'::text, 'bounced'::text, 'opted-out'::text, 'replied'::text])))
+    CONSTRAINT broadcast_message_events_kind_check CHECK ((kind = ANY (ARRAY['sent'::text, 'delivered'::text, 'read'::text, 'failed'::text, 'bounced'::text, 'soft-bounced'::text, 'opted-out'::text, 'replied'::text])))
 );
 
 --
@@ -2063,7 +2063,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_template_for_texts CHECK (((template_id IS NULL) OR (channel = 'text'::text))),
     CONSTRAINT mailings_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
     CONSTRAINT mailings_topic_for_supporters CHECK (((audience = 'supporters'::text) = (topic IS NOT NULL))),
-    CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text, 'limit'::text, 'template'::text, 'late'::text, 'failing'::text]))),
+    CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text, 'limit'::text, 'template'::text, 'late'::text, 'failing'::text, 'lost'::text]))),
     CONSTRAINT mailings_wait_said CHECK (((wait_said IS NULL) OR (wait_reason = 'civicrm'::text))),
     CONSTRAINT mailings_waiting CHECK (((waiting_since IS NULL) = (wait_reason IS NULL)))
 );
