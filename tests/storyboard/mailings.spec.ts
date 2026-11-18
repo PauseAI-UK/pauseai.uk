@@ -181,7 +181,7 @@ test("A new mailing from the whole list", async ({ page, request, flowDatabase }
 });
 
 test("A link, and a part made for everyone", async ({ page, request, flowDatabase }) => {
-  story("Staff mail the Lords, and write a line, which they link to the march's page.");
+  story("Staff mail the Lords, and write a line with a link to the march's page in it.");
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await startFromList(page, "house=lords", 1);
@@ -189,14 +189,14 @@ test("A link, and a part made for everyone", async ({ page, request, flowDatabas
   const letter = page.getByRole("textbox", { name: copy.letter });
   const words = mailingsCopy.mailingEditor;
   await caretAtEnd(letter);
-  await page.keyboard.type("Join us at the march.");
-  await page.keyboard.press("Shift+Home");
+  await page.keyboard.type("Join us at the march: ");
+  // With nothing selected, the address goes in as a link to itself.
   await page.keyboard.press("Control+k");
   await page.getByRole("textbox", { name: words.linkBar.address }).fill("pauseai.uk/march");
   await page.keyboard.press("Enter");
   story("With the cursor in the link, where it goes shows under it.");
 
-  await letter.getByText("Join us at the march.").click();
+  await letter.getByRole("link", { name: "pauseai.uk/march" }).click();
   const peek = page.getByRole("button", { name: "https://pauseai.uk/march" });
   await expect(peek).toBeVisible();
   await frame(page, "Where a link goes, under it", { window: true });
