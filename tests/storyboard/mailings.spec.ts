@@ -206,7 +206,7 @@ test("A link, and a part made for everyone", async ({ page, request, flowDatabas
   await expect(page.getByRole("textbox", { name: words.linkBar.address })).toHaveValue("https://pauseai.uk/march");
   await frame(page, "The link bar, from where the link goes", { window: true });
   story(
-    "On a line of its own, they write a thank-you, and make it only for some. The part has a × at its corner, and For everyone in the toolbar is orange.",
+    "On a line of its own, they write a thank-you, and make it only for some. The part has a × at its corner, and Only those in the toolbar is orange.",
   );
 
   await page.getByRole("button", { name: words.linkBar.cancel }).click();
@@ -219,11 +219,11 @@ test("A link, and a part made for everyone", async ({ page, request, flowDatabas
   const cross = letter.getByRole("button", { name: words.forEveryone });
   await expect(cross).toBeVisible();
   await frame(page, "A part only for some", { window: true });
-  story("Selecting words in it shows For everyone over them too.");
+  story("Selecting a whole line in it shows Remove only those under it too.");
 
   await letter.getByText("Thank you for your answer.").click({ clickCount: 3 });
-  await expect(page.getByRole("button", { name: words.forEveryone })).toHaveCount(3);
-  await frame(page, "Words selected in the part", { window: true });
+  await expect(page.getByRole("menuitem", { name: words.remove.onlyFor })).toBeVisible();
+  await frame(page, "A line selected in the part", { window: true });
   story("The × takes the part away, and keeps its words, for everyone.");
 
   await cross.click();

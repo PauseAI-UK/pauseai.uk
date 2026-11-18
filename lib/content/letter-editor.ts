@@ -17,6 +17,6 @@ export const letterEditorCopy = {
     cancel: "Cancel",
     invalid: "That isn't a web or email address.",
     // The hint on a link's address, shown under the link: pressing it opens the link bar.
-    edit: "⁂ Change where this link goes",
+    edit: "Change where this link goes",
   },
 };

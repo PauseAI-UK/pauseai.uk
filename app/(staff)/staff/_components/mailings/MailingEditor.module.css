@@ -32,7 +32,7 @@
   border-bottom: 1px solid var(--border-strong);
 }
 
-/* The formatting buttons, which can be pressed; For everyone is a Button of its own. */
+/* The formatting buttons, which can be pressed, and Only those. */
 .toolbar button[aria-pressed] {
   min-width: 2.25rem;
   padding: var(--space-1) var(--space-2);
@@ -215,18 +215,43 @@
   right: var(--space-1);
 }
 
-/* For everyone, over words selected in a part (ForEveryoneMenu): in the
-   page's top layer, just above the selection's start, so a popover's own
-   place and look give way to it. */
+/* Just the ×, with no ring round it till the mouse is over it. */
+.forEveryoneBox:not(:hover) {
+  border-color: transparent;
+}
+
+/* For everyone, under words selected in a part (ForEveryoneMenu): a menu in
+   the page's top layer, hung from the selection's end, so a popover's own
+   place gives way to it. */
 .selectionMenu {
   position: fixed;
   inset: auto;
-  margin: 0;
-  padding: 0;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 4px 12px var(--shadow-strong);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+.selectionMenu button {
+  display: block;
+  padding: var(--space-2) var(--space-3);
   border: 0;
+  border-radius: var(--radius-sm);
   background: none;
-  overflow: visible;
-  transform: translateY(calc(-100% - var(--space-1)));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.selectionMenu button:hover,
+.selectionMenu button:focus-visible {
+  background: var(--table-stripe);
 }
 
 /* The fields typing { offers, under the cursor. */
@@ -300,7 +325,7 @@
   max-width: min(22rem, calc(100vw - 2 * var(--space-4)));
   max-height: calc(100dvh - 2 * var(--space-4));
   margin: 0;
-  padding: var(--space-2);
+  padding: var(--space-1);
   overflow: auto;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -320,7 +345,7 @@
 
 .partMenu ul {
   display: grid;
-  gap: 2px;
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -338,14 +363,14 @@
 }
 
 .askTitle {
-  margin: var(--space-1) var(--space-3) var(--space-1);
+  margin: var(--space-1) var(--space-2) 0;
   font-weight: 600;
 }
 
 .partMenu button {
   display: block;
   width: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;

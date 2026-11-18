@@ -154,6 +154,49 @@ describe("MailingEditor", () => {
     expect(last(onChange).content![0]).toMatchObject({ type: "paragraph" });
   });
 
+  it("makes a quoted list only for some, quote and all, as a quote can't hold a part", async () => {
+    const quotedList: JSONContent = {
+      type: "blockquote",
+      content: [
+        {
+          type: "bulletList",
+          content: [{ type: "listItem", content: [paragraph(text("First"))] }],
+        },
+      ],
+    };
+    const onChange = await renderEditor([paragraph(text("Dear all")), quotedList]);
+    await cursorAt("First", "end");
+    await page.getByRole("button", { name: copy.addOnlyFor }).click();
+    const only = page.getByRole("menu", { name: copy.addOnlyFor });
+    await only.getByRole("menuitem", { name: "Frontier AI letter" }).click();
+    await only.getByRole("menuitem", { name: /Signed/ }).click();
+    await expect
+      .poll(() => onChange.mock.lastCall?.[0].content)
+      .toEqual([
+        paragraph(text("Dear all")),
+        { type: "onlyFor", attrs: { condition: conditions[0].id }, content: [quotedList] },
+      ]);
+  });
+
+  it("makes a quoted list in a part for everyone from the toolbar, quote and all", async () => {
+    const quotedList: JSONContent = {
+      type: "blockquote",
+      content: [
+        {
+          type: "bulletList",
+          content: [{ type: "listItem", content: [paragraph(text("First"))] }],
+        },
+      ],
+    };
+    const onChange = await renderEditor([
+      paragraph(text("Dear all")),
+      { type: "onlyFor", attrs: { condition: `!${conditions[0].id}` }, content: [quotedList] },
+    ]);
+    await cursorAt("First", "end");
+    await page.getByRole("toolbar").getByRole("button", { name: copy.forEveryone }).click();
+    await expect.poll(() => onChange.mock.lastCall?.[0].content).toEqual([paragraph(text("Dear all")), quotedList]);
+  });
+
   const box = (...content: JSONContent[]): JSONContent => ({
     type: "onlyFor",
     attrs: { condition: conditions[0].id },
@@ -187,24 +230,57 @@ describe("MailingEditor", () => {
     expect(last(onChange).content).toEqual([paragraph(text("Thank you."))]);
   });
 
-  it("offers For everyone over words selected in a part, and the toolbar's in orange, for just what's selected", async () => {
+  it("shows Only those pressed in the toolbar in a part, which takes the lines at the cursor out of it", async () => {
     const onChange = await renderEditor([box(paragraph(text("Thank you.")), paragraph(text("See you there.")))]);
-    const menu = () => page.getByRole("button", { name: copy.forEveryone }).and(page.getByText(copy.forEveryone));
     const toolbar = () => page.getByRole("toolbar").getByRole("button", { name: copy.forEveryone });
-    // The cursor alone in a part: the toolbar's, and no menu.
     await cursorAt("See you there.", "start");
-    await expect.element(toolbar()).toHaveClass(/primary/);
-    expect(document.querySelectorAll(":popover-open")).toHaveLength(0);
-    await userEvent.keyboard("{Shift>}{End}{/Shift}");
-    await expect.poll(() => document.querySelectorAll(":popover-open")).toHaveLength(1);
-    const over = document.querySelector(":popover-open")!.getBoundingClientRect();
-    const words = editor().getByText("See you there.").element().getBoundingClientRect();
-    expect(over.bottom).toBeLessThanOrEqual(words.top);
-    await expect.element(menu().last()).toBeVisible();
-    await page.elementLocator(document.querySelector(":popover-open button")!).click();
+    await expect.element(toolbar()).toHaveTextContent(copy.onlyThose);
+    await expect.element(toolbar()).toHaveAttribute("aria-pressed", "true");
+    await toolbar().click();
     expect(last(onChange).content).toEqual([box(paragraph(text("Thank you."))), paragraph(text("See you there."))]);
+    await expect.element(toolbar()).not.toBeInTheDocument();
+  });
+
+  it("offers Remove except those under a whole line selected in a part all but some get, and not under less", async () => {
+    const except = (...content: JSONContent[]): JSONContent => ({
+      type: "onlyFor",
+      attrs: { condition: `!${conditions[0].id}` },
+      content,
+    });
+    const onChange = await renderEditor([paragraph(text("Dear all")), except(paragraph(text("See you there.")))]);
+    const menu = () => page.getByRole("menuitem", { name: copy.remove.except });
+    await expect
+      .element(page.getByRole("toolbar").getByRole("button", { name: copy.forEveryone }))
+      .not.toBeInTheDocument();
+    // Less than a line: none.
+    await cursorAt("See you there.", "start");
+    await expect
+      .element(page.getByRole("toolbar").getByRole("button", { name: copy.forEveryone }))
+      .toHaveTextContent(copy.exceptThose);
+    await userEvent.keyboard("{Shift>}{ArrowRight}{/Shift}");
+    expect(document.querySelectorAll(":popover-open")).toHaveLength(0);
+    // The whole line: under its end.
+    await userEvent.keyboard("{Shift>}{End}{/Shift}");
+    await expect.element(menu()).toBeVisible();
+    const under = document.querySelector(":popover-open")!.getBoundingClientRect();
+    const words = editor().getByText("See you there.").element().getBoundingClientRect();
+    expect(under.top).toBeGreaterThanOrEqual(words.bottom - 1);
+    await menu().click();
+    expect(last(onChange).content).toEqual([paragraph(text("Dear all")), paragraph(text("See you there."))]);
     // Selected outside a part, none.
     await expect.poll(() => document.querySelectorAll(":popover-open")).toHaveLength(0);
+  });
+
+  it("offers Remove only those under a part's lines selected, and none for a whole line outside a part", async () => {
+    const onChange = await renderEditor([paragraph(text("Dear all")), box(paragraph(text("Thank you.")))]);
+    await cursorAt("Thank you.", "start");
+    await userEvent.keyboard("{Shift>}{End}{/Shift}");
+    await expect.element(page.getByRole("menuitem", { name: copy.remove.onlyFor })).toBeVisible();
+    await page.getByRole("menuitem", { name: copy.remove.onlyFor }).click();
+    expect(last(onChange).content).toEqual([paragraph(text("Dear all")), paragraph(text("Thank you."))]);
+    await cursorAt("Dear all", "start");
+    await userEvent.keyboard("{Shift>}{End}{/Shift}");
+    expect(document.querySelectorAll(":popover-open")).toHaveLength(0);
   });
 
   it("searches a group of many, showing none till something's typed, then those with it", async () => {

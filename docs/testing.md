@@ -984,7 +984,7 @@ that drives it or why nothing does.
   - New mailing, then who it's for ticked on the politicians list, with its strip and the bar at the foot;
   - New mailing on the list with no filter, which makes an empty draft with no one ticked;
   - the new mailing written, previewed and sent to yourself as a test (the email pictured);
-  - a line linked, with where the link goes under it and the link bar opened from there; a part only for some, with its × and the orange For everyone, words selected in it with For everyone over them, and the × making it for everyone;
+  - a line linked, with where the link goes under it and the link bar opened from there; a part only for some, with its × and the orange Only those, a line selected in it with Remove only those under it, and the × making it for everyone;
   - Mail these on the list, with everyone it found ticked;
   - Change who, back on the list's ticked tab, with one more searched for and ticked, then everyone unticked to start again and one ticked;
   - the draft naming her, and the draft deleted;
