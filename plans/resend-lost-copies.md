@@ -15,7 +15,7 @@ Postmark can accept a broadcast's emails and then never deliver them or say anyt
 3. **A "Send the lost copies again" button** on a broadcast that stopped because copies were lost. It asks for Gmail or Postmark, then says how many copies there are and about how long they'll take at that channel's pace (`EMAIL_CHANNELS` in `lib/broadcasts/channels.server.ts`). It schedules the lost copies again by that channel and sets the broadcast back to sending. The copies it hadn't tried yet go by the same channel.
 4. **Gmail's daily limit works as it does now.** When Gmail refuses, the broadcast stops with "limit", and staff press Resume the next day. hello@ sends about 1,800 a day.
 
-All new copy is ⁂ placeholders. Tests and a storyboard flow: a broadcast loses copies, staff send them again by Gmail, and the copies' history shows both sends.
+Tests and a storyboard flow: a broadcast loses copies, staff send them again by Gmail, and the copies' history shows both sends.
 
 ## Personal data
 
