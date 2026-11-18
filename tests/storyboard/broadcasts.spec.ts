@@ -629,7 +629,7 @@ test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }
   story("They take the reaction back, which WhatsApp tells us too. The bubble stays, saying so.");
   await postWhatsAppWebhook(request, BASE, reactionFrom(sent.number, "wamid.flow-unreact", sent.wamid, undefined, 2));
   await page.goto(page.url());
-  await expect(page.getByText(/removed this reaction/)).toBeVisible();
+  await expect(page.getByText(/Removed reaction/)).toBeVisible();
   await frame(page, "The reaction, taken back");
   story(
     "Then they send a photo with a caption. The site keeps the caption and says a photo came with it, which it can't show.",
@@ -862,7 +862,7 @@ test("A text partly sent", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { name: stateWords.tabs.held })).toBeVisible();
   await frame(page, "Those held by WhatsApp");
   story(
-    "The other copy goes. Now the held one is all that's left, so nothing is going out till it's tried again. The page says so, and its bar goes grey.",
+    "The other copy goes. Now the delayed one is all that's left, so nothing is going out till it's tried again. The page says so, and its bar goes grey.",
   );
   runSql(
     flowDatabase,
@@ -870,8 +870,8 @@ test("A text partly sent", async ({ page, request, flowDatabase }) => {
      WHERE mailing_id = ${sent.id} AND status = 'scheduled' AND not_before IS NULL`,
   );
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
-  await expect(page.getByText(/^. WhatsApp is holding the last text/)).toBeVisible();
-  await frame(page, "The text's page, waiting for the held one");
+  await expect(page.getByText(/^WhatsApp has delayed the last text/)).toBeVisible();
+  await frame(page, "The text's page, waiting for the delayed one");
   story("The list of broadcasts says the same of it, in place of Sending now.");
   await page.goto(`${BASE}/staff/broadcasts`);
   await expect(page.getByText(copy.paused.word, { exact: true })).toBeVisible();

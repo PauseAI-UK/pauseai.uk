@@ -387,8 +387,10 @@ describe("replies to broadcasts", () => {
     const [thumb, , lost] = exampleTextKinds;
     // A thumbs up to the broadcast, quoting its start, then taken back.
     expect(bubble("👍").textContent).toContain("Hi Jane, the march meets at 11:00 at Parliament Square.");
-    expect(bubble("👍").textContent).toContain(copy.replies.reactionRemoved(staffTime(thumb.removedAt!)));
-    await expect.element(page.getByText(`${copy.replies.reacted} · ${staffTime(thumb.receivedAt)}`)).toBeVisible();
+    // When it came, then, on the line under, when it went.
+    expect(bubble("👍").textContent).toContain(
+      `${copy.replies.reacted} · ${staffTime(thumb.receivedAt)}${copy.replies.reactionRemoved(staffTime(thumb.removedAt!))}`,
+    );
     // A heart to our answer, quoting that, and still there.
     expect(bubble("❤️").textContent).toContain("Yes, Parliament Square, by the statue.");
     expect(bubble("❤️").textContent).not.toContain(copy.replies.reactionRemoved("").trim());
