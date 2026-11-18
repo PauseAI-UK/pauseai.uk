@@ -252,6 +252,9 @@
   --table-tag-white-space: nowrap;
   --tag-font-size: var(--text-xs);
   --tag-padding: 0 var(--space-2);
+  /* A plain lozenge, and a plain count (Counts), a beige that stands off both white and the second surface,
+     so one looks the same on a card, a row or a band. */
+  --tag-plain-bg: #ebe1d5;
 }
 
 /* A field's text is 16px or more on a phone, at either density, or iOS

@@ -302,7 +302,7 @@ export const lettersCopy = {
       error: "Something went wrong",
       unreached: "Didn't reach them",
       "not-sent": "Not sent",
-      held: "⁂ Delayed: not there yet, and still being tried",
+      held: "Delayed, still trying",
       "to-go": "Queued",
     } as Record<string, string>,
     // On its page, its counts in groups, each under its total: those that went, those still to go, and those that didn't.

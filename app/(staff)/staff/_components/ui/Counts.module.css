@@ -64,7 +64,7 @@
 
 /* Grey: normal, on a plain tag's colour. */
 .count[data-tone="grey"] {
-  background: var(--surface-2);
+  background: var(--tag-plain-bg, var(--surface-2));
 }
 
 .count[data-tone="red"],
