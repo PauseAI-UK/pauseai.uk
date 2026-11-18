@@ -284,7 +284,7 @@ export default function BroadcastView({
         reschedule={reschedule}
         line={copy.scheduledLine(summary.to, written.channel, written.fromName || written.sentFrom!)}
         due={summary.pause ? copy.waitingDue : undefined}
-        paused={summary.pause ? copy.paused.bar(summary.sent, summary.to) : undefined}
+        paused={summary.pause ? copy.paused.bar(summary.sent + summary.failed, summary.to) : undefined}
       />
       <BroadcastWaiting
         written={written}

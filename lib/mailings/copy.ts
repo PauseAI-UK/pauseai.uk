@@ -236,7 +236,7 @@ export const mailingsCopy = {
       sent: (n: number) => `Sent to ${count(n, "person", "people")}`,
     },
     // The bar of how far a mailing sending has got, and once it's sent, how many have answered its ask.
-    sendingBar: (n: number, of: number) => `Sending: ${n} of ${of} sent`,
+    sendingBar: (n: number, of: number) => `Sending: ${n} of ${of} done`,
     answeredBar: (n: number, of: number) => `Sent: ✓ ${n} of ${of} answered the ask`,
     // The band at the top of a mailing's page: when it started sending, and who sent it.
     started: "Started",

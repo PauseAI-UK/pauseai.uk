@@ -338,7 +338,7 @@ export const broadcastsCopy = {
       forCiviCrm: "for CiviCRM",
       till: (when: string) => `till ${when}`,
       tillTomorrow: "till tomorrow",
-      bar: (n: number, of: number) => `Waiting: ${n} of ${of} sent`,
+      bar: (n: number, of: number) => `Waiting: ${n} of ${of} done`,
     },
     recipientsTitle: "Recipients",
     recipientsCount: (n: number) => count(n, "recipient", "recipients"),

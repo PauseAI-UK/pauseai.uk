@@ -182,7 +182,7 @@ export function MailingStanding({
                 label={copy.sentLabel}
                 big
               >
-                {paused ?? copy.sendingBar(mailing.sent, mailing.to)}
+                {paused ?? copy.sendingBar(mailing.sent + mailing.failed, mailing.to)}
               </Progress>
             </div>
             <div className={styles.actions}>

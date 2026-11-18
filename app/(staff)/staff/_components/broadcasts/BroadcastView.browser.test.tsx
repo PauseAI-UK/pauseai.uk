@@ -240,7 +240,9 @@ describe("a broadcast's page", () => {
       summary: { ...exampleBroadcastSummary, state: "sending" as const },
       written: { ...exampleBroadcastSent.written, state: "sending" as const },
     };
-    const { sent, to } = exampleBroadcastSummary;
+    // Done: those sent and those that didn't go.
+    const { to } = exampleBroadcastSummary;
+    const sent = exampleBroadcastSummary.sent + exampleBroadcastSummary.failed;
     const bar = () => page.getByRole("progressbar", { name: mailingsCopy.mailingPages.sentLabel }).element();
     const view = await render(<BroadcastView data={sending} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(mailingsCopy.mailingPages.sendingBar(sent, to))).toBeVisible();

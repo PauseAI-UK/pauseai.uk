@@ -16,7 +16,7 @@ const words = copy.standing;
  * which its bar says in place of that it's sending.
  */
 function sentence(b: BroadcastSummary): Sentence | undefined {
-  if (b.state === "sending" && b.pause) return { tone: "grey", text: copy.paused.bar(b.sent, b.to) };
+  if (b.state === "sending" && b.pause) return { tone: "grey", text: copy.paused.bar(b.sent + b.failed, b.to) };
   if (b.state === "draft" && b.rejected) return { tone: "red", text: words.rejected };
   if (b.state === "draft" && b.waiting) return { tone: "blue", text: words.waiting };
   if (b.state === "draft" && b.approved) return { tone: "green", text: words.approved(b.to) };

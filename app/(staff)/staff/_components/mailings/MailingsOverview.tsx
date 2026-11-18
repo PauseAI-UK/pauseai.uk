@@ -66,7 +66,8 @@ function mailingSentence(mailing: MailingBase): Sentence {
   const words = copy.standing;
   if (mailing.state === "draft") return { tone: "grey", text: words.draft(mailing.to) };
   if (mailing.state === "scheduled") return { tone: "blue", text: words.scheduled(mailing.to) };
-  if (mailing.state === "sending") return { tone: "blue", text: copy.sendingBar(mailing.sent, mailing.to) };
+  if (mailing.state === "sending")
+    return { tone: "blue", text: copy.sendingBar(mailing.sent + mailing.failed, mailing.to) };
   if (mailing.state === "cancelled") return { tone: "grey", text: words.stopped(mailing.sent, mailing.to) };
   return { tone: "grey", text: words.sent(mailing.to) };
 }

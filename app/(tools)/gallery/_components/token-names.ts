@@ -108,4 +108,5 @@ export const DENSITY_TOKENS = [
   "--table-tag-white-space",
   "--tag-font-size",
   "--tag-padding",
+  "--tag-plain-bg",
 ];
