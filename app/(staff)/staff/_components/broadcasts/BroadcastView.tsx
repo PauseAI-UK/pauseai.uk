@@ -4,7 +4,7 @@ import { Muted } from "@/components/ui/Text";
 import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import type { BroadcastPageData, BroadcastSummary, MessageRecipient } from "@/lib/broadcasts/pages.server";
 import { filtersPath, pageParam } from "@/lib/list-params";
-import { londonClock, londonDate, londonWhen, londonWhenShort, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
+import { londonClock, londonDate, londonWhenShort, sendsAt, staffDate, staffTime } from "@/lib/staff-time";
 import { FIELD_WORDS, type BroadcastChannel, type SendingPause } from "@/lib/broadcasts/broadcasts";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import Strip from "../ui/Strip";
@@ -98,7 +98,8 @@ function pauseInFull(pause: SendingPause): string {
     case "resting":
       return copy.resting(staffTime(pause.until));
     case "held":
-      return copy.heldLeft(pause.held, londonWhen(pause.until, "short"), londonDate(pause.stopsAt));
+      // When, as each held recipient's row under it says its own.
+      return copy.heldLeft(pause.held, staffTime(pause.until), londonDate(pause.stopsAt));
     case "limit":
       return pause.channel === "text" ? copy.moreTomorrowText : copy.moreTomorrow;
   }

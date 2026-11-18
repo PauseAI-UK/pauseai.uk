@@ -1111,7 +1111,10 @@ describe("Band", () => {
         </BandFact>
       </Band>,
     );
-    expect(box("lozenges").bottom).toBe(box("from their postcode").bottom);
+    // Level with the feet of the letters of the line under the fact beside it, a little above that line's bottom.
+    const under = box("from their postcode").bottom - box("lozenges").bottom;
+    expect(under).toBeGreaterThan(0);
+    expect(under).toBeLessThan(5);
     expect(box("lozenges").top).toBeGreaterThan(box("Manchester").top);
   });
 
