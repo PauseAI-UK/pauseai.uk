@@ -647,7 +647,7 @@ job all leave broadcasts out.
   (`late`), not that it was too large. A text stops too when WhatsApp
   pauses or disables its template (`template`), and any broadcast when its
   copies keep failing (`failing`, above), and an email by Postmark when
-  enough of its copies are lost (`lost`, below). Resume sending, on its page, sets it going again
+  its copies are lost (`lost`, below). Resume sending, on its page, sets it going again
   (`resumeBroadcast`): its cancelled copies are to go again, or one that
   never started is scheduled again, from now, so it has its days again.
   One that stopped as its copies kept failing sends again those its channel
@@ -663,9 +663,11 @@ job all leave broadcasts out.
   can take a copy, answering with its ID, and then say nothing more of it.
   A copy it has said nothing of for `LOST_MINUTES` is
   **lost** (`LOST` in `lib/broadcasts/drafts.server.ts`): counted as still to go, not
-  as gone. A broadcast by Postmark is only sent once Postmark has said
-  something of each copy, or it's lost; `LOST_TO_STOP` lost since it started or was
-  resumed stop it, so no more go into Postmark. Resume
+  as gone. `LOST_TO_STOP` lost since it started or was resumed stop a
+  broadcast while it sends, so no more go into Postmark. Once nothing is
+  left to go and Postmark has said something of each copy or it's lost, a
+  broadcast with any copy lost stops too, rather than counting as sent:
+  a broadcast is sent only when every copy has gone. Resume
   sends those never tried, not the lost ones. Gmail says nothing of what
   arrives, so a copy by Gmail is never lost.
 - **What WhatsApp reports**, by its webhook, `/api/whatsapp`, signed with

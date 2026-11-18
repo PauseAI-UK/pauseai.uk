@@ -63,8 +63,9 @@ import { emailCopy } from "@/lib/email/copy";
 // while (REST_MINUTES), so nothing that fails every copy can fail everyone;
 // a limit or an outage it rests through for as long as it lasts, telling
 // staff once it's been hours (heldBack). Postmark can take a copy and say
-// nothing more of it: LOST_TO_STOP such copies (LOST) stop it, and it's only
-// marked sent once Postmark has said something of every copy, or they're lost.
+// nothing more of it (LOST): LOST_TO_STOP such copies stop it while it
+// sends, and one with any lost when it's done stops rather than counting
+// as sent, so a broadcast is only sent once every copy has gone.
 
 /** Who the audit log says started and finished a broadcast. */
 const JOB = "send-mailings";
@@ -892,20 +893,24 @@ async function sendCopies(broadcast: Sending, sender: CopySender, run: Broadcast
 const LOST_SINCE_GOING = `(SELECT count(*)::int FROM broadcast_messages c
   WHERE c.mailing_id = m.id AND c.sent_at >= m.updated_at AND ${LOST})`;
 
+/** A broadcast `m` sending with no copy left to go, nor one Postmark took and might yet say something of (AWAITED). */
+const DONE_SENDING = `m.state = 'sending' AND m.audience = 'supporters'
+  AND NOT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id
+                  AND (c.status IN ('scheduled', 'sending') OR ${AWAITED}))`;
+
 /**
- * Marks as sent every broadcast sending with no copy left to go, nor one
- * Postmark took and might yet say something of (AWAITED). One with
- * LOST_TO_STOP lost carries on sending, so the next run stops it.
+ * Finishes every broadcast done sending (DONE_SENDING): one with any copy
+ * lost (LOST) stops, as it hasn't all gone, and staff are told; the rest
+ * are sent.
  */
 async function finishBroadcasts(): Promise<void> {
+  const lost = await query<Due>(
+    `SELECT ${DUE_COLUMNS} FROM mailings m WHERE ${DONE_SENDING}
+       AND EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id AND ${LOST})`,
+  );
+  for (const broadcast of lost) await giveUp(broadcast, "lost");
   const finished = await query<{ id: number }>(
-    `UPDATE mailings m SET state = 'sent', updated_at = now()
-     WHERE m.state = 'sending' AND m.audience = 'supporters'
-       AND NOT EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id
-                       AND (c.status IN ('scheduled', 'sending') OR ${AWAITED}))
-       AND ${LOST_SINCE_GOING} < $1
-     RETURNING m.id::int AS id`,
-    [LOST_TO_STOP],
+    `UPDATE mailings m SET state = 'sent', updated_at = now() WHERE ${DONE_SENDING} RETURNING m.id::int AS id`,
   );
   for (const { id } of finished) await logChange(JOB, "finish mailing", { id });
 }

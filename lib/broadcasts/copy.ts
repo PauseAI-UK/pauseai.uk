@@ -5,7 +5,7 @@
 // words of their own.
 import { count } from "@/lib/content/plural";
 import { mailingsCopy } from "@/lib/mailings/copy";
-import { daysInWords, FAILURES_TO_STOP, LOST_MINUTES, LOST_TO_STOP, SENDING_DAYS, WAIT_DAYS } from "./days";
+import { daysInWords, FAILURES_TO_STOP, LOST_MINUTES, SENDING_DAYS, WAIT_DAYS } from "./days";
 
 /** What one supporter's copy of a broadcast is, by how it went: the first word of its page's title, and its step of the trail above it. */
 const copyKind = (channel: "email" | "text") => (channel === "email" ? "Email" : "Text");
@@ -303,8 +303,9 @@ export const broadcastsCopy = {
     gaveUpLate: `Stopped after ${daysInWords(SENDING_DAYS)}, as CiviCRM was down when they ran out.`,
     // The same, for one so many of whose copies failed one after another that it stopped (FAILURES_TO_STOP).
     gaveUpFailing: `Stopped, as the last ${FAILURES_TO_STOP} emails or texts it tried all failed. Each one's page says why.`,
-    // The same, for one LOST_TO_STOP of whose copies Postmark took and said nothing more of in LOST_MINUTES.
-    gaveUpLost: `⁂ Stopped, as Postmark took ${LOST_TO_STOP} or more of its emails and said nothing of them for ${LOST_MINUTES} minutes. Ask Postmark what became of them before sending again.`,
+    // The same, for one Postmark took copies of and said nothing more of in LOST_MINUTES: LOST_TO_STOP of them
+    // while it sent, or any once it was done.
+    gaveUpLost: `⁂ Stopped, as Postmark took some of its emails and said nothing of them for ${LOST_MINUTES} minutes. Ask Postmark what became of them before sending again.`,
     // On one sending that has paused after its sends failed, or what sends it couldn't for now, till when it tries again.
     resting: (until: string) => `Paused, as sending failed. It will try again at ${until}.`,
     // On one sending by Gmail that can send no more today, under the bar that says how far it's got.
@@ -449,8 +450,8 @@ export const broadcastsCopy = {
       whyLate: `Its ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down, and we don't send to anyone without checking with it first.`,
       // Why, for one so many of whose copies failed one after another (FAILURES_TO_STOP): something may be wrong with what sends it.
       whyFailing: `The last ${FAILURES_TO_STOP} messages we tried to send all failed, so something may be fundamentally wrong. Check each copy and fix any problem before sending again.`,
-      // Why, for one LOST_TO_STOP of whose copies Postmark took and said nothing more of in LOST_MINUTES.
-      whyLost: `⁂ Postmark accepted ${LOST_TO_STOP} or more of its emails and has said nothing of them for ${LOST_MINUTES} minutes: not delivered, not bounced. Usually it says within seconds, so it may have lost them. Check its Activity page, and ask Postmark's support what became of them.`,
+      // Why, for one Postmark took copies of and said nothing more of in LOST_MINUTES (gaveUpLost).
+      whyLost: `⁂ Postmark accepted some of its emails and has said nothing of them for ${LOST_MINUTES} minutes: not delivered, not bounced. Usually it says within seconds, so it may have lost them. Check its Activity page, and ask Postmark's support what became of them.`,
       body: (
         title: string,
         reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | "lost",
