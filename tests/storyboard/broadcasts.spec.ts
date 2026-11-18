@@ -944,7 +944,8 @@ test("Postmark loses an email's copies", async ({ page, request, flowDatabase })
     flowDatabase,
     `UPDATE mailings SET send_by = 'postmark', state = 'sending', due_at = '2026-10-16T11:30:00Z',
        updated_at = '2026-10-16T11:30:00Z' WHERE id = ${id};
-     WITH people AS (SELECT s.id, row_number() OVER (ORDER BY s.id) AS n FROM supporters s),
+     WITH added AS (INSERT INTO supporters (created_at) SELECT '2026-10-01' FROM generate_series(1, 7) RETURNING id),
+     people AS (SELECT id, row_number() OVER (ORDER BY id) AS n FROM added),
      c AS (
        INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, merge_values, sent_at, provider_message_id)
        SELECT ${id}, p.id, 'person' || p.n || '@example.com',
