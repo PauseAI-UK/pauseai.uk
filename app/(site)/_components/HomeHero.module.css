@@ -89,6 +89,8 @@
   margin-right: var(--marquee-gap);
   border-radius: 8px;
   object-fit: contain;
+  /* Firefox writes a photo's alt text in its place while it loads. */
+  color: transparent;
   /* Safari intermittently drops textures during long transforms on
      elements that aren't on their own compositor layer. Promote each
      image and keep its backface from being culled so the texture stays
