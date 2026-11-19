@@ -22,10 +22,27 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
+/** Jane as the Luma and CiviCRM imports would save her: a Luma user who registered for and hosts an event, and a member in CiviCRM. */
+async function janeFromImports(): Promise<void> {
+  await query(
+    `INSERT INTO luma_events (id, name, url, start_at, access)
+       VALUES ('evt-fixture-london-protest', 'London protest', 'https://luma.com/london', '2026-10-10T12:00:00Z', 'manage');
+     INSERT INTO luma_people (user_id, email, name, contact_since)
+       VALUES ('usr-fixture-1', 'jane.fixture@example.com', 'Jane Fixture', '2026-09-20T09:00:00Z');
+     INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at, phone, postcode, utm_source)
+       VALUES ('gst-1', 'evt-fixture-london-protest', 'usr-fixture-1', 'approved', '2026-09-26T12:00:00Z', '+447700900001', 'M1 1AE', 'brixton');
+     INSERT INTO luma_event_hosts (event_id, user_id) VALUES ('evt-fixture-london-protest', 'usr-fixture-1');
+     INSERT INTO civicrm_contacts (contact_id, airtable_id, email, on_hold, on_hold_since, no_bulk_email, no_bulk_email_since,
+         do_not_email, do_not_email_since, do_not_phone, do_not_phone_since, do_not_sms, do_not_sms_since,
+         newsletter, newsletter_since, volunteer_updates, volunteer_updates_since, joined_date, intent)
+       VALUES (101, 'recMemberJane', 'jane.fixture@example.com', false, '2026-09-12', false, '2026-09-12', false, '2026-09-12',
+         false, '2026-09-12', false, '2026-09-12', 'subscribed', '2026-09-12', 'subscribed', '2026-09-12', '2026-09-12', 'volunteer')`,
+  );
+}
+
 async function janeWithEverything(mp: number): Promise<number> {
   // Jane: a Luma user with registrations, a member in CiviCRM, a letter with a reply forwarded to her, a bounce record, and an opt-out.
-  await importLuma("test");
-  await importCivicrm("test");
+  await janeFromImports();
   const letterId = await addTestLetter({
     politicianId: mp,
     senderName: "Jane",
@@ -66,7 +83,7 @@ async function janeWithEverything(mp: number): Promise<number> {
 describeWithDatabase("eraseSupporter", () => {
   useTestDatabase();
 
-  it("deletes what each source holds, keeps what stops us mailing the address, blocks the Luma user from coming back, and logs it", async () => {
+  it("deletes what each source holds, keeps what stops us mailing the address and the IDs that keep her out, and logs it", async () => {
     const mp = await addTestMp();
     const id = await janeWithEverything(mp);
     // She hosts the London protest.
@@ -138,7 +155,15 @@ describeWithDatabase("eraseSupporter", () => {
         },
       },
     ]);
-    // Everyone else is still there, and the next import doesn't bring Jane back.
+  });
+
+  it("keeps the next Luma and CiviCRM imports from bringing her back, leaving everyone else", async () => {
+    await importLuma("test");
+    await importCivicrm("test");
+    const [{ id }] = await query<{ id: number }>(
+      "SELECT supporter_id::int AS id FROM supporter_links WHERE luma_user_id = 'usr-fixture-1'",
+    );
+    await eraseSupporter(id, "ICO-123", "jo@pauseai.uk");
     expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 16 }]);
     await query("UPDATE luma_events SET guests_synced_at = NULL, hosts_synced_at = NULL");
     await importLuma("test");
