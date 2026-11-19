@@ -22,3 +22,4 @@ have `scripts/test-changed.mjs` pass Vitest the changed files itself
 ## Hits
 
 - 2026-11-18: in tmp/worktrees/staff-fixes, ran the whole `npm test` instead, ~5 min
+- 2026-11-19: in tmp/worktrees/consents-redo, the same, so ran the gate's test group instead, ~3 min
