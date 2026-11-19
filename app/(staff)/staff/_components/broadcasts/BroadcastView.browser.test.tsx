@@ -395,6 +395,10 @@ describe("BroadcastCounts", () => {
     await expect.element(page.getByRole("link", { name: `21 ${stateWords.counts.delivered}` })).not.toBeInTheDocument();
     await rerender(<NeedsAndFine counts={counts({ look: 0, "opted-out": 0, error: 0, unreached: 0 })} />);
     await expect.element(page.getByRole("button", { name: new RegExp(stateWords.allFine(58)) })).toBeVisible();
+    // Those delayed haven't arrived, so they aren't fine: grey, but shown.
+    await rerender(<NeedsAndFine counts={counts({ look: 0, "opted-out": 0, error: 0, unreached: 0, held: 5 })} />);
+    await expect.element(page.getByRole("link", { name: `5 ${stateWords.counts.held}` })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: new RegExp(stateWords.andFine(58)) })).toBeVisible();
     // Nothing at all: nothing to show.
     const none = {
       sent: 0,
