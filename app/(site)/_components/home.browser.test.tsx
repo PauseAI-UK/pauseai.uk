@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import photoColours from "@/lib/content/hero-photo-colours.json";
+import photoPreviews from "@/lib/content/hero-photo-previews.json";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { localGroups } from "@/lib/content/local-groups";
 import { people } from "@/lib/content/people";
@@ -21,12 +21,6 @@ import StaffSection from "./StaffSection";
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-/** A hex colour as the browser reports an element's: "rgb(1, 2, 3)". */
-function rgb(hex: string) {
-  const [red, green, blue] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
-  return `rgb(${red}, ${green}, ${blue})`;
-}
 
 describe("HomeHero", () => {
   it("shows every photo once in three scrolling rows, each row twice", async () => {
@@ -48,10 +42,13 @@ describe("HomeHero", () => {
     const avifs = `${webp.replace(/\.webp$/, "-1x.avif")} 1x, ${webp.replace(/\.webp$/, ".avif")} 2x`;
     expect(first.querySelector("source")).toHaveAttribute("srcset", avifs);
     expect(container.querySelectorAll("picture > source + img")).toHaveLength(HERO_PHOTOS.length * 4);
-    // Until it loads, its place is filled with its own colour, as wide as the photo will be.
+    // Until it loads, its place is filled with its preview, as wide as the photo will be. The preview is
+    // written once, on the hero, however many times the photo is in it.
     const name = webp.split("/").at(-1)!;
-    expect(first.style.backgroundColor).not.toBe("");
-    expect(first.style.backgroundColor).toBe(rgb(photoColours[name as keyof typeof photoColours]));
+    const preview = `url("data:image/webp;base64,${photoPreviews[name as keyof typeof photoPreviews]}")`;
+    expect(getComputedStyle(first).backgroundImage).toBe(preview);
+    expect(first.getAttribute("style")).toMatch(/^background-image: ?var\(--photo-\d+\);?$/);
+    expect(container.innerHTML.split(photoPreviews[name as keyof typeof photoPreviews])).toHaveLength(2);
     const [, , width, height] = HERO_PHOTOS.find(([src]) => src === name)!;
     const box = first.getBoundingClientRect();
     expect(box.width / box.height).toBeCloseTo(width / height, 1);

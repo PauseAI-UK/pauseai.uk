@@ -1,6 +1,6 @@
 import { preload } from "react-dom";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
-import photoColours from "@/lib/content/hero-photo-colours.json";
+import photoPreviews from "@/lib/content/hero-photo-previews.json";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { shuffle } from "@/lib/shuffle.server";
 import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
@@ -19,11 +19,19 @@ const avif = (src: string, smaller = false) => `${PHOTOS}/${src.replace(/\.webp$
 const avifSet = (src: string) => `${avif(src, true)} 1x, ${avif(src)} 2x`;
 
 /**
- * Each photo's average colour, which the same script works out. It fills the
- * photo's place until the photo has loaded, so the rows are there, and the
- * headline readable over them, as soon as the page paints.
+ * Each photo's preview, which the same script makes: the photo 24px wide, a
+ * couple of hundred bytes, written into the page. Stretched to fill the
+ * photo's place it's a blur of the photo, there as soon as the page paints,
+ * which the photo fades in over once it has loaded.
+ *
+ * A photo is in the page four times over, so its preview is written once, as
+ * a custom property on the hero, which each of its places then names.
  */
-const COLOURS: Record<string, string> = photoColours;
+const PREVIEWS: Record<string, string> = photoPreviews;
+const previewName = (src: string) => `--photo-${HERO_PHOTOS.findIndex(([name]) => name === src)}`;
+const PREVIEW_PROPERTIES = Object.fromEntries(
+  HERO_PHOTOS.map(([src]) => [previewName(src), `url(data:image/webp;base64,${PREVIEWS[src]})`]),
+);
 
 /**
  * When a row's photo at `index` is wanted, so that the ones a visitor sees
@@ -87,7 +95,7 @@ export default function HomeHero() {
     <section id="about">
       <script dangerouslySetInnerHTML={{ __html: HERO_PHOTO_FADE_SCRIPT }} />
       <div hidden dangerouslySetInnerHTML={{ __html: widePreloads }} />
-      <div className={styles.marquee}>
+      <div className={styles.marquee} style={PREVIEW_PROPERTIES}>
         {heroRows.map((row, ri) => (
           <div key={ri} className={row.dir === "rtl" ? `${styles.row} ${styles.rtl}` : styles.row}>
             <div className={styles.track} data-marquee-track="hero">
@@ -105,7 +113,7 @@ export default function HomeHero() {
                     // nothing waits on an image service resizing them.
                     const wanted = isPrimary ? wantedWhen(i, row.photos.length, row.dir) : "later";
                     return (
-                      <picture key={i} style={{ backgroundColor: COLOURS[src] }}>
+                      <picture key={i} style={{ backgroundImage: `var(${previewName(src)})` }}>
                         <source type="image/avif" srcSet={avifSet(src)} />
                         <img
                           src={`${PHOTOS}/${src}`}
