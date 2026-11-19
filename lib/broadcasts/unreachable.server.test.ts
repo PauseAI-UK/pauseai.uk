@@ -73,6 +73,19 @@ describeWithDatabase("numbers WhatsApp can't reach", () => {
     ]);
   });
 
+  it("places a skip no sooner than the refusal it was skipped for, though its broadcast was due before", async () => {
+    const supporter = await addFollower("usr-1", "jane@example.com", "Jane", { phone: NUMBER });
+    const refused = await copyTo(supporter, "Refused", "2026-10-01T10:00:00Z", "skipped", "not-on-whatsapp");
+    // Due an hour before WhatsApp refused the first, but sent after it, so skipped.
+    await copyTo(supporter, "Skipped", "2026-10-01T09:00:00Z", "skipped", "not-on-whatsapp");
+    await markUnreachable(NUMBER, refused.id);
+    await query("UPDATE whatsapp_unreachable SET at = '2026-10-01T10:05:00Z'");
+    expect((await numberEvents([NUMBER])).map((event) => [event.refused, event.at])).toEqual([
+      [false, new Date("2026-10-01T10:05:00Z")],
+      [true, new Date("2026-10-01T10:05:00Z")],
+    ]);
+  });
+
   it("lists a mark whose copy has gone, every skip counted, and whose it is from the copies", async () => {
     // Jane's own record has no number: it's the copy to it that says it's hers.
     const supporter = await addFollower("usr-1", "jane@example.com", "Jane");

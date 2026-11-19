@@ -76,11 +76,15 @@ export type NumberEvent = {
 /**
  * Every copy to `numbers` WhatsApp refused, or skipped as it had: the
  * copy whose refusal marked the number when it was marked, and each one
- * skipped when its broadcast was due, as a skip keeps no time of its own.
+ * skipped when its broadcast was due, as a skip keeps no time of its own;
+ * but one made after the refused copy no sooner than the refusal, as it
+ * can only have been skipped after it.
  */
 export async function numberEvents(numbers: string[]): Promise<NumberEvent[]> {
   return query<NumberEvent>(
-    `SELECT c.address AS number, CASE WHEN c.id = u.message_id THEN u.at ELSE coalesce(g.due_at, g.created_at) END AS at,
+    `SELECT c.address AS number, CASE WHEN c.id = u.message_id THEN u.at
+         WHEN c.id > u.message_id THEN greatest(coalesce(g.due_at, g.created_at), u.at)
+         ELSE coalesce(g.due_at, g.created_at) END AS at,
        c.id IS NOT DISTINCT FROM u.message_id AS refused, json_build_object('id', c.id, 'broadcast', g.id, 'title', g.title) AS copy
      FROM broadcast_messages c JOIN mailings g ON g.id = c.mailing_id
        LEFT JOIN whatsapp_unreachable u ON u.number = c.address
