@@ -46,6 +46,35 @@ describe("HeroMarqueeEffects", () => {
     await expect.poll(() => track.style.getPropertyValue("--copy-shift")).toBe("-300px");
   });
 
+  it("fetches the hero's later photos once the page has loaded, and no other lazy image", async () => {
+    /* eslint-disable @next/next/no-img-element -- plain images, as the hero's are */
+    const hero = (
+      <>
+        <div data-marquee-track="hero">
+          <img src={PIXEL} alt="" loading="lazy" data-testid="later" />
+        </div>
+        <img src={PIXEL} alt="" loading="lazy" data-testid="elsewhere" />
+        <HeroMarqueeEffects />
+      </>
+    );
+    /* eslint-enable @next/next/no-img-element */
+    const loading = (testId: string) => (page.getByTestId(testId).element() as HTMLImageElement).loading;
+
+    const readyState = vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    const { unmount } = await render(hero);
+    expect(loading("later")).toBe("lazy");
+    window.dispatchEvent(new Event("load"));
+    expect(loading("later")).toBe("eager");
+    expect(loading("elsewhere")).toBe("lazy");
+    await unmount();
+
+    // Opened from another page, the page has loaded already.
+    readyState.mockReturnValue("complete");
+    await render(hero);
+    expect(loading("later")).toBe("eager");
+    expect(loading("elsewhere")).toBe("lazy");
+  });
+
   it("measures a track again once a slow photo loads, or fails, and ignores tracks without a copy", async () => {
     await render(
       <>

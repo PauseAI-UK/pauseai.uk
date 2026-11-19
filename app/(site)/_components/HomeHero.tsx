@@ -21,6 +21,24 @@ const avif = (src: string) => `${PHOTOS}/${src.replace(/\.webp$/, ".avif")}`;
  */
 const COLOURS: Record<string, string> = photoColours;
 
+/**
+ * When a row's photo at `index` is wanted, so that the ones a visitor sees
+ * first aren't held up by the rest, nor is anything else on the page:
+ *
+ * - "first": a row opens on its first photos, about two of them on a phone.
+ *   They're fetched before anything else.
+ * - "next": the ones the row brings on in its first few seconds. A row moving
+ *   left ("ltr") brings on those after the first, and one moving right ("rtl")
+ *   its last ones, the very last first. They're fetched with the page.
+ * - "later": the rest wait until they're nearly on screen, or the page has
+ *   loaded (HeroMarqueeEffects), whichever is first.
+ */
+function wantedWhen(index: number, count: number, dir: "ltr" | "rtl") {
+  if (index < 2) return "first";
+  const soon = dir === "rtl" ? index >= count - 2 : index < 4;
+  return soon ? "next" : "later";
+}
+
 // The home page hero: three rows of photos scrolling in alternating
 // directions behind the headline (HeroMarqueeEffects measures and starts
 // them). Each photo fades in as it loads (heroPhotoFade.ts).
@@ -55,13 +73,10 @@ export default function HomeHero() {
                 >
                   {[...row.photos, ...row.photos].map(([src, alt, width, height], i) => {
                     const isPrimary = copyIdx === 0 && i < row.photos.length;
-                    // A phone opens on about the first two photos of each row, so those are fetched
-                    // before the rest.
-                    const opensInView = isPrimary && i < 2;
-                    // Each photo's first showing loads at once, as the rows bring it on screen before a lazy
-                    // load would finish; its repeats are the same file, there by then. The files are
-                    // served as they are, already the size the hero shows them, so nothing waits on an
-                    // image service resizing them.
+                    // Each photo's first showing says when the file is fetched; its repeats are the same
+                    // file. The files are served as they are, already the size the hero shows them, so
+                    // nothing waits on an image service resizing them.
+                    const wanted = isPrimary ? wantedWhen(i, row.photos.length, row.dir) : "later";
                     return (
                       <picture key={i} style={{ backgroundColor: COLOURS[src] }}>
                         <source type="image/avif" srcSet={avif(src)} />
@@ -71,8 +86,8 @@ export default function HomeHero() {
                           width={width}
                           height={height}
                           aria-hidden={!isPrimary || undefined}
-                          loading={isPrimary ? "eager" : "lazy"}
-                          fetchPriority={opensInView ? "high" : undefined}
+                          loading={wanted === "later" ? "lazy" : "eager"}
+                          fetchPriority={wanted === "first" ? "high" : undefined}
                           decoding="async"
                         />
                       </picture>

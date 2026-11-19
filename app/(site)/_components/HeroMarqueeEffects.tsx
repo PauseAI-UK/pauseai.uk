@@ -10,7 +10,8 @@ import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 //
 // It also runs the hero photos' fade script (heroPhotoFade.ts). React doesn't
 // run a script in a page it renders in the browser, so the hero's own inline
-// copy only runs when the home page is the first page loaded.
+// copy only runs when the home page is the first page loaded. And it fetches
+// the hero's later photos once the page has loaded.
 export default function HeroMarqueeEffects() {
   useEffect(() => {
     const fade = document.createElement("script");
@@ -19,6 +20,21 @@ export default function HeroMarqueeEffects() {
     fade.remove();
 
     const cleanups: Array<() => void> = [];
+
+    // The hero's photos that were left for later (HomeHero) are fetched once
+    // the page has loaded, so they're there before their rows bring them on,
+    // without having held anything up.
+    function fetchTheRest() {
+      document.querySelectorAll<HTMLImageElement>('[data-marquee-track="hero"] img[loading="lazy"]').forEach((img) => {
+        img.loading = "eager";
+      });
+    }
+    if (document.readyState === "complete") {
+      fetchTheRest();
+    } else {
+      window.addEventListener("load", fetchTheRest);
+      cleanups.push(() => window.removeEventListener("load", fetchTheRest));
+    }
 
     document.querySelectorAll<HTMLElement>("[data-marquee-track]").forEach((track) => {
       const copy = track.querySelector<HTMLElement>("[data-marquee-copy]");

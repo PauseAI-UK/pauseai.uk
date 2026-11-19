@@ -39,8 +39,6 @@ describe("HomeHero", () => {
     const described = [...container.querySelectorAll("img")].map((img) => img.getAttribute("alt")).filter(Boolean);
     expect(described.sort()).toEqual(HERO_PHOTOS.map(([, alt]) => alt).sort());
     expect(container.querySelectorAll('img[aria-hidden="true"]').length).toBe(HERO_PHOTOS.length * 3);
-    // Each photo's first showing loads at once; its repeats, the same file, lazily.
-    expect(container.querySelectorAll('img:not([loading="lazy"])')).toHaveLength(HERO_PHOTOS.length);
     // Each is served as its AVIF copy, with the WebP for a browser that can't show one.
     const first = container.querySelector("picture")!;
     const webp = first.querySelector("img")!.getAttribute("src")!;
@@ -55,13 +53,19 @@ describe("HomeHero", () => {
     const [, , width, height] = HERO_PHOTOS.find(([src]) => src === name)!;
     const box = first.getBoundingClientRect();
     expect(box.width / box.height).toBeCloseTo(width / height, 1);
-    // The first two photos of each row are fetched before the rest, the top row's first before anything.
-    expect(first.querySelector("img")).toHaveAttribute("fetchpriority", "high");
-    expect(container.querySelectorAll('img[fetchpriority="high"]')).toHaveLength(6);
-    for (const track of tracks) {
-      const photos = [...track.querySelectorAll("img")];
-      expect(photos.map((photo) => photo.getAttribute("fetchpriority")).slice(0, 3)).toEqual(["high", "high", null]);
-    }
+    // Each row's photos are fetched in the order a visitor meets them: its first two before anything, then
+    // the two it brings on next, which on the row moving right are its last. The rest wait, as do the
+    // repeats, which are the same files.
+    const fetched = tracks.map((track) =>
+      [...track.querySelectorAll("img")].map((photo) =>
+        photo.getAttribute("fetchpriority") === "high" ? "first" : photo.loading === "eager" ? "next" : "later",
+      ),
+    );
+    const later = (count: number) => Array.from({ length: count }, () => "later");
+    const [top, middle, bottom] = [0, 1, 2].map((row) => Math.min(10, HERO_PHOTOS.length - row * 10));
+    expect(fetched[0]).toEqual(["first", "first", "next", "next", ...later(top * 4 - 4)]);
+    expect(fetched[1]).toEqual(["first", "first", ...later(middle - 4), "next", "next", ...later(middle * 3)]);
+    expect(fetched[2]).toEqual(["first", "first", "next", "next", ...later(bottom * 4 - 4)]);
     const preloaded = document.head.querySelector('link[rel="preload"][as="image"][type="image/avif"]');
     expect(preloaded).toHaveAttribute("href", webp.replace(/\.webp$/, ".avif"));
     // The fade's script comes before the photos, so it's listening when the first loads.
