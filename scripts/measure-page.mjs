@@ -618,7 +618,7 @@ async function main() {
   );
   console.log("");
   for (const section of sections) console.log(textTable(section.title, tableRows(names, section.results)));
-  writeFileSync(join(out, "results.json"), JSON.stringify({ ...options, versions, results }, null, 2));
+  writeFileSync(join(out, "results.json"), JSON.stringify({ ...options, versions, results, films }, null, 2));
   writeFileSync(join(out, "index.html"), reportHtml(`${options.path} on 4G`, sections));
   console.log(
     `The tables and filmstrips are in ${join(out, "index.html")}, every run in ${join(out, "results.json")}.`,
