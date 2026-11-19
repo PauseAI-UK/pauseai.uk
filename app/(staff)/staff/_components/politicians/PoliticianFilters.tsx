@@ -1,9 +1,9 @@
 import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Ask } from "@/lib/asks/records.server";
-import { filteredName, filterWords, POLITICIAN_FILTERS } from "@/lib/staff-list-filters";
+import { filteredName, filterWords, POLITICIAN_FILTERS, politicianParams } from "@/lib/staff-list-filters";
 import type { PoliticiansSearch } from "@/lib/staff-search";
-import { firstOf, type Params } from "@/lib/list-params";
+import { firstOf, valuesOf, type Params } from "@/lib/list-params";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import FilterBar from "../ui/FilterBar";
 import { savedFiltersProps, type SavedFilterActions } from "../ui/SavedFilters";
@@ -13,9 +13,10 @@ const copy = politiciansCopy.politicians;
 
 /** The list's house, search and filters that are on in `values`, its URL's parameters, in words. */
 function wordsOf(values: Params, parties: string[], asks: Ask[]): string[] {
+  const read = politicianParams(values);
   return [
     staffVocabulary.houses[firstOf(values.house) as keyof typeof staffVocabulary.houses] ?? "",
-    ...filterWords(POLITICIAN_FILTERS({ ask: firstOf(values.ask), parties, asks }), values, "q"),
+    ...filterWords(POLITICIAN_FILTERS({ ask: valuesOf(read.ask), parties, asks }), read, "q"),
   ];
 }
 

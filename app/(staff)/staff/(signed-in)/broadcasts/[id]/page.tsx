@@ -10,7 +10,7 @@ import { broadcastWriterActions } from "../../../_components/broadcasts/writer-a
 
 type Params = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: ParamValue; tab?: ParamValue }>;
+  searchParams: Promise<{ page?: ParamValue; tab?: ParamValue; sort?: ParamValue; dir?: ParamValue }>;
 };
 
 export async function generateMetadata({ params }: Pick<Params, "params">): Promise<Metadata> {

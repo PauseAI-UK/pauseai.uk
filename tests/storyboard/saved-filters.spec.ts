@@ -255,12 +255,15 @@ test("A saved filter on Events", async ({ page, flowDatabase }) => {
 });
 
 test("Loading a saved filter while choosing who a mailing goes to", async ({ page, request, flowDatabase }) => {
-  story("Staff start a new mailing, and the list is choosing who it's for. A saved filter loads as usual.");
+  story(
+    "Staff start a new mailing, and from its draft press Choose who: the list is choosing who it's for. A saved filter loads as usual.",
+  );
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   addSaved(flowDatabase, "politicians", "Labour MPs", { party: "Labour", house: "commons" });
   await page.goto(POLITICIANS);
   await page.getByRole("button", { name: /New mailing/ }).click();
+  await page.getByRole("link", { name: mailingsCopy.mailingPages.chooseWho }).click();
   await expect(page.getByText(politiciansCopy.choosing.choosingNew)).toBeVisible();
   await openList(page);
   await frame(page, "Choosing, with the list open");

@@ -859,6 +859,14 @@ test("An email sent", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: "Thank you for marching" }).first().click();
   await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
   await frame(page, "The email's page");
+  // A phone has no room for the column of when each last changed, so shows that under how each went, with no heading to sort by.
+  if (test.info().project.name !== "phone") {
+    story("Its recipients are listed by name. A heading sorts them by when each last changed, the newest first.");
+    const changed = page.getByRole("link", { name: copy.columns.changed, exact: true });
+    await changed.click();
+    await expect(page.locator("th", { has: changed })).toHaveAttribute("aria-sort", "descending");
+    await frame(page, "Sorted by when each last changed");
+  }
   story("A count shows those it counts.");
   await page.getByRole("link", { name: new RegExp(stateWords.counts["not-sent"]!) }).click();
   await expect(page.getByRole("heading", { name: stateWords.tabs["not-sent"] })).toBeVisible();
@@ -876,6 +884,22 @@ test("An email sent", async ({ page, request, flowDatabase }) => {
     window.scrollBy({ top: -24, behavior: "instant" });
   });
   await frame(page, "On the supporter's page", { window: true });
+});
+
+test("Copying a broadcast", async ({ page, request, flowDatabase }) => {
+  story("An email has gone. Copy broadcast, at the top right of its page, starts the next one from it.");
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "email", "Thank you for marching");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByRole("button", { name: copy.copyBroadcast })).toBeVisible();
+  await frame(page, "The email's page, Copy broadcast at its top right");
+  story("Pressed, it opens a new draft to the same people, with the same words, to change and send.");
+  await page.getByRole("button", { name: copy.copyBroadcast }).click();
+  await expect(page).not.toHaveURL(new RegExp(`/staff/broadcasts/${sent.id}$`));
+  await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
+  await expect(page.getByLabel(mailingsCopy.mailingPages.subject)).toHaveValue("Thank you for marching");
+  await frame(page, "The copy, a draft");
 });
 
 test("A text sent", async ({ page, request, flowDatabase }) => {

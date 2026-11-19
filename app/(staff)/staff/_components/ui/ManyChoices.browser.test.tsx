@@ -43,12 +43,13 @@ const answer: Filter = {
   after: "ask",
   repeat: true,
   options: [
-    { value: "", label: "Any" },
-    { value: "yes", label: "Yes" },
-    { value: "no", label: "No" },
+    { value: "x.", label: "Any" },
+    { value: "x.yes", label: "Yes" },
+    { value: "x.no", label: "No" },
   ],
 };
-const ask: Filter = { name: "ask", label: "Ask", options: [{ value: "x", label: "X" }] };
+// Each ask chosen has its own answers, paired with it.
+const ask: Filter = { name: "ask", label: "Ask", repeat: true, options: [{ value: "x", label: "X" }] };
 
 const bar = (filters: Filter[], values: Record<string, string | string[]>) => (
   <FilterBar path="/list" values={values} search={{ name: "q", label: "Search" }} filters={filters} />
@@ -253,9 +254,9 @@ describe("a repeating filter's lozenge's menu", () => {
     expect(chipWords()).toBe("Tag: Group, A");
   });
 
-  it("as a lozenge's second half: named for its blank choice, no turning round or Remove, with a row for its default", async () => {
+  it("as a lozenge's second half: named for its blank choice, no Remove, and nothing to turn round till chosen, with a row for its default", async () => {
     await render(bar([ask, answer], { ask: "x" }));
-    const halves = page.getByRole("group", { name: "Ask" }).getByRole("button");
+    const halves = page.getByRole("group", { name: "X" }).getByRole("button");
     expect(halves.all().map((half) => half.element().textContent)).toEqual(["X", "Any"]);
     await halves.nth(1).click();
     expect(rows()).toEqual([
@@ -269,28 +270,58 @@ describe("a repeating filter's lozenge's menu", () => {
     expect(rows().map(([words]) => words)).toEqual(["Yes", "No"]);
     await page.getByRole("checkbox", { name: "Yes" }).click();
     await page.getByRole("checkbox", { name: "No" }).click();
-    expect(replaced()).toEqual(["/list?ask=x&answer=yes", "/list?ask=x&answer=yes&answer=no"]);
+    expect(replaced()).toEqual(["/list?ask=x&answer=x.yes", "/list?ask=x&answer=x.yes&answer=x.no"]);
   });
 
   it("says the answers in the second half, whose default row takes them off, and changing the first takes them off too", async () => {
-    const { rerender } = await render(bar([ask, answer], { ask: "x", answer: "yes" }));
-    const halves = page.getByRole("group", { name: "Ask" }).getByRole("button");
+    const { rerender } = await render(bar([ask, answer], { ask: "x", answer: "x.yes" }));
+    const halves = page.getByRole("group", { name: "X" }).getByRole("button");
     await halves.nth(1).click();
     expect(open().querySelector("a")!.getAttribute("href")).toBe("/list?ask=x");
     await away();
-    await rerender(bar([ask, answer], { ask: "x", answer: ["yes", "no"] }));
+    await rerender(bar([ask, answer], { ask: "x", answer: ["x.yes", "x.no"] }));
     expect(halves.nth(1).element().textContent).toBe("Yes or No");
     await halves.nth(0).click();
     expect(open().querySelector("a")!.getAttribute("href")).toBe("/list?ask=x");
   });
 
-  it("alone, with no ask chosen, its chip has Remove, and no turning round", async () => {
-    await render(bar([ask, answer], { answer: "yes" }));
-    await page.getByRole("button", { name: "Answer: Yes" }).click();
-    expect(foot()).toEqual([
-      [copy.addChoice, null],
-      [copy.remove, "/list"],
+  it("ticks a box's parts with it, and it with every part, keeping only it in the URL", async () => {
+    const nested: Filter = {
+      ...tag,
+      options: [
+        { value: "all", label: "All" },
+        { value: "a", label: "A", under: "all" },
+        { value: "b", label: "B", under: "all" },
+        { value: "c", label: "C" },
+      ],
+    };
+    await render(bar([nested], { tag: ["c", "a"] }));
+    await page.getByRole("button", { name: "Tag: C or A" }).click();
+    const box = (name: string) => page.getByRole("checkbox", { name, exact: true });
+    const last = () => replaced().at(-1);
+    // Set in under the one they're part of.
+    const inset = (name: string) => box(name).element().getBoundingClientRect().left;
+    expect(inset("A")).toBeGreaterThan(inset("All"));
+    // B, the last part not ticked, ticks All, which stands for them both.
+    await box("B").click();
+    expect(last()).toBe("/list?tag=c&tag=all");
+    expect(rows().map(([words, on]) => [words, on])).toEqual([
+      ["All", true],
+      ["A", true],
+      ["B", true],
+      ["C", true],
     ]);
+    // Unticking a part unticks All, keeping the other part.
+    await box("A").click();
+    expect(last()).toBe("/list?tag=c&tag=b");
+    await box("B").click();
+    expect(last()).toBe("/list?tag=c");
+    // All ticks its parts with it, and unticks them with it.
+    await box("All").click();
+    expect(last()).toBe("/list?tag=c&tag=all");
+    await expect.element(box("A")).toBeChecked();
+    await box("All").click();
+    expect(last()).toBe("/list?tag=c");
   });
 
   it("a searchable filter's boxes show those ticked until something's typed", async () => {

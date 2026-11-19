@@ -11,7 +11,7 @@ import { standingWord } from "@/lib/asks/copy";
 import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
-import { firstOf, notValue, valuesOf, type Params } from "./list-params";
+import { firstOf, notValue, pairedValue, pairedValues, unpaired, valuesOf, type Params } from "./list-params";
 import { COUNTRIES, EMAIL_STATES } from "@/lib/politicians/filters";
 import { POLITICIAN_FLAGS } from "@/lib/politician-flags";
 import type { EmailChoice } from "@/lib/letters/all-letters.server";
@@ -144,6 +144,49 @@ export function valueWords(filter: Filter, value: string, join: string): string 
 export type FilterPill = { words: string; not: boolean };
 
 /**
+ * The repeating filter `filter` comes after, if it does: each of that one's
+ * values has its own of `filter`'s, paired with it (pairedValue()).
+ */
+export function pairedAfter(filters: Filter[], filter: Filter): Filter | undefined {
+  const before = filter.after ? filters.find((f) => f.name === filter.after) : undefined;
+  return before?.repeat && filter.repeat ? before : undefined;
+}
+
+/**
+ * The values of `paired`, which comes after `filter`, a repeating one, that
+ * go with `of`, a value of that one, without their pairing: those it finds,
+ * then those it leaves out.
+ */
+export function pairedSides(paired: Filter, values: Params, of: string): [string[], string[]] {
+  const own = valuesOf(values[paired.name])
+    .map(notValue)
+    .filter((one) => unpaired(one.value).of === of);
+  return [false, true].map((not) => own.filter((one) => one.not === not).map((one) => one.value)) as [
+    string[],
+    string[],
+  ];
+}
+
+/**
+ * The pills of a repeating filter with one paired after it: for each of
+ * its values, what that one finds of it, or its default, then what it
+ * leaves out of it, each named for the value.
+ */
+function pairedPills(filter: Filter, paired: Filter, values: Params): FilterPill[] {
+  return valuesOf(values[filter.name]).flatMap((of) => {
+    const name = choiceWords(filter, of);
+    const [found, out] = pairedSides(paired, values, of);
+    const words = (ones: string[]) => staffVocabulary.filters.anyOf(ones.map((one) => choiceWords(paired, one)));
+    return [
+      ...(found.length > 0 || out.length === 0
+        ? [{ words: `${name}: ${found.length ? words(found) : choiceWords(paired, pairedValue(of, ""))}`, not: false }]
+        : []),
+      ...(out.length > 0 ? [{ words: staffVocabulary.filters.notChip(name, words(out)), not: true }] : []),
+    ];
+  });
+}
+
+/**
  * The search and each filter that's on, as their chips say them, and
  * whether each leaves out: for pills that show who something is to. One
  * that comes `after` another and doesn't repeat goes with it, as its chip's
@@ -153,6 +196,12 @@ export function filterPills(filters: Filter[], values: Params, search: string): 
   const pills = values[search] ? [{ words: `${staffVocabulary.search}: ${firstOf(values[search])}`, not: false }] : [];
   for (const filter of filters) {
     if (filter.after && !filter.repeat) continue;
+    if (pairedAfter(filters, filter)) continue;
+    const paired = filters.find((f) => f.after === filter.name && pairedAfter(filters, f));
+    if (paired) {
+      pills.push(...pairedPills(filter, paired, values));
+      continue;
+    }
     const chosen = valuesOf(values[filter.name]).map(notValue);
     // Those it finds, then those it leaves out, by the name of their chip.
     const [found, out] = [false, true].map((not) => {
@@ -201,24 +250,35 @@ export function filteredName(words: string[]): string {
 const choicesOf = (labels: Record<string, string>): FilterOption[] =>
   Object.entries(labels).map(([value, label]) => ({ value, label }));
 
-/** What the politicians list's bar offers: the ask chosen, and the parties and asks there are. */
-export type PoliticianChoices = { ask: string; parties: string[]; asks: Ask[] };
+/**
+ * The politicians list's URL parameters, `params`, as its bar reads them:
+ * each answer paired with its ask (pairedValues()), as a mailing or saved
+ * filter from before asks were paired may not have it.
+ */
+export function politicianParams(params: Params): Params {
+  const ask = valuesOf(params.ask);
+  return { ...params, ask, answer: pairedValues(ask, valuesOf(params.answer)) };
+}
+
+/** What the politicians list's bar offers: the asks chosen, and the parties and asks there are. */
+export type PoliticianChoices = { ask: string[]; parties: string[]; asks: Ask[] };
 
 /**
  * The politicians list's filters: the table's columns in its order, with
  * the nation after the party and whether we can email them after the
- * status. Status is those in office unless another is chosen. An answer is
- * offered once there's an ask, and goes with it: in the order things happen,
+ * status. Status is those in office unless another is chosen. Each ask
+ * chosen has its answer, which goes with it: in the order things happen,
  * those asked with no answer yet, the answers its kind allows as staff pick
- * from them, then those never asked.
- * Party, nation, email, the markers, the asks they've been mailed about and
- * the answers can each be chosen more than once, the first three having one
- * value each; Except on the asks finds those not yet mailed about it. How
- * recently they agreed is only from the dashboard's link.
+ * from them, then those never asked; or those it leaves out of them.
+ * Party, nation, email, the markers, the asks, the asks they've been mailed
+ * about and the answers can each be chosen more than once, the first three
+ * having one value each; Except on the asks they've been mailed about finds
+ * those not yet mailed about it. How recently they agreed is only from the
+ * dashboard's link.
  */
-export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, parties, asks }: PoliticianChoices) => {
+export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slugs, parties, asks }: PoliticianChoices) => {
   const copy = politiciansCopy.politicians;
-  const ask = asks.find((a) => a.slug === slug);
+  const chosen = slugs.flatMap((slug) => asks.filter((a) => a.slug === slug));
   const askChoices = asks.map((a) => ({ value: a.slug, label: a.title }));
   return {
     nation: {
@@ -254,26 +314,25 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slug, pa
     agreed: { label: copy.agreedIn, options: WINDOW_OPTIONS, linkedOnly: true },
     mailed: { label: copy.mailed, options: askChoices },
     answer: {
-      label: ask?.title ?? copy.answer,
+      label: copy.answer,
       after: "ask",
-      options: [
-        { value: "", label: staffVocabulary.everyoneAsked[ask?.kind ?? "letter"] },
-        // An answer is only ever to the ask chosen (politiciansSearch), so with none there's nothing more to offer.
-        // Set in under everyone asked, those who haven't answered and those who have, and under them each answer;
-        // then, the other way, those never asked.
-        ...(ask
-          ? [
-              { value: INVITED, label: staffVocabulary.noReplyYet[ask.kind], under: "" },
-              { value: REPLIED, label: copy.anyReply, under: "" },
-              ...ANSWER_CHOICES[ask.kind].map((value) => ({
-                value,
-                label: staffVocabulary.statuses[value],
-                under: REPLIED,
-              })),
-              { value: NEVER_ASKED, label: standingWord(null, ask.kind) },
-            ]
-          : []),
-      ],
+      // An answer is only ever to an ask chosen (politiciansSearch), so with none there's nothing to offer. For each,
+      // paired with it: everyone asked, its default; set in under that, those who haven't answered and those who
+      // have, and under them each answer; then, the other way, those never asked.
+      options: chosen.flatMap((ask) => {
+        const paired = (value: string) => pairedValue(ask.slug, value);
+        return [
+          { value: paired(""), label: staffVocabulary.everyoneAsked[ask.kind] },
+          { value: paired(INVITED), label: staffVocabulary.noReplyYet[ask.kind], under: paired("") },
+          { value: paired(REPLIED), label: copy.anyReply, under: paired("") },
+          ...ANSWER_CHOICES[ask.kind].map((value) => ({
+            value: paired(value),
+            label: staffVocabulary.statuses[value],
+            under: paired(REPLIED),
+          })),
+          { value: paired(NEVER_ASKED), label: standingWord(null, ask.kind) },
+        ];
+      }),
     },
   };
 });

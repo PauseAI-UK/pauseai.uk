@@ -20,6 +20,7 @@ import {
   saveBroadcast,
   scheduleBroadcastNow,
   sendBroadcastTestNow,
+  copyBroadcastNow,
   resumeBroadcastNow,
   stopBroadcastNow,
   deleteTemplateNow,
@@ -94,6 +95,19 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     expect(to).toBe(`/staff/broadcasts/${id}`);
     expect((await getWrittenBroadcast(id))!.filter.params).toEqual(EMAIL);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts");
+  });
+
+  it("copies a broadcast to a new draft and opens it, and nothing for a form that names none", async () => {
+    const id = await draft();
+    const to = await expectRedirect(() => copyBroadcastNow(form({ id: String(id) })));
+    expect(to).toMatch(/^\/staff\/broadcasts\/\d+$/);
+    const copy = Number(to.split("/").at(-1));
+    expect(copy).not.toBe(id);
+    expect((await getWrittenBroadcast(copy))!.filter.params).toEqual(EMAIL);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts");
+    await copyBroadcastNow(form({ id: "x" }));
+    await copyBroadcastNow(form({ id: "99999" }));
+    expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toHaveLength(2);
   });
 
   it("makes none without a Consent answered yes", async () => {

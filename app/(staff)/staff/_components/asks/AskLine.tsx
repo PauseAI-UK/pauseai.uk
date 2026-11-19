@@ -12,11 +12,6 @@ export function askedLine(ask: Pick<Ask, "askedBy" | "kind">): string {
   return asksCopy.asks.askedThem(who, ask.kind);
 }
 
-/** Who asked and what, and when, if we know. */
-function askedAndWhen(ask: Pick<Ask, "askedBy" | "kind" | "date">): string {
-  return [askedLine(ask), ask.date && staffDate(new Date(ask.date))].filter(Boolean).join(" · ");
-}
-
 /** The ask's title, leading to its page. */
 export function AskTitle({ ask }: { ask: Pick<Ask, "slug" | "title"> }) {
   return <StaffLink href={askHref(ask.slug)}>{ask.title}</StaffLink>;
@@ -24,13 +19,22 @@ export function AskTitle({ ask }: { ask: Pick<Ask, "slug" | "title"> }) {
 
 /**
  * An ask as a politician's page leads into it: who asked them to do what,
- * and when, then its title, leading to its page but for a preview, whose ask may not exist yet.
+ * then its title, leading to its page but for a preview, whose ask may not
+ * exist yet, and after the title its date, if we know it, kept whole.
  */
 export function AskLead({ ask, linked = true }: { ask: Ask; linked?: boolean }) {
   return (
     <>
-      <span className={styles.askMeta}>{askedAndWhen(ask)}</span>
-      {linked ? <AskTitle ask={ask} /> : <span>{ask.title}</span>}
+      <span className={styles.askMeta}>{askedLine(ask)}</span>
+      <span>
+        {linked ? <AskTitle ask={ask} /> : <span>{ask.title}</span>}
+        {ask.date && (
+          <>
+            {" "}
+            <span className={`${styles.askMeta} ${styles.askWhen}`}>· {staffDate(new Date(ask.date))}</span>
+          </>
+        )}
+      </span>
     </>
   );
 }

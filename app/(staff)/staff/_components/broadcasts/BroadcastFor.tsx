@@ -36,7 +36,7 @@ export default function BroadcastFor({
   actions,
 }: {
   data: BroadcastPageData;
-  actions: BroadcastWriterActions & { stop: FormAction; reschedule: FormAction; resume: FormAction };
+  actions: BroadcastWriterActions & { stop: FormAction; reschedule: FormAction; resume: FormAction; copy?: FormAction };
 }) {
   if (data.kind === "draft") {
     const who = <BroadcastWho params={data.filter.params} choices={data.choices} />;
@@ -54,6 +54,7 @@ export default function BroadcastFor({
       stop={actions.stop}
       reschedule={actions.reschedule}
       resume={actions.resume}
+      copyIt={actions.copy}
     />
   );
 }

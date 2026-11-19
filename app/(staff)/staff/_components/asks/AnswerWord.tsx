@@ -7,7 +7,8 @@ import styles from "./AnswerWord.module.css";
  * Someone's answer to an ask, or with the ask's `kind`, where they stand on
  * it (standing(), lib/asks/asks.ts): that they were asked, or with null
  * never were, in that kind's words; `waiting`, that they were asked as the
- * choice beside the answers says it, "(no reply)" on a line of its own.
+ * choice beside the answers says it, "(no reply)" after it, on a line of
+ * its own where the asks are narrow (AnswerWord.module.css).
  * In words: a yes ticked in green, a no crossed, the rest plain.
  */
 export default function AnswerWord(

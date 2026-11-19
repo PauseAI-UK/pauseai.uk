@@ -14,8 +14,10 @@
 }
 
 /* An ask in the asks card: the ask, and beside it their answer, in a
-   column as wide as the widest; ruled from the one above. */
+   column as wide as the widest; ruled from the one above. The answer
+   words size themselves by its width (asks/AnswerWord.module.css). */
 .asks {
+  container: asks / inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
   gap: var(--space-4) var(--space-4);
@@ -69,10 +71,12 @@
   font-weight: 700;
 }
 
-/* The ask's title, then who asked and when, who answered, and the form. */
+/* The ask's title, then who asked and when, who answered, and the form;
+   its lines together at the top when the answer beside it is taller. */
 .asked {
   display: grid;
   gap: var(--space-1);
+  align-content: start;
   justify-items: start;
 }
 
@@ -110,6 +114,11 @@
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: 400;
+}
+
+/* An ask's date, after its title: on the title's line or the next, never broken. */
+.askWhen {
+  white-space: nowrap;
 }
 
 /* The answers to pick from, a row of their own over the note. */

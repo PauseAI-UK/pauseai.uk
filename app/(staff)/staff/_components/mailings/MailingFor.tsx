@@ -15,7 +15,7 @@ export default function MailingFor({
   actions,
 }: {
   data: MailingPageData;
-  actions: MailingWriterActions & { stop: FormAction; reschedule: FormAction };
+  actions: MailingWriterActions & { stop: FormAction; reschedule: FormAction; copy?: FormAction };
 }) {
   if (data.kind === "imported") {
     return <MailingView mailing={data.mailing} asks={[]} stop={actions.stop} reschedule={actions.reschedule} />;
@@ -30,6 +30,7 @@ export default function MailingFor({
       asks={data.asks}
       stop={actions.stop}
       reschedule={actions.reschedule}
+      copyIt={actions.copy}
     />
   );
 }

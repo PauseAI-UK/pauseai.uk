@@ -10,7 +10,16 @@
   content: "✕ " / "";
 }
 
-/* The words after asked, where there's room for them: a line of their own. */
+/* The words after asked: a line of their own, as beside it they'd widen
+   the answers' column and squeeze every ask; but beside it once the asks
+   (ui/Details.module.css) are wide enough to spare the room, as on a
+   card the width of the page. */
 .after {
   display: block;
+}
+
+@container asks (min-width: 36rem) {
+  .after {
+    display: inline;
+  }
 }

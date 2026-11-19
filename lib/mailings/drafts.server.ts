@@ -1,6 +1,13 @@
 import "server-only";
 import { isLettersInboxAddress } from "@/lib/letters/letters-inbox.server";
-import { checkMailingDoc, isBlankMailing, letterFor, type MailingDoc, type MailingRecipientValues } from "./doc";
+import {
+  checkMailingDoc,
+  isBlankMailing,
+  isUnwritten,
+  letterFor,
+  type MailingDoc,
+  type MailingRecipientValues,
+} from "./doc";
 import { MAX_ATTACHMENT_BYTES } from "./attachments";
 import { scheduleProblems, type ScheduleProblem } from "./schedule";
 import { toHtml, toText } from "@/lib/letters/format";
@@ -151,6 +158,21 @@ export async function createDraft(
   });
 }
 
+/**
+ * Makes a draft that copies mailing `id` to politicians, by `by`: who it's
+ * to, its subject, letter and ask, and whose Gmail and name it's from; not
+ * when it goes, or its files. Returns the draft's ID; undefined for no such
+ * mailing written here.
+ */
+export async function copyMailing(id: number, by: string): Promise<number | undefined> {
+  const from = await getWrittenMailing(id);
+  if (!from) return undefined;
+  const { subject, body, ask, sentFrom, fromName } = from;
+  // A mailing to politicians has their filter.
+  const filter = from.filter as StoredFilter & { list: "politicians" };
+  return (await createDraft(by, filter, { subject, body, ask, sentFrom, fromName })).id;
+}
+
 /** Who's ticked for a mailing: its ticks, or, for one from before ticks, everyone its filter finds now. */
 async function pickedIds(filter: StoredFilter): Promise<number[]> {
   if (filter.picked) return filter.picked.ids;
@@ -221,7 +243,9 @@ export async function choosingFor(mailing: string): Promise<Choosing | undefined
   return {
     id: draft.id,
     title: draft.subject || mailingsCopy.mailingPages.untitled,
-    blank: !draft.subject && isBlankMailing(draft.body) && draft.attachments.length === 0,
+    // Its greeting alone, saved as Choose who leaves the draft, is nothing written yet.
+    blank:
+      !draft.subject && isUnwritten(draft.body, mailingsCopy.mailingPages.greeting) && draft.attachments.length === 0,
     ticked,
     pasted,
   };

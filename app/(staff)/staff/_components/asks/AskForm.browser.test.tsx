@@ -36,8 +36,9 @@ describe("AskForm", () => {
     await page.getByLabelText(copy.askedBy.supporters).click();
     await page.getByLabelText(copy.askedBy.pauseai).click();
     await expect
-      .element(preview().getByText(`${asksCopy.asks.askedThem(copy.askedBy.supporters, "event")} · 9 Dec 2026`))
+      .element(preview().getByText(asksCopy.asks.askedThem(copy.askedBy.supporters, "event"), { exact: true }))
       .toBeVisible();
+    await expect.element(preview().getByText("· 9 Dec 2026", { exact: true })).toBeVisible();
     await expect.element(preview().getByText("Winter reception")).toBeVisible();
     expect(preview().getByRole("link").query()).toBeNull();
     await page.getByRole("button", { name: copy.save }).click();

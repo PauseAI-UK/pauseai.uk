@@ -79,9 +79,11 @@ describeWithDatabase("lookUpPlaces and supporter_place", () => {
     await guest("by-march", ["evt-march"]);
     await guest("declined", ["evt-manchester"], null, "declined");
     await member("by-city", "Cardiff", "ZZ99ZZ");
+    // A town postcodes.io doesn't know: kept as looked up, placing no one.
+    await member("unknown-town", "Nowhere Fixture");
     await linkSupporters();
 
-    expect(await lookUpPlaces()).toEqual({ postcodes: 2, towns: 3, failed: false });
+    expect(await lookUpPlaces()).toEqual({ postcodes: 2, towns: 4, failed: false });
     expect(await query("SELECT postcode, place, constituency_checked FROM postcode_places ORDER BY 1")).toEqual([
       { postcode: "M11AE", place: "Manchester", constituency_checked: true },
       { postcode: "ZZ99ZZ", place: null, constituency_checked: true },
@@ -90,6 +92,7 @@ describeWithDatabase("lookUpPlaces and supporter_place", () => {
       "cardiff",
       "london",
       "manchester",
+      "nowhere fixture",
     ]);
     expect(await places()).toEqual([
       { email: "by-city@example.com", place: "Cardiff", basis: "city", given: "Cardiff", country: "wales" },

@@ -1,6 +1,7 @@
 import {
   attachToBroadcast,
   changeBroadcastConsentNow,
+  copyBroadcastNow,
   deleteBroadcastDraft,
   deleteTemplateNow,
   detachFromBroadcast,
@@ -33,4 +34,5 @@ export const broadcastWriterActions = {
   stop: stopBroadcastNow,
   reschedule: rescheduleBroadcastNow,
   resume: resumeBroadcastNow,
+  copy: copyBroadcastNow,
 };

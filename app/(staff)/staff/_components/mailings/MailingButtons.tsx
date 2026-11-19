@@ -14,6 +14,18 @@ export function DeleteDraft({ id, action }: { id: number; action: FormAction }) 
   return <DeleteTwice name="id" value={String(id)} label={copy.deleteDraft} action={action} />;
 }
 
+/** Copy mailing or Copy broadcast, `label`, for mailing `id`: quiet, at its page's top right. */
+export function CopyMailing({ id, label, action }: { id: number; label: string; action: FormAction }) {
+  return (
+    <form action={action}>
+      <input type="hidden" name="id" value={id} />
+      <SubmitButton variant="ghost" size="small" fit>
+        {label}
+      </SubmitButton>
+    </form>
+  );
+}
+
 /** Resume sending, for broadcast `id`, which stopped before it had all gone: small, beside what says so. */
 export function ResumeBroadcast({ id, action }: { id: number; action: FormAction }) {
   return (

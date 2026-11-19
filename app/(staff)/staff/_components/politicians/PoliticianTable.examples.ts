@@ -94,7 +94,7 @@ export const emptyPoliticiansSearch: PoliticiansSearch = {
   email: [],
   mailed: [],
   agreed: "",
-  ask: "",
+  ask: [],
   answer: [],
   sort: "",
   dir: "",

@@ -394,7 +394,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   );
   // The answer is chosen in the second half of the ask's chip.
   await changeFilter(page, staffVocabulary.everyoneAsked.event, staffVocabulary.neverAsked.event);
-  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=never/);
+  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=edinburgh-conference-2026\.never/);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.neverAsked.event);
   await frame(page, "Never invited to the conference");
@@ -423,9 +423,9 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
 
   story("Each tick changes the list at once, with the menu open. The chip's second half says both.");
   await menu.getByRole("checkbox", { name: staffVocabulary.noReplyYet.event, exact: true }).check();
-  await expect(page).toHaveURL(/answer=invited$/);
+  await expect(page).toHaveURL(/answer=edinburgh-conference-2026\.invited$/);
   await menu.getByRole("checkbox", { name: staffVocabulary.statuses.going, exact: true }).check();
-  await expect(page).toHaveURL(/answer=invited&answer=going/);
+  await expect(page).toHaveURL(/answer=edinburgh-conference-2026\.invited&answer=edinburgh-conference-2026\.going/);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.invited.event);
   await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
   const both = staffVocabulary.filters.anyOf([staffVocabulary.noReplyYet.event, staffVocabulary.statuses.going]);
@@ -448,6 +448,68 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   const everyone = Object.values(staffVocabulary.everyoneAsked).join("|");
   await expect(page.getByRole("button", { name: new RegExp(`^(${everyone})$`) })).toBeVisible();
   await frame(page, "Another ask, everyone asked");
+});
+
+test("Two asks at once", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff want those who signed the DeepMind letter and haven't turned down the Edinburgh conference. Lord Seedling signed the letter, and was invited to the conference in person.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  recordAnswers(flowDatabase);
+  markInvited(flowDatabase, "recSeedling", "edinburgh-conference-2026");
+  await logIn(page, flowDatabase);
+  const rows = page.getByRole("row");
+  await page.goto(`${BASE}/staff/politicians?ask=edinburgh-conference-2026`);
+  await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
+  await frame(page, "Everyone invited to the conference");
+
+  story(
+    "In the answer's menu, + Add turns the answers to boxes, each reply set in under Any reply. Ticking Any reply ticks every reply with it.",
+  );
+  const menu = await openBubble(page.getByRole("button", { name: staffVocabulary.everyoneAsked.event }));
+  await menu.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
+  await menu.getByRole("checkbox", { name: politiciansCopy.politicians.anyReply, exact: true }).check();
+  await expect(page).toHaveURL(/answer=edinburgh-conference-2026\.replied$/);
+  await expect(menu.getByRole("checkbox", { name: staffVocabulary.statuses.declined, exact: true })).toBeChecked();
+  await frame(page, "Any reply, every reply ticked with it", { window: true });
+
+  story(
+    "Unticking Declined unticks Any reply, leaving the other replies. With those not yet replied ticked too, it's everyone invited but those who turned it down.",
+  );
+  await menu.getByRole("checkbox", { name: staffVocabulary.statuses.declined, exact: true }).uncheck();
+  await expect(
+    menu.getByRole("checkbox", { name: politiciansCopy.politicians.anyReply, exact: true }),
+  ).not.toBeChecked();
+  await menu.getByRole("checkbox", { name: staffVocabulary.noReplyYet.event, exact: true }).check();
+  await expect(page).toHaveURL(/edinburgh-conference-2026\.invited/);
+  await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
+  await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
+  await frame(page, "All but those who declined, the menu still open", { window: true });
+  await page.keyboard.press("Escape");
+
+  story(
+    "+ Filter adds a second ask, the DeepMind letter, with its own answer. Both must hold, and each has its column in the list.",
+  );
+  const add = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add }));
+  const asks = add
+    .locator("details")
+    .filter({ has: page.locator("summary", { hasText: new RegExp(`^${politiciansCopy.politicians.ask}$`) }) });
+  await asks.locator("summary").click();
+  // Focused, the link scrolls the menu to it, as a person scrolling it would, rather than the page under it.
+  const deepmind = asks.getByRole("link", { name: /DeepMind letter/ });
+  await deepmind.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&ask=deepmind-letter/);
+  await changeFilter(page, staffVocabulary.everyoneAsked.letter, staffVocabulary.statuses.signed);
+  await expect(rows.filter({ hasText: "Lord Seedling of Example" })).toBeVisible();
+  await expect(rows.filter({ hasText: "Morag Example" })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: /DeepMind letter/ })).toBeVisible();
+  await frame(page, "Signed the DeepMind letter, and haven't turned down the conference, a column each");
+
+  story("Removing the conference's chip takes its answer with it, keeping the letter's.");
+  await changeFilter(page, "Edinburgh conference");
+  await expect(page).toHaveURL(/\?ask=deepmind-letter&answer=deepmind-letter\.signed$/);
+  await frame(page, "The DeepMind letter's signatories");
 });
 
 test("The house tabs", async ({ page, request, flowDatabase }) => {

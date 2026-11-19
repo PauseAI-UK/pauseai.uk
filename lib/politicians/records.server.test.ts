@@ -352,7 +352,7 @@ describeWithDatabase("politicians", () => {
       );
     expect(await byParty("asc")).toEqual([...(await byParty("asc"))].sort());
     expect(await byParty("desc")).toEqual([...(await byParty("asc"))].reverse());
-    expect((await listPoliticians({ ask: PM })).map((p) => p.id)).toEqual([peer]);
+    expect((await listPoliticians({ asks: [{ ask: PM }] })).map((p) => p.id)).toEqual([peer]);
     expect((await listPoliticians({ party: [(await getPolitician(peer))!.party] })).map((p) => p.id)).toEqual([peer]);
     expect(await listPoliticians({}, 1)).toHaveLength(1);
     // A page further on.
@@ -466,16 +466,34 @@ describeWithDatabase("politicians", () => {
     expect(await ids({ not: { flags: ["important", "connection"] } })).toEqual([retired]);
     expect(await ids({ not: { country: ["wales"] } })).toEqual([mp, retired].sort());
     expect(await ids({ not: { email: ["blocked"] } })).toEqual([mp, retired].sort());
-    expect(await ids({ ask: EDINBURGH })).toEqual([mp, peer].sort());
-    expect(await ids({ ask: EDINBURGH, answer: ["going"] })).toEqual([peer]);
-    expect(await ids({ ask: EDINBURGH, answer: [NEVER_ASKED] })).toEqual([retired]);
+    expect(await ids({ asks: [{ ask: EDINBURGH }] })).toEqual([mp, peer].sort());
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: ["going"] }] })).toEqual([peer]);
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: [NEVER_ASKED] }] })).toEqual([retired]);
     // Several answers find any of them, those never asked among them.
-    expect(await ids({ ask: EDINBURGH, answer: ["going", "declined"] })).toEqual([mp, peer].sort());
-    expect(await ids({ ask: EDINBURGH, answer: ["going", NEVER_ASKED] })).toEqual([peer, retired].sort());
-    // An answer is to an ask: with none, it finds no fewer.
-    expect(await ids({ answer: ["going"] })).toEqual(await ids({}));
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: ["going", "declined"] }] })).toEqual([mp, peer].sort());
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: ["going", NEVER_ASKED] }] })).toEqual([peer, retired].sort());
+    // Leaving out an answer keeps to those asked: of them, those who didn't give it.
+    expect(await ids({ asks: [{ ask: EDINBURGH, not: ["going"] }] })).toEqual([mp]);
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: ["going", "declined"], not: ["declined"] }] })).toEqual([peer]);
+    // Each ask chosen must hold.
+    expect(
+      await ids({
+        asks: [
+          { ask: EDINBURGH, answer: ["going"] },
+          { ask: EDINBURGH, not: [NEVER_ASKED] },
+        ],
+      }),
+    ).toEqual([peer]);
+    expect(
+      await ids({
+        asks: [
+          { ask: EDINBURGH, answer: ["going"] },
+          { ask: EDINBURGH, answer: ["declined"] },
+        ],
+      }),
+    ).toEqual([]);
     // One no ask allows finds no one.
-    expect(await ids({ ask: EDINBURGH, answer: ["maybe"] })).toEqual([]);
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: ["maybe"] }] })).toEqual([]);
     // Mailed about an ask: a mailing about it went or is going to them, not one stopped or skipped.
     const [{ id: mailing }] = await query<{ id: number }>(
       `INSERT INTO mailings (title, ask, audience, channel, state, airtable_sent_between)
@@ -541,19 +559,23 @@ describeWithDatabase("politicians", () => {
     const ids = async (filter: Parameters<typeof listPoliticians>[0]) =>
       (await listPoliticians(filter)).map((p) => p.id).sort();
     // Invited to it: written to, or marked, with no answer. Not one who answered, nor one whose letter bounced.
-    expect(await ids({ ask: EDINBURGH, answer: [INVITED] })).toEqual([written, marked].sort());
-    expect(await ids({ ask: EDINBURGH, answer: [NEVER_ASKED] })).toEqual([never, bounced].sort());
-    expect(await ids({ ask: EDINBURGH, answer: [INVITED, "going"] })).toEqual([written, marked, answered].sort());
-    expect(await ids({ ask: EDINBURGH, answer: [INVITED, NEVER_ASKED] })).toEqual(
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: [INVITED] }] })).toEqual([written, marked].sort());
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: [NEVER_ASKED] }] })).toEqual([never, bounced].sort());
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: [INVITED, "going"] }] })).toEqual(
+      [written, marked, answered].sort(),
+    );
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: [INVITED, NEVER_ASKED] }] })).toEqual(
       [written, marked, never, bounced].sort(),
     );
     // Everyone asked, answered or not: all but those never asked. Any reply is an answer, which being marked invited
     // isn't.
-    expect(await ids({ ask: EDINBURGH })).toEqual([written, marked, answered].sort());
-    expect(await ids({ ask: EDINBURGH, answer: [REPLIED] })).toEqual([answered]);
-    expect(await ids({ ask: EDINBURGH, answer: [REPLIED, INVITED] })).toEqual([written, marked, answered].sort());
-    expect(await ids({ ask: PM, answer: [INVITED] })).toEqual([written, marked].sort());
-    expect(await countPoliticians({ ask: EDINBURGH, answer: [INVITED] })).toBe(2);
+    expect(await ids({ asks: [{ ask: EDINBURGH }] })).toEqual([written, marked, answered].sort());
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: [REPLIED] }] })).toEqual([answered]);
+    expect(await ids({ asks: [{ ask: EDINBURGH, answer: [REPLIED, INVITED] }] })).toEqual(
+      [written, marked, answered].sort(),
+    );
+    expect(await ids({ asks: [{ ask: PM, answer: [INVITED] }] })).toEqual([written, marked].sort());
+    expect(await countPoliticians({ asks: [{ ask: EDINBURGH, answer: [INVITED] }] })).toBe(2);
 
     // Email your MP isn't told of a mark, a mailing's parts aren't for it, and the Asks column doesn't sort by it.
     await setStatus(marked, PM, { status: INVITED, date: null, note: "By phone" }, "jo@pauseai.uk");

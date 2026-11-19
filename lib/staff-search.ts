@@ -6,7 +6,7 @@ import { listWindow, type DashboardWindow } from "./time-windows";
 import { contactState } from "@/lib/supporters/contact-permissions";
 import type { ChangesFilter } from "@/lib/oversight/audit-log.server";
 import { BACKENDS, BLOCK_KINDS, FOUND_BY, type BlocksFilter } from "@/lib/email/block-filters";
-import type { PoliticianFilter } from "@/lib/politicians/records.server";
+import type { AskStanding, PoliticianFilter } from "@/lib/politicians/records.server";
 import type { SentEmailsFilter } from "@/lib/oversight/sent-emails.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { LETTER_STATES } from "@/lib/letters/copy-states";
@@ -14,8 +14,12 @@ import {
   among,
   anyAndNone,
   firstOf,
+  NOT,
   notOf,
+  notValue,
   pageNumber,
+  pairedValues,
+  unpaired,
   valuesOf,
   type ParamValue,
   type Params,
@@ -178,19 +182,33 @@ export function changesSearch(params: Partial<Record<string, ParamValue>>): Chan
 /** The politicians list's URL, as typed. */
 export type PoliticiansSearch = SearchOf<typeof POLITICIANS_LIST.params>;
 
+/** How `ask` is chosen, from `answers`, each paired with its ask (pairedValues()): those it finds, and those it leaves out. */
+function askStanding(ask: string, answers: string[]): AskStanding {
+  const own = answers.flatMap((one) => {
+    const { value, not } = notValue(one);
+    const pair = unpaired(value);
+    return pair.of === ask ? [(not ? NOT : "") + pair.value] : [];
+  });
+  const [answer, not] = anyAndNone(own, (values) => values);
+  return { ask, ...(answer && { answer }), ...(not && { not }) };
+}
+
 /**
  * The politicians page's filter, from its URL: each field as typed, for the
  * form, and the filter they make, leaving out what's blank or unknown, but
  * for the status: those in office unless it's given. A filter that repeats
  * finds those with any of its values. The test politicians are left out,
- * unseen in the filters, unless the Marked filter finds them. An answer
- * without an ask is left out, as typed too.
+ * unseen in the filters, unless the Marked filter finds them. Each answer
+ * is to one of the asks chosen (pairedValues()), and is paired with it, as
+ * typed too: one to an ask not chosen is left out.
  */
 export function politiciansSearch(params: Partial<Record<string, ParamValue>>): PoliticiansSearch & {
   filter: PoliticianFilter;
 } {
   const search = POLITICIANS_LIST.read(params);
-  const { house, status, ask } = search;
+  const { house, status } = search;
+  const asks = [...new Set(search.ask)];
+  const answers = pairedValues(asks, search.answer);
   const [parties, notParties] = anyAndNone(search.party, (values) => values);
   const [flags, notFlags] = anyAndNone(search.flag, (values) => among(values, POLITICIAN_FLAGS));
   const [countries, notCountries] = anyAndNone(search.nation, (values) => among(values, COUNTRIES));
@@ -205,9 +223,7 @@ export function politiciansSearch(params: Partial<Record<string, ParamValue>>): 
     country: countries,
     email: emails,
     mailed: mailedAbout,
-    ask: ask || undefined,
-    // An answer is to the ask chosen, so it's nothing without one.
-    answer: ask && search.answer.length ? search.answer : undefined,
+    asks: asks.length ? asks.map((ask) => askStanding(ask, answers)) : undefined,
     agreedDays: listWindow(search.agreed),
     not: notOf({
       party: notParties,
@@ -221,7 +237,8 @@ export function politiciansSearch(params: Partial<Record<string, ParamValue>>): 
   };
   return {
     ...search,
-    answer: ask ? search.answer : [],
+    ask: asks,
+    answer: answers,
     mailing: /^\d+$/.test(search.mailing) ? search.mailing : "",
     tab: search.tab === "ticked" || search.tab === "pasted" ? search.tab : "",
     filter,

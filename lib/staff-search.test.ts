@@ -505,8 +505,8 @@ describe("politiciansSearch", () => {
       flag: ["important", "removed", "!connection"],
       nation: ["wales", "!scotland"],
       email: ["none", "blocked", "!yes"],
-      ask: BILL,
-      answer: ["signed"],
+      ask: [BILL],
+      answer: [`${BILL}.signed`],
       mailed: ["deepmind-letter", "!frontier-ai-letter"],
       sort: "party",
       dir: "desc",
@@ -528,8 +528,7 @@ describe("politiciansSearch", () => {
         country: ["wales"],
         email: ["none", "blocked"],
         mailed: ["deepmind-letter"],
-        ask: BILL,
-        answer: ["signed"],
+        asks: [{ ask: BILL, answer: ["signed"] }],
         not: {
           party: ["Reform UK"],
           flags: ["connection", "test"],
@@ -541,6 +540,17 @@ describe("politiciansSearch", () => {
         page: 3,
       },
     });
+    // Each ask has its own answers, found or left out; one not paired with an ask is the first's, as an old link has
+    // it; an ask chosen twice is one.
+    const asks = politiciansSearch({
+      ask: [BILL, "frontier-ai-letter", BILL],
+      answer: ["invited", "!frontier-ai-letter.signed", `!${BILL}.declined`],
+    });
+    expect(asks.answer).toEqual([`${BILL}.invited`, "!frontier-ai-letter.signed", `!${BILL}.declined`]);
+    expect(asks.filter.asks).toEqual([
+      { ask: BILL, answer: ["invited"], not: ["declined"] },
+      { ask: "frontier-ai-letter", not: ["signed"] },
+    ]);
     // One of a filter that repeats, as the URL gives it, is a list of one; one that doesn't, given twice, its first.
     const once = politiciansSearch({ party: "Green", q: ["a", "b"] });
     expect(once.party).toEqual(["Green"]);
@@ -557,8 +567,7 @@ describe("politiciansSearch", () => {
       country: undefined,
       email: undefined,
       mailed: undefined,
-      ask: undefined,
-      answer: undefined,
+      asks: undefined,
       not: { flags: ["test"] },
       sort: { key: "name", dir: "asc" },
       page: 1,
@@ -571,7 +580,7 @@ describe("politiciansSearch", () => {
       flag: [],
       nation: [],
       email: [],
-      ask: "",
+      ask: [],
       answer: [],
       mailed: [],
       agreed: "",
@@ -583,8 +592,12 @@ describe("politiciansSearch", () => {
       saved: "",
     };
     expect(politiciansSearch({})).toEqual({ ...blank, filter: none });
-    // An answer is to the ask chosen, so without one it's left out, as typed too.
+    // An answer is to an ask chosen, so without one it's left out, as typed too.
     expect(politiciansSearch({ answer: "invited" })).toEqual({ ...blank, filter: none });
+    expect(politiciansSearch({ ask: BILL, answer: ["other-ask.signed", `${BILL}.`] })).toMatchObject({
+      answer: [],
+      filter: { asks: [{ ask: BILL }] },
+    });
     // A draft's ID is a number; the tab is ticked or pasted.
     expect(politiciansSearch({ mailing: "12x", tab: "yes" })).toMatchObject({ mailing: "", tab: "" });
     expect(politiciansSearch({ mailing: "12", tab: "ticked" })).toMatchObject({ mailing: "12", tab: "ticked" });

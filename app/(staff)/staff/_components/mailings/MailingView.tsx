@@ -14,7 +14,7 @@ import { filtersPath, pageParam } from "@/lib/list-params";
 import { dueIn, londonWhen, staffDate, staffTime } from "@/lib/staff-time";
 import { now } from "@/lib/now";
 import { ChangeTimeForm } from "./DueTime";
-import { StopMailing } from "./MailingButtons";
+import { CopyMailing, StopMailing } from "./MailingButtons";
 import MailEmail from "./MailEmail";
 import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
@@ -286,6 +286,7 @@ export default function MailingView({
   asks,
   stop,
   reschedule,
+  copyIt,
 }: {
   mailing: Mailing;
   written?: WrittenMailing;
@@ -294,6 +295,8 @@ export default function MailingView({
   asks: Ask[];
   stop: FormAction;
   reschedule: FormAction;
+  /** Copy mailing, at its top right: one written here only. */
+  copyIt?: FormAction;
 }) {
   const path = `/staff/mailings/${mailing.id}`;
   const groups = wentAndGone(countsFiltering(path, mailingCounts(mailing), mailing.tab, copy.showEveryone));
@@ -311,6 +314,7 @@ export default function MailingView({
             <Tag>{mailingsCopy.mailings.imported}</Tag>
           )
         }
+        corner={written && copyIt && <CopyMailing id={written.id} label={copy.copyMailing} action={copyIt} />}
         aside={state !== "scheduled" && <CountGroups groups={groups} />}
       >
         {/* One written here went by its account's Gmail, said under who it's from; an imported one's way isn't known. */}

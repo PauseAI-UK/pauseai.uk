@@ -348,6 +348,53 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await choosingBroadcast(String(id))).toBeUndefined();
   });
 
+  it("sorts one sent's recipients by name either way, or by when each last changed, those not gone last", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith");
+    await addFollower("usr-2", "sam@example.com", "Sam");
+    await addFollower("usr-3", "pat@example.com", "Pat");
+    const id = await scheduled(EMAIL_FILTER, { subject: "Sent", body: EVENT_WORDS });
+    await sent(id, [
+      ["delivered", null],
+      ["delivered", null],
+      ["delivered", null],
+    ]);
+    const copyOf = async (name: string) =>
+      (
+        await query<{ id: number }>(
+          "SELECT id::int AS id FROM broadcast_messages WHERE mailing_id = $1 AND merge_values ->> 'name' = $2",
+          [id, name],
+        )
+      )[0].id;
+    // Sam's arrived an hour after it went, Jane's has nothing in its history, and Pat's never went.
+    const arrived = new Date("2026-10-20T09:00:00Z");
+    await query("INSERT INTO broadcast_message_events (message_id, kind, at) VALUES ($1, 'delivered', $2)", [
+      await copyOf("Sam"),
+      arrived,
+    ]);
+    await query("DELETE FROM broadcast_message_events WHERE message_id = $1", [await copyOf("Jane Smith")]);
+    await query(
+      "UPDATE broadcast_messages SET status = 'skipped', skip_reason = 'blocked', sent_at = NULL WHERE id = $1",
+      [await copyOf("Pat")],
+    );
+    await query("DELETE FROM broadcast_message_events WHERE message_id = $1", [await copyOf("Pat")]);
+    const listed = async (search: { sort?: string; dir?: string }) => {
+      const data = await broadcastPageData(id, search, JO);
+      if (data?.kind !== "written") throw new Error("not written");
+      return { sort: data.sort, names: data.recipients.map((one) => one.name), rows: data.recipients };
+    };
+    expect(await listed({})).toMatchObject({
+      sort: { key: "who", dir: "asc" },
+      names: ["Jane Smith", "Pat", "Sam"],
+    });
+    expect((await listed({ sort: "who", dir: "desc" })).names).toEqual(["Sam", "Pat", "Jane Smith"]);
+    const newest = await listed({ sort: "changed" });
+    expect(newest).toMatchObject({ sort: { key: "changed", dir: "desc" }, names: ["Sam", "Jane Smith", "Pat"] });
+    expect(newest.rows.map((one) => one.changedAt)).toEqual([arrived, new Date("2026-10-20T08:00:00Z"), null]);
+    expect((await listed({ sort: "changed", dir: "asc" })).names).toEqual(["Jane Smith", "Sam", "Pat"]);
+    // A sort it doesn't have is the list as it is.
+    expect(await listed({ sort: "nonsense", dir: "desc" })).toMatchObject({ sort: { key: "who", dir: "asc" } });
+  });
+
   it("counts those still to go: held by WhatsApp till a time to come, or waiting their turn", async () => {
     for (const n of [1, 2, 3, 4]) await addFollower(`usr-${n}`, `p${n}@example.com`, `Person ${n}`);
     const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });

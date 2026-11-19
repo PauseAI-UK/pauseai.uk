@@ -95,11 +95,6 @@
   border-top: 1px solid var(--border);
 }
 
-/* The way to all of an answer, at the page's size, larger than the column's. */
-.columnFoot a {
-  font-size: var(--text-md);
-}
-
 /* Its kind's picture beside who asked them to do what. */
 /* A phone: the counts under the title, with the room to keep each label on a line. */
 @media (max-width: 30rem) {
