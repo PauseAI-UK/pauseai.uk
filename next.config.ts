@@ -117,6 +117,12 @@ const nextConfig: NextConfig = {
     // A page's styles come in its HTML rather than as files it then has to
     // ask for, so a first visit paints a round trip sooner.
     inlineCss: true,
+    // And they're the styles of what the page uses. Left to itself the build
+    // gathers the site's styles into a few files shared between pages, to
+    // save requests, and the home page carried the component gallery's with
+    // its own. In the HTML there are no requests to save, so a file of styles
+    // costs nothing to keep apart (`requestCost`).
+    cssChunking: { type: "graph", requestCost: 0 },
   },
   // The PDFs attached to letters, read from disk when one is sent.
   outputFileTracingIncludes: {
