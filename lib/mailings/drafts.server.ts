@@ -1,6 +1,13 @@
 import "server-only";
 import { isLettersInboxAddress } from "@/lib/letters/letters-inbox.server";
-import { checkMailingDoc, isBlankMailing, letterFor, type MailingDoc, type MailingRecipientValues } from "./doc";
+import {
+  checkMailingDoc,
+  isBlankMailing,
+  isUnwritten,
+  letterFor,
+  type MailingDoc,
+  type MailingRecipientValues,
+} from "./doc";
 import { MAX_ATTACHMENT_BYTES } from "./attachments";
 import { scheduleProblems, type ScheduleProblem } from "./schedule";
 import { toHtml, toText } from "@/lib/letters/format";
@@ -236,7 +243,9 @@ export async function choosingFor(mailing: string): Promise<Choosing | undefined
   return {
     id: draft.id,
     title: draft.subject || mailingsCopy.mailingPages.untitled,
-    blank: !draft.subject && isBlankMailing(draft.body) && draft.attachments.length === 0,
+    // Its greeting alone, saved as Choose who leaves the draft, is nothing written yet.
+    blank:
+      !draft.subject && isUnwritten(draft.body, mailingsCopy.mailingPages.greeting) && draft.attachments.length === 0,
     ticked,
     pasted,
   };

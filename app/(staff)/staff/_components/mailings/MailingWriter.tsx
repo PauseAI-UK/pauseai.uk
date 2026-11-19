@@ -11,6 +11,7 @@ import {
   checkMailingDoc,
   conditionsIn,
   EMPTY_MAILING_DOC,
+  GREETING_FIELDS,
   greetingLetter,
   isBlankMailing,
   letterFor,
@@ -59,9 +60,6 @@ import { politiciansCopy } from "../politicians/copy";
 
 const copy = mailingsCopy.mailingPages;
 const facts = mailingsCopy.mailingPages.sendFacts;
-
-/** The fields a new letter's greeting can use, the first every recipient has. */
-const GREETING_FIELDS = ["salutation", "name"];
 
 /** What a mailing's page can change. */
 type Changes = {
