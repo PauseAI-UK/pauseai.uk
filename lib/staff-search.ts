@@ -5,7 +5,7 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { listWindow, type DashboardWindow } from "./time-windows";
 import { contactState } from "@/lib/supporters/contact-permissions";
 import type { ChangesFilter } from "@/lib/oversight/audit-log.server";
-import type { BlocksFilter } from "@/lib/email/email.server";
+import { BLOCK_KINDS, FOUND_BY, type BlocksFilter } from "@/lib/email/block-filters";
 import type { PoliticianFilter } from "@/lib/politicians/records.server";
 import type { SentEmailsFilter } from "@/lib/oversight/sent-emails.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
@@ -237,17 +237,30 @@ export function politicianId(id: string): number | undefined {
   return /^\d+$/.test(id) ? Number(id) : undefined;
 }
 
-/** The blocked addresses page's filters: a search of the addresses, and blocked by a hard bounce, a complaint or a hold. */
-export function emailsSearch({ q = "", kind = "" }: { q?: string; kind?: string }): {
-  q: string;
-  kind: string;
-  filter: BlocksFilter;
-} {
+/**
+ * The blocked addresses page's filters: a search of the addresses and
+ * numbers, what blocked them (BLOCK_KINDS), and what found them out
+ * (FOUND_BY); and its page.
+ */
+export function emailsSearch({
+  q = "",
+  kind = "",
+  found = "",
+  page = "",
+}: {
+  q?: string;
+  kind?: string;
+  found?: string;
+  page?: string;
+}): { q: string; kind: string; found: string; page: number; filter: BlocksFilter } {
   return {
     q,
     kind,
+    found,
+    page: pageNumber(page),
     filter: {
-      kind: kind === "hard" || kind === "complaint" || kind === "hold" ? kind : undefined,
+      kind: BLOCK_KINDS.find((one) => one === kind),
+      found: FOUND_BY.find((one) => one === found),
       search: q.trim() || undefined,
     },
   };

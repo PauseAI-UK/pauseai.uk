@@ -5,14 +5,7 @@ import { addFollower, EVENT_WORDS } from "@/tests/broadcast-fixtures";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { createBroadcastDraft } from "./drafts.server";
 import { filledTemplate, paramName, templateText } from "./whatsapp-template";
-import {
-  markUnreachable,
-  metaName,
-  templateParams,
-  textResult,
-  textsLeftToday,
-  unreachable,
-} from "./whatsapp-texts.server";
+import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 
 /** Words with both fields, each twice. */
 const BOTH: MailingDoc = {
@@ -75,24 +68,8 @@ it("keeps what WhatsApp said of a send", () => {
   expect(refused(null)).toEqual({ sent: false, reason: "failed", detail: "No" });
 });
 
-describeWithDatabase("numbers WhatsApp can't reach, and the daily limit", () => {
+describeWithDatabase("the daily limit", () => {
   useTestDatabase();
-
-  it("marks a number not on WhatsApp once, by the newest copy to find it", async () => {
-    const supporter = await addFollower("usr-1", "jane@example.com", "Jane", { phone: "+447700900001" });
-    const text = (await createBroadcastDraft("jo@pauseai.uk", { contact: "text:events:yes" }))!;
-    const [first, second] = await query<{ id: number }>(
-      `INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status) VALUES ($1, $2, '+447700900001', 'sent'),
-         ($3, $2, '+447700900001', 'sent') RETURNING id::int AS id`,
-      [text, supporter, (await createBroadcastDraft("jo@pauseai.uk", { contact: "text:events:yes" }))!],
-    );
-    await markUnreachable("+447700900001", first.id);
-    await markUnreachable("+447700900001", second.id);
-    expect(await query("SELECT number, message_id::int AS copy FROM whatsapp_unreachable")).toEqual([
-      { number: "+447700900001", copy: second.id },
-    ]);
-    expect(await unreachable(["+447700900001", "+447700900002"])).toEqual(new Set(["+447700900001"]));
-  });
 
   it("counts the people texted in the last day against the limit, or none for no limit", async () => {
     expect(await textsLeftToday(null)).toBeNull();

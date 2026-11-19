@@ -32,7 +32,7 @@ export const shellCopy = {
     errors: "Errors",
     // Beside a page the staff member first saw in the last 3 days.
     newTag: "new",
-    supporterEmails: "Bounced emails",
+    supporterEmails: "⁂ Can't reach",
     signupUpload: "Import sign-ups",
     mpEmails: "Addresses to fix",
     logout: "Log out",

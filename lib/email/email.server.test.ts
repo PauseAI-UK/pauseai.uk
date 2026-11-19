@@ -17,9 +17,8 @@ import {
   type DeliveryProblem,
   isBlocked,
   isPoliticianAddress,
+  emailBlocks,
   liftBlock,
-  listBlocks,
-  recentProblems,
   recordProblem,
   sendWith,
   sentBy,
@@ -430,7 +429,7 @@ describeWithDatabase("recordProblem", () => {
     expect(await recordProblem({ ...BOUNCE, kind: "complaint", canReset: true })).toBe(true);
     expect(await recordProblem(BOUNCE)).toBe(false);
     expect(await recordProblem({ ...BOUNCE, kind: "complaint" })).toBe(false);
-    expect(await listBlocks("others")).toMatchObject([{ kind: "complaint", canReset: false }]);
+    expect(await blockOn(BOUNCE.address)).toMatchObject({ kind: "complaint", canReset: false });
   });
 });
 
@@ -560,10 +559,10 @@ describeWithDatabase("liftBlock", () => {
   });
 });
 
-describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
+describeWithDatabase("emailBlocks and blockOn", () => {
   useTestDatabase();
 
-  it("list each blocked address with whose it is, the letter that found it out, and emails not sent since", async () => {
+  it("give each blocked address with whose it is, the letter that found it out, and emails not sent since", async () => {
     const mp = await addTestMp();
     const polly = await addTestPolitician({ email: "Test-MP@parliament.example" });
     const letterId = await addTestLetter({ politicianId: mp, senderName: "Jane", senderEmail: "jane@example.com" });
@@ -581,6 +580,13 @@ describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
       kind: "soft",
       gmailMessageId: "g1",
     });
+    await recordProblem({
+      ...BOUNCE,
+      address: "read@example.org",
+      messageId: null,
+      gmailMessageId: "g2",
+      details: { status: "5.1.1", account: "jo@pauseai.uk" },
+    });
     // One refused before the bounce, which doesn't count, and one after.
     await query(
       `INSERT INTO email_sends (at, purpose, address, outcome) VALUES
@@ -588,9 +594,7 @@ describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
        (now() + interval '1 minute', 'letter', 'test-mp@parliament.example', 'refused')`,
     );
 
-    // A politician's address is on their side; the rest, unknown ones too, on the other.
-    const blocks = await listBlocks("politicians");
-    expect(blocks).toEqual([
+    expect(await emailBlocks(["test-mp@parliament.example"], false)).toEqual([
       {
         address: "test-mp@parliament.example",
         kind: "hard",
@@ -598,6 +602,7 @@ describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
         since: expect.any(Date),
         canReset: true,
         foundInGmail: false,
+        mailbox: null,
         politicians: [
           { id: polly, name: "Polly Placeholder", isTest: false },
           { id: mp, name: "Testy McTestface MP", isTest: true },
@@ -606,10 +611,11 @@ describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
         supporters: [],
         letter: { id: letterId, to: "Testy McTestface MP" },
         purpose: "letter",
+        copy: null,
         refused: 1,
       },
     ]);
-    expect(await listBlocks("others")).toEqual([
+    expect(await emailBlocks(["other@example.org"], true)).toEqual([
       expect.objectContaining({
         address: "other@example.org",
         kind: "complaint",
@@ -620,6 +626,10 @@ describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
         refused: 0,
       }),
     ]);
+    // A bounce read from a mailbox says which.
+    expect(await emailBlocks(["read@example.org"], true)).toEqual([
+      expect.objectContaining({ foundInGmail: true, mailbox: "jo@pauseai.uk" }),
+    ]);
     // A supporter's address names them, as the supporters list does: the newest name they gave.
     await addTestContact(1, "other@example.org", { name: "Olly Other" });
     const [{ id: olly }] = await query<{ id: number }>("INSERT INTO supporters DEFAULT VALUES RETURNING id::int");
@@ -629,44 +639,12 @@ describeWithDatabase("listBlocks, blockOn and recentProblems", () => {
     );
     // Linked, as the imports link: the kept supporters list made again.
     await query("REFRESH MATERIALIZED VIEW supporters_list");
-    expect((await listBlocks("others"))[0].supporters).toEqual([{ id: olly, name: "Olly Other" }]);
-    expect(await listBlocks("politicians", { kind: "complaint" })).toEqual([]);
-    expect((await listBlocks("others", { kind: "complaint" })).map((b) => b.address)).toEqual(["other@example.org"]);
-    expect(await listBlocks("others", { kind: "hard" })).toEqual([]);
-    expect((await listBlocks("others", { search: "OTHER@" })).map((b) => b.address)).toEqual(["other@example.org"]);
-    expect(await listBlocks("others", { search: "nobody" })).toEqual([]);
+    expect((await emailBlocks(["other@example.org"], true))[0].supporters).toEqual([{ id: olly, name: "Olly Other" }]);
+    expect((await emailBlocks(["other@example.org"], false))[0].supporters).toEqual([]);
 
     expect(await blockOn("Test-MP@parliament.example")).toMatchObject({ address: "test-mp@parliament.example" });
     expect(await blockOn("soft@example.org")).toBeUndefined();
     expect(await blockOn(null)).toBeUndefined();
-
-    expect(await recentProblems("others")).toEqual([
-      expect.objectContaining({
-        address: "soft@example.org",
-        kind: "soft",
-        purpose: null,
-        letter: null,
-        foundInGmail: true,
-      }),
-      expect.objectContaining({ address: "other@example.org", kind: "complaint" }),
-    ]);
-    expect(await recentProblems("politicians")).toEqual([
-      expect.objectContaining({
-        address: "test-mp@parliament.example",
-        kind: "hard",
-        purpose: "letter",
-        letter: { id: letterId, to: "Testy McTestface MP" },
-      }),
-    ]);
-    expect(await recentProblems("others", 1)).toHaveLength(1);
-
-    // An address no longer a politician's moves to the other side.
-    await query("UPDATE notable_people SET email = NULL WHERE email ILIKE 'test-mp@parliament.example'");
-    expect(await listBlocks("politicians")).toEqual([]);
-    expect((await listBlocks("others")).map((b) => b.address)).toEqual([
-      "other@example.org",
-      "test-mp@parliament.example",
-    ]);
   });
 
   it("isPoliticianAddress says whether an address is a politician's, however it's written", async () => {

@@ -4,10 +4,10 @@
 // login page.
 import type { Group } from "../_components/types";
 import { campaignNameGallery } from "@/app/(staff)/staff/_components/CampaignName.gallery";
-import { emailProblemsTableGallery } from "@/app/(staff)/staff/_components/oversight/EmailProblemsTable.gallery";
 import { emailBlockFiltersGallery } from "@/app/(staff)/staff/_components/email/EmailBlockFilters.gallery";
 import { unblockFormGallery } from "@/app/(staff)/staff/_components/email/UnblockForm.gallery";
-import { emailBlocksTableGallery } from "@/app/(staff)/staff/_components/oversight/EmailBlocksTable.gallery";
+import { blocksTableGallery } from "@/app/(staff)/staff/_components/oversight/BlocksTable.gallery";
+import { blockHistoryGallery } from "@/app/(staff)/staff/_components/oversight/BlockHistory.gallery";
 import { bounceReasonGallery } from "@/app/(staff)/staff/_components/email/BounceReason.gallery";
 import { campaignsOverviewGallery } from "@/app/(staff)/staff/_components/mailings/CampaignsOverview.gallery";
 import { mailEmailGallery } from "@/app/(staff)/staff/_components/mailings/MailEmail.gallery";
@@ -37,10 +37,10 @@ export const staffLetters: Group = {
     ...letterChangesGallery,
     ...mailFoldGallery,
     ...bounceReasonGallery,
-    ...emailBlocksTableGallery,
+    ...blocksTableGallery,
+    ...blockHistoryGallery,
     ...unblockFormGallery,
     ...emailBlockFiltersGallery,
-    ...emailProblemsTableGallery,
     ...campaignsOverviewGallery,
     ...mailEmailGallery,
     ...campaignLetterGallery,

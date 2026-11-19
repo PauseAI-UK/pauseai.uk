@@ -210,16 +210,33 @@ describe("politicianId", () => {
 });
 
 describe("emailsSearch", () => {
-  it("filters by a hard bounce or a complaint, and by nothing else", () => {
-    expect(emailsSearch({ kind: "complaint" })).toEqual({ q: "", kind: "complaint", filter: { kind: "complaint" } });
-    expect(emailsSearch({ kind: "hard" }).filter).toEqual({ kind: "hard" });
+  it("filters by what blocked it, and by nothing else", () => {
+    expect(emailsSearch({ kind: "complaint" })).toEqual({
+      q: "",
+      kind: "complaint",
+      found: "",
+      page: 1,
+      filter: { kind: "complaint" },
+    });
+    expect(emailsSearch({ kind: "not-on-whatsapp" }).filter).toEqual({ kind: "not-on-whatsapp" });
     expect(emailsSearch({ kind: "soft" }).filter).toEqual({});
-    expect(emailsSearch({})).toEqual({ q: "", kind: "", filter: {} });
+    expect(emailsSearch({})).toEqual({ q: "", kind: "", found: "", page: 1, filter: {} });
+  });
+
+  it("filters by what found it out, and by nothing else", () => {
+    expect(emailsSearch({ found: "letter" })).toMatchObject({ found: "letter", filter: { found: "letter" } });
+    expect(emailsSearch({ found: "unrecorded" }).filter).toEqual({ found: "unrecorded" });
+    expect(emailsSearch({ found: "postcard" }).filter).toEqual({});
   });
 
   it("searches the addresses for what was typed, trimmed", () => {
-    expect(emailsSearch({ q: " bob@ " })).toEqual({ q: " bob@ ", kind: "", filter: { search: "bob@" } });
+    expect(emailsSearch({ q: " bob@ " })).toMatchObject({ q: " bob@ ", filter: { search: "bob@" } });
     expect(emailsSearch({ q: "  " }).filter).toEqual({});
+  });
+
+  it("reads the page, the first for anything else", () => {
+    expect(emailsSearch({ page: "3" }).page).toBe(3);
+    expect(emailsSearch({ page: "x" }).page).toBe(1);
   });
 });
 

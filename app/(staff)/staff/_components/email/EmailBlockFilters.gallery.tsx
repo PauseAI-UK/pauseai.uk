@@ -9,11 +9,25 @@ export const emailBlockFiltersGallery: Example[] = [
     file: "app/(staff)/staff/_components/email/EmailBlockFilters.tsx",
     variants: [
       {
-        label: "All, and complaints to a search",
+        label: "Politicians': all, and complaints found by a letter to a search",
         render: () => (
           <StaffPage as="div">
-            <EmailBlockFilters q="" kind="" action="/staff/politicians/addresses-to-fix" />
-            <EmailBlockFilters q="example.org" kind="complaint" action="/staff/politicians/addresses-to-fix" />
+            <EmailBlockFilters q="" kind="" found="" numbers={false} action="/staff/politicians/addresses-to-fix" />
+            <EmailBlockFilters
+              q="example.org"
+              kind="complaint"
+              found="letter"
+              numbers={false}
+              action="/staff/politicians/addresses-to-fix"
+            />
+          </StaffPage>
+        ),
+      },
+      {
+        label: "Supporters': numbers not on WhatsApp",
+        render: () => (
+          <StaffPage as="div">
+            <EmailBlockFilters q="" kind="not-on-whatsapp" found="" numbers action="/staff/supporters/bounced-emails" />
           </StaffPage>
         ),
       },

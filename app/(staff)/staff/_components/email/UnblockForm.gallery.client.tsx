@@ -2,7 +2,7 @@
 
 // UnblockForm's examples, whose forms are logged (UnblockForm.gallery.tsx).
 import UnblockForm, { UnblockBubble } from "./UnblockForm";
-import { exampleBlock, exampleComplaint } from "../oversight/EmailBlocksTable.examples";
+import { exampleBlock, exampleComplaint } from "../oversight/BlocksTable.examples";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 
 /** The unblock form for a bounce, logged, and what shows for a complaint instead. */

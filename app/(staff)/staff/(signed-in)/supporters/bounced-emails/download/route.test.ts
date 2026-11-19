@@ -3,6 +3,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { requestCookies } from "@/tests/next-headers";
 import { downloadAs } from "@/tests/staff-download";
 import { recordProblem } from "@/lib/email/email.server";
+import { query } from "@/lib/server/db.server";
 import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
@@ -15,7 +16,7 @@ describeWithDatabase("GET /staff/supporters/bounced-emails/download", () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
-  it("gives the blocked addresses the filters find", async () => {
+  it("gives the blocked addresses and numbers the filters find, every page", async () => {
     await recordProblem({
       address: "gone@example.org",
       messageId: null,
@@ -23,12 +24,19 @@ describeWithDatabase("GET /staff/supporters/bounced-emails/download", () => {
       reason: "No such mailbox",
       canReset: true,
     });
-    const res = await downloadAs(
-      GET,
-      "https://pauseai.uk/staff/supporters/bounced-emails/download?format=json&kind=hard",
-      ["supporters"],
-    );
-    expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Disposition")).toMatch(/_bounced_/);
+    await query("INSERT INTO whatsapp_unreachable (number) VALUES ('+447700900001')");
+    const download = async (filters: string) => {
+      const res = await downloadAs(
+        GET,
+        `https://pauseai.uk/staff/supporters/bounced-emails/download?format=json${filters}`,
+        ["supporters"],
+      );
+      expect(res.status).toBe(200);
+      return res.text();
+    };
+    const all = await download("");
+    expect(all).toContain("gone@example.org");
+    expect(all).toContain("+447700900001");
+    expect(await download("&kind=not-on-whatsapp")).not.toContain("gone@example.org");
   });
 });

@@ -3,6 +3,8 @@ import type { DeliveryProblem } from "@/lib/email/email.server";
 import { liftBlock } from "@/lib/email/email.server";
 import { handleDeliveryProblemWith, type DeliveryHooks } from "@/lib/email/delivery-problems.server";
 import { broadcastBounces } from "@/lib/broadcasts/bounces.server";
+import { forgetUnreachable } from "@/lib/broadcasts/unreachable.server";
+import { isInternational } from "@/lib/phone";
 import { letterBounces } from "@/lib/letters/bounces.server";
 import { resendAfterFix } from "@/lib/letters/relays.server";
 import { optOutOnComplaint } from "@/lib/supporters/opt-outs.server";
@@ -28,10 +30,12 @@ export function handleDeliveryProblem(problem: DeliveryProblem, request?: Reques
 
 /**
  * Unblocks an address for staff (liftBlock, which says when it's refused),
- * then sends what the letters inbox held for it (resendAfterFix). Returns
- * whether it was unblocked.
+ * then sends what the letters inbox held for it (resendAfterFix); or a
+ * number WhatsApp couldn't reach, so the next text tries it
+ * (forgetUnreachable). Returns whether it was unblocked.
  */
 export async function unblock(address: string, staff: string, note: string): Promise<boolean> {
+  if (isInternational(address)) return forgetUnreachable(address, staff, note);
   const unblocked = await liftBlock(address, staff, note);
   if (unblocked) await resendAfterFix({ address });
   return unblocked;

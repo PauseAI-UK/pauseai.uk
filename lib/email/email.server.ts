@@ -416,6 +416,8 @@ export type EmailBlock = {
   canReset: boolean;
   /** The bounce was read from a staff member's Gmail, not reported by Postmark. */
   foundInGmail: boolean;
+  /** The Gmail mailbox the bounce was read from, with `foundInGmail`. */
+  mailbox: string | null;
   /** The politicians with this address. */
   politicians: { id: number; name: string; isTest: boolean }[];
   /** The supporters with this address, by the name the supporters list gives them; none on politicians' lists. */
@@ -424,6 +426,8 @@ export type EmailBlock = {
   letter: SentLetter | null;
   /** What the email that found it out was, if the site has a record of sending it. */
   purpose: Purpose | null;
+  /** The copy of a broadcast whose email found it out, if one did, and the broadcast's title. */
+  copy: { id: number; broadcast: number; title: string } | null;
   /** Emails not sent to it since. */
   refused: number;
 };
@@ -447,12 +451,16 @@ const selectBlocks = (withSupporters: boolean) => `
   SELECT b.address, p.kind, p.reason, p.at AS since, p.can_reset AS "canReset",
     ${withSupporters ? BLOCK_SUPPORTERS : "'[]'::json"} AS supporters,
     p.gmail_message_id IS NOT NULL AS "foundInGmail",
+    CASE WHEN p.gmail_message_id IS NOT NULL THEN p.details->>'account' END AS mailbox,
     coalesce((SELECT json_agg(json_build_object('id', pol.id, 'name', pol.name, 'isTest', coalesce(seat.is_test, false)) ORDER BY pol.name COLLATE english)
               FROM notable_people pol LEFT JOIN politicians seat ON seat.id = pol.id WHERE lower(pol.email) = b.address), '[]') AS politicians,
     (SELECT json_build_object('id', l.id, 'to', pol.name)
      FROM email_sends s JOIN letters l ON l.id = s.letter_id JOIN notable_people pol ON pol.id = l.notable_person_id
      WHERE s.message_id = p.message_id) AS letter,
     (SELECT s.purpose FROM email_sends s WHERE s.message_id = p.message_id) AS purpose,
+    (SELECT json_build_object('id', c.id, 'broadcast', g.id, 'title', g.title)
+     FROM email_sends s JOIN broadcast_messages c ON c.id = s.broadcast_message_id JOIN mailings g ON g.id = c.mailing_id
+     WHERE s.message_id = p.message_id) AS copy,
     (SELECT count(*)::int FROM email_sends s WHERE s.address = b.address AND s.outcome = 'refused' AND s.at >= p.at) AS refused
   FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id`;
 
@@ -464,7 +472,7 @@ const selectBlocks = (withSupporters: boolean) => `
 export type EmailScope = "politicians" | "others";
 
 /** Whether `column` is a politician's address, or isn't, for `scope`. */
-function inScope(column: string, scope: EmailScope): string {
+export function inScope(column: string, scope: EmailScope): string {
   return `${scope === "politicians" ? "" : "NOT "}EXISTS (SELECT 1 FROM notable_people pol WHERE lower(pol.email) = ${column})`;
 }
 
@@ -474,16 +482,9 @@ export async function isPoliticianAddress(address: string): Promise<boolean> {
   return !!row;
 }
 
-/** Which blocked addresses to list: those blocked by a hard bounce, a complaint or a hold, and those with `search` in them. */
-export type BlocksFilter = { kind?: "hard" | "complaint" | "hold"; search?: string };
-
-/** Every blocked address in `scope` that `filter` lets through, newest first. */
-export async function listBlocks(scope: EmailScope, filter: BlocksFilter = {}): Promise<EmailBlock[]> {
-  return query<EmailBlock>(
-    `${selectBlocks(scope === "others")} WHERE ($1::text IS NULL OR p.kind = $1) AND ($2::text IS NULL OR b.address ILIKE $2)
-       AND ${inScope("b.address", scope)} ORDER BY p.at DESC, b.address`,
-    [filter.kind ?? null, filter.search ? `%${filter.search}%` : null],
-  );
+/** The blocks on `addresses`, in no order, with whose they are: supporters' only `withSupporters`. */
+export async function emailBlocks(addresses: string[], withSupporters: boolean): Promise<EmailBlock[]> {
+  return query<EmailBlock>(`${selectBlocks(withSupporters)} WHERE b.address = ANY($1)`, [addresses]);
 }
 
 /** The block on an address, if it has one, such as a politician's, who may have none. */
@@ -495,31 +496,3 @@ export async function blockOn(address: string | null): Promise<EmailBlock | unde
 
 /** A letter an email was, for the staff interface: its ID and the name of the politician it was to. */
 export type SentLetter = { id: number; to: string };
-
-/** A bounce or complaint, for the staff interface. */
-export type ProblemSummary = {
-  id: number;
-  at: Date;
-  address: string;
-  kind: DeliveryProblem["kind"];
-  reason: string;
-  /** Read from a staff member's Gmail, not reported by Postmark. */
-  foundInGmail: boolean;
-  /** What the email was, if we sent it. */
-  purpose: Purpose | null;
-  /** The letter it was, if it was one, and the politician it was to. */
-  letter: SentLetter | null;
-};
-
-/** The latest bounces and complaints to addresses in `scope`, soft bounces too, newest first. */
-export async function recentProblems(scope: EmailScope, limit = 100): Promise<ProblemSummary[]> {
-  return query<ProblemSummary>(
-    `SELECT p.id::int AS id, p.at, p.address, p.kind, p.reason, s.purpose, p.gmail_message_id IS NOT NULL AS "foundInGmail",
-       CASE WHEN pol.id IS NOT NULL THEN json_build_object('id', l.id, 'to', pol.name) END AS letter
-     FROM email_problems p LEFT JOIN email_sends s ON s.message_id = p.message_id
-       LEFT JOIN letters l ON l.id = s.letter_id LEFT JOIN notable_people pol ON pol.id = l.notable_person_id
-     WHERE ${inScope("p.address", scope)}
-     ORDER BY p.at DESC, p.id DESC LIMIT $1`,
-    [limit],
-  );
-}

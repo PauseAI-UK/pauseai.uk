@@ -3,9 +3,15 @@ import Shortened from "../ui/Shortened";
 import styles from "./BounceReason.module.css";
 import { emailCopy } from "./copy";
 
-/** Where a problem came from: a hold, from CiviCRM; a bounce found in someone's Gmail; else Postmark, which told us. */
+/**
+ * Where a problem came from: a hold, from CiviCRM; a text WhatsApp refused;
+ * a bounce found in someone's Gmail; else Postmark, which told us.
+ */
 export function problemSource({ kind, foundInGmail }: { kind: string; foundInGmail: boolean }): string {
-  return emailCopy.emails.from[kind === "hold" ? "civicrm" : foundInGmail ? "gmail" : "postmark"];
+  const from = emailCopy.emails.from;
+  if (kind === "hold") return from.civicrm;
+  if (kind === "not-on-whatsapp") return from.whatsapp;
+  return foundInGmail ? from.gmail : from.postmark;
 }
 
 /**

@@ -4,7 +4,7 @@ import { page, userEvent } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { exampleBlock } from "../oversight/EmailBlocksTable.examples";
+import { exampleBlock } from "../oversight/BlocksTable.examples";
 import { exampleLetter } from "../letters/LettersTable.examples";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
 import PoliticianDetails from "./PoliticianDetails";

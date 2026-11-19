@@ -32,7 +32,8 @@ export function metaName(name: string, id: number): string {
 /**
  * WhatsApp's error codes for a message it refused, by what we do about it
  * (https://developers.facebook.com/documentation/business-messaging/whatsapp/support/error-codes):
- * the number isn't on WhatsApp; the person stopped marketing messages; the
+ * the number can't be reached, as far as we can tell for a while
+ * (unreachable.server.ts); the person stopped marketing messages; the
  * person has had enough marketing messages lately, so try in a day; we've
  * sent too many too fast, our number is limited, the template is paused, or
  * WhatsApp can't take messages just now, so try later, as it passes by
@@ -60,23 +61,6 @@ export function textResult(send: WhatsAppSend): ChannelResult {
     return { sent: false, reason: "failed", retry: true, fixNeeded: true, detail: send.reason };
   }
   return { sent: false, reason: "failed", detail: send.reason };
-}
-
-/** Marks a number as not on WhatsApp, from the copy that found it, so texts skip it from then on. */
-export async function markUnreachable(number: string, copyId: number): Promise<void> {
-  await query(
-    `INSERT INTO whatsapp_unreachable (number, message_id) VALUES ($1, $2)
-     ON CONFLICT (number) DO UPDATE SET at = now(), message_id = excluded.message_id`,
-    [number, copyId],
-  );
-}
-
-/** Which of `numbers` aren't on WhatsApp, as far as we know. */
-export async function unreachable(numbers: string[]): Promise<Set<string>> {
-  const rows = await query<{ number: string }>("SELECT number FROM whatsapp_unreachable WHERE number = ANY($1)", [
-    numbers,
-  ]);
-  return new Set(rows.map((row) => row.number));
 }
 
 /**

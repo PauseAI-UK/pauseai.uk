@@ -213,12 +213,12 @@ export const supportersCopy = {
       by: (who: string) => `imported by ${who}`,
     },
   },
-  // The page of supporters' blocked addresses (/staff/supporters/bounced-emails), titled as the navigation names
-  // it; the rest of its words are every blocked address's (emailCopy.emails).
+  // The page of supporters' blocked addresses and numbers (/staff/supporters/bounced-emails), titled as the
+  // navigation names it; the rest of its words are every blocked address's (emailCopy.emails).
   bouncedEmails: {
-    title: "Bounced emails",
+    title: "⁂ Emails and numbers we can't reach",
     // Under the title, what the page is.
-    intro: "Supporters' bad emails, unblock them here",
+    intro: "⁂ Supporters' emails that bounced, and numbers WhatsApp couldn't deliver to; unblock them here",
   },
   // Hovering the Consent's chip while the list chooses who a broadcast goes to, where it can't be changed.
   consentLocked: "To change the consent, go back to the broadcast page.",

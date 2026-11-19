@@ -5,6 +5,7 @@ import { answeredByHand } from "@/lib/email-your-mp";
 import { SAVED, SAVED_LISTS, type SavedList } from "@/lib/saved-filters";
 import { PERMISSIONS, type Permission } from "@/lib/accounts/permissions";
 import { fromLondon, SENDING } from "@/lib/staff-time";
+import { isInternational } from "@/lib/phone";
 
 function text(form: FormData, name: string): string {
   const value = form.get(name);
@@ -84,11 +85,11 @@ export function eventFrom(form: FormData): EventForm | undefined {
 
 export type UnblockForm = { address: string; note: string };
 
-/** Unblocking an address: which, and the note for the audit log; none without both. */
+/** Unblocking an address or a number, in international format: which, and the note for the audit log; none without both. */
 export function unblockFrom(form: FormData): UnblockForm | undefined {
   const address = text(form, "address").toLowerCase();
   const note = text(form, "note");
-  if (!address.includes("@") || !note) return undefined;
+  if (!(address.includes("@") || isInternational(address)) || !note) return undefined;
   return { address, note };
 }
 

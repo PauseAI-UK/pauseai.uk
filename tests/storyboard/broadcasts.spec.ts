@@ -21,6 +21,7 @@ import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy"
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { emailCopy } from "@/lib/email/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
@@ -732,6 +733,42 @@ test("Stop, replied in WhatsApp", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters/${supporter}`);
   await expect(page.getByText(supportersCopy.supporters.detail.permissions.sources.whatsapp).first()).toBeVisible();
   await frame(page, "Their page, texts stopped");
+});
+
+test("A number WhatsApp can't reach", async ({ page, request, flowDatabase }) => {
+  story(
+    "A text goes, but WhatsApp's webhook says it couldn't deliver it: the number isn't on WhatsApp, or they haven't accepted its latest terms, or their app is too old. Texts skip the number for two months.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    statusOf(sent.wamid, sent.number, "failed", 30, { code: 131026, title: "Message undeliverable" }),
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText(stateWords.tags["unreached:not-on-whatsapp"]!).first()).toBeVisible();
+  await frame(page, "Their copy, which didn't reach them");
+  story("The number is listed with the supporters' bounced emails, and says when texts try it again.");
+  await page.goto(`${BASE}/staff/supporters/bounced-emails`);
+  const row = page.getByRole("row").filter({ hasText: emailCopy.emails.kinds["not-on-whatsapp"] });
+  await expect(row).toBeVisible();
+  await frame(page, "The number, with the blocked addresses");
+  story("Staff filter the list to the numbers WhatsApp couldn't reach.");
+  await page.goto(`${BASE}/staff/supporters/bounced-emails?kind=not-on-whatsapp`);
+  await expect(row).toBeVisible();
+  await frame(page, "Only numbers not on WhatsApp");
+  story("Its History says which text WhatsApp couldn't deliver.");
+  await openBubble(row.getByRole("button", { name: emailCopy.emails.history.open }));
+  await frame(page, "The number's history");
+  await page.keyboard.press("Escape");
+  story("They know she's on WhatsApp now, so they unblock it, saying why. The next text tries it again.");
+  await openBubble(row.getByRole("button", { name: emailCopy.emails.unblockOpen }));
+  await row.getByLabel(emailCopy.emails.note).fill("She's on WhatsApp now");
+  await frame(page, "Why they're unblocking it");
+  await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
+  await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
+  await frame(page, "No numbers left");
 });
 
 test("Changing who a broadcast goes to", async ({ page, request, flowDatabase }) => {

@@ -5,6 +5,8 @@
 // problems sending and connected Gmail report. The staff pages' own are in
 // app/(staff)/staff/_components/email/copy.ts.
 import { plural } from "@/lib/content/plural";
+import type { FoundBy } from "./block-filters";
+import type { Purpose } from "./email.server";
 
 /** After a bounce alert, for a bounce read from a Gmail mailbox: a link to it there; nothing for one Postmark reported. */
 const bounceLine = (link: string | undefined) => (link ? `\n\nThe bounce, in Gmail:\n${link}` : "");
@@ -15,23 +17,28 @@ export const emailCopy = {
   // intro are its feature's: politiciansCopy.addressesToFix and supportersCopy.bouncedEmails.
   emails: {
     // Over the list: how many are blocked, of those the filters find.
-    count: (n: number) => `${n} blocked ${plural(n, "address", "addresses")}`,
+    count: (n: number) => `⁂ ${n} blocked ${plural(n, "address or number", "addresses and numbers")}`,
     // Instead of the table, when no address is blocked, or none of the cause filtered for.
-    noBlocks: "No addresses are blocked.",
-    // Instead of the history, when nothing has bounced or been complained about.
-    noProblems: "Nothing has bounced or been marked as spam.",
-    // After a reason, as a lozenge, who told us: a bounce found in someone's Gmail, Postmark, or CiviCRM, for a hold.
-    from: { gmail: "Gmail", postmark: "Postmark", civicrm: "CiviCRM" },
+    noBlocks: "⁂ No addresses or numbers are blocked.",
+    // After a reason, as a lozenge, who told us: a bounce found in someone's Gmail, Postmark, CiviCRM, for a hold, or
+    // WhatsApp, refusing a text.
+    from: { gmail: "Gmail", postmark: "Postmark", civicrm: "CiviCRM", whatsapp: "WhatsApp" },
     // The Cause: what happened, whoever told us, as the lozenge after the reason says who. A hold is CiviCRM's, which
-    // gives no reason, though it's usually bounces.
+    // gives no reason, though it's usually bounces. WhatsApp's refusal may also be someone who hasn't accepted its
+    // latest terms, or whose app is too old.
     kinds: {
       hard: "Bounced, for good",
       soft: "Bounced, for now",
       complaint: "Marked as spam",
       hold: "“On hold” in CiviCRM",
+      "not-on-whatsapp": "⁂ Not on WhatsApp",
     } as Record<string, string>,
     // The reason kept for a hold, as CiviCRM gives none.
     holdReason: "Usually as its emails to it bounced",
+    // A number's reason: WhatsApp couldn't deliver a text, and when texts try it again, after UNREACHABLE_MONTHS
+    // (lib/broadcasts/unreachable.server.ts); once that's past, the next text does.
+    triesFrom: (date: string) => `⁂ WhatsApp couldn't deliver a text to it. Texts try it again from ${date}.`,
+    triesNext: "⁂ WhatsApp couldn't deliver a text to it. The next text tries it again.",
     columns: {
       address: "Address",
       kind: "Cause",
@@ -40,21 +47,44 @@ export const emailCopy = {
       whose: "Whose",
       refused: "Not sent since",
       at: "When",
-      // What the email that bounced was, a letter or one of ours.
-      sent: "Type of email",
+      // What found the address or number out: the email that bounced, a letter or one of ours, or a text.
+      sent: "⁂ What found it out",
     },
     // The email was a letter: before the name of the politician it was to, the two linked to the letter.
     letterTo: "Letter to",
+    // Instead of the type, for a hold, which no email of ours found out.
+    held: "⁂ On hold in CiviCRM",
+    // Instead of the type, for a bounce read from a Gmail mailbox of an email the site has no record of sending.
+    fromMailbox: (mailbox: string) => `⁂ Sent from ${mailbox}'s mailbox`,
     // Instead of the type, for an email the site has no record of sending.
-    notRecorded: "Not recorded",
+    notRecorded: "⁂ Not one we sent through the site",
+    // Each type of email (Purpose in lib/email/email.server.ts); a broadcast's links to its copy, an email or a text.
     purposes: {
       letter: "Letter",
+      "letter-copy": "⁂ Supporter's copy of their letter",
+      relay: "⁂ Message relayed to an MP",
+      "supporter-notice": "⁂ Notice to a supporter",
+      "office-notice": "⁂ Notice to an MP's office",
       "forwarded-reply": "Forwarded reply",
       "staff-login": "Staff login link",
       "staff-alert": "Staff alert",
+      "staff-report": "⁂ Staff report",
       mailing: "Mailing",
       "mailing-test": "Test copy of a mailing",
-    } as Record<string, string>,
+      broadcast: "⁂ Broadcast",
+      "preferences-link": "⁂ Contact preferences link",
+      "bulk-notice": "⁂ Notice about bulk emails",
+      "broadcast-answer": "⁂ Answer to a reply to a broadcast",
+    } satisfies Record<Purpose, string>,
+    // The filter of what found an address or number out (FOUND_BY in lib/email/block-filters.ts), named as its
+    // column is.
+    foundBy: {
+      broadcast: "⁂ A broadcast, by email or text",
+      letter: "⁂ A letter, or an email about one",
+      mailing: "⁂ A mailing",
+      other: "⁂ Another email",
+      unrecorded: "⁂ Nothing the site sent",
+    } satisfies Record<FoundBy, string>,
     // A complaint can't be undone by staff, only by the person.
     cantReset: "Can't be unblocked: they marked our email as spam.",
     // In the unblock form's field, and its name: the note for the audit log. In a row's bubble, the label over the field.
@@ -63,7 +93,16 @@ export const emailCopy = {
     // A row's button in a list of blocked addresses, which opens the bubble that asks why; and the button that closes it.
     unblockOpen: "Unblock…",
     cancel: "Cancel",
-    problemsTitle: "History",
+    // A row's button that opens its history, and what's in it, newest first (BlockEvent in lib/oversight/blocks.server.ts):
+    // a bounce or complaint by its cause, in the words of whoever told us, and the mailbox a bounce was read from; a
+    // text WhatsApp refused, or skipped as it had, by its broadcast; and staff unblocking it, with why.
+    history: {
+      open: "⁂ History",
+      readFrom: (mailbox: string) => `⁂ Found in ${mailbox}'s mailbox`,
+      refused: "⁂ WhatsApp couldn't deliver",
+      skipped: "⁂ Not sent, as WhatsApp couldn't deliver before",
+      unblocked: (by: string) => `⁂ Unblocked by ${by}`,
+    },
   },
   // The email staff get when a politician's address is blocked by an email that wasn't a letter or a relay, or one
   // the site can't place (a letter's own is lettersCopy.alert). Postmark's reason sometimes ends in a full stop and

@@ -1,0 +1,25 @@
+/* A row's history, in a bubble under its button (ui/Bubble): wide enough
+   for a mail server's reason on a line or two, and scrolling inside it
+   when it's long. */
+.bubble {
+  --bubble-width: 32rem;
+}
+
+/* Each thing that happened: when, then what, under it. The row's end
+   column keeps to one line and its right edge, which the bubble's words
+   don't. */
+.events {
+  display: grid;
+  gap: var(--space-3);
+  max-height: min(60vh, 30rem);
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  text-align: left;
+  white-space: normal;
+}
+
+.events li {
+  display: grid;
+}
