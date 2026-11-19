@@ -472,10 +472,15 @@ async function load(browser, url, viewport, network, selector, filmTo) {
     await cdp.send("Page.startScreencast", { format: "jpeg", quality: 70, maxWidth: 480, maxHeight: 480 });
   }
   await page.addInitScript(watchPage, selector);
-  // Google's tags can send their reports of a visit by way of the page's own
-  // site, which the stand-in doesn't answer for. A build on this machine has
-  // nowhere to pass them on to; on a site that's up, they're stopped.
-  if (new URL(url).hostname !== "localhost") await context.route(/\/collect(\/|\?|$)/, (route) => route.abort());
+  if (new URL(url).hostname !== "localhost") {
+    // A page on the internet isn't let to fetch from this machine, which is
+    // where the stand-in for other sites is, without this permission.
+    await context.grantPermissions(["local-network-access"]);
+    // Google's tags can send their reports of a visit by way of the page's
+    // own site, which the stand-in doesn't answer for. A build on this machine
+    // has nowhere to pass them on to; on a site that's up, they're stopped.
+    await context.route(/\/collect(\/|\?|$)/, (route) => route.abort());
+  }
   await page.goto(url, { waitUntil: "load", timeout: LOAD_TIMEOUT_MS }).catch(() => {});
   await page
     .waitForFunction(() => window.measured.last !== null, undefined, { timeout: LOAD_TIMEOUT_MS })
