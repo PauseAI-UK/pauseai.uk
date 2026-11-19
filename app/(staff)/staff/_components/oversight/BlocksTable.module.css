@@ -1,6 +1,8 @@
-/* A row's History and Unblock buttons, side by side at its right edge. */
+/* A row's History and Unblock buttons, one over the other, so the column
+   at its right edge, which stays in the window while the table scrolls,
+   is as narrow as one button and covers as little of the rest. */
 .buttons {
-  display: inline-flex;
+  display: inline-grid;
   gap: var(--space-2);
-  align-items: center;
+  justify-items: stretch;
 }
