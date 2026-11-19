@@ -31,16 +31,17 @@ const COLOURS: Record<string, string> = photoColours;
  *
  * - "first": a row opens on its first photos, about two of them on a phone.
  *   They're fetched before anything else.
- * - "next": the ones the row brings on in its first few seconds. A row moving
- *   left ("ltr") brings on those after the first, and one moving right ("rtl")
- *   its last ones, the very last first. They're fetched with the page.
+ * - "next": the rest of what a row opens on across a desktop's window, about
+ *   six photos, and what it brings on in its first few seconds. A row moving
+ *   left ("ltr") brings on the ones after those it opened on, and one moving
+ *   right ("rtl") its last ones, the very last first. They're fetched with
+ *   the page.
  * - "later": the rest wait until they're nearly on screen, or the page has
  *   loaded (HeroMarqueeEffects), whichever is first.
  */
 function wantedWhen(index: number, count: number, dir: "ltr" | "rtl") {
   if (index < 2) return "first";
-  const soon = dir === "rtl" ? index >= count - 2 : index < 4;
-  return soon ? "next" : "later";
+  return index < 6 || (dir === "rtl" && index >= count - 2) ? "next" : "later";
 }
 
 // The home page hero: three rows of photos scrolling in alternating
