@@ -603,7 +603,8 @@ JIT off. Postgres prices views of views of unions in the millions, however
 few rows they hold. What brings the cost under the threshold:
 
 - Grouping each source once and joining, not a subquery per row:
-  `supporters_summary`, and the newest email in `supporters_list`.
+  `supporters_summary`, the newest email in `supporters_list`, and first
+  seen for every supporter (`refreshSupporterFacts()`).
 - Building a page's columns after taking its rows, and counting apart from
   the page (`listSupporters()`).
 - For a few rows worked out from the views, a PL/pgSQL function that looks
