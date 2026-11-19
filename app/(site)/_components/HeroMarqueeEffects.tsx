@@ -3,8 +3,7 @@
 import { useEffect } from "react";
 
 // Sets --copy-shift on each marquee track (data-marquee-track, its first
-// copy data-marquee-copy) and marks the hero's images data-loaded once
-// they're actually painted. Runs as a React effect (after hydration)
+// copy data-marquee-copy). Runs as a React effect (after hydration)
 // rather than a raw inline <script> so it can't mutate the DOM before
 // React finishes hydrating and cause a hydration mismatch.
 export default function HeroMarqueeEffects() {
@@ -39,18 +38,6 @@ export default function HeroMarqueeEffects() {
           img.addEventListener("load", update, { once: true });
         }
       });
-    });
-
-    document.querySelectorAll<HTMLImageElement>('[data-marquee-track="hero"] img').forEach((img) => {
-      function mark() {
-        img.dataset.loaded = "";
-      }
-      if (img.complete && img.naturalWidth > 0) {
-        mark();
-      } else {
-        img.addEventListener("load", mark, { once: true });
-        img.addEventListener("error", mark, { once: true });
-      }
     });
 
     return () => {

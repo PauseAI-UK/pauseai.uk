@@ -31,8 +31,8 @@ describe("HomeHero", () => {
     const described = [...container.querySelectorAll("img")].map((img) => img.getAttribute("alt")).filter(Boolean);
     expect(described.sort()).toEqual(HERO_PHOTOS.map(([, alt]) => alt).sort());
     expect(container.querySelectorAll('img[aria-hidden="true"]').length).toBe(HERO_PHOTOS.length * 3);
-    // Only the very first photo loads eagerly.
-    expect(container.querySelectorAll('img:not([loading="lazy"])')).toHaveLength(1);
+    // Each photo's first showing loads at once; its repeats, the same file, lazily.
+    expect(container.querySelectorAll('img:not([loading="lazy"])')).toHaveLength(HERO_PHOTOS.length);
     await expect.element(page.getByRole("link", { name: "Track record →" })).toHaveAttribute("href", "/track-record");
   });
 });
