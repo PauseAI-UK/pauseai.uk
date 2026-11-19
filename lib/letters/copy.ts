@@ -408,7 +408,7 @@ export const lettersCopy = {
     supporterBounces: {
       subject: (n: number) => `${n} supporters' ${plural(n, "address", "addresses")} bounced`,
       body: (n: number, held: number, lines: string[], link: string) =>
-        `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nBounced emails: ${link}`,
+        `${n} supporters' copies of their letters bounced since the last report, so their MPs' replies can't be passed on to them. ${count(held, "reply is", "replies are")} held. Each address's domain, and what its server said:\n\n${lines.join("\n")}\n\nBlocked addresses: ${link}`,
     },
     // Letters to MPs have waited LATE_HOURS to go: how many, why, and the queued letters.
     lettersWaiting: {

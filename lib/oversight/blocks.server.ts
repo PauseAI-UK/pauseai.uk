@@ -2,8 +2,9 @@ import "server-only";
 import { emailBlocks, inScope, type EmailBlock, type EmailScope, type Purpose } from "@/lib/email/email.server";
 import { numberBlocks, numberEvents, type NumberBlock } from "@/lib/broadcasts/unreachable.server";
 import { query } from "@/lib/server/db.server";
-import { sql } from "@/lib/server/sql.server";
+import { sql, type Sql } from "@/lib/server/sql.server";
 import { phoneNumber } from "@/lib/phone";
+import type { BlockSort } from "@/lib/staff-lists";
 import { BLOCKS_PAGE_SIZE, type BlockKind, type BlocksFilter, type FoundBy } from "@/lib/email/block-filters";
 
 // The blocked addresses and numbers, in one list: an address blocked by a
@@ -30,12 +31,42 @@ const FOUND_BY_PURPOSE: Record<Purpose, Exclude<FoundBy, "unrecorded">> = {
   "staff-report": "other",
 };
 
-/** What found out the block `k`, from its purpose: a number's always a broadcast. */
+/**
+ * What was being sent when the block `k` came, from its purpose, a number's
+ * always a broadcast; or with none, a hold, a bounce read from a mailbox, or
+ * one the site can't place.
+ */
 const FOUND = sql.raw(
   `CASE ${Object.entries(FOUND_BY_PURPOSE)
     .map(([purpose, found]) => `WHEN k.purpose = '${purpose}' THEN '${found}'`)
-    .join(" ")} ELSE 'unrecorded' END`,
+    .join(" ")} WHEN k.kind = 'hold' THEN 'held' WHEN k.mailbox THEN 'mailbox' ELSE 'unrecorded' END`,
 );
+
+/** Who told us of the block `k` (BACKENDS), as problemSource says it for a row. */
+const BACKEND = sql.raw(
+  `CASE WHEN k.channel = 'text' THEN 'whatsapp' WHEN k.kind = 'hold' THEN 'civicrm' WHEN k.mailbox THEN 'gmail' ELSE 'postmark' END`,
+);
+
+/**
+ * How many times the block `k` has stopped an email or a text: as `refused`
+ * is counted for an email (emailBlocks in lib/email/email.server.ts) and for
+ * a number (numberBlocks in lib/broadcasts/unreachable.server.ts), which
+ * this must keep to. Worked out only to sort by.
+ */
+const REFUSED = sql.raw(`CASE WHEN k.channel = 'email'
+  THEN (SELECT count(*) FROM email_sends s WHERE s.address = k.address AND s.outcome = 'refused' AND s.at >= k.at)
+  ELSE (SELECT count(*) FROM broadcast_messages c JOIN whatsapp_unreachable u ON u.number = c.address
+        WHERE c.address = k.address AND c.skip_reason = 'not-on-whatsapp' AND c.id IS DISTINCT FROM u.message_id) END`);
+
+/** What each sortable column sorts the blocks `k` by. */
+const SORTS: Record<BlockSort, Sql> = {
+  address: sql`k.address`,
+  kind: sql`k.kind`,
+  backend: BACKEND,
+  sent: FOUND,
+  refused: REFUSED,
+  since: sql`k.at`,
+};
 
 /** Something that happened to a blocked address or number, for its history. */
 export type BlockEvent =
@@ -50,6 +81,8 @@ export type BlockEvent =
 export type Block = Omit<EmailBlock, "kind"> & {
   channel: "email" | "text";
   kind: BlockKind;
+  /** What was being sent when it was blocked, as the list's filter has it. */
+  found: FoundBy;
   /** For a number, when texts try it again, past or to come. */
   triesFrom: Date | null;
   /** Newest first. */
@@ -57,7 +90,7 @@ export type Block = Omit<EmailBlock, "kind"> & {
 };
 
 /** A number's block, as an email's is. */
-function asBlock(number: NumberBlock): Omit<Block, "history"> {
+function asBlock(number: NumberBlock): Omit<Block, "history" | "found"> {
   return {
     channel: "text",
     address: number.number,
@@ -90,22 +123,27 @@ export async function listBlocks(
 ): Promise<{ total: number; blocks: Block[] }> {
   const numbers = scope === "others";
   const keys = sql`(SELECT 'email' AS channel, b.address, p.at, p.kind,
-      (SELECT s.purpose FROM email_sends s WHERE s.message_id = p.message_id) AS purpose
+      (SELECT s.purpose FROM email_sends s WHERE s.message_id = p.message_id) AS purpose,
+      p.gmail_message_id IS NOT NULL AS mailbox
     FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id WHERE ${sql.raw(inScope("b.address", scope))}
-    ${numbers ? sql`UNION ALL SELECT 'text', u.number, u.at, 'not-on-whatsapp', 'broadcast' FROM whatsapp_unreachable u` : sql``}) k`;
+    ${numbers ? sql`UNION ALL SELECT 'text', u.number, u.at, 'not-on-whatsapp', 'broadcast', false FROM whatsapp_unreachable u` : sql``}) k`;
   const number = filter.search && phoneNumber(filter.search);
   const where = sql.where([
     ...(filter.kind ? [sql`k.kind = ${filter.kind}`] : []),
+    ...(filter.backend ? [sql`${BACKEND} = ${filter.backend}`] : []),
     ...(filter.found ? [sql`${FOUND} = ${filter.found}`] : []),
     ...(filter.search
       ? [sql.or([sql`k.address ILIKE ${`%${filter.search}%`}`, ...(number ? [sql`k.address = ${number}`] : [])])]
       : []),
   ]);
   const paged = page === "all" ? sql`` : sql`LIMIT ${BLOCKS_PAGE_SIZE} OFFSET ${(page - 1) * BLOCKS_PAGE_SIZE}`;
+  const { key, dir } = filter.sort ?? { key: "since", dir: "desc" };
+  // Then newest first, and by address, so a page's rows are always the same ones.
+  const order = sql`ORDER BY ${SORTS[key]} ${sql.raw(dir === "asc" ? "ASC" : "DESC")}, k.at DESC, k.address`;
   const [[{ total }], rows] = await Promise.all([
     query<{ total: number }>(sql`SELECT count(*)::int AS total FROM ${keys} ${where}`),
-    query<{ channel: "email" | "text"; address: string }>(
-      sql`SELECT k.channel, k.address FROM ${keys} ${where} ORDER BY k.at DESC, k.address ${paged}`,
+    query<{ channel: "email" | "text"; address: string; found: FoundBy }>(
+      sql`SELECT k.channel, k.address, ${FOUND} AS found FROM ${keys} ${where} ${order} ${paged}`,
     ),
   ]);
   const of = (channel: "email" | "text") => rows.filter((row) => row.channel === channel).map((row) => row.address);
@@ -114,13 +152,17 @@ export async function listBlocks(
     numberBlocks(of("text")),
     blockHistories(of("email"), of("text")),
   ]);
-  const built = new Map<string, Omit<Block, "history">>([
+  const built = new Map<string, Omit<Block, "history" | "found">>([
     ...emails.map((block) => [block.address, { ...block, channel: "email", triesFrom: null }] as const),
     ...texts.map((block) => [block.number, asBlock(block)] as const),
   ]);
   return {
     total,
-    blocks: rows.map((row) => ({ ...built.get(row.address)!, history: histories.get(row.address) ?? [] })),
+    blocks: rows.map((row) => ({
+      ...built.get(row.address)!,
+      found: row.found,
+      history: histories.get(row.address) ?? [],
+    })),
   };
 }
 

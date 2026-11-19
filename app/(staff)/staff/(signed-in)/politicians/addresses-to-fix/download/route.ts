@@ -12,10 +12,10 @@ import { politiciansCopy } from "../../../../_components/politicians/copy";
 export async function GET(request: NextRequest) {
   const { email } = await requireStaff();
   return staffDownload(request, email, async (params) => {
-    const { q, kind, found, filter } = emailsSearch(params);
+    const { search, filter } = emailsSearch(params);
     return {
       what: politiciansCopy.addressesToFix.title,
-      filters: filterWords(emailBlockFilters(false), { q, kind, found }, "q"),
+      filters: filterWords(emailBlockFilters(false), search, "q"),
       columns: blockColumns(false),
       rows: (await listBlocks("politicians", filter, "all")).blocks,
     };

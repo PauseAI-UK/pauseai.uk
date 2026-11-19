@@ -1500,7 +1500,8 @@ describe("PoliticianDetails", () => {
       />,
     );
     expect(notice.element().textContent).not.toContain(copy.wrong.before);
-    await expect.element(notice.getByText(emailCopy.emails.cantReset)).toBeVisible();
+    // A bounce Postmark won't send to again, as it's not a complaint.
+    await expect.element(notice.getByText(emailCopy.emails.cantReset.provider)).toBeVisible();
   });
 
   it("opens their other addresses from their email in the band, with a Remove by those staff can take off, the newest added last", async () => {

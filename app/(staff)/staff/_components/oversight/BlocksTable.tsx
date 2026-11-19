@@ -1,17 +1,20 @@
 import StaffLink from "../ui/StaffLink";
 import ChannelIcon from "@/components/ui/ChannelIcon";
-import { Muted } from "@/components/ui/Text";
 import type { Block } from "@/lib/oversight/blocks.server";
 import { BLOCKS_PAGE_SIZE } from "@/lib/email/block-filters";
-import type { DownloadFormat } from "@/lib/staff-list";
+import { filtersPath, pageParam } from "@/lib/list-params";
+import { clearedPath, type BLOCKED_ADDRESSES_LIST, type BlockSort } from "@/lib/staff-lists";
+import type { BlocksSearch } from "@/lib/staff-search";
+import { sortHref } from "@/lib/staff-sort";
 import { now } from "@/lib/now";
 import { phoneWords } from "@/lib/phone";
 import { staffDate, staffTime } from "@/lib/staff-time";
-import Reason, { problemSource } from "../email/BounceReason";
-import LetterLink from "../letters/LetterLink";
+import Reason, { problemSource, REASON_LENGTH } from "../email/BounceReason";
+import Shortened, { cutAtWord } from "../ui/Shortened";
 import { UnblockBubble } from "../email/UnblockForm";
 import IconText from "../ui/IconText";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
+import SortHeading from "../ui/SortHeading";
 import TestTag from "../ui/TestTag";
 import BlockHistory, { copyPath } from "./BlockHistory";
 import { supportersCopy } from "../supporters/copy";
@@ -24,16 +27,35 @@ const copy = emailCopy.emails;
 const supporterName = (s: Block["supporters"][number]) => s.name ?? supportersCopy.supporters.noName;
 
 /**
- * What found an address or number out, in words: a letter, by whom it was
- * to; what the site sent, with a broadcast's title; for a hold, that it's
- * CiviCRM's; for a bounce read from a mailbox of an email the site has no
- * record of, that mailbox; or null, for none of these.
+ * Which one was being sent, beside what kind (Block's `found`): a letter, by
+ * whom it was to; a broadcast's title; the type of email, where it says more
+ * than its kind; or the mailbox a bounce was read from. Null for none of
+ * these, as for a hold.
  */
-function foundWords(block: Block): string | null {
+function detailWords(block: Block): string | null {
   if (block.letter) return `${copy.letterTo} ${block.letter.to}`;
-  if (block.purpose) return [copy.purposes[block.purpose], block.copy?.title].filter(Boolean).join(": ");
-  if (block.kind === "hold") return copy.held;
-  return block.mailbox ? copy.fromMailbox(block.mailbox) : null;
+  if (block.copy) return block.copy.title;
+  if (block.purpose && block.purpose !== block.found) return copy.purposes[block.purpose];
+  return block.mailbox;
+}
+
+/** Words cut as long as a reason's are (REASON_LENGTH), with "…" that unfolds the whole (ui/Shortened); short ones whole. */
+function Cut({ words }: { words: string }) {
+  const short = cutAtWord(words, REASON_LENGTH);
+  return short ? <Shortened short={short} whole={words} /> : <>{words}</>;
+}
+
+/**
+ * A link cut as Cut cuts words, but with "…" in the link and the whole on
+ * hover, as unfolding inside a link would fight with following it.
+ */
+function CutLink({ href, words }: { href: string; words: string }) {
+  const short = cutAtWord(words, REASON_LENGTH);
+  return (
+    <StaffLink href={href} title={short ? words : undefined}>
+      {short ? `${short}…` : words}
+    </StaffLink>
+  );
 }
 
 /** Why it's blocked: the provider's words for an address; for a number, that WhatsApp refused, and when texts try it again. */
@@ -46,10 +68,12 @@ function reasonWords(block: Block): string {
  * The blocked addresses' and numbers' columns, as every list's go
  * (docs/style-guide.md): the address or number and whose, politicians'
  * then supporters', each linked to their page; what blocked it, by email
- * or text, why, and what found it out (a letter linked with `letterLinks`,
- * a broadcast's copy always); how many emails or texts haven't gone since;
- * since when; and with `unblock`, buttons that open its history and the way
- * to unblock it, which a download leaves out.
+ * or text, who told us, and in their words why; then what we add of our
+ * own: what kind of thing was being sent when it was blocked, and
+ * which one (a letter linked with `letterLinks`, a broadcast's copy
+ * always); how many emails or texts haven't gone since;
+ * since when; and with `unblock`, the row's buttons: its history and the
+ * way to unblock it, which a download leaves out.
  */
 export function blockColumns(
   letterLinks: boolean,
@@ -90,25 +114,31 @@ export function blockColumns(
       text: (b) => copy.kinds[b.kind],
       cell: (b) => <IconText icon={<ChannelIcon channel={b.channel} />}>{copy.kinds[b.kind]}</IconText>,
     },
+    { key: "backend", label: copy.columns.backend, short: true, text: problemSource, cell: problemSource },
     {
       key: "reason",
       label: copy.columns.reason,
-      text: (b) => `${reasonWords(b)} (${problemSource(b)})`,
-      cell: (b) => <Reason reason={reasonWords(b)} kind={b.kind} foundInGmail={b.foundInGmail} />,
+      text: reasonWords,
+      cell: (b) => <Reason reason={reasonWords(b)} />,
     },
     {
       key: "sent",
       label: copy.columns.sent,
+      short: true,
+      text: (b) => copy.foundBy[b.found],
+      cell: (b) => copy.foundBy[b.found],
+    },
+    {
+      key: "sentDetail",
+      label: copy.columns.sentDetail,
       words: "name",
-      text: foundWords,
-      cell: (b) =>
-        b.letter ? (
-          <LetterLink letter={b.letter} linked={letterLinks} />
-        ) : b.copy ? (
-          <StaffLink href={copyPath(b.copy)}>{foundWords(b)}</StaffLink>
-        ) : (
-          (foundWords(b) ?? <Muted>{copy.notRecorded}</Muted>)
-        ),
+      text: detailWords,
+      cell: (b) => {
+        const words = detailWords(b);
+        if (b.copy) return <CutLink href={copyPath(b.copy)} words={b.copy.title} />;
+        if (b.letter && letterLinks) return <CutLink href={`/staff/letters/${b.letter.id}`} words={words!} />;
+        return words && <Cut words={words} />;
+      },
     },
     { key: "refused", label: copy.columns.refused, short: true, text: (b) => b.refused, cell: (b) => b.refused },
     { key: "since", label: copy.columns.since, short: true, text: (b) => b.since, cell: (b) => staffTime(b.since) },
@@ -117,45 +147,62 @@ export function blockColumns(
     ? [
         ...columns,
         {
-          key: "unblock",
+          key: "history",
           label: "",
-          end: true,
-          cell: (b) => (
-            <span className={styles.buttons}>
-              <BlockHistory block={b} />
-              <UnblockBubble block={b} action={unblock} />
-            </span>
-          ),
+          short: true,
+          className: styles.ruled,
+          // Its own empty heading, so its rule runs through the headings' row too.
+          heading: <th key="history" className={styles.ruled} />,
+          cell: (b) => <BlockHistory block={b} />,
         },
+        { key: "unblock", label: "", end: true, cell: (b) => <UnblockBubble block={b} action={unblock} /> },
       ]
     : columns;
 }
 
 /**
- * The blocked addresses and numbers, in the list frame, a page of
- * BLOCKS_PAGE_SIZE at a time: how many, their downloads at `download`, and
- * a row each; or that there are none, with the way to `clear` a search or
- * filter that's on.
+ * The blocked addresses and numbers on the page `of`, in the list frame, a
+ * page of BLOCKS_PAGE_SIZE at a time, as its URL `search` asks: how many,
+ * their downloads, and a row each, under headings that sort by their
+ * column, keeping the filters; or that there are none, with the way to clear
+ * a search or filter that's on.
  */
 export default function BlocksTable({
   list,
+  of,
+  search,
   page,
-  href,
   unblock,
   letterLinks,
-  download,
-  clear,
 }: {
   list: { total: number; blocks: Block[] };
+  of: typeof BLOCKED_ADDRESSES_LIST;
+  search: BlocksSearch;
   page: number;
-  /** The list's URL at another page. */
-  href: (page: number) => string;
   unblock: (form: FormData) => void | Promise<void>;
   letterLinks: boolean;
-  download?: (format: DownloadFormat) => string;
-  /** The page with its search and filters off, while any is on. */
-  clear?: string;
 }) {
+  // Its URL from the first page: a link to another page or a sort sets its own.
+  const kept = { ...search, page: "" };
+  const { sort, dir, ...filtering } = kept;
+  const current = of.sort({ sort, dir });
+  const columns = blockColumns(letterLinks, unblock).map((column) =>
+    Object.hasOwn(of.columns, column.key)
+      ? {
+          ...column,
+          heading: (
+            <SortHeading
+              key={column.key}
+              sortKey={column.key}
+              current={current}
+              href={sortHref(of.path, filtering, of.columns, current, column.key as BlockSort)}
+            >
+              {column.label}
+            </SortHeading>
+          ),
+        }
+      : column,
+  );
   return (
     <ListFrame
       count={copy.count(list.total)}
@@ -163,13 +210,15 @@ export default function BlocksTable({
       page={page}
       pages={Math.ceil(list.total / BLOCKS_PAGE_SIZE)}
       pageSize={BLOCKS_PAGE_SIZE}
-      href={href}
-      download={download}
-      columns={blockColumns(letterLinks, unblock)}
+      href={(n) => filtersPath(of.path, kept, pageParam(n))}
+      download={(format) => filtersPath(`${of.path}/download`, { ...kept, format })}
+      columns={columns}
       rows={list.blocks}
       rowKey={(b) => b.address}
+      // Its rows hold buttons (docs/style-guide.md, "Tables").
+      align="middle"
       empty={copy.noBlocks}
-      clear={clear}
+      clear={clearedPath(of, search)}
     />
   );
 }

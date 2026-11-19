@@ -26,7 +26,6 @@ import { letterViewGallery } from "@/app/(staff)/staff/_components/letters/Lette
 import { letterStatusGallery } from "@/app/(staff)/staff/_components/letters/LetterStatus.gallery";
 import { letterHistoryGallery } from "@/app/(staff)/staff/_components/letters/LetterHistory.gallery";
 import { findInGmailGallery } from "@/app/(staff)/staff/_components/letters/FindInGmail.gallery";
-import { letterLinkGallery } from "@/app/(staff)/staff/_components/letters/LetterLink.gallery";
 
 export const staffLetters: Group = {
   id: "staff-letters",
@@ -55,6 +54,5 @@ export const staffLetters: Group = {
     ...letterHistoryGallery,
     ...findInGmailGallery,
     ...campaignNameGallery,
-    ...letterLinkGallery,
   ],
 };

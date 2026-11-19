@@ -53,7 +53,7 @@ const STAFF_SECTIONS: readonly StaffSection[] = [
       // A letter's page stays at /staff/letters/[id], and shows in Campaigns.
       { id: "campaigns", href: "/staff/campaigns", permission: "supporters", under: ["/staff/letters"] },
       { id: "broadcasts", href: "/staff/broadcasts", permission: "supporters" },
-      { id: "supporterEmails", href: "/staff/supporters/bounced-emails", permission: "supporters" },
+      { id: "supporterEmails", href: "/staff/supporters/blocked-addresses", permission: "supporters" },
       { id: "signupUpload", href: "/staff/supporters/import", permission: "supporters" },
     ],
   },
@@ -100,7 +100,7 @@ export function pagesFor(permissions: readonly Permission[]): StaffPageId[] {
 /**
  * The page in the navigation a path is, or is under: the one with the
  * longest whole-segment prefix of it, its href or one it has `under` it. So
- * /staff/supporters/7 is under Supporters, /staff/supporters/bounced-emails
+ * /staff/supporters/7 is under Supporters, /staff/supporters/blocked-addresses
  * is its own page, and /staff/letters/supporter/7 is under Supporters too.
  */
 export function staffPageOf(path: string): StaffPageLink | undefined {

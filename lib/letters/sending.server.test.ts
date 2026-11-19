@@ -412,7 +412,7 @@ describeWithDatabase("the letters inbox's queue", () => {
       // Within the day: nothing more.
       await sendLetterQueue(Date.now() + 10_000);
       const words = lettersCopy.notifications.supporterBounces;
-      const link = "https://pauseai.uk/staff/supporters/bounced-emails";
+      const link = "https://pauseai.uk/staff/supporters/blocked-addresses";
       expect(reports.map((r) => [r.Subject, r.TextBody])).toEqual([
         [words.subject(1), words.body(1, 1, ["- exampel.com: No such domain"], link)],
       ]);

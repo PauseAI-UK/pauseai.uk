@@ -3,6 +3,7 @@
 // BlocksTable's examples, whose unblocking is logged (BlocksTable.gallery.tsx).
 import type { Block } from "@/lib/oversight/blocks.server";
 import BlocksTable from "./BlocksTable";
+import { BLOCKED_ADDRESSES_LIST } from "@/lib/staff-lists";
 import {
   exampleBlock,
   exampleBroadcastBlock,
@@ -42,7 +43,8 @@ export function BlocksTableExample({
         <BlocksTable
           list={{ total, blocks }}
           page={page}
-          href={(n) => `?page=${n}`}
+          of={BLOCKED_ADDRESSES_LIST}
+          search={BLOCKED_ADDRESSES_LIST.read({})}
           unblock={log("unblock")}
           letterLinks={letterLinks}
         />

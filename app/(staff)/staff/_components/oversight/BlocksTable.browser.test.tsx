@@ -19,6 +19,7 @@ import { supportersCopy } from "../supporters/copy";
 import { emailCopy } from "@/lib/email/copy";
 import { type DownloadColumn } from "@/lib/staff-list";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { BLOCKED_ADDRESSES_LIST } from "@/lib/staff-lists";
 
 const copy = emailCopy.emails;
 
@@ -28,7 +29,8 @@ function table(blocks: Block[], unblock: (form: FormData) => void = vi.fn(), let
     <BlocksTable
       list={{ total: blocks.length, blocks }}
       page={1}
-      href={(n) => `/blocks?page=${n}`}
+      of={BLOCKED_ADDRESSES_LIST}
+      search={BLOCKED_ADDRESSES_LIST.read({})}
       unblock={unblock}
       letterLinks={letterLinks}
     />,
@@ -64,21 +66,20 @@ describe("BlocksTable", () => {
     );
     const bounced = rowOf(exampleBlock.address);
     await expect.element(bounced.getByText(copy.kinds.hard)).toBeVisible();
-    // The reason, then who told us.
-    await expect
-      .element(bounced.getByRole("cell", { name: `${exampleBlock.reason} ${copy.from.postmark}` }))
-      .toBeVisible();
+    // Who told us, in a cell of its own.
+    await expect.element(bounced.getByRole("cell", { name: copy.from.postmark, exact: true })).toBeVisible();
     // Whose it is, linked to their page; and the letter that found it out, by whom it was to, linked to it alone.
     await expect
       .element(bounced.getByRole("link", { name: "Bouncy McTestface MP", exact: true }))
       .toHaveAttribute("href", "/staff/politicians/5");
-    await expect
-      .element(bounced.getByRole("link", { name: `${copy.letterTo} Bouncy McTestface MP` }))
-      .toHaveAttribute("href", "/staff/letters/17");
+    // Cut as a reason is, the whole on hover.
+    const letter = bounced.getByRole("link", { name: `${copy.letterTo} Bouncy…` });
+    await expect.element(letter).toHaveAttribute("href", "/staff/letters/17");
+    await expect.element(letter).toHaveAttribute("title", `${copy.letterTo} Bouncy McTestface MP`);
     await expect.element(bounced.getByRole("cell", { name: "2", exact: true })).toBeVisible();
     // A complaint can't be unblocked; two politicians share its address, and a supporter, after them, linked too.
     const complained = rowOf(exampleComplaint.address);
-    await expect.element(complained.getByText(copy.cantReset)).toBeVisible();
+    await expect.element(complained.getByText(copy.cantReset.complaint)).toBeVisible();
     await expect.element(complained.getByText("A, B, Jane Example")).toBeVisible();
     await expect
       .element(complained.getByRole("link", { name: "Jane Example" }))
@@ -89,9 +90,10 @@ describe("BlocksTable", () => {
     await expect
       .element(two.getByRole("link", { name: supportersCopy.supporters.noName }))
       .toHaveAttribute("href", "/staff/supporters/8");
-    // What the email was: a letter, another of ours, or one the site has no record of.
+    // What was being sent, as the filter says it, and which: a letter's type of email, or nothing the site recorded.
+    await expect.element(complained.getByText(copy.foundBy.letter)).toBeVisible();
     await expect.element(complained.getByText(copy.purposes["forwarded-reply"])).toBeVisible();
-    await expect.element(rowOf("unknown@example.org").getByText(copy.notRecorded)).toBeVisible();
+    await expect.element(rowOf("unknown@example.org").getByText(copy.foundBy.unrecorded)).toBeVisible();
     // The row holds buttons alone; Unblock opens a bubble that asks why, which Cancel closes.
     const note = bounced.getByLabelText(copy.note);
     const open = bounced.getByRole("button", { name: copy.unblockOpen });
@@ -121,7 +123,7 @@ describe("BlocksTable", () => {
     expect(row.getByRole("cell").nth(2).element().querySelector("svg")).not.toBeNull();
     await expect.element(row.getByText(copy.from.whatsapp)).toBeVisible();
     await expect
-      .element(row.getByRole("link", { name: `${copy.purposes.broadcast}: Join us in Manchester` }))
+      .element(row.getByRole("link", { name: "Join us in Manchester" }))
       .toHaveAttribute("href", "/staff/broadcasts/9/41");
     // A number is unblocked by its number as kept.
     await row.getByRole("button", { name: copy.unblockOpen }).click();
@@ -132,20 +134,21 @@ describe("BlocksTable", () => {
 
   it("says texts try a number again from a day to come, or with the next text once that's past", () => {
     const reason = (triesFrom: Date) => values(blockColumns(true), { ...exampleNumber, triesFrom }).reason;
-    expect(reason(new Date("2099-01-02T10:00:00Z"))).toBe(`${copy.triesFrom("2 Jan 2099")} (${copy.from.whatsapp})`);
-    expect(reason(new Date("2000-01-02T10:00:00Z"))).toBe(`${copy.triesNext} (${copy.from.whatsapp})`);
+    expect(reason(new Date("2099-01-02T10:00:00Z"))).toBe(copy.triesFrom("2 Jan 2099"));
+    expect(reason(new Date("2000-01-02T10:00:00Z"))).toBe(copy.triesNext);
   });
 
   it("says what found an address out when the site sent nothing: a hold, or a mailbox's own email", async () => {
     await table([exampleHold, exampleMailboxBlock]);
-    await expect.element(rowOf(exampleHold.address).getByText(copy.held)).toBeVisible();
-    await expect
-      .element(rowOf(exampleMailboxBlock.address).getByText(copy.fromMailbox("joseph@pauseai.uk")))
-      .toBeVisible();
+    await expect.element(rowOf(exampleHold.address).getByText(copy.foundBy.held)).toBeVisible();
+    // A mailbox's own email: which mailbox, beside it.
+    const mailbox = rowOf(exampleMailboxBlock.address);
+    await expect.element(mailbox.getByText(copy.foundBy.mailbox)).toBeVisible();
+    await expect.element(mailbox.getByText("joseph@pauseai.uk")).toBeVisible();
   });
 
   it("opens each row's history: bounces with the mailbox they were found in, texts refused and skipped, unblocks", async () => {
-    await table([exampleBroadcastBlock, exampleNumber, { ...exampleHold, history: [] }]);
+    await table([exampleBroadcastBlock, exampleNumber, exampleHold, { ...exampleMailboxBlock, history: [] }]);
     const bounced = rowOf(exampleBroadcastBlock.address);
     const history = page.getByRole("list", { name: `${copy.history.open}: ${exampleBroadcastBlock.address}` });
     // A closed bubble is out of the accessibility tree.
@@ -168,13 +171,20 @@ describe("BlocksTable", () => {
     await expect
       .element(texts.getByText(`${copy.history.unblocked("jo@pauseai.uk")}: “She's on WhatsApp now”`))
       .toBeVisible();
-    // A row with nothing in its history has no button for it.
-    expect(rowOf(exampleHold.address).getByRole("button", { name: copy.history.open }).query()).toBeNull();
+    // A row whose history is only what blocked it, or nothing, says so in place of the button.
+    for (const address of [exampleHold.address, exampleMailboxBlock.address]) {
+      expect(rowOf(address).getByRole("button", { name: copy.history.open }).query()).toBeNull();
+      await expect.element(rowOf(address).getByText(copy.history.none)).toBeVisible();
+    }
   });
 
   it("names the letter without linking to it, without letter links", async () => {
     await table([listed(exampleBlock)], vi.fn(), false);
-    await expect.element(page.getByText(`${copy.letterTo} Bouncy McTestface MP`)).toBeVisible();
+    // Cut, with … to unfold it.
+    const letter = page.getByRole("group").filter({ hasText: `${copy.letterTo} Bouncy` });
+    await expect.element(letter).toBeVisible();
+    await letter.getByText("…", { exact: true }).click();
+    await expect.element(page.getByText(`${copy.letterTo} Bouncy McTestface MP`, { exact: true })).toBeVisible();
     expect(document.querySelector('a[href^="/staff/letters"]')).toBeNull();
   });
 
@@ -183,7 +193,8 @@ describe("BlocksTable", () => {
       <BlocksTable
         list={{ total: BLOCKS_PAGE_SIZE + 1, blocks: [listed(exampleBlock)] }}
         page={2}
-        href={(n) => `/blocks?page=${n}`}
+        of={BLOCKED_ADDRESSES_LIST}
+        search={BLOCKED_ADDRESSES_LIST.read({})}
         unblock={vi.fn()}
         letterLinks
       />,
@@ -191,7 +202,7 @@ describe("BlocksTable", () => {
     await expect.element(page.getByText(copy.count(BLOCKS_PAGE_SIZE + 1))).toBeVisible();
     await expect
       .element(page.getByRole("link", { name: staffVocabulary.paging.previous }))
-      .toHaveAttribute("href", "/blocks?page=1");
+      .toHaveAttribute("href", BLOCKED_ADDRESSES_LIST.path);
   });
 
   it("says when there are none", async () => {
@@ -208,20 +219,28 @@ describe("each list's download values and contact cards", () => {
     const columns = blockColumns(false);
     expect(values(columns, listed(exampleBlock))).toMatchObject({
       whose: "Bouncy McTestface MP",
-      sent: `${copy.letterTo} Bouncy McTestface MP`,
+      sent: copy.foundBy.letter,
+      sentDetail: `${copy.letterTo} Bouncy McTestface MP`,
     });
-    expect(values(columns, listed(exampleComplaint)).sent).toBe(copy.purposes["forwarded-reply"]);
+    expect(values(columns, listed(exampleComplaint)).sentDetail).toBe(copy.purposes["forwarded-reply"]);
+    // A broadcast's title; a mailing, whose type says no more than its kind, nothing.
+    expect(values(columns, exampleNumber).sentDetail).toBe("Join us in Manchester");
+    expect(values(columns, listed({ ...exampleComplaint, purpose: "mailing" })).sentDetail).toBeNull();
     expect(values(columns, listed({ ...exampleComplaint, politicians: exampleBlock.politicians })).whose).toBe(
       "Bouncy McTestface MP; Jane Example",
     );
     expect(values(columns, listed({ ...exampleComplaint, supporters: [{ id: 8, name: null }] })).whose).toBe(
       supportersCopy.supporters.noName,
     );
-    expect(values(columns, listed({ ...exampleComplaint, purpose: null })).sent).toBeNull();
-    // After its reason, in brackets, who told us.
-    expect(values(columns, listed(exampleBlock)).reason).toBe(`${exampleBlock.reason} (${copy.from.postmark})`);
-    expect(values(columns, listed(exampleGmailBlock)).reason).toBe(`${exampleGmailBlock.reason} (${copy.from.gmail})`);
-    expect(values(columns, exampleHold).reason).toBe(`${exampleHold.reason} (${copy.from.civicrm})`);
+    expect(values(columns, listed({ ...exampleComplaint, purpose: null })).sentDetail).toBeNull();
+    // Its reason whole, and who told us apart.
+    expect(values(columns, listed(exampleBlock))).toMatchObject({
+      reason: exampleBlock.reason,
+      backend: copy.from.postmark,
+    });
+    expect(values(columns, listed(exampleGmailBlock)).backend).toBe(copy.from.gmail);
+    expect(values(columns, exampleHold).backend).toBe(copy.from.civicrm);
+    expect(values(columns, exampleNumber).backend).toBe(copy.from.whatsapp);
     // A number as kept, in international format.
     expect(values(columns, exampleNumber).address).toBe("+447700900123");
   });

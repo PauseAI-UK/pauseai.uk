@@ -1,8 +1,6 @@
-/* A row's History and Unblock buttons, one over the other, so the column
-   at its right edge, which stays in the window while the table scrolls,
-   is as narrow as one button and covers as little of the rest. */
-.buttons {
-  display: inline-grid;
-  gap: var(--space-2);
-  justify-items: stretch;
+/* The History column, ruled off at its left as the Unblock column after it
+   is, so the row's two buttons stand apart from its words and each other.
+   Only Unblock stays at the window's edge while a wide table scrolls. */
+.ruled {
+  box-shadow: inset 1px 0 0 var(--border);
 }

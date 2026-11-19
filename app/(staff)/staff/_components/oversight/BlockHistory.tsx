@@ -41,11 +41,12 @@ function Happened({ event }: { event: BlockEvent }) {
  * A row's History button, which opens a bubble of everything that
  * happened to its address or number, newest first: each bounce, complaint
  * or hold, each text WhatsApp refused or that was skipped as it had, and
- * each time staff unblocked it, with why. None for a row with nothing to
- * show, as a number whose copies have been deleted.
+ * each time staff unblocked it, with why. A row whose history is only what
+ * blocked it, which the row says already, or nothing, as for a number whose
+ * copies have been deleted, says it has none instead.
  */
 export default function BlockHistory({ block }: { block: Pick<Block, "address" | "history"> }) {
-  if (block.history.length === 0) return null;
+  if (block.history.length <= 1) return <Muted>{copy.history.none}</Muted>;
   const id = `history-${block.address.replace(/\W/g, "-")}`;
   return (
     <Bubble

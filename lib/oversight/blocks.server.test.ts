@@ -6,6 +6,7 @@ import { forgetUnreachable, markUnreachable } from "@/lib/broadcasts/unreachable
 import { addFollower } from "@/tests/broadcast-fixtures";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { BLOCKS_PAGE_SIZE } from "@/lib/email/block-filters";
+import type { BlockSort } from "@/lib/staff-lists";
 import { listBlocks } from "./blocks.server";
 
 const NUMBER = "+447700900001";
@@ -70,6 +71,7 @@ describeWithDatabase("listBlocks", () => {
       supporters: [{ id: jane, name: "Jane" }],
       letter: null,
       purpose: "broadcast",
+      found: "broadcast",
       copy: { id: text.id, broadcast: text.broadcast, title: "Join us" },
       refused: 0,
       triesFrom: new Date("2026-12-03T10:00:00Z"),
@@ -91,6 +93,22 @@ describeWithDatabase("listBlocks", () => {
     await bounced("other@example.org", "preferences-link", "2026-10-04T10:00:00Z");
     await recordProblem({ address: "hold@example.org", messageId: null, kind: "hard", reason: "", canReset: true });
     await query("UPDATE email_problems SET kind = 'hold' WHERE address = 'hold@example.org'");
+    // Bounces of emails the site has no record of sending: one read from a mailbox, one from Postmark.
+    await recordProblem({
+      address: "mailbox@example.org",
+      messageId: null,
+      kind: "hard",
+      reason: "",
+      canReset: true,
+      gmailMessageId: "g1",
+    });
+    await recordProblem({
+      address: "stray@example.org",
+      messageId: "msg-unknown",
+      kind: "hard",
+      reason: "",
+      canReset: true,
+    });
     await refusedText(jane, "2026-10-05T10:00:00Z");
 
     const found = async (filter: Parameters<typeof listBlocks>[1]) => addresses(await listBlocks("others", filter, 1));
@@ -100,12 +118,40 @@ describeWithDatabase("listBlocks", () => {
     expect(await found({ found: "letter" })).toEqual(["letter@example.org"]);
     expect(await found({ found: "mailing" })).toEqual(["mailing@example.org"]);
     expect(await found({ found: "other" })).toEqual(["other@example.org"]);
-    expect(await found({ found: "unrecorded" })).toEqual(["hold@example.org"]);
+    expect(await found({ found: "held" })).toEqual(["hold@example.org"]);
+    expect(await found({ found: "mailbox" })).toEqual(["mailbox@example.org"]);
+    expect(await found({ found: "unrecorded" })).toEqual(["stray@example.org"]);
+    // Who told us: WhatsApp of a number, CiviCRM of a hold, a mailbox's Gmail, else Postmark.
+    expect(await found({ backend: "whatsapp" })).toEqual([NUMBER]);
+    expect(await found({ backend: "civicrm" })).toEqual(["hold@example.org"]);
+    expect(await found({ backend: "gmail" })).toEqual(["mailbox@example.org"]);
+    expect(await found({ backend: "postmark" })).not.toContain("hold@example.org");
     expect(await found({ search: "LETTER@" })).toEqual(["letter@example.org"]);
     // A number found as it's written in the UK, or by part of it as kept.
     expect(await found({ search: "07700 900001" })).toEqual([NUMBER]);
     expect(await found({ search: "900001" })).toEqual([NUMBER]);
     expect(await found({ search: "nobody" })).toEqual([]);
+  });
+
+  it("sorts by each sortable column, either way, then newest first", async () => {
+    const jane = await addFollower("usr-1", "jane@example.com", "Jane", { phone: NUMBER });
+    await bounced("b@example.org", "letter", "2026-10-01T10:00:00Z");
+    await bounced("a@example.org", "mailing", "2026-10-02T10:00:00Z", { kind: "complaint" });
+    await refusedText(jane, "2026-10-03T10:00:00Z");
+    // Stopped twice since it was blocked, the most of any.
+    await query(
+      `INSERT INTO email_sends (at, purpose, address, outcome) VALUES
+       ('2026-10-05T10:00:00Z', 'letter', 'b@example.org', 'refused'), ('2026-10-06T10:00:00Z', 'letter', 'b@example.org', 'refused')`,
+    );
+    const sorted = async (key: BlockSort, dir: "asc" | "desc") =>
+      addresses(await listBlocks("others", { sort: { key, dir } }, 1));
+    expect(await sorted("since", "desc")).toEqual([NUMBER, "a@example.org", "b@example.org"]);
+    expect(await sorted("since", "asc")).toEqual(["b@example.org", "a@example.org", NUMBER]);
+    expect(await sorted("address", "asc")).toEqual([NUMBER, "a@example.org", "b@example.org"]);
+    expect(await sorted("kind", "asc")).toEqual(["a@example.org", "b@example.org", NUMBER]);
+    expect(await sorted("backend", "desc")).toEqual([NUMBER, "a@example.org", "b@example.org"]);
+    expect(await sorted("sent", "asc")).toEqual([NUMBER, "b@example.org", "a@example.org"]);
+    expect(await sorted("refused", "desc")).toEqual(["b@example.org", NUMBER, "a@example.org"]);
   });
 
   it("gives a page at a time, or every one", async () => {

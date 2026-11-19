@@ -210,28 +210,35 @@ describe("politicianId", () => {
 });
 
 describe("emailsSearch", () => {
-  it("filters by what blocked it, and by nothing else", () => {
+  /** The filter with nothing chosen: newest blocked first. */
+  const NEWEST = { sort: { key: "since", dir: "desc" } };
+
+  it("keeps the URL as typed, and filters by what blocked it, and by nothing else", () => {
     expect(emailsSearch({ kind: "complaint" })).toEqual({
-      q: "",
-      kind: "complaint",
-      found: "",
+      search: { q: "", kind: "complaint", backend: "", found: "", sort: "", dir: "", page: "" },
       page: 1,
-      filter: { kind: "complaint" },
+      filter: { kind: "complaint", ...NEWEST },
     });
-    expect(emailsSearch({ kind: "not-on-whatsapp" }).filter).toEqual({ kind: "not-on-whatsapp" });
-    expect(emailsSearch({ kind: "soft" }).filter).toEqual({});
-    expect(emailsSearch({})).toEqual({ q: "", kind: "", found: "", page: 1, filter: {} });
+    expect(emailsSearch({ kind: "not-on-whatsapp" }).filter).toEqual({ kind: "not-on-whatsapp", ...NEWEST });
+    expect(emailsSearch({ kind: "soft" }).filter).toEqual(NEWEST);
   });
 
-  it("filters by what found it out, and by nothing else", () => {
-    expect(emailsSearch({ found: "letter" })).toMatchObject({ found: "letter", filter: { found: "letter" } });
-    expect(emailsSearch({ found: "unrecorded" }).filter).toEqual({ found: "unrecorded" });
-    expect(emailsSearch({ found: "postcard" }).filter).toEqual({});
+  it("filters by who told us, and what found it out, and by nothing else", () => {
+    expect(emailsSearch({ backend: "gmail" }).filter).toEqual({ backend: "gmail", ...NEWEST });
+    expect(emailsSearch({ backend: "pigeon" }).filter).toEqual(NEWEST);
+    expect(emailsSearch({ found: "mailbox" }).filter).toEqual({ found: "mailbox", ...NEWEST });
+    expect(emailsSearch({ found: "postcard" }).filter).toEqual(NEWEST);
+  });
+
+  it("sorts by a column it has, most blocked first by default for Times blocked", () => {
+    expect(emailsSearch({ sort: "refused" }).filter.sort).toEqual({ key: "refused", dir: "desc" });
+    expect(emailsSearch({ sort: "address", dir: "desc" }).filter.sort).toEqual({ key: "address", dir: "desc" });
+    expect(emailsSearch({ sort: "whose" }).filter.sort).toEqual(NEWEST.sort);
   });
 
   it("searches the addresses for what was typed, trimmed", () => {
-    expect(emailsSearch({ q: " bob@ " })).toMatchObject({ q: " bob@ ", filter: { search: "bob@" } });
-    expect(emailsSearch({ q: "  " }).filter).toEqual({});
+    expect(emailsSearch({ q: " bob@ " }).filter.search).toBe("bob@");
+    expect(emailsSearch({ q: "  " }).filter.search).toBeUndefined();
   });
 
   it("reads the page, the first for anything else", () => {

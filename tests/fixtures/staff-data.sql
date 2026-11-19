@@ -1141,6 +1141,14 @@ WITH bounced AS (
   RETURNING id, address
 )
 INSERT INTO email_blocks (address, problem_id) SELECT address, id FROM bounced;
+-- Before that, so its History has more than what blocked it: a bounce a
+-- week before, which Jo unblocked as Dana said it was fixed, then a soft
+-- bounce, for now, that Postmark tried again.
+INSERT INTO email_problems (at, address, kind, reason, can_reset, details) VALUES
+  (now() - interval '9 days', 'dana.old@example.com', 'hard', 'No such mailbox', true, '{"type": "HardBounce"}'),
+  (now() - interval '5 days', 'dana.old@example.com', 'soft', 'Mailbox full', true, '{"type": "SoftBounce"}');
+INSERT INTO audit_log (at, actor, action, details) VALUES
+  (now() - interval '8 days', 'jo@pauseai.uk', 'unblock address', '{"address": "dana.old@example.com", "note": "Dana says her mailbox works again"}');
 -- Casey's address is on hold in CiviCRM, which the first pull found.
 WITH held AS (
   INSERT INTO email_problems (at, address, kind, reason, can_reset, details) VALUES

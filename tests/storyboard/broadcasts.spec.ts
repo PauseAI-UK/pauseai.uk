@@ -750,7 +750,7 @@ test("A number WhatsApp can't reach", async ({ page, request, flowDatabase }) =>
   await expect(page.getByText(stateWords.tags["unreached:not-on-whatsapp"]!).first()).toBeVisible();
   await frame(page, "Their copy, which didn't reach them");
   story("The number is listed with the supporters' bounced emails, and says when texts try it again.");
-  await page.goto(`${BASE}/staff/supporters/bounced-emails`);
+  await page.goto(`${BASE}/staff/supporters/blocked-addresses`);
   const row = page.getByRole("row").filter({ hasText: emailCopy.emails.kinds["not-on-whatsapp"] });
   await expect(row).toBeVisible();
   await frame(page, "The number, with the blocked addresses");

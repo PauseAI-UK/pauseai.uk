@@ -1718,7 +1718,7 @@ over the same tables, split by whether the address is a politician's now:
 - politicians' blocked addresses, on Addresses to fix
   (`/staff/politicians/addresses-to-fix`), and on the politician's page;
 - every other (supporters', staff's and unknown ones), and every number
-  WhatsApp couldn't deliver to, on `/staff/supporters/bounced-emails`, for
+  WhatsApp couldn't deliver to, on `/staff/supporters/blocked-addresses`, for
   staff with `supporters`.
 
 Each lists a hundred a page, newest first (`listBlocks` in
@@ -2058,7 +2058,7 @@ emails, events, imports). Permissions open more
 
 - `supporters` opens every page with a member of the public's details
   (supporters, broadcasts, campaigns and their letters, who wrote to which
-  MP, Bounced emails, Import sign-ups).
+  MP, Blocked addresses, Import sign-ups).
 - `admin` opens the accounts page, the audit log and the sent emails. It
   doesn't include `supporters`.
 

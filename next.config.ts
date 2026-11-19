@@ -172,7 +172,16 @@ const nextConfig: NextConfig = {
         destination: "/staff/politicians/addresses-to-fix",
         permanent: true,
       },
-      { source: "/staff/supporters/blocked-emails", destination: "/staff/supporters/bounced-emails", permanent: true },
+      {
+        source: "/staff/supporters/blocked-emails",
+        destination: "/staff/supporters/blocked-addresses",
+        permanent: true,
+      },
+      {
+        source: "/staff/supporters/bounced-emails",
+        destination: "/staff/supporters/blocked-addresses",
+        permanent: true,
+      },
       // Your sessions are on your own page, with your Gmail.
       { source: "/staff/sessions", destination: "/staff/me#sessions", permanent: true },
       { source: "/staff/letters", destination: "/staff/campaigns", permanent: true },

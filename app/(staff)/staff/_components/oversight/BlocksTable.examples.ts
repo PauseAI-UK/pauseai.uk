@@ -53,11 +53,20 @@ export const exampleGmailBlock: EmailBlock = {
   refused: 0,
 };
 
+/** What the examples' blocks were sending, for the purposes they have, as the list's query works it out. */
+function foundOf(block: EmailBlock): Block["found"] {
+  if (block.purpose === "broadcast" || block.purpose === "mailing") return block.purpose;
+  if (block.purpose) return "letter";
+  if (block.kind === "hold") return "held";
+  return block.mailbox ? "mailbox" : "unrecorded";
+}
+
 /** An address's block as the list gives it: by email, with its history, by default the problem that blocked it. */
 export function listed(block: EmailBlock, history?: Block["history"]): Block {
   return {
     ...block,
     channel: "email",
+    found: foundOf(block),
     triesFrom: null,
     history: history ?? [{ at: block.since, what: block.kind, reason: block.reason, mailbox: block.mailbox }],
   };
@@ -84,6 +93,7 @@ export const exampleNumber: Block = {
   supporters: [{ id: 7, name: "Jane Example" }],
   letter: null,
   purpose: "broadcast",
+  found: "broadcast",
   copy: refusedCopy,
   refused: 2,
   triesFrom: new Date("2026-12-14T08:03:00Z"),
