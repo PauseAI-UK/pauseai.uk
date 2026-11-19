@@ -507,7 +507,7 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(lee).toContainText(copy.badges.letter);
   await frame(page, "The supporters list");
   story(
-    "Lee's page has the name from the letter, the newest, and says Lee first came as a member. The history has the joining and the letter.",
+    "Lee's page has the name from the letter, the newest, and says Lee first came as a member, so we can email them updates though they left the letter's box unticked. The history has the joining and the letter.",
   );
 
   await lee.getByRole("link").first().click();
@@ -516,8 +516,8 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lee Letter");
   await expect(page.getByText(copy.detail.firstCame.civicrm)).toBeVisible();
   await expect(page.getByText("29 Nov 2025", { exact: false }).first()).toBeVisible();
-  // Left the box on their letter unticked, the newest thing they told us about the newsletter.
-  await expect(page.getByText(said("declined", "email-your-mp"), { exact: false })).toBeVisible();
+  // Left the box on their letter unticked, but a member is a yes to the newsletter.
+  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toBeVisible();
   await openHistory(page);
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
   await expect(history.getByText(copy.detail.kinds["member-joined"], { exact: false })).toBeVisible();
