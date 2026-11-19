@@ -97,11 +97,14 @@ describe("LinkPeek", () => {
     await expect.element(peek()).toBeVisible();
     // Scrolled till the link's line is just above the window's foot, the bubble moves over it.
     const at = letter().getByRole("link").element().getBoundingClientRect();
-    window.scrollBy(0, at.bottom - window.innerHeight + 8);
-    const over = () =>
-      peek().element().getBoundingClientRect().bottom <=
-      letter().getByRole("link").element().getBoundingClientRect().top;
-    await expect.poll(over).toBe(true);
+    // At once: the page's own smooth scroll would carry the link past the
+    // bubble before the bubble had moved.
+    window.scrollBy({ top: at.bottom - window.innerHeight + 8, behavior: "instant" });
+    // From the bubble's foot to the link's top: the 4px gap once it's over it.
+    const gap = () =>
+      letter().getByRole("link").element().getBoundingClientRect().top -
+      peek().element().getBoundingClientRect().bottom;
+    await expect.poll(() => gap() >= 0 && gap() < 6).toBe(true);
     expect(peek().element().getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
     window.scrollTo(0, 0);
   });

@@ -5,6 +5,9 @@ import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Scrolling and links", part: "Public site", order: 80 };
 
+// The smooth scroll visitors get, which the other flows turn off (fixtures.ts, scrollAtOnce).
+test.use({ smoothScroll: true });
+
 // In-page scrolling is deliberately all browser behaviour: `scroll-behavior`
 // in styles/base.css animates it, `scroll-padding-top` on the root keeps the
 // target clear of the sticky nav, and fragment links stay plain anchor

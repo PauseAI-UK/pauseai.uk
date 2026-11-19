@@ -830,10 +830,15 @@ order, alongside the others:
 - A flaky flow, or a frame that differs between two runs of the same
   build, is fixed at once, never retried, skipped or masked ("Rules for new
   code", below). `retries` stays 0.
+- Pages scroll at once in every flow but those of `scroll.spec.ts`, which
+  test the smooth scroll the site gives visitors
+  (`tests/storyboard/fixtures.ts`, `scrollAtOnce`): where a smooth scroll
+  comes to rest depends on timing, so a frame after one differed from run
+  to run. A scroll the site's own code asks to be smooth still is.
 - No fixed waits. A flow waits for the thing it's waiting for.
   `tests/storyboard/settle.ts` has:
   - `hydrated`: mounted, fonts in, console quiet;
-  - `scrollSettled`: a smooth scroll at rest;
+  - `scrollSettled`: a scroll at rest;
   - `layoutSettled`: images in, nothing moving;
   - `openBubble`: presses the button that opens a bubble or a menu, waits
     for the scroll a bubble starts as it opens, and returns what's open.

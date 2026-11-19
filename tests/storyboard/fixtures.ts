@@ -121,6 +121,22 @@ function recordContext(context: BrowserContext, opened: Set<string>) {
   recordCalls(context.request, opened);
 }
 
+/**
+ * Every page `context` opens scrolls at once, where the site scrolls
+ * smoothly (`scroll-behavior` in styles/base.css): a smooth scroll a step
+ * starts, such as an editor keeping its cursor in view as it's typed in,
+ * comes to rest where timing leaves it, a few pixels apart between runs.
+ * Only scrolling: the rest of the site's motion is as visitors see it. An
+ * adopted stylesheet, which the page's own code and React's leave alone.
+ */
+async function scrollAtOnce(context: BrowserContext) {
+  await context.addInitScript(() => {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync("html { scroll-behavior: auto !important; }");
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+  });
+}
+
 /** Adds the path of each call `api` makes to `opened`. */
 function recordCalls(api: APIRequestContext, opened: Set<string>) {
   for (const method of API_METHODS) {
@@ -133,7 +149,10 @@ function recordCalls(api: APIRequestContext, opened: Set<string>) {
   }
 }
 
-export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
+export const test = base.extend<{ flowDatabase: string; opened: Set<string>; smoothScroll: boolean }>({
+  // Whether the flow's pages scroll smoothly, as the site does for visitors,
+  // or at once (scrollAtOnce), which every flow but scroll.spec.ts's does.
+  smoothScroll: [false, { option: true }],
   // What the flow opened: each page, action, API route and public file, by its path, attached to the
   // test for the review to keep with the flow (report/reporter.ts). A change reruns the flows whose
   // pages it can reach (scripts/storyboard-reach.mjs). Next's prefetches of the pages a link
@@ -146,7 +165,7 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
   // or seen again), the flow ran what instrumentation.ts hands errors to, which no page imports: it's
   // recorded as having opened that file.
   opened: [
-    async ({ flowDatabase, browser }, provide, testInfo) => {
+    async ({ flowDatabase, browser, smoothScroll }, provide, testInfo) => {
       const opened = new Set<string>();
       const [errorsBefore] = runSql(flowDatabase, ERRORS_KEPT);
       // What the build's server keeps of the flow's requests (scripts/record-requests.mjs): a run before
@@ -158,6 +177,7 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
       browser.newContext = async (...options) => {
         const context = await newContext.apply(browser, options);
         recordContext(context, opened);
+        if (!smoothScroll) await scrollAtOnce(context);
         return context;
       };
       await provide(opened);
@@ -207,8 +227,9 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string> }>({
   // routes the same URLs on its page, which takes precedence, to record what
   // the page tried to load.
   // Recorded here too, in case it was made before `opened` began recording every context the flow makes.
-  context: async ({ context, opened }, provide) => {
+  context: async ({ context, opened, smoothScroll }, provide) => {
     recordContext(context, opened);
+    if (!smoothScroll) await scrollAtOnce(context);
     await context.route(ANALYTICS_URL, (route) => route.abort());
     await provide(context);
   },
