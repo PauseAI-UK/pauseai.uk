@@ -87,6 +87,11 @@ describe("public assets", () => {
       (name) => !existsSync(join(PUBLIC_DIR, "images", "front-page-hero-optimized", name.replace(/\.webp$/, ".avif"))),
     );
     expect(withoutAvif, "hero photos without an AVIF copy: run `npm run data:hero-photos`").toEqual([]);
+
+    // And fills its place with the photo's colour until it loads.
+    const colours = JSON.parse(readFileSync(join("lib", "content", "hero-photo-colours.json"), "utf8"));
+    const withoutColour = files.filter((name) => !/^#[0-9a-f]{6}$/.test(colours[name] ?? ""));
+    expect(withoutColour, "hero photos without a colour: run `npm run data:hero-photos`").toEqual([]);
   });
 
   it("every local group and person image exists", () => {

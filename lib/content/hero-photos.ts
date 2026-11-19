@@ -2,8 +2,10 @@
 // [src, alt, intrinsic width, intrinsic height] — the dimensions give each
 // photo its shape before it loads; actual display size is driven by the CSS
 // (height: 100%; width: auto) on the track's images (HomeHero.module.css).
-// Each has an AVIF copy beside it, which the hero serves where it can: after
-// adding or changing a photo, run `npm run data:hero-photos` to make it.
+// Each has an AVIF copy beside it, which the hero serves where it can, and a
+// colour in hero-photo-colours.json, which fills its place until it loads:
+// after adding or changing a photo, run `npm run data:hero-photos` to make
+// both.
 export const HERO_PHOTOS: [string, string, number, number][] = [
   ["alistair-june-2025-protest.webp", "Alistair at the June 2025 London protest", 800, 450],
   ["alistair-reading.webp", "Alistair Reith at a PauseAI event", 800, 416],

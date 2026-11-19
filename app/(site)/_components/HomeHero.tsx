@@ -1,5 +1,6 @@
 import { preload } from "react-dom";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
+import photoColours from "@/lib/content/hero-photo-colours.json";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { shuffle } from "@/lib/shuffle.server";
 import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
@@ -12,6 +13,13 @@ const PHOTOS = "/images/front-page-hero-optimized";
  * WebP: under half the size. A browser that can't show AVIF gets the WebP.
  */
 const avif = (src: string) => `${PHOTOS}/${src.replace(/\.webp$/, ".avif")}`;
+
+/**
+ * Each photo's average colour, which the same script works out. It fills the
+ * photo's place until the photo has loaded, so the rows are there, and the
+ * headline readable over them, as soon as the page paints.
+ */
+const COLOURS: Record<string, string> = photoColours;
 
 // The home page hero: three rows of photos scrolling in alternating
 // directions behind the headline (HeroMarqueeEffects measures and starts
@@ -55,7 +63,7 @@ export default function HomeHero() {
                     // served as they are, already the size the hero shows them, so nothing waits on an
                     // image service resizing them.
                     return (
-                      <picture key={i}>
+                      <picture key={i} style={{ backgroundColor: COLOURS[src] }}>
                         <source type="image/avif" srcSet={avif(src)} />
                         <img
                           src={`${PHOTOS}/${src}`}

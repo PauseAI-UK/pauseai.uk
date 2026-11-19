@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import photoColours from "@/lib/content/hero-photo-colours.json";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { localGroups } from "@/lib/content/local-groups";
 import { people } from "@/lib/content/people";
@@ -20,6 +21,12 @@ import StaffSection from "./StaffSection";
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+/** A hex colour as the browser reports an element's: "rgb(1, 2, 3)". */
+function rgb(hex: string) {
+  const [red, green, blue] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+  return `rgb(${red}, ${green}, ${blue})`;
+}
 
 describe("HomeHero", () => {
   it("shows every photo once in three scrolling rows, each row twice", async () => {
@@ -41,6 +48,13 @@ describe("HomeHero", () => {
     expect(first.querySelector("source")).toHaveAttribute("type", "image/avif");
     expect(first.querySelector("source")).toHaveAttribute("srcset", webp.replace(/\.webp$/, ".avif"));
     expect(container.querySelectorAll("picture > source + img")).toHaveLength(HERO_PHOTOS.length * 4);
+    // Until it loads, its place is filled with its own colour, as wide as the photo will be.
+    const name = webp.split("/").at(-1)!;
+    expect(first.style.backgroundColor).not.toBe("");
+    expect(first.style.backgroundColor).toBe(rgb(photoColours[name as keyof typeof photoColours]));
+    const [, , width, height] = HERO_PHOTOS.find(([src]) => src === name)!;
+    const box = first.getBoundingClientRect();
+    expect(box.width / box.height).toBeCloseTo(width / height, 1);
     // The first two photos of each row are fetched before the rest, the top row's first before anything.
     expect(first.querySelector("img")).toHaveAttribute("fetchpriority", "high");
     expect(container.querySelectorAll('img[fetchpriority="high"]')).toHaveLength(6);

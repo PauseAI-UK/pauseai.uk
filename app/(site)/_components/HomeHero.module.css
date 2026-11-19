@@ -75,29 +75,32 @@
    long-standing bug where it under-counts child padding/margin in
    max-content on a flex parent, which is why we override in pixels. */
 
-/* Each photo's <picture> has no box of its own, so the photo is the row's
-   flex item. */
+/* Each photo's place in its row, the width of the photo inside it. HomeHero
+   gives it the photo's colour, which shows until the photo has loaded and
+   faded in over it. */
 .track picture {
-  display: contents;
+  display: block;
+  height: 100%;
+  flex-shrink: 0;
+  margin-right: var(--marquee-gap);
+  border-radius: 8px;
+  overflow: hidden;
+  /* Safari intermittently drops textures during long transforms on
+     elements that aren't on their own compositor layer. Promote each
+     photo and keep its backface from being culled so the texture stays
+     resident for the lifetime of the animation. */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .track img {
   height: 100%;
   width: auto;
   display: block;
-  flex-shrink: 0;
-  margin-right: var(--marquee-gap);
-  border-radius: 8px;
   object-fit: contain;
   /* Firefox writes a photo's alt text in its place while it loads. */
   color: transparent;
-  /* Safari intermittently drops textures during long transforms on
-     elements that aren't on their own compositor layer. Promote each
-     image and keep its backface from being culled so the texture stays
-     resident for the lifetime of the animation. */
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
 }
 
 /* Overlay text — no full scrim. Just the text itself, with strong
