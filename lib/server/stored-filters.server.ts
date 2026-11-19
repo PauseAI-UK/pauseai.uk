@@ -80,7 +80,7 @@ async function politicianValues(params: Params): Promise<Known> {
     query<{ party: string }>("SELECT DISTINCT party FROM politicians WHERE party <> ''"),
     query<{ slug: string; kind: keyof typeof ASK_STATUSES }>("SELECT slug, kind FROM asks"),
   ]);
-  // An answer is one its ask's kind allows, paired with it (PAIR); one not paired is the first ask's, or any.
+  // An answer is one its ask's kind allows, paired with it (pairedValue()); one not paired is the first ask's, or any.
   const ways = (kind?: keyof typeof ASK_STATUSES) => [
     ...(kind ? ASK_STATUSES[kind] : Object.values(ASK_STATUSES).flat()),
     REPLIED,

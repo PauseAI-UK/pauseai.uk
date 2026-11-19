@@ -21,7 +21,7 @@ export type ParamValue = string | string[];
  * the value of that one it goes with: `answer=frontier-ai-letter.signed` is
  * those who signed the frontier AI letter, among the asks chosen.
  */
-export const PAIR = ".";
+const PAIR = ".";
 
 /** A value of a filter that comes after a repeating one, for `of`, that one's value. */
 export function pairedValue(of: string, value: string): string {

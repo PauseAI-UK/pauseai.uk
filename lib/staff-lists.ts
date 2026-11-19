@@ -103,7 +103,7 @@ export const POLITICIANS_LIST = defineStaffList({
     email: "many",
     /** Asks, by slug: those asked each. */
     ask: "many",
-    /** How they stand on the asks chosen, each value paired with its ask (PAIR); one not paired is the first ask's. */
+    /** How they stand on the asks chosen, each value paired with its ask (pairedValue()); one not paired is the first ask's. */
     answer: "many",
     mailed: "many",
     /** Those who agreed to an ask in the last so many days. */

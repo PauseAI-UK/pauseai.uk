@@ -35,7 +35,7 @@ function Marquee({ src = PIXEL, withCopy = true }: { src?: string; withCopy?: bo
 }
 
 describe("HeroMarqueeEffects", () => {
-  it("sets each track's scroll distance to one copy's width, and marks loaded photos", async () => {
+  it("sets each track's scroll distance to one copy's width", async () => {
     await render(
       <>
         <Marquee />
@@ -44,10 +44,9 @@ describe("HeroMarqueeEffects", () => {
     );
     const track = page.getByTestId("track").element() as HTMLElement;
     await expect.poll(() => track.style.getPropertyValue("--copy-shift")).toBe("-300px");
-    await expect.poll(() => track.querySelector("img")!.hasAttribute("data-loaded")).toBe(true);
   });
 
-  it("marks a photo once it loads, or fails, and ignores tracks without a copy", async () => {
+  it("measures a track again once a slow photo loads, or fails, and ignores tracks without a copy", async () => {
     await render(
       <>
         <Marquee src="/images/logos/Pause-Symbol.svg?slow" />
@@ -56,8 +55,10 @@ describe("HeroMarqueeEffects", () => {
         <HeroMarqueeEffects />
       </>,
     );
-    const imgs = document.querySelectorAll("[data-marquee-track] img");
-    await expect.poll(() => [...imgs].every((img) => img.hasAttribute("data-loaded"))).toBe(true);
+    const tracks = [...document.querySelectorAll<HTMLElement>("[data-marquee-track]")];
+    await expect
+      .poll(() => tracks.map((track) => track.style.getPropertyValue("--copy-shift") !== ""))
+      .toEqual([true, true, false]);
   });
 
   it("falls back to window resizes without ResizeObserver, and to no font wait without document.fonts", async () => {
