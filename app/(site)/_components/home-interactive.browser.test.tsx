@@ -83,6 +83,30 @@ describe("HeroMarqueeEffects", () => {
     }
   });
 
+  it("fades each hero photo in as it loads, once however often the page is opened, and no other image", async () => {
+    const animate = vi.spyOn(Element.prototype, "animate");
+    await render(
+      <>
+        <Marquee />
+        {/* eslint-disable-next-line @next/next/no-img-element -- an image outside the hero */}
+        <img src={PIXEL} alt="" data-testid="elsewhere" />
+        <HeroMarqueeEffects />
+        <HeroMarqueeEffects />
+      </>,
+    );
+    const photo = page.getByTestId("track").element().querySelector("img")!;
+    const elsewhere = page.getByTestId("elsewhere").element() as HTMLImageElement;
+    const loaded = (img: HTMLImageElement) =>
+      new Promise((resolve) => img.addEventListener("load", resolve, { once: true }));
+    animate.mockClear();
+    const both = Promise.all([loaded(photo), loaded(elsewhere)]);
+    photo.src = "/images/logos/Pause-Symbol.svg?fade";
+    elsewhere.src = "/images/logos/Pause-Symbol.svg?elsewhere";
+    await both;
+    expect(animate.mock.contexts).toEqual([photo]);
+    expect(animate).toHaveBeenCalledWith([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: "ease-out" });
+  });
+
   it("leaves a zero-width copy alone", async () => {
     await render(
       <>

@@ -2,10 +2,12 @@ import Image from "next/image";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { shuffle } from "@/lib/shuffle.server";
+import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 import styles from "./HomeHero.module.css";
 
 // The home page hero: three rows of photos scrolling in alternating
-// directions behind the headline (HeroMarqueeEffects measures and starts them).
+// directions behind the headline (HeroMarqueeEffects measures and starts
+// them). Each photo fades in as it loads (heroPhotoFade.ts).
 export default function HomeHero() {
   // Server-component shuffle: a new order each render (the same order in a
   // fixture build, lib/shuffle.server.ts). Sent to the client as part of the
@@ -21,6 +23,7 @@ export default function HomeHero() {
 
   return (
     <section id="about">
+      <script dangerouslySetInnerHTML={{ __html: HERO_PHOTO_FADE_SCRIPT }} />
       <div className={styles.marquee}>
         {heroRows.map((row, ri) => (
           <div key={ri} className={row.dir === "rtl" ? `${styles.row} ${styles.rtl}` : styles.row}>

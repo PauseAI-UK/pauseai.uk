@@ -8,6 +8,7 @@ import { newsRow1, type CoverageItem } from "@/lib/content/press-coverage";
 import { site } from "@/lib/content/site";
 import { staff } from "@/lib/content/staff";
 import GetInvolved from "./GetInvolved";
+import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 import HomeHero from "./HomeHero";
 import JoinSection from "./JoinSection";
 import LocalGroupsSection from "./LocalGroupsSection";
@@ -33,6 +34,10 @@ describe("HomeHero", () => {
     expect(container.querySelectorAll('img[aria-hidden="true"]').length).toBe(HERO_PHOTOS.length * 3);
     // Each photo's first showing loads at once; its repeats, the same file, lazily.
     expect(container.querySelectorAll('img:not([loading="lazy"])')).toHaveLength(HERO_PHOTOS.length);
+    // The fade's script comes before the photos, so it's listening when the first loads.
+    const script = container.querySelector("script")!;
+    expect(script.textContent).toBe(HERO_PHOTO_FADE_SCRIPT);
+    expect(script.compareDocumentPosition(container.querySelector("img")!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     await expect.element(page.getByRole("link", { name: "Track record →" })).toHaveAttribute("href", "/track-record");
   });
 });
