@@ -34,6 +34,7 @@ export function mailingActions(log: (name: string) => (...args: unknown[]) => vo
     sendTest: logged("sendMailingTest", { sent: true as const, id: "example", to: "jo@pauseai.uk" }),
     schedule: logged("scheduleMailingNow", { scheduled: true as const }),
     deleteDraft: logged("deleteMailingDraft", undefined),
+    leaveOut: logged("leaveOutOfMailing", undefined),
     stop: logged("stopMailingNow", undefined),
     reschedule: logged("rescheduleMailingNow", undefined),
   };

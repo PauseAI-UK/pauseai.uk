@@ -196,10 +196,17 @@ describe("PoliticianTable", () => {
     // Nothing in bold.
     expect(cell("Dee Declined").querySelector("strong")).toBeNull();
     // A download says the same, and a card has only answers.
-    const column = politicianColumns(exampleAsks, { ask: "frontier-ai-letter" }).find((c) => c.key === "asks")!;
+    const column = politicianColumns(exampleAsks, { ask: "frontier-ai-letter" }).find(
+      (c) => c.key === "ask-frontier-ai-letter",
+    )!;
     expect(column.label).toBe(ask("frontier-ai-letter").title);
     expect(column.text!(rows[0])).toBe(staffVocabulary.invited.letter);
     expect(politicianContact(exampleAsks)(rows[0]).note!.join()).not.toContain(staffVocabulary.invited.letter);
+    // Filtered by several asks, a column for each, in the order chosen, the same ask chosen twice once.
+    const keys = politicianColumns(exampleAsks, { ask: [edinburgh.slug, "frontier-ai-letter", edinburgh.slug] })
+      .map((c) => c.key)
+      .filter((key) => key.startsWith("ask"));
+    expect(keys).toEqual([`ask-${edinburgh.slug}`, "ask-frontier-ai-letter"]);
     // An ask that doesn't exist leaves the Asks column as it is.
     await rerender(<PoliticianTable politicians={rows} asks={exampleAsks} search={{ ask: "gone" }} />);
     await expect.element(page.getByRole("link", { name: politiciansCopy.politicians.columns.asks })).toBeVisible();

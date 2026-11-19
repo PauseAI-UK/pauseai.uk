@@ -20,13 +20,23 @@
   font-size: var(--text-lg);
 }
 
-.leftOut summary {
-  cursor: pointer;
+/* Who they are, under a warning: opens the list below it, its arrow as a summary's. */
+.whoToggle {
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
 }
 
-.leftOut ul {
-  margin: var(--space-2) 0 0;
+.whoToggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.whoList {
+  margin: 0;
   padding-left: var(--space-5);
 }
 
@@ -348,4 +358,22 @@
   .bar {
     transition: none;
   }
+}
+
+/* A warning's words, with who it's about under them, in its strip. */
+.warning {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.warning p {
+  margin: 0;
+}
+
+/* Who they are, and beside it the way to leave them out: their words on one line. */
+.whoRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  align-items: baseline;
 }

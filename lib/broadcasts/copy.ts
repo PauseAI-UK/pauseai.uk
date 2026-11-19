@@ -15,6 +15,8 @@ export const broadcastsCopy = {
   // and each one's page; each supporter's copy of one is a message.
   broadcastPages: {
     title: "Broadcasts",
+    // At the top right of a broadcast's page: a new draft that copies it.
+    copyBroadcast: "Copy broadcast",
     intro: "Bulk emails and texts PauseAI sends to supporters",
     none: "No broadcasts yet.",
     untitled: "Untitled draft",

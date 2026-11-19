@@ -15,6 +15,7 @@ import {
   deleteApprovedTemplate,
   changeBroadcastConsent,
   changeBroadcastFilter,
+  copyBroadcast,
   createBroadcastDraft,
   getWrittenBroadcast,
   broadcastChangesFrom,
@@ -146,6 +147,27 @@ describeWithDatabase("broadcasts to supporters", () => {
     vi.stubEnv("DATA_FIXTURES", "");
     vi.stubEnv("WHATSAPP_TOKEN", "");
     expect(await getWrittenBroadcast(await draftOf(TEXT_FILTER))).toMatchObject({ sentFrom: "" });
+  });
+
+  it("copies a broadcast to a new draft: who, its words and what sends it, not when it goes", async () => {
+    const id = await draftOf({ ...EMAIL_FILTER, near: "M1" });
+    await readied(id, { subject: "Events", body: EVENT_WORDS, sendBy: "gmail" });
+    const copy = (await copyBroadcast(id, "sam@pauseai.uk"))!;
+    expect(copy).not.toBe(id);
+    expect(await getWrittenBroadcast(copy)).toMatchObject({
+      channel: "email",
+      topics: ["events"],
+      filter: { list: "supporters", params: { ...EMAIL_FILTER, near: "M1" } },
+      subject: "Events",
+      title: "Events",
+      body: EVENT_WORDS,
+      sendBy: "gmail",
+      createdBy: "sam@pauseai.uk",
+      sentFrom: "hello@pauseai.uk",
+      dueAt: null,
+      state: "draft",
+    });
+    expect(await copyBroadcast(999, JO)).toBeUndefined();
   });
 
   it("isn't found as a mailing to politicians, nor a mailing to politicians as a broadcast", async () => {

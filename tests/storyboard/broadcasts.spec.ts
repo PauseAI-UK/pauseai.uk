@@ -878,6 +878,22 @@ test("An email sent", async ({ page, request, flowDatabase }) => {
   await frame(page, "On the supporter's page", { window: true });
 });
 
+test("Copying a broadcast", async ({ page, request, flowDatabase }) => {
+  story("An email has gone. Copy broadcast, at the top right of its page, starts the next one from it.");
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "email", "Thank you for marching");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}`);
+  await expect(page.getByRole("button", { name: copy.copyBroadcast })).toBeVisible();
+  await frame(page, "The email's page, Copy broadcast at its top right");
+  story("Pressed, it opens a new draft to the same people, with the same words, to change and send.");
+  await page.getByRole("button", { name: copy.copyBroadcast }).click();
+  await expect(page).not.toHaveURL(new RegExp(`/staff/broadcasts/${sent.id}$`));
+  await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
+  await expect(page.getByLabel(mailingsCopy.mailingPages.subject)).toHaveValue("Thank you for marching");
+  await frame(page, "The copy, a draft");
+});
+
 test("A text sent", async ({ page, request, flowDatabase }) => {
   story("A text has gone. Its page shows the bubble where an email's shows the email, and how many read it.");
   await importLuma(request, BASE);

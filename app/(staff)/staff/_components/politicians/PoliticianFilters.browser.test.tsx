@@ -27,8 +27,8 @@ describe("PoliticianFilters", () => {
     house: "lords",
     status: "retired",
     party: ["Labour"],
-    ask: "edinburgh-conference-2026",
-    answer: ["declined"],
+    ask: ["edinburgh-conference-2026"],
+    answer: ["edinburgh-conference-2026.declined"],
     sort: "asks",
     dir: "asc",
     page: "2",
@@ -54,8 +54,8 @@ describe("PoliticianFilters", () => {
       ...ANSWER_CHOICES.event.map((s) => staffVocabulary.statuses[s]),
       staffVocabulary.neverAsked.event,
     ]);
-    expect(answer.find(([text]) => text === copy.anyReply)![1]).toContain("answer=replied");
-    const rows = [...document.querySelectorAll("#filter-answer-found li")];
+    expect(answer.find(([text]) => text === copy.anyReply)![1]).toContain("answer=edinburgh-conference-2026.replied");
+    const rows = [...document.querySelectorAll("#filter-answer-edinburgh-conference-2026-found li")];
     const inset = (text: string) =>
       parseFloat(getComputedStyle(rows.find((li) => li.textContent === text)!.querySelector("a")!).paddingLeft);
     expect(inset(copy.anyReply)).toBeGreaterThan(inset(everyone));
@@ -70,7 +70,7 @@ describe("PoliticianFilters", () => {
     // Status goes back to those in office by its blank choice.
     expect((await menu(`${copy.status}: ${politiciansCopy.personStatuses.retired}`))[0]).toEqual([
       politiciansCopy.personStatuses.in_office,
-      "/staff/politicians?q=blake&house=lords&party=Labour&ask=edinburgh-conference-2026&answer=declined&sort=asks&dir=asc",
+      "/staff/politicians?q=blake&house=lords&party=Labour&ask=edinburgh-conference-2026&answer=edinburgh-conference-2026.declined&sort=asks&dir=asc",
     ]);
     // The party can be chosen again, from those not chosen; the other filters not on are there too.
     const add = await menu(staffVocabulary.filters.add);
@@ -79,11 +79,12 @@ describe("PoliticianFilters", () => {
       "Green",
       ...Object.values(copy.emailStates),
       ...Object.values(staffVocabulary.politicianFlags),
-      // Those mailed about each ask.
-      ...exampleAsks.map((ask) => ask.title),
+      // Another ask, each but the one chosen; then those mailed about each ask.
+      ...exampleAsks.filter((one) => one.title !== edinburgh).map((one) => one.title),
+      ...exampleAsks.map((one) => one.title),
     ]);
     expect(add.find(([text]) => text === "Green")![1]).toBe(
-      "/staff/politicians?q=blake&house=lords&status=retired&party=Labour&party=Green&ask=edinburgh-conference-2026&answer=declined&sort=asks&dir=asc",
+      "/staff/politicians?q=blake&house=lords&status=retired&party=Labour&party=Green&ask=edinburgh-conference-2026&answer=edinburgh-conference-2026.declined&sort=asks&dir=asc",
     );
     await expect
       .element(page.getByRole("link", { name: staffVocabulary.resetFilters }))
@@ -109,7 +110,7 @@ describe("PoliticianFilters", () => {
   it("says a letter's invited and never in a letter's words", async () => {
     await render(
       <PoliticianFilters
-        search={{ ...emptyPoliticiansSearch, ask: "frontier-ai-letter", answer: ["never"] }}
+        search={{ ...emptyPoliticiansSearch, ask: ["frontier-ai-letter"], answer: ["frontier-ai-letter.never"] }}
         asks={exampleAsks}
         parties={[]}
       />,
@@ -123,7 +124,7 @@ describe("PoliticianFilters", () => {
   it("finds everyone asked until one way is chosen, and says any reply as such", async () => {
     const { rerender } = await render(
       <PoliticianFilters
-        search={{ ...emptyPoliticiansSearch, ask: "frontier-ai-letter" }}
+        search={{ ...emptyPoliticiansSearch, ask: ["frontier-ai-letter"] }}
         asks={exampleAsks}
         parties={[]}
       />,
@@ -131,12 +132,63 @@ describe("PoliticianFilters", () => {
     expect(chips()).toEqual([ask("frontier-ai-letter").title, staffVocabulary.everyoneAsked.letter]);
     await rerender(
       <PoliticianFilters
-        search={{ ...emptyPoliticiansSearch, ask: "frontier-ai-letter", answer: ["replied"] }}
+        search={{ ...emptyPoliticiansSearch, ask: ["frontier-ai-letter"], answer: ["frontier-ai-letter.replied"] }}
         asks={exampleAsks}
         parties={[]}
       />,
     );
     expect(chips()).toEqual([ask("frontier-ai-letter").title, copy.anyReply]);
+  });
+});
+
+describe("PoliticianFilters, more than one ask", () => {
+  const [letter, edinburgh] = [ask("frontier-ai-letter").title, ask("edinburgh-conference-2026").title];
+  const search = {
+    ...emptyPoliticiansSearch,
+    ask: ["frontier-ai-letter", "edinburgh-conference-2026"],
+    answer: ["frontier-ai-letter.signed", "!edinburgh-conference-2026.declined", "!edinburgh-conference-2026.going"],
+  };
+  const declinedOrGoing = staffVocabulary.filters.anyOf([
+    staffVocabulary.statuses.declined,
+    staffVocabulary.statuses.going,
+  ]);
+
+  it("has a chip for each ask, with what it finds of it or, dotted, leaves out", async () => {
+    await render(<PoliticianFilters search={search} asks={exampleAsks} parties={[]} />);
+    expect(chips()).toEqual([letter, staffVocabulary.statuses.signed, edinburgh, declinedOrGoing]);
+    const out = [...document.querySelectorAll("button")].find((b) => b.textContent === declinedOrGoing)!;
+    expect(out.className).toMatch(/not/);
+    expect(getComputedStyle(out).borderStyle).toBe("dashed");
+    // Except is no way to leave out an ask itself: what's left out of one is in its answer.
+    await menu(new RegExp(staffVocabulary.filters.except));
+    const groups = [...document.querySelectorAll("#filter-except details > summary")].map((s) => s.textContent);
+    expect(groups).toContain(politiciansCopy.politicians.mailed);
+    expect(groups).not.toContain(politiciansCopy.politicians.ask);
+  });
+
+  it("offers no way to turn an answer round, as its other answers say the rest", async () => {
+    await render(<PoliticianFilters search={search} asks={exampleAsks} parties={[]} />);
+    for (const chip of [staffVocabulary.statuses.signed, declinedOrGoing]) {
+      const words = (await menu(chip)).map(([text]) => text);
+      expect(words).not.toContain(staffVocabulary.filters.exceptThis);
+      expect(words).not.toContain(staffVocabulary.filters.onlyThese);
+    }
+  });
+
+  it("removes an ask with its answers, and swaps one for another not chosen", async () => {
+    await render(<PoliticianFilters search={search} asks={exampleAsks} parties={[]} />);
+    const chip = await menu(edinburgh);
+    expect(chip.find(([text]) => text === staffVocabulary.filters.remove)![1]).toBe(
+      "/staff/politicians?ask=frontier-ai-letter&answer=frontier-ai-letter.signed",
+    );
+    // The other ask chosen isn't offered to swap to.
+    expect(chip.map(([text]) => text)).not.toContain(letter);
+    const other = exampleAsks.find((one) => one.title !== letter && one.title !== edinburgh)!;
+    expect(chip.find(([text]) => text === other.title)![1]).toBe(
+      `/staff/politicians?ask=frontier-ai-letter&ask=${other.slug}&answer=frontier-ai-letter.signed`,
+    );
+    // An ask whose answers are all left out has no chip of everyone asked.
+    expect(chips()).not.toContain(staffVocabulary.everyoneAsked.event);
   });
 });
 

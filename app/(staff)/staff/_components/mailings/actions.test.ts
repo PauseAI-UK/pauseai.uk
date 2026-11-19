@@ -15,8 +15,10 @@ import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/test
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   attachToMailing,
+  copyMailingNow,
   deleteMailingDraft,
   detachFromMailing,
+  leaveOutOfMailing,
   newMailing,
   pasteNames,
   pickFound,
@@ -63,10 +65,12 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     requestCookies.clear();
     const attempts = [
       () => newMailing(form({})),
+      () => copyMailingNow(form({ id: "1" })),
       () => pickPolitician(1, 1, true),
       () => pickFound(1, {}, true),
       () => pasteNames(form({ names: "Jo" })),
       () => pickMany(1, [1], true),
+      () => leaveOutOfMailing(1, [1]),
       () => untickAll(1),
       () => saveMailing(1, 1, { subject: "x" }),
       () => attachToMailing(form({ id: "1" })),
@@ -81,11 +85,23 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     expect(await query("SELECT 1 FROM mailings WHERE body IS NOT NULL")).toEqual([]);
   });
 
-  it("makes a new mailing with no one ticked, or everyone the list's filter finds, and chooses for it", async () => {
+  it("copies a mailing to a new draft and opens it, and nothing for a form that names none", async () => {
+    const { id } = await draft({ subject: "Hello", body: LETTER as MailingChanges["body"] });
+    const to = await expectRedirect(() => copyMailingNow(form({ id: String(id) })));
+    const copy = Number(to.match(/^\/staff\/mailings\/(\d+)$/)![1]);
+    expect(copy).not.toBe(id);
+    expect(await getWrittenMailing(copy)).toMatchObject({ subject: "Hello", body: LETTER, createdBy: JO });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings");
+    await copyMailingNow(form({ id: "x" }));
+    await copyMailingNow(form({ id: "99999" }));
+    expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toHaveLength(2);
+  });
+
+  it("makes a new mailing with no one ticked, opening it for its ask, or everyone the list's filter finds, choosing for it", async () => {
     const polly = await addTestPolitician();
     await addTestPolitician({ name: "Lord Sample", airtableId: "rec2", house: "lords" });
     const empty = await expectRedirect(() => newMailing(form({})));
-    const id = Number(empty.match(/^\/staff\/politicians\?mailing=(\d+)$/)![1]);
+    const id = Number(empty.match(/^\/staff\/mailings\/(\d+)$/)![1]);
     expect(await getWrittenMailing(id)).toMatchObject({ createdBy: JO, filter: { picked: { ids: [] } } });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings");
 
@@ -162,6 +178,19 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([polly]);
     await pickMany(id, [polly], false);
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([]);
+  });
+
+  it("leaves out of a draft those a warning names, and shows it afresh", async () => {
+    const [polly, lord] = [
+      await addTestPolitician(),
+      await addTestPolitician({ name: "Lord Sample", airtableId: "rec2" }),
+    ];
+    const { id } = await draft();
+    await pickMany(id, [polly, lord], true);
+    revalidatePath.mockClear();
+    await leaveOutOfMailing(id, [lord]);
+    expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([polly]);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${id}`);
   });
 
   it("attaches a file and takes it off, saying what's attached", async () => {

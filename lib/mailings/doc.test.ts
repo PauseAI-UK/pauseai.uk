@@ -3,9 +3,11 @@ import { toHtml, toText } from "@/lib/letters/format";
 import {
   checkMailingDoc,
   conditionsIn,
+  EMPTY_MAILING_DOC,
   fieldsIn,
   greetingLetter,
   isBlankMailing,
+  isUnwritten,
   letterFor,
   type MailingDoc,
 } from "./doc";
@@ -187,5 +189,15 @@ describe("isBlankMailing", () => {
     expect(isBlankMailing(doc(onlyFor("c", p(text("Hi")))))).toBe(false);
     expect(isBlankMailing(doc(p(field("name"))))).toBe(false);
     expect(isBlankMailing(doc(quote(p(text("Hi")))))).toBe(false);
+  });
+});
+
+describe("isUnwritten", () => {
+  it("is a letter blank, or only a new draft's greeting, with a field or none", () => {
+    expect(isUnwritten(EMPTY_MAILING_DOC, "Dear")).toBe(true);
+    for (const field of ["salutation", "name", undefined]) {
+      expect(isUnwritten(greetingLetter("Dear", field), "Dear")).toBe(true);
+    }
+    expect(isUnwritten(greetingLetter("Hello", "name"), "Dear")).toBe(false);
   });
 });

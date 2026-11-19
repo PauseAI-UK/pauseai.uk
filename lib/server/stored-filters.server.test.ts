@@ -124,6 +124,16 @@ describeWithDatabase("filterProblems", () => {
         params: { ask: "frontier-ai-letter", answer: ["replied", "invited", "never"] },
       }),
     ).toEqual([]);
+    // Answers paired with their asks, found or left out.
+    expect(
+      await filterProblems({
+        list: "politicians",
+        params: {
+          ask: ["frontier-ai-letter", "controlai-letter"],
+          answer: ["frontier-ai-letter.signed", "!controlai-letter.signed", "controlai-letter.never"],
+        },
+      }),
+    ).toEqual([]);
     await logChange("jo@pauseai.uk", "add note", { noteId: 1, politicianId: 1 });
     expect(
       await filterProblems({
@@ -153,6 +163,13 @@ describeWithDatabase("filterProblems", () => {
         },
       }),
     ).toEqual(["house=moon", "party=Gone Party", "party=!Old Party", "flag=shiny", "answer=going"]);
+    // An answer paired with an ask not chosen, or one its kind doesn't allow.
+    expect(
+      await filterProblems({
+        list: "politicians",
+        params: { ask: "frontier-ai-letter", answer: ["controlai-letter.signed", "frontier-ai-letter.going"] },
+      }),
+    ).toEqual(["answer=controlai-letter.signed", "answer=frontier-ai-letter.going"]);
     expect(await filterProblems({ list: "politicians", params: { ask: "no-such-ask", status: "asleep" } })).toEqual([
       "ask=no-such-ask",
       "status=asleep",

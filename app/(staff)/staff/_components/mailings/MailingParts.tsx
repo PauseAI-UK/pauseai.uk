@@ -1,10 +1,10 @@
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { pickedWho } from "@/lib/mailings/picks";
 import { type Picked } from "@/lib/staff-search";
-import { firstOf, type Params } from "@/lib/list-params";
+import { firstOf, valuesOf, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
 import type { FilterWordsData } from "@/lib/mailings/pages.server";
-import { filterPills, POLITICIAN_FILTERS, type FilterPill } from "@/lib/staff-list-filters";
+import { filterPills, POLITICIAN_FILTERS, politicianParams, type FilterPill } from "@/lib/staff-list-filters";
 import Pills from "../ui/Pills";
 import styles from "./MailingParts.module.css";
 import { mailingsCopy } from "./copy";
@@ -27,8 +27,8 @@ function politicianPills(data: FilterWordsData, params: Params): FilterPill[] {
     ...(house ? [{ words: house, not: false }] : []),
     ...(search ? [{ words: copy.searchPill(search), not: false }] : []),
     ...filterPills(
-      POLITICIAN_FILTERS({ ask: firstOf(params.ask), parties: data.parties, asks: data.asks }),
-      { ...params, q: "" },
+      POLITICIAN_FILTERS({ ask: valuesOf(params.ask), parties: data.parties, asks: data.asks }),
+      { ...politicianParams(params), q: "" },
       "q",
     ),
   ];

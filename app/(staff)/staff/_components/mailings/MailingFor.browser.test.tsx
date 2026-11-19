@@ -19,6 +19,7 @@ describe("MailingFor", () => {
     sendTest: vi.fn(),
     schedule: vi.fn(),
     deleteDraft: noAction,
+    leaveOut: noAction,
     stop: noAction,
     reschedule: noAction,
   };

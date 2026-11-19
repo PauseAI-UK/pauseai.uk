@@ -315,6 +315,15 @@
   padding-left: calc(var(--space-2) + 2 * var(--space-4));
 }
 
+/* A box set in under the one it's part of, as a link is. */
+.under .tick {
+  padding-left: calc(var(--space-2) + var(--space-4));
+}
+
+.underTwice .tick {
+  padding-left: calc(var(--space-2) + 2 * var(--space-4));
+}
+
 .detail {
   color: var(--text-secondary);
   font-size: var(--text-xs);

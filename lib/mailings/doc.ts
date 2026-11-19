@@ -187,3 +187,18 @@ export function isBlankMailing(doc: MailingDoc): boolean {
     .flatMap(inlinesOf)
     .every((node) => node.type === "hardBreak" || (node.type === "text" && !node.text.trim()));
 }
+
+/** The fields a new letter's greeting can use, the first every recipient has. */
+export const GREETING_FIELDS = ["salutation", "name"];
+
+/**
+ * Whether a letter has nothing written in it yet: blank, or only a greeting,
+ * by `greeting`, with any of GREETING_FIELDS or none, as a new draft starts.
+ */
+export function isUnwritten(doc: MailingDoc, greeting: string): boolean {
+  const letter = JSON.stringify(doc);
+  return (
+    isBlankMailing(doc) ||
+    [...GREETING_FIELDS, undefined].some((field) => letter === JSON.stringify(greetingLetter(greeting, field)))
+  );
+}

@@ -4,7 +4,7 @@
 // (lib/letters/copy.ts). The staff pages' own are in
 // app/(staff)/staff/_components/mailings/copy.ts.
 import { letterEditorCopy } from "@/lib/content/letter-editor";
-import { count } from "@/lib/content/plural";
+import { count, plural } from "@/lib/content/plural";
 
 export const mailingsCopy = {
   // A mailing's editor: the letter, with merge fields and parts only some recipients get.
@@ -94,6 +94,8 @@ export const mailingsCopy = {
       outdated: "Not saved. Reload the page first.",
     } as Record<string, string>,
     deleteDraft: "Delete draft",
+    // At the top right of a mailing's page: a new draft that copies it.
+    copyMailing: "Copy mailing",
     // The numbered sections of a new mailing.
     sections: {
       who: "Who",
@@ -104,19 +106,33 @@ export const mailingsCopy = {
       send: "Send",
     },
     willGet: (n: number) => `${count(n, "politician", "politicians")} will be emailed.`,
-    // Who's left out: each part only when there are some.
+    // Who's left out: each part only when there are some, the first saying of whom.
     // Of those ticked, or for a mailing from before ticks, those its filter found.
-    leftOut: (found: number, noAddress: number, blocked: number, ticked = false) =>
-      `${ticked ? `Of the ${found} ticked` : `Of the ${count(found, "person", "people")} the filter found`}, ${[
-        noAddress && `${count(noAddress, "has", "have")} no email address`,
-        blocked && count(blocked, "has an address that's blocked", "have addresses that are blocked"),
-      ]
-        .filter(Boolean)
-        .join(" and ")}, so they'll be left out.`,
+    leftOut: (noAddress: number, blocked: number, ticked = false) => {
+      const of = ticked ? "of the ticked politicians" : "of the politicians the filter found";
+      const parts: [number, string][] = [
+        [noAddress, plural(noAddress, "has no email address", "have no email address")],
+        [blocked, plural(blocked, "has a blocked address", "have blocked addresses")],
+      ];
+      const said = parts
+        .filter(([n]) => n > 0)
+        .map(([n, says], i) => (i === 0 ? `${n} ${of} ${says}` : `${n} ${says}`));
+      return `${said.join(", and ")}. Press "Leave them out" to remove them.`;
+    },
     leftOutReasons: {
       "no-address": "no email address",
       blocked: "address blocked",
     } as Record<string, string>,
+    // Under Who, a warning that can be sent past: some it goes to have already answered its ask, each answer
+    // with how many gave it, as "2 declined".
+    // Of those ticked, or for a mailing from before ticks, those its filter found, as leftOut says.
+    alreadyAnswered: (n: number, ask: string, answers: string[], ticked = false) =>
+      `${n} ${ticked ? "of the ticked politicians" : "of the politicians the filter found"} ${plural(n, "has", "have")} already given an answer about ${ask} (${answers.join(", ")}). Press "Leave them out" to remove them.`,
+    alreadyAnsweredEach: (n: number, answer: string) => `${n} ${answer.toLowerCase()}`,
+    // Under a warning about who a mailing is to (those left out, those who already answered): opens the list of them.
+    whoTheyAre: "Who they are",
+    // The button beside Who they are under each warning about who a draft is to: unticks those it's about.
+    leaveThemOut: "Leave them out",
     changeWho: "Change who",
     // The same, while no one's ticked yet.
     chooseWho: "Choose who",

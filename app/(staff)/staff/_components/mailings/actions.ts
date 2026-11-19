@@ -9,6 +9,7 @@ import type { Params } from "@/lib/list-params";
 import {
   addAttachment,
   changePicks,
+  copyMailing,
   createDraft,
   deleteDraft,
   foundIds,
@@ -141,10 +142,11 @@ function formParams(form: FormData, skip: string[]): Params {
 }
 
 /**
- * Makes a new mailing, a draft, and opens the politicians list choosing
- * who it's for. From the list with a filter, with its fields and `found`, it
- * starts with everyone the filter finds ticked, on that filter; from the
- * list with none, or the list of mailings, with no one.
+ * Makes a new mailing, a draft. From the list with a filter, with its
+ * fields and `found`, it starts with everyone the filter finds ticked, on
+ * that filter, and opens the politicians list choosing who it's for; from
+ * the list with none, or the list of mailings, with no one, and opens the
+ * draft, to choose its ask first.
  */
 export async function newMailing(form: FormData): Promise<void> {
   const { email } = await requireStaff();
@@ -153,7 +155,18 @@ export async function newMailing(form: FormData): Promise<void> {
   const picks = found ? picksOf(await foundIds(params), params) : picksOf([]);
   const { id } = await createDraft(email, picks, {});
   revalidatePath("/staff/mailings");
-  redirect(filtersPath("/staff/politicians", params, { mailing: String(id) }));
+  redirect(found ? filtersPath("/staff/politicians", params, { mailing: String(id) }) : `/staff/mailings/${id}`);
+}
+
+/** Copy mailing, on a mailing's page: makes a draft that copies the form's mailing (copyMailing), and opens it. */
+export async function copyMailingNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff();
+  const id = idFrom(form);
+  if (!id) return;
+  const copy = await copyMailing(id, email);
+  if (!copy) return;
+  revalidatePath("/staff/mailings");
+  redirect(`/staff/mailings/${copy}`);
 }
 
 /** Ticks a politician for a draft, or unticks them. */
@@ -201,6 +214,14 @@ export async function pasteNames(form: FormData): Promise<void> {
     url.searchParams.set("tab", "pasted");
   }
   redirect(`${url.pathname}${url.search}`);
+}
+
+/** Leave them out, under a draft's warning: unticks these politicians for it, such as those who already answered its ask. */
+export async function leaveOutOfMailing(mailing: number, politicians: number[]): Promise<void> {
+  await requireStaff();
+  await toPoliticians(mailing);
+  await changePicks(mailing, { untick: politicians });
+  revalidatePath(`/staff/mailings/${mailing}`);
 }
 
 /** Ticks these politicians for a draft, or unticks them: everyone a paste found, from the box over them. */

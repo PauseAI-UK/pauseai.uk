@@ -42,6 +42,13 @@ describe("MailingView", () => {
     );
   const recipient = (name: string) => page.getByRole("row").filter({ hasText: name });
 
+  it("has Copy mailing at its top right, which sends its ID", async () => {
+    const copied: FormData[] = [];
+    await view({ copyIt: async (form) => void copied.push(form) });
+    await page.getByRole("button", { name: copy.copyMailing }).click();
+    await expect.poll(() => copied.map((form) => form.get("id"))).toEqual([String(written.id)]);
+  });
+
   it("once sent: its band, how many answered, the email, and its recipients", async () => {
     await view({});
     await expect.element(page.getByRole("heading", { level: 1 })).toMatchTextContent(mailing.title);
@@ -282,6 +289,8 @@ describe("MailingView, for a mailing imported from Airtable", () => {
 
   it("says who it's from isn't recorded for one the import of old letters made", async () => {
     await imported({ sentFrom: null, fromName: null, oldLetters: true });
+    // One imported has no Copy mailing, as there's nothing written here to copy.
+    expect(page.getByRole("button", { name: mailingsCopy.mailingPages.copyMailing }).query()).toBeNull();
     await expect.element(page.getByText(mailings.notRecorded).first()).toBeVisible();
   });
 
