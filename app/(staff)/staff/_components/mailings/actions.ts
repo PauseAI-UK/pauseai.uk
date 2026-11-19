@@ -161,7 +161,8 @@ export async function newMailing(form: FormData): Promise<void> {
 export async function copyMailingNow(form: FormData): Promise<void> {
   const { email } = await requireStaff();
   const id = idFrom(form);
-  const copy = id && (await copyMailing(id, email));
+  if (!id) return;
+  const copy = await copyMailing(id, email);
   if (!copy) return;
   revalidatePath("/staff/mailings");
   redirect(`/staff/mailings/${copy}`);

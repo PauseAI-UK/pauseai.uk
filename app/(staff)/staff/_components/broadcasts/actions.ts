@@ -231,7 +231,8 @@ export async function stopBroadcastNow(form: FormData): Promise<void> {
 export async function copyBroadcastNow(form: FormData): Promise<void> {
   const { email } = await requireStaff("supporters");
   const id = idFrom(form);
-  const copy = id && (await copyBroadcast(id, email));
+  if (!id) return;
+  const copy = await copyBroadcast(id, email);
   if (!copy) return;
   revalidatePath(LIST);
   redirect(`${LIST}/${copy}`);
