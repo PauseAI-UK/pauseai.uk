@@ -103,7 +103,7 @@ export default function OnboardingFormEmbed() {
     // the reader is nearly at the form. The form and what it brings are over
     // a megabyte, which on a slow connection would hold up the top of the
     // page. The wait for the form to report in starts then too.
-    const iframe = iframeRef.current;
+    const iframe = iframeRef.current!;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const near = new IntersectionObserver(
       (entries) => {
@@ -114,7 +114,7 @@ export default function OnboardingFormEmbed() {
     function start() {
       window.removeEventListener("load", start);
       near.disconnect();
-      if (iframe && !iframe.getAttribute("src")) iframe.src = EMBED_URL;
+      if (!iframe.getAttribute("src")) iframe.src = EMBED_URL;
       timeoutId = setTimeout(() => {
         if (!messageReceivedRef.current) setShowFallback(true);
       }, LOAD_TIMEOUT_MS);
@@ -123,7 +123,7 @@ export default function OnboardingFormEmbed() {
       start();
     } else {
       window.addEventListener("load", start);
-      if (iframe) near.observe(iframe);
+      near.observe(iframe);
     }
 
     return () => {

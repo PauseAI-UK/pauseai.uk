@@ -32,8 +32,9 @@ const config: KnipConfig = {
         // .env.local with it, as next does.
         "@next/env",
       ],
-      // Postgres's own tools, installed with Postgres rather than from npm.
-      ignoreBinaries: ["pg_dump", "psql"],
+      // Postgres's own tools, installed with Postgres rather than from npm, and
+      // OpenSSL's, which scripts/measure-replay.mjs makes a certificate with.
+      ignoreBinaries: ["pg_dump", "psql", "openssl"],
     },
   },
 };
