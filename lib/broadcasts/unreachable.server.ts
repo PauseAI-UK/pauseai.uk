@@ -9,7 +9,7 @@ import { query, transaction } from "@/lib/server/db.server";
 // tries the number again, and marks it again if WhatsApp still refuses.
 
 /** How long a number's mark stops texts to it. */
-export const UNREACHABLE_MONTHS = 2;
+const UNREACHABLE_MONTHS = 2;
 
 /** Whether the mark `u` still stops texts. */
 const STILL_STOPS = `u.at > now() - make_interval(months => ${UNREACHABLE_MONTHS})`;
