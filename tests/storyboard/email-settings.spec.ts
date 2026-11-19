@@ -121,17 +121,11 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
   await topicCard(page, "volunteering").getByRole("checkbox", { name: copy.ways.text }).check();
   await expect(topicCard(page, "volunteering").getByText(copy.settings.saved)).toBeVisible();
   await frame(page, "Saved");
-  if (onPhone()) {
-    story("At the foot, what PauseAI Global sends, folded on a phone till opened, and how to stop everything.");
-    await page.getByRole("heading", { name: copy.global.title }).click();
-  } else {
-    story("At the foot, what PauseAI Global sends, and how to stop everything.");
-  }
-  // The page has it twice, one for each width, only one shown.
-  await expect(page.getByText(copy.global.intro).filter({ visible: true })).toBeVisible();
+  story("At the foot, what PauseAI Global sends, and how to stop everything.");
+  await expect(page.getByText(copy.global.body, { exact: false })).toBeVisible();
   // Global's box at the window's top, just below the site's sticky header.
   await page.getByRole("heading", { name: copy.global.title }).evaluate((heading) => {
-    heading.closest("section, details")!.scrollIntoView({ block: "start", behavior: "instant" });
+    heading.closest("section")!.scrollIntoView({ block: "start", behavior: "instant" });
     window.scrollBy({
       top: -(document.querySelector("header")!.getBoundingClientRect().bottom + 16),
       behavior: "instant",

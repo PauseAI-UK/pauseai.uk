@@ -263,8 +263,8 @@
   display: none;
 }
 
-/* A choice: a link, or a button where picking it sets a form's value (MenuSelect), looking the same. */
-.choices :is(a, button) {
+/* A choice: a link, or a button where picking it sets a form's value (MenuSelect), which closes the menu, looking the same; not a "?" that opens a bubble. */
+.choices :is(a, button:not([popovertarget]), button[popovertargetaction="hide"]) {
   display: block;
   width: 100%;
   border: 0;
@@ -298,7 +298,7 @@
   flex: none;
 }
 
-.inGroup :is(a, button) {
+.inGroup :is(a, button:not([popovertarget]), button[popovertargetaction="hide"]) {
   display: flex;
   gap: var(--space-4);
   justify-content: space-between;
@@ -307,11 +307,11 @@
 
 /* A choice that's one of what the choice above it finds, set in beneath it;
    one of what that one finds, further in. */
-.under :is(a, button) {
+.under :is(a, button:not([popovertarget]), button[popovertargetaction="hide"]) {
   padding-left: calc(var(--space-2) + var(--space-4));
 }
 
-.underTwice :is(a, button) {
+.underTwice :is(a, button:not([popovertarget]), button[popovertargetaction="hide"]) {
   padding-left: calc(var(--space-2) + 2 * var(--space-4));
 }
 
@@ -337,11 +337,11 @@
   outline-offset: var(--focus-offset);
 }
 
-.choices :is(a, button):hover {
+.choices :is(a, button:not([popovertarget]), button[popovertargetaction="hide"]):hover {
   background: var(--surface-2);
 }
 
-.choices :is(a, button)[aria-current],
+.choices :is(a, button:not([popovertarget]), button[popovertargetaction="hide"])[aria-current],
 .choices a[data-pending] {
   background: var(--accent-light);
   font-weight: 700;
@@ -413,9 +413,14 @@
   box-sizing: border-box;
 }
 
-/* A choice and the "?" saying what it means, on one line. */
+/* A choice and the "?" saying what it means, on one line: the choice takes the room, the "?" its own size. */
 .withHelp {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.withHelp > a {
+  flex: 1;
+  min-width: 0;
 }

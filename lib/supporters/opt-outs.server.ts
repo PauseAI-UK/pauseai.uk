@@ -348,12 +348,15 @@ export async function stillOnCalendar(passStartedAt: Date, db?: Queryable): Prom
 
 /**
  * SQL that's true while any of the addresses in `emails` (an SQL array) has
- * opted out of the Luma calendar's emails: for whether a supporter is a
+ * opted out of the Luma calendar's emails, or of every bulk email in a way
+ * that takes them off it (offCalendarFor): for whether a supporter is a
  * Luma contact now, which the supporters list works out as it's read.
  */
 export function optedOutOfLuma(emails: string): string {
+  const sources = CALENDAR_SOURCES.map((source) => `'${source}'`).join(", ");
   return `EXISTS (SELECT 1 FROM opt_outs o
-    WHERE o.list = 'events' AND o.way = 'email' AND o.resubscribed_at IS NULL AND o.address = ANY(${emails}))`;
+    WHERE (o.list = 'events' OR (o.list = 'bulk' AND o.source IN (${sources})))
+      AND o.way = 'email' AND o.resubscribed_at IS NULL AND o.address = ANY(${emails}))`;
 }
 
 /**

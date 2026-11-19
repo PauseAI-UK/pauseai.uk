@@ -575,7 +575,10 @@ test("What the lists mean", async ({ page, flowDatabase }) => {
   const bubble = await openBubble(
     consent.getByRole("button", { name: copy.detail.permissions.listHelp(copy.filters.lists["updates-luma"]) }).first(),
   );
-  await expect(bubble.getByText(copy.detail.permissions.details["updates-luma"].about)).toBeVisible();
+  // The bubble open, of the list's two in the menu, by email and by text.
+  await expect(
+    bubble.getByText(copy.detail.permissions.details["updates-luma"].about).filter({ visible: true }),
+  ).toBeVisible();
   await frame(page, "What the lists mean");
 });
 

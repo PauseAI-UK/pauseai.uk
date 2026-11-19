@@ -20,17 +20,25 @@ type Answer = Pick<ContactPermission, "address" | "channel" | "topic" | "way" | 
  * What can be opted out of: just what the supporter's consents say we can
  * send them (`permissions`, their answers), each topic by each way with a
  * yes, and every bulk email at an address with any yes by email; under each
- * address by email, then each number by text, then by call.
+ * address by email, then each number by text, then by call. For someone
+ * on our Luma calendar (`onLuma`), events by email too at each address with
+ * an answer about events by email, even a no, as Luma's own messages still
+ * go there till they opt out of them.
  */
-export function optOutChoices(permissions: Answer[]): OptOutChoice[] {
+export function optOutChoices(permissions: Answer[], onLuma = false): OptOutChoice[] {
   const yes = permissions.filter((p) => p.send === "yes");
+  const luma = onLuma ? permissions.filter((p) => p.way === "email" && p.topic === "events") : [];
   const addresses = (channel: "email" | "phone") => [
-    ...new Set(yes.filter((p) => p.channel === channel).map((p) => p.address)),
+    ...new Set([...yes, ...luma].filter((p) => p.channel === channel).map((p) => p.address)),
   ];
+  const offered = (address: string, way: Way, topic: Topic) =>
+    [...yes, ...luma].some((p) => p.address === address && p.way === way && p.topic === topic);
   const topics = (address: string, way: Way): OptOutChoice[] =>
-    CONSENTS.filter(
-      (c) => c.way === way && yes.some((p) => p.address === address && p.way === way && p.topic === c.topic),
-    ).map((c) => ({ address, way, list: c.topic }));
+    CONSENTS.filter((c) => c.way === way && offered(address, way, c.topic)).map((c) => ({
+      address,
+      way,
+      list: c.topic,
+    }));
   return [
     ...addresses("email").flatMap((address) => [
       ...topics(address, "email"),

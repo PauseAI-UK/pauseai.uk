@@ -15,7 +15,7 @@ export function settingsDate(date: Date | null): string {
 // Updates, and events, our Luma calendar, is Luma's own emails, its own card.
 const topicNames: Record<Topic, string> = {
   newsletter: "PauseAI UK Updates",
-  events: "Luma messages (sent by Luma)",
+  events: "Luma messages (sent via Luma)",
   volunteering: "Volunteering",
 };
 
@@ -31,7 +31,7 @@ const about: Record<Topic, string> = {
 // "No bulk emails" set, which the person can lift on the page.
 const noBulk = {
   title: "You've turned off bulk email",
-  body: "So no newsletters or event emails from PauseAI UK or PauseAI Global.",
+  body: "⁂ So no PauseAI UK Updates, Volunteering or Luma emails, and no bulk email from PauseAI Global.",
   button: "Restart emails",
 };
 
@@ -194,10 +194,8 @@ export const emailSettingsCopy = {
     ask: "If it works now, email",
   },
   global: {
-    title: "PauseAI Global's emails",
-    intro: "PauseAI Global, the international movement, can send its own emails:",
-    lists: ["the PauseAI Newsletter", "Critical Alerts, when something urgent happens", "Local Invitations"],
-    howToStop: "To stop one of them, use the unsubscribe link at the bottom of its emails.",
+    title: "PauseAI Global",
+    body: "PauseAI Global, the international movement, may email you Critical Alerts when something urgent happens. To stop them, use the unsubscribe link in their emails.",
     // Only while Stop everything is offered, below.
     stopAll: "To stop them all, use “Stop everything” below.",
   },

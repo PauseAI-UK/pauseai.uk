@@ -8,6 +8,7 @@ import { OptOutFormExample } from "./OptOutForm.gallery.client";
 import { supportersCopy } from "./copy";
 
 const words = supportersCopy.supporters.detail.permissions.recordOptOut;
+const ways = supportersCopy.supporters.filters.ways;
 const choices = optOutChoices([
   ...CONSENTS.map((c) => ({
     address: c.way === "email" ? "jane.smith@example.com" : "+447700900123",
@@ -34,16 +35,16 @@ describe("OptOutForm", () => {
         .filter((li) => !li.querySelector("button"))
         .map((li) => li.textContent),
     ).toEqual([
-      `jane.smith@example.com (${words.ways.email})`,
-      `07700 900123 (${words.ways.text})`,
-      `07700 900123 (${words.ways.call})`,
+      `${ways.email} · jane.smith@example.com`,
+      `${ways.text} · 07700 900123`,
+      `${ways.call} · 07700 900123`,
     ]);
     await expect.element(menu.getByRole("button")).toHaveLength(8);
-    await page.getByRole("button", { name: `${words.bulk}, jane.smith@example.com (${words.ways.email})` }).click();
+    await page.getByRole("button", { name: `${words.bulk}, ${ways.email} · jane.smith@example.com` }).click();
     await expect
       .element(
         page.getByRole("button", {
-          name: `${words.what}: ${words.bulk}, jane.smith@example.com (${words.ways.email})`,
+          name: `${words.what}: ${words.bulk}, ${ways.email} · jane.smith@example.com`,
         }),
       )
       .toBeVisible();
@@ -65,7 +66,7 @@ describe("OptOutForm", () => {
     expect(record).not.toHaveBeenCalled();
     await page.getByRole("button", { name: words.open }).click();
     await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
-    await page.getByRole("button", { name: `${words.bulk}, jane.smith@example.com (${words.ways.email})` }).click();
+    await page.getByRole("button", { name: `${words.bulk}, ${ways.email} · jane.smith@example.com` }).click();
     await page.getByRole("textbox", { name: words.how }).fill("Phoned");
     await page.getByRole("button", { name: words.record }).click();
     await expect.element(page.getByText(words.already)).toBeVisible();
@@ -84,8 +85,8 @@ describe("OptOutForm's example in the gallery", () => {
   it("logs recording an opt-out", async () => {
     await render(<OptOutFormExample opened />);
     await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
-    const newsletter = supportersCopy.supporters.detail.permissions.topics.newsletter;
-    await page.getByRole("button", { name: `${newsletter}, jane.smith@example.com (${words.ways.email})` }).click();
+    const newsletter = supportersCopy.supporters.filters.lists.updates;
+    await page.getByRole("button", { name: `${newsletter}, ${ways.email} · jane.smith@example.com` }).click();
     await page.getByRole("textbox", { name: words.how }).fill("At the stall");
     await page.getByRole("button", { name: words.record }).click();
     await expect

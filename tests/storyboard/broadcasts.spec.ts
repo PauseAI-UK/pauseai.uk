@@ -186,7 +186,7 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
     .getByRole("radio", { name: supportersCopy.supporters.filters.lists["updates-luma"], exact: true })
     .click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
-  await expect(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
+  await expect(page.getByText(copy.everyoneWhoSaidYes, { exact: true })).toBeVisible();
   await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
   await frame(page, "The new email, to everyone who said yes");
   story(
@@ -1221,7 +1221,7 @@ test("What the lists mean, and a change waiting on the site", async ({ page, req
   });
   await volunteering.click();
   // Its name, busy, under a spinner.
-  const busy = saidYes.locator("label[aria-busy=true]");
+  const busy = saidYes.locator("[role=radio][aria-busy=true]");
   await expect(busy).toHaveText(supportersCopy.supporters.filters.lists.volunteering);
   await frame(page, "Waiting for the site, after pressing Volunteering");
   await actions.release();

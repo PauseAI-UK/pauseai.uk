@@ -77,15 +77,14 @@ const button = (name: string | RegExp) => page.getByRole("button", { name });
 describe("BroadcastWriter's Consent", () => {
   const lists = supportersCopy.supporters.filters.lists;
   const LUMA = "email:newsletter:yes email:events:yes";
-  // Email or text, one of two buttons; Said yes to, one of the channel's lists, radio buttons.
+  // Email or text, one of two lozenges; Said yes to, one of the channel's lists, a lozenge each.
   const group = (name: string) => page.getByRole("radiogroup", { name }).last();
   const radios = (name: string) =>
-    [...group(name).element().querySelectorAll<HTMLButtonElement | HTMLInputElement>("button[role=radio], input")].map(
-      (one) =>
-        one instanceof HTMLInputElement
-          ? [one.closest("label")!.textContent, one.checked, one.disabled]
-          : [one.textContent, one.getAttribute("aria-checked") === "true", one.disabled],
-    );
+    [...group(name).element().querySelectorAll<HTMLButtonElement>("button[role=radio]")].map((one) => [
+      one.textContent,
+      one.getAttribute("aria-checked") === "true",
+      one.disabled,
+    ]);
   const choose = (within: string, name: string) => group(within).getByRole("radio", { name, exact: true }).click();
 
   it("asks email or text, then offers that channel's lists in a row, its own chosen, the other channel shut once it has words", async () => {
@@ -182,7 +181,7 @@ describe("BroadcastWriter's Consent", () => {
     let done = () => {};
     const slow = () => new Promise((resolve) => (done = () => resolve(true)));
     const busy = () =>
-      [...group(copy.facts.saidYes).element().querySelectorAll("[aria-busy=true]")].map((one) => one.textContent);
+      [...group(copy.facts.saidYes).element().querySelectorAll("button[aria-busy=true]")].map((one) => one.textContent);
     const actions = await renderWriter();
     actions.changeConsent.mockImplementation(slow);
     await choose(copy.facts.saidYes, lists.volunteering);

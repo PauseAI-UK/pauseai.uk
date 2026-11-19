@@ -144,6 +144,36 @@ export function listFor(topics: readonly Topic[]): List {
 }
 
 /**
+ * The answers that put someone on PauseAI UK Updates inc. Luma but not on
+ * PauseAI UK Updates: a yes to `events` by a way and address with no yes to
+ * `newsletter` by it. Elsewhere inc. Luma says no more than Updates does, so
+ * the pages show it only for these.
+ */
+export function lumaOnly(permissions: readonly ContactPermission[]): ContactPermission[] {
+  const updates = (p: ContactPermission) =>
+    permissions.some((n) => n.topic === "newsletter" && n.send === "yes" && n.way === p.way && n.address === p.address);
+  return permissions.filter((p) => p.topic === "events" && p.send === "yes" && !updates(p));
+}
+
+/**
+ * Each list someone's on, as the pages show them, with the ways it reaches
+ * them, in LISTS' and WAYS' order: inc. Luma only where Luma alone does
+ * (lumaOnly), as everyone on Updates is on it too.
+ */
+export function listsOn(permissions: readonly ContactPermission[]): { list: List; ways: Way[] }[] {
+  const yes = (topic: Topic) => permissions.filter((p) => p.topic === topic && p.send === "yes");
+  const answers: Record<List, ContactPermission[]> = {
+    updates: yes("newsletter"),
+    "updates-luma": lumaOnly(permissions),
+    volunteering: yes("volunteering"),
+  };
+  return LISTS.flatMap((list) => {
+    const ways = WAYS.filter((way) => answers[list].some((p) => p.way === way));
+    return ways.length > 0 ? [{ list, ways }] : [];
+  });
+}
+
+/**
  * What an email's unsubscribe link stops, from the topics its copy went
  * under: PauseAI Updates for one to either Updates list, which leaves Luma's
  * own calendar alone; else what it went under, Volunteering.

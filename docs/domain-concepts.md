@@ -1618,8 +1618,8 @@ lists:
 As a no to the newsletter is a no to events, unsubscribing from PauseAI
 Updates leaves both Updates lists. It doesn't take anyone off the Luma
 calendar. Luma's own emails, which the calendar sends to everyone on it,
-are Luma's, not ours: no list controls them, and "Luma calendar emails
-(sent by Luma)", on the contact preferences page and a supporter's page,
+are Luma's, not ours: no list controls them, and "Luma messages
+(sent via Luma)", on the contact preferences page and a supporter's page,
 is only whether they're on it. An email's unsubscribe link stops the list
 it went to: PauseAI Updates for either Updates list, never the calendar.
 

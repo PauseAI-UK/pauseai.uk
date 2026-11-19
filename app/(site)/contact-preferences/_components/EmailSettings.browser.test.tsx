@@ -89,16 +89,14 @@ describe("EmailSettings", () => {
     await expect.element(page.getByText(copy.global.stopAll, { exact: false }).first()).toBeVisible();
   });
 
-  it("on a phone, gives why in a bubble its “?” opens, and folds PauseAI Global's emails", async () => {
+  it("on a phone, gives why in a bubble its “?” opens, and shows PauseAI Global's emails open", async () => {
     await show(exampleSettings);
     await phone();
     const reason = copy.why.reasons.asked!(copy.sourceWords("march-2026-11"));
     await expect.element(why("newsletter", reason)).not.toBeVisible();
     await card("newsletter").getByRole("button", { name: copy.why.ask }).click();
     await expect.element(whys("newsletter", reason).first()).toBeVisible();
-    await expect.element(page.getByText(copy.global.intro).first()).not.toBeVisible();
-    await page.getByText(copy.global.title).last().click();
-    await expect.element(page.getByText(copy.global.intro).last()).toBeVisible();
+    await expect.element(page.getByText(copy.global.body, { exact: false })).toBeVisible();
   });
 
   it("saves each box as it's changed, with whose page it is, and says so under its topic", async () => {

@@ -3,6 +3,7 @@ import ExternalLink from "../ui/ExternalLink";
 import StaffLink from "../ui/StaffLink";
 import {
   LIST_TOPICS,
+  lumaOnly,
   LISTS,
   WAYS,
   type Channel,
@@ -33,20 +34,35 @@ export function permissionReason(permission: ContactPermission): string {
   return copy.reasons[permission.reason](when, source, permission.topic);
 }
 
-/** What's behind a list's "?": its name, what it is, and when it's a yes and when a no. */
-function ListDetails({ list }: { list: List }) {
-  const name = supportersCopy.supporters.filters.lists[list];
-  const details = copy.details[list];
+/**
+ * A list's name where a person's lists are shown: inc. Luma there is only
+ * where Luma alone reaches them (lumaOnly), so it's called Luma only.
+ */
+export function personListName(list: List): string {
+  return list === "updates-luma" ? copy.lumaOnly.name : supportersCopy.supporters.filters.lists[list];
+}
+
+/**
+ * What's behind a list's "?": its name, who it's for, then what put them on
+ * it, for a list that says; on a person's (`person`), Luma only's, for inc. Luma.
+ */
+function ListDetails({ list, person = false }: { list: List; person?: boolean }) {
+  const name = person ? personListName(list) : supportersCopy.supporters.filters.lists[list];
+  const details = person && list === "updates-luma" ? copy.lumaOnly : copy.details[list];
   return (
     <>
       <strong className={styles.topicTitle}>{copy.topicTitle(name)}</strong>
       <p>{details.about}</p>
-      <dl className={styles.when}>
-        <dt>{copy.when.yes}</dt>
-        <dd>{details.yes}</dd>
-        <dt>{copy.when.no}</dt>
-        <dd>{details.no}</dd>
-      </dl>
+      {details.on.length > 0 && (
+        <>
+          <p className={styles.whoIsOn}>{copy.whoIsOn}</p>
+          <ul className={styles.on}>
+            {details.on.map((one) => (
+              <li key={one}>{one}</li>
+            ))}
+          </ul>
+        </>
+      )}
     </>
   );
 }
@@ -152,20 +168,13 @@ function lines(permissions: ContactPermission[]): Line[] {
 }
 
 /**
- * A list's answer for each way and address or number: its topic's, or for
- * PauseAI Updates including Luma, `newsletter`'s where it's a yes, else
- * `events`' where that's a yes, else `newsletter`'s no, or `events`' where
- * `newsletter` has none.
+ * A list's answer for each way and address or number: its topic's; for
+ * PauseAI Updates inc. Luma, only where Luma alone reaches them (lumaOnly),
+ * as elsewhere it says no more than Updates' row does.
  */
 function listAnswers(list: List, permissions: ContactPermission[]): ContactPermission[] {
-  const [first, ...rest] = LIST_TOPICS[list];
-  const own = permissions.filter((p) => p.topic === first);
-  const others = permissions.filter((p) => rest.includes(p.topic));
-  const sameLine = (a: ContactPermission) => (b: ContactPermission) => a.way === b.way && a.address === b.address;
-  return [
-    ...own.map((p) => (p.send === "yes" ? p : (others.find((o) => sameLine(p)(o) && o.send === "yes") ?? p))),
-    ...others.filter((o) => !own.some(sameLine(o))),
-  ];
+  if (list === "updates-luma") return lumaOnly(permissions);
+  return permissions.filter((p) => p.topic === LIST_TOPICS[list][0]);
 }
 
 /**
@@ -180,7 +189,7 @@ function ListRow({ list, permissions }: { list: List; permissions: ContactPermis
   return (
     <li className={styles.item}>
       <span className={styles.head}>
-        <span className={styles.topic}>{supportersCopy.supporters.filters.lists[list]}</span>
+        <span className={styles.topic}>{personListName(list)}</span>
         <button type="button" className={styles.help} aria-label={copy.why} {...bubbleTrigger(id)}>
           ?
         </button>
@@ -206,7 +215,7 @@ function ListRow({ list, permissions }: { list: List; permissions: ContactPermis
         </span>
       ))}
       <BubbleBox id={id} className={styles.popover}>
-        <ListDetails list={list} />
+        <ListDetails list={list} person />
       </BubbleBox>
     </li>
   );
@@ -215,8 +224,8 @@ function ListRow({ list, permissions }: { list: List; permissions: ContactPermis
 /**
  * Whether we'd contact a supporter on each list, a row each, every address
  * and number it has an answer for in it, by email, then text, then call;
- * then, for someone on our Luma calendar or with an answer through it,
- * whether they're on it (`onLuma`), as Luma's own emails go to them or not.
+ * then, for someone on our Luma calendar (`onLuma`), that they are, as
+ * Luma's own messages go to them.
  */
 export default function PermissionTiles({
   permissions,
@@ -226,21 +235,20 @@ export default function PermissionTiles({
   onLuma?: boolean;
 }) {
   const byWay = (a: ContactPermission, b: ContactPermission) => WAYS.indexOf(a.way) - WAYS.indexOf(b.way);
-  const luma = onLuma || permissions.some((p) => p.topic === "events");
   return (
     <ul className={styles.list}>
       {LISTS.flatMap((list) => {
         const own = listAnswers(list, permissions).sort(byWay);
         return own.length > 0 ? [<ListRow key={list} list={list} permissions={own} />] : [];
       })}
-      {luma && (
+      {onLuma && (
         <li className={styles.item}>
           <span className={styles.head}>
             <span className={styles.topic}>{copy.luma.name}</span>
           </span>
-          <span className={styles.answer} data-send={onLuma ? "yes" : "no"}>
+          <span className={styles.answer} data-send="yes">
             <span className={styles.line}>
-              <span className={styles.reason}>{onLuma ? copy.luma.on : copy.luma.off}</span>
+              <span className={styles.reason}>{copy.luma.on}</span>
             </span>
           </span>
         </li>

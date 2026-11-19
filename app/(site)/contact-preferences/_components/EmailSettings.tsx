@@ -348,21 +348,22 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
   );
 }
 
-/** What PauseAI Global sends, and how to stop it; how to stop it all only while Stop everything is offered (not `held`). */
+/**
+ * PauseAI Global's own emails, mostly Critical Alerts, in a small grey card
+ * after the topics': how to stop them, and, only while Stop everything is
+ * offered (not `held`), that it stops them all too.
+ */
 function GlobalEmails({ held }: { held: boolean }) {
   return (
-    <>
-      <p>{copy.global.intro}</p>
-      <ul>
-        {copy.global.lists.map((list) => (
-          <li key={list}>{list}</li>
-        ))}
-      </ul>
-      <p>
-        {copy.global.howToStop}
+    <section className={`${styles.card} ${styles.global}`} aria-labelledby="global">
+      <h2 id="global" className={styles.topic}>
+        {copy.global.title}
+      </h2>
+      <p className={styles.what}>
+        {copy.global.body}
         {!held && ` ${copy.global.stopAll}`}
       </p>
-    </>
+    </section>
   );
 }
 
@@ -484,16 +485,7 @@ export default function EmailSettings({
           {/* Open on a wide screen; folded to its heading on a phone, as it's for reading rather than changing anything. */}
           {!forNumber && (
             <>
-              <section className={`${styles.global} ${styles.wide}`} aria-labelledby="global">
-                <h2 id="global">{copy.global.title}</h2>
-                <GlobalEmails held={Boolean(view.hold)} />
-              </section>
-              <details className={`${styles.global} ${styles.narrow}`}>
-                <summary>
-                  <h2>{copy.global.title}</h2>
-                </summary>
-                <GlobalEmails held={Boolean(view.hold)} />
-              </details>
+              <GlobalEmails held={Boolean(view.hold)} />
             </>
           )}
           {!view.hold && !forNumber && (

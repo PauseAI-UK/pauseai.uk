@@ -1,6 +1,6 @@
 "use client";
 
-import { Radio, Segmented } from "@/components/ui/Controls";
+import { Segmented } from "@/components/ui/Controls";
 import { ButtonInside } from "@/components/ui/Button";
 import { FieldSet } from "@/components/ui/Field";
 import { choiceTerms, consentChoice } from "@/lib/broadcasts/broadcasts";
@@ -19,8 +19,9 @@ const CHANNELS: Channel[] = ["email", "phone"];
 /**
  * The Consent a broadcast goes under, which says whether it's an email or a
  * text and who it goes to: first email or text, then one of the lists by
- * it, as the Consent filter names and orders them, a radio button each with
- * a "?" saying what it means; a text goes to a list's yeses by text. `value` is the one chosen, as consentChoice writes it, or
+ * it, as the Consent filter names and orders them, a lozenge each on the
+ * line below, with a "?" after it saying who it's for; a text goes to a
+ * list's yeses by text. `value` is the one chosen, as consentChoice writes it, or
  * none yet. Once it has words of its own (`written`), the other channel
  * can't be chosen, so none are lost. `shown` is the channel whose lists
  * show, and `show` shows another's; a list picked on a channel not the
@@ -78,15 +79,16 @@ export default function BroadcastConsent({
           <div className={own.lists} role="radiogroup" aria-label={copy.facts.saidYes} aria-busy={pending || undefined}>
             {lists.map(({ value: list, label }) => (
               <span key={list} className={own.list}>
-                <label className={own.listName} aria-busy={(pending && list === pressed) || undefined}>
-                  <Radio
-                    name={`list-${way}`}
-                    value={list}
-                    checked={list === on}
-                    onChange={() => !pending && list !== on && choose(list)}
-                  />
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={list === on}
+                  aria-busy={(pending && list === pressed) || undefined}
+                  className={own.listChoice}
+                  onClick={() => !pending && list !== on && choose(list)}
+                >
                   <ButtonInside pending={pending && list === pressed}>{label}</ButtonInside>
-                </label>
+                </button>
                 <ListHelp list={list} />
               </span>
             ))}

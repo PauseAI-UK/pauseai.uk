@@ -18,19 +18,35 @@ const copy = supportersCopy.supporters.detail.permissions;
 const words = copy.recordOptOut;
 
 /**
- * The choices as the menu shows them: under each address or number by each
- * way, its icon beside it, so email, texts and calls are apart; each one the
- * topic, or every bulk email.
+ * What a choice is called, as the Consent filter names its lists: Updates and
+ * Volunteering; events by email, Luma's own messages, as opting out takes them
+ * off our Luma calendar; events by text, what reaches their Luma number; or
+ * every bulk email.
+ */
+function choiceName({ list, way }: OptOutChoice): string {
+  if (list === "bulk") return words.bulk;
+  if (list === "events") return way === "email" ? copy.luma.name : words.lumaTexts;
+  return supportersCopy.supporters.filters.lists[list === "newsletter" ? "updates" : "volunteering"];
+}
+
+/**
+ * The choices as the menu shows them, as the Consent filter's menu does: under
+ * each way's heading, its icon beside it, so email, texts and calls are apart;
+ * each one a list, or every bulk email. The heading names the address or
+ * number only where they have more than one by that way.
  */
 function menuOptions(choices: OptOutChoice[]): FilterOption[] {
-  return choices.map((choice) => ({
-    value: choiceValue(choice),
-    label: choice.list === "bulk" ? words.bulk : copy.topics[choice.list],
-    group: {
-      label: `${choice.way === "email" ? choice.address : phoneWords(choice.address)} (${words.ways[choice.way]})`,
-      icon: <ChannelIcon channel={choice.way} />,
-    },
-  }));
+  const several = (way: OptOutChoice["way"]) =>
+    new Set(choices.filter((one) => one.way === way).map((one) => one.address)).size > 1;
+  return choices.map((choice) => {
+    const way = supportersCopy.supporters.filters.ways[choice.way];
+    const where = choice.way === "email" ? choice.address : phoneWords(choice.address);
+    return {
+      value: choiceValue(choice),
+      label: choiceName(choice),
+      group: { label: several(choice.way) ? `${way} · ${where}` : way, icon: <ChannelIcon channel={choice.way} /> },
+    };
+  });
 }
 
 /**

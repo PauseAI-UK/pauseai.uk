@@ -295,10 +295,11 @@ describe("the supporters list in words: its downloads, cards and filters", () =>
         whatsapp: supportersCopy.supporters.badges.whatsapp,
       }).join("; "),
     );
+    // His events yes by email is no more than his Updates one, so inc. Luma isn't among them.
+    const { lists, ways } = supportersCopy.supporters.filters;
+    const { listBy } = supportersCopy.supporters.subscriptions;
     expect(subscriptionWords(sam.permissions)).toBe(
-      (["email:newsletter", "email:events", "text:volunteering"] as const)
-        .map((consent) => supportersCopy.supporters.subscriptions.consents[consent])
-        .join("; "),
+      `${listBy(lists.updates, [ways.email])}; ${listBy(lists.volunteering, [ways.text])}`,
     );
     expect(subscriptionWords(gus.permissions)).toBe("");
     const placed = {
