@@ -35,8 +35,6 @@ export default function HomeHero() {
                   {[...row.photos, ...row.photos].map(([src, alt, width, height], i) => {
                     const isPrimary = copyIdx === 0 && i < row.photos.length;
                     const isLcp = ri === 0 && copyIdx === 0 && i === 0;
-                    // Each photo's first showing loads at once, as the rows bring it on screen before a lazy
-                    // load would finish; its repeats are the same file, there by then.
                     return (
                       <Image
                         key={i}
@@ -45,7 +43,7 @@ export default function HomeHero() {
                         width={width}
                         height={height}
                         aria-hidden={!isPrimary || undefined}
-                        loading={isLcp ? undefined : isPrimary ? "eager" : "lazy"}
+                        loading={isLcp ? undefined : "lazy"}
                         priority={isLcp}
                       />
                     );

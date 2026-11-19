@@ -15,15 +15,5 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# The home page's photos, which browsers keep for a week rather than asking
-# again on every visit (Netlify's default for a static file). Netlify's Image
-# CDN gives the sizes next/image asks for the same header
-# (https://docs.netlify.com/build/image-cdn/overview/). A photo changed keeps
-# its old look for up to a week, so a new one takes a new name.
-[[headers]]
-  for = "/images/front-page-hero-optimized/*"
-  [headers.values]
-    Cache-Control = "public, max-age=604800, must-revalidate"
-
 [context.deploy-preview]
   command = "npm run build"
