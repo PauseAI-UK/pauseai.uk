@@ -142,6 +142,32 @@ describe("OnboardingFormEmbed", () => {
     return { ...screen, iframe, srcs };
   }
 
+  /**
+   * Makes the page one that hasn't finished loading, with the form far from
+   * the window. Returns each IntersectionObserver made, with what it's
+   * watching, to say the form has come near.
+   */
+  function stillLoading() {
+    vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    const observers: { callback: IntersectionObserverCallback; margin?: string; watching: Element[] }[] = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        watching: Element[] = [];
+        constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+          observers.push({ callback, margin: options?.rootMargin, watching: this.watching });
+        }
+        observe(element: Element) {
+          this.watching.push(element);
+        }
+        disconnect() {
+          this.watching.length = 0;
+        }
+      },
+    );
+    return observers;
+  }
+
   it("points the iframe at the form only once listening, and shows a skeleton until it reports in", async () => {
     // The iframe is attached with no src, so src is only set by the effect.
     const { container, srcs } = await renderEmbed();
@@ -154,7 +180,7 @@ describe("OnboardingFormEmbed", () => {
 
   it("waits for the page to finish loading before fetching the form, and only then for the form", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    stillLoading();
     const { container, srcs } = await renderEmbed();
     await vi.advanceTimersByTimeAsync(8000);
     expect(srcs).toEqual([]);
@@ -170,26 +196,7 @@ describe("OnboardingFormEmbed", () => {
   });
 
   it("fetches the form before the page has loaded once the reader is nearly at it", async () => {
-    vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
-    const observers: { callback: IntersectionObserverCallback; margin?: string; watching: Element[] }[] = [];
-    vi.stubGlobal(
-      "IntersectionObserver",
-      class {
-        watching: Element[] = [];
-        constructor(
-          public callback: IntersectionObserverCallback,
-          options?: IntersectionObserverInit,
-        ) {
-          observers.push({ callback, margin: options?.rootMargin, watching: this.watching });
-        }
-        observe(element: Element) {
-          this.watching.push(element);
-        }
-        disconnect() {
-          this.watching.length = 0;
-        }
-      },
-    );
+    const observers = stillLoading();
     const { iframe, srcs, unmount } = await renderEmbed();
     const [near] = observers;
     expect(near.margin).toBe("1500px 0px");
@@ -317,6 +324,11 @@ describe("LocalGroupsMap", () => {
         .toHaveAttribute("href", group.href);
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(container.querySelector(MAP)).toBeNull();
+    // Each card's photo comes from the image service at the card's size, not as the file itself.
+    const photos = [...container.querySelectorAll<HTMLElement>(`${CARD} [style*="background-image"]`)];
+    expect(photos.map((photo) => photo.style.backgroundImage)).toEqual(
+      localGroups.map((group) => `url("/_next/image?url=${encodeURIComponent(group.imageSrc)}&w=828&q=75")`),
+    );
   });
 
   it("draws the UK map with a pin and connector per group on a wide screen, highlighting on hover", async () => {
