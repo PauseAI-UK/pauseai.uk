@@ -492,9 +492,28 @@ Things to know:
   it can't be measured from here.
 - **Chromium only.** Firefox and Safari can't be slowed down this way.
 
-To add or change a photo in the home page's hero, see
-`lib/content/hero-photos.ts`: `npm run data:hero-photos` makes the copies
-and the colour the page needs of it.
+What keeps the home page fast on a slow connection, to keep in mind when
+changing it:
+
+- **The hero's photos** are files served as they are, AVIF with a WebP for
+  old browsers, not through the image service. After adding or changing
+  one, `npm run data:hero-photos` makes its copies and its preview
+  (`lib/content/hero-photos.ts`).
+- **Each row's photos are fetched in the order a visitor meets them**
+  (`wantedWhen` in `HomeHero.tsx`), and each one's place holds a blur of it
+  until it arrives.
+- **While the page loads, only what its first screen needs is fetched.** An
+  inline script puts `data-loading` on `<html>` until the page's load event
+  (`app/(site)/_components/whileLoading.ts`), and styles hold back the
+  images further down while it's there. A browser left to itself fetches a
+  CSS background at once, and any lazy image within a couple of screens. A
+  new image below the first screen should wait the same way, if its place
+  keeps its size without it.
+- **A page's styles are in its HTML, and are only its own**
+  (`inlineCss` and `cssChunking` in `next.config.ts`), so the first paint
+  doesn't wait on a second request.
+- **The joining form** starts once the page has loaded, or the reader is
+  nearly at it (`OnboardingFormEmbed.tsx`).
 
 ### With real outside services
 
