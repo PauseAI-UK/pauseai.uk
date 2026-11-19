@@ -22,6 +22,7 @@ describe("parseArgs", () => {
     ]);
     expect(options).toMatchObject({ path: "/", runs: 5, images: "img", networks: ["slow-4g", "fast-4g"], film: true });
     expect(options.viewports).toEqual(["phone", "desktop"]);
+    expect(options.http2).toBe(false);
   });
 
   it("takes the page, the runs, the images, the networks and whether to film", () => {
@@ -37,6 +38,7 @@ describe("parseArgs", () => {
       "--viewport",
       "phone",
       "--no-film",
+      "--http2",
       "HEAD",
     ]);
     expect(options).toMatchObject({
@@ -47,6 +49,7 @@ describe("parseArgs", () => {
       film: false,
     });
     expect(options.viewports).toEqual(["phone"]);
+    expect(options.http2).toBe(true);
   });
 
   it("refuses no versions, an unknown option, an unknown network and an unknown viewport", () => {

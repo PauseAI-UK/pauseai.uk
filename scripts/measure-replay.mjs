@@ -94,7 +94,8 @@ async function fetchReal(url, accept) {
 }
 
 /**
- * Starts the stand-in on a port of its own. Returns the `port`; `freeze`,
+ * Starts the stand-in on a port of its own. Returns the `port`; its
+ * `certificate`; `freeze`,
  * which stops it fetching anything more, and `thaw`, which lets it again;
  * `counts` of what it has served (`kept` copies, files `fetched` from the real
  * site, `empty` answers, and those of them that `missed` a file it wasn't
@@ -186,6 +187,8 @@ export async function startReplay(folder = join("tmp", "measure", "replay")) {
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   return {
     port: server.address().port,
+    // The stand-in's certificate, for anything else the browser is to reach on this machine over TLS.
+    certificate: { key: readFileSync(key), cert: readFileSync(cert) },
     counts,
     freeze: () => (frozen = true),
     thaw: () => (frozen = false),

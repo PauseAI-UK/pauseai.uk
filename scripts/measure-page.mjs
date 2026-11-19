@@ -10,6 +10,7 @@
 //   npm run measure -- --viewport phone --network slow-4g origin/main HEAD
 //   npm run measure -- --images '[data-marquee-track="hero"] img' origin/main HEAD
 //   npm run measure -- live=https://pauseai.uk HEAD      # a site that's already up, as it is
+//   npm run measure -- --http2 origin/main HEAD          # each build over HTTP/2, as Netlify serves
 //
 // Each version is a commit (a branch, tag or hash), so commit what you want
 // measured, or the address of a site to measure as it stands. A commit is
@@ -61,7 +62,9 @@
 // A commit's server is this machine's `next start`, so the figures compare
 // versions with each other. They aren't the live site's: Netlify's CDN
 // serves that, over HTTP/2, and a second visit depends on its cache headers,
-// which this never sees. Measure a deploy preview's address for those.
+// which this never sees. `--http2` puts HTTP/2 in front of each build
+// (scripts/measure-http2.mjs), which is nearer to it; for the rest, measure
+// the live site's address.
 //
 // It prints the tables, and writes them with the filmstrips to a page in
 // tmp/measure/, beside every run as JSON.
@@ -71,6 +74,7 @@ import { cpus } from "node:os";
 import { basename, join } from "node:path";
 import { MAIN_URL } from "../tests/checkout.mjs";
 import { lockMain } from "./main-checkout.mjs";
+import { startHttp2 } from "./measure-http2.mjs";
 import { startReplay } from "./measure-replay.mjs";
 
 /**
@@ -156,6 +160,7 @@ export function parseArgs(argv) {
     networks: Object.keys(NETWORKS),
     viewports: Object.keys(VIEWPORTS),
     film: true,
+    http2: false,
     versions: [],
   };
   for (let i = 0; i < argv.length; i++) {
@@ -166,6 +171,7 @@ export function parseArgs(argv) {
     else if (arg === "--network") options.networks = argv[++i].split(",");
     else if (arg === "--viewport") options.viewports = argv[++i].split(",");
     else if (arg === "--no-film") options.film = false;
+    else if (arg === "--http2") options.http2 = true;
     else if (arg.startsWith("--")) throw new Error(`Unknown option ${arg}.`);
     else {
       // A name can't have a slash or a colon in it, so an address with "=" in it isn't split.
@@ -566,6 +572,11 @@ async function main() {
         stop = server.stop;
         await server.ready;
         base = MAIN_URL;
+        if (options.http2) {
+          const front = await startHttp2(MAIN_URL, replay.certificate);
+          stop = () => front.stop().then(server.stop);
+          base = front.url;
+        }
       } else {
         console.log(`▶ ${version.name}: ${version.url}`);
       }

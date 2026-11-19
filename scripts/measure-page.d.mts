@@ -6,6 +6,7 @@ type Options = {
   networks: string[];
   viewports: string[];
   film: boolean;
+  http2: boolean;
   versions: Version[];
 };
 type Request = { url: string; kind: string; bytes: number };
