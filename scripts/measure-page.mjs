@@ -123,6 +123,8 @@ const QUIET_WAIT_MS = 15 * 60_000;
 const BUSY_CORES = Math.max(4, cpus().length - 3);
 /** at most this many times. */
 const BUSY_RETRIES = 3;
+/** A film keeps at most one frame for each stretch of this long. */
+const FILM_GAP_MS = 100;
 /** The most frames a filmstrip shows, and the steps between them it chooses from, in seconds. */
 const FILM_FRAMES = 16;
 const FILM_STEPS = [0.25, 0.5, 1, 2, 3, 5];
@@ -458,17 +460,16 @@ async function load(browser, url, viewport, network, selector, filmTo) {
   const shots = [];
   if (filmTo) {
     cdp.on("Page.screencastFrame", (event) => {
-      shots.push({ data: event.data, time: event.metadata.timestamp * 1000 });
+      const shot = { data: event.data, time: event.metadata.timestamp * 1000 };
+      // The browser sends a frame only when the page has changed, and while
+      // anything on it moves that's sixty a second. Ten a second are kept:
+      // the latest within each tenth of a second replaces the one before.
+      const last = shots.at(-1);
+      if (last && shot.time - last.since < FILM_GAP_MS) Object.assign(last, shot);
+      else shots.push({ ...shot, since: shot.time });
       void cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId }).catch(() => {});
     });
-    // The page changes every frame while anything on it moves, so a few frames a second are plenty.
-    await cdp.send("Page.startScreencast", {
-      format: "jpeg",
-      quality: 70,
-      maxWidth: 480,
-      maxHeight: 480,
-      everyNthFrame: 6,
-    });
+    await cdp.send("Page.startScreencast", { format: "jpeg", quality: 70, maxWidth: 480, maxHeight: 480 });
   }
   await page.addInitScript(watchPage, selector);
   // Google's tags can send their reports of a visit by way of the page's own
