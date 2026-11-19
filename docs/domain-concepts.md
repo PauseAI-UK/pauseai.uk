@@ -731,6 +731,11 @@ job all leave broadcasts out.
   Postmark says more or its broadcast's `SENDING_DAYS` run out ("How a copy
   went", above). Neither stops a broadcast: it's sent once every copy has
   gone to Postmark, as stopping can't help those Postmark already has.
+  While any are delayed, though, staff see it as sending, waiting on them,
+  with no Stop sending, in the list and on its page (the `delayed` pause,
+  `sendingPause` in `lib/broadcasts/broadcasts.ts`). Its state stays sent,
+  so nothing has to finish it: once they arrive or turn to errors, it's
+  shown as sent.
   Gmail says nothing of what arrives, so a copy by Gmail is never delayed
   for silence, though one is for a "delivery delayed" notice, which the
   job that reads Gmail counts as a soft bounce.

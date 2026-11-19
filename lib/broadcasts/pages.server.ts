@@ -181,9 +181,9 @@ const SELECT_BROADCASTS = `
     m.try_failed_at AS "tryFailedAt", min(c.not_before) FILTER (WHERE ${HELD}) AS "heldTill",
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",
-    -- As the sending bar counts them (MailingsOverview): those that went, and those done with but not sent, which
-    -- takes in one delayed till its days ran out.
-    count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered') AND s.state <> 'error')::int AS sent,
+    -- As the sending bar counts them (MailingsOverview): those that went, not one still delayed, and those done with
+    -- but not sent, which takes in one delayed till its days ran out.
+    count(c.id) FILTER (WHERE c.status IN ('sent', 'delivered') AND s.state NOT IN ('error', 'held'))::int AS sent,
     count(c.id) FILTER (WHERE c.status IN ('failed', 'skipped', 'cancelled') OR s.state = 'error')::int AS failed,
     0 AS answered,
     -- How many are in each state.
@@ -196,6 +196,9 @@ const SELECT_BROADCASTS = `
  * A broadcast's summary with its pause (sendingPause), from its row: it
  * rests for REST_MINUTES after a failed try, and only one sending, with
  * nothing else pausing it, asks what sends it whether it can send more today.
+ * One sent with emails still delayed is said to be sending, paused for them,
+ * in the list and on its page, though its state stays sent: it can't stick,
+ * as its delayed copies become errors once its days run out.
  */
 async function withPause(row: SummaryRow): Promise<BroadcastSummary> {
   const { waitingSince, waitSaid, tryFailedAt, heldTill, ...summary } = row;
@@ -211,6 +214,7 @@ async function withPause(row: SummaryRow): Promise<BroadcastSummary> {
     heldTill,
   };
   const pause = sendingPause({ ...facts, atLimit: false });
+  if (pause?.kind === "delayed") return { ...summary, state: "sending", pause };
   if (pause || summary.state !== "sending") return { ...summary, pause };
   const atLimit = (await broadcastSender(summary)).remaining === 0;
   return { ...summary, pause: sendingPause({ ...facts, atLimit }) };

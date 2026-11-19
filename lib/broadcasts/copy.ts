@@ -330,6 +330,10 @@ export const broadcastsCopy = {
     // the day it stops if they still haven't gone.
     heldLeft: (n: number, next: string, stops: string) =>
       `WhatsApp has delayed ${plural(n, "the last text", `the last ${n} texts`)}, as ${plural(n, "that person has", "those people have")} had too many marketing messages from businesses recently. It will try again on ${next}, and give up on ${stops}.`,
+    // On one all sent but for emails delayed by a soft bounce or Postmark's silence: how many, and the day those
+    // still delayed become errors.
+    delayedLeft: (n: number, stops: string) =>
+      `${plural(n, "The last email hasn't", `The last ${n} emails haven't`)} been delivered yet, as ${plural(n, "its", "their")} mail server turned ${plural(n, "it", "them")} away for now, or we haven't heard back. ${plural(n, "It's", "They're")} still being tried, and will be marked as ${plural(n, "an error", "errors")} if not delivered by ${stops}.`,
     // One with nothing going out for now, though it's sending or past its time (SendingPause), in a few words. In
     // the list, in place of "Sending now" over when it went: the word, over what it waits for or till when. And
     // over its bar, in the list and on its page, in place of "Sending:".
@@ -338,6 +342,7 @@ export const broadcastsCopy = {
       forCiviCrm: "for CiviCRM",
       till: (when: string) => `till ${when}`,
       tillTomorrow: "till tomorrow",
+      forDelayed: "for delivery",
       bar: (n: number, of: number) => `Waiting: ${n} of ${of} done`,
     },
     recipientsTitle: "Recipients",

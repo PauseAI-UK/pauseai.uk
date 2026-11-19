@@ -69,13 +69,14 @@ export function EveryCount({ counts }: { counts: Count[] }) {
 }
 
 /**
- * The counts that need a look; then how many are fine, which unfolds the
- * rest under them. Only counts of more than none show.
+ * The counts that need a look, and those delayed, which haven't arrived and
+ * so aren't fine; then how many are fine, which unfolds the rest under them.
+ * Only counts of more than none show.
  */
 export function NeedsAndFine({ counts }: { counts: Count[] }) {
   const [open, setOpen] = useState(false);
   const shown = counts.filter((count) => count.n);
-  const needs = shown.filter((count) => NEEDS_A_LOOK.has(count.tone));
+  const needs = shown.filter((count) => NEEDS_A_LOOK.has(count.tone) || count.key === "held");
   const fine = shown.filter((count) => !needs.includes(count));
   return (
     <span className={styles.needs}>

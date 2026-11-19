@@ -86,6 +86,8 @@ export function pauseInBrief(pause: SendingPause): { word: string; till: string 
       return { word: words.word, till: words.till(londonWhenShort(pause.until)) };
     case "limit":
       return { word: words.word, till: words.tillTomorrow };
+    case "delayed":
+      return { word: words.word, till: words.forDelayed };
   }
 }
 
@@ -101,6 +103,8 @@ function pauseInFull(pause: SendingPause): string {
       return copy.heldLeft(pause.held, staffTime(sendsAt(pause.until)), staffDate(pause.stopsAt));
     case "limit":
       return pause.channel === "text" ? copy.moreTomorrowText : copy.moreTomorrow;
+    case "delayed":
+      return copy.delayedLeft(pause.delayed, staffDate(pause.stopsAt));
   }
 }
 
@@ -109,7 +113,7 @@ function pauseInFull(pause: SendingPause): string {
  * the same amber strip with a clock: it waits for CiviCRM, why and when
  * that stops; it rests after its sends failed, till when; all it has left
  * are texts WhatsApp held, the next tried when; or what sends it sends more
- * tomorrow. Or, in red, that it stopped by itself, and why, with `resume`,
+ * tomorrow; or, all sent, some emails are delayed. Or, in red, that it stopped by itself, and why, with `resume`,
  * the button that sets it going again. Nothing otherwise.
  */
 export function BroadcastWaiting({
@@ -238,7 +242,10 @@ export default function BroadcastView({
   /** Sets one going again that stopped as it hadn't all gone in time. */
   resume: FormAction;
 }) {
-  const { written, summary, tab } = data;
+  const { summary, tab } = data;
+  // All sent but for delayed emails, it's shown as sending, waiting on them (withPause), with nothing to stop.
+  const delayed = summary.pause?.kind === "delayed";
+  const written = delayed ? { ...data.written, state: "sending" as const } : data.written;
   const path = `/staff/broadcasts/${written.id}`;
   const scheduled = written.state === "scheduled";
   const groups = wentAndGone(
@@ -281,6 +288,7 @@ export default function BroadcastView({
         mailing={summary}
         written={written}
         stop={stop}
+        stoppable={!delayed}
         reschedule={reschedule}
         line={copy.scheduledLine(summary.to, written.channel, written.fromName || written.sentFrom!)}
         due={summary.pause ? copy.waitingDue : undefined}

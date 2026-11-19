@@ -125,21 +125,26 @@ export function waitEndsAt(waitingSince: Date, sending: { dueAt: Date } | null):
  * past its time: it waits for CiviCRM, till it answers or the wait ends; it
  * rests after its sends failed, till when; all it has left are texts
  * WhatsApp held, how many, when the first is next tried, and when it stops
- * if they haven't gone; or what sends it can send no more today. The list
+ * if they haven't gone; or what sends it can send no more today. Or, all
+ * sent, some of its emails are delayed (a soft bounce, or Postmark's
+ * silence), how many, and when those still delayed become errors. The list
  * of broadcasts and a broadcast's own page both say it from this.
  */
 export type SendingPause =
   | { kind: "waiting"; reason: "civicrm" | "pull"; said: string | null; endsAt: Date }
   | { kind: "resting"; until: Date }
   | { kind: "held"; held: number; until: Date; stopsAt: Date }
-  | { kind: "limit"; channel: BroadcastChannel };
+  | { kind: "limit"; channel: BroadcastChannel }
+  | { kind: "delayed"; delayed: number; stopsAt: Date };
 
 /**
  * A broadcast's pause (SendingPause), the first that applies, or none: one
  * scheduled can only be waiting for CiviCRM, past its time; one sending can
- * be any. `toGo` is how many of its copies can go now, `held` how many
- * WhatsApp held, the first tried again at `heldTill`; `atLimit`, whether
- * what sends it can send no more today.
+ * be any but delayed; one sent, only delayed. `toGo` is how many of its
+ * copies can go now, `held` how many are delayed (WhatsApp's, the first
+ * tried again at `heldTill`, while it's sending; once it's sent, every copy
+ * has gone, so they're emails delayed after); `atLimit`, whether what sends
+ * it can send no more today.
  */
 export function sendingPause(broadcast: {
   state: string;
@@ -154,6 +159,9 @@ export function sendingPause(broadcast: {
   heldTill: Date | null;
   atLimit: boolean;
 }): SendingPause | null {
+  if (broadcast.state === "sent" && broadcast.dueAt && broadcast.held > 0) {
+    return { kind: "delayed", delayed: broadcast.held, stopsAt: sendingStopsAt(broadcast.dueAt) };
+  }
   const sending = broadcast.state === "sending" && broadcast.dueAt ? { dueAt: broadcast.dueAt } : null;
   if (!sending && broadcast.state !== "scheduled") return null;
   if (broadcast.waitingSince) {

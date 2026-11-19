@@ -1012,19 +1012,24 @@ test("Postmark says nothing of an email's copies", async ({ page, request, flowD
   await expect(page.getByRole("heading", { name: stateWords.tabs.held })).toBeVisible();
   await frame(page, "Those delayed");
   story(
-    "The hourly sending takes the last one, whose consent has ended, so it isn't sent. With nothing left to go, the email is sent, five still delayed. Nothing stops it.",
+    "The hourly sending takes the last one, whose consent has ended, so it isn't sent. With nothing left to go, the email has all been sent, but it isn't done: it waits on the five delayed, with nothing to stop.",
   );
   await runSending(request);
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByText(copy.paused.bar(2, 7))).toBeVisible();
   await expect(page.getByRole("button", { name: mailingCopy.stopSending })).toHaveCount(0);
-  await frame(page, "Sent, five still delayed");
+  await frame(page, "Waiting on five delayed");
+  story("In the list of broadcasts, it's still coming up, waiting.");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByRole("listitem").filter({ hasText: title }).getByText(copy.paused.forDelayed)).toBeVisible();
+  await frame(page, "Waiting, in the list");
   story(
-    "Seven days after it was due, those still delayed never will arrive, so each is an error, saying what delayed it.",
+    "Seven days after it was due, those still delayed never will arrive, so each is an error, saying what delayed it, and the email is sent.",
   );
   runSql(flowDatabase, `UPDATE mailings SET due_at = due_at - interval '7 days' WHERE id = ${id}`);
   await page.goto(`${BASE}/staff/broadcasts/${id}?tab=error`);
   await expect(page.getByRole("heading", { name: stateWords.tabs.error })).toBeVisible();
-  await frame(page, "Errors once its days ran out");
+  await frame(page, "Sent, errors once its days ran out");
 });
 
 test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => {
