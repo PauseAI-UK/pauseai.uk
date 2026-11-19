@@ -825,8 +825,10 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   const { lists } = supportersCopy.supporters.filters;
   const except = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except }));
   await except.getByText(supportersCopy.supporters.columns.subscriptions, { exact: true }).click();
-  // By text: email's is the broadcast's own, so not offered.
-  await except.getByRole("link", { name: lists["updates-luma"], exact: true }).click();
+  // By text: email's is the broadcast's own, so not offered. From the keyboard: on a phone the next group's
+  // heading, held at the menu's foot, sits over it.
+  await except.getByRole("link", { name: lists["updates-luma"], exact: true }).focus();
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/contact=%21text%3Anewsletter%3Ayes(\+|%20)text%3Aevents%3Ayes/);
   const leftOut = staffVocabulary.filters.notChip(
     supportersCopy.supporters.filters.wayChips.text,
