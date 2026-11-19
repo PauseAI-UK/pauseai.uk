@@ -16,11 +16,10 @@
 
 .marquee {
   position: relative;
-  /* Three rows of one height, each that height from the moment it arrives:
-     a browser can paint when only the first row of the page has reached it. */
-  display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  --row-gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--row-gap);
   padding: 12px 0;
   /* Fill the viewport minus the sticky nav so the last row's bottom
      edge sits flush with the viewport bottom on first load. */
@@ -29,9 +28,16 @@
   overflow: hidden;
 }
 
+/* A third of the hero, less the two gaps between the three rows, whichever
+   rows are there: a browser can paint when only the first has reached it,
+   and left to share the height out, that row would be the whole hero.
+   The height is written out, not a grid's: in a grid Safari sizes each copy
+   of a row by its photos' full sizes, which opens a gap where the copies
+   join. */
 .row {
+  flex: none;
+  height: calc((100% - 2 * var(--row-gap)) / 3);
   overflow: hidden;
-  min-height: 0;
 }
 
 .track {
@@ -200,7 +206,7 @@
        bottom row's edge sits inside the visible viewport on first load
        instead of slipping below the browser chrome. */
     height: calc(100svh - 77px - var(--march-banner-h, 0px));
-    gap: 8px;
+    --row-gap: 8px;
     padding: 8px 0;
   }
   /* On phone, sit the title + lede + buttons on a warm-dark blurred panel
