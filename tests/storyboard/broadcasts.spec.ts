@@ -203,7 +203,7 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }).click();
   await expect(
     saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }),
-  ).toHaveAttribute("aria-checked", "true");
+  ).toBeChecked();
   await frame(page, "To PauseAI Updates in place of including Luma");
   story("What's written after the change is saved, as anything written is.");
   await savedAfter(page, () => page.getByLabel(copy.subject).fill("This month's news"));
@@ -1203,7 +1203,9 @@ test("What the lists mean, and a change waiting on the site", async ({ page, req
   await startFromList(page, EMAIL, EMAILABLE);
   const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
   const bubble = await openBubble(
-    saidYes.getByRole("button", { name: supportersCopy.supporters.detail.permissions.listsHelp }),
+    saidYes.getByRole("button", {
+      name: supportersCopy.supporters.detail.permissions.listHelp(supportersCopy.supporters.filters.lists.updates),
+    }),
   );
   await expect(bubble.getByText(supportersCopy.supporters.detail.permissions.details.updates.about)).toBeVisible();
   await frame(page, "What the lists mean");
@@ -1218,9 +1220,11 @@ test("What the lists mean, and a change waiting on the site", async ({ page, req
     exact: true,
   });
   await volunteering.click();
-  await expect(volunteering).toHaveAttribute("aria-busy", "true");
+  // Its name, busy, under a spinner.
+  const busy = saidYes.locator("label[aria-busy=true]");
+  await expect(busy).toHaveText(supportersCopy.supporters.filters.lists.volunteering);
   await frame(page, "Waiting for the site, after pressing Volunteering");
   await actions.release();
-  await expect(volunteering).not.toHaveAttribute("aria-busy");
-  await expect(volunteering).toHaveAttribute("aria-checked", "true");
+  await expect(busy).toHaveCount(0);
+  await expect(volunteering).toBeChecked();
 });

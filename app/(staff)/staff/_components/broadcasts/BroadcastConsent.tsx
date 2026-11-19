@@ -1,6 +1,7 @@
 "use client";
 
-import { Segmented } from "@/components/ui/Controls";
+import { Radio, Segmented } from "@/components/ui/Controls";
+import { ButtonInside } from "@/components/ui/Button";
 import { FieldSet } from "@/components/ui/Field";
 import { choiceTerms, consentChoice } from "@/lib/broadcasts/broadcasts";
 import { LIST_TOPICS, listOf, listsBy, type Channel, type List } from "@/lib/supporters/contact-permissions";
@@ -8,7 +9,7 @@ import ChannelIcon from "@/components/ui/ChannelIcon";
 import { useState } from "react";
 import own from "./Broadcasts.module.css";
 import { supportersCopy } from "../supporters/copy";
-import { ListsHelp } from "../supporters/PermissionTiles";
+import { ListHelp } from "../supporters/PermissionTiles";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 const copy = broadcastsCopy.broadcastPages;
@@ -18,8 +19,8 @@ const CHANNELS: Channel[] = ["email", "phone"];
 /**
  * The Consent a broadcast goes under, which says whether it's an email or a
  * text and who it goes to: first email or text, then one of the lists by
- * it, as the Consent filter names and orders them; a text goes to a list's
- * yeses by text. `value` is the one chosen, as consentChoice writes it, or
+ * it, as the Consent filter names and orders them, a radio button each with
+ * a "?" saying what it means; a text goes to a list's yeses by text. `value` is the one chosen, as consentChoice writes it, or
  * none yet. Once it has words of its own (`written`), the other channel
  * can't be chosen, so none are lost. `shown` is the channel whose lists
  * show, and `show` shows another's; a list picked on a channel not the
@@ -74,17 +75,21 @@ export default function BroadcastConsent({
       </FieldSet>
       {shown && (
         <FieldSet label={copy.facts.saidYes}>
-          <div className={own.topics}>
-            <Segmented<List>
-              label={copy.facts.saidYes}
-              options={lists}
-              // None chosen yet, or a broadcast's from before the lists, matches no option, so none is checked.
-              value={on as List}
-              onChange={(list) => list !== on && choose(list)}
-              busy={pending}
-              waiting={pressed}
-            />
-            <ListsHelp id="lists-help-broadcast" />
+          <div className={own.lists} role="radiogroup" aria-label={copy.facts.saidYes} aria-busy={pending || undefined}>
+            {lists.map(({ value: list, label }) => (
+              <span key={list} className={own.list}>
+                <label className={own.listName} aria-busy={(pending && list === pressed) || undefined}>
+                  <Radio
+                    name={`list-${way}`}
+                    value={list}
+                    checked={list === on}
+                    onChange={() => !pending && list !== on && choose(list)}
+                  />
+                  <ButtonInside pending={pending && list === pressed}>{label}</ButtonInside>
+                </label>
+                <ListHelp list={list} />
+              </span>
+            ))}
           </div>
         </FieldSet>
       )}

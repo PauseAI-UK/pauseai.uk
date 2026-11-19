@@ -56,8 +56,7 @@ describe("SUPPORTER_FILTERS", () => {
     expect(contact().options.map((option) => option.value)).toContain("text:newsletter:yes text:events:yes");
     expect(contact().repeat).toBe(true);
     expect(contact().oneAtATime).toBe(true);
-    expect(
-      SUPPORTER_FILTERS({ events: [], mps: [], near: "", listsHelp: "?" }).find((f) => f.name === "contact")!.help,
-    ).toBe("?");
+    const helped = SUPPORTER_FILTERS({ events: [], mps: [], near: "", listHelp: (list) => `? ${list}` });
+    expect(helped.find((f) => f.name === "contact")!.options.map((option) => option.help)).toContain("? updates-luma");
   });
 });

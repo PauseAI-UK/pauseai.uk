@@ -1,3 +1,4 @@
+import { useId } from "react";
 import ExternalLink from "../ui/ExternalLink";
 import StaffLink from "../ui/StaffLink";
 import {
@@ -51,22 +52,24 @@ function ListDetails({ list }: { list: List }) {
 }
 
 /**
- * A "?" that opens what each list means, as each list's own "?" says it,
- * beside where staff choose a list: the Consent filter and a broadcast's
- * list. `id` tells one on a page from another.
+ * A "?" that opens what one list means, as its row's "?" says it, beside
+ * where it's chosen: a broadcast's list, and each in the Consent filter's
+ * menus. Each has its own bubble, as one list can be in several menus at once.
  */
-export function ListsHelp({ id }: { id: string }) {
+export function ListHelp({ list }: { list: List }) {
+  const id = `list-help-${useId()}`;
   return (
     <>
-      <button type="button" className={styles.help} aria-label={copy.listsHelp} {...bubbleTrigger(id)}>
+      <button
+        type="button"
+        className={styles.help}
+        aria-label={copy.listHelp(supportersCopy.supporters.filters.lists[list])}
+        {...bubbleTrigger(id)}
+      >
         ?
       </button>
       <BubbleBox id={id} className={styles.popover}>
-        {LISTS.map((list) => (
-          <div key={list} className={styles.listHelp}>
-            <ListDetails list={list} />
-          </div>
-        ))}
+        <ListDetails list={list} />
       </BubbleBox>
     </>
   );

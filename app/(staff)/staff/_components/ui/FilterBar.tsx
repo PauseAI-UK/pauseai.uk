@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Form from "next/form";
 import { Button } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
@@ -520,7 +520,6 @@ export default function FilterBar({
                 {groups(offered, false)}
               </Menu>
             ))}
-          {filters.map((filter) => filter.help && <Fragment key={filter.name}>{filter.help}</Fragment>)}
           {view}
           {(on.length > 0 || values[search.name] || saved?.loaded) && (
             <StaffLink href={filtersPath(path, kept)} className={styles.clearAll}>

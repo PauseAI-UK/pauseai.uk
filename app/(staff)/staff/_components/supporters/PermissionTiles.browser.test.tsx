@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { exampleBlockedPermissions, exampleMemberDetails, exampleSupporterDetails } from "./SupportersTable.examples";
-import PermissionTiles, { ListsHelp } from "./PermissionTiles";
+import PermissionTiles, { ListHelp } from "./PermissionTiles";
 import { REASONS } from "@/lib/supporters/contact-permissions";
 import { supportersCopy } from "./copy";
 
@@ -66,11 +66,10 @@ describe("PermissionTiles", () => {
     expect(reasons(luma)).toEqual([copy.luma.on]);
   });
 
-  it("opens what every list means from one ?, as beside the Consent filter and a broadcast's list", async () => {
-    await render(<ListsHelp id="help" />);
-    await page.getByRole("button", { name: copy.listsHelp }).click();
-    const titles = [...document.querySelectorAll("[popover] strong")].map((s) => s.textContent);
-    expect(titles).toEqual([lists.updates, lists["updates-luma"], lists.volunteering].map(copy.topicTitle));
+  it("opens what one list means from its own ?, as beside each list in the Consent menu and a broadcast's", async () => {
+    await render(<ListHelp list="updates-luma" />);
+    await page.getByRole("button", { name: copy.listHelp(lists["updates-luma"]) }).click();
+    expect(document.querySelector("[popover] strong")!.textContent).toBe(copy.topicTitle(lists["updates-luma"]));
   });
 
   it("names where each answer came from, or the newest form for a source it has no name for", async () => {

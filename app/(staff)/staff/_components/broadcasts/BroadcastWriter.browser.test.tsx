@@ -77,14 +77,15 @@ const button = (name: string | RegExp) => page.getByRole("button", { name });
 describe("BroadcastWriter's Consent", () => {
   const lists = supportersCopy.supporters.filters.lists;
   const LUMA = "email:newsletter:yes email:events:yes";
-  // Email or text, one of them; Said yes to, one of the channel's lists.
+  // Email or text, one of two buttons; Said yes to, one of the channel's lists, radio buttons.
   const group = (name: string) => page.getByRole("radiogroup", { name }).last();
   const radios = (name: string) =>
-    [...group(name).element().querySelectorAll("button")].map((b) => [
-      b.textContent,
-      b.getAttribute("aria-checked") === "true",
-      (b as HTMLButtonElement).disabled,
-    ]);
+    [...group(name).element().querySelectorAll<HTMLButtonElement | HTMLInputElement>("button[role=radio], input")].map(
+      (one) =>
+        one instanceof HTMLInputElement
+          ? [one.closest("label")!.textContent, one.checked, one.disabled]
+          : [one.textContent, one.getAttribute("aria-checked") === "true", one.disabled],
+    );
   const choose = (within: string, name: string) => group(within).getByRole("radio", { name, exact: true }).click();
 
   it("asks email or text, then offers that channel's lists in a row, its own chosen, the other channel shut once it has words", async () => {
@@ -101,7 +102,11 @@ describe("BroadcastWriter's Consent", () => {
     // One list at a time, with what each means beside them.
     expect(page.getByRole("button", { name: staffVocabulary.filters.addChoice }).query()).toBeNull();
     await expect
-      .element(page.getByRole("button", { name: supportersCopy.supporters.detail.permissions.listsHelp }))
+      .element(
+        page.getByRole("button", {
+          name: supportersCopy.supporters.detail.permissions.listHelp(lists.volunteering),
+        }),
+      )
       .toBeVisible();
   });
 

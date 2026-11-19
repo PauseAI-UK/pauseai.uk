@@ -568,10 +568,13 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
 });
 
 test("What the lists mean", async ({ page, flowDatabase }) => {
-  story("Beside the Consent filter, a ? says what each list means and who's on it.");
+  story("In the Consent menu, a ? beside each list says what it means and who's on it.");
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
-  const bubble = await openBubble(page.getByRole("button", { name: copy.detail.permissions.listsHelp }));
+  const consent = await openBubble(page.getByRole("button", { name: copy.columns.subscriptions, exact: true }));
+  const bubble = await openBubble(
+    consent.getByRole("button", { name: copy.detail.permissions.listHelp(copy.filters.lists["updates-luma"]) }).first(),
+  );
   await expect(bubble.getByText(copy.detail.permissions.details["updates-luma"].about)).toBeVisible();
   await frame(page, "What the lists mean");
 });

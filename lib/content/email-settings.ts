@@ -14,8 +14,8 @@ export function settingsDate(date: Date | null): string {
 // As the staff pages name their lists (supportersCopy.supporters.filters.lists): the newsletter is PauseAI
 // Updates, and events, our Luma calendar, is Luma's own emails, its own card.
 const topicNames: Record<Topic, string> = {
-  newsletter: "⁂ PauseAI Updates",
-  events: "⁂ Luma calendar emails (sent by Luma)",
+  newsletter: "PauseAI UK Updates",
+  events: "Luma messages (sent by Luma)",
   volunteering: "Volunteering",
 };
 
@@ -23,8 +23,8 @@ const wayNames: Record<Way, string> = { email: "Email", text: "Text", call: "Cal
 
 // What each is, under its name on the page.
 const about: Record<Topic, string> = {
-  newsletter: "⁂ News and ways to help from PauseAI UK.",
-  events: "⁂ Invitations Luma sends for our events. Turning this off takes you off our Luma calendar.",
+  newsletter: "⁂ News and ways to help our campaign.",
+  events: "You're on our Luma calendar, and we message you via Luma.",
   volunteering: "More in depth contact from staff and local groups.",
 };
 
@@ -135,11 +135,13 @@ export const emailSettingsCopy = {
     saved: "Saved",
   },
   topics: topicNames,
+  // The Luma card's one box, ticked while they're on our Luma calendar.
+  lumaBox: "Get them",
   about,
   ways: wayNames,
   // A topic in a sentence, as an unsubscribe says what of.
   inSentence: {
-    newsletter: "⁂ PauseAI Updates",
+    newsletter: "⁂ PauseAI UK Updates",
     events: "⁂ our Luma calendar's emails",
     volunteering: "our volunteering emails",
   } as Record<Topic, string>,
@@ -209,7 +211,7 @@ export const emailSettingsCopy = {
     title: (topics: string) => `Unsubscribe from ${topics}?`,
     button: "Unsubscribe",
     done: (topics: string) => `You've unsubscribed from ${topics}`,
-    // "them" for PauseAI Updates and every other.
+    // "them" for PauseAI UK Updates and every other.
     doneBody: () => "⁂ You won't get them by email any more.",
     // In place of the button, where they get none of its topics by email already, for whatever reason.
     off: (topics: string) => `You're not subscribed to ${topics}`,

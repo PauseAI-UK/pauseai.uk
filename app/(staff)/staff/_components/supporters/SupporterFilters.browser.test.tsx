@@ -42,7 +42,6 @@ describe("SupporterFilters", () => {
       staffVocabulary.filters.notChip(wayChips.text, lists["updates-luma"]),
       `${copy.columns.badges}: ${copy.badges.registered}`,
     ]);
-    await expect.element(page.getByRole("button", { name: copy.detail.permissions.listsHelp })).toBeInTheDocument();
     const emails = [...document.querySelectorAll("button")].find((b) => b.textContent?.startsWith(wayChips.email))!;
     expect(emails.querySelector("svg")).not.toBeNull();
     // Several, from a link, so its menu opens as boxes: email's lists alone. It can turn them all to left out, but

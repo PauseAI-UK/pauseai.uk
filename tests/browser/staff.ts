@@ -24,12 +24,11 @@ export async function downloads() {
   return [...box.querySelectorAll("a")].map((a) => a.getAttribute("href"));
 }
 
-/** The chips of the filters on, by their words: not Consent's own button, there while it's off, or its "?". */
+/** The chips of the filters on, by their words: not Consent's own button, there while it's off. */
 export const chips = () =>
   page
     .getByRole("button")
     .all()
-    .filter((b) => b.element().getAttribute("aria-label") !== supportersCopy.supporters.detail.permissions.listsHelp)
     .map((b) => b.element().textContent)
     .filter(
       (text) =>

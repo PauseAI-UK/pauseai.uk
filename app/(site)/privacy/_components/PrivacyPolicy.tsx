@@ -91,7 +91,7 @@ export default function PrivacyPolicy() {
 
       <h2>How we contact you</h2>
       <p>
-        We email you PauseAI Updates if you asked for them on one of our forms, joined PauseAI UK as a member, said
+        We email you PauseAI UK Updates if you asked for them on one of our forms, joined PauseAI UK as a member, said
         you’d like to volunteer, or are on our Luma calendar. Every email has a link to unsubscribe.
       </p>
       <p>We text you on WhatsApp if you asked for texts, or said you’d like to volunteer. Reply STOP to stop them.</p>

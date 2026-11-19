@@ -49,6 +49,8 @@ export type FilterOption = {
   label: string;
   group?: { label: string; icon: ReactNode; chip?: string };
   detail?: string;
+  /** What the choice means, after its link in a menu, such as a "?" that opens it. */
+  help?: ReactNode;
   under?: string;
 };
 
@@ -84,8 +86,6 @@ export type Filter = {
   own?: boolean;
   /** A filter whose chips find one choice each, with no "+ Add" to tick more. */
   oneAtATime?: boolean;
-  /** What the filter's choices mean, at the end of the bar's chips, such as a "?" that opens it. */
-  help?: ReactNode;
   /**
    * A filter whose finding can't be changed here, and why, said on hovering
    * its chip: that chip is there but doesn't open, with a lock for its arrow,
@@ -367,8 +367,8 @@ export type SupporterBarChoices = SupporterChoices & {
   near: string;
   found?: SupportersPage["near"];
   channelIcon?: (way: Way) => ReactNode;
-  /** What the Consent filter's lists mean. */
-  listsHelp?: ReactNode;
+  /** What a Consent filter's list means, after it in a menu. */
+  listHelp?: (list: List) => ReactNode;
 };
 
 /**
@@ -386,7 +386,7 @@ export type SupporterBarChoices = SupporterChoices & {
  */
 export const SUPPORTER_FILTERS = listFilters(
   SUPPORTERS_LIST,
-  ({ events, mps, near, found, channelIcon, listsHelp }: SupporterBarChoices) => {
+  ({ events, mps, near, found, channelIcon, listHelp }: SupporterBarChoices) => {
     const copy = supportersCopy.supporters.filters;
     const { columns } = supportersCopy.supporters;
     return {
@@ -419,11 +419,11 @@ export const SUPPORTER_FILTERS = listFilters(
         // Who a message can go to, so its own button. Each list includes those it should, so one at a time.
         own: true,
         oneAtATime: true,
-        help: listsHelp,
         // Each list under its way's heading, as those on it by that way.
         options: LIST_ORDER.map(({ list, way }) => ({
           value: listValue(list, way),
           label: copy.lists[list],
+          help: listHelp?.(list),
           group: { label: copy.ways[way], icon: channelIcon?.(way), chip: copy.wayChips[way] },
         })),
       },

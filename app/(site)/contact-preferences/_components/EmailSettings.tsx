@@ -152,7 +152,7 @@ function LumaCard({ initial, locked, saving }: { initial: boolean; locked: boole
       <p className={styles.what}>{copy.about.events}</p>
       <div className={styles.ways}>
         <Checkbox name="choice" value={LUMA_CHOICE} checked={on} disabled={locked} boxed onChange={setOn}>
-          {copy.ways.email}
+          {copy.lumaBox}
         </Checkbox>
         <span className={styles.saving} role="status">
           {saving && <SaveState state={saving}>{copy.settings[saving]}</SaveState>}

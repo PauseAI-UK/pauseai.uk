@@ -319,3 +319,24 @@
   gap: var(--space-2);
   justify-items: start;
 }
+
+/* A broadcast's lists, one under another: a radio button and its name, then the "?" saying what it means. */
+.lists {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Held for the spinner (ButtonInside) over the name while its change is on its way. */
+.listName {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}

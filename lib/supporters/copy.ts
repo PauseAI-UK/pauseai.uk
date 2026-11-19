@@ -40,8 +40,8 @@ export const supportersCopy = {
       // The Consent filter: its lists under their way's heading; each way's chip named for it, before the lists it
       // finds or "not" and those it leaves out. Broadcasts name the list they go to the same way.
       lists: {
-        updates: "⁂ PauseAI Updates",
-        "updates-luma": "⁂ PauseAI Updates including Luma",
+        updates: "⁂ PauseAI UK Updates",
+        "updates-luma": "⁂ PauseAI UK Updates inc. Luma",
         volunteering: "Volunteering",
       } as Record<List, string>,
       ways: { email: "Email", text: "Text", call: "Call" } as Record<Way, string>,
@@ -223,9 +223,9 @@ export const supportersCopy = {
             no: "They unsubscribed, here or in CiviCRM, or never asked. A stop in CiviCRM, such as “No bulk emails”, stops it too.",
           },
           "updates-luma": {
-            about: "⁂ PauseAI Updates, and everyone on our Luma calendar too. By email or text.",
-            yes: "⁂ They're on PauseAI Updates, or on our Luma calendar, or gave a number on Luma or for texts on the day of the march.",
-            no: "⁂ They unsubscribed from PauseAI Updates, or unsubscribed in Luma and never asked us.",
+            about: "⁂ PauseAI UK Updates, and everyone on our Luma calendar too. By email or text.",
+            yes: "⁂ They're on PauseAI UK Updates, or on our Luma calendar, or gave a number on Luma or for texts on the day of the march.",
+            no: "⁂ They unsubscribed from PauseAI UK Updates, or unsubscribed in Luma and never asked us.",
           },
           volunteering: {
             about: "Any contact about volunteering.",
@@ -233,11 +233,11 @@ export const supportersCopy = {
             no: "They unsubscribed, didn't choose to volunteer, or the global team no longer shares them with us.",
           },
         } as Record<List, { about: string; yes: string; no: string }>,
-        // The "?" beside the Consent filter and a broadcast's list, which opens what each list means.
-        listsHelp: "⁂ What the lists mean",
+        // The "?" beside one list where a broadcast's is chosen, which opens what it means.
+        listHelp: (name: string) => `⁂ What ${name} means`,
         // The last row: whether Luma's own emails go to them, as being on our Luma calendar decides.
         luma: {
-          name: "⁂ Luma calendar emails (sent by Luma)",
+          name: "⁂ Luma messages (sent by Luma)",
           on: "⁂ On our Luma calendar",
           off: "⁂ Not on our Luma calendar",
         },
