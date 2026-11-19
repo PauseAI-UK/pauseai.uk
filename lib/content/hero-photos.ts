@@ -1,7 +1,9 @@
 // The photos in the home page's scrolling hero, from public/images/front-page-hero-optimized/.
-// [src, alt, intrinsic width, intrinsic height] — the dimensions are
-// required by next/image for aspect ratio; actual display size is driven
-// by the CSS (height: 100%; width: auto) on .hero-marquee-track img.
+// [src, alt, intrinsic width, intrinsic height] — the dimensions give each
+// photo its shape before it loads; actual display size is driven by the CSS
+// (height: 100%; width: auto) on the track's images (HomeHero.module.css).
+// Each has an AVIF copy beside it, which the hero serves where it can: after
+// adding or changing a photo, run `npm run data:hero-photos` to make it.
 export const HERO_PHOTOS: [string, string, number, number][] = [
   ["alistair-june-2025-protest.webp", "Alistair at the June 2025 London protest", 800, 450],
   ["alistair-reading.webp", "Alistair Reith at a PauseAI event", 800, 416],

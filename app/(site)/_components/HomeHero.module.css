@@ -75,6 +75,12 @@
    long-standing bug where it under-counts child padding/margin in
    max-content on a flex parent, which is why we override in pixels. */
 
+/* Each photo's <picture> has no box of its own, so the photo is the row's
+   flex item. */
+.track picture {
+  display: contents;
+}
+
 .track img {
   height: 100%;
   width: auto;

@@ -34,6 +34,18 @@ describe("HomeHero", () => {
     expect(container.querySelectorAll('img[aria-hidden="true"]').length).toBe(HERO_PHOTOS.length * 3);
     // Each photo's first showing loads at once; its repeats, the same file, lazily.
     expect(container.querySelectorAll('img:not([loading="lazy"])')).toHaveLength(HERO_PHOTOS.length);
+    // Each is served as its AVIF copy, with the WebP for a browser that can't show one.
+    const first = container.querySelector("picture")!;
+    const webp = first.querySelector("img")!.getAttribute("src")!;
+    expect(webp).toMatch(/^\/images\/front-page-hero-optimized\/.+\.webp$/);
+    expect(first.querySelector("source")).toHaveAttribute("type", "image/avif");
+    expect(first.querySelector("source")).toHaveAttribute("srcset", webp.replace(/\.webp$/, ".avif"));
+    expect(container.querySelectorAll("picture > source + img")).toHaveLength(HERO_PHOTOS.length * 4);
+    // The top row's first photo is fetched first.
+    expect(first.querySelector("img")).toHaveAttribute("fetchpriority", "high");
+    expect(container.querySelectorAll('img[fetchpriority="high"]')).toHaveLength(1);
+    const preloaded = document.head.querySelector('link[rel="preload"][as="image"][type="image/avif"]');
+    expect(preloaded).toHaveAttribute("href", webp.replace(/\.webp$/, ".avif"));
     // The fade's script comes before the photos, so it's listening when the first loads.
     const script = container.querySelector("script")!;
     expect(script.textContent).toBe(HERO_PHOTO_FADE_SCRIPT);

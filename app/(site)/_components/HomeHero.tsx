@@ -1,9 +1,17 @@
-import Image from "next/image";
+import { preload } from "react-dom";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { shuffle } from "@/lib/shuffle.server";
 import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 import styles from "./HomeHero.module.css";
+
+const PHOTOS = "/images/front-page-hero-optimized";
+
+/**
+ * A photo's AVIF copy, which scripts/hero-photos-avif.mjs makes beside its
+ * WebP: under half the size. A browser that can't show AVIF gets the WebP.
+ */
+const avif = (src: string) => `${PHOTOS}/${src.replace(/\.webp$/, ".avif")}`;
 
 // The home page hero: three rows of photos scrolling in alternating
 // directions behind the headline (HeroMarqueeEffects measures and starts
@@ -20,6 +28,8 @@ export default function HomeHero() {
     { dir: "rtl" as const, photos: shuffled.slice(perRow, perRow * 2) },
     { dir: "ltr" as const, photos: shuffled.slice(perRow * 2) },
   ];
+  // The top row's first photo is the largest thing on the page, so the browser is told to fetch it first.
+  preload(avif(heroRows[0].photos[0][0]), { as: "image", type: "image/avif", fetchPriority: "high" });
 
   return (
     <section id="about">
@@ -39,18 +49,23 @@ export default function HomeHero() {
                     const isPrimary = copyIdx === 0 && i < row.photos.length;
                     const isLcp = ri === 0 && copyIdx === 0 && i === 0;
                     // Each photo's first showing loads at once, as the rows bring it on screen before a lazy
-                    // load would finish; its repeats are the same file, there by then.
+                    // load would finish; its repeats are the same file, there by then. The files are
+                    // served as they are, already the size the hero shows them, so nothing waits on an
+                    // image service resizing them.
                     return (
-                      <Image
-                        key={i}
-                        src={`/images/front-page-hero-optimized/${src}`}
-                        alt={isPrimary ? alt : ""}
-                        width={width}
-                        height={height}
-                        aria-hidden={!isPrimary || undefined}
-                        loading={isLcp ? undefined : isPrimary ? "eager" : "lazy"}
-                        priority={isLcp}
-                      />
+                      <picture key={i}>
+                        <source type="image/avif" srcSet={avif(src)} />
+                        <img
+                          src={`${PHOTOS}/${src}`}
+                          alt={isPrimary ? alt : ""}
+                          width={width}
+                          height={height}
+                          aria-hidden={!isPrimary || undefined}
+                          loading={isPrimary ? "eager" : "lazy"}
+                          fetchPriority={isLcp ? "high" : undefined}
+                          decoding="async"
+                        />
+                      </picture>
                     );
                   })}
                 </div>
