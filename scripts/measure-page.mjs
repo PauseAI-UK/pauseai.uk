@@ -103,12 +103,15 @@ const VIEWPORTS = {
 
 /** How long a load may take before its missing figures are left blank. */
 const LOAD_TIMEOUT_MS = 90_000;
-/** A load waits while other work keeps more of the machine's cores busy than this, */
-const QUIET_CORES = 3;
+/**
+ * A load, which keeps two or three cores busy itself, waits while other work
+ * keeps more of the machine's cores busy than this: all but six,
+ */
+const QUIET_CORES = Math.max(1, cpus().length - 6);
 /** for at most this long. */
 const QUIET_WAIT_MS = 15 * 60_000;
-/** A load during which more cores than this were busy, the load's own work included, is run again, */
-const BUSY_CORES = 7;
+/** A load during which more cores than this were busy, its own work included, is run again: all but three, */
+const BUSY_CORES = Math.max(4, cpus().length - 3);
 /** at most this many times. */
 const BUSY_RETRIES = 3;
 /** The most frames a filmstrip shows, and the steps between them it chooses from, in seconds. */
