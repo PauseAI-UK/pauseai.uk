@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isBeacon, keptName } from "./measure-replay.mjs";
+import { isBeacon, keptName, sameFile } from "./measure-replay.mjs";
 
 describe("isBeacon", () => {
   it("lets through a GET for a file from a site that doesn't count visits", () => {
@@ -25,5 +25,15 @@ describe("keptName", () => {
     expect(name).toMatch(/^[0-9a-f]{32}$/);
     expect(keptName("https://example.org/a.js?v=1")).toBe(name);
     expect(keptName("https://example.org/a.js?v=2")).not.toBe(name);
+  });
+});
+
+describe("sameFile", () => {
+  it("takes a script's address to be the same file whatever its query says, but for whose tag it is", () => {
+    const tag = "https://www.googletagmanager.com/gtag/js";
+    expect(sameFile(`${tag}?id=G-ABC&cx=c&gtm=4e6bh1`)).toBe(sameFile(`${tag}?id=G-ABC&cx=c&gtm=4e6bi0h2`));
+    expect(sameFile(`${tag}?id=G-ABC`)).not.toBe(sameFile(`${tag}?id=G-XYZ`));
+    expect(sameFile("https://example.org/a.js?v=1")).toBe(sameFile("https://example.org/a.js"));
+    expect(sameFile("https://example.org/a.js")).not.toBe(sameFile("https://example.org/b.js"));
   });
 });

@@ -17,7 +17,7 @@
 // Delete tmp/measure/replay/ to fetch everything afresh.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:https";
 import { join } from "node:path";
 import { brotliCompressSync, constants } from "node:zlib";
@@ -60,6 +60,16 @@ export function isBeacon(method, url) {
 /** The name a kept file goes by: its address, query and all, hashed. */
 export function keptName(url) {
   return createHash("sha256").update(url).digest("hex").slice(0, 32);
+}
+
+/**
+ * What two addresses have in common when they're for the same file: the
+ * host, the path, and the query's `id`, which says whose Google tag a script
+ * is. The rest of a tag script's query changes from one load to the next.
+ */
+export function sameFile(url) {
+  const { origin, pathname, searchParams } = new URL(url);
+  return `${origin}${pathname}?id=${searchParams.get("id") ?? ""}`;
 }
 
 /** A file from the real site, as it's kept: its status, the headers worth keeping, and its body compressed as it came. */
@@ -120,11 +130,18 @@ export async function startReplay(folder = join("tmp", "measure", "replay")) {
   // Two requests for one file, as a page makes, fetch it once.
   const fetching = new Map();
 
+  // The files kept, by the address each is the same file at whatever else its query says (sameFile).
+  const keptAs = new Map();
+  for (const file of readdirSync(folder).filter((name) => name.endsWith(".json"))) {
+    keptAs.set(sameFile(JSON.parse(readFileSync(join(folder, file), "utf8")).url), file.replace(/\.json$/, ""));
+  }
+
   async function answer(method, url, accept) {
     if (isBeacon(method, url)) return undefined;
-    const base = join(folder, keptName(url));
-    if (existsSync(`${base}.json`)) {
+    const kept = keptAs.get(sameFile(url));
+    if (kept) {
       counts.kept++;
+      const base = join(folder, kept);
       return { ...JSON.parse(readFileSync(`${base}.json`, "utf8")), body: readFileSync(`${base}.body`) };
     }
     if (frozen) {
@@ -132,11 +149,13 @@ export async function startReplay(folder = join("tmp", "measure", "replay")) {
       return undefined;
     }
     if (!fetching.has(url)) {
+      const base = join(folder, keptName(url));
       fetching.set(
         url,
         fetchReal(url, accept).then((real) => {
           writeFileSync(`${base}.body`, real.body);
           writeFileSync(`${base}.json`, JSON.stringify({ url, status: real.status, headers: real.headers }, null, 2));
+          keptAs.set(sameFile(url), keptName(url));
           return real;
         }),
       );
