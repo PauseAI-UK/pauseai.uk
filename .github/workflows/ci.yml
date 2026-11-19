@@ -173,6 +173,14 @@ jobs:
           /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           apt-get install -y --no-install-recommends postgresql-client-18
 
+      # Postgres doesn't wait for each write to reach the disk, as the dev
+      # container's doesn't: the tests' databases are thrown away at the end,
+      # and waiting makes the tests that write to them about twice as slow.
+      - name: Postgres skips flushing to disk
+        run: >-
+          psql -c "ALTER SYSTEM SET fsync = off" -c "ALTER SYSTEM SET synchronous_commit = off"
+          -c "ALTER SYSTEM SET full_page_writes = off" -c "SELECT pg_reload_conf()"
+
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -374,6 +382,14 @@ jobs:
           apt-get install -y --no-install-recommends git postgresql-common
           /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           apt-get install -y --no-install-recommends postgresql-client-18
+
+      # Postgres doesn't wait for each write to reach the disk, as the dev
+      # container's doesn't: the tests' databases are thrown away at the end,
+      # and waiting makes the tests that write to them about twice as slow.
+      - name: Postgres skips flushing to disk
+        run: >-
+          psql -c "ALTER SYSTEM SET fsync = off" -c "ALTER SYSTEM SET synchronous_commit = off"
+          -c "ALTER SYSTEM SET full_page_writes = off" -c "SELECT pg_reload_conf()"
 
       - name: Checkout
         uses: actions/checkout@v7
