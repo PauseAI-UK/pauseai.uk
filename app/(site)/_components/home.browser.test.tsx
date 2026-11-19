@@ -41,9 +41,13 @@ describe("HomeHero", () => {
     expect(first.querySelector("source")).toHaveAttribute("type", "image/avif");
     expect(first.querySelector("source")).toHaveAttribute("srcset", webp.replace(/\.webp$/, ".avif"));
     expect(container.querySelectorAll("picture > source + img")).toHaveLength(HERO_PHOTOS.length * 4);
-    // The top row's first photo is fetched first.
+    // The first two photos of each row are fetched before the rest, the top row's first before anything.
     expect(first.querySelector("img")).toHaveAttribute("fetchpriority", "high");
-    expect(container.querySelectorAll('img[fetchpriority="high"]')).toHaveLength(1);
+    expect(container.querySelectorAll('img[fetchpriority="high"]')).toHaveLength(6);
+    for (const track of tracks) {
+      const photos = [...track.querySelectorAll("img")];
+      expect(photos.map((photo) => photo.getAttribute("fetchpriority")).slice(0, 3)).toEqual(["high", "high", null]);
+    }
     const preloaded = document.head.querySelector('link[rel="preload"][as="image"][type="image/avif"]');
     expect(preloaded).toHaveAttribute("href", webp.replace(/\.webp$/, ".avif"));
     // The fade's script comes before the photos, so it's listening when the first loads.

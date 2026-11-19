@@ -47,7 +47,9 @@ export default function HomeHero() {
                 >
                   {[...row.photos, ...row.photos].map(([src, alt, width, height], i) => {
                     const isPrimary = copyIdx === 0 && i < row.photos.length;
-                    const isLcp = ri === 0 && copyIdx === 0 && i === 0;
+                    // A phone opens on about the first two photos of each row, so those are fetched
+                    // before the rest.
+                    const opensInView = isPrimary && i < 2;
                     // Each photo's first showing loads at once, as the rows bring it on screen before a lazy
                     // load would finish; its repeats are the same file, there by then. The files are
                     // served as they are, already the size the hero shows them, so nothing waits on an
@@ -62,7 +64,7 @@ export default function HomeHero() {
                           height={height}
                           aria-hidden={!isPrimary || undefined}
                           loading={isPrimary ? "eager" : "lazy"}
-                          fetchPriority={isLcp ? "high" : undefined}
+                          fetchPriority={opensInView ? "high" : undefined}
                           decoding="async"
                         />
                       </picture>
