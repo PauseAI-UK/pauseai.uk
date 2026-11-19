@@ -24,6 +24,8 @@ import { looksLikeEmail } from "@/lib/email-your-mp";
 import { named } from "@/lib/email-parsing/addresses";
 import { leavePage } from "@/lib/leave-page.client";
 import { scheduleProblems } from "@/lib/mailings/schedule";
+import { alreadyAnswered } from "@/lib/mailings/warnings";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { filtersPath } from "@/lib/list-params";
 import { londonWhen } from "@/lib/staff-time";
 import type { ChannelResult } from "@/lib/letters/channels.server";
@@ -189,6 +191,9 @@ export default function MailingWriter({
     ...(values.sentFrom && !sender ? [{ email: values.sentFrom, name: "", remaining: 0, connected: false }] : []),
   ];
   const noAddress = data.leftOut.filter((one) => one.reason === "no-address").length;
+  // Those it goes to who've already answered its ask, which may be a mistake: a warning, not a problem.
+  const ask = data.asks.find((one) => one.slug === values.ask);
+  const answered = alreadyAnswered(data.recipients, ask);
 
   return (
     <>
@@ -399,6 +404,29 @@ export default function MailingWriter({
             <BandFact label={facts.via}>{mailingsCopy.mailingPages.sendBy.names.gmail}</BandFact>
             <BandFact label={facts.when}>{values.dueAt ? londonWhen(values.dueAt, "short") : facts.noTime}</BandFact>
           </Facts>
+          {answered.who.length > 0 && (
+            <div className={styles.warning}>
+              <Strip tone="amber">
+                {copy.alreadyAnswered(
+                  answered.who.length,
+                  ask!.title,
+                  answered.answers.map((one) =>
+                    copy.alreadyAnsweredEach(one.count, staffVocabulary.statuses[one.status]),
+                  ),
+                )}
+              </Strip>
+              <details className={styles.leftOut}>
+                <summary>{copy.alreadyAnsweredWho}</summary>
+                <ul>
+                  {answered.who.map((one) => (
+                    <li key={one.id}>
+                      <a href={`/staff/politicians/${one.id}`}>{one.name}</a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          )}
           <div className={styles.send}>
             <ScheduleButton
               label={copy.schedule(data.recipients.length)}

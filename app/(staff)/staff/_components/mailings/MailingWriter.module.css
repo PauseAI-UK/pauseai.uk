@@ -349,3 +349,9 @@
     transition: none;
   }
 }
+
+/* A warning above Send, with who it's about under it. */
+.warning {
+  display: grid;
+  gap: var(--space-2);
+}

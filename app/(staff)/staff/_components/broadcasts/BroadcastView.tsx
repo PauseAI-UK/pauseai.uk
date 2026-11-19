@@ -14,7 +14,7 @@ import IconText from "../ui/IconText";
 import MailEmail from "../mailings/MailEmail";
 import MailingFiles from "../mailings/MailingFiles";
 import { MailingLetter } from "../mailings/MailingLetter";
-import { ResumeBroadcast } from "../mailings/MailingButtons";
+import { CopyMailing, ResumeBroadcast } from "../mailings/MailingButtons";
 import { fromDetail, MailingStanding, MailingWhen } from "../mailings/MailingView";
 import TextBubble from "./TextBubble";
 import Band, { BandFact } from "../ui/Band";
@@ -231,6 +231,7 @@ export default function BroadcastView({
   stop,
   reschedule,
   resume,
+  copyIt,
 }: {
   data: Extract<BroadcastPageData, { kind: "written" }>;
   /** Who else it was for, as pills, or everyone who said yes (BroadcastWho). */
@@ -241,6 +242,8 @@ export default function BroadcastView({
   reschedule: FormAction;
   /** Sets one going again that stopped as it hadn't all gone in time. */
   resume: FormAction;
+  /** Copy broadcast, at its top right. */
+  copyIt?: FormAction;
 }) {
   const { summary, tab } = data;
   // All sent but for delayed emails, it's shown as sending, waiting on them (withPause), with nothing to stop.
@@ -265,6 +268,7 @@ export default function BroadcastView({
             <Tag tone={scheduled ? "blue" : undefined}>{mailingsCopy.mailingPages.states[written.state]}</Tag>
           )
         }
+        corner={copyIt && <CopyMailing id={written.id} label={copy.copyBroadcast} action={copyIt} />}
         aside={!scheduled && <CountGroups groups={groups} />}
       >
         {/* What sends it is said under who it's from, so it takes no fact of its own. */}

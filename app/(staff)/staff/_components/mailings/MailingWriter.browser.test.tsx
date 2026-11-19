@@ -17,6 +17,7 @@ import { emailCopy } from "../email/copy";
 import { mailingsCopy } from "./copy";
 import { MailingWriterExample } from "./MailingWriter.gallery.client";
 import { politiciansCopy } from "../politicians/copy";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 // Following a link that saves first leaves the page, which would take the test with it.
 const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
@@ -334,6 +335,23 @@ describe("MailingWriter", () => {
     await expect
       .element(page.getByRole("link", { name: copy.changeWho }))
       .toHaveAttribute("href", "/staff/politicians?house=commons&party=%21Labour&ask=frontier-ai-letter&mailing=12");
+  });
+
+  it("warns above Send of those who've already answered its ask, following the ask chosen, and names them", async () => {
+    await renderWriter({ draft: { ...exampleWrittenMailing, ask: null } });
+    const warning = () => page.getByText(/already answered/);
+    expect(warning().query()).toBeNull();
+    const letterAsk = exampleWriterData.asks.find((a) => a.slug === "frontier-ai-letter")!;
+    await field(copy.ask).selectOptions(letterAsk.title);
+    await expect
+      .element(warning())
+      .toHaveTextContent(
+        copy.alreadyAnswered(1, letterAsk.title, [copy.alreadyAnsweredEach(1, staffVocabulary.statuses.signed)]),
+      );
+    await page.getByText(copy.alreadyAnsweredWho).click();
+    await expect
+      .element(region(copy.sections.send).getByRole("link", { name: "Polly Placeholder" }))
+      .toHaveAttribute("href", "/staff/politicians/7");
   });
 
   it("explains the ask behind its ?", async () => {

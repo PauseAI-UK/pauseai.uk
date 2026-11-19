@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { clearedTo, filtersPath, pageNumber, pageParam, pagePath } from "./list-params";
+import {
+  clearedTo,
+  filtersPath,
+  pageNumber,
+  pageParam,
+  pagePath,
+  pairedValue,
+  pairedValues,
+  unpaired,
+} from "./list-params";
 
 describe("pageNumber", () => {
   it("reads a page from 1, or the first page", () => {
@@ -40,5 +49,23 @@ describe("pagePath", () => {
   it("gives the first page at the list's own URL, and any other with its number", () => {
     expect(pagePath("/staff/audit-log", 1)).toBe("/staff/audit-log");
     expect(pagePath("/staff/audit-log", 2)).toBe("/staff/audit-log?page=2");
+  });
+});
+
+describe("pairedValues", () => {
+  it("pairs each value with one of the filter's before it, a value not paired with the first", () => {
+    expect(pairedValue("letter", "signed")).toBe("letter.signed");
+    expect(unpaired("letter.signed")).toEqual({ of: "letter", value: "signed" });
+    expect(unpaired("signed")).toEqual({ value: "signed" });
+    expect(pairedValues(["letter", "event"], ["signed", "!event.going", "!declined"])).toEqual([
+      "letter.signed",
+      "!event.going",
+      "!letter.declined",
+    ]);
+  });
+
+  it("drops a value paired with one not chosen, or with nothing, and every value while none is chosen", () => {
+    expect(pairedValues(["letter"], ["other.signed", "letter.", "letter.signed"])).toEqual(["letter.signed"]);
+    expect(pairedValues([], ["signed"])).toEqual([]);
   });
 });

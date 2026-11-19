@@ -2,9 +2,23 @@
 // group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
-import { MailingButtonsExample, ResumeBroadcastExample } from "./MailingButtons.gallery.client";
+import { CopyMailingExample, MailingButtonsExample, ResumeBroadcastExample } from "./MailingButtons.gallery.client";
 
 export const mailingButtonsGallery: Example[] = [
+  {
+    name: "CopyMailing",
+    file: "app/(staff)/staff/_components/mailings/MailingButtons.tsx",
+    variants: [
+      {
+        label: "At the top right of a mailing's or a broadcast's page",
+        render: () => (
+          <StaffPage as="div">
+            <CopyMailingExample id={8} />
+          </StaffPage>
+        ),
+      },
+    ],
+  },
   {
     name: "DeleteDraft",
     file: "app/(staff)/staff/_components/mailings/MailingButtons.tsx",

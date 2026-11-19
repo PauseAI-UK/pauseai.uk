@@ -165,6 +165,14 @@ function toPolitician({ statuses, askedByLetter, ...row }: Row): Politician {
 /** The filters that repeat, which can leave out as well as find. */
 type NegatablePoliticianFilter = "party" | "flags" | "country" | "email" | "mailed";
 
+/**
+ * How a politician stands on an ask, by its slug: each a way `answer` and
+ * `not` take, an answer they gave; REPLIED, any answer; INVITED, asked with
+ * no answer yet; or NEVER_ASKED. With `answer`, they stand in any of its ways;
+ * otherwise they were asked, answered or not. With `not`, in none of its ways.
+ */
+export type AskStanding = { ask: string; answer?: string[]; not?: string[] };
+
 /** Who the politicians list shows. */
 export type PoliticianWho = {
   /** Only these, by ID. */
@@ -184,13 +192,8 @@ export type PoliticianWho = {
   email?: EmailState[];
   /** Those a mailing about any of these asks, by slug, went to or is going to. */
   mailed?: string[];
-  /** Only those asked this ask, answered or not, or who stand on it as `answer` says, if given. */
-  ask?: string;
-  /**
-   * Only those who stand in any of these ways on `ask`: an answer they gave; REPLIED, any answer; INVITED, asked
-   * with no answer yet; or NEVER_ASKED. Nothing without an ask.
-   */
-  answer?: string[];
+  /** Only those who stand on every one of these asks as it says. */
+  asks?: AskStanding[];
   /** Only those who agreed to an ask (AGREED_STATUSES), not by Airtable's record, in the last so many days. */
   agreedDays?: number;
   /** Those with none of these, each a filter above that repeats. */
@@ -316,7 +319,10 @@ function politicianConditions(filter: PoliticianWho, closest = false): Sql[] {
   }
   // What's left out: a filter's condition not true, so one with no value, such as no party, is kept.
   if (filter.not) where.push(...anyOf(filter.not).map((condition) => sql`(${condition}) IS NOT TRUE`));
-  if (filter.ask) where.push(answered(filter.ask, filter.answer));
+  for (const { ask, answer, not } of filter.asks ?? []) {
+    where.push(answered(ask, answer));
+    if (not) where.push(sql`(${answered(ask, not)}) IS NOT TRUE`);
+  }
   return where;
 }
 

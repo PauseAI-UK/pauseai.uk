@@ -29,14 +29,18 @@ export const politicianFiltersGallery: Example[] = [
                 flag: ["important"],
                 nation: ["wales"],
                 email: ["blocked"],
-                ask: "edinburgh-conference-2026",
-                answer: ["invited", "declined"],
+                ask: ["edinburgh-conference-2026", "frontier-ai-letter"],
+                answer: [
+                  "edinburgh-conference-2026.invited",
+                  "edinburgh-conference-2026.declined",
+                  "!frontier-ai-letter.signed",
+                ],
               }}
               asks={exampleAsks}
               parties={parties}
             />
             <PoliticianFilters
-              search={{ ...emptyPoliticiansSearch, ask: "edinburgh-conference-2026" }}
+              search={{ ...emptyPoliticiansSearch, ask: ["edinburgh-conference-2026"] }}
               asks={exampleAsks}
               parties={parties}
             />

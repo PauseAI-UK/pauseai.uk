@@ -36,9 +36,9 @@ function NotWords({ label }: { label: string }) {
  * the URL so Back isn't full of them, the router dropping one still on its way
  * for a newer. Meanwhile the bar is held (ui/FilterBarLines), so the menu stays
  * open and the chip stays, even with nothing ticked, until the menu closes; only
- * the chip's words change. As a lozenge's second half (`half`) it's there with
- * none chosen too, named for its blank choice, and has nothing to turn round or
- * remove. `turns` offers turning what it has the other way. `icon`, before
+ * the chip's words change. As part of a lozenge (`half`) it's there with
+ * none chosen too, named for its blank choice, and has nothing to remove,
+ * as removing the lozenge's first part removes it. `turns` offers turning what it has the other way. `icon`, before
  * its name, says what its choices all are, so its words leave out their
  * group (a Consent chip's way). `boxOptions`, if given, are those "+ Add" offers
  * to tick, where they're fewer than the menu offers to pick one of. `id`
@@ -133,11 +133,10 @@ export default function ManyChoices({
       trigger={not ? `${styles.chip} ${styles.not}` : styles.chip}
       label={
         half ? (
-          chosenWords.length > 0 ? (
-            chosenWords
-          ) : (
-            words("")
-          )
+          <>
+            {not && <NotIcon />}
+            {chosenWords.length > 0 ? chosenWords : words("")}
+          </>
         ) : (
           <>
             {not && <NotIcon />}
@@ -197,7 +196,7 @@ export default function ManyChoices({
           >
             {boxes ? copy.justOne : copy.addChoice}
           </button>
-          {turns && (
+          {turns && ticked.length > 0 && (
             <StaffLink href={hrefOf(ticked, !not)}>
               {not
                 ? ticked.length > 1

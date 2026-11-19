@@ -423,6 +423,33 @@ test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
   await frame(page, "The draft");
 });
 
+test("Copying a mailing", async ({ page, request, flowDatabase }) => {
+  story(
+    "The invitation to the Edinburgh conference has gone. Copy mailing, at the top right of its page, starts a reminder from it.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  recordAnswers(flowDatabase);
+  await logIn(page, flowDatabase);
+  const sent = addMailing(flowDatabase, "Edinburgh invitation", "sent", ["sent", "sent", "sent", "sent"]);
+  await page.goto(`${BASE}/staff/mailings/${sent}`);
+  await expect(page.getByRole("button", { name: copy.copyMailing })).toBeVisible();
+  await frame(page, "The sent mailing, Copy mailing at its top right");
+  story("Pressed, it opens a new draft to the same people, with the same subject, letter and ask.");
+  await page.getByRole("button", { name: copy.copyMailing }).click();
+  await expect(page).not.toHaveURL(new RegExp(`/staff/mailings/${sent}$`));
+  await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);
+  await expect(page.getByLabel(copy.subject)).toHaveValue("Edinburgh invitation");
+  await frame(page, "The copy, a draft");
+  story(
+    "Some it goes to have already answered the conference: Polly declined and Morag is going. Above Send, a warning says so and names them, though it can still be sent.",
+  );
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.getByText(copy.alreadyAnsweredWho).click();
+  await expect(send.getByRole("link", { name: "Morag Example" })).toBeVisible();
+  await send.evaluate((region) => region.scrollIntoView({ block: "start", behavior: "instant" }));
+  await frame(page, "The warning above Send", { window: true });
+});
+
 test("Sending and sent", async ({ page, request, flowDatabase }) => {
   story("A mailing is part-way through sending. Its page shows how far it's got, with Stop sending.");
   await importPoliticians(request, BASE, flowDatabase);

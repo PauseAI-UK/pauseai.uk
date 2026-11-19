@@ -94,6 +94,8 @@ export const mailingsCopy = {
       outdated: "Not saved. Reload the page first.",
     } as Record<string, string>,
     deleteDraft: "Delete draft",
+    // At the top right of a mailing's page: a new draft that copies it.
+    copyMailing: "Copy mailing",
     // The numbered sections of a new mailing.
     sections: {
       who: "Who",
@@ -117,6 +119,13 @@ export const mailingsCopy = {
       "no-address": "no email address",
       blocked: "address blocked",
     } as Record<string, string>,
+    // Above Send, a warning that can be sent past: some it goes to have already answered its ask, each answer
+    // with how many gave it, as "2 declined".
+    alreadyAnswered: (n: number, ask: string, answers: string[]) =>
+      `⁂ ${count(n, "politician here has", "politicians here have")} already answered ${ask} (${answers.join(", ")}). Did you mean to leave them out?`,
+    alreadyAnsweredEach: (n: number, answer: string) => `⁂ ${n} ${answer.toLowerCase()}`,
+    // Opens the list of them under it.
+    alreadyAnsweredWho: "⁂ Who they are",
     changeWho: "Change who",
     // The same, while no one's ticked yet.
     chooseWho: "Choose who",

@@ -10,6 +10,7 @@ import {
   addAttachment,
   changePicks,
   choosingFor,
+  copyMailing,
   keepPasted,
   pastedFor,
   createDraft,
@@ -114,6 +115,33 @@ describeWithDatabase("mailing drafts", () => {
     });
     expect(await saveDraft(999, 1, { subject: "x" })).toEqual({ saved: false, reason: "gone" });
     expect(await query("SELECT actor, action FROM audit_log")).toEqual([{ actor: STAFF, action: "create mailing" }]);
+  });
+
+  it("copies a mailing to a new draft: who, its words, ask and sender, not when it goes or its files", async () => {
+    const { id, version } = await readyDraft();
+    await saveDraft(id, version, { ask: "frontier-ai-letter" });
+    await addAttachment(id, version + 1, {
+      filename: "a.pdf",
+      contentType: "application/pdf",
+      content: Buffer.from("x"),
+    });
+    const copy = (await copyMailing(id, "sam@pauseai.uk"))!;
+    expect(copy).not.toBe(id);
+    expect(await getWrittenMailing(copy)).toEqual({
+      id: copy,
+      filter: POLITICIANS,
+      subject: "Hello",
+      body: LETTER,
+      ask: "frontier-ai-letter",
+      createdBy: "sam@pauseai.uk",
+      sentFrom: STAFF,
+      fromName: "Jo Staff",
+      dueAt: null,
+      state: "draft",
+      version: 1,
+      attachments: [],
+    });
+    expect(await copyMailing(999, STAFF)).toBeUndefined();
   });
 
   it("ticks and unticks politicians for a draft, keeping the group last ticked from a filter, but not once it's scheduled", async () => {

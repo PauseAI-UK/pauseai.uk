@@ -222,6 +222,26 @@ export async function createBroadcastDraft(by: string, params: Params): Promise<
 }
 
 /**
+ * Makes a draft that copies broadcast `id`, by `by`: who it's to, so its
+ * channel and topics, and its words, title, template and what sends it;
+ * not when it goes, or its files. Who it's from is a new draft's
+ * (senderOf). Returns the draft's ID; undefined for no such broadcast.
+ */
+export async function copyBroadcast(id: number, by: string): Promise<number | undefined> {
+  const from = await getWrittenBroadcast(id);
+  if (!from) return undefined;
+  // A broadcast's filter always has its Consent, so a draft can be made from it.
+  const copy = (await createBroadcastDraft(by, from.filter.params))!;
+  await query(
+    `UPDATE mailings m SET subject = s.subject, title = s.title, body = s.body, template_id = s.template_id,
+       send_by = s.send_by
+     FROM mailings s WHERE m.id = $1 AND s.id = $2`,
+    [copy, id],
+  );
+  return copy;
+}
+
+/**
  * Keeps who a draft goes to: the list's `params`, while their Consent filter
  * still says its channel and topics, as they're fixed. Says whether it did.
  */

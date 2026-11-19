@@ -14,6 +14,7 @@ import { addAttachment, deleteDraft, removeAttachment, rescheduleMailing } from 
 import {
   changeBroadcastConsent,
   changeBroadcastFilter,
+  copyBroadcast,
   createBroadcastDraft,
   deleteApprovedTemplate,
   getWrittenBroadcast,
@@ -224,6 +225,16 @@ export async function stopBroadcastNow(form: FormData): Promise<void> {
   await stopBroadcast(id, email);
   revalidatePath(LIST);
   revalidatePath(`${LIST}/${id}`);
+}
+
+/** Copy broadcast, on a broadcast's page: makes a draft that copies the form's broadcast (copyBroadcast), and opens it. */
+export async function copyBroadcastNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff("supporters");
+  const id = idFrom(form);
+  const copy = id && (await copyBroadcast(id, email));
+  if (!copy) return;
+  revalidatePath(LIST);
+  redirect(`${LIST}/${copy}`);
 }
 
 /** Sets the form's broadcast going again, if it stopped as it hadn't all gone in time. */

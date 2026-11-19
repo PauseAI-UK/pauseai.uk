@@ -15,6 +15,7 @@ import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/test
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   attachToMailing,
+  copyMailingNow,
   deleteMailingDraft,
   detachFromMailing,
   newMailing,
@@ -63,6 +64,7 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     requestCookies.clear();
     const attempts = [
       () => newMailing(form({})),
+      () => copyMailingNow(form({ id: "1" })),
       () => pickPolitician(1, 1, true),
       () => pickFound(1, {}, true),
       () => pasteNames(form({ names: "Jo" })),
@@ -79,6 +81,18 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     ];
     for (const attempt of attempts) expect(await expectRedirect(attempt)).toBe("/staff/login");
     expect(await query("SELECT 1 FROM mailings WHERE body IS NOT NULL")).toEqual([]);
+  });
+
+  it("copies a mailing to a new draft and opens it, and nothing for a form that names none", async () => {
+    const { id } = await draft({ subject: "Hello", body: LETTER as MailingChanges["body"] });
+    const to = await expectRedirect(() => copyMailingNow(form({ id: String(id) })));
+    const copy = Number(to.match(/^\/staff\/mailings\/(\d+)$/)![1]);
+    expect(copy).not.toBe(id);
+    expect(await getWrittenMailing(copy)).toMatchObject({ subject: "Hello", body: LETTER, createdBy: JO });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings");
+    await copyMailingNow(form({ id: "x" }));
+    await copyMailingNow(form({ id: "99999" }));
+    expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toHaveLength(2);
   });
 
   it("makes a new mailing with no one ticked, or everyone the list's filter finds, and chooses for it", async () => {

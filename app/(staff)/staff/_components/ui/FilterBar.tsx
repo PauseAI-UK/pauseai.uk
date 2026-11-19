@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { chosenValues } from "@/lib/filter-choices";
-import { filtersPath, firstOf, NOT, notValue, valuesOf, type Params } from "@/lib/list-params";
-import { choiceOf, isGrouped, valueWords, type Filter } from "@/lib/staff-list-filters";
+import { filtersPath, firstOf, NOT, notValue, pairedValue, unpaired, valuesOf, type Params } from "@/lib/list-params";
+import { choiceOf, isGrouped, pairedAfter, pairedSides, valueWords, type Filter } from "@/lib/staff-list-filters";
 import Choices from "./Choices";
 import FilterBarLines from "./FilterBarLines";
 import FormPending from "./FormPending";
@@ -98,7 +98,10 @@ function PlaceForm({
  * (`own`) as its own button, its chip first once it's on; a chip for each filter
  * that's on, which opens its choices and a way to remove it (one with a
  * filter after it is a chip in two halves, a menu each; one that repeats, a
- * chip for all it finds and one for all it leaves out, marked so); "+
+ * chip for all it finds and one for all it leaves out, marked so; one that
+ * repeats with a filter paired after it, pairedAfter(), a chip for each of
+ * its values, then what that one finds for it, then what it leaves out, if
+ * anything, which its menu's Except turns round); "+
  * Filter", which lists every other filter, and one that repeats, a row
  * each, its choices opening under it, cut in two with "Except", which lists
  * those that repeat to choose one to leave out; and Clear filters, while
@@ -150,6 +153,11 @@ export default function FilterBar({
       .map(notValue)
       .filter((one) => one.not === not)
       .map((one) => one.value);
+  // The filter paired after a repeating one (pairedAfter()), if there is one.
+  const pairedNext = (filter: Filter) => filters.find((f) => f.after === filter.name && pairedAfter(filters, f));
+  // The values of `next`, paired after a repeating filter, that go with `of`, one of its values.
+  const pairedTo = (next: Filter, of: string) =>
+    chosen(next.name).filter((one) => unpaired(notValue(one).value).of === of);
   // A filter of its own has its button while it finds nothing, though it may leave some out.
   const ownButtons = filters.filter((filter) => filter.own && side(filter, false).length === 0);
   // A filter with the choices it has yet to make, found or left out.
@@ -170,9 +178,10 @@ export default function FilterBar({
     )
     .map(choosable)
     .filter(({ filter, options }) => filter.place || options.length > 0);
-  // Those Except offers: every one that repeats, its own button's and a locked one's too.
+  // Those Except offers: every one that repeats, its own button's and a locked one's too, but one with a filter
+  // paired after it, which leaves out in that one's chip.
   const negatable = filters
-    .filter((filter) => filter.repeat && !filter.after && !filter.linkedOnly)
+    .filter((filter) => filter.repeat && !filter.after && !filter.linkedOnly && !pairedNext(filter))
     .map(choosable)
     .filter(({ options }) => options.length > 0);
   const hidden = Object.entries(values)
@@ -200,6 +209,20 @@ export default function FilterBar({
   const chip = (filter: Filter, value: string, text: ReactNode, second = false) => {
     const { value: plain, not } = notValue(value);
     const others = chosen(filter.name).filter((v) => v !== value);
+    // One with a filter paired after it changes only this value, and takes what that one has for it too.
+    const paired = pairedNext(filter);
+    const unpairedFrom = (next: Filter) => ({
+      [next.name]: chosen(next.name).filter((one) => !pairedTo(next, value).includes(one)),
+    });
+    const choose = (v: string) =>
+      paired
+        ? href({ [filter.name]: chosen(filter.name).map((one) => (one === value ? v : one)), ...unpairedFrom(paired) })
+        : href({ ...without(filter.name), [filter.name]: v });
+    const remove = paired
+      ? href({ [filter.name]: others, ...unpairedFrom(paired) })
+      : others.length > 0
+        ? href({ [filter.name]: others })
+        : href(without(filter.name));
     if (filter.locked && !not) {
       // There, saying what it is and why it can't change, but not opening.
       return (
@@ -226,17 +249,15 @@ export default function FilterBar({
           <PlaceForm path={path} filter={filter} values={values} others={othersThan(filter)} />
         ) : (
           <Choices
-            options={filter.options}
+            options={paired ? filter.options.filter((option) => !others.includes(option.value)) : filter.options}
             current={[plain]}
-            href={(v) => href({ ...without(filter.name), [filter.name]: v })}
+            href={choose}
             search={filter.searchable ? copy.narrow : undefined}
           />
         )}
         {!second && (
           <p className={styles.actions}>
-            <StaffLink href={others.length > 0 ? href({ [filter.name]: others }) : href(without(filter.name))}>
-              {copy.remove}
-            </StaffLink>
+            <StaffLink href={remove}>{copy.remove}</StaffLink>
           </p>
         )}
       </Menu>
@@ -297,11 +318,10 @@ export default function FilterBar({
         );
       });
   };
-  // A repeating filter's chip for all it finds, or all it leaves out, if any; as a lozenge's second half, `half`,
-  // always.
-  const manyChip = (filter: Filter, not: boolean, half = false) => {
+  // A repeating filter's chip for all it finds, or all it leaves out, if any.
+  const manyChip = (filter: Filter, not: boolean) => {
     const here = side(filter, not);
-    if (here.length === 0 && !half) return null;
+    if (here.length === 0) return null;
     const elsewhere = side(filter, !not);
     return (
       <ManyChoices
@@ -316,12 +336,43 @@ export default function FilterBar({
         oneEach={Boolean(filter.oneEach)}
         options={[
           ...here.filter((v) => !choiceOf(filter, v)).map((value) => ({ value, label: value })),
-          ...filter.options.filter((o) => (o.value || filter.after) && !elsewhere.includes(o.value)),
+          ...filter.options.filter((o) => o.value && !elsewhere.includes(o.value)),
         ]}
         every={everyChoice(filter)}
         search={filter.searchable ? copy.narrow : undefined}
-        turns={!filter.after}
-        half={half}
+        turns
+        half={false}
+      />
+    );
+  };
+  // A half of the lozenge for `of`, a value of a repeating filter, of what `next`, paired after it, finds or leaves
+  // out for it: its own choices, its default blank, and those on its other half left out.
+  const pairedHalf = (next: Filter, of: string, not: boolean) => {
+    const blank = pairedValue(of, "");
+    const [found, out] = pairedSides(next, values, of);
+    const elsewhere = not ? found : out;
+    const options = next.options
+      .filter((o) => unpaired(o.value).of === of && !elsewhere.includes(o.value))
+      .map((o) => ({ ...o, value: o.value === blank ? "" : o.value, under: o.under === blank ? "" : o.under }));
+    return (
+      <ManyChoices
+        key={`${next.name}-${of}-${not}`}
+        id={`filter-${next.name}-${of}-${not ? "left-out" : "found"}`}
+        path={path}
+        values={values}
+        name={next.name}
+        label={label(
+          filters.find((f) => f.name === next.after)!,
+          of,
+        )}
+        all={chosen(next.name)}
+        here={not ? out : found}
+        not={not}
+        oneEach={false}
+        options={options}
+        every={[]}
+        turns
+        half
       />
     );
   };
@@ -405,6 +456,26 @@ export default function FilterBar({
           {on
             .filter((filter) => !(filter.after && chosen(filter.after).length > 0))
             .flatMap((filter) => {
+              const paired = pairedNext(filter);
+              if (paired) {
+                // Each of its values and what the filter paired after it finds for it, then leaves out, if anything:
+                // one lozenge, a menu each part.
+                return chosen(filter.name).map((of) => {
+                  const [found, out] = pairedSides(paired, values, of);
+                  return (
+                    <span
+                      key={`${filter.name}-${of}`}
+                      className={styles.pair}
+                      role="group"
+                      aria-label={label(filter, of)}
+                    >
+                      {chip(filter, of, label(filter, of))}
+                      {(found.length > 0 || out.length === 0) && pairedHalf(paired, of, false)}
+                      {out.length > 0 && pairedHalf(paired, of, true)}
+                    </span>
+                  );
+                });
+              }
               const next = filters.find((f) => f.after === filter.name);
               const value = firstOf(values[filter.name]);
               if (next) {
@@ -413,7 +484,7 @@ export default function FilterBar({
                 return (
                   <span key={filter.name} className={styles.pair} role="group" aria-label={filter.label}>
                     {chip(filter, value, label(filter, value))}
-                    {next.repeat ? manyChip(next, false, true) : chip(next, nextValue, label(next, nextValue), true)}
+                    {chip(next, nextValue, label(next, nextValue), true)}
                   </span>
                 );
               }

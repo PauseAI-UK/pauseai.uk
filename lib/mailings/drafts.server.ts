@@ -151,6 +151,21 @@ export async function createDraft(
   });
 }
 
+/**
+ * Makes a draft that copies mailing `id` to politicians, by `by`: who it's
+ * to, its subject, letter and ask, and whose Gmail and name it's from; not
+ * when it goes, or its files. Returns the draft's ID; undefined for no such
+ * mailing written here.
+ */
+export async function copyMailing(id: number, by: string): Promise<number | undefined> {
+  const from = await getWrittenMailing(id);
+  if (!from) return undefined;
+  const { subject, body, ask, sentFrom, fromName } = from;
+  // A mailing to politicians has their filter.
+  const filter = from.filter as StoredFilter & { list: "politicians" };
+  return (await createDraft(by, filter, { subject, body, ask, sentFrom, fromName })).id;
+}
+
 /** Who's ticked for a mailing: its ticks, or, for one from before ticks, everyone its filter finds now. */
 async function pickedIds(filter: StoredFilter): Promise<number[]> {
   if (filter.picked) return filter.picked.ids;

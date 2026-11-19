@@ -16,7 +16,7 @@ import {
   type Picked,
   type StoredFilter,
 } from "@/lib/staff-search";
-import { notValue, valuesOf, type Params } from "@/lib/list-params";
+import { notValue, pairedValue, valuesOf, type Params } from "@/lib/list-params";
 import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
 import { changeChoices } from "@/lib/oversight/audit-log.server";
 import { query } from "./db.server";
@@ -80,8 +80,15 @@ async function politicianValues(params: Params): Promise<Known> {
     query<{ party: string }>("SELECT DISTINCT party FROM politicians WHERE party <> ''"),
     query<{ slug: string; kind: keyof typeof ASK_STATUSES }>("SELECT slug, kind FROM asks"),
   ]);
-  const ask = asks.find((one) => one.slug === valuesOf(params.ask)[0]);
-  const answers = ask ? ASK_STATUSES[ask.kind] : Object.values(ASK_STATUSES).flat();
+  // An answer is one its ask's kind allows, paired with it (PAIR); one not paired is the first ask's, or any.
+  const ways = (kind?: keyof typeof ASK_STATUSES) => [
+    ...(kind ? ASK_STATUSES[kind] : Object.values(ASK_STATUSES).flat()),
+    REPLIED,
+    INVITED,
+    NEVER_ASKED,
+  ];
+  const chosen = valuesOf(params.ask).flatMap((slug) => asks.filter((one) => one.slug === slug));
+  const first = asks.find((one) => one.slug === valuesOf(params.ask)[0]);
   return {
     q: "any",
     house: HOUSES,
@@ -91,7 +98,7 @@ async function politicianValues(params: Params): Promise<Known> {
     nation: COUNTRIES,
     email: EMAIL_STATES,
     ask: asks.map((one) => one.slug),
-    answer: [...answers, REPLIED, INVITED, NEVER_ASKED],
+    answer: [...ways(first?.kind), ...chosen.flatMap((ask) => ways(ask.kind).map((way) => pairedValue(ask.slug, way)))],
     mailed: asks.map((one) => one.slug),
   };
 }

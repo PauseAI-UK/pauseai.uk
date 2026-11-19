@@ -33,6 +33,21 @@ describe("a broadcast's page", () => {
   const actions = { stop: nothing, reschedule: nothing, resume: nothing };
   const who = <p>Who</p>;
 
+  it("has Copy broadcast at its top right, which sends its ID", async () => {
+    const copied: FormData[] = [];
+    await render(
+      <BroadcastView
+        data={exampleBroadcastSent}
+        who={who}
+        contact={null}
+        {...actions}
+        copyIt={async (form) => void copied.push(form)}
+      />,
+    );
+    await button(copy.copyBroadcast).click();
+    await expect.poll(() => copied.map((form) => form.get("id"))).toEqual([String(exampleBroadcastSent.written.id)]);
+  });
+
   it("gives an email's counts, each leading to those recipients, those sent first, its words and its recipients", async () => {
     await render(<BroadcastView data={exampleBroadcastSent} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("heading", { name: exampleBroadcastSent.written.subject })).toBeVisible();

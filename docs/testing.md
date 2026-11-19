@@ -981,6 +981,7 @@ that drives it or why nothing does.
   - a salutation made from the name, set to Ms from its bubble's choices, with why;
   - ControlAI's statement imported, and its ask's page;
   - those invited to an ask and those going, ticked together in the chip's second half;
+  - two asks at once, each with its own answer: one turned round by Except this, dotted, and the other's added from + Filter; then one removed with its answer;
   - PauseAI's email to one, from her history, and its Gmail search copied;
   - her own Gmail added to her aliases, the next Gmail read finding her email from it, and the list sorted by last activity, which that email dates.
 - `mailings.spec.ts`: Mailings to politicians, the old ones and those written on the site:
@@ -997,6 +998,7 @@ that drives it or why nothing does.
   - one unticked on the ticked tab, and the draft saying who it's to as the group found less one;
   - a scheduled mailing given a new time, then unscheduled and a draft again;
   - one sending, and one sent with its failed tab, leading to the bounced letter's page under the mailing;
+  - a sent mailing copied by Copy mailing to a new draft, whose Send section warns of those who have already answered its ask;
   - one whose run stopped while sending, finished by the next run with that letter uncertain, and the letter's page;
   - a mailing's letters bouncing, the MPs on the dashboard and the day's report to the notification inbox;
   - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;
@@ -1014,6 +1016,7 @@ that drives it or why nothing does.
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
   - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
+  - an email sent copied by Copy broadcast to a new draft;
   - a text partly sent, its copies still to go counted apart: one held by WhatsApp, with when it's tried again, and one waiting its turn, made in the database as sending would leave them; then, with only the held one left, paused, on its page and in the list;
   - an email sent by the sending job, by hello@'s Gmail, and a copy as the supporter gets it, with its unsubscribe link;
   - an email with more copies than hello@'s Gmail can send today: some sent and the rest tomorrow, then stopped three days after its time, with the email saying so, and set going again by Resume sending;

@@ -394,7 +394,7 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   );
   // The answer is chosen in the second half of the ask's chip.
   await changeFilter(page, staffVocabulary.everyoneAsked.event, staffVocabulary.neverAsked.event);
-  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=never/);
+  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=edinburgh-conference-2026\.never/);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.neverAsked.event);
   await frame(page, "Never invited to the conference");
@@ -423,9 +423,9 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
 
   story("Each tick changes the list at once, with the menu open. The chip's second half says both.");
   await menu.getByRole("checkbox", { name: staffVocabulary.noReplyYet.event, exact: true }).check();
-  await expect(page).toHaveURL(/answer=invited$/);
+  await expect(page).toHaveURL(/answer=edinburgh-conference-2026\.invited$/);
   await menu.getByRole("checkbox", { name: staffVocabulary.statuses.going, exact: true }).check();
-  await expect(page).toHaveURL(/answer=invited&answer=going/);
+  await expect(page).toHaveURL(/answer=edinburgh-conference-2026\.invited&answer=edinburgh-conference-2026\.going/);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.invited.event);
   await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
   const both = staffVocabulary.filters.anyOf([staffVocabulary.noReplyYet.event, staffVocabulary.statuses.going]);
@@ -448,6 +448,45 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   const everyone = Object.values(staffVocabulary.everyoneAsked).join("|");
   await expect(page.getByRole("button", { name: new RegExp(`^(${everyone})$`) })).toBeVisible();
   await frame(page, "Another ask, everyone asked");
+});
+
+test("Two asks at once", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff want those who signed the DeepMind letter and haven't turned down the Edinburgh conference. Lord Seedling signed the letter, and was invited to the conference in person.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  recordAnswers(flowDatabase);
+  markInvited(flowDatabase, "recSeedling", "edinburgh-conference-2026");
+  await logIn(page, flowDatabase);
+  const rows = page.getByRole("row");
+  await page.goto(`${BASE}/staff/politicians?ask=edinburgh-conference-2026&answer=declined`);
+  await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
+  await frame(page, "Those who turned down the conference");
+
+  story("Except this, in the answer's menu, turns it round: everyone invited but those who turned it down.");
+  await changeFilter(page, staffVocabulary.statuses.declined, staffVocabulary.filters.exceptThis);
+  await expect(page).toHaveURL(/answer=%21edinburgh-conference-2026\.declined/);
+  await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
+  await expect(rows.filter({ hasText: "Morag Example" })).toBeVisible();
+  await frame(page, "Everyone invited but those who declined, the answer dotted");
+
+  story("+ Filter adds a second ask, the DeepMind letter, with its own answer. Both must hold.");
+  const add = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add }));
+  const asks = add
+    .locator("details")
+    .filter({ has: page.locator("summary", { hasText: new RegExp(`^${politiciansCopy.politicians.ask}$`) }) });
+  await asks.locator("summary").click();
+  await asks.getByRole("link", { name: /DeepMind letter/ }).click();
+  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&ask=deepmind-letter/);
+  await changeFilter(page, staffVocabulary.everyoneAsked.letter, staffVocabulary.statuses.signed);
+  await expect(rows.filter({ hasText: "Lord Seedling of Example" })).toBeVisible();
+  await expect(rows.filter({ hasText: "Morag Example" })).toHaveCount(0);
+  await frame(page, "Signed the DeepMind letter, and haven't turned down the conference");
+
+  story("Removing the conference's chip takes its answer with it, keeping the letter's.");
+  await changeFilter(page, "Edinburgh conference");
+  await expect(page).toHaveURL(/\?ask=deepmind-letter&answer=deepmind-letter\.signed$/);
+  await frame(page, "The DeepMind letter's signatories");
 });
 
 test("The house tabs", async ({ page, request, flowDatabase }) => {

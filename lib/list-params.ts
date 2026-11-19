@@ -16,6 +16,40 @@ export function pagePath(path: string, page: number): string {
 /** A URL parameter's value: one, or a list, for a filter chosen more than once, its name repeated in the URL. */
 export type ParamValue = string | string[];
 
+/**
+ * The mark between a value of a filter that comes after a repeating one and
+ * the value of that one it goes with: `answer=frontier-ai-letter.signed` is
+ * those who signed the frontier AI letter, among the asks chosen.
+ */
+export const PAIR = ".";
+
+/** A value of a filter that comes after a repeating one, for `of`, that one's value. */
+export function pairedValue(of: string, value: string): string {
+  return `${of}${PAIR}${value}`;
+}
+
+/** A value of a filter that comes after a repeating one: the value of that one it goes with, if it names one, and its own. */
+export function unpaired(value: string): { of?: string; value: string } {
+  const at = value.indexOf(PAIR);
+  return at < 0 ? { value } : { of: value.slice(0, at), value: value.slice(at + PAIR.length) };
+}
+
+/**
+ * The values of a filter that comes after a repeating one, `values`, each
+ * paired with one of `of`, that one's values: one not paired goes with the
+ * first, and one paired with a value not chosen, or with nothing after its
+ * mark, goes. Each keeps its NOT.
+ */
+export function pairedValues(of: string[], values: string[]): string[] {
+  return values.flatMap((one) => {
+    const { value, not } = notValue(one);
+    const pair = unpaired(value);
+    const owner = pair.of ?? of[0];
+    if (!pair.value || !owner || !of.includes(owner)) return [];
+    return [(not ? NOT : "") + pairedValue(owner, pair.value)];
+  });
+}
+
 /** A list's parameters, each as typed. */
 export type Params = Record<string, ParamValue>;
 

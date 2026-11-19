@@ -90,20 +90,6 @@
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  /* Start invisible and fade in once decoded — softens the "pop" as
-     photos land. HeroMarqueeEffects sets data-loaded on the img's load event; the
-     safety animation at 2.4s ensures images appear even if JS fails. */
-  opacity: 0;
-  transition: opacity 380ms ease-out;
-}
-/* The safety animation stops once data-loaded lands. Firefox holds opacity at
-   0 for the whole of a pending animation's delay, overriding data-loaded, so
-   leaving it on would keep every photo hidden until 2.4s. */
-.track img:not([data-loaded]) {
-  animation: appear 0s linear 2.4s forwards;
-}
-.track img[data-loaded] {
-  opacity: 1;
 }
 
 /* Overlay text — no full scrim. Just the text itself, with strong
@@ -221,11 +207,5 @@
   }
   .secondary {
     --button-padding: 13px 20px;
-  }
-}
-
-@keyframes appear {
-  to {
-    opacity: 1;
   }
 }

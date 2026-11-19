@@ -11,6 +11,7 @@ import {
   attachToMailing,
   deleteMailingDraft,
   detachFromMailing,
+  copyMailingNow,
   rescheduleMailingNow,
   saveMailing,
   scheduleMailingNow,
@@ -46,6 +47,7 @@ export default async function MailingPage({ params, searchParams }: Params) {
           deleteDraft: deleteMailingDraft,
           stop: stopMailingNow,
           reschedule: rescheduleMailingNow,
+          copy: copyMailingNow,
         }}
       />
     </Page>

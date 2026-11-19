@@ -18,6 +18,26 @@ describe("FilterPills", () => {
     expect(pills.getByRole("listitem").all()).toHaveLength(3);
   });
 
+  it("says each ask with its answers, one stored before answers were paired as the first ask's", async () => {
+    const [letter, second] = exampleWriterData.asks;
+    await render(
+      <FilterPills
+        data={{
+          ...exampleWriterData,
+          filter: {
+            list: "politicians",
+            params: { ask: [letter.slug, second.slug], answer: ["replied", `!${second.slug}.never`] },
+          },
+        }}
+      />,
+    );
+    const pills = page.getByRole("list", { name: copy.whoLabel }).getByRole("listitem");
+    expect(pills.all().map((pill) => pill.element().textContent)).toEqual([
+      `${letter.title}: ${politiciansCopy.politicians.anyReply}`,
+      staffVocabulary.filters.notChip(second.title, staffVocabulary.neverAsked[second.kind]),
+    ]);
+  });
+
   it("puts a search in its own pill", async () => {
     await render(
       <FilterPills data={{ ...exampleWriterData, filter: { list: "politicians", params: { q: "smith" } } }} />,

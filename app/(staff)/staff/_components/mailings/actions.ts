@@ -9,6 +9,7 @@ import type { Params } from "@/lib/list-params";
 import {
   addAttachment,
   changePicks,
+  copyMailing,
   createDraft,
   deleteDraft,
   foundIds,
@@ -154,6 +155,16 @@ export async function newMailing(form: FormData): Promise<void> {
   const { id } = await createDraft(email, picks, {});
   revalidatePath("/staff/mailings");
   redirect(filtersPath("/staff/politicians", params, { mailing: String(id) }));
+}
+
+/** Copy mailing, on a mailing's page: makes a draft that copies the form's mailing (copyMailing), and opens it. */
+export async function copyMailingNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff();
+  const id = idFrom(form);
+  const copy = id && (await copyMailing(id, email));
+  if (!copy) return;
+  revalidatePath("/staff/mailings");
+  redirect(`/staff/mailings/${copy}`);
 }
 
 /** Ticks a politician for a draft, or unticks them. */
