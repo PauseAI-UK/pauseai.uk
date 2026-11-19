@@ -147,6 +147,7 @@ describeWithDatabase("permissionsFor", () => {
       ["a@example.com", "newsletter", "email", "email", "yes"],
       ["a@example.com", "volunteering", "email", "email", "yes"],
       ["b@example.com", "events", "email", "email", "yes"],
+      ["+447700900030", "newsletter", "text", "phone", "yes"],
       ["+447700900030", "volunteering", "text", "phone", "yes"],
       ["+447700900030", "volunteering", "call", "phone", "yes"],
     ]);
@@ -181,24 +182,25 @@ describeWithDatabase("permissionsFor", () => {
     ]);
   });
 
-  it("takes CiviCRM's newsletter list: on it a yes, unsubscribed a stop, never opted in or gone why not", async () => {
-    await civicrm("on@example.com", "2026-11-01T00:00:00Z", { newsletter: "subscribed" });
+  it("says yes to the newsletter by email for every CiviCRM member, but one unsubscribed from its list or gone", async () => {
+    await civicrm("on@example.com", "2026-11-01T00:00:00Z", { newsletter: "subscribed", joined: "2026-10-03" });
     await civicrm("never@example.com", "2026-11-01T00:00:00Z", { newsletter: "not_opted_in" });
     await civicrm("gone@example.com", "2026-11-01T00:00:00Z", {
       newsletter: "subscribed",
       gone: "2026-11-05T00:00:00Z",
     });
-    await civicrm("off@example.com", "2026-11-01T00:00:00Z", { newsletter: "not_on_list" });
+    await civicrm("off@example.com", "2026-11-01T00:00:00Z", { newsletter: "unsubscribed" });
     await optOut("off2@example.com", "2026-11-02T00:00:00Z", { list: "newsletter", source: "civicrm" });
     expect(await answer("on@example.com", "newsletter")).toEqual([
       "yes",
-      "subscribed",
-      "2026-11-01T00:00:00.000Z",
+      "member",
+      "2026-10-03T00:00:00.000Z",
       "civicrm",
     ]);
+    // Whether or not they ticked "Keep me informed"; with no day they joined, since a pull first returned them.
     expect(await answer("never@example.com", "newsletter")).toEqual([
-      "no",
-      "not-opted-in",
+      "yes",
+      "member",
       "2026-11-01T00:00:00.000Z",
       "civicrm",
     ]);
@@ -208,6 +210,7 @@ describeWithDatabase("permissionsFor", () => {
       "2026-11-05T00:00:00.000Z",
       "civicrm",
     ]);
+    // CiviCRM's unsubscribe becomes an opt-out of ours (recordCivicrmLists()), so alone it's no answer.
     expect(await answer("off@example.com", "newsletter")).toBeUndefined();
     expect(await answer("off2@example.com", "newsletter")).toEqual([
       "no",
@@ -217,7 +220,7 @@ describeWithDatabase("permissionsFor", () => {
     ]);
   });
 
-  it("weighs a stop against a yes by which came later, a stop winning a tie, while never opted in is no stop", async () => {
+  it("weighs a stop against a yes by which came later, a stop winning a tie", async () => {
     const mp = await addTestMp();
     // Unsubscribed in CiviCRM after ticking a box, then ticked another.
     await letter(mp, "kit@example.com", true, "2026-10-01T00:00:00Z");
@@ -232,9 +235,44 @@ describeWithDatabase("permissionsFor", () => {
     await optOut("tie@example.com", "2026-10-01T00:00:00Z", { list: "newsletter", source: "civicrm" });
     await letter(mp, "tie@example.com", true, "2026-10-01T00:00:00Z");
     expect((await answer("tie@example.com", "newsletter"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
+    // Of two yeses, the latest.
     await civicrm("owen@example.com", "2026-11-01T00:00:00Z", { newsletter: "not_opted_in" });
     await letter(mp, "owen@example.com", true, "2026-10-01T00:00:00Z");
-    expect((await answer("owen@example.com", "newsletter"))?.slice(0, 2)).toEqual(["yes", "asked"]);
+    expect((await answer("owen@example.com", "newsletter"))?.slice(0, 2)).toEqual(["yes", "member"]);
+  });
+
+  it("says yes to the newsletter for a letter on pauseai.info's earlier form before it had a consent box", async () => {
+    await formEntry("early@example.com", "web-form", null, false, "2026-09-22T00:00:00Z");
+    await formEntry("late@example.com", "web-form", null, false, "2026-09-23T00:00:00Z");
+    expect(await answer("early@example.com", "newsletter")).toEqual([
+      "yes",
+      "wrote",
+      "2026-09-22T00:00:00.000Z",
+      "web-form",
+    ]);
+    expect((await answer("late@example.com", "newsletter"))?.slice(0, 2)).toEqual(["no", "declined"]);
+  });
+
+  it("says yes to the newsletter for volunteering chosen on the preferences page, unless they've opted out of it", async () => {
+    const choose = (address: string, way: Way, at: string) =>
+      query(
+        `INSERT INTO preference_choices (address, way, topic, wording, chosen_at) VALUES ($1, $2, 'volunteering', 'w', $3)`,
+        [address, way, at],
+      );
+    await choose("vol@example.com", "email", "2026-11-01T00:00:00Z");
+    await choose("+447700900040", "text", "2026-11-01T00:00:00Z");
+    await choose("+447700900040", "call", "2026-11-01T00:00:00Z");
+    await choose("out@example.com", "email", "2026-11-03T00:00:00Z");
+    await optOut("out@example.com", "2026-11-02T00:00:00Z", { list: "newsletter", source: "link" });
+    expect(await answer("vol@example.com", "newsletter")).toEqual([
+      "yes",
+      "volunteered",
+      "2026-11-01T00:00:00.000Z",
+      "preferences",
+    ]);
+    expect((await phoneAnswer("+447700900040", "newsletter"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
+    expect(await phoneAnswer("+447700900040", "newsletter", "call")).toBeUndefined();
+    expect((await answer("out@example.com", "newsletter"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
   });
 
   it("stops every topic by email for a block, then CiviCRM's Do not email, then No bulk emails, whatever was said", async () => {
@@ -432,9 +470,44 @@ describeWithDatabase("permissionsFor", () => {
     expect((await phoneAnswer("+447700900055", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "left"]);
     expect((await phoneAnswer("+447700900056", "volunteering", "text"))?.slice(0, 2)).toEqual(["no", "do-not-sms"]);
     expect((await phoneAnswer("+447700900057", "volunteering", "text"))?.slice(0, 2)).toEqual(["yes", "volunteered"]);
+
+    // A volunteer's number has newsletter texts too; anyone else's none.
+    expect(await phoneAnswer("+447700900050", "newsletter")).toEqual([
+      "yes",
+      "volunteered",
+      "2026-09-12T00:00:00.000Z",
+      "civicrm",
+    ]);
+    expect(await phoneAnswer("+447700900052", "newsletter")).toBeUndefined();
+    expect((await phoneAnswer("+447700900055", "newsletter"))?.slice(0, 2)).toEqual(["no", "left"]);
+    expect((await phoneAnswer("+447700900056", "newsletter"))?.slice(0, 2)).toEqual(["no", "do-not-sms"]);
   });
 
-  it("lists each opt-out that's the answer now, and finds whether any consent lets us use a number", async () => {
+  it("answers an address or number known only by a stop, and one known of with nothing said only if stopped", async () => {
+    const permission = async (topic: Topic, way: Way, address: string) =>
+      (await query("SELECT * FROM contact_permission($1, $2, $3)", [topic, way, address]))[0];
+    await optOut("all@example.com", "2026-10-01T00:00:00Z", { list: "all", source: "preferences" });
+    expect(await permission("newsletter", "email", "all@example.com")).toEqual({
+      send: "no",
+      reason: "do-not-email",
+      at: new Date("2026-10-01T00:00:00Z"),
+      source: "preferences",
+    });
+    expect(await permission("newsletter", "email", "nobody@example.com")).toBeUndefined();
+    // A number whose texts all stopped has each topic's stop; a member's who isn't a volunteer, none.
+    await optOut("+447700900060", "2026-10-01T00:00:00Z", { list: "all", way: "text", source: "whatsapp" });
+    expect((await phoneAnswer("+447700900060", "events"))?.slice(0, 2)).toEqual(["no", "unsubscribed"]);
+    await civicrm("m@example.com", "2026-11-01T00:00:00Z", { phone: "+447700900061", intent: "act_now" });
+    expect(await phoneAnswer("+447700900061", "newsletter")).toBeUndefined();
+    await civicrm("s@example.com", "2026-11-01T00:00:00Z", {
+      phone: "+447700900062",
+      intent: "act_now",
+      flags: { do_not_sms: true },
+    });
+    expect((await phoneAnswer("+447700900062", "newsletter"))?.slice(0, 2)).toEqual(["no", "do-not-sms"]);
+  });
+
+  it("lists each opt-out that's the answer now", async () => {
     await luma("gone@example.com", "2026-09-20T00:00:00Z");
     await lumaGuest("gone@example.com", "+447700900031");
     await optOut("gone@example.com", "2026-10-23T00:00:00Z");
@@ -445,16 +518,6 @@ describeWithDatabase("permissionsFor", () => {
       { way: "text", topic: "newsletter", address: "+447700900050", source: "civicrm" },
       { way: "email", topic: "events", address: "gone@example.com", source: "luma-webhook" },
     ]);
-    await civicrm("v@example.com", "2026-09-12T00:00:00Z", {
-      phone: "+447700900030",
-      intent: "volunteer",
-      joined: "2026-09-12",
-    });
-    const usable = async (number: string) =>
-      (await query<{ ok: boolean }>("SELECT phone_usable($1) AS ok", [number]))[0].ok;
-    expect(await usable("+447700900030")).toBe(true);
-    expect(await usable("+447700900031")).toBe(false);
-    expect(await usable("+447700900099")).toBe(false);
   });
 
   it("keeps as a number just what isInternational() takes, refusing any other", async () => {

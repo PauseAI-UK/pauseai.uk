@@ -87,7 +87,7 @@ describe("PermissionTiles", () => {
     await render(<PermissionTiles permissions={exampleMemberDetails.permissions} />);
     const [newsletter, events, volunteering] = rows();
     expect(lines(newsletter)).toEqual([`rhea@example.com${copy.answers.email.yes}`]);
-    expect(reasons(newsletter)).toEqual([copy.reasons.subscribed("10 Nov 2026", copy.sources.civicrm, "newsletter")]);
+    expect(reasons(newsletter)).toEqual([copy.reasons.member("10 Nov 2026", copy.sources.civicrm)]);
     expect(reasons(events)).toEqual([copy.reasons["not-following"]("", copy.sources.luma)]);
     // Her number's text and call answers are the same, so they share a line, a lozenge each, after a handset,
     // and the link rings it.
@@ -164,12 +164,19 @@ describe("PermissionTiles", () => {
       expect(document.body.textContent, reason).toContain(copy.reasons[reason]("12 Sept 2026", copy.sources.civicrm));
   });
 
-  it("names the CiviCRM list a yes is from: the volunteer list for volunteering, else the newsletter", async () => {
+  it("says where a volunteer's yes came from: joining in CiviCRM, or choosing on the preferences page", async () => {
     const [newsletter] = exampleMemberDetails.permissions;
-    await render(<PermissionTiles permissions={[newsletter, { ...newsletter, topic: "volunteering" }]} />);
+    await render(
+      <PermissionTiles
+        permissions={[
+          { ...newsletter, reason: "volunteered" },
+          { ...newsletter, topic: "volunteering", reason: "volunteered", source: "preferences" },
+        ]}
+      />,
+    );
     expect(rows().map((row) => reasons(row)[0])).toEqual([
-      copy.reasons.subscribed("10 Nov 2026", copy.sources.civicrm, "newsletter"),
-      copy.reasons.subscribed("10 Nov 2026", copy.sources.civicrm, "volunteering"),
+      copy.reasons.volunteered("10 Nov 2026", copy.sources.civicrm),
+      copy.reasons.volunteered("10 Nov 2026", copy.sources.preferences),
     ]);
     expect(reasons(rows()[0])[0]).not.toBe(reasons(rows()[1])[0]);
   });

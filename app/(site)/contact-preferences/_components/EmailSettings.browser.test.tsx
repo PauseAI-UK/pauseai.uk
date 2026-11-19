@@ -302,7 +302,7 @@ describe("EmailSettings", () => {
       numbers: [],
       answers: [
         { ...exampleSettings.answers[0], send: "no", reason: "declined" },
-        { ...exampleSettings.answers[0], topic: "events", send: "no", reason: "not-opted-in", source: "civicrm" },
+        { ...exampleSettings.answers[0], topic: "events", send: "no", reason: "not-following", source: "luma" },
         { ...exampleSettings.answers[0], topic: "volunteering", send: "yes", reason: "left", source: "nowhere" },
       ],
     });

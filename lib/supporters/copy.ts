@@ -160,13 +160,16 @@ export const supportersCopy = {
           asked: (when: string, source: string) => `Ticked the box on ${source}, ${when}`,
           "signed-up": (when: string) => `Signed up on a paper form, ${when}`,
           "joined-whatsapp": (when: string) => `In our WhatsApp community, uploaded ${when}`,
-          subscribed: (when: string, _source: string, topic?: Topic) =>
-            topic === "volunteering"
-              ? `On volunteer list in CiviCRM, ${when}`
-              : `On newsletter list in CiviCRM, ${when}`,
+          wrote: (when: string, source: string) => `Wrote ${source} before it asked about emails, ${when}`,
+          member: (when: string) => `A member of the UK chapter in CiviCRM, since ${when}`,
+          subscribed: (when: string) => `On volunteer list in CiviCRM, ${when}`,
           following: (when: string) => `Follows the Luma calendar, since ${when}`,
           "gave-number": (when: string, source: string) => `Gave it on ${source} for texts on the day, ${when}`,
-          volunteered: (when: string) => `Gave it when joining as a volunteer or lead, ${when}`,
+          // From CiviCRM, a number given when joining; from the preferences page, volunteering chosen there.
+          volunteered: (when: string, source: string) =>
+            source === "CiviCRM"
+              ? `Gave it when joining as a volunteer or lead, ${when}`
+              : `Chose volunteering on ${source}, ${when}`,
           chose: (when: string) => `Chose it in their contact preferences, ${when}`,
           blocked: () => "",
           "do-not-email": (when: string, source: string) =>
@@ -178,7 +181,6 @@ export const supportersCopy = {
           unsubscribed: (when: string, source: string) => `Unsubscribed via ${source}, ${when}`,
           declined: (when: string, source: string) => `Left the box unticked on ${source}, ${when}`,
           "not-volunteer": (when: string) => `Gave it when joining, not as a volunteer, ${when}`,
-          "not-opted-in": (_when: string, source: string) => `Never opted in to chapter emails, from ${source}`,
           "not-following": () => "Not a follower of the Luma calendar",
           left: (when: string, source: string) => `No longer shared with us by ${source}, ${when}`,
           ended: (_when: string, source: string) => `Gave it on ${source} for texts on the day, which is over`,
@@ -211,7 +213,7 @@ export const supportersCopy = {
         details: {
           newsletter: {
             about: "Regular UK newsletter about campaigns, events and local groups. By email or text.",
-            yes: "They ticked a box asking for it on one of our forms or the global join form, signed up on paper, or are on the newsletter list in CiviCRM.",
+            yes: "They ticked a box asking for it on one of our forms, signed up on paper, joined our WhatsApp community, or are a UK chapter member or a volunteer.",
             no: "They unsubscribed, here or in CiviCRM, or never asked. A stop in CiviCRM, such as “No bulk emails”, stops it too.",
           },
           events: {

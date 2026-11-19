@@ -1,8 +1,8 @@
 // Whether we may contact an address or a phone number about each topic, by
 // each way, and why: the answer the supporter pages show, the list filters
-// on and the staff home counts. The rules are contact_permission()'s
-// (netlify/database/migrations/0100_consents.sql), and
-// lib/supporters/permissions-for.server.ts reads them.
+// on and the staff home counts. The rules are the consent_answers and
+// consent_stops views (netlify/database/migrations/0145_consents_as_views.sql),
+// and lib/supporters/permissions-for.server.ts reads them.
 import { notValue, valuesOf, type ParamValue } from "@/lib/list-params";
 
 /** What we'd reach someone at: an email address, or a phone number. */
@@ -53,7 +53,9 @@ export const REASONS = [
   "asked",
   "chose",
   "signed-up",
+  "wrote",
   "joined-whatsapp",
+  "member",
   "subscribed",
   "following",
   "gave-number",
@@ -66,7 +68,6 @@ export const REASONS = [
   "unsubscribed",
   "declined",
   "not-volunteer",
-  "not-opted-in",
   "not-following",
   "left",
   "ended",

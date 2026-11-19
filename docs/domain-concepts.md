@@ -544,7 +544,7 @@ job all leave broadcasts out.
   draft's, and loading a saved filter keeps it.
 
   Scheduling doesn't fix who a broadcast goes to. Sending finds them when
-  it starts: those the filter finds whom `contact_permission()` says yes
+  it starts: those the filter finds whom `contact_permissions` says yes
   for (`lib/broadcasts/recipients.server.ts`), with a row of
   `broadcast_messages` for each. Each person gets one copy, at the newest
   of their addresses or numbers that said yes: an email goes to the address
@@ -1551,10 +1551,15 @@ broadcast's copies go ("Broadcasts to supporters", above).
 ### Whether we'd contact someone
 
 One place decides whether we may contact an email address or a phone
-number about each topic by each way, and why: `contact_permission()`
-(`netlify/database/migrations/0100_consents.sql`, where each reason is
-explained), read through the `email_permissions` and `phone_permissions`
-views and `contact_permissions`, both of them. Everything that asks reads
+number about each topic by each way, and why: the `consent_answers` view,
+a query for each rule, giving every answer anyone gave, and
+`consent_stops`, everything that stops every topic by a way
+(`netlify/database/migrations/0145_consents_as_views.sql`, where each
+reason is explained). `contact_permissions` picks one answer for each
+address or number, way and topic, for everyone at once, so a filter
+works it out in one pass; `email_permissions` and `phone_permissions`
+are its two channels, and `contact_permission()` looks one up, with any
+stop for an address it has no answer for. Everything that asks reads
 those: the supporter's page and the list's Consent, Email and Phone
 columns, through `permissionsFor()` in `lib/supporters/permissions-for.server.ts`;
 the list's Consent filter; and who a broadcast goes to. Their stops are
@@ -1573,21 +1578,28 @@ A consent is a topic, what we'd send, by a way (`CONSENTS` in
 `lib/supporters/contact-permissions.ts`): email to an address, or a text (WhatsApp too)
 or a call to a number. The topics:
 
-- **Newsletter**, the PauseAI UK newsletter, which includes events: a box
-  ticked on one of our forms, for email, and for texts on the march's,
-  which says "by email, text and phone"; a paper sign-up, where writing an
-  address or a number down is joining; a WhatsApp member's number, for texts,
-  unless a stop of newsletter texts is in force, however old; and CiviCRM's
-  `newsletter` list, for email.
-- **Events only**: following the Luma calendar, which registering for an
+- **Newsletter**, PauseAI Updates: a box ticked on one of our forms, for
+  email, and for texts on the march's, which says "by email, text and
+  phone"; a paper sign-up, where writing an address or a number down is
+  joining; a letter on pauseai.info's earlier form before it had a consent
+  box (23 September 2026), for email; a WhatsApp member's number, for
+  texts, unless a stop of newsletter texts is in force, however old; every
+  UK chapter member in CiviCRM, for email, as giving their details to the
+  UK chapter is the yes, unless they unsubscribed from its `newsletter`
+  list; and every volunteer, by email and text (below).
+- **Events**, the Luma calendar: being on it, which registering for an
   event does too, for email. A number given at a Luma registration has the
   answer of the account that gave it, for texts; a number given on a form
   for "text updates on the day" is a yes for texts until the day ends
-  (`day_texts`).
+  (`day_texts`). With the newsletter, it makes PauseAI Updates including
+  Luma.
 - **Volunteering**: CiviCRM's `volunteer_updates` list, for email; and a
   member's number, for calls and texts, if they chose to volunteer or lead when
   joining, or joined before 30 June 2026 on the Tally form, which didn't
-  ask: a contact's number and intent from CiviCRM.
+  ask: a contact's number and intent from CiviCRM. Such a number is a yes
+  to newsletter texts too, and volunteering chosen on the contact
+  preferences page is a yes to the newsletter by the same way, unless
+  they've opted out of it.
 
 Each answer is yes or no, with a reason from a short list, when, and which
 source said so. First, whatever stops every topic by the way: a blocked
@@ -1598,9 +1610,10 @@ and our own stop of every text or every call to the number (`all`), from
 Stop everything, WhatsApp's setting or a text it refused. Then the
 latest thing the person said about the consent, a stop or a yes, a stop
 winning a tie, so a box ticked after an unsubscribe opens it again. Last,
-if they said nothing that counts, why not: a box left unticked, never
-opted in in CiviCRM, never followed the calendar, gone from the chapter.
-A consent the address or number has had nothing to do with has no row.
+if they said nothing that counts, why not: a box left unticked, not on
+the calendar, a member who didn't choose to volunteer, gone from the
+chapter, a day's texts over. A consent the address or number has had
+nothing to do with has no row, unless it's stopped.
 A box ticked on the contact preferences page is a yes (`chose`), and an opt-out
 of every bulk email or all email is the stop "No bulk emails" or "Do not
 email" is; CiviCRM's "No bulk emails" stops nothing once the person lifted

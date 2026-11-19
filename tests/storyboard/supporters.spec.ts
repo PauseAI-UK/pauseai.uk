@@ -605,14 +605,14 @@ test("Subscriptions to more than one topic", async ({ page, request, flowDatabas
 
 test("A member who never opted in", async ({ page, request, flowDatabase }) => {
   story(
-    "Owen joined as a member without ticking Keep me informed. CiviCRM says they never opted in to chapter emails, so their page says we won't send them the newsletter.",
+    "Owen joined as a member without ticking Keep me informed. Joining the UK chapter is a yes to PauseAI Updates, so their page says we can email them.",
   );
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Owen Member" }).click();
-  await expect(page.getByText(said("not-opted-in", "civicrm"), { exact: false })).toBeVisible();
-  await expect(page.getByText(copy.detail.permissions.answers.email.no).first()).toBeVisible();
+  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toBeVisible();
+  await expect(page.getByText(copy.detail.permissions.answers.email.yes).first()).toBeVisible();
   await openHistory(page);
   await expect(page.getByText(copy.detail.intents.act_now)).toBeVisible();
   await frame(page, "Owen's page");

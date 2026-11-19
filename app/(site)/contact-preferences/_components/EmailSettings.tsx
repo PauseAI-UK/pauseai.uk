@@ -63,7 +63,7 @@ const inWords = (topics: Topic[]): string => topics.map((t) => copy.inSentence[t
  * list is saying so when joining, which is how its join form puts them there.
  */
 const reasonWords = (answer: ContactPermission): string => {
-  const reason = answer.reason === "subscribed" && answer.topic === "volunteering" ? "volunteered" : answer.reason;
+  const reason = answer.reason === "subscribed" ? "volunteered" : answer.reason;
   return copy.why.reasons[reason]?.(copy.sourceWords(answer.source)) ?? "";
 };
 
