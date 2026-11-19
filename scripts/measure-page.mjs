@@ -35,6 +35,8 @@
 // - "last image" is when all of them first show in full: loaded and opaque,
 //   so after any fade;
 // - "largest paint" is the browser's Largest Contentful Paint;
+// - "buttons work" is when React has taken over every <button> on the page,
+//   so a tap on the menu does something;
 // - "page loaded" is when the last thing the page fetched arrived;
 // - "requests" and the KB count everything fetched, as sent over the
 //   network, by kind, and what came from other sites.
@@ -119,6 +121,7 @@ export const METRICS = [
   ["first", "First image", "s"],
   ["last", "Last image", "s"],
   ["lcp", "Largest paint", "s"],
+  ["working", "Buttons work", "s"],
   ["loaded", "Page loaded", "s"],
   ["images", "Images in the window", ""],
   ["requests", "Requests", ""],
@@ -360,12 +363,25 @@ function serve(commit, log) {
 
 /**
  * Runs in the page before anything else: watches the images in the window,
- * each frame, for the first to show and for all of them to show in full.
+ * each frame, for the first to show and for all of them to show in full, and
+ * the page's buttons for React taking them over.
  */
-function watchImages(selector) {
-  const measured = (window.measured = { fcp: null, first: null, last: null, images: 0, lcp: null });
+function watchPage(selector) {
+  const measured = (window.measured = {
+    fcp: null,
+    first: null,
+    last: null,
+    images: 0,
+    lcp: null,
+    lcpOf: null,
+    working: null,
+  });
   new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) measured.lcp = entry.startTime;
+    for (const entry of list.getEntries()) {
+      measured.lcp = entry.startTime;
+      // What it was, for the JSON: the picture's address, or the start of the words.
+      measured.lcpOf = entry.url || (entry.element?.textContent ?? "").trim().slice(0, 40);
+    }
   }).observe({ type: "largest-contentful-paint", buffered: true });
   new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) if (entry.name === "first-contentful-paint") measured.fcp = entry.startTime;
@@ -375,18 +391,25 @@ function watchImages(selector) {
     return box.width > 0 && box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth;
   };
   const opacity = (img) => (img.complete && img.naturalWidth > 0 ? Number(getComputedStyle(img).opacity) : 0);
+  // React keeps each element's props on it, under a key of its own, once it has hydrated it.
+  const taken = (element) => Object.keys(element).some((key) => key.startsWith("__reactProps$"));
   function frame() {
-    const shown = [...document.querySelectorAll(selector)].filter(inWindow).map(opacity);
-    if (shown.length > 0) {
-      const now = performance.now();
-      if (measured.first === null && shown.some((value) => value > 0)) measured.first = now;
-      if (shown.every((value) => value >= 0.99)) {
-        measured.last = now;
-        measured.images = shown.length;
-        return;
+    const now = performance.now();
+    if (measured.last === null) {
+      const shown = [...document.querySelectorAll(selector)].filter(inWindow).map(opacity);
+      if (shown.length > 0) {
+        if (measured.first === null && shown.some((value) => value > 0)) measured.first = now;
+        if (shown.every((value) => value >= 0.99)) {
+          measured.last = now;
+          measured.images = shown.length;
+        }
       }
     }
-    requestAnimationFrame(frame);
+    if (measured.working === null) {
+      const buttons = [...document.querySelectorAll("button")];
+      if (buttons.length > 0 && buttons.every(taken)) measured.working = now;
+    }
+    if (measured.last === null || measured.working === null) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 }
@@ -434,7 +457,7 @@ async function load(browser, url, viewport, network, selector, filmTo) {
       everyNthFrame: 6,
     });
   }
-  await page.addInitScript(watchImages, selector);
+  await page.addInitScript(watchPage, selector);
   await page.goto(url, { waitUntil: "load", timeout: LOAD_TIMEOUT_MS }).catch(() => {});
   await page
     .waitForFunction(() => window.measured.last !== null, undefined, { timeout: LOAD_TIMEOUT_MS })
