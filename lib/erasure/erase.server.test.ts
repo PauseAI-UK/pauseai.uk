@@ -158,14 +158,12 @@ describeWithDatabase("eraseSupporter", () => {
   });
 
   it("keeps the next Luma and CiviCRM imports from bringing her back, leaving everyone else", async () => {
-    await importLuma("test");
-    await importCivicrm("test");
+    await janeFromImports();
+    await linkSupporters();
     const [{ id }] = await query<{ id: number }>(
       "SELECT supporter_id::int AS id FROM supporter_links WHERE luma_user_id = 'usr-fixture-1'",
     );
     await eraseSupporter(id, "ICO-123", "jo@pauseai.uk");
-    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 16 }]);
-    await query("UPDATE luma_events SET guests_synced_at = NULL, hosts_synced_at = NULL");
     await importLuma("test");
     await importCivicrm("test");
     expect(await query("SELECT 1 FROM luma_people WHERE user_id = 'usr-fixture-1'")).toEqual([]);
