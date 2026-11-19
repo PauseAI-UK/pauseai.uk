@@ -257,6 +257,28 @@ describe("a broadcast's page", () => {
     expect(bar().className).not.toBe(going);
   });
 
+  it("shows one all sent but for delayed emails as sending, waiting on them, with nothing to stop", async () => {
+    const stopsAt = new Date("2026-11-25T20:04:00Z");
+    const pause: SendingPause = { kind: "delayed", delayed: 45, stopsAt };
+    // Its state is sent; its summary says sending (withPause).
+    const waiting = {
+      ...exampleBroadcastSent,
+      summary: { ...exampleBroadcastSummary, state: "sending" as const, pause },
+    };
+    const { sent, failed, to } = exampleBroadcastSummary;
+    await render(<BroadcastView data={waiting} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByText(copy.paused.bar(sent + failed, to))).toBeVisible();
+    await expect.element(page.getByText(copy.delayedLeft(45, staffDate(stopsAt)))).toBeVisible();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.started)).toBeVisible();
+    await expect
+      .element(page.getByRole("button", { name: mailingsCopy.mailingPages.stopSending }))
+      .not.toBeInTheDocument();
+    // No tag saying it's sent.
+    await expect
+      .element(page.getByText(mailingsCopy.mailingPages.states.sent, { exact: true }))
+      .not.toBeInTheDocument();
+  });
+
   it("says why one stopped before it had all gone: CiviCRM, or a day's limit of emails", async () => {
     const stopped = (waitReason: "pull" | "limit") => ({
       ...exampleBroadcastSent,
@@ -408,6 +430,8 @@ describe("BroadcastWaiting", () => {
       [{ kind: "held", held: 20, until, stopsAt }, copy.heldLeft(20, "11 Nov 2026, 07:48", staffDate(stopsAt))],
       [{ kind: "limit", channel: "email" }, copy.moreTomorrow],
       [{ kind: "limit", channel: "text" }, copy.moreTomorrowText],
+      [{ kind: "delayed", delayed: 45, stopsAt }, copy.delayedLeft(45, staffDate(stopsAt))],
+      [{ kind: "delayed", delayed: 1, stopsAt }, copy.delayedLeft(1, staffDate(stopsAt))],
     ];
     const view = await render(<BroadcastWaiting written={sending} pause={null} />);
     expect(view.container.textContent).toBe("");
@@ -455,6 +479,10 @@ describe("pauseInBrief", () => {
       till: copy.paused.till("Thu 19 Nov, 10:18"),
     });
     expect(pauseInBrief({ kind: "limit", channel: "text" })).toEqual({ word, till: copy.paused.tillTomorrow });
+    expect(pauseInBrief({ kind: "delayed", delayed: 2, stopsAt: until })).toEqual({
+      word,
+      till: copy.paused.forDelayed,
+    });
   });
 });
 

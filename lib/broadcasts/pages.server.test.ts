@@ -410,7 +410,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       };
     };
     expect(await stands()).toMatchObject({
-      summary: { sent: 6, failed: 0, states: { delivered: 2, sent: 1, held: 2, "opted-out": 1, error: 0 } },
+      summary: { sent: 4, failed: 0, states: { delivered: 2, sent: 1, held: 2, "opted-out": 1, error: 0 } },
       rows: [
         ["delivered", null],
         ["held", "postmark-silent"],
@@ -421,10 +421,18 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       ],
     });
     expect(await broadcastPageData(id, { tab: "held" }, JO)).toMatchObject({ tab: "held", recipientsTotal: 2 });
+    // All sent, it's said to be sending, waiting on those delayed, with what's still coming up.
+    const [{ dueAt }] = await query<{ dueAt: Date }>('SELECT due_at AS "dueAt" FROM mailings WHERE id = $1', [id]);
+    const waiting = { state: "sending", pause: { kind: "delayed", delayed: 2, stopsAt: sendingStopsAt(dueAt) } };
+    expect((await stands()).summary).toMatchObject(waiting);
+    const listed = async () =>
+      (await broadcastsPage()).groups.map((group) => [group.key, group.mailings.map((m) => m.state)]);
+    expect(await listed()).toEqual([["coming", ["sending"]]]);
     // Its seven days over, those still delayed never will arrive: errors, done with but not sent.
     await query("UPDATE mailings SET due_at = now() - interval '7 days' WHERE id = $1", [id]);
+    expect((await listed())[0][1]).toEqual(["sent"]);
     expect(await stands()).toMatchObject({
-      summary: { sent: 4, failed: 2, states: { held: 0, error: 2 } },
+      summary: { state: "sent", pause: null, sent: 4, failed: 2, states: { held: 0, error: 2 } },
       rows: [
         ["delivered", null],
         ["error", "postmark-silent"],

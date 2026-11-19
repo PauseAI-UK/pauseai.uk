@@ -412,6 +412,17 @@ describe("sendingPause", () => {
     expect(sendingPause({ ...all, restingUntil: null, heldTill: null })).toEqual({ kind: "limit", channel: "text" });
     expect(sendingPause({ ...all, restingUntil: null, toGo: 1, atLimit: false })).toBeNull();
   });
+
+  it("is delayed for one sent with emails delayed, till its days run out, and only that", () => {
+    const sent = { ...going, state: "sent", channel: "email" as const, toGo: 0, held: 45, atLimit: true };
+    expect(sendingPause(sent)).toEqual({ kind: "delayed", delayed: 45, stopsAt: sendingStopsAt(dueAt) });
+    // None delayed, it's done.
+    expect(sendingPause({ ...sent, held: 0 })).toBeNull();
+    // One sent with no time, which none has, is none either.
+    expect(sendingPause({ ...sent, dueAt: null })).toBeNull();
+    // Stopped, it waits on nothing.
+    expect(sendingPause({ ...sent, state: "cancelled" })).toBeNull();
+  });
 });
 
 describe("isAvailableSendBy", () => {
