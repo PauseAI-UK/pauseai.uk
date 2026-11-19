@@ -279,17 +279,17 @@ export const broadcastsCopy = {
       // caption: what it is. Its file isn't kept, so the site can't show that; a place and a contact card are
       // kept whole.
       kinds: {
-        image: "A photo, which this site can't show",
-        video: "A video, which this site can't show",
-        document: "A document, which this site can't show",
-        audio: "An audio file, which this site can't show",
-        voice: "A voice note, which this site can't show",
-        sticker: "A sticker, which this site can't show",
+        image: "Photo, which can't be shown here",
+        video: "Video, which can't be shown here",
+        document: "Document, which can't be shown here",
+        audio: "Audio file, which can't be shown here",
+        voice: "Voice note, which can't be shown here",
+        sticker: "Sticker, which can't be shown here",
         location: "A location they shared",
         contacts: "A contact card they shared",
       } as Record<string, string>,
       // Any other kind, by WhatsApp's name for it.
-      kindOther: (type: string) => `A message of a kind this site can't show (${type})`,
+      kindOther: (type: string) => `Message (${type}), which can't be shown here`,
       // A reaction to one of our messages: over its emoji, the start of the message it's to; under it, that it's
       // a reaction; one from before emojis were kept; and, on a line under that, when they took it back, or put
       // another in its place.
@@ -333,7 +333,9 @@ export const broadcastsCopy = {
     // On one all sent but for emails delayed by a soft bounce or Postmark's silence: how many, and the day those
     // still delayed become errors.
     delayedLeft: (n: number, stops: string) =>
-      `${plural(n, "The last email hasn't", `The last ${n} emails haven't`)} been delivered yet, as ${plural(n, "its", "their")} mail server turned ${plural(n, "it", "them")} away for now, or we haven't heard back. ${plural(n, "It's", "They're")} still being tried, and will be marked as ${plural(n, "an error", "errors")} if not delivered by ${stops}.`,
+      n === 1
+        ? `Postmark has an email it hasn't managed to deliver yet, and is still trying. If it's not delivered by ${stops} we'll count it as an error.`
+        : `Postmark has ${n} emails it hasn't managed to deliver yet, and is still trying. Any not delivered by ${stops} we'll count as errors.`,
     // One with nothing going out for now, though it's sending or past its time (SendingPause), in a few words. In
     // the list, in place of "Sending now" over when it went: the word, over what it waits for or till when. And
     // over its bar, in the list and on its page, in place of "Sending:".
@@ -350,7 +352,8 @@ export const broadcastsCopy = {
     noRecipients: "No recipients here.",
     // In place of the recipients of one scheduled, as sending finds them.
     recipientsNow: "Who it would go to if sent now. May change by the time it is sent.",
-    columns: { who: "Supporter", status: "Status" },
+    // The recipients' columns; the last, when its provider last said anything of their copy.
+    columns: { who: "Supporter", status: "Status", changed: "Last change" },
     erased: "Erased supporter",
     threadLink: "Thread →",
     // Under a copy WhatsApp held: when it's next tried, as a date and time.

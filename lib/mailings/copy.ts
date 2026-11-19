@@ -228,12 +228,13 @@ export const mailingsCopy = {
     // The list of mailings: when a draft was last saved.
     savedAt: (when: string) => `Saved ${when}`,
     // In the list of mailings or broadcasts, where each stands, as a sentence after a dot in its colour: a draft,
-    // scheduled, stopped by us, sent.
+    // scheduled, stopped by us, sent. One sent says only that sending is over and who it was for: some may have
+    // bounced, been blocked or opted out, which the counts under it say.
     standing: {
       draft: (n: number) => `Draft, to ${count(n, "person", "people")}`,
       scheduled: (n: number) => `Scheduled to ${count(n, "person", "people")}`,
       stopped: (n: number, of: number) => `Stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
-      sent: (n: number) => `Sent to ${count(n, "person", "people")}`,
+      sent: (n: number) => `Finished, to ${count(n, "person", "people")}`,
     },
     // The bar of how far a mailing sending has got, and once it's sent, how many have answered its ask.
     sendingBar: (n: number, of: number) => `Sending: ${n} of ${of} done`,

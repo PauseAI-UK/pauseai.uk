@@ -14,6 +14,7 @@ import { now } from "@/lib/now";
 import { phoneWords } from "@/lib/phone";
 import { staffDate } from "@/lib/staff-time";
 import { anyAndNone, valuesOf, type ParamValue } from "@/lib/list-params";
+import type { SortColumns } from "@/lib/staff-sort";
 import { broadcastsCopy } from "./copy";
 
 // The rules of broadcasts to supporters, for the server to keep and the pages
@@ -25,6 +26,14 @@ import { broadcastsCopy } from "./copy";
  * not staff: a STOP replied to a text, kept as an opt-out and answered.
  */
 export const SITE_ACTOR = "pauseai.uk";
+
+/**
+ * What the recipients on a broadcast's page sort by, each with the
+ * direction a first click gives: who, by name, as they're listed unless
+ * another is chosen; or when their copy last changed, the newest first.
+ */
+export const RECIPIENT_SORTS = { who: "asc", changed: "desc" } as const satisfies SortColumns<string>;
+export type RecipientSort = keyof typeof RECIPIENT_SORTS;
 
 /** How a broadcast goes. Staff choose text, never the backend that sends it. */
 export type BroadcastChannel = "email" | "text";
