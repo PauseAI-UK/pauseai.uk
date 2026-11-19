@@ -152,6 +152,62 @@ describe("OnboardingFormEmbed", () => {
     expect(container.querySelector("iframe")!.getAttribute("height")).toBe("900");
   });
 
+  it("waits for the page to finish loading before fetching the form, and only then for the form", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    const { container, srcs } = await renderEmbed();
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(srcs).toEqual([]);
+    expect(container.querySelector("[role=status]")).toBeNull();
+
+    window.dispatchEvent(new Event("load"));
+    expect(srcs).toHaveLength(1);
+    // A second load event, or the form coming near, doesn't fetch it again.
+    window.dispatchEvent(new Event("load"));
+    expect(srcs).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(8000);
+    await expect.poll(() => container.querySelector("[role=status]")?.textContent).toContain("Form didn't load.");
+  });
+
+  it("fetches the form before the page has loaded once the reader is nearly at it", async () => {
+    vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    const observers: { callback: IntersectionObserverCallback; margin?: string; watching: Element[] }[] = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        watching: Element[] = [];
+        constructor(
+          public callback: IntersectionObserverCallback,
+          options?: IntersectionObserverInit,
+        ) {
+          observers.push({ callback, margin: options?.rootMargin, watching: this.watching });
+        }
+        observe(element: Element) {
+          this.watching.push(element);
+        }
+        disconnect() {
+          this.watching.length = 0;
+        }
+      },
+    );
+    const { iframe, srcs, unmount } = await renderEmbed();
+    const [near] = observers;
+    expect(near.margin).toBe("1500px 0px");
+    expect(near.watching).toEqual([iframe]);
+    const report = (isIntersecting: boolean) =>
+      near.callback([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
+
+    report(false);
+    expect(srcs).toEqual([]);
+    report(true);
+    expect(srcs).toHaveLength(1);
+    expect(near.watching).toEqual([]);
+    // The page finishing its load afterwards doesn't fetch it again.
+    window.dispatchEvent(new Event("load"));
+    expect(srcs).toHaveLength(1);
+    await unmount();
+  });
+
   it("ignores messages from other sites and messages without a height", async () => {
     const { container } = await renderEmbed();
     post({ height: 10 }, "https://evil.example");
