@@ -116,6 +116,11 @@
   font-weight: 400;
 }
 
+/* An ask's date, after its title: on the title's line or the next, never broken. */
+.askWhen {
+  white-space: nowrap;
+}
+
 /* The answers to pick from, a row of their own over the note. */
 .statusChoices {
   flex: 1 0 100%;

@@ -93,8 +93,16 @@ describe("a broadcast's page", () => {
     const { rerender } = await render(
       <BroadcastView data={{ ...exampleBroadcastSent, tab: "error" }} who={who} contact={null} {...actions} />,
     );
-    // When each last changed, in its column; nothing for one that never went.
-    await expect.element(page.getByText(staffTime(exampleBroadcastSent.recipients[0].changedAt!))).toBeVisible();
+    // When each last changed: under how it went on a phone, which has no room for its column.
+    const when = staffTime(exampleBroadcastSent.recipients[0].changedAt!);
+    await page.viewport(390, 800);
+    await expect
+      .element(page.getByRole("cell", { name: new RegExp(`${stateWords.tags.read}.*${when}`) }))
+      .toBeVisible();
+    // Hidden, so no longer a link anyone can reach.
+    await expect.element(page.getByRole("link", { name: copy.columns.changed, exact: true })).not.toBeInTheDocument();
+    await page.viewport(1280, 800);
+    await expect.element(page.getByRole("cell", { name: when, exact: true })).toBeVisible();
     const heading = (name: string) => page.getByRole("link", { name, exact: true });
     await expect
       .element(heading(copy.columns.changed))
@@ -119,6 +127,7 @@ describe("a broadcast's page", () => {
 
   it("has nothing to sort one scheduled by", async () => {
     const written = { ...exampleBroadcastSent.written, state: "scheduled" as const };
+    await page.viewport(1280, 800);
     await render(<BroadcastView data={{ ...exampleBroadcastSent, written }} who={who} contact={null} {...actions} />);
     await expect.element(page.getByRole("cell", { name: copy.columns.changed, exact: true })).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.columns.changed, exact: true })).not.toBeInTheDocument();

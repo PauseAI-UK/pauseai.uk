@@ -76,8 +76,8 @@ export function AskRows({ children }: { children: ReactNode }) {
 /** Answers that are a no, crossed; a yes (AGREED_STATUSES) is ticked in green. */
 
 /**
- * One ask, a row of the asks card: who asked them to do what, and when,
- * leading into the ask's title; the note and who set the answer, or which
+ * One ask, a row of the asks card: who asked them to do what, leading into
+ * the ask's title and its date; the note and who set the answer, or which
  * import; beside it, in a column of its own, where they stand on it
  * (standing(), lib/asks/asks.ts) and its date, a yes ticked in green and a
  * no crossed, and for an ask staff record, Edit under it, which opens the
@@ -135,8 +135,7 @@ export default function AskRow({
         {status && (
           <span className={styles.askMeta}>
             {status.note && `${status.note} · `}
-            {copy.fromImport[status.updatedBy] ??
-              copy.setBy(staffMemberText(status.updatedBy), staffDate(status.updatedAt))}
+            {copy.fromImport[status.updatedBy] ?? copy.answerSetBy(staffMemberText(status.updatedBy))}
           </span>
         )}
       </div>

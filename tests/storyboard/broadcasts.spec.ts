@@ -859,11 +859,14 @@ test("An email sent", async ({ page, request, flowDatabase }) => {
   await page.getByRole("link", { name: "Thank you for marching" }).first().click();
   await expect(page.getByRole("heading", { name: copy.recipientsTitle })).toBeVisible();
   await frame(page, "The email's page");
-  story("Its recipients are listed by name. A heading sorts them by when each last changed, the newest first.");
-  const changed = page.getByRole("link", { name: copy.columns.changed, exact: true });
-  await changed.click();
-  await expect(page.locator("th", { has: changed })).toHaveAttribute("aria-sort", "descending");
-  await frame(page, "Sorted by when each last changed");
+  // A phone has no room for the column of when each last changed, so shows that under how each went, with no heading to sort by.
+  if (test.info().project.name !== "phone") {
+    story("Its recipients are listed by name. A heading sorts them by when each last changed, the newest first.");
+    const changed = page.getByRole("link", { name: copy.columns.changed, exact: true });
+    await changed.click();
+    await expect(page.locator("th", { has: changed })).toHaveAttribute("aria-sort", "descending");
+    await frame(page, "Sorted by when each last changed");
+  }
   story("A count shows those it counts.");
   await page.getByRole("link", { name: new RegExp(stateWords.counts["not-sent"]!) }).click();
   await expect(page.getByRole("heading", { name: stateWords.tabs["not-sent"] })).toBeVisible();

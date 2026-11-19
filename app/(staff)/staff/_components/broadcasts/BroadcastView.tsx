@@ -160,7 +160,8 @@ export function copyWent(copyOf: Pick<MessageRecipient, "status" | "skipReason">
 
 /**
  * A recipient's columns: who, and where they are; how it went, and the way
- * to their copy's page; then when it last changed. With `sorting`, the
+ * to their copy's page; then when it last changed, which a phone shows
+ * under how it went, in place of the column. With `sorting`, the
  * list's URL and its sort, who and when are headings that sort by them
  * (RECIPIENT_SORTS), keeping the tab.
  */
@@ -207,6 +208,12 @@ function recipientColumns(
         return (
           <span className={styles.stack}>
             <CopyStatus copyOf={r} />
+            {/* On a phone, which has no room for the last column (Broadcasts.module.css). */}
+            {r.changedAt && (
+              <span className={styles.changedUnder}>
+                <Muted>{staffTime(r.changedAt)}</Muted>
+              </span>
+            )}
             {r.heldTill && <Muted>{copy.heldTill(staffTime(sendsAt(r.heldTill)))}</Muted>}
             {copyWent(r) && (
               <StaffLink href={`/staff/broadcasts/${broadcast.id}/${r.copyId}`}>{copy.threadLink}</StaffLink>
@@ -348,7 +355,7 @@ export default function BroadcastView({
           </div>
           {/* Sending finds who it goes to, so one scheduled lists who its filters find now. */}
           {scheduled && <Muted>{copy.recipientsNow}</Muted>}
-          {
+          <div className={styles.recipients}>
             <ListFrame
               count={copy.recipientsCount(data.recipientsTotal)}
               total={data.recipientsTotal}
@@ -362,7 +369,7 @@ export default function BroadcastView({
               rowKey={(r) => r.copyId}
               empty={copy.noRecipients}
             />
-          }
+          </div>
         </Card>
       </Grid>
     </div>

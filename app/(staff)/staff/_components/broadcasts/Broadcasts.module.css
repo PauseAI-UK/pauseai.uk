@@ -130,12 +130,28 @@
   height: 3rem;
 }
 
-/* A recipient's cell: their name over where they are, or how it went over when. */
+/* A recipient's cell: their name over where they are, or how it went over the way to their copy. */
 .stack {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-1);
+}
+
+/* When a copy last changed is the recipients' third column. A phone has no
+   room for it, so there it's under how the copy went, and the column goes. */
+.changedUnder {
+  display: none;
+}
+
+@media (max-width: 30rem) {
+  .recipients :is(th, td):nth-child(3) {
+    display: none;
+  }
+
+  .changedUnder {
+    display: block;
+  }
 }
 
 /* How a copy went, and a stop after it beside it. */
