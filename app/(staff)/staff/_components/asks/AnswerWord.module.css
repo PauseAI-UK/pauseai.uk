@@ -10,7 +10,14 @@
   content: "✕ " / "";
 }
 
-/* The words after asked, where there's room for them: a line of their own. */
+/* The words after asked: a line of their own, but beside it once the asks
+   (ui/Details.module.css) have room for both without squeezing the ask. */
 .after {
   display: block;
+}
+
+@container asks (min-width: 22.5rem) {
+  .after {
+    display: inline;
+  }
 }
