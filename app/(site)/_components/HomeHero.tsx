@@ -31,18 +31,28 @@ const COLOURS: Record<string, string> = photoColours;
  *
  * - "first": a row opens on its first photos, about two of them on a phone.
  *   They're fetched before anything else.
- * - "next": the rest of what a row opens on across a desktop's window, about
- *   six photos, and what it brings on in its first few seconds. A row moving
- *   left ("ltr") brings on the ones after those it opened on, and one moving
- *   right ("rtl") its last ones, the very last first. They're fetched with
- *   the page.
+ * - "next": the ones the row brings on in its first few seconds. A row moving
+ *   left ("ltr") brings on those after the first, and one moving right ("rtl")
+ *   its last ones, the very last first. They're fetched with the page.
  * - "later": the rest wait until they're nearly on screen, or the page has
- *   loaded (HeroMarqueeEffects), whichever is first.
+ *   loaded (HeroMarqueeEffects), whichever is first. A wide window fetches
+ *   some of them with the page all the same (WIDE_OPENS_ON).
  */
 function wantedWhen(index: number, count: number, dir: "ltr" | "rtl") {
   if (index < 2) return "first";
-  return index < 6 || (dir === "rtl" && index >= count - 2) ? "next" : "later";
+  const soon = dir === "rtl" ? index >= count - 2 : index < 4;
+  return soon ? "next" : "later";
 }
+
+/**
+ * A window this wide opens on more of each row than a phone does: its first
+ * WIDE_OPENS_ON photos, about. Those of them left for later are fetched with
+ * the page there, by a preload that only such a window acts on. Fetched with
+ * the page on a phone as well, they would hold up the photos it is about to
+ * bring on.
+ */
+const WIDE = "(min-width: 1024px)";
+const WIDE_OPENS_ON = 5;
 
 // The home page hero: three rows of photos scrolling in alternating
 // directions behind the headline (HeroMarqueeEffects measures and starts
@@ -63,9 +73,20 @@ export default function HomeHero() {
   const [first] = heroRows[0].photos[0];
   preload(avif(first), { as: "image", imageSrcSet: avifSet(first), type: "image/avif", fetchPriority: "high" });
 
+  // In the page's body, so a browser asks for them after the page's scripts, as it does the photos themselves.
+  const widePreloads = heroRows
+    .flatMap((row) =>
+      row.photos
+        .slice(0, WIDE_OPENS_ON)
+        .filter((_, index) => wantedWhen(index, row.photos.length, row.dir) === "later"),
+    )
+    .map(([src]) => `<link rel="preload" as="image" type="image/avif" media="${WIDE}" imagesrcset="${avifSet(src)}">`)
+    .join("");
+
   return (
     <section id="about">
       <script dangerouslySetInnerHTML={{ __html: HERO_PHOTO_FADE_SCRIPT }} />
+      <div hidden dangerouslySetInnerHTML={{ __html: widePreloads }} />
       <div className={styles.marquee}>
         {heroRows.map((row, ri) => (
           <div key={ri} className={row.dir === "rtl" ? `${styles.row} ${styles.rtl}` : styles.row}>

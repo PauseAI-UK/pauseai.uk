@@ -56,8 +56,8 @@ describe("HomeHero", () => {
     const box = first.getBoundingClientRect();
     expect(box.width / box.height).toBeCloseTo(width / height, 1);
     // Each row's photos are fetched in the order a visitor meets them: its first two before anything, then
-    // the rest of the six a desktop opens on, and the two the row moving right brings on next, its last.
-    // The rest wait, as do the repeats, which are the same files.
+    // the two it brings on next, which on the row moving right are its last. The rest wait, as do the
+    // repeats, which are the same files.
     const fetched = tracks.map((track) =>
       [...track.querySelectorAll("img")].map((photo) =>
         photo.getAttribute("fetchpriority") === "high" ? "first" : photo.loading === "eager" ? "next" : "later",
@@ -65,10 +65,23 @@ describe("HomeHero", () => {
     );
     const later = (count: number) => Array.from({ length: count }, () => "later");
     const [top, middle, bottom] = [0, 1, 2].map((row) => Math.min(10, HERO_PHOTOS.length - row * 10));
-    const opening = ["first", "first", "next", "next", "next", "next"];
-    expect(fetched[0]).toEqual([...opening, ...later(top * 4 - 6)]);
-    expect(fetched[1]).toEqual([...opening, ...later(middle - 8), "next", "next", ...later(middle * 3)]);
-    expect(fetched[2]).toEqual([...opening, ...later(bottom * 4 - 6)]);
+    expect(fetched[0]).toEqual(["first", "first", "next", "next", ...later(top * 4 - 4)]);
+    expect(fetched[1]).toEqual(["first", "first", ...later(middle - 4), "next", "next", ...later(middle * 3)]);
+    expect(fetched[2]).toEqual(["first", "first", "next", "next", ...later(bottom * 4 - 4)]);
+    // A wide window opens on about five photos a row, and fetches with the page those of them that waited:
+    // the fifth of the rows moving left, and the third to fifth of the row moving right.
+    const sets = (track: HTMLElement, from: number, to: number) =>
+      [...track.querySelectorAll("source")].slice(from, to).map((source) => source.getAttribute("srcset"));
+    const wide = [...container.querySelectorAll('link[rel="preload"][as="image"]')];
+    expect(wide.map((link) => link.getAttribute("imagesrcset"))).toEqual([
+      ...sets(tracks[0], 4, 5),
+      ...sets(tracks[1], 2, 5),
+      ...sets(tracks[2], 4, 5),
+    ]);
+    for (const link of wide) {
+      expect(link).toHaveAttribute("media", "(min-width: 1024px)");
+      expect(link).toHaveAttribute("type", "image/avif");
+    }
     const preloaded = document.head.querySelector('link[rel="preload"][as="image"][type="image/avif"]');
     expect(preloaded).toHaveAttribute("imagesrcset", avifs);
     // The fade's script comes before the photos, so it's listening when the first loads.
