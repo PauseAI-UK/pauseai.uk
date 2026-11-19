@@ -10,28 +10,68 @@ export interface QrCode {
 export const MAX_QR_CODES = 4;
 
 /** An email address alone, like "hello@pauseai.uk". */
-const EMAIL = /^[^\s@/?#:]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
+const EMAIL = /^[^\s@/?#:,]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/i;
+
+/** What an email link can fill in besides the address. Copies go to a list of addresses, separated by commas. */
+const MAILTO_FIELDS: Record<string, "text" | "addresses"> = {
+  subject: "text",
+  body: "text",
+  cc: "addresses",
+  bcc: "addresses",
+};
+
+const decode = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    // A lone "%", as in "50% off", is the volunteer's own text.
+    return value;
+  }
+};
+
+/**
+ * The mailto link for an email address, alone or after mailto:, with any subject, body, cc and bcc after a "?", like
+ * "hello@pauseai.uk?subject=Flyer request&cc=jane.smith@example.com". The subject and body may have spaces, which
+ * are encoded so every phone reads them; they're decoded first, so text that's already encoded stays as it was. Null
+ * for anything else, including a field a mail app wouldn't know, which is most likely a typo.
+ */
+function emailLink(input: string): string | null {
+  const [address, ...rest] = input
+    .trim()
+    .replace(/^mailto:/i, "")
+    .split("?");
+  if (!EMAIL.test(address)) return null;
+  const query = rest.join("?");
+  const fields: string[] = [];
+  for (const field of query.split("&")) {
+    if (!field) continue;
+    const [key, ...value] = field.split("=");
+    const name = key.trim().toLowerCase();
+    const text = decode(value.join("=")).trim();
+    if (MAILTO_FIELDS[name] === "text") fields.push(`${name}=${encodeURIComponent(text)}`);
+    else if (MAILTO_FIELDS[name] === "addresses" && text.split(",").every((a) => EMAIL.test(a.trim())))
+      fields.push(`${name}=${text.replace(/\s/g, "")}`);
+    else return null;
+  }
+  return `mailto:${address}${fields.length ? `?${fields.join("&")}` : ""}`;
+}
 
 /**
  * Adds https:// when a volunteer types a bare address like "pauseai.uk/london", and mailto: when they type an email
- * address like "hello@pauseai.uk".
+ * address like "hello@pauseai.uk" (see emailLink).
  */
 export function normaliseUrl(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return "";
+  const email = emailLink(trimmed);
+  if (email) return email;
   if (/^https?:\/\//i.test(trimmed) || /^mailto:/i.test(trimmed)) return trimmed;
-  return EMAIL.test(trimmed) ? `mailto:${trimmed}` : `https://${trimmed}`;
+  return `https://${trimmed}`;
 }
 
-/**
- * Whether `input` is an email link a phone can open: an email address, alone or after mailto:, which may be followed
- * by a subject or body, like "mailto:hello@pauseai.uk?subject=Flyers".
- */
+/** Whether `input` is an email link a phone can open (see emailLink). */
 export function isEmailLink(input: string): boolean {
-  const trimmed = input.trim();
-  if (/\s/.test(trimmed)) return false;
-  const url = normaliseUrl(trimmed);
-  return /^mailto:/i.test(url) && EMAIL.test(url.slice("mailto:".length).split("?")[0]);
+  return emailLink(input) !== null;
 }
 
 /** Whether `input` is something a QR code can open: a web address or an email link. */
