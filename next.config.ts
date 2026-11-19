@@ -114,6 +114,9 @@ const nextConfig: NextConfig = {
     // A file attached to a mailing comes in a Server Action's request, up to
     // MAX_ATTACHMENT_BYTES (lib/mailings/attachments.ts) and the form around it.
     serverActions: { bodySizeLimit: "5mb" },
+    // A page's styles come in its HTML rather than as files it then has to
+    // ask for, so a first visit paints a round trip sooner.
+    inlineCss: true,
   },
   // The PDFs attached to letters, read from disk when one is sent.
   outputFileTracingIncludes: {
