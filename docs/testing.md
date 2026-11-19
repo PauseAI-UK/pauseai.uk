@@ -981,7 +981,7 @@ that drives it or why nothing does.
   - a salutation made from the name, set to Ms from its bubble's choices, with why;
   - ControlAI's statement imported, and its ask's page;
   - those invited to an ask and those going, ticked together in the chip's second half;
-  - two asks at once, each with its own answer: one turned round by Except this, dotted, and the other's added from + Filter; then one removed with its answer;
+  - two asks at once, each with its own answer and column: Any reply ticking every reply with it, one unticked, and the second ask added from + Filter; then one removed with its answer;
   - PauseAI's email to one, from her history, and its Gmail search copied;
   - her own Gmail added to her aliases, the next Gmail read finding her email from it, and the list sorted by last activity, which that email dates.
 - `mailings.spec.ts`: Mailings to politicians, the old ones and those written on the site:

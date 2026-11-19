@@ -285,6 +285,45 @@ describe("a repeating filter's lozenge's menu", () => {
     expect(open().querySelector("a")!.getAttribute("href")).toBe("/list?ask=x");
   });
 
+  it("ticks a box's parts with it, and it with every part, keeping only it in the URL", async () => {
+    const nested: Filter = {
+      ...tag,
+      options: [
+        { value: "all", label: "All" },
+        { value: "a", label: "A", under: "all" },
+        { value: "b", label: "B", under: "all" },
+        { value: "c", label: "C" },
+      ],
+    };
+    await render(bar([nested], { tag: ["c", "a"] }));
+    await page.getByRole("button", { name: "Tag: C or A" }).click();
+    const box = (name: string) => page.getByRole("checkbox", { name, exact: true });
+    const last = () => replaced().at(-1);
+    // Set in under the one they're part of.
+    const inset = (name: string) => box(name).element().getBoundingClientRect().left;
+    expect(inset("A")).toBeGreaterThan(inset("All"));
+    // B, the last part not ticked, ticks All, which stands for them both.
+    await box("B").click();
+    expect(last()).toBe("/list?tag=c&tag=all");
+    expect(rows().map(([words, on]) => [words, on])).toEqual([
+      ["All", true],
+      ["A", true],
+      ["B", true],
+      ["C", true],
+    ]);
+    // Unticking a part unticks All, keeping the other part.
+    await box("A").click();
+    expect(last()).toBe("/list?tag=c&tag=b");
+    await box("B").click();
+    expect(last()).toBe("/list?tag=c");
+    // All ticks its parts with it, and unticks them with it.
+    await box("All").click();
+    expect(last()).toBe("/list?tag=c&tag=all");
+    await expect.element(box("A")).toBeChecked();
+    await box("All").click();
+    expect(last()).toBe("/list?tag=c");
+  });
+
   it("a searchable filter's boxes show those ticked until something's typed", async () => {
     await render(bar([{ ...tag, searchable: true }], { tag: ["a", "b"] }));
     await page.getByRole("button", { name: "Tag: A or B" }).click();

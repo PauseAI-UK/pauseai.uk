@@ -53,8 +53,6 @@ describe("PoliticianFilters", () => {
       copy.anyReply,
       ...ANSWER_CHOICES.event.map((s) => staffVocabulary.statuses[s]),
       staffVocabulary.neverAsked.event,
-      // An answer can be turned to one left out.
-      staffVocabulary.filters.exceptThis,
     ]);
     expect(answer.find(([text]) => text === copy.anyReply)![1]).toContain("answer=edinburgh-conference-2026.replied");
     const rows = [...document.querySelectorAll("#filter-answer-edinburgh-conference-2026-found li")];
@@ -168,17 +166,13 @@ describe("PoliticianFilters, more than one ask", () => {
     expect(groups).not.toContain(politiciansCopy.politicians.ask);
   });
 
-  it("turns an answer to one it leaves out, keeping the other ask's", async () => {
+  it("offers no way to turn an answer round, as its other answers say the rest", async () => {
     await render(<PoliticianFilters search={search} asks={exampleAsks} parties={[]} />);
-    const signed = await menu(staffVocabulary.statuses.signed);
-    expect(signed.find(([text]) => text === staffVocabulary.filters.exceptThis)![1]).toBe(
-      "/staff/politicians?ask=frontier-ai-letter&ask=edinburgh-conference-2026&answer=%21edinburgh-conference-2026.declined&answer=%21edinburgh-conference-2026.going&answer=%21frontier-ai-letter.signed",
-    );
-    // And back.
-    const out = await menu(declinedOrGoing);
-    expect(out.find(([text]) => text === staffVocabulary.filters.onlyThese)![1]).toBe(
-      "/staff/politicians?ask=frontier-ai-letter&ask=edinburgh-conference-2026&answer=frontier-ai-letter.signed&answer=edinburgh-conference-2026.declined&answer=edinburgh-conference-2026.going",
-    );
+    for (const chip of [staffVocabulary.statuses.signed, declinedOrGoing]) {
+      const words = (await menu(chip)).map(([text]) => text);
+      expect(words).not.toContain(staffVocabulary.filters.exceptThis);
+      expect(words).not.toContain(staffVocabulary.filters.onlyThese);
+    }
   });
 
   it("removes an ask with its answers, and swaps one for another not chosen", async () => {

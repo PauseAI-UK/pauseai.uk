@@ -101,7 +101,7 @@ function PlaceForm({
  * chip for all it finds and one for all it leaves out, marked so; one that
  * repeats with a filter paired after it, pairedAfter(), a chip for each of
  * its values, then what that one finds for it, then what it leaves out, if
- * anything, which its menu's Except turns round); "+
+ * anything, from a link, as no menu turns an answer round); "+
  * Filter", which lists every other filter, and one that repeats, a row
  * each, its choices opening under it, cut in two with "Except", which lists
  * those that repeat to choose one to leave out; and Clear filters, while
@@ -371,7 +371,7 @@ export default function FilterBar({
         oneEach={false}
         options={options}
         every={[]}
-        turns
+        turns={false}
         half
       />
     );

@@ -32,7 +32,9 @@ function NotWords({ label }: { label: string }) {
  * choices it has. In its menu each row is a link that swaps to that choice alone
  * and closes it. "+ Add" turns the rows to boxes with those it has ticked, as they
  * are from the start when it has several, and "Just one", in its place, turns them
- * back, keeping the first ticked. Each tick changes the list at once, replacing
+ * back, keeping the first ticked. A box `under` another is part of it, set in
+ * beneath it: ticking that one ticks its parts, unticking a part unticks it,
+ * and ticking every part ticks it, the URL keeping only it. Each tick changes the list at once, replacing
  * the URL so Back isn't full of them, the router dropping one still on its way
  * for a newer. Meanwhile the bar is held (ui/FilterBarLines), so the menu stays
  * open and the chip stays, even with nothing ticked, until the menu closes; only
@@ -107,6 +109,33 @@ export default function ManyChoices({
     menu.addEventListener("toggle", toggled);
     return () => menu.removeEventListener("toggle", toggled);
   });
+  // Among the boxes, one `under` another is part of it: ticked with it, and ticking every part ticks it, keeping
+  // only it in the URL, as it finds them all.
+  const parentOf = (value: string) => {
+    const under = boxOptions.find((one) => one.value === value)?.under;
+    return boxOptions.find((one) => one.value && one.value === under)?.value;
+  };
+  const partsOf = (value: string) => boxOptions.filter((one) => one.under === value).map((one) => one.value);
+  const shown = (value: string): boolean => {
+    const parent = parentOf(value);
+    return ticked.includes(value) || (parent !== undefined && shown(parent));
+  };
+  // What's ticked once `value`'s box is pressed.
+  const toggled = (value: string): string[] => {
+    const parent = parentOf(value);
+    if (shown(value)) {
+      // A part of one ticked unticks that one, leaving its other parts ticked.
+      if (parent !== undefined && ticked.includes(parent)) {
+        return [...ticked.filter((one) => one !== parent), ...partsOf(parent).filter((one) => one !== value)];
+      }
+      return ticked.filter((one) => one !== value);
+    }
+    // Ticked, it stands for its parts, which go.
+    const next = [...ticked.filter((one) => !partsOf(value).includes(one)), value];
+    if (parent === undefined || !partsOf(parent).every((one) => next.includes(one))) return next;
+    // Every part ticked is the one they're part of.
+    return [...next.filter((one) => !partsOf(parent).includes(one)), parent];
+  };
   const words = (value: string) => {
     const option = options.find((one) => one.value === value)!;
     return [icon ? undefined : option.group?.label, option.label].filter(Boolean).join(", ");
@@ -161,16 +190,7 @@ export default function ManyChoices({
             search={search}
             row={(option) => (
               <span className={styles.tick}>
-                <Checkbox
-                  checked={ticked.includes(option.value)}
-                  onChange={() =>
-                    tick(
-                      ticked.includes(option.value)
-                        ? ticked.filter((value) => value !== option.value)
-                        : [...ticked, option.value],
-                    )
-                  }
-                >
+                <Checkbox checked={shown(option.value)} onChange={() => tick(toggled(option.value))}>
                   {option.label}
                   {option.detail && <span className={styles.detail}>{option.detail}</span>}
                 </Checkbox>
