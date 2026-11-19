@@ -70,6 +70,10 @@ describe("QrGenerator", () => {
     await expect
       .element(page.getByRole("link", { name: "mailto:hello@pauseai.uk" }))
       .toHaveAttribute("href", "mailto:hello@pauseai.uk");
+    await input("Web address").fill("hello@pauseai.uk?subject=Flyer request&cc=jane.smith@example.com");
+    await expect
+      .poll(() => preview(container)?.alt)
+      .toBe("QR code for mailto:hello@pauseai.uk?subject=Flyer%20request&cc=jane.smith@example.com");
   });
 
   it("asks for a web address, and points out one that isn't", async () => {

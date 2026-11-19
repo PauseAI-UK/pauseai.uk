@@ -34,24 +34,48 @@ describe("normaliseUrl", () => {
 
   it("adds mailto to a bare email address, and keeps one already there", () => {
     expect(normaliseUrl(" hello@pauseai.uk ")).toBe("mailto:hello@pauseai.uk");
-    expect(normaliseUrl("MAILTO:hello@pauseai.uk?subject=Hi")).toBe("MAILTO:hello@pauseai.uk?subject=Hi");
+    expect(normaliseUrl("MAILTO:hello@pauseai.uk?subject=Hi")).toBe("mailto:hello@pauseai.uk?subject=Hi");
+  });
+
+  it("encodes an email's subject and body, and tidies its copies", () => {
+    expect(
+      normaliseUrl("hello@pauseai.uk?Subject=Flyer request&cc=jane.smith@example.com, john@example.com&bcc=a@b.co"),
+    ).toBe("mailto:hello@pauseai.uk?subject=Flyer%20request&cc=jane.smith@example.com,john@example.com&bcc=a@b.co");
+    expect(normaliseUrl("mailto:hello@pauseai.uk?body=50% off&subject=Hi%20there&")).toBe(
+      "mailto:hello@pauseai.uk?body=50%25%20off&subject=Hi%20there",
+    );
+    expect(normaliseUrl("mailto:hello@pauseai.uk?body=a=b?")).toBe("mailto:hello@pauseai.uk?body=a%3Db%3F");
+  });
+
+  it("leaves an email link it can't read as typed", () => {
+    expect(normaliseUrl("mailto:hello")).toBe("mailto:hello");
   });
 });
 
 describe("isEmailLink", () => {
-  it.each(["hello@pauseai.uk", "mailto:jane.smith@example.co.uk", "mailto:hello@pauseai.uk?subject=Flyers&body=Hi"])(
-    "accepts %j",
-    (input) => {
-      expect(isEmailLink(input)).toBe(true);
-    },
-  );
+  it.each([
+    "hello@pauseai.uk",
+    "mailto:jane.smith@example.co.uk",
+    "mailto:hello@pauseai.uk?subject=Flyers&body=Hi",
+    "hello@pauseai.uk?subject=Flyer request&cc=jane.smith@example.com",
+    "mailto:hello@pauseai.uk?",
+  ])("accepts %j", (input) => {
+    expect(isEmailLink(input)).toBe(true);
+  });
 
-  it.each(["", "mailto:", "mailto:hello", "mailto:hello@pauseai", "hello@pauseai.uk please", "pauseai.uk"])(
-    "rejects %j",
-    (input) => {
-      expect(isEmailLink(input)).toBe(false);
-    },
-  );
+  it.each([
+    "",
+    "mailto:",
+    "mailto:hello",
+    "mailto:hello@pauseai",
+    "hello@pauseai.uk please",
+    "pauseai.uk",
+    "hello@pauseai.uk?subjct=Hi",
+    "hello@pauseai.uk?cc=jane",
+    "hello@pauseai.uk?cc=jane.smith@example.com,",
+  ])("rejects %j", (input) => {
+    expect(isEmailLink(input)).toBe(false);
+  });
 });
 
 describe("isQrLink", () => {
