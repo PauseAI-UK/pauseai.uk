@@ -82,10 +82,10 @@ describe("public assets", () => {
     const absent = files.filter((name) => !existsSync(join(PUBLIC_DIR, "images", "front-page-hero-optimized", name)));
     expect(absent, "hero photos listed in lib/content/hero-photos.ts but missing from public/").toEqual([]);
 
-    // HomeHero serves each photo's AVIF copy where the browser can show one.
-    const withoutAvif = files.filter(
-      (name) => !existsSync(join(PUBLIC_DIR, "images", "front-page-hero-optimized", name.replace(/\.webp$/, ".avif"))),
-    );
+    // HomeHero serves each photo's AVIF copies where the browser can show one.
+    const copy = (name: string, ending: string) =>
+      join(PUBLIC_DIR, "images", "front-page-hero-optimized", name.replace(/\.webp$/, ending));
+    const withoutAvif = files.filter((name) => !existsSync(copy(name, ".avif")) || !existsSync(copy(name, "-1x.avif")));
     expect(withoutAvif, "hero photos without an AVIF copy: run `npm run data:hero-photos`").toEqual([]);
 
     // And fills its place with the photo's colour until it loads.

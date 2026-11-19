@@ -9,10 +9,14 @@ import styles from "./HomeHero.module.css";
 const PHOTOS = "/images/front-page-hero-optimized";
 
 /**
- * A photo's AVIF copy, which scripts/hero-photos-avif.mjs makes beside its
- * WebP: under half the size. A browser that can't show AVIF gets the WebP.
+ * A photo's AVIF copies, which scripts/hero-photos-avif.mjs makes beside its
+ * WebP: one under half the size, and a smaller one for a screen with one
+ * pixel to the point. A browser that can't show AVIF gets the WebP.
  */
-const avif = (src: string) => `${PHOTOS}/${src.replace(/\.webp$/, ".avif")}`;
+const avif = (src: string, smaller = false) => `${PHOTOS}/${src.replace(/\.webp$/, smaller ? "-1x.avif" : ".avif")}`;
+
+/** Both copies, for the browser to choose between by its screen. */
+const avifSet = (src: string) => `${avif(src, true)} 1x, ${avif(src)} 2x`;
 
 /**
  * Each photo's average colour, which the same script works out. It fills the
@@ -55,7 +59,8 @@ export default function HomeHero() {
     { dir: "ltr" as const, photos: shuffled.slice(perRow * 2) },
   ];
   // The top row's first photo is the largest thing on the page, so the browser is told to fetch it first.
-  preload(avif(heroRows[0].photos[0][0]), { as: "image", type: "image/avif", fetchPriority: "high" });
+  const [first] = heroRows[0].photos[0];
+  preload(avif(first), { as: "image", imageSrcSet: avifSet(first), type: "image/avif", fetchPriority: "high" });
 
   return (
     <section id="about">
@@ -79,7 +84,7 @@ export default function HomeHero() {
                     const wanted = isPrimary ? wantedWhen(i, row.photos.length, row.dir) : "later";
                     return (
                       <picture key={i} style={{ backgroundColor: COLOURS[src] }}>
-                        <source type="image/avif" srcSet={avif(src)} />
+                        <source type="image/avif" srcSet={avifSet(src)} />
                         <img
                           src={`${PHOTOS}/${src}`}
                           alt={isPrimary ? alt : ""}

@@ -44,7 +44,9 @@ describe("HomeHero", () => {
     const webp = first.querySelector("img")!.getAttribute("src")!;
     expect(webp).toMatch(/^\/images\/front-page-hero-optimized\/.+\.webp$/);
     expect(first.querySelector("source")).toHaveAttribute("type", "image/avif");
-    expect(first.querySelector("source")).toHaveAttribute("srcset", webp.replace(/\.webp$/, ".avif"));
+    // A screen with one pixel to the point gets a smaller copy.
+    const avifs = `${webp.replace(/\.webp$/, "-1x.avif")} 1x, ${webp.replace(/\.webp$/, ".avif")} 2x`;
+    expect(first.querySelector("source")).toHaveAttribute("srcset", avifs);
     expect(container.querySelectorAll("picture > source + img")).toHaveLength(HERO_PHOTOS.length * 4);
     // Until it loads, its place is filled with its own colour, as wide as the photo will be.
     const name = webp.split("/").at(-1)!;
@@ -67,7 +69,7 @@ describe("HomeHero", () => {
     expect(fetched[1]).toEqual(["first", "first", ...later(middle - 4), "next", "next", ...later(middle * 3)]);
     expect(fetched[2]).toEqual(["first", "first", "next", "next", ...later(bottom * 4 - 4)]);
     const preloaded = document.head.querySelector('link[rel="preload"][as="image"][type="image/avif"]');
-    expect(preloaded).toHaveAttribute("href", webp.replace(/\.webp$/, ".avif"));
+    expect(preloaded).toHaveAttribute("imagesrcset", avifs);
     // The fade's script comes before the photos, so it's listening when the first loads.
     const script = container.querySelector("script")!;
     expect(script.textContent).toBe(HERO_PHOTO_FADE_SCRIPT);
