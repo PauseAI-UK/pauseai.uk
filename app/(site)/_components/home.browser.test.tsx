@@ -102,14 +102,18 @@ describe("while the home page loads", () => {
     const { container } = await render(
       <main>
         <HomeHero />
+        <PressMarquee />
         <div data-testid="card" style={{ backgroundImage: "url(/images/logos/Pause-Symbol.svg)" }} />
       </main>,
     );
+    const logos = [...container.querySelectorAll("#news img")];
+    const newsHeight = () => container.querySelector("#news")!.getBoundingClientRect().height;
+    const settled = newsHeight();
     const card = page.getByTestId("card").element();
     const shown = (img: Element) => getComputedStyle(img).display !== "none";
     const [fetchedWithPage, waiting] = [
-      [...container.querySelectorAll('img[loading="eager"]')],
-      [...container.querySelectorAll('img[loading="lazy"]')],
+      [...container.querySelectorAll('[data-marquee-track="hero"] img[loading="eager"]')],
+      [...container.querySelectorAll('[data-marquee-track="hero"] img[loading="lazy"]')],
     ];
     const preview = container.querySelector("picture")!;
 
@@ -119,6 +123,10 @@ describe("while the home page loads", () => {
     expect(getComputedStyle(card).backgroundImage).toBe("none");
     expect(fetchedWithPage.every(shown)).toBe(true);
     expect(waiting.some(shown)).toBe(false);
+    // Nor are the press logos, just below, whose rows keep their height.
+    expect(logos.length).toBeGreaterThan(10);
+    expect(logos.some(shown)).toBe(false);
+    expect(newsHeight()).toBe(settled);
     // Each photo's place keeps its preview, and its width.
     expect(getComputedStyle(preview).backgroundImage).toContain("data:image/webp");
     const width = preview.getBoundingClientRect().width;
@@ -131,6 +139,7 @@ describe("while the home page loads", () => {
     expect(loading()).toBe(false);
     expect(getComputedStyle(card).backgroundImage).toContain("Pause-Symbol.svg");
     expect(waiting.every(shown)).toBe(true);
+    expect(logos.every(shown)).toBe(true);
     expect(preview.getBoundingClientRect().width).toBe(width);
   });
 

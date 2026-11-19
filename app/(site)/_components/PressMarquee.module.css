@@ -106,6 +106,13 @@
   max-height: none;
 }
 
+/* While the home page loads (whileLoading.ts), the logos aren't drawn, so
+   the browser doesn't fetch them alongside the top of the page, as it would
+   any image this near the window. Each row keeps its height. */
+:global(html[data-loading]) .item .logo {
+  display: none;
+}
+
 .item:hover,
 .item:focus-visible {
   opacity: 1;
