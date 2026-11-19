@@ -825,8 +825,8 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   const { lists } = supportersCopy.supporters.filters;
   const except = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except }));
   await except.getByText(supportersCopy.supporters.columns.subscriptions, { exact: true }).click();
-  // The list's second link: by text, after email's.
-  await except.getByRole("link", { name: lists["updates-luma"], exact: true }).nth(1).click();
+  // By text: email's is the broadcast's own, so not offered.
+  await except.getByRole("link", { name: lists["updates-luma"], exact: true }).click();
   await expect(page).toHaveURL(/contact=%21text%3Anewsletter%3Ayes(\+|%20)text%3Aevents%3Ayes/);
   const leftOut = staffVocabulary.filters.notChip(
     supportersCopy.supporters.filters.wayChips.text,

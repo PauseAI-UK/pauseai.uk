@@ -470,13 +470,13 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   await expect(page.getByText("07700 900123", { exact: false }).first()).toBeVisible();
   await openEverything(page);
   await expect(page.getByText("LS1 1AA", { exact: true })).toBeVisible();
-  // Her email and number in the newsletter's row, each with its reason.
+  // Her email and number in each Updates list's row, each with its reason.
   await expect(
     page.getByText(
       copy.detail.permissions.reasons.asked("16 Oct 2026", copy.detail.permissions.sources["march-2026-11"]),
       { exact: false },
     ),
-  ).toHaveCount(2);
+  ).toHaveCount(4);
   await openHistory(page);
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
   await expect(history.getByText(copy.detail.cameFrom("nl"), { exact: false })).toBeVisible();
@@ -510,8 +510,8 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lee Letter");
   await expect(page.getByText(copy.detail.firstCame.civicrm)).toBeVisible();
   await expect(page.getByText("29 Nov 2025", { exact: false }).first()).toBeVisible();
-  // Left the box on their letter unticked, but a member is a yes to the newsletter.
-  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toBeVisible();
+  // Left the box on their letter unticked, but a member is on both Updates lists.
+  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toHaveCount(2);
   await openHistory(page);
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
   await expect(history.getByText(copy.detail.kinds["member-joined"], { exact: false })).toBeVisible();
@@ -555,7 +555,9 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   story("Except leaves out the volunteers, so they see who gets Updates but isn't a volunteer, to ask them to be one.");
   const except = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except }));
   await except.getByText(copy.columns.subscriptions, { exact: true }).click();
-  await except.getByRole("link", { name: lists.volunteering }).first().click();
+  // From the keyboard: on a phone the next group's heading, held at the menu's foot, sits over it.
+  await except.getByRole("link", { name: lists.volunteering }).first().focus();
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/contact=%21email%3Avolunteering%3Ayes/);
   await expect(
     page.getByRole("button", {
@@ -582,7 +584,8 @@ test("A member who never opted in", async ({ page, request, flowDatabase }) => {
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Owen Member" }).click();
-  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toBeVisible();
+  // On both Updates lists, a member.
+  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toHaveCount(2);
   await expect(page.getByText(copy.detail.permissions.answers.email.yes).first()).toBeVisible();
   await openHistory(page);
   await expect(page.getByText(copy.detail.intents.act_now)).toBeVisible();
@@ -621,13 +624,13 @@ test("Their contact preferences, from their page", async ({ page, request, flowD
 
 test("A member who unsubscribed in CiviCRM", async ({ page, request, flowDatabase }) => {
   story(
-    "Kit unsubscribed from the newsletter in CiviCRM, and the hourly pull from CiviCRM brought it here as a stop. They're still on the volunteer list there, so we may email them about volunteering.",
+    "Kit unsubscribed from the newsletter in CiviCRM, and the hourly pull from CiviCRM brought it here as a stop, off both Updates lists. They're still on the volunteer list there, so we may email them about volunteering.",
   );
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Kit Member" }).click();
-  await expect(page.getByText(said("unsubscribed", "civicrm"), { exact: false })).toBeVisible();
+  await expect(page.getByText(said("unsubscribed", "civicrm"), { exact: false })).toHaveCount(2);
   await expect(page.getByText(said("subscribed", "civicrm", "volunteering"), { exact: false })).toBeVisible();
   await frame(page, "Kit's page");
 });
