@@ -12,9 +12,9 @@ describe("alreadyAnswered", () => {
   it("finds those who answered the ask, and how many gave each answer, yes first", () => {
     expect(alreadyAnswered(recipients, { slug: "edinburgh", kind: "event" })).toEqual({
       who: [
-        { id: 2, name: "John Smith" },
-        { id: 1, name: "Jane Smith" },
-        { id: 4, name: "Bob Smith" },
+        { id: 2, name: "John Smith", status: "going" },
+        { id: 1, name: "Jane Smith", status: "declined" },
+        { id: 4, name: "Bob Smith", status: "declined" },
       ],
       answers: [
         { status: "going", count: 1 },

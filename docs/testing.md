@@ -987,8 +987,8 @@ that drives it or why nothing does.
 - `mailings.spec.ts`: Mailings to politicians, the old ones and those written on the site:
   - the mailings, one mailing's recipients, and a politician's history leading back to it;
   - a mailing's ask leading to its page;
-  - New mailing, then who it's for ticked on the politicians list, with its strip and the bar at the foot;
-  - New mailing on the list with no filter, which makes an empty draft with no one ticked;
+  - New mailing, which opens the draft at its ask, then Choose who, the politicians list on those yet to answer it, who it's for ticked there, with its strip and the bar at the foot;
+  - New mailing on the list with no filter, which makes an empty draft with no one ticked, opened at its ask;
   - the new mailing written, previewed and sent to yourself as a test (the email pictured);
   - a line linked, with where the link goes under it and the link bar opened from there; a part only for some, with its × and the orange Only those, a line selected in it with Remove only those under it, and the × making it for everyone;
   - Mail these on the list, with everyone it found ticked;
@@ -998,7 +998,7 @@ that drives it or why nothing does.
   - one unticked on the ticked tab, and the draft saying who it's to as the group found less one;
   - a scheduled mailing given a new time, then unscheduled and a draft again;
   - one sending, and one sent with its failed tab, leading to the bounced letter's page under the mailing;
-  - a sent mailing copied by Copy mailing to a new draft, whose Send section warns of those who have already answered its ask;
+  - a sent mailing copied by Copy mailing to a new draft, whose Who section warns, in amber strips, of those left out and those who have already answered its ask, named by Who they are, then left out by Leave them out;
   - one whose run stopped while sending, finished by the next run with that letter uncertain, and the letter's page;
   - a mailing's letters bouncing, the MPs on the dashboard and the day's report to the notification inbox;
   - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;

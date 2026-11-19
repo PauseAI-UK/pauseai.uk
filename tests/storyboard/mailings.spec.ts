@@ -102,17 +102,27 @@ test("A new mailing", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/mailings`);
   await frame(page, "The mailings page");
   story(
-    "New mailing makes a draft, and opens the politicians list to tick who it's for, a box on each row. Down the list, what they're doing stays at the top of the window, and the way on at the foot.",
+    "New mailing makes a draft and opens it at its first section, the ask, as what it asks shapes who it's to. They choose the Edinburgh conference.",
   );
 
   await page.getByRole("button", { name: choosing.newTitle }).click();
-  await expect(page.getByText(choosing.choosingNew)).toBeVisible();
+  await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);
+  await page.getByLabel(copy.ask, { exact: true }).selectOption({ label: "Edinburgh conference" });
+  await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
+  await frame(page, "The new draft, its ask chosen");
+  story(
+    "Choose who opens the politicians list on those yet to answer the conference: not yet replied, or never asked. A box on each row ticks them. Down the list, what they're doing stays at the top of the window, and the way on at the foot.",
+  );
+  await page.getByRole("link", { name: copy.chooseWho }).click();
+  await expect(page).toHaveURL(
+    /ask=edinburgh-conference-2026&answer=edinburgh-conference-2026\.invited&answer=edinburgh-conference-2026\.never/,
+  );
   await expect(page.getByText(choosing.noneTicked)).toBeVisible();
   // It opens at the top, as a page does, though the strip is held there.
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   // Down the list, what's being done stays at the top, and the way on at the foot.
   await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
-  await frame(page, "Every politician, scrolled down", {
+  await frame(page, "Those yet to answer, scrolled down", {
     window: true,
   });
   story(
@@ -173,11 +183,11 @@ test("A new mailing from the whole list", async ({ page, request, flowDatabase }
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/politicians`);
   await frame(page, "The politicians list");
-  story("It makes an empty draft, with no one ticked, rather than one to everyone.");
+  story("It makes an empty draft, with no one ticked, rather than one to everyone, and opens it at its ask.");
   await page.getByRole("button", { name: choosing.newTitle }).click();
-  await expect(page.getByText(choosing.choosingNew)).toBeVisible();
-  await expect(page.getByText(choosing.noneTicked)).toBeVisible();
-  await frame(page, "Choosing, with no one ticked", { window: true });
+  await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);
+  await expect(page.getByRole("link", { name: copy.chooseWho })).toBeVisible();
+  await frame(page, "The new draft, no one ticked");
 });
 
 test("A link, and a part made for everyone", async ({ page, request, flowDatabase }) => {
@@ -441,13 +451,19 @@ test("Copying a mailing", async ({ page, request, flowDatabase }) => {
   await expect(page.getByLabel(copy.subject)).toHaveValue("Edinburgh invitation");
   await frame(page, "The copy, a draft");
   story(
-    "Some it goes to have already answered the conference: Polly declined and Morag is going. Above Send, a warning says so and names them, though it can still be sent.",
+    "Some it goes to have already answered the conference: Polly declined and Morag is going. Under Who, an amber strip says so, and Who they are names them, each with their answer.",
   );
-  const send = page.getByRole("region", { name: copy.sections.send });
-  await send.getByText(copy.alreadyAnsweredWho).click();
-  await expect(send.getByRole("link", { name: "Morag Example" })).toBeVisible();
-  await send.evaluate((region) => region.scrollIntoView({ block: "start", behavior: "instant" }));
-  await frame(page, "The warning above Send", { window: true });
+  const answered = page.locator("[data-strip]").filter({ hasText: /already given an answer/ });
+  await answered.getByRole("button", { name: copy.whoTheyAre }).click();
+  await expect(answered.getByRole("link", { name: "Morag Example" })).toBeVisible();
+  await answered.evaluate((strip) => strip.scrollIntoView({ block: "center", behavior: "instant" }));
+  await frame(page, "Those who already answered, named", { window: true });
+  story("Leave them out unticks them. The draft opens again, to the rest, with no warning.");
+  const before = await page.getByText(/will be emailed/).innerText();
+  await answered.getByRole("button", { name: copy.leaveThemOut }).click();
+  await expect(answered).toHaveCount(0);
+  await expect(page.getByText(/will be emailed/)).not.toHaveText(before);
+  await frame(page, "The draft, without them");
 });
 
 test("Sending and sent", async ({ page, request, flowDatabase }) => {

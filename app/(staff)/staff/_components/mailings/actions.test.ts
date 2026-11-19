@@ -18,6 +18,7 @@ import {
   copyMailingNow,
   deleteMailingDraft,
   detachFromMailing,
+  leaveOutOfMailing,
   newMailing,
   pasteNames,
   pickFound,
@@ -69,6 +70,7 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
       () => pickFound(1, {}, true),
       () => pasteNames(form({ names: "Jo" })),
       () => pickMany(1, [1], true),
+      () => leaveOutOfMailing(1, [1]),
       () => untickAll(1),
       () => saveMailing(1, 1, { subject: "x" }),
       () => attachToMailing(form({ id: "1" })),
@@ -95,11 +97,11 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toHaveLength(2);
   });
 
-  it("makes a new mailing with no one ticked, or everyone the list's filter finds, and chooses for it", async () => {
+  it("makes a new mailing with no one ticked, opening it for its ask, or everyone the list's filter finds, choosing for it", async () => {
     const polly = await addTestPolitician();
     await addTestPolitician({ name: "Lord Sample", airtableId: "rec2", house: "lords" });
     const empty = await expectRedirect(() => newMailing(form({})));
-    const id = Number(empty.match(/^\/staff\/politicians\?mailing=(\d+)$/)![1]);
+    const id = Number(empty.match(/^\/staff\/mailings\/(\d+)$/)![1]);
     expect(await getWrittenMailing(id)).toMatchObject({ createdBy: JO, filter: { picked: { ids: [] } } });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings");
 
@@ -176,6 +178,19 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([polly]);
     await pickMany(id, [polly], false);
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([]);
+  });
+
+  it("leaves out of a draft those a warning names, and shows it afresh", async () => {
+    const [polly, lord] = [
+      await addTestPolitician(),
+      await addTestPolitician({ name: "Lord Sample", airtableId: "rec2" }),
+    ];
+    const { id } = await draft();
+    await pickMany(id, [polly, lord], true);
+    revalidatePath.mockClear();
+    await leaveOutOfMailing(id, [lord]);
+    expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([polly]);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${id}`);
   });
 
   it("attaches a file and takes it off, saying what's attached", async () => {

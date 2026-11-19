@@ -4,7 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
-import { Field, Hint, Label } from "@/components/ui/Field";
+import { Field, Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
 import {
@@ -26,7 +26,8 @@ import { leavePage } from "@/lib/leave-page.client";
 import { scheduleProblems } from "@/lib/mailings/schedule";
 import { alreadyAnswered } from "@/lib/mailings/warnings";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { filtersPath } from "@/lib/list-params";
+import { filtersPath, pairedValue, type Params } from "@/lib/list-params";
+import { INVITED, NEVER_ASKED } from "@/lib/asks/asks";
 import { londonWhen } from "@/lib/staff-time";
 import type { ChannelResult } from "@/lib/letters/channels.server";
 import type { ScheduleResult, WrittenMailing } from "@/lib/mailings/drafts.server";
@@ -78,7 +79,56 @@ export type MailingWriterActions = DraftActions & {
   sendTest: (id: number, politicianId: number, to: string) => Promise<(ChannelResult & { to: string }) | undefined>;
   schedule: (id: number, version: number) => Promise<ScheduleResult>;
   deleteDraft: (form: FormData) => void | Promise<void>;
+  /** Unticks these politicians for the draft: Leave them out, under a warning. */
+  leaveOut: (id: number, politicians: number[]) => Promise<void>;
 };
+
+/**
+ * Something about who a mailing is to that may be a mistake, which can be
+ * sent past: an amber strip of its words and, under them, Who they are,
+ * which opens the list of who it's about below it, each linking to their
+ * page, with a `detail` beside them if there's one; and beside it `action`,
+ * a way to put it right, which stays put as the list opens.
+ */
+function Warning({
+  words,
+  who,
+  action,
+}: {
+  words: string;
+  who: { id: number; name: string; detail?: string }[];
+  action?: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  return (
+    <Strip tone="amber">
+      <div className={styles.warning}>
+        <p>{words}</p>
+        <div className={styles.whoRow}>
+          <button
+            type="button"
+            className={styles.whoToggle}
+            aria-expanded={open}
+            aria-controls={listId}
+            onClick={() => setOpen(!open)}
+          >
+            <span aria-hidden="true">{open ? "▾" : "▸"}</span> {copy.whoTheyAre}
+          </button>
+          {action}
+        </div>
+        <ul id={listId} className={styles.whoList} hidden={!open}>
+          {who.map((one) => (
+            <li key={one.id}>
+              <a href={`/staff/politicians/${one.id}`}>{one.name}</a>
+              {one.detail && <Muted> {one.detail}</Muted>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Strip>
+  );
+}
 
 /** A "?" that opens a few words on what the thing beside it is for. */
 function Help({ id, label, children }: { id: string; label: string; children: ReactNode }) {
@@ -155,6 +205,26 @@ export default function MailingWriter({
   const [choosing, choose] = useLeaving();
   // The link to add an ask, likewise, until the ask's page comes.
   const [asking, goToAsk] = useLeaving();
+  // Leave them out, likewise, until the draft comes again.
+  const [leaving, leave] = useLeaving();
+  // Leave them out, for a warning: unticks `ids`, those it's about. What's typed is saved first; the draft then opens
+  // afresh, ticked for fewer, at its new version.
+  const leaveOutButton = (ids: number[]) => (
+    <Button
+      variant="ghost"
+      size="small"
+      fit
+      pending={leaving}
+      onClick={async () => {
+        leave();
+        await saveNow();
+        await actions.leaveOut(id, ids);
+        leavePage(writerPath);
+      }}
+    >
+      {copy.leaveThemOut}
+    </Button>
+  );
 
   /** Whether a letter has nothing written in it yet: blank, or only the greeting it started with. */
   const unwritten = (letter: MailingDoc) => isBlankMailing(letter) || JSON.stringify(letter) === JSON.stringify(start);
@@ -162,10 +232,17 @@ export default function MailingWriter({
   // The draft's own page, which Connect Gmail and the Asks page come back to.
   const writerPath = `/staff/mailings/${id}`;
 
-  // The politicians list, choosing who it goes to: those ticked, or, for a draft from before ticks, its filter.
-  const whoPath = data.filter.picked
-    ? filtersPath("/staff/politicians", { mailing: String(id), tab: "ticked" })
-    : filtersPath("/staff/politicians", { ...data.filter.params, mailing: String(id) });
+  // The politicians list, choosing who it goes to: with no one ticked yet, those yet to answer its ask, if it
+  // has one, those not answered and those never asked; then those ticked; or, for a draft from before ticks, its
+  // filter.
+  const yetToAnswer: Params = values.ask
+    ? { ask: values.ask, answer: [INVITED, NEVER_ASKED].map((way) => pairedValue(values.ask!, way)) }
+    : {};
+  const whoPath = !data.filter.picked
+    ? filtersPath("/staff/politicians", { ...data.filter.params, mailing: String(id) })
+    : data.filter.picked.ids.length === 0
+      ? filtersPath("/staff/politicians", { ...yetToAnswer, mailing: String(id) })
+      : filtersPath("/staff/politicians", { mailing: String(id), tab: "ticked" });
 
   const body = useMemo(() => checkMailingDoc(values.body) ?? EMPTY_MAILING_DOC, [values.body]);
   // Before an hour's chosen, the day picked, or the first it can go, and no hour.
@@ -205,7 +282,45 @@ export default function MailingWriter({
         </Strip>
       )}
       <Grid>
-        <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
+        {/* First, as what it asks shapes who it's to: Choose who starts from those yet to answer it. */}
+        <Card span={6} title={<Numbered n={1}>{copy.ask}</Numbered>} id="ask-title">
+          <div className={styles.ask}>
+            <div className={styles.withHelp}>
+              <Select
+                id={askId}
+                aria-label={copy.ask}
+                value={values.ask ?? ""}
+                onChange={(event) => change({ ask: event.target.value || null })}
+              >
+                <option value="">{copy.noAsk}</option>
+                {data.asks.map((ask) => (
+                  <option key={ask.slug} value={ask.slug}>
+                    {ask.title}
+                  </option>
+                ))}
+              </Select>
+              <Help id={askHelp} label={copy.askHelpLabel}>
+                {copy.askHelp}
+              </Help>
+            </div>
+            <Hint>
+              <a
+                href={`/staff/asks/new?${new URLSearchParams({ back: writerPath })}`}
+                data-pending={asking || undefined}
+                onClick={async (event) => {
+                  event.preventDefault();
+                  goToAsk();
+                  await saveNow();
+                  leavePage(`/staff/asks/new?${new URLSearchParams({ back: writerPath })}`);
+                }}
+              >
+                {copy.newAsk}
+              </a>
+            </Hint>
+          </div>
+        </Card>
+
+        <Card span={6} title={<Numbered n={2}>{copy.sections.who}</Numbered>} id="who-title">
           <div className={styles.who}>
             {who}
             <ButtonAnchor
@@ -227,29 +342,31 @@ export default function MailingWriter({
           </div>
           {data.unknown.length > 0 && <Strip tone="amber">{copy.unknownFilter(data.unknown.join(", "))}</Strip>}
           <p className={styles.count}>{copy.willGet(data.recipients.length)}</p>
+          {/* What may be a mistake in who it's to, each an amber strip with who it's about under it. */}
           {data.leftOut.length > 0 && (
-            <details className={styles.leftOut}>
-              <summary>
-                {copy.leftOut(
-                  data.recipients.length + data.leftOut.length,
-                  noAddress,
-                  data.leftOut.length - noAddress,
-                  Boolean(data.filter.picked),
-                )}
-              </summary>
-              <ul>
-                {data.leftOut.map((one) => (
-                  <li key={one.id}>
-                    <a href={`/staff/politicians/${one.id}`}>{one.name}</a>{" "}
-                    <Muted>{copy.leftOutReasons[one.reason]}</Muted>
-                  </li>
-                ))}
-              </ul>
-            </details>
+            <Warning
+              words={copy.leftOut(noAddress, data.leftOut.length - noAddress, Boolean(data.filter.picked))}
+              who={data.leftOut.map((one) => ({ ...one, detail: copy.leftOutReasons[one.reason] }))}
+              action={leaveOutButton(data.leftOut.map((one) => one.id))}
+            />
+          )}
+          {answered.who.length > 0 && (
+            <Warning
+              words={copy.alreadyAnswered(
+                answered.who.length,
+                ask!.title,
+                answered.answers.map((one) =>
+                  copy.alreadyAnsweredEach(one.count, staffVocabulary.statuses[one.status]),
+                ),
+                Boolean(data.filter.picked),
+              )}
+              who={answered.who.map((one) => ({ ...one, detail: staffVocabulary.statuses[one.status] }))}
+              action={leaveOutButton(answered.who.map((one) => one.id))}
+            />
           )}
         </Card>
 
-        <Card span={6} title={<Numbered n={2}>{copy.sections.from}</Numbered>} id="from-title">
+        <Card span={6} title={<Numbered n={3}>{copy.sections.from}</Numbered>} id="from-title">
           {/* The choice of connected Gmails, beside the name the mailing goes in, then what the chosen one has
               sent today, or that there's none; then, while yours isn't connected, where to connect it. */}
           <div className={styles.from}>
@@ -303,45 +420,10 @@ export default function MailingWriter({
           </div>
         </Card>
 
-        <Card span={6} title={<Numbered n={3}>{copy.sections.write}</Numbered>} id="write-title">
+        <Card span={6} title={<Numbered n={4}>{copy.sections.write}</Numbered>} id="write-title">
           <Field label={copy.subject}>
             <TextInput value={values.subject} onChange={(event) => change({ subject: event.target.value })} />
           </Field>
-          <div className={styles.ask}>
-            {/* The ? beside the word, outside the label, as a label holds only its own control. */}
-            <div className={styles.withHelp}>
-              <Label htmlFor={askId}>{copy.ask}</Label>
-              <Help id={askHelp} label={copy.askHelpLabel}>
-                {copy.askHelp}
-              </Help>
-            </div>
-            <Select
-              id={askId}
-              value={values.ask ?? ""}
-              onChange={(event) => change({ ask: event.target.value || null })}
-            >
-              <option value="">{copy.noAsk}</option>
-              {data.asks.map((ask) => (
-                <option key={ask.slug} value={ask.slug}>
-                  {ask.title}
-                </option>
-              ))}
-            </Select>
-            <Hint>
-              <a
-                href={`/staff/asks/new?${new URLSearchParams({ back: writerPath })}`}
-                data-pending={asking || undefined}
-                onClick={async (event) => {
-                  event.preventDefault();
-                  goToAsk();
-                  await saveNow();
-                  leavePage(`/staff/asks/new?${new URLSearchParams({ back: writerPath })}`);
-                }}
-              >
-                {copy.newAsk}
-              </a>
-            </Hint>
-          </div>
           <div className={styles.letter}>
             <p id={letterLabel} className={styles.label}>
               {copy.letter}
@@ -369,7 +451,7 @@ export default function MailingWriter({
           </div>
         </Card>
 
-        <Card span={6} title={<Numbered n={4}>{copy.sections.preview}</Numbered>} id="preview-title">
+        <Card span={6} title={<Numbered n={5}>{copy.sections.preview}</Numbered>} id="preview-title">
           <Preview
             data={data}
             body={body}
@@ -388,11 +470,11 @@ export default function MailingWriter({
           />
         </Card>
 
-        <Card span={6} title={<Numbered n={5}>{copy.sections.when}</Numbered>} id="when-title">
+        <Card span={6} title={<Numbered n={6}>{copy.sections.when}</Numbered>} id="when-title">
           <DueSection dueAt={values.dueAt} onChange={(dueAt) => change({ dueAt })} />
         </Card>
 
-        <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
+        <Card span={6} title={<Numbered n={7}>{copy.sections.send}</Numbered>} id="send-title">
           {/* As a broadcast's Send says what will go. */}
           <Facts>
             <BandFact label={facts.what}>{facts.count(data.recipients.length, "email")}</BandFact>
@@ -404,29 +486,6 @@ export default function MailingWriter({
             <BandFact label={facts.via}>{mailingsCopy.mailingPages.sendBy.names.gmail}</BandFact>
             <BandFact label={facts.when}>{values.dueAt ? londonWhen(values.dueAt, "short") : facts.noTime}</BandFact>
           </Facts>
-          {answered.who.length > 0 && (
-            <div className={styles.warning}>
-              <Strip tone="amber">
-                {copy.alreadyAnswered(
-                  answered.who.length,
-                  ask!.title,
-                  answered.answers.map((one) =>
-                    copy.alreadyAnsweredEach(one.count, staffVocabulary.statuses[one.status]),
-                  ),
-                )}
-              </Strip>
-              <details className={styles.leftOut}>
-                <summary>{copy.alreadyAnsweredWho}</summary>
-                <ul>
-                  {answered.who.map((one) => (
-                    <li key={one.id}>
-                      <a href={`/staff/politicians/${one.id}`}>{one.name}</a>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </div>
-          )}
           <div className={styles.send}>
             <ScheduleButton
               label={copy.schedule(data.recipients.length)}

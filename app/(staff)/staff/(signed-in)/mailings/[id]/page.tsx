@@ -10,6 +10,7 @@ import Page from "../../../_components/ui/Page";
 import {
   attachToMailing,
   deleteMailingDraft,
+  leaveOutOfMailing,
   detachFromMailing,
   copyMailingNow,
   rescheduleMailingNow,
@@ -45,6 +46,7 @@ export default async function MailingPage({ params, searchParams }: Params) {
           sendTest: sendMailingTest,
           schedule: scheduleMailingNow,
           deleteDraft: deleteMailingDraft,
+          leaveOut: leaveOutOfMailing,
           stop: stopMailingNow,
           reschedule: rescheduleMailingNow,
           copy: copyMailingNow,

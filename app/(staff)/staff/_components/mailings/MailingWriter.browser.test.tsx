@@ -47,6 +47,7 @@ function fakeActions() {
     sendTest: action(() => ({ sent: true, id: "m", to: "jo@pauseai.uk" })),
     schedule: action(() => ({ scheduled: true })),
     deleteDraft: vi.fn(async () => {}),
+    leaveOut: vi.fn(async () => {}),
   };
 }
 
@@ -326,8 +327,9 @@ describe("MailingWriter", () => {
     await expect.element(page.getByText("Who it's to")).toBeVisible();
     await expect.element(page.getByText(copy.willGet(2))).toBeVisible();
     await expect.element(page.getByText(copy.unknownFilter("party=Gone"))).toBeVisible();
-    // The left out, opened by their summary's arrow.
-    await page.getByText(/the filter found/).click();
+    // The left out, said in an amber strip, and named under it.
+    await expect.element(page.getByText(/the filter found/)).toBeVisible();
+    await page.getByRole("button", { name: copy.whoTheyAre }).first().click();
     await expect
       .element(page.getByRole("link", { name: "Ned Noaddress" }))
       .toHaveAttribute("href", "/staff/politicians/9");
@@ -337,9 +339,9 @@ describe("MailingWriter", () => {
       .toHaveAttribute("href", "/staff/politicians?house=commons&party=%21Labour&ask=frontier-ai-letter&mailing=12");
   });
 
-  it("warns above Send of those who've already answered its ask, following the ask chosen, and names them", async () => {
+  it("warns under Who of those who've already answered its ask, following the ask chosen, and names them with their answers", async () => {
     await renderWriter({ draft: { ...exampleWrittenMailing, ask: null } });
-    const warning = () => page.getByText(/already answered/);
+    const warning = () => page.getByText(/already given an answer/);
     expect(warning().query()).toBeNull();
     const letterAsk = exampleWriterData.asks.find((a) => a.slug === "frontier-ai-letter")!;
     await field(copy.ask).selectOptions(letterAsk.title);
@@ -348,10 +350,53 @@ describe("MailingWriter", () => {
       .toHaveTextContent(
         copy.alreadyAnswered(1, letterAsk.title, [copy.alreadyAnsweredEach(1, staffVocabulary.statuses.signed)]),
       );
-    await page.getByText(copy.alreadyAnsweredWho).click();
+    await expect.element(status()).toHaveTextContent(copy.savePill.saved);
+    // Its Who they are opens the list under it, the last, as it comes after those left out.
+    const toggle = page.getByRole("button", { name: copy.whoTheyAre }).last();
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
+    const polly = page.getByRole("link", { name: "Polly Placeholder" });
+    await expect.element(polly).toHaveAttribute("href", "/staff/politicians/7");
+    // Her answer after her name.
+    expect(polly.element().parentElement!.textContent).toBe(`Polly Placeholder ${staffVocabulary.statuses.signed}`);
+    await toggle.click();
+    await expect.element(polly).not.toBeInTheDocument();
+  });
+
+  it("leaves out those a warning names, saving first, then opens the draft afresh", async () => {
+    const { actions } = await renderWriter({ draft: { ...exampleWrittenMailing, ask: "frontier-ai-letter" } });
+    const buttons = page.getByRole("button", { name: copy.leaveThemOut });
+    // Something typed, which goes first.
+    await subject().fill("Reminder");
+    // Those left out, then those who already answered.
+    await buttons.first().click();
+    await expect.poll(() => actions.leaveOut.mock.calls).toEqual([[12, [9, 10]]]);
+    expect(actions.save).toHaveBeenCalled();
+    await expect.poll(() => leavePage.mock.calls).toEqual([["/staff/mailings/12"]]);
+    // Both wait for the draft to come again, as either may have changed who it's to.
+    await expect.element(buttons.last()).toBeDisabled();
+  });
+
+  it("leaves out those who already answered its ask", async () => {
+    const { actions } = await renderWriter({ draft: { ...exampleWrittenMailing, ask: "frontier-ai-letter" } });
+    await page.getByRole("button", { name: copy.leaveThemOut }).last().click();
+    await expect.poll(() => actions.leaveOut.mock.calls).toEqual([[12, [7]]]);
+  });
+
+  it("chooses who from those yet to answer its ask while no one's ticked, and from everyone with no ask", async () => {
+    const none = { ...exampleWriterData, filter: { list: "politicians" as const, params: {}, picked: { ids: [] } } };
+    await renderWriter({ data: none, draft: { ...exampleWrittenMailing, ask: "frontier-ai-letter" } });
     await expect
-      .element(region(copy.sections.send).getByRole("link", { name: "Polly Placeholder" }))
-      .toHaveAttribute("href", "/staff/politicians/7");
+      .element(page.getByRole("link", { name: copy.chooseWho }))
+      .toHaveAttribute(
+        "href",
+        "/staff/politicians?ask=frontier-ai-letter&answer=frontier-ai-letter.invited&answer=frontier-ai-letter.never&mailing=12",
+      );
+    await field(copy.ask).selectOptions(copy.noAsk);
+    await expect
+      .element(page.getByRole("link", { name: copy.chooseWho }))
+      .toHaveAttribute("href", "/staff/politicians?mailing=12");
   });
 
   it("explains the ask behind its ?", async () => {
