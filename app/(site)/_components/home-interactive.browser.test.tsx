@@ -384,6 +384,30 @@ describe("LocalGroupsMap", () => {
     window.dispatchEvent(new Event("resize"));
   });
 
+  it("stacks each side's cards in their own column, none overlapping, with the map as tall as the longer one", async () => {
+    await page.viewport(1280, 900);
+    const { container } = await render(<LocalGroupsMap />);
+    await expect.poll(() => container.querySelectorAll(PIN).length).toBe(localGroups.length);
+    const boxes = [...container.querySelectorAll(CARD)].map((card) => card.getBoundingClientRect());
+    for (const [i, box] of boxes.entries()) {
+      for (const other of boxes.slice(i + 1)) {
+        const apart = box.right <= other.left || other.right <= box.left;
+        const stacked = box.bottom <= other.top || other.bottom <= box.top;
+        expect(apart || stacked, `${localGroups[i].name} overlaps another card`).toBe(true);
+      }
+    }
+    // The cards of one side share a column, in the list's order from the top.
+    for (const side of ["left", "right"] as const) {
+      const column = boxes.filter((_, i) => localGroups[i].side === side);
+      expect(new Set(column.map((box) => Math.round(box.left))).size, side).toBe(1);
+      expect(column.map((box) => box.top)).toEqual([...column.map((box) => box.top)].sort((a, b) => a - b));
+    }
+    const map = container.querySelector(MAP)!.parentElement!;
+    expect(getComputedStyle(map).gridRowEnd).toBe(
+      `span ${Math.max(...["left", "right"].map((side) => localGroups.filter((group) => group.side === side).length))}`,
+    );
+  });
+
   it("renders the cards alone on the server, and adds the map once hydrated on a wide screen", async () => {
     await page.viewport(1280, 900);
     const host = document.createElement("div");

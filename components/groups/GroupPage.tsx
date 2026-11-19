@@ -1,12 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
-import LocalGroupEvents from "@/components/events/LocalGroupEvents";
+import GroupEvents from "@/components/events/GroupEvents";
 import { ButtonAnchor, ButtonLink, type ButtonSize, type ButtonVariant } from "@/components/ui/Button";
 import FeatureCard from "@/components/ui/FeatureCard";
-import type { LocalGroupName } from "@/lib/content/local-groups";
+import { groupNamed, type GroupName } from "@/lib/content/groups";
 import PageSection, { Lede, SectionHeader } from "@/components/ui/Section";
 import Callout from "@/components/ui/Callout";
 import { PhotoCardBody, PhotoCardImage, photoCardClass } from "@/components/ui/PhotoCard";
-import styles from "./LocalGroupPage.module.css";
+import styles from "./GroupPage.module.css";
 
 /** A call to action. `newTab` opens it in a new tab; `internal` uses client-side navigation. */
 export type GroupAction = {
@@ -28,8 +28,8 @@ export type ActivityItem = {
   style?: CSSProperties;
 };
 
-export type LocalGroupPageContent = {
-  name: LocalGroupName;
+export type GroupPageContent = {
+  name: GroupName;
   hero: {
     lede: string;
     actions: GroupAction[];
@@ -38,8 +38,8 @@ export type LocalGroupPageContent = {
     photoStyle?: CSSProperties;
     badge?: string;
   };
-  /** What the group does, as cards without photos. */
-  features?: { lede: string; items: { title: string; text: string }[] };
+  /** What the group does, as cards without photos, under a heading that says whose doing it is. */
+  features?: { heading: string; lede: string; items: { title: string; text: string }[] };
   /** Photos of events the group has held. */
   activities?: { gridStyle?: CSSProperties; items: ActivityItem[] };
   contact: {
@@ -88,23 +88,24 @@ function Band({ tone, children }: { tone?: "muted" | "white"; children: ReactNod
 }
 
 /**
- * A local group's page. Every group's page has the same sections in the same
- * order, with the same headings: the hero, its events, what it does, what it
- * has done, and how to get in touch.
+ * A group's page, a local group's or an affinity group's (lib/content/groups.ts).
+ * Every group's page has the same sections in the same order, with the same
+ * headings: the hero, its events, what it does, what it has done, and how to
+ * get in touch.
  *
  * No two neighbouring bands share a colour: the cream hero, upcoming events
  * on white, past events on cream (every group has some), then white and
  * cream in turn for whichever of the next two the group has, and the
  * contact last on beige.
  */
-export default function LocalGroupPage({ content }: { content: LocalGroupPageContent }) {
+export default function GroupPage({ content }: { content: GroupPageContent }) {
   const { name, hero, features, activities, contact } = content;
   return (
     <main>
       <section className={styles.hero} style={{ paddingBottom: 48 }}>
         <div className={`container ${styles.heroGrid}`}>
           <div className={styles.heroCopy}>
-            <h1>PauseAI {name}</h1>
+            <h1>{groupNamed(name).words.title}</h1>
             <p className={styles.lede}>{hero.lede}</p>
             <div className={styles.actions}>
               {hero.actions.map((action) => (
@@ -125,10 +126,10 @@ export default function LocalGroupPage({ content }: { content: LocalGroupPageCon
           </div>
         </div>
       </section>
-      <LocalGroupEvents localGroupName={name} />
+      <GroupEvents groupName={name} />
       {features && (
         <Band tone="white">
-          <GroupSectionHeader heading={`What we're doing in ${name}`} lede={features.lede} />
+          <GroupSectionHeader heading={features.heading} lede={features.lede} />
           <div className={styles.featureGrid}>
             {features.items.map((item) => (
               <FeatureCard key={item.title}>

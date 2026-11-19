@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type AnchorHTMLAttributes } from "react";
-import { localGroups } from "@/lib/content/local-groups";
+import { affinityGroups, groups } from "@/lib/content/groups";
 import { site } from "@/lib/content/site";
 import Brand from "./Brand";
 import styles from "./Nav.module.css";
@@ -17,13 +17,16 @@ const ABOUT_LINKS = [
   ["/global-ai-sentiment-2026/", "Global AI sentiment 2026"],
   ["/jobs/", "Jobs"],
 ];
-const LOCAL_GROUP_LINKS = [
+// The local groups, then the affinity groups.
+const GROUP_LINKS = [
   ["/london/", "London"],
   ["/scotland/", "Scotland"],
   ["/oxford/", "Oxford"],
   ["/leicester/", "Leicester"],
   ["/manchester/", "Manchester"],
   ["/west-of-england/", "West of England"],
+  ["/cambridge/", "Cambridge"],
+  ...affinityGroups.map((group) => [`${group.href}/`, group.menu]),
 ];
 const CAMPAIGN_LINKS = [
   ["/campaigns/regulate-letter-pm/", "Regulate AI developers now"],
@@ -49,8 +52,8 @@ export default function Nav() {
   const pathname = usePathname();
   const isHomepage = pathname === "/";
   const navPrefix = isHomepage ? "" : "/";
-  // A local group's page carries its branding in the header.
-  const localGroup = localGroups.find((group) => group.href === pathname.replace(/\/$/, ""));
+  // A group's page carries its branding in the header.
+  const group = groups.find(({ href }) => href === pathname.replace(/\/$/, ""));
 
   // The header lives in a layout, so it stays mounted across navigation.
   // The menu's state notes the page it was set on, so each new page starts
@@ -97,14 +100,14 @@ export default function Nav() {
 
   const dropdowns = [
     { label: "About", href: "/what-is-pauseai-uk/", links: ABOUT_LINKS },
-    { label: "Local groups", href: `${navPrefix}#local-groups`, links: LOCAL_GROUP_LINKS },
+    { label: "Groups", href: `${navPrefix}#local-groups`, links: GROUP_LINKS },
     { label: "Campaigns", href: "/campaigns/", links: CAMPAIGN_LINKS },
   ];
 
   return (
     <header className={styles.header} ref={header}>
       <div className={`container ${styles.bar}`}>
-        <Brand home localGroup={localGroup} />
+        <Brand home group={group} />
         <button
           className={styles.burger}
           aria-label="Menu"

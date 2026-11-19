@@ -35,8 +35,9 @@ function normalise(value: string): string {
 }
 
 /**
- * The events belonging to a local group, matched against its `eventMatchers`
- * (see lib/content/local-groups.ts).
+ * The events belonging to a group, matched against its `eventMatchers`
+ * (see lib/content/local-groups.ts, and lib/content/groups.ts for a group
+ * that isn't a place's).
  *
  * Luma only fills `geo_address_info.city` for events pinned to a mapped
  * address; plenty of real events leave it empty and carry the place in the
@@ -47,7 +48,7 @@ function normalise(value: string): string {
  * `region` is deliberately not searched: it is "England" for most of the
  * calendar and would match every matcher for every local group.
  */
-export function filterEventsForLocalGroup(events: LumaEvent[], matchers: readonly string[]): LumaEvent[] {
+export function filterEventsForGroup(events: LumaEvent[], matchers: readonly string[]): LumaEvent[] {
   const needles = matchers.map(normalise);
   return events.filter((event) => {
     const geo = event.geo_address_info;
@@ -147,7 +148,7 @@ export function inPersonEventsFor(events: LumaEvent[], where: EventsWhere, group
   if (where.kind === "anywhere") return inPerson;
   if (where.kind === "group") {
     const group = groups.find((g) => g.name === where.name);
-    return group ? filterEventsForLocalGroup(inPerson, group.eventMatchers) : inPerson;
+    return group ? filterEventsForGroup(inPerson, group.eventMatchers) : inPerson;
   }
   const nearGroups = groups.filter(
     (group) => distanceKm(where.place, { latitude: group.lat, longitude: group.lng }) <= NEAR_KM,
@@ -155,6 +156,6 @@ export function inPersonEventsFor(events: LumaEvent[], where: EventsWhere, group
   return inPerson.filter((event) =>
     event.place
       ? distanceKm(where.place, event.place) <= NEAR_KM
-      : nearGroups.some((group) => filterEventsForLocalGroup([event], group.eventMatchers).length > 0),
+      : nearGroups.some((group) => filterEventsForGroup([event], group.eventMatchers).length > 0),
   );
 }

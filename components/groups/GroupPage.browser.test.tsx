@@ -1,23 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { localGroupPages } from "@/lib/content/local-group-pages";
-import LocalGroupPage from "./LocalGroupPage";
+import { groupPages } from "@/lib/content/group-pages";
+import { groupNamed } from "@/lib/content/groups";
+import GroupPage from "./GroupPage";
 
-// The events sections are tested with LocalGroupEvents; here they stand in.
-vi.mock("@/components/events/LocalGroupEvents", () => ({
-  default: ({ localGroupName }: { localGroupName: string }) => (
-    <section data-testid="events">{localGroupName} events</section>
-  ),
+// The events sections are tested with GroupEvents; here they stand in.
+vi.mock("@/components/events/GroupEvents", () => ({
+  default: ({ groupName }: { groupName: string }) => <section data-testid="events">{groupName} events</section>,
 }));
 
 /** The badge over the hero photo: whatever follows the photo, beside the h1's column. */
-describe("LocalGroupPage", () => {
-  it.each(Object.values(localGroupPages).map((content) => [content.name, content] as const))(
+describe("GroupPage", () => {
+  it.each(Object.values(groupPages).map((content) => [content.name, content] as const))(
     "renders %s's page",
     async (name, content) => {
-      const { container } = await render(<LocalGroupPage content={content} />);
-      await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(`PauseAI ${name}`);
+      const { container } = await render(<GroupPage content={content} />);
+      await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent(groupNamed(name).words.title);
       await expect.element(page.getByTestId("events")).toHaveTextContent(`${name} events`);
       const hero = container.querySelector("main > section")!;
       for (const action of content.hero.actions) {
@@ -29,7 +28,7 @@ describe("LocalGroupPage", () => {
   );
 
   it("puts every section in the same order, with the same headings", async () => {
-    const { container } = await render(<LocalGroupPage content={localGroupPages.Leicester} />);
+    const { container } = await render(<GroupPage content={groupPages.Leicester} />);
     const headings = [...container.querySelectorAll("main h2")].map((h) => h.textContent);
     expect(headings).toEqual(["What we're doing in Leicester", "What we've done", "Link up with the group"]);
     const order = [...container.querySelectorAll("main > section")].map(
@@ -50,7 +49,7 @@ describe("LocalGroupPage", () => {
     ["Leicester", ["white", "cream", "beige"]],
     ["Scotland", ["white", "beige"]],
   ] as const)("gives %s's bands after the events alternating colours", async (name, colours) => {
-    const { container } = await render(<LocalGroupPage content={localGroupPages[name]} />);
+    const { container } = await render(<GroupPage content={groupPages[name]} />);
     // A plain band is see-through, onto the cream page.
     const named = { "rgba(0, 0, 0, 0)": "cream", "rgb(255, 255, 255)": "white", "rgb(245, 237, 228)": "beige" };
     const bands = [...container.querySelectorAll("main > section")].slice(2);
@@ -59,7 +58,7 @@ describe("LocalGroupPage", () => {
 
   it("wraps several contact buttons together, and leaves out sections and details it wasn't given", async () => {
     const { container } = await render(
-      <LocalGroupPage
+      <GroupPage
         content={{
           name: "London",
           hero: { lede: "Hi", actions: [], photo: "/x.jpg" },

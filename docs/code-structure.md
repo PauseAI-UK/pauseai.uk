@@ -380,9 +380,9 @@ holds it.
   added to.
 - **No scripts in `public/`.** Browser behaviour is a typed `"use client"`
   component.
-- **Write it once.** Pages that share a shape share a component: each local
-  group's page is `LocalGroupPage` and its content in
-  `lib/content/local-group-pages.tsx`.
+- **Write it once.** Pages that share a shape share a component: each
+  group's page is `GroupPage` and its content in
+  `lib/content/group-pages.tsx`.
 - **Browsers.** The site is built for browsers up to about a year old. In
   older ones it may look a bit off, but every page must stay readable and
   every link and form usable. Use a new feature without asking; flag one

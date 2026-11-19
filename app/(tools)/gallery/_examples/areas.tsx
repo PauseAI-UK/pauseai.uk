@@ -1,19 +1,19 @@
-// The events lists, local group pages, people's stories and the volunteer
-// tools' index (components/events/, local-groups/, people/ and tools/).
+// The events lists, group pages, people's stories and the volunteer
+// tools' index (components/events/, groups/, people/ and tools/).
 import EventList from "@/components/events/EventList";
 import GoingFaces from "@/components/events/GoingFaces";
 import { exampleEvent } from "@/components/events/EventList.examples";
 import EventsSection from "@/components/events/EventsSection";
 import { Button } from "@/components/ui/Button";
-import LocalGroupEvents from "@/components/events/LocalGroupEvents";
+import GroupEvents from "@/components/events/GroupEvents";
 import UpcomingEvents from "@/components/events/UpcomingEvents";
-import LocalGroupPage from "@/components/local-groups/LocalGroupPage";
+import GroupPage from "@/components/groups/GroupPage";
 import Avatar from "@/components/people/Avatar";
 import PersonCard from "@/components/people/PersonCard";
 import StoryBody from "@/components/people/StoryBody";
 import StoryShareForm from "@/components/people/StoryShareForm";
 import { CardIndex, IndexCard } from "@/components/tools/CardIndex";
-import { localGroupPages } from "@/lib/content/local-group-pages";
+import { groupPages } from "@/lib/content/group-pages";
 import { isLongStory, people } from "@/lib/content/people";
 import { site } from "@/lib/content/site";
 import type { Group } from "../_components/types";
@@ -135,25 +135,30 @@ export const areas: Group = {
       ],
     },
     {
-      name: "LocalGroupEvents",
-      file: "components/events/LocalGroupEvents.tsx",
+      name: "GroupEvents",
+      file: "components/events/GroupEvents.tsx",
       variants: [
-        { label: "Upcoming and past", render: () => <LocalGroupEvents localGroupName="London" />, server: true },
-        { label: "Nothing upcoming", render: () => <LocalGroupEvents localGroupName="Scotland" />, server: true },
+        { label: "Upcoming and past", render: () => <GroupEvents groupName="London" />, server: true },
+        { label: "Nothing upcoming", render: () => <GroupEvents groupName="Scotland" />, server: true },
       ],
     },
     {
-      name: "LocalGroupPage",
-      file: "components/local-groups/LocalGroupPage.tsx",
+      name: "GroupPage",
+      file: "components/groups/GroupPage.tsx",
       variants: [
         {
           label: "Events, what we've done and contact, no badge",
-          render: () => <LocalGroupPage content={localGroupPages.Scotland} />,
+          render: () => <GroupPage content={groupPages.Scotland} />,
           server: true,
         },
         {
           label: "Events, what we do, what we've done and contact, with a badge",
-          render: () => <LocalGroupPage content={localGroupPages.Leicester} />,
+          render: () => <GroupPage content={groupPages.Leicester} />,
+          server: true,
+        },
+        {
+          label: "An affinity group's, with its own words for its headings",
+          render: () => <GroupPage content={groupPages.Parents} />,
           server: true,
         },
       ],

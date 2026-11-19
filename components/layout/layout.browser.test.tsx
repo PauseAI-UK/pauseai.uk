@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import { affinityGroups, groupNamed, groups } from "@/lib/content/groups";
 import { site } from "@/lib/content/site";
 import { navigation } from "@/tests/browser/navigation";
 import CookieConsent, { cookieDomains, CookieSettingsLink } from "./CookieConsent";
@@ -67,7 +68,16 @@ describe("TagManagerNoscript", () => {
 });
 
 describe("Nav", () => {
-  it("shows the PauseAI UK logo, and a local group's branding on its page", async () => {
+  it("lists every group in the Groups menu, the local groups before the affinity groups", async () => {
+    const { container } = await render(<Nav />);
+    const menu = page.getByRole("link", { name: "Groups", exact: true }).element().nextElementSibling!;
+    const links = [...menu.querySelectorAll("a")].map((a) => [a.getAttribute("href"), a.textContent]);
+    expect(links.map(([href]) => href!.replace(/\/$/, "")).sort()).toEqual(groups.map((group) => group.href).sort());
+    expect(links.slice(-affinityGroups.length)).toEqual(affinityGroups.map((group) => [`${group.href}/`, group.menu]));
+    expect(container.querySelector('nav a[href="#local-groups"]')?.textContent).toBe("Groups");
+  });
+
+  it("shows the PauseAI UK logo, and a group's branding on its page", async () => {
     const { container, rerender } = await render(<Nav />);
     await expect.element(page.getByRole("img", { name: "PauseAI UK" })).toBeInTheDocument();
     // At the top of every page, it's fetched before anything else.
@@ -85,6 +95,11 @@ describe("Nav", () => {
     navigation.pathname = "/scotland/";
     await rerender(<Nav />);
     await expect.element(page.getByText("Scotland Group")).toBeVisible();
+
+    // An affinity group's page, by the group's own words.
+    navigation.pathname = "/parents";
+    await rerender(<Nav />);
+    await expect.element(page.getByText(groupNamed("Parents").words.label, { exact: true })).toBeVisible();
   });
 
   it("sets the header height for the stylesheet", async () => {

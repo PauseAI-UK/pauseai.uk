@@ -1,12 +1,11 @@
-import LocalGroupPage from "@/components/local-groups/LocalGroupPage";
-import { localGroupMetadata, localGroupPages } from "@/lib/content/local-group-pages";
+import GroupPage from "@/components/groups/GroupPage";
+import { groupMetadata, groupPages } from "@/lib/content/group-pages";
 
-export const metadata = localGroupMetadata(
+export const metadata = groupMetadata(
   "Oxford",
-  "/oxford",
   "PauseAI Oxford links students, researchers, and locals to discuss and act on AI safety.",
 );
 
 export default function OxfordPage() {
-  return <LocalGroupPage content={localGroupPages["Oxford"]} />;
+  return <GroupPage content={groupPages["Oxford"]} />;
 }

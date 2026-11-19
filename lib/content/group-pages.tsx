@@ -1,17 +1,34 @@
 import type { Metadata } from "next";
-import type { LocalGroupPageContent } from "@/components/local-groups/LocalGroupPage";
-import type { LocalGroupName } from "./local-groups";
+import type { GroupPageContent } from "@/components/groups/GroupPage";
+import { groupNamed, type GroupName } from "./groups";
 import { site } from "./site";
 import { Lede } from "@/components/ui/Section";
 
-// What each local group's page says, rendered by
-// components/local-groups/LocalGroupPage.tsx. The group's name, path, map
-// pin and header logo are in ./local-groups.ts.
+// What each group's page says, rendered by components/groups/GroupPage.tsx.
+// A local group's name, path, map pin and header logo are in
+// ./local-groups.ts; an affinity group's name, path and the words that carry
+// its name are in ./groups.ts.
 
 const WHATSAPP = { label: "Join the WhatsApp community", href: site.whatsappUrl, newTab: true } as const;
 const WEST_OF_ENGLAND_LINKTREE = "https://linktr.ee/PauseAI_West_of_England";
+const CAMBRIDGE_EMAIL = "cambridge@pauseai.uk";
 
-export const localGroupPages: Record<LocalGroupName, LocalGroupPageContent> = {
+/** The email address and the WhatsApp community, as an affinity group's contact section lists them. */
+const EMAIL_AND_WHATSAPP = (
+  <>
+    <Lede>
+      Email: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
+    </Lede>
+    <Lede>
+      WhatsApp:{" "}
+      <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
+        PauseAI UK WhatsApp
+      </a>
+    </Lede>
+  </>
+);
+
+export const groupPages: Record<GroupName, GroupPageContent> = {
   Scotland: {
     name: "Scotland",
     hero: {
@@ -191,6 +208,7 @@ export const localGroupPages: Record<LocalGroupName, LocalGroupPageContent> = {
       badge: "Join in on protests!",
     },
     features: {
+      heading: "What we're doing in Leicester",
       lede: "Want to help? We're looking for organisers, hosts, and partners to kickstart regular meetups.",
       items: [
         { title: "Attend events", text: "Check out our Instagram or Discord for more info on events." },
@@ -215,6 +233,35 @@ export const localGroupPages: Record<LocalGroupName, LocalGroupPageContent> = {
     contact: {
       lede: "Contact us through the above methods if you can host an event, promote a meetup, or want to collaborate on outreach.",
       actions: [{ label: "Email Leicester", href: "mailto:leicester@pauseai.info", variant: "primary" }],
+    },
+  },
+
+  Cambridge: {
+    name: "Cambridge",
+    hero: {
+      lede: "⁂ A new group bringing AI safety conversations and action to Cambridge, with talks, socials and letter-writing nights.",
+      actions: [
+        { ...WHATSAPP, variant: "primary" },
+        { label: `⁂ Email ${CAMBRIDGE_EMAIL}`, href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "ghost" },
+      ],
+      photo: "/images/local-groups/cambridge/hero.webp",
+    },
+    contact: {
+      lede: "⁂ Email us to hear about the next meet, or join the WhatsApp community to connect with organisers across the UK.",
+      details: (
+        <>
+          <Lede>
+            Email: <a href={`mailto:${CAMBRIDGE_EMAIL}`}>{CAMBRIDGE_EMAIL}</a>
+          </Lede>
+          <Lede>
+            WhatsApp:{" "}
+            <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
+              PauseAI UK WhatsApp
+            </a>
+          </Lede>
+        </>
+      ),
+      actions: [{ label: "⁂ Email Cambridge", href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "primary" }],
     },
   },
 
@@ -292,23 +339,60 @@ export const localGroupPages: Record<LocalGroupName, LocalGroupPageContent> = {
       actions: [{ ...WHATSAPP, variant: "primary" }],
     },
   },
+
+  Parents: {
+    name: "Parents",
+    hero: {
+      lede: "⁂ We're parents and carers worried about the world our children will grow up in. Together we campaign to stop the race to superintelligent AI until it can be shown to be safe.",
+      actions: [
+        { ...WHATSAPP, variant: "primary" },
+        { label: "Email the team", href: `mailto:${site.contactEmail}`, variant: "ghost" },
+      ],
+      photo: "/images/groups/parents-hero.webp",
+      badge: "⁂ Make your voice heard",
+    },
+    contact: {
+      lede: "⁂ Join the WhatsApp community to meet other parents and carers, or email us to find out more.",
+      details: EMAIL_AND_WHATSAPP,
+      actions: [{ ...WHATSAPP, variant: "primary" }],
+    },
+  },
+
+  Teachers: {
+    name: "Teachers",
+    hero: {
+      lede: "⁂ We're teachers, lecturers and school staff watching AI change classrooms faster than anyone can keep up. We campaign to stop the race to superintelligent AI until it can be shown to be safe.",
+      actions: [
+        { ...WHATSAPP, variant: "primary" },
+        { label: "Email the team", href: `mailto:${site.contactEmail}`, variant: "ghost" },
+      ],
+      photo: "/images/groups/teachers-hero.webp",
+      badge: "⁂ Make your voice heard",
+    },
+    contact: {
+      lede: "⁂ Join the WhatsApp community to meet other teachers and school staff, or email us to find out more.",
+      details: EMAIL_AND_WHATSAPP,
+      actions: [{ ...WHATSAPP, variant: "primary" }],
+    },
+  },
 };
 
 /** Page metadata, which follows the same pattern for every group. */
-export function localGroupMetadata(name: LocalGroupName, path: string, description: string): Metadata {
+export function groupMetadata(name: GroupName, description: string): Metadata {
+  const { href, words } = groupNamed(name);
   return {
-    title: `${name} Group`,
+    title: words.label,
     openGraph: {
-      title: `PauseAI ${name}`,
+      title: words.title,
       description,
       images: [{ url: "/images/open-graph/open-graph-1200-630.jpg", width: 1200, height: 630 }],
-      url: `https://pauseai.uk${path}`,
+      url: `https://pauseai.uk${href}`,
     },
     twitter: {
-      title: `PauseAI ${name}`,
+      title: words.title,
       description,
       images: ["/images/open-graph/open-graph-1080-1080.jpg"],
     },
-    alternates: { canonical: path },
+    alternates: { canonical: href },
   };
 }
