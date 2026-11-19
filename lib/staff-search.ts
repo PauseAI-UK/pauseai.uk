@@ -5,7 +5,7 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { listWindow, type DashboardWindow } from "./time-windows";
 import { contactState } from "@/lib/supporters/contact-permissions";
 import type { ChangesFilter } from "@/lib/oversight/audit-log.server";
-import type { BlocksFilter } from "@/lib/email/email.server";
+import { BACKENDS, BLOCK_KINDS, FOUND_BY, type BlocksFilter } from "@/lib/email/block-filters";
 import type { PoliticianFilter } from "@/lib/politicians/records.server";
 import type { SentEmailsFilter } from "@/lib/oversight/sent-emails.server";
 import { campaignBySlug } from "@/lib/email-your-mp";
@@ -27,6 +27,7 @@ import {
   ACCOUNTS_LIST,
   ALL_EMAILS_LIST,
   AUDIT_LOG_LIST,
+  BLOCKED_ADDRESSES_LIST,
   EVENTS_LIST,
   LETTERS_LIST,
   POLITICIANS_LIST,
@@ -237,18 +238,29 @@ export function politicianId(id: string): number | undefined {
   return /^\d+$/.test(id) ? Number(id) : undefined;
 }
 
-/** The blocked addresses page's filters: a search of the addresses, and blocked by a hard bounce, a complaint or a hold. */
-export function emailsSearch({ q = "", kind = "" }: { q?: string; kind?: string }): {
-  q: string;
-  kind: string;
+/** A list of blocked addresses' URL, as typed, the same on both its pages. */
+export type BlocksSearch = SearchOf<typeof BLOCKED_ADDRESSES_LIST.params>;
+
+/**
+ * A list of blocked addresses' URL: as typed; its page; and its filters, a
+ * search of the addresses and numbers, what blocked them (BLOCK_KINDS), who
+ * told us (BACKENDS), and what was being sent (FOUND_BY), and its sort.
+ */
+export function emailsSearch(params: Partial<Record<string, ParamValue>>): {
+  search: BlocksSearch;
+  page: number;
   filter: BlocksFilter;
 } {
+  const search = BLOCKED_ADDRESSES_LIST.read(params);
   return {
-    q,
-    kind,
+    search,
+    page: pageNumber(search.page),
     filter: {
-      kind: kind === "hard" || kind === "complaint" || kind === "hold" ? kind : undefined,
-      search: q.trim() || undefined,
+      kind: BLOCK_KINDS.find((one) => one === search.kind),
+      backend: BACKENDS.find((one) => one === search.backend),
+      found: FOUND_BY.find((one) => one === search.found),
+      search: search.q.trim() || undefined,
+      sort: BLOCKED_ADDRESSES_LIST.sort(search),
     },
   };
 }

@@ -102,7 +102,7 @@ export default function EventList({
    */
   empty?: ReactNode;
 }) {
-  const [expanded, setExpanded] = useState(showAll);
+  const [expanded, setExpanded] = useState(false);
   const hasMore = !showAll && events.length > 4;
 
   if (events.length === 0) {
@@ -125,7 +125,8 @@ export default function EventList({
     <>
       <div className={expanded ? `${styles.list} ${styles.expanded}` : styles.list}>
         {events.map((event, i) => (
-          <EventCard key={event.url} event={event} isExtra={i >= 4} />
+          // Listed all at once, none is an extra, so none fades in as Show more's do.
+          <EventCard key={event.url} event={event} isExtra={!showAll && i >= 4} />
         ))}
       </div>
       {hasMore && (

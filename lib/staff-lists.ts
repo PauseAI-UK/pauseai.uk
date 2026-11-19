@@ -364,7 +364,36 @@ export const ERRORS_LIST = defineStaffList({
   },
 });
 
+/**
+ * A list of blocked addresses' parameters and sorts, the same on both its
+ * pages: newest blocked first unless another sort is chosen. Times blocked
+ * sorts most first, so the blocks that stop the most come to the top.
+ */
+const BLOCKS = {
+  params: { q: "one", kind: "one", backend: "one", found: "one", sort: "one", dir: "one", page: "one" },
+  choosing: ["q", "kind", "backend", "found"],
+  sorts: {
+    columns: { address: "asc", kind: "asc", backend: "asc", sent: "asc", refused: "desc", since: "desc" },
+    fallback: "since",
+  },
+} as const;
+
+/** Supporters' blocked addresses, and the numbers WhatsApp couldn't reach. */
+export const BLOCKED_ADDRESSES_LIST = defineStaffList({
+  path: "/staff/supporters/blocked-addresses",
+  needs: "supporters",
+  ...BLOCKS,
+});
+
+/** Politicians' blocked addresses. */
+export const ADDRESSES_TO_FIX_LIST = defineStaffList({
+  path: "/staff/politicians/addresses-to-fix",
+  needs: "account",
+  ...BLOCKS,
+});
+
 export type PoliticianSort = SortOf<typeof POLITICIANS_LIST>;
+export type BlockSort = SortOf<typeof BLOCKED_ADDRESSES_LIST>;
 export type SupporterSort = SortOf<typeof SUPPORTERS_LIST>;
 export type ChangeSort = SortOf<typeof AUDIT_LOG_LIST>;
 export type LetterSort = SortOf<typeof LETTERS_LIST>;

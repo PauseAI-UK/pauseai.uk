@@ -227,21 +227,20 @@ test("A letter bounces", async ({ page, request, flowDatabase }) => {
   story("Addresses to fix lists the address, with the letter that found it out.");
 
   await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
-  // The blocked addresses, above the recent problems.
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: BOUNCY_ADDRESS });
   await expect(blocked.getByRole("link", { name: bouncy.name, exact: true })).toBeVisible();
   await expect(blocked).toContainText(emailCopy.emails.kinds.hard);
   await frame(page, "Addresses to fix");
   story("The letter leads to its own page, which says it bounced, and links to Jane as a supporter.");
 
-  // The letter, by whom it was to, leads to its own page.
-  await blocked.getByRole("link", { name: `${emailCopy.emails.letterTo} ${bouncy.name}` }).click();
+  // The letter, by whom it was to, cut to its first words with the whole on hover, leads to its own page.
+  await blocked.getByTitle(`${emailCopy.emails.letterTo} ${bouncy.name}`).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     lettersCopy.letters.oneTitle("Jane Smith", bouncy.name),
   );
   // Who wrote it, leading to them as a supporter; their address is in its history too.
   await expect(page.getByRole("link", { name: `Jane Smith <${sender}>` })).toBeVisible();
-  // The letter's own status, not the navigation's Bounced emails.
+  // The letter's own status, in the page's main part.
   await expect(
     page.getByRole("main").getByText(lettersCopy.letters.status.bounced, { exact: true }).first(),
   ).toBeVisible();

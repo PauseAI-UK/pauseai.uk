@@ -86,14 +86,14 @@ function Address({
   );
 }
 
-/** Why an answer is what it is; after a blocked address's, the link to Bounced emails. */
+/** Why an answer is what it is; after a blocked address's, the link to Blocked addresses. */
 function Reason({ permission }: { permission: ContactPermission }) {
   const words = permissionReason(permission);
   const blocked = permission.reason === "blocked";
   return (
     <span className={styles.reason}>
       {blocked && words ? `${words} · ` : words}
-      {blocked && <StaffLink href="/staff/supporters/bounced-emails">{copy.seeBlocked}</StaffLink>}
+      {blocked && <StaffLink href="/staff/supporters/blocked-addresses">{copy.seeBlocked}</StaffLink>}
     </span>
   );
 }

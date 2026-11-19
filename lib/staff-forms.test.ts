@@ -79,10 +79,18 @@ describe("unblockFrom", () => {
     });
   });
 
-  it("refuses anything that isn't an address, and an unblock with no note", () => {
+  it("reads a number in international format", () => {
+    expect(unblockFrom(form({ address: "+447700900001", note: "fixed" }))).toEqual({
+      address: "+447700900001",
+      note: "fixed",
+    });
+  });
+
+  it("refuses anything that isn't an address or a number, and an unblock with no note", () => {
     expect(unblockFrom(form({ address: "jo@example.org" }))).toBeUndefined();
     expect(unblockFrom(form({ address: "jo@example.org", note: "  " }))).toBeUndefined();
     expect(unblockFrom(form({ address: "nobody" }))).toBeUndefined();
+    expect(unblockFrom(form({ address: "07700 900001", note: "fixed" }))).toBeUndefined();
     expect(unblockFrom(form({}))).toBeUndefined();
   });
 });

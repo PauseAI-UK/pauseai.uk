@@ -727,20 +727,20 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
 
 test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {
   story(
-    "CiviCRM has Casey's address on hold, as its emails to it bounced. The CiviCRM import blocks it here too, and it's listed in Bounced emails.",
+    "CiviCRM has Casey's address on hold, as its emails to it bounced. The CiviCRM import blocks it here too, and it's listed in Blocked addresses.",
   );
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
-  await page.goto(`${BASE}/staff/supporters/bounced-emails`);
+  await page.goto(`${BASE}/staff/supporters/blocked-addresses`);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "casey.chapter@example.com" });
   await expect(row).toContainText(emailCopy.emails.kinds.hold);
-  await frame(page, "Bounced emails");
+  await frame(page, "Blocked addresses");
   story("Staff lift it, with a note. Only a new hold in CiviCRM blocks it again.");
   await openBubble(row.getByRole("button", { name: emailCopy.emails.unblockOpen }));
   await row.getByLabel(emailCopy.emails.note).fill("Global say the address works again");
   await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
-  await frame(page, "Bounced emails, empty");
+  await frame(page, "Blocked addresses, empty");
 });
 
 test("Recording an opt-out told to staff", async ({ page, request, flowDatabase }) => {

@@ -94,7 +94,7 @@ describe("StaffNav", () => {
       "/staff/supporters",
       "/staff/campaigns",
       "/staff/broadcasts",
-      "/staff/supporters/bounced-emails",
+      "/staff/supporters/blocked-addresses",
       "/staff/supporters/import",
     ]);
   });

@@ -35,7 +35,7 @@ describe("staffPageOf", () => {
   it("finds the page a path is, or is under, by the longest whole segment", () => {
     expect(staffPageOf("/staff/supporters")?.id).toBe("supporters");
     expect(staffPageOf("/staff/supporters/[id]/erase")?.id).toBe("supporters");
-    expect(staffPageOf("/staff/supporters/bounced-emails")?.id).toBe("supporterEmails");
+    expect(staffPageOf("/staff/supporters/blocked-addresses")?.id).toBe("supporterEmails");
     expect(staffPageOf("/staff/letters/supporter/[id]")?.id).toBe("supporters");
     expect(staffPageOf("/staff/letters/[id]")?.id).toBe("campaigns");
     expect(staffPageOf("/staff/campaigns/[slug]")?.id).toBe("campaigns");

@@ -1,0 +1,6 @@
+/* The History column, ruled off at its left as the Unblock column after it
+   is, so the row's two buttons stand apart from its words and each other.
+   Only Unblock stays at the window's edge while a wide table scrolls. */
+.ruled {
+  box-shadow: inset 1px 0 0 var(--border);
+}

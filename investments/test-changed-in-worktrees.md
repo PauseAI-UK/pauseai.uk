@@ -4,13 +4,15 @@ Size: S. Kind: tools.
 
 ## Problem
 
-In a worktree made by `npm run worktree`, `npm run test:changed` stops at
-once: Vitest's `--changed` says "Could not find Git root. Have you
-initialized git with `git init`?" and writes no coverage report, though
-`git rev-parse --show-toplevel` works there. The worktree's `.git` is a
-file pointing to `../../../.git/worktrees/<branch>`, a relative path, which
-Vitest's own git lookup may not follow. So in a worktree the only way to see
-coverage is the whole of `npm test`.
+`npm run test:changed` stops at once: Vitest's `--changed` says "Could not
+find Git root. Have you initialized git with `git init`?" and writes no
+coverage report. It does so in a worktree made by `npm run worktree`, whose
+`.git` is a file pointing to `../../../.git/worktrees/<branch>`, and in the
+dev container's main checkout too, whose `.git` is a folder; yet
+`git rev-parse --show-cdup`, the command Vitest runs to find the root
+(`getRoot` in its `GitVCSProvider`), works in both from a shell. So the
+cause is in how Vitest runs it, perhaps its working folder. Until then the
+only way to see coverage is the whole of `npm test`.
 
 ## Fix
 
@@ -23,3 +25,4 @@ have `scripts/test-changed.mjs` pass Vitest the changed files itself
 
 - 2026-11-18: in tmp/worktrees/staff-fixes, ran the whole `npm test` instead, ~5 min
 - 2026-11-19: in tmp/worktrees/consents-redo, the same, so ran the gate's test group instead, ~3 min
+- 2026-11-19: in the main checkout, ran the affected test files by hand, then the whole `npm test`, ~10 min

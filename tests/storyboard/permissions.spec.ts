@@ -13,7 +13,7 @@ import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } fro
 import { openBubble } from "./settle";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
-import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
+import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { emailCopy } from "@/lib/email/copy";
@@ -185,7 +185,7 @@ test("An admin without Supporters", async ({ page, request, flowDatabase }) => {
 
 test("Blocked addresses without Supporters", async ({ page, request, flowDatabase }) => {
   story(
-    "Jane writes to an MP whose address bounces her letter. Staff without the Supporters permission can't open her letter, or Bounced emails, the supporters' page.",
+    "Jane writes to an MP whose address bounces her letter. Staff without the Supporters permission can't open her letter, or Blocked addresses, the supporters' page.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   const bouncy = TEST_MPS.find((mp) => mp.postcode === "ZZ99ZH")!;
@@ -212,7 +212,7 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   expect(await bounce.json()).toEqual({ recorded: true });
 
   await logIn(page, flowDatabase);
-  for (const closed of ["/staff/campaigns", "/staff/supporters/bounced-emails"]) {
+  for (const closed of ["/staff/campaigns", "/staff/supporters/blocked-addresses"]) {
     await page.goto(`${BASE}${closed}`);
     await expect(page).toHaveURL(`${BASE}/staff`);
   }
@@ -220,7 +220,8 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(politiciansCopy.addressesToFix.title);
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: "no-such-mailbox@pauseai.uk" });
-  await expect(blocked.getByText(`${emailCopy.emails.letterTo} ${bouncy.name}`)).toBeVisible();
+  // Named, cut to its first words, with … to unfold it.
+  await expect(blocked.getByRole("group").filter({ hasText: emailCopy.emails.letterTo })).toBeVisible();
   await expect(page.locator('a[href^="/staff/letters"]')).toHaveCount(0);
   await frame(page, "Addresses to fix");
 
@@ -228,7 +229,8 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   // With supporters, the same page links to the letter.
   addStaffAccount(flowDatabase, staffEmail(), ["supporters"]);
   await page.reload();
-  await blocked.getByRole("link", { name: `${emailCopy.emails.letterTo} ${bouncy.name}` }).click();
+  // The link is cut too, its whole name on hover.
+  await blocked.getByTitle(`${emailCopy.emails.letterTo} ${bouncy.name}`).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     lettersCopy.letters.oneTitle("Jane Smith", bouncy.name),
   );
@@ -248,12 +250,12 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
   await frame(page, "Addresses to fix, empty");
 
-  story("Bounced emails lists her address.");
-  await page.goto(`${BASE}/staff/supporters/bounced-emails`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(supportersCopy.bouncedEmails.title);
+  story("Blocked addresses lists her address.");
+  await page.goto(`${BASE}/staff/supporters/blocked-addresses`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(shellCopy.nav.supporterEmails);
   const row = page.getByRole("table").first().getByRole("row").filter({ hasText: "jane.fixture@example.com" });
   await expect(row).toContainText(emailCopy.emails.kinds.hard);
-  await frame(page, "Bounced emails");
+  await frame(page, "Blocked addresses");
 
   story("Staff unblock it. Its row's button asks why first, for the audit log.");
   await openBubble(row.getByRole("button", { name: emailCopy.emails.unblockOpen }));
@@ -261,7 +263,7 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   await frame(page, "Why they're unblocking it");
   await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();
-  await frame(page, "Bounced emails, empty");
+  await frame(page, "Blocked addresses, empty");
 });
 
 /** Logs `email` in in a browser of its own, on the flow's database, and returns its page. */

@@ -637,7 +637,12 @@ job all leave broadcasts out.
   so. A copy is the text's template, its fields filled in for the person.
   Before a copy goes, its number is checked with CiviCRM's
   `checkSuppression`, and one with "Do not SMS" is skipped, as is a number
-  WhatsApp has said isn't on it (`whatsapp_unreachable`). A copy skipped
+  WhatsApp couldn't deliver to in the last two months (`whatsapp_unreachable`,
+  `lib/broadcasts/unreachable.server.ts`). WhatsApp's error for that means
+  the number isn't on WhatsApp, or the person hasn't accepted its latest
+  terms, or their app is too old, without saying which, so after two months
+  the next text tries the number again. Staff see these numbers, and can
+  unblock one, with the blocked email addresses ("Email", below). A copy skipped
   as `bad-number` had a number not in international format, which CiviCRM's
   check refuses; no copy can have one now ("Phone numbers", below). Texts go to as
   many people a day as Meta's messaging limit for our business allows
@@ -1712,8 +1717,16 @@ over the same tables, split by whether the address is a politician's now:
 
 - politicians' blocked addresses, on Addresses to fix
   (`/staff/politicians/addresses-to-fix`), and on the politician's page;
-- every other (supporters', staff's and unknown ones), on Bounced emails
-  (`/staff/supporters/bounced-emails`), for staff with `supporters`.
+- every other (supporters', staff's and unknown ones), and every number
+  WhatsApp couldn't deliver to, on `/staff/supporters/blocked-addresses`, for
+  staff with `supporters`.
+
+Each lists a hundred a page, newest first (`listBlocks` in
+`lib/oversight/blocks.server.ts`), filtered by what blocked it and by what
+kind of email or text found it out. Each row's History has everything that
+happened to it: its bounces, soft ones too, and complaints and holds; a
+number's texts WhatsApp refused, and those skipped for it; and each time
+staff unblocked it, with why, from the audit log.
 
 The two pages' first addresses, `/staff/politicians/blocked-emails` and
 `/staff/supporters/blocked-emails`, redirect to them, as emails to staff
@@ -1723,7 +1736,9 @@ Staff can unblock an address that bounced, which asks Postmark to send to it
 again, on both its streams (`unsuppress`). The transactional stream refusing
 stops the unblock; the broadcast stream refusing doesn't, as a Postmark
 server without that stream has nothing suppressed on it, though Postmark
-failing does. A complaint can't be unblocked.
+failing does. A complaint can't be unblocked. Unblocking a number forgets
+that WhatsApp couldn't deliver to it, so the next text tries it. Either
+goes in the audit log as `unblock address`, with the note of why.
 
 What a bounce means depends on the email's purpose, so each purpose can
 have a hook, which its feature hands the sending layer
@@ -2043,7 +2058,7 @@ emails, events, imports). Permissions open more
 
 - `supporters` opens every page with a member of the public's details
   (supporters, broadcasts, campaigns and their letters, who wrote to which
-  MP, Bounced emails, Import sign-ups).
+  MP, Blocked addresses, Import sign-ups).
 - `admin` opens the accounts page, the audit log and the sent emails. It
   doesn't include `supporters`.
 

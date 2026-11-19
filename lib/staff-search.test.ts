@@ -210,16 +210,40 @@ describe("politicianId", () => {
 });
 
 describe("emailsSearch", () => {
-  it("filters by a hard bounce or a complaint, and by nothing else", () => {
-    expect(emailsSearch({ kind: "complaint" })).toEqual({ q: "", kind: "complaint", filter: { kind: "complaint" } });
-    expect(emailsSearch({ kind: "hard" }).filter).toEqual({ kind: "hard" });
-    expect(emailsSearch({ kind: "soft" }).filter).toEqual({});
-    expect(emailsSearch({})).toEqual({ q: "", kind: "", filter: {} });
+  /** The filter with nothing chosen: newest blocked first. */
+  const NEWEST = { sort: { key: "since", dir: "desc" } };
+
+  it("keeps the URL as typed, and filters by what blocked it, and by nothing else", () => {
+    expect(emailsSearch({ kind: "complaint" })).toEqual({
+      search: { q: "", kind: "complaint", backend: "", found: "", sort: "", dir: "", page: "" },
+      page: 1,
+      filter: { kind: "complaint", ...NEWEST },
+    });
+    expect(emailsSearch({ kind: "not-on-whatsapp" }).filter).toEqual({ kind: "not-on-whatsapp", ...NEWEST });
+    expect(emailsSearch({ kind: "soft" }).filter).toEqual(NEWEST);
+  });
+
+  it("filters by who told us, and what found it out, and by nothing else", () => {
+    expect(emailsSearch({ backend: "gmail" }).filter).toEqual({ backend: "gmail", ...NEWEST });
+    expect(emailsSearch({ backend: "pigeon" }).filter).toEqual(NEWEST);
+    expect(emailsSearch({ found: "mailbox" }).filter).toEqual({ found: "mailbox", ...NEWEST });
+    expect(emailsSearch({ found: "postcard" }).filter).toEqual(NEWEST);
+  });
+
+  it("sorts by a column it has, most blocked first by default for Times blocked", () => {
+    expect(emailsSearch({ sort: "refused" }).filter.sort).toEqual({ key: "refused", dir: "desc" });
+    expect(emailsSearch({ sort: "address", dir: "desc" }).filter.sort).toEqual({ key: "address", dir: "desc" });
+    expect(emailsSearch({ sort: "whose" }).filter.sort).toEqual(NEWEST.sort);
   });
 
   it("searches the addresses for what was typed, trimmed", () => {
-    expect(emailsSearch({ q: " bob@ " })).toEqual({ q: " bob@ ", kind: "", filter: { search: "bob@" } });
-    expect(emailsSearch({ q: "  " }).filter).toEqual({});
+    expect(emailsSearch({ q: " bob@ " }).filter.search).toBe("bob@");
+    expect(emailsSearch({ q: "  " }).filter.search).toBeUndefined();
+  });
+
+  it("reads the page, the first for anything else", () => {
+    expect(emailsSearch({ page: "3" }).page).toBe(3);
+    expect(emailsSearch({ page: "x" }).page).toBe(1);
   });
 });
 

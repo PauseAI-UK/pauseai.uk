@@ -114,6 +114,8 @@ describe("EventList", () => {
     const { container } = await render(<EventList lumaUrl="x" showAll events={[1, 2, 3, 4, 5].map((n) => event(n))} />);
     expect(container.querySelector("button")).toBeNull();
     expect(shownEvents(container)).toEqual(["Event 1", "Event 2", "Event 3", "Event 4", "Event 5"]);
+    // Nothing fades in, as Show more's cards do, so the page is still from the first.
+    expect(document.getAnimations()).toEqual([]);
   });
 
   it("points to the calendar when there's nothing to list, or says what it was told to", async () => {

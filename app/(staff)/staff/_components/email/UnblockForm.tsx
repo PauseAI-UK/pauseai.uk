@@ -12,18 +12,21 @@ import { emailCopy } from "./copy";
 const copy = emailCopy.emails;
 
 type Props = {
-  block: Pick<EmailBlock, "address" | "canReset">;
+  block: Pick<EmailBlock, "address" | "canReset"> & { kind: string };
   action: (form: FormData) => void | Promise<void>;
 };
+
+/** Why staff can't unblock it: a complaint, or a bounce the provider won't send to again. */
+const cantWords = ({ kind }: { kind: string }) => copy.cantReset[kind === "complaint" ? "complaint" : "provider"];
 
 /**
  * Unblocks an address, with a note of why for the audit log, which it
  * won't send without: on a politician's page. The field has no label above
- * it; its question is in it, and is its name. A complaint can't be
- * unblocked.
+ * it; its question is in it, and is its name. What can't be unblocked
+ * says why instead (cantWords).
  */
 export default function UnblockForm({ block, action }: Props) {
-  if (!block.canReset) return <Muted>{copy.cantReset}</Muted>;
+  if (!block.canReset) return <Muted>{cantWords(block)}</Muted>;
   return (
     <FilterForm action={action} aria-label={`${copy.unblock}: ${block.address}`} className={styles.form}>
       <input type="hidden" name="address" value={block.address} />
@@ -42,13 +45,13 @@ export default function UnblockForm({ block, action }: Props) {
  * button that opens a bubble under it, over the table (ui/Bubble), so the
  * row holds no field. The bubble asks why, for the audit log, and won't
  * send without; Unblock there unblocks the address, and Cancel closes the
- * bubble. A complaint can't be unblocked.
+ * bubble. What can't be unblocked says why instead (cantWords).
  */
 export function UnblockBubble({ block, action }: Props) {
   if (!block.canReset) {
     return (
       <span className={styles.cant}>
-        <Muted>{copy.cantReset}</Muted>
+        <Muted>{cantWords(block)}</Muted>
       </span>
     );
   }

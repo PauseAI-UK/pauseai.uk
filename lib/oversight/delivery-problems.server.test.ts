@@ -239,4 +239,10 @@ describeWithDatabase("unblock", () => {
     expect(await unblock("nobody@example.org", "samuel.whitlock@pauseai.uk", "Fixed")).toBe(false);
     expect(await query("SELECT * FROM email_sends")).toEqual([]);
   });
+
+  it("forgets that WhatsApp couldn't reach a number, so the next text tries it", async () => {
+    await query("INSERT INTO whatsapp_unreachable (number) VALUES ('+447700900001')");
+    expect(await unblock("+447700900001", "samuel.whitlock@pauseai.uk", "On WhatsApp now")).toBe(true);
+    expect(await query("SELECT * FROM whatsapp_unreachable")).toEqual([]);
+  });
 });

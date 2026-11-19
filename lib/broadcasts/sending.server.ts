@@ -38,7 +38,8 @@ import type { Attachment } from "@/lib/server/outside-services/postmark.server";
 import { sendTemplate } from "@/lib/server/outside-services/whatsapp.server";
 import { describeError, problem } from "@/lib/server/problems.server";
 import { recordWhatsAppStop } from "./whatsapp-stops.server";
-import { markUnreachable, templateParams, textResult, textsLeftToday, unreachable } from "./whatsapp-texts.server";
+import { templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
+import { markUnreachable, unreachable } from "./unreachable.server";
 import { broadcastsCopy } from "./copy";
 import { emailCopy } from "@/lib/email/copy";
 
