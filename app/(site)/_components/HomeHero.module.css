@@ -16,8 +16,10 @@
 
 .marquee {
   position: relative;
-  display: flex;
-  flex-direction: column;
+  /* Three rows of one height, each that height from the moment it arrives:
+     a browser can paint when only the first row of the page has reached it. */
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding: 12px 0;
   /* Fill the viewport minus the sticky nav so the last row's bottom
@@ -28,7 +30,6 @@
 }
 
 .row {
-  flex: 1;
   overflow: hidden;
   min-height: 0;
 }

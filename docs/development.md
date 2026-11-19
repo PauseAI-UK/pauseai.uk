@@ -502,6 +502,11 @@ changing it:
 - **Each row's photos are fetched in the order a visitor meets them**
   (`wantedWhen` in `HomeHero.tsx`), and each one's place holds a blur of it
   until it arrives.
+- **No photo is preloaded that a lazy `<img>` shows.** Safari fetches a
+  preloaded image a second time for an `<img loading="lazy">`. So the one
+  photo the page preloads has no lazy showing, and the photos a wide window
+  opens on are fetched by a hidden `<picture>` instead (`WIDE_OPENS_ON` in
+  `HomeHero.tsx`).
 - **While the page loads, only what its first screen needs is fetched.** An
   inline script puts `data-loading` on `<html>` until the page's load event
   (`app/(site)/_components/whileLoading.ts`), and styles hold back the

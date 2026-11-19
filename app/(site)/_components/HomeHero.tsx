@@ -46,6 +46,10 @@ const PREVIEW_PROPERTIES = Object.fromEntries(
  * - "later": the rest wait until the page has loaded (whileLoading.ts,
  *   HeroMarqueeEffects). A wide window fetches some of them with the page
  *   all the same (WIDE_OPENS_ON).
+ *
+ * Safari fetches a preloaded photo a second time for an <img> that loads
+ * lazily, which the other browsers don't. So nothing here preloads a photo
+ * that a lazy <img> shows.
  */
 function wantedWhen(index: number, count: number, dir: "ltr" | "rtl") {
   if (index < 2) return "first";
@@ -56,12 +60,15 @@ function wantedWhen(index: number, count: number, dir: "ltr" | "rtl") {
 /**
  * A window this wide opens on more of each row than a phone does: its first
  * WIDE_OPENS_ON photos, about. Those of them left for later are fetched with
- * the page there, by a preload that only such a window acts on. Fetched with
+ * the page there, by a hidden picture of each that only such a window has a
+ * source for: anywhere else it's BLANK, and nothing is fetched. Fetched with
  * the page on a phone as well, they would hold up the photos it is about to
  * bring on.
  */
 const WIDE = "(min-width: 1024px)";
 const WIDE_OPENS_ON = 5;
+/** A transparent pixel, written out, so an <img> showing it fetches nothing. */
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
 // The home page hero: three rows of photos scrolling in alternating
 // directions behind the headline (HeroMarqueeEffects measures and starts
@@ -82,21 +89,22 @@ export default function HomeHero() {
   const [first] = heroRows[0].photos[0];
   preload(avif(first), { as: "image", imageSrcSet: avifSet(first), type: "image/avif", fetchPriority: "high" });
 
-  // In the page's body, so a browser asks for them after the page's scripts, as it does the photos themselves.
-  const widePreloads = heroRows
-    .flatMap((row) =>
-      row.photos
-        .slice(0, WIDE_OPENS_ON)
-        .filter((_, index) => wantedWhen(index, row.photos.length, row.dir) === "later"),
-    )
-    .map(([src]) => `<link rel="preload" as="image" type="image/avif" media="${WIDE}" imagesrcset="${avifSet(src)}">`)
-    .join("");
+  const wideOpensOn = heroRows.flatMap((row) =>
+    row.photos.slice(0, WIDE_OPENS_ON).filter((_, index) => wantedWhen(index, row.photos.length, row.dir) === "later"),
+  );
 
   return (
     <section id="about">
       <script dangerouslySetInnerHTML={{ __html: WHILE_LOADING_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: HERO_PHOTO_FADE_SCRIPT }} />
-      <div hidden dangerouslySetInnerHTML={{ __html: widePreloads }} />
+      <div hidden>
+        {wideOpensOn.map(([src]) => (
+          <picture key={src}>
+            <source media={WIDE} type="image/avif" srcSet={avifSet(src)} />
+            <img src={BLANK} alt="" />
+          </picture>
+        ))}
+      </div>
       <div className={styles.marquee} style={PREVIEW_PROPERTIES}>
         {heroRows.map((row, ri) => (
           <div key={ri} className={row.dir === "rtl" ? `${styles.row} ${styles.rtl}` : styles.row}>
@@ -123,6 +131,9 @@ export default function HomeHero() {
                           ? copyIdx === 1 && i < count
                           : copyIdx === 0 && i >= count;
                     const wanted = metFirst ? when : "later";
+                    // The photo preloaded above is being fetched whatever its showings say, so none of
+                    // them is lazy.
+                    const lazy = wanted === "later" && src !== first;
                     // The files are served as they are, already the size the hero shows them, so nothing
                     // waits on an image service resizing them.
                     return (
@@ -137,7 +148,7 @@ export default function HomeHero() {
                           width={width}
                           height={height}
                           aria-hidden={!isPrimary || undefined}
-                          loading={wanted === "later" ? "lazy" : "eager"}
+                          loading={lazy ? "lazy" : "eager"}
                           fetchPriority={wanted === "first" ? "high" : undefined}
                           decoding="async"
                         />
