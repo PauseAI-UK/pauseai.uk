@@ -479,7 +479,6 @@ test("Two asks at once", async ({ page, request, flowDatabase }) => {
   // Focused, the link scrolls the menu to it, as a person scrolling it would, rather than the page under it.
   const deepmind = asks.getByRole("link", { name: /DeepMind letter/ });
   await deepmind.focus();
-  await frame(page, "The asks under + Filter", { window: true });
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&ask=deepmind-letter/);
   await changeFilter(page, staffVocabulary.everyoneAsked.letter, staffVocabulary.statuses.signed);
