@@ -1,4 +1,4 @@
-import { contactState, TOPICS, type Topic } from "@/lib/supporters/contact-permissions";
+import { contactStates, listOf, listValue, TOPICS, type Topic } from "@/lib/supporters/contact-permissions";
 import { toText } from "@/lib/letters/format";
 import {
   fieldsIn,
@@ -73,16 +73,22 @@ export function hasWords(broadcast: { subject: string; body: MailingDoc; templat
  * doesn't count.
  */
 export function broadcastTerms(contact: ParamValue | undefined): BroadcastTerms | undefined {
-  const [found] = anyAndNone(valuesOf(contact), (values) => values.flatMap((value) => contactState(value) ?? []));
+  const [found] = anyAndNone(valuesOf(contact), contactStates);
   if (!found?.length) return undefined;
   const [{ way }] = found;
   if (way === "call" || found.some((state) => state.send !== "yes" || state.way !== way)) return undefined;
   return { channel: way, topics: TOPICS.filter((topic) => found.some((state) => state.topic === topic)) };
 }
 
-/** The Consent filter's values for a broadcast's terms, which broadcastTerms reads back. */
+/**
+ * The Consent filter's values for a broadcast's terms, which broadcastTerms
+ * reads back: its list's one value, or a value for each topic for terms
+ * that are no one list, as a broadcast from before the lists may be.
+ */
 export function termsValues(terms: BroadcastTerms): string[] {
-  return terms.topics.map((topic) => `${terms.channel === "email" ? "email" : "text"}:${topic}:yes`);
+  const way = terms.channel === "email" ? "email" : "text";
+  const list = listOf(terms.topics);
+  return list ? [listValue(list, way)] : terms.topics.map((topic) => `${way}:${topic}:yes`);
 }
 
 /** A broadcast's terms as one choice in the writer, its Consent filter's values with a space between. */

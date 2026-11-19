@@ -348,6 +348,19 @@ describeWithDatabase("permissionsFor", () => {
     ]);
     expect((await answer("back@example.com", "events"))?.slice(0, 2)).toEqual(["yes", "following"]);
     expect(await answer("guest@example.com", "events")).toEqual(["no", "not-following", null, "luma"]);
+
+    // A no to the newsletter is a no to events, though they're on the calendar; a later yes to events wins.
+    await luma("updates-off@example.com", "2026-09-01T00:00:00Z");
+    await optOut("updates-off@example.com", "2026-10-01T00:00:00Z", { list: "newsletter", source: "link" });
+    expect(await answer("updates-off@example.com", "events")).toEqual([
+      "no",
+      "unsubscribed",
+      "2026-10-01T00:00:00.000Z",
+      "link",
+    ]);
+    await luma("rejoined@example.com", "2026-10-05T00:00:00Z");
+    await optOut("rejoined@example.com", "2026-10-01T00:00:00Z", { list: "newsletter", source: "link" });
+    expect((await answer("rejoined@example.com", "events"))?.slice(0, 2)).toEqual(["yes", "following"]);
   });
 
   it("gives a Luma number its account's answer for events by text, and texts the march's numbers until its day ends", async () => {

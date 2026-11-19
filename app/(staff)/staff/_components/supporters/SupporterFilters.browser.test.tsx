@@ -3,9 +3,8 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { CONSENT_ORDER } from "@/lib/staff-list-filters";
+import { LIST_ORDER } from "@/lib/staff-list-filters";
 import SupporterFilters from "./SupporterFilters";
-import { CONSENTS, consentKey } from "@/lib/supporters/contact-permissions";
 import { supportersSearch } from "@/lib/staff-search";
 import { chips, menu } from "@/tests/browser/staff";
 import { supportersCopy } from "./copy";
@@ -21,100 +20,109 @@ describe("SupporterFilters", () => {
   const choices = { events, mps };
   const none = { events: [], mps: [] };
 
-  it("has a chip for each way Consent finds and each it leaves out, the way's icon before its topics", async () => {
+  // A list's value by text: a yes to each of its topics that goes by it.
+  const textLuma = "text:newsletter:yes text:events:yes";
+  const textLumaParam = "text%3Anewsletter%3Ayes+text%3Aevents%3Ayes";
+
+  it("has a chip for each way Consent finds and each it leaves out, the way's icon before its lists", async () => {
     const { filter, ...search } = supportersSearch({
       activity: "registered",
-      contact: ["email:newsletter:yes", "!text:events:yes", "email:events:yes", "email:newsletter:asked"],
+      contact: ["email:newsletter:yes", `!${textLuma}`, "email:volunteering:yes", "email:newsletter:asked"],
       erased: "1",
     });
     void filter;
     await render(<SupporterFilters search={search} choices={choices} />);
-    const { topics, wayChips } = copy.filters;
+    const { lists, wayChips } = copy.filters;
     const label = copy.columns.subscriptions;
     // Consent's chips first, in its own place, each named for its way: those it finds, then those it leaves out; a
-    // value it doesn't know, alone, by the filter's name.
+    // value it doesn't know, alone, by the filter's name. Then the "?" of what each list means.
     expect(chips()).toEqual([
-      `${wayChips.email}: ${staffVocabulary.filters.anyOf([topics.newsletter, topics.events])}`,
+      `${wayChips.email}: ${staffVocabulary.filters.anyOf([lists.updates, lists.volunteering])}`,
       `${label}: email:newsletter:asked`,
-      staffVocabulary.filters.notChip(wayChips.text, topics.events),
+      staffVocabulary.filters.notChip(wayChips.text, lists["updates-luma"]),
       `${copy.columns.badges}: ${copy.badges.registered}`,
     ]);
+    await expect.element(page.getByRole("button", { name: copy.detail.permissions.listsHelp })).toBeInTheDocument();
     const emails = [...document.querySelectorAll("button")].find((b) => b.textContent?.startsWith(wayChips.email))!;
     expect(emails.querySelector("svg")).not.toBeNull();
-    // Several, so its menu opens as boxes: email's topics alone. It can turn them all to left out.
-    const found = await menu(new RegExp(`^${wayChips.email}:\\s+${topics.newsletter} or`));
+    // Several, from a link, so its menu opens as boxes: email's lists alone. It can turn them all to left out, but
+    // offers no "+ Add" or "Just one", as each list includes those it should.
+    const found = await menu(new RegExp(`^${wayChips.email}:\\s+${lists.updates} or`));
     const box = document.querySelector("[popover]:popover-open")!;
     expect(
       [...box.querySelectorAll("input[type=checkbox]")].map((input) => (input as HTMLInputElement).checked),
-    ).toEqual([true, true, false]);
+    ).toEqual([true, false, true]);
+    expect(box.textContent).not.toContain(staffVocabulary.filters.justOne);
     expect(found).toContainEqual([
       staffVocabulary.filters.exceptThese,
-      "/staff/supporters?activity=registered&contact=%21text%3Aevents%3Ayes&contact=email%3Anewsletter%3Aasked&contact=%21email%3Anewsletter%3Ayes&contact=%21email%3Aevents%3Ayes",
+      `/staff/supporters?activity=registered&contact=%21${textLumaParam}&contact=email%3Anewsletter%3Aasked&contact=%21email%3Anewsletter%3Ayes&contact=%21email%3Avolunteering%3Ayes`,
     ]);
-    // The one left out swaps to any consent no other chip has, still left out, and can turn to found.
-    const out = await menu(staffVocabulary.filters.notChip(wayChips.text, topics.events));
+    // The one left out swaps to any list no other chip has, still left out, and can turn to found.
+    const out = await menu(staffVocabulary.filters.notChip(wayChips.text, lists["updates-luma"]));
     const keeping =
-      "/staff/supporters?activity=registered&contact=email%3Anewsletter%3Ayes&contact=email%3Aevents%3Ayes&contact=email%3Anewsletter%3Aasked";
-    expect(out).toContainEqual([topics.newsletter, `${keeping}&contact=%21text%3Anewsletter%3Ayes`]);
+      "/staff/supporters?activity=registered&contact=email%3Anewsletter%3Ayes&contact=email%3Avolunteering%3Ayes&contact=email%3Anewsletter%3Aasked";
+    expect(out).toContainEqual([lists.updates, `${keeping}&contact=%21text%3Anewsletter%3Ayes`]);
     expect(out.map(([words]) => words)).toContain(staffVocabulary.filters.onlyThis);
+    expect(out.map(([words]) => words)).not.toContain(staffVocabulary.filters.addChoice);
     expect(out.at(-1)).toEqual([staffVocabulary.filters.remove, keeping]);
     // + Filter doesn't offer it; Except does, but for those it has.
-    expect((await menu(staffVocabulary.filters.add)).map(([words]) => words)).not.toContain(topics.volunteering);
+    expect((await menu(staffVocabulary.filters.add)).map(([words]) => words)).not.toContain(lists.volunteering);
     const except = await menu(staffVocabulary.filters.except);
     expect(except).toContainEqual([
-      topics.volunteering,
-      `${keeping}&contact=%21text%3Aevents%3Ayes&contact=%21email%3Avolunteering%3Ayes`,
+      lists["updates-luma"],
+      `${keeping}&contact=%21${textLumaParam}&contact=%21email%3Anewsletter%3Ayes+email%3Aevents%3Ayes`,
     ]);
   });
 
-  it("keeps Consent's own button while it only leaves out, a consent chosen there keeping those", async () => {
-    const { filter, ...search } = supportersSearch({ contact: "!text:events:yes" });
+  it("keeps Consent's own button while it only leaves out, a list chosen there keeping those", async () => {
+    const { filter, ...search } = supportersSearch({ contact: `!${textLuma}` });
     void filter;
     await render(<SupporterFilters search={search} choices={none} />);
     const label = copy.columns.subscriptions;
-    expect(chips()).toEqual([staffVocabulary.filters.notChip(copy.filters.wayChips.text, copy.filters.topics.events)]);
+    const { lists, wayChips } = copy.filters;
+    expect(chips()).toEqual([staffVocabulary.filters.notChip(wayChips.text, lists["updates-luma"])]);
     expect(await menu(new RegExp(`^${label}$`))).toContainEqual([
-      copy.filters.topics.newsletter,
-      "/staff/supporters?contact=%21text%3Aevents%3Ayes&contact=email%3Anewsletter%3Ayes",
+      lists.updates,
+      `/staff/supporters?contact=%21${textLumaParam}&contact=email%3Anewsletter%3Ayes`,
     ]);
   });
 
   it("puts what Consent finds before what it leaves out, whichever came first", async () => {
-    const { filter, ...search } = supportersSearch({ contact: ["!text:events:yes", "email:newsletter:yes"] });
+    const { filter, ...search } = supportersSearch({ contact: [`!${textLuma}`, "email:newsletter:yes"] });
     void filter;
     await render(<SupporterFilters search={search} choices={none} />);
-    const { topics, wayChips } = copy.filters;
+    const { lists, wayChips } = copy.filters;
     expect(chips()).toEqual([
-      `${wayChips.email}: ${topics.newsletter}`,
-      staffVocabulary.filters.notChip(wayChips.text, topics.events),
+      `${wayChips.email}: ${lists.updates}`,
+      staffVocabulary.filters.notChip(wayChips.text, lists["updates-luma"]),
     ]);
   });
 
-  it("while choosing who a broadcast goes to, locks the consents it finds, not those it leaves out", async () => {
-    const { topics, wayChips } = copy.filters;
+  it("while choosing who a broadcast goes to, locks the lists it finds, not those it leaves out", async () => {
+    const { lists, wayChips } = copy.filters;
     const { filter, ...search } = supportersSearch({
-      contact: ["email:newsletter:yes", "!text:events:yes"],
+      contact: ["email:newsletter:yes", `!${textLuma}`],
       near: "LS1",
       broadcast: "3",
     });
     void filter;
     await render(<SupporterFilters search={search} choices={choices} lockConsent />);
     const locked = [...document.querySelectorAll("[class*=locked]")];
-    expect(locked.map((chip) => chip.textContent)).toEqual([`${wayChips.email}: ${topics.newsletter}`]);
+    expect(locked.map((chip) => chip.textContent)).toEqual([`${wayChips.email}: ${lists.updates}`]);
     expect(locked[0].tagName).toBe("SPAN");
     expect(locked[0].getAttribute("title")).toBe(supportersCopy.consentLocked);
     // Its padlock at the end.
     expect(locked[0].querySelector("svg:last-child[class*=lockIcon]")).not.toBeNull();
     // The one left out opens, with no turning to found, and goes on its own.
-    const out = await menu(staffVocabulary.filters.notChip(wayChips.text, topics.events));
+    const out = await menu(staffVocabulary.filters.notChip(wayChips.text, lists["updates-luma"]));
     expect(out.map(([words]) => words)).not.toContain(staffVocabulary.filters.onlyThis);
     expect(out.at(-1)).toEqual([
       staffVocabulary.filters.remove,
       "/staff/supporters?contact=email%3Anewsletter%3Ayes&near=LS1&broadcast=3",
     ]);
     // + Filter doesn't offer Consent; Except does.
-    expect((await menu(staffVocabulary.filters.add)).map(([words]) => words)).not.toContain(topics.volunteering);
-    expect((await menu(staffVocabulary.filters.except)).map(([words]) => words)).toContain(topics.volunteering);
+    expect((await menu(staffVocabulary.filters.add)).map(([words]) => words)).not.toContain(lists.volunteering);
+    expect((await menu(staffVocabulary.filters.except)).map(([words]) => words)).toContain(lists.volunteering);
     // Clear filters keeps what it finds, not what it leaves out.
     await expect
       .element(page.getByRole("link", { name: staffVocabulary.resetFilters }))
@@ -133,12 +141,13 @@ describe("SupporterFilters", () => {
     expect(document.querySelectorAll("[class*=locked]")).toHaveLength(1);
   });
 
-  it("offers every consent once in the Consent filter, by email, then text, then call, which is volunteering's alone", () => {
-    expect(CONSENT_ORDER.map(consentKey).sort()).toEqual(CONSENTS.map(consentKey).sort());
-    expect(CONSENT_ORDER.map((consent) => consent.way)).toEqual([
-      ...["email", "email", "email", "text", "text", "text", "call"],
+  it("offers each list in the Consent filter, by email, then text, then call, which is Volunteering's alone", () => {
+    expect(LIST_ORDER).toEqual([
+      ...(["email", "text"] as const).flatMap((way) =>
+        (["updates", "updates-luma", "volunteering"] as const).map((list) => ({ list, way })),
+      ),
+      { list: "volunteering", way: "call" },
     ]);
-    expect(CONSENT_ORDER[0]).toEqual({ topic: "newsletter", way: "email" });
   });
 
   it("has a chip for a filter only a link turns on, to change or remove, though + Filter doesn't offer it", async () => {
@@ -170,9 +179,12 @@ describe("SupporterFilters", () => {
       copy.filters.campaign,
       copy.filters.first,
     ]);
-    // Consent isn't among them: it has its own button, first, its topics under their channels.
+    // Consent isn't among them: it has its own button, first, its lists under their channels.
     const consent = await menu(copy.columns.subscriptions);
-    expect(consent).toContainEqual([copy.filters.topics["events"], "/staff/supporters?contact=email%3Aevents%3Ayes"]);
+    expect(consent).toContainEqual([
+      copy.filters.lists["updates-luma"],
+      "/staff/supporters?contact=email%3Anewsletter%3Ayes+email%3Aevents%3Ayes",
+    ]);
     const links = await menu(staffVocabulary.filters.add);
     expect(links).toContainEqual([
       copy.filters.eventChoice("Oxford talk", "12 Oct 2026"),

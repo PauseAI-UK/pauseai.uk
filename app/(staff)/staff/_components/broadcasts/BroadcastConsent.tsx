@@ -1,15 +1,14 @@
 "use client";
 
-import { Segmented, Toggles } from "@/components/ui/Controls";
+import { Segmented } from "@/components/ui/Controls";
 import { FieldSet } from "@/components/ui/Field";
-import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { choiceTerms, consentChoice } from "@/lib/broadcasts/broadcasts";
-import { TOPICS, consentKey, type Channel, type Topic } from "@/lib/supporters/contact-permissions";
+import { LIST_TOPICS, listOf, listsBy, type Channel, type List } from "@/lib/supporters/contact-permissions";
 import ChannelIcon from "@/components/ui/ChannelIcon";
-import LinkButton from "@/components/ui/LinkButton";
 import { useState } from "react";
 import own from "./Broadcasts.module.css";
 import { supportersCopy } from "../supporters/copy";
+import { ListsHelp } from "../supporters/PermissionTiles";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 const copy = broadcastsCopy.broadcastPages;
@@ -18,14 +17,13 @@ const CHANNELS: Channel[] = ["email", "phone"];
 
 /**
  * The Consent a broadcast goes under, which says whether it's an email or a
- * text and what it's about: first email or text, then the topics by it, as
- * the Consent filter orders them: one, or, after + Add, any of them, "or"
- * between, as the Consent filter's chip offers; a text goes under a yes by
- * text. `value` is the one chosen, as
- * consentChoice writes it, or none yet. Once it has words of its own
- * (`written`), the other channel can't be chosen, so none are lost. `shown`
- * is the channel whose topics show, and `show` shows another's; a topic
- * picked on a channel not the broadcast's starts it on that one alone.
+ * text and who it goes to: first email or text, then one of the lists by
+ * it, as the Consent filter names and orders them; a text goes to a list's
+ * yeses by text. `value` is the one chosen, as consentChoice writes it, or
+ * none yet. Once it has words of its own (`written`), the other channel
+ * can't be chosen, so none are lost. `shown` is the channel whose lists
+ * show, and `show` shows another's; a list picked on a channel not the
+ * broadcast's starts it on that one.
  */
 export default function BroadcastConsent({
   value,
@@ -48,20 +46,14 @@ export default function BroadcastConsent({
 }) {
   const terms = choiceTerms(value);
   const way = shown === "email" ? "email" : "text";
-  // The topics on: the broadcast's, while its own channel shows.
-  const on = terms && shown === channel ? terms.topics : [];
-  // One topic, until + Add offers several; any it has already are several.
-  const [many, setMany] = useState(false);
-  const several = many || on.length > 1;
-  const topics = TOPICS.map((topic) => ({
-    value: topic,
-    label: supportersCopy.supporters.subscriptions.consents[consentKey({ way, topic })],
-  }));
-  // The topic last pressed: while its change is on its way, it shows a spinner.
-  const [pressed, setPressed] = useState<Topic>();
-  const choose = (chosen: Topic[]) => {
-    setPressed(chosen.find((topic) => !on.includes(topic)) ?? on.find((topic) => !chosen.includes(topic)));
-    pick(consentChoice({ channel: way, topics: chosen }));
+  // The list on: the broadcast's, while its own channel shows.
+  const on = terms && shown === channel ? listOf(terms.topics) : undefined;
+  const lists = listsBy(way).map((list) => ({ value: list, label: supportersCopy.supporters.filters.lists[list] }));
+  // The list last pressed: while its change is on its way, it shows a spinner.
+  const [pressed, setPressed] = useState<List>();
+  const choose = (list: List) => {
+    setPressed(list);
+    pick(consentChoice({ channel: way, topics: LIST_TOPICS[list] }));
   };
   return (
     <div className={className}>
@@ -83,36 +75,16 @@ export default function BroadcastConsent({
       {shown && (
         <FieldSet label={copy.facts.saidYes}>
           <div className={own.topics}>
-            {several ? (
-              <Toggles<Topic>
-                label={copy.facts.saidYes}
-                options={topics}
-                values={on}
-                joiner={staffVocabulary.filters.anyOf(["", ""]).trim()}
-                min={1}
-                onChange={choose}
-                busy={pending}
-                waiting={pressed}
-              />
-            ) : (
-              <Segmented<Topic>
-                label={copy.facts.saidYes}
-                options={topics}
-                // None chosen yet matches no option, so none is checked.
-                value={on[0] as Topic}
-                onChange={(topic) => topic !== on[0] && choose([topic])}
-                busy={pending}
-                waiting={pressed}
-              />
-            )}
-            <LinkButton
-              onClick={() => {
-                setMany(!several);
-                if (several && on.length > 1) choose(on.slice(0, 1));
-              }}
-            >
-              {several ? staffVocabulary.filters.justOne : staffVocabulary.filters.addChoice}
-            </LinkButton>
+            <Segmented<List>
+              label={copy.facts.saidYes}
+              options={lists}
+              // None chosen yet, or a broadcast's from before the lists, matches no option, so none is checked.
+              value={on as List}
+              onChange={(list) => list !== on && choose(list)}
+              busy={pending}
+              waiting={pressed}
+            />
+            <ListsHelp id="lists-help-broadcast" />
           </div>
         </FieldSet>
       )}

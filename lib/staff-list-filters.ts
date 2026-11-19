@@ -8,7 +8,7 @@ import { staffMemberText } from "@/lib/staff-member";
 import type { ReactNode } from "react";
 import { ANSWER_CHOICES, INVITED, NEVER_ASKED, REPLIED } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
-import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
+import { WAYS, listsBy, listValue, type List, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, pairedValue, pairedValues, unpaired, valuesOf, type Params } from "./list-params";
@@ -82,6 +82,10 @@ export type Filter = {
   linkedOnly?: boolean;
   /** A filter that matters most: its own button, first, rather than a row in "+ Filter". */
   own?: boolean;
+  /** A filter whose chips find one choice each, with no "+ Add" to tick more. */
+  oneAtATime?: boolean;
+  /** What the filter's choices mean, at the end of the bar's chips, such as a "?" that opens it. */
+  help?: ReactNode;
   /**
    * A filter whose finding can't be changed here, and why, said on hovering
    * its chip: that chip is there but doesn't open, with a lock for its arrow,
@@ -338,12 +342,12 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slugs, p
 });
 
 /**
- * The Consent filter's consents, in its order: by email, then text, then
- * call, each the topics that go by it in TOPICS's order, so the same one
- * sits on the same row under each heading.
+ * The Consent filter's choices, in its order: by email, then text, then
+ * call, each the lists that go by it in LISTS's order, so the same one sits
+ * on the same row under each heading.
  */
-export const CONSENT_ORDER: Consent[] = WAYS.flatMap((way) =>
-  TOPICS.filter((topic) => hasWay(topic, way)).map((topic) => ({ topic, way })),
+export const LIST_ORDER: { list: List; way: Way }[] = WAYS.flatMap((way) =>
+  listsBy(way).map((list) => ({ list, way })),
 );
 
 /** The words in the Near chip: where it found, or that it couldn't; as typed, when it wasn't looked up. */
@@ -363,6 +367,8 @@ export type SupporterBarChoices = SupporterChoices & {
   near: string;
   found?: SupportersPage["near"];
   channelIcon?: (way: Way) => ReactNode;
+  /** What the Consent filter's lists mean. */
+  listsHelp?: ReactNode;
 };
 
 /**
@@ -380,7 +386,7 @@ export type SupporterBarChoices = SupporterChoices & {
  */
 export const SUPPORTER_FILTERS = listFilters(
   SUPPORTERS_LIST,
-  ({ events, mps, near, found, channelIcon }: SupporterBarChoices) => {
+  ({ events, mps, near, found, channelIcon, listsHelp }: SupporterBarChoices) => {
     const copy = supportersCopy.supporters.filters;
     const { columns } = supportersCopy.supporters;
     return {
@@ -410,12 +416,14 @@ export const SUPPORTER_FILTERS = listFilters(
       },
       contact: {
         label: columns.subscriptions,
-        // Who a message can go to, so its own button.
+        // Who a message can go to, so its own button. Each list includes those it should, so one at a time.
         own: true,
-        // Each topic under its way's heading, as those we can contact about it by that way.
-        options: CONSENT_ORDER.map(({ topic, way }) => ({
-          value: stateValue({ way, topic, send: "yes" }),
-          label: copy.topics[topic],
+        oneAtATime: true,
+        help: listsHelp,
+        // Each list under its way's heading, as those on it by that way.
+        options: LIST_ORDER.map(({ list, way }) => ({
+          value: listValue(list, way),
+          label: copy.lists[list],
           group: { label: copy.ways[way], icon: channelIcon?.(way), chip: copy.wayChips[way] },
         })),
       },

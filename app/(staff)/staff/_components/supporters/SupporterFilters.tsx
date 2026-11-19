@@ -8,6 +8,7 @@ import { filteredName, filterPills, SUPPORTER_FILTERS, type FilterPill } from "@
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import { supporterFiltersOf } from "./SupportersTable";
 import FilterBar from "../ui/FilterBar";
+import { ListsHelp } from "./PermissionTiles";
 import { savedFiltersProps, type SavedFilterActions } from "../ui/SavedFilters";
 import { supportersCopy } from "./copy";
 
@@ -63,8 +64,10 @@ export default function SupporterFilters({
   saved?: { state: SavedFiltersState; actions: SavedFilterActions };
   lockConsent?: boolean;
 }) {
-  const filters = SUPPORTER_FILTERS({ ...choices, near: search.near, found: near, channelIcon }).map((filter) =>
-    lockConsent && filter.name === "contact" ? { ...filter, locked: supportersCopy.consentLocked } : filter,
+  const listsHelp = <ListsHelp id="lists-help-filter" />;
+  const filters = SUPPORTER_FILTERS({ ...choices, near: search.near, found: near, channelIcon, listsHelp }).map(
+    (filter) =>
+      lockConsent && filter.name === "contact" ? { ...filter, locked: supportersCopy.consentLocked } : filter,
   );
   return (
     <FilterBar

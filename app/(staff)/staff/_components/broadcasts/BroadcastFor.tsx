@@ -3,6 +3,8 @@ import type { SupporterChoices } from "@/lib/supporters/records.server";
 import { type Params } from "@/lib/list-params";
 import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts/broadcasts";
+import { listFor } from "@/lib/supporters/contact-permissions";
+import { supportersCopy } from "../supporters/copy";
 import BroadcastView from "./BroadcastView";
 import ChannelWriter from "./ChannelWriter";
 import type { BroadcastWriterActions } from "./BroadcastWriter";
@@ -14,13 +16,14 @@ import { broadcastsCopy } from "@/lib/broadcasts/copy";
 type FormAction = (form: FormData) => void | Promise<void>;
 
 /**
- * What everyone a broadcast is to said yes to, from the list's Consent
- * filter, in few words: its topics, then its channel. Apart from the other
- * filters, as it's what lets us send it.
+ * The list everyone a broadcast is to is on, from the supporters list's
+ * Consent filter, in few words: the list, then its channel. Apart from the
+ * other filters, as it's what lets us send it.
  */
 export function BroadcastContact({ params }: { params: Params }) {
   const terms = broadcastTerms(params.contact)!;
-  return <>{broadcastsCopy.broadcastPages.saidYesTo(terms.topics, terms.channel)}</>;
+  const list = supportersCopy.supporters.filters.lists[listFor(terms.topics)];
+  return <>{broadcastsCopy.broadcastPages.onList(list, terms.channel)}</>;
 }
 
 /** Who else a broadcast is to, as pills that can't be changed here: the list's filters but Consent, which BroadcastContact says. */

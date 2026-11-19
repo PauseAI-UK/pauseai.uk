@@ -14,8 +14,10 @@ import type { ContactPermission, Topic } from "@/lib/supporters/contact-permissi
 import {
   choiceKey,
   isNumber,
+  LUMA_CHOICE,
   numberHolds,
   settingsTopics,
+  topicAnswers,
   type SettingsTopic,
   type SettingsView,
 } from "@/lib/supporters/settings-view";
@@ -135,6 +137,31 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
   );
 }
 
+/**
+ * Luma's own emails: whether the address stays on our Luma calendar, one
+ * box, ticked while it's on (`initial`); unticked, saving takes them off.
+ * Not while all its email is held.
+ */
+function LumaCard({ initial, locked, saving }: { initial: boolean; locked: boolean; saving: Saving | null }) {
+  const [on, setOn] = useState(initial);
+  return (
+    <fieldset className={styles.card}>
+      <legend className={styles.topic}>
+        <span>{copy.topics.events}</span>
+      </legend>
+      <p className={styles.what}>{copy.about.events}</p>
+      <div className={styles.ways}>
+        <Checkbox name="choice" value={LUMA_CHOICE} checked={on} disabled={locked} boxed onChange={setOn}>
+          {copy.ways.email}
+        </Checkbox>
+        <span className={styles.saving} role="status">
+          {saving && <SaveState state={saving}>{copy.settings[saving]}</SaveState>}
+        </span>
+      </div>
+    </fieldset>
+  );
+}
+
 /** What holds all the address's email: "No bulk emails", which they can lift here, "Do not email", or a block. */
 function Hold({
   view,
@@ -213,10 +240,13 @@ function NumberHolds({ view }: { view: SettingsView }) {
   );
 }
 
-/** Whether the address already gets none of `topics` by email, as after the link's button, or a reload after it. */
+/**
+ * Whether the address already gets none of `topics` by email, as after the
+ * link's button, or a reload after it: for PauseAI Updates, a yes to
+ * `events` is getting it, as PauseAI Updates including Luma (topicAnswers).
+ */
 const offAlready = (view: SettingsView | null, topics: Topic[]): boolean =>
-  view !== null &&
-  topics.every((topic) => view.answers.some((a) => a.way === "email" && a.topic === topic && a.send === "no"));
+  view !== null && topics.every((topic) => topicAnswers(view, topic).some((a) => a.way === "email" && a.send === "no"));
 
 /**
  * The box an email's unsubscribe link opens the page with: one button, then
@@ -269,7 +299,7 @@ function Unsubscribe({
       </h2>
       {/* Pointing to the choices below, where the page has them: an old email's link offers a fresh link instead. */}
       <p>
-        {copy.unsubscribe.doneBody(topics)}
+        {copy.unsubscribe.doneBody()}
         {view && ` ${copy.unsubscribe.below}`}
       </p>
     </div>
@@ -360,6 +390,8 @@ export default function EmailSettings({
   actions: SettingsActions;
 }) {
   const [view, setView] = useState(initial);
+  // Whether the page opened for someone on our Luma calendar, so its card stays while they're on the page.
+  const [onLuma] = useState(Boolean(initial?.onLuma));
   // Each change gives fresh boxes, so the cards start again from what was kept.
   const [round, setRound] = useState(0);
   // Where the focus goes once a button's change is shown: the page's title after a lift, the hold after Stop everything.
@@ -418,7 +450,8 @@ export default function EmailSettings({
           */}
           <FormStack
             onChange={async (event) => {
-              const topic = (event.target as unknown as HTMLInputElement).value.split(":")[0] as Topic;
+              const value = (event.target as unknown as HTMLInputElement).value;
+              const topic = (value === LUMA_CHOICE ? "events" : value.split(":")[0]) as Topic;
               const form = new FormData(event.currentTarget);
               setSaving({ topic, state: "saving" });
               setChanged(true);
@@ -438,6 +471,15 @@ export default function EmailSettings({
                 saving={saving?.topic === topic.topic ? saving.state : null}
               />
             ))}
+            {/* Shown to someone on our Luma calendar when the page opened, so it stays once they've come off. */}
+            {onLuma && (
+              <LumaCard
+                key={`luma-${round}`}
+                initial={view.onLuma}
+                locked={view.hold !== null}
+                saving={saving?.topic === "events" ? saving.state : null}
+              />
+            )}
           </FormStack>
           {/* Open on a wide screen; folded to its heading on a phone, as it's for reading rather than changing anything. */}
           {!forNumber && (

@@ -62,6 +62,7 @@ export default function ManyChoices({
   half,
   icon,
   boxOptions = options,
+  adds = true,
   id = `filter-${name}-${not ? "left-out" : "found"}`,
 }: {
   path: string;
@@ -81,6 +82,8 @@ export default function ManyChoices({
   half: boolean;
   icon?: ReactNode;
   boxOptions?: FilterOption[];
+  /** Whether "+ Add" offers to tick more than one. */
+  adds?: boolean;
   id?: string;
 }) {
   const was = here.map((value) => (not ? NOT + value : value));
@@ -206,16 +209,18 @@ export default function ManyChoices({
           />
         )}
         <p className={styles.actions}>
-          <button
-            type="button"
-            onClick={() => {
-              hold();
-              setBoxes(!boxes);
-              if (boxes && ticked.length > 1) tick(ticked.slice(0, 1));
-            }}
-          >
-            {boxes ? copy.justOne : copy.addChoice}
-          </button>
+          {adds && (
+            <button
+              type="button"
+              onClick={() => {
+                hold();
+                setBoxes(!boxes);
+                if (boxes && ticked.length > 1) tick(ticked.slice(0, 1));
+              }}
+            >
+              {boxes ? copy.justOne : copy.addChoice}
+            </button>
+          )}
           {turns && ticked.length > 0 && (
             <StaffLink href={hrefOf(ticked, !not)}>
               {not

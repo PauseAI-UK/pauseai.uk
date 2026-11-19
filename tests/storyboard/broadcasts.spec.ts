@@ -36,8 +36,9 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 const copy = broadcastsCopy.broadcastPages;
 const stateWords = lettersCopy.copyStates;
 const mailingCopy = mailingsCopy.mailingPages;
-const EMAIL = "contact=email%3Aevents%3Ayes";
-const TEXT = "contact=text%3Aevents%3Ayes";
+/** The Consent filter on PauseAI Updates including Luma, by email or by text. */
+const EMAIL = "contact=email%3Anewsletter%3Ayes%20email%3Aevents%3Ayes";
+const TEXT = "contact=text%3Anewsletter%3Ayes%20text%3Aevents%3Ayes";
 /** How many of the fixture's supporters each filter finds. */
 const EMAILABLE = 3;
 /** Where an email to supporters is from, whose connected Gmail sends it. */
@@ -164,7 +165,7 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
   await frame(page, "The Broadcasts page, with New broadcast");
   story(
-    "It opens the writer, asking first which Consent it goes under: by email or by text, then what about. The rest is there, greyed, till one's chosen.",
+    "It opens the writer, asking first which Consent it goes under: by email or by text, then which list. The rest is there, greyed, till one's chosen.",
   );
   await page.getByRole("link", { name: copy.newBroadcast }).click();
   await expect(page).toHaveURL(`${BASE}/staff/broadcasts/new`);
@@ -172,16 +173,18 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
   await expect(saidYes).toHaveCount(0);
   await frame(page, "New broadcast, email or text to choose");
-  story("Text shows the Consents someone can have said yes to by text, and the greyed writer below becomes a text's.");
+  story("Text shows the lists by text, and the greyed writer below becomes a text's.");
   await channel.getByRole("radio", { name: copy.channels.text }).click();
   await expect(saidYes.getByRole("radio")).toHaveCount(3);
-  await frame(page, "The Consents by text, and a text's writer");
+  await frame(page, "The lists by text, and a text's writer");
   story("Email does the same by email.");
   await channel.getByRole("radio", { name: copy.channels.email }).click();
   await expect(saidYes.getByRole("radio")).toHaveCount(3);
-  await frame(page, "The Consents by email, and an email's writer");
+  await frame(page, "The lists by email, and an email's writer");
   story("Choosing one makes the draft, to everyone who said yes. Change who can narrow them, but needn't.");
-  await saidYes.getByRole("radio", { name: supportersCopy.supporters.subscriptions.consents["email:events"] }).click();
+  await saidYes
+    .getByRole("radio", { name: supportersCopy.supporters.filters.lists["updates-luma"], exact: true })
+    .click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
   await expect(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
   await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
@@ -195,15 +198,13 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await channel.getByRole("radio", { name: copy.channels.email }).click();
   await expect(page.getByText(copy.problems["no-consent"])).toHaveCount(0);
   story(
-    "Its Consent can change while it's a draft, but, once it has words, only by email. Another topic takes the place of the one it had.",
+    "Its Consent can change while it's a draft, but, once it has words, only by email. Another list takes the place of the one it had.",
   );
-  await saidYes
-    .getByRole("radio", { name: supportersCopy.supporters.subscriptions.consents["email:newsletter"] })
-    .click();
+  await saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }).click();
   await expect(
-    saidYes.getByRole("radio", { name: supportersCopy.supporters.subscriptions.consents["email:newsletter"] }),
+    saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }),
   ).toHaveAttribute("aria-checked", "true");
-  await frame(page, "Under the newsletter in place of events");
+  await frame(page, "To PauseAI Updates in place of including Luma");
   story("What's written after the change is saved, as anything written is.");
   await savedAfter(page, () => page.getByLabel(copy.subject).fill("This month's news"));
   await expect(page.getByText(mailingCopy.saveStates.conflict)).toHaveCount(0);
@@ -819,16 +820,20 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await page.locator(`[title="${supportersCopy.consentLocked}"]`).first().hover();
   await frame(page, "The Consent, locked", { window: true });
   story(
-    "Except offers the Consents all the same, as leaving some out only narrows it: here those we can text about events, who'll get a text instead.",
+    "Except offers the lists all the same, as leaving some out only narrows it: here those we can text PauseAI Updates including Luma, who'll get a text instead.",
   );
-  const { topics } = supportersCopy.supporters.filters;
+  const { lists } = supportersCopy.supporters.filters;
   const except = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except }));
   await except.getByText(supportersCopy.supporters.columns.subscriptions, { exact: true }).click();
-  await except.getByRole("link", { name: topics.events, exact: true }).click();
-  await expect(page).toHaveURL(/contact=%21text%3Aevents%3Ayes/);
-  const leftOut = staffVocabulary.filters.notChip(supportersCopy.supporters.filters.wayChips.text, topics.events);
+  // The list's second link: by text, after email's.
+  await except.getByRole("link", { name: lists["updates-luma"], exact: true }).nth(1).click();
+  await expect(page).toHaveURL(/contact=%21text%3Anewsletter%3Ayes(\+|%20)text%3Aevents%3Ayes/);
+  const leftOut = staffVocabulary.filters.notChip(
+    supportersCopy.supporters.filters.wayChips.text,
+    lists["updates-luma"],
+  );
   await expect(page.getByRole("button", { name: leftOut })).toBeVisible();
-  await frame(page, "Those we can text about events, left out", { window: true });
+  await frame(page, "Those we can text, left out", { window: true });
   story("The orange button keeps them for the draft.");
   await bar.getByRole("button", { name: /^Use these/ }).click();
   await expect(page).toHaveURL(draft);
@@ -1189,36 +1194,31 @@ test("Answering a reply", async ({ page, request, flowDatabase }) => {
   await emailFrame(page, answer()!, "The answer they get");
 });
 
-test("To more than one topic's yeses", async ({ page, request, flowDatabase }) => {
-  story(
-    "An invitation to an event suits those who said yes to the newsletter as well as those who said yes to events. + Add lets Said yes to take more than one topic, “or” between: a yes to any one is enough.",
-  );
+test("What the lists mean, and a change waiting on the site", async ({ page, request, flowDatabase }) => {
+  story("Beside the lists, a ? says what each means and who's on it.");
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await startFromList(page, EMAIL, EMAILABLE);
   const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
-  await saidYes.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
-  const newsletter = saidYes.getByRole("button", {
-    name: supportersCopy.supporters.subscriptions.consents["email:newsletter"],
-  });
-  await newsletter.click();
-  await expect(newsletter).toHaveAttribute("aria-pressed", "true");
-  await expect(
-    saidYes.getByRole("button", { name: supportersCopy.supporters.subscriptions.consents["email:events"] }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await frame(page, "Newsletter or events");
+  const bubble = await openBubble(
+    saidYes.getByRole("button", { name: supportersCopy.supporters.detail.permissions.listsHelp }),
+  );
+  await expect(bubble.getByText(supportersCopy.supporters.detail.permissions.details.updates.about)).toBeVisible();
+  await frame(page, "What the lists mean");
+  await page.keyboard.press("Escape");
   story(
-    "Each change waits on the site, which works out again who the broadcast goes to. Till it has, the topic pressed shows a spinner.",
+    "Each change waits on the site, which works out again who the broadcast goes to. Till it has, the list pressed shows a spinner.",
   );
   // The site's answer held back, so the spinner stays to be seen.
   const actions = await holdActions(page);
-  const volunteering = saidYes.getByRole("button", {
-    name: supportersCopy.supporters.subscriptions.consents["email:volunteering"],
+  const volunteering = saidYes.getByRole("radio", {
+    name: supportersCopy.supporters.filters.lists.volunteering,
+    exact: true,
   });
   await volunteering.click();
   await expect(volunteering).toHaveAttribute("aria-busy", "true");
   await frame(page, "Waiting for the site, after pressing Volunteering");
   await actions.release();
   await expect(volunteering).not.toHaveAttribute("aria-busy");
-  await expect(volunteering).toHaveAttribute("aria-pressed", "true");
+  await expect(volunteering).toHaveAttribute("aria-checked", "true");
 });

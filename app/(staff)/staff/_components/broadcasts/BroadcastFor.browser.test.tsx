@@ -9,6 +9,9 @@ import {
   exampleSupporterChoices,
 } from "./BroadcastWriter.examples";
 import { mailingsCopy } from "../mailings/copy";
+import { supportersCopy } from "../supporters/copy";
+
+const lists = supportersCopy.supporters.filters.lists;
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { BroadcastForExample } from "./BroadcastFor.gallery.client";
 
@@ -63,7 +66,7 @@ describe("BroadcastFor", () => {
     await render(<BroadcastFor data={exampleBroadcastSent} actions={actions} />);
     await expect.element(page.getByText(copy.recipientsTitle)).toBeVisible();
     expect(to().querySelector("ul")).not.toBeNull();
-    expect(to().textContent).toContain(copy.saidYesTo(["newsletter"], "email"));
+    expect(to().textContent).toContain(copy.onList(lists.updates, "email"));
   });
 
   it("shows one sent to everyone who said yes as that, with no pills", async () => {
@@ -76,20 +79,22 @@ describe("BroadcastFor", () => {
     expect(to().querySelector("ul")).toBeNull();
   });
 
-  it("says what they said yes to in few words, and the other filters as pills, or everyone who did", async () => {
+  it("names the list it went to in few words, one from before the lists as the one covering it, and the other filters as pills, or everyone who did", async () => {
     const view = await render(
       <>
         <p>
-          <BroadcastContact params={{ contact: "text:events:yes" }} />
+          <BroadcastContact params={{ contact: "text:newsletter:yes text:events:yes" }} />
         </p>
         <p>
-          <BroadcastContact params={{ contact: ["email:newsletter:yes", "email:events:yes"] }} />
+          <BroadcastContact
+            params={{ contact: ["email:newsletter:yes", "email:events:yes", "email:volunteering:yes"] }}
+          />
         </p>
         <BroadcastWho params={{ contact: "email:newsletter:yes", near: "LS1" }} choices={exampleSupporterChoices} />
       </>,
     );
-    await expect.element(page.getByText(copy.saidYesTo(["events"], "text"))).toBeVisible();
-    await expect.element(page.getByText(copy.saidYesTo(["newsletter", "events"], "email"))).toBeVisible();
+    await expect.element(page.getByText(copy.onList(lists["updates-luma"], "text"))).toBeVisible();
+    await expect.element(page.getByText(copy.onList(lists["updates-luma"], "email"))).toBeVisible();
     const pills = page.getByRole("list", { name: mailingsCopy.mailingPages.whoLabel }).getByRole("listitem");
     await expect.element(pills.first()).toBeVisible();
     expect(pills.all()).toHaveLength(1);

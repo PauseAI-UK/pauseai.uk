@@ -2,7 +2,7 @@
 // staff pages: the supporters list, its filters and a supporter's page, with
 // their consents and history, and the problems their contact preferences
 // report. The staff pages' own are in app/(staff)/staff/_components/supporters/copy.ts.
-import type { Reason, Topic, Way } from "./contact-permissions";
+import type { List, Reason, Topic, Way } from "./contact-permissions";
 import { count, plural } from "@/lib/content/plural";
 
 export const supportersCopy = {
@@ -37,8 +37,13 @@ export const supportersCopy = {
       campaign: "Campaign",
       wrote: { "": "Wrote", no: "Didn't write" } as Record<string, string>,
       // The other filters are named after their columns.
-      // The Consent filter: its topics under their way's heading; each way's chip named for it, before the topics it
-      // finds or "not" and those it leaves out.
+      // The Consent filter: its lists under their way's heading; each way's chip named for it, before the lists it
+      // finds or "not" and those it leaves out. Broadcasts name the list they go to the same way.
+      lists: {
+        updates: "⁂ PauseAI Updates",
+        "updates-luma": "⁂ PauseAI Updates including Luma",
+        volunteering: "Volunteering",
+      } as Record<List, string>,
       ways: { email: "Email", text: "Text", call: "Call" } as Record<Way, string>,
       wayChips: {
         email: "Email consent",
@@ -207,26 +212,35 @@ export const supportersCopy = {
           whatsapp: "stopping our texts in WhatsApp",
         } as Record<string, string>,
         otherSource: "their newest form",
-        // Behind a row's "?": the topic, what it is, and when it's a yes and when a no.
-        topicTitle: (topic: string) => `Topic: ${topic}`,
+        // Behind a list's "?", here and beside the Consent filter and a broadcast's list: the list, what it is, and
+        // when it's a yes and when a no.
+        topicTitle: (list: string) => `⁂ List: ${list}`,
         when: { yes: "Yes when", no: "No when" },
         details: {
-          newsletter: {
-            about: "Regular UK newsletter about campaigns, events and local groups. By email or text.",
+          updates: {
+            about: "⁂ Our regular updates about campaigns, events and local groups. By email or text.",
             yes: "They ticked a box asking for it on one of our forms, signed up on paper, joined our WhatsApp community, or are a UK chapter member or a volunteer.",
             no: "They unsubscribed, here or in CiviCRM, or never asked. A stop in CiviCRM, such as “No bulk emails”, stops it too.",
           },
-          events: {
-            about: "Emails and texts about our events only.",
-            yes: "They follow our Luma calendar, or gave a number for texts on the day of the march.",
-            no: "They unsubscribed from Luma's emails, or never followed our Luma calendar.",
+          "updates-luma": {
+            about: "⁂ PauseAI Updates, and everyone on our Luma calendar too. By email or text.",
+            yes: "⁂ They're on PauseAI Updates, or on our Luma calendar, or gave a number on Luma or for texts on the day of the march.",
+            no: "⁂ They unsubscribed from PauseAI Updates, or unsubscribed in Luma and never asked us.",
           },
           volunteering: {
             about: "Any contact about volunteering.",
-            yes: "By email, they're on the volunteer list in CiviCRM. By call or text, they gave the number on the join form after choosing to volunteer or lead.",
+            yes: "⁂ By email, they're on the volunteer list in CiviCRM or chose it on their contact preferences. By call or text, they gave the number on the join form after choosing to volunteer or lead.",
             no: "They unsubscribed, didn't choose to volunteer, or the global team no longer shares them with us.",
           },
-        } as Record<Topic, { about: string; yes: string; no: string }>,
+        } as Record<List, { about: string; yes: string; no: string }>,
+        // The "?" beside the Consent filter and a broadcast's list, which opens what each list means.
+        listsHelp: "⁂ What the lists mean",
+        // The last row: whether Luma's own emails go to them, as being on our Luma calendar decides.
+        luma: {
+          name: "⁂ Luma calendar emails (sent by Luma)",
+          on: "⁂ On our Luma calendar",
+          off: "⁂ Not on our Luma calendar",
+        },
         // Why a blocked address is a no, under each of its topics: what blocked it, then the link to the list.
         blockedBecause: {
           hard: (when: string) => `An email to it bounced, ${when}`,

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
-import type { SettingsView } from "@/lib/supporters/settings-view";
+import { LUMA_CHOICE, type SettingsView } from "@/lib/supporters/settings-view";
 import EmailSettings, { type SettingsActions } from "./EmailSettings";
 import {
   exampleBlocked,
@@ -10,6 +10,7 @@ import {
   exampleNoBulk,
   exampleNumber,
   exampleNumberHolds,
+  exampleOnlyLuma,
   exampleSettings,
   exampleStopped,
   exampleUnsubscribed,
@@ -32,7 +33,7 @@ function actions(next: SettingsView | null = exampleSettings) {
 
 async function show(
   view: SettingsView | null,
-  unsubscribe: ("newsletter" | "events")[] | null = null,
+  unsubscribe: ("newsletter" | "volunteering")[] | null = null,
   done = actions(),
 ) {
   await render(
@@ -46,6 +47,7 @@ async function show(
   return done;
 }
 
+/** A card by its topic: PauseAI Updates, the newsletter; Volunteering; or Luma's own emails, events. */
 const card = (topic: "newsletter" | "events" | "volunteering") =>
   page.getByRole("group", { name: copy.topics[topic], exact: false });
 
@@ -60,14 +62,20 @@ const phone = () => page.viewport(390, 800);
 beforeEach(wide);
 
 describe("EmailSettings", () => {
-  it("shows each topic with its boxes, what it is, and why, and the address alone", async () => {
+  it("shows Updates and Volunteering with their boxes, what each is, and why, Luma's for someone on it, and the address alone", async () => {
     await show(exampleSettings);
     await expect.element(page.getByRole("heading", { level: 1, name: copy.settings.title })).toBeVisible();
     await expect.element(page.getByText(exampleSettings.address)).toBeVisible();
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.text })).toBeChecked();
-    await expect.element(card("events").getByRole("checkbox", { name: copy.ways.text })).not.toBeChecked();
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.call })).toBeVisible();
+    // On our Luma calendar: its own card last, one box, ticked, and what it is.
+    expect(
+      card("volunteering").element().compareDocumentPosition(card("events").element()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await expect.element(card("events").getByRole("checkbox")).toBeChecked();
+    await expect.element(card("events").getByRole("checkbox")).toHaveAttribute("value", LUMA_CHOICE);
     await expect.element(card("events").getByText(copy.about.events)).toBeVisible();
     // Why, always under the boxes on a wide screen; that they never asked, where there's no answer.
     await expect.element(why("newsletter", copy.why.reasons.asked!(copy.sourceWords("march-2026-11")))).toBeVisible();
@@ -107,8 +115,8 @@ describe("EmailSettings", () => {
       ["token", "tok"],
       ["choice", "newsletter:email"],
       ["choice", "newsletter:text"],
-      ["choice", "events:email"],
       ["choice", "volunteering:email"],
+      ["choice", LUMA_CHOICE],
     ]);
     // The next change saves too, with the first kept, and says so under its own topic.
     await card("newsletter").getByRole("checkbox", { name: copy.ways.text }).click();
@@ -117,13 +125,17 @@ describe("EmailSettings", () => {
     expect(fields(done.save.mock.calls[1][0])).toContainEqual(["choice", "volunteering:email"]);
     await expect.element(card("newsletter").getByRole("status")).toHaveTextContent(copy.settings.saved);
     await expect.element(card("volunteering").getByText(copy.settings.saved)).not.toBeInTheDocument();
-    // Saved only once every save is: a change made while another saves says Saving till both are.
+    // Saved only once every save is: a change made while another saves says Saving till both are. Luma's box, off
+    // then on again, says so under Luma's card.
     let first = () => {};
     done.save.mockImplementationOnce(() => new Promise((resolve) => (first = () => resolve(exampleSettings))));
-    await card("events").getByRole("checkbox", { name: copy.ways.text }).click();
-    await card("events").getByRole("checkbox", { name: copy.ways.email }).click();
+    await card("events").getByRole("checkbox").click();
+    expect(fields(done.save.mock.calls[2][0])).not.toContainEqual(["choice", LUMA_CHOICE]);
+    await card("events").getByRole("checkbox").click();
+    await expect.element(card("events").getByRole("status")).toHaveTextContent(copy.settings.saving);
     first();
     await vi.waitFor(() => expect(done.save).toHaveBeenCalledTimes(4));
+    expect(fields(done.save.mock.calls[3][0])).toContainEqual(["choice", LUMA_CHOICE]);
     await expect.element(card("events").getByRole("status")).toHaveTextContent(copy.settings.saved);
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
   });
@@ -138,6 +150,9 @@ describe("EmailSettings", () => {
     await page.getByRole("button", { name: copy.stopAll.button }).click();
     await expect.element(page.getByRole("heading", { name: copy.stopped.title })).toHaveFocus();
     await expect.element(page.getByRole("button", { name: copy.stopped.button })).toBeVisible();
+    // Off our Luma calendar now: its card stays, as the page opened with it, unticked and held with the rest.
+    await expect.element(card("events").getByRole("checkbox")).not.toBeChecked();
+    await expect.element(card("events").getByRole("checkbox")).toBeDisabled();
     expect(fields(done.stopAll.mock.calls[0][0])).toEqual([
       ["kind", "link"],
       ["token", "tok"],
@@ -200,7 +215,10 @@ describe("EmailSettings", () => {
   });
 
   it("from an email's link: its button first, then what it did, and that the rest is below", async () => {
-    const done = await show(exampleSettings, ["newsletter"], actions(exampleUnsubscribed));
+    // After it, a no to Updates, and so to events, by email; still on our Luma calendar, which the link leaves alone.
+    const [unsubscribed] = exampleUnsubscribed.answers;
+    const after = { ...exampleUnsubscribed, answers: [unsubscribed, { ...unsubscribed, topic: "events" as const }] };
+    const done = await show(exampleSettings, ["newsletter"], actions(after));
     await expect
       .element(page.getByRole("heading", { name: copy.unsubscribe.title(copy.inSentence.newsletter) }))
       .toBeVisible();
@@ -208,14 +226,14 @@ describe("EmailSettings", () => {
     await expect
       .element(page.getByRole("heading", { name: copy.unsubscribe.done(copy.inSentence.newsletter) }))
       .toHaveFocus();
-    await expect
-      .element(page.getByText(`${copy.unsubscribe.doneBody(["newsletter"])} ${copy.unsubscribe.below}`))
-      .toBeVisible();
+    await expect.element(page.getByText(`${copy.unsubscribe.doneBody()} ${copy.unsubscribe.below}`)).toBeVisible();
     expect(fields(done.unsubscribe.mock.calls[0][0])).toEqual([
       ["kind", "copy"],
       ["token", "tok"],
     ]);
     await expect.element(why("newsletter", copy.why.reasons.unsubscribed!(copy.sourceWords("link")))).toBeVisible();
+    await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.email })).not.toBeChecked();
+    await expect.element(card("events").getByRole("checkbox")).toBeChecked();
   });
 
   it("from an email's link to what they don't get already, for whatever reason: that they're not subscribed", async () => {
@@ -231,29 +249,34 @@ describe("EmailSettings", () => {
     await show(exampleSettings, ["newsletter"]);
     const question = page.getByRole("heading", { name: copy.unsubscribe.title(copy.inSentence.newsletter) });
     await expect.element(question).toBeVisible();
-    await card("events").getByRole("checkbox", { name: copy.ways.text }).click();
+    await card("events").getByRole("checkbox").click();
     await expect.element(question).not.toBeInTheDocument();
   });
 
-  it("from an email's link with a topic they still get: its button", async () => {
-    await show(exampleUnsubscribed, ["newsletter", "events"]);
+  it("from an Updates email's link, to someone on our Luma calendar who said no to Updates before: its button", async () => {
+    await show(exampleOnlyLuma, ["newsletter"]);
+    await expect
+      .element(page.getByRole("heading", { name: copy.unsubscribe.title(copy.inSentence.newsletter) }))
+      .toBeVisible();
+    await expect.element(page.getByRole("button", { name: copy.unsubscribe.button })).toBeVisible();
+  });
+
+  it("from an email's link with a list they still get: its button", async () => {
+    await show(exampleUnsubscribed, ["volunteering"]);
+    await expect
+      .element(page.getByRole("heading", { name: copy.unsubscribe.title(copy.inSentence.volunteering) }))
+      .toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.unsubscribe.button })).toBeVisible();
   });
 
   it("from an old email's link: its button still, a fresh link for the rest", async () => {
-    const done = await show(null, ["newsletter", "events"], actions(null));
+    const done = await show(null, ["newsletter"], actions(null));
     await expect
-      .element(
-        page.getByRole("heading", {
-          name: copy.unsubscribe.title(
-            `${copy.inSentence.newsletter} ${copy.unsubscribe.and} ${copy.inSentence.events}`,
-          ),
-        }),
-      )
+      .element(page.getByRole("heading", { name: copy.unsubscribe.title(copy.inSentence.newsletter) }))
       .toBeVisible();
     await expect.element(page.getByRole("heading", { name: copy.pageExpired.title })).toBeVisible();
     await page.getByRole("button", { name: copy.unsubscribe.button }).click();
-    await expect.element(page.getByText(copy.unsubscribe.doneBody(["newsletter", "events"]))).toBeVisible();
+    await expect.element(page.getByText(copy.unsubscribe.doneBody())).toBeVisible();
     await page.getByRole("button", { name: copy.expired.button }).click();
     await expect.element(page.getByText(copy.expired.sent)).toHaveFocus();
     expect(done.resend).toHaveBeenCalledOnce();
@@ -270,7 +293,9 @@ describe("EmailSettings", () => {
     );
     await expect.element(page.getByText(exampleNumber.address)).toBeVisible();
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.text })).toBeChecked();
-    await expect.element(card("events").getByRole("checkbox", { name: copy.ways.text })).not.toBeChecked();
+    await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.call })).not.toBeChecked();
+    // No Luma card: Luma's own emails go to an address.
+    expect(card("events").elements()).toEqual([]);
     expect(page.getByRole("checkbox", { name: copy.ways.email }).elements()).toEqual([]);
     expect(page.getByRole("heading", { name: copy.global.title }).elements()).toEqual([]);
     expect(page.getByRole("heading", { name: copy.stopAll.title }).elements()).toEqual([]);
@@ -309,7 +334,9 @@ describe("EmailSettings", () => {
     await expect
       .element(why("newsletter", copy.why.reasons.declined!(copy.sourceWords("march-2026-11"))))
       .toBeVisible();
-    await expect.element(why("events", copy.why.unasked)).toBeVisible();
+    // Events' no doesn't stand in for the newsletter's, and Luma's card gives no why.
+    await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.email })).not.toBeChecked();
+    await expect.element(card("events").getByText(copy.why.yes)).not.toBeInTheDocument();
     // A yes the page has no words for: no why, and nothing to open on a phone.
     await expect.element(card("volunteering").getByText(copy.why.yes)).not.toBeInTheDocument();
     await expect.element(card("volunteering").getByRole("button", { name: copy.why.ask })).not.toBeInTheDocument();

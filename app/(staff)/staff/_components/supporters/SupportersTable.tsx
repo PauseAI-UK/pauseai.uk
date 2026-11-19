@@ -5,7 +5,7 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   CHANNELS,
   channelOf,
-  contactState,
+  contactStates as readStates,
   type Channel,
   type ContactPermission,
   type ContactState,
@@ -54,7 +54,7 @@ function Place({ place }: { place: SupporterPlaceName }) {
 
 /** The answers the Consent filter finds, but those it leaves out. */
 function contactStates(search: Pick<SupportersSearch, "contact">): ContactState[] {
-  return anyAndNone(valuesOf(search.contact), (values) => values.flatMap((v) => contactState(v) ?? []))[0] ?? [];
+  return anyAndNone(valuesOf(search.contact), readStates)[0] ?? [];
 }
 
 /** A supporter's answers by `channel` that the Consent filter finds (`states`). */

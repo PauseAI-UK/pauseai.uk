@@ -1,6 +1,6 @@
 // PermissionTiles in the component gallery (app/(tools)/gallery/), in the staff interface: admin and accounts (app/(tools)/gallery/_examples/staff-admin.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import PermissionTiles, { ContactLink } from "./PermissionTiles";
+import PermissionTiles, { ContactLink, ListsHelp } from "./PermissionTiles";
 import StaffPage from "../ui/StaffPage";
 import { exampleBlockedPermissions, exampleMemberDetails, exampleSupporterDetails } from "./SupportersTable.examples";
 
@@ -27,6 +27,7 @@ export const permissionTilesGallery: Example[] = [
                   ? { ...p, send: "yes", reason: "following", at: new Date("2026-10-23T09:00:00Z") }
                   : p,
               )}
+              onLuma
             />
           </StaffPage>
         ),
@@ -44,6 +45,20 @@ export const permissionTilesGallery: Example[] = [
         render: () => (
           <StaffPage as="div">
             <PermissionTiles permissions={exampleBlockedPermissions} />
+          </StaffPage>
+        ),
+      },
+    ],
+  },
+  {
+    name: "ListsHelp",
+    file: "app/(staff)/staff/_components/supporters/PermissionTiles.tsx",
+    variants: [
+      {
+        label: "The ? beside the Consent filter and a broadcast's list",
+        render: () => (
+          <StaffPage as="div">
+            <ListsHelp id="gallery-lists-help" />
           </StaffPage>
         ),
       },

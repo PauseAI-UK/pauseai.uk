@@ -1340,6 +1340,17 @@ CREATE VIEW public.consent_answers AS
    FROM public.opt_outs o
   WHERE ((o.list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])) AND (o.resubscribed_at IS NULL))
 UNION ALL
+ SELECT o.address,
+    o.way,
+    'events'::text AS topic,
+    'said'::text AS kind,
+    'no'::text AS send,
+    'unsubscribed'::text AS reason,
+    o.unsubscribed_at AS at,
+    o.source
+   FROM public.opt_outs o
+  WHERE ((o.list = 'newsletter'::text) AND (o.way = ANY (ARRAY['email'::text, 'text'::text])) AND (o.resubscribed_at IS NULL))
+UNION ALL
  SELECT lower(TRIM(BOTH FROM f.email)) AS address,
     'email'::text AS way,
     'newsletter'::text AS topic,

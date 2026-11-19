@@ -98,7 +98,8 @@ describe("SupporterDetails", () => {
       .toHaveAttribute("href", "/staff/letters/12");
     // So does the same letter in the history.
     expect(document.querySelector('a[href="/staff/letters/99"]')).not.toBeNull();
-    // Beside the facts, whether we'd contact her about each topic: by email, and by the phone she gave Luma.
+    // Beside the facts, whether we'd contact her on each list: by email, and by the phone she gave Luma, which
+    // she unsubscribed in Luma, under PauseAI Updates including Luma.
     const subscriptions = page.getByRole("region", { name: copy.detail.listsTitle });
     await expect
       .element(
@@ -109,7 +110,7 @@ describe("SupporterDetails", () => {
           },
         ),
       )
-      .toHaveLength(2);
+      .toHaveLength(1);
     // When we've known her, the year said once, as both days are in it.
     await expect.element(page.getByText("1 Mar – 12 Oct 2026", { exact: true })).toBeVisible();
     // The history, folded until opened: what, linked, with a status only when it isn't approved.
@@ -650,20 +651,21 @@ describe("SupporterDetails, a member", () => {
   const copy = supportersCopy.supporters;
   const joined = exampleMemberDetails.activity[0];
 
-  it("says their city, whether we'd contact them about each topic, and how they joined in the history", async () => {
+  it("says their city, whether we'd contact them on each list, and how they joined in the history", async () => {
     await render(<SupporterDetails supporter={exampleMemberDetails} />);
     openHistory();
     const held = [...document.getElementById("everything")!.closest("details")!.querySelectorAll("tbody tr")].map(
       (tr) => [...(tr as HTMLTableRowElement).cells].map((td) => td.textContent),
     );
     expect(held).toContainEqual(["10 Jul 2026", copy.detail.city, "Cardiff", copy.sources.civicrm]);
+    // Her membership's yes, under both Updates lists.
     await expect
       .element(
         page.getByText(copy.detail.permissions.reasons.member("10 Nov 2026", copy.detail.permissions.sources.civicrm), {
           exact: false,
         }),
       )
-      .toBeVisible();
+      .toHaveLength(2);
     const history = page.getByRole("list", { name: copy.detail.activityTitle });
     // CiviCRM gives the day they joined, with no time.
     expect(history.element().textContent).toContain(

@@ -11,19 +11,20 @@ export function settingsDate(date: Date | null): string {
     : "";
 }
 
-// As the staff pages name them (supportersCopy.supporters.detail.permissions.topics).
+// As the staff pages name their lists (supportersCopy.supporters.filters.lists): the newsletter is PauseAI
+// Updates, and events, our Luma calendar, is Luma's own emails, its own card.
 const topicNames: Record<Topic, string> = {
-  newsletter: "Newsletter",
-  events: "Events only",
+  newsletter: "⁂ PauseAI Updates",
+  events: "⁂ Luma calendar emails (sent by Luma)",
   volunteering: "Volunteering",
 };
 
 const wayNames: Record<Way, string> = { email: "Email", text: "Text", call: "Call" };
 
-// What each topic is, under its name on the page.
+// What each is, under its name on the page.
 const about: Record<Topic, string> = {
-  newsletter: "Weekly news from PauseAI UK",
-  events: "Event reminders, invitations and news.",
+  newsletter: "⁂ News and ways to help from PauseAI UK.",
+  events: "⁂ Invitations Luma sends for our events. Turning this off takes you off our Luma calendar.",
   volunteering: "More in depth contact from staff and local groups.",
 };
 
@@ -138,8 +139,8 @@ export const emailSettingsCopy = {
   ways: wayNames,
   // A topic in a sentence, as an unsubscribe says what of.
   inSentence: {
-    newsletter: "the UK newsletter",
-    events: "our event emails",
+    newsletter: "⁂ PauseAI Updates",
+    events: "⁂ our Luma calendar's emails",
     volunteering: "our volunteering emails",
   } as Record<Topic, string>,
   // Under a topic, why it's on or off, from its answer.
@@ -208,8 +209,8 @@ export const emailSettingsCopy = {
     title: (topics: string) => `Unsubscribe from ${topics}?`,
     button: "Unsubscribe",
     done: (topics: string) => `You've unsubscribed from ${topics}`,
-    // "it" for the newsletter alone, the one topic named as one thing (inSentence); "them" for any other, or two.
-    doneBody: (topics: Topic[]) => `You won't get ${topics.join() === "newsletter" ? "it" : "them"} by email any more.`,
+    // "them" for PauseAI Updates and every other.
+    doneBody: () => "⁂ You won't get them by email any more.",
     // In place of the button, where they get none of its topics by email already, for whatever reason.
     off: (topics: string) => `You're not subscribed to ${topics}`,
     // Under that, as nothing's changed.

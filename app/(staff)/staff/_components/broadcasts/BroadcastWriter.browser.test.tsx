@@ -75,115 +75,69 @@ async function renderWriter(props: Partial<Parameters<typeof BroadcastWriter>[0]
 const button = (name: string | RegExp) => page.getByRole("button", { name });
 
 describe("BroadcastWriter's Consent", () => {
-  const consents = supportersCopy.supporters.subscriptions.consents;
-  // Email or text, one of them; Said yes to, one of its topics, or after + Add, any of them, toggled.
-  const toggled = (name: string) =>
-    name === copy.facts.saidYes &&
-    [...document.querySelectorAll("fieldset")]
-      .filter((field) => field.querySelector("legend")!.textContent === name)
-      .at(-1)
-      ?.textContent!.endsWith(staffVocabulary.filters.justOne) === true;
-  // Said yes to's toggles are a group inside the field's own group of that name.
-  const group = (name: string) =>
-    toggled(name)
-      ? page.getByRole("group", { name }).getByRole("group", { name }).last()
-      : page.getByRole("radiogroup", { name }).last();
+  const lists = supportersCopy.supporters.filters.lists;
+  const LUMA = "email:newsletter:yes email:events:yes";
+  // Email or text, one of them; Said yes to, one of the channel's lists.
+  const group = (name: string) => page.getByRole("radiogroup", { name }).last();
   const radios = (name: string) =>
     [...group(name).element().querySelectorAll("button")].map((b) => [
       b.textContent,
-      b.getAttribute(toggled(name) ? "aria-pressed" : "aria-checked") === "true",
+      b.getAttribute("aria-checked") === "true",
       (b as HTMLButtonElement).disabled,
     ]);
-  const choose = (within: string, name: string) =>
-    group(within)
-      .getByRole(toggled(within) ? "button" : "radio", { name })
-      .click();
-  const add = () => page.getByRole("button", { name: staffVocabulary.filters.addChoice }).click();
-  const justOne = () => page.getByRole("button", { name: staffVocabulary.filters.justOne }).click();
+  const choose = (within: string, name: string) => group(within).getByRole("radio", { name, exact: true }).click();
 
-  it("asks email or text, then offers that channel's Consents in a row, its own chosen, the other channel shut once it has words", async () => {
+  it("asks email or text, then offers that channel's lists in a row, its own chosen, the other channel shut once it has words", async () => {
     await renderWriter();
     expect(radios(copy.consentChannel)).toEqual([
       [copy.channels.email, true, false],
       [copy.channels.text, false, true],
     ]);
-    // One of them, chosen…
     expect(radios(copy.facts.saidYes)).toEqual([
-      [consents["email:newsletter"], true, false],
-      [consents["email:events"], false, false],
-      [consents["email:volunteering"], false, false],
+      [lists.updates, true, false],
+      [lists["updates-luma"], false, false],
+      [lists.volunteering, false, false],
     ]);
-    // …or, after + Add, any of them, "or" between each.
-    await add();
-    expect(radios(copy.facts.saidYes)).toEqual([
-      [consents["email:newsletter"], true, false],
-      [consents["email:events"], false, false],
-      [consents["email:volunteering"], false, false],
-    ]);
-    expect(group(copy.facts.saidYes).element().textContent).toBe(
-      [consents["email:newsletter"], consents["email:events"], consents["email:volunteering"]].join("or"),
-    );
+    // One list at a time, with what each means beside them.
+    expect(page.getByRole("button", { name: staffVocabulary.filters.addChoice }).query()).toBeNull();
+    await expect
+      .element(page.getByRole("button", { name: supportersCopy.supporters.detail.permissions.listsHelp }))
+      .toBeVisible();
   });
 
-  it("swaps its one topic for another, but not for the one it has", async () => {
+  it("swaps its list for another, but not for the one it has", async () => {
     const actions = await renderWriter();
-    await choose(copy.facts.saidYes, consents["email:newsletter"]);
-    await choose(copy.facts.saidYes, consents["email:events"]);
-    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:events:yes"), WAIT);
+    await choose(copy.facts.saidYes, lists.updates);
+    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, LUMA), WAIT);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
   });
 
-  it("with several, offers them all, and Just one keeps the first; with one, Just one only goes back", async () => {
+  it("has none chosen for topics that are no list, as from before the lists, and takes one in their place", async () => {
     const actions = await renderWriter({
       draft: {
         ...exampleBroadcastEmail,
-        topics: ["newsletter", "events"],
-        filter: { list: "supporters", params: { contact: ["email:newsletter:yes", "email:events:yes"] } },
+        topics: ["newsletter", "events", "volunteering"],
+        filter: {
+          list: "supporters",
+          params: { contact: ["email:newsletter:yes", "email:events:yes", "email:volunteering:yes"] },
+        },
       },
     });
-    await justOne();
-    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:newsletter:yes"), WAIT);
-    await renderWriter();
-    await add();
-    await page.getByRole("button", { name: staffVocabulary.filters.justOne }).last().click();
-    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([true, false, false]);
-    expect(actions.changeConsent).toHaveBeenCalledTimes(1);
+    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([false, false, false]);
+    await choose(copy.facts.saidYes, lists.volunteering);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:volunteering:yes"), WAIT);
   });
 
-  it("adds a topic to those it goes under, and takes one off, but not the last", async () => {
-    const actions = await renderWriter({
-      draft: {
-        ...exampleBroadcastEmail,
-        topics: ["newsletter", "events"],
-        filter: { list: "supporters", params: { contact: ["email:newsletter:yes", "email:events:yes"] } },
-      },
-    });
-    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([true, true, false]);
-    await choose(copy.facts.saidYes, consents["email:volunteering"]);
-    await vi.waitFor(
-      () =>
-        expect(actions.changeConsent).toHaveBeenCalledWith(
-          3,
-          "email:newsletter:yes email:events:yes email:volunteering:yes",
-        ),
-      WAIT,
-    );
-    await choose(copy.facts.saidYes, consents["email:newsletter"]);
-    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:events:yes"), WAIT);
-    await renderWriter();
-    await choose(copy.facts.saidYes, consents["email:newsletter"]);
-    expect(actions.changeConsent).toHaveBeenCalledTimes(2);
-  });
-
-  it("offers either channel to one with no words of its own, showing the other's Consents without changing it", async () => {
+  it("offers either channel to one with no words of its own, showing the other's lists without changing it", async () => {
     const actions = await renderWriter({ draft: { ...exampleBroadcastEmail, subject: "", body: EMPTY_MAILING_DOC } });
     await choose(copy.consentChannel, copy.channels.text);
     await vi.waitFor(
       () =>
         expect(radios(copy.facts.saidYes).map(([name]) => name)).toEqual([
-          consents["text:newsletter"],
-          consents["text:events"],
-          consents["text:volunteering"],
+          lists.updates,
+          lists["updates-luma"],
+          lists.volunteering,
         ]),
       WAIT,
     );
@@ -194,14 +148,12 @@ describe("BroadcastWriter's Consent", () => {
   it("changes the Consent, whose action brings the page back, so it isn't fetched again", async () => {
     const actions = await renderWriter();
     const refreshes = navigation.refreshes;
-    // The only one it has: it stays.
-    await choose(copy.facts.saidYes, consents["email:newsletter"]);
-    await choose(copy.facts.saidYes, consents["email:events"]);
-    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:events:yes"), WAIT);
+    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, LUMA), WAIT);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
     // Refused, nothing changes either.
     actions.changeConsent.mockResolvedValue(false);
-    await choose(copy.facts.saidYes, consents["email:events"]);
+    await choose(copy.facts.saidYes, lists.volunteering);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledTimes(2), WAIT);
     expect(navigation.refreshes).toBe(refreshes);
   });
@@ -214,38 +166,22 @@ describe("BroadcastWriter's Consent", () => {
     actions.save.mockImplementation(async (_id, at) =>
       at === version ? { saved: true, version: ++version } : { saved: false, reason: "conflict" },
     );
-    await choose(copy.facts.saidYes, consents["email:events"]);
+    await choose(copy.facts.saidYes, lists["updates-luma"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalled(), WAIT);
     await page.getByLabelText(copy.subject).fill("After the change");
     await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.saved), WAIT).toBeInTheDocument();
     expect(page.getByText(mailingsCopy.mailingPages.saveStates.conflict).query()).toBeNull();
   });
 
-  it("shows a spinner on the topic pressed, chosen, added or taken off, till its change is done", async () => {
+  it("shows a spinner on the list pressed till its change is done", async () => {
     let done = () => {};
     const slow = () => new Promise((resolve) => (done = () => resolve(true)));
     const busy = () =>
       [...group(copy.facts.saidYes).element().querySelectorAll("[aria-busy=true]")].map((one) => one.textContent);
-    const one = await renderWriter();
-    one.changeConsent.mockImplementation(slow);
-    await choose(copy.facts.saidYes, consents["email:events"]);
-    await vi.waitFor(() => expect(busy()).toEqual([consents["email:events"]]), WAIT);
-    done();
-    await vi.waitFor(() => expect(busy()).toEqual([]), WAIT);
-    const actions = await renderWriter({
-      draft: {
-        ...exampleBroadcastEmail,
-        topics: ["newsletter", "events"],
-        filter: { list: "supporters", params: { contact: ["email:newsletter:yes", "email:events:yes"] } },
-      },
-    });
+    const actions = await renderWriter();
     actions.changeConsent.mockImplementation(slow);
-    await choose(copy.facts.saidYes, consents["email:volunteering"]);
-    await vi.waitFor(() => expect(busy()).toEqual([consents["email:volunteering"]]), WAIT);
-    done();
-    await vi.waitFor(() => expect(busy()).toEqual([]), WAIT);
-    await choose(copy.facts.saidYes, consents["email:newsletter"]);
-    await vi.waitFor(() => expect(busy()).toEqual([consents["email:newsletter"]]), WAIT);
+    await choose(copy.facts.saidYes, lists.volunteering);
+    await vi.waitFor(() => expect(busy()).toEqual([lists.volunteering]), WAIT);
     done();
     await vi.waitFor(() => expect(busy()).toEqual([]), WAIT);
   });
@@ -275,8 +211,11 @@ describe("BroadcastWriter's Consent", () => {
     await vi.waitFor(() => expect(subject()).not.toBeNull(), WAIT);
     expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
     await choose(copy.consentChannel, copy.channels.text);
-    await choose(copy.facts.saidYes, consents["text:events"]);
-    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "text:events:yes"), WAIT);
+    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await vi.waitFor(
+      () => expect(actions.changeConsent).toHaveBeenCalledWith(3, "text:newsletter:yes text:events:yes"),
+      WAIT,
+    );
     expect(actions.create).not.toHaveBeenCalled();
   });
 
@@ -323,8 +262,8 @@ describe("BroadcastWriter's Consent", () => {
     await choose(copy.consentChannel, copy.channels.text);
     await vi.waitFor(() => expect(subject()).toBeNull(), WAIT);
     expect(radios(copy.consentChannel)[1]).toEqual([copy.channels.text, true, false]);
-    await choose(copy.facts.saidYes, consents["text:events"]);
-    await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("text:events:yes"), WAIT);
+    await choose(copy.facts.saidYes, lists.volunteering);
+    await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("text:volunteering:yes"), WAIT);
     expect(actions.save).not.toHaveBeenCalled();
   });
 });

@@ -112,7 +112,7 @@ async function supporterValues(params: Params): Promise<Known> {
   return {
     q: "any",
     activity: SUPPORTER_BADGES,
-    contact: plain("contact").filter((value) => contactState(value)),
+    contact: plain("contact").filter((value) => value.split(" ").every((part) => contactState(part))),
     event: found.map((row) => row.id),
     campaign: valuesOf(params.campaign).filter((slug) => campaignBySlug(slug)),
     wrote: ["no"],

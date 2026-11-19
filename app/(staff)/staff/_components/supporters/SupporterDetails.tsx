@@ -416,7 +416,7 @@ export default function SupporterDetails({
         </Column>
         <Column span={2}>
           <Card look="aside" title={copy.detail.listsTitle} id="subscriptions">
-            <PermissionTiles permissions={permissions} />
+            <PermissionTiles permissions={permissions} onLuma={supporter.summary.lumaContact} />
             {optOut}
           </Card>
           {notes}

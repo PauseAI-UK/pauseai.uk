@@ -1,11 +1,12 @@
 import ExternalLink from "../ui/ExternalLink";
 import StaffLink from "../ui/StaffLink";
 import {
-  TOPICS,
+  LIST_TOPICS,
+  LISTS,
   WAYS,
   type Channel,
   type ContactPermission,
-  type Topic,
+  type List,
   type Way,
 } from "@/lib/supporters/contact-permissions";
 import { phoneWords } from "@/lib/phone";
@@ -31,9 +32,10 @@ export function permissionReason(permission: ContactPermission): string {
   return copy.reasons[permission.reason](when, source, permission.topic);
 }
 
-/** What's behind a row's "?": the topic's name, what it is, and when it's a yes and when a no. */
-function TopicDetails({ topic, name }: { topic: Topic; name: string }) {
-  const details = copy.details[topic];
+/** What's behind a list's "?": its name, what it is, and when it's a yes and when a no. */
+function ListDetails({ list }: { list: List }) {
+  const name = supportersCopy.supporters.filters.lists[list];
+  const details = copy.details[list];
   return (
     <>
       <strong className={styles.topicTitle}>{copy.topicTitle(name)}</strong>
@@ -44,6 +46,28 @@ function TopicDetails({ topic, name }: { topic: Topic; name: string }) {
         <dt>{copy.when.no}</dt>
         <dd>{details.no}</dd>
       </dl>
+    </>
+  );
+}
+
+/**
+ * A "?" that opens what each list means, as each list's own "?" says it,
+ * beside where staff choose a list: the Consent filter and a broadcast's
+ * list. `id` tells one on a page from another.
+ */
+export function ListsHelp({ id }: { id: string }) {
+  return (
+    <>
+      <button type="button" className={styles.help} aria-label={copy.listsHelp} {...bubbleTrigger(id)}>
+        ?
+      </button>
+      <BubbleBox id={id} className={styles.popover}>
+        {LISTS.map((list) => (
+          <div key={list} className={styles.listHelp}>
+            <ListDetails list={list} />
+          </div>
+        ))}
+      </BubbleBox>
     </>
   );
 }
@@ -125,19 +149,35 @@ function lines(permissions: ContactPermission[]): Line[] {
 }
 
 /**
- * One topic, a row: its name and the "?" with what it is; then each way and
+ * A list's answer for each way and address or number: its topic's, or for
+ * PauseAI Updates including Luma, `newsletter`'s where it's a yes, else
+ * `events`' where that's a yes, else `newsletter`'s no, or `events`' where
+ * `newsletter` has none.
+ */
+function listAnswers(list: List, permissions: ContactPermission[]): ContactPermission[] {
+  const [first, ...rest] = LIST_TOPICS[list];
+  const own = permissions.filter((p) => p.topic === first);
+  const others = permissions.filter((p) => rest.includes(p.topic));
+  const sameLine = (a: ContactPermission) => (b: ContactPermission) => a.way === b.way && a.address === b.address;
+  return [
+    ...own.map((p) => (p.send === "yes" ? p : (others.find((o) => sameLine(p)(o) && o.send === "yes") ?? p))),
+    ...others.filter((o) => !own.some(sameLine(o))),
+  ];
+}
+
+/**
+ * One list, a row: its name and the "?" with what it is; then each way and
  * address or number it has an answer for, email first, then texts, then
  * calls, with that answer in its words, green for a yes, and under it why,
  * where from and when. A number that can be texted and called alike, or
  * neither, for the same reason, has one line for both, a lozenge each.
  */
-function TopicRow({ topic, permissions }: { topic: Topic; permissions: ContactPermission[] }) {
-  const id = `why-${topic}`;
-  const name = copy.topics[topic];
+function ListRow({ list, permissions }: { list: List; permissions: ContactPermission[] }) {
+  const id = `why-${list}`;
   return (
     <li className={styles.item}>
       <span className={styles.head}>
-        <span className={styles.topic}>{name}</span>
+        <span className={styles.topic}>{supportersCopy.supporters.filters.lists[list]}</span>
         <button type="button" className={styles.help} aria-label={copy.why} {...bubbleTrigger(id)}>
           ?
         </button>
@@ -163,25 +203,45 @@ function TopicRow({ topic, permissions }: { topic: Topic; permissions: ContactPe
         </span>
       ))}
       <BubbleBox id={id} className={styles.popover}>
-        <TopicDetails topic={topic} name={name} />
+        <ListDetails list={list} />
       </BubbleBox>
     </li>
   );
 }
 
 /**
- * Whether we'd contact a supporter about each topic, a row each, every
- * address and number it has an answer for in it, by email, then text, then
- * call.
+ * Whether we'd contact a supporter on each list, a row each, every address
+ * and number it has an answer for in it, by email, then text, then call;
+ * then, for someone on our Luma calendar or with an answer through it,
+ * whether they're on it (`onLuma`), as Luma's own emails go to them or not.
  */
-export default function PermissionTiles({ permissions }: { permissions: ContactPermission[] }) {
+export default function PermissionTiles({
+  permissions,
+  onLuma = false,
+}: {
+  permissions: ContactPermission[];
+  onLuma?: boolean;
+}) {
   const byWay = (a: ContactPermission, b: ContactPermission) => WAYS.indexOf(a.way) - WAYS.indexOf(b.way);
+  const luma = onLuma || permissions.some((p) => p.topic === "events");
   return (
     <ul className={styles.list}>
-      {TOPICS.flatMap((topic) => {
-        const own = permissions.filter((p) => p.topic === topic).sort(byWay);
-        return own.length > 0 ? [<TopicRow key={topic} topic={topic} permissions={own} />] : [];
+      {LISTS.flatMap((list) => {
+        const own = listAnswers(list, permissions).sort(byWay);
+        return own.length > 0 ? [<ListRow key={list} list={list} permissions={own} />] : [];
       })}
+      {luma && (
+        <li className={styles.item}>
+          <span className={styles.head}>
+            <span className={styles.topic}>{copy.luma.name}</span>
+          </span>
+          <span className={styles.answer} data-send={onLuma ? "yes" : "no"}>
+            <span className={styles.line}>
+              <span className={styles.reason}>{onLuma ? copy.luma.on : copy.luma.off}</span>
+            </span>
+          </span>
+        </li>
+      )}
     </ul>
   );
 }

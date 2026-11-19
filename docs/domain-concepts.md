@@ -1592,12 +1592,11 @@ or a call to a number. The topics:
   UK chapter member in CiviCRM, for email, as giving their details to the
   UK chapter is the yes, unless they unsubscribed from its `newsletter`
   list; and every volunteer, by email and text (below).
-- **Events**, the Luma calendar: being on it, which registering for an
+- **Events**, our Luma calendar: being on it, which registering for an
   event does too, for email. A number given at a Luma registration has the
   answer of the account that gave it, for texts; a number given on a form
   for "text updates on the day" is a yes for texts until the day ends
-  (`day_texts`). With the newsletter, it makes PauseAI Updates including
-  Luma.
+  (`day_texts`). A no to the newsletter is a no to events too.
 - **Volunteering**: CiviCRM's `volunteer_updates` list, for email; and a
   member's number, for calls and texts, if they chose to volunteer or lead when
   joining, or joined before 30 June 2026 on the Tally form, which didn't
@@ -1605,6 +1604,24 @@ or a call to a number. The topics:
   to newsletter texts too, and volunteering chosen on the contact
   preferences page is a yes to the newsletter by the same way, unless
   they've opted out of it.
+
+Staff never choose topics. They send to a list (`LISTS` in the same file),
+and the Consent filter, a broadcast and a supporter's page name only
+lists:
+
+| List                           | Who's on it                                 |
+| ------------------------------ | ------------------------------------------- |
+| PauseAI Updates                | a yes to `newsletter`                       |
+| PauseAI Updates including Luma | a yes to `newsletter`, or a yes to `events` |
+| Volunteering                   | a yes to `volunteering`                     |
+
+As a no to the newsletter is a no to events, unsubscribing from PauseAI
+Updates leaves both Updates lists. It doesn't take anyone off the Luma
+calendar. Luma's own emails, which the calendar sends to everyone on it,
+are Luma's, not ours: no list controls them, and "Luma calendar emails
+(sent by Luma)", on the contact preferences page and a supporter's page,
+is only whether they're on it. An email's unsubscribe link stops the list
+it went to: PauseAI Updates for either Updates list, never the calendar.
 
 Each answer is yes or no, with a reason from a short list, when, and which
 source said so. First, whatever stops every topic by the way: a blocked

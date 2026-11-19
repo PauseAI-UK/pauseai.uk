@@ -23,6 +23,7 @@ const view = (answers: ContactPermission[], numbers: string[] = [PHONE]): Settin
   numbers,
   answers,
   hold: hold(answers),
+  onLuma: answers.some((a) => a.topic === "events" && a.way === "email" && a.reason === "following"),
 });
 
 /** The newsletter by email and text from the march's box, events by email from following the Luma calendar. */
@@ -32,10 +33,25 @@ export const exampleSettings = view([
   answer({ topic: "events", reason: "following", source: "luma" }),
 ]);
 
-/** Unsubscribed from the newsletter by an email's link, still following the calendar. */
-export const exampleUnsubscribed = view(
+/**
+ * Unsubscribed from PauseAI Updates by an email's link, which is a no to
+ * events too, while still on our Luma calendar.
+ */
+export const exampleUnsubscribed: SettingsView = {
+  ...view(
+    [
+      answer({ send: "no", reason: "unsubscribed", source: "link" }),
+      answer({ topic: "events", send: "no", reason: "unsubscribed", source: "link" }),
+    ],
+    [],
+  ),
+  onLuma: true,
+};
+
+/** On our Luma calendar, with an old no to the newsletter: PauseAI Updates including Luma still reaches them. */
+export const exampleOnlyLuma = view(
   [
-    answer({ send: "no", reason: "unsubscribed", source: "link" }),
+    answer({ send: "no", reason: "unsubscribed", source: "link", at: new Date("2026-09-01T00:00:00Z") }),
     answer({ topic: "events", reason: "following", source: "luma" }),
   ],
   [],
@@ -65,6 +81,7 @@ export const exampleNumberHolds = view([
 export const exampleNumber: SettingsView = {
   address: PHONE,
   numbers: [PHONE],
+  onLuma: false,
   answers: [
     answer({ way: "text", channel: "phone", address: PHONE }),
     answer({

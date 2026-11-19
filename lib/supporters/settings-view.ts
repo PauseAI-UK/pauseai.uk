@@ -1,8 +1,9 @@
-import { hasWay, TOPICS, type ContactPermission, type Topic, type Way } from "./contact-permissions";
+import { hasWay, type ContactPermission, type Topic, type Way } from "./contact-permissions";
 
-// What the contact preferences page shows for an address: each topic, with a box
-// for each way it goes by, ticked where we'd send it; why; and what holds
-// all of the address's email, which only that can lift, or nobody here can.
+// What the contact preferences page shows for an address: PauseAI Updates and
+// Volunteering, with a box for each way each goes by, ticked where we'd send
+// it; why; whether Luma's own emails go to it; and what holds all of the
+// address's email, which only that can lift, or nobody here can.
 
 /** How long a link to the page asked for, or sent after a sign-up, works. */
 export const LINK_DAYS = 7;
@@ -21,19 +22,29 @@ export type SettingsHold = {
   everything: boolean;
 };
 
-/** The address, its owner's numbers, and every answer for each. */
+/**
+ * The address, its owner's numbers, every answer for each, and whether the
+ * address is on our Luma calendar, so Luma's own emails go to it.
+ */
 export type SettingsView = {
   address: string;
   numbers: string[];
   answers: ContactPermission[];
   hold: SettingsHold | null;
+  onLuma: boolean;
 };
 
 /** Whether a page is for a number alone, opened by the link a stop's answer gave it, rather than an email address. */
 export const isNumber = (address: string): boolean => address.startsWith("+");
 
-/** A box changed on the page: on is a yes, off an opt-out. */
+/** A box changed on the page: on is a yes, off an opt-out; Luma's, `events` by email, off takes them off our calendar. */
 export type SettingsChoice = { topic: Topic; way: Way; on: boolean };
+
+/** The topics the page has a card of, each with its boxes: Updates, the newsletter, and Volunteering. */
+export const SETTINGS_TOPICS = ["newsletter", "volunteering"] as const;
+
+/** The box for Luma's own emails, in a form: whether the address stays on our calendar. */
+export const LUMA_CHOICE = "luma";
 
 const HOLDS: Partial<Record<ContactPermission["reason"], SettingsHold["kind"]>> = {
   blocked: "blocked",
@@ -75,19 +86,36 @@ export type SettingsTopic = { topic: Topic; boxes: SettingsBox[]; why: ContactPe
 export const choiceKey = (topic: Topic, way: Way): string => `${topic}:${way}`;
 
 /**
- * Each topic, with a box for email, but on a number's page, and for texts
- * and calls where the topic goes by them and the owner has a number: ticked
- * where any number says
- * yes. Email can't be changed while all its email is held, nor texts or
- * calls while PauseAI Global stops them (numberHolds). Why is the email's
- * answer, or else a number's yes, or else the email's no; on a number's
- * page, which has no email, its text's no, or else its call's.
+ * A topic's answers as the page counts them: `volunteering`'s own; for
+ * PauseAI Updates, `newsletter`'s, or `events`' where that's a yes and
+ * `newsletter`'s isn't, as either puts them on PauseAI Updates including
+ * Luma, which we send them.
+ */
+export function topicAnswers(view: Pick<SettingsView, "answers">, topic: Topic): ContactPermission[] {
+  const own = view.answers.filter((a) => a.topic === topic);
+  if (topic !== "newsletter") return own;
+  const luma = view.answers.filter((a) => a.topic === "events" && a.send === "yes");
+  const same = (a: ContactPermission) => (b: ContactPermission) => a.way === b.way && a.address === b.address;
+  return [
+    ...own.map((a) => (a.send === "yes" ? a : (luma.find(same(a)) ?? a))),
+    ...luma.filter((a) => !own.some(same(a))),
+  ];
+}
+
+/**
+ * Updates and Volunteering, each with a box for email, but on a number's
+ * page, and for texts and calls where the topic goes by them and the owner
+ * has a number: ticked where any number says yes. Email can't be changed
+ * while all its email is held, nor texts or calls while PauseAI Global
+ * stops them (numberHolds). Why is the email's answer, or else a number's
+ * yes, or else the email's no; on a number's page, which has no email, its
+ * text's no, or else its call's.
  */
 export function settingsTopics(view: SettingsView): SettingsTopic[] {
   const stopped: Way[] = numberHolds(view);
   const forNumber = isNumber(view.address);
-  return TOPICS.map((topic) => {
-    const own = view.answers.filter((a) => a.topic === topic);
+  return SETTINGS_TOPICS.map((topic) => {
+    const own = topicAnswers(view, topic);
     const ways: Way[] = [
       ...(forNumber ? [] : (["email"] as const)),
       ...(view.numbers.length ? (["text", "call"] as const) : []),

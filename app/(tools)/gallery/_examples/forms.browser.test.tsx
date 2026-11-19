@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import Densities from "../_components/Densities";
+import { Toggles } from "@/components/ui/Controls";
 import {
   CheckboxExample,
   RadioExample,
@@ -62,6 +63,26 @@ describe("the forms group's examples", () => {
     await page.getByRole("button", { name: "Plums" }).click();
     await expect.element(value()).toHaveTextContent('Value: ["plums"]');
     await expect.element(page.getByRole("button", { name: "Plums" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("ignores toggles while a change is on its way, with a spinner on the one it came from", async () => {
+    const changed: string[][] = [];
+    const options = ["Apples", "Pears"].map((label) => ({ value: label.toLowerCase(), label }));
+    await render(
+      <Toggles
+        label="Example fruit"
+        options={options}
+        values={["apples"]}
+        onChange={(values) => changed.push(values)}
+        joiner="or"
+        busy
+        waiting="pears"
+      />,
+    );
+    await expect.element(page.getByRole("button", { name: "Pears" })).toHaveAttribute("aria-busy", "true");
+    await expect.element(page.getByRole("button", { name: "Apples" })).not.toHaveAttribute("aria-busy");
+    await page.getByRole("button", { name: "Apples" }).click();
+    expect(changed).toEqual([]);
   });
 
   it("presses the link button", async () => {
