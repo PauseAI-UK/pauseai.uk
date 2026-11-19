@@ -35,6 +35,8 @@ describe("Footer, FooterYear, JsonLd and NoAnalytics", () => {
     );
     await expect.element(page.getByRole("link", { name: "Instagram" })).toHaveAttribute("href", site.social.instagram);
     expect(document.getElementById("year")?.textContent).toBe(String(new Date().getFullYear()));
+    // The footer's logo, at the foot of the page, waits until it's near.
+    expect(document.querySelector("footer img")?.getAttribute("loading")).toBe("lazy");
   });
 
   it("does nothing on a page without a year", async () => {
@@ -68,6 +70,10 @@ describe("Nav", () => {
   it("shows the PauseAI UK logo, and a local group's branding on its page", async () => {
     const { container, rerender } = await render(<Nav />);
     await expect.element(page.getByRole("img", { name: "PauseAI UK" })).toBeInTheDocument();
+    // At the top of every page, it's fetched before anything else.
+    const logo = container.querySelector("header img")!;
+    expect(logo.getAttribute("loading")).toBe("eager");
+    expect(logo.getAttribute("fetchpriority")).toBe("high");
     // On the home page, in-page links stay in-page.
     expect(container.querySelector('nav a[href="#join"]')).not.toBeNull();
 
