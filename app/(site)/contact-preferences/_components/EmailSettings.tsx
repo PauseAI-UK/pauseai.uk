@@ -15,6 +15,7 @@ import {
   choiceKey,
   isNumber,
   LUMA_CHOICE,
+  LUMA_OFFERED,
   numberHolds,
   settingsTopics,
   topicAnswers,
@@ -140,9 +141,20 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
 /**
  * Luma's own emails: whether the address stays on our Luma calendar, one
  * box, ticked while it's on (`initial`); unticked, saving takes them off.
- * Not while all its email is held.
+ * Once they're off (`off`), it can't be ticked again, as only Luma can put
+ * them back on, and it says so. Not while all its email is held (`held`).
  */
-function LumaCard({ initial, locked, saving }: { initial: boolean; locked: boolean; saving: Saving | null }) {
+function LumaCard({
+  initial,
+  held,
+  off,
+  saving,
+}: {
+  initial: boolean;
+  held: boolean;
+  off: boolean;
+  saving: Saving | null;
+}) {
   const [on, setOn] = useState(initial);
   return (
     <fieldset className={styles.card}>
@@ -151,13 +163,15 @@ function LumaCard({ initial, locked, saving }: { initial: boolean; locked: boole
       </legend>
       <p className={styles.what}>{copy.about.events}</p>
       <div className={styles.ways}>
-        <Checkbox name="choice" value={LUMA_CHOICE} checked={on} disabled={locked} boxed onChange={setOn}>
+        <input type="hidden" name="choice" value={LUMA_OFFERED} />
+        <Checkbox name="choice" value={LUMA_CHOICE} checked={on} disabled={held || off} boxed onChange={setOn}>
           {copy.lumaBox}
         </Checkbox>
         <span className={styles.saving} role="status">
           {saving && <SaveState state={saving}>{copy.settings[saving]}</SaveState>}
         </span>
       </div>
+      {off && <p className={styles.why}>{copy.lumaOff}</p>}
     </fieldset>
   );
 }
@@ -242,8 +256,8 @@ function NumberHolds({ view }: { view: SettingsView }) {
 
 /**
  * Whether the address already gets none of `topics` by email, as after the
- * link's button, or a reload after it: for PauseAI Updates, a yes to
- * `events` is getting it, as PauseAI Updates including Luma (topicAnswers).
+ * link's button, or a reload after it: for PauseAI UK Updates, a yes to
+ * `events` is getting it, as PauseAI UK Updates inc. Luma (topicAnswers).
  */
 const offAlready = (view: SettingsView | null, topics: Topic[]): boolean =>
   view !== null && topics.every((topic) => topicAnswers(view, topic).some((a) => a.way === "email" && a.send === "no"));
@@ -477,17 +491,13 @@ export default function EmailSettings({
               <LumaCard
                 key={`luma-${round}`}
                 initial={view.onLuma}
-                locked={view.hold !== null}
+                held={view.hold !== null}
+                off={!view.onLuma && view.hold === null}
                 saving={saving?.topic === "events" ? saving.state : null}
               />
             )}
           </FormStack>
-          {/* Open on a wide screen; folded to its heading on a phone, as it's for reading rather than changing anything. */}
-          {!forNumber && (
-            <>
-              <GlobalEmails held={Boolean(view.hold)} />
-            </>
-          )}
+          {!forNumber && <GlobalEmails held={Boolean(view.hold)} />}
           {!view.hold && !forNumber && (
             <section className={styles.stopAll} aria-labelledby="stop-all">
               <h2 id="stop-all">{copy.stopAll.title}</h2>

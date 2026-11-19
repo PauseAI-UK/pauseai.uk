@@ -470,13 +470,13 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   await expect(page.getByText("07700 900123", { exact: false }).first()).toBeVisible();
   await openEverything(page);
   await expect(page.getByText("LS1 1AA", { exact: true })).toBeVisible();
-  // Her email and number in each Updates list's row, each with its reason.
+  // Her email and number in Updates' row, each with its reason.
   await expect(
     page.getByText(
       copy.detail.permissions.reasons.asked("16 Oct 2026", copy.detail.permissions.sources["march-2026-11"]),
       { exact: false },
     ),
-  ).toHaveCount(4);
+  ).toHaveCount(2);
   await openHistory(page);
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
   await expect(history.getByText(copy.detail.cameFrom("nl"), { exact: false })).toBeVisible();
@@ -510,8 +510,8 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lee Letter");
   await expect(page.getByText(copy.detail.firstCame.civicrm)).toBeVisible();
   await expect(page.getByText("29 Nov 2025", { exact: false }).first()).toBeVisible();
-  // Left the box on their letter unticked, but a member is on both Updates lists.
-  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toHaveCount(2);
+  // Left the box on their letter unticked, but a member is on PauseAI UK Updates.
+  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toHaveCount(1);
   await openHistory(page);
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
   await expect(history.getByText(copy.detail.kinds["member-joined"], { exact: false })).toBeVisible();
@@ -531,7 +531,7 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByRole("columnheader", { name: copy.columns.subscriptions })).toBeVisible();
   await frame(page, "The supporters list");
-  story("Staff filter to those they can email PauseAI Updates. Jane is there, as a member.");
+  story("Staff filter to those they can email PauseAI UK Updates. Jane is there, as a member.");
 
   // Consent has its own button, as it's what lets a message go.
   const { lists } = copy.filters;
@@ -539,9 +539,9 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await consent.getByRole("link", { name: lists.updates, exact: true }).first().click();
   await expect(page).toHaveURL(/contact=email%3Anewsletter%3Ayes(&|$)/);
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
-  await frame(page, "Those who can be emailed PauseAI Updates");
+  await frame(page, "Those who can be emailed PauseAI UK Updates");
   story(
-    "They change it to PauseAI Updates including Luma, which adds everyone on our Luma calendar. Each chip picks one list, so there's no + Add.",
+    "They change it to PauseAI UK Updates inc. Luma, which adds everyone on our Luma calendar. Each chip picks one list, so there's no + Add.",
   );
 
   // Another list from the chip: including Luma, the second of email's three.
@@ -584,14 +584,14 @@ test("What the lists mean", async ({ page, flowDatabase }) => {
 
 test("A member who never opted in", async ({ page, request, flowDatabase }) => {
   story(
-    "Owen joined as a member without ticking Keep me informed. Joining the UK chapter is a yes to PauseAI Updates, so their page says we can email them.",
+    "Owen joined as a member without ticking Keep me informed. Joining the UK chapter is a yes to PauseAI UK Updates, so their page says we can email them.",
   );
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Owen Member" }).click();
-  // On both Updates lists, a member.
-  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toHaveCount(2);
+  // On PauseAI UK Updates, a member.
+  await expect(page.getByText(said("member", "civicrm"), { exact: false })).toHaveCount(1);
   await expect(page.getByText(copy.detail.permissions.answers.email.yes).first()).toBeVisible();
   await openHistory(page);
   await expect(page.getByText(copy.detail.intents.act_now)).toBeVisible();
@@ -636,7 +636,7 @@ test("A member who unsubscribed in CiviCRM", async ({ page, request, flowDatabas
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Kit Member" }).click();
-  await expect(page.getByText(said("unsubscribed", "civicrm"), { exact: false })).toHaveCount(2);
+  await expect(page.getByText(said("unsubscribed", "civicrm"), { exact: false })).toHaveCount(1);
   await expect(page.getByText(said("subscribed", "civicrm", "volunteering"), { exact: false })).toBeVisible();
   await frame(page, "Kit's page");
 });
@@ -742,9 +742,11 @@ test("Recording an opt-out told to staff", async ({ page, request, flowDatabase 
     .evaluate((box) => box.scrollIntoView({ block: "start", behavior: "instant" }));
   await page.evaluate(() => window.scrollBy({ top: -80, behavior: "instant" }));
   await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
-  await expect(page.getByRole("button", { name: /^Volunteering, jane\.fixture@example\.com/ })).toBeVisible();
-  await frame(page, "What they opted out of: under each address and number, by each way", { window: true });
-  await page.getByRole("button", { name: /^Volunteering, jane\.fixture@example\.com/ }).click();
+  await expect(
+    page.getByRole("button", { name: `${copy.filters.lists.volunteering}, ${copy.filters.ways.email}` }),
+  ).toBeVisible();
+  await frame(page, "What they opted out of: each list, by each way", { window: true });
+  await page.getByRole("button", { name: `${copy.filters.lists.volunteering}, ${copy.filters.ways.email}` }).click();
   await page.getByRole("textbox", { name: words.how }).fill("Asked at the Leeds stall");
   await page.getByRole("button", { name: words.record }).scrollIntoViewIfNeeded();
   await frame(page, "The form, filled in", { window: true });
@@ -753,4 +755,55 @@ test("Recording an opt-out told to staff", async ({ page, request, flowDatabase 
   await expect(page.getByText(said("unsubscribed", "staff"), { exact: false })).toBeVisible();
   await page.getByRole("heading", { name: copy.detail.listsTitle }).scrollIntoViewIfNeeded();
   await frame(page, "Her consents, volunteering by email off", { window: true });
+});
+
+test("Taking someone only Luma reaches off our emails", async ({ page, request, flowDatabase }) => {
+  story(
+    "Alex is on our Luma calendar and nothing else, so only PauseAI UK Updates inc. Luma goes to them. Alex tells staff they'd like no more of our emails, but to stay on the calendar.",
+  );
+  await importLuma(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  const [alex] = runSql(
+    flowDatabase,
+    "SELECT supporter_id FROM supporter_links WHERE matched_value = 'alex.fixture@example.com'",
+  );
+  await page.goto(`${BASE}/staff/supporters/${alex}`);
+  const { luma, recordOptOut: words } = copy.detail.permissions;
+  const { lists, ways } = copy.filters;
+  const consents = page.getByRole("region", { name: copy.detail.listsTitle });
+  /** Opens Unsubscribe them and its menu, the box near the window's top so the menu opens below it. */
+  const openChoices = async () => {
+    await page.getByRole("button", { name: words.open }).click();
+    const box = page.getByRole("button", { name: `${words.what}: ${words.choose}` });
+    await box.evaluate((one) => one.scrollIntoView({ block: "start", behavior: "instant" }));
+    await page.evaluate(() => window.scrollBy({ top: -80, behavior: "instant" }));
+    await box.click();
+  };
+  const record = async (choice: string) => {
+    await page.getByRole("button", { name: choice }).click();
+    await page.getByRole("textbox", { name: words.how }).fill("Asked by email to events@");
+    await page.getByRole("button", { name: words.record }).click();
+    await expect(page.getByRole("button", { name: words.record })).toHaveCount(0);
+  };
+  await expect(consents.getByText(luma.on, { exact: true })).toBeVisible();
+  await consents.scrollIntoViewIfNeeded();
+  await frame(page, "Alex's consents: on the Luma calendar, and nothing else", { window: true });
+  story(
+    "Unsubscribe them offers PauseAI UK Updates, which stops our emails and leaves Alex on the calendar, as well as Luma's own messages and every bulk email, which would each take them off it.",
+  );
+  await openChoices();
+  await expect(page.getByRole("button", { name: `${lists.updates}, ${ways.email}` })).toBeVisible();
+  await frame(page, "What Alex can be opted out of", { window: true });
+  await record(`${lists.updates}, ${ways.email}`);
+  await expect(consents.getByText(said("unsubscribed", "staff"), { exact: false })).toBeVisible();
+  await expect(consents.getByText(luma.on, { exact: true })).toBeVisible();
+  await consents.scrollIntoViewIfNeeded();
+  await frame(page, "Off our emails, still on the Luma calendar", { window: true });
+  story("Later Alex asks to come off the calendar too. Luma's own messages are what's left to opt out of.");
+  await openChoices();
+  await record(`${luma.name}, ${ways.email}`);
+  await expect(consents.getByText(luma.on, { exact: true })).toHaveCount(0);
+  await expect(consents.getByText(said("unsubscribed", "staff"), { exact: false })).toBeVisible();
+  await consents.scrollIntoViewIfNeeded();
+  await frame(page, "Off the Luma calendar too", { window: true });
 });

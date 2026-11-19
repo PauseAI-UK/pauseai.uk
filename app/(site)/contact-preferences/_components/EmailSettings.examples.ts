@@ -34,7 +34,7 @@ export const exampleSettings = view([
 ]);
 
 /**
- * Unsubscribed from PauseAI Updates by an email's link, which is a no to
+ * Unsubscribed from PauseAI UK Updates by an email's link, which is a no to
  * events too, while still on our Luma calendar.
  */
 export const exampleUnsubscribed: SettingsView = {
@@ -48,7 +48,7 @@ export const exampleUnsubscribed: SettingsView = {
   onLuma: true,
 };
 
-/** On our Luma calendar, with an old no to the newsletter: PauseAI Updates including Luma still reaches them. */
+/** On our Luma calendar, with an old no to the newsletter: PauseAI UK Updates inc. Luma still reaches them. */
 export const exampleOnlyLuma = view(
   [
     answer({ send: "no", reason: "unsubscribed", source: "link", at: new Date("2026-09-01T00:00:00Z") }),

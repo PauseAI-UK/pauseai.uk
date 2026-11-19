@@ -16,6 +16,7 @@ import {
   isNumber,
   LINK_DAYS,
   LUMA_CHOICE,
+  LUMA_OFFERED,
   SETTINGS_TOPICS,
   topicAnswers,
   type SettingsChoice,
@@ -383,7 +384,8 @@ async function chooseYes(address: string, way: Way, topic: Topic, db: Queryable)
  * `newsletter`, which is a no to `events` too. A text or call box stands for every number, ticked where any
  * says yes (settingsTopics): ticking it is a yes for each number without
  * one, unticking it an opt-out for each with one, and leaving it as it was
- * changes none. Luma's, unticked, opts out of events by email, which takes
+ * changes none. Luma's, unticked on a page that drew it (LUMA_OFFERED), opts
+ * out of events by email, which takes
  * the address off our calendar; then Updates by email, if still ticked, is
  * made a yes of their own, so it stays when Luma says they've gone. Nothing
  * for email while all its email is held, nor on a number's page, nor any
@@ -392,7 +394,7 @@ async function chooseYes(address: string, way: Way, topic: Topic, db: Queryable)
 export async function saveSettings(address: string, ticked: Set<string>): Promise<SettingsChoice[]> {
   const view = await settingsFor(address);
   const changed: SettingsChoice[] = [];
-  const offLuma = view.onLuma && !view.hold && !ticked.has(LUMA_CHOICE);
+  const offLuma = view.onLuma && !view.hold && ticked.has(LUMA_OFFERED) && !ticked.has(LUMA_CHOICE);
   await transaction(async (db) => {
     for (const topic of SETTINGS_TOPICS) {
       const answers = topicAnswers(view, topic);
@@ -491,7 +493,7 @@ export async function stopEverything(address: string): Promise<void> {
 }
 
 /**
- * Opts a copy's address out of PauseAI Updates, for one to either Updates
+ * Opts a copy's address out of PauseAI UK Updates, for one to either Updates
  * list, or else of what it went under (unsubscribeTopics), by its
  * unsubscribe link's button (`link`) or a mail app's own Unsubscribe
  * (`list-unsubscribe`). It never takes the address off our Luma calendar.

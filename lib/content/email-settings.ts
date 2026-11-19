@@ -137,6 +137,8 @@ export const emailSettingsCopy = {
   topics: topicNames,
   // The Luma card's one box, ticked while they're on our Luma calendar.
   lumaBox: "Get them",
+  // Under the box once they've unticked it: we've taken them off, and only they can go back on, on Luma.
+  lumaOff: "⁂ You're off our Luma calendar. To get its messages again, subscribe to the calendar on Luma.",
   about,
   ways: wayNames,
   // A topic in a sentence, as an unsubscribe says what of.

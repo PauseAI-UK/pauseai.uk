@@ -50,11 +50,6 @@ export const supportersCopy = {
         text: "Text consent",
         call: "Call consent",
       } as Record<Way, string>,
-      topics: {
-        newsletter: "Newsletter",
-        events: "Events only",
-        volunteering: "Volunteering",
-      } as Record<Topic, string>,
     },
     columns: {
       name: "Name",
@@ -135,12 +130,6 @@ export const supportersCopy = {
         town: "Town",
       },
       permissions: {
-        // Each topic's name, a row each.
-        topics: {
-          newsletter: "Newsletter",
-          events: "Events only",
-          volunteering: "Volunteering",
-        } as Record<Topic, string>,
         // By the way, so the answer says how.
         answers: {
           email: { yes: "Can email", no: "Can't email" },

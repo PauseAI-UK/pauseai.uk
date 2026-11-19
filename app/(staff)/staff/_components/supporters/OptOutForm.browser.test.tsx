@@ -8,7 +8,11 @@ import { OptOutFormExample } from "./OptOutForm.gallery.client";
 import { supportersCopy } from "./copy";
 
 const words = supportersCopy.supporters.detail.permissions.recordOptOut;
-const ways = supportersCopy.supporters.filters.ways;
+const { ways, lists } = supportersCopy.supporters.filters;
+const luma = supportersCopy.supporters.detail.permissions.luma;
+/** The headings in the menu: the rows that aren't choices. */
+const headings = (menu: Element) =>
+  [...menu.querySelectorAll("li")].filter((li) => !li.querySelector("button")).map((li) => li.textContent);
 const choices = optOutChoices([
   ...CONSENTS.map((c) => ({
     address: c.way === "email" ? "jane.smith@example.com" : "+447700900123",
@@ -28,25 +32,23 @@ describe("OptOutForm", () => {
     const what = page.getByRole("button", { name: `${words.what}: ${words.choose}` });
     await expect.element(page.getByRole("button", { name: words.record })).toBeDisabled();
     await what.click();
-    // Under each address or number by each way, email, texts and calls apart.
+    // Under each way, email, texts and calls apart, which needn't say where, as there's one of each.
     const menu = page.getByRole("list");
-    expect(
-      [...menu.element().querySelectorAll("li")]
-        .filter((li) => !li.querySelector("button"))
-        .map((li) => li.textContent),
-    ).toEqual([
-      `${ways.email} · jane.smith@example.com`,
-      `${ways.text} · 07700 900123`,
-      `${ways.call} · 07700 900123`,
+    expect(headings(menu.element())).toEqual([ways.email, ways.text, ways.call]);
+    await expect.element(menu.getByRole("button")).toHaveLength(7);
+    // Each named as the lists are; events by email is Luma's own messages.
+    expect([...menu.element().querySelectorAll("button")].map((button) => button.textContent)).toEqual([
+      lists.updates,
+      luma.name,
+      lists.volunteering,
+      words.bulk,
+      lists.updates,
+      lists.volunteering,
+      lists.volunteering,
     ]);
-    await expect.element(menu.getByRole("button")).toHaveLength(8);
-    await page.getByRole("button", { name: `${words.bulk}, ${ways.email} · jane.smith@example.com` }).click();
+    await page.getByRole("button", { name: `${words.bulk}, ${ways.email}` }).click();
     await expect
-      .element(
-        page.getByRole("button", {
-          name: `${words.what}: ${words.bulk}, ${ways.email} · jane.smith@example.com`,
-        }),
-      )
+      .element(page.getByRole("button", { name: `${words.what}: ${words.bulk}, ${ways.email}` }))
       .toBeVisible();
     await page.getByRole("textbox", { name: words.how }).fill("Asked at the Leeds stall");
     await page.getByRole("button", { name: words.record }).click();
@@ -66,10 +68,40 @@ describe("OptOutForm", () => {
     expect(record).not.toHaveBeenCalled();
     await page.getByRole("button", { name: words.open }).click();
     await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
-    await page.getByRole("button", { name: `${words.bulk}, ${ways.email} · jane.smith@example.com` }).click();
+    await page.getByRole("button", { name: `${words.bulk}, ${ways.email}` }).click();
     await page.getByRole("textbox", { name: words.how }).fill("Phoned");
     await page.getByRole("button", { name: words.record }).click();
     await expect.element(page.getByText(words.already)).toBeVisible();
+  });
+
+  it("says which address or number under a way they have more than one by", async () => {
+    const both = optOutChoices([
+      ...["jane.smith@example.com", "jane@work.example.com"].map((address) => ({
+        address,
+        channel: "email" as const,
+        topic: "newsletter" as const,
+        way: "email" as const,
+        send: "yes" as const,
+      })),
+      { address: "+447700900123", channel: "phone", topic: "volunteering", way: "call", send: "yes" },
+      // A number only Luma gave: events by text, named as what reaches it.
+      { address: "+447700900124", channel: "phone", topic: "events", way: "text", send: "yes" },
+    ]);
+    await render(<OptOutForm supporterId={4} choices={both} record={vi.fn()} opened />);
+    await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+    expect(headings(page.getByRole("list").element())).toEqual([
+      `${ways.email} · jane.smith@example.com`,
+      `${ways.email} · jane@work.example.com`,
+      ways.call,
+      ways.text,
+    ]);
+    await expect.element(page.getByRole("button", { name: `${words.lumaTexts}, ${ways.text}` })).toBeVisible();
+    await page.getByRole("button", { name: `${lists.updates}, ${ways.email} · jane@work.example.com` }).click();
+    await expect
+      .element(
+        page.getByRole("button", { name: `${words.what}: ${lists.updates}, ${ways.email} · jane@work.example.com` }),
+      )
+      .toBeVisible();
   });
 
   it("shows nothing for a supporter with no address or number", async () => {
@@ -86,7 +118,7 @@ describe("OptOutForm's example in the gallery", () => {
     await render(<OptOutFormExample opened />);
     await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
     const newsletter = supportersCopy.supporters.filters.lists.updates;
-    await page.getByRole("button", { name: `${newsletter}, ${ways.email} · jane.smith@example.com` }).click();
+    await page.getByRole("button", { name: `${newsletter}, ${ways.email}` }).click();
     await page.getByRole("textbox", { name: words.how }).fill("At the stall");
     await page.getByRole("button", { name: words.record }).click();
     await expect

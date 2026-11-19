@@ -36,7 +36,7 @@ export const section: Section = { name: "Broadcasts to supporters", part: "Staff
 const copy = broadcastsCopy.broadcastPages;
 const stateWords = lettersCopy.copyStates;
 const mailingCopy = mailingsCopy.mailingPages;
-/** The Consent filter on PauseAI Updates including Luma, by email or by text. */
+/** The Consent filter on PauseAI UK Updates inc. Luma, by email or by text. */
 const EMAIL = "contact=email%3Anewsletter%3Ayes%20email%3Aevents%3Ayes";
 const TEXT = "contact=text%3Anewsletter%3Ayes%20text%3Aevents%3Ayes";
 /** How many of the fixture's supporters each filter finds. */
@@ -204,7 +204,7 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await expect(
     saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }),
   ).toBeChecked();
-  await frame(page, "To PauseAI Updates in place of including Luma");
+  await frame(page, "To PauseAI UK Updates in place of including Luma");
   story("What's written after the change is saved, as anything written is.");
   await savedAfter(page, () => page.getByLabel(copy.subject).fill("This month's news"));
   await expect(page.getByText(mailingCopy.saveStates.conflict)).toHaveCount(0);
@@ -820,7 +820,7 @@ test("Changing who a broadcast goes to", async ({ page, request, flowDatabase })
   await page.locator(`[title="${supportersCopy.consentLocked}"]`).first().hover();
   await frame(page, "The Consent, locked", { window: true });
   story(
-    "Except offers the lists all the same, as leaving some out only narrows it: here those we can text PauseAI Updates including Luma, who'll get a text instead.",
+    "Except offers the lists all the same, as leaving some out only narrows it: here those we can text PauseAI UK Updates inc. Luma, who'll get a text instead.",
   );
   const { lists } = supportersCopy.supporters.filters;
   const except = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.except }));

@@ -2,15 +2,15 @@
 
 import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import type { Topic } from "@/lib/supporters/contact-permissions";
+import { listFor, unsubscribeTopics, type Topic } from "@/lib/supporters/contact-permissions";
 import { UnsubscribeForm } from "../supporters/OptOutForm";
 import styles from "./ReplyActions.module.css";
 import { supportersCopy } from "../supporters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 const copy = broadcastsCopy.broadcastPages;
-/** Each topic's name, as the consents and lists say it. */
-const topicNames = supportersCopy.supporters.detail.permissions.topics;
+/** Each list's name, as the Consent filter says it. */
+const listNames = supportersCopy.supporters.filters.lists;
 
 /**
  * Reply, in orange: opens the answer to a reply at the foot of the thread
@@ -27,8 +27,9 @@ export function ReplyButton({ write, followUp = false }: { write: () => void; fo
 /**
  * Under a reply waiting for staff: Reply, while its answer isn't open
  * (`write`), Follow up under our answer (`followUp`); Unsubscribe them, the form a supporter's
- * page has, for what the email went under (`topics`) or every bulk email,
- * or for a reply to a text (`text`), what it went under or every text,
+ * page has, for the list the email's unsubscribe link stops, from what it
+ * went under (`topics`, unsubscribeTopics), or every bulk email,
+ * or for a reply to a text (`text`), that list or every text,
  * at the address or number that replied, with no need to say how they told us, as
  * it's the reply; and beside it
  * Nothing to do, which one `answered` already has no need of. Each sends
@@ -61,7 +62,9 @@ export default function ReplyActions({
         options={[
           {
             value: "topics",
-            label: (text ? copy.replies.topicsText : copy.replies.topics)(topics.map((t) => topicNames[t]).join(", ")),
+            label: (text ? copy.replies.topicsText : copy.replies.topics)(
+              listNames[listFor(unsubscribeTopics(topics))],
+            ),
           },
           { value: "bulk", label: text ? copy.replies.allTexts : copy.replies.bulk },
         ]}

@@ -36,7 +36,8 @@ export function permissionReason(permission: ContactPermission): string {
 
 /**
  * A list's name where a person's lists are shown: inc. Luma there is only
- * where Luma alone reaches them (lumaOnly), so it's called Luma only.
+ * where Luma alone reaches them (lumaOnly), so it has a name of its own
+ * for that (copy.lumaOnly).
  */
 export function personListName(list: List): string {
   return list === "updates-luma" ? copy.lumaOnly.name : supportersCopy.supporters.filters.lists[list];
@@ -169,12 +170,19 @@ function lines(permissions: ContactPermission[]): Line[] {
 
 /**
  * A list's answer for each way and address or number: its topic's; for
- * PauseAI Updates inc. Luma, only where Luma alone reaches them (lumaOnly),
- * as elsewhere it says no more than Updates' row does.
+ * PauseAI UK Updates inc. Luma, only where Luma alone reaches them (lumaOnly),
+ * as elsewhere it says no more than Updates' row does, and where it would
+ * but for a no: one to events by a way and address Updates has no answer
+ * for, such as an opt-out or a block, so what stopped it shows. Not that
+ * they never followed the calendar, as Luma never reached them.
  */
 function listAnswers(list: List, permissions: ContactPermission[]): ContactPermission[] {
-  if (list === "updates-luma") return lumaOnly(permissions);
-  return permissions.filter((p) => p.topic === LIST_TOPICS[list][0]);
+  if (list !== "updates-luma") return permissions.filter((p) => p.topic === LIST_TOPICS[list][0]);
+  const updates = (p: ContactPermission) =>
+    permissions.some((n) => n.topic === "newsletter" && n.way === p.way && n.address === p.address);
+  const stopped = (p: ContactPermission) =>
+    p.topic === "events" && p.send === "no" && p.reason !== "not-following" && !updates(p);
+  return [...lumaOnly(permissions), ...permissions.filter(stopped)];
 }
 
 /**

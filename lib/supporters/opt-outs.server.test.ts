@@ -52,6 +52,38 @@ describeWithDatabase("opt-outs", () => {
     expect(await rows()).toHaveLength(1);
   });
 
+  it("opens a new opt-out in place of an open one a yes has outlasted, so the no said again holds", async () => {
+    const updates = (sourceRef: string, unsubscribedAt: Date) => ({
+      address: "jane@example.com",
+      list: "newsletter" as const,
+      source: "link" as const,
+      sourceRef,
+      unsubscribedAt,
+    });
+    const events = async () =>
+      (await query<{ send: string }>("SELECT send FROM contact_permission('events', 'email', 'jane@example.com')"))[0]
+        .send;
+    // She unsubscribed from Updates, then followed our Luma calendar: the later yes puts her on Updates inc. Luma.
+    expect(await recordOptOut(updates("first", AT))).toBe(true);
+    await query("INSERT INTO luma_people (user_id, email, contact_since) VALUES ('usr-jane', 'jane@example.com', $1)", [
+      LATER,
+    ]);
+    expect(await events()).toBe("yes");
+    // A no dated before her yes changes nothing, as it would lose to it too.
+    expect(await recordOptOut(updates("early", new Date("2026-10-20T12:00:00Z")))).toBe(false);
+    // Unsubscribing again, from one of those emails, is a new opt-out: the old one ends as the new one starts.
+    const AGAIN = new Date("2026-10-22T10:00:00Z");
+    expect(await recordOptOut(updates("again", AGAIN))).toBe(true);
+    expect(await events()).toBe("no");
+    expect(await rows()).toEqual([
+      { address: "jane@example.com", source_ref: "first", resubscribed_at: AGAIN },
+      { address: "jane@example.com", source_ref: "again", resubscribed_at: null },
+    ]);
+    // Now it holds, a third is no news.
+    expect(await recordOptOut(updates("third", new Date("2026-10-23T10:00:00Z")))).toBe(false);
+    expect(await rows()).toHaveLength(2);
+  });
+
   it("closes the open opt-out when the address subscribes again, and a new opt-out opens another", async () => {
     expect(await recordResubscribe("jane@example.com", "events", LATER)).toBe(false);
     await recordOptOut(jane("msg_1"));

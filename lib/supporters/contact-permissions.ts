@@ -108,7 +108,7 @@ export function stateValue(state: ContactState): string {
 }
 
 /**
- * What staff send to: PauseAI Updates, a yes to the newsletter; PauseAI
+ * What staff send to: PauseAI UK Updates, a yes to the newsletter; PauseAI
  * Updates including Luma, a yes to the newsletter or events (being on our
  * Luma calendar, and the numbers that go with it); and Volunteering.
  */
@@ -175,7 +175,7 @@ export function listsOn(permissions: readonly ContactPermission[]): { list: List
 
 /**
  * What an email's unsubscribe link stops, from the topics its copy went
- * under: PauseAI Updates for one to either Updates list, which leaves Luma's
+ * under: PauseAI UK Updates for one to either Updates list, which leaves Luma's
  * own calendar alone; else what it went under, Volunteering.
  */
 export function unsubscribeTopics(topics: readonly Topic[]): Topic[] {

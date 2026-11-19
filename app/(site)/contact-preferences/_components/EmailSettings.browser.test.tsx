@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
-import { LUMA_CHOICE, type SettingsView } from "@/lib/supporters/settings-view";
+import { LUMA_CHOICE, LUMA_OFFERED, type SettingsView } from "@/lib/supporters/settings-view";
 import EmailSettings, { type SettingsActions } from "./EmailSettings";
 import {
   exampleBlocked,
@@ -47,7 +47,7 @@ async function show(
   return done;
 }
 
-/** A card by its topic: PauseAI Updates, the newsletter; Volunteering; or Luma's own emails, events. */
+/** A card by its topic: PauseAI UK Updates, the newsletter; Volunteering; or Luma's own emails, events. */
 const card = (topic: "newsletter" | "events" | "volunteering") =>
   page.getByRole("group", { name: copy.topics[topic], exact: false });
 
@@ -114,6 +114,8 @@ describe("EmailSettings", () => {
       ["choice", "newsletter:email"],
       ["choice", "newsletter:text"],
       ["choice", "volunteering:email"],
+      // That the page drew Luma's box, then the box, ticked.
+      ["choice", LUMA_OFFERED],
       ["choice", LUMA_CHOICE],
     ]);
     // The next change saves too, with the first kept, and says so under its own topic.
@@ -123,19 +125,31 @@ describe("EmailSettings", () => {
     expect(fields(done.save.mock.calls[1][0])).toContainEqual(["choice", "volunteering:email"]);
     await expect.element(card("newsletter").getByRole("status")).toHaveTextContent(copy.settings.saved);
     await expect.element(card("volunteering").getByText(copy.settings.saved)).not.toBeInTheDocument();
-    // Saved only once every save is: a change made while another saves says Saving till both are. Luma's box, off
-    // then on again, says so under Luma's card.
+    // Saved only once every save is: a change made while another saves says Saving till both are.
     let first = () => {};
     done.save.mockImplementationOnce(() => new Promise((resolve) => (first = () => resolve(exampleSettings))));
-    await card("events").getByRole("checkbox").click();
-    expect(fields(done.save.mock.calls[2][0])).not.toContainEqual(["choice", LUMA_CHOICE]);
-    await card("events").getByRole("checkbox").click();
-    await expect.element(card("events").getByRole("status")).toHaveTextContent(copy.settings.saving);
+    await card("volunteering").getByRole("checkbox", { name: copy.ways.text }).click();
+    await card("newsletter").getByRole("checkbox", { name: copy.ways.text }).click();
+    await expect.element(card("newsletter").getByRole("status")).toHaveTextContent(copy.settings.saving);
     first();
     await vi.waitFor(() => expect(done.save).toHaveBeenCalledTimes(4));
-    expect(fields(done.save.mock.calls[3][0])).toContainEqual(["choice", LUMA_CHOICE]);
-    await expect.element(card("events").getByRole("status")).toHaveTextContent(copy.settings.saved);
+    await expect.element(card("newsletter").getByRole("status")).toHaveTextContent(copy.settings.saved);
     await expect.element(card("volunteering").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
+  });
+
+  it("takes them off our Luma calendar by its box, which then can't be ticked again, and says why", async () => {
+    const done = await show(exampleSettings);
+    done.save.mockResolvedValueOnce({ ...exampleSettings, onLuma: false });
+    await expect.element(card("events").getByText(copy.lumaOff)).not.toBeInTheDocument();
+    await card("events").getByRole("checkbox").click();
+    // Sent as drawn but unticked, which is what takes them off.
+    expect(fields(done.save.mock.calls[0][0])).toContainEqual(["choice", LUMA_OFFERED]);
+    expect(fields(done.save.mock.calls[0][0])).not.toContainEqual(["choice", LUMA_CHOICE]);
+    await expect.element(card("events").getByRole("status")).toHaveTextContent(copy.settings.saved);
+    // Only Luma can put them back on, so the box is locked, unticked, with how.
+    await expect.element(card("events").getByRole("checkbox")).toBeDisabled();
+    await expect.element(card("events").getByRole("checkbox")).not.toBeChecked();
+    await expect.element(card("events").getByText(copy.lumaOff)).toBeVisible();
   });
 
   it("says a yes from PauseAI Global's volunteering list was given on joining", async () => {

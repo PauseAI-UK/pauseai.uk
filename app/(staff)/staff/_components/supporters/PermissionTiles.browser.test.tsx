@@ -18,52 +18,70 @@ describe("PermissionTiles", () => {
 
   it("is a row a list: its name and ?, each way and address with its answer and why, and what the list is", async () => {
     await render(<PermissionTiles permissions={exampleSupporterDetails.permissions} />);
-    const [updates, withLuma] = rows();
+    const [updates, lumaOnly] = rows();
     // She has answers through Luma but isn't on the calendar, so no row of Luma's own messages.
     expect(rows()).toHaveLength(2);
-    // Updates first; including Luma with her email, Updates' yes, and her Luma number, its no, each its own answer.
+    // Updates first, with her email. Then what Luma alone reached: her Luma number, which Updates has no answer
+    // for, with its no. Not her email's no to events, as Updates' row has her email.
     expect(head(updates)).toBe(`${lists.updates}?`);
     expect(lines(updates)).toEqual([`jane@example.com${copy.answers.email.yes}`]);
+    expect(head(lumaOnly)).toBe(`${copy.lumaOnly.name}?`);
     // A UK number without its country code.
-    expect(lines(withLuma)).toEqual([
-      `jane@example.com${copy.answers.email.yes}`,
-      `07700 900001${copy.answers.text.no}`,
-    ]);
-    expect(answers(withLuma).map((a) => (a as HTMLElement).dataset.send)).toEqual(["yes", "no"]);
+    expect(lines(lumaOnly)).toEqual([`07700 900001${copy.answers.text.no}`]);
+    expect(answers(lumaOnly).map((a) => (a as HTMLElement).dataset.send)).toEqual(["no"]);
     // Why, where from and when, under each.
-    expect(reasons(withLuma)).toEqual([
-      copy.reasons.asked("15 Oct 2026", copy.sources["email-your-mp"]),
-      copy.reasons.unsubscribed("12 Oct 2026", copy.sources.luma),
-    ]);
+    expect(reasons(lumaOnly)).toEqual([copy.reasons.unsubscribed("12 Oct 2026", copy.sources.luma)]);
     expect(reasons(updates)).toEqual([copy.reasons.asked("15 Oct 2026", copy.sources["email-your-mp"])]);
     // Green we can, plain we can't: the colour on the answer alone.
     expect(updates.querySelector("[class*=green]")).not.toBeNull();
-    expect(withLuma.querySelectorAll("[class*=green]")).toHaveLength(1);
+    expect(lumaOnly.querySelector("[class*=green]")).toBeNull();
     // An address we can contact a link; one we can't, words; each after its icon, named for a screen reader.
     expect(updates.querySelector("a[href='mailto:jane@example.com']")).not.toBeNull();
-    expect(withLuma.querySelectorAll("[class*=address] a")).toHaveLength(1);
-    expect([...withLuma.querySelectorAll("[class*=address] svg")].map((svg) => svg.getAttribute("aria-label"))).toEqual(
-      [copy.email, copy.phone],
-    );
-    // The ? just after the list's name opens what it is, and when it's a yes and a no.
+    expect(lumaOnly.querySelectorAll("[class*=address] a")).toHaveLength(0);
+    expect(
+      [updates, lumaOnly].map((row) => row.querySelector("[class*=address] svg")!.getAttribute("aria-label")),
+    ).toEqual([copy.email, copy.phone]);
+    // The ? just after the list's name opens what it is: for Luma alone, who that is, with no list of sources.
     expect(updates.querySelector("[class*=head]")!.children[1].tagName).toBe("BUTTON");
     await page.getByRole("button", { name: copy.why }).nth(1).click();
-    const popover = withLuma.querySelector("[popover]")!;
-    expect(popover.querySelector("strong")!.textContent).toBe(copy.topicTitle(lists["updates-luma"]));
-    // Its sentence says who's on it, so no list follows.
+    const popover = lumaOnly.querySelector("[popover]")!;
+    expect(popover.querySelector("strong")!.textContent).toBe(copy.topicTitle(copy.lumaOnly.name));
     expect(popover.querySelectorAll("li")).toHaveLength(0);
-    await expect.element(page.getByText(copy.details["updates-luma"].about)).toBeVisible();
+    await expect.element(page.getByText(copy.lumaOnly.about)).toBeVisible();
+    // Updates' own says what puts someone on it.
+    await page.getByRole("button", { name: copy.why }).first().click();
+    expect([...updates.querySelectorAll("[popover] li")].map((li) => li.textContent)).toEqual(copy.details.updates.on);
   });
 
-  it("says someone on our Luma calendar is, and takes events' yes for including Luma where newsletter says no", async () => {
+  it("says someone on our Luma calendar is, and shows events' yes as Luma alone where Updates says no", async () => {
     const [newsletter] = exampleSupporterDetails.permissions;
     const no = { ...newsletter, send: "no" as const, reason: "declined" as const };
     const following = { ...newsletter, topic: "events" as const, reason: "following" as const };
-    await render(<PermissionTiles permissions={[no, following]} onLuma />);
-    const [updates, withLuma, luma] = rows();
+    const { rerender } = await render(<PermissionTiles permissions={[no, following]} onLuma />);
+    const [updates, lumaOnly, luma] = rows();
     expect(lines(updates)).toEqual([`jane@example.com${copy.answers.email.no}`]);
-    expect(lines(withLuma)).toEqual([`jane@example.com${copy.answers.email.yes}`]);
+    expect(lines(lumaOnly)).toEqual([`jane@example.com${copy.answers.email.yes}`]);
+    expect(head(luma)).toBe(copy.luma.name);
     expect(reasons(luma)).toEqual([copy.luma.on]);
+    // Where Updates says yes too, events' yes says no more, so it has no row.
+    await rerender(<PermissionTiles permissions={[newsletter, following]} onLuma />);
+    expect(rows().map(head)).toEqual([`${lists.updates}?`, copy.luma.name]);
+  });
+
+  it("shows what stopped Luma alone reaching them, but not that they never followed the calendar", async () => {
+    const [newsletter] = exampleSupporterDetails.permissions;
+    const events = { ...newsletter, topic: "events" as const, send: "no" as const };
+    await render(
+      <PermissionTiles
+        permissions={[
+          { ...events, reason: "unsubscribed", source: "staff" },
+          { ...events, address: "b@example.com", reason: "not-following", source: "luma", at: null },
+        ]}
+      />,
+    );
+    expect(rows().map(head)).toEqual([`${copy.lumaOnly.name}?`]);
+    expect(lines(rows()[0])).toEqual([`jane@example.com${copy.answers.email.no}`]);
+    expect(reasons(rows()[0])).toEqual([copy.reasons.unsubscribed("15 Oct 2026", copy.sources.staff)]);
   });
 
   it("opens what one list means from its own ?, as beside each list in the Consent menu and a broadcast's", async () => {
@@ -101,9 +119,8 @@ describe("PermissionTiles", () => {
         ]}
       />,
     );
-    // Newsletter answers alone: both Updates lists, the same.
-    expect(rows().map(head)).toEqual([`${lists.updates}?`, `${lists["updates-luma"]}?`]);
-    expect(reasons(rows()[1])).toEqual(reasons(rows()[0]));
+    // Newsletter answers alone: Updates' row, and none for Luma alone.
+    expect(rows().map(head)).toEqual([`${lists.updates}?`]);
     expect(reasons(rows()[0])).toEqual([
       copy.reasons.asked("16 Oct 2026", copy.sources["march-2026-11"]),
       copy.reasons.declined("16 Oct 2026", copy.sources["email-your-mp"]),
@@ -116,12 +133,11 @@ describe("PermissionTiles", () => {
 
   it("puts a member's CiviCRM answers beside the rest, and a volunteer's number by text and by call", async () => {
     await render(<PermissionTiles permissions={exampleMemberDetails.permissions} />);
-    const [updates, withLuma, volunteering] = rows();
+    const [updates, volunteering] = rows();
     expect(lines(updates)).toEqual([`rhea@example.com${copy.answers.email.yes}`]);
     expect(reasons(updates)).toEqual([copy.reasons.member("10 Nov 2026", copy.sources.civicrm)]);
-    // Updates' yes stands for including Luma; she isn't on the calendar.
-    expect(reasons(withLuma)).toEqual([copy.reasons.member("10 Nov 2026", copy.sources.civicrm)]);
-    expect(rows()).toHaveLength(3);
+    // She isn't on the Luma calendar, so there's no row for Luma alone.
+    expect(rows().map(head)).toEqual([`${lists.updates}?`, `${lists.volunteering}?`]);
     // Her number's text and call answers are the same, so they share a line, a lozenge each, after a handset,
     // and the link rings it.
     expect(lines(volunteering)).toEqual([
@@ -171,7 +187,7 @@ describe("PermissionTiles", () => {
 
   it("says no for a blocked address on each of its lists, with what blocked it and the link to the blocked emails", async () => {
     await render(<PermissionTiles permissions={exampleBlockedPermissions} />);
-    expect(rows().map(head)).toEqual([`${lists.updates}?`, `${lists["updates-luma"]}?`]);
+    expect(rows().map(head)).toEqual([`${lists.updates}?`]);
     for (const row of rows()) {
       expect(lines(row)).toEqual([`gus@example.com${copy.answers.email.no}`]);
       expect(reasons(row)).toEqual([`${copy.blockedBecause.complaint("5 Oct 2026")} · ${copy.seeBlocked}`]);
@@ -184,9 +200,9 @@ describe("PermissionTiles", () => {
   });
 
   it("words every reason it can give, with when", async () => {
-    const [, luma] = exampleSupporterDetails.permissions;
+    const [newsletter] = exampleSupporterDetails.permissions;
     const permissions = REASONS.filter((reason) => reason !== "blocked").map((reason) => ({
-      ...luma,
+      ...newsletter,
       address: `${reason}@example.com`,
       reason,
       at: new Date("2026-09-12T10:00:00Z"),
@@ -207,13 +223,12 @@ describe("PermissionTiles", () => {
         ]}
       />,
     );
-    // Both Updates lists, then Volunteering.
+    // Updates, then Volunteering.
     expect(rows().map((row) => reasons(row)[0])).toEqual([
-      copy.reasons.volunteered("10 Nov 2026", copy.sources.civicrm),
       copy.reasons.volunteered("10 Nov 2026", copy.sources.civicrm),
       copy.reasons.volunteered("10 Nov 2026", copy.sources.preferences),
     ]);
-    expect(reasons(rows()[0])[0]).not.toBe(reasons(rows()[2])[0]);
+    expect(reasons(rows()[0])[0]).not.toBe(reasons(rows()[1])[0]);
   });
 
   it("says what blocked an address: a bounce, a hold, or only the link for a block it has no words for", async () => {

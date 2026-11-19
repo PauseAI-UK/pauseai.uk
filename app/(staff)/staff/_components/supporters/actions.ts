@@ -24,7 +24,8 @@ export async function recordOptOutNow(form: FormData): Promise<boolean> {
   const id = idFrom(form, "supporterId");
   const how = String(form.get("how") ?? "").trim();
   const supporter = id ? await getSupporter(id) : undefined;
-  const choice = supporter && chosen(form.get("choice"), optOutChoices(supporter.permissions, supporter.summary.lumaContact));
+  const choice =
+    supporter && chosen(form.get("choice"), optOutChoices(supporter.permissions, supporter.summary.lumaContact));
   if (!choice || !how) return false;
   const recorded = await recordStaffOptOut(choice, email, { how });
   if (recorded) await offCalendarAfter([{ ...choice, source: "staff" }]);

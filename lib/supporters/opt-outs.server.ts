@@ -88,12 +88,29 @@ export const optOutOnComplaint: Complained = async (problem, id, db) => {
 /**
  * Records an opt-out, and queues it for CiviCRM if it takes it. Returns
  * false, keeping nothing, when the source has told us this one before, or
- * the address is already opted out of the list.
+ * the address is already opted out of the list and that holds.
+ *
+ * An open opt-out doesn't hold once a yes since has outlasted it: a form's
+ * box ticked after it, or, for the newsletter, following our Luma calendar
+ * after it, which puts them on PauseAI UK Updates inc. Luma. A no said again
+ * after that yes ends the open opt-out as it starts, so it's the latest
+ * answer and holds.
  */
 export async function recordOptOut(optOut: OptOut, db?: Queryable): Promise<boolean> {
   if (!db) return transaction((tx) => recordOptOut(optOut, tx));
   const address = normaliseAddress(optOut.address);
   const way = optOut.way ?? "email";
+  await query(
+    `UPDATE opt_outs o SET resubscribed_at = $4
+     WHERE o.address = $1 AND o.list = $2 AND o.way = $3 AND o.resubscribed_at IS NULL AND o.unsubscribed_at < $4
+       AND NOT EXISTS (SELECT 1 FROM opt_outs told WHERE told.source = $5 AND told.source_ref = $6)
+       AND EXISTS (SELECT 1 FROM contact_permissions p
+         WHERE p.address = o.address AND p.way = o.way AND p.send = 'yes'
+           AND p.at > o.unsubscribed_at AND p.at < $4
+           AND (p.topic = o.list OR (o.list = 'newsletter' AND p.topic = 'events')))`,
+    [address, optOut.list, way, optOut.unsubscribedAt, optOut.source, optOut.sourceRef],
+    db,
+  );
   const [row] = await query<{ id: number }>(
     `INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, recorded_by, how, message_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING RETURNING id::int AS id`,

@@ -28,6 +28,7 @@ const KIT = "kit.member@example.com";
 const SASHA = "sasha.chapter@example.com";
 const TOM = "tom.seed@example.com";
 const CASEY = "casey.chapter@example.com";
+const ALEX = "alex.fixture@example.com";
 
 /** A link to `address`'s settings, made `daysAgo`, with this flow's own token; its path. */
 function link(database: string, address: string, daysAgo = 0): string {
@@ -134,13 +135,33 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
   await frame(page, "PauseAI Global's emails, and Stop everything", { window: true });
 });
 
+test("Coming off our Luma calendar", async ({ page, request, flowDatabase }) => {
+  story(
+    "Alex is on our Luma calendar and nothing else. Their settings have PauseAI UK Updates by email ticked, as those emails go to everyone on the calendar, and a card for Luma's own messages.",
+  );
+  await importLuma(request, BASE);
+  await open(page, link(flowDatabase, ALEX));
+  const luma = topicCard(page, "events").getByRole("checkbox", { name: copy.lumaBox });
+  await expect(luma).toBeChecked();
+  await expect(topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
+  await frame(page, "Alex's settings");
+  story(
+    "Alex unticks Luma's box, which takes them off the calendar. Only Luma can put them back on, so the box locks and says how. Updates stays ticked: it's now a yes of Alex's own.",
+  );
+  await luma.uncheck();
+  await expect(topicCard(page, "events").getByText(copy.settings.saved)).toBeVisible();
+  await expect(luma).toBeDisabled();
+  await expect(topicCard(page, "events").getByText(copy.lumaOff)).toBeVisible();
+  await expect(topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
+  await topicCard(page, "events").scrollIntoViewIfNeeded();
+  await frame(page, "Off the Luma calendar, its box locked", { window: true });
+});
+
 test("Stopping everything, and restarting", async ({ page, request, flowDatabase }) => {
   story(
     "Sasha wants nothing more from PauseAI. Stop everything stops our newsletters, events and volunteering, by email, text and phone, and PauseAI Global's bulk email too, which goes to PauseAI Global.",
   );
   await importCivicrm(request, BASE);
-  // Joined before the fixture clock's today, as anyone pressing Stop everything has: the latest answer is what holds.
-  runSql(flowDatabase, `UPDATE civicrm_contacts SET joined_date = '2026-10-01' WHERE email = '${SASHA}'`);
   await open(page, link(flowDatabase, SASHA));
   await frame(page, "Sasha's settings");
   await page.getByRole("button", { name: copy.stopAll.button }).click();

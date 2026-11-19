@@ -99,7 +99,7 @@ describe("SupporterDetails", () => {
     // So does the same letter in the history.
     expect(document.querySelector('a[href="/staff/letters/99"]')).not.toBeNull();
     // Beside the facts, whether we'd contact her on each list: by email, and by the phone she gave Luma, which
-    // she unsubscribed in Luma, under PauseAI Updates including Luma.
+    // she unsubscribed in Luma, under PauseAI UK Updates inc. Luma.
     const subscriptions = page.getByRole("region", { name: copy.detail.listsTitle });
     await expect
       .element(
@@ -658,14 +658,14 @@ describe("SupporterDetails, a member", () => {
       (tr) => [...(tr as HTMLTableRowElement).cells].map((td) => td.textContent),
     );
     expect(held).toContainEqual(["10 Jul 2026", copy.detail.city, "Cardiff", copy.sources.civicrm]);
-    // Her membership's yes, under both Updates lists.
+    // Her membership's yes, under PauseAI UK Updates.
     await expect
       .element(
         page.getByText(copy.detail.permissions.reasons.member("10 Nov 2026", copy.detail.permissions.sources.civicrm), {
           exact: false,
         }),
       )
-      .toHaveLength(2);
+      .toHaveLength(1);
     const history = page.getByRole("list", { name: copy.detail.activityTitle });
     // CiviCRM gives the day they joined, with no time.
     expect(history.element().textContent).toContain(

@@ -1,6 +1,6 @@
 import { hasWay, type ContactPermission, type Topic, type Way } from "./contact-permissions";
 
-// What the contact preferences page shows for an address: PauseAI Updates and
+// What the contact preferences page shows for an address: PauseAI UK Updates and
 // Volunteering, with a box for each way each goes by, ticked where we'd send
 // it; why; whether Luma's own emails go to it; and what holds all of the
 // address's email, which only that can lift, or nobody here can.
@@ -46,6 +46,13 @@ export const SETTINGS_TOPICS = ["newsletter", "volunteering"] as const;
 /** The box for Luma's own emails, in a form: whether the address stays on our calendar. */
 export const LUMA_CHOICE = "luma";
 
+/**
+ * Sent with the form whenever the page drew that box, so it being unticked
+ * can be told from it not being there: a page opened before they joined the
+ * calendar has none, and saving it must leave them on.
+ */
+export const LUMA_OFFERED = "luma-offered";
+
 const HOLDS: Partial<Record<ContactPermission["reason"], SettingsHold["kind"]>> = {
   blocked: "blocked",
   "do-not-email": "do-not-email",
@@ -87,8 +94,8 @@ export const choiceKey = (topic: Topic, way: Way): string => `${topic}:${way}`;
 
 /**
  * A topic's answers as the page counts them: `volunteering`'s own; for
- * PauseAI Updates, `newsletter`'s, or `events`' where that's a yes and
- * `newsletter`'s isn't, as either puts them on PauseAI Updates including
+ * PauseAI UK Updates, `newsletter`'s, or `events`' where that's a yes and
+ * `newsletter`'s isn't, as either puts them on PauseAI UK Updates including
  * Luma, which we send them.
  */
 export function topicAnswers(view: Pick<SettingsView, "answers">, topic: Topic): ContactPermission[] {

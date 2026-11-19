@@ -761,8 +761,11 @@ job all leave broadcasts out.
   connected Gmail matches a reply to its copy by the Message-ID it went
   with, before anything else in the mailbox sees it, and keeps it whole
   (`broadcast_replies`, the message in Netlify Blobs). A person's reply
-  waits for staff, who record it as an opt-out, of what the copy went under
-  or of every bulk email (every text, for a text's), or as nothing to do;
+  waits for staff, who record it as an opt-out or as nothing to do. The
+  opt-out is of what the email's unsubscribe link stops (PauseAI UK
+  Updates for either Updates list, which leaves them on our Luma calendar)
+  or of every bulk email, which takes them off it; for a text's, of what
+  it went under or of every text;
   an automatic one never waits. A reply to a text is its words, as
   WhatsApp's webhook gives them. One that's more than words has its kind
   too (`broadcast_replies.kind`, WhatsApp's name for it, or `voice` for a
@@ -1389,7 +1392,17 @@ supporter has. An address is opted out of a topic by a way while it has an
 open row, one at most for each. A row is named for what was stopped, the
 topic and the way (the consents, below), not for what told us, so an
 address has one opt-out in force for each whoever reported it, and its
-source says who did. Three things tell us:
+source says who did.
+
+An open row can stop holding: the latest answer wins (below), so a yes
+since outlasts it, such as following our Luma calendar after unsubscribing
+from the newsletter, which puts them on PauseAI UK Updates inc. Luma. When
+they say no again after that yes, `recordOptOut` ends the old row as the
+new one starts, so the new one is the latest answer. Their history shows
+the old one ended then. A no said again while the open row still holds
+changes nothing.
+
+Three things tell us:
 
 - Luma's `calendar.person.unsubscribed` webhook (`/api/luma/webhook`,
   `lib/events/luma-webhooks.server.ts`), at once, keyed by Luma's `Webhook-Id`
@@ -1583,7 +1596,7 @@ A consent is a topic, what we'd send, by a way (`CONSENTS` in
 `lib/supporters/contact-permissions.ts`): email to an address, or a text (WhatsApp too)
 or a call to a number. The topics:
 
-- **Newsletter**, PauseAI Updates: a box ticked on one of our forms, for
+- **Newsletter**, PauseAI UK Updates: a box ticked on one of our forms, for
   email, and for texts on the march's, which says "by email, text and
   phone"; a paper sign-up, where writing an address or a number down is
   joining; a letter on pauseai.info's earlier form before it had a consent
@@ -1609,19 +1622,31 @@ Staff never choose topics. They send to a list (`LISTS` in the same file),
 and the Consent filter, a broadcast and a supporter's page name only
 lists:
 
-| List                           | Who's on it                                 |
-| ------------------------------ | ------------------------------------------- |
-| PauseAI Updates                | a yes to `newsletter`                       |
-| PauseAI Updates including Luma | a yes to `newsletter`, or a yes to `events` |
-| Volunteering                   | a yes to `volunteering`                     |
+| List                         | Who's on it                                 |
+| ---------------------------- | ------------------------------------------- |
+| PauseAI UK Updates           | a yes to `newsletter`                       |
+| PauseAI UK Updates inc. Luma | a yes to `newsletter`, or a yes to `events` |
+| Volunteering                 | a yes to `volunteering`                     |
 
-As a no to the newsletter is a no to events, unsubscribing from PauseAI
+As a no to the newsletter is a no to events, unsubscribing from PauseAI UK
 Updates leaves both Updates lists. It doesn't take anyone off the Luma
 calendar. Luma's own emails, which the calendar sends to everyone on it,
 are Luma's, not ours: no list controls them, and "Luma messages
 (sent via Luma)", on the contact preferences page and a supporter's page,
 is only whether they're on it. An email's unsubscribe link stops the list
-it went to: PauseAI Updates for either Updates list, never the calendar.
+it went to: PauseAI UK Updates for either Updates list, never the calendar.
+
+Where a person's own lists are shown (a supporter's page, the supporters
+list's Consent column and its download), inc. Luma appears only where
+Luma alone reaches them, under its own name for that: elsewhere it says no
+more than Updates does. A supporter's page also shows what stopped Luma
+alone reaching them, such as an opt-out or a block.
+
+Staff record an opt-out someone told them of with "Unsubscribe them", on
+the supporter's page: of a list by a way we can send them, of every bulk
+email, or of Luma's own messages while they're on the calendar. PauseAI UK
+Updates is offered wherever either Updates list reaches them, so someone
+only Luma reaches can be taken off our emails and left on the calendar.
 
 Each answer is yes or no, with a reason from a short list, when, and which
 source said so. First, whatever stops every topic by the way: a blocked

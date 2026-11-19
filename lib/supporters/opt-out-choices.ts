@@ -23,7 +23,12 @@ type Answer = Pick<ContactPermission, "address" | "channel" | "topic" | "way" | 
  * address by email, then each number by text, then by call. For someone
  * on our Luma calendar (`onLuma`), events by email too at each address with
  * an answer about events by email, even a no, as Luma's own messages still
- * go there till they opt out of them.
+ * go there till they opt out of them. The newsletter by email too wherever
+ * events by email is a yes, as PauseAI UK Updates inc. Luma goes there: a no
+ * to it stops our emails and leaves them on the calendar, as the link in
+ * one of those emails does. Events by text only where the newsletter by
+ * text isn't a yes too: there, opting out of events alone would stop
+ * nothing, as PauseAI UK Updates still goes to the number.
  */
 export function optOutChoices(permissions: Answer[], onLuma = false): OptOutChoice[] {
   const yes = permissions.filter((p) => p.send === "yes");
@@ -31,8 +36,15 @@ export function optOutChoices(permissions: Answer[], onLuma = false): OptOutChoi
   const addresses = (channel: "email" | "phone") => [
     ...new Set([...yes, ...luma].filter((p) => p.channel === channel).map((p) => p.address)),
   ];
-  const offered = (address: string, way: Way, topic: Topic) =>
-    [...yes, ...luma].some((p) => p.address === address && p.way === way && p.topic === topic);
+  const has = (address: string, way: Way, topic: Topic, among: Answer[]) =>
+    among.some((p) => p.address === address && p.way === way && p.topic === topic);
+  const offered = (address: string, way: Way, topic: Topic) => {
+    if (topic === "events" && way === "text" && has(address, "text", "newsletter", yes)) return false;
+    return (
+      has(address, way, topic, [...yes, ...luma]) ||
+      (topic === "newsletter" && way === "email" && has(address, "email", "events", yes))
+    );
+  };
   const topics = (address: string, way: Way): OptOutChoice[] =>
     CONSENTS.filter((c) => c.way === way && offered(address, way, c.topic)).map((c) => ({
       address,
