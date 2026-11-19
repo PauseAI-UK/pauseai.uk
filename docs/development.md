@@ -435,6 +435,62 @@ Each checkout has its own ports, so branches can be served side by side.
 The script's `next dev` shares `.next` with the checkout, so don't run a
 storyboard review in the same checkout meanwhile.
 
+#### How fast a page loads
+
+To see what a change does to a page's load on a phone's connection, set the
+versions side by side:
+
+```bash
+npm run measure -- origin/main HEAD                         # the home page, before and after
+npm run measure -- --path /donate before=origin/main after=HEAD
+npm run measure -- --viewport phone --network slow-4g origin/main HEAD
+npm run measure -- --images '[data-marquee-track="hero"] img' origin/main HEAD
+npm run measure -- live=https://pauseai.uk                  # a site that's up, as it stands
+```
+
+Each version is a commit, so commit what you want measured, or the address
+of a site that's up. A commit is built on fixture data in main's checkout,
+one at a time, and loaded in Chromium with nothing cached, on a phone and a
+desktop, on Chrome DevTools' "Slow 4G" and "Fast 4G". It prints, for each:
+
+| Figure        | What it is                                                                |
+| ------------- | ------------------------------------------------------------------------- |
+| First paint   | The first text or picture on screen                                       |
+| First image   | The first of the images in the window to show at all                      |
+| Last image    | When every image in the window shows in full, after any fade              |
+| Largest paint | The browser's Largest Contentful Paint                                    |
+| Buttons work  | When the page's scripts have started, so a tap on the menu does something |
+| Page loaded   | When the last thing the page fetched arrived                              |
+| Requests, KB  | Everything fetched, by kind, and what came from other sites               |
+
+Each is the median of five loads (`--runs`). `--images` picks the images
+"first image" and "last image" time, every `<img>` by default. The tables
+are also written to a page in `tmp/measure/`, with a filmstrip of each
+version's load, and every run as JSON.
+
+Things to know:
+
+- **Nothing reaches another site** during the loads that count, so a
+  measurement is never a visit in Google Analytics. A stand-in on this
+  machine answers for Google and for pauseai.info's joining form, with a
+  copy of each of their files that it fetched once and keeps in
+  `tmp/measure/replay/` (`scripts/measure-replay.mjs`). Their scripts still
+  weigh on the connection what they weigh for a visitor. Delete the folder
+  to fetch them afresh.
+- **It waits for the machine to go quiet** before each load, and runs a
+  load again if the machine was busy during it, so other work only makes it
+  slower.
+- **A build on this machine isn't Netlify.** The figures compare versions
+  with each other. The live site is served over HTTP/2 from Netlify's CDN,
+  and a second visit depends on its cache headers, neither of which a
+  local build shows. Measure the live site's address for those. A deploy
+  preview is behind Netlify's login, so it can't be measured from here.
+- **Chromium only.** Firefox and Safari can't be slowed down this way.
+
+To add or change a photo in the home page's hero, see
+`lib/content/hero-photos.ts`: `npm run data:hero-photos` makes the copies
+and the colour the page needs of it.
+
 ### With real outside services
 
 Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is explained there. Things to know:
