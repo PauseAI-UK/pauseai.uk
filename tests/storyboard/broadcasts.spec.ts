@@ -754,8 +754,14 @@ test("A number WhatsApp can't reach", async ({ page, request, flowDatabase }) =>
   const row = page.getByRole("row").filter({ hasText: emailCopy.emails.kinds["not-on-whatsapp"] });
   await expect(row).toBeVisible();
   await frame(page, "The number, with the blocked addresses");
-  story("Staff filter the list to the numbers WhatsApp couldn't reach.");
-  await page.goto(`${BASE}/staff/supporters/bounced-emails?kind=not-on-whatsapp`);
+  story("Staff filter the list to the numbers WhatsApp couldn't reach: its causes are under email and text.");
+  const causes = (await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add })))
+    .locator("details")
+    .filter({ has: page.locator("summary", { hasText: emailCopy.emails.columns.kind }) });
+  await causes.locator("summary").click();
+  await frame(page, "The causes, by email and text");
+  await causes.getByRole("link", { name: emailCopy.emails.kinds["not-on-whatsapp"], exact: true }).click();
+  await expect(page).toHaveURL(/kind=not-on-whatsapp/);
   await expect(row).toBeVisible();
   await frame(page, "Only numbers not on WhatsApp");
   story("Its History says which text WhatsApp couldn't deliver.");

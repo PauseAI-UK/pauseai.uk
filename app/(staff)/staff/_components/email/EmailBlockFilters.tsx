@@ -1,5 +1,6 @@
 import type { Filter } from "@/lib/staff-list-filters";
 import { FOUND_BY } from "@/lib/email/block-filters";
+import ChannelIcon from "@/components/ui/ChannelIcon";
 import FilterBar from "../ui/FilterBar";
 import { emailCopy } from "./copy";
 
@@ -9,13 +10,21 @@ import { emailCopy } from "./copy";
  * what found them out (FOUND_BY).
  */
 export function emailBlockFilters(numbers: boolean): Filter[] {
-  const { columns, kinds, foundBy } = emailCopy.emails;
-  const kindsShown = ["hard", "complaint", "hold", ...(numbers ? ["not-on-whatsapp"] : [])];
+  const { columns, kinds, foundBy, channels } = emailCopy.emails;
+  const kindsShown = [
+    ...["hard", "complaint", "hold"].map((value) => ({ value, channel: "email" as const })),
+    ...(numbers ? [{ value: "not-on-whatsapp", channel: "text" as const }] : []),
+  ];
   return [
     {
       name: "kind",
       label: columns.kind,
-      options: kindsShown.map((value) => ({ value, label: kinds[value] })),
+      // Each cause under its channel's heading, with the icon its rows have.
+      options: kindsShown.map(({ value, channel }) => ({
+        value,
+        label: kinds[value],
+        group: { label: channels[channel], icon: <ChannelIcon channel={channel} /> },
+      })),
     },
     {
       name: "found",

@@ -33,6 +33,8 @@ export const emailCopy = {
       hold: "“On hold” in CiviCRM",
       "not-on-whatsapp": "⁂ Not on WhatsApp",
     } as Record<string, string>,
+    // The headings the causes are under in their filter, by what was sent: an email or a text.
+    channels: { email: "⁂ Email", text: "⁂ Text" },
     // The reason kept for a hold, as CiviCRM gives none.
     holdReason: "Usually as its emails to it bounced",
     // A number's reason: WhatsApp couldn't deliver a text, and when texts try it again, after UNREACHABLE_MONTHS

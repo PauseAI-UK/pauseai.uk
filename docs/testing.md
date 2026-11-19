@@ -1028,7 +1028,7 @@ that drives it or why nothing does.
   - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;
   - our answer to a text that WhatsApp's webhook says failed, why under its bubble, and their reply back to check;
   - Stop pressed in WhatsApp, on the copy and the supporter's page;
-  - a text WhatsApp's webhook says it couldn't deliver: the copy, the number with the blocked addresses, filtered to numbers, its history, and unblocked with a note.
+  - a text WhatsApp's webhook says it couldn't deliver: the copy, the number with the blocked addresses, the causes by email and text in the filter, filtered to numbers, its history, and unblocked with a note.
 - `email-settings.spec.ts`: The contact preferences page:
   - asking for a link past Turnstile, the email with it, and the page it opens;
   - changing what you get, with why behind a “?” on a phone;
