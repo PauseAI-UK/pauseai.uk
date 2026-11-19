@@ -476,8 +476,11 @@ test("Two asks at once", async ({ page, request, flowDatabase }) => {
     .locator("details")
     .filter({ has: page.locator("summary", { hasText: new RegExp(`^${politiciansCopy.politicians.ask}$`) }) });
   await asks.locator("summary").click();
+  // Focused, the link scrolls the menu to it, as a person scrolling it would, rather than the page under it.
+  const deepmind = asks.getByRole("link", { name: /DeepMind letter/ });
+  await deepmind.focus();
   await frame(page, "The asks under + Filter", { window: true });
-  await asks.getByRole("link", { name: /DeepMind letter/ }).click();
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&ask=deepmind-letter/);
   await changeFilter(page, staffVocabulary.everyoneAsked.letter, staffVocabulary.statuses.signed);
   await expect(rows.filter({ hasText: "Lord Seedling of Example" })).toBeVisible();
