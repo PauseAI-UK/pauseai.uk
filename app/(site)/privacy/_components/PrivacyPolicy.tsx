@@ -6,7 +6,7 @@ export default function PrivacyPolicy() {
   return (
     <ProsePage>
       <h1>Privacy Policy</h1>
-      <ProseMeta>Last updated: 13 November 2026</ProseMeta>
+      <ProseMeta>Last updated: 19 November 2026</ProseMeta>
 
       <p>
         PauseAI UK is part of the global PauseAI movement and is run in the UK by <strong>Safe AI Alliance Ltd</strong>,
@@ -91,12 +91,10 @@ export default function PrivacyPolicy() {
 
       <h2>How we contact you</h2>
       <p>
-        We only email you if you asked for our newsletter or events, or said you’d like to volunteer. Every email has a
-        link to unsubscribe.
+        We email you PauseAI Updates if you asked for them on one of our forms, joined PauseAI UK as a member, said
+        you’d like to volunteer, or are on our Luma calendar. Every email has a link to unsubscribe.
       </p>
-      <p>
-        We only text you on WhatsApp if you asked for texts, or said you’d like to volunteer. Reply STOP to stop them.
-      </p>
+      <p>We text you on WhatsApp if you asked for texts, or said you’d like to volunteer. Reply STOP to stop them.</p>
       <p>
         Change what you get on the{" "}
         <Link className="inline-link" href="/contact-preferences">

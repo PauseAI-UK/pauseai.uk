@@ -520,10 +520,10 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ contact: [...unsubscribed, { way: "email", topic: "newsletter", reason: "asked" }] })).toEqual(
       ["Sam", "Pat"],
     );
-    // Never opting in to chapter emails in CiviCRM isn't an unsubscribe.
+    // A member is a yes to the newsletter, whether or not they opted in to it in CiviCRM.
     await member("old@example.com", "2026-09-01", { newsletter: "not_opted_in" });
     expect(await names({ contact: [...unsubscribed] })).toEqual(["Sam"]);
-    expect(await names({ contact: [{ way: "email", topic: "newsletter", reason: "not-opted-in" }] })).toEqual(["Old"]);
+    expect(await names({ contact: [{ way: "email", topic: "newsletter", reason: "member" }] })).toEqual(["Old"]);
     // A block is a no for each of the address's topics, and outranks the unsubscribe.
     await query(
       `WITH p AS (INSERT INTO email_problems (address, kind, at, can_reset) VALUES ('sam@example.com', 'hard', '2026-10-13T00:00:00Z', false) RETURNING id)
@@ -532,9 +532,9 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     expect(await names({ contact: [...unsubscribed] })).toEqual([]);
     expect(await names({ contact: [{ way: "email", topic: "events", reason: "blocked" }] })).toEqual(["Sam"]);
     // Any answer for a topic, and a yes.
-    const yes = await names({ contact: [{ way: "email", topic: "newsletter", send: "yes" }] });
+    const yes = await names({ contact: [{ way: "email", topic: "events", send: "yes" }] });
     expect(yes).not.toContain("Old");
-    expect(await names({ contact: [{ way: "email", topic: "newsletter" }] })).toEqual(
+    expect(await names({ contact: [{ way: "email", topic: "events" }] })).toEqual(
       expect.arrayContaining([...yes, "Old"]),
     );
     expect(await names({ contact: [...unsubscribed] })).toEqual([]);
@@ -602,6 +602,7 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     const details = (await getSupporter((await jane()).id))!;
     expect([...new Set(details.contacts.map((c) => c.phone).filter(Boolean))]).toEqual(["+447700900001"]);
     expect(details.permissions.filter((p) => p.channel === "phone").map((p) => [p.topic, p.way, p.send])).toEqual([
+      ["newsletter", "text", "yes"],
       ["events", "text", "no"],
       ["volunteering", "text", "yes"],
       ["volunteering", "call", "yes"],

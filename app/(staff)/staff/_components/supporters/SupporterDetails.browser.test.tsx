@@ -659,12 +659,9 @@ describe("SupporterDetails, a member", () => {
     expect(held).toContainEqual(["10 Jul 2026", copy.detail.city, "Cardiff", copy.sources.civicrm]);
     await expect
       .element(
-        page.getByText(
-          copy.detail.permissions.reasons.subscribed("10 Nov 2026", copy.detail.permissions.sources.civicrm),
-          {
-            exact: false,
-          },
-        ),
+        page.getByText(copy.detail.permissions.reasons.member("10 Nov 2026", copy.detail.permissions.sources.civicrm), {
+          exact: false,
+        }),
       )
       .toBeVisible();
     const history = page.getByRole("list", { name: copy.detail.activityTitle });

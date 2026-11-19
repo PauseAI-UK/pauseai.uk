@@ -254,17 +254,19 @@ function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
           ]),
         );
     const [emails, phones] = [states("email"), states("phone")];
+    // Each finds its supporters once, as a list (ARRAY()), rather than IN, for which Postgres may walk the
+    // supporters in the page's order checking each against them: slow when few are found.
     const found = [
       ...(emails.length
         ? [
-            sql`s.id IN (SELECT i.supporter_id FROM supporter_identity i
-               JOIN email_permissions p ON p.address = i.email WHERE ${sql.or(emails)})`,
+            sql`s.id = ANY(ARRAY(SELECT i.supporter_id FROM supporter_identity i
+               JOIN email_permissions p ON p.address = i.email WHERE ${sql.or(emails)}))`,
           ]
         : []),
       ...(phones.length
         ? [
-            sql`s.id IN (SELECT c.supporter_id FROM supporter_contact c
-               JOIN phone_permissions p ON p.address = c.phone WHERE ${sql.or(phones)})`,
+            sql`s.id = ANY(ARRAY(SELECT c.supporter_id FROM supporter_contact c
+               JOIN phone_permissions p ON p.address = c.phone WHERE ${sql.or(phones)}))`,
           ]
         : []),
     ];

@@ -101,7 +101,7 @@ test("Asking for a link to your contact preferences", { tag: "@phone" }, async (
 
 test("Changing what you get", async ({ page, request, flowDatabase }) => {
   story(
-    "Jane opens her settings. She gets the newsletter by email, as she's on the UK list with PauseAI Global, and events, as she follows our Luma calendar. Her number from Luma means she can choose texts too.",
+    "Jane opens her settings. She gets the newsletter by email, as she's a member of PauseAI UK, and events, as she follows our Luma calendar. Her number from Luma means she can choose texts too.",
   );
   await importCivicrm(request, BASE);
   await importLuma(request, BASE);
@@ -111,7 +111,7 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
   if (onPhone()) {
     story("Each topic says why she gets it. On a phone, that's behind the “?” beside its name.");
     await topicCard(page, "newsletter").getByRole("button", { name: copy.why.ask }).click();
-    await expect(topicCard(page, "newsletter").getByText(copy.why.reasons.subscribed!("")).first()).toBeVisible();
+    await expect(topicCard(page, "newsletter").getByText(copy.why.reasons.member!("")).first()).toBeVisible();
     await frame(page, "Why she gets the newsletter");
     await page.keyboard.press("Escape");
   }

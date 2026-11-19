@@ -203,7 +203,7 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
     expect(after.place).toEqual(before.place);
     // Permissions are by address, not supporter, so each letter's box is found by its address, as its form, as
     // the later migrations' consents have it: Jane ticked the box on her first letter, not her second, which
-    // doesn't undo it, and unsubscribed from the calendar; Wendy didn't tick it; Sam did.
+    // doesn't undo it, and unsubscribed from the calendar; Wendy wrote before the form had a box; Sam ticked it.
     expect(before.permissions.length).toBeGreaterThan(0);
     expect(after.permissions).toEqual([
       {
@@ -233,8 +233,8 @@ describeWithDatabase("migration 0043_form_entries", MAKES_DATABASES, () => {
       {
         topic: "newsletter",
         address: "wendy@example.com",
-        send: "no",
-        reason: "declined",
+        send: "yes",
+        reason: "wrote",
         at: new Date("2025-07-20T09:00:00Z"),
         source: "web-form",
       },

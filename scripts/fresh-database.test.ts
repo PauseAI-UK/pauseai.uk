@@ -361,12 +361,13 @@ describe.skipIf(process.env.NETLIFY === "true")("copying a database", () => {
           "no left",
           "no no-bulk-email",
           "no not-following",
-          "no not-opted-in",
           "no unsubscribed",
           "yes asked",
           "yes following",
+          "yes member",
           "yes signed-up",
           "yes subscribed",
+          "yes wrote",
         ]);
         // Every way a broadcast's copy can go, and each agrees with its supporter's consent now: a copy still
         // to send says yes; one skipped as blocked or unsubscribed, bounced, or stopped after it arrived says

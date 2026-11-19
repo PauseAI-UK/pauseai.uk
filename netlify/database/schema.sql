@@ -75,165 +75,14 @@ $$;
 CREATE FUNCTION public.contact_permission(for_topic text, for_way text, for_address text) RETURNS TABLE(send text, reason text, at timestamp with time zone, source text)
     LANGUAGE sql STABLE
     AS $$
-WITH
-  -- The CiviCRM contacts of the address, or who gave the number.
-  civi AS (
-    SELECT c.* FROM civicrm_contacts c WHERE for_way = 'email' AND c.email = for_address
-    UNION
-    SELECT c.* FROM civicrm_contacts c WHERE for_way <> 'email' AND c.phone = for_address
-  ),
-  -- The contacts who gave the number, for a volunteering call or text, each
-  -- with whether they wanted to volunteer, and when they joined.
-  callers AS (
-    SELECT coalesce(c.intent IN ('volunteer', 'lead') OR (c.intent IS NULL AND c.joined_date < '2026-06-30'), false)
-        AS volunteer,
-      civicrm_joined_at(c.joined_date, c.first_seen_at) AS at, 'civicrm' AS source
-    FROM civi c
-    WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND c.gone_at IS NULL
-      AND c.phone = for_address
-  ),
-  -- The latest lift of "No bulk emails" on the email settings page that
-  -- CiviCRM hasn't refused.
-  lifted AS (
-    SELECT max(p.chosen_at) AS at FROM preference_choices p
-    WHERE for_way = 'email' AND p.address = for_address AND p.topic = 'bulk' AND p.refused_at IS NULL
-  ),
-  stops AS (
-    SELECT 1 AS rank, 'blocked' AS reason, p.at, p.kind AS source
-    FROM email_blocks b JOIN email_problems p ON p.id = b.problem_id
-    WHERE for_way = 'email' AND b.address = for_address
-    UNION ALL
-    SELECT 2, 'do-not-email', min(c.do_not_email_since), 'civicrm' FROM civi c
-    WHERE for_way = 'email' AND c.do_not_email HAVING count(*) > 0
-    UNION ALL
-    SELECT 2, 'do-not-email', o.unsubscribed_at, o.source FROM opt_outs o
-    WHERE for_way = 'email' AND o.address = for_address AND o.list = 'all' AND o.resubscribed_at IS NULL
-    UNION ALL
-    SELECT 3, 'no-bulk-email', min(c.no_bulk_email_since), 'civicrm' FROM civi c
-    WHERE for_way = 'email' AND c.no_bulk_email
-      AND c.no_bulk_email_since > coalesce((SELECT l.at FROM lifted l), '-infinity')
-    HAVING count(*) > 0
-    UNION ALL
-    SELECT 3, 'no-bulk-email', o.unsubscribed_at, o.source FROM opt_outs o
-    WHERE for_way = 'email' AND o.address = for_address AND o.list = 'bulk' AND o.resubscribed_at IS NULL
-    UNION ALL
-    SELECT 2, 'do-not-sms', min(c.do_not_sms_since), 'civicrm' FROM civi c
-    WHERE for_way = 'text' AND c.do_not_sms HAVING count(*) > 0
-    UNION ALL
-    SELECT 2, 'do-not-phone', min(c.do_not_phone_since), 'civicrm' FROM civi c
-    WHERE for_way = 'call' AND c.do_not_phone HAVING count(*) > 0
-    UNION ALL
-    -- Every text, or every call, to the number stopped: by Stop everything, or WhatsApp.
-    SELECT 2, 'unsubscribed', o.unsubscribed_at, o.source FROM opt_outs o
-    WHERE for_way <> 'email' AND o.way = for_way AND o.address = for_address AND o.list = 'all'
-      AND o.resubscribed_at IS NULL
-  ),
-  said AS (
-    -- An opt-out in force.
-    SELECT 'no' AS send, 'unsubscribed' AS reason, o.unsubscribed_at AS at, o.source
-    FROM opt_outs o
-    WHERE o.way = for_way AND o.address = for_address AND o.list = for_topic AND o.resubscribed_at IS NULL
-    UNION ALL
-    -- A ticked box on one of our forms, or a paper sign-up.
-    SELECT 'yes', CASE WHEN f.form = 'paper-signup' THEN 'signed-up' ELSE 'asked' END, f.created_at, f.form
-    FROM form_entries f
-    WHERE for_topic = 'newsletter' AND f.contact_consent
-      AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
-        OR (for_way = 'text' AND f.phone = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
-    UNION ALL
-    -- In our WhatsApp community, unless they've opted out since, or before.
-    SELECT 'yes', 'joined-whatsapp', min(f.created_at), 'whatsapp-community'
-    FROM form_entries f
-    WHERE for_topic = 'newsletter' AND for_way = 'text' AND f.form = 'whatsapp-community'
-      AND f.phone = for_address
-      AND NOT EXISTS (SELECT 1 FROM opt_outs o WHERE o.way = 'text' AND o.address = for_address
-        AND o.list = 'newsletter' AND o.resubscribed_at IS NULL)
-    HAVING count(*) > 0
-    UNION ALL
-    -- A box ticked on the email settings page.
-    SELECT 'yes', 'chose', p.chosen_at, 'preferences'
-    FROM preference_choices p
-    WHERE p.address = for_address AND p.way = for_way AND p.topic = for_topic
-    UNION ALL
-    -- On a CiviCRM list, while a pull returns the contact.
-    SELECT 'yes', 'subscribed', c.since, 'civicrm'
-    FROM (SELECT min(CASE WHEN for_topic = 'newsletter' THEN c.newsletter_since ELSE c.volunteer_updates_since END) AS since
-          FROM civi c
-          WHERE c.gone_at IS NULL AND CASE WHEN for_topic = 'newsletter' THEN c.newsletter ELSE c.volunteer_updates END = 'subscribed') c
-    WHERE for_way = 'email' AND for_topic IN ('newsletter', 'volunteering') AND c.since IS NOT NULL
-    UNION ALL
-    -- Following the Luma calendar.
-    SELECT 'yes', 'following', f.since, 'luma'
-    FROM (SELECT min(l.contact_since) AS since FROM luma_people l WHERE l.email = for_address) f
-    WHERE for_way = 'email' AND for_topic = 'events' AND f.since IS NOT NULL
-    UNION ALL
-    -- A number given at a Luma registration has the answer of the account
-    -- that gave it: of several, one that says yes, else the newest.
-    SELECT a.send, a.reason, a.at, 'luma'
-    FROM (SELECT
-            CASE WHEN o.id IS NULL THEN 'yes' ELSE 'no' END AS send,
-            CASE WHEN o.id IS NULL THEN 'following' ELSE 'unsubscribed' END AS reason,
-            coalesce(o.unsubscribed_at, l.contact_since) AS at
-          FROM luma_people l
-            LEFT JOIN opt_outs o ON o.way = 'email' AND o.list = 'events' AND o.address = l.email
-              AND o.resubscribed_at IS NULL
-          WHERE l.contact_since IS NOT NULL
-            AND l.user_id IN (SELECT g.user_id FROM luma_guests g WHERE g.phone = for_address)
-          ORDER BY o.id IS NULL DESC, coalesce(o.unsubscribed_at, l.contact_since) DESC
-          LIMIT 1) a
-    WHERE for_way = 'text' AND for_topic = 'events'
-    UNION ALL
-    -- A number for text updates on a day still to end.
-    SELECT 'yes', 'gave-number', f.created_at, f.form
-    FROM form_entries f JOIN day_texts d ON d.form = f.form
-    WHERE for_way = 'text' AND for_topic = 'events' AND f.phone = for_address AND now() < d.ends_at
-    UNION ALL
-    -- A contact who chose to volunteer gave the number.
-    SELECT 'yes', 'volunteered', c.at, c.source FROM callers c WHERE c.volunteer
-  ),
-  nothing AS (
-    SELECT 'declined' AS reason, f.created_at AS at, f.form AS source
-    FROM form_entries f
-    WHERE for_topic = 'newsletter' AND NOT f.contact_consent
-      AND ((for_way = 'email' AND lower(trim(f.email)) = for_address)
-        OR (for_way = 'text' AND f.phone = for_address AND f.form IN ('march-2026-11', 'paper-signup')))
-    UNION ALL
-    SELECT 'not-volunteer', c.at, c.source FROM callers c WHERE NOT c.volunteer
-    UNION ALL
-    SELECT 'not-opted-in', c.newsletter_since, 'civicrm'
-    FROM civi c
-    WHERE for_way = 'email' AND for_topic = 'newsletter' AND c.gone_at IS NULL AND c.newsletter = 'not_opted_in'
-    UNION ALL
-    SELECT 'left', c.gone_at, 'civicrm'
-    FROM civi c
-    WHERE for_way = 'email' AND for_topic IN ('newsletter', 'volunteering') AND c.gone_at IS NOT NULL
-      AND CASE WHEN for_topic = 'newsletter' THEN c.newsletter ELSE c.volunteer_updates END <> 'not_on_list'
-    UNION ALL
-    SELECT 'left', c.gone_at, 'civicrm'
-    FROM civi c
-    WHERE for_way IN ('call', 'text') AND for_topic = 'volunteering' AND c.gone_at IS NOT NULL
-      AND c.phone = for_address
-    UNION ALL
-    SELECT 'not-following', NULL, 'luma'
-    FROM luma_people l
-    WHERE for_way = 'email' AND for_topic = 'events' AND l.email = for_address
-    UNION ALL
-    SELECT 'not-following', NULL, 'luma'
-    FROM luma_guests g
-    WHERE for_way = 'text' AND for_topic = 'events' AND g.phone = for_address
-    UNION ALL
-    SELECT 'ended', d.ends_at, f.form
-    FROM form_entries f JOIN day_texts d ON d.form = f.form
-    WHERE for_way = 'text' AND for_topic = 'events' AND f.phone = for_address AND now() >= d.ends_at
-  )
 SELECT r.send, r.reason, r.at, r.source FROM (
-  (SELECT 1 AS tier, s.rank, 'no' AS send, s.reason, s.at, s.source FROM stops s ORDER BY s.rank, s.at LIMIT 1)
+  (SELECT 1 AS tier, p.send, p.reason, p.at, p.source FROM contact_permissions p
+   WHERE p.address = for_address AND p.way = for_way AND p.topic = for_topic)
   UNION ALL
-  (SELECT 2, 0, s.send, s.reason, s.at, s.source FROM said s ORDER BY s.at DESC, s.send = 'no' DESC LIMIT 1)
-  UNION ALL
-  (SELECT 3, 0, 'no', n.reason, n.at, n.source FROM nothing n ORDER BY n.at DESC NULLS LAST LIMIT 1)
+  (SELECT 2, 'no', s.reason, s.at, s.source FROM consent_stops s
+   WHERE s.address = for_address AND s.way = for_way ORDER BY s.rank, s.at LIMIT 1)
 ) r
-ORDER BY r.tier, r.rank
+ORDER BY r.tier
 LIMIT 1
 $$;
 
@@ -292,20 +141,6 @@ BEGIN
     EXIT WHEN NOT merged;
   END LOOP;
 END
-$$;
-
---
--- Name: phone_usable(text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.phone_usable(number text) RETURNS boolean
-    LANGUAGE sql STABLE
-    AS $$
-SELECT EXISTS (
-  SELECT 1 FROM unnest(ARRAY['newsletter', 'events', 'volunteering']) t (topic)
-    CROSS JOIN unnest(ARRAY['text', 'call']) w (way)
-    CROSS JOIN LATERAL contact_permission(t.topic, w.way, number) d
-  WHERE d.send = 'yes')
 $$;
 
 SET default_tablespace = '';
@@ -1490,143 +1325,270 @@ CREATE TABLE public.preference_choices (
 );
 
 --
--- Name: email_permissions; Type: VIEW; Schema: public; Owner: -
+-- Name: consent_answers; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.email_permissions AS
- SELECT t.topic,
-    t.address,
-    d.send,
-    d.reason,
-    d.at,
-    d.source
-   FROM (( SELECT 'newsletter'::text AS topic,
-            lower(TRIM(BOTH FROM form_entries.email)) AS address
-           FROM public.form_entries
-        UNION
-         SELECT 'newsletter'::text,
-            civicrm_contacts.email
-           FROM public.civicrm_contacts
-          WHERE (civicrm_contacts.newsletter <> 'not_on_list'::text)
-        UNION
-         SELECT 'events'::text,
-            luma_people.email
-           FROM public.luma_people
-        UNION
-         SELECT 'volunteering'::text,
-            civicrm_contacts.email
-           FROM public.civicrm_contacts
-          WHERE (civicrm_contacts.volunteer_updates <> 'not_on_list'::text)
-        UNION
-         SELECT opt_outs.list,
-            opt_outs.address
-           FROM public.opt_outs
-          WHERE ((opt_outs.way = 'email'::text) AND (opt_outs.resubscribed_at IS NULL) AND (opt_outs.list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])))
-        UNION
-         SELECT preference_choices.topic,
-            preference_choices.address
-           FROM public.preference_choices
-          WHERE ((preference_choices.way = 'email'::text) AND (preference_choices.topic <> 'bulk'::text))) t
-     CROSS JOIN LATERAL public.contact_permission(t.topic, 'email'::text, t.address) d(send, reason, at, source));
-
---
--- Name: phone_permissions; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.phone_permissions AS
- SELECT t.topic,
-    t.way,
-    t.address,
-    d.send,
-    d.reason,
-    d.at,
-    d.source
-   FROM (( SELECT 'newsletter'::text AS topic,
-            'text'::text AS way,
-            form_entries.phone AS address
-           FROM public.form_entries
-          WHERE ((form_entries.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text])) AND (form_entries.phone IS NOT NULL))
-        UNION
-         SELECT 'events'::text AS text,
-            'text'::text AS text,
-            luma_guests.phone AS phone_number
-           FROM public.luma_guests
-          WHERE (luma_guests.phone IS NOT NULL)
-        UNION
-         SELECT 'events'::text AS text,
-            'text'::text AS text,
-            form_entries.phone AS phone_number
-           FROM public.form_entries
-          WHERE ((form_entries.form IN ( SELECT day_texts.form
-                   FROM public.day_texts)) AND (form_entries.phone IS NOT NULL))
-        UNION
-         SELECT 'volunteering'::text AS text,
-            w.way,
-            civicrm_contacts.phone AS phone_number
-           FROM public.civicrm_contacts,
-            ( VALUES ('call'::text), ('text'::text)) w(way)
-          WHERE (civicrm_contacts.phone IS NOT NULL)
-        UNION
-         SELECT opt_outs.list,
-            opt_outs.way,
-            opt_outs.address
-           FROM public.opt_outs
-          WHERE ((opt_outs.way <> 'email'::text) AND (opt_outs.list <> 'all'::text) AND (opt_outs.resubscribed_at IS NULL))
-        UNION
-         SELECT t_1.topic,
-            o.way,
-            o.address
-           FROM (public.opt_outs o
-             JOIN ( VALUES ('newsletter'::text,'text'::text), ('events'::text,'text'::text), ('volunteering'::text,'text'::text), ('volunteering'::text,'call'::text)) t_1(topic, way) ON ((t_1.way = o.way)))
-          WHERE ((o.list = 'all'::text) AND (o.way <> 'email'::text) AND (o.resubscribed_at IS NULL))
-        UNION
-         SELECT preference_choices.topic,
-            preference_choices.way,
-            preference_choices.address
-           FROM public.preference_choices
-          WHERE (preference_choices.way <> 'email'::text)) t
-     CROSS JOIN LATERAL public.contact_permission(t.topic, t.way, t.address) d(send, reason, at, source));
-
---
--- Name: contact_permissions; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.contact_permissions AS
- SELECT email_permissions.topic,
-    'email'::text AS way,
-    'email'::text AS channel,
-    email_permissions.address,
-    email_permissions.send,
-    email_permissions.reason,
-    email_permissions.at,
-    email_permissions.source
-   FROM public.email_permissions
-UNION ALL
- SELECT phone_permissions.topic,
-    phone_permissions.way,
-    'phone'::text AS channel,
-    phone_permissions.address,
-    phone_permissions.send,
-    phone_permissions.reason,
-    phone_permissions.at,
-    phone_permissions.source
-   FROM public.phone_permissions;
-
---
--- Name: contact_unsubscribes; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.contact_unsubscribes AS
- SELECT o.way,
+CREATE VIEW public.consent_answers AS
+ SELECT o.address,
+    o.way,
     o.list AS topic,
-    o.address,
-    d.send,
-    d.reason,
-    d.at,
-    d.source
-   FROM (public.opt_outs o
-     CROSS JOIN LATERAL public.contact_permission(o.list, o.way, o.address) d(send, reason, at, source))
-  WHERE ((o.resubscribed_at IS NULL) AND (d.reason = 'unsubscribed'::text) AND (o.list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])));
+    'said'::text AS kind,
+    'no'::text AS send,
+    'unsubscribed'::text AS reason,
+    o.unsubscribed_at AS at,
+    o.source
+   FROM public.opt_outs o
+  WHERE ((o.list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])) AND (o.resubscribed_at IS NULL))
+UNION ALL
+ SELECT lower(TRIM(BOTH FROM f.email)) AS address,
+    'email'::text AS way,
+    'newsletter'::text AS topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+        CASE
+            WHEN (f.form = 'paper-signup'::text) THEN 'signed-up'::text
+            ELSE 'asked'::text
+        END AS reason,
+    f.created_at AS at,
+    f.form AS source
+   FROM public.form_entries f
+  WHERE (f.contact_consent AND (f.email IS NOT NULL))
+UNION ALL
+ SELECT f.phone AS address,
+    'text'::text AS way,
+    'newsletter'::text AS topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+        CASE
+            WHEN (f.form = 'paper-signup'::text) THEN 'signed-up'::text
+            ELSE 'asked'::text
+        END AS reason,
+    f.created_at AS at,
+    f.form AS source
+   FROM public.form_entries f
+  WHERE (f.contact_consent AND (f.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text])) AND (f.phone IS NOT NULL))
+UNION ALL
+ SELECT lower(TRIM(BOTH FROM f.email)) AS address,
+    'email'::text AS way,
+    'newsletter'::text AS topic,
+    'nothing'::text AS kind,
+    'no'::text AS send,
+    'declined'::text AS reason,
+    f.created_at AS at,
+    f.form AS source
+   FROM public.form_entries f
+  WHERE ((NOT f.contact_consent) AND (f.email IS NOT NULL) AND (NOT ((f.form = 'web-form'::text) AND (f.created_at < '2026-09-23 00:00:00+00'::timestamp with time zone))))
+UNION ALL
+ SELECT f.phone AS address,
+    'text'::text AS way,
+    'newsletter'::text AS topic,
+    'nothing'::text AS kind,
+    'no'::text AS send,
+    'declined'::text AS reason,
+    f.created_at AS at,
+    f.form AS source
+   FROM public.form_entries f
+  WHERE ((NOT f.contact_consent) AND (f.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text])) AND (f.phone IS NOT NULL))
+UNION ALL
+ SELECT lower(TRIM(BOTH FROM f.email)) AS address,
+    'email'::text AS way,
+    'newsletter'::text AS topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+    'wrote'::text AS reason,
+    f.created_at AS at,
+    f.form AS source
+   FROM public.form_entries f
+  WHERE ((f.form = 'web-form'::text) AND (f.created_at < '2026-09-23 00:00:00+00'::timestamp with time zone) AND (NOT f.contact_consent) AND (f.email IS NOT NULL))
+UNION ALL
+ SELECT f.phone AS address,
+    'text'::text AS way,
+    'newsletter'::text AS topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+    'joined-whatsapp'::text AS reason,
+    min(f.created_at) AS at,
+    'whatsapp-community'::text AS source
+   FROM public.form_entries f
+  WHERE ((f.form = 'whatsapp-community'::text) AND (f.phone IS NOT NULL) AND (NOT (EXISTS ( SELECT 1
+           FROM public.opt_outs o
+          WHERE ((o.way = 'text'::text) AND (o.address = f.phone) AND (o.list = 'newsletter'::text) AND (o.resubscribed_at IS NULL))))))
+  GROUP BY f.phone
+UNION ALL
+ SELECT p.address,
+    p.way,
+    p.topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+    'chose'::text AS reason,
+    p.chosen_at AS at,
+    'preferences'::text AS source
+   FROM public.preference_choices p
+  WHERE (p.topic <> 'bulk'::text)
+UNION ALL
+ SELECT p.address,
+    p.way,
+    'newsletter'::text AS topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+    'volunteered'::text AS reason,
+    min(p.chosen_at) AS at,
+    'preferences'::text AS source
+   FROM public.preference_choices p
+  WHERE ((p.topic = 'volunteering'::text) AND (p.way = ANY (ARRAY['email'::text, 'text'::text])) AND (NOT (EXISTS ( SELECT 1
+           FROM public.opt_outs o
+          WHERE ((o.way = p.way) AND (o.address = p.address) AND (o.list = 'newsletter'::text) AND (o.resubscribed_at IS NULL))))))
+  GROUP BY p.address, p.way
+UNION ALL
+ SELECT c.email AS address,
+    'email'::text AS way,
+    'newsletter'::text AS topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+    'member'::text AS reason,
+    min(public.civicrm_joined_at(c.joined_date, c.first_seen_at)) AS at,
+    'civicrm'::text AS source
+   FROM public.civicrm_contacts c
+  WHERE ((c.gone_at IS NULL) AND (c.newsletter <> 'unsubscribed'::text) AND (c.email IS NOT NULL))
+  GROUP BY c.email
+UNION ALL
+ SELECT c.email AS address,
+    'email'::text AS way,
+    'volunteering'::text AS topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+    'subscribed'::text AS reason,
+    min(c.volunteer_updates_since) AS at,
+    'civicrm'::text AS source
+   FROM public.civicrm_contacts c
+  WHERE ((c.gone_at IS NULL) AND (c.volunteer_updates = 'subscribed'::text) AND (c.email IS NOT NULL))
+  GROUP BY c.email
+UNION ALL
+ SELECT c.phone AS address,
+    t.way,
+    t.topic,
+        CASE
+            WHEN v.volunteer THEN 'said'::text
+            ELSE 'nothing'::text
+        END AS kind,
+        CASE
+            WHEN v.volunteer THEN 'yes'::text
+            ELSE 'no'::text
+        END AS send,
+        CASE
+            WHEN v.volunteer THEN 'volunteered'::text
+            ELSE 'not-volunteer'::text
+        END AS reason,
+    public.civicrm_joined_at(c.joined_date, c.first_seen_at) AS at,
+    'civicrm'::text AS source
+   FROM ((public.civicrm_contacts c
+     CROSS JOIN LATERAL ( SELECT COALESCE(((c.intent = ANY (ARRAY['volunteer'::text, 'lead'::text])) OR ((c.intent IS NULL) AND (c.joined_date < '2026-06-30'::date))), false) AS volunteer) v)
+     JOIN ( VALUES ('volunteering'::text,'call'::text), ('volunteering'::text,'text'::text), ('newsletter'::text,'text'::text)) t(topic, way) ON ((v.volunteer OR (t.topic = 'volunteering'::text))))
+  WHERE ((c.gone_at IS NULL) AND (c.phone IS NOT NULL))
+UNION ALL
+ SELECT c.email AS address,
+    'email'::text AS way,
+    t.topic,
+    'nothing'::text AS kind,
+    'no'::text AS send,
+    'left'::text AS reason,
+    c.gone_at AS at,
+    'civicrm'::text AS source
+   FROM (public.civicrm_contacts c
+     JOIN ( VALUES ('newsletter'::text), ('volunteering'::text)) t(topic) ON (((t.topic = 'newsletter'::text) OR (c.volunteer_updates <> 'not_on_list'::text))))
+  WHERE ((c.gone_at IS NOT NULL) AND (c.email IS NOT NULL))
+UNION ALL
+ SELECT c.phone AS address,
+    t.way,
+    t.topic,
+    'nothing'::text AS kind,
+    'no'::text AS send,
+    'left'::text AS reason,
+    c.gone_at AS at,
+    'civicrm'::text AS source
+   FROM public.civicrm_contacts c,
+    ( VALUES ('volunteering'::text,'call'::text), ('volunteering'::text,'text'::text), ('newsletter'::text,'text'::text)) t(topic, way)
+  WHERE ((c.gone_at IS NOT NULL) AND (c.phone IS NOT NULL))
+UNION ALL
+ SELECT l.email AS address,
+    'email'::text AS way,
+    'events'::text AS topic,
+    'said'::text AS kind,
+    'yes'::text AS send,
+    'following'::text AS reason,
+    min(l.contact_since) AS at,
+    'luma'::text AS source
+   FROM public.luma_people l
+  WHERE (l.contact_since IS NOT NULL)
+  GROUP BY l.email
+UNION ALL
+ SELECT DISTINCT l.email AS address,
+    'email'::text AS way,
+    'events'::text AS topic,
+    'nothing'::text AS kind,
+    'no'::text AS send,
+    'not-following'::text AS reason,
+    NULL::timestamp with time zone AS at,
+    'luma'::text AS source
+   FROM public.luma_people l
+UNION ALL
+ SELECT g.phone AS address,
+    'text'::text AS way,
+    'events'::text AS topic,
+    'said'::text AS kind,
+        CASE
+            WHEN bool_or((o.id IS NULL)) THEN 'yes'::text
+            ELSE 'no'::text
+        END AS send,
+        CASE
+            WHEN bool_or((o.id IS NULL)) THEN 'following'::text
+            ELSE 'unsubscribed'::text
+        END AS reason,
+        CASE
+            WHEN bool_or((o.id IS NULL)) THEN max(l.contact_since) FILTER (WHERE (o.id IS NULL))
+            ELSE max(o.unsubscribed_at)
+        END AS at,
+    'luma'::text AS source
+   FROM ((public.luma_guests g
+     JOIN public.luma_people l ON (((l.user_id = g.user_id) AND (l.contact_since IS NOT NULL))))
+     LEFT JOIN public.opt_outs o ON (((o.way = 'email'::text) AND (o.list = 'events'::text) AND (o.address = l.email) AND (o.resubscribed_at IS NULL))))
+  WHERE (g.phone IS NOT NULL)
+  GROUP BY g.phone
+UNION ALL
+ SELECT DISTINCT g.phone AS address,
+    'text'::text AS way,
+    'events'::text AS topic,
+    'nothing'::text AS kind,
+    'no'::text AS send,
+    'not-following'::text AS reason,
+    NULL::timestamp with time zone AS at,
+    'luma'::text AS source
+   FROM public.luma_guests g
+  WHERE (g.phone IS NOT NULL)
+UNION ALL
+ SELECT f.phone AS address,
+    'text'::text AS way,
+    'events'::text AS topic,
+        CASE
+            WHEN (now() < d.ends_at) THEN 'said'::text
+            ELSE 'nothing'::text
+        END AS kind,
+        CASE
+            WHEN (now() < d.ends_at) THEN 'yes'::text
+            ELSE 'no'::text
+        END AS send,
+        CASE
+            WHEN (now() < d.ends_at) THEN 'gave-number'::text
+            ELSE 'ended'::text
+        END AS reason,
+        CASE
+            WHEN (now() < d.ends_at) THEN f.created_at
+            ELSE d.ends_at
+        END AS at,
+    f.form AS source
+   FROM (public.form_entries f
+     JOIN public.day_texts d ON ((d.form = f.form)))
+  WHERE (f.phone IS NOT NULL);
 
 --
 -- Name: email_blocks; Type: TABLE; Schema: public; Owner: -
@@ -1656,6 +1618,197 @@ CREATE TABLE public.email_problems (
     CONSTRAINT email_problems_check CHECK (((kind <> 'complaint'::text) OR (NOT can_reset))),
     CONSTRAINT email_problems_kind_check CHECK ((kind = ANY (ARRAY['hard'::text, 'soft'::text, 'complaint'::text, 'hold'::text])))
 );
+
+--
+-- Name: consent_stops; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.consent_stops AS
+ SELECT b.address,
+    'email'::text AS way,
+    1 AS rank,
+    'blocked'::text AS reason,
+    p.at,
+    p.kind AS source
+   FROM (public.email_blocks b
+     JOIN public.email_problems p ON ((p.id = b.problem_id)))
+UNION ALL
+ SELECT c.email AS address,
+    'email'::text AS way,
+    2 AS rank,
+    'do-not-email'::text AS reason,
+    min(c.do_not_email_since) AS at,
+    'civicrm'::text AS source
+   FROM public.civicrm_contacts c
+  WHERE (c.do_not_email AND (c.email IS NOT NULL))
+  GROUP BY c.email
+UNION ALL
+ SELECT c.email AS address,
+    'email'::text AS way,
+    3 AS rank,
+    'no-bulk-email'::text AS reason,
+    min(c.no_bulk_email_since) AS at,
+    'civicrm'::text AS source
+   FROM public.civicrm_contacts c
+  WHERE (c.no_bulk_email AND (c.email IS NOT NULL) AND (c.no_bulk_email_since > COALESCE(( SELECT max(p.chosen_at) AS max
+           FROM public.preference_choices p
+          WHERE ((p.way = 'email'::text) AND (p.address = c.email) AND (p.topic = 'bulk'::text) AND (p.refused_at IS NULL))), '-infinity'::timestamp with time zone)))
+  GROUP BY c.email
+UNION ALL
+ SELECT c.phone AS address,
+    'text'::text AS way,
+    2 AS rank,
+    'do-not-sms'::text AS reason,
+    min(c.do_not_sms_since) AS at,
+    'civicrm'::text AS source
+   FROM public.civicrm_contacts c
+  WHERE (c.do_not_sms AND (c.phone IS NOT NULL))
+  GROUP BY c.phone
+UNION ALL
+ SELECT c.phone AS address,
+    'call'::text AS way,
+    2 AS rank,
+    'do-not-phone'::text AS reason,
+    min(c.do_not_phone_since) AS at,
+    'civicrm'::text AS source
+   FROM public.civicrm_contacts c
+  WHERE (c.do_not_phone AND (c.phone IS NOT NULL))
+  GROUP BY c.phone
+UNION ALL
+ SELECT o.address,
+    o.way,
+        CASE
+            WHEN (o.list = 'all'::text) THEN 2
+            ELSE 3
+        END AS rank,
+        CASE
+            WHEN (o.way <> 'email'::text) THEN 'unsubscribed'::text
+            WHEN (o.list = 'all'::text) THEN 'do-not-email'::text
+            ELSE 'no-bulk-email'::text
+        END AS reason,
+    o.unsubscribed_at AS at,
+    o.source
+   FROM public.opt_outs o
+  WHERE ((o.list = ANY (ARRAY['all'::text, 'bulk'::text])) AND (o.resubscribed_at IS NULL));
+
+--
+-- Name: contact_permissions; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.contact_permissions AS
+ SELECT a.topic,
+    a.way,
+        CASE
+            WHEN (a.way = 'email'::text) THEN 'email'::text
+            ELSE 'phone'::text
+        END AS channel,
+    a.address,
+        CASE
+            WHEN (s.reason IS NULL) THEN a.send
+            ELSE 'no'::text
+        END AS send,
+    COALESCE(s.reason, a.reason) AS reason,
+        CASE
+            WHEN (s.reason IS NULL) THEN a.at
+            ELSE s.at
+        END AS at,
+        CASE
+            WHEN (s.reason IS NULL) THEN a.source
+            ELSE s.source
+        END AS source
+   FROM (( SELECT DISTINCT ON (f.address, f.way, f.topic) f.address,
+            f.way,
+            f.topic,
+            f.kind,
+            f.send,
+            f.reason,
+            f.at,
+            f.source
+           FROM ( SELECT consent_answers.address,
+                    consent_answers.way,
+                    consent_answers.topic,
+                    consent_answers.kind,
+                    consent_answers.send,
+                    consent_answers.reason,
+                    consent_answers.at,
+                    consent_answers.source
+                   FROM public.consent_answers
+                UNION ALL
+                 SELECT c.email,
+                    'email'::text,
+                    t.topic,
+                    'known'::text,
+                    'no'::text,
+                    NULL::text,
+                    NULL::timestamp with time zone,
+                    NULL::text
+                   FROM (public.civicrm_contacts c
+                     JOIN ( VALUES ('newsletter'::text), ('volunteering'::text)) t(topic) ON (((t.topic = 'newsletter'::text) OR (c.volunteer_updates <> 'not_on_list'::text))))
+                  WHERE (c.email IS NOT NULL)
+                UNION ALL
+                 SELECT c.phone,
+                    t.way,
+                    t.topic,
+                    'known'::text,
+                    'no'::text,
+                    NULL::text,
+                    NULL::timestamp with time zone,
+                    NULL::text
+                   FROM public.civicrm_contacts c,
+                    ( VALUES ('volunteering'::text,'call'::text), ('volunteering'::text,'text'::text), ('newsletter'::text,'text'::text)) t(topic, way)
+                  WHERE (c.phone IS NOT NULL)
+                UNION ALL
+                 SELECT o.address,
+                    o.way,
+                    t.topic,
+                    'known'::text,
+                    'no'::text,
+                    NULL::text,
+                    NULL::timestamp with time zone,
+                    NULL::text
+                   FROM (public.opt_outs o
+                     JOIN ( VALUES ('newsletter'::text,'text'::text), ('events'::text,'text'::text), ('volunteering'::text,'text'::text), ('volunteering'::text,'call'::text)) t(topic, way) ON ((t.way = o.way)))
+                  WHERE ((o.list = 'all'::text) AND (o.way <> 'email'::text) AND (o.resubscribed_at IS NULL))) f
+          ORDER BY f.address, f.way, f.topic, (f.kind = 'said'::text) DESC, (f.kind = 'known'::text), ((f.kind = 'said'::text) AND (f.at IS NULL)) DESC, f.at DESC NULLS LAST, (f.send = 'no'::text) DESC) a
+     LEFT JOIN ( SELECT DISTINCT ON (s_1.address, s_1.way) s_1.address,
+            s_1.way,
+            s_1.rank,
+            s_1.reason,
+            s_1.at,
+            s_1.source
+           FROM public.consent_stops s_1
+          ORDER BY s_1.address, s_1.way, s_1.rank, s_1.at) s ON (((s.address = a.address) AND (s.way = a.way))))
+  WHERE ((a.kind <> 'known'::text) OR (s.reason IS NOT NULL));
+
+--
+-- Name: contact_unsubscribes; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.contact_unsubscribes AS
+ SELECT o.way,
+    o.list AS topic,
+    o.address,
+    p.send,
+    p.reason,
+    p.at,
+    p.source
+   FROM (public.opt_outs o
+     JOIN public.contact_permissions p ON (((p.address = o.address) AND (p.way = o.way) AND (p.topic = o.list))))
+  WHERE ((o.resubscribed_at IS NULL) AND (p.reason = 'unsubscribed'::text) AND (o.list = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])));
+
+--
+-- Name: email_permissions; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.email_permissions AS
+ SELECT topic,
+    address,
+    send,
+    reason,
+    at,
+    source
+   FROM public.contact_permissions p
+  WHERE (channel = 'email'::text);
 
 --
 -- Name: email_problems_id_seq; Type: SEQUENCE; Schema: public; Owner: -
@@ -2227,6 +2380,21 @@ ALTER TABLE public.opt_outs ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MAXVALUE
     CACHE 1
 );
+
+--
+-- Name: phone_permissions; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.phone_permissions AS
+ SELECT topic,
+    way,
+    address,
+    send,
+    reason,
+    at,
+    source
+   FROM public.contact_permissions p
+  WHERE (channel = 'phone'::text);
 
 --
 -- Name: politician_addresses; Type: TABLE; Schema: public; Owner: -
