@@ -5,6 +5,7 @@ import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { shuffle } from "@/lib/shuffle.server";
 import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 import styles from "./HomeHero.module.css";
+import { WHILE_LOADING_SCRIPT } from "./whileLoading";
 
 const PHOTOS = "/images/front-page-hero-optimized";
 
@@ -42,9 +43,9 @@ const PREVIEW_PROPERTIES = Object.fromEntries(
  * - "next": the ones the row brings on in its first few seconds. A row moving
  *   left ("ltr") brings on those after the first, and one moving right ("rtl")
  *   its last ones, the very last first. They're fetched with the page.
- * - "later": the rest wait until they're nearly on screen, or the page has
- *   loaded (HeroMarqueeEffects), whichever is first. A wide window fetches
- *   some of them with the page all the same (WIDE_OPENS_ON).
+ * - "later": the rest wait until the page has loaded (whileLoading.ts,
+ *   HeroMarqueeEffects). A wide window fetches some of them with the page
+ *   all the same (WIDE_OPENS_ON).
  */
 function wantedWhen(index: number, count: number, dir: "ltr" | "rtl") {
   if (index < 2) return "first";
@@ -93,6 +94,7 @@ export default function HomeHero() {
 
   return (
     <section id="about">
+      <script dangerouslySetInnerHTML={{ __html: WHILE_LOADING_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: HERO_PHOTO_FADE_SCRIPT }} />
       <div hidden dangerouslySetInnerHTML={{ __html: widePreloads }} />
       <div className={styles.marquee} style={PREVIEW_PROPERTIES}>
@@ -107,13 +109,27 @@ export default function HomeHero() {
                   {...(copyIdx > 0 ? { "aria-hidden": true } : {})}
                 >
                   {[...row.photos, ...row.photos].map(([src, alt, width, height], i) => {
-                    const isPrimary = copyIdx === 0 && i < row.photos.length;
-                    // Each photo's first showing says when the file is fetched; its repeats are the same
-                    // file. The files are served as they are, already the size the hero shows them, so
-                    // nothing waits on an image service resizing them.
-                    const wanted = isPrimary ? wantedWhen(i, row.photos.length, row.dir) : "later";
+                    const count = row.photos.length;
+                    const isPrimary = copyIdx === 0 && i < count;
+                    // A photo is in its row four times. The showing a visitor meets first says when the
+                    // file is fetched, and the rest, the same file, wait. A row moving left opens on the
+                    // start of its first copy, and brings on what follows. A row moving right opens on
+                    // the start of its second copy, and brings on the end of its first.
+                    const when = wantedWhen(i % count, count, row.dir);
+                    const metFirst =
+                      row.dir === "ltr"
+                        ? isPrimary
+                        : when === "first"
+                          ? copyIdx === 1 && i < count
+                          : copyIdx === 0 && i >= count;
+                    const wanted = metFirst ? when : "later";
+                    // The files are served as they are, already the size the hero shows them, so nothing
+                    // waits on an image service resizing them.
                     return (
-                      <picture key={i} style={{ backgroundImage: `var(${previewName(src)})` }}>
+                      <picture
+                        key={i}
+                        style={{ aspectRatio: `${width} / ${height}`, backgroundImage: `var(${previewName(src)})` }}
+                      >
                         <source type="image/avif" srcSet={avifSet(src)} />
                         <img
                           src={`${PHOTOS}/${src}`}

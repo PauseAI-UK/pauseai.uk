@@ -11,6 +11,7 @@ import { staff } from "@/lib/content/staff";
 import GetInvolved from "./GetInvolved";
 import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 import HomeHero from "./HomeHero";
+import { WHILE_LOADING_SCRIPT } from "./whileLoading";
 import JoinSection from "./JoinSection";
 import LocalGroupsSection from "./LocalGroupsSection";
 import PeopleSection from "./PeopleSection";
@@ -47,14 +48,16 @@ describe("HomeHero", () => {
     const name = webp.split("/").at(-1)!;
     const preview = `url("data:image/webp;base64,${photoPreviews[name as keyof typeof photoPreviews]}")`;
     expect(getComputedStyle(first).backgroundImage).toBe(preview);
-    expect(first.getAttribute("style")).toMatch(/^background-image: ?var\(--photo-\d+\);?$/);
+    expect(first.style.backgroundImage).toMatch(/^var\(--photo-\d+\)$/);
     expect(container.innerHTML.split(photoPreviews[name as keyof typeof photoPreviews])).toHaveLength(2);
     const [, , width, height] = HERO_PHOTOS.find(([src]) => src === name)!;
+    expect(first.style.aspectRatio).toBe(`${width} / ${height}`);
     const box = first.getBoundingClientRect();
     expect(box.width / box.height).toBeCloseTo(width / height, 1);
     // Each row's photos are fetched in the order a visitor meets them: its first two before anything, then
-    // the two it brings on next, which on the row moving right are its last. The rest wait, as do the
-    // repeats, which are the same files.
+    // the two it brings on next. It's the showing a visitor meets that's fetched, and the rest wait. The
+    // rows moving left open on the start of their first copy. The row moving right opens on the start of
+    // its second, and brings on the end of its first: its last two photos.
     const fetched = tracks.map((track) =>
       [...track.querySelectorAll("img")].map((photo) =>
         photo.getAttribute("fetchpriority") === "high" ? "first" : photo.loading === "eager" ? "next" : "later",
@@ -63,7 +66,7 @@ describe("HomeHero", () => {
     const later = (count: number) => Array.from({ length: count }, () => "later");
     const [top, middle, bottom] = [0, 1, 2].map((row) => Math.min(10, HERO_PHOTOS.length - row * 10));
     expect(fetched[0]).toEqual(["first", "first", "next", "next", ...later(top * 4 - 4)]);
-    expect(fetched[1]).toEqual(["first", "first", ...later(middle - 4), "next", "next", ...later(middle * 3)]);
+    expect(fetched[1]).toEqual([...later(middle * 2 - 2), "next", "next", "first", "first", ...later(middle * 2 - 2)]);
     expect(fetched[2]).toEqual(["first", "first", "next", "next", ...later(bottom * 4 - 4)]);
     // A wide window opens on about five photos a row, and fetches with the page those of them that waited:
     // the fifth of the rows moving left, and the third to fifth of the row moving right.
@@ -81,11 +84,66 @@ describe("HomeHero", () => {
     }
     const preloaded = document.head.querySelector('link[rel="preload"][as="image"][type="image/avif"]');
     expect(preloaded).toHaveAttribute("imagesrcset", avifs);
-    // The fade's script comes before the photos, so it's listening when the first loads.
-    const script = container.querySelector("script")!;
-    expect(script.textContent).toBe(HERO_PHOTO_FADE_SCRIPT);
-    expect(script.compareDocumentPosition(container.querySelector("img")!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    // Its scripts come before the photos: the one that marks the page as loading, so nothing is fetched
+    // that should wait, and the fade's, so it's listening when the first photo loads.
+    const scripts = [...container.querySelectorAll("script")];
+    expect(scripts.map((script) => script.textContent)).toEqual([WHILE_LOADING_SCRIPT, HERO_PHOTO_FADE_SCRIPT]);
+    expect(scripts[1].compareDocumentPosition(container.querySelector("img")!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     await expect.element(page.getByRole("link", { name: "Track record →" })).toHaveAttribute("href", "/track-record");
+  });
+});
+
+describe("while the home page loads", () => {
+  // The script runs as the page is parsed, not when React renders it in a test.
+  const run = () => new Function(WHILE_LOADING_SCRIPT)();
+  const loading = () => document.documentElement.hasAttribute("data-loading");
+
+  it("holds back the photos a visitor can't see yet, until the page has loaded", async () => {
+    const { container } = await render(
+      <main>
+        <HomeHero />
+        <div data-testid="card" style={{ backgroundImage: "url(/images/logos/Pause-Symbol.svg)" }} />
+      </main>,
+    );
+    const card = page.getByTestId("card").element();
+    const shown = (img: Element) => getComputedStyle(img).display !== "none";
+    const [fetchedWithPage, waiting] = [
+      [...container.querySelectorAll('img[loading="eager"]')],
+      [...container.querySelectorAll('img[loading="lazy"]')],
+    ];
+    const preview = container.querySelector("picture")!;
+
+    run();
+    expect(loading()).toBe(true);
+    // A photo that's an element's background isn't fetched, and on a phone nor are the hero's that wait.
+    expect(getComputedStyle(card).backgroundImage).toBe("none");
+    expect(fetchedWithPage.every(shown)).toBe(true);
+    expect(waiting.some(shown)).toBe(false);
+    // Each photo's place keeps its preview, and its width.
+    expect(getComputedStyle(preview).backgroundImage).toContain("data:image/webp");
+    const width = preview.getBoundingClientRect().width;
+    // A wide window draws them all.
+    await page.viewport(1280, 900);
+    expect(waiting.every(shown)).toBe(true);
+    await page.viewport(414, 896);
+
+    window.dispatchEvent(new Event("load"));
+    expect(loading()).toBe(false);
+    expect(getComputedStyle(card).backgroundImage).toContain("Pause-Symbol.svg");
+    expect(waiting.every(shown)).toBe(true);
+    expect(preview.getBoundingClientRect().width).toBe(width);
+  });
+
+  it("stops holding them back after ten seconds, loaded or not", async () => {
+    vi.useFakeTimers();
+    try {
+      run();
+      expect(loading()).toBe(true);
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(loading()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

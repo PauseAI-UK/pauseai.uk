@@ -446,6 +446,7 @@ npm run measure -- --path /donate before=origin/main after=HEAD
 npm run measure -- --viewport phone --network slow-4g origin/main HEAD
 npm run measure -- --images '[data-marquee-track="hero"] img' origin/main HEAD
 npm run measure -- live=https://pauseai.uk                  # a site that's up, as it stands
+npm run measure -- --http2 origin/main HEAD                 # each build over HTTP/2, as Netlify serves
 ```
 
 Each version is a commit, so commit what you want measured, or the address
@@ -482,9 +483,13 @@ Things to know:
   slower.
 - **A build on this machine isn't Netlify.** The figures compare versions
   with each other. The live site is served over HTTP/2 from Netlify's CDN,
-  and a second visit depends on its cache headers, neither of which a
-  local build shows. Measure the live site's address for those. A deploy
-  preview is behind Netlify's login, so it can't be measured from here.
+  where a browser asks for everything at once and the server chooses the
+  order; `next start` speaks HTTP/1.1, where the browser queues requests
+  itself. `--http2` puts HTTP/2 in front of each build
+  (`scripts/measure-http2.mjs`), which is nearer. A second visit depends on
+  the CDN's cache headers, which no local build shows: measure the live
+  site's address for those. A deploy preview is behind Netlify's login, so
+  it can't be measured from here.
 - **Chromium only.** Firefox and Safari can't be slowed down this way.
 
 To add or change a photo in the home page's hero, see

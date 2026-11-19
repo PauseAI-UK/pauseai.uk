@@ -75,9 +75,10 @@
    long-standing bug where it under-counts child padding/margin in
    max-content on a flex parent, which is why we override in pixels. */
 
-/* Each photo's place in its row, the width of the photo inside it. HomeHero
-   gives it the photo's preview, a tiny copy that fills it as a blur until
-   the photo has loaded and faded in over it. */
+/* Each photo's place in its row. HomeHero gives it the photo's shape, so
+   it's the right width whether or not the photo is drawn yet, and the
+   photo's preview, a tiny copy that fills it as a blur until the photo has
+   loaded and faded in over it. */
 .track picture {
   display: block;
   background-size: 100% 100%;
@@ -97,11 +98,22 @@
 
 .track img {
   height: 100%;
-  width: auto;
+  width: 100%;
   display: block;
-  object-fit: contain;
+  object-fit: cover;
   /* Firefox writes a photo's alt text in its place while it loads. */
   color: transparent;
+}
+
+/* On a phone, until the page has loaded (whileLoading.ts), the showings of
+   each photo that aren't fetched with the page aren't drawn: a browser
+   fetches any that are within a couple of screens of the window, which is
+   most of them, alongside the ones in view. A wide window is in less of a
+   hurry, and opens on more of them. */
+@media (max-width: 1023px) {
+  :global(html[data-loading]) .track img[loading="lazy"] {
+    display: none;
+  }
 }
 
 /* Overlay text — no full scrim. Just the text itself, with strong

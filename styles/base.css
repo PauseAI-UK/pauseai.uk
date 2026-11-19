@@ -26,6 +26,14 @@ body > main {
   flex: 1 0 auto;
 }
 
+/* While the home page loads (app/(site)/_components/whileLoading.ts), a
+   photo set as an element's background waits: a browser fetches those at
+   once, wherever on the page they are. The hero's own, on its <picture>s,
+   are the previews the page opens on. */
+html[data-loading] main :not(picture)[style*="background-image"] {
+  background-image: none !important;
+}
+
 h1,
 h2 {
   font-family: var(--font-display), "Lato", system-ui, sans-serif;
