@@ -12,6 +12,7 @@
     "gate": "node scripts/gate.mjs",
     "investments": "node scripts/investments.mjs",
     "reach": "node scripts/reach.mjs",
+    "measure": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/measure-page.mjs",
     "friction-sweep": "node scripts/friction-sweep.mjs",
     "worktree": "node scripts/worktree.mjs",
     "serve": "node scripts/serve.mjs",
