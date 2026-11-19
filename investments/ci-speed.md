@@ -47,3 +47,4 @@ To settle first:
 ## Hits
 
 - 2026-11-18: dealing CI's parts by each test file's and flow's last time took three pushes and eight runs of CI to find it gains the tests nothing and the storyboard about what dealing in turn does, as the machines' speeds differ by more than the parts did, ~4 hours
+- 2026-11-19: Ubuntu's mirror timed out in "Install Git and the Postgres 18 client", failing four Test and Storyboard parts before anything ran; an image of our own (4, above) has no install step to fail, ~15 min and a push to run CI again
