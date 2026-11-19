@@ -50,6 +50,14 @@
 // go quiet (QUIET_CORES), and one that ran while it was busy (BUSY_CORES) is
 // run again.
 //
+// Nothing reaches another site during the loads that count: not Google's
+// Tag Manager or Analytics, which a fixture build loads as the live site
+// does, nor the joining form's site. A stand-in on this machine answers for
+// them all, with a copy of each of their files that it fetched once
+// (scripts/measure-replay.mjs). So a measurement is never counted as a visit,
+// and those sites' scripts still weigh on the connection what they weigh for
+// a visitor.
+//
 // A commit's server is this machine's `next start`, so the figures compare
 // versions with each other. They aren't the live site's: Netlify's CDN
 // serves that, over HTTP/2, and a second visit depends on its cache headers,
@@ -63,6 +71,7 @@ import { cpus } from "node:os";
 import { basename, join } from "node:path";
 import { MAIN_URL } from "../tests/checkout.mjs";
 import { lockMain } from "./main-checkout.mjs";
+import { startReplay } from "./measure-replay.mjs";
 
 /**
  * Chrome DevTools' 4G presets, in bytes a second and milliseconds
@@ -428,6 +437,7 @@ async function load(browser, url, viewport, network, selector, filmTo) {
   const context = await browser.newContext({
     ...devices[viewport.device],
     ...(viewport.viewport ? { viewport: viewport.viewport } : {}),
+    ignoreHTTPSErrors: true,
   });
   const page = await context.newPage();
   const cdp = await context.newCDPSession(page);
@@ -514,9 +524,24 @@ async function main() {
   mkdirSync(out, { recursive: true });
 
   const release = await lockMain();
-  // A frame from another site shares the page's process, as it does on most
-  // phones, so its requests are slowed and counted with the page's.
-  const browser = await chromium.launch({ args: ["--disable-site-isolation-trials"] });
+  // Every host but the page's own is the stand-in (scripts/measure-replay.mjs),
+  // whose certificate isn't checked.
+  const replay = await startReplay();
+  const own = [
+    "localhost",
+    "127.0.0.1",
+    ...versions.filter((version) => version.url).map((version) => new URL(version.url).hostname),
+  ];
+  const browser = await chromium.launch({
+    args: [
+      // A frame from another site shares the page's process, as it does on
+      // most phones, so its requests are slowed and counted with the page's.
+      "--disable-site-isolation-trials",
+      `--host-resolver-rules=MAP * 127.0.0.1:${replay.port}, ${own.map((host) => `EXCLUDE ${host}`).join(", ")}`,
+      "--ignore-certificate-errors",
+      "--disable-quic",
+    ],
+  });
   // results[viewport][network][version] is that version's runs, films[viewport][network][version] its film's frames.
   const results = {};
   const films = {};
@@ -537,7 +562,10 @@ async function main() {
       const url = new URL(options.path, base).href;
       for (const viewportKey of options.viewports) {
         const viewport = VIEWPORTS[viewportKey];
+        // The first load fetches what the stand-in hasn't kept of other sites' files; the loads that count fetch nothing.
+        replay.thaw();
         await load(browser, url, viewport, undefined, options.images);
+        replay.freeze();
         for (const networkKey of options.networks) {
           const network = NETWORKS[networkKey];
           const runs = [];
@@ -561,7 +589,16 @@ async function main() {
   } finally {
     await stop();
     await browser.close();
+    await replay.stop();
     release();
+  }
+  console.log(
+    `\nOther sites' files: ${replay.counts.kept} served from the copies kept, ${replay.counts.fetched} fetched from the sites.`,
+  );
+  if (replay.counts.missed > 0) {
+    console.log(
+      `${replay.counts.missed} requests during the loads that count were for files not kept: those loads were lighter than a visitor's.`,
+    );
   }
 
   const names = versions.map((version) =>
