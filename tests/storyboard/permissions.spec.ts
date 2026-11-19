@@ -220,7 +220,8 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   await page.goto(`${BASE}/staff/politicians/addresses-to-fix`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(politiciansCopy.addressesToFix.title);
   const blocked = page.getByRole("table").first().getByRole("row").filter({ hasText: "no-such-mailbox@pauseai.uk" });
-  await expect(blocked.getByText(`${emailCopy.emails.letterTo} ${bouncy.name}`)).toBeVisible();
+  // Named, cut to its first words, with … to unfold it.
+  await expect(blocked.getByRole("group").filter({ hasText: emailCopy.emails.letterTo })).toBeVisible();
   await expect(page.locator('a[href^="/staff/letters"]')).toHaveCount(0);
   await frame(page, "Addresses to fix");
 
@@ -228,7 +229,8 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   // With supporters, the same page links to the letter.
   addStaffAccount(flowDatabase, staffEmail(), ["supporters"]);
   await page.reload();
-  await blocked.getByRole("link", { name: `${emailCopy.emails.letterTo} ${bouncy.name}` }).click();
+  // The link is cut too, its whole name on hover.
+  await blocked.getByTitle(`${emailCopy.emails.letterTo} ${bouncy.name}`).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     lettersCopy.letters.oneTitle("Jane Smith", bouncy.name),
   );

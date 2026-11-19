@@ -749,7 +749,21 @@ test("A number WhatsApp can't reach", async ({ page, request, flowDatabase }) =>
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
   await expect(page.getByText(stateWords.tags["unreached:not-on-whatsapp"]!).first()).toBeVisible();
   await frame(page, "Their copy, which didn't reach them");
-  story("The number is listed with the supporters' bounced emails, and says when texts try it again.");
+  story("The next text, on the same template, skips the number.");
+  const [next] = runSql(
+    flowDatabase,
+    `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at,
+       state, template_id)
+     SELECT 'Doors open at ten', subject, audience, channel, topic, filter, body, created_by, sent_from, from_name,
+       now() - interval '1 hour', 'scheduled', template_id FROM mailings WHERE id = ${sent.id}
+     RETURNING id`,
+  );
+  runSql(
+    flowDatabase,
+    `INSERT INTO audit_log (actor, action, details) VALUES ('${staffEmail()}', 'schedule broadcast', '{"id": ${next}, "recipients": ${TEXTABLE}}')`,
+  );
+  await runSending(request);
+  story("The number is listed with the supporters' blocked addresses, and says when texts try it again.");
   await page.goto(`${BASE}/staff/supporters/blocked-addresses`);
   const row = page.getByRole("row").filter({ hasText: emailCopy.emails.kinds["not-on-whatsapp"] });
   await expect(row).toBeVisible();
@@ -764,7 +778,7 @@ test("A number WhatsApp can't reach", async ({ page, request, flowDatabase }) =>
   await expect(page).toHaveURL(/kind=not-on-whatsapp/);
   await expect(row).toBeVisible();
   await frame(page, "Only numbers not on WhatsApp");
-  story("Its History says which text WhatsApp couldn't deliver.");
+  story("Its History says which text WhatsApp couldn't deliver, and which it skipped since.");
   await openBubble(row.getByRole("button", { name: emailCopy.emails.history.open }));
   await frame(page, "The number's history");
   await page.keyboard.press("Escape");
