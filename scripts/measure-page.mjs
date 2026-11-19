@@ -471,6 +471,10 @@ async function load(browser, url, viewport, network, selector, filmTo) {
     });
   }
   await page.addInitScript(watchPage, selector);
+  // Google's tags can send their reports of a visit by way of the page's own
+  // site, which the stand-in doesn't answer for. A build on this machine has
+  // nowhere to pass them on to; on a site that's up, they're stopped.
+  if (new URL(url).hostname !== "localhost") await context.route(/\/collect(\/|\?|$)/, (route) => route.abort());
   await page.goto(url, { waitUntil: "load", timeout: LOAD_TIMEOUT_MS }).catch(() => {});
   await page
     .waitForFunction(() => window.measured.last !== null, undefined, { timeout: LOAD_TIMEOUT_MS })
