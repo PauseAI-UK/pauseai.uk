@@ -126,8 +126,10 @@ export const politiciansCopy = {
         gone: "This politician can't be edited.",
       },
     },
-    // A status: who set it and when; the ask's title heads the line. An import's is "from" it.
+    // Who set something and when, as under an email address. An ask's answer says only who, as its date is beside
+    // it; an import's is "from" it.
     setBy: (who: string, when: string) => `set by ${who}, ${when}`,
+    answerSetBy: (who: string) => `set by ${who}`,
     fromImport: { airtable: "from Airtable", controlai: "from ControlAI's letter" } as Record<string, string>,
     // The form on an ask staff record: its name, the note's field and what it asks, and Save for an event's answer.
     setStatus: "Set status",

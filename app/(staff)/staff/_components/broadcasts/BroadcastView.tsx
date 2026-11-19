@@ -3,9 +3,16 @@ import Tag from "@/components/ui/Tag";
 import { Muted } from "@/components/ui/Text";
 import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import type { BroadcastPageData, BroadcastSummary, MessageRecipient } from "@/lib/broadcasts/pages.server";
-import { filtersPath, pageParam } from "@/lib/list-params";
+import { filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { londonWhenShort, sendsAt, staffClock, staffDate, staffTime } from "@/lib/staff-time";
-import { FIELD_WORDS, type BroadcastChannel, type SendingPause } from "@/lib/broadcasts/broadcasts";
+import {
+  FIELD_WORDS,
+  RECIPIENT_SORTS,
+  type BroadcastChannel,
+  type RecipientSort,
+  type SendingPause,
+} from "@/lib/broadcasts/broadcasts";
+import { sortHref, type SortSpec } from "@/lib/staff-sort";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import Strip from "../ui/Strip";
 import { phoneWords } from "@/lib/phone";
@@ -23,6 +30,7 @@ import { CountGroups } from "../mailings/CopyCounts";
 import { CopyStatus, stateCounts, wentAndGone } from "../letters/CopyStatus";
 import Grid, { Card } from "../ui/Grid";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
+import SortHeading from "../ui/SortHeading";
 import StaffLink from "../ui/StaffLink";
 import view from "../mailings/MailingView.module.css";
 import styles from "./Broadcasts.module.css";
@@ -150,12 +158,35 @@ export function copyWent(copyOf: Pick<MessageRecipient, "status" | "skipReason">
   return !copyOf.skipReason && !["scheduled", "cancelled"].includes(copyOf.status);
 }
 
-/** A recipient's columns: who, and where they are; then how it went, when, and the way to their copy's page. */
-function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipient>[] {
+/**
+ * A recipient's columns: who, and where they are; how it went, and the way
+ * to their copy's page; then when it last changed, which a phone shows
+ * under how it went, in place of the column. With `sorting`, the
+ * list's URL and its sort, who and when are headings that sort by them
+ * (RECIPIENT_SORTS), keeping the tab.
+ */
+function recipientColumns(
+  broadcast: BroadcastSummary,
+  sorting?: { path: string; tab: string; current: SortSpec<RecipientSort> },
+): ListColumn<MessageRecipient>[] {
+  const sorts = (key: RecipientSort, label: string) =>
+    sorting && {
+      heading: (
+        <SortHeading
+          key={key}
+          sortKey={key}
+          current={sorting.current}
+          href={sortHref(sorting.path, { tab: sorting.tab }, RECIPIENT_SORTS, sorting.current, key)}
+        >
+          {label}
+        </SortHeading>
+      ),
+    };
   return [
     {
       key: "who",
       label: copy.columns.who,
+      ...sorts("who", copy.columns.who),
       cell: (r) => (
         <span className={styles.stack}>
           {r.supporterId ? (
@@ -177,7 +208,12 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
         return (
           <span className={styles.stack}>
             <CopyStatus copyOf={r} />
-            {r.sentAt && <Muted>{staffDate(r.sentAt)}</Muted>}
+            {/* On a phone, which has no room for the last column (Broadcasts.module.css). */}
+            {r.changedAt && (
+              <span className={styles.changedUnder}>
+                <Muted>{staffTime(r.changedAt)}</Muted>
+              </span>
+            )}
             {r.heldTill && <Muted>{copy.heldTill(staffTime(sendsAt(r.heldTill)))}</Muted>}
             {copyWent(r) && (
               <StaffLink href={`/staff/broadcasts/${broadcast.id}/${r.copyId}`}>{copy.threadLink}</StaffLink>
@@ -185,6 +221,13 @@ function recipientColumns(broadcast: BroadcastSummary): ListColumn<MessageRecipi
           </span>
         );
       },
+    },
+    {
+      key: "changed",
+      label: copy.columns.changed,
+      short: true,
+      ...sorts("changed", copy.columns.changed),
+      cell: (r) => r.changedAt && staffTime(r.changedAt),
     },
   ];
 }
@@ -251,6 +294,10 @@ export default function BroadcastView({
   const written = delayed ? { ...data.written, state: "sending" as const } : data.written;
   const path = `/staff/broadcasts/${written.id}`;
   const scheduled = written.state === "scheduled";
+  // What the recipients' links keep of the URL: the tab, and the sort where it isn't the list's own.
+  const shown = tab === "all" ? "" : tab;
+  const own = data.sort.key === "who" && data.sort.dir === RECIPIENT_SORTS.who;
+  const sorted: Params = own ? {} : { sort: data.sort.key, dir: data.sort.dir };
   const groups = wentAndGone(
     countsFiltering(path, broadcastCounts(summary), tab, mailingsCopy.mailingPages.showEveryone),
   );
@@ -312,20 +359,21 @@ export default function BroadcastView({
           </div>
           {/* Sending finds who it goes to, so one scheduled lists who its filters find now. */}
           {scheduled && <Muted>{copy.recipientsNow}</Muted>}
-          {
+          <div className={styles.recipients}>
             <ListFrame
               count={copy.recipientsCount(data.recipientsTotal)}
               total={data.recipientsTotal}
               page={data.page}
               pages={data.pages}
               pageSize={data.pageSize}
-              href={(n) => filtersPath(path, { tab: tab === "all" ? "" : tab, ...pageParam(n) })}
-              columns={recipientColumns(summary)}
+              href={(n) => filtersPath(path, { tab: shown, ...sorted, ...pageParam(n) })}
+              // One scheduled has no copies yet, so nothing to sort by but who.
+              columns={recipientColumns(summary, scheduled ? undefined : { path, tab: shown, current: data.sort })}
               rows={data.recipients}
               rowKey={(r) => r.copyId}
               empty={copy.noRecipients}
             />
-          }
+          </div>
         </Card>
       </Grid>
     </div>

@@ -968,16 +968,18 @@ describe("PoliticianDetails", () => {
       )
       .toBeVisible();
     await expect
-      .element(letter.getByText(`By email · ${politiciansCopy.politician.setBy("jo@pauseai.uk", "2 Oct 2026")}`))
+      .element(letter.getByText(`By email · ${politiciansCopy.politician.answerSetBy("jo@pauseai.uk")}`))
       .toBeVisible();
     // Declined, from Airtable: crossed, not green, and staff can change it.
     const event = row("edinburgh-conference-2026");
     expect(answer(event).firstElementChild!.textContent).toBe(staffVocabulary.statuses.declined);
     expect(answer(event).firstElementChild!.className).not.toMatch(/yes/);
     await expect.element(event.getByText(politiciansCopy.politician.fromImport.airtable)).toBeVisible();
+    // Who asked, then its title with its date after it.
     await expect
-      .element(event.getByText(`${asksCopy.asks.askedThem(asksCopy.asks.askedBy.pauseai, "event")} · 1 Nov 2026`))
+      .element(event.getByText(asksCopy.asks.askedThem(asksCopy.asks.askedBy.pauseai, "event"), { exact: true }))
       .toBeVisible();
+    await expect.element(event.getByText("· 1 Nov 2026", { exact: true })).toBeVisible();
     await expect.element(event.getByRole("button", { name: politiciansCopy.politician.edit })).toBeVisible();
 
     // The form, behind Edit: that they were asked, then a letter's answers, in a row, starting from theirs, and
@@ -1159,7 +1161,7 @@ describe("PoliticianDetails", () => {
       `${staffVocabulary.noReplyYet.event}2 Nov 2026${politiciansCopy.politician.edit}`,
     );
     await expect
-      .element(row.getByText(`At a dinner · ${politiciansCopy.politician.setBy("jo@pauseai.uk", "2 Nov 2026")}`))
+      .element(row.getByText(`At a dinner · ${politiciansCopy.politician.answerSetBy("jo@pauseai.uk")}`))
       .toBeVisible();
     await row.getByText(politiciansCopy.politician.edit, { exact: true }).click();
     const radios = () =>

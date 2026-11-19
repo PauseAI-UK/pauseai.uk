@@ -9,14 +9,17 @@ import { firstOf, pageNumber, type Params, type ParamValue } from "@/lib/list-pa
 import {
   BROADCAST_SENDER,
   DEFAULT_SEND_BY,
+  RECIPIENT_SORTS,
   restsUntil,
   sendingPause,
   termsValues,
   type BroadcastChannel,
   type BroadcastSendBy,
   type BroadcastTerms,
+  type RecipientSort,
   type SendingPause,
 } from "./broadcasts";
+import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
 import { answersTo, type BroadcastAnswer } from "./answers.server";
 import { repliesTo, type BroadcastReply } from "./replies.server";
@@ -271,12 +274,18 @@ export type MessageRecipient = {
   status: string;
   skipReason: string | null;
   sentAt: Date | null;
+  /** When it last changed: the newest thing in its history, or when it was sent; null for one that hasn't gone. */
+  changedAt: Date | null;
   /** When one WhatsApp held is next tried (HELD); null for the rest. */
   heldTill: Date | null;
   /** Where it stands (COPY_STATE), and why, where that state has one (COPY_WHY). */
   state: CopyState;
   why: string | null;
 };
+
+// When a copy last changed: the newest thing its history holds (sent, delivered, read, replied, a bounce, an
+// opt-out), or for one with no history, when it was sent.
+const CHANGED_AT = "coalesce((SELECT max(e.at) FROM broadcast_message_events e WHERE e.message_id = c.id), c.sent_at)";
 
 /** Which of a broadcast's recipients its page lists. */
 export const MESSAGE_TABS = ["all", ...COPY_STATES] as const;
@@ -319,6 +328,8 @@ export type BroadcastPageData =
       /** What each part its words can be only for says, as its box shows it. */
       parts: Record<string, string>;
       tab: MessageTab;
+      /** What its recipients are sorted by (RECIPIENT_SORTS). */
+      sort: SortSpec<RecipientSort>;
       recipients: MessageRecipient[];
       recipientsTotal: number;
       page: number;
@@ -411,12 +422,13 @@ export async function newBroadcastPageData(
 
 /**
  * A broadcast's page: a draft, to write, which opening keeps from being tidied
- * away; or one scheduled or sent, with a page of its recipients in a tab; as
- * `me`, the staff member looking. Undefined for none.
+ * away; or one scheduled or sent, with a page of its recipients in a tab,
+ * sorted as its URL asks (RECIPIENT_SORTS), one scheduled's always by name;
+ * as `me`, the staff member looking. Undefined for none.
  */
 export async function broadcastPageData(
   id: number,
-  search: { page?: ParamValue; tab?: ParamValue },
+  search: { page?: ParamValue; tab?: ParamValue; sort?: ParamValue; dir?: ParamValue },
   me: string,
 ): Promise<BroadcastPageData | undefined> {
   const written = await getWrittenBroadcast(id, true);
@@ -424,14 +436,21 @@ export async function broadcastPageData(
   if (written.state === "draft") return { kind: "draft", draft: written, ...(await writerData(written, me)) };
   const tab = MESSAGE_TABS.find((one) => one === firstOf(search.tab)) ?? "all";
   const page = pageNumber(firstOf(search.page));
+  const sort = parseSort(RECIPIENT_SORTS, "who", firstOf(search.sort), firstOf(search.dir));
   const from = `FROM broadcast_messages c WHERE c.mailing_id = $1 AND ${tabCondition(tab)}`;
+  // By name, replies to check first; or by when each last changed, those that haven't gone last either way.
+  const order =
+    sort.key === "who"
+      ? `${TO_LOOK_AT} DESC, (c.merge_values ->> 'name') COLLATE english ${sort.dir} NULLS LAST`
+      : `${CHANGED_AT} ${sort.dir} NULLS LAST`;
   const [summary, recipients, [{ total }], choices, parts] = await Promise.all([
     query<SummaryRow>(`${SELECT_BROADCASTS} AND m.id = $1 GROUP BY m.id`, [id]).then(([row]) => withPause(row)),
     query<MessageRecipient>(
       `SELECT c.id::int AS "copyId", c.supporter_id::int AS "supporterId", c.merge_values ->> 'name' AS name,
          c.merge_values ->> 'place' AS place, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
-         CASE WHEN ${HELD} THEN c.not_before END AS "heldTill", ${COPY_STATE} AS state, ${COPY_WHY} AS why
-       ${from} ORDER BY ${TO_LOOK_AT} DESC, (c.merge_values ->> 'name') COLLATE english NULLS LAST, c.id
+         ${CHANGED_AT} AS "changedAt", CASE WHEN ${HELD} THEN c.not_before END AS "heldTill",
+         ${COPY_STATE} AS state, ${COPY_WHY} AS why
+       ${from} ORDER BY ${order}, c.id
        LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE],
     ),
@@ -450,6 +469,7 @@ export async function broadcastPageData(
     choices,
     parts: Object.fromEntries(parts.map((part) => [part.id, part.label])),
     tab,
+    sort,
     recipients: found?.rows ?? recipients,
     recipientsTotal: listed,
     page,
@@ -476,6 +496,7 @@ async function scheduledRecipients(
       status: "scheduled" as const,
       skipReason: null,
       sentAt: null,
+      changedAt: null,
       heldTill: null,
       state: "scheduled" as const,
       why: null,

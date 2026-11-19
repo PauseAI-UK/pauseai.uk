@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { londonWhen, staffDate } from "@/lib/staff-time";
+import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
 import BroadcastView, { broadcastCounts } from "./BroadcastView";
 import { CountGroups, NeedsAndFine } from "../mailings/CopyCounts";
 import { CopyStatus, copyStatus } from "../letters/CopyStatus";
@@ -102,6 +102,50 @@ describe("a broadcast's page", () => {
     );
     await expect.element(page.getByText(stateWords.tags.scheduled!)).toBeVisible();
     await expect.element(page.getByRole("link", { name: copy.threadLink })).not.toBeInTheDocument();
+  });
+
+  it("sorts its recipients by who or by when each last changed, keeping the tab, and pages keep the sort", async () => {
+    const { rerender } = await render(
+      <BroadcastView data={{ ...exampleBroadcastSent, tab: "error" }} who={who} contact={null} {...actions} />,
+    );
+    // When each last changed: under how it went on a phone, which has no room for its column.
+    const when = staffTime(exampleBroadcastSent.recipients[0].changedAt!);
+    await page.viewport(390, 800);
+    await expect
+      .element(page.getByRole("cell", { name: new RegExp(`${stateWords.tags.read}.*${when}`) }))
+      .toBeVisible();
+    // Hidden, so no longer a link anyone can reach.
+    await expect.element(page.getByRole("link", { name: copy.columns.changed, exact: true })).not.toBeInTheDocument();
+    await page.viewport(1280, 800);
+    await expect.element(page.getByRole("cell", { name: when, exact: true })).toBeVisible();
+    const heading = (name: string) => page.getByRole("link", { name, exact: true });
+    await expect
+      .element(heading(copy.columns.changed))
+      .toHaveAttribute("href", "/staff/broadcasts/5?tab=error&sort=changed&dir=desc");
+    await expect
+      .element(heading(copy.columns.who))
+      .toHaveAttribute("href", "/staff/broadcasts/5?tab=error&sort=who&dir=desc");
+    await rerender(
+      <BroadcastView
+        data={{ ...exampleBroadcastSent, sort: { key: "changed", dir: "desc" }, pages: 2 }}
+        who={who}
+        contact={null}
+        {...actions}
+      />,
+    );
+    await expect.element(heading(copy.columns.changed)).toBeVisible();
+    expect(heading(copy.columns.changed).element().closest("th")!.getAttribute("aria-sort")).toBe("descending");
+    await expect
+      .element(page.getByRole("link", { name: staffVocabulary.paging.next }))
+      .toHaveAttribute("href", "/staff/broadcasts/5?sort=changed&dir=desc&page=2");
+  });
+
+  it("has nothing to sort one scheduled by", async () => {
+    const written = { ...exampleBroadcastSent.written, state: "scheduled" as const };
+    await page.viewport(1280, 800);
+    await render(<BroadcastView data={{ ...exampleBroadcastSent, written }} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByRole("cell", { name: copy.columns.changed, exact: true })).toBeVisible();
+    await expect.element(page.getByRole("link", { name: copy.columns.changed, exact: true })).not.toBeInTheDocument();
   });
 
   it("goes through the pages of everyone", async () => {
