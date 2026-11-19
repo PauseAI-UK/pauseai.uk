@@ -70,11 +70,15 @@ describe("TagManagerNoscript", () => {
 describe("Nav", () => {
   it("lists every group in the Groups menu, the local groups before the affinity groups", async () => {
     const { container } = await render(<Nav />);
-    const menu = page.getByRole("link", { name: "Groups", exact: true }).element().nextElementSibling!;
-    const links = [...menu.querySelectorAll("a")].map((a) => [a.getAttribute("href"), a.textContent]);
+    // The menu's link leads to the home page's map of local groups.
+    const trigger = container.querySelector('nav a[href="#local-groups"]')!;
+    expect(trigger.textContent).toBe("Groups");
+    const links = [...trigger.nextElementSibling!.querySelectorAll("a")].map((a) => [
+      a.getAttribute("href"),
+      a.textContent,
+    ]);
     expect(links.map(([href]) => href!.replace(/\/$/, "")).sort()).toEqual(groups.map((group) => group.href).sort());
     expect(links.slice(-affinityGroups.length)).toEqual(affinityGroups.map((group) => [`${group.href}/`, group.menu]));
-    expect(container.querySelector('nav a[href="#local-groups"]')?.textContent).toBe("Groups");
   });
 
   it("shows the PauseAI UK logo, and a group's branding on its page", async () => {
@@ -99,7 +103,7 @@ describe("Nav", () => {
     // An affinity group's page, by the group's own words.
     navigation.pathname = "/parents";
     await rerender(<Nav />);
-    await expect.element(page.getByText(groupNamed("Parents").words.label, { exact: true })).toBeVisible();
+    expect(container.querySelector("header a")?.textContent).toBe(`PauseAI UK${groupNamed("Parents").words.label}`);
   });
 
   it("sets the header height for the stylesheet", async () => {

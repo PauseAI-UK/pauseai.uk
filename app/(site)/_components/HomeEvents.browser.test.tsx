@@ -220,7 +220,7 @@ describe("HomeEvents", () => {
       .getByRole("radio")
       .elements()
       .map((radio) => radio.textContent);
-    expect(names).toEqual(["Leicester", "London", "Manchester", "Oxford", "Scotland", "West of England"]);
+    expect(names).toEqual(["Cambridge", "Leicester", "London", "Manchester", "Oxford", "Scotland", "West of England"]);
   });
 
   it("says when nothing's on near the place chosen", async () => {
