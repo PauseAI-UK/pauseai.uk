@@ -13,3 +13,4 @@ Every checkout shares one store of main's frames (`test-results/storyboard-frame
 ## Hits
 
 - 2026-11-19: a full review's comparison with main was lost to it after 14 minutes of flows, and the review had to be run again
+- 2026-11-20: the gate's review failed reading one of main's pictures that had just gone (ENOENT in comparePngs), with nothing to run; run again at once, it passed
