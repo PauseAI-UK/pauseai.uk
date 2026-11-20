@@ -102,13 +102,20 @@ describe("reading a message", () => {
     );
 
   it("reads the HTML of a message whose plain text has HTML's entities left in it", () => {
+    const tracked = "https://u1.ct.sendgrid.net/ls/click?upn=u001.abc-2Bdef";
     const html =
-      "<p>Dear Jo,</p><p>I&rsquo;ve signed the motion.&#8203;</p><p>&#8203;</p>" +
-      '<p>You can <a href="https://u1.ct.sendgrid.net/ls/click?upn=u001.abc">read it here</a>.</p>';
+      "<div>Dear&nbsp;Jo,<br> <br> I&rsquo;ve signed the motion. It asks for: <ul style='margin: 0'> <li>a summit</li> " +
+      `<li>a treaty.</li> </ul> <br> You can read it here:&nbsp;<a href="${tracked}">https://example.org/motion/1</a><br> <br> ` +
+      "Best wishes,<br> &#8203;&#8203;&nbsp; Office of Sam Jones MP<br> Your data&#8239;is safe.</div>";
     const plain =
-      "Dear Jo,\r\n\r\nI&rsquo;ve signed the motion.&#8203;\r\n\r\n&#8203;\r\n\r\n" +
-      "You can read it here [https://u1.ct.sendgrid.net/ls/click?upn=u001.abc].";
-    expect(wholeTextOf(inTwoForms(plain, html))).toBe("Dear Jo,\n\nI’ve signed the motion.\n\nYou can read it here.");
+      "Dear&nbsp;Jo,\r\n\r\nI&rsquo;ve signed the motion. It asks for:\r\n\r\n\ta summit\r\n\ta treaty.\r\n\r\n\r\n" +
+      `You can read it here:&nbsp;${tracked}\r\n\r\nBest wishes,\r\n&#8203;&#8203;&nbsp; Office of Sam Jones MP\r\n` +
+      "Your data&#8239;is safe.";
+    expect(wholeTextOf(inTwoForms(plain, html))).toBe(
+      "Dear Jo,\n\nI’ve signed the motion. It asks for:\n- a summit\n- a treaty.\n\n" +
+        "You can read it here: https://example.org/motion/1\n\nBest wishes,\n  Office of Sam Jones MP\n" +
+        "Your data is safe.",
+    );
   });
 
   it("reads plain text with nothing of HTML's in it, though the message has HTML too", () => {

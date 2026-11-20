@@ -170,12 +170,12 @@ function zeroWidthGone(text: string): string {
   return text.replace(/\u200b/g, "");
 }
 
-/** Some HTML's text: its source's wrapping and its tags gone, a blank line between paragraphs, a line for each other break. */
+/** Some HTML's text: its source's wrapping and its tags gone, a blank line after a paragraph or a list, a line for each other break. */
 function tagsGone(html: string): string {
   const lines = html
     .replace(/\s+/g, " ")
     .replace(/<li\b[^>]*>/gi, "\n- ")
-    .replace(/<\/(p|h\d)>/gi, "\n\n")
+    .replace(/<\/(p|h\d|ul|ol)>/gi, "\n\n")
     .replace(/<br\s*\/?>|<\/(div|tr)>/gi, "\n")
     .replace(/<[^>]+>/g, "");
   return zeroWidthGone(entitiesRead(lines)).replace(/ *\n */g, "\n");
