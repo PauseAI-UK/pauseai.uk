@@ -1184,11 +1184,7 @@ test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => 
   await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
   await page.getByRole("button", { name: copy.replies.bulk }).click();
   await frame(page, "Unsubscribe them, all bulk email chosen", { window: true });
-  story("Record opt-out is pressed twice, so a slip can't unsubscribe someone: the first press asks for the second.");
   await page.getByRole("button", { name: words.record }).click();
-  await expect(page.getByRole("button", { name: words.recordAgain })).toBeVisible();
-  await frame(page, "Press again to record it", { window: true });
-  await page.getByRole("button", { name: words.recordAgain }).click();
   await expect(page.getByText(/Recorded as an opt-out/).first()).toBeVisible();
   await frame(page, "Recorded as an opt-out");
 });

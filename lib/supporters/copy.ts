@@ -246,8 +246,6 @@ export const supportersCopy = {
           howPlaceholder: "e.g. “at a stall”, “by phone”",
           global: "Email opt-outs go to PauseAI Global and Luma too. Only the supporter can opt back in.",
           record: "Record opt-out",
-          // Under a reply, Record opt-out after its first press, asking for a second.
-          recordAgain: "⁂ Press again to unsubscribe them",
           cancel: "Cancel",
           already: "They were already opted out of that.",
         },
