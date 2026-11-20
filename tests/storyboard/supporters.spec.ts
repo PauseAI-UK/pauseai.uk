@@ -257,10 +257,10 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
   // Her postcode is in Manchester Central, whose MP the politicians sync brought.
   await expect(page.getByRole("link", { name: "Mo Example" })).toBeVisible();
   const reasons = copy.detail.permissions.reasons;
-  // Her email and her Luma number in one row, each with its reason.
+  // Her email and her Luma number in one row, each with its reason, and her email again under Luma's own messages.
   await expect(
     page.getByText(reasons.unsubscribed("16 Oct 2026", copy.detail.permissions.sources.luma), { exact: false }),
-  ).toHaveCount(2);
+  ).toHaveCount(3);
   await frame(page, "Jane's page");
   story("Her history, at the foot of the page, has the opt-out.");
   await openHistory(page);
@@ -276,10 +276,10 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
     recorded: true,
   });
   await page.reload();
-  // A contact again, since before Luma's webhook, her email and number alike.
+  // A contact again, since before Luma's webhook, her email and number alike, and her email under Luma's own messages.
   await expect(
     page.getByText(reasons.following("20 Sept 2026", copy.detail.permissions.sources.luma), { exact: false }),
-  ).toHaveCount(2);
+  ).toHaveCount(3);
   await openHistory(page);
   await expect(history.getByText(copy.detail.kinds.resubscribed, { exact: false })).toBeVisible();
   await frame(page, "Jane's page, subscribed again");
