@@ -71,8 +71,8 @@ export type DashboardAction =
   | { kind: "blocked-mp"; politicianId: number; name: string; isTest: boolean; at: Date }
   | { kind: "failed-import"; job: ImportJob; at: Date; error: string }
   | { kind: "letters-inbox"; inbox: string; count: number; at: Date }
-  /** Replies to broadcasts waiting for staff, and the broadcast with the oldest, where to start. */
-  | { kind: "broadcast-replies"; count: number; broadcastId: number };
+  /** Replies to one broadcast waiting for staff: the broadcast, its title, and how many. */
+  | { kind: "broadcast-replies"; count: number; broadcastId: number; title: string };
 
 export type Dashboard = {
   /** The window's length in days. */

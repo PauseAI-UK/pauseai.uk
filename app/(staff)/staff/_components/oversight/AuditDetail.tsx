@@ -271,6 +271,7 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "resume broadcast": none,
   "deal with reply": none,
   "answer reply": none,
+  "react to reply": none,
   "download supporters": none,
   "download blocked emails": none,
   "download letters": none,

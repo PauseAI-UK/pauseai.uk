@@ -197,6 +197,22 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
         ]
       : [],
   );
+  // Each emoji we put on a reply to a text, with WhatsApp's failure of it under it, the only thing it tells of one.
+  const reacted = one.reactions.map((reaction): HistoryEntry => ({
+    at: reaction.sentAt,
+    status: "answered",
+    details: { by: staffMemberText(reaction.sentBy) },
+    label: copy.replies.historyReacted(reaction.emoji),
+    tag: replyTag,
+    ...under(
+      reaction.events.map((event) => ({
+        at: event.at,
+        status: event.kind,
+        details: event.details,
+        label: copy.replies.historyOurs[event.kind]!,
+      })),
+    ),
+  }));
   return newestFirst([
     ...(sent
       ? [
@@ -212,6 +228,7 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
     ...replies,
     ...dealt,
     ...ours,
+    ...reacted,
   ]);
 }
 

@@ -177,6 +177,22 @@ export function sendText(keys: WhatsAppKeys, from: string, to: string, text: str
   return send(keys, from, to, { type: "text", text: { body: text, preview_url: false } });
 }
 
+/**
+ * Puts emoji `emoji` on message `messageId` in our chat with `to`, in place
+ * of any we put there before; an empty one takes ours away. WhatsApp
+ * delivers it to a message up to 30 days old, at any time, and says only
+ * that it was sent, or later that it failed (error 131009).
+ */
+export function sendReaction(
+  keys: WhatsAppKeys,
+  from: string,
+  to: string,
+  messageId: string,
+  emoji: string,
+): Promise<WhatsAppSend> {
+  return send(keys, from, to, { type: "reaction", reaction: { message_id: messageId, emoji } });
+}
+
 /** Words to send for approval as a marketing template, with a footer saying how to stop. */
 export type NewTemplate = { name: string; body: string; examples: TemplateParam[]; footer: string };
 

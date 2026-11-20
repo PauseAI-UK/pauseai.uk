@@ -108,6 +108,25 @@ export function docFromMarkup(markup: string): LetterDoc {
   return { type: "doc", content };
 }
 
+/** Plain text, such as an email's, as the editor's document: a paragraph each, apart by a blank line, its lines broken as they were, nothing read as markup. */
+export function docFromText(text: string): LetterDoc {
+  const content = text
+    .trim()
+    .split(/\n[ \t]*\n\s*/)
+    .filter((part) => part)
+    .map((part) =>
+      paragraph(
+        part
+          .trimEnd()
+          .split("\n")
+          .flatMap((line, i): Inline[] =>
+            i === 0 ? [{ type: "text", text: line }] : [{ type: "hardBreak" }, { type: "text", text: line }],
+          ),
+      ),
+    );
+  return { type: "doc", content };
+}
+
 export function paragraph(content: Inline[]): Paragraph {
   return content.length > 0 ? { type: "paragraph", content } : { type: "paragraph" };
 }

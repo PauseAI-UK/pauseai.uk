@@ -4,7 +4,12 @@ import { page } from "vitest/browser";
 import { staffTime } from "@/lib/staff-time";
 import MessageCopyView from "./MessageCopyView";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { exampleMessageCopy, exampleTextAnswers, exampleTextReplies } from "./BroadcastWriter.examples";
+import {
+  exampleMessageCopy,
+  exampleTextAnswers,
+  exampleTextReplies,
+  exampleUndeliveredReaction,
+} from "./BroadcastWriter.examples";
 import { SITE_ACTOR } from "@/lib/broadcasts/broadcasts";
 import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
@@ -289,5 +294,31 @@ describe("MessageCopyView's example in the gallery", () => {
       </>,
     );
     await expect.element(page.getByText("Thank you for marching").first()).toBeVisible();
+  });
+
+  it("puts WhatsApp's failure of our emoji under it in the history", async () => {
+    await render(<MessageCopyView one={{ ...exampleMessageCopy, reactions: [exampleUndeliveredReaction] }} />);
+    const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
+    await expect.element(history.getByText(copy.replies.historyReacted("🙏"))).toBeVisible();
+    await expect.element(history.getByText(copy.replies.historyOurs.failed!)).toBeVisible();
+  });
+
+  it("says an answer written in Gmail was sent there, by the mailbox", async () => {
+    await render(<MessageCopyViewExample email replies gmail />);
+    await expect.element(page.getByText(copy.replies.sentInGmail("hello@pauseai.uk"))).toBeVisible();
+  });
+
+  it("puts the emoji under their messages, ours pressed and none on one too old, each of ours in the history", async () => {
+    await render(<MessageCopyViewExample reacted />);
+    // Their question, their thanks; not the one too old.
+    expect(page.getByRole("group", { name: copy.replies.react }).all()).toHaveLength(2);
+    await expect.element(page.getByRole("button", { name: "👍", pressed: true })).toBeVisible();
+    const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
+    await expect.element(history.getByText(copy.replies.historyReacted("👍"))).toBeVisible();
+    await expect.element(history.getByText(copy.replies.historyReacted("❤️"))).toBeVisible();
+    await page.getByRole("button", { name: "🙏" }).first().click();
+    await expect
+      .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+      .toHaveTextContent('react(11, "🙏")');
   });
 });

@@ -4,7 +4,7 @@ import { http, HttpResponse } from "msw";
 import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
-import { answerReply, answersTo } from "./answers.server";
+import { answerReply, answersTo, keepGmailAnswer, reactionsTo, reactToReply } from "./answers.server";
 import { recordProblem } from "@/lib/email/email.server";
 import { emailCopy } from "@/lib/email/copy";
 
@@ -44,14 +44,15 @@ async function replied({
   return { copy, reply };
 }
 
-/** Gmail taking each send, as g-answer in the reply's thread: what each send asked for. */
+/** Gmail taking each send, the first as g-answer, then g-answer-2 and on, in the reply's thread: what each send asked for. */
 function gmailTakes(): { raw: string; threadId?: string }[] {
   const sends: { raw: string; threadId?: string }[] = [];
   server.use(
     http.post(SEND, async ({ request }) => {
       const body = (await request.json()) as { raw: string; threadId?: string };
       sends.push({ raw: Buffer.from(body.raw, "base64url").toString(), threadId: body.threadId });
-      return HttpResponse.json({ id: "g-answer", threadId: body.threadId });
+      const id = sends.length === 1 ? "g-answer" : `g-answer-${sends.length}`;
+      return HttpResponse.json({ id, threadId: body.threadId });
     }),
   );
   return sends;
@@ -90,6 +91,7 @@ describeWithDatabase("answers to replies", () => {
         body: words("Thanks, Jane."),
         // Gmail's ID for it, as it went by Gmail.
         providerId: "g-answer",
+        fromGmail: false,
         events: [],
       },
     ]);
@@ -201,6 +203,88 @@ describeWithDatabase("answers to replies", () => {
   });
 });
 
+describeWithDatabase("answers written in Gmail", () => {
+  useTestDatabase();
+
+  /** Our message g-ours in hello@'s Gmail, written at `at`, its whole text `raw`, as keepGmailAnswer is given it. */
+  function ours(at: string, raw = "Subject: Re: News\r\n\r\nSee you there.\r\n\r\nOn Mon, Jane wrote:\r\n> When?") {
+    server.use(
+      http.get("https://gmail.googleapis.com/gmail/v1/users/me/messages/g-ours", () =>
+        HttpResponse.json({ raw: Buffer.from(raw, "latin1").toString("base64url") }),
+      ),
+    );
+    return {
+      id: "g-ours",
+      threadId: "t-reply",
+      labelIds: [],
+      internalDate: String(Date.parse(at)),
+      headers: new Map([["message-id", "<ours@mail.gmail.com>"]]),
+    };
+  }
+
+  /** Jane's reply, received at `at`. */
+  async function janeAt(copy: number, id: string, at: string, outcome: string | null = null) {
+    const [{ id: reply }] = await query<{ id: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, rfc_message_id, blob_key, automatic, outcome, dealt_by, dealt_at)
+       VALUES ($1, $2, 'jane@example.com', 'Re: News', $3, $4, 't-reply', null, 'k', false, $5::text,
+         CASE WHEN $5::text IS NOT NULL THEN 'jo@pauseai.uk' END, CASE WHEN $5::text IS NOT NULL THEN now() END)
+       RETURNING id::int AS id`,
+      [copy, at, HELLO, id, outcome],
+    );
+    return reply;
+  }
+
+  it("are kept once, from the mailbox, to their latest reply before, settling it and those before it; a reply after waits", async () => {
+    const { copy, reply: first } = await replied();
+    await query("UPDATE broadcast_replies SET received_at = '2026-11-02T09:00:00Z'");
+    const second = await janeAt(copy, "g-2", "2026-11-02T10:00:00Z");
+    const later = await janeAt(copy, "g-3", "2026-11-02T12:00:00Z");
+    expect(await keepGmailAnswer(HELLO, "token", copy, ours("2026-11-02T11:00:00Z"))).toBe(true);
+    expect(await keepGmailAnswer(HELLO, "token", copy, ours("2026-11-02T11:00:00Z"))).toBe(false);
+    expect(await answersTo(copy)).toEqual([
+      {
+        id: expect.any(Number),
+        replyId: second,
+        sentBy: HELLO,
+        sentAt: new Date("2026-11-02T11:00:00Z"),
+        // Its words, without what it quotes.
+        body: words("See you there."),
+        providerId: "g-ours",
+        fromGmail: true,
+        events: [],
+      },
+    ]);
+    expect(await query("SELECT rfc_message_id FROM broadcast_answers")).toEqual([
+      { rfc_message_id: "ours@mail.gmail.com" },
+    ]);
+    expect(
+      await query<{ id: number; outcome: string | null; dealt_by: string | null }>(
+        "SELECT id::int AS id, outcome, dealt_by FROM broadcast_replies ORDER BY id",
+      ),
+    ).toEqual([
+      { id: first, outcome: "answered", dealt_by: HELLO },
+      { id: second, outcome: "answered", dealt_by: HELLO },
+      { id: later, outcome: null, dealt_by: null },
+    ]);
+  });
+
+  it("leave a reply recorded already as it was, and aren't kept with nothing of theirs before them", async () => {
+    const { copy, reply } = await replied();
+    await query("UPDATE broadcast_replies SET received_at = '2026-11-02T09:00:00Z'");
+    expect(await keepGmailAnswer(HELLO, "token", copy, ours("2026-11-02T08:00:00Z", "Subject: x\r\n\r\n"))).toBe(false);
+    expect(await query("SELECT * FROM broadcast_answers")).toEqual([]);
+    await query("UPDATE broadcast_replies SET outcome = 'opted-out', dealt_by = $1, dealt_at = now()", [JO]);
+    // No text in it to read: kept with no words.
+    const picture = "Content-Type: image/png\r\n\r\nPNG";
+    expect(await keepGmailAnswer(HELLO, "token", copy, ours("2026-11-02T10:00:00Z", picture))).toBe(true);
+    expect(await query("SELECT body FROM broadcast_answers")).toEqual([{ body: { type: "doc", content: [] } }]);
+    expect(await query("SELECT id::int AS id, outcome FROM broadcast_replies")).toEqual([
+      { id: reply, outcome: "opted-out" },
+    ]);
+  });
+});
+
 describeWithDatabase("answers to replies to texts", () => {
   useTestDatabase();
   afterEach(() => vi.unstubAllEnvs());
@@ -305,5 +389,87 @@ describeWithDatabase("answers to replies to texts", () => {
     });
     // Each that didn't go is forgotten, to send again.
     expect(await query("SELECT 1 FROM broadcast_answers")).toEqual([]);
+  });
+
+  it("put an emoji on their message, settling it, one in place of another, and take ours away", async () => {
+    keys();
+    const sends = whatsAppTakes();
+    // A reply to a text more than a day old still takes one.
+    const reply = await textReplied("3 days");
+    const [{ copy }] = await query<{ copy: number }>("SELECT message_id::int AS copy FROM broadcast_replies");
+    expect(await reactToReply(reply, "👍", "Jo@PauseAI.uk")).toEqual({ sent: true });
+    expect(sends).toEqual([
+      expect.objectContaining({
+        to: "447700900123",
+        type: "reaction",
+        reaction: { message_id: `wamid.reply-${copy}`, emoji: "👍" },
+      }),
+    ]);
+    expect(await query("SELECT outcome, dealt_by FROM broadcast_replies")).toEqual([
+      { outcome: "answered", dealt_by: JO },
+    ]);
+    expect(await reactToReply(reply, "❤️", JO)).toEqual({ sent: true });
+    const reactions = await reactionsTo(copy);
+    expect(reactions).toEqual([
+      expect.objectContaining({ replyId: reply, emoji: "👍", sentBy: JO, removedAt: expect.any(Date), events: [] }),
+      expect.objectContaining({ replyId: reply, emoji: "❤️", sentBy: JO, removedAt: null, sentAt: expect.any(Date) }),
+    ]);
+    // Not answers in words.
+    expect(await answersTo(copy)).toEqual([]);
+    expect(await reactToReply(reply, "", JO)).toEqual({ sent: true });
+    expect(sends.at(-1)).toMatchObject({ reaction: { emoji: "" } });
+    expect((await reactionsTo(copy)).map((reaction) => reaction.removedAt === null)).toEqual([false, false]);
+    expect(await query("SELECT details FROM audit_log WHERE action = 'react to reply' ORDER BY id")).toEqual([
+      { details: { replyId: reply, emoji: "👍" } },
+      { details: { replyId: reply, emoji: "❤️" } },
+      { details: { replyId: reply, emoji: "" } },
+    ]);
+  });
+
+  it("leave an opt-out as one, and settle the replies before theirs", async () => {
+    keys();
+    whatsAppTakes();
+    const reply = await textReplied();
+    const [{ copy }] = await query<{ copy: number }>("SELECT message_id::int AS copy FROM broadcast_replies");
+    const [{ earlier }] = await query<{ earlier: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+       VALUES ($1, now() - interval '2 hours', '+447700900123', '', 'wamid.earlier', 'Hi', false) RETURNING id::int AS earlier`,
+      [copy],
+    );
+    await query("UPDATE broadcast_replies SET outcome = 'opted-out', dealt_by = $1, dealt_at = now() WHERE id = $2", [
+      JO,
+      reply,
+    ]);
+    await reactToReply(reply, "🙏", JO);
+    expect(await query("SELECT id::int AS id, outcome FROM broadcast_replies ORDER BY received_at")).toEqual([
+      { id: earlier, outcome: "answered" },
+      { id: reply, outcome: "opted-out" },
+    ]);
+  });
+
+  it("aren't put on a message more than 30 days old, a reaction, an email, nor as an emoji not offered, nor where WhatsApp refuses", async () => {
+    keys();
+    const sends = whatsAppTakes(true);
+    expect(await reactToReply(await textReplied("31 days"), "👍", JO)).toEqual({ sent: false, reason: "gone" });
+    const reply = await textReplied();
+    expect(await reactToReply(reply, "🤖", JO)).toEqual({ sent: false, reason: "gone" });
+    await query("UPDATE broadcast_replies SET kind = 'reaction', reaction_to = 'wamid.x' WHERE id = $1", [reply]);
+    expect(await reactToReply(reply, "👍", JO)).toEqual({ sent: false, reason: "gone" });
+    await query("UPDATE broadcast_replies SET kind = NULL, reaction_to = NULL WHERE id = $1", [reply]);
+    expect(sends).toEqual([]);
+    expect(await reactToReply(reply, "👍", JO)).toEqual({ sent: false, reason: "failed" });
+    vi.stubEnv("WHATSAPP_TOKEN", "");
+    expect(await reactToReply(reply, "👍", JO)).toEqual({ sent: false, reason: "failed" });
+    expect(await query("SELECT 1 FROM broadcast_answers")).toEqual([]);
+    expect(await query("SELECT outcome FROM broadcast_replies WHERE id = $1", [reply])).toEqual([{ outcome: null }]);
+  });
+});
+
+describeWithDatabase("emoji on replies to emails", () => {
+  useTestDatabase();
+
+  it("can't be put there", async () => {
+    const { reply } = await replied();
+    expect(await reactToReply(reply, "👍", JO)).toEqual({ sent: false, reason: "gone" });
   });
 });

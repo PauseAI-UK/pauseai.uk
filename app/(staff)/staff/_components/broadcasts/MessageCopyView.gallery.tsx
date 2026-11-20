@@ -33,6 +33,23 @@ export const messageCopyViewGallery: Example[] = [
         ),
       },
       {
+        label: "An email's replies, the question answered in hello@'s Gmail rather than here",
+        render: () => (
+          <StaffPage as="div">
+            <MessageCopyViewExample email replies gmail />
+          </StaffPage>
+        ),
+      },
+      {
+        label:
+          "A text's replies with our emoji: a 👍 on their thanks, which settled it, put in place of a ❤️; and one too old for an emoji",
+        render: () => (
+          <StaffPage as="div">
+            <MessageCopyViewExample reacted />
+          </StaffPage>
+        ),
+      },
+      {
         label:
           "A text's replies by WhatsApp: one answered, one to look at, and one too old for WhatsApp to take an answer to",
         render: () => (

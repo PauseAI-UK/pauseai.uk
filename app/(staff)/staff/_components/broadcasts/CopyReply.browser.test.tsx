@@ -44,7 +44,7 @@ const emailCopy = {
 describe("replies to broadcasts", () => {
   it("show under the email, each with what to record it as, what was made of it, our answer, or that it's automatic", async () => {
     const deal = vi.fn();
-    await render(<MessageCopyView one={emailCopy} actions={{ deal, answer: vi.fn() }} />);
+    await render(<MessageCopyView one={emailCopy} actions={{ deal, answer: vi.fn(), react: vi.fn() }} />);
     await expect.element(page.getByText("Could you take me off this list please?")).toBeVisible();
     // Their name, as their copy had it.
     await expect.element(page.getByText("Jane Example <jane@example.com>").first()).toBeVisible();
@@ -79,14 +79,14 @@ describe("replies to broadcasts", () => {
     const { rerender } = await render(
       <MessageCopyView
         one={{ ...emailCopy, replies: exampleBroadcastReplies.slice(0, 2), answers: [] }}
-        actions={{ deal: vi.fn(), answer: vi.fn() }}
+        actions={{ deal: vi.fn(), answer: vi.fn(), react: vi.fn() }}
       />,
     );
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).toBeVisible();
     await rerender(
       <MessageCopyView
         one={{ ...emailCopy, replies: exampleBroadcastReplies.slice(0, 3) }}
-        actions={{ deal: vi.fn(), answer: vi.fn() }}
+        actions={{ deal: vi.fn(), answer: vi.fn(), react: vi.fn() }}
       />,
     );
     await expect.element(page.getByRole("button", { name: copy.replies.followUp })).toBeVisible();
@@ -301,7 +301,7 @@ describe("replies to broadcasts", () => {
           replies: [...exampleTextReplies, exampleTextReplyPastDay],
           answers: [...exampleTextAnswers, { ...exampleTextAnswers[0], id: 12, sentAt: null }],
         }}
-        actions={{ deal: vi.fn(), answer }}
+        actions={{ deal: vi.fn(), answer, react: vi.fn() }}
       />,
     );
     // Theirs as they came, ours as sent, with who sent it, and one whose sending never finished.
@@ -327,7 +327,7 @@ describe("replies to broadcasts", () => {
     await rerender(
       <MessageCopyView
         one={{ ...exampleMessageCopy, replies: exampleTextReplies, answers: exampleTextAnswers }}
-        actions={{ deal: vi.fn(), answer }}
+        actions={{ deal: vi.fn(), answer, react: vi.fn() }}
       />,
     );
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).toHaveLength(1);
@@ -363,7 +363,7 @@ describe("replies to broadcasts", () => {
             },
           ],
         }}
-        actions={{ deal: vi.fn(), answer }}
+        actions={{ deal: vi.fn(), answer, react: vi.fn() }}
       />,
     );
     await expect.element(page.getByRole("button", { name: copy.replies.reply })).not.toBeInTheDocument();
@@ -380,10 +380,15 @@ describe("replies to broadcasts", () => {
           replies: [exampleTextReplies[0], ...exampleTextKinds],
           answers: exampleTextAnswers,
         }}
-        actions={{ deal: vi.fn(), answer: vi.fn<AnswerAction>() }}
+        actions={{ deal: vi.fn(), answer: vi.fn<AnswerAction>(), react: vi.fn() }}
       />,
     );
-    const bubble = (words: string) => page.getByText(words, { exact: true }).element().parentElement!;
+    // The words in a bubble, not an emoji button under one.
+    const bubble = (words: string) =>
+      page
+        .getByText(words, { exact: true })
+        .elements()
+        .find((element) => element.tagName !== "BUTTON")!.parentElement!;
     const [thumb, , lost] = exampleTextKinds;
     // A thumbs up to the broadcast, quoting its start, then taken back.
     expect(bubble("👍").textContent).toContain("Hi Jane, the march meets at 11:00 at Parliament Square.");
@@ -431,7 +436,10 @@ describe("replies to broadcasts", () => {
 
   it("to a text say WhatsApp won't take an answer only under their latest message, while it's unanswered", async () => {
     const view = (replies: BroadcastReply[], answers: BroadcastAnswer[] = []) => (
-      <MessageCopyView one={{ ...exampleMessageCopy, replies, answers }} actions={{ deal: vi.fn(), answer: vi.fn() }} />
+      <MessageCopyView
+        one={{ ...exampleMessageCopy, replies, answers }}
+        actions={{ deal: vi.fn(), answer: vi.fn(), react: vi.fn() }}
+      />
     );
     // An old message before a newer one.
     const { rerender } = await render(view([exampleTextReplyPastDay, ...exampleTextReplies]));

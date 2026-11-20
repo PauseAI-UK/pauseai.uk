@@ -66,10 +66,20 @@ export async function messageContent(
   if (!gzipped) return { text: null, quoted: "", cc: null, auto: false, whole: null };
   const message = parseMime(gunzipSync(gzipped).toString("latin1"));
   const cc = message.headers.get("cc");
-  const whole = firstOfType(message, "text/plain") || firstOfType(message, "text/html") ? wholeTextOf(message) : null;
+  const whole = wholeOf(message);
   const parts = whole === null ? { text: null, quoted: "" } : replyParts(whole);
   const auto = isMachineReply((name) => message.headers.get(name), decodeWords(message.headers.get("subject") ?? ""));
   return { ...parts, cc: cc ? decodeWords(cc) : null, auto, whole };
+}
+
+/** A message's whole text, from its plain text or its HTML's; null if it has neither. */
+const wholeOf = (message: ReturnType<typeof parseMime>) =>
+  firstOfType(message, "text/plain") || firstOfType(message, "text/html") ? wholeTextOf(message) : null;
+
+/** A raw message's text, without the mail it quotes or its footer, as messageContent reads it; null if it has none. */
+export function messageText(raw: Buffer): string | null {
+  const whole = wholeOf(parseMime(raw.toString("latin1")));
+  return whole === null ? null : replyParts(whole).text;
 }
 
 /** Each message kept in a letter's thread, oldest first, with its text. */

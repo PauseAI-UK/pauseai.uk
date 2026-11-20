@@ -26,7 +26,8 @@ import {
   type GmailMessageHeaders,
 } from "@/lib/server/outside-services/gmail.server";
 import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "@/lib/letters/replies.server";
-import { copyAnswered, keepBroadcastReply } from "@/lib/broadcasts/replies.server";
+import { copyAnswered, copyInThread, keepBroadcastReply } from "@/lib/broadcasts/replies.server";
+import { keepGmailAnswer } from "@/lib/broadcasts/answers.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { describeError, problem } from "@/lib/server/problems.server";
 import { lettersCopy } from "@/lib/letters/copy";
@@ -156,10 +157,15 @@ async function readMessage(account: string, token: string, id: string, read: Gma
   ]);
   if (kept || (await isOurs(account, message))) return;
   // A reply to a copy of a broadcast, before anything else sees it; one from the mailbox itself is an answer of ours,
-  // sent from its Gmail rather than the site, which isOurs doesn't know.
-  const copyId = await copyAnswered(message);
+  // written in its Gmail rather than on the site, which isOurs doesn't know, found by its Gmail thread too.
+  const fromMailbox = from === account.toLowerCase();
+  const copyId =
+    (await copyAnswered(message)) ?? (fromMailbox ? await copyInThread(account, message.threadId) : undefined);
   if (copyId) {
-    if (from === account.toLowerCase()) return;
+    if (fromMailbox) {
+      await keepGmailAnswer(account, token, copyId, message);
+      return;
+    }
     const what = await keepBroadcastReply(account, token, copyId, message);
     if (what === "reply") read.replies++;
     if (what === "automatic") read.autoReplies++;

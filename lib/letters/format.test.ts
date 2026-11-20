@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { doIUseEmail } from "@jsx-email/doiuse-email";
-import { checkDoc, docFromMarkup, hasWords, isBlank, linkHref, toHtml, toText, type LetterDoc } from "./format";
+import {
+  checkDoc,
+  docFromMarkup,
+  docFromText,
+  hasWords,
+  isBlank,
+  linkHref,
+  toHtml,
+  toText,
+  type LetterDoc,
+} from "./format";
 
 const text = (value: string, ...marks: ("bold" | "italic")[]) =>
   marks.length ? { type: "text", text: value, marks: marks.map((type) => ({ type })) } : { type: "text", text: value };
@@ -38,6 +48,23 @@ describe("linkHref", () => {
       "data:text/html,x",
     ])
       expect(linkHref(typed), typed).toBeUndefined();
+  });
+});
+
+describe("docFromText", () => {
+  it("makes a paragraph of each part, its lines broken as they were, reading no markup", () => {
+    expect(docFromText("Hi **Jane**,\n\nSee you\n\nthere.\n- Jo\n")).toEqual({
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Hi **Jane**," }] },
+        { type: "paragraph", content: [{ type: "text", text: "See you" }] },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "there." }, { type: "hardBreak" }, { type: "text", text: "- Jo" }],
+        },
+      ],
+    });
+    expect(docFromText("")).toEqual({ type: "doc", content: [] });
   });
 });
 

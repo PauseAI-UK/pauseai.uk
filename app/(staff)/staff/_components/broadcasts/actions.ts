@@ -6,7 +6,7 @@
 // as a broadcast is to someone who said yes to it.
 import { revalidatePath } from "next/cache";
 import { dealWithReply, type ReplyDecision } from "@/lib/broadcasts/replies.server";
-import { answerReply, type AnswerResult } from "@/lib/broadcasts/answers.server";
+import { answerReply, reactToReply, type AnswerResult, type ReactionResult } from "@/lib/broadcasts/answers.server";
 import { redirect } from "next/navigation";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { fakeRecipient } from "@/lib/broadcasts/broadcasts";
@@ -110,6 +110,19 @@ export async function answerReplyNow(replyId: number, draftId: string, body: unk
   const { email } = await requireStaff("supporters");
   if (!Number.isSafeInteger(replyId) || !DRAFT_ID.test(draftId)) return { sent: false, reason: "gone" };
   const result = await answerReply(replyId, draftId, body, email);
+  if (result.sent) revalidatePath(LIST, "layout");
+  return result;
+}
+
+/**
+ * An emoji under someone's message on its Thread: puts it on their message
+ * on WhatsApp as the staff member, or takes ours away (an empty one), and
+ * shows the page afresh once it's gone; says whether it went.
+ */
+export async function reactToReplyNow(replyId: number, emoji: string): Promise<ReactionResult> {
+  const { email } = await requireStaff("supporters");
+  if (!Number.isSafeInteger(replyId) || typeof emoji !== "string") return { sent: false, reason: "gone" };
+  const result = await reactToReply(replyId, emoji, email);
   if (result.sent) revalidatePath(LIST, "layout");
   return result;
 }

@@ -255,6 +255,15 @@ export const broadcastsCopy = {
       },
       // Our answer in the thread: who sent it; one whose sending never finished.
       sentBy: (by: string) => `Sent by ${by}`,
+      // One a staff member wrote in the mailbox's Gmail rather than here, which says only the mailbox.
+      sentInGmail: (account: string) => `⁂ Sent in ${account}'s Gmail`,
+      // Under their message on WhatsApp: the emoji to put on it, read out by a screen reader as this; ours on it,
+      // who put it there and when; and why one didn't go.
+      react: "⁂ React on WhatsApp",
+      ourReaction: (emoji: string, by: string, when: string) => `⁂ ${by} reacted ${emoji}, ${when}`,
+      // In the copy's history, with who on a line under it.
+      historyReacted: (emoji: string) => `⁂ We reacted ${emoji}`,
+      reactionNotSent: "⁂ That didn't send to WhatsApp. Try again.",
       stillSending: (account: string) => `Unsure if this sent. Check ${account}'s Sent folder in Gmail.`,
       optedOut: (by: string, when: string) => `Recorded as an opt-out by ${by}, ${when}`,
       // The site's own: its answer to a STOP, the STOP recorded as an opt-out, and who in the history.

@@ -21,7 +21,7 @@ import {
 } from "./broadcasts";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
-import { answersTo, type BroadcastAnswer } from "./answers.server";
+import { answersTo, reactionsTo, type BroadcastAnswer, type BroadcastReaction } from "./answers.server";
 import { repliesTo, type BroadcastReply } from "./replies.server";
 import { query } from "@/lib/server/db.server";
 import { channelSends, textSenderNumber } from "./channels.server";
@@ -564,6 +564,8 @@ export type MessageCopy = {
   replies: BroadcastReply[];
   /** Staff's answers to those replies, oldest first. */
   answers: BroadcastAnswer[];
+  /** The emoji staff put on those replies to a text, oldest first. */
+  reactions: BroadcastReaction[];
 };
 
 /** Something that happened to a copy, as its provider reported it. */
@@ -571,7 +573,7 @@ export type BroadcastEvent = { at: Date; kind: string; details: Record<string, u
 
 /** One copy of a broadcast, by its broadcast's ID and its own; or undefined. */
 export async function messageCopy(broadcastId: number, copyId: number): Promise<MessageCopy | undefined> {
-  const [row] = await query<Omit<MessageCopy, "events" | "replies" | "answers">>(
+  const [row] = await query<Omit<MessageCopy, "events" | "replies" | "answers" | "reactions">>(
     `SELECT c.id::int AS id, m.id::int AS "messageId", m.title, m.channel, m.subject, m.body,
        m.from_name AS "fromName", m.sent_from AS "sentFrom", m.send_by AS "sendBy", c.supporter_id::int AS "supporterId",
        c.merge_values ->> 'name' AS name, c.merge_values ->> 'place' AS place, c.address,
@@ -584,15 +586,16 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
     [broadcastId, copyId],
   );
   if (!row) return undefined;
-  const [events, replies, answers] = await Promise.all([
+  const [events, replies, answers, reactions] = await Promise.all([
     query<BroadcastEvent>(
       "SELECT at, kind, details FROM broadcast_message_events WHERE message_id = $1 ORDER BY at DESC, id DESC",
       [copyId],
     ),
     repliesTo(copyId),
     answersTo(copyId),
+    reactionsTo(copyId),
   ]);
-  return { ...row, body: checkMailingDoc(row.body)!, events, replies, answers };
+  return { ...row, body: checkMailingDoc(row.body)!, events, replies, answers, reactions };
 }
 
 /** A broadcast sent to a supporter, on their page. */

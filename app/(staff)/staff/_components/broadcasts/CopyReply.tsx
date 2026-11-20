@@ -15,6 +15,7 @@ import { staffTime } from "@/lib/staff-time";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import { MailingLetter } from "../mailings/MailingLetter";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
+import ReplyReactions, { type ReactAction } from "./ReplyReactions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
@@ -61,9 +62,13 @@ function Answer({
   one: MessageCopy;
   foot?: ReactNode;
 }) {
-  // Who sent it: the site itself, for its answer to a STOP, or the staff member.
+  // Who sent it: the site itself, for its answer to a STOP; the mailbox, for one written in its Gmail; or the staff member.
   const sentBy =
-    answer.sentBy === SITE_ACTOR ? copy.replies.sentAutomatically : copy.replies.sentBy(staffMemberText(answer.sentBy));
+    answer.sentBy === SITE_ACTOR
+      ? copy.replies.sentAutomatically
+      : answer.fromGmail
+        ? copy.replies.sentInGmail(answer.sentBy)
+        : copy.replies.sentBy(staffMemberText(answer.sentBy));
   if (one.channel === "text") {
     const bubble = (
       <ChatWall>
@@ -211,6 +216,12 @@ export default function Reply({
             {words}
           </ChatBubble>
         </ChatWall>
+        <ReplyReactions
+          replyId={reply.id}
+          reactions={one.reactions.filter((reaction) => reaction.replyId === reply.id)}
+          reactable={reply.reactable}
+          react={actions?.react}
+        />
         {(closed || foot) && (
           <div className={styles.textFoot}>
             {closed && <Muted>{copy.replies.windowClosed}</Muted>}
@@ -270,5 +281,9 @@ export default function Reply({
   );
 }
 
-/** What staff can do with a reply: record what it is (`deal`), and answer it. */
-export type ReplyHandlers = { deal: (form: FormData) => void | Promise<void>; answer: AnswerAction };
+/** What staff can do with a reply: record what it is (`deal`), answer it, and put an emoji on a text's (`react`). */
+export type ReplyHandlers = {
+  deal: (form: FormData) => void | Promise<void>;
+  answer: AnswerAction;
+  react: ReactAction;
+};

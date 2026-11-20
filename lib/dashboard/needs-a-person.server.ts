@@ -32,14 +32,15 @@ async function blockedMps(): Promise<DashboardAction[]> {
   return rows.map(({ at, ...rest }) => ({ kind: "blocked-mp", at, ...rest }));
 }
 
-/** Replies to broadcasts that may be opt-outs, waiting for staff: how many, and the broadcast with the oldest. */
+/** Replies to broadcasts waiting for staff, by email or text: each broadcast with any, its title and how many, the oldest waiting first. */
 async function broadcastReplies(): Promise<DashboardAction[]> {
-  const [waiting] = await query<{ count: number; broadcastId: number }>(
-    `SELECT count(*)::int AS count, (array_agg(c.mailing_id ORDER BY r.received_at))[1]::int AS "broadcastId"
-     FROM broadcast_replies r JOIN broadcast_messages c ON c.id = r.message_id
-     WHERE r.outcome IS NULL AND NOT r.automatic HAVING count(*) > 0`,
+  const waiting = await query<{ count: number; broadcastId: number; title: string }>(
+    `SELECT count(*)::int AS count, m.id::int AS "broadcastId", m.title
+     FROM broadcast_replies r JOIN broadcast_messages c ON c.id = r.message_id JOIN mailings m ON m.id = c.mailing_id
+     WHERE r.outcome IS NULL AND NOT r.automatic
+     GROUP BY m.id ORDER BY min(r.received_at), m.id`,
   );
-  return waiting ? [{ kind: "broadcast-replies", ...waiting }] : [];
+  return waiting.map((broadcast) => ({ kind: "broadcast-replies", ...broadcast }));
 }
 
 /** What waits for a person now. */

@@ -130,6 +130,8 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "record opt-out": { address: string; list: string; way: string; how: string; replyId?: number };
   "deal with reply": { replyId: number; outcome: "opted-out" | "nothing" };
   "answer reply": { replyId: number; answerId: number };
+  /** An emoji put on a reply to a text, or taken away (an empty one). */
+  "react to reply": { replyId: number; emoji: string };
 };
 
 /** What rows logged earlier may hold beyond AuditDetails: actions no longer logged, and earlier details of some that are. */

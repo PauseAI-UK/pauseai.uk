@@ -234,16 +234,30 @@ describeWithDatabase("replies to texts", () => {
     return id;
   }
 
-  it("gives a text's words as kept, answerable only within a day", async () => {
+  it("gives a text's words as kept, answerable only within a day, and taking an emoji only within 30 days, unless it's a reaction", async () => {
     const recent = await textReply("1 hour");
     const old = await textReply("2 days");
+    const older = await textReply("31 days");
     const copyOf = async (id: number) =>
       (await query<{ copy: number }>("SELECT message_id::int AS copy FROM broadcast_replies WHERE id = $1", [id]))[0]
         .copy;
     expect(await repliesTo(await copyOf(recent))).toMatchObject([
-      { id: recent, text: "Please stop", answerable: true, kind: null, reactionTo: null, removedAt: null },
+      {
+        id: recent,
+        text: "Please stop",
+        answerable: true,
+        reactable: true,
+        kind: null,
+        reactionTo: null,
+        removedAt: null,
+      },
     ]);
-    expect(await repliesTo(await copyOf(old))).toMatchObject([{ id: old, text: "Please stop", answerable: false }]);
+    expect(await repliesTo(await copyOf(old))).toMatchObject([
+      { id: old, text: "Please stop", answerable: false, reactable: true },
+    ]);
+    expect(await repliesTo(await copyOf(older))).toMatchObject([{ id: older, reactable: false }]);
+    await query("UPDATE broadcast_replies SET kind = 'reaction', reaction_to = 'wamid.x' WHERE id = $1", [recent]);
+    expect(await repliesTo(await copyOf(recent))).toMatchObject([{ id: recent, reactable: false }]);
   });
 
   it("gives a text's reply that's more than words its kind, and a reaction what it's to and when it was removed", async () => {
