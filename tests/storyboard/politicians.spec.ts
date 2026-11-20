@@ -383,17 +383,19 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
   await frame(page, "Everyone but the personal connections");
 
-  story("Next, an ask: the Edinburgh conference. Its chip has a second half, for the answer.");
+  story(
+    "Next, an ask: the Edinburgh conference. Its chip has a second half, for the answer, which starts at those who gave any reply.",
+  );
   await changeFilter(page, staffVocabulary.filters.notChip(filters.flag, staffVocabulary.politicianFlags.connection));
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   await addFilter(page, filters.ask, "Edinburgh conference");
-  await expect(page).toHaveURL(/ask=edinburgh-conference-2026$/);
-  await frame(page, "The Edinburgh conference's chip");
+  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=edinburgh-conference-2026\.replied$/);
+  await frame(page, "The Edinburgh conference's chip, at any reply");
   story(
     "Staff choose those never invited to it, the ones to invite. The Asks column becomes the conference's, saying so on each row. Clear filters then brings back the whole list.",
   );
   // The answer is chosen in the second half of the ask's chip.
-  await changeFilter(page, staffVocabulary.everyoneAsked.event, staffVocabulary.neverAsked.event);
+  await changeFilter(page, politiciansCopy.politicians.anyReply, staffVocabulary.neverAsked.event);
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=edinburgh-conference-2026\.never/);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.neverAsked.event);
@@ -441,13 +443,15 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   );
   expect(download.headers()["content-disposition"]).toContain("or");
 
-  story("Choosing another ask clears the answers, as they might not be its answers.");
+  story(
+    "Choosing another ask clears the answers, as they might not be its answers, and starts it at those who gave any reply.",
+  );
   await page.getByRole("button", { name: "Edinburgh conference" }).click();
   await menu.getByRole("link").filter({ hasNotText: "Edinburgh conference" }).first().click();
-  await expect(page).not.toHaveURL(/answer=/);
-  const everyone = Object.values(staffVocabulary.everyoneAsked).join("|");
-  await expect(page.getByRole("button", { name: new RegExp(`^(${everyone})$`) })).toBeVisible();
-  await frame(page, "Another ask, everyone asked");
+  await expect(page).not.toHaveURL(/edinburgh-conference-2026/);
+  await expect(page).toHaveURL(/answer=[\w-]+\.replied$/);
+  await expect(page.getByRole("button", { name: politiciansCopy.politicians.anyReply, exact: true })).toBeVisible();
+  await frame(page, "Another ask, at any reply");
 });
 
 test("Two asks at once", async ({ page, request, flowDatabase }) => {
@@ -488,7 +492,7 @@ test("Two asks at once", async ({ page, request, flowDatabase }) => {
   await page.keyboard.press("Escape");
 
   story(
-    "+ Filter adds a second ask, the DeepMind letter, with its own answer. Both must hold, and each has its column in the list.",
+    "+ Filter adds a second ask, the DeepMind letter, with its own answer, starting at any reply; staff narrow it to those who signed. Both must hold, and each has its column in the list.",
   );
   const add = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add }));
   const asks = add
@@ -500,7 +504,7 @@ test("Two asks at once", async ({ page, request, flowDatabase }) => {
   await deepmind.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&ask=deepmind-letter/);
-  await changeFilter(page, staffVocabulary.everyoneAsked.letter, staffVocabulary.statuses.signed);
+  await changeFilter(page, politiciansCopy.politicians.anyReply, staffVocabulary.statuses.signed);
   await expect(rows.filter({ hasText: "Lord Seedling of Example" })).toBeVisible();
   await expect(rows.filter({ hasText: "Morag Example" })).toHaveCount(0);
   await expect(page.getByRole("columnheader", { name: /DeepMind letter/ })).toBeVisible();
