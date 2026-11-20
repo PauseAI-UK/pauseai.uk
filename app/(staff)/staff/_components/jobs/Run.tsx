@@ -266,6 +266,8 @@ function GmailRun({ run, open, variant }: { run: GmailReading; open?: boolean; v
             {a.relayed !== undefined &&
               ` ${inbox.result({ relayed: a.relayed, spam: a.spam!, uncertain: a.uncertain! })}`}
             {!!a.oneOffs && ` ${words.oneOffs(a.oneOffs)}`}
+            {!!a.answers && ` ${words.answers(a.answers)}`}
+            {a.caughtUp && ` ${words.caughtUp}`}
             {a.restarted && ` ${words.restarted}`}
             {a.error && <Muted> {a.disconnected ? words.disconnected : words.failed(a.error)}</Muted>}
             {!!a.notUnderstood?.length && (

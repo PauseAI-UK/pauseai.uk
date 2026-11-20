@@ -19,6 +19,15 @@ describe("Run", () => {
     await says(jobsCopy.gmailReading.oneOffs(2));
   });
 
+  it("says in a Gmail read how many answers written in Gmail it kept, and that it caught up on them", async () => {
+    const accounts = [
+      { account: "hello@pauseai.uk", replies: 0, autoReplies: 0, bounces: 0, answers: 2, caughtUp: true },
+    ];
+    await render(<Run run={exampleRun("read-gmail", { accounts })} open />);
+    await says(jobsCopy.gmailReading.answers(2));
+    await says(jobsCopy.gmailReading.caughtUp);
+  });
+
   it("logs a held import's apply and discard, in its example", async () => {
     await render(<HeldImportExample />);
     await page.getByRole("button", { name: politiciansCopy.politicianImports.apply }).click();

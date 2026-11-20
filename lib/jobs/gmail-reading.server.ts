@@ -19,6 +19,7 @@ import {
   gmailMessageHeaders,
   gmailProfile,
   gmailRawMessage,
+  gmailThreadMessageIds,
   unlessGone,
   gmailSendName,
   GmailError,
@@ -41,7 +42,10 @@ import { jobsCopy } from "./copy";
 // (letter_replies, and the message in Netlify Blobs); an automatic reply is
 // only noted on the letter; a bounce is recorded as Postmark's are. Anything
 // else, in a mailbox whose threads are kept, may be a one-off email
-// (one-off-emails.server.ts). Each run is in the import log as "read-gmail".
+// (one-off-emails.server.ts). About weekly it looks again at the threads of
+// the last two weeks' replies to broadcasts, for answers staff wrote in Gmail
+// that a read passed over (catchUpAnswers). Each run is in the import log as
+// "read-gmail".
 
 const JOB = "read-gmail";
 
@@ -142,6 +146,11 @@ async function recordBounce(
   return recorded;
 }
 
+/** Counts `n` answers written in Gmail kept in a read, which says none while it kept none. */
+function addAnswers(read: GmailRead, n: number): void {
+  if (n) read.answers = (read.answers ?? 0) + n;
+}
+
 /** Reads one message: a bounce, a reply to a letter, or something else, left alone; one gone since, skipped. */
 async function readMessage(account: string, token: string, id: string, read: GmailRead, request: Request | undefined) {
   const message = await gmailMessageHeaders(token, id, HEADERS).catch(unlessGone);
@@ -163,7 +172,7 @@ async function readMessage(account: string, token: string, id: string, read: Gma
     (await copyAnswered(message)) ?? (fromMailbox ? await copyInThread(account, message.threadId) : undefined);
   if (copyId) {
     if (fromMailbox) {
-      await keepGmailAnswer(account, token, copyId, message);
+      addAnswers(read, (await keepGmailAnswer(account, token, copyId, message)) ? 1 : 0);
       return;
     }
     const what = await keepBroadcastReply(account, token, copyId, message);
@@ -185,6 +194,49 @@ async function readMessage(account: string, token: string, id: string, read: Gma
   }
   await keepReply(account, token, letterId, message);
   read.replies++;
+}
+
+/** How far back the catch-up looks at replies to broadcasts, for answers written in Gmail before they were read. */
+const CATCH_UP_DAYS = 14;
+
+/**
+ * Keeps the answers written in `account`'s Gmail in the threads of replies
+ * to broadcasts it had in the last CATCH_UP_DAYS, which a read before
+ * answers written there were kept passed over, and reading only what's new
+ * never goes back to. Says how many threads it looked at, and how many
+ * answers it kept. About once a week for each
+ * account (caughtUp), as runs are tidied away after a week
+ * (log-retention.server.ts): a read keeps each new one, so it's only a
+ * net for any a read missed, and keeps none twice.
+ */
+async function catchUpAnswers(account: string, token: string): Promise<{ threads: number; kept: number }> {
+  const threads = await query<{ threadId: string; copyId: number }>(
+    `SELECT DISTINCT ON (gmail_thread_id) gmail_thread_id AS "threadId", message_id::int AS "copyId"
+     FROM broadcast_replies WHERE account = $1 AND received_at > now() - make_interval(days => $2)
+     ORDER BY gmail_thread_id, received_at DESC`,
+    [account, CATCH_UP_DAYS],
+  );
+  let kept = 0;
+  for (const { threadId, copyId } of threads) {
+    for (const id of await gmailThreadMessageIds(token, threadId)) {
+      const message = await gmailMessageHeaders(token, id, HEADERS).catch(unlessGone);
+      if (!message || fromAddress(message.headers.get("from")).address !== account.toLowerCase()) continue;
+      // Our copy and our answers sent from the site are ours already.
+      if (await isOurs(account, message)) continue;
+      if (await keepGmailAnswer(account, token, copyId, message)) kept++;
+    }
+  }
+  return { threads: threads.length, kept };
+}
+
+/** Whether a run still kept has caught up `account`'s answers written in Gmail (catchUpAnswers). */
+async function caughtUp(account: string): Promise<boolean> {
+  const [run] = await query(
+    `SELECT 1 FROM import_runs WHERE job = $1 AND result -> 'accounts' @> jsonb_build_array(
+       jsonb_build_object('account', $2::text, 'caughtUp', true)) LIMIT 1`,
+    [JOB, account],
+  );
+  return !!run;
 }
 
 /**
@@ -212,6 +264,12 @@ async function readAccount(account: string, historyId: string, request: Request 
   } else {
     const ids = new Set([...history.messageIds, ...(await searchGmail(token, BOUNCE_SEARCH))]);
     for (const id of ids) await readMessage(account, token, id, read, request);
+    // Marked caught up only once it looked at a thread, so a mailbox with no replies to broadcasts costs a query.
+    if (!(await caughtUp(account))) {
+      const { threads, kept } = await catchUpAnswers(account, token);
+      addAnswers(read, kept);
+      if (threads) read.caughtUp = true;
+    }
   }
   await saveHistoryId(account, history.historyId);
   // Its name, as Gmail has it now: renamed since it was connected, or connected before the site kept it. The
@@ -292,6 +350,8 @@ async function readAll(request: Request | undefined): Promise<Ran<GmailReadResul
     (a) =>
       a.replies + a.autoReplies + a.bounces > 0 ||
       a.oneOffs ||
+      a.answers ||
+      a.caughtUp ||
       a.relayed ||
       a.spam ||
       a.notUnderstood?.length ||
