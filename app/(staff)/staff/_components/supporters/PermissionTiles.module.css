@@ -118,24 +118,20 @@
   margin: var(--space-1) 0 var(--space-3);
 }
 
-.when {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-}
-
-.when dt {
+/* "Who's on it", a small label, then what put them on the list. */
+.whoIsOn {
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: 600;
 }
 
-.when dd {
-  margin: 0 0 var(--space-2);
+.popover .whoIsOn {
+  margin-bottom: var(--space-1);
 }
 
-.when dd:last-child {
-  margin-bottom: 0;
+.on {
+  margin: 0;
+  padding-left: var(--space-5);
 }
 
 /* How we know, in a bubble under the "?" (ui/Bubble). */

@@ -3,7 +3,7 @@
 // reads their forms.
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { listWindow, type DashboardWindow } from "./time-windows";
-import { contactState } from "@/lib/supporters/contact-permissions";
+import { contactStates } from "@/lib/supporters/contact-permissions";
 import type { ChangesFilter } from "@/lib/oversight/audit-log.server";
 import { BACKENDS, BLOCK_KINDS, FOUND_BY, type BlocksFilter } from "@/lib/email/block-filters";
 import type { AskStanding, PoliticianFilter } from "@/lib/politicians/records.server";
@@ -318,9 +318,7 @@ export function supportersSearch(params: Partial<Record<string, ParamValue>>): S
   const search = SUPPORTERS_LIST.read(params);
   const sorting = SUPPORTERS_LIST.sort(search);
   const [badges, notBadges] = anyAndNone(search.activity, (values) => values.filter(isSupporterBadge));
-  const [states, notStates] = anyAndNone(search.contact, (values) =>
-    values.flatMap((value) => contactState(value) ?? []),
-  );
+  const [states, notStates] = anyAndNone(search.contact, contactStates);
   const [events, notEvents] = anyAndNone(search.event, (values) => values);
   const [countries, notCountries] = anyAndNone(search.nation, (values) =>
     values.filter((value) => Object.hasOwn(staffVocabulary.countries, value)),

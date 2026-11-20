@@ -56,7 +56,7 @@ export default async function SupporterPage({ params }: Params) {
           <>
             <OptOutForm
               supporterId={supporter.summary.id}
-              choices={optOutChoices(supporter.permissions)}
+              choices={optOutChoices(supporter.permissions, supporter.summary.lumaContact)}
               record={recordOptOutNow}
             />
             <DevPreferences

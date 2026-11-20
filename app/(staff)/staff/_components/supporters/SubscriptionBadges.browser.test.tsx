@@ -6,28 +6,29 @@ import { exampleBlockedPermissions, exampleSupporterRows } from "./SupportersTab
 import { supportersCopy } from "./copy";
 
 describe("SubscriptionBadges", () => {
-  const { topics, ways } = supportersCopy.supporters.filters;
-  /** Each lozenge: the names of its ways' icons, then its topic. */
+  const { lists, ways } = supportersCopy.supporters.filters;
+  const { lumaOnly } = supportersCopy.supporters.detail.permissions;
+  /** Each lozenge: the names of its ways' icons, then its list. */
   const badges = () =>
     [...document.querySelectorAll("[class*=tag]")].map((tag) => [
       [...tag.querySelectorAll("svg")].map((svg) => svg.getAttribute("aria-label")),
       tag.textContent,
     ]);
 
-  it("shows a lozenge for each topic any of their addresses or numbers says yes to, its ways' icons first", async () => {
+  it("shows a lozenge for each list any of their addresses or numbers puts them on, its ways' icons first", async () => {
     const { rerender } = await render(<SubscriptionBadges permissions={exampleSupporterRows[0].permissions} />);
-    expect(badges()).toEqual([[[ways.email], topics.newsletter]]);
+    expect(badges()).toEqual([[[ways.email], lists.updates]]);
+    // Sam's yes to events by email is at the address Updates reaches, so it adds no lozenge.
     await rerender(<SubscriptionBadges permissions={exampleSupporterRows[1].permissions} />);
     expect(badges()).toEqual([
-      [[ways.email], topics.newsletter],
-      [[ways.email], topics.events],
-      [[ways.text], topics.volunteering],
+      [[ways.email], lists.updates],
+      [[ways.text], lists.volunteering],
     ]);
     await rerender(<SubscriptionBadges permissions={[]} />);
     expect(document.body.textContent!.trim()).toBe("");
   });
 
-  it("puts every way a topic is a yes by in its one lozenge", async () => {
+  it("puts every way a list reaches them by in its one lozenge", async () => {
     const [, , volunteering] = exampleSupporterRows[1].permissions;
     await render(
       <SubscriptionBadges
@@ -38,11 +39,11 @@ describe("SubscriptionBadges", () => {
         ]}
       />,
     );
-    expect(badges()).toEqual([[[ways.email, ways.text, ways.call], topics.volunteering]]);
-    await expect.element(page.getByText(topics.volunteering)).toBeVisible();
+    expect(badges()).toEqual([[[ways.email, ways.text, ways.call], lists.volunteering]]);
+    await expect.element(page.getByText(lists.volunteering)).toBeVisible();
   });
 
-  it("takes a yes at any of their addresses, and shows nothing for one that's blocked", async () => {
+  it("takes a yes at any of their addresses, Luma alone's under its own name, and shows nothing for one that's blocked", async () => {
     const [, jane] = exampleSupporterRows[0].permissions;
     const { rerender } = await render(
       <SubscriptionBadges
@@ -53,7 +54,7 @@ describe("SubscriptionBadges", () => {
         ]}
       />,
     );
-    expect(badges()).toEqual([[[ways.email], topics.events]]);
+    expect(badges()).toEqual([[[ways.email], lumaOnly.name]]);
     await rerender(<SubscriptionBadges permissions={exampleBlockedPermissions} />);
     expect(document.body.textContent!.trim()).toBe("");
   });

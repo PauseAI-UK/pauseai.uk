@@ -387,9 +387,8 @@ export const broadcastsCopy = {
       // Who a broadcast went to: how many, over the rest of the list's filters, which narrow those who said yes.
       to: (n: number) => `To ${count(n, "supporter", "supporters")}`,
     },
-    // Under To, what everyone it's to said yes to: each topic, " · " between, then the channel.
-    saidYesTo: (topics: ("newsletter" | "events" | "volunteering")[], channel: "email" | "text") =>
-      `${topics.map((topic) => ({ newsletter: "Newsletter", events: "Events", volunteering: "Volunteering" })[topic]).join(" · ")} ${channel === "email" ? "emails" : "texts"}`,
+    // Under To, the list everyone it's to is on, as the Consent filter names it, then the channel.
+    onList: (list: string, channel: "email" | "text") => `${list}, by ${channel === "email" ? "email" : "text"}`,
     // In To, when Consent is the only filter.
     everyoneWhoSaidYes: "Everyone who said yes",
     // Beside it, to the supporters list to filter them; once filtered, the mailings' "Change who".

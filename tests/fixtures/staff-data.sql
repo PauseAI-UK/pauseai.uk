@@ -322,7 +322,7 @@ FROM (VALUES
   (106, 'recMemberTom', 'tom.seed@example.com', 'Tom', 'Seed', 'London', NULL, '2024-11-03', NULL, '+447700900456', false, false, false, true, true, 'not_opted_in', NULL, 'not_on_list', NULL),
   (107, 'recMemberGil', 'gil.member@example.com', 'Gil', 'Member', 'Leeds', 'LS1 1AA', '2026-08-01', 'act_now', NULL, false, false, false, false, false, 'subscribed', NULL, 'not_on_list', interval '1 day'),
   (108, NULL, 'casey.chapter@example.com', 'Casey', 'Chapter', 'Glasgow', 'G1 1AA', '2026-10-20', 'none', NULL, true, false, false, false, false, 'subscribed', NULL, 'not_on_list', NULL),
-  (109, NULL, 'sasha.chapter@example.com', 'Sasha', 'Chapter', 'Belfast', NULL, '2026-11-02', 'volunteer', '+447700900987', false, false, false, false, false, 'subscribed', NULL, 'not_on_list', NULL),
+  (109, NULL, 'sasha.chapter@example.com', 'Sasha', 'Chapter', 'Belfast', NULL, '2026-10-01', 'volunteer', '+447700900987', false, false, false, false, false, 'subscribed', NULL, 'not_on_list', NULL),
   (110, 'recMemberMara', 'mara.member@example.com', 'Mara', 'Member', 'London', NULL, '2026-10-13', 'lead', '+447700900123', false, false, false, false, false, 'subscribed', NULL, 'subscribed', NULL),
   (111, 'recMemberLee', 'lee.letter@example.com', 'Lee', 'Letter', 'Bristol', 'BS1 1AA', '2025-11-29', NULL, NULL, false, false, false, false, false, 'not_opted_in', NULL, 'not_on_list', NULL),
   (112, 'recMemberRobin', 'robin.rivers@example.com', 'Robin', 'Rivers', 'Leeds', NULL, '2026-05-01', 'keep_informed', '+447700900333', false, false, false, false, false, 'not_opted_in', NULL, 'not_on_list', NULL)

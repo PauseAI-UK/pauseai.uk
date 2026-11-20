@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { Topic, Way } from "./contact-permissions";
+import type { ContactPermission, Topic, Way } from "./contact-permissions";
 import { now } from "@/lib/now";
 import { logChange } from "@/lib/server/audit.server";
 import { queueOptOut } from "./civicrm-updates.server";
@@ -88,12 +88,29 @@ export const optOutOnComplaint: Complained = async (problem, id, db) => {
 /**
  * Records an opt-out, and queues it for CiviCRM if it takes it. Returns
  * false, keeping nothing, when the source has told us this one before, or
- * the address is already opted out of the list.
+ * the address is already opted out of the list and that holds.
+ *
+ * An open opt-out doesn't hold once a yes since has outlasted it: a form's
+ * box ticked after it, or, for the newsletter, following our Luma calendar
+ * after it, which puts them on PauseAI UK Updates inc. Luma. A no said again
+ * after that yes ends the open opt-out as it starts, so it's the latest
+ * answer and holds.
  */
 export async function recordOptOut(optOut: OptOut, db?: Queryable): Promise<boolean> {
   if (!db) return transaction((tx) => recordOptOut(optOut, tx));
   const address = normaliseAddress(optOut.address);
   const way = optOut.way ?? "email";
+  await query(
+    `UPDATE opt_outs o SET resubscribed_at = $4
+     WHERE o.address = $1 AND o.list = $2 AND o.way = $3 AND o.resubscribed_at IS NULL AND o.unsubscribed_at < $4
+       AND NOT EXISTS (SELECT 1 FROM opt_outs told WHERE told.source = $5 AND told.source_ref = $6)
+       AND EXISTS (SELECT 1 FROM contact_permissions p
+         WHERE p.address = o.address AND p.way = o.way AND p.send = 'yes'
+           AND p.at > o.unsubscribed_at AND p.at < $4
+           AND (p.topic = o.list OR (o.list = 'newsletter' AND p.topic = 'events')))`,
+    [address, optOut.list, way, optOut.unsubscribedAt, optOut.source, optOut.sourceRef],
+    db,
+  );
   const [row] = await query<{ id: number }>(
     `INSERT INTO opt_outs (address, list, way, source, source_ref, unsubscribed_at, recorded_by, how, message_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING RETURNING id::int AS id`,
@@ -346,14 +363,40 @@ export async function stillOnCalendar(passStartedAt: Date, db?: Queryable): Prom
   return rows.map((row) => row.address);
 }
 
+/** SQL that's true of an opt-out `o` that takes its address off our Luma calendar while it's open (offCalendarFor). */
+const OFF_CALENDAR = `(o.list = 'events' OR (o.list = 'bulk' AND o.source IN (${CALENDAR_SOURCES.map((source) => `'${source}'`).join(", ")})))
+  AND o.way = 'email' AND o.resubscribed_at IS NULL`;
+
 /**
  * SQL that's true while any of the addresses in `emails` (an SQL array) has
- * opted out of the Luma calendar's emails: for whether a supporter is a
+ * opted out of the Luma calendar's emails, or of every bulk email in a way
+ * that takes them off it (offCalendarFor): for whether a supporter is a
  * Luma contact now, which the supporters list works out as it's read.
  */
 export function optedOutOfLuma(emails: string): string {
-  return `EXISTS (SELECT 1 FROM opt_outs o
-    WHERE o.list = 'events' AND o.way = 'email' AND o.resubscribed_at IS NULL AND o.address = ANY(${emails}))`;
+  return `EXISTS (SELECT 1 FROM opt_outs o WHERE ${OFF_CALENDAR} AND o.address = ANY(${emails}))`;
+}
+
+/**
+ * Whether each of `emails` that has joined our Luma calendar is on it now,
+ * so that Luma's own messages go to it, as an answer about events by email:
+ * a yes since it joined, or a no with what took it off, the latest opt-out
+ * that does (optedOutOfLuma), and when. Nothing for an address that never
+ * joined. In `emails`' order.
+ */
+export async function lumaCalendarAnswers(emails: string[]): Promise<ContactPermission[]> {
+  return query<ContactPermission>(
+    `SELECT 'events' AS topic, 'email' AS way, 'email' AS channel, p.email AS address,
+       CASE WHEN o.id IS NULL THEN 'yes' ELSE 'no' END AS send,
+       CASE WHEN o.id IS NULL THEN 'following' WHEN o.list = 'bulk' THEN 'no-bulk-email' ELSE 'unsubscribed' END AS reason,
+       coalesce(o.unsubscribed_at, p.since) AS at, coalesce(o.source, 'luma') AS source
+     FROM (SELECT email, min(contact_since) AS since FROM luma_people
+           WHERE email = ANY($1) AND contact_since IS NOT NULL GROUP BY email) p
+     LEFT JOIN LATERAL (SELECT o.id, o.list, o.unsubscribed_at, o.source FROM opt_outs o
+       WHERE ${OFF_CALENDAR} AND o.address = p.email ORDER BY o.unsubscribed_at DESC, o.id DESC LIMIT 1) o ON true
+     ORDER BY array_position($1, p.email)`,
+    [emails],
+  );
 }
 
 /**

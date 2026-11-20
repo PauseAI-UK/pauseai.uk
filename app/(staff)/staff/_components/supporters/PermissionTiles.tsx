@@ -1,11 +1,14 @@
+import { useId, type ReactNode } from "react";
 import ExternalLink from "../ui/ExternalLink";
 import StaffLink from "../ui/StaffLink";
 import {
-  TOPICS,
+  LIST_TOPICS,
+  lumaOnly,
+  LISTS,
   WAYS,
   type Channel,
   type ContactPermission,
-  type Topic,
+  type List,
   type Way,
 } from "@/lib/supporters/contact-permissions";
 import { phoneWords } from "@/lib/phone";
@@ -31,19 +34,60 @@ export function permissionReason(permission: ContactPermission): string {
   return copy.reasons[permission.reason](when, source, permission.topic);
 }
 
-/** What's behind a row's "?": the topic's name, what it is, and when it's a yes and when a no. */
-function TopicDetails({ topic, name }: { topic: Topic; name: string }) {
-  const details = copy.details[topic];
+/**
+ * A list's name where a person's lists are shown: inc. Luma there is only
+ * where Luma alone reaches them (lumaOnly), so it has a name of its own
+ * for that (copy.lumaOnly).
+ */
+export function personListName(list: List): string {
+  return list === "updates-luma" ? copy.lumaOnly.name : supportersCopy.supporters.filters.lists[list];
+}
+
+/**
+ * What's behind a list's "?": its name, who it's for, then what put them on
+ * it, for a list that says; on a person's (`person`), Luma only's, for inc. Luma.
+ */
+function ListDetails({ list, person = false }: { list: List; person?: boolean }) {
+  const name = person ? personListName(list) : supportersCopy.supporters.filters.lists[list];
+  const details = person && list === "updates-luma" ? copy.lumaOnly : copy.details[list];
   return (
     <>
       <strong className={styles.topicTitle}>{copy.topicTitle(name)}</strong>
       <p>{details.about}</p>
-      <dl className={styles.when}>
-        <dt>{copy.when.yes}</dt>
-        <dd>{details.yes}</dd>
-        <dt>{copy.when.no}</dt>
-        <dd>{details.no}</dd>
-      </dl>
+      {details.on.length > 0 && (
+        <>
+          <p className={styles.whoIsOn}>{copy.whoIsOn}</p>
+          <ul className={styles.on}>
+            {details.on.map((one) => (
+              <li key={one}>{one}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
+/**
+ * A "?" that opens what one list means, as its row's "?" says it, beside
+ * where it's chosen: a broadcast's list, and each in the Consent filter's
+ * menus. Each has its own bubble, as one list can be in several menus at once.
+ */
+export function ListHelp({ list }: { list: List }) {
+  const id = `list-help-${useId()}`;
+  return (
+    <>
+      <button
+        type="button"
+        className={styles.help}
+        aria-label={copy.listHelp(supportersCopy.supporters.filters.lists[list])}
+        {...bubbleTrigger(id)}
+      >
+        ?
+      </button>
+      <BubbleBox id={id} className={styles.popover}>
+        <ListDetails list={list} />
+      </BubbleBox>
     </>
   );
 }
@@ -125,19 +169,35 @@ function lines(permissions: ContactPermission[]): Line[] {
 }
 
 /**
- * One topic, a row: its name and the "?" with what it is; then each way and
+ * A list's answer for each way and address or number: its topic's; for
+ * PauseAI UK Updates inc. Luma, only where Luma alone reaches them (lumaOnly),
+ * as elsewhere it says no more than Updates' row does, and where it would
+ * but for a no: one to events by a way and address Updates has no answer
+ * for, such as an opt-out or a block, so what stopped it shows. Not that
+ * they never followed the calendar, as Luma never reached them.
+ */
+function listAnswers(list: List, permissions: ContactPermission[]): ContactPermission[] {
+  if (list !== "updates-luma") return permissions.filter((p) => p.topic === LIST_TOPICS[list][0]);
+  const updates = (p: ContactPermission) =>
+    permissions.some((n) => n.topic === "newsletter" && n.way === p.way && n.address === p.address);
+  const stopped = (p: ContactPermission) =>
+    p.topic === "events" && p.send === "no" && p.reason !== "not-following" && !updates(p);
+  return [...lumaOnly(permissions), ...permissions.filter(stopped)];
+}
+
+/**
+ * One list, a row: its name and the "?" with what it is; then each way and
  * address or number it has an answer for, email first, then texts, then
  * calls, with that answer in its words, green for a yes, and under it why,
  * where from and when. A number that can be texted and called alike, or
  * neither, for the same reason, has one line for both, a lozenge each.
  */
-function TopicRow({ topic, permissions }: { topic: Topic; permissions: ContactPermission[] }) {
-  const id = `why-${topic}`;
-  const name = copy.topics[topic];
+function ListRow({ list, permissions }: { list: List; permissions: ContactPermission[] }) {
+  const id = `why-${list}`;
   return (
     <li className={styles.item}>
       <span className={styles.head}>
-        <span className={styles.topic}>{name}</span>
+        <span className={styles.topic}>{personListName(list)}</span>
         <button type="button" className={styles.help} aria-label={copy.why} {...bubbleTrigger(id)}>
           ?
         </button>
@@ -163,25 +223,78 @@ function TopicRow({ topic, permissions }: { topic: Topic; permissions: ContactPe
         </span>
       ))}
       <BubbleBox id={id} className={styles.popover}>
-        <TopicDetails topic={topic} name={name} />
+        <ListDetails list={list} person />
       </BubbleBox>
     </li>
   );
 }
 
 /**
- * Whether we'd contact a supporter about each topic, a row each, every
- * address and number it has an answer for in it, by email, then text, then
- * call.
+ * Luma's own messages, a row as a list's: its name and the "?" with what
+ * they are; then each address that has joined our Luma calendar (`answers`,
+ * lumaCalendarAnswers), whether it's on it now, green if so, and under it
+ * since when, or what took it off and when. The address isn't a link, as
+ * it's Luma that writes to it.
  */
-export default function PermissionTiles({ permissions }: { permissions: ContactPermission[] }) {
+function LumaRow({ answers }: { answers: ContactPermission[] }) {
+  const id = "why-luma";
+  return (
+    <li className={styles.item}>
+      <span className={styles.head}>
+        <span className={styles.topic}>{copy.luma.name}</span>
+        <button type="button" className={styles.help} aria-label={copy.why} {...bubbleTrigger(id)}>
+          ?
+        </button>
+      </span>
+      {answers.map((answer) => (
+        <span key={answer.address} className={styles.answer} data-send={answer.send}>
+          <span className={styles.line}>
+            <Address channel="email" icon="email" address={answer.address} link={false} />
+            <span className={styles.tags}>
+              <Tag tone={answer.send === "yes" ? "green" : undefined}>
+                {answer.send === "yes" ? copy.luma.on : copy.luma.off}
+              </Tag>
+            </span>
+          </span>
+          <Reason permission={answer} />
+        </span>
+      ))}
+      <BubbleBox id={id} className={styles.popover}>
+        <strong className={styles.topicTitle}>{copy.topicTitle(copy.luma.name)}</strong>
+        {copy.luma.about.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </BubbleBox>
+    </li>
+  );
+}
+
+/**
+ * Whether we'd contact a supporter on each list, a row each, every address
+ * and number it has an answer for in it, by email, then text, then call;
+ * then Luma's own messages, for someone with an address that has joined
+ * our Luma calendar (`luma`), on it now or not. With no row at all, `none`
+ * in their place, so the card still says whether we can.
+ */
+export default function PermissionTiles({
+  permissions,
+  luma = [],
+  none,
+}: {
+  permissions: ContactPermission[];
+  luma?: ContactPermission[];
+  none?: ReactNode;
+}) {
   const byWay = (a: ContactPermission, b: ContactPermission) => WAYS.indexOf(a.way) - WAYS.indexOf(b.way);
+  const rows = LISTS.flatMap((list) => {
+    const own = listAnswers(list, permissions).sort(byWay);
+    return own.length > 0 ? [<ListRow key={list} list={list} permissions={own} />] : [];
+  });
+  if (rows.length === 0 && luma.length === 0) return none;
   return (
     <ul className={styles.list}>
-      {TOPICS.flatMap((topic) => {
-        const own = permissions.filter((p) => p.topic === topic).sort(byWay);
-        return own.length > 0 ? [<TopicRow key={topic} topic={topic} permissions={own} />] : [];
-      })}
+      {rows}
+      {luma.length > 0 && <LumaRow answers={luma} />}
     </ul>
   );
 }

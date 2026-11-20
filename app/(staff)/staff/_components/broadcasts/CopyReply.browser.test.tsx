@@ -28,7 +28,7 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 const copy = broadcastsCopy.broadcastPages;
 const stateWords = lettersCopy.copyStates;
-const topics = supportersCopy.supporters.detail.permissions.topics;
+const lists = supportersCopy.supporters.filters.lists;
 const optOut = supportersCopy.supporters.detail.permissions.recordOptOut.open;
 const emailCopy = {
   ...exampleMessageCopy,
@@ -182,7 +182,7 @@ describe("replies to broadcasts", () => {
       await page.getByRole("button", { name: choice }).click();
       await page.getByRole("button", { name: words.record }).click();
     };
-    await unsubscribe(copy.replies.topics(`${topics.newsletter}, ${topics.events}`));
+    await unsubscribe(copy.replies.topics(lists.updates));
     await vi.waitFor(() => expect(deal).toHaveBeenCalledTimes(1));
     expect(Object.fromEntries((deal.mock.calls[0][0] as FormData).entries())).toEqual({
       replyId: "4",
@@ -342,7 +342,7 @@ describe("replies to broadcasts", () => {
     const words = supportersCopy.supporters.detail.permissions.recordOptOut;
     await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
     await expect.element(page.getByRole("button", { name: copy.replies.allTexts })).toBeVisible();
-    await expect.element(page.getByRole("button", { name: copy.replies.topicsText(topics.events) })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: copy.replies.topicsText(lists.updates) })).toBeVisible();
     // Answered, Follow up is under our bubble, the last, and Reply is gone.
     await page.getByRole("button", { name: copy.replies.discard }).click();
     await rerender(

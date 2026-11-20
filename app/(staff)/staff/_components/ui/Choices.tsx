@@ -4,9 +4,27 @@ import ChoiceSearch from "./ChoiceSearch";
 import StaffLink from "./StaffLink";
 import styles from "./FilterBar.module.css";
 
+/** A choice's link, and its `help` after it on the same line, if it has one. */
+function ChoiceLink({ option, href, current }: { option: FilterOption; href: string; current: boolean }) {
+  const link = (
+    <StaffLink href={href} aria-current={current ? "true" : undefined}>
+      {option.label}
+      {option.detail && <span className={styles.detail}>{option.detail}</span>}
+    </StaffLink>
+  );
+  if (!option.help) return link;
+  return (
+    <span className={styles.withHelp}>
+      {link}
+      {option.help}
+    </span>
+  );
+}
+
 /**
- * A list of choices, in their groups, each a link, those chosen marked; or
- * each what `row` draws. One `under` another listed is set in beneath it,
+ * A list of choices, in their groups, each a link, those chosen marked,
+ * with its `help` after it, such as a "?" saying what it means; or each what
+ * `row` draws. One `under` another listed is set in beneath it,
  * and one under that further in.
  * With `search`, a box over it that narrows it.
  */
@@ -44,13 +62,7 @@ export default function Choices({
               {row ? (
                 row(option)
               ) : (
-                <StaffLink
-                  href={href!(option.value)}
-                  aria-current={current.includes(option.value) ? "true" : undefined}
-                >
-                  {option.label}
-                  {option.detail && <span className={styles.detail}>{option.detail}</span>}
-                </StaffLink>
+                <ChoiceLink option={option} href={href!(option.value)} current={current.includes(option.value)} />
               )}
             </li>
           </Fragment>

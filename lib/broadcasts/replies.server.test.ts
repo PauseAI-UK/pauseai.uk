@@ -126,13 +126,13 @@ describeWithDatabase("replies to broadcasts", () => {
     expect(await repliesWaiting()).toBe(1);
   });
 
-  it("records a reply as an opt-out of what its copy went under, or of all bulk email, or as nothing, once", async () => {
+  it("records a reply as an opt-out of what its copy's link stops, or of all bulk email, or as nothing, once", async () => {
     const id = await copy();
     const first = await reply(id, "g1");
     const second = await reply(id, "g2");
     const third = await reply(id, "g3");
     const automatic = await reply(id, "g4", true);
-    // On the live site, an opt-out of events or every bulk email takes the address off our Luma calendar.
+    // On the live site, an opt-out of every bulk email takes the address off our Luma calendar.
     vi.stubEnv("DEPLOY_CONTEXT", "production");
     vi.stubEnv("LUMA_API_KEY", "k");
     const removed: unknown[] = [];
@@ -148,8 +148,8 @@ describeWithDatabase("replies to broadcasts", () => {
     expect(await dealWithReply(second, "bulk", "Sam@PauseAI.uk")).toBe(true);
     expect(await dealWithReply(third, "nothing", JO)).toBe(true);
     expect(await query("SELECT list, source, recorded_by, message_id::int AS copy FROM opt_outs ORDER BY id")).toEqual([
+      // The copy went under the newsletter and events: PauseAI UK Updates is what its link stops.
       { list: "newsletter", source: "reply", recorded_by: JO, copy: id },
-      { list: "events", source: "reply", recorded_by: JO, copy: id },
       { list: "bulk", source: "reply", recorded_by: "sam@pauseai.uk", copy: id },
     ]);
     expect(await query("SELECT outcome, dealt_by FROM broadcast_replies ORDER BY id")).toEqual([
@@ -167,8 +167,8 @@ describeWithDatabase("replies to broadcasts", () => {
     const [{ address }] = await query<{ address: string }>("SELECT address FROM broadcast_messages WHERE id = $1", [
       id,
     ]);
-    // Once for the events of the first, once for the second's every bulk email; nothing for the third.
-    expect(removed).toEqual([{ email: address }, { email: address }]);
+    // For the second's every bulk email; not for the first, which leaves them on the calendar, nor the third.
+    expect(removed).toEqual([{ email: address }]);
   });
 
   it("records with a reply those before it still waiting, but not automatic ones, nor any after it", async () => {

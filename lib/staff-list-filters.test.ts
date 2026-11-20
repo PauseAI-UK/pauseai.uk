@@ -42,7 +42,7 @@ describe("SUPPORTER_FILTERS", () => {
     expect(near(undefined, "")).toEqual([]);
   });
 
-  it("puts each topic of the Consent filter under its way, with its channel's icon when it's given one", () => {
+  it("puts each list of the Consent filter under its way, with its channel's icon when it's given one", () => {
     const contact = (channelIcon?: (channel: string) => string) =>
       SUPPORTER_FILTERS({ events: [], mps: [], near: "", channelIcon }).find((filter) => filter.name === "contact")!;
     const { ways, wayChips } = copy;
@@ -52,8 +52,11 @@ describe("SUPPORTER_FILTERS", () => {
       ...[1, 2, 3].map(() => ({ label: ways.text, icon: "icon of text", chip: wayChips.text })),
       { label: ways.call, icon: "icon of call", chip: wayChips.call },
     ]);
-    // Each a yes, and chosen more than once, a chip for each way.
-    expect(contact().options.map((option) => option.value)).toContain("text:events:yes");
+    // Each list a value of a yes to each of its topics, one at a time, a chip for each way, and a "?" given it.
+    expect(contact().options.map((option) => option.value)).toContain("text:newsletter:yes text:events:yes");
     expect(contact().repeat).toBe(true);
+    expect(contact().oneAtATime).toBe(true);
+    const helped = SUPPORTER_FILTERS({ events: [], mps: [], near: "", listHelp: (list) => `? ${list}` });
+    expect(helped.find((f) => f.name === "contact")!.options.map((option) => option.help)).toContain("? updates-luma");
   });
 });

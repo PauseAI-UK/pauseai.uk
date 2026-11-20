@@ -14,8 +14,11 @@ import type { ContactPermission, Topic } from "@/lib/supporters/contact-permissi
 import {
   choiceKey,
   isNumber,
+  LUMA_CHOICE,
+  LUMA_OFFERED,
   numberHolds,
   settingsTopics,
+  topicAnswers,
   type SettingsTopic,
   type SettingsView,
 } from "@/lib/supporters/settings-view";
@@ -54,8 +57,9 @@ function OpenedBy({ opened }: { opened: Opened }) {
  */
 export const focusOnMount = (el: HTMLElement | null) => el?.focus();
 
-/** Topics in a sentence: "the UK newsletter and our event emails". */
-const inWords = (topics: Topic[]): string => topics.map((t) => copy.inSentence[t]).join(` ${copy.unsubscribe.and} `);
+/** What an email's link stops (unsubscribeTopics), in a sentence: Volunteering for an email to it, else Updates. */
+const inWords = (topics: Topic[]): string =>
+  copy.inSentence[topics.includes("volunteering") ? "volunteering" : "newsletter"];
 
 /**
  * An answer's reason in the person's words, with where it came from; nothing
@@ -131,6 +135,62 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
         </span>
       </div>
       {reason && <p className={`${styles.why} ${styles.wideOnly}`}>{reason}</p>}
+    </fieldset>
+  );
+}
+
+/**
+ * Luma's own emails: whether the address stays on our Luma calendar, one
+ * box, ticked while it's on (`initial`); unticked, saving takes them off.
+ * While it's on, why, as a topic's card says it: they follow our calendar.
+ * Once they're off (`off`), it can't be ticked again, as only Luma can put
+ * them back on, and it says so. Not while all its email is held (`held`).
+ */
+function LumaCard({
+  initial,
+  held,
+  off,
+  saving,
+}: {
+  initial: boolean;
+  held: boolean;
+  off: boolean;
+  saving: Saving | null;
+}) {
+  const [on, setOn] = useState(initial);
+  const reason = initial && (
+    <>
+      <strong>{copy.why.yes}</strong> {copy.why.reasons.following!("")}
+    </>
+  );
+  return (
+    <fieldset className={styles.card}>
+      <legend className={styles.topic}>
+        <span>{copy.topics.events}</span>
+        {reason && (
+          <span className={`${styles.askWrap} ${styles.phoneOnly}`}>
+            <Bubble id="why-luma" label="?" trigger={iconButtonClass("outline", styles.ask)} name={copy.why.ask}>
+              {reason}
+            </Bubble>
+          </span>
+        )}
+      </legend>
+      <p className={styles.what}>{copy.about.events}</p>
+      <div className={styles.ways}>
+        <input type="hidden" name="choice" value={LUMA_OFFERED} />
+        <Checkbox name="choice" value={LUMA_CHOICE} checked={on} disabled={held || off} boxed onChange={setOn}>
+          {copy.lumaBox}
+        </Checkbox>
+        <span className={styles.saving} role="status">
+          {saving && <SaveState state={saving}>{copy.settings[saving]}</SaveState>}
+        </span>
+      </div>
+      {reason && <p className={`${styles.why} ${styles.wideOnly}`}>{reason}</p>}
+      {off && (
+        <p className={styles.why}>
+          {copy.lumaOff.body} <a href={site.social.luma}>{copy.lumaOff.link}</a>.
+        </p>
+      )}
     </fieldset>
   );
 }
@@ -213,10 +273,13 @@ function NumberHolds({ view }: { view: SettingsView }) {
   );
 }
 
-/** Whether the address already gets none of `topics` by email, as after the link's button, or a reload after it. */
+/**
+ * Whether the address already gets none of `topics` by email, as after the
+ * link's button, or a reload after it: for PauseAI UK Updates, a yes to
+ * `events` is getting it, as PauseAI UK Updates inc. Luma (topicAnswers).
+ */
 const offAlready = (view: SettingsView | null, topics: Topic[]): boolean =>
-  view !== null &&
-  topics.every((topic) => view.answers.some((a) => a.way === "email" && a.topic === topic && a.send === "no"));
+  view !== null && topics.every((topic) => topicAnswers(view, topic).some((a) => a.way === "email" && a.send === "no"));
 
 /**
  * The box an email's unsubscribe link opens the page with: one button, then
@@ -269,7 +332,7 @@ function Unsubscribe({
       </h2>
       {/* Pointing to the choices below, where the page has them: an old email's link offers a fresh link instead. */}
       <p>
-        {copy.unsubscribe.doneBody(topics)}
+        {copy.unsubscribe.doneBody()}
         {view && ` ${copy.unsubscribe.below}`}
       </p>
     </div>
@@ -318,21 +381,22 @@ function Expired({ opened, resend }: { opened: Opened; resend: SettingsActions["
   );
 }
 
-/** What PauseAI Global sends, and how to stop it; how to stop it all only while Stop everything is offered (not `held`). */
+/**
+ * PauseAI Global's own emails, mostly Critical Alerts, in a small grey card
+ * after the topics': how to stop them, and, only while Stop everything is
+ * offered (not `held`), that it stops them all too.
+ */
 function GlobalEmails({ held }: { held: boolean }) {
   return (
-    <>
-      <p>{copy.global.intro}</p>
-      <ul>
-        {copy.global.lists.map((list) => (
-          <li key={list}>{list}</li>
-        ))}
-      </ul>
-      <p>
-        {copy.global.howToStop}
+    <section className={`${styles.card} ${styles.global}`} aria-labelledby="global">
+      <h2 id="global" className={styles.topic}>
+        {copy.global.title}
+      </h2>
+      <p className={styles.what}>
+        {copy.global.body}
         {!held && ` ${copy.global.stopAll}`}
       </p>
-    </>
+    </section>
   );
 }
 
@@ -360,6 +424,8 @@ export default function EmailSettings({
   actions: SettingsActions;
 }) {
   const [view, setView] = useState(initial);
+  // Whether the page opened for someone on our Luma calendar, so its card stays while they're on the page.
+  const [onLuma] = useState(Boolean(initial?.onLuma));
   // Each change gives fresh boxes, so the cards start again from what was kept.
   const [round, setRound] = useState(0);
   // Where the focus goes once a button's change is shown: the page's title after a lift, the hold after Stop everything.
@@ -418,7 +484,8 @@ export default function EmailSettings({
           */}
           <FormStack
             onChange={async (event) => {
-              const topic = (event.target as unknown as HTMLInputElement).value.split(":")[0] as Topic;
+              const value = (event.target as unknown as HTMLInputElement).value;
+              const topic = (value === LUMA_CHOICE ? "events" : value.split(":")[0]) as Topic;
               const form = new FormData(event.currentTarget);
               setSaving({ topic, state: "saving" });
               setChanged(true);
@@ -438,22 +505,18 @@ export default function EmailSettings({
                 saving={saving?.topic === topic.topic ? saving.state : null}
               />
             ))}
+            {/* Shown to someone on our Luma calendar when the page opened, so it stays once they've come off. */}
+            {onLuma && (
+              <LumaCard
+                key={`luma-${round}`}
+                initial={view.onLuma}
+                held={view.hold !== null}
+                off={!view.onLuma && view.hold === null}
+                saving={saving?.topic === "events" ? saving.state : null}
+              />
+            )}
           </FormStack>
-          {/* Open on a wide screen; folded to its heading on a phone, as it's for reading rather than changing anything. */}
-          {!forNumber && (
-            <>
-              <section className={`${styles.global} ${styles.wide}`} aria-labelledby="global">
-                <h2 id="global">{copy.global.title}</h2>
-                <GlobalEmails held={Boolean(view.hold)} />
-              </section>
-              <details className={`${styles.global} ${styles.narrow}`}>
-                <summary>
-                  <h2>{copy.global.title}</h2>
-                </summary>
-                <GlobalEmails held={Boolean(view.hold)} />
-              </details>
-            </>
-          )}
+          {!forNumber && <GlobalEmails held={Boolean(view.hold)} />}
           {!view.hold && !forNumber && (
             <section className={styles.stopAll} aria-labelledby="stop-all">
               <h2 id="stop-all">{copy.stopAll.title}</h2>

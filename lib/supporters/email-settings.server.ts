@@ -1,8 +1,27 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { CONSENTS, type ContactPermission, type Topic, type Way } from "./contact-permissions";
-import { hold, isNumber, LINK_DAYS, type SettingsChoice, type SettingsView } from "./settings-view";
+import {
+  CONSENTS,
+  hasWay,
+  unsubscribeTopics,
+  WAYS,
+  type ContactPermission,
+  type Topic,
+  type Way,
+} from "./contact-permissions";
+import {
+  choiceKey,
+  hold,
+  isNumber,
+  LINK_DAYS,
+  LUMA_CHOICE,
+  LUMA_OFFERED,
+  SETTINGS_TOPICS,
+  topicAnswers,
+  type SettingsChoice,
+  type SettingsView,
+} from "./settings-view";
 import { now } from "@/lib/now";
 import { siteUrl, siteUrlIfKnown } from "@/lib/site-url.server";
 import { queueBulkLift, queueResubscribe } from "./civicrm-updates.server";
@@ -17,6 +36,7 @@ import {
   recordResubscribe,
   normaliseAddress,
   offCalendarFor,
+  optedOutOfLuma,
   STOP_ALL,
   stopAllGroup,
   type CalendarOptOut,
@@ -209,7 +229,7 @@ async function settingsLink(token: string): Promise<SettingsLink | undefined> {
 export type CopyLink = {
   messageId: number;
   address: string;
-  /** What it went under, which its button opts out of. */
+  /** What its button opts out of, from what it went under (unsubscribeTopics). */
   topics: Topic[];
   /** Whether the rest of the page still works, PAGE_DAYS after it went. */
   open: boolean;
@@ -223,7 +243,7 @@ async function copyLink(token: string): Promise<CopyLink | undefined> {
      FROM broadcast_messages WHERE link_token_hash = $1 AND address IS NOT NULL`,
     [hashOf(token), PAGE_DAYS],
   );
-  return found;
+  return found && { ...found, topics: unsubscribeTopics(found.topics) };
 }
 
 /** The numbers of whoever has the address. */
@@ -259,11 +279,29 @@ async function answersFor(address: string | null, numbers: string[]): Promise<Co
  */
 export async function settingsFor(address: string): Promise<SettingsView> {
   const to = normaliseAddress(address);
-  if (isNumber(to)) return { address: to, numbers: [to], answers: await answersFor(null, [to]), hold: null };
+  if (isNumber(to)) {
+    return { address: to, numbers: [to], answers: await answersFor(null, [to]), hold: null, onLuma: false };
+  }
   const numbers = await numbersOf(to);
   const answers = await answersFor(to, numbers);
   const held = hold(answers);
-  return { address: to, numbers, answers, hold: held && { ...held, everything: (await stopAllGroup(to)) !== null } };
+  return {
+    address: to,
+    numbers,
+    answers,
+    hold: held && { ...held, everything: (await stopAllGroup(to)) !== null },
+    onLuma: await onLuma(to),
+  };
+}
+
+/** Whether the address is on our Luma calendar: a contact of it, who hasn't unsubscribed since. */
+async function onLuma(address: string): Promise<boolean> {
+  const [{ on }] = await query<{ on: boolean }>(
+    `SELECT EXISTS (SELECT 1 FROM luma_people l WHERE l.email = $1 AND l.contact_since IS NOT NULL)
+       AND NOT ${optedOutOfLuma("ARRAY[$1]")} AS on`,
+    [address],
+  );
+  return on;
 }
 
 /** The live calendar, which only the live site changes; a fixture build's is fake. */
@@ -340,30 +378,49 @@ async function chooseYes(address: string, way: Way, topic: Topic, db: Queryable)
 
 /**
  * Saves what's ticked on the page for the address and its numbers, as a set
- * of `choiceKey`s: a box newly ticked is a yes, one newly unticked an
- * opt-out. A text or call box stands for every number, ticked where any
+ * of `choiceKey`s and LUMA_CHOICE: a box newly ticked is a yes, one newly
+ * unticked an opt-out. Updates' boxes are ticked where `newsletter` or
+ * `events` says yes (topicAnswers), and unticking one is a no to
+ * `newsletter`, which is a no to `events` too. A text or call box stands for every number, ticked where any
  * says yes (settingsTopics): ticking it is a yes for each number without
  * one, unticking it an opt-out for each with one, and leaving it as it was
- * changes none. Nothing for email while all its email is held, nor on a
- * number's page, nor any box the page didn't offer. Returns what changed.
+ * changes none. Luma's, unticked on a page that drew it (LUMA_OFFERED), opts
+ * out of events by email, which takes
+ * the address off our calendar; then Updates by email, if still ticked, is
+ * made a yes of their own, so it stays when Luma says they've gone. Nothing
+ * for email while all its email is held, nor on a number's page, nor any
+ * box the page didn't offer. Returns what changed.
  */
 export async function saveSettings(address: string, ticked: Set<string>): Promise<SettingsChoice[]> {
   const view = await settingsFor(address);
   const changed: SettingsChoice[] = [];
+  const offLuma = view.onLuma && !view.hold && ticked.has(LUMA_OFFERED) && !ticked.has(LUMA_CHOICE);
   await transaction(async (db) => {
-    for (const { topic, way } of CONSENTS) {
-      if (way === "email" && (view.hold || isNumber(view.address))) continue;
-      const targets = way === "email" ? [view.address] : view.numbers;
-      if (targets.length === 0) continue;
-      const yes = (target: string) =>
-        view.answers.some((a) => a.topic === topic && a.way === way && a.address === target && a.send === "yes");
-      const want = ticked.has(`${topic}:${way}`);
-      if (targets.some(yes) === want) continue;
-      for (const target of targets.filter((one) => yes(one) !== want)) {
-        if (want) await chooseYes(target, way, topic, db);
-        else await optOut(target, way, topic, "preferences", db);
+    for (const topic of SETTINGS_TOPICS) {
+      const answers = topicAnswers(view, topic);
+      for (const way of WAYS.filter((one) => hasWay(topic, one))) {
+        if (way === "email" && (view.hold || isNumber(view.address))) continue;
+        const targets = way === "email" ? [view.address] : view.numbers;
+        if (targets.length === 0) continue;
+        const yes = (target: string) => answers.some((a) => a.way === way && a.address === target && a.send === "yes");
+        const want = ticked.has(choiceKey(topic, way));
+        // Updates by email that's on only through Luma, as Luma goes, becomes a yes of their own.
+        const own = (target: string) =>
+          view.answers.some((a) => a.topic === topic && a.way === way && a.address === target && a.send === "yes");
+        if (want && offLuma && topic === "newsletter" && way === "email" && yes(view.address) && !own(view.address)) {
+          await chooseYes(view.address, way, topic, db);
+        }
+        if (targets.some(yes) === want) continue;
+        for (const target of targets.filter((one) => yes(one) !== want)) {
+          if (want) await chooseYes(target, way, topic, db);
+          else await optOut(target, way, topic, "preferences", db);
+        }
+        changed.push({ topic, way, on: want });
       }
-      changed.push({ topic, way, on: want });
+    }
+    if (offLuma) {
+      await optOut(view.address, "email", "events", "preferences", db);
+      changed.push({ topic: "events", way: "email", on: false });
     }
   });
   await offCalendarAfter(
@@ -436,10 +493,11 @@ export async function stopEverything(address: string): Promise<void> {
 }
 
 /**
- * Opts a copy's address out of what the copy went under, by its unsubscribe
- * link's button (`link`) or a mail app's own Unsubscribe (`list-unsubscribe`);
- * events by email takes it off our Luma calendar too. Works however long ago
- * the copy went. Says whether there was such a copy.
+ * Opts a copy's address out of PauseAI UK Updates, for one to either Updates
+ * list, or else of what it went under (unsubscribeTopics), by its
+ * unsubscribe link's button (`link`) or a mail app's own Unsubscribe
+ * (`list-unsubscribe`). It never takes the address off our Luma calendar.
+ * Works however long ago the copy went. Says whether there was such a copy.
  */
 export async function unsubscribeCopy(token: string, source: "link" | "list-unsubscribe"): Promise<boolean> {
   const found = await copyLink(token);
@@ -447,7 +505,6 @@ export async function unsubscribeCopy(token: string, source: "link" | "list-unsu
   await transaction(async (db) => {
     for (const topic of found.topics) await optOut(found.address, "email", topic, source, db, found.messageId);
   });
-  await offCalendarAfter(found.topics.map((list) => ({ address: found.address, list, source })));
   return true;
 }
 

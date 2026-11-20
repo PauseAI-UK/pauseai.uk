@@ -1,13 +1,14 @@
 import { SUPPORTERS_LIST } from "@/lib/staff-lists";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";
 import type { Params } from "@/lib/list-params";
-import { consentLeftOut, type Way } from "@/lib/supporters/contact-permissions";
+import { consentLeftOut, type List, type Way } from "@/lib/supporters/contact-permissions";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import type { SupporterChoices, SupportersPage } from "@/lib/supporters/records.server";
 import { filteredName, filterPills, SUPPORTER_FILTERS, type FilterPill } from "@/lib/staff-list-filters";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import { supporterFiltersOf } from "./SupportersTable";
 import FilterBar from "../ui/FilterBar";
+import { ListHelp } from "./PermissionTiles";
 import { savedFiltersProps, type SavedFilterActions } from "../ui/SavedFilters";
 import { supportersCopy } from "./copy";
 
@@ -63,8 +64,10 @@ export default function SupporterFilters({
   saved?: { state: SavedFiltersState; actions: SavedFilterActions };
   lockConsent?: boolean;
 }) {
-  const filters = SUPPORTER_FILTERS({ ...choices, near: search.near, found: near, channelIcon }).map((filter) =>
-    lockConsent && filter.name === "contact" ? { ...filter, locked: supportersCopy.consentLocked } : filter,
+  const listHelp = (list: List) => <ListHelp list={list} />;
+  const filters = SUPPORTER_FILTERS({ ...choices, near: search.near, found: near, channelIcon, listHelp }).map(
+    (filter) =>
+      lockConsent && filter.name === "contact" ? { ...filter, locked: supportersCopy.consentLocked } : filter,
   );
   return (
     <FilterBar

@@ -8,7 +8,7 @@ import { staffMemberText } from "@/lib/staff-member";
 import type { ReactNode } from "react";
 import { ANSWER_CHOICES, INVITED, NEVER_ASKED, REPLIED } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
-import { TOPICS, WAYS, hasWay, stateValue, type Consent, type Way } from "@/lib/supporters/contact-permissions";
+import { WAYS, listsBy, listValue, type List, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
 import { campaigns } from "./content/email-your-mp";
 import { firstOf, notValue, pairedValue, pairedValues, unpaired, valuesOf, type Params } from "./list-params";
@@ -49,6 +49,8 @@ export type FilterOption = {
   label: string;
   group?: { label: string; icon: ReactNode; chip?: string };
   detail?: string;
+  /** What the choice means, after its link in a menu, such as a "?" that opens it. */
+  help?: ReactNode;
   under?: string;
 };
 
@@ -82,6 +84,8 @@ export type Filter = {
   linkedOnly?: boolean;
   /** A filter that matters most: its own button, first, rather than a row in "+ Filter". */
   own?: boolean;
+  /** A filter whose chips find one choice each, with no "+ Add" to tick more. */
+  oneAtATime?: boolean;
   /**
    * A filter whose finding can't be changed here, and why, said on hovering
    * its chip: that chip is there but doesn't open, with a lock for its arrow,
@@ -338,12 +342,12 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slugs, p
 });
 
 /**
- * The Consent filter's consents, in its order: by email, then text, then
- * call, each the topics that go by it in TOPICS's order, so the same one
- * sits on the same row under each heading.
+ * The Consent filter's choices, in its order: by email, then text, then
+ * call, each the lists that go by it in LISTS's order, so the same one sits
+ * on the same row under each heading.
  */
-export const CONSENT_ORDER: Consent[] = WAYS.flatMap((way) =>
-  TOPICS.filter((topic) => hasWay(topic, way)).map((topic) => ({ topic, way })),
+export const LIST_ORDER: { list: List; way: Way }[] = WAYS.flatMap((way) =>
+  listsBy(way).map((list) => ({ list, way })),
 );
 
 /** The words in the Near chip: where it found, or that it couldn't; as typed, when it wasn't looked up. */
@@ -363,61 +367,46 @@ export type SupporterBarChoices = SupporterChoices & {
   near: string;
   found?: SupportersPage["near"];
   channelIcon?: (way: Way) => ReactNode;
+  /** What a Consent filter's list means, after it in a menu. */
+  listHelp?: (list: List) => ReactNode;
 };
 
 /**
- * The supporters list's filters, each named after the column it filters
- * on, in the columns' order: their nation and how near somewhere they
- * are, and their MP; their activities and subscriptions; the events they
- * registered for; and whether they wrote in a campaign. Consent, the
- * contact filter, has its own button. Its choices are each topic by each
- * way, as those we can contact about it, a chip for each way; one by email
- * or phone shows that column; and when they were first seen, last
+ * The supporters list's filters. Consent, the contact filter, is first, as
+ * it's who a message can go to, and has its own button. Its choices are
+ * each list by each way, as those on it, a chip for each way; one by email
+ * or phone shows that column. Then those named after a column, in the
+ * columns' order: their activities; the events they registered for;
+ * whether they wrote in a campaign; and when they were first seen, last
  * registered for an event or unsubscribed, the lists the dashboard's tiles
- * open, the last two only from those tiles. Activities, consents, nations,
+ * open, the last two only from those tiles. Last, where they are, which
+ * the Place column shows but none is named after: how near somewhere,
+ * their MP and their nation. Activities, consents, nations,
  * MPs and events can each be chosen more than once; a supporter has one
  * nation and one MP.
  */
 export const SUPPORTER_FILTERS = listFilters(
   SUPPORTERS_LIST,
-  ({ events, mps, near, found, channelIcon }: SupporterBarChoices) => {
+  ({ events, mps, near, found, channelIcon, listHelp }: SupporterBarChoices) => {
     const copy = supportersCopy.supporters.filters;
     const { columns } = supportersCopy.supporters;
     return {
-      nation: {
-        label: politiciansCopy.politician.country,
-        oneEach: true,
-        options: choicesOf(staffVocabulary.countries),
-      },
-      near: {
-        label: copy.near,
-        options: near ? [{ value: near, label: nearWords(near, found) }] : [],
-        place: {
-          within: "within",
-          placeholder: copy.nearPlaceholder,
-          distances: NEAR_MILES.map((n) => ({ value: String(n), label: copy.miles(n) })),
-        },
-      },
-      mp: {
-        label: politiciansCopy.politician.roles.commons,
-        oneEach: true,
-        searchable: true,
-        options: mps.map((mp) => ({ value: String(mp.id), label: copy.mpChoice(mp.name, mp.constituency) })),
+      contact: {
+        label: columns.subscriptions,
+        // Who a message can go to, so its own button. Each list includes those it should, so one at a time.
+        own: true,
+        oneAtATime: true,
+        // Each list under its way's heading, as those on it by that way.
+        options: LIST_ORDER.map(({ list, way }) => ({
+          value: listValue(list, way),
+          label: copy.lists[list],
+          help: listHelp?.(list),
+          group: { label: copy.ways[way], icon: channelIcon?.(way), chip: copy.wayChips[way] },
+        })),
       },
       activity: {
         label: columns.badges,
         options: SUPPORTER_BADGES.map((badge) => ({ value: badge, label: supportersCopy.supporters.badges[badge] })),
-      },
-      contact: {
-        label: columns.subscriptions,
-        // Who a message can go to, so its own button.
-        own: true,
-        // Each topic under its way's heading, as those we can contact about it by that way.
-        options: CONSENT_ORDER.map(({ topic, way }) => ({
-          value: stateValue({ way, topic, send: "yes" }),
-          label: copy.topics[topic],
-          group: { label: copy.ways[way], icon: channelIcon?.(way), chip: copy.wayChips[way] },
-        })),
       },
       event: {
         label: copy.event,
@@ -435,6 +424,26 @@ export const SUPPORTER_FILTERS = listFilters(
       first: { label: copy.first, options: WINDOW_OPTIONS },
       registered: { label: copy.registered, options: WINDOW_OPTIONS, linkedOnly: true },
       unsubscribed: { label: copy.unsubscribed, options: WINDOW_OPTIONS, linkedOnly: true },
+      near: {
+        label: copy.near,
+        options: near ? [{ value: near, label: nearWords(near, found) }] : [],
+        place: {
+          within: "within",
+          placeholder: copy.nearPlaceholder,
+          distances: NEAR_MILES.map((n) => ({ value: String(n), label: copy.miles(n) })),
+        },
+      },
+      mp: {
+        label: politiciansCopy.politician.roles.commons,
+        oneEach: true,
+        searchable: true,
+        options: mps.map((mp) => ({ value: String(mp.id), label: copy.mpChoice(mp.name, mp.constituency) })),
+      },
+      nation: {
+        label: politiciansCopy.politician.country,
+        oneEach: true,
+        options: choicesOf(staffVocabulary.countries),
+      },
     };
   },
 );

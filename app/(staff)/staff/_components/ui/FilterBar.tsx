@@ -314,6 +314,7 @@ export default function FilterBar({
             turns={!filter.locked}
             half={false}
             icon={icon}
+            adds={!filter.oneAtATime}
           />
         );
       });

@@ -140,51 +140,23 @@
   background: var(--surface);
 }
 
-/* PauseAI Global's emails: a warm panel, open on a wide screen (.wide), folded to its heading on a phone (.narrow). */
+/* PauseAI Global's emails: a card like a topic's, but grey, as it's for reading, not changing. */
 .global {
-  margin-top: var(--space-6);
-  padding: var(--space-1) var(--space-5) var(--space-3);
-  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
+  border-color: transparent;
   background: var(--surface-2);
 }
 
-.narrow {
-  display: none;
-  padding: var(--space-3) var(--space-5);
-}
-
-/* Open, its words spaced from the heading as the wide box's are, and none left at the foot. */
-.narrow[open] summary {
-  margin-bottom: var(--space-3);
-}
-
-.narrow > p:first-of-type {
-  margin-top: 0;
-}
-
-.narrow > p:last-child {
-  margin-bottom: 0;
-}
-
-.narrow summary {
-  cursor: pointer;
-}
-
-/* The heading in the summary, on the marker's line. */
-.narrow summary h2 {
-  display: inline;
-  margin: 0;
+/* Its name is a heading, which a prose page would size and space as its own: as a topic's name, with no room over it. */
+.global .topic {
+  margin: 0 0 var(--space-2);
+  font-family: inherit;
   font-size: var(--text-lg);
+  line-height: inherit;
 }
 
-@media (max-width: 720px) {
-  .wide {
-    display: none;
-  }
-
-  .narrow {
-    display: block;
-  }
+.global .what {
+  margin-bottom: 0;
 }
 
 /* Stop everything, below a rule. */

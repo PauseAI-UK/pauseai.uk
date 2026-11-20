@@ -1,6 +1,6 @@
 import "server-only";
 import { gzipSync } from "node:zlib";
-import { hasWay, TOPICS, type Topic, type Way } from "@/lib/supporters/contact-permissions";
+import { hasWay, TOPICS, unsubscribeTopics, type Topic, type Way } from "@/lib/supporters/contact-permissions";
 import { inWindow, settleEarlier } from "./answers.server";
 import { fromAddress, messageIds } from "@/lib/email-parsing/mime.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
@@ -146,10 +146,11 @@ export type ReplyDecision = "topics" | "bulk" | "nothing";
 
 /**
  * Records what staff made of a reply waiting for them: an opt-out, as the
- * person asking to stop is one, recorded for them, of what the copy went
- * under or of every bulk email, at the copy's address, which takes them off
- * our Luma calendar too when it's of events or every bulk email; or nothing
- * to do. One answered can still be recorded as an opt-out. Says whether it
+ * person asking to stop is one, recorded for them, at the copy's address:
+ * of what an email's unsubscribe link stops (unsubscribeTopics), which
+ * leaves them on our Luma calendar, or of every bulk email, which takes
+ * them off it; of what a text went under, or of every text; or nothing to
+ * do. One answered can still be recorded as an opt-out. Says whether it
  * was waiting, or answered for an opt-out.
  */
 export async function dealWithReply(replyId: number, decision: ReplyDecision, by: string): Promise<boolean> {
@@ -168,7 +169,9 @@ export async function dealWithReply(replyId: number, decision: ReplyDecision, by
     if (decision !== "nothing" && reply.address) {
       // By text, "bulk" is every text: each topic a text goes under.
       const every: OptOutList[] = reply.text ? TOPICS.filter((topic) => hasWay(topic, "text")) : ["bulk"];
-      const lists = decision === "bulk" ? every : reply.topics;
+      // An email's, what its unsubscribe link stops; a text's, what it went under, as a reply of "stop" does.
+      const its = reply.text ? reply.topics : unsubscribeTopics(reply.topics);
+      const lists = decision === "bulk" ? every : its;
       const way: Way = reply.text ? "text" : "email";
       for (const list of lists) {
         await recordStaffOptOut({ address: reply.address, way, list }, by, { replyId, messageId: reply.copyId }, db);

@@ -5,6 +5,7 @@ import DevPreferences from "./DevPreferences";
 import { supportersCopy } from "./copy";
 
 const copy = supportersCopy.devPreferences;
+const lists = supportersCopy.supporters.filters.lists;
 const JANE = "jane.smith@example.com";
 
 /** The newsletter and volunteering by email, events only by text. */
@@ -23,12 +24,16 @@ describe("DevPreferences", () => {
       .element(page.getByRole("link", { name: copy.preferences("jane+x@example.org") }))
       .toHaveAttribute("href", "/staff/api/dev-contact-preferences?address=jane%2Bx%40example.org");
     await expect
-      .element(page.getByRole("link", { name: copy.unsubscribe("Volunteering") }))
+      .element(page.getByRole("link", { name: copy.unsubscribe(lists.volunteering) }))
       .toHaveAttribute(
         "href",
         "/staff/api/dev-contact-preferences?address=jane.smith%40example.com&topic=volunteering",
       );
-    await expect.element(page.getByRole("link", { name: copy.unsubscribe("Events only") })).not.toBeInTheDocument();
+    // Each named as the list its topic puts them on; none for events, which is a no by email.
+    await expect.element(page.getByRole("link", { name: copy.unsubscribe(lists.updates), exact: true })).toBeVisible();
+    await expect
+      .element(page.getByRole("link", { name: copy.unsubscribe(lists["updates-luma"]) }))
+      .not.toBeInTheDocument();
     await expect
       .element(page.getByRole("link", { name: copy.oldUnsubscribe }))
       .toHaveAttribute(

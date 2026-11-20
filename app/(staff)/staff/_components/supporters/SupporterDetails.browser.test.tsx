@@ -98,7 +98,8 @@ describe("SupporterDetails", () => {
       .toHaveAttribute("href", "/staff/letters/12");
     // So does the same letter in the history.
     expect(document.querySelector('a[href="/staff/letters/99"]')).not.toBeNull();
-    // Beside the facts, whether we'd contact her about each topic: by email, and by the phone she gave Luma.
+    // Beside the facts, whether we'd contact her on each list: by email, and by the phone she gave Luma, which
+    // she unsubscribed in Luma, under Updates + Luma. Then Luma's own messages, which that took her address off too.
     const subscriptions = page.getByRole("region", { name: copy.detail.listsTitle });
     await expect
       .element(
@@ -216,6 +217,20 @@ describe("SupporterDetails", () => {
     ).not.toBeNull();
   });
 
+  it("says we can't contact someone we hold no address or number for", async () => {
+    await render(
+      <SupporterDetails
+        supporter={{
+          ...exampleSupporterDetails,
+          summary: { ...exampleSupporterDetails.summary, emails: [], phones: [] },
+          permissions: [],
+          luma: [],
+        }}
+      />,
+    );
+    await expect.element(page.getByText(supportersCopy.supporters.detail.permissions.none.noAddress)).toBeVisible();
+  });
+
   it("copes with a supporter who has no name, nothing given and no activity, and with unknown statuses, lists and campaigns", async () => {
     const copy = supportersCopy.supporters;
     await render(
@@ -285,6 +300,27 @@ describe("SupporterDetails", () => {
               title: "other-list",
               campaignTitle: null,
               detail: null,
+              href: null,
+              status: null,
+            },
+            // Events by email is Luma's own messages; by text, our texts to a number only Updates + Luma reaches.
+            {
+              source: "staff",
+              at: new Date("2026-01-02T00:00:00Z"),
+              kind: "opted-out",
+              title: "events",
+              campaignTitle: null,
+              detail: "luma@example.com",
+              href: null,
+              status: null,
+            },
+            {
+              source: "whatsapp",
+              at: new Date("2026-01-02T00:00:00Z"),
+              kind: "opted-out",
+              title: "events",
+              campaignTitle: null,
+              detail: "+447700900009",
               href: null,
               status: null,
             },
@@ -379,15 +415,25 @@ describe("SupporterDetails", () => {
             },
           ],
           permissions: [],
+          luma: [],
         }}
       />,
     );
     await expect.element(page.getByRole("heading", { level: 1, name: copy.noName })).toBeVisible();
+    // No list has an answer for their address, so the card says we can't, rather than nothing.
+    await expect.element(page.getByText(copy.detail.permissions.none.noAnswer)).toBeVisible();
     openHistory();
     await expect.element(page.getByText(copy.sources.luma, { exact: true }).first()).toBeVisible();
     await expect.element(page.getByText("Thing", { exact: false }).first()).toBeVisible();
     await expect.element(page.getByText(copy.detail.statuses.waitlist, { exact: false }).first()).toBeVisible();
     await expect.element(page.getByText("other-list", { exact: false })).toBeVisible();
+    const history = [...document.querySelectorAll("li")].map((li) => li.textContent ?? "");
+    expect(history.find((line) => line.includes("luma@example.com"))).toContain(
+      `${copy.detail.kinds["opted-out"]} ${copy.lists.events}`,
+    );
+    expect(history.find((line) => line.includes("+447700900009"))).toContain(
+      `${copy.detail.kinds["opted-out"]} ${copy.filters.lists["updates-luma"]}`,
+    );
     // An opt-out staff recorded says who, and how the person told them, or that it was their reply.
     await expect
       .element(page.getByText(copy.detail.toldStaff("jo@pauseai.uk", "At a stall"), { exact: false }))
@@ -650,20 +696,21 @@ describe("SupporterDetails, a member", () => {
   const copy = supportersCopy.supporters;
   const joined = exampleMemberDetails.activity[0];
 
-  it("says their city, whether we'd contact them about each topic, and how they joined in the history", async () => {
+  it("says their city, whether we'd contact them on each list, and how they joined in the history", async () => {
     await render(<SupporterDetails supporter={exampleMemberDetails} />);
     openHistory();
     const held = [...document.getElementById("everything")!.closest("details")!.querySelectorAll("tbody tr")].map(
       (tr) => [...(tr as HTMLTableRowElement).cells].map((td) => td.textContent),
     );
     expect(held).toContainEqual(["10 Jul 2026", copy.detail.city, "Cardiff", copy.sources.civicrm]);
+    // Her membership's yes, under PauseAI UK Updates.
     await expect
       .element(
         page.getByText(copy.detail.permissions.reasons.member("10 Nov 2026", copy.detail.permissions.sources.civicrm), {
           exact: false,
         }),
       )
-      .toBeVisible();
+      .toHaveLength(1);
     const history = page.getByRole("list", { name: copy.detail.activityTitle });
     // CiviCRM gives the day they joined, with no time.
     expect(history.element().textContent).toContain(

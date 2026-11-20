@@ -107,6 +107,94 @@ export function stateValue(state: ContactState): string {
   return [state.way, state.topic, state.send ?? state.reason].filter(Boolean).join(":");
 }
 
+/**
+ * What staff send to: PauseAI UK Updates, a yes to the newsletter; PauseAI
+ * Updates including Luma, a yes to the newsletter or events (being on our
+ * Luma calendar, and the numbers that go with it); and Volunteering.
+ */
+export const LISTS = ["updates", "updates-luma", "volunteering"] as const;
+export type List = (typeof LISTS)[number];
+
+/** The topics a yes to any of puts someone on each list. */
+export const LIST_TOPICS: Record<List, Topic[]> = {
+  updates: ["newsletter"],
+  "updates-luma": ["newsletter", "events"],
+  volunteering: ["volunteering"],
+};
+
+/** The lists that go by a way: by call, only Volunteering. */
+export function listsBy(way: Way): List[] {
+  return LISTS.filter((list) => LIST_TOPICS[list].some((topic) => hasWay(topic, way)));
+}
+
+/** The list whose topics are `topics`, if one's are. */
+export function listOf(topics: readonly Topic[]): List | undefined {
+  return LISTS.find(
+    (list) => LIST_TOPICS[list].length === topics.length && LIST_TOPICS[list].every((t) => topics.includes(t)),
+  );
+}
+
+/**
+ * The list that covers `topics`: theirs, or for a mix that's no list, as a
+ * broadcast from before the lists may have, the one it mostly went to.
+ */
+export function listFor(topics: readonly Topic[]): List {
+  if (topics.includes("events")) return "updates-luma";
+  return listOf(topics) ?? (topics.includes("newsletter") ? "updates" : "volunteering");
+}
+
+/**
+ * The answers that put someone on PauseAI UK Updates inc. Luma but not on
+ * PauseAI UK Updates: a yes to `events` by a way and address with no yes to
+ * `newsletter` by it. Elsewhere inc. Luma says no more than Updates does, so
+ * the pages show it only for these.
+ */
+export function lumaOnly(permissions: readonly ContactPermission[]): ContactPermission[] {
+  const updates = (p: ContactPermission) =>
+    permissions.some((n) => n.topic === "newsletter" && n.send === "yes" && n.way === p.way && n.address === p.address);
+  return permissions.filter((p) => p.topic === "events" && p.send === "yes" && !updates(p));
+}
+
+/**
+ * Each list someone's on, as the pages show them, with the ways it reaches
+ * them, in LISTS' and WAYS' order: inc. Luma only where Luma alone does
+ * (lumaOnly), as everyone on Updates is on it too.
+ */
+export function listsOn(permissions: readonly ContactPermission[]): { list: List; ways: Way[] }[] {
+  const yes = (topic: Topic) => permissions.filter((p) => p.topic === topic && p.send === "yes");
+  const answers: Record<List, ContactPermission[]> = {
+    updates: yes("newsletter"),
+    "updates-luma": lumaOnly(permissions),
+    volunteering: yes("volunteering"),
+  };
+  return LISTS.flatMap((list) => {
+    const ways = WAYS.filter((way) => answers[list].some((p) => p.way === way));
+    return ways.length > 0 ? [{ list, ways }] : [];
+  });
+}
+
+/**
+ * What an email's unsubscribe link stops, from the topics its copy went
+ * under: PauseAI UK Updates for one to either Updates list, which leaves Luma's
+ * own calendar alone; else what it went under, Volunteering.
+ */
+export function unsubscribeTopics(topics: readonly Topic[]): Topic[] {
+  return topics.some((topic) => topic === "newsletter" || topic === "events") ? ["newsletter"] : [...topics];
+}
+
+/** A list's form value by a way: a yes to each of its topics that goes by it, joined by spaces. */
+export function listValue(list: List, way: Way): string {
+  return LIST_TOPICS[list]
+    .filter((topic) => hasWay(topic, way))
+    .map((topic) => stateValue({ way, topic, send: "yes" }))
+    .join(" ");
+}
+
+/** The states of form values, each one state or a list's several (listValue()); those it can't read left out. */
+export function contactStates(values: readonly string[]): ContactState[] {
+  return values.flatMap((value) => value.split(" ")).flatMap((value) => contactState(value) ?? []);
+}
+
 /** Whether we may contact `address` by `way` about `topic`, why, since when, and which source told us. */
 export type ContactPermission = Consent & {
   channel: Channel;

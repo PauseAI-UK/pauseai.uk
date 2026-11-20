@@ -2,7 +2,7 @@
 // staff pages: the supporters list, its filters and a supporter's page, with
 // their consents and history, and the problems their contact preferences
 // report. The staff pages' own are in app/(staff)/staff/_components/supporters/copy.ts.
-import type { Reason, Topic, Way } from "./contact-permissions";
+import type { List, Reason, Topic, Way } from "./contact-permissions";
 import { count, plural } from "@/lib/content/plural";
 
 export const supportersCopy = {
@@ -37,19 +37,19 @@ export const supportersCopy = {
       campaign: "Campaign",
       wrote: { "": "Wrote", no: "Didn't write" } as Record<string, string>,
       // The other filters are named after their columns.
-      // The Consent filter: its topics under their way's heading; each way's chip named for it, before the topics it
-      // finds or "not" and those it leaves out.
+      // The Consent filter: its lists under their way's heading; each way's chip named for it, before the lists it
+      // finds or "not" and those it leaves out. Broadcasts name the list they go to the same way.
+      lists: {
+        updates: "Updates",
+        "updates-luma": "Updates + Luma",
+        volunteering: "Volunteering",
+      } as Record<List, string>,
       ways: { email: "Email", text: "Text", call: "Call" } as Record<Way, string>,
       wayChips: {
         email: "Email consent",
         text: "Text consent",
         call: "Call consent",
       } as Record<Way, string>,
-      topics: {
-        newsletter: "Newsletter",
-        events: "Events only",
-        volunteering: "Volunteering",
-      } as Record<Topic, string>,
     },
     columns: {
       name: "Name",
@@ -84,17 +84,9 @@ export const supportersCopy = {
       paper: "Paper sign-up",
       whatsapp: "WhatsApp group",
     },
-    // In the list, a lozenge per consent we'd contact them by, a topic by a way.
+    // In a download, each list they're on and the ways it reaches them, as the Consent column's lozenges say.
     subscriptions: {
-      consents: {
-        "email:newsletter": "Newsletter email",
-        "text:newsletter": "Newsletter texts",
-        "email:events": "Events email",
-        "text:events": "Events texts",
-        "email:volunteering": "Volunteering email",
-        "text:volunteering": "Volunteering texts",
-        "call:volunteering": "Volunteering calls",
-      } as Record<string, string>,
+      listBy: (list: string, ways: string[]) => `${list} by ${ways.join(", ").toLowerCase()}`,
     },
     sources: {
       luma: "Luma",
@@ -107,9 +99,9 @@ export const supportersCopy = {
     } as Record<string, string>,
     // In a supporter's history, what an opt-out was from.
     lists: {
-      newsletter: "the newsletter",
-      events: "events emails",
-      volunteering: "volunteering emails",
+      newsletter: "Updates",
+      events: "Luma messages",
+      volunteering: "Volunteering",
     } as Record<string, string>,
     // A supporter's page: one box of what we know, then the history.
     detail: {
@@ -138,12 +130,6 @@ export const supportersCopy = {
         town: "Town",
       },
       permissions: {
-        // Each topic's name, a row each.
-        topics: {
-          newsletter: "Newsletter",
-          events: "Events only",
-          volunteering: "Volunteering",
-        } as Record<Topic, string>,
         // By the way, so the answer says how.
         answers: {
           email: { yes: "Can email", no: "Can't email" },
@@ -207,26 +193,54 @@ export const supportersCopy = {
           whatsapp: "stopping our texts in WhatsApp",
         } as Record<string, string>,
         otherSource: "their newest form",
-        // Behind a row's "?": the topic, what it is, and when it's a yes and when a no.
-        topicTitle: (topic: string) => `Topic: ${topic}`,
-        when: { yes: "Yes when", no: "No when" },
+        // Behind a list's "?", on a supporter's page, in the Consent filter's menus and beside a broadcast's list: the
+        // list, who it's for, then what put them on it.
+        topicTitle: (list: string) => list,
+        whoIsOn: "Who's on it",
         details: {
-          newsletter: {
-            about: "Regular UK newsletter about campaigns, events and local groups. By email or text.",
-            yes: "They ticked a box asking for it on one of our forms, signed up on paper, joined our WhatsApp community, or are a UK chapter member or a volunteer.",
-            no: "They unsubscribed, here or in CiviCRM, or never asked. A stop in CiviCRM, such as “No bulk emails”, stops it too.",
+          updates: {
+            about: "Everyone who said yes to hearing from PauseAI UK.",
+            on: [
+              "Joined PauseAI in the UK",
+              "Emailed their MP",
+              "Signed up on paper",
+              "Joined our WhatsApp (if imported)",
+            ],
           },
-          events: {
-            about: "Emails and texts about our events only.",
-            yes: "They follow our Luma calendar, or gave a number for texts on the day of the march.",
-            no: "They unsubscribed from Luma's emails, or never followed our Luma calendar.",
+          "updates-luma": {
+            about: "Everyone on Updates, plus everyone on our Luma calendar.",
+            on: [],
           },
           volunteering: {
-            about: "Any contact about volunteering.",
-            yes: "By email, they're on the volunteer list in CiviCRM. By call or text, they gave the number on the join form after choosing to volunteer or lead.",
-            no: "They unsubscribed, didn't choose to volunteer, or the global team no longer shares them with us.",
+            about: "Everyone who offered to help.",
+            on: ["Offered to volunteer or lead when joining"],
           },
-        } as Record<Topic, { about: string; yes: string; no: string }>,
+        } as Record<List, { about: string; on: string[] }>,
+        // Where a person's lists are shown, inc. Luma is only where Luma alone reaches them, so it's named so.
+        lumaOnly: {
+          name: "Updates + Luma",
+          about: "On our Luma calendar, but not a member or similar. Only Updates + Luma go to them.",
+          on: [] as string[],
+        },
+        // The "?" beside one list where a broadcast's is chosen, which opens what it means.
+        listHelp: (name: string) => `What ${name} means`,
+        // In place of the rows, when no list has an answer for them: we hold no address or number of theirs; or we
+        // do, but nothing they've done is a yes or a no to any list.
+        none: {
+          noAddress: "No. We have no email address or phone number for them.",
+          noAnswer: "No. They haven't said we can.",
+        },
+        // The last row: whether Luma's own emails go to each address that has joined our Luma calendar. Its name,
+        // which "Unsubscribe them" offers too; what its "?" says; and the lozenge for an address on it now, or off.
+        luma: {
+          name: "Luma messages",
+          // A paragraph each.
+          about: [
+            "Invitations and blasts that we send using Luma to people on our Luma calendar. Can be via email or text, depending on Luma settings.",
+          ],
+          on: "On calendar",
+          off: "Off calendar",
+        },
         // Why a blocked address is a no, under each of its topics: what blocked it, then the link to the list.
         blockedBecause: {
           hard: (when: string) => `An email to it bounced, ${when}`,
@@ -240,7 +254,6 @@ export const supportersCopy = {
           open: "Unsubscribe them",
           what: "What they opted out of",
           choose: "Choose…",
-          ways: { email: "email", text: "text", call: "call" } as Record<Way, string>,
           bulk: "Every bulk email",
           how: "How they told us",
           howPlaceholder: "e.g. “at a stall”, “by phone”",
@@ -341,7 +354,7 @@ export const supportersCopy = {
     // staff. Someone turned off events by email, or every bulk email, on the contact preferences page or an email's
     // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
     lumaRemoveFailed:
-      "Someone opted out of event emails but is still on the Luma calendar, so Luma will keep emailing them",
+      "Someone opted out of Luma messages but is still on our Luma calendar, so Luma will keep messaging them",
     // On the Luma import's run, so on its page and in the email: looking up where supporters are failed when
     // postcodes.io did partway. The next run carries on.
     placesFailed: "Postcodes.io failed: the next run carries on.",

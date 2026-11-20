@@ -107,6 +107,18 @@ const heldColumns: ListColumn<Held>[] = [
   { key: "from", label: copy.detail.held.columns.from, cell: (h) => h.from },
 ];
 
+/**
+ * What an opt-out in the history was from, or a return to, in words: the
+ * list, or as it's stored for one the copy has no name for. Events is two
+ * things. By email it's Luma's own messages, as the opt-out takes them off
+ * our calendar. By text, the only other way it goes, it's our texts to a
+ * number only Updates + Luma reaches. The line's address or number says which.
+ */
+function optedOutOf(item: SupporterActivity): string | null {
+  if (item.title === "events" && item.detail?.startsWith("+")) return copy.filters.lists["updates-luma"];
+  return copy.lists[item.title ?? ""] ?? item.title;
+}
+
 /** What an activity was about: the event, the MP and campaign, the form, or the list. */
 function Subject({ item }: { item: SupporterActivity }) {
   if (item.kind === "luma-registered" || item.kind === "luma-hosted") {
@@ -156,7 +168,7 @@ function Subject({ item }: { item: SupporterActivity }) {
     );
     return (
       <>
-        {copy.lists[item.title ?? ""] ?? item.title}
+        {optedOutOf(item)}
         {item.detail && <Muted> · {item.detail}</Muted>}
         {item.recordedBy && (
           <Muted>
@@ -416,7 +428,17 @@ export default function SupporterDetails({
         </Column>
         <Column span={2}>
           <Card look="aside" title={copy.detail.listsTitle} id="subscriptions">
-            <PermissionTiles permissions={permissions} />
+            <PermissionTiles
+              permissions={permissions}
+              luma={supporter.luma}
+              none={
+                <Empty>
+                  {supporter.summary.emails.length + supporter.summary.phones.length > 0
+                    ? copy.detail.permissions.none.noAnswer
+                    : copy.detail.permissions.none.noAddress}
+                </Empty>
+              }
+            />
             {optOut}
           </Card>
           {notes}

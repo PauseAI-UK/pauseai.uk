@@ -485,6 +485,14 @@ describeWithDatabase("listSupporters and getSupporter", () => {
     ).toBe(false);
     await query("UPDATE opt_outs SET resubscribed_at = '2026-10-16T00:00:00Z' WHERE source_ref = 'w2'");
     expect(await contacts()).toEqual(["Jane"]);
+    // An opt-out of every bulk email that takes them off the calendar counts too; one told CiviCRM doesn't.
+    await query(
+      `INSERT INTO opt_outs (address, list, source, source_ref, unsubscribed_at)
+       VALUES ('jane@example.com', 'bulk', 'civicrm', 'c1', '2026-10-17T00:00:00Z')`,
+    );
+    expect(await contacts()).toEqual(["Jane"]);
+    await query("UPDATE opt_outs SET source = 'link' WHERE source_ref = 'c1'");
+    expect(await contacts()).toEqual([]);
   });
 
   it("finds them by their proxy, its tag or the whole address, in any case", async () => {

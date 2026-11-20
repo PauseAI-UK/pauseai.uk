@@ -26,7 +26,7 @@ import { addFormEntry } from "./form-entries.server";
 import { phoneNumber } from "@/lib/phone";
 import { recordOptOut } from "./opt-outs.server";
 import { inRun } from "@/lib/server/run-store.server";
-import { settingsTopics } from "./settings-view";
+import { LUMA_CHOICE, LUMA_OFFERED, settingsTopics } from "./settings-view";
 import { supportersCopy } from "./copy";
 import { emailCopy } from "@/lib/email/copy";
 
@@ -192,8 +192,8 @@ describeWithDatabase("the contact preferences page", () => {
       "events:text",
     ]);
     // An email box sent with it changes nothing; the number's boxes do.
-    expect(await saveSettings(NUMBER, new Set(["newsletter:email", "newsletter:text"]))).toEqual([
-      { topic: "events", way: "text", on: false },
+    expect(await saveSettings(NUMBER, new Set(["newsletter:email"]))).toEqual([
+      { topic: "newsletter", way: "text", on: false },
     ]);
     expect((await settingsFor(JANE)).answers.find((a) => a.way === "email" && a.topic === "newsletter")?.send).toBe(
       "yes",
@@ -201,7 +201,7 @@ describeWithDatabase("the contact preferences page", () => {
     // Stop everything isn't offered there, so does nothing.
     await stopEverything(NUMBER);
     expect(await optOuts()).toEqual([
-      { address: NUMBER, list: "events", way: "text", source: "preferences", open: true },
+      { address: NUMBER, list: "newsletter", way: "text", source: "preferences", open: true },
     ]);
     const [{ days }] = await query<{ days: number }>(
       "SELECT round(extract(epoch FROM expires_at - created_at) / 86400)::int AS days FROM preference_links",
@@ -312,11 +312,11 @@ describeWithDatabase("the contact preferences page", () => {
     await query("INSERT INTO luma_people (user_id, email, name, contact_since) VALUES ('usr-1', $1, 'Jane', now())", [
       JANE,
     ]);
-    await saveSettings(JANE, new Set());
+    await saveSettings(JANE, new Set([LUMA_OFFERED]));
     expect(removed).toEqual([]);
     await query("DELETE FROM opt_outs");
     vi.stubEnv("DEPLOY_CONTEXT", "production");
-    await saveSettings(JANE, new Set());
+    await saveSettings(JANE, new Set([LUMA_OFFERED]));
     expect(removed).toEqual([{ email: JANE }]);
   });
 
@@ -328,15 +328,72 @@ describeWithDatabase("the contact preferences page", () => {
       JANE,
     ]);
     const problems = await inRun(async (run) => {
-      await saveSettings(JANE, new Set());
+      await saveSettings(JANE, new Set([LUMA_OFFERED]));
       return run.problems;
     });
     expect(problems).toEqual([
       { what: supportersCopy.problems.lumaRemoveFailed, error: "Luma answered 500 for /v1/calendars/contacts/remove" },
     ]);
+    // Updates by email, ticked by her place on the calendar, went with it.
+    expect(await optOuts()).toEqual([
+      { address: JANE, list: "newsletter", way: "email", source: "preferences", open: true },
+      { address: JANE, list: "events", way: "email", source: "preferences", open: true },
+    ]);
+  });
+
+  it("takes someone off our Luma calendar by its box, keeping Updates by email where it came only through Luma", async () => {
+    const removed = lumaRemoves();
+    vi.stubEnv("DEPLOY_CONTEXT", "production");
+    vi.stubEnv("LUMA_API_KEY", "k");
+    await query("INSERT INTO luma_people (user_id, email, name, contact_since) VALUES ('usr-1', $1, 'Jane', now())", [
+      JANE,
+    ]);
+    const view = await settingsFor(JANE);
+    expect(view.onLuma).toBe(true);
+    expect(settingsTopics(view)[0].boxes).toEqual([{ way: "email", on: true, locked: false }]);
+    // A page drawn before she joined the calendar has no box for it, so saving it leaves her on.
+    expect(await saveSettings(JANE, new Set(["newsletter:email"]))).toEqual([]);
+    expect(removed).toEqual([]);
+    expect(await saveSettings(JANE, new Set(["newsletter:email", LUMA_OFFERED]))).toEqual([
+      { topic: "events", way: "email", on: false },
+    ]);
+    expect(removed).toEqual([{ email: JANE }]);
     expect(await optOuts()).toEqual([
       { address: JANE, list: "events", way: "email", source: "preferences", open: true },
     ]);
+    const after = await settingsFor(JANE);
+    expect(after.onLuma).toBe(false);
+    expect(after.answers.find((a) => a.topic === "newsletter" && a.way === "email")).toMatchObject({
+      send: "yes",
+      reason: "chose",
+      source: "preferences",
+    });
+  });
+
+  it("makes no new yes for Updates by email as Luma goes, where it was their own already", async () => {
+    lumaRemoves();
+    await jane();
+    await query("INSERT INTO luma_people (user_id, email, name, contact_since) VALUES ('usr-1', $1, 'Jane', now())", [
+      JANE,
+    ]);
+    expect(await saveSettings(JANE, new Set(["newsletter:email", "newsletter:text", LUMA_OFFERED]))).toEqual([
+      { topic: "events", way: "email", on: false },
+    ]);
+    expect(await query("SELECT topic FROM preference_choices")).toEqual([]);
+  });
+
+  it("leaves someone on our Luma calendar while all their email is held", async () => {
+    const removed = lumaRemoves();
+    vi.stubEnv("DEPLOY_CONTEXT", "production");
+    vi.stubEnv("LUMA_API_KEY", "k");
+    await noBulkInCivicrm();
+    await query("INSERT INTO luma_people (user_id, email, name, contact_since) VALUES ('usr-1', $1, 'Jane', now())", [
+      JANE,
+    ]);
+    expect((await settingsFor(JANE)).onLuma).toBe(true);
+    expect(await saveSettings(JANE, new Set([LUMA_OFFERED]))).toEqual([]);
+    expect(removed).toEqual([]);
+    expect((await settingsFor(JANE)).onLuma).toBe(true);
   });
 
   it("changes no email while all its email is held, and lifts “No bulk emails” only while it's what holds it", async () => {
@@ -394,7 +451,7 @@ describeWithDatabase("the contact preferences page", () => {
       settingsTopics(await settingsFor(JANE)).flatMap((t) =>
         t.boxes.filter((b) => b.way !== "email").map((b) => b.locked),
       ),
-    ).toEqual([true, true, true, true]);
+    ).toEqual([true, true, true]);
     expect(removed).toEqual([{ email: JANE }]);
     expect((await settingsFor(JANE)).hold).toMatchObject({ kind: "no-bulk", source: "preferences", everything: true });
   });
@@ -402,12 +459,12 @@ describeWithDatabase("the contact preferences page", () => {
   it("undoes Stop everything in full by Restart: bulk email, texts and calls, and no other opt-out", async () => {
     lumaRemoves();
     await jane();
-    // Her own untick of events by text, before she stopped everything, stays.
-    await saveSettings(JANE, new Set(["newsletter:email", "newsletter:text"]));
+    // Her own untick of Updates by text, before she stopped everything, stays.
+    await saveSettings(JANE, new Set(["newsletter:email"]));
     await stopEverything(JANE);
     expect(await liftNoBulk(JANE)).toBe(true);
     expect(await optOuts()).toEqual([
-      { address: "+447700900123", list: "events", way: "text", source: "preferences", open: true },
+      { address: "+447700900123", list: "newsletter", way: "text", source: "preferences", open: true },
       { address: JANE, list: "bulk", way: "email", source: "preferences", open: false },
       { address: "+447700900123", list: "all", way: "text", source: "preferences", open: false },
       { address: "+447700900123", list: "all", way: "call", source: "preferences", open: false },
@@ -417,9 +474,9 @@ describeWithDatabase("the contact preferences page", () => {
     ]);
     const view = await settingsFor(JANE);
     expect(view.hold).toBeNull();
+    // Her no to Updates by text is a no to events by text too.
     expect(view.answers.filter((a) => a.send === "yes").map((a) => `${a.topic}:${a.way}`)).toEqual([
       "newsletter:email",
-      "newsletter:text",
     ]);
   });
 
@@ -476,30 +533,40 @@ describeWithDatabase("the contact preferences page", () => {
     vi.stubEnv("DEPLOY_CONTEXT", "production");
     vi.stubEnv("LUMA_API_KEY", "k");
     await jane();
+    // On our Luma calendar too, which no copy's link takes her off.
+    await query("INSERT INTO luma_people (user_id, email, name, contact_since) VALUES ('usr-1', $1, 'Jane', now())", [
+      JANE,
+    ]);
     const fresh = await copyTo(["newsletter"]);
-    const old = await copyTo(["events"], 40);
+    // PauseAI UK Updates inc. Luma: its link stops PauseAI UK Updates alone.
+    const old = await copyTo(["newsletter", "events"], 40);
+    const volunteering = await copyTo(["volunteering"]);
     expect(await copyPage(fresh)).toMatchObject({ kind: "copy", unsubscribe: ["newsletter"], view: { address: JANE } });
-    expect(await copyPage(old)).toMatchObject({ unsubscribe: ["events"], view: null });
+    expect(await copyPage(old)).toMatchObject({ unsubscribe: ["newsletter"], view: null });
+    expect(await copyPage(volunteering)).toMatchObject({ unsubscribe: ["volunteering"] });
     expect(await openAddress("copy", old)).toBeUndefined();
     expect(await openAddress("copy", fresh)).toBe(JANE);
     expect(await unsubscribeCopy(fresh, "link")).toBe(true);
     expect(await unsubscribeCopy(fresh, "link")).toBe(true);
     expect(await unsubscribeCopy(old, "list-unsubscribe")).toBe(true);
+    expect(await unsubscribeCopy(volunteering, "link")).toBe(true);
     expect(await unsubscribeCopy("no-such-copy", "link")).toBe(false);
     expect(await copyPage("no-such-copy")).toBeUndefined();
     // Ticking the newsletter again on the page, then the same email's button: unsubscribed again.
-    await saveSettings(JANE, new Set(["newsletter:email", "newsletter:text", "events:text"]));
+    await saveSettings(JANE, new Set(["newsletter:email", "newsletter:text", LUMA_OFFERED, LUMA_CHOICE]));
     expect(await unsubscribeCopy(fresh, "link")).toBe(true);
     expect(
       await query(
         "SELECT list, source, message_id IS NOT NULL AS copy, resubscribed_at IS NULL AS open FROM opt_outs ORDER BY id",
       ),
     ).toEqual([
+      // The old copy's button found her out of PauseAI UK Updates already, and stopped no events.
       { list: "newsletter", source: "link", copy: true, open: false },
-      { list: "events", source: "list-unsubscribe", copy: true, open: true },
+      { list: "volunteering", source: "link", copy: true, open: true },
       { list: "newsletter", source: "link", copy: true, open: true },
     ]);
-    expect(removed).toEqual([{ email: JANE }]);
+    expect(removed).toEqual([]);
+    expect((await settingsFor(JANE)).onLuma).toBe(true);
     const sent = notifications();
     await resendLink("copy", old);
     expect(sent.map((email) => email.To)).toEqual([JANE]);

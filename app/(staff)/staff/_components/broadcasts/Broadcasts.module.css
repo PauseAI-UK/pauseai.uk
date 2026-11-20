@@ -161,19 +161,11 @@
   gap: var(--space-1);
 }
 
-/* The Consent: email or text, and under it that channel's topics, a field's gap apart. */
+/* The Consent: email or text, and under it that channel's lists, a field's gap apart. */
 .consent {
   display: grid;
   gap: var(--space-3);
   justify-items: start;
-}
-
-/* The topics, and + Add or Just one after them. */
-.topics {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
 }
 
 /* A web address in a text, as WhatsApp shows one: its blue, underlined. */
@@ -318,4 +310,43 @@
   display: grid;
   gap: var(--space-2);
   justify-items: start;
+}
+
+/* A broadcast's lists, a row of lozenges as Email and Text are, each with its "?" after it. */
+.lists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+}
+
+.list {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* As ui/Controls' Segmented draws a choice; its spinner over its words while its change is on its way. */
+.listChoice {
+  position: relative;
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--note-font-size);
+  cursor: pointer;
+}
+
+.listChoice[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  box-shadow: 0 0 0 1px var(--accent);
+  font-weight: 600;
+}
+
+.listChoice:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }

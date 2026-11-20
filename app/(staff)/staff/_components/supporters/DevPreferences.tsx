@@ -1,5 +1,4 @@
-import { emailSettingsCopy } from "@/lib/content/email-settings";
-import { TOPICS, type ContactPermission } from "@/lib/supporters/contact-permissions";
+import { listFor, TOPICS, type ContactPermission } from "@/lib/supporters/contact-permissions";
 import styles from "./DevPreferences.module.css";
 import { supportersCopy } from "./copy";
 
@@ -13,7 +12,8 @@ const ROUTE = "/staff/api/dev-contact-preferences";
  * build: a box in the development colour, as the dev login's, with a link
  * per address that opens their contact preferences with a fresh link, as
  * one of our emails would; and below them a link per topic they get by
- * email, which opens the unsubscribe page of their latest email under it,
+ * email, named as the list it puts them on, which opens the unsubscribe
+ * page of their latest email under it,
  * one made for it if there's none; and one for an email of the first of
  * those too old for more than its button. Links, so they can open in a new tab.
  * Outside a fixture build, or for someone with no address, it's nothing.
@@ -44,7 +44,7 @@ export default function DevPreferences({
         {yeses.map(({ topic, address }) => (
           <li key={topic}>
             <a href={`${ROUTE}?${new URLSearchParams({ address, topic })}`}>
-              {copy.unsubscribe(emailSettingsCopy.topics[topic])}
+              {copy.unsubscribe(supportersCopy.supporters.filters.lists[listFor([topic])])}
             </a>
           </li>
         ))}

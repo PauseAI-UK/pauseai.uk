@@ -1,52 +1,40 @@
 import Tag from "@/components/ui/Tag";
-import {
-  CONSENTS,
-  TOPICS,
-  consentKey,
-  type Consent,
-  type ContactPermission,
-} from "@/lib/supporters/contact-permissions";
+import { listsOn, type ContactPermission } from "@/lib/supporters/contact-permissions";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import styles from "./SubscriptionBadges.module.css";
 import { supportersCopy } from "./copy";
+import { personListName } from "./PermissionTiles";
 
-/**
- * What a supporter gets: each consent, a topic by a way, that any of their
- * addresses or numbers says yes to. An address that's blocked is a no, so
- * gets nothing.
- */
-function subscriptions(permissions: ContactPermission[]): Consent[] {
-  return CONSENTS.filter((consent) =>
-    permissions.some((p) => p.topic === consent.topic && p.way === consent.way && p.send === "yes"),
-  );
-}
+const copy = supportersCopy.supporters;
 
-/** What a supporter gets, in words, as a download has it: a consent each. */
+/** The lists a supporter is on, in words, as a download has them: each list, then the ways it reaches them. */
 export function subscriptionWords(permissions: ContactPermission[]): string {
-  return subscriptions(permissions)
-    .map((consent) => supportersCopy.supporters.subscriptions.consents[consentKey(consent)])
+  return listsOn(permissions)
+    .map(({ list, ways }) =>
+      copy.subscriptions.listBy(
+        personListName(list),
+        ways.map((way) => copy.filters.ways[way]),
+      ),
+    )
     .join("; ");
 }
 
 /**
- * What a supporter gets, as green lozenges, a topic each: the icon of each
- * way it's a yes by, as the Consent filter and the supporter's page draw
- * them, each named for a screen reader, then the topic's name.
+ * The lists a supporter is on, as green lozenges, one each: the icon of each
+ * way it reaches them, as the Consent filter and the supporter's page draw
+ * them, each named for a screen reader, then the list's name: inc. Luma
+ * only where Luma alone reaches them, under its name for that (listsOn,
+ * personListName).
  */
 export default function SubscriptionBadges({ permissions }: { permissions: ContactPermission[] }) {
-  const yes = subscriptions(permissions);
-  return TOPICS.flatMap((topic) => {
-    const ways = yes.filter((consent) => consent.topic === topic).map((consent) => consent.way);
-    if (ways.length === 0) return [];
-    return [
-      <Tag key={topic} tone="green">
-        <span className={styles.ways} data-beside="lowercase">
-          {ways.map((way) => (
-            <ChannelIcon key={way} channel={way} label={supportersCopy.supporters.filters.ways[way]} />
-          ))}
-        </span>
-        {supportersCopy.supporters.filters.topics[topic]}
-      </Tag>,
-    ];
-  });
+  return listsOn(permissions).map(({ list, ways }) => (
+    <Tag key={list} tone="green">
+      <span className={styles.ways} data-beside="lowercase">
+        {ways.map((way) => (
+          <ChannelIcon key={way} channel={way} label={copy.filters.ways[way]} />
+        ))}
+      </span>
+      {personListName(list)}
+    </Tag>
+  ));
 }
