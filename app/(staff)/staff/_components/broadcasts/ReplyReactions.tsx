@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
-import { Toggles } from "@/components/ui/Controls";
+import { useLayoutEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import IconButton from "@/components/ui/IconButton";
 import { Muted } from "@/components/ui/Text";
 import type { BroadcastReaction, ReactionResult } from "@/lib/broadcasts/answers.server";
@@ -10,6 +9,7 @@ import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { ChatBubble, ChatWall } from "./TextBubble";
+import chat from "./Broadcasts.module.css";
 import styles from "./ReplyActions.module.css";
 
 const copy = broadcastsCopy.broadcastPages.replies;
@@ -35,10 +35,12 @@ function Smiley() {
  * Someone's message to us on WhatsApp, as a bubble, with the emoji we put
  * on it at its foot, as WhatsApp shows one. Beside their latest, while it
  * can take one (`reactable`), a smiley, as on WhatsApp Web: it opens the
- * emoji staff can put on it (REACTIONS) under it, ours pressed, at most one,
- * as WhatsApp allows; pressing ours takes it away, another puts it in its
- * place. Under the conversation, who put ours there and when, and that
- * WhatsApp couldn't deliver it, if it said so.
+ * emoji staff can put on it (REACTIONS) to its right, or, where a long
+ * message leaves no room, floating under it; ours pressed, at most one, as
+ * WhatsApp allows. Pressing ours takes it away, another puts it in its
+ * place; while one is on its way they're faint. Under the conversation, who
+ * put ours there and when, and that WhatsApp couldn't deliver it, if it said
+ * so.
  */
 export default function ReplyReactions({
   replyId,
@@ -60,13 +62,12 @@ export default function ReplyReactions({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [waiting, setWaiting] = useState<string>();
   const [failed, setFailed] = useState(false);
   const standing = reactions.findLast((reaction) => !reaction.removedAt);
   const failure = standing?.events.find((event) => event.kind === "failed");
-  const press = (values: string[]) => {
-    const emoji = values.find((value) => value !== standing?.emoji) ?? "";
-    setWaiting(emoji || standing!.emoji);
+  // Ours pressed again takes it away; another puts it in place of ours.
+  const press = (pressed: string) => {
+    const emoji = pressed === standing?.emoji ? "" : pressed;
     setFailed(false);
     startTransition(async () => {
       const result = await react!(replyId, emoji);
@@ -74,11 +75,42 @@ export default function ReplyReactions({
       if (result.sent) setOpen(false);
     });
   };
+  // Opened, the emoji go to the smiley's right if they fit in the conversation, or else float under it.
+  const tray = useRef<HTMLSpanElement>(null);
+  const [place, setPlace] = useState<"right" | "under">("right");
+  useLayoutEffect(() => {
+    if (!open) return;
+    const wall = tray.current!.closest(`.${chat.wall}`)!;
+    if (tray.current!.getBoundingClientRect().right > wall.getBoundingClientRect().right) setPlace("under");
+  }, [open]);
+  // Each opening looks for room afresh, to the right first.
+  const toggle = () => {
+    setPlace("right");
+    setOpen(!open);
+  };
   const offered = Boolean(react && reactable);
   const smiley = offered ? (
-    <IconButton look="outline" size={28} aria-label={copy.react} aria-expanded={open} onClick={() => setOpen(!open)}>
-      <Smiley />
-    </IconButton>
+    <span className={styles.picker}>
+      <IconButton look="outline" size={28} aria-label={copy.react} aria-expanded={open} onClick={toggle}>
+        <Smiley />
+      </IconButton>
+      {open && (
+        <span
+          ref={tray}
+          role="group"
+          aria-label={copy.react}
+          aria-busy={pending || undefined}
+          data-place={place}
+          className={styles.tray}
+        >
+          {REACTIONS.map((emoji) => (
+            <button key={emoji} type="button" aria-pressed={emoji === standing?.emoji} onClick={() => press(emoji)}>
+              {emoji}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
   ) : undefined;
   return (
     <>
@@ -86,16 +118,6 @@ export default function ReplyReactions({
         <ChatBubble who={who} when={when} beside={smiley} badge={standing?.emoji}>
           {children}
         </ChatBubble>
-        {offered && open && (
-          <Toggles
-            label={copy.react}
-            options={REACTIONS.map((emoji) => ({ value: emoji, label: emoji }))}
-            values={standing ? [standing.emoji] : []}
-            onChange={press}
-            busy={pending}
-            waiting={waiting}
-          />
-        )}
       </ChatWall>
       {(standing || failed) && (
         <div className={styles.reactions}>

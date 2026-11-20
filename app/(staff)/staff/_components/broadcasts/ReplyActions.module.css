@@ -20,6 +20,57 @@
   font-size: var(--text-sm);
 }
 
+/* Beside their latest message: the smiley, then, once it's opened, the emoji to its right. */
+.picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* With no room to the smiley's right, the emoji float under it, their right edge level with its own, over what's below. */
+.tray[data-place="under"] {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 1;
+}
+
+/* The emoji, as WhatsApp's tray of them: a white pill, ours tinted. While one is on its way, faint. */
+.tray {
+  display: flex;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: 0 1px 4px var(--shadow);
+}
+
+.tray button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: var(--text-base);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tray button:hover,
+.tray button[aria-pressed="true"] {
+  background: var(--accent-light);
+}
+
+.tray button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.tray[aria-busy="true"] {
+  opacity: 0.5;
+}
+
 /* The answer's buttons, under its editor. */
 .draftButtons {
   margin-top: var(--space-3);

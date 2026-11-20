@@ -56,6 +56,25 @@ describe("ReplyReactions", () => {
     await expect.element(page.getByRole("group", { name: copy.react })).toBeVisible();
   });
 
+  it("opens the emoji to the smiley's right where they fit, and floats them under it where they don't", async () => {
+    const { unmount } = await render(<ReplyReactionsExample />);
+    await smiley().click();
+    await expect.element(page.getByRole("group", { name: copy.react })).toHaveAttribute("data-place", "right");
+    await unmount();
+    // A conversation too narrow for them beside the smiley.
+    await render(
+      <div style={{ width: "13rem" }}>
+        <ReplyReactionsExample />
+      </div>,
+    );
+    await smiley().click();
+    await expect.element(page.getByRole("group", { name: copy.react })).toHaveAttribute("data-place", "under");
+    // Closed and opened again, they look for room afresh.
+    await smiley().click();
+    await smiley().click();
+    await expect.element(page.getByRole("group", { name: copy.react })).toHaveAttribute("data-place", "under");
+  });
+
   it("has no smiley on a message too old for another, or not their latest, but still shows ours", async () => {
     const { unmount } = await render(<ReplyReactionsExample reacted tooOld />);
     await expect.element(smiley()).not.toBeInTheDocument();
