@@ -359,7 +359,10 @@ export default function BroadcastView({
         {/* While it's still trying: scheduled, sending, or all sent but for emails still delayed. */}
         {(scheduled || written.state === "sending") && (
           <BandFact label={copy.keepsTryingUntil}>
-            {londonWhen(sendingStopsAt({ dueAt: written.dueAt!, finishMinutes: written.finishMinutes }), "short")}
+            {/* As the fact before it says its time: as the sending's run once scheduled, as it is once sending. */}
+            {(scheduled ? (at: Date) => londonWhen(at, "short") : staffTime)(
+              sendingStopsAt({ dueAt: written.dueAt!, finishMinutes: written.finishMinutes }),
+            )}
           </BandFact>
         )}
       </Band>

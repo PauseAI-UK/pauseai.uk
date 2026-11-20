@@ -306,6 +306,8 @@ describe("a broadcast's page", () => {
       written: { ...scheduled.written, state: "sending" as const },
     };
     await view.rerender(<BroadcastView data={sending} who={who} contact={null} {...actions} />);
+    // As Started beside it says its time.
+    await expect.element(page.getByText(staffTime(new Date("2099-01-07T08:18:00Z")), { exact: true })).toBeVisible();
     await button(copy.changeTimes).click();
     await expect.element(page.getByRole("button", { name: copy.keepsTryingUntil })).toBeVisible();
     await expect
