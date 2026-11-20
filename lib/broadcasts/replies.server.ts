@@ -1,7 +1,7 @@
 import "server-only";
 import { gzipSync } from "node:zlib";
 import { hasWay, TOPICS, unsubscribeTopics, type Topic, type Way } from "@/lib/supporters/contact-permissions";
-import { inWindow, settleEarlier } from "./answers.server";
+import { inReactionWindow, inWindow, settleEarlier } from "./answers.server";
 import { fromAddress, messageIds } from "@/lib/email-parsing/mime.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { logChange } from "@/lib/server/audit.server";
@@ -35,6 +35,20 @@ export async function copyAnswered(message: GmailMessageHeaders): Promise<number
      WHERE a.rfc_message_id = ANY($1::text[])
      ORDER BY id LIMIT 1`,
     [ids],
+  );
+  return copy?.id;
+}
+
+/**
+ * The copy of a broadcast whose replies are in Gmail thread `threadId` of
+ * mailbox `account`, for a message there that names none of our
+ * Message-IDs, such as one a staff member wrote in Gmail; undefined for none.
+ */
+export async function copyInThread(account: string, threadId: string): Promise<number | undefined> {
+  const [copy] = await query<{ id: number }>(
+    `SELECT message_id::int AS id FROM broadcast_replies WHERE account = $1 AND gmail_thread_id = $2
+     ORDER BY received_at DESC, id DESC LIMIT 1`,
+    [account, threadId],
   );
   return copy?.id;
 }
@@ -116,12 +130,18 @@ export type BroadcastReply = {
   doNotEmail: boolean;
   /** Whether it can be answered now: an email's always can; a text's only within a day, as WhatsApp allows. */
   answerable: boolean;
+  /**
+   * Whether we can put an emoji on it now: a text's that isn't itself a
+   * reaction, within REACTION_DAYS; not one recorded as an opt-out, as an
+   * emoji on someone asking to stop reads as making light of it.
+   */
+  reactable: boolean;
 };
 
 /** The replies to a copy, oldest first: an email's words from the message kept whole, a text's as kept. */
 export async function repliesTo(copyId: number): Promise<BroadcastReply[]> {
   const rows = await query<
-    Omit<BroadcastReply, "text" | "answerable"> & { blobKey: string | null; body: string | null }
+    Omit<BroadcastReply, "text" | "answerable" | "reactable"> & { blobKey: string | null; body: string | null }
   >(
     `SELECT id::int AS id, received_at AS "receivedAt", from_address AS from, subject, automatic, outcome,
        dealt_by AS "dealtBy", dealt_at AS "dealtAt", blob_key AS "blobKey", body, kind, reaction_to AS "reactionTo",
@@ -135,8 +155,13 @@ export async function repliesTo(copyId: number): Promise<BroadcastReply[]> {
   return Promise.all(
     rows.map(async ({ blobKey, body, ...reply }) =>
       blobKey
-        ? { ...reply, text: (await messageContent(blobKey)).text, answerable: true }
-        : { ...reply, text: body, answerable: inWindow(reply.receivedAt) },
+        ? { ...reply, text: (await messageContent(blobKey)).text, answerable: true, reactable: false }
+        : {
+            ...reply,
+            text: body,
+            answerable: inWindow(reply.receivedAt),
+            reactable: reply.kind !== "reaction" && reply.outcome !== "opted-out" && inReactionWindow(reply.receivedAt),
+          },
     ),
   );
 }

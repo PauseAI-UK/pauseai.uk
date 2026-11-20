@@ -15,6 +15,7 @@ import { staffTime } from "@/lib/staff-time";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import { MailingLetter } from "../mailings/MailingLetter";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
+import ReplyReactions, { OurReaction, standingOf, type ReactAction } from "./ReplyReactions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
@@ -61,9 +62,13 @@ function Answer({
   one: MessageCopy;
   foot?: ReactNode;
 }) {
-  // Who sent it: the site itself, for its answer to a STOP, or the staff member.
+  // Who sent it: the site itself, for its answer to a STOP; the mailbox, for one written in its Gmail; or the staff member.
   const sentBy =
-    answer.sentBy === SITE_ACTOR ? copy.replies.sentAutomatically : copy.replies.sentBy(staffMemberText(answer.sentBy));
+    answer.sentBy === SITE_ACTOR
+      ? copy.replies.sentAutomatically
+      : answer.fromGmail
+        ? copy.replies.sentInGmail(answer.sentBy)
+        : copy.replies.sentBy(staffMemberText(answer.sentBy));
   if (one.channel === "text") {
     const bubble = (
       <ChatWall>
@@ -195,22 +200,32 @@ export default function Reply({
   // A text's reply in a card, as an email's is: the chat, then at its foot what it was recorded as and the
   // buttons, unless our answer after it has them, or why it can't be answered now: only under their latest
   // message, while it's unanswered, as an earlier one, or one we answered, needs no answer now.
+  const reactions = one.reactions.filter((reaction) => reaction.replyId === reply.id);
   const textReply = (write?: () => void) => {
     const closed = !reply.answerable && actions && latest && !answered;
     const own = !answered && buttons(write);
-    const foot = (recorded || own) && (
+    // Who put our emoji on it, as what it was recorded as is said.
+    const ourEmoji = standingOf(reactions);
+    const foot = (recorded || ourEmoji || own) && (
       <>
         {recorded}
+        {ourEmoji && <OurReaction reaction={ourEmoji} className={styles.dealt} />}
         {own}
       </>
     );
     return (
       <div className={styles.textReply}>
-        <ChatWall>
-          <ChatBubble who={sender(reply, one)} when={cameAndWent}>
-            {words}
-          </ChatBubble>
-        </ChatWall>
+        {/* An emoji goes only on their latest message, which is the one to deal with. */}
+        <ReplyReactions
+          replyId={reply.id}
+          who={sender(reply, one)}
+          when={cameAndWent}
+          reactions={reactions}
+          reactable={reply.reactable && latest}
+          react={actions?.react}
+        >
+          {words}
+        </ReplyReactions>
         {(closed || foot) && (
           <div className={styles.textFoot}>
             {closed && <Muted>{copy.replies.windowClosed}</Muted>}
@@ -270,5 +285,9 @@ export default function Reply({
   );
 }
 
-/** What staff can do with a reply: record what it is (`deal`), and answer it. */
-export type ReplyHandlers = { deal: (form: FormData) => void | Promise<void>; answer: AnswerAction };
+/** What staff can do with a reply: record what it is (`deal`), answer it, and put an emoji on a text's (`react`). */
+export type ReplyHandlers = {
+  deal: (form: FormData) => void | Promise<void>;
+  answer: AnswerAction;
+  react: ReactAction;
+};

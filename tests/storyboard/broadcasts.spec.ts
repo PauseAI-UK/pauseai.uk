@@ -23,6 +23,7 @@ import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { emailCopy } from "@/lib/email/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
+import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 
 export const section: Section = { name: "Broadcasts to supporters", part: "Staff pages", order: 45 };
 
@@ -643,6 +644,41 @@ test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }
   await frame(page, "A photo's caption");
 });
 
+test("Reacting to a reply to a text", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter thanks us for a text in WhatsApp. Beside their latest message is a smiley, as on WhatsApp Web, which opens a few emoji staff can put on it.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    messageFrom(sent.number, "wamid.flow-thanks", sent.wamid, { text: "Thanks, see you there!" }),
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  const smiley = page.getByRole("button", { name: copy.replies.react });
+  const emoji = (name: string) => page.getByRole("group", { name: copy.replies.react }).getByRole("button", { name });
+  await expect(smiley).toBeVisible();
+  await frame(page, "Their thanks, the smiley beside it");
+  await smiley.click();
+  await expect(emoji("👍")).toBeVisible();
+  await frame(page, "The emoji, open");
+  story(
+    "A thumbs up is all it needs. It goes to their message by WhatsApp and shows on it, as WhatsApp shows one. Under the conversation, who put it there; and the reply is settled, as an answer would settle it.",
+  );
+  await emoji("👍").click();
+  // The line under the conversation, which names who; not the history's "We reacted".
+  const ours = page.getByText(new RegExp(`^${staffEmail()} reacted 👍`));
+  await expect(ours).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.replies.nothing })).toHaveCount(0);
+  await frame(page, "Our thumbs up on their message, the reply settled");
+  story("Pressing it again takes ours away. The reply stays settled.");
+  await smiley.click();
+  await emoji("👍").click();
+  await expect(ours).toHaveCount(0);
+  await frame(page, "Ours taken away");
+});
+
 /** A reply to a text, answered from its thread: the text, and WhatsApp's ID for our answer. */
 async function textAnswered(page: Page, request: APIRequestContext, database: string) {
   const sent = await textSent(request, database);
@@ -1234,6 +1270,67 @@ test("Answering a reply", async ({ page, request, flowDatabase }) => {
     newestEmail((one) => one.To.endsWith("<person1@example.com>") && one.Subject === "Re: Thank you for marching");
   await expect.poll(answer).toBeTruthy();
   await emailFrame(page, answer()!, "The answer they get");
+});
+
+test("An answer written in Gmail", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter replied to an email, and a staff member answered it in hello@'s Gmail rather than here. Reading hello@'s mailbox finds the answer in the reply's conversation, keeps it in the thread, and settles the reply.",
+  );
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "email", "Thank you for marching");
+  const [reply] = runSql(
+    flowDatabase,
+    `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+       gmail_thread_id, rfc_message_id, blob_key, automatic, outcome, dealt_by, dealt_at)
+     VALUES (${sent.copy}, '2026-10-15T10:00:00Z', 'person1@example.com', 'Re: Thank you for marching', '${HELLO}',
+       'flow-thanks', 'flow-thanks', 'fixture-broadcast-reply-thanks@example.com',
+       'fixture/broadcast-reply-thanks.eml.gz', false, 'answered', '${HELLO}', '2026-10-15T11:00:00Z')
+     RETURNING id`,
+  );
+  runSql(
+    flowDatabase,
+    `INSERT INTO broadcast_answers (reply_id, draft_id, sent_by, body, status, created_at, sent_at, gmail_message_id,
+       from_gmail)
+     VALUES (${reply}, gen_random_uuid(), '${HELLO}',
+       '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Thank you! The next march is on 6 December."}]}]}',
+       'sent', '2026-10-15T11:00:00Z', '2026-10-15T11:00:00Z', 'flow-gmail-answer', true)`,
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText(copy.replies.sentInGmail(HELLO))).toBeVisible();
+  await frame(page, "The answer from Gmail, in the thread");
+});
+
+test("Replies waiting, a line for each broadcast", async ({ page, request, flowDatabase }) => {
+  story(
+    "Replies to two broadcasts wait for staff: two to an email, one to a text. The dashboard has a line for each broadcast, its own count, and a button to its replies.",
+  );
+  await importLuma(request, BASE);
+  const email = addSent(flowDatabase, "email", "Thank you for marching");
+  const text = addSent(flowDatabase, "text", "March day: where to meet");
+  runSql(
+    flowDatabase,
+    `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+       gmail_thread_id, blob_key, automatic)
+     VALUES (${email.copy}, '2026-10-15T10:00:00Z', 'person1@example.com', 'Re: Thank you for marching', '${HELLO}',
+       'flow-wait-1', 'flow-wait-1', 'fixture/broadcast-reply-thanks.eml.gz', false),
+       (${email.copy}, '2026-10-15T10:30:00Z', 'person1@example.com', 'Re: Thank you for marching', '${HELLO}',
+       'flow-wait-2', 'flow-wait-1', 'fixture/broadcast-reply-stop.eml.gz', false)`,
+  );
+  runSql(
+    flowDatabase,
+    `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+     VALUES (${text.copy}, '2026-10-15T11:00:00Z', '+447700900123', '', 'wamid.flow-wait', 'Where do we meet?', false)`,
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff`);
+  const seeReplies = page.getByRole("link", { name: dashboardCopy.home.dashboard.actions.broadcastRepliesButton });
+  await expect(seeReplies).toHaveCount(2);
+  await frame(page, "A line for each broadcast with replies waiting");
+  story("Each button opens that broadcast, at its copies to look at.");
+  await seeReplies.last().click();
+  await expect(page).toHaveURL(`${BASE}/staff/broadcasts/${text.id}?tab=look`);
+  await frame(page, "The text's replies to look at");
 });
 
 test("What the lists mean, and a change waiting on the site", async ({ page, request, flowDatabase }) => {

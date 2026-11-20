@@ -21,17 +21,24 @@ describe("StaffDashboard", () => {
   it("lists replies to broadcasts to look at, amber, only for staff who may see supporters", async () => {
     const dashboard = {
       ...exampleQuietDashboard,
-      actions: [{ kind: "broadcast-replies" as const, count: 2, broadcastId: 13 }],
+      actions: [
+        { kind: "broadcast-replies" as const, count: 2, broadcastId: 13, title: "March" },
+        { kind: "broadcast-replies" as const, count: 1, broadcastId: 14, title: "News" },
+      ],
     };
     const { rerender } = await render(<StaffDashboard dashboard={dashboard} permissions={["supporters"]} />);
-    const item = page.getByRole("list", { name: copy.actionsTitle }).getByRole("listitem");
-    expect(item.element().textContent).toBe(
-      `${copy.actions.broadcastReplies(2)}${copy.actions.broadcastRepliesDetail}${copy.actions.broadcastRepliesButton}`,
-    );
-    expect(item.element().firstElementChild!.className).toMatch(/amber/);
-    await expect
-      .element(page.getByRole("link", { name: copy.actions.broadcastRepliesButton }))
-      .toHaveAttribute("href", "/staff/broadcasts/13?tab=look");
+    const items = page.getByRole("list", { name: copy.actionsTitle }).getByRole("listitem").all();
+    expect(items.map((item) => item.element().textContent)).toEqual([
+      `${copy.actions.broadcastReplies(2, "March")}${copy.actions.broadcastRepliesDetail}${copy.actions.broadcastRepliesButton}`,
+      `${copy.actions.broadcastReplies(1, "News")}${copy.actions.broadcastRepliesDetail}${copy.actions.broadcastRepliesButton}`,
+    ]);
+    expect(items[0].element().firstElementChild!.className).toMatch(/amber/);
+    expect(
+      page
+        .getByRole("link", { name: copy.actions.broadcastRepliesButton })
+        .all()
+        .map((link) => link.element().getAttribute("href")),
+    ).toEqual(["/staff/broadcasts/13?tab=look", "/staff/broadcasts/14?tab=look"]);
     await rerender(<StaffDashboard dashboard={dashboard} permissions={[]} />);
     await expect.element(page.getByRole("list", { name: copy.actionsTitle })).not.toBeInTheDocument();
   });

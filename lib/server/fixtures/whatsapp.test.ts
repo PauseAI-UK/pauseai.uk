@@ -58,16 +58,24 @@ it("takes each send, the same send with the same ID every time", async () => {
   expect(whatsAppResponse(at(`${FIXTURE_PHONE_ID}/messages`))).toBeUndefined();
 });
 
-it("writes each text to the outbox: a template with its fields, or words of our own", () => {
+it("writes each send to the outbox: a template with its fields, words of our own, or an emoji on their message", () => {
   whatsAppResponse(at(`${FIXTURE_PHONE_ID}/messages`), { method: "POST", body: templateSend("447700900001") });
   whatsAppResponse(at(`${FIXTURE_PHONE_ID}/messages`), {
     method: "POST",
     body: JSON.stringify({ to: "447700900001", type: "text", text: { body: "Thanks, see you there" } }),
   });
+  for (const emoji of ["👍", ""]) {
+    whatsAppResponse(at(`${FIXTURE_PHONE_ID}/messages`), {
+      method: "POST",
+      body: JSON.stringify({ to: "447700900001", type: "reaction", reaction: { message_id: "wamid.theirs", emoji } }),
+    });
+  }
   expect(readdirSync(outbox).every((file) => file.endsWith(".txt"))).toBe(true);
   expect(written()).toEqual([
     "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_1\n  first_name: Jane\n",
     "WhatsApp text from +44 7700 900000 to +447700900001\n\nThanks, see you there\n",
+    "WhatsApp reaction from +44 7700 900000 to +447700900001\n\n👍 on wamid.theirs\n",
+    "WhatsApp reaction from +44 7700 900000 to +447700900001\n\nOurs taken away from wamid.theirs\n",
   ]);
 });
 

@@ -118,7 +118,7 @@ describeWithDatabase("reading Gmail", () => {
     );
   const events = () => query('SELECT letter_id::int AS "letterId", status, details FROM letter_events ORDER BY id');
 
-  it("keeps a reply to a copy of a broadcast whole, before anything else sees it, and only notes an automatic one; not an answer of ours from the mailbox", async () => {
+  it("keeps a reply to a copy of a broadcast whole, before anything else sees it, and only notes an automatic one; an answer of ours from the mailbox as an answer", async () => {
     await connectTestGmail(JO, "1000");
     const [{ id: mailing }] = await query<{ id: number }>(
       `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
@@ -133,10 +133,11 @@ describeWithDatabase("reading Gmail", () => {
     mailbox({
       history: ["b1", "b2", "b3"],
       messages: {
-        // An answer written in the mailbox's own Gmail, not the site.
+        // An answer written in the mailbox's own Gmail, not the site, after Jane's reply.
         b3: {
           headers: { From: `PauseAI UK <${JO}>`, Subject: "Re: News", "In-Reply-To": "<copy-1@pauseai.uk>" },
           raw: "Subject: Re: News\r\n\r\nDone.",
+          internalDate: String(Date.parse("2026-11-02T11:00:00Z")),
         },
         b1: {
           headers: { From: "Jane <jane@example.com>", Subject: "Re: News", "In-Reply-To": "<copy-1@pauseai.uk>" },
@@ -162,6 +163,48 @@ describeWithDatabase("reading Gmail", () => {
     );
     expect(await query("SELECT kind FROM broadcast_message_events")).toEqual([{ kind: "replied" }]);
     expect(gunzipSync((await letterReply(`${JO}/b1.eml.gz`))!).toString("latin1")).toBe(reply);
+    expect(await query("SELECT sent_by, from_gmail, gmail_message_id FROM broadcast_answers")).toEqual([
+      { sent_by: JO, from_gmail: true, gmail_message_id: "b3" },
+    ]);
+    expect(await query("SELECT outcome FROM broadcast_replies WHERE NOT automatic")).toEqual([{ outcome: "answered" }]);
+  });
+
+  it("keeps an answer from the mailbox that names none of our emails by its Gmail thread, and leaves alone one in no thread of a broadcast", async () => {
+    await connectTestGmail(JO, "1000");
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id::int AS id`,
+    );
+    await query(
+      `INSERT INTO broadcast_messages (mailing_id, status, rfc_message_id, topics) VALUES ($1, 'sent', 'copy-1@pauseai.uk', '{newsletter}')`,
+      [mailing],
+    );
+    mailbox({
+      history: ["c1", "c2", "c3"],
+      messages: {
+        c1: {
+          headers: { From: "Jane <jane@example.com>", Subject: "Re: News", "In-Reply-To": "<copy-1@pauseai.uk>" },
+          raw: "Subject: Re: News\r\n\r\nWhen is it?",
+          threadId: "thread-jane",
+        },
+        // Written in Gmail as a new message in Jane's thread: no In-Reply-To.
+        c2: {
+          headers: { From: JO, Subject: "Re: News" },
+          raw: "Subject: Re: News\r\n\r\nOn Saturday.",
+          threadId: "thread-jane",
+          internalDate: String(Date.parse("2026-11-02T11:00:00Z")),
+        },
+        // Mail of ours in a thread no broadcast's reply is in.
+        c3: { headers: { From: JO, Subject: "Lunch?" }, raw: "Subject: Lunch?\r\n\r\nFree?" },
+      },
+    });
+    await read();
+    expect(await query("SELECT gmail_message_id, body FROM broadcast_answers")).toEqual([
+      {
+        gmail_message_id: "c2",
+        body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "On Saturday." }] }] },
+      },
+    ]);
   });
 
   it("keeps a politician's reply whole and marks the letter replied to; keeps our answer, but not as a reply", async () => {

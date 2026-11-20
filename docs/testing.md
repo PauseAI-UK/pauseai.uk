@@ -1024,10 +1024,13 @@ that drives it or why nothing does.
   - an email by Postmark that soft-bounced a copy and said nothing more of others: counted as delayed, still to go, then sent by the sending job all the same, and each delayed an error once its seven days are over, made in the database as sending would leave it;
   - a reply asking to stop, to look at on the email's page, recorded as an opt-out from its thread;
   - a reply answered from its thread, by Gmail from hello@, and the email the person gets;
+  - a reply answered in hello@'s Gmail, in the thread as sent there;
+  - replies waiting to two broadcasts, a line each on the dashboard, its button to that broadcast's copies to look at;
   - one to the newsletter's and events' yeses both, ticked as about our events;
   - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
   - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
   - a reaction to a text by WhatsApp's webhook, as a bubble quoting the text, then taken back, and a photo kept as its caption;
+  - our thumbs up on a reply to a text, from the smiley beside it, on its bubble and settling it, then taken away;
   - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;
   - our answer to a text that WhatsApp's webhook says failed, why under its bubble, and their reply back to check;
   - Stop pressed in WhatsApp, on the copy and the supporter's page;

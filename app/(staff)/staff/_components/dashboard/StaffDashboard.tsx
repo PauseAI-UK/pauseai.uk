@@ -66,7 +66,7 @@ function Action({ action }: { action: DashboardAction }) {
             ]
           : action.kind === "broadcast-replies"
             ? [
-                words.broadcastReplies(action.count),
+                words.broadcastReplies(action.count, action.title),
                 words.broadcastRepliesDetail,
                 words.broadcastRepliesButton,
                 `/staff/broadcasts/${action.broadcastId}?tab=look`,

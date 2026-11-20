@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
 import { createDraft, getWrittenMailing, saveDraft } from "@/lib/mailings/drafts.server";
 import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/broadcasts/drafts.server";
@@ -14,6 +16,7 @@ import {
   newBroadcast,
   changeBroadcastConsentNow,
   dealWithReplyNow,
+  reactToReplyNow,
   answerReplyNow,
   newBroadcastWith,
   rescheduleBroadcastNow,
@@ -177,6 +180,33 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     expect(await answerReplyNow(reply, DRAFT, { type: "doc", content: [] })).toEqual({ sent: false, reason: "blank" });
     expect(revalidatePath).not.toHaveBeenCalled();
     expect(await answerReplyNow(reply, DRAFT, body)).toEqual({ sent: true });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts", "layout");
+    expect(await query("SELECT outcome, dealt_by FROM broadcast_replies")).toEqual([
+      { outcome: "answered", dealt_by: JO },
+    ]);
+  });
+
+  it("puts an emoji on a reply to a text, showing the page afresh once it's gone, and nothing for a reply it can't name", async () => {
+    server.use(
+      http.post(/graph\.facebook\.com\/.*\/messages$/, () =>
+        HttpResponse.json({ messages: [{ id: "wamid.reaction" }] }),
+      ),
+    );
+    const id = await draft();
+    const [{ copy }] = await query<{ copy: number }>(
+      "INSERT INTO broadcast_messages (mailing_id, status) VALUES ($1, 'sent') RETURNING id::int AS copy",
+      [id],
+    );
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, provider_message_id, body, automatic)
+       VALUES ($1, now(), '+447700900123', '', 'wamid.reply', 'Thanks!', false) RETURNING id::int AS reply`,
+      [copy],
+    );
+    expect(await reactToReplyNow(1.5, "👍")).toEqual({ sent: false, reason: "gone" });
+    expect(await reactToReplyNow(reply, 7 as unknown as string)).toEqual({ sent: false, reason: "gone" });
+    expect(await reactToReplyNow(reply + 1, "👍")).toEqual({ sent: false, reason: "gone" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(await reactToReplyNow(reply, "👍")).toEqual({ sent: true });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts", "layout");
     expect(await query("SELECT outcome, dealt_by FROM broadcast_replies")).toEqual([
       { outcome: "answered", dealt_by: JO },

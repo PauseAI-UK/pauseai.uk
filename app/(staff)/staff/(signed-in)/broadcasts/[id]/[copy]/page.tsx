@@ -5,7 +5,7 @@ import { requireStaff } from "@/lib/accounts/auth.server";
 import { mailingId } from "@/lib/staff-search";
 import MessageCopyView from "../../../../_components/broadcasts/MessageCopyView";
 import Page from "../../../../_components/ui/Page";
-import { answerReplyNow, dealWithReplyNow } from "../../../../_components/broadcasts/actions";
+import { answerReplyNow, dealWithReplyNow, reactToReplyNow } from "../../../../_components/broadcasts/actions";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 type Params = { params: Promise<{ id: string; copy: string }> };
@@ -32,7 +32,7 @@ export default async function MessageCopyPage({ params }: Params) {
       via={[{ href: `/staff/broadcasts/${one.messageId}`, label: one.title }]}
       here={broadcastsCopy.broadcastPages.copyCrumb(one.channel)}
     >
-      <MessageCopyView one={one} actions={{ deal: dealWithReplyNow, answer: answerReplyNow }} />
+      <MessageCopyView one={one} actions={{ deal: dealWithReplyNow, answer: answerReplyNow, react: reactToReplyNow }} />
     </Page>
   );
 }

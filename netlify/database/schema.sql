@@ -1080,16 +1080,21 @@ CREATE TABLE public.broadcast_answers (
     reply_id bigint NOT NULL,
     draft_id uuid NOT NULL,
     sent_by text NOT NULL,
-    body jsonb NOT NULL,
+    body jsonb,
     status text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     sent_at timestamp with time zone,
     gmail_message_id text,
     rfc_message_id text,
     provider_message_id text,
+    from_gmail boolean DEFAULT false NOT NULL,
+    emoji text,
+    removed_at timestamp with time zone,
     CONSTRAINT broadcast_answers_check CHECK (((status = 'sent'::text) = (sent_at IS NOT NULL))),
+    CONSTRAINT broadcast_answers_removed_reaction CHECK (((removed_at IS NULL) OR (emoji IS NOT NULL))),
     CONSTRAINT broadcast_answers_sent_by_check CHECK ((sent_by = lower(sent_by))),
-    CONSTRAINT broadcast_answers_status_check CHECK ((status = ANY (ARRAY['sending'::text, 'sent'::text])))
+    CONSTRAINT broadcast_answers_status_check CHECK ((status = ANY (ARRAY['sending'::text, 'sent'::text]))),
+    CONSTRAINT broadcast_answers_words_or_emoji CHECK (((emoji IS NULL) = (body IS NOT NULL)))
 );
 
 --
@@ -3547,6 +3552,12 @@ CREATE INDEX audit_log_politician_edits ON public.audit_log USING btree ((((deta
 --
 
 CREATE INDEX audit_log_status_sets ON public.audit_log USING btree ((((details ->> 'politicianId'::text))::bigint)) WHERE (action = 'set status'::text);
+
+--
+-- Name: broadcast_answers_gmail_message; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX broadcast_answers_gmail_message ON public.broadcast_answers USING btree (gmail_message_id) WHERE (gmail_message_id IS NOT NULL);
 
 --
 -- Name: broadcast_answers_reply; Type: INDEX; Schema: public; Owner: -

@@ -238,27 +238,38 @@ describeWithDatabase("dashboard", () => {
     ]);
   });
 
-  it("says how many replies to broadcasts wait for a person, and the broadcast with the oldest", async () => {
-    const [{ mailing }] = await query<{ mailing: number }>(
-      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
-       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'jo@pauseai.uk', 'draft') RETURNING id::int AS mailing`,
-    );
-    const [{ copy }] = await query<{ copy: number }>(
-      "INSERT INTO broadcast_messages (mailing_id, status) VALUES ($1, 'sent') RETURNING id::int AS copy",
-      [mailing],
-    );
-    const reply = (gmail: string, automatic: boolean, outcome: string | null) =>
+  it("says, for each broadcast with replies waiting for a person, how many, the oldest waiting first", async () => {
+    const broadcast = async (title: string) => {
+      const [{ mailing }] = await query<{ mailing: number }>(
+        `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+         VALUES ($1, 'supporters', 'email', 'newsletter', '{}', '{}', 'jo@pauseai.uk', 'draft') RETURNING id::int AS mailing`,
+        [title],
+      );
+      const [{ copy }] = await query<{ copy: number }>(
+        "INSERT INTO broadcast_messages (mailing_id, status) VALUES ($1, 'sent') RETURNING id::int AS copy",
+        [mailing],
+      );
+      return { mailing, copy };
+    };
+    const news = await broadcast("News");
+    const march = await broadcast("March");
+    const reply = (copy: number, gmail: string, automatic: boolean, outcome: string | null, ago = "0 hours") =>
       query(
         `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
            gmail_thread_id, blob_key, automatic, outcome, dealt_by, dealt_at)
-         VALUES ($1, now(), 'jane@example.com', 'Re', 'hello@pauseai.uk', $2, $2, 'k', $3, $4,
+         VALUES ($1, now() - $5::interval, 'jane@example.com', 'Re', 'hello@pauseai.uk', $2, $2, 'k', $3, $4,
            CASE WHEN $4::text IS NULL THEN NULL ELSE 'jo@pauseai.uk' END, CASE WHEN $4::text IS NULL THEN NULL ELSE now() END)`,
-        [copy, gmail, automatic, outcome],
+        [copy, gmail, automatic, outcome, ago],
       );
-    await reply("g1", true, null);
-    await reply("g2", false, "nothing");
+    await reply(news.copy, "g1", true, null);
+    await reply(news.copy, "g2", false, "nothing");
     expect((await dashboard(7)).actions).toEqual([]);
-    await reply("g3", false, null);
-    expect((await dashboard(7)).actions).toEqual([{ kind: "broadcast-replies", count: 1, broadcastId: mailing }]);
+    await reply(news.copy, "g3", false, null);
+    await reply(march.copy, "g4", false, null, "2 hours");
+    await reply(march.copy, "g5", false, null);
+    expect((await dashboard(7)).actions).toEqual([
+      { kind: "broadcast-replies", count: 2, broadcastId: march.mailing, title: "March" },
+      { kind: "broadcast-replies", count: 1, broadcastId: news.mailing, title: "News" },
+    ]);
   });
 });

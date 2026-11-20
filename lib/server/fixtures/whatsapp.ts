@@ -38,15 +38,24 @@ function toOutbox(words: string): void {
 
 type Send = {
   to: string;
-  type: "template" | "text";
+  type: "template" | "text" | "reaction";
   template?: { name: string; components: { parameters: { parameter_name: string; text: string }[] }[] };
   text?: { body: string };
+  reaction?: { message_id: string; emoji: string };
 };
 
-/** A send, as its file in the outbox says it: who it's to, and its template and fields, or its own words. */
+/**
+ * A send, as its file in the outbox says it: who it's to, and its template
+ * and fields, or its own words; or an emoji on a message of theirs, or ours
+ * taken away, which isn't a text (readTextNote).
+ */
 function sendWords(send: Send): string {
   const to = `+${send.to}`;
   if (send.type === "text") return textNote(FIXTURE_NUMBER, { to, words: send.text!.body });
+  if (send.type === "reaction") {
+    const { emoji, message_id: on } = send.reaction!;
+    return `WhatsApp reaction from ${FIXTURE_NUMBER} to ${to}\n\n${emoji ? `${emoji} on ${on}` : `Ours taken away from ${on}`}\n`;
+  }
   const fields = send.template!.components.flatMap((component) => component.parameters);
   const params = Object.fromEntries(fields.map((field) => [field.parameter_name, field.text]));
   return textNote(FIXTURE_NUMBER, { to, template: { name: send.template!.name, params } });

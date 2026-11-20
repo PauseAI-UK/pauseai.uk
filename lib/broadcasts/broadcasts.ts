@@ -27,6 +27,12 @@ import { broadcastsCopy } from "./copy";
  */
 export const SITE_ACTOR = "pauseai.uk";
 
+/** The emoji staff can put on someone's message to us on WhatsApp. */
+export const REACTIONS = ["👍", "❤️", "🙏"] as const;
+
+/** How long after someone's message WhatsApp still delivers an emoji we put on it. */
+export const REACTION_DAYS = 30;
+
 /**
  * What the recipients on a broadcast's page sort by, each with the
  * direction a first click gives: who, by name, as they're listed unless

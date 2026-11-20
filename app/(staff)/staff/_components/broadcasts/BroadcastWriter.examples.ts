@@ -1,4 +1,4 @@
-import type { BroadcastAnswer } from "@/lib/broadcasts/answers.server";
+import type { BroadcastAnswer, BroadcastReaction } from "@/lib/broadcasts/answers.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import type { LetterDoc } from "@/lib/letters/format";
 import type { LinkCard } from "@/lib/broadcasts/link-card";
@@ -413,6 +413,7 @@ export const exampleMessageCopy: MessageCopy = {
   topics: ["events"],
   replies: [],
   answers: [],
+  reactions: [],
 };
 
 /** Replies to an email, oldest first, as a thread shows them: an automatic reply; Jane's thanks, which Jo said needed nothing; her question, which Jo answered; and her asking to stop, waiting for staff. */
@@ -430,6 +431,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtAt: null,
     doNotEmail: false,
     answerable: true,
+    reactable: false,
     kind: null,
     reactionTo: null,
     removedAt: null,
@@ -447,6 +449,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtAt: new Date("2026-11-07T10:00:00Z"),
     doNotEmail: false,
     answerable: true,
+    reactable: false,
     kind: null,
     reactionTo: null,
     removedAt: null,
@@ -464,6 +467,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtAt: new Date("2026-11-07T10:05:00Z"),
     doNotEmail: false,
     answerable: true,
+    reactable: false,
     kind: null,
     reactionTo: null,
     removedAt: null,
@@ -481,6 +485,7 @@ export const exampleBroadcastReplies: BroadcastReply[] = [
     dealtAt: null,
     doNotEmail: false,
     answerable: true,
+    reactable: false,
     kind: null,
     reactionTo: null,
     removedAt: null,
@@ -503,6 +508,7 @@ export const exampleBroadcastAnswers: BroadcastAnswer[] = [
     },
     // An email's answer: nothing more is heard of it.
     events: [],
+    fromGmail: false,
   },
 ];
 
@@ -524,6 +530,7 @@ export const exampleTextReplies: BroadcastReply[] = [
     dealtAt: new Date("2026-11-07T07:45:00Z"),
     doNotEmail: false,
     answerable: true,
+    reactable: true,
     kind: null,
     reactionTo: null,
     removedAt: null,
@@ -541,6 +548,7 @@ export const exampleTextReplies: BroadcastReply[] = [
     dealtAt: null,
     doNotEmail: false,
     answerable: true,
+    reactable: true,
     kind: null,
     reactionTo: null,
     removedAt: null,
@@ -554,6 +562,7 @@ export const exampleTextAnswers: BroadcastAnswer[] = [
     providerId: "wamid.example-11",
     replyId: 11,
     sentBy: "jo@pauseai.uk",
+    fromGmail: false,
     sentAt: new Date("2026-11-07T07:45:00Z"),
     body: {
       type: "doc",
@@ -581,6 +590,7 @@ export const exampleTextKinds: BroadcastReply[] = [
     receivedAt: new Date("2026-11-07T08:05:00Z"),
     text: "👍",
     kind: "reaction",
+    reactable: false,
     reactionTo: exampleMessageCopy.providerId,
     removedAt: new Date("2026-11-07T08:06:00Z"),
     outcome: "nothing",
@@ -594,6 +604,7 @@ export const exampleTextKinds: BroadcastReply[] = [
     receivedAt: new Date("2026-11-07T08:07:00Z"),
     text: "❤️",
     kind: "reaction",
+    reactable: false,
     reactionTo: exampleTextAnswers[0].providerId,
     outcome: "nothing",
     dealtBy: "jo@pauseai.uk",
@@ -606,6 +617,7 @@ export const exampleTextKinds: BroadcastReply[] = [
     receivedAt: new Date("2026-11-07T08:08:00Z"),
     text: null,
     kind: "reaction",
+    reactable: false,
     outcome: "nothing",
     dealtBy: "jo@pauseai.uk",
     dealtAt: new Date("2026-11-07T08:30:00Z"),
@@ -655,3 +667,39 @@ export const exampleTextKinds: BroadcastReply[] = [
 
 /** A reply to a text more than a day old, which WhatsApp takes no answer to. */
 export const exampleTextReplyPastDay: BroadcastReply = { ...exampleTextReplies[1], id: 13, answerable: false };
+
+/** Jo's 👍 on Jane's thanks (exampleTextReplies), which first went as a ❤️; and a 🙏 WhatsApp couldn't deliver. */
+export const exampleTextReactions: BroadcastReaction[] = [
+  {
+    id: 31,
+    replyId: 12,
+    emoji: "❤️",
+    sentBy: "jo@pauseai.uk",
+    sentAt: new Date("2026-11-07T08:20:00Z"),
+    removedAt: new Date("2026-11-07T08:21:00Z"),
+    events: [],
+  },
+  {
+    id: 32,
+    replyId: 12,
+    emoji: "👍",
+    sentBy: "jo@pauseai.uk",
+    sentAt: new Date("2026-11-07T08:21:00Z"),
+    removedAt: null,
+    events: [],
+  },
+];
+
+/** A 🙏 on Jane's thanks that WhatsApp couldn't deliver. */
+export const exampleUndeliveredReaction: BroadcastReaction = {
+  ...exampleTextReactions[1],
+  id: 33,
+  emoji: "🙏",
+  events: [
+    {
+      at: new Date("2026-11-07T08:22:00Z"),
+      kind: "failed",
+      details: { code: 131009, title: "Parameter value is not valid" },
+    },
+  ],
+};

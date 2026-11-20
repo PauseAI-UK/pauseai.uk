@@ -65,6 +65,34 @@
   clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
+/* What's beside their bubble, in the space to its right, level with its middle. */
+.beside {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + var(--space-2));
+  transform: translateY(-50%);
+  white-space: normal;
+}
+
+/* Our emoji on their bubble, as WhatsApp shows a reaction: a white pill over its foot, at the left. */
+.badge {
+  position: absolute;
+  bottom: calc(-1 * var(--space-4));
+  left: var(--space-2);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--chat-wall);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: 0 1px 2px var(--shadow);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* Room under a bubble with our emoji on it, for the emoji. */
+.badged {
+  margin-bottom: var(--space-3);
+}
+
 .name {
   display: block;
   margin-bottom: var(--space-1);

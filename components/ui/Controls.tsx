@@ -113,7 +113,7 @@ export function Radio({
 
 /**
  * A row of buttons any of which can be on, as Segmented's look, with a
- * lighter `joiner` ("or") between each, e.g. the topics a broadcast goes
+ * lighter `joiner` ("or") between each if given, e.g. the topics a broadcast goes
  * under. Each says whether it's pressed. `values` are those on; one change
  * gives them all, in the options' order. `min` of them stay on: the last
  * one on can't be turned off. `disabled`, none can be changed; `busy`,
@@ -136,7 +136,7 @@ export function Toggles<T extends string>({
   options: { value: T; label: string }[];
   values: T[];
   onChange: (values: T[]) => void;
-  joiner: string;
+  joiner?: string;
   min?: number;
   disabled?: boolean;
   busy?: boolean;
@@ -151,7 +151,7 @@ export function Toggles<T extends string>({
     <div className={styles.segmented} role="group" aria-label={label} aria-busy={busy || undefined}>
       {options.map((o, i) => (
         <Fragment key={o.value}>
-          {i > 0 && (
+          {i > 0 && joiner && (
             <span className={styles.joiner} aria-hidden="true">
               {joiner}
             </span>
