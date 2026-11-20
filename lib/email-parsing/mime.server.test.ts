@@ -10,6 +10,7 @@ import {
   parseMime,
   decodedText,
   partText,
+  wholeTextOf,
 } from "./mime.server";
 
 describe("reading a message", () => {
@@ -90,5 +91,45 @@ describe("reading a message", () => {
     expect(fromAddress("Polly <Polly@Example.org>")).toEqual({ address: "polly@example.org", name: "Polly" });
     expect(fromAddress("MAILER-DAEMON@googlemail.com")).toEqual({ address: "mailer-daemon@googlemail.com", name: "" });
     expect(fromAddress(undefined)).toEqual({ address: "", name: "" });
+  });
+
+  /** A message in two forms, as a casework system sends it: its plain text made from its HTML. */
+  const inTwoForms = (plain: string, html: string) =>
+    parseMime(
+      'Content-Type: multipart/alternative; boundary="b"\r\n\r\n' +
+        `--b\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${plain}\r\n` +
+        `--b\r\nContent-Type: text/html; charset=utf-8\r\n\r\n${html}\r\n--b--\r\n`,
+    );
+
+  it("reads the HTML of a message whose plain text has HTML's entities left in it", () => {
+    const tracked = "https://u1.ct.sendgrid.net/ls/click?upn=u001.abc-2Bdef";
+    const html =
+      "<div>Dear&nbsp;Jo,<br> <br> I&rsquo;ve signed the motion. It asks for: <ul style='margin: 0'> <li>a summit</li> " +
+      `<li>a treaty.</li> </ul> <br> You can read it here:&nbsp;<a href="${tracked}">https://example.org/motion/1</a><br> <br> ` +
+      "Best wishes,<br> &#8203;&#8203;&nbsp; Office of Sam Jones MP<br> Your data&#8239;is safe.</div>";
+    const plain =
+      "Dear&nbsp;Jo,\r\n\r\nI&rsquo;ve signed the motion. It asks for:\r\n\r\n\ta summit\r\n\ta treaty.\r\n\r\n\r\n" +
+      `You can read it here:&nbsp;${tracked}\r\n\r\nBest wishes,\r\n&#8203;&#8203;&nbsp; Office of Sam Jones MP\r\n` +
+      "Your data&#8239;is safe.";
+    expect(wholeTextOf(inTwoForms(plain, html))).toBe(
+      "Dear Jo,\n\nI’ve signed the motion. It asks for:\n- a summit\n- a treaty.\n\n" +
+        "You can read it here: https://example.org/motion/1\n\nBest wishes,\n  Office of Sam Jones MP\n" +
+        "Your data is safe.",
+    );
+  });
+
+  it("reads plain text with nothing of HTML's in it, though the message has HTML too", () => {
+    expect(wholeTextOf(inTwoForms("Jo & Sam; R&D; AT&T.", "<p>Not this</p>"))).toBe("Jo & Sam; R&D; AT&T.");
+  });
+
+  it("reads the entities in plain text that has them, when the message has no HTML", () => {
+    const message = parseMime(
+      "Content-Type: text/plain\r\n\r\nIt&rsquo;s &#163;5 &amp; &#x2014; &unknown; &#99999999; &#xffffffff;.&#8203;\r\n",
+    );
+    expect(wholeTextOf(message)).toBe("It’s £5 & — &unknown; &#99999999; &#xffffffff;.");
+  });
+
+  it("reads a message with no text as empty", () => {
+    expect(wholeTextOf(parseMime("Content-Type: image/png\r\n\r\nabc"))).toBe("");
   });
 });
