@@ -57,9 +57,11 @@ import { emailCopy } from "@/lib/email/copy";
 // A text goes by the fake backend a fixture build has, and nothing on the
 // live site. Nothing goes unchecked: with no complete CiviCRM pull for a
 // day, or CiviCRM not answering, a broadcast waits, and staff are told
-// once; it goes by itself when it can. One that has waited WAIT_DAYS, or is
-// still sending SENDING_DAYS after its time (lib/broadcasts/days.ts), stops,
-// and whoever scheduled it is told who it didn't reach. A broadcast whose
+// once; it goes by itself when it can. A text scheduled before WhatsApp has
+// approved its template waits for that past its time, staff told once. One
+// that has waited WAIT_DAYS (lib/broadcasts/days.ts), or hasn't all gone by
+// its finish (sendingStopsAt), stops, and whoever scheduled it is told who it
+// didn't reach. A broadcast whose
 // sender can't send for now, or two of whose copies fail in a row, rests a
 // while (REST_MINUTES), so nothing that fails every copy can fail everyone;
 // a limit or an outage it rests through for as long as it lasts, telling
@@ -74,14 +76,18 @@ const JOB = "send-mailings";
 /** How old the latest complete CiviCRM pull can be, for a broadcast to go. */
 const FRESH_HOURS = 24;
 
-/** Why a broadcast is waiting: CiviCRM didn't answer its check, or no pull has completed for a day. */
-export type WaitReason = "civicrm" | "pull";
+/**
+ * Why a broadcast is waiting: CiviCRM didn't answer its check, no pull has
+ * completed for a day, or WhatsApp hasn't approved a text's template yet.
+ */
+export type WaitReason = "civicrm" | "pull" | "approval";
 
 /**
- * Why a broadcast stopped before it had all gone: it waited too long, a
- * day's limit left it too slow, WhatsApp paused or disabled a text's
- * template, its days ran out while it waited for CiviCRM ("late"), or its
- * copies kept failing ("failing").
+ * Why a broadcast stopped before it had all gone: it waited too long for
+ * CiviCRM, or reached its finish before WhatsApp approved its template
+ * ("approval"); it reached its finish before it had all gone ("limit"),
+ * WhatsApp paused or disabled a text's template, it reached its finish while
+ * it waited for CiviCRM ("late"), or its copies kept failing ("failing").
  */
 export type StopReason = WaitReason | "limit" | "template" | "late" | "failing";
 
@@ -93,12 +99,17 @@ type Due = {
   topics: Topic[];
   filter: StoredFilter;
   dueAt: Date;
+  finishMinutes: number | null;
   title: string;
   waitingSince: Date | null;
+  waitReason: string | null;
+  /** A text's template's state with WhatsApp: pending till it approves it. */
+  templateStatus: string | null;
 };
 
 const DUE_COLUMNS = `id::int AS id, state, channel, send_by AS "sendBy", ${TOPICS_OF} AS topics, filter, due_at AS "dueAt",
-  coalesce(nullif(subject, ''), title) AS title, waiting_since AS "waitingSince"`;
+  finish_minutes AS "finishMinutes", coalesce(nullif(subject, ''), title) AS title, waiting_since AS "waitingSince",
+  wait_reason AS "waitReason", (SELECT t.status FROM whatsapp_templates t WHERE t.id = template_id) AS "templateStatus"`;
 
 /** Whether a complete CiviCRM pull has finished in the last FRESH_HOURS. */
 async function pullFresh(): Promise<boolean> {
@@ -186,14 +197,19 @@ export async function stopTextsOn(templateId: number): Promise<number> {
 
 /**
  * Has a broadcast wait for `reason`, from now if it wasn't, telling staff
- * once; or stops it, if it has waited WAIT_DAYS. Those run from when it
+ * once; or stops it, if it has waited WAIT_DAYS for CiviCRM. Those run from when it
  * began to wait, by the site's clock, not from its time: one that's days
  * into sending when CiviCRM first fails has them all, unless its
- * SENDING_DAYS run out first, which staff are told (waitEndsAt). `said` is
+ * finish comes first, which staff are told (waitEndsAt). WhatsApp's
+ * approval of a text's template is waited for till its finish, whenever
+ * that is (startDueBroadcasts). `said` is
  * what CiviCRM's check last said, as it failed, kept for its page.
  */
 async function wait(broadcast: Due, reason: WaitReason, said: string | null = null): Promise<void> {
-  if (broadcast.waitingSince && now() >= waitStopsAt(broadcast.waitingSince)) return giveUp(broadcast, reason);
+  const approval = reason === "approval";
+  if (!approval && broadcast.waitingSince && now() >= waitStopsAt(broadcast.waitingSince)) {
+    return giveUp(broadcast, reason);
+  }
   const began = now();
   await query(
     "UPDATE mailings SET waiting_since = coalesce(waiting_since, $3), wait_reason = $2, wait_said = $4 WHERE id = $1",
@@ -207,7 +223,7 @@ async function wait(broadcast: Due, reason: WaitReason, said: string | null = nu
       broadcast.title,
       reason,
       said,
-      staffTime(waitEndsAt(began, broadcast.state === "sending" ? broadcast : null)),
+      staffTime(approval ? sendingStopsAt(broadcast) : waitEndsAt(began, broadcast)),
       staffLink(`/staff/broadcasts/${broadcast.id}`, undefined),
     ),
     null,
@@ -256,8 +272,10 @@ async function start(broadcast: Due): Promise<void> {
 
 /**
  * Starts every broadcast that's due, but none overnight, as mailings to
- * politicians: only once a CiviCRM pull has completed in the last day, or
- * it waits. Returns those it started.
+ * politicians: a text only once WhatsApp has approved its template, which
+ * it waits for; and only once a CiviCRM pull has completed in the last day, or
+ * it waits. One still not started by its finish stops (giveUp): never
+ * approved ("approval"), or waiting for CiviCRM ("late"). Returns those it started.
  */
 export async function startDueBroadcasts(): Promise<number[]> {
   if (now().getUTCHours() < SENDING.firstHour) return [];
@@ -269,6 +287,21 @@ export async function startDueBroadcasts(): Promise<number[]> {
   const started: number[] = [];
   const fresh = await pullFresh();
   for (const broadcast of due) {
+    const unapproved = broadcast.templateStatus === "pending";
+    if (now() >= sendingStopsAt(broadcast)) {
+      // Overnight at its finish, it never had a run to start in: it ran out of time, as one at a day's limit does.
+      await giveUp(broadcast, unapproved ? "approval" : broadcast.waitingSince ? "late" : "limit");
+      continue;
+    }
+    if (unapproved) {
+      await wait(broadcast, "approval");
+      continue;
+    }
+    // Approved since it began to wait for that: anything else it waits for, it waits for afresh.
+    if (broadcast.waitReason === "approval") {
+      await query("UPDATE mailings SET waiting_since = NULL, wait_reason = NULL WHERE id = $1", [broadcast.id]);
+      broadcast.waitingSince = null;
+    }
     if (!fresh) {
       await wait(broadcast, "pull");
       continue;
@@ -398,7 +431,7 @@ async function heldBack(broadcast: Sending, said: string): Promise<void> {
       broadcast.channel,
       staffTime(since),
       said,
-      staffTime(sendingStopsAt(broadcast.dueAt)),
+      staffTime(sendingStopsAt(broadcast)),
       staffLink(`/staff/broadcasts/${broadcast.id}`, undefined),
     ),
     null,
@@ -916,7 +949,7 @@ export async function sendDueBroadcasts(until: number, gap?: number): Promise<Br
     [REST_MINUTES],
   );
   for (const broadcast of sending) {
-    if (now() >= sendingStopsAt(broadcast.dueAt)) {
+    if (now() >= sendingStopsAt(broadcast)) {
       await giveUp(broadcast, broadcast.waitingSince ? "late" : "limit");
       continue;
     }

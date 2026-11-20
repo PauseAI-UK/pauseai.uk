@@ -120,24 +120,62 @@ export const REST_MINUTES = 25;
 /** When a broadcast resting since `since` tries again. */
 export const restsUntil = (since: Date): Date => new Date(new Date(since).getTime() + REST_MINUTES * 60 * 1000);
 
-/** When a broadcast that hasn't all gone, at a day's limit of emails, stops: SENDING_DAYS after its time. */
-export const sendingStopsAt = (dueAt: Date): Date => daysAfter(dueAt, SENDING_DAYS);
+/** The most minutes after its time a broadcast can finish: SENDING_DAYS. */
+export const MOST_FINISH_MINUTES = SENDING_DAYS * 24 * 60;
 
 /**
- * When a broadcast waiting for CiviCRM since `waitingSince` stops, if
- * CiviCRM doesn't come back: WAIT_DAYS on, or, for one already sending, when
- * its SENDING_DAYS run out, if that's sooner.
+ * When a broadcast that hasn't all gone stops, as it's kept: its finish,
+ * `finishMinutes` after its time, or with none, SENDING_DAYS after it. Kept
+ * from its time, so moving its time moves its finish.
  */
-export function waitEndsAt(waitingSince: Date, sending: { dueAt: Date } | null): Date {
+export const sendingStopsAt = (broadcast: { dueAt: Date; finishMinutes: number | null }): Date =>
+  new Date(new Date(broadcast.dueAt).getTime() + (broadcast.finishMinutes ?? MOST_FINISH_MINUTES) * 60 * 1000);
+
+/**
+ * A finish chosen as a time, as a broadcast keeps it: how many minutes after
+ * its time; none for SENDING_DAYS after it, the most it can be.
+ */
+export function finishMinutesOf(dueAt: Date, finishAt: Date): number | null {
+  const minutes = Math.round((finishAt.getTime() - new Date(dueAt).getTime()) / 60_000);
+  return minutes === MOST_FINISH_MINUTES ? null : minutes;
+}
+
+/** Whether a finish, in minutes after a broadcast's time, is one it can have: after its time, and SENDING_DAYS after it at most. */
+export const finishFits = (finishMinutes: number | null): boolean =>
+  finishMinutes === null || (finishMinutes >= 1 && finishMinutes <= MOST_FINISH_MINUTES);
+
+/** How soon after its time a broadcast can stop trying: the sending's next run after it. */
+const SOONEST_FINISH_MINUTES = 15;
+
+/**
+ * A finish picked for a broadcast due at `dueAt`, kept to one it can have:
+ * no sooner than the sending's next run after its time, and no later than
+ * SENDING_DAYS after it.
+ */
+export function finishWithin(dueAt: Date, finishAt: Date): Date {
+  const due = new Date(dueAt).getTime();
+  const at = Math.min(
+    Math.max(finishAt.getTime(), due + SOONEST_FINISH_MINUTES * 60_000),
+    due + MOST_FINISH_MINUTES * 60_000,
+  );
+  return new Date(at);
+}
+
+/**
+ * When a broadcast waiting since `waitingSince` stops, if what it waits for
+ * doesn't come: WAIT_DAYS on, or at its finish (sendingStopsAt), if that's
+ * sooner.
+ */
+export function waitEndsAt(waitingSince: Date, broadcast: { dueAt: Date; finishMinutes: number | null }): Date {
   const waited = waitStopsAt(waitingSince);
-  if (!sending) return waited;
-  const out = sendingStopsAt(sending.dueAt);
+  const out = sendingStopsAt(broadcast);
   return out < waited ? out : waited;
 }
 
 /**
  * Why nothing of a broadcast is going out for now, though it's sending, or
- * past its time: it waits for CiviCRM, till it answers or the wait ends; it
+ * past its time: it waits for CiviCRM, till it answers or the wait ends, or
+ * for WhatsApp to approve a text's words, till its finish; it
  * rests after its sends failed, till when; all it has left are texts
  * WhatsApp held, how many, when the first is next tried, and when it stops
  * if they haven't gone; or what sends it can send no more today. Or, all
@@ -146,7 +184,7 @@ export function waitEndsAt(waitingSince: Date, sending: { dueAt: Date } | null):
  * of broadcasts and a broadcast's own page both say it from this.
  */
 export type SendingPause =
-  | { kind: "waiting"; reason: "civicrm" | "pull"; said: string | null; endsAt: Date }
+  | { kind: "waiting"; reason: "civicrm" | "pull" | "approval"; said: string | null; endsAt: Date }
   | { kind: "resting"; until: Date }
   | { kind: "held"; held: number; until: Date; stopsAt: Date }
   | { kind: "limit"; channel: BroadcastChannel }
@@ -154,8 +192,8 @@ export type SendingPause =
 
 /**
  * A broadcast's pause (SendingPause), the first that applies, or none: one
- * scheduled can only be waiting for CiviCRM, past its time; one sending can
- * be any but delayed; one sent, only delayed. `toGo` is how many of its
+ * scheduled can only be waiting, past its time, for CiviCRM or WhatsApp's
+ * approval; one sending can be any but delayed; one sent, only delayed. `toGo` is how many of its
  * copies can go now, `held` how many are delayed (WhatsApp's, the first
  * tried again at `heldTill`, while it's sending; once it's sent, every copy
  * has gone, so they're emails delayed after); `atLimit`, whether what sends
@@ -165,6 +203,7 @@ export function sendingPause(broadcast: {
   state: string;
   channel: BroadcastChannel;
   dueAt: Date | null;
+  finishMinutes: number | null;
   waitingSince: Date | null;
   waitReason: string | null;
   waitSaid: string | null;
@@ -174,17 +213,22 @@ export function sendingPause(broadcast: {
   heldTill: Date | null;
   atLimit: boolean;
 }): SendingPause | null {
-  if (broadcast.state === "sent" && broadcast.dueAt && broadcast.held > 0) {
-    return { kind: "delayed", delayed: broadcast.held, stopsAt: sendingStopsAt(broadcast.dueAt) };
+  if (!broadcast.dueAt) return null;
+  const timed = { dueAt: broadcast.dueAt, finishMinutes: broadcast.finishMinutes };
+  if (broadcast.state === "sent" && broadcast.held > 0) {
+    return { kind: "delayed", delayed: broadcast.held, stopsAt: sendingStopsAt(timed) };
   }
-  const sending = broadcast.state === "sending" && broadcast.dueAt ? { dueAt: broadcast.dueAt } : null;
+  const sending = broadcast.state === "sending";
   if (!sending && broadcast.state !== "scheduled") return null;
   if (broadcast.waitingSince) {
+    const reason =
+      broadcast.waitReason === "pull" || broadcast.waitReason === "approval" ? broadcast.waitReason : "civicrm";
     return {
       kind: "waiting",
-      reason: broadcast.waitReason === "pull" ? "pull" : "civicrm",
+      reason,
       said: broadcast.waitSaid,
-      endsAt: waitEndsAt(broadcast.waitingSince, sending),
+      // WhatsApp's approval is waited for till its finish, however long that is.
+      endsAt: reason === "approval" ? sendingStopsAt(timed) : waitEndsAt(broadcast.waitingSince, timed),
     };
   }
   if (!sending) return null;
@@ -194,7 +238,7 @@ export function sendingPause(broadcast: {
       kind: "held",
       held: broadcast.held,
       until: broadcast.heldTill,
-      stopsAt: sendingStopsAt(sending.dueAt),
+      stopsAt: sendingStopsAt(timed),
     };
   }
   return broadcast.atLimit ? { kind: "limit", channel: broadcast.channel } : null;
@@ -442,7 +486,6 @@ export type BroadcastScheduleProblem =
   | "no-subject"
   | "no-letter"
   | "no-template"
-  | "not-approved"
   | "no-name"
   | "field-edge"
   | "fields-together"
@@ -463,6 +506,8 @@ export type SchedulingBroadcast = {
   title: string;
   body: MailingDoc;
   dueAt: Date | null;
+  /** When it stops if it hasn't all gone, in minutes after its time (sendingStopsAt); none for SENDING_DAYS. */
+  finishMinutes: number | null;
   /** How many it goes to. */
   recipients: number;
   /** The values of its filter the site no longer knows. */
@@ -473,7 +518,7 @@ export type SchedulingBroadcast = {
   /** How many more what sends it can send today, and each day after; null for no limit. */
   remaining: number | null;
   daily: number | null;
-  /** Whether a text's words are a template WhatsApp has approved. */
+  /** Whether a text's template is one WhatsApp has approved: not new words, nor one waiting for its approval. */
   approved: boolean;
   /** Whether a text's new words are, word for word, those of a template WhatsApp has approved (sameWords). */
   sameWords: boolean;
@@ -523,10 +568,10 @@ export function misplacedFields(body: MailingDoc): { atEdge: boolean; together: 
   };
 }
 
-/** What doesn't stop a text's new words going to WhatsApp for approval: that they aren't approved yet, and its time. */
-const LEFT_TILL_SCHEDULING: BroadcastScheduleProblem[] = ["not-approved", "no-time", "time-passed"];
+/** What doesn't stop a text's new words going to WhatsApp for approval: its time. */
+const LEFT_TILL_SCHEDULING: BroadcastScheduleProblem[] = ["no-time", "time-passed"];
 
-/** What stops a text's new words going for approval: everything that stops it being scheduled but its time and the approval itself. */
+/** What stops a text's new words going for approval: everything that stops it being scheduled but its time. */
 export function approvalProblems(problems: BroadcastScheduleProblem[]): BroadcastScheduleProblem[] {
   return problems.filter((problem) => !LEFT_TILL_SCHEDULING.includes(problem));
 }
@@ -534,8 +579,11 @@ export function approvalProblems(problems: BroadcastScheduleProblem[]): Broadcas
 /**
  * What stops a broadcast being scheduled: none, for one that can be. Unlike a
  * mailing to politicians, a field some recipients lack doesn't, as each has
- * a fallback. A text with no words has no template chosen yet, and one
- * with words goes only once they're a template WhatsApp has approved.
+ * a fallback. A text with no words has no template chosen yet. One with
+ * new words, or a template WhatsApp hasn't approved yet, can be: scheduling
+ * sends new words for approval (scheduleBroadcast), and it goes once
+ * they're approved, at its time or after, till its finish. It must have time
+ * to all go by its finish, at a day's limit of emails or texts.
  */
 export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): BroadcastScheduleProblem[] {
   const blank = isBlankMailing(broadcast.body);
@@ -556,10 +604,13 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["field-twice", newWords && misplaced!.twice],
     ["same-words", newWords && broadcast.sameWords],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
-    // At a day's limit of emails or texts, it must all go before it would stop.
-    ["too-slow", sendingDays(broadcast.recipients, broadcast.remaining, broadcast.daily) > SENDING_DAYS],
+    // At a day's limit of emails or texts, it must all go before it would stop: each day it has, part days whole.
+    [
+      "too-slow",
+      sendingDays(broadcast.recipients, broadcast.remaining, broadcast.daily) >
+        Math.ceil((broadcast.finishMinutes ?? MOST_FINISH_MINUTES) / (24 * 60)),
+    ],
     ["no-number", !email && !broadcast.numbered],
-    ["not-approved", !email && !blank && !broadcast.approved],
     ["no-time", !broadcast.dueAt],
     ["time-passed", Boolean(broadcast.dueAt) && new Date(broadcast.dueAt!) <= now()],
     ["cannot-send", !broadcast.sends],

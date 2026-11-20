@@ -4,14 +4,20 @@ import { Muted } from "@/components/ui/Text";
 import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import type { BroadcastPageData, BroadcastSummary, MessageRecipient } from "@/lib/broadcasts/pages.server";
 import { filtersPath, pageParam, type Params } from "@/lib/list-params";
-import { londonWhenShort, sendsAt, staffClock, staffDate, staffTime } from "@/lib/staff-time";
+import { londonWhen, londonWhenShort, sendsAt, staffClock, staffDate, staffTime } from "@/lib/staff-time";
+import { now } from "@/lib/now";
+import { staffMemberText } from "@/lib/staff-member";
 import {
   FIELD_WORDS,
   RECIPIENT_SORTS,
   type BroadcastChannel,
   type RecipientSort,
   type SendingPause,
+  sendingStopsAt,
 } from "@/lib/broadcasts/broadcasts";
+import Bubble from "@/components/ui/Bubble";
+import { buttonClass } from "@/components/ui/Button";
+import { ChangeTimesForm } from "./BroadcastTimes";
 import { sortHref, type SortSpec } from "@/lib/staff-sort";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import Strip from "../ui/Strip";
@@ -103,7 +109,8 @@ export function pauseInBrief(pause: SendingPause): { word: string; till: string 
 function pauseInFull(pause: SendingPause): string {
   switch (pause.kind) {
     case "waiting":
-      return copy.waiting(pause.reason, staffDate(pause.endsAt), pause.said);
+      // One waiting for WhatsApp's approval has its own strip (BroadcastWaiting).
+      return copy.waiting(pause.reason === "pull" ? "pull" : "civicrm", staffDate(pause.endsAt), pause.said);
     case "resting":
       return copy.resting(staffTime(sendsAt(pause.until)));
     case "held":
@@ -122,7 +129,8 @@ function pauseInFull(pause: SendingPause): string {
  * that stops; it rests after its sends failed, till when; all it has left
  * are texts WhatsApp held, the next tried when; or what sends it sends more
  * tomorrow; or, all sent, some emails are delayed. Or, in red, that it stopped by itself, and why, with `resume`,
- * the button that sets it going again. Nothing otherwise.
+ * the button that sets it going again. A text scheduled while WhatsApp hasn't approved its template says so in
+ * blue, with a clock, before its time or after, and who sent it when. Nothing otherwise.
  */
 export function BroadcastWaiting({
   written,
@@ -133,11 +141,24 @@ export function BroadcastWaiting({
   pause: SendingPause | null;
   resume?: ReactNode;
 }) {
+  const template = written.template;
+  if (written.state === "scheduled" && template?.status === "pending") {
+    return (
+      <Strip tone="blue" waiting>
+        {copy.approvalStrip(
+          staffMemberText(template.createdBy!),
+          staffTime(template.requestedAt),
+          new Date(written.dueAt!) <= now(),
+        )}
+      </Strip>
+    );
+  }
   if (written.gaveUp) {
     const stopped = {
       limit: copy.gaveUpLimit,
       template: copy.gaveUpTemplate,
       late: copy.gaveUpLate,
+      approval: copy.gaveUpApproval,
       failing: copy.gaveUpFailing,
     }[written.waitReason as string];
     return (
@@ -335,6 +356,12 @@ export default function BroadcastView({
           {who}
         </BandFact>
         <MailingWhen mailing={summary} written={written} />
+        {/* While it's still trying: scheduled, sending, or all sent but for emails still delayed. */}
+        {(scheduled || written.state === "sending") && (
+          <BandFact label={copy.keepsTryingUntil}>
+            {londonWhen(sendingStopsAt({ dueAt: written.dueAt!, finishMinutes: written.finishMinutes }), "short")}
+          </BandFact>
+        )}
       </Band>
       <MailingStanding
         mailing={summary}
@@ -342,8 +369,29 @@ export default function BroadcastView({
         stop={stop}
         stopLabel={delayed ? copy.giveUp : undefined}
         reschedule={reschedule}
+        changeTimes={
+          // Not for one all sent, whose delayed emails' time has passed for staff to change.
+          !delayed && (
+            <Bubble id="change-times" trigger={buttonClass({ variant: "ghost", fit: true })} label={copy.changeTimes}>
+              <ChangeTimesForm
+                id={written.id}
+                dueAt={written.dueAt!}
+                finishMinutes={written.finishMinutes}
+                scheduled={scheduled}
+                action={reschedule}
+              />
+            </Bubble>
+          )
+        }
         line={copy.scheduledLine(summary.to, written.channel, written.fromName || written.sentFrom!)}
-        due={summary.pause ? copy.waitingDue : undefined}
+        // Past its time, what it waits for, in place of how long till it goes.
+        due={
+          summary.pause?.kind === "waiting" && summary.pause.reason === "approval"
+            ? copy.standing.waiting
+            : summary.pause
+              ? copy.waitingDue
+              : undefined
+        }
         paused={summary.pause ? copy.paused.bar(summary.sent + summary.failed, summary.to) : undefined}
       />
       <BroadcastWaiting

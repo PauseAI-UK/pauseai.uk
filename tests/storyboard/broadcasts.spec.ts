@@ -390,10 +390,10 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
-  await expect(send.getByText(copy.problems["not-approved"])).toBeVisible();
-  await frame(page, "New words: WhatsApp approves them before they can be scheduled", { window: true });
+  await expect(send.getByText(copy.schedulesForApproval)).toBeVisible();
+  await frame(page, "New words: Schedule sends them to WhatsApp for approval too", { window: true });
   story(
-    "The button to send them to WhatsApp is under their preview, before the test copy, as neither a test nor scheduling can be till WhatsApp approves them.",
+    "Or they send them on their own first, from under their preview, before the test copy, as a test can't go till WhatsApp approves them.",
   );
   const preview = page.getByRole("region", { name: copy.sections.preview });
   await preview.getByRole("button", { name: copy.submitTemplate }).scrollIntoViewIfNeeded();
@@ -431,6 +431,87 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/broadcasts`);
   await expect(page.getByText(copy.standing.rejected)).toBeVisible();
   await frame(page, "The list, the draft WhatsApp rejected");
+});
+
+test("A text scheduled before WhatsApp approves it", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write a text on a new template and choose its time. Under the time, a line says how long it keeps trying to reach anyone it hasn't: seven days, unless they change it.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  const id = new URL(page.url()).pathname.split("/").at(-1);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("The march meets at 11:00 at Parliament Square.");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: where to meet"));
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).first().selectOption("14"));
+  const when = page.getByRole("region", { name: copy.sections.when });
+  await when.scrollIntoViewIfNeeded();
+  await frame(page, "When, and how long it keeps trying", { window: true });
+  story("Change shows its day and time, with what to set it to: when the message stops making sense.");
+  await when.getByRole("button", { name: copy.changeFinish }).click();
+  await expect(when.getByText(copy.finishHint)).toBeVisible();
+  await savedAfter(page, () => when.getByRole("combobox", { name: mailingCopy.hour }).last().selectOption("9"));
+  await frame(page, "Keeps trying until, changed", { window: true });
+  story("WhatsApp hasn't approved the template, so Schedule says it sends it for approval too.");
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.scrollIntoViewIfNeeded();
+  await frame(page, "Schedule sends the template for approval too", { window: true });
+  await send.getByRole("button", { name: copy.schedule(TEXTABLE, "text") }).click();
+  story(
+    "Scheduled, its page says when it keeps trying until, and in blue that it waits for WhatsApp to approve the template. It goes at its time once it has.",
+  );
+  await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
+  await frame(page, "Scheduled, waiting for WhatsApp");
+  story("Change the times changes both its time and when it keeps trying until.");
+  await openBubble(page.getByRole("button", { name: copy.changeTimes }));
+  await frame(page, "Change the times", { window: true });
+  story("The list says it's waiting for WhatsApp too.");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.standing.waiting)).toBeVisible();
+  await frame(page, "The list, the text waiting for WhatsApp");
+  story(
+    "Its time comes, and WhatsApp still hasn't decided. It waits, and whoever scheduled it, and the notification inbox, are told once.",
+  );
+  runSql(flowDatabase, `UPDATE mailings SET due_at = now() - interval '1 hour' WHERE id = ${id}`);
+  await runSending(request);
+  const waiting = newestEmail(
+    (one) => one.Subject === broadcastsCopy.notifications.broadcastWaiting.subject("March day: where to meet"),
+  )!;
+  await emailFrame(page, waiting, "The email: its time came before WhatsApp approved it");
+  story(
+    "WhatsApp rejects the template. The text is a draft again, to change and schedule again, and the email of the rejection says so.",
+  );
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  await postWhatsAppWebhook(request, BASE, templateStatus(name!, "REJECTED", "INVALID_FORMAT"));
+  const rejected = newestEmail(
+    (one) => one.Subject === broadcastsCopy.notifications.templateRejected.subject("March day: where to meet"),
+  )!;
+  await emailFrame(page, rejected, "The email: rejected, and a draft again");
+});
+
+test("A text WhatsApp never approves", async ({ page, request, flowDatabase }) => {
+  story(
+    "A text was scheduled before WhatsApp approved its template, to keep trying for an hour. The hour passes, and WhatsApp still hasn't approved it.",
+  );
+  await importLuma(request, BASE);
+  await importCivicrm(request, BASE);
+  const id = addDueText(flowDatabase, "PauseCon doors", staffEmail(), "pending");
+  runSql(flowDatabase, `UPDATE mailings SET due_at = now() - interval '2 hours', finish_minutes = 60 WHERE id = ${id}`);
+  await runSending(request);
+  story("It stopped trying, and was never sent. Whoever scheduled it, and the notification inbox, are told.");
+  const told = newestEmail(
+    (one) => one.Subject === broadcastsCopy.notifications.broadcastGaveUp.subject("PauseCon doors", "approval"),
+  )!;
+  await emailFrame(page, told, "The email: never sent");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByText(copy.gaveUpApproval)).toBeVisible();
+  await frame(page, "Never sent, as WhatsApp didn't approve the template");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.standing.gaveUp.approval!(0, TEXTABLE))).toBeVisible();
+  await frame(page, "The list, the text never sent");
 });
 
 test("A text's preview, as WhatsApp shows it", async ({ page, request, flowDatabase }) => {
@@ -521,15 +602,17 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
 });
 
 /**
- * A text to those who can be texted, on an approved template, scheduled for
- * an hour ago by `scheduledBy`, as scheduling leaves one; its ID.
+ * A text to those who can be texted, on an approved template, or one
+ * WhatsApp is still reviewing (`status`), scheduled for an hour ago by
+ * `scheduledBy`, as scheduling leaves one; its ID.
  */
-function addDueText(database: string, title: string, scheduledBy: string): string {
+function addDueText(database: string, title: string, scheduledBy: string, status = "approved"): string {
+  const approved = status === "approved";
   const [template] = runSql(
     database,
     `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category, footer)
-     VALUES ('${title}', '${WORDS}', 'approved', 'jo@pauseai.uk', now() - interval '1 day', 'flow_text_1', 'MARKETING',
-       '${TEMPLATE_FOOTER}')
+     VALUES ('${title}', '${WORDS}', '${status}', 'jo@pauseai.uk', ${approved ? "now() - interval '1 day'" : "NULL"},
+       'flow_text_1', ${approved ? "'MARKETING'" : "NULL"}, '${TEMPLATE_FOOTER}')
      RETURNING id`,
   );
   const [id] = runSql(

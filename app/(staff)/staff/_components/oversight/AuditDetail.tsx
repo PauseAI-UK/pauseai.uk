@@ -269,6 +269,8 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "schedule broadcast": none,
   "stop broadcast": none,
   "resume broadcast": none,
+  "change broadcast times": none,
+  "unschedule broadcast": none,
   "deal with reply": none,
   "answer reply": none,
   "download supporters": none,

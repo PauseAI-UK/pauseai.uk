@@ -21,11 +21,13 @@ export function idFrom(form: FormData, name = "id"): number | undefined {
 /**
  * When a form says something goes: its day, as YYYY-MM-DD, hour and minute,
  * in London, a minute the sending runs at; undefined if any isn't one.
+ * `prefix` is before each's name, for a form with two times, such as a
+ * broadcast's time and when it stops trying ("finish-").
  */
-export function dueAtFrom(form: FormData): Date | undefined {
-  const day = form.get("day");
-  const hour = Number(form.get("hour"));
-  const minute = Number(form.get("minute"));
+export function dueAtFrom(form: FormData, prefix = ""): Date | undefined {
+  const day = form.get(`${prefix}day`);
+  const hour = Number(form.get(`${prefix}hour`));
+  const minute = Number(form.get(`${prefix}minute`));
   if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !(hour >= 0 && hour < 24)) return undefined;
   if (!(SENDING.minutes as readonly number[]).includes(minute)) return undefined;
   return fromLondon(day, hour, minute);

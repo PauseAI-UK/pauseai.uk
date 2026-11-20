@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { WhatsAppTemplate } from "@/lib/broadcasts/drafts.server";
-import { staffTime } from "@/lib/staff-time";
+import { londonWhen, staffTime } from "@/lib/staff-time";
 import { textCost } from "@/lib/broadcasts/broadcasts";
 import { SENDING_DAYS } from "@/lib/broadcasts/days";
 import { GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-connect";
@@ -521,6 +521,33 @@ describe("BroadcastWriter, by email", () => {
     await vi.waitFor(() => expect(actions.save.mock.calls.at(-1)?.[2]).toHaveProperty("dueAt"), WAIT);
   });
 
+  it("says when it keeps trying until, seven days on, and saves another, moving with its time", async () => {
+    const actions = await renderWriter();
+    const when = page.getByRole("region", { name: copy.sections.when });
+    // Seven days after Thu 12 Nov 2099 at 09:18.
+    await expect
+      .element(when.getByText(copy.keepsTrying(londonWhen(new Date("2099-11-19T09:18:00Z"), "short"))))
+      .toBeVisible();
+    await when.getByRole("button", { name: copy.changeFinish }).click();
+    await expect.element(when.getByText(copy.finishHint)).toBeVisible();
+    // Its hour, the second of the section's: an hour sooner.
+    const hour = when.getByRole("combobox", { name: mailingsCopy.mailingPages.hour }).last();
+    await hour.selectOptions("8");
+    await vi.waitFor(
+      () => expect(actions.save.mock.calls.at(-1)?.[2]).toEqual({ finishMinutes: 7 * 24 * 60 - 60 }),
+      WAIT,
+    );
+    // Later than seven days after its time, it's kept to seven days, the most.
+    await hour.selectOptions("18");
+    await vi.waitFor(() => expect(actions.save.mock.calls.at(-1)?.[2]).toEqual({ finishMinutes: null }), WAIT);
+    await expect.element(hour).toHaveValue("9");
+  });
+
+  it("has no time to keep trying until before it has a time", async () => {
+    await renderWriter({ draft: { ...exampleBroadcastEmail, dueAt: null } });
+    expect(page.getByRole("button", { name: copy.changeFinish }).query()).toBeNull();
+  });
+
   it("waits for an hour before it has a time", async () => {
     const actions = await renderWriter({ draft: { ...exampleBroadcastEmail, dueAt: null } });
     await expect.element(page.getByText(copy.problems["no-time"])).toBeVisible();
@@ -773,16 +800,17 @@ describe("BroadcastWriter, by text", () => {
     expect(actions.linkCard).toHaveBeenCalledTimes(2);
   });
 
-  it("opens on a draft's new words, titled by them, to send to WhatsApp before they can be scheduled", async () => {
+  it("opens on a draft's new words, titled by them, to send to WhatsApp, or schedule, which sends them too", async () => {
     const actions = await renderWriter({
       draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords },
     });
     await expect.element(page.getByRole("heading", { name: "Hi there", level: 1 })).toBeVisible();
-    await expect.element(page.getByText(copy.problems["not-approved"])).toBeVisible();
+    await expect.element(page.getByText(copy.schedulesForApproval)).toBeVisible();
     await expect.element(page.getByText(copy.testVia.textNew)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
-    // Under the preview, before a test, as neither a test nor scheduling can be till WhatsApp approves.
-    await expect.element(button(copy.schedule(412, "text"))).toBeDisabled();
+    // Scheduling sends them for approval as it schedules; days off, there's time for that.
+    await expect.element(button(copy.schedule(412, "text"))).toBeEnabled();
+    expect(page.getByText(copy.approvalSoon).query()).toBeNull();
     // Titled for what's done there with new words.
     const preview = page.getByRole("region", { name: copy.previewNew, exact: false });
     expect(
@@ -821,6 +849,24 @@ describe("BroadcastWriter, by text", () => {
     await vi.waitFor(() => expect(navigation.pushed).toEqual(["/staff/broadcasts?submitted=4"]), WAIT);
   });
 
+  it("warns that WhatsApp may not approve new words before a time less than a day off", async () => {
+    const soon = new Date(Date.now() + 6 * 60 * 60 * 1000);
+    await renderWriter({ draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords, dueAt: soon } });
+    await expect.element(page.getByText(copy.approvalSoon)).toBeVisible();
+  });
+
+  it("says why Schedule didn't, when WhatsApp didn't take the words it sent for approval", async () => {
+    const actions = await renderWriter({
+      draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords },
+    });
+    actions.schedule.mockResolvedValue({ scheduled: false, submit: { failed: "Bad" } });
+    await button(copy.schedule(412, "text")).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitFailed("Bad"));
+    actions.schedule.mockResolvedValue({ scheduled: false, submit: "not-ready" });
+    await button(copy.schedule(412, "text")).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitRefused["not-ready"]!);
+  });
+
   it("can't send words for approval before there are any, or while anything but the time stops it", async () => {
     await renderWriter({ draft: exampleBroadcastText });
     await pick(copy.newTemplate);
@@ -853,7 +899,10 @@ describe("BroadcastWriter, by text", () => {
 
   it("shows words WhatsApp is reviewing as they were sent, unchangeable, and takes them back", async () => {
     const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
-    const actions = await renderWriter({ draft: { ...exampleBroadcastText, body: exampleTextWords, template } });
+    // Named as it was sent, which names the text too.
+    const actions = await renderWriter({
+      draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords, template },
+    });
     // Who asked, and when, under the dropdown, as an approved template's line is; then its name and words, as sent, each under its label.
     await expect.element(page.getByText(copy.templatePending("jo@pauseai.uk", "19 Oct 2026"))).toBeVisible();
     // And at the top, in amber, as the words are locked till WhatsApp decides.
@@ -861,12 +910,16 @@ describe("BroadcastWriter, by text", () => {
       .element(page.getByText(copy.awaitingApproval("jo@pauseai.uk", staffTime(template.requestedAt))))
       .toBeVisible();
     await expect.element(page.getByText(copy.templateName, { exact: true })).toBeVisible();
-    await expect.element(page.getByText("Hi there", { exact: true })).toBeVisible();
+    await expect
+      .element(
+        page.getByRole("region", { name: copy.sections.write, exact: false }).getByText("Hi there", { exact: true }),
+      )
+      .toBeVisible();
     expect(page.getByRole("textbox", { name: copy.templateWords }).query()).toBeNull();
     expect(button(copy.submitTemplate).query()).toBeNull();
-    // Under Schedule, that WhatsApp is reviewing them, not that they're to be sent.
-    await expect.element(page.getByText(copy.reviewing)).toBeVisible();
-    expect(page.getByText(copy.problems["not-approved"]).query()).toBeNull();
+    // It can be scheduled, and isn't said to send them for approval, as WhatsApp has them.
+    await expect.element(button(copy.schedule(412, "text"))).toBeEnabled();
+    expect(page.getByText(copy.schedulesForApproval).query()).toBeNull();
     const refreshes = navigation.refreshes;
     // Pressed once, it asks for a second press, and goes back if focus leaves it.
     await button(copy.withdrawTemplate).click();

@@ -1011,6 +1011,8 @@ that drives it or why nothing does.
   - a template's words edited as a new template, and an unused one deleted, from WhatsApp and the dropdown;
   - the site updated under an open draft: the dialog over the page, closed, then Reload;
   - a text on new words, sent for WhatsApp's approval from under the preview, locked till it decides, then rejected by its webhook;
+  - a text on new words scheduled before WhatsApp approves them, which sends them for approval: when it keeps trying until, changed in the writer; its page waiting for WhatsApp, with Change the times; the list; the email when its time comes first; then rejected by its webhook, a draft again, with the email saying so;
+  - a text WhatsApp never approved by when it keeps trying until, stopped and never sent, with the email saying so, its page and the list;
   - a text's preview as WhatsApp shows it: the card for its link, read from the page, and its words folded at five lines, opened by Read more;
   - a new template WhatsApp won't take, too long, with its reason in a red alert under the button;
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;

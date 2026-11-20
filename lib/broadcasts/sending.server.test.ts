@@ -856,6 +856,36 @@ describeWithDatabase("sending broadcasts", () => {
     );
   });
 
+  it("stops one at its own finish, sooner than seven days, and one never started by then", async () => {
+    const sent = notifications();
+    recordGmail();
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith");
+    await addFollower("usr-sam", "sam@example.com", "Sam");
+    await pulled();
+    const id = await broadcast();
+    await query("UPDATE mailings SET finish_minutes = 24 * 60 WHERE id = $1", [id]);
+    await startDueBroadcasts();
+    await sentToday(1799);
+    await sendDueBroadcasts(LATER, 0);
+    vi.setSystemTime(new Date("2026-11-03T09:00:00Z"));
+    await sendDueBroadcasts(LATER, 0);
+    expect(await stateOf(id)).toMatchObject({ state: "cancelled", reason: "limit", gaveUp: true });
+    expect(sent.at(-1)!.Subject).toBe(broadcastsCopy.notifications.broadcastGaveUp.subject("See you there", "limit"));
+    // Scheduled, it never started by its finish, as overnight, so it stopped trying with it.
+    const late = await broadcast();
+    await query("UPDATE mailings SET finish_minutes = 15 WHERE id = $1", [late]);
+    expect(await startDueBroadcasts()).toEqual([]);
+    expect(await stateOf(late)).toMatchObject({ state: "cancelled", reason: "limit", gaveUp: true });
+    // Waiting for CiviCRM when it did, that's why.
+    const waited = await broadcast();
+    await query("UPDATE mailings SET finish_minutes = 15, waiting_since = $2, wait_reason = 'pull' WHERE id = $1", [
+      waited,
+      DUE,
+    ]);
+    expect(await startDueBroadcasts()).toEqual([]);
+    expect(await stateOf(waited)).toMatchObject({ state: "cancelled", reason: "late", gaveUp: true });
+  });
+
   it("stops one whose seven days run out while CiviCRM is down, saying CiviCRM is why, not its size", async () => {
     const sent = notifications();
     recordGmail();
@@ -1191,6 +1221,67 @@ describeWithDatabase("sending texts", () => {
     const told = sent.find((email) => email.Subject === words.subject("March day", "limit"))!;
     expect(told.TextBody).toContain(words.body("March day", "limit", 1, "", "text").trim());
     expect(told.TextBody).not.toContain(words.whyGmailLimit);
+  });
+
+  it("waits past its time for WhatsApp to approve its template, telling staff once, then goes at once", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    const sent = notifications();
+    const texted = whatsApp();
+    await pulled();
+    const id = await text("pending");
+    expect(await startDueBroadcasts()).toEqual([]);
+    expect(await stateOf(id)).toEqual({ state: "scheduled", waiting: true, reason: "approval", gaveUp: false });
+    const words = broadcastsCopy.notifications.broadcastWaiting;
+    const told = sent.filter((email) => email.Subject === words.subject("March day"));
+    expect(told).toHaveLength(1);
+    // It's waited for till it stops trying, seven days after its time.
+    expect(told[0].TextBody).toContain(
+      words.body(
+        "March day",
+        "approval",
+        null,
+        staffTime(new Date("2026-11-09T09:00:00Z")),
+        `https://pauseai.uk/staff/broadcasts/${id}`,
+      ),
+    );
+    // Days on, still waiting, it says nothing more, and doesn't stop as a wait for CiviCRM would.
+    vi.setSystemTime(new Date("2026-11-06T10:18:00Z"));
+    await pulled();
+    expect(await startDueBroadcasts()).toEqual([]);
+    expect(sent.filter((email) => email.Subject === words.subject("March day"))).toHaveLength(1);
+    // Approved, it waits for nothing, and goes.
+    await query("UPDATE whatsapp_templates SET status = 'approved', approved_at = now()");
+    expect(await startDueBroadcasts()).toEqual([id]);
+    expect(await stateOf(id)).toEqual({ state: "sending", waiting: false, reason: null, gaveUp: false });
+    await sendDueBroadcasts(LATER);
+    expect(texted).toHaveLength(1);
+  });
+
+  it("waits afresh for a CiviCRM pull once its template is approved, telling staff of that", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    const sent = notifications();
+    const id = await text("pending");
+    expect(await startDueBroadcasts()).toEqual([]);
+    await query("UPDATE whatsapp_templates SET status = 'approved', approved_at = now()");
+    expect(await startDueBroadcasts()).toEqual([]);
+    expect(await stateOf(id)).toMatchObject({ state: "scheduled", waiting: true, reason: "pull" });
+    expect(sent.filter((email) => email.Subject.startsWith("Not sent yet"))).toHaveLength(2);
+  });
+
+  it("never sends one WhatsApp hasn't approved by when it stops trying, telling whoever scheduled it", async () => {
+    await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+    const sent = notifications();
+    await pulled();
+    const id = await text("pending");
+    await query("UPDATE mailings SET finish_minutes = 120 WHERE id = $1", [id]);
+    expect(await startDueBroadcasts()).toEqual([]);
+    vi.setSystemTime(new Date("2026-11-02T11:03:00Z"));
+    expect(await startDueBroadcasts()).toEqual([]);
+    expect(await stateOf(id)).toEqual({ state: "cancelled", waiting: true, reason: "approval", gaveUp: true });
+    const words = broadcastsCopy.notifications.broadcastGaveUp;
+    const told = sent.find((email) => email.Subject === words.subject("March day", "approval"))!;
+    expect(told.TextBody).toContain(words.whyApproval);
+    expect(await copies()).toEqual([]);
   });
 
   it("asks WhatsApp nothing for a text that's resting", async () => {

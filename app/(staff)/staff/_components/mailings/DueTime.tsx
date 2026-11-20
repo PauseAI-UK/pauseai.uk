@@ -50,7 +50,8 @@ export function dueTime(dueAt: Date): LondonTime {
  * hours and minutes too soon can't be chosen; a change that would make it
  * too soon moves it on to the first it can go at. With no hour yet, the
  * hour says Choose. `named` gives the controls the names a form posts them
- * by: day, hour and minute.
+ * by: day, hour and minute, each after `prefix`, for a form with two times
+ * (dueAtFrom). `labels` are its fields' own, for a second time beside the first.
  */
 export function DueTimeFields({
   day,
@@ -58,6 +59,8 @@ export function DueTimeFields({
   minute,
   onChange,
   named,
+  prefix = "",
+  labels = { day: copy.day, hour: copy.hour, minutes: copy.minutes },
   dayClass,
   hourClass,
 }: {
@@ -66,6 +69,8 @@ export function DueTimeFields({
   minute: number;
   onChange: (day: string, time: { hour: number; minute: number } | null) => void;
   named?: boolean;
+  prefix?: string;
+  labels?: { day: string; hour: string; minutes: string };
   dayClass?: string;
   hourClass?: string;
 }) {
@@ -77,9 +82,9 @@ export function DueTimeFields({
   const firstDay = day === earliest.day;
   return (
     <>
-      <Field label={copy.day} className={dayClass}>
+      <Field label={labels.day} className={dayClass}>
         <DatePicker
-          name={named ? "day" : undefined}
+          name={named ? `${prefix}day` : undefined}
           min={earliest.day}
           value={day}
           onChange={(picked) => (hour === null ? onChange(picked, null) : change({ day: picked, hour, minute }))}
@@ -87,9 +92,9 @@ export function DueTimeFields({
       </Field>
       {/* The hour and its minutes side by side, as a time reads. */}
       <div className={styles.time}>
-        <Field label={copy.hour} className={hourClass}>
+        <Field label={labels.hour} className={hourClass}>
           <Select
-            name={named ? "hour" : undefined}
+            name={named ? `${prefix}hour` : undefined}
             value={hour ?? ""}
             onChange={(event) => change({ day, hour: Number(event.target.value), minute })}
           >
@@ -106,9 +111,9 @@ export function DueTimeFields({
             ))}
           </Select>
         </Field>
-        <Field label={copy.minutes} className={hourClass}>
+        <Field label={labels.minutes} className={hourClass}>
           <Select
-            name={named ? "minute" : undefined}
+            name={named ? `${prefix}minute` : undefined}
             value={minute}
             // Chosen with its hour, not before.
             disabled={hour === null}

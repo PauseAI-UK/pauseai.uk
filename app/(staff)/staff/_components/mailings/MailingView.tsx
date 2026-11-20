@@ -134,6 +134,8 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
  * words over the bar of one sending with nothing going out for now, and its
  * bar is grey; `stopLabel` replaces Stop sending, as for a broadcast with
  * nothing left to send but emails it's waiting to hear arrived.
+ * `changeTimes` replaces Change the time, and stands beside Stop sending too,
+ * as for a broadcast, which has a time to stop trying as well.
  */
 export function MailingStanding({
   mailing,
@@ -144,6 +146,7 @@ export function MailingStanding({
   due,
   paused,
   stopLabel = copy.stopSending,
+  changeTimes,
 }: {
   mailing: Pick<Mailing, "ask" | "to" | "sent" | "failed" | "answered">;
   written?: WrittenMailing;
@@ -153,6 +156,7 @@ export function MailingStanding({
   due?: string;
   paused?: string;
   stopLabel?: string;
+  changeTimes?: ReactNode;
 }) {
   if (written?.state === "scheduled") {
     return (
@@ -164,7 +168,7 @@ export function MailingStanding({
               <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
             </div>
             <div className={styles.actions}>
-              <ChangeTime mailing={written} action={reschedule} />
+              {changeTimes ?? <ChangeTime mailing={written} action={reschedule} />}
               <StopMailing id={written.id} label={copy.unschedule} action={stop} full />
             </div>
           </div>
@@ -189,6 +193,7 @@ export function MailingStanding({
               </Progress>
             </div>
             <div className={styles.actions}>
+              {changeTimes}
               <StopMailing id={written.id} label={stopLabel} action={stop} full />
             </div>
           </div>
