@@ -30,8 +30,8 @@ export const dashboardCopy = {
         // Its button, to the run's page, which lists each with why it wasn't relayed and a link to it in Gmail.
         lettersInboxButton: "See emails",
         // Replies to one broadcast, by email or text, waiting for someone to answer or record them: a line each broadcast.
-        broadcastReplies: (n: number, title: string) => `⁂ ${count(n, "reply", "replies")} to "${title}" to check`,
-        broadcastRepliesDetail: "⁂ Answer them promptly, and record anyone asking to stop as an opt-out.",
+        broadcastReplies: (n: number, title: string) => `${count(n, "reply", "replies")} to "${title}" to check`,
+        broadcastRepliesDetail: "Answer them promptly, and record anyone asking to stop as an opt-out.",
         broadcastRepliesButton: "See replies",
       },
       // The windows: each a tab, its length in days; "Show" is the tabs' name, read out by a screen reader.
