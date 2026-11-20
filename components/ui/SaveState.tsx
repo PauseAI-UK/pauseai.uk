@@ -6,10 +6,11 @@ export type SaveStateValue = "saving" | "saved" | "failed" | "conflict" | "outda
 
 /**
  * Whether something is saved, as a dot and a word (`children`): saving, grey
- * and pulsing; saved, green; not saved, red. Put it in a live region
- * (role="status") for a screen reader to hear it change.
+ * and pulsing; saved, green; not saved, red. Or `calculating`, amber and
+ * pulsing: saved, with what follows from it still being worked out. Put it
+ * in a live region (role="status") for a screen reader to hear it change.
  */
-export function SaveState({ state, children }: { state: SaveStateValue; children: ReactNode }) {
+export function SaveState({ state, children }: { state: SaveStateValue | "calculating"; children: ReactNode }) {
   return (
     <span className={styles.saveState} data-state={state}>
       <span className={styles.saveDot} aria-hidden="true" />

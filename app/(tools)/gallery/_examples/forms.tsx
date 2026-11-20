@@ -401,9 +401,10 @@ export const forms: Group = {
       file: "components/ui/SaveState.tsx",
       variants: [
         {
-          label: "Saving, saved, and not saved",
+          label: "Calculating, saving, saved, and not saved",
           render: () => (
             <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)" }}>
+              <SaveState state="calculating">Calculating…</SaveState>
               <SaveState state="saving">Saving…</SaveState>
               <SaveState state="saved">Saved</SaveState>
               <SaveState state="failed">Not saved</SaveState>

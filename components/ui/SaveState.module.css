@@ -1,4 +1,4 @@
-/* A dot and a word: grey and pulsing while saving, green once saved, red when it wasn't. */
+/* A dot and a word: grey and pulsing while saving, amber and pulsing while calculating, green once saved, red when it wasn't. */
 .saveState {
   display: inline-flex;
   align-items: center;
@@ -16,8 +16,13 @@
   background: currentcolor;
 }
 
-.saveState[data-state="saving"] .saveDot {
+.saveState[data-state="saving"] .saveDot,
+.saveState[data-state="calculating"] .saveDot {
   animation: pulse 0.8s ease-in-out infinite;
+}
+
+.saveState[data-state="calculating"] {
+  color: var(--status-amber);
 }
 
 .saveState[data-state="saved"] {
@@ -37,7 +42,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .saveState[data-state="saving"] .saveDot {
+  .saveState[data-state="saving"] .saveDot,
+  .saveState[data-state="calculating"] .saveDot {
     animation: none;
   }
 }

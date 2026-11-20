@@ -326,9 +326,8 @@
   gap: var(--space-1);
 }
 
-/* As ui/Controls' Segmented draws a choice; its spinner over its words while its change is on its way. */
+/* As ui/Controls' Segmented draws a choice. */
 .listChoice {
-  position: relative;
   padding: var(--space-1) var(--space-4);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
