@@ -54,7 +54,7 @@ export type LetterThread = {
 
 /**
  * A kept message's text and, apart, the mail it quotes and its footer: from
- * its plain text if it has one, else its HTML's; its text null if it has
+ * its plain text or its HTML's (wholeTextOf); its text null if it has
  * neither. Whom it was copied to, as its Cc said, or null. And whether a
  * machine sent it, by its headers and subject. Its whole text, quotes and
  * all, null as its text is. Null, empty and false if it's gone.

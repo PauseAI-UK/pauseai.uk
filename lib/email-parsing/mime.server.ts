@@ -153,13 +153,21 @@ const HTML_ENTITIES: Record<string, string> = {
   rsquo: "’",
 };
 
-/** Some text with HTML's entities as characters: one it doesn't know stays as it is. */
+/** The last character there is, by its number. */
+const LAST_CODE_POINT = 0x10ffff;
+
+/** Some text with HTML's entities as characters: one it doesn't know, or numbered past the last character, stays as it is. */
 function entitiesRead(text: string): string {
   return text.replace(/&(?:#(\d+)|#x([0-9a-f]+)|([a-z]+));/gi, (entity, decimal, hex, name) => {
-    if (decimal) return String.fromCodePoint(Number(decimal));
-    if (hex) return String.fromCodePoint(parseInt(hex, 16));
-    return HTML_ENTITIES[name] ?? entity;
+    if (name) return HTML_ENTITIES[name] ?? entity;
+    const code = decimal ? Number(decimal) : parseInt(hex, 16);
+    return code <= LAST_CODE_POINT ? String.fromCodePoint(code) : entity;
   });
+}
+
+/** Some text without its zero-width spaces, which a mailer puts in a paragraph it wants kept though empty. */
+function zeroWidthGone(text: string): string {
+  return text.replace(/\u200b/g, "");
 }
 
 /** Some HTML's text: its source's wrapping and its tags gone, a blank line between paragraphs, a line for each other break. */
@@ -170,7 +178,7 @@ function tagsGone(html: string): string {
     .replace(/<\/(p|h\d)>/gi, "\n\n")
     .replace(/<br\s*\/?>|<\/(div|tr)>/gi, "\n")
     .replace(/<[^>]+>/g, "");
-  return entitiesRead(lines).replace(/ *\n */g, "\n");
+  return zeroWidthGone(entitiesRead(lines)).replace(/ *\n */g, "\n");
 }
 
 /** An HTML part's text, what's in a blockquote marked with "> " as plain text quotes it. */
@@ -197,10 +205,21 @@ function htmlText(html: string): string {
     .trim();
 }
 
-/** A message's whole text, the mail it quotes included: its plain text if it has one, else its HTML's; empty if neither. */
+/**
+ * A message's whole text, the mail it quotes included: its plain text if it
+ * has one, else its HTML's; empty if neither. Plain text with HTML's entities
+ * left in it ("I&rsquo;ve") was made from the message's HTML by a mailer that
+ * didn't finish, as a casework system's is, its links as tracking addresses
+ * too: the HTML is read instead, or with no HTML, the entities are.
+ */
 export function wholeTextOf(message: MimePart): string {
   const plain = firstOfType(message, "text/plain");
-  if (plain) return partText(plain).replace(/\r\n/g, "\n").trim();
   const html = firstOfType(message, "text/html");
+  if (plain) {
+    const text = partText(plain).replace(/\r\n/g, "\n").trim();
+    const read = entitiesRead(text);
+    if (read === text) return text;
+    if (!html) return zeroWidthGone(read).trim();
+  }
   return html ? htmlText(partText(html)) : "";
 }

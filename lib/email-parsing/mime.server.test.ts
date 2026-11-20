@@ -10,6 +10,7 @@ import {
   parseMime,
   decodedText,
   partText,
+  wholeTextOf,
 } from "./mime.server";
 
 describe("reading a message", () => {
@@ -90,5 +91,38 @@ describe("reading a message", () => {
     expect(fromAddress("Polly <Polly@Example.org>")).toEqual({ address: "polly@example.org", name: "Polly" });
     expect(fromAddress("MAILER-DAEMON@googlemail.com")).toEqual({ address: "mailer-daemon@googlemail.com", name: "" });
     expect(fromAddress(undefined)).toEqual({ address: "", name: "" });
+  });
+
+  /** A message in two forms, as a casework system sends it: its plain text made from its HTML. */
+  const inTwoForms = (plain: string, html: string) =>
+    parseMime(
+      'Content-Type: multipart/alternative; boundary="b"\r\n\r\n' +
+        `--b\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${plain}\r\n` +
+        `--b\r\nContent-Type: text/html; charset=utf-8\r\n\r\n${html}\r\n--b--\r\n`,
+    );
+
+  it("reads the HTML of a message whose plain text has HTML's entities left in it", () => {
+    const html =
+      "<p>Dear Jo,</p><p>I&rsquo;ve signed the motion.&#8203;</p><p>&#8203;</p>" +
+      '<p>You can <a href="https://u1.ct.sendgrid.net/ls/click?upn=u001.abc">read it here</a>.</p>';
+    const plain =
+      "Dear Jo,\r\n\r\nI&rsquo;ve signed the motion.&#8203;\r\n\r\n&#8203;\r\n\r\n" +
+      "You can read it here [https://u1.ct.sendgrid.net/ls/click?upn=u001.abc].";
+    expect(wholeTextOf(inTwoForms(plain, html))).toBe("Dear Jo,\n\nI’ve signed the motion.\n\nYou can read it here.");
+  });
+
+  it("reads plain text with nothing of HTML's in it, though the message has HTML too", () => {
+    expect(wholeTextOf(inTwoForms("Jo & Sam; R&D; AT&T.", "<p>Not this</p>"))).toBe("Jo & Sam; R&D; AT&T.");
+  });
+
+  it("reads the entities in plain text that has them, when the message has no HTML", () => {
+    const message = parseMime(
+      "Content-Type: text/plain\r\n\r\nIt&rsquo;s &#163;5 &amp; &#x2014; &unknown; &#99999999; &#xffffffff;.&#8203;\r\n",
+    );
+    expect(wholeTextOf(message)).toBe("It’s £5 & — &unknown; &#99999999; &#xffffffff;.");
+  });
+
+  it("reads a message with no text as empty", () => {
+    expect(wholeTextOf(parseMime("Content-Type: image/png\r\n\r\nabc"))).toBe("");
   });
 });
