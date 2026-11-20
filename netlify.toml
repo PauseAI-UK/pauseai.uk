@@ -25,8 +25,7 @@
     Cache-Control = "public, max-age=604800, must-revalidate"
 
 # The site's own fonts, kept for a week likewise: their names don't change.
-# Without it a browser asks again for each font on every page, and Firefox
-# asks twice on a first visit for one the page preloads (app/layout.tsx).
+# Without it a browser asks again for each font on every page it shows.
 [[headers]]
   for = "/fonts/*"
   [headers.values]
