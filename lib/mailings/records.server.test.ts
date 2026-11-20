@@ -193,7 +193,7 @@ describeWithDatabase("mailings", () => {
     expect(rows.map((row) => row.state)).toEqual(cases.map((one) => letterState(one).state));
   });
 
-  it("puts the mailings in three parts: drafts, those coming up, and the rest", async () => {
+  it("puts the mailings in parts: those scheduled, those sending, drafts, and those done with", async () => {
     await addTestPolitician({ house: "lords" });
     await addTestPolitician({ name: "Dora Dummy", airtableId: "recDora" });
     const lords = await createDraft(
@@ -213,23 +213,33 @@ describeWithDatabase("mailings", () => {
       "UPDATE mailings SET state = 'sending', due_at = '2026-11-01', sent_from = 'jo@pauseai.uk', from_name = 'Jo' WHERE id = $1",
       [sooner.id],
     );
+    // Scheduled too, before Later, though made after it.
+    const next = await createDraft("jo@pauseai.uk", { list: "politicians", params: {} }, { subject: "Next" });
+    await query(
+      "UPDATE mailings SET state = 'scheduled', due_at = '2026-11-20', sent_from = 'jo@pauseai.uk', from_name = 'Jo' WHERE id = $1",
+      [next.id],
+    );
 
-    const { drafts, comingUp, sent } = await mailingsOverview();
+    const { scheduled, sending, drafts, done } = await mailingsOverview();
     // The newest edited first, each with how many its filter finds now.
     expect(drafts.map((m) => [m.title, m.to, m.state, m.createdBy])).toEqual([
       ["To the Lords", 1, "draft", "jo@pauseai.uk"],
       ["Everyone", 2, "draft", "jo@pauseai.uk"],
     ]);
     expect(drafts[1].id).toBe(all.id);
-    expect(comingUp.map((m) => m.title)).toEqual(["Sooner", "Later"]);
-    expect(sent.map((m) => m.title)).toContain(EDINBURGH);
-    expect(sent.map((m) => m.state)).not.toContain("draft");
+    expect(scheduled.map((m) => m.title)).toEqual(["Next", "Later"]);
+    expect(sending.map((m) => m.title)).toEqual(["Sooner"]);
+    expect(done.map((m) => m.title)).toContain(EDINBURGH);
+    expect(done.map((m) => m.state)).not.toContain("draft");
     // The list for the download leaves the drafts out.
     expect((await listMailings()).map((m) => m.title)).not.toContain("Everyone");
-    // The page's groups, Coming up first, and when now is.
+    // The page's groups, Scheduled first, and when now is.
     const page = await mailingsPage();
-    expect(page.groups[0]).toMatchObject({ key: "coming", heading: mailingsCopy.mailingPages.comingUp });
-    expect(page.groups[0].mailings.map((m) => m.title)).toEqual(["Sooner", "Later", "To the Lords", "Everyone"]);
+    expect(page.groups.slice(0, 3).map((g) => [g.heading, g.mailings.map((m) => m.title)])).toEqual([
+      [mailingsCopy.mailingPages.scheduled, ["Next", "Later"]],
+      [mailingsCopy.mailingPages.sending, ["Sooner"]],
+      [mailingsCopy.mailingPages.drafts, ["To the Lords", "Everyone"]],
+    ]);
     expect(Date.parse(page.now)).not.toBeNaN();
   });
 });

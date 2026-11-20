@@ -10,39 +10,32 @@ export function mailingWhen(mailing: MailingBase): Date {
   return mailing.sentAt ?? mailing.dueAt ?? mailing.updatedAt;
 }
 
+/** How long one done with stays under Just finished, from when it started sending, before it goes under its month. */
+const JUST_FINISHED_MS = 24 * 60 * 60 * 1000;
+
 /**
- * The mailings page's groups: Coming up, of those sending, then those
- * scheduled, soonest first, then the drafts, newest edited first; then
- * Recent, in the order given, where a list has one; then the rest under
- * their months and years (monthsAndYears). A list with Recent (broadcasts:
- * broadcastsPage) has each apart instead, in the order given: Scheduled;
- * Sending; Drafts; then Recent, headed Just finished.
+ * The groups of a list of mailings or of broadcasts, each in the order
+ * given, and each left out with none in it: Scheduled; Sending; Drafts;
+ * Just finished, those `done` (sent or stopped) that started sending in the
+ * last day; then the rest of those done under their months and years
+ * (monthsAndYears).
  */
 export function mailingGroups<T extends MailingBase>(
-  {
-    drafts,
-    comingUp,
-    sending = [],
-    recent,
-    sent,
-  }: { drafts: T[]; comingUp: T[]; sending?: T[]; recent?: T[]; sent: T[] },
+  { scheduled, sending, drafts, done }: { scheduled: T[]; sending: T[]; drafts: T[]; done: T[] },
   now: Date,
 ): MailingGroup<T>[] {
-  const coming = [...comingUp.filter((m) => m.state === "sending"), ...comingUp.filter((m) => m.state !== "sending")];
   const words = mailingsCopy.mailingPages;
+  const justFinished = done.filter((m) => m.sentAt && now.getTime() - m.sentAt.getTime() <= JUST_FINISHED_MS);
   const groups: MailingGroup<T>[] = [];
   const add = (key: string, heading: string, mailings: T[]) => {
     if (mailings.length > 0) groups.push({ key, heading, mailings });
   };
-  if (recent) {
-    add("coming", words.scheduled, coming);
-    add("sending", words.sending, sending);
-    add("drafts", words.drafts, drafts);
-    add("recent", words.recent, recent);
-  } else {
-    add("coming", words.comingUp, [...coming, ...drafts]);
-  }
-  for (const { key, heading, items } of monthsAndYears(sent, (mailing) => mailingWhen(mailing).toISOString(), now)) {
+  add("scheduled", words.scheduled, scheduled);
+  add("sending", words.sending, sending);
+  add("drafts", words.drafts, drafts);
+  add("just-finished", words.justFinished, justFinished);
+  const older = done.filter((m) => !justFinished.includes(m));
+  for (const { key, heading, items } of monthsAndYears(older, (mailing) => mailingWhen(mailing).toISOString(), now)) {
     groups.push({ key, heading, mailings: items });
   }
   return groups;

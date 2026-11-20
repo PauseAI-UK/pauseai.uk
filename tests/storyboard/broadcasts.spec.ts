@@ -1149,7 +1149,7 @@ test("Giving up on delayed emails", async ({ page, flowDatabase }) => {
   await frame(page, "Stopped, two errors");
   story("In the list of broadcasts, it stays under Just finished for a day after it went, stopped.");
   await page.goto(`${BASE}/staff/broadcasts`);
-  await expect(page.getByRole("region", { name: mailingCopy.recent }).getByText(title)).toBeVisible();
+  await expect(page.getByRole("region", { name: mailingCopy.justFinished }).getByText(title)).toBeVisible();
   await frame(page, "Stopped, under Just finished");
 });
 

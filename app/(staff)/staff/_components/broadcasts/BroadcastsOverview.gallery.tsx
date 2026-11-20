@@ -9,6 +9,7 @@ import type { SendingPause } from "@/lib/broadcasts/broadcasts";
 const now = "2026-11-05T12:00:00Z";
 const groups = mailingGroups(
   {
+    sending: [],
     drafts: [
       { ...exampleBroadcastSummary, id: 3, state: "draft" as const, title: "Events near you", to: 412 },
       {
@@ -34,7 +35,7 @@ const groups = mailingGroups(
         fromName: "PauseAI UK",
       },
     ],
-    comingUp: [
+    scheduled: [
       {
         ...exampleBroadcastSummary,
         id: 4,
@@ -53,7 +54,7 @@ const groups = mailingGroups(
         title: "Sunday's stall",
       },
     ],
-    sent: [
+    done: [
       exampleBroadcastSummary,
       {
         ...exampleBroadcastSummary,
@@ -94,15 +95,16 @@ const sending = (id: number, title: string, pause: SendingPause | null) => ({
 const until = new Date("2026-11-06T10:07:00Z");
 const paused = mailingGroups(
   {
+    scheduled: [],
     drafts: [],
-    comingUp: [
+    sending: [
       sending(11, "Going out", null),
       sending(12, "Waiting for CiviCRM", { kind: "waiting", reason: "pull", said: null, endsAt: until }),
       sending(13, "Resting after its sends failed", { kind: "resting", until: new Date("2026-11-05T12:20:00Z") }),
       sending(14, "Its last texts held by WhatsApp", { kind: "held", held: 20, until, stopsAt: until }),
       sending(15, "At today's limit", { kind: "limit", channel: "text" }),
     ],
-    sent: [],
+    done: [],
   },
   new Date(now),
 );

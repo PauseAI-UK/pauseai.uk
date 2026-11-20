@@ -91,7 +91,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await choosingBroadcast("999")).toBeUndefined();
   });
 
-  it("lists drafts, with who they'd go to now, those coming up, and those sent, with their counts", async () => {
+  it("lists those scheduled, drafts, with who they'd go to now, and those sent, with their counts", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     await addFollower("usr-2", "sam@example.com", "Sam", { phone: "07700 900002" });
     await addFollower("usr-3", "pat@example.com", "Pat", { phone: "07700 900003" });
@@ -115,7 +115,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     const { groups, now } = await broadcastsPage();
     expect(typeof now).toBe("string");
     expect(groups.map((group) => [group.key, group.mailings.map((m) => m.state)])).toEqual([
-      ["coming", ["scheduled", "scheduled"]],
+      ["scheduled", ["scheduled", "scheduled"]],
       ["drafts", ["draft"]],
       [expect.any(String), ["sent"]],
     ]);
@@ -527,11 +527,11 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     const stoppedToday = await done("Stopped today", "cancelled", "23 hours");
     const sentBefore = await done("Sent before", "sent", "25 hours");
     const { groups } = await broadcastsPage();
-    // One past its time, waiting for CiviCRM, hasn't started, so it's still coming up, first, as it was due first.
+    // One past its time, waiting for CiviCRM, hasn't started, so it's still scheduled, first, as it was due first.
     expect(groups.map((group) => [group.key, group.mailings.map((m) => m.id)])).toEqual([
-      ["coming", [waitingNow, coming]],
+      ["scheduled", [waitingNow, coming]],
       ["sending", [sending, resting]],
-      ["recent", [sentToday, stoppedToday]],
+      ["just-finished", [sentToday, stoppedToday]],
       [expect.any(String), [sentBefore]],
     ]);
     expect(groups.map((group) => group.heading).slice(0, 3)).toEqual(["Scheduled", "Sending", "Just finished"]);

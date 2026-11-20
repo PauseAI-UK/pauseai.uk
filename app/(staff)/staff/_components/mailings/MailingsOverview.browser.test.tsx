@@ -16,9 +16,10 @@ describe("MailingsOverview", () => {
   const now = "2026-10-30T12:00:00Z";
   const groups = mailingGroups(
     {
+      scheduled: [exampleScheduled],
+      sending: [exampleSending],
       drafts: [exampleDraft, { ...exampleDraft, id: 7, title: "" }],
-      comingUp: [exampleScheduled, exampleSending],
-      sent: [...exampleMailings, { ...exampleMailings[1], id: 9, sentAt: new Date("2025-07-09T10:00:00Z") }],
+      done: [...exampleMailings, { ...exampleMailings[1], id: 9, sentAt: new Date("2025-07-09T10:00:00Z") }],
     },
     new Date(now),
   );
@@ -28,7 +29,7 @@ describe("MailingsOverview", () => {
     const mailing = { ...exampleMailings[0], imported: true, sentFrom: null, fromName: null, oldLetters: true };
     await render(
       <MailingsOverview
-        groups={mailingGroups({ drafts: [], comingUp: [], sent: [mailing] }, new Date(now))}
+        groups={mailingGroups({ scheduled: [], sending: [], drafts: [], done: [mailing] }, new Date(now))}
         now={now}
       />,
     );
@@ -39,7 +40,7 @@ describe("MailingsOverview", () => {
     const mailing = { ...exampleMailings[0], imported: true, sentFrom: null, fromName: "Joseph", oldLetters: true };
     await render(
       <MailingsOverview
-        groups={mailingGroups({ drafts: [], comingUp: [], sent: [mailing] }, new Date(now))}
+        groups={mailingGroups({ scheduled: [], sending: [], drafts: [], done: [mailing] }, new Date(now))}
         now={now}
       />,
     );
@@ -47,14 +48,14 @@ describe("MailingsOverview", () => {
     expect(document.body.textContent).not.toContain(mailingsCopy.mailings.notRecorded);
   });
 
-  it("groups them: coming up, then by month, then by year, each row only what matters at its stage", async () => {
+  it("groups them: scheduled, sending, drafts, then by month, then by year, each row only what matters at its stage", async () => {
     await render(<MailingsOverview groups={groups} now={now} />);
     expect(
       page
         .getByRole("heading", { level: 2 })
         .all()
         .map((h) => h.element().textContent),
-    ).toEqual([copy.comingUp, "October 2026", "2025"]);
+    ).toEqual([copy.scheduled, copy.sending, copy.drafts, "October 2026", "2025"]);
     // Each says where it stands after a dot. A draft: when it was saved, and how many it's to; one untitled, said so.
     await expect.element(row("Meet us in Westminster").first()).toMatchTextContent(copy.savedAt("28 Oct 2026"));
     await expect.element(row("Meet us in Westminster").first()).toMatchTextContent(copy.standing.draft(412));
@@ -120,7 +121,10 @@ describe("MailingsOverview", () => {
       askKind: "letter",
     };
     await render(
-      <MailingsOverview groups={mailingGroups({ drafts: [], comingUp: [], sent: [lone] }, new Date(now))} now={now} />,
+      <MailingsOverview
+        groups={mailingGroups({ scheduled: [], sending: [], drafts: [], done: [lone] }, new Date(now))}
+        now={now}
+      />,
     );
     await expect.element(row("Ben Lake")).toMatchTextContent(`${asksCopy.asks.askTo.letter} Frontier AI letter`);
     await expect.element(row("Ben Lake")).not.toMatchTextContent(" · ");
@@ -135,7 +139,10 @@ describe("MailingsOverview", () => {
       askKind: "letter",
     };
     await render(
-      <MailingsOverview groups={mailingGroups({ drafts: [], comingUp: [], sent: [lone] }, new Date(now))} now={now} />,
+      <MailingsOverview
+        groups={mailingGroups({ scheduled: [], sending: [], drafts: [], done: [lone] }, new Date(now))}
+        now={now}
+      />,
     );
     await expect
       .element(row("Ben Lake"))

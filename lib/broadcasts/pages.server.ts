@@ -219,9 +219,8 @@ async function withPause(row: SummaryRow): Promise<BroadcastSummary> {
 }
 
 /**
- * The page of broadcasts: what's coming up; what's sending, or waiting; the
- * drafts; what's recent, done with since it started in the last day; and
- * the rest under their months and years;
+ * The page of broadcasts, in its groups (mailingGroups): those scheduled;
+ * those sending, or waiting; the drafts; and those done with;
  * and now, which says which year needn't be written.
  */
 export async function broadcastsPage(): Promise<{ groups: MailingGroup<BroadcastSummary>[]; now: string }> {
@@ -249,21 +248,16 @@ export async function broadcastsPage(): Promise<{ groups: MailingGroup<Broadcast
     Promise.all(rows.map(withPause)),
   ]);
   const at = now();
-  const dayAgo = at.getTime() - 24 * 60 * 60 * 1000;
-  // Done with: sent or stopped. Just finished while it started sending in the last day; after that, under its month.
-  const done = all.filter((m) => m.state !== "sending");
-  const doneRecently = done.filter((m) => m.sentAt && m.sentAt.getTime() >= dayAgo);
   return {
     groups: mailingGroups(
       {
-        drafts: counted.filter((m) => m.state === "draft"),
-        comingUp: counted
+        scheduled: counted
           .filter((m) => m.state === "scheduled")
           .sort((a, b) => a.dueAt!.getTime() - b.dueAt!.getTime()),
         // Going out, then waiting, however long ago it started, as it isn't done.
         sending: [...all.filter((m) => m.state === "sending" && !m.pause), ...all.filter((m) => m.pause)],
-        recent: doneRecently,
-        sent: done.filter((m) => !doneRecently.includes(m)),
+        drafts: counted.filter((m) => m.state === "draft"),
+        done: all.filter((m) => m.state !== "sending"),
       },
       at,
     ),

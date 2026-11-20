@@ -249,8 +249,9 @@ function Row<T extends MailingBase>({
 }
 
 /**
- * The list of mailings, in its groups (mailingGroups): what's coming up,
- * then the months and years of those sent, each mailing a row that shows
+ * The list of mailings, in its groups (mailingGroups): those scheduled,
+ * sending, drafts and just finished, then the months and years of those
+ * done with before, each mailing a row that shows
  * only what matters at its stage. Nothing on it changes a mailing: that's
  * done on the mailing's own page, on purpose. It's as wide as the grid,
  * not the window.
