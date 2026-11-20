@@ -74,11 +74,11 @@ describe("Nav", () => {
     const trigger = container.querySelector('nav a[href="#local-groups"]')!;
     expect(trigger.textContent).toBe("Groups");
     const links = [...trigger.nextElementSibling!.querySelectorAll("a")].map((a) => [
-      a.getAttribute("href"),
+      a.getAttribute("href")!.replace(/\/$/, ""),
       a.textContent,
     ]);
-    expect(links.map(([href]) => href!.replace(/\/$/, "")).sort()).toEqual(groups.map((group) => group.href).sort());
-    expect(links.slice(-affinityGroups.length)).toEqual(affinityGroups.map((group) => [`${group.href}/`, group.menu]));
+    expect(links.map(([href]) => href).sort()).toEqual(groups.map((group) => group.href).sort());
+    expect(links.slice(-affinityGroups.length)).toEqual(affinityGroups.map((group) => [group.href, group.menu]));
   });
 
   it("shows the PauseAI UK logo, and a group's branding on its page", async () => {

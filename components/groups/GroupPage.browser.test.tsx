@@ -27,6 +27,19 @@ describe("GroupPage", () => {
     },
   );
 
+  it("tints a photo, and shows an illustration whole in its own colours", async () => {
+    const picture = (container: Element) =>
+      getComputedStyle(container.querySelector('main > section [style*="url("]')!);
+    const photo = await render(<GroupPage content={groupPages.London} />);
+    expect(picture(photo.container).backgroundImage).toMatch(/^linear-gradient.*url\(/);
+    await photo.unmount();
+    const illustration = await render(<GroupPage content={groupPages.Parents} />);
+    const style = picture(illustration.container);
+    expect(style.backgroundImage).toMatch(/^url\(/);
+    expect(style.backgroundSize).toBe("cover");
+    expect(style.backgroundPosition).toBe("100% 50%");
+  });
+
   it("puts every section in the same order, with the same headings", async () => {
     const { container } = await render(<GroupPage content={groupPages.Leicester} />);
     const headings = [...container.querySelectorAll("main h2")].map((h) => h.textContent);

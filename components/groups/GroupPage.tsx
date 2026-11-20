@@ -36,6 +36,8 @@ export type GroupPageContent = {
     photo: string;
     /** Extra background rules for the photo (size, position) where the default crop misses. */
     photoStyle?: CSSProperties;
+    /** The picture is an illustration, its subject on the right: shown whole, without a photo's tint. */
+    illustration?: boolean;
     badge?: string;
   };
   /** What the group does, as cards without photos, under a heading that says whose doing it is. */
@@ -114,10 +116,17 @@ export default function GroupPage({ content }: { content: GroupPageContent }) {
             </div>
           </div>
           <div className={styles.heroVisual}>
-            <div
-              className={styles.heroPhoto}
-              style={{ backgroundImage: `${PHOTO_TINT}, url('${hero.photo}')`, ...hero.photoStyle }}
-            ></div>
+            {hero.illustration ? (
+              <div
+                className={`${styles.heroPhoto} ${styles.illustration}`}
+                style={{ backgroundImage: `url('${hero.photo}')` }}
+              ></div>
+            ) : (
+              <div
+                className={styles.heroPhoto}
+                style={{ backgroundImage: `${PHOTO_TINT}, url('${hero.photo}')`, ...hero.photoStyle }}
+              ></div>
+            )}
             {hero.badge && (
               <div className={styles.heroBadge} data-testid="hero-badge">
                 {hero.badge}

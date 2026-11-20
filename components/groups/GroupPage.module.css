@@ -54,6 +54,17 @@
   pointer-events: none;
 }
 
+/* An illustration fills the frame from its right, where its subject is, in
+   its own colours. */
+.illustration {
+  background-size: cover;
+  background-position: right center;
+}
+
+.illustration::after {
+  content: none;
+}
+
 .heroBadge {
   position: absolute;
   bottom: -16px;

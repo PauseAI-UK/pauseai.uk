@@ -12,8 +12,6 @@ import { Lede } from "@/components/ui/Section";
 const WHATSAPP = { label: "Join the WhatsApp community", href: site.whatsappUrl, newTab: true } as const;
 const WEST_OF_ENGLAND_LINKTREE = "https://linktr.ee/PauseAI_West_of_England";
 const CAMBRIDGE_EMAIL = "cambridge@pauseai.uk";
-/** For a hero that's an illustration, its subject on the right: the whole picture, kept to that side. */
-const ILLUSTRATION = { backgroundSize: "cover", backgroundPosition: "right center" } as const;
 
 /** The email address and the WhatsApp community, as an affinity group's contact section lists them. */
 const EMAIL_AND_WHATSAPP = (
@@ -247,7 +245,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
         { label: `⁂ Email ${CAMBRIDGE_EMAIL}`, href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "ghost" },
       ],
       photo: "/images/local-groups/cambridge/hero.webp",
-      photoStyle: ILLUSTRATION,
+      illustration: true,
     },
     contact: {
       lede: "⁂ Email us to hear about the next meet, or join the WhatsApp community to connect with organisers across the UK.",
@@ -352,7 +350,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
         { label: "Email the team", href: `mailto:${site.contactEmail}`, variant: "ghost" },
       ],
       photo: "/images/groups/parents-hero.webp",
-      photoStyle: ILLUSTRATION,
+      illustration: true,
       badge: "⁂ Make your voice heard",
     },
     contact: {
@@ -371,7 +369,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
         { label: "Email the team", href: `mailto:${site.contactEmail}`, variant: "ghost" },
       ],
       photo: "/images/groups/teachers-hero.webp",
-      photoStyle: ILLUSTRATION,
+      illustration: true,
       badge: "⁂ Make your voice heard",
     },
     contact: {
