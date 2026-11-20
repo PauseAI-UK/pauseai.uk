@@ -667,13 +667,15 @@ test("Reacting to a reply to a text", async ({ page, request, flowDatabase }) =>
     "A thumbs up is all it needs. It goes to their message by WhatsApp and shows on it, as WhatsApp shows one. Under the conversation, who put it there; and the reply is settled, as an answer would settle it.",
   );
   await emoji("👍").click();
-  await expect(page.getByText(/reacted 👍/)).toBeVisible();
+  // The line under the conversation, which names who; not the history's "We reacted".
+  const ours = page.getByText(new RegExp(`^${staffEmail()} reacted 👍`));
+  await expect(ours).toBeVisible();
   await expect(page.getByRole("button", { name: copy.replies.nothing })).toHaveCount(0);
   await frame(page, "Our thumbs up on their message, the reply settled");
   story("Pressing it again takes ours away. The reply stays settled.");
   await smiley.click();
   await emoji("👍").click();
-  await expect(page.getByText(/reacted 👍/)).toHaveCount(0);
+  await expect(ours).toHaveCount(0);
   await frame(page, "Ours taken away");
 });
 
