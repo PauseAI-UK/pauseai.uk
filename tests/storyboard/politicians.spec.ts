@@ -757,8 +757,8 @@ test("A one-off thread", async ({ page, request, flowDatabase }) => {
   runSql(
     flowDatabase,
     `INSERT INTO one_off_thread_people (thread_id, notable_person_id) VALUES (${thread}, ${polly});
-     INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, addresses, subject, at, from_us, blob_key, size)
-     VALUES (${thread}, 'joseph@pauseai.uk', '19a0f00d', '19a0f00d', '${address}', '', ARRAY['${address}', 'joseph@pauseai.uk'],
+     INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, to_line, addresses, subject, at, from_us, blob_key, size)
+     VALUES (${thread}, 'joseph@pauseai.uk', '19a0f00d', '19a0f00d', '${address}', '', 'Joseph Example <joseph@pauseai.uk>', ARRAY['${address}', 'joseph@pauseai.uk'],
        'Re: Coffee next week?', '2026-08-02T09:00:00Z', false, 'fixture/one-off-polly.eml.gz', 1);`,
   );
   await page.goto(`${BASE}/staff/one-off/${thread}`);
