@@ -85,8 +85,10 @@ export const mailingsCopy = {
       conflict:
         "This draft changed somewhere else since you opened it, so your last change wasn't saved. Reload the page to see it as it is now.",
     } as Record<string, string>,
-    // In the window's corner, whether the draft is saved.
+    // In the window's corner, whether the draft is saved; or, for a broadcast whose Consent was just picked, that
+    // who it goes to is still being counted.
     savePill: {
+      calculating: "Calculating…",
       saving: "Saving…",
       saved: "Saved",
       failed: "Couldn't save. Make another change to try saving again.",

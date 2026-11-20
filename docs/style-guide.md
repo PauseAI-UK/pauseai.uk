@@ -1064,6 +1064,16 @@ such as one that opens a menu, doesn't wait at all.
 A button with a look of its own (the donate page's) puts its words in
 `ButtonInside` and greys itself while `aria-busy`.
 
+### A choice that's worked out on the server
+
+A choice among lozenges doesn't wait as a button does. The one pressed
+shows as chosen at once (`useOptimistic`), and where a draft says Saved,
+an amber "Calculating…" pulses until the server's answer is on the page
+(`SaveState`'s `calculating`). Meanwhile what the answer decides is
+faint, such as a count, a button that goes by it is off, and another
+press does nothing. A broadcast's Consent does this: who it goes to is
+counted again for each list (`BroadcastWriter`, `BroadcastConsent`).
+
 ### Deleting, pressed twice
 
 Delete is a ghost button naming what it deletes ("Delete ask"). Pressed

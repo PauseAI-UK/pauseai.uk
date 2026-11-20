@@ -4,7 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { useEffect, useId, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import MenuSelect, { type MenuOption } from "../ui/MenuSelect";
@@ -457,10 +457,10 @@ export default function BroadcastWriter({
   const email = draft.channel === "email";
   const { id } = draft;
   const start = BROADCAST_START;
-  const [picking, setPicking] = useState(false);
-  // Changing the Consent, which brings the page back with its new counts (revalidatePath): the pick isn't done till
-  // they're here.
-  const [changing, startChange] = useTransition();
+  // Changing the Consent, which brings the page back with its new counts (revalidatePath): under way till they're
+  // here. Till then the one picked shows as chosen, and what goes by the counts waits.
+  const [calculating, startChange] = useTransition();
+  const [picked, setPicked] = useOptimistic<string | undefined>(undefined);
   // The channel whose Consents show: the draft's, or on New broadcast the one picked, if any.
   const [shown, setShown] = useState<Channel | "">(chosen ?? (email ? "email" : "phone"));
   const show = (channel: Channel) => {
@@ -471,22 +471,34 @@ export default function BroadcastWriter({
   const [fresh] = useState<Partial<Changes>>(() =>
     email && !draft.subject && isBlankMailing(draft.body) ? { body: start } : {},
   );
-  const { values, change, saveNow, saveState, version, attachments, attach, detach, fileProblem, stale, restored } =
-    useDraftWriter<Changes>({
-      id,
-      version: draft.version,
-      initial: {
-        subject: draft.subject,
-        body: draft.body,
-        sendBy: draft.sendBy,
-        dueAt: draft.dueAt,
-        templateId: draft.template?.status === "approved" ? draft.template.id : null,
-        title: draft.title,
-      },
-      fresh,
-      attachments: draft.attachments,
-      actions,
-    });
+  const {
+    values,
+    change,
+    saveNow,
+    alongside,
+    saveState,
+    version,
+    attachments,
+    attach,
+    detach,
+    fileProblem,
+    stale,
+    restored,
+  } = useDraftWriter<Changes>({
+    id,
+    version: draft.version,
+    initial: {
+      subject: draft.subject,
+      body: draft.body,
+      sendBy: draft.sendBy,
+      dueAt: draft.dueAt,
+      templateId: draft.template?.status === "approved" ? draft.template.id : null,
+      title: draft.title,
+    },
+    fresh,
+    attachments: draft.attachments,
+    actions,
+  });
   const [choosing, choose] = useLeaving();
   const [submitting, setSubmitting] = useState(false);
   // Why the words didn't go for approval just now, so they're still here to send again: an alert under the button.
@@ -546,9 +558,9 @@ export default function BroadcastWriter({
     numbered: Boolean(data.textNumber),
     sends: data.sends,
   }).filter((problem) => problem !== "cannot-send");
-  // Greyed, before a Consent by the channel picked: that comes first. What only new words have wrong is said
-  // under Send for approval, not again by Schedule.
-  const shownProblems = [...(blank ? ["no-consent"] : []), ...problems].filter(
+  // Greyed, before a Consent by the channel picked: that comes first, till one's picked. What only new words have
+  // wrong is said under Send for approval, not again by Schedule.
+  const shownProblems = [...(blank && !picked ? ["no-consent"] : []), ...problems].filter(
     (problem) => !(NEW_WORDS_PROBLEMS as string[]).includes(problem),
   );
   const fromName = email ? draft.fromName || BROADCAST_SENDER.name : TEXT_SENDER_NAME;
@@ -559,21 +571,14 @@ export default function BroadcastWriter({
   const title = email ? values.subject.trim() || copy.newTitle.email : values.title.trim() || copy.newTitle.text;
   const whoPath = filtersPath("/staff/supporters", { ...data.filter.params, broadcast: String(id) });
   const hasOwnWords = hasWords({ subject: values.subject, body, templateId: values.templateId });
-  // Choosing a Consent: on New broadcast, makes the draft; on a draft, saves what's typed, then changes it, and
-  // what's typed next is saved at the version that made.
-  const pickConsent = async (consent: string) => {
-    setPicking(true);
-    try {
-      if (creating) return await actions.create(consent);
-      await saveNow();
-      startChange(async () => {
-        const made = await actions.changeConsent(id, consent);
-        if (made !== false) version.current = made;
-      });
-    } finally {
-      setPicking(false);
-    }
-  };
+  // Choosing a Consent: on New broadcast, makes the draft; on a draft, changes it, what's typed saved either side
+  // of the change (alongside).
+  const pickConsent = (consent: string) =>
+    startChange(async () => {
+      setPicked(consent);
+      if (creating) return actions.create(consent);
+      await alongside(() => actions.changeConsent(id, consent));
+    });
   // Before a Consent by the channel picked, what's still to come: there, but greyed and out of reach.
   const lockable = (children: ReactNode) =>
     blank ? (
@@ -636,7 +641,8 @@ export default function BroadcastWriter({
   );
   return (
     <>
-      <DraftTitle title={title} saveState={blank ? undefined : saveState} />
+      {/* While a Consent's change is under way, that in place of whether it's saved; what's not a draft yet has neither. */}
+      <DraftTitle title={title} saveState={calculating ? "calculating" : blank ? undefined : saveState} />
       {saveState === "conflict" && (
         <Strip tone="red" announce>
           {mailingsCopy.mailingPages.saveStates.conflict}
@@ -653,10 +659,10 @@ export default function BroadcastWriter({
       <Grid>
         <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
           <BroadcastConsent
-            value={blank ? "" : consentChoice(draft)}
+            value={picked ?? (blank ? "" : consentChoice(draft))}
             channel={draft.channel === "email" ? "email" : "phone"}
             written={hasOwnWords}
-            pending={picking || changing}
+            pending={calculating}
             pick={pickConsent}
             shown={shown}
             show={show}
@@ -689,7 +695,11 @@ export default function BroadcastWriter({
                 <Strip tone="amber">{mailingsCopy.mailingPages.unknownFilter(data.unknown.join(", "))}</Strip>
               )}
               {/* Greyed, it's to no one yet: who the Consent finds once it's chosen. */}
-              {!blank && <p className={styles.count}>{copy.willGet(data.count, draft.channel)}</p>}
+              {!blank && (
+                <p className={styles.count} aria-busy={calculating || undefined}>
+                  {copy.willGet(data.count, draft.channel)}
+                </p>
+              )}
             </>,
           )}
         </Card>
@@ -970,7 +980,7 @@ export default function BroadcastWriter({
               <div className={styles.send}>
                 <ScheduleButton
                   label={copy.schedule(data.count, draft.channel)}
-                  disabled={problems.length > 0 || !data.sends}
+                  disabled={problems.length > 0 || !data.sends || calculating}
                   saveNow={saveNow}
                   schedule={() => actions.schedule(id, version.current)}
                   stale={stale}

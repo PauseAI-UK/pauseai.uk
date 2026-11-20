@@ -177,17 +177,61 @@ describe("BroadcastWriter's Consent", () => {
     expect(page.getByText(mailingsCopy.mailingPages.saveStates.conflict).query()).toBeNull();
   });
 
-  it("shows a spinner on the list pressed till its change is done", async () => {
+  it("saves what's typed while the Consent changes once it has, at the version the change made", async () => {
+    const actions = await renderWriter();
+    // As Next and the server do: an action waits for the one before it, each change makes a new version, and a
+    // save at any other is refused.
+    let version = 4;
     let done = () => {};
-    const slow = () => new Promise((resolve) => (done = () => resolve(true)));
-    const busy = () =>
-      [...group(copy.facts.saidYes).element().querySelectorAll("button[aria-busy=true]")].map((one) => one.textContent);
+    let before: Promise<unknown> = Promise.resolve();
+    const inTurn = (run: () => unknown) => (before = before.then(run));
+    actions.changeConsent.mockImplementation(() =>
+      inTurn(() => new Promise((resolve) => (done = () => resolve(++version)))),
+    );
+    actions.save.mockImplementation((_id, at) =>
+      inTurn(() => (at === version ? { saved: true, version: ++version } : { saved: false, reason: "conflict" })),
+    );
+    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalled(), WAIT);
+    await page.getByLabelText(copy.subject).fill("While it changes");
+    // Longer than a change waits to be saved.
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(actions.save).not.toHaveBeenCalled();
+    done();
+    await vi.waitFor(() => expect(actions.save).toHaveBeenCalledWith(3, 5, { subject: "While it changes" }), WAIT);
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.saved), WAIT).toBeInTheDocument();
+    expect(page.getByText(mailingsCopy.mailingPages.saveStates.conflict).query()).toBeNull();
+  });
+
+  it("shows the list pressed as chosen at once, and Calculating by the title, the count faint and Schedule off, till its change is done", async () => {
+    let done = () => {};
+    const slow = () => new Promise((resolve) => (done = () => resolve(5)));
+    const chosen = () =>
+      radios(copy.facts.saidYes)
+        .filter(([, on]) => on)
+        .map(([name]) => name);
+    const calculating = () => page.getByText(mailingsCopy.mailingPages.savePill.calculating).query();
+    const count = () => page.getByText(copy.willGet(412, "email")).element();
     const actions = await renderWriter();
     actions.changeConsent.mockImplementation(slow);
+    expect(chosen()).toEqual([lists.updates]);
+    expect(calculating()).toBeNull();
+    expect(count().hasAttribute("aria-busy")).toBe(false);
+    await expect.element(button(copy.schedule(412, "email"))).toBeEnabled();
     await choose(copy.facts.saidYes, lists.volunteering);
-    await vi.waitFor(() => expect(busy()).toEqual([lists.volunteering]), WAIT);
+    await vi.waitFor(() => expect(chosen()).toEqual([lists.volunteering]), WAIT);
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.calculating)).toBeVisible();
+    expect(count().hasAttribute("aria-busy")).toBe(true);
+    await expect.element(button(copy.schedule(412, "email"))).toBeDisabled();
+    // Another press waits for this one.
+    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    expect(actions.changeConsent).toHaveBeenCalledTimes(1);
     done();
-    await vi.waitFor(() => expect(busy()).toEqual([]), WAIT);
+    // The page the action brings back has the draft's new list; here it's still the old, so that shows again.
+    await vi.waitFor(() => expect(calculating()).toBeNull(), WAIT);
+    expect(chosen()).toEqual([lists.updates]);
+    expect(count().hasAttribute("aria-busy")).toBe(false);
+    await expect.element(button(copy.schedule(412, "email"))).toBeEnabled();
   });
 
   it("on a draft, shows the other channel's form greyed till a Consent by it is chosen, which changes the draft", async () => {
@@ -215,9 +259,21 @@ describe("BroadcastWriter's Consent", () => {
     await vi.waitFor(() => expect(subject()).not.toBeNull(), WAIT);
     expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
     await choose(copy.consentChannel, copy.channels.text);
+    // The list picked there is chosen at once, the form still greyed, with Calculating, and no call for a Consent.
+    let done = () => {};
+    actions.changeConsent.mockImplementation(() => new Promise((resolve) => (done = () => resolve(5))));
     await choose(copy.facts.saidYes, lists["updates-luma"]);
     await vi.waitFor(
       () => expect(actions.changeConsent).toHaveBeenCalledWith(3, "text:newsletter:yes text:events:yes"),
+      WAIT,
+    );
+    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([false, true, false]);
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.calculating)).toBeVisible();
+    expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
+    expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
+    done();
+    await vi.waitFor(
+      () => expect(page.getByText(mailingsCopy.mailingPages.savePill.calculating).query()).toBeNull(),
       WAIT,
     );
     expect(actions.create).not.toHaveBeenCalled();

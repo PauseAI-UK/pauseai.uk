@@ -1348,20 +1348,41 @@ test("What the lists mean, and a change waiting on the site", async ({ page, req
   await frame(page, "What the lists mean");
   await page.keyboard.press("Escape");
   story(
-    "Each change waits on the site, which works out again who the broadcast goes to. Till it has, the list pressed shows a spinner.",
+    "A list pressed is chosen at once, while the site works out again who the broadcast goes to. Till it has, Calculating shows where Saved does, the count is faint, as it's the last list's, and Schedule waits.",
   );
-  // The site's answer held back, so the spinner stays to be seen.
+  // The site's answer held back, so the wait stays to be seen.
   const actions = await holdActions(page);
   const volunteering = saidYes.getByRole("radio", {
     name: supportersCopy.supporters.filters.lists.volunteering,
     exact: true,
   });
+  const calculating = page.getByText(mailingCopy.savePill.calculating);
   await volunteering.click();
-  // Its name, busy, under a spinner.
-  const busy = saidYes.locator("[role=radio][aria-busy=true]");
-  await expect(busy).toHaveText(supportersCopy.supporters.filters.lists.volunteering);
-  await frame(page, "Waiting for the site, after pressing Volunteering");
-  await actions.release();
-  await expect(busy).toHaveCount(0);
   await expect(volunteering).toBeChecked();
+  await expect(calculating).toBeVisible();
+  await frame(page, "Volunteering chosen at once, who it goes to still being worked out");
+  story("The site's answer brings the count for Volunteering.");
+  await actions.release();
+  await expect(calculating).toHaveCount(0);
+  await expect(volunteering).toBeChecked();
+  await frame(page, "The count for Volunteering");
+  story(
+    "A list by the other way does the same. With nothing written yet, Text shows a text's form, greyed. A list pressed there is chosen at once, and the form stays greyed till the site has made the draft a text.",
+  );
+  await page
+    .getByRole("radiogroup", { name: copy.consentChannel })
+    .getByRole("radio", { name: copy.channels.text })
+    .click();
+  await expect(page.getByText(copy.problems["no-consent"])).toBeVisible();
+  const held = await holdActions(page);
+  const byText = saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true });
+  await byText.click();
+  await expect(byText).toBeChecked();
+  await expect(calculating).toBeVisible();
+  await frame(page, "Updates by text chosen at once, the text's form greyed till the draft is one");
+  await held.release();
+  await expect(calculating).toHaveCount(0);
+  await expect(page.getByText(copy.problems["no-consent"])).toHaveCount(0);
+  await expect(byText).toBeChecked();
+  await frame(page, "The draft, now a text to Updates");
 });

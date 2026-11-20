@@ -20,6 +20,11 @@
   font-size: var(--text-lg);
 }
 
+/* While they're being counted afresh: faint, as it's the count from before. */
+.count[aria-busy="true"] {
+  opacity: 0.45;
+}
+
 /* Who they are, under a warning: opens the list below it, its arrow as a summary's. */
 .whoToggle {
   padding: 0;

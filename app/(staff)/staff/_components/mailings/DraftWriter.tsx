@@ -43,7 +43,7 @@ export type DraftActions = {
  * title too, changing as it's typed, as the page's own title would once
  * saved and opened again.
  */
-export function DraftTitle({ title, saveState }: { title: string; saveState?: SaveState }) {
+export function DraftTitle({ title, saveState }: { title: string; saveState?: SaveState | "calculating" }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [titleGone, setTitleGone] = useState(false);
   useEffect(() => {
@@ -101,7 +101,8 @@ function takeUnsaved(id: number, version: number): Record<string, unknown> | nul
 /**
  * A draft's values and saving them: each change a moment after it's made,
  * or at once with saveNow, before leaving the page, scheduling or sending a
- * test. `fresh`, what a draft with nothing written yet starts with, is
+ * test; a change of another kind, which makes a version of its own, goes
+ * through `alongside`, so what's typed is saved either side of it. `fresh`, what a draft with nothing written yet starts with, is
  * saved with its first change. Someone else saving meanwhile stops the
  * saving and says so. A time too soon, or gone, when the draft is opened, or
  * that becomes so while it's open, moves on to the first hour it can go at,
@@ -230,6 +231,27 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     if (Object.keys(pending.current).length && !outdated.current) await flush();
   }
 
+  /**
+   * Another change to the draft, which `work` makes, saying the version it
+   * made, or false if it made none. What's typed before goes first; what's
+   * typed while it's under way waits for it, as a save sent meanwhile would
+   * be at the version it leaves behind, and refused.
+   */
+  async function alongside(work: () => Promise<number | false>): Promise<void> {
+    await saveNow();
+    saving.current = true;
+    // What waits for it saves after it, whether it's made or it fails.
+    let over!: () => void;
+    underway.current = new Promise<void>((resolve) => (over = resolve));
+    try {
+      const made = await work();
+      if (made !== false) version.current = made;
+    } finally {
+      saving.current = false;
+      over();
+    }
+  }
+
   /** Shows what's attached after an attach or a detach; whether it was done. */
   function attached(result: AttachResult | undefined): boolean {
     if (!result) return false;
@@ -289,6 +311,7 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     values,
     change,
     saveNow,
+    alongside,
     saveState,
     version,
     attachments,
