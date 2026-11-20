@@ -526,17 +526,17 @@ const opening = (text: string) =>
  * `held`, the thread's kept messages, has it whole, by its sender and opening.
  */
 function withForwards(
-  content: { text: string | null; quoted: string; whole: string | null },
+  content: { text: string | null; quoted: string; whole: string | null; wrapped: boolean },
   subject: string,
   book: PoliticianBook,
   held: { fromAddress: string; text: string | null }[],
 ): { text: string | null; quoted: string; forwarded: RebuiltMessage[] } {
   const split = content.whole === null ? undefined : forwardedMessages(content.whole, subject);
   if (!split) return { text: content.text, quoted: content.quoted, forwarded: [] };
-  const own = split.own ? replyParts(split.own) : { text: "", quoted: "" };
+  const own = split.own ? replyParts(split.own, content.wrapped) : { text: "", quoted: "" };
   const forwarded = split.forwarded.map((message) => {
     const from = fromAddress(message.from);
-    const parts = replyParts(message.body);
+    const parts = replyParts(message.body, content.wrapped);
     const addresses = [from.address, ...addressesIn(`${message.to} ${message.cc}`)];
     return {
       fromName: from.name,

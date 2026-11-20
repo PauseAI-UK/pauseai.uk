@@ -156,6 +156,38 @@ describe("a forward's messages", () => {
     });
   });
 
+  it("reads a forward quoted deeper, as HTML quotes each message in the one before, and Parliament's disclaimer under it all", () => {
+    const text = [
+      "FYI",
+      "",
+      "---------- Forwarded message ---------",
+      "From: Jo <jo@example.com>",
+      "Date: Mon, 1 Jun 2026",
+      "",
+      "Done, thanks.",
+      "",
+      "On Sun, 31 May 2026 at 10:00, WILD, Sam <sam.wild@parliament.uk> wrote:",
+      ">",
+      "> > *From:* Jane <jane@example.com>",
+      "> > *Sent:* 30 May 2026",
+      "> >",
+      "> > > Could you book the room?",
+      "> > >",
+      "> > > Jane",
+      "",
+      "UK Parliament Disclaimer: this e-mail is confidential.",
+    ].join("\n");
+    const split = forwardedMessages(text, "Fwd: Room");
+    expect(split?.forwarded.map(({ from, body }) => ({ from, body }))).toEqual([
+      { from: "Jo <jo@example.com>", body: "Done, thanks." },
+      { from: "WILD, Sam <sam.wild@parliament.uk>", body: "" },
+      {
+        from: "Jane <jane@example.com>",
+        body: "Could you book the room?\n\nJane\n\nUK Parliament Disclaimer: this e-mail is confidential.",
+      },
+    ]);
+  });
+
   it("splits nothing that isn't a forward, or carries no message", () => {
     expect(
       forwardedMessages("On Mon, Oct 19, 2026 at 3:38 PM a@example.com wrote:\n> Hi", "Re: hello"),

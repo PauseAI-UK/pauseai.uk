@@ -301,6 +301,34 @@ describe("replyText", () => {
     expect(replyText(roomy)).toBe(roomy);
     expect(replyText("First paragraph.\n\nSecond paragraph.")).toBe("First paragraph.\n\nSecond paragraph.");
   });
+
+  it("leaves the lines of text read from HTML as they are, as no mailer wrapped them", () => {
+    const lines = [
+      "Location: Committee Room 14, Palace of Westminster, London SW1A 0AA, by the lift",
+      "Timings: from noon",
+    ].join("\n");
+    expect(replyParts(lines, false).text).toBe(lines);
+    expect(replyParts(lines).text).toBe(lines.replace("\n", " "));
+    expect(replyParts(`${lines}\n\nOn Mon, 1 Jun 2026, Jo wrote:\n> Hi`, false)).toEqual({
+      text: lines,
+      quoted: "On Mon, 1 Jun 2026, Jo wrote:\n> Hi",
+    });
+  });
+
+  it("finds a signature or a quote's header by its words, bold or not", () => {
+    expect(
+      replyParts("Thanks.\n\n*Sam Jones |* Caseworker\n*For Polly Placeholder MSP* for Lothian\n*Phone:* 0131", false),
+    ).toEqual({
+      text: "Thanks.",
+      quoted: "*Sam Jones |* Caseworker\n*For Polly Placeholder MSP* for Lothian\n*Phone:* 0131",
+    });
+    expect(replyParts("Yes.\n\n*From:* Jo <jo@example.com>\n*Sent:* Monday\n\nWill you?").text).toBe("Yes.");
+    expect(replyParts("* a list's item\n* and another").text).toBe("* a list's item\n* and another");
+  });
+
+  it("folds Yahoo Mail's line", () => {
+    expect(replyText("Yes.\n\nSent from Yahoo Mail for iPhone <https://mail.onelink.me/1>")).toBe("Yes.");
+  });
 });
 
 describe("letterText", () => {

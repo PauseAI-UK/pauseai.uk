@@ -23,6 +23,7 @@ describeWithDatabase("letter threads", () => {
       cc: "Casey Wörker <casey@parliament.uk>",
       auto: false,
       whole: "Yes.\n\nOn Mon, Jo wrote:\n> Will you?",
+      wrapped: true,
     });
     await saveLetterReply(
       "html.eml.gz",
@@ -56,7 +57,7 @@ describeWithDatabase("letter threads", () => {
       ),
     );
     expect((await messageContent("layout.eml.gz")).text).toBe(
-      "Dear\u00a0Jo,\n\nIt’s split in the source & – — &unknown;.\n\nA line\n\nAnother\nline\n\n- First\n- Second",
+      "Dear\u00a0Jo,\n\nIt’s split in the source & – — &unknown;.\n\nA line\n\nAnother\nline\n- First\n- Second",
     );
   });
 });
