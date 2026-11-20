@@ -130,7 +130,11 @@ export type BroadcastReply = {
   doNotEmail: boolean;
   /** Whether it can be answered now: an email's always can; a text's only within a day, as WhatsApp allows. */
   answerable: boolean;
-  /** Whether we can put an emoji on it now: a text's that isn't itself a reaction, within REACTION_DAYS. */
+  /**
+   * Whether we can put an emoji on it now: a text's that isn't itself a
+   * reaction, within REACTION_DAYS; not one recorded as an opt-out, as an
+   * emoji on someone asking to stop reads as making light of it.
+   */
   reactable: boolean;
 };
 
@@ -156,7 +160,7 @@ export async function repliesTo(copyId: number): Promise<BroadcastReply[]> {
             ...reply,
             text: body,
             answerable: inWindow(reply.receivedAt),
-            reactable: reply.kind !== "reaction" && inReactionWindow(reply.receivedAt),
+            reactable: reply.kind !== "reaction" && reply.outcome !== "opted-out" && inReactionWindow(reply.receivedAt),
           },
     ),
   );

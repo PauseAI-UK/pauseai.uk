@@ -258,6 +258,11 @@ describeWithDatabase("replies to texts", () => {
     expect(await repliesTo(await copyOf(older))).toMatchObject([{ id: older, reactable: false }]);
     await query("UPDATE broadcast_replies SET kind = 'reaction', reaction_to = 'wamid.x' WHERE id = $1", [recent]);
     expect(await repliesTo(await copyOf(recent))).toMatchObject([{ id: recent, reactable: false }]);
+    await query(
+      "UPDATE broadcast_replies SET outcome = 'opted-out', dealt_by = 'jo@pauseai.uk', dealt_at = now() WHERE id = $1",
+      [old],
+    );
+    expect(await repliesTo(await copyOf(old))).toMatchObject([{ id: old, reactable: false }]);
   });
 
   it("gives a text's reply that's more than words its kind, and a reaction what it's to and when it was removed", async () => {
