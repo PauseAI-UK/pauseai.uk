@@ -1,15 +1,40 @@
 "use client";
 
 import { useEffect } from "react";
+import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 
 // Sets --copy-shift on each marquee track (data-marquee-track, its first
-// copy data-marquee-copy) and marks the hero's images data-loaded once
-// they're actually painted. Runs as a React effect (after hydration)
+// copy data-marquee-copy). Runs as a React effect (after hydration)
 // rather than a raw inline <script> so it can't mutate the DOM before
 // React finishes hydrating and cause a hydration mismatch.
+//
+// It also runs the hero photos' fade script (heroPhotoFade.ts). React doesn't
+// run a script in a page it renders in the browser, so the hero's own inline
+// copy only runs when the home page is the first page loaded. And it fetches
+// the hero's later photos once the page has loaded.
 export default function HeroMarqueeEffects() {
   useEffect(() => {
+    const fade = document.createElement("script");
+    fade.textContent = HERO_PHOTO_FADE_SCRIPT;
+    document.head.append(fade);
+    fade.remove();
+
     const cleanups: Array<() => void> = [];
+
+    // The hero's photos that were left for later (HomeHero) are fetched once
+    // the page has loaded, so they're there before their rows bring them on,
+    // without having held anything up.
+    function fetchTheRest() {
+      document.querySelectorAll<HTMLImageElement>('[data-marquee-track="hero"] img[loading="lazy"]').forEach((img) => {
+        img.loading = "eager";
+      });
+    }
+    if (document.readyState === "complete") {
+      fetchTheRest();
+    } else {
+      window.addEventListener("load", fetchTheRest);
+      cleanups.push(() => window.removeEventListener("load", fetchTheRest));
+    }
 
     document.querySelectorAll<HTMLElement>("[data-marquee-track]").forEach((track) => {
       const copy = track.querySelector<HTMLElement>("[data-marquee-copy]");
@@ -39,18 +64,6 @@ export default function HeroMarqueeEffects() {
           img.addEventListener("load", update, { once: true });
         }
       });
-    });
-
-    document.querySelectorAll<HTMLImageElement>('[data-marquee-track="hero"] img').forEach((img) => {
-      function mark() {
-        img.dataset.loaded = "";
-      }
-      if (img.complete && img.naturalWidth > 0) {
-        mark();
-      } else {
-        img.addEventListener("load", mark, { once: true });
-        img.addEventListener("error", mark, { once: true });
-      }
     });
 
     return () => {

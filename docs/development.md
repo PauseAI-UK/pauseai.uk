@@ -435,6 +435,91 @@ Each checkout has its own ports, so branches can be served side by side.
 The script's `next dev` shares `.next` with the checkout, so don't run a
 storyboard review in the same checkout meanwhile.
 
+#### How fast a page loads
+
+To see what a change does to a page's load on a phone's connection, set the
+versions side by side:
+
+```bash
+npm run measure -- origin/main HEAD                         # the home page, before and after
+npm run measure -- --path /donate before=origin/main after=HEAD
+npm run measure -- --viewport phone --network slow-4g origin/main HEAD
+npm run measure -- --images '[data-marquee-track="hero"] img' origin/main HEAD
+npm run measure -- live=https://pauseai.uk                  # a site that's up, as it stands
+npm run measure -- --http2 origin/main HEAD                 # each build over HTTP/2, as Netlify serves
+```
+
+Each version is a commit, so commit what you want measured, or the address
+of a site that's up. A commit is built on fixture data in main's checkout,
+one at a time, and loaded in Chromium with nothing cached, on a phone and a
+desktop, on Chrome DevTools' "Slow 4G" and "Fast 4G". It prints, for each:
+
+| Figure        | What it is                                                                |
+| ------------- | ------------------------------------------------------------------------- |
+| First paint   | The first text or picture on screen                                       |
+| First image   | The first of the images in the window to show at all                      |
+| Last image    | When every image in the window shows in full, after any fade              |
+| Largest paint | The browser's Largest Contentful Paint                                    |
+| Buttons work  | When the page's scripts have started, so a tap on the menu does something |
+| Page loaded   | When the last thing the page fetched arrived                              |
+| Requests, KB  | Everything fetched, by kind, and what came from other sites               |
+
+Each is the median of five loads (`--runs`). `--images` picks the images
+"first image" and "last image" time, every `<img>` by default. The tables
+are also written to a page in `tmp/measure/`, with a filmstrip of each
+version's load, and every run as JSON.
+
+Things to know:
+
+- **Nothing reaches another site** during the loads that count, so a
+  measurement is never a visit in Google Analytics. A stand-in on this
+  machine answers for Google and for pauseai.info's joining form, with a
+  copy of each of their files that it fetched once and keeps in
+  `tmp/measure/replay/` (`scripts/measure-replay.mjs`). Their scripts still
+  weigh on the connection what they weigh for a visitor. Delete the folder
+  to fetch them afresh.
+- **It waits for the machine to go quiet** before each load, and runs a
+  load again if the machine was busy during it, so other work only makes it
+  slower.
+- **A build on this machine isn't Netlify.** The figures compare versions
+  with each other. The live site is served over HTTP/2 from Netlify's CDN,
+  where a browser asks for everything at once and the server chooses the
+  order; `next start` speaks HTTP/1.1, where the browser queues requests
+  itself. `--http2` puts HTTP/2 in front of each build
+  (`scripts/measure-http2.mjs`), which is nearer. A second visit depends on
+  the CDN's cache headers, which no local build shows: measure the live
+  site's address for those. A deploy preview is behind Netlify's login, so
+  it can't be measured from here.
+- **Chromium only.** Firefox and Safari can't be slowed down this way.
+
+What keeps the home page fast on a slow connection, to keep in mind when
+changing it:
+
+- **The hero's photos** are files served as they are, AVIF with a WebP for
+  old browsers, not through the image service. After adding or changing
+  one, `npm run data:hero-photos` makes its copies and its preview
+  (`lib/content/hero-photos.ts`).
+- **Each row's photos are fetched in the order a visitor meets them**
+  (`wantedWhen` in `HomeHero.tsx`), and each one's place holds a blur of it
+  until it arrives.
+- **No photo is preloaded that a lazy `<img>` shows.** Safari fetches a
+  preloaded image a second time for an `<img loading="lazy">`. So the one
+  photo the page preloads has no lazy showing, and the photos a wide window
+  opens on are fetched by a hidden `<picture>` instead (`WIDE_OPENS_ON` in
+  `HomeHero.tsx`).
+- **While the page loads, only what its first screen needs is fetched.** An
+  inline script puts `data-loading` on `<html>` until the page's load event
+  (`app/(site)/_components/whileLoading.ts`), and styles hold back the
+  images further down while it's there. A browser left to itself fetches a
+  CSS background at once, and any lazy image within a couple of screens. A
+  new image below the first screen should wait the same way, if its place
+  keeps its size without it.
+- **A page's styles are in its HTML, and are only its own**
+  (`inlineCss` and `cssChunking` in `next.config.ts`), so the first paint
+  doesn't wait on a second request.
+- **The joining form** starts once the page has loaded, or the reader is
+  nearly at it (`OnboardingFormEmbed.tsx`).
+
 ### With real outside services
 
 Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is explained there. Things to know:

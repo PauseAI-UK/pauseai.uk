@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import { Lato } from "next/font/google";
+import { preload } from "react-dom";
 import "@/styles/tokens.css";
 import "@/styles/base.css";
 import CookieConsent from "@/components/layout/CookieConsent";
@@ -28,14 +28,10 @@ const lato = Lato({
   display: "swap",
 });
 
-const inter = localFont({
-  src: [
-    { path: "../public/fonts/inter-latin-wght-normal.woff2", weight: "100 900", style: "normal" },
-    { path: "../public/fonts/inter-latin-ext-wght-normal.woff2", weight: "100 900", style: "normal" },
-  ],
-  variable: "--font-inter",
-  display: "swap",
-});
+// Inter, the text font, is declared in styles/tokens.css, in two files: the
+// Latin one, which every page needs, and one of accented letters, which a
+// browser fetches only for a page that has them.
+const INTER_LATIN = "/fonts/inter-latin-wght-normal.woff2";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pauseai.uk"),
@@ -74,13 +70,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // Only the live site has analytics (lib/analytics.server.ts).
   const analytics = analyticsEnabled();
+  // Fetched with the page rather than once the stylesheet has asked for it. A
+  // font is always fetched without credentials, which `crossOrigin` matches.
+  preload(INTER_LATIN, { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
   return (
-    <html
-      lang="en"
-      className={`${lato.variable} ${inter.variable}`}
-      data-scroll-behavior="smooth"
-      suppressHydrationWarning
-    >
+    <html lang="en" className={lato.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <TagManagerNoscript analytics={analytics} />
         <CookieConsent analytics={analytics}>

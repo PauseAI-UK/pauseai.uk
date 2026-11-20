@@ -16,9 +16,10 @@
 
 .marquee {
   position: relative;
+  --row-gap: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--row-gap);
   padding: 12px 0;
   /* Fill the viewport minus the sticky nav so the last row's bottom
      edge sits flush with the viewport bottom on first load. */
@@ -27,10 +28,16 @@
   overflow: hidden;
 }
 
+/* A third of the hero, less the two gaps between the three rows, whichever
+   rows are there: a browser can paint when only the first has reached it,
+   and left to share the height out, that row would be the whole hero.
+   The height is written out, not a grid's: in a grid Safari sizes each copy
+   of a row by its photos' full sizes, which opens a gap where the copies
+   join. */
 .row {
-  flex: 1;
+  flex: none;
+  height: calc((100% - 2 * var(--row-gap)) / 3);
   overflow: hidden;
-  min-height: 0;
 }
 
 .track {
@@ -75,35 +82,45 @@
    long-standing bug where it under-counts child padding/margin in
    max-content on a flex parent, which is why we override in pixels. */
 
-.track img {
-  height: 100%;
-  width: auto;
+/* Each photo's place in its row. HomeHero gives it the photo's shape, so
+   it's the right width whether or not the photo is drawn yet, and the
+   photo's preview, a tiny copy that fills it as a blur until the photo has
+   loaded and faded in over it. */
+.track picture {
   display: block;
+  background-size: 100% 100%;
+  height: 100%;
   flex-shrink: 0;
   margin-right: var(--marquee-gap);
   border-radius: 8px;
-  object-fit: contain;
+  overflow: hidden;
   /* Safari intermittently drops textures during long transforms on
      elements that aren't on their own compositor layer. Promote each
-     image and keep its backface from being culled so the texture stays
+     photo and keep its backface from being culled so the texture stays
      resident for the lifetime of the animation. */
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  /* Start invisible and fade in once decoded — softens the "pop" as
-     photos land. HeroMarqueeEffects sets data-loaded on the img's load event; the
-     safety animation at 2.4s ensures images appear even if JS fails. */
-  opacity: 0;
-  transition: opacity 380ms ease-out;
 }
-/* The safety animation stops once data-loaded lands. Firefox holds opacity at
-   0 for the whole of a pending animation's delay, overriding data-loaded, so
-   leaving it on would keep every photo hidden until 2.4s. */
-.track img:not([data-loaded]) {
-  animation: appear 0s linear 2.4s forwards;
+
+.track img {
+  height: 100%;
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  /* Firefox writes a photo's alt text in its place while it loads. */
+  color: transparent;
 }
-.track img[data-loaded] {
-  opacity: 1;
+
+/* On a phone, until the page has loaded (whileLoading.ts), the showings of
+   each photo that aren't fetched with the page aren't drawn: a browser
+   fetches any that are within a couple of screens of the window, which is
+   most of them, alongside the ones in view. A wide window is in less of a
+   hurry, and opens on more of them. */
+@media (max-width: 1023px) {
+  :global(html[data-loading]) .track img[loading="lazy"] {
+    display: none;
+  }
 }
 
 /* Overlay text — no full scrim. Just the text itself, with strong
@@ -189,7 +206,7 @@
        bottom row's edge sits inside the visible viewport on first load
        instead of slipping below the browser chrome. */
     height: calc(100svh - 77px - var(--march-banner-h, 0px));
-    gap: 8px;
+    --row-gap: 8px;
     padding: 8px 0;
   }
   /* On phone, sit the title + lede + buttons on a warm-dark blurred panel
@@ -221,11 +238,5 @@
   }
   .secondary {
     --button-padding: 13px 20px;
-  }
-}
-
-@keyframes appear {
-  to {
-    opacity: 1;
   }
 }

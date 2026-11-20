@@ -15,5 +15,21 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# The home page's photos, which browsers keep for a week rather than asking
+# again on every visit (Netlify's default for a static file). The home page
+# serves the files as they are (HomeHero). A photo changed keeps its old look
+# for up to a week, so a new one takes a new name.
+[[headers]]
+  for = "/images/front-page-hero-optimized/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, must-revalidate"
+
+# The site's own fonts, kept for a week likewise: their names don't change.
+# Without it a browser asks again for each font on every page it shows.
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, must-revalidate"
+
 [context.deploy-preview]
   command = "npm run build"

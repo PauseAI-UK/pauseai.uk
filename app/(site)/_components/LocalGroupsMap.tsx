@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { CSSProperties } from "react";
+import { getImageProps } from "next/image";
 import Link from "next/link";
 import { geoMercator, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
@@ -19,6 +20,20 @@ const MAP_H = 608;
 // arrangement. Below it the cards stand on their own, so the map data is
 // never fetched and no connectors are drawn.
 const DESKTOP_QUERY = "(min-width: 1024px)";
+
+// A card is at most about 400px wide, so 828px is enough for a screen with
+// two pixels to the point.
+const CARD_PHOTO_WIDTH = 828;
+
+/**
+ * A group's photo at the size its card shows it, from the image service: the
+ * files are the size they were taken, up to half a megabyte each.
+ */
+function cardPhoto(src: string) {
+  const { props } = getImageProps({ src, alt: "", width: CARD_PHOTO_WIDTH, height: (CARD_PHOTO_WIDTH * 2) / 3 });
+  // The first of the two sizes it offers, the one for a screen with one pixel to the point.
+  return props.srcSet!.split(" ")[0];
+}
 
 function subscribeToDesktop(onChange: () => void) {
   const mq = window.matchMedia(DESKTOP_QUERY);
@@ -138,7 +153,9 @@ export default function LocalGroupsMap() {
             onMouseEnter={() => setHovered(localGroup.name)}
             onMouseLeave={() => setHovered((prev) => (prev === localGroup.name ? null : prev))}
           >
-            <PhotoCardImage style={{ backgroundImage: `url("${localGroup.imageSrc}")`, ...localGroup.imageStyle }} />
+            <PhotoCardImage
+              style={{ backgroundImage: `url("${cardPhoto(localGroup.imageSrc)}")`, ...localGroup.imageStyle }}
+            />
             <PhotoCardBody>
               <div className={styles.header}>
                 <h3>{localGroup.name}</h3>

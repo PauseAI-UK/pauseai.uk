@@ -1,11 +1,78 @@
-import Image from "next/image";
+import { preload } from "react-dom";
 import { ButtonAnchor, ButtonLink } from "@/components/ui/Button";
+import photoPreviews from "@/lib/content/hero-photo-previews.json";
 import { HERO_PHOTOS } from "@/lib/content/hero-photos";
 import { shuffle } from "@/lib/shuffle.server";
+import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 import styles from "./HomeHero.module.css";
+import { WHILE_LOADING_SCRIPT } from "./whileLoading";
+
+const PHOTOS = "/images/front-page-hero-optimized";
+
+/**
+ * A photo's AVIF copies, which scripts/hero-photos-avif.mjs makes beside its
+ * WebP: one under half the size, and a smaller one for a screen with one
+ * pixel to the point. A browser that can't show AVIF gets the WebP.
+ */
+const avif = (src: string, smaller = false) => `${PHOTOS}/${src.replace(/\.webp$/, smaller ? "-1x.avif" : ".avif")}`;
+
+/** Both copies, for the browser to choose between by its screen. */
+const avifSet = (src: string) => `${avif(src, true)} 1x, ${avif(src)} 2x`;
+
+/**
+ * Each photo's preview, which the same script makes: the photo 24px wide, a
+ * couple of hundred bytes, written into the page. Stretched to fill the
+ * photo's place it's a blur of the photo, there as soon as the page paints,
+ * which the photo fades in over once it has loaded.
+ *
+ * A photo is in the page four times over, so its preview is written once, as
+ * a custom property on the hero, which each of its places then names.
+ */
+const PREVIEWS: Record<string, string> = photoPreviews;
+const previewName = (src: string) => `--photo-${HERO_PHOTOS.findIndex(([name]) => name === src)}`;
+const PREVIEW_PROPERTIES = Object.fromEntries(
+  HERO_PHOTOS.map(([src]) => [previewName(src), `url(data:image/webp;base64,${PREVIEWS[src]})`]),
+);
+
+/**
+ * When a row's photo at `index` is wanted, so that the ones a visitor sees
+ * first aren't held up by the rest, nor is anything else on the page:
+ *
+ * - "first": a row opens on its first photos, about two of them on a phone.
+ *   They're fetched before anything else.
+ * - "next": the ones the row brings on in its first few seconds. A row moving
+ *   left ("ltr") brings on those after the first, and one moving right ("rtl")
+ *   its last ones, the very last first. They're fetched with the page.
+ * - "later": the rest wait until the page has loaded (whileLoading.ts,
+ *   HeroMarqueeEffects). A wide window fetches some of them with the page
+ *   all the same (WIDE_OPENS_ON).
+ *
+ * Safari fetches a preloaded photo a second time for an <img> that loads
+ * lazily, which the other browsers don't. So nothing here preloads a photo
+ * that a lazy <img> shows.
+ */
+function wantedWhen(index: number, count: number, dir: "ltr" | "rtl") {
+  if (index < 2) return "first";
+  const soon = dir === "rtl" ? index >= count - 2 : index < 4;
+  return soon ? "next" : "later";
+}
+
+/**
+ * A window this wide opens on more of each row than a phone does: its first
+ * WIDE_OPENS_ON photos, about. Those of them left for later are fetched with
+ * the page there, by a hidden picture of each that only such a window has a
+ * source for: anywhere else it's BLANK, and nothing is fetched. Fetched with
+ * the page on a phone as well, they would hold up the photos it is about to
+ * bring on.
+ */
+const WIDE = "(min-width: 1024px)";
+const WIDE_OPENS_ON = 5;
+/** A transparent pixel, written out, so an <img> showing it fetches nothing. */
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
 // The home page hero: three rows of photos scrolling in alternating
-// directions behind the headline (HeroMarqueeEffects measures and starts them).
+// directions behind the headline (HeroMarqueeEffects measures and starts
+// them). Each photo fades in as it loads (heroPhotoFade.ts).
 export default function HomeHero() {
   // Server-component shuffle: a new order each render (the same order in a
   // fixture build, lib/shuffle.server.ts). Sent to the client as part of the
@@ -18,10 +85,27 @@ export default function HomeHero() {
     { dir: "rtl" as const, photos: shuffled.slice(perRow, perRow * 2) },
     { dir: "ltr" as const, photos: shuffled.slice(perRow * 2) },
   ];
+  // The top row's first photo is the largest thing on the page, so the browser is told to fetch it first.
+  const [first] = heroRows[0].photos[0];
+  preload(avif(first), { as: "image", imageSrcSet: avifSet(first), type: "image/avif", fetchPriority: "high" });
+
+  const wideOpensOn = heroRows.flatMap((row) =>
+    row.photos.slice(0, WIDE_OPENS_ON).filter((_, index) => wantedWhen(index, row.photos.length, row.dir) === "later"),
+  );
 
   return (
     <section id="about">
-      <div className={styles.marquee}>
+      <script dangerouslySetInnerHTML={{ __html: WHILE_LOADING_SCRIPT }} />
+      <script dangerouslySetInnerHTML={{ __html: HERO_PHOTO_FADE_SCRIPT }} />
+      <div hidden>
+        {wideOpensOn.map(([src]) => (
+          <picture key={src}>
+            <source media={WIDE} type="image/avif" srcSet={avifSet(src)} />
+            <img src={BLANK} alt="" />
+          </picture>
+        ))}
+      </div>
+      <div className={styles.marquee} style={PREVIEW_PROPERTIES}>
         {heroRows.map((row, ri) => (
           <div key={ri} className={row.dir === "rtl" ? `${styles.row} ${styles.rtl}` : styles.row}>
             <div className={styles.track} data-marquee-track="hero">
@@ -33,19 +117,42 @@ export default function HomeHero() {
                   {...(copyIdx > 0 ? { "aria-hidden": true } : {})}
                 >
                   {[...row.photos, ...row.photos].map(([src, alt, width, height], i) => {
-                    const isPrimary = copyIdx === 0 && i < row.photos.length;
-                    const isLcp = ri === 0 && copyIdx === 0 && i === 0;
+                    const count = row.photos.length;
+                    const isPrimary = copyIdx === 0 && i < count;
+                    // A photo is in its row four times. The showing a visitor meets first says when the
+                    // file is fetched, and the rest, the same file, wait. A row moving left opens on the
+                    // start of its first copy, and brings on what follows. A row moving right opens on
+                    // the start of its second copy, and brings on the end of its first.
+                    const when = wantedWhen(i % count, count, row.dir);
+                    const metFirst =
+                      row.dir === "ltr"
+                        ? isPrimary
+                        : when === "first"
+                          ? copyIdx === 1 && i < count
+                          : copyIdx === 0 && i >= count;
+                    const wanted = metFirst ? when : "later";
+                    // The photo preloaded above is being fetched whatever its showings say, so none of
+                    // them is lazy.
+                    const lazy = wanted === "later" && src !== first;
+                    // The files are served as they are, already the size the hero shows them, so nothing
+                    // waits on an image service resizing them.
                     return (
-                      <Image
+                      <picture
                         key={i}
-                        src={`/images/front-page-hero-optimized/${src}`}
-                        alt={isPrimary ? alt : ""}
-                        width={width}
-                        height={height}
-                        aria-hidden={!isPrimary || undefined}
-                        loading={isLcp ? undefined : "lazy"}
-                        priority={isLcp}
-                      />
+                        style={{ aspectRatio: `${width} / ${height}`, backgroundImage: `var(${previewName(src)})` }}
+                      >
+                        <source type="image/avif" srcSet={avifSet(src)} />
+                        <img
+                          src={`${PHOTOS}/${src}`}
+                          alt={isPrimary ? alt : ""}
+                          width={width}
+                          height={height}
+                          aria-hidden={!isPrimary || undefined}
+                          loading={lazy ? "lazy" : "eager"}
+                          fetchPriority={wanted === "first" ? "high" : undefined}
+                          decoding="async"
+                        />
+                      </picture>
                     );
                   })}
                 </div>

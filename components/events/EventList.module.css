@@ -146,6 +146,13 @@
   transition: transform 0.5s ease;
 }
 
+/* While the home page loads (app/(site)/_components/whileLoading.ts), an
+   event's picture isn't drawn, so the browser doesn't fetch it alongside the
+   top of the page. Its square is kept for it. */
+:global(html[data-loading]) img.image {
+  display: none;
+}
+
 .card:hover .image {
   transform: scale(1.04);
 }

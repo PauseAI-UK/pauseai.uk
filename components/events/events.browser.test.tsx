@@ -62,6 +62,18 @@ describe("EventList", () => {
     expect(images.map((image) => image?.tagName)).toEqual(["IMG", "DIV", "DIV"]);
     // The placeholder is a coloured block where the picture would be.
     expect(getComputedStyle(images[1]!).backgroundImage).toContain("gradient");
+
+    // While the home page loads, a picture isn't drawn, so it isn't fetched, and its square is kept.
+    const square = images[0]!.parentElement!.getBoundingClientRect();
+    document.documentElement.setAttribute("data-loading", "");
+    try {
+      expect(getComputedStyle(images[0]!).display).toBe("none");
+      expect(getComputedStyle(images[1]!).display).not.toBe("none");
+      expect(images[0]!.parentElement!.getBoundingClientRect().height).toBe(square.height);
+    } finally {
+      document.documentElement.removeAttribute("data-loading");
+    }
+    expect(getComputedStyle(images[0]!).display).not.toBe("none");
   });
 
   it("marks events happening today and tomorrow, in UK time", async () => {

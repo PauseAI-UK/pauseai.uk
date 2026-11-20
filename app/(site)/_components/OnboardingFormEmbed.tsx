@@ -16,6 +16,9 @@ const EMBED_URL = `${EMBED_ORIGIN}/embed/onboarding-form/?country=United+Kingdom
 const DEFAULT_HEIGHT = 1483;
 const SETTLE_DELAY_MS = 400;
 const LOAD_TIMEOUT_MS = 8000;
+// How far below the window the form can be and still count as nearly reached,
+// so it starts loading before the page has finished.
+const NEAR_MARGIN = "1500px 0px";
 
 export default function OnboardingFormEmbed() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -95,16 +98,39 @@ export default function OnboardingFormEmbed() {
     // clear. Set directly rather than via state so React never touches it,
     // and only once: dev StrictMode re-runs this effect, and assigning src
     // again would reload the form.
-    const iframe = iframeRef.current;
-    if (iframe && !iframe.getAttribute("src")) iframe.src = EMBED_URL;
-
-    const timeoutId = setTimeout(() => {
-      if (!messageReceivedRef.current) setShowFallback(true);
-    }, LOAD_TIMEOUT_MS);
+    //
+    // And not until the page's own things have arrived (its load event), or
+    // the reader is nearly at the form. The form and what it brings are over
+    // a megabyte, which on a slow connection would hold up the top of the
+    // page. The wait for the form to report in starts then too.
+    const iframe = iframeRef.current!;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const near = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) start();
+      },
+      { rootMargin: NEAR_MARGIN },
+    );
+    function start() {
+      window.removeEventListener("load", start);
+      near.disconnect();
+      if (!iframe.getAttribute("src")) iframe.src = EMBED_URL;
+      timeoutId = setTimeout(() => {
+        if (!messageReceivedRef.current) setShowFallback(true);
+      }, LOAD_TIMEOUT_MS);
+    }
+    if (document.readyState === "complete") {
+      start();
+    } else {
+      window.addEventListener("load", start);
+      near.observe(iframe);
+    }
 
     return () => {
       window.removeEventListener("message", handleMessage);
       window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("load", start);
+      near.disconnect();
       clearTimeout(settleTimerRef.current);
       clearTimeout(timeoutId);
     };

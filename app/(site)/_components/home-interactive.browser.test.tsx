@@ -35,7 +35,7 @@ function Marquee({ src = PIXEL, withCopy = true }: { src?: string; withCopy?: bo
 }
 
 describe("HeroMarqueeEffects", () => {
-  it("sets each track's scroll distance to one copy's width, and marks loaded photos", async () => {
+  it("sets each track's scroll distance to one copy's width", async () => {
     await render(
       <>
         <Marquee />
@@ -44,10 +44,38 @@ describe("HeroMarqueeEffects", () => {
     );
     const track = page.getByTestId("track").element() as HTMLElement;
     await expect.poll(() => track.style.getPropertyValue("--copy-shift")).toBe("-300px");
-    await expect.poll(() => track.querySelector("img")!.hasAttribute("data-loaded")).toBe(true);
   });
 
-  it("marks a photo once it loads, or fails, and ignores tracks without a copy", async () => {
+  it("fetches the hero's later photos once the page has loaded, and no other lazy image", async () => {
+    /* eslint-disable @next/next/no-img-element -- plain images, as the hero's are */
+    const hero = (
+      <>
+        <div data-marquee-track="hero">
+          <img src={PIXEL} alt="" loading="lazy" data-testid="later" />
+        </div>
+        <img src={PIXEL} alt="" loading="lazy" data-testid="elsewhere" />
+        <HeroMarqueeEffects />
+      </>
+    );
+    /* eslint-enable @next/next/no-img-element */
+    const loading = (testId: string) => (page.getByTestId(testId).element() as HTMLImageElement).loading;
+
+    const readyState = vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    const { unmount } = await render(hero);
+    expect(loading("later")).toBe("lazy");
+    window.dispatchEvent(new Event("load"));
+    expect(loading("later")).toBe("eager");
+    expect(loading("elsewhere")).toBe("lazy");
+    await unmount();
+
+    // Opened from another page, the page has loaded already.
+    readyState.mockReturnValue("complete");
+    await render(hero);
+    expect(loading("later")).toBe("eager");
+    expect(loading("elsewhere")).toBe("lazy");
+  });
+
+  it("measures a track again once a slow photo loads, or fails, and ignores tracks without a copy", async () => {
     await render(
       <>
         <Marquee src="/images/logos/Pause-Symbol.svg?slow" />
@@ -56,8 +84,10 @@ describe("HeroMarqueeEffects", () => {
         <HeroMarqueeEffects />
       </>,
     );
-    const imgs = document.querySelectorAll("[data-marquee-track] img");
-    await expect.poll(() => [...imgs].every((img) => img.hasAttribute("data-loaded"))).toBe(true);
+    const tracks = [...document.querySelectorAll<HTMLElement>("[data-marquee-track]")];
+    await expect
+      .poll(() => tracks.map((track) => track.style.getPropertyValue("--copy-shift") !== ""))
+      .toEqual([true, true, false]);
   });
 
   it("falls back to window resizes without ResizeObserver, and to no font wait without document.fonts", async () => {
@@ -80,6 +110,30 @@ describe("HeroMarqueeEffects", () => {
       Object.defineProperty(document, "fonts", fonts);
       delete (document as unknown as Record<string, unknown>).fonts;
     }
+  });
+
+  it("fades each hero photo in as it loads, once however often the page is opened, and no other image", async () => {
+    const animate = vi.spyOn(Element.prototype, "animate");
+    await render(
+      <>
+        <Marquee />
+        {/* eslint-disable-next-line @next/next/no-img-element -- an image outside the hero */}
+        <img src={PIXEL} alt="" data-testid="elsewhere" />
+        <HeroMarqueeEffects />
+        <HeroMarqueeEffects />
+      </>,
+    );
+    const photo = page.getByTestId("track").element().querySelector("img")!;
+    const elsewhere = page.getByTestId("elsewhere").element() as HTMLImageElement;
+    const loaded = (img: HTMLImageElement) =>
+      new Promise((resolve) => img.addEventListener("load", resolve, { once: true }));
+    animate.mockClear();
+    const both = Promise.all([loaded(photo), loaded(elsewhere)]);
+    photo.src = "/images/logos/Pause-Symbol.svg?fade";
+    elsewhere.src = "/images/logos/Pause-Symbol.svg?elsewhere";
+    await both;
+    expect(animate.mock.contexts).toEqual([photo]);
+    expect(animate).toHaveBeenCalledWith([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: "ease-out" });
   });
 
   it("leaves a zero-width copy alone", async () => {
@@ -117,6 +171,32 @@ describe("OnboardingFormEmbed", () => {
     return { ...screen, iframe, srcs };
   }
 
+  /**
+   * Makes the page one that hasn't finished loading, with the form far from
+   * the window. Returns each IntersectionObserver made, with what it's
+   * watching, to say the form has come near.
+   */
+  function stillLoading() {
+    vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    const observers: { callback: IntersectionObserverCallback; margin?: string; watching: Element[] }[] = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        watching: Element[] = [];
+        constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+          observers.push({ callback, margin: options?.rootMargin, watching: this.watching });
+        }
+        observe(element: Element) {
+          this.watching.push(element);
+        }
+        disconnect() {
+          this.watching.length = 0;
+        }
+      },
+    );
+    return observers;
+  }
+
   it("points the iframe at the form only once listening, and shows a skeleton until it reports in", async () => {
     // The iframe is attached with no src, so src is only set by the effect.
     const { container, srcs } = await renderEmbed();
@@ -125,6 +205,43 @@ describe("OnboardingFormEmbed", () => {
     post({ height: 900 });
     await expect.poll(() => container.querySelector('[data-testid="onboarding-skeleton"]')).toBeNull();
     expect(container.querySelector("iframe")!.getAttribute("height")).toBe("900");
+  });
+
+  it("waits for the page to finish loading before fetching the form, and only then for the form", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    stillLoading();
+    const { container, srcs } = await renderEmbed();
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(srcs).toEqual([]);
+    expect(container.querySelector("[role=status]")).toBeNull();
+
+    window.dispatchEvent(new Event("load"));
+    expect(srcs).toHaveLength(1);
+    // A second load event, or the form coming near, doesn't fetch it again.
+    window.dispatchEvent(new Event("load"));
+    expect(srcs).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(8000);
+    await expect.poll(() => container.querySelector("[role=status]")?.textContent).toContain("Form didn't load.");
+  });
+
+  it("fetches the form before the page has loaded once the reader is nearly at it", async () => {
+    const observers = stillLoading();
+    const { iframe, srcs, unmount } = await renderEmbed();
+    const [near] = observers;
+    expect(near.margin).toBe("1500px 0px");
+    expect(near.watching).toEqual([iframe]);
+    const report = (isIntersecting: boolean) =>
+      near.callback([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
+
+    report(false);
+    expect(srcs).toEqual([]);
+    report(true);
+    expect(srcs).toHaveLength(1);
+    expect(near.watching).toEqual([]);
+    // The page finishing its load afterwards doesn't fetch it again.
+    window.dispatchEvent(new Event("load"));
+    expect(srcs).toHaveLength(1);
+    await unmount();
   });
 
   it("ignores messages from other sites and messages without a height", async () => {
@@ -236,6 +353,11 @@ describe("LocalGroupsMap", () => {
         .toHaveAttribute("href", group.href);
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(container.querySelector(MAP)).toBeNull();
+    // Each card's photo comes from the image service at the card's size, not as the file itself.
+    const photos = [...container.querySelectorAll<HTMLElement>(`${CARD} [style*="background-image"]`)];
+    expect(photos.map((photo) => photo.style.backgroundImage)).toEqual(
+      localGroups.map((group) => `url("/_next/image?url=${encodeURIComponent(group.imageSrc)}&w=828&q=75")`),
+    );
   });
 
   it("draws the UK map with a pin and connector per group on a wide screen, highlighting on hover", async () => {
