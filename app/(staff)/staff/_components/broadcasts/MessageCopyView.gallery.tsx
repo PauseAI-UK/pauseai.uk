@@ -42,7 +42,7 @@ export const messageCopyViewGallery: Example[] = [
       },
       {
         label:
-          "A text's replies with our emoji: a 👍 on their thanks, which settled it, put in place of a ❤️; and one too old for an emoji",
+          "A text's replies with our emoji: a 👍 on their thanks, which settled it, put in place of a ❤️, and the smiley beside it",
         render: () => (
           <StaffPage as="div">
             <MessageCopyViewExample reacted />

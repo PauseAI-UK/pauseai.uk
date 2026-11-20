@@ -308,17 +308,18 @@ describe("MessageCopyView's example in the gallery", () => {
     await expect.element(page.getByText(copy.replies.sentInGmail("hello@pauseai.uk"))).toBeVisible();
   });
 
-  it("puts the emoji under their messages, ours pressed and none on one too old, each of ours in the history", async () => {
+  it("puts the smiley beside their latest message only, ours on it, each of ours in the history", async () => {
     await render(<MessageCopyViewExample reacted />);
-    // Their question, their thanks; not the one too old.
-    expect(page.getByRole("group", { name: copy.replies.react }).all()).toHaveLength(2);
-    await expect.element(page.getByRole("button", { name: "👍", pressed: true })).toBeVisible();
+    // Their thanks; not their question before it.
+    expect(page.getByRole("button", { name: copy.replies.react }).all()).toHaveLength(1);
     const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });
     await expect.element(history.getByText(copy.replies.historyReacted("👍"))).toBeVisible();
     await expect.element(history.getByText(copy.replies.historyReacted("❤️"))).toBeVisible();
-    await page.getByRole("button", { name: "🙏" }).first().click();
+    await page.getByRole("button", { name: copy.replies.react }).click();
+    await expect.element(page.getByRole("button", { name: "👍", pressed: true })).toBeVisible();
+    await page.getByRole("button", { name: "🙏" }).click();
     await expect
       .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
-      .toHaveTextContent('react(11, "🙏")');
+      .toHaveTextContent('react(12, "🙏")');
   });
 });

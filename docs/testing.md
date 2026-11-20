@@ -1030,7 +1030,7 @@ that drives it or why nothing does.
   - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
   - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
   - a reaction to a text by WhatsApp's webhook, as a bubble quoting the text, then taken back, and a photo kept as its caption;
-  - our thumbs up on a reply to a text, from the emoji under it, settling it, then taken away;
+  - our thumbs up on a reply to a text, from the smiley beside it, on its bubble and settling it, then taken away;
   - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;
   - our answer to a text that WhatsApp's webhook says failed, why under its bubble, and their reply back to check;
   - Stop pressed in WhatsApp, on the copy and the supporter's page;

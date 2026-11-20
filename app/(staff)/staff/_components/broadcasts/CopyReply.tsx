@@ -211,17 +211,17 @@ export default function Reply({
     );
     return (
       <div className={styles.textReply}>
-        <ChatWall>
-          <ChatBubble who={sender(reply, one)} when={cameAndWent}>
-            {words}
-          </ChatBubble>
-        </ChatWall>
+        {/* An emoji goes only on their latest message, which is the one to deal with. */}
         <ReplyReactions
           replyId={reply.id}
+          who={sender(reply, one)}
+          when={cameAndWent}
           reactions={one.reactions.filter((reaction) => reaction.replyId === reply.id)}
-          reactable={reply.reactable}
+          reactable={reply.reactable && latest}
           react={actions?.react}
-        />
+        >
+          {words}
+        </ReplyReactions>
         {(closed || foot) && (
           <div className={styles.textFoot}>
             {closed && <Muted>{copy.replies.windowClosed}</Muted>}

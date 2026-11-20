@@ -6,10 +6,10 @@ import ReplyReactions from "./ReplyReactions";
 import { exampleTextReactions, exampleUndeliveredReaction } from "./BroadcastWriter.examples";
 
 /**
- * The emoji under Jane's thanks: none of ours yet; `reacted`, Jo's 👍, put
- * in place of a ❤️; `undelivered`, a 🙏 WhatsApp couldn't deliver;
- * `refused`, WhatsApp refusing each press; `tooOld`, a message too old for
- * another.
+ * Jane's thanks, with the smiley beside it: no emoji of ours yet;
+ * `reacted`, Jo's 👍, put in place of a ❤️; `undelivered`, a 🙏 WhatsApp
+ * couldn't deliver; `refused`, WhatsApp refusing each press; `tooOld`, a
+ * message too old for another, or not her latest.
  */
 export function ReplyReactionsExample({
   reacted = false,
@@ -28,13 +28,17 @@ export function ReplyReactionsExample({
       {(log) => (
         <ReplyReactions
           replyId={12}
+          who="Jane Example"
+          when="7 Nov 2026, 08:00"
           reactions={reactions}
           reactable={!tooOld}
           react={async (replyId, emoji) => {
             log("react")(replyId, emoji);
             return refused ? { sent: false, reason: "failed" } : { sent: true };
           }}
-        />
+        >
+          <p>Great, thanks!</p>
+        </ReplyReactions>
       )}
     </Logged>
   );

@@ -9,7 +9,7 @@ export const replyReactionsGallery: Example[] = [
     file: "app/(staff)/staff/_components/broadcasts/ReplyReactions.tsx",
     variants: [
       {
-        label: "The emoji to put on someone's message on WhatsApp, none yet",
+        label: "Their latest message on WhatsApp, the smiley beside it to put an emoji on it, none yet",
         render: () => (
           <StaffPage as="div">
             <ReplyReactionsExample />
@@ -17,7 +17,7 @@ export const replyReactionsGallery: Example[] = [
         ),
       },
       {
-        label: "Ours, pressed, with who put it there and when",
+        label: "Ours on their message, with who put it there and when",
         render: () => (
           <StaffPage as="div">
             <ReplyReactionsExample reacted />
@@ -41,7 +41,7 @@ export const replyReactionsGallery: Example[] = [
         ),
       },
       {
-        label: "Ours on a message too old for another",
+        label: "Ours on a message too old for another, or not their latest: no smiley",
         render: () => (
           <StaffPage as="div">
             <ReplyReactionsExample reacted tooOld />

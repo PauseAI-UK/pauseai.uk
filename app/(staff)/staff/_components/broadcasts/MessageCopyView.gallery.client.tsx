@@ -5,7 +5,6 @@ import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import MessageCopyView from "./MessageCopyView";
 import { sent } from "./AnswerableReply.gallery.client";
 import type { BroadcastAnswer, ReactionResult } from "@/lib/broadcasts/answers.server";
-import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import {
   exampleBroadcastAnswers,
   exampleBroadcastReplies,
@@ -24,9 +23,6 @@ const exampleGmailAnswers: BroadcastAnswer[] = exampleBroadcastAnswers.map((answ
   fromGmail: true,
 }));
 
-/** A reply to a text more than 30 days old, which WhatsApp takes no emoji on either. */
-const exampleTextReplyPastMonth: BroadcastReply = { ...exampleTextReplyPastDay, id: 14, reactable: false };
-
 /**
  * Thread: a text as the conversation, or an email as the thread, with
  * `replies` under it: for an email, one to look at, one dealt with, one
@@ -34,8 +30,8 @@ const exampleTextReplyPastMonth: BroadcastReply = { ...exampleTextReplyPastDay, 
  * and, `pastDay`, one too old for WhatsApp to take an answer to; or, `kinds`,
  * a text's replies that are more than words, after the one answered:
  * reactions, a photo, a place, a voice note. `reacted`, Jo's emoji on
- * their thanks, which settled it, and one too old for an emoji; `gmail`, an
- * email's answer written in hello@'s Gmail.
+ * their thanks, their latest, which settled it; `gmail`, an email's answer
+ * written in hello@'s Gmail.
  */
 export function MessageCopyViewExample({
   email = false,
@@ -67,12 +63,7 @@ export function MessageCopyViewExample({
     replies: kinds
       ? [exampleTextReplies[0], ...exampleTextKinds]
       : replies || reacted
-        ? [
-            exampleTextReplies[0],
-            ...thanks,
-            ...(pastDay ? [exampleTextReplyPastDay] : []),
-            ...(reacted ? [exampleTextReplyPastMonth] : []),
-          ]
+        ? [exampleTextReplies[0], ...thanks, ...(pastDay ? [exampleTextReplyPastDay] : [])]
         : [],
     answers: replies || kinds || reacted ? exampleTextAnswers : [],
     reactions: reacted ? exampleTextReactions : [],

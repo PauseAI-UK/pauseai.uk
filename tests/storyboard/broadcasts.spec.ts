@@ -646,7 +646,7 @@ test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }
 
 test("Reacting to a reply to a text", async ({ page, request, flowDatabase }) => {
   story(
-    "A supporter thanks us for a text in WhatsApp. Under their message are a few emoji staff can put on it, as the WhatsApp app does.",
+    "A supporter thanks us for a text in WhatsApp. Beside their latest message is a smiley, as on WhatsApp Web, which opens a few emoji staff can put on it.",
   );
   const sent = await textSent(request, flowDatabase);
   await postWhatsAppWebhook(
@@ -656,19 +656,24 @@ test("Reacting to a reply to a text", async ({ page, request, flowDatabase }) =>
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  const smiley = page.getByRole("button", { name: copy.replies.react });
   const emoji = (name: string) => page.getByRole("group", { name: copy.replies.react }).getByRole("button", { name });
+  await expect(smiley).toBeVisible();
+  await frame(page, "Their thanks, the smiley beside it");
+  await smiley.click();
   await expect(emoji("👍")).toBeVisible();
-  await frame(page, "Their thanks, with the emoji under it");
+  await frame(page, "The emoji, open");
   story(
-    "A thumbs up is all it needs. It goes to their message by WhatsApp, says who put it there, and settles the reply, as an answer would.",
+    "A thumbs up is all it needs. It goes to their message by WhatsApp and shows on it, as WhatsApp shows one. Under the conversation, who put it there; and the reply is settled, as an answer would settle it.",
   );
   await emoji("👍").click();
-  await expect(emoji("👍")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/reacted 👍/)).toBeVisible();
   await expect(page.getByRole("button", { name: copy.replies.nothing })).toHaveCount(0);
-  await frame(page, "Our thumbs up, the reply settled");
+  await frame(page, "Our thumbs up on their message, the reply settled");
   story("Pressing it again takes ours away. The reply stays settled.");
+  await smiley.click();
   await emoji("👍").click();
-  await expect(emoji("👍")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByText(/reacted 👍/)).toHaveCount(0);
   await frame(page, "Ours taken away");
 });
 

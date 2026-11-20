@@ -3,53 +3,66 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { staffTime } from "@/lib/staff-time";
-import ReplyReactions from "./ReplyReactions";
 import { ReplyReactionsExample } from "./ReplyReactions.gallery.client";
 import { exampleTextReactions } from "./BroadcastWriter.examples";
 
 const copy = broadcastsCopy.broadcastPages.replies;
 const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
-/** What Jo's 👍 says under the emoji. */
+/** What Jo's 👍 says under the conversation. */
 const ours = copy.ourReaction("👍", "jo@pauseai.uk", staffTime(exampleTextReactions[1].sentAt));
+const smiley = () => page.getByRole("button", { name: copy.react });
 const emoji = (name: string) => page.getByRole("group", { name: copy.react }).getByRole("button", { name });
 
 describe("ReplyReactions", () => {
-  it("offers each emoji, none pressed, and puts the one pressed on their message", async () => {
+  it("opens the emoji from the smiley beside their message, and puts the one pressed on it", async () => {
     await render(<ReplyReactionsExample />);
+    await expect.element(page.getByText("Great, thanks!")).toBeVisible();
+    await expect.element(smiley()).toHaveAttribute("aria-expanded", "false");
+    await expect.element(page.getByRole("group", { name: copy.react })).not.toBeInTheDocument();
+    await smiley().click();
+    await expect.element(smiley()).toHaveAttribute("aria-expanded", "true");
     for (const name of ["👍", "❤️", "🙏"]) await expect.element(emoji(name)).toHaveAttribute("aria-pressed", "false");
     await emoji("🙏").click();
     await expect.element(log()).toHaveTextContent('react(12, "🙏")');
+    // Gone, the emoji close.
+    await expect.element(page.getByRole("group", { name: copy.react })).not.toBeInTheDocument();
+    // Pressed again, the smiley closes them.
+    await smiley().click();
+    await smiley().click();
+    await expect.element(page.getByRole("group", { name: copy.react })).not.toBeInTheDocument();
   });
 
-  it("presses ours, says who put it there and when, takes it away when pressed, and puts another in its place", async () => {
+  it("puts ours on their bubble, says who put it there and when, takes it away when pressed, and puts another in its place", async () => {
     await render(<ReplyReactionsExample reacted />);
-    await expect.element(emoji("👍")).toHaveAttribute("aria-pressed", "true");
-    await expect.element(emoji("❤️")).toHaveAttribute("aria-pressed", "false");
     await expect.element(page.getByText(ours)).toBeVisible();
+    await expect.element(page.getByText("👍", { exact: true })).toBeVisible();
+    await smiley().click();
+    await expect.element(emoji("👍")).toHaveAttribute("aria-pressed", "true");
     await emoji("👍").click();
     await expect.element(log().last()).toHaveTextContent('react(12, "")');
+    await smiley().click();
     await emoji("❤️").click();
     await expect.element(log().last()).toHaveTextContent('react(12, "❤️")');
   });
 
-  it("says when WhatsApp couldn't deliver ours, and when one didn't go", async () => {
+  it("says when WhatsApp couldn't deliver ours, and when one didn't go, leaving the emoji open", async () => {
     const { unmount } = await render(<ReplyReactionsExample undelivered />);
     await expect.element(page.getByText(copy.undelivered("Parameter value is not valid"))).toBeVisible();
     await unmount();
     await render(<ReplyReactionsExample refused />);
+    await smiley().click();
     await emoji("👍").click();
     await expect.element(page.getByText(copy.reactionNotSent)).toBeVisible();
+    await expect.element(page.getByRole("group", { name: copy.react })).toBeVisible();
   });
 
-  it("shows only ours on a message too old for another, or with nothing to put one there, and nothing with none", async () => {
+  it("has no smiley on a message too old for another, or not their latest, but still shows ours", async () => {
     const { unmount } = await render(<ReplyReactionsExample reacted tooOld />);
-    await expect.element(page.getByRole("group", { name: copy.react })).not.toBeInTheDocument();
+    await expect.element(smiley()).not.toBeInTheDocument();
     await expect.element(page.getByText(ours)).toBeVisible();
     await unmount();
-    const second = await render(<ReplyReactions replyId={12} reactions={exampleTextReactions} reactable />);
-    await expect.element(page.getByRole("group", { name: copy.react })).not.toBeInTheDocument();
-    await second.unmount();
-    const { container } = await render(<ReplyReactions replyId={12} reactions={[]} reactable={false} />);
-    expect(container.textContent).toBe("");
+    await render(<ReplyReactionsExample tooOld />);
+    await expect.element(smiley()).not.toBeInTheDocument();
+    await expect.element(page.getByText("Great, thanks!")).toBeVisible();
   });
 });
