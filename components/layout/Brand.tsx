@@ -1,24 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { LocalGroup } from "@/lib/content/local-groups";
+import type { Group } from "@/lib/content/groups";
 import styles from "./Brand.module.css";
 
 /**
  * The PauseAI UK logo and "UK", as a link home in the header or plain in
- * the footer. On a local group's page the header shows the group's own
- * logo, or the pause symbol with its name.
+ * the footer. On a group's page the header shows the group's own logo, or
+ * the pause symbol with its name.
  */
-export default function Brand({ home, localGroup }: { home?: boolean; localGroup?: LocalGroup }) {
+export default function Brand({ home, group }: { home?: boolean; group?: Group }) {
   // The header's is at the top of every page, so it's fetched before anything
   // else rather than left, as images are, until the browser finds it's in view.
   const early = home ? ({ loading: "eager", fetchPriority: "high" } as const) : {};
-  const mark = localGroup ? (
-    localGroup.logo ? (
+  const mark = group ? (
+    group.logo ? (
       <Image
-        src={localGroup.logo.src}
+        src={group.logo.src}
         alt=""
-        width={localGroup.logo.width}
-        height={localGroup.logo.height}
+        width={group.logo.width}
+        height={group.logo.height}
         className={styles.mark}
         {...early}
       />
@@ -34,7 +34,7 @@ export default function Brand({ home, localGroup }: { home?: boolean; localGroup
         />
         <div className={styles.text}>
           <span className={styles.pretitle}>PauseAI UK</span>
-          <span className={styles.tagline}>{localGroup.name} Group</span>
+          <span className={styles.tagline}>{group.words.label}</span>
         </div>
       </>
     )

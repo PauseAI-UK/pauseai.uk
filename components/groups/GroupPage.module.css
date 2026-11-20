@@ -1,4 +1,4 @@
-/* A local group's page: its hero (the group's name, a lede, buttons, a
+/* A group's page: its hero (the group's name, a lede, buttons, a
    photo with a badge), then its cards. */
 
 .hero {
@@ -34,6 +34,11 @@
   margin: 24px 0 12px;
 }
 
+/* The contact buttons are the last thing in their band. */
+.contactActions {
+  margin-bottom: 0;
+}
+
 .heroVisual {
   position: relative;
 }
@@ -52,6 +57,17 @@
   inset: 0;
   background: linear-gradient(135deg, rgb(var(--pause-orange-rgb) / 0.2), rgb(var(--text-rgb) / 0.35));
   pointer-events: none;
+}
+
+/* An illustration fills the frame from its right, where its subject is, in
+   its own colours. */
+.illustration {
+  background-size: cover;
+  background-position: right center;
+}
+
+.illustration::after {
+  content: none;
 }
 
 .heroBadge {

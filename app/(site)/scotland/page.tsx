@@ -1,12 +1,8 @@
-import LocalGroupPage from "@/components/local-groups/LocalGroupPage";
-import { localGroupMetadata, localGroupPages } from "@/lib/content/local-group-pages";
+import GroupPage from "@/components/groups/GroupPage";
+import { groupMetadata, groupPages } from "@/lib/content/group-pages";
 
-export const metadata = localGroupMetadata(
-  "Scotland",
-  "/scotland",
-  "PauseAI Scotland hosts events and conversations on AI risk.",
-);
+export const metadata = groupMetadata("Scotland", "PauseAI Scotland hosts events and conversations on AI risk.");
 
 export default function ScotlandPage() {
-  return <LocalGroupPage content={localGroupPages["Scotland"]} />;
+  return <GroupPage content={groupPages["Scotland"]} />;
 }

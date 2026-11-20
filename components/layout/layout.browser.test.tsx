@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import { affinityGroups, groupNamed, groups } from "@/lib/content/groups";
+import { localGroups } from "@/lib/content/local-groups";
 import { site } from "@/lib/content/site";
 import { navigation } from "@/tests/browser/navigation";
 import CookieConsent, { cookieDomains, CookieSettingsLink } from "./CookieConsent";
@@ -67,7 +69,46 @@ describe("TagManagerNoscript", () => {
 });
 
 describe("Nav", () => {
-  it("shows the PauseAI UK logo, and a local group's branding on its page", async () => {
+  it("lists every group in the Groups menu, the local groups before the affinity groups", async () => {
+    const { container } = await render(<Nav />);
+    // The menu's link leads to the home page's map of local groups.
+    const trigger = container.querySelector('nav a[href="#local-groups"]')!;
+    expect(trigger.textContent).toBe("Groups");
+    const links = [...trigger.nextElementSibling!.querySelectorAll("a")].map((a) => [
+      a.getAttribute("href")!.replace(/\/$/, ""),
+      a.textContent,
+    ]);
+    expect(links.map(([href]) => href).sort()).toEqual(groups.map((group) => group.href).sort());
+    expect(links.slice(-affinityGroups.length)).toEqual(affinityGroups.map((group) => [group.href, group.menu]));
+  });
+
+  it("puts the local groups, in alphabetical order, and the affinity groups in two columns with headings", async () => {
+    const { container } = await render(<Nav />);
+    const menu = container.querySelector('nav a[href="#local-groups"]')!.nextElementSibling!;
+    const columns = [...menu.children].map((column) => ({
+      heading: column.getAttribute("aria-label"),
+      shown: column.firstElementChild!.textContent,
+      links: [...column.querySelectorAll("a")].map((a) => a.textContent!),
+    }));
+    expect(columns).toHaveLength(2);
+    // Each column shows the heading it's labelled with.
+    for (const { heading, shown } of columns) expect(shown).toBe(heading);
+    const [local, communities] = columns;
+    expect(local.links).toEqual(localGroups.map((group) => group.name).sort());
+    expect(communities.links).toEqual(affinityGroups.map((group) => group.menu));
+    expect(local.heading).not.toBe(communities.heading);
+  });
+
+  it("gives a menu of one kind of link a single column, with no heading", async () => {
+    const { container } = await render(<Nav />);
+    // Next's Link drops the path's closing slash.
+    const menu = container.querySelector('nav a[aria-haspopup][href="/campaigns"]')!.nextElementSibling!;
+    expect(menu.children).toHaveLength(1);
+    expect(menu.firstElementChild!.getAttribute("aria-label")).toBeNull();
+    expect(menu.firstElementChild!.firstElementChild!.tagName).toBe("A");
+  });
+
+  it("shows the PauseAI UK logo, and a group's branding on its page", async () => {
     const { container, rerender } = await render(<Nav />);
     await expect.element(page.getByRole("img", { name: "PauseAI UK" })).toBeInTheDocument();
     // At the top of every page, it's fetched before anything else.
@@ -85,6 +126,11 @@ describe("Nav", () => {
     navigation.pathname = "/scotland/";
     await rerender(<Nav />);
     await expect.element(page.getByText("Scotland Group")).toBeVisible();
+
+    // An affinity group's page, by the group's own words.
+    navigation.pathname = "/parents";
+    await rerender(<Nav />);
+    expect(container.querySelector("header a")?.textContent).toBe(`PauseAI UK${groupNamed("Parents").words.label}`);
   });
 
   it("sets the header height for the stylesheet", async () => {

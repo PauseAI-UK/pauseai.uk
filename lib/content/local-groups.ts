@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 
 /** Every local group with a page, so a page cannot ask for one that does not exist. */
-export type LocalGroupName = "Scotland" | "Manchester" | "West of England" | "Leicester" | "Oxford" | "London";
+export type LocalGroupName =
+  "Scotland" | "Manchester" | "West of England" | "Leicester" | "Cambridge" | "Oxford" | "London";
 
 export type LocalGroup = {
   name: LocalGroupName;
@@ -18,7 +19,7 @@ export type LocalGroup = {
   /**
    * Place names that mark a calendar event as this local group's, matched
    * word-bounded against the event name, city and free-text address by
-   * eventMatchesLocalGroup in lib/site-events.ts. Add the surrounding county or
+   * filterEventsForGroup in lib/site-events.ts. Add the surrounding county or
    * region where the local group organises beyond its host city.
    */
   eventMatchers: string[];
@@ -78,6 +79,16 @@ export const localGroups: LocalGroup[] = [
     side: "right",
     eventMatchers: ["Leicester", "Leicestershire"],
     logo: { src: "/images/local-groups/leicester/leicester_logoBanner_tp_tp_darkmode.svg", width: 289, height: 84 },
+  },
+  {
+    name: "Cambridge",
+    href: "/cambridge",
+    blurb: "Conversations on AI risk with students, researchers, and local residents.",
+    imageSrc: "/images/local-groups/cambridge/hero.webp",
+    lng: 0.1218,
+    lat: 52.2053,
+    side: "right",
+    eventMatchers: ["Cambridge", "Cambridgeshire"],
   },
   {
     name: "Oxford",

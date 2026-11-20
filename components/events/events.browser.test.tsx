@@ -6,7 +6,8 @@ import EventList from "./EventList";
 import { exampleEvent } from "./EventList.examples";
 import EventsSection from "./EventsSection";
 import GoingFaces from "./GoingFaces";
-import LocalGroupEvents from "./LocalGroupEvents";
+import GroupEvents from "./GroupEvents";
+import { groupNamed } from "@/lib/content/groups";
 import UpcomingEvents from "./UpcomingEvents";
 
 const { getEvents } = vi.hoisted(() => ({ getEvents: vi.fn() }));
@@ -200,7 +201,7 @@ describe("UpcomingEvents", () => {
   });
 });
 
-describe("LocalGroupEvents", () => {
+describe("GroupEvents", () => {
   it("lists the group's upcoming and past events, online ones only when they name the group", async () => {
     getEvents.mockImplementation(async (period: string) =>
       period === "future"
@@ -212,7 +213,7 @@ describe("LocalGroupEvents", () => {
           ]
         : [event(9, { name: "Old London march", geo_address_info: { city: "London" } })],
     );
-    await render(await LocalGroupEvents({ localGroupName: "London" }));
+    await render(await GroupEvents({ groupName: "London" }));
     await expect.element(page.getByRole("heading", { name: "Upcoming events in London" })).toBeVisible();
     await expect.element(page.getByText("London social")).toBeVisible();
     await expect.element(page.getByText("London online call")).toBeVisible();
@@ -226,9 +227,26 @@ describe("LocalGroupEvents", () => {
 
   it("says when the group has nothing on, and leaves out empty sections", async () => {
     getEvents.mockResolvedValue([]);
-    await render(await LocalGroupEvents({ localGroupName: "Oxford" }));
+    await render(await GroupEvents({ groupName: "Oxford" }));
     await expect.element(page.getByText(/Nothing is listed in Oxford just now/)).toBeVisible();
     await expect.element(page.getByRole("heading", { name: "Past events in Oxford" })).not.toBeInTheDocument();
+  });
+
+  it("lists an affinity group's events, which name it, under the group's own words", async () => {
+    const { words } = groupNamed("Parents");
+    getEvents.mockImplementation(async (period: string) =>
+      period === "future"
+        ? [event(1, { name: "PauseAI Parents Online Meet" }), event(2, { name: "Online intro" })]
+        : [],
+    );
+    const { rerender } = await render(await GroupEvents({ groupName: "Parents" }));
+    await expect.element(page.getByRole("heading", { name: words.upcoming })).toBeVisible();
+    await expect.element(page.getByText("PauseAI Parents Online Meet")).toBeVisible();
+    expect(document.body.textContent).not.toContain("Online intro");
+
+    getEvents.mockResolvedValue([]);
+    await rerender(await GroupEvents({ groupName: "Parents" }));
+    await expect.element(page.getByText(words.nothingOn, { exact: false })).toBeVisible();
   });
 });
 

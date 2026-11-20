@@ -1,12 +1,8 @@
-import LocalGroupPage from "@/components/local-groups/LocalGroupPage";
-import { localGroupMetadata, localGroupPages } from "@/lib/content/local-group-pages";
+import GroupPage from "@/components/groups/GroupPage";
+import { groupMetadata, groupPages } from "@/lib/content/group-pages";
 
-export const metadata = localGroupMetadata(
-  "London",
-  "/london",
-  "Join PauseAI London for meetups, protests, and AI safety advocacy.",
-);
+export const metadata = groupMetadata("London", "Join PauseAI London for meetups, protests, and AI safety advocacy.");
 
 export default function LondonPage() {
-  return <LocalGroupPage content={localGroupPages["London"]} />;
+  return <GroupPage content={groupPages["London"]} />;
 }

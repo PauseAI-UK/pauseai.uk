@@ -16,6 +16,11 @@ import styles from "./LocalGroupsMap.module.css";
 const MAP_W = 380;
 const MAP_H = 608;
 
+// The map stands between the two columns of cards, as tall as the longer one.
+const MAP_ROWS = Math.max(
+  ...(["left", "right"] as const).map((side) => localGroups.filter((group) => group.side === side).length),
+);
+
 // Matches the breakpoint the stylesheet uses to drop the three-column
 // arrangement. Below it the cards stand on their own, so the map data is
 // never fetched and no connectors are drawn.
@@ -139,7 +144,8 @@ export default function LocalGroupsMap() {
       )}
 
       {localGroups.map((localGroup, i) => {
-        const row = (i % 3) + 1;
+        // Each side's cards run down their own column, in the list's order.
+        const row = localGroups.slice(0, i).filter((above) => above.side === localGroup.side).length + 1;
         const column = localGroup.side === "left" ? 1 : 3;
         return (
           <Link
@@ -175,7 +181,7 @@ export default function LocalGroupsMap() {
           height before the topology arrives; filling it in later then moves
           nothing below, including the section anchors further down the page.
           The stylesheet hides it below the three-column breakpoint. */}
-      <div className={styles.canvas}>
+      <div className={styles.canvas} style={{ "--map-rows": MAP_ROWS } as CSSProperties}>
         {isDesktop && path && (
           <svg
             viewBox={`0 0 ${MAP_W} ${MAP_H}`}

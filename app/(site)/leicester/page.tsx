@@ -1,12 +1,11 @@
-import LocalGroupPage from "@/components/local-groups/LocalGroupPage";
-import { localGroupMetadata, localGroupPages } from "@/lib/content/local-group-pages";
+import GroupPage from "@/components/groups/GroupPage";
+import { groupMetadata, groupPages } from "@/lib/content/group-pages";
 
-export const metadata = localGroupMetadata(
+export const metadata = groupMetadata(
   "Leicester",
-  "/leicester",
   "Join the Leicester group of PauseAI for meetups, outreach, and AI safety action.",
 );
 
 export default function LeicesterPage() {
-  return <LocalGroupPage content={localGroupPages["Leicester"]} />;
+  return <GroupPage content={groupPages["Leicester"]} />;
 }

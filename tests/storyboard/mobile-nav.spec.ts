@@ -134,7 +134,7 @@ test.describe("mobile nav", { tag: "@phone-only" }, () => {
   });
 
   test("Opening another submenu", async ({ page }) => {
-    story("With About open, tapping Local groups opens that list and closes About.");
+    story("With About open, tapping Groups opens that list and closes About.");
     await openPage(page);
 
     await burger(page).click();
@@ -147,7 +147,7 @@ test.describe("mobile nav", { tag: "@phone-only" }, () => {
     await expect(item(page, 1).getByRole("menuitem").first()).toBeVisible();
     await expect(trigger(page, 0)).toHaveAttribute("aria-expanded", "false");
     await expect(item(page, 0).getByRole("menuitem").first()).toBeHidden();
-    await frame(page, "Local groups, open");
+    await frame(page, "Groups, open");
   });
 
   test("Closing a submenu", async ({ page }) => {

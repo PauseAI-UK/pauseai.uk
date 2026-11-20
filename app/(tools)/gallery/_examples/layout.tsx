@@ -13,13 +13,13 @@ import Nav from "@/components/layout/Nav";
 import NoAnalytics from "@/components/layout/NoAnalytics";
 import NotFoundMain from "@/components/layout/NotFoundMain";
 import SiteFrame from "@/components/layout/SiteFrame";
-import { localGroups } from "@/lib/content/local-groups";
+import { groups } from "@/lib/content/groups";
 import type { Group } from "../_components/types";
 import styles from "../_components/Gallery.module.css";
 
-// A local group with its own logo, and one without.
-const WITH_LOGO = localGroups.find((group) => group.logo)!;
-const WITHOUT_LOGO = localGroups.find((group) => !group.logo)!;
+// A group with its own logo, and one without.
+const WITH_LOGO = groups.find((group) => group.logo)!;
+const WITHOUT_LOGO = groups.find((group) => !group.logo)!;
 
 export const layout: Group = {
   id: "layout",
@@ -51,18 +51,18 @@ export const layout: Group = {
           ),
         },
         {
-          label: "A local group's own logo",
+          label: "A group's own logo",
           render: () => (
             <div className="container">
-              <Brand home localGroup={WITH_LOGO} />
+              <Brand home group={WITH_LOGO} />
             </div>
           ),
         },
         {
-          label: "A local group without a logo: the pause symbol and its name",
+          label: "A group without a logo: the pause symbol and its name",
           render: () => (
             <div className="container">
-              <Brand home localGroup={WITHOUT_LOGO} />
+              <Brand home group={WITHOUT_LOGO} />
             </div>
           ),
         },

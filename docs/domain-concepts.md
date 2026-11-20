@@ -2167,3 +2167,17 @@ groups and their pages, press coverage, blog posts, the board
 (`lib/content/`). Events are the exception: Luma's calendar is the source
 of truth, and the public pages read it live; the copy the import keeps is
 for the staff interface, not for them.
+
+**A group** has a page of its own, in the Groups menu. A local group is a
+place's (`lib/content/local-groups.ts`), with a pin on the home page's map.
+An affinity group is of people with something else in common, such as
+parents or teachers (`lib/content/groups.ts`), and has no place. Every
+group's page is the same component with the group's content
+(`lib/content/group-pages.ts`), and lists the group's events from the
+calendar: a local group's by its place names in an event's name or address,
+an affinity group's by its name in the event's (`eventMatchers`). Every
+page ends with the same contact section: a sentence, then a button for the
+WhatsApp community and one to email, the group's own address first where it
+has one. To add a
+group, add it to its list and its content, and a `page.tsx` for its path;
+for a local group, add its link to the menu too (`components/layout/Nav.tsx`).

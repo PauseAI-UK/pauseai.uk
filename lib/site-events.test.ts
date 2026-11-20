@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { groupNamed, groups, type GroupName } from "@/lib/content/groups";
 import { localGroups } from "@/lib/content/local-groups";
 import {
   ANYWHERE,
@@ -6,7 +7,7 @@ import {
   eventsNear,
   inPersonEventsFor,
   isOnlineEvent,
-  filterEventsForLocalGroup,
+  filterEventsForGroup,
   formatEventDate,
   formatEventTime,
   type LumaEvent,
@@ -22,9 +23,8 @@ function entry(name: string, geo?: { city?: string; address?: string; region?: s
   };
 }
 
-const matchersFor = (name: string) => localGroups.find((c) => c.name === name)!.eventMatchers;
-const names = (events: LumaEvent[], localGroup: string) =>
-  filterEventsForLocalGroup(events, matchersFor(localGroup)).map((e) => e.name);
+const names = (events: LumaEvent[], group: GroupName) =>
+  filterEventsForGroup(events, groupNamed(group).eventMatchers).map((e) => e.name);
 
 // Shapes taken from the live calendar: only some events carry a city, so the
 // other two fields are what keep a local group page from looking empty.
@@ -37,7 +37,7 @@ const calendar = [
   entry("Tabling and Flyering for the PauseAI Protest", { address: "All Across London" }),
 ];
 
-describe("filterEventsForLocalGroup", () => {
+describe("filterEventsForGroup", () => {
   it("matches on city, on free-text address, and on the event name", () => {
     expect(names(calendar, "London")).toEqual([
       "PauseAI Holborn & St Pancras Canvasing", // city
@@ -74,11 +74,22 @@ describe("filterEventsForLocalGroup", () => {
     expect(names([entry("bristol social!")], "West of England")).toHaveLength(1);
   });
 
-  it("leaves UK-wide and online events off local group pages", () => {
+  it("leaves UK-wide and online events off every group's page", () => {
     const online = [entry("TuesdayPauseday - Weekly Online Call"), entry("PauseAI UK All Hands")];
-    for (const localGroup of localGroups) {
-      expect(names(online, localGroup.name), localGroup.name).toEqual([]);
+    for (const group of groups) {
+      expect(names(online, group.name), group.name).toEqual([]);
     }
+  });
+
+  it("finds an affinity group's events by its name in theirs, online or in any town", () => {
+    const meets = [
+      entry("PauseAI Parents Online Meet"),
+      entry("PauseAI Parents Tea & Biscuit Meet-up", { city: "Levenshulme" }),
+      entry("Teachers for a Pause Online Meet"),
+    ];
+    expect(names(meets, "Parents")).toEqual(["PauseAI Parents Online Meet", "PauseAI Parents Tea & Biscuit Meet-up"]);
+    expect(names(meets, "Teachers")).toEqual(["Teachers for a Pause Online Meet"]);
+    expect(names(meets, "Manchester")).toEqual([]);
   });
 
   it("returns nothing rather than throwing for a local group with no events", () => {
