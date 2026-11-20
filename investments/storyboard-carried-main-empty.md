@@ -13,3 +13,4 @@ Find why the run that carries them doesn't read them back: `mainFromStore()` may
 ## Hits
 
 - 2026-11-13: after a rebase onto a new main, a review of every flow said it carried main's frames of 622 flows, then had main missing for all 618; a second run compared them, ~10 min
+- 2026-11-20: the same after a rebase onto a new main: every flow ran, main's frames of 672 flows were carried, and all 676 had main missing till the review was run again
