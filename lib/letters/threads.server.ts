@@ -1,6 +1,6 @@
 import "server-only";
 import { gunzipSync } from "node:zlib";
-import { firstOfType, decodeWords, parseMime, wholeTextOf } from "@/lib/email-parsing/mime.server";
+import { firstOfType, decodeWords, messageText, parseMime } from "@/lib/email-parsing/mime.server";
 import { replyParts } from "@/lib/email-parsing/reply-text";
 import type { LetterDoc } from "./format";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
@@ -26,7 +26,7 @@ export type ThreadMessage = {
   /** An automatic reply, such as an office's acknowledgement or an out-of-office, as reading it noted. */
   auto: boolean;
   subject: string;
-  /** Its plain text, or its HTML's text, without the mail it quotes or its footer; null if the kept message can't be read. */
+  /** Its text (messageText), without the mail it quotes or its footer; null if the kept message can't be read. */
   text: string | null;
   /** The mail it quotes and its footer, folded under its text; empty if none or the kept message can't be read. */
   quoted: string;
@@ -54,22 +54,27 @@ export type LetterThread = {
 
 /**
  * A kept message's text and, apart, the mail it quotes and its footer: from
- * its plain text or its HTML's (wholeTextOf); its text null if it has
+ * its HTML or its plain text (messageText); its text null if it has
  * neither. Whom it was copied to, as its Cc said, or null. And whether a
  * machine sent it, by its headers and subject. Its whole text, quotes and
  * all, null as its text is. Null, empty and false if it's gone.
  */
-export async function messageContent(
-  blobKey: string,
-): Promise<{ text: string | null; quoted: string; cc: string | null; auto: boolean; whole: string | null }> {
+export async function messageContent(blobKey: string): Promise<{
+  text: string | null;
+  quoted: string;
+  cc: string | null;
+  auto: boolean;
+  whole: string | null;
+  wrapped: boolean;
+}> {
   const gzipped = await letterReply(blobKey);
-  if (!gzipped) return { text: null, quoted: "", cc: null, auto: false, whole: null };
+  if (!gzipped) return { text: null, quoted: "", cc: null, auto: false, whole: null, wrapped: true };
   const message = parseMime(gunzipSync(gzipped).toString("latin1"));
   const cc = message.headers.get("cc");
-  const whole = firstOfType(message, "text/plain") || firstOfType(message, "text/html") ? wholeTextOf(message) : null;
-  const parts = whole === null ? { text: null, quoted: "" } : replyParts(whole);
+  const read = firstOfType(message, "text/plain") || firstOfType(message, "text/html") ? messageText(message) : null;
+  const parts = read === null ? { text: null, quoted: "" } : replyParts(read.text, read.wrapped);
   const auto = isMachineReply((name) => message.headers.get(name), decodeWords(message.headers.get("subject") ?? ""));
-  return { ...parts, cc: cc ? decodeWords(cc) : null, auto, whole };
+  return { ...parts, cc: cc ? decodeWords(cc) : null, auto, whole: read?.text ?? null, wrapped: read?.wrapped ?? true };
 }
 
 /** Each message kept in a letter's thread, oldest first, with its text. */

@@ -9,6 +9,7 @@ import {
   parseHeaders,
   parseMime,
   decodedText,
+  messageText,
   partText,
   wholeTextOf,
 } from "./mime.server";
@@ -93,7 +94,7 @@ describe("reading a message", () => {
     expect(fromAddress(undefined)).toEqual({ address: "", name: "" });
   });
 
-  /** A message in two forms, as a casework system sends it: its plain text made from its HTML. */
+  /** A message in two forms, its plain text made from its HTML. */
   const inTwoForms = (plain: string, html: string) =>
     parseMime(
       'Content-Type: multipart/alternative; boundary="b"\r\n\r\n' +
@@ -101,25 +102,44 @@ describe("reading a message", () => {
         `--b\r\nContent-Type: text/html; charset=utf-8\r\n\r\n${html}\r\n--b--\r\n`,
     );
 
-  it("reads the HTML of a message whose plain text has HTML's entities left in it", () => {
+  it("reads a message's HTML when it has any, as its writer and reader saw it, unwrapped", () => {
     const tracked = "https://u1.ct.sendgrid.net/ls/click?upn=u001.abc-2Bdef";
     const html =
       "<div>Dear&nbsp;Jo,<br> <br> I&rsquo;ve signed the motion. It asks for: <ul style='margin: 0'> <li>a summit</li> " +
-      `<li>a treaty.</li> </ul> <br> You can read it here:&nbsp;<a href="${tracked}">https://example.org/motion/1</a><br> <br> ` +
-      "Best wishes,<br> &#8203;&#8203;&nbsp; Office of Sam Jones MP<br> Your data&#8239;is safe.</div>";
+      `<li>a treaty.</li> </ul> <br> You can read it <a href="${tracked}">here</a>.</div>`;
+    // As a casework system's plain text is: its HTML with the tags taken out, and no more.
     const plain =
       "Dear&nbsp;Jo,\r\n\r\nI&rsquo;ve signed the motion. It asks for:\r\n\r\n\ta summit\r\n\ta treaty.\r\n\r\n\r\n" +
-      `You can read it here:&nbsp;${tracked}\r\n\r\nBest wishes,\r\n&#8203;&#8203;&nbsp; Office of Sam Jones MP\r\n` +
-      "Your data&#8239;is safe.";
-    expect(wholeTextOf(inTwoForms(plain, html))).toBe(
-      "Dear Jo,\n\nI’ve signed the motion. It asks for:\n- a summit\n- a treaty.\n\n" +
-        "You can read it here: https://example.org/motion/1\n\nBest wishes,\n  Office of Sam Jones MP\n" +
-        "Your data is safe.",
-    );
+      `You can read it here [${tracked}].`;
+    expect(messageText(inTwoForms(plain, html))).toEqual({
+      text: "Dear\u00a0Jo,\n\nI’ve signed the motion. It asks for:\n- a summit\n- a treaty.\n\nYou can read it here.",
+      wrapped: false,
+    });
+    expect(wholeTextOf(inTwoForms("Not this", "<p>This</p>"))).toBe("This");
   });
 
-  it("reads plain text with nothing of HTML's in it, though the message has HTML too", () => {
-    expect(wholeTextOf(inTwoForms("Jo & Sam; R&D; AT&T.", "<p>Not this</p>"))).toBe("Jo & Sam; R&D; AT&T.");
+  it("reads the HTML Apple Mail splits around an attachment as one", () => {
+    const message = parseMime(
+      'Content-Type: multipart/alternative; boundary="a"\r\n\r\n--a\r\nContent-Type: text/plain\r\n\r\nPlain\r\n' +
+        '--a\r\nContent-Type: multipart/mixed; boundary="m"\r\n\r\n' +
+        "--m\r\nContent-Type: text/html\r\n\r\n<div>Before</div>\r\n" +
+        '--m\r\nContent-Type: application/pdf\r\nContent-Disposition: inline; filename="a.pdf"\r\n\r\nPDF\r\n' +
+        "--m\r\nContent-Type: text/html\r\nContent-Disposition: attachment\r\n\r\n<div>Attached</div>\r\n" +
+        "--m\r\nContent-Type: text/html\r\n\r\n<div>After</div>\r\n--m--\r\n--a--\r\n",
+    );
+    expect(wholeTextOf(message)).toBe("Before\nAfter");
+    expect(wholeTextOf(parseMime("Content-Type: text/html\r\n\r\n<p>Alone</p>"))).toBe("Alone");
+  });
+
+  it("reads plain text as it is, wrapped, when there's no HTML", () => {
+    expect(messageText(parseMime("Subject: Hi\r\n\r\nNo type, so plain."))).toEqual({
+      text: "No type, so plain.",
+      wrapped: true,
+    });
+    expect(messageText(parseMime("Content-Type: text/plain\r\n\r\nJo & Sam; R&D;\r\nAT&T.\r\n"))).toEqual({
+      text: "Jo & Sam; R&D;\nAT&T.",
+      wrapped: true,
+    });
   });
 
   it("reads the entities in plain text that has them, when the message has no HTML", () => {
@@ -131,5 +151,12 @@ describe("reading a message", () => {
 
   it("reads a message with no text as empty", () => {
     expect(wholeTextOf(parseMime("Content-Type: image/png\r\n\r\nabc"))).toBe("");
+    expect(
+      messageText(
+        parseMime(
+          'Content-Type: multipart/mixed; boundary="m"\r\n\r\n--m\r\nContent-Type: image/png\r\n\r\nabc\r\n--m--\r\n',
+        ),
+      ),
+    ).toEqual({ text: "", wrapped: true });
   });
 });

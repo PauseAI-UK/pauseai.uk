@@ -1,6 +1,7 @@
 import "server-only";
 import { problem } from "@/lib/server/problems.server";
 import { serverCopy } from "@/lib/server/copy";
+import { htmlText } from "./html-text";
 
 // Reading a message from a mailbox, a reply or a bounce: its MIME parts and
 // headers, and its text. Only as much of MIME as those need.
@@ -170,56 +171,47 @@ function zeroWidthGone(text: string): string {
   return text.replace(/\u200b/g, "");
 }
 
-/** Some HTML's text: its source's wrapping and its tags gone, a blank line after a paragraph or a list, a line for each other break. */
-function tagsGone(html: string): string {
-  const lines = html
-    .replace(/\s+/g, " ")
-    .replace(/<li\b[^>]*>/gi, "\n- ")
-    .replace(/<\/(p|h\d|ul|ol)>/gi, "\n\n")
-    .replace(/<br\s*\/?>|<\/(div|tr)>/gi, "\n")
-    .replace(/<[^>]+>/g, "");
-  return zeroWidthGone(entitiesRead(lines)).replace(/ *\n */g, "\n");
-}
+/** Whether a part is HTML that isn't an attachment. */
+const isHtmlText = (part: MimePart) =>
+  (part.headers.get("content-type") ?? "").toLowerCase().startsWith("text/html") &&
+  !(part.headers.get("content-disposition") ?? "").toLowerCase().startsWith("attachment");
 
-/** An HTML part's text, what's in a blockquote marked with "> " as plain text quotes it. */
-function htmlText(html: string): string {
-  let depth = 0;
-  return html
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(head|style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
-    .split(/(<\/?blockquote\b[^>]*>)/i)
-    .map((part) => {
-      if (/^<blockquote/i.test(part)) {
-        depth++;
-        return "\n";
-      }
-      if (/^<\/blockquote/i.test(part)) {
-        depth--;
-        return "\n";
-      }
-      const text = tagsGone(part);
-      return depth > 0 ? text.replace(/^/gm, "> ") : text;
-    })
-    .join("")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+/**
+ * A message's HTML: its first HTML part, and the HTML parts beside it, as
+ * Apple Mail splits a message's HTML around an attachment placed in it.
+ * Undefined if it has none.
+ */
+function htmlOf(message: MimePart): string | undefined {
+  const parentOf = (part: MimePart): MimePart | undefined => {
+    if (part.parts.some(isHtmlText)) return part;
+    for (const child of part.parts) {
+      const found = parentOf(child);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  if (isHtmlText(message)) return partText(message);
+  const parent = parentOf(message);
+  return parent && parent.parts.filter(isHtmlText).map(partText).join("\n");
 }
 
 /**
- * A message's whole text, the mail it quotes included: its plain text if it
- * has one, else its HTML's; empty if neither. Plain text with HTML's entities
- * left in it ("I&rsquo;ve") was made from the message's HTML by a mailer that
- * didn't finish, as a casework system's is, its links as tracking addresses
- * too: the HTML is read instead, or with no HTML, the entities are.
+ * A message's whole text, the mail it quotes included, and whether a mailer
+ * wrapped its lines. Its HTML if it has any (htmlText), as that's what the
+ * people who wrote and read it saw: a mailer's plain text loses its lists'
+ * layout, and some leave HTML's entities in it and its links as tracking
+ * addresses. Otherwise its plain text, any of HTML's entities in it read.
+ * Empty if it has neither.
  */
-export function wholeTextOf(message: MimePart): string {
+export function messageText(message: MimePart): { text: string; wrapped: boolean } {
+  const html = htmlOf(message);
+  if (html !== undefined) return { text: htmlText(html), wrapped: false };
   const plain = firstOfType(message, "text/plain");
-  const html = firstOfType(message, "text/html");
-  if (plain) {
-    const text = partText(plain).replace(/\r\n/g, "\n").trim();
-    const read = entitiesRead(text);
-    if (read === text) return text;
-    if (!html) return zeroWidthGone(read).trim();
-  }
-  return html ? htmlText(partText(html)) : "";
+  const text = plain ? zeroWidthGone(entitiesRead(partText(plain).replace(/\r\n/g, "\n"))).trim() : "";
+  return { text, wrapped: true };
+}
+
+/** A message's whole text, the mail it quotes included (messageText). */
+export function wholeTextOf(message: MimePart): string {
+  return messageText(message).text;
 }
