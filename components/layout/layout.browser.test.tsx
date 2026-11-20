@@ -101,7 +101,8 @@ describe("Nav", () => {
 
   it("gives a menu of one kind of link a single column, with no heading", async () => {
     const { container } = await render(<Nav />);
-    const menu = container.querySelector('nav a[href="/campaigns/"]')!.nextElementSibling!;
+    // Next's Link drops the path's closing slash.
+    const menu = container.querySelector('nav a[aria-haspopup][href="/campaigns"]')!.nextElementSibling!;
     expect(menu.children).toHaveLength(1);
     expect(menu.firstElementChild!.getAttribute("aria-label")).toBeNull();
     expect(menu.firstElementChild!.firstElementChild!.tagName).toBe("A");
