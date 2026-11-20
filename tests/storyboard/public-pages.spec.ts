@@ -134,3 +134,25 @@ for (const { opening, section, post } of [
     expect(xml).toContain(`/${post.slug}"/>`);
   });
 }
+
+test("The Groups menu", { tag: "@desktop-only" }, async ({ page }) => {
+  story(
+    "The Groups menu in the header lists the local groups in one column, and beside them the communities, such as parents and teachers.",
+  );
+  await page.goto(`${BASE}/london`);
+  const trigger = page.getByRole("link", { name: "Groups", exact: true });
+  const menu = trigger.locator("..");
+  // Opened by focus, not hover: a frame moves the pointer away first, which
+  // would close a hovered menu.
+  await trigger.focus();
+  const parents = menu.getByRole("menuitem", { name: "Parents" });
+  await expect(menu.getByRole("menuitem", { name: "Cambridge" })).toBeVisible();
+  await expect(parents).toBeVisible();
+  await frame(page, "The Groups menu");
+  story("Choosing Parents opens the parents' page, and the menu closes.");
+  await parents.click();
+  await expect(page).toHaveURL(`${BASE}/parents`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("PauseAI Parents");
+  await expect(parents).toBeHidden();
+  await frame(page, "The parents' page");
+});

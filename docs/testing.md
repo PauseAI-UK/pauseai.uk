@@ -874,7 +874,7 @@ if a spec file or a route handler (`route.ts`) is missing from this list.
 So a new one is placed here on purpose, on a line of its own, with the flow
 that drives it or why nothing does.
 
-- `public-pages.spec.ts`: Every public route: 200, one `<h1>`, no console errors or hydration warnings, no broken same-site links, fixture text where a page shows data.
+- `public-pages.spec.ts`: Every public route: 200, one `<h1>`, no console errors or hydration warnings, no broken same-site links, fixture text where a page shows data. The header's Groups menu, opened on a desktop.
 - `campaigns.spec.ts`: Email your MP, end to end:
   - the postcode, the letter, the preview and the sent page, and the letter the MP gets;
   - the editor's toolbar and a paste, where a link goes shown under it, and the letter as sent;
