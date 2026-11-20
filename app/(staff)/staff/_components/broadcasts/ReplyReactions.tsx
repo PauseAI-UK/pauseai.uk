@@ -2,7 +2,6 @@
 
 import { useLayoutEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import IconButton from "@/components/ui/IconButton";
-import { Muted } from "@/components/ui/Text";
 import type { BroadcastReaction, ReactionResult } from "@/lib/broadcasts/answers.server";
 import { REACTIONS } from "@/lib/broadcasts/broadcasts";
 import { staffMemberText } from "@/lib/staff-member";
@@ -38,9 +37,9 @@ function Smiley() {
  * emoji staff can put on it (REACTIONS) to its right, or, where a long
  * message leaves no room, floating under it; ours pressed, at most one, as
  * WhatsApp allows. Pressing ours takes it away, another puts it in its
- * place; while one is on its way they're faint. Under the conversation, who
- * put ours there and when, and that WhatsApp couldn't deliver it, if it said
- * so.
+ * place; while one is on its way they're faint, and one that didn't go
+ * says so under the message. Who put ours there and when is in the reply's
+ * foot (OurReaction).
  */
 export default function ReplyReactions({
   replyId,
@@ -63,8 +62,7 @@ export default function ReplyReactions({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState(false);
-  const standing = reactions.findLast((reaction) => !reaction.removedAt);
-  const failure = standing?.events.find((event) => event.kind === "failed");
+  const standing = standingOf(reactions);
   // Ours pressed again takes it away; another puts it in place of ours.
   const press = (pressed: string) => {
     const emoji = pressed === standing?.emoji ? "" : pressed;
@@ -113,28 +111,34 @@ export default function ReplyReactions({
     </span>
   ) : undefined;
   return (
-    <>
-      <ChatWall>
-        <ChatBubble who={who} when={when} beside={smiley} badge={standing?.emoji}>
-          {children}
-        </ChatBubble>
-      </ChatWall>
-      {(standing || failed) && (
-        <div className={styles.reactions}>
-          {standing && (
-            <Muted>
-              {copy.ourReaction(standing.emoji, staffMemberText(standing.sentBy), staffTime(standing.sentAt))}
-              {failure && (
-                <>
-                  <br />
-                  <span>{copy.undelivered(failure.details.title as string | null)}</span>
-                </>
-              )}
-            </Muted>
-          )}
-          {failed && <p className={styles.problem}>{copy.reactionNotSent}</p>}
-        </div>
+    <ChatWall>
+      <ChatBubble who={who} when={when} beside={smiley} badge={standing?.emoji}>
+        {children}
+      </ChatBubble>
+      {failed && <p className={styles.problem}>{copy.reactionNotSent}</p>}
+    </ChatWall>
+  );
+}
+
+/** The emoji of ours on a reply, of `reactions` the ones we put on it: the latest we didn't take away; undefined for none. */
+export const standingOf = (reactions: BroadcastReaction[]) => reactions.findLast((reaction) => !reaction.removedAt);
+
+/**
+ * Under someone's message, as what it was recorded as is: who put our
+ * emoji on it and when, and, on a line under, that WhatsApp couldn't deliver
+ * it, if it said so.
+ */
+export function OurReaction({ reaction, className }: { reaction: BroadcastReaction; className: string }) {
+  const failure = reaction.events.find((event) => event.kind === "failed");
+  return (
+    <p className={className}>
+      {copy.ourReaction(reaction.emoji, staffMemberText(reaction.sentBy), staffTime(reaction.sentAt))}
+      {failure && (
+        <>
+          <br />
+          <span>{copy.undelivered(failure.details.title as string | null)}</span>
+        </>
       )}
-    </>
+    </p>
   );
 }

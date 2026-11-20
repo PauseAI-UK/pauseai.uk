@@ -15,7 +15,7 @@ import { staffTime } from "@/lib/staff-time";
 import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
 import { MailingLetter } from "../mailings/MailingLetter";
 import ReplyActions, { ReplyButton } from "./ReplyActions";
-import ReplyReactions, { type ReactAction } from "./ReplyReactions";
+import ReplyReactions, { OurReaction, standingOf, type ReactAction } from "./ReplyReactions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
@@ -200,12 +200,16 @@ export default function Reply({
   // A text's reply in a card, as an email's is: the chat, then at its foot what it was recorded as and the
   // buttons, unless our answer after it has them, or why it can't be answered now: only under their latest
   // message, while it's unanswered, as an earlier one, or one we answered, needs no answer now.
+  const reactions = one.reactions.filter((reaction) => reaction.replyId === reply.id);
   const textReply = (write?: () => void) => {
     const closed = !reply.answerable && actions && latest && !answered;
     const own = !answered && buttons(write);
-    const foot = (recorded || own) && (
+    // Who put our emoji on it, as what it was recorded as is said.
+    const ourEmoji = standingOf(reactions);
+    const foot = (recorded || ourEmoji || own) && (
       <>
         {recorded}
+        {ourEmoji && <OurReaction reaction={ourEmoji} className={styles.dealt} />}
         {own}
       </>
     );
@@ -216,7 +220,7 @@ export default function Reply({
           replyId={reply.id}
           who={sender(reply, one)}
           when={cameAndWent}
-          reactions={one.reactions.filter((reaction) => reaction.replyId === reply.id)}
+          reactions={reactions}
           reactable={reply.reactable && latest}
           react={actions?.react}
         >
