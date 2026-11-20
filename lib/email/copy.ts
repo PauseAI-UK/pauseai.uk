@@ -98,15 +98,14 @@ export const emailCopy = {
     unblockOpen: "Unblock…",
     cancel: "Cancel",
     // A row's button that opens its history, and what's in it, newest first (BlockEvent in lib/oversight/blocks.server.ts):
-    // a bounce or complaint by its cause, in the words of whoever told us, and the mailbox a bounce was read from; a
-    // text WhatsApp refused, or skipped as it had, by its broadcast; and staff unblocking it, with why.
+    // a bounce or complaint by its cause, in the words of whoever told us, and the mailbox a bounce was read from; the
+    // text WhatsApp refused, by its broadcast; and staff unblocking it, with why.
     history: {
       open: "History",
       // In its place, when there's nothing more than what blocked it, which the row says.
       none: "No history",
       readFrom: (mailbox: string) => `Found in ${mailbox}'s mailbox`,
       refused: "WhatsApp couldn't deliver",
-      skipped: "Not sent, as WhatsApp couldn't deliver before",
       unblocked: (by: string) => `Unblocked by ${by}`,
     },
   },

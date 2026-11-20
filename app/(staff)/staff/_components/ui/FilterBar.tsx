@@ -158,6 +158,13 @@ export default function FilterBar({
   // The values of `next`, paired after a repeating filter, that go with `of`, one of its values.
   const pairedTo = (next: Filter, of: string) =>
     chosen(next.name).filter((one) => unpaired(notValue(one).value).of === of);
+  // The values `keep` of the filter paired after `filter`, if there is one, and what it starts at for `of`, a value
+  // of `filter` just chosen, if it starts anywhere.
+  const withStart = (filter: Filter, of: string, keep: string[]): Params => {
+    const next = pairedNext(filter);
+    if (!next) return {};
+    return { [next.name]: next.start ? [...keep, pairedValue(of, next.start)] : keep };
+  };
   // A filter of its own has its button while it finds nothing, though it may leave some out.
   const ownButtons = filters.filter((filter) => filter.own && side(filter, false).length === 0);
   // A filter with the choices it has yet to make, found or left out.
@@ -216,7 +223,10 @@ export default function FilterBar({
     });
     const choose = (v: string) =>
       paired
-        ? href({ [filter.name]: chosen(filter.name).map((one) => (one === value ? v : one)), ...unpairedFrom(paired) })
+        ? href({
+            [filter.name]: chosen(filter.name).map((one) => (one === value ? v : one)),
+            ...withStart(filter, v, unpairedFrom(paired)[paired.name] as string[]),
+          })
         : href({ ...without(filter.name), [filter.name]: v });
     const remove = paired
       ? href({ [filter.name]: others, ...unpairedFrom(paired) })
@@ -400,6 +410,7 @@ export default function FilterBar({
                     oneEach: Boolean(filter.oneEach),
                     every: everyChoice(filter),
                   }),
+                  ...(not ? {} : withStart(filter, v, chosen(pairedNext(filter)?.name ?? ""))),
                 })
               }
               search={filter.searchable ? copy.narrow : undefined}

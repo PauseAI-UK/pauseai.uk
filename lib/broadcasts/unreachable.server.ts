@@ -64,32 +64,24 @@ export async function numberBlocks(numbers: string[]): Promise<NumberBlock[]> {
   );
 }
 
-/** A copy to a number that WhatsApp refused, or that was skipped as it had: when, and the broadcast it was of. */
-export type NumberEvent = {
+/** The copy to a number whose refusal by WhatsApp marked it: when, and the broadcast it was of. */
+export type NumberRefusal = {
   number: string;
   at: Date;
-  /** Whether WhatsApp refused this copy, rather than it being skipped for an earlier refusal. */
-  refused: boolean;
   copy: { id: number; broadcast: number; title: string };
 };
 
 /**
- * Every copy to `numbers` WhatsApp refused, or skipped as it had: the
- * copy whose refusal marked the number when it was marked, and each one
- * skipped when its broadcast was due, as a skip keeps no time of its own;
- * but one made after the refused copy no sooner than the refusal, as it
- * can only have been skipped after it.
+ * The copy whose refusal marked each of `numbers`, at when it was marked.
+ * The copies skipped for the mark aren't listed: the mark's count of them
+ * (NumberBlock's `refused`) says how many. A number whose copy has been
+ * deleted has none.
  */
-export async function numberEvents(numbers: string[]): Promise<NumberEvent[]> {
-  return query<NumberEvent>(
-    `SELECT c.address AS number, CASE WHEN c.id = u.message_id THEN u.at
-         WHEN c.id > u.message_id THEN greatest(coalesce(g.due_at, g.created_at), u.at)
-         ELSE coalesce(g.due_at, g.created_at) END AS at,
-       c.id IS NOT DISTINCT FROM u.message_id AS refused, json_build_object('id', c.id, 'broadcast', g.id, 'title', g.title) AS copy
-     FROM broadcast_messages c JOIN mailings g ON g.id = c.mailing_id
-       LEFT JOIN whatsapp_unreachable u ON u.number = c.address
-     WHERE c.address = ANY($1) AND c.skip_reason = 'not-on-whatsapp'
-     ORDER BY at DESC, c.id DESC`,
+export async function numberRefusals(numbers: string[]): Promise<NumberRefusal[]> {
+  return query<NumberRefusal>(
+    `SELECT u.number, u.at, json_build_object('id', c.id, 'broadcast', g.id, 'title', g.title) AS copy
+     FROM whatsapp_unreachable u JOIN broadcast_messages c ON c.id = u.message_id JOIN mailings g ON g.id = c.mailing_id
+     WHERE u.number = ANY($1)`,
     [numbers],
   );
 }

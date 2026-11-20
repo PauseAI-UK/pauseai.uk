@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffTime } from "@/lib/staff-time";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
 import { OneOffTable } from "./OneOffList";
 import OneOffThreadView from "./OneOffThreadView";
 import { exampleForwardThread, exampleHiddenOneOff, exampleOneOffThread, exampleOneOffs } from "./OneOffList.examples";
@@ -40,16 +41,18 @@ describe("the one-off emails", () => {
   it("opens a thread's messages, and says when it can't", async () => {
     const { rerender } = await render(<OneOffThreadView thread={exampleOneOffThread} />);
     const title = page.getByRole("heading", { level: 1 });
-    const facts = () => page.getByRole("banner").element().querySelector("p")!.textContent;
+    const facts = () => page.getByRole("banner").element().querySelector("p")?.textContent;
     await expect.element(title).toHaveTextContent("Thread between Joseph Example and Polly Placeholder");
-    expect(facts()).toBe(
-      [
-        lettersCopy.oneOff.fact(lettersCopy.oneOff.columns.subject, exampleOneOffThread.subject!),
-        lettersCopy.oneOff.fact(lettersCopy.oneOff.columns.mailbox, exampleOneOffThread.mailboxes!.join(", ")),
-        lettersCopy.oneOff.fact(lettersCopy.oneOff.columns.messages, exampleOneOffThread.messages),
-        lettersCopy.oneOff.fact(lettersCopy.oneOff.columns.when, staffTime(exampleOneOffThread.latestAt)),
-      ].join(" · "),
-    );
+    // Under it, as under a letter's, the politician it's linked to, where they sit and their party.
+    expect(facts()).toBe("Polly Placeholder · Exampleton · Labour");
+    await expect
+      .element(page.getByRole("banner").getByRole("link", { name: "Polly Placeholder" }))
+      .toHaveAttribute("href", "/staff/politicians/1");
+    // Open in Gmail opens the newest message in the mailbox it was read from.
+    const newest = exampleOneOffThread.messages_!.at(-1)!;
+    await expect
+      .element(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail }))
+      .toHaveAttribute("href", gmailMessageLink(newest.account, newest.gmailMessageId));
     await says("Could we meet?");
     await says(lettersCopy.oneOff.unreadable);
     // The out-of-office shows its first paragraph, the rest and its quote in one fold.
@@ -66,21 +69,15 @@ describe("the one-off emails", () => {
     expect(link("Joseph Example").query()).toBeNull();
     await rerender(<OneOffThreadView thread={{ ...exampleHiddenOneOff, messages_: null }} />);
     await says(lettersCopy.oneOff.hidden);
-    // One that's hidden says neither who wrote in it nor its subject.
+    // One that's hidden says neither who wrote in it nor where to open it.
     await expect.element(title).toHaveTextContent(lettersCopy.oneOff.title);
-    expect(facts()).not.toContain(lettersCopy.oneOff.columns.subject);
-    expect(facts()).not.toContain(lettersCopy.oneOff.columns.mailbox);
-    await rerender(
-      <OneOffThreadView
-        thread={{
-          ...exampleOneOffThread,
-          subject: "",
-        }}
-      />,
-    );
-    expect(facts()).toContain(
-      lettersCopy.oneOff.fact(lettersCopy.oneOff.columns.subject, lettersCopy.oneOff.noSubject),
-    );
+    expect(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail }).query()).toBeNull();
+    // Linked to several politicians, each by name; to none, nothing.
+    const two = [...exampleOneOffThread.people, { ...exampleOneOffThread.people[0], id: 2, name: "Sam Sample" }];
+    await rerender(<OneOffThreadView thread={{ ...exampleOneOffThread, people: two }} />);
+    expect(facts()).toBe("Polly Placeholder · Sam Sample");
+    await rerender(<OneOffThreadView thread={{ ...exampleOneOffThread, people: [] }} />);
+    expect(facts()).toBeUndefined();
     // Only one person wrote in it: the thread is with them.
     await rerender(<OneOffThreadView thread={{ ...exampleOneOffThread, participants: ["Jane Smith"] }} />);
     await expect.element(title).toHaveTextContent("Thread with Jane Smith");

@@ -1,6 +1,6 @@
 import "server-only";
 import { emailBlocks, inScope, type EmailBlock, type EmailScope, type Purpose } from "@/lib/email/email.server";
-import { numberBlocks, numberEvents, type NumberBlock } from "@/lib/broadcasts/unreachable.server";
+import { numberBlocks, numberRefusals, type NumberBlock } from "@/lib/broadcasts/unreachable.server";
 import { query } from "@/lib/server/db.server";
 import { sql, type Sql } from "@/lib/server/sql.server";
 import { phoneNumber } from "@/lib/phone";
@@ -72,8 +72,8 @@ const SORTS: Record<BlockSort, Sql> = {
 export type BlockEvent =
   /** A bounce, soft too, a complaint or a hold: the provider's or CiviCRM's words, and the mailbox a bounce was read from. */
   | { at: Date; what: "hard" | "soft" | "complaint" | "hold"; reason: string; mailbox: string | null }
-  /** A text WhatsApp refused, or one skipped as it had. */
-  | { at: Date; what: "refused" | "skipped"; copy: NonNullable<NumberBlock["copy"]> }
+  /** The text WhatsApp refused, which blocked the number. */
+  | { at: Date; what: "refused"; copy: NonNullable<NumberBlock["copy"]> }
   /** Staff unblocked it, saying why. */
   | { at: Date; what: "unblocked"; by: string; note: string };
 
@@ -168,8 +168,8 @@ export async function listBlocks(
 
 /**
  * Each address's and number's history, newest first: an address's bounces
- * and complaints, soft ones too, and holds; a number's texts WhatsApp
- * refused or that were skipped as it had; and either's unblocking.
+ * and complaints, soft ones too, and holds; the text WhatsApp refused,
+ * which blocked a number; and either's unblocking.
  */
 async function blockHistories(addresses: string[], numbers: string[]): Promise<Map<string, BlockEvent[]>> {
   const [problems, unblocks, texts] = await Promise.all([
@@ -190,15 +190,12 @@ async function blockHistories(addresses: string[], numbers: string[]): Promise<M
        FROM audit_log a WHERE a.action = 'unblock address' AND a.details->>'address' = ANY($1)`,
       [[...addresses, ...numbers]],
     ),
-    numberEvents(numbers),
+    numberRefusals(numbers),
   ]);
   const events: [string, BlockEvent][] = [
     ...problems.map(({ address, ...problem }) => [address, problem] as [string, BlockEvent]),
     ...unblocks.map(({ address, ...unblock }) => [address, { ...unblock, what: "unblocked" }] as [string, BlockEvent]),
-    ...texts.map(
-      ({ number, at, refused, copy }) =>
-        [number, { at, what: refused ? "refused" : "skipped", copy }] as [string, BlockEvent],
-    ),
+    ...texts.map(({ number, at, copy }) => [number, { at, what: "refused", copy }] as [string, BlockEvent]),
   ];
   const histories = new Map<string, BlockEvent[]>();
   for (const [address, event] of events.sort(([, a], [, b]) => b.at.getTime() - a.at.getTime())) {

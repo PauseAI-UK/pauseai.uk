@@ -383,17 +383,19 @@ test("Filtering politicians", async ({ page, request, flowDatabase }) => {
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toBeVisible();
   await frame(page, "Everyone but the personal connections");
 
-  story("Next, an ask: the Edinburgh conference. Its chip has a second half, for the answer.");
+  story(
+    "Next, an ask: the Edinburgh conference. Its chip has a second half, for the answer, which starts at those who gave any reply.",
+  );
   await changeFilter(page, staffVocabulary.filters.notChip(filters.flag, staffVocabulary.politicianFlags.connection));
   await expect(page).toHaveURL(`${BASE}/staff/politicians`);
   await addFilter(page, filters.ask, "Edinburgh conference");
-  await expect(page).toHaveURL(/ask=edinburgh-conference-2026$/);
-  await frame(page, "The Edinburgh conference's chip");
+  await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=edinburgh-conference-2026\.replied$/);
+  await frame(page, "The Edinburgh conference's chip, at any reply");
   story(
     "Staff choose those never invited to it, the ones to invite. The Asks column becomes the conference's, saying so on each row. Clear filters then brings back the whole list.",
   );
   // The answer is chosen in the second half of the ask's chip.
-  await changeFilter(page, staffVocabulary.everyoneAsked.event, staffVocabulary.neverAsked.event);
+  await changeFilter(page, politiciansCopy.politicians.anyReply, staffVocabulary.neverAsked.event);
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&answer=edinburgh-conference-2026\.never/);
   await expect(rows.filter({ hasText: "Polly Placeholder" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "Ms Dora Dummy" })).toContainText(staffVocabulary.neverAsked.event);
@@ -441,13 +443,15 @@ test("Several answers to an ask", { tag: "@phone" }, async ({ page, request, flo
   );
   expect(download.headers()["content-disposition"]).toContain("or");
 
-  story("Choosing another ask clears the answers, as they might not be its answers.");
+  story(
+    "Choosing another ask clears the answers, as they might not be its answers, and starts it at those who gave any reply.",
+  );
   await page.getByRole("button", { name: "Edinburgh conference" }).click();
   await menu.getByRole("link").filter({ hasNotText: "Edinburgh conference" }).first().click();
-  await expect(page).not.toHaveURL(/answer=/);
-  const everyone = Object.values(staffVocabulary.everyoneAsked).join("|");
-  await expect(page.getByRole("button", { name: new RegExp(`^(${everyone})$`) })).toBeVisible();
-  await frame(page, "Another ask, everyone asked");
+  await expect(page).not.toHaveURL(/edinburgh-conference-2026/);
+  await expect(page).toHaveURL(/answer=[\w-]+\.replied$/);
+  await expect(page.getByRole("button", { name: politiciansCopy.politicians.anyReply, exact: true })).toBeVisible();
+  await frame(page, "Another ask, at any reply");
 });
 
 test("Two asks at once", async ({ page, request, flowDatabase }) => {
@@ -488,7 +492,7 @@ test("Two asks at once", async ({ page, request, flowDatabase }) => {
   await page.keyboard.press("Escape");
 
   story(
-    "+ Filter adds a second ask, the DeepMind letter, with its own answer. Both must hold, and each has its column in the list.",
+    "+ Filter adds a second ask, the DeepMind letter, with its own answer, starting at any reply; staff narrow it to those who signed. Both must hold, and each has its column in the list.",
   );
   const add = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add }));
   const asks = add
@@ -500,7 +504,7 @@ test("Two asks at once", async ({ page, request, flowDatabase }) => {
   await deepmind.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/ask=edinburgh-conference-2026&ask=deepmind-letter/);
-  await changeFilter(page, staffVocabulary.everyoneAsked.letter, staffVocabulary.statuses.signed);
+  await changeFilter(page, politiciansCopy.politicians.anyReply, staffVocabulary.statuses.signed);
   await expect(rows.filter({ hasText: "Lord Seedling of Example" })).toBeVisible();
   await expect(rows.filter({ hasText: "Morag Example" })).toHaveCount(0);
   await expect(page.getByRole("columnheader", { name: /DeepMind letter/ })).toBeVisible();
@@ -736,6 +740,34 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   await expect(under(columns.first)).toHaveText(/\d{4}$/);
   await expect(under(columns.last)).toHaveText(await under(columns.first).innerText());
   await frame(page, "The list, by last activity");
+});
+
+test("A one-off thread", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly answered Joseph's email, outside any mailing, and her answer was kept from his mailbox. Its page is titled with her name, though her email gave only her address, and says where she sits and her party under it, as a letter's does. Open in Gmail, at the right of the thread's heading, opens it in Joseph's mailbox.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase, ["supporters"]);
+  const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
+  const [thread] = runSql(
+    flowDatabase,
+    "INSERT INTO one_off_threads (subject, someone_else, latest_at) VALUES ('Re: Coffee next week?', false, '2026-08-02T09:00:00Z') RETURNING id",
+  );
+  const address = "polly.placeholder.mp@parliament.uk";
+  runSql(
+    flowDatabase,
+    `INSERT INTO one_off_thread_people (thread_id, notable_person_id) VALUES (${thread}, ${polly});
+     INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, to_line, addresses, subject, at, from_us, blob_key, size)
+     VALUES (${thread}, 'joseph@pauseai.uk', '19a0f00d', '19a0f00d', '${address}', '', 'Joseph Example <joseph@pauseai.uk>', ARRAY['${address}', 'joseph@pauseai.uk'],
+       'Re: Coffee next week?', '2026-08-02T09:00:00Z', false, 'fixture/one-off-polly.eml.gz', 1);`,
+  );
+  await page.goto(`${BASE}/staff/one-off/${thread}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Thread with Polly Placeholder" })).toBeVisible();
+  await expect(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail })).toHaveAttribute(
+    "href",
+    /authuser=joseph%40pauseai\.uk#all\/19a0f00d$/,
+  );
+  await frame(page, "Her thread, with Open in Gmail");
 });
 
 test("Marking a politician", async ({ page, request, flowDatabase }) => {

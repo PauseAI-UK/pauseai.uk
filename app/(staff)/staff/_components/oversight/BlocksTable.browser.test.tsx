@@ -147,7 +147,7 @@ describe("BlocksTable", () => {
     await expect.element(mailbox.getByText("joseph@pauseai.uk")).toBeVisible();
   });
 
-  it("opens each row's history: bounces with the mailbox they were found in, texts refused and skipped, unblocks", async () => {
+  it("opens each row's history: bounces with the mailbox they were found in, the text refused, unblocks", async () => {
     await table([exampleBroadcastBlock, exampleNumber, exampleHold, { ...exampleMailboxBlock, history: [] }]);
     const bounced = rowOf(exampleBroadcastBlock.address);
     const history = page.getByRole("list", { name: `${copy.history.open}: ${exampleBroadcastBlock.address}` });
@@ -159,15 +159,14 @@ describe("BlocksTable", () => {
     await expect
       .element(history.getByText(`${copy.kinds.soft}: Mailbox full (${copy.history.readFrom("jo@pauseai.uk")})`))
       .toBeVisible();
-    // A number's: what WhatsApp refused and what was skipped, each linked to its copy, and an unblock with its note.
+    // A number's: what WhatsApp refused, linked to its copy, and an unblock with its note.
     await userEvent.keyboard("{Escape}");
     await rowOf("07700 900123").getByRole("button", { name: copy.history.open }).click();
     const texts = page.getByRole("list", { name: `${copy.history.open}: ${exampleNumber.address}` });
     await expect
-      .element(texts.getByRole("link", { name: "Lobby day" }))
-      .toHaveAttribute("href", "/staff/broadcasts/11/52");
-    await expect.element(texts.getByText(`${copy.history.skipped}: Lobby day`)).toBeVisible();
-    await expect.element(texts.getByText(`${copy.history.refused}: Summer social`)).toBeVisible();
+      .element(texts.getByRole("link", { name: "Join us in Manchester" }))
+      .toHaveAttribute("href", "/staff/broadcasts/9/41");
+    await expect.element(texts.getByText(`${copy.history.refused}: Join us in Manchester`)).toBeVisible();
     await expect
       .element(texts.getByText(`${copy.history.unblocked("jo@pauseai.uk")}: “She's on WhatsApp now”`))
       .toBeVisible();

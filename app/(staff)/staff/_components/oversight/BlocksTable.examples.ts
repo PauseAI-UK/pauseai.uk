@@ -98,10 +98,8 @@ export const exampleNumber: Block = {
   refused: 2,
   triesFrom: new Date("2026-12-14T08:03:00Z"),
   history: [
-    { at: new Date("2026-10-21T08:03:00Z"), what: "skipped", copy: { id: 52, broadcast: 11, title: "Lobby day" } },
     { at: new Date("2026-10-14T08:03:00Z"), what: "refused", copy: refusedCopy },
     { at: new Date("2026-09-30T12:00:00Z"), what: "unblocked", by: "jo@pauseai.uk", note: "She's on WhatsApp now" },
-    { at: new Date("2026-08-01T08:03:00Z"), what: "refused", copy: { id: 12, broadcast: 3, title: "Summer social" } },
   ],
 };
 

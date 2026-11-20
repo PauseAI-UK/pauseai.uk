@@ -93,6 +93,12 @@ export type Filter = {
    * out can change, as any repeating filter's can.
    */
   locked?: string;
+  /**
+   * For one paired after a repeating filter (pairedAfter()): the choice it
+   * starts at, paired with a value of that one just chosen, in place of its
+   * blank default.
+   */
+  start?: string;
 };
 
 /**
@@ -320,8 +326,10 @@ export const POLITICIAN_FILTERS = listFilters(POLITICIANS_LIST, ({ ask: slugs, p
     answer: {
       label: copy.answer,
       after: "ask",
+      // An ask just chosen starts at those who gave any answer.
+      start: REPLIED,
       // An answer is only ever to an ask chosen (politiciansSearch), so with none there's nothing to offer. For each,
-      // paired with it: everyone asked, its default; set in under that, those who haven't answered and those who
+      // paired with it: everyone asked, its blank; set in under that, those who haven't answered and those who
       // have, and under them each answer; then, the other way, those never asked.
       options: chosen.flatMap((ask) => {
         const paired = (value: string) => pairedValue(ask.slug, value);

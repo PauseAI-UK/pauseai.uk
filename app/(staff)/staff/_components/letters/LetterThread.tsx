@@ -4,10 +4,12 @@ import type { LetterDoc } from "@/lib/letters/format";
 import type { SupporterLetterDetails } from "@/lib/letters/records.server";
 import type { LetterThread as Thread } from "@/lib/letters/threads.server";
 import { named } from "@/lib/email-parsing/addresses";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
 import LetterChanges from "./LetterChanges";
 import MailFold from "./MailFold";
 import ThreadEmail from "./ThreadEmail";
 import ThreadText from "./ThreadText";
+import ExternalLink from "../ui/ExternalLink";
 import StaffLink from "../ui/StaffLink";
 import Strip from "../ui/Strip";
 import styles from "./LetterThread.module.css";
@@ -76,8 +78,8 @@ export function Thread({
 
 /**
  * One of PauseAI's letters' thread, beside its page's ask and history,
- * each message as an email: the letter as it went, from the Gmail it went
- * from; or, for an imported one, whose text isn't kept, a note saying so
+ * Open in Gmail at the right of its heading if Gmail sent it, each message
+ * as an email: the letter as it went, from the Gmail it went from; or, for an imported one, whose text isn't kept, a note saying so
  * with `link`, the way to it in Gmail, beside it, in its place. Then each
  * reply and answer, oldest first.
  */
@@ -96,8 +98,14 @@ export default function LetterThread({
     ? named(thread.fromName, thread.sentFrom)
     : (thread.fromName ?? lettersCopy.letters.fromPauseai);
   const kept = thread.letter !== null;
+  // Gmail opens a thread by its ID as it does a message, so one Gmail sent opens there, replies and all.
+  const inGmail = thread.gmailThreadId && (
+    <ExternalLink href={gmailMessageLink(thread.sentFrom!, thread.gmailThreadId)}>
+      {lettersCopy.lettersInbox.openInGmail}
+    </ExternalLink>
+  );
   return (
-    <Thread>
+    <Thread link={inGmail}>
       <ThreadEmail
         from={ours}
         to={politician}

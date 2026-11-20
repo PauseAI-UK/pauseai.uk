@@ -53,19 +53,21 @@ export default function BroadcastConsent({
   return (
     <div className={className}>
       <FieldSet label={copy.consentChannel}>
-        <Segmented<Channel>
-          label={copy.consentChannel}
-          options={CHANNELS.map((one) => ({
-            value: one,
-            label: copy.channels[one === "email" ? "email" : "text"],
-            icon: <ChannelIcon channel={one === "email" ? "email" : "text"} />,
-            disabled: written && one !== channel,
-          }))}
-          // None chosen yet matches no option, so none is checked.
-          value={shown as Channel}
-          onChange={show}
-          busy={pending}
-        />
+        <div className={own.channels}>
+          <Segmented<Channel>
+            label={copy.consentChannel}
+            options={CHANNELS.map((one) => ({
+              value: one,
+              label: copy.channels[one === "email" ? "email" : "text"],
+              icon: <ChannelIcon channel={one === "email" ? "email" : "text"} />,
+              disabled: written && one !== channel,
+            }))}
+            // None chosen yet matches no option, so none is checked.
+            value={shown as Channel}
+            onChange={show}
+            busy={pending}
+          />
+        </div>
       </FieldSet>
       {shown && (
         <FieldSet label={copy.facts.saidYes}>

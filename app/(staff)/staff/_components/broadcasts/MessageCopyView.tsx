@@ -1,6 +1,7 @@
 import { letterFor } from "@/lib/mailings/doc";
 import { staffMemberText } from "@/lib/staff-member";
 import { named } from "@/lib/email-parsing/addresses";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
 import type { MessageCopy } from "@/lib/broadcasts/pages.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import { phoneWords } from "@/lib/phone";
@@ -15,6 +16,7 @@ import { Thread } from "../letters/LetterThread";
 import ThreadEmail from "../letters/ThreadEmail";
 import bubble from "./Broadcasts.module.css";
 import own from "./MessageCopyView.module.css";
+import ExternalLink from "../ui/ExternalLink";
 import Grid, { Card, Column } from "../ui/Grid";
 import PageHead from "../ui/PageHead";
 import StaffLink from "../ui/StaffLink";
@@ -110,8 +112,14 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
     details: event.details,
     label: copy.events[event.kind as keyof typeof copy.events],
   });
-  // A number as staff pages write it; an address as it is.
-  const shown = (address: string) => (one.channel === "text" ? phoneWords(address) : address);
+  // An address as it is; a number as staff pages write it, with whose it is, ours or the supporter's, where known, as
+  // a number alone is hard to place.
+  const shown = (address: string) => {
+    if (one.channel !== "text") return address;
+    // Every number in it is ours or theirs.
+    const whose = address === one.sentFrom ? one.fromName : one.name;
+    return whose ? copy.replies.numberOf(whose, phoneWords(address)) : phoneWords(address);
+  };
   const ourAddress = shown(one.sentFrom);
   // What a reply came back by, and ours went by: WhatsApp for a text, and for an email the mailbox's Gmail; and its tag.
   const replyBackend = one.channel === "text" ? "whatsapp" : "gmail";
@@ -233,6 +241,21 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
 }
 
 /**
+ * At the right of the thread's heading, while an email's has a reply read
+ * from Gmail: the newest such in the mailbox it was read from, where Gmail
+ * shows the conversation round it, our answers too.
+ */
+function OpenInGmail({ one }: { one: MessageCopy }) {
+  const newest = one.replies.findLast((reply) => reply.account);
+  if (!newest) return null;
+  return (
+    <ExternalLink href={gmailMessageLink(newest.account!, newest.providerId)}>
+      {lettersCopy.lettersInbox.openInGmail}
+    </ExternalLink>
+  );
+}
+
+/**
  * Thread: one supporter's copy of a broadcast, laid out as a letter of a
  * mailing is: its title and how it stands; under it who it's to, leading to
  * their page, and where they are; then the message as they got it, beside
@@ -240,7 +263,16 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
  * with what staff can record it as and their answers (`actions`). The thread
  * says who it's from and to and when, so nothing repeats it.
  */
-export default function MessageCopyView({ one, actions }: { one: MessageCopy; actions?: ReplyHandlers }) {
+export default function MessageCopyView({
+  one,
+  actions,
+  signer,
+}: {
+  one: MessageCopy;
+  actions?: ReplyHandlers;
+  /** The staff member's first name, which an email's answer is signed with. */
+  signer?: string;
+}) {
   const name = one.name ?? (one.supporterId ? supportersCopy.supporters.noName : copy.erased);
   return (
     <>
@@ -256,12 +288,12 @@ export default function MessageCopyView({ one, actions }: { one: MessageCopy; ac
       <Grid>
         <Column span={3}>
           <NotReached one={one} />
-          <Thread title={copy.threadTitle}>
+          <Thread title={copy.threadTitle} link={<OpenInGmail one={one} />}>
             {/* A text's thread is one conversation, its parts touching; an email's, a mail each, apart. */}
             <div className={one.channel === "text" ? own.chat : own.mails}>
               <Message one={one} name={name} />
               {one.replies.map((reply) => (
-                <Reply key={reply.id} reply={reply} one={one} actions={actions} />
+                <Reply key={reply.id} reply={reply} one={one} actions={actions} signer={signer} />
               ))}
             </div>
           </Thread>

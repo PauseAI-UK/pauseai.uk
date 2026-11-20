@@ -815,10 +815,11 @@ test("A number WhatsApp can't reach", async ({ page, request, flowDatabase }) =>
   await expect(page).toHaveURL(/kind=not-on-whatsapp/);
   await expect(row).toBeVisible();
   await frame(page, "Only numbers not on WhatsApp");
-  story("Its History says which text WhatsApp couldn't deliver, and which it skipped since.");
-  await openBubble(row.getByRole("button", { name: emailCopy.emails.history.open }));
-  await frame(page, "The number's history");
-  await page.keyboard.press("Escape");
+  story(
+    "The row names the text WhatsApp couldn't deliver, and Times blocked counts the one skipped since, so its History has nothing more.",
+  );
+  await expect(row.getByText(emailCopy.emails.history.none)).toBeVisible();
+  await frame(page, "The number's count, and no more history");
   story("They know she's on WhatsApp now, so they unblock it, saying why. The next text tries it again.");
   await openBubble(row.getByRole("button", { name: emailCopy.emails.unblockOpen }));
   await row.getByLabel(emailCopy.emails.note).fill("She's on WhatsApp now");

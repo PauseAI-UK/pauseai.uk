@@ -10,7 +10,7 @@ export const blockHistoryGallery: Example[] = [
     file: "app/(staff)/staff/_components/oversight/BlockHistory.tsx",
     variants: [
       {
-        label: "A number's: texts WhatsApp refused and skipped, and an unblock",
+        label: "A number's: the text WhatsApp refused, and an earlier unblock",
         render: () => (
           <StaffPage as="div">
             <BlockHistory block={exampleNumber} />

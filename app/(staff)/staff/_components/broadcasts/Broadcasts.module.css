@@ -340,6 +340,11 @@
   justify-items: start;
 }
 
+/* Email and Text, the one chosen filled as a chosen list is. */
+.channels [aria-checked="true"] {
+  background: var(--accent-light);
+}
+
 /* A broadcast's lists, a row of lozenges as Email and Text are, each with its "?" after it. */
 .lists {
   display: flex;

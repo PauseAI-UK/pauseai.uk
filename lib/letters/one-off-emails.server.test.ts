@@ -256,9 +256,14 @@ describeWithDatabase("one-off emails", () => {
     const ours = (await keep({ id: "a", from: POLLY, text: "Thanks." }))!;
     const theirs = (await keep({ id: "b", from: "vera@example.com", text: "Private." }))!;
     const thread = await getOneOffThread(ours, []);
-    expect(thread?.messages_?.[0]).toMatchObject({ fromAddress: POLLY, text: "Thanks." });
+    expect(thread?.messages_?.[0]).toMatchObject({ fromAddress: POLLY, text: "Thanks.", gmailMessageId: "a" });
     expect(thread?.messages_?.[0].politicians[POLLY]).toBeTypeOf("number");
-    expect((await getOneOffThread(theirs, ["supporters"]))?.messages_?.[0].text).toBe("Private.");
+    // A politician's address with no name on the email is named for them; anyone else's is their address.
+    expect(thread?.participants).toEqual(["Polly Placeholder"]);
+    expect(thread?.people).toMatchObject([{ name: "Polly Placeholder", party: expect.any(String) }]);
+    const hers = await getOneOffThread(theirs, ["supporters"]);
+    expect(hers?.messages_?.[0].text).toBe("Private.");
+    expect(hers?.participants).toEqual(["vera@example.com"]);
     expect(await getOneOffThread(theirs, [])).toMatchObject({ subject: null, messages_: null });
     expect(await getOneOffThread(99, ["supporters"])).toBeUndefined();
   });

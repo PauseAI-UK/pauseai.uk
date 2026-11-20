@@ -9,6 +9,7 @@ import {
 } from "./LettersTable.examples";
 import { lettersCopy } from "./copy";
 import type { LetterDoc } from "@/lib/letters/format";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { exampleImportedThread, exampleThread } from "./LetterThread.examples";
 
@@ -154,7 +155,15 @@ describe("LetterThread", () => {
   it("has no way to it in Gmail when it has the letter's text", async () => {
     await render(<LetterThread showLetter={showLetter} thread={exampleThread} link={<a href="#gmail">Gmail</a>} />);
     await expect.element(page.getByRole("article").first()).toBeVisible();
-    expect(page.getByRole("link", { name: "Gmail" }).all()).toHaveLength(0);
+    expect(page.getByRole("link", { name: "Gmail", exact: true }).all()).toHaveLength(0);
+  });
+
+  it("opens in Gmail from its heading when Gmail sent it, at its thread in the mailbox it went from", async () => {
+    const { rerender } = await render(<LetterThread showLetter={showLetter} thread={exampleThread} />);
+    const open = page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail });
+    await expect.element(open).toHaveAttribute("href", gmailMessageLink("jo@pauseai.uk", "thread-seed-2"));
+    await rerender(<LetterThread showLetter={showLetter} thread={exampleImportedThread} />);
+    expect(open.query()).toBeNull();
   });
 
   it("names someone with no name by their address", async () => {

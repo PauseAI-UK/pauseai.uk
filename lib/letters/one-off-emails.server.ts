@@ -381,8 +381,13 @@ export type OneOffThreadRow = {
   someoneElse: boolean;
   latestAt: Date;
   messages: number;
-  people: { id: number; name: string; isTest: boolean }[];
-  /** Who wrote in it, each once, in the order they first wrote; null when hidden. */
+  /** The politicians it's linked to, with where they sit and their party, if they're in a parliament. */
+  people: { id: number; name: string; isTest: boolean; constituency: string | null; party: string | null }[];
+  /**
+   * Who wrote in it, each once, in the order they first wrote, by the name
+   * on their email, or else a politician's name for their address, or else
+   * the address; null when hidden.
+   */
   participants: string[] | null;
   /** The mailboxes it was read from; null when hidden. */
   mailboxes: string[] | null;
@@ -390,7 +395,8 @@ export type OneOffThreadRow = {
   answered: boolean | null;
 };
 
-const PEOPLE = `coalesce((SELECT json_agg(json_build_object('id', n.id, 'name', n.name, 'isTest', coalesce(p.is_test, false)) ORDER BY n.name COLLATE english)
+const PEOPLE = `coalesce((SELECT json_agg(json_build_object('id', n.id, 'name', n.name, 'isTest', coalesce(p.is_test, false),
+      'constituency', p.constituency, 'party', p.party) ORDER BY n.name COLLATE english)
     FROM one_off_thread_people tp JOIN notable_people n ON n.id = tp.notable_person_id
     LEFT JOIN politicians p ON p.id = n.id WHERE tp.thread_id = t.id), '[]')`;
 
@@ -423,6 +429,18 @@ export const threadsWithSomeoneElse = cache(async function threadsWithSomeoneEls
 });
 
 /** One-off threads, newest first, matching `where`: with permission, everything; otherwise, a thread with someone else in it shows only that it's there. */
+/** Each sender with no name on their email named for the politician whose address it is, of those the thread's linked to. */
+function namedSenders(book: PoliticianBook, senders: Sender[], people: OneOffThreadRow["people"]): Sender[] {
+  const politicians = politicianAddresses(
+    book,
+    senders.map((sender) => sender.address),
+  );
+  return senders.map((sender) => ({
+    ...sender,
+    name: sender.name || people.find((person) => person.id === politicians[sender.address])?.name || "",
+  }));
+}
+
 async function threadRows(where: string, params: unknown[], supporters: boolean, limit: number, offset: number) {
   const hidden = `$${params.length + 1}::bigint[]`;
   const visible = (column: string) =>
@@ -441,7 +459,7 @@ async function threadRows(where: string, params: unknown[], supporters: boolean,
   ]);
   return rows.map(({ senders, ...row }) => ({
     ...row,
-    participants: senders && participants(senders),
+    participants: senders && participants(namedSenders(book, senders, row.people)),
     answered:
       senders &&
       politicianAnswered(
@@ -486,7 +504,9 @@ export type OneOffMessage = {
   to: string;
   cc: string;
   subject: string;
+  /** The mailbox it was read from, and Gmail's ID for it there. */
   account: string;
+  gmailMessageId: string;
   /** Which politician each address in its From, To and Cc is. */
   politicians: Record<string, number>;
   text: string | null;
@@ -576,7 +596,7 @@ export async function getOneOffThread(
     threadRows("t.id = $1", [id], supporters, 1, 0),
     query<Omit<OneOffMessage, "text" | "quoted" | "auto" | "politicians" | "forwarded"> & { blobKey: string }>(
       `SELECT id::int AS id, at, from_name AS "fromName", from_address AS "fromAddress", to_line AS "to", cc_line AS cc,
-         subject, account, blob_key AS "blobKey"
+         subject, account, gmail_message_id AS "gmailMessageId", blob_key AS "blobKey"
        FROM one_off_messages WHERE thread_id = $1 ORDER BY at, id`,
       [id],
     ),

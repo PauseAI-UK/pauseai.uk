@@ -158,8 +158,11 @@ describe("MessageCopyView", () => {
       />,
     );
     const ours = copy.replies.historyAnswered;
-    // Who each was from and to, ours as staff pages write a number: the IDs are in its {}.
-    const [us, jane] = ["07700 900000", "07700 900001"];
+    // Who each was from and to, each number as staff pages write it after whose it is: the IDs are in its {}.
+    const [us, jane] = [
+      copy.replies.numberOf("PauseAI UK", "07700 900000"),
+      copy.replies.numberOf("Jane Example", "07700 900001"),
+    ];
     expect(history()).toEqual([
       // WhatsApp's opt-out, the STOP and the site's answer to it, at the same moment, in the order they were recorded.
       [copy.events["opted-out"], [], []],
@@ -197,6 +200,9 @@ describe("MessageCopyView", () => {
       <MessageCopyView
         one={{
           ...exampleMessageCopy,
+          // With no names, the numbers alone.
+          fromName: "",
+          name: null,
           providerId: null,
           events: [{ at: at("07:18"), kind: "failed", details: { code: 131026, title: "Message undeliverable" } }],
           replies: [

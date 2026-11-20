@@ -1,11 +1,12 @@
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Muted } from "@/components/ui/Text";
 import { mailboxes, named } from "@/lib/email-parsing/addresses";
-import type { OneOffThread } from "@/lib/letters/one-off-emails.server";
-import { MessageText } from "./LetterThread";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
+import type { OneOffMessage, OneOffThread } from "@/lib/letters/one-off-emails.server";
+import { MessageText, Thread } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
-import { staffTime } from "@/lib/staff-time";
 import Empty from "../ui/Empty";
+import ExternalLink from "../ui/ExternalLink";
 import Grid, { Card, spanClass } from "../ui/Grid";
 import PageHead from "../ui/PageHead";
 import StaffLink from "../ui/StaffLink";
@@ -61,26 +62,38 @@ function ThreadPeople({ people }: { people: OneOffThread["people"] }) {
   );
 }
 
+/** A message in the mailbox it was read from. */
+const gmailLinkOf = (message: OneOffMessage) => gmailMessageLink(message.account, message.gmailMessageId);
+
+/**
+ * Under a thread's title, as under a letter's: the politician it's linked
+ * to, leading to their page, where they sit and their party; or, linked to
+ * several, each of them by name; or, to none, nothing.
+ */
+function politicianFacts(people: OneOffThread["people"]): ReactNode[] {
+  const link = (person: OneOffThread["people"][number]) => (
+    <StaffLink key={person.id} href={`/staff/politicians/${person.id}`}>
+      {person.name}
+    </StaffLink>
+  );
+  if (people.length === 1) return [link(people[0]), people[0].constituency, people[0].party];
+  return people.map(link);
+}
+
 /**
  * A one-off thread's page: titled with who wrote in it, as a letter's page
- * is with who it's from and to, and under that what the list of threads
- * says of it (its subject, the mailbox it was read from, how many messages,
- * when the last came); then each message as an email, a forward's carried
- * messages rebuilt before it, oldest first, each marked as rebuilt; beside
- * them, the politicians it's linked to. For staff who can't read it, that
- * they can't, under the one-offs' own name.
+ * is with who it's from and to, and under that the politicians it's linked
+ * to (politicianFacts); then the thread, Open in Gmail at the right of its
+ * heading, opening the newest message in the mailbox it was read from, where
+ * Gmail shows the conversation round it; each message as an email, a
+ * forward's carried messages rebuilt before it, oldest first, each marked as
+ * rebuilt; beside them, the politicians it's linked to. For staff who can't
+ * read it, that they can't, under the one-offs' own name.
  */
 export default function OneOffThreadView({ thread }: { thread: OneOffThread }) {
   return (
     <>
-      <PageHead
-        facts={[
-          thread.subject !== null && copy.fact(copy.columns.subject, thread.subject || copy.noSubject),
-          thread.mailboxes && copy.fact(copy.columns.mailbox, thread.mailboxes.join(", ")),
-          copy.fact(copy.columns.messages, thread.messages),
-          copy.fact(copy.columns.when, staffTime(thread.latestAt)),
-        ]}
-      >
+      <PageHead facts={politicianFacts(thread.people)}>
         {thread.participants ? copy.between(thread.participants) : copy.title}
       </PageHead>
       {thread.messages_ === null ? (
@@ -89,49 +102,62 @@ export default function OneOffThreadView({ thread }: { thread: OneOffThread }) {
         </p>
       ) : (
         <Grid>
-          <section aria-label={copy.thread} className={`${spanClass(4)} ${styles.thread}`}>
-            {thread.messages_.map((message) => (
-              <Fragment key={message.id}>
-                {message.forwarded.map((rebuilt, i) => (
+          <div className={spanClass(4)}>
+            <Thread
+              title={copy.thread}
+              link={
+                <ExternalLink href={gmailLinkOf(thread.messages_.at(-1)!)}>
+                  {lettersCopy.lettersInbox.openInGmail}
+                </ExternalLink>
+              }
+            >
+              {thread.messages_.map((message) => (
+                <Fragment key={message.id}>
+                  {message.forwarded.map((rebuilt, i) => (
+                    <ThreadEmail
+                      key={i}
+                      from={
+                        <Mailbox
+                          name={rebuilt.fromName}
+                          address={rebuilt.fromAddress}
+                          politicians={rebuilt.politicians}
+                        />
+                      }
+                      to={rebuilt.to ? <Mailboxes line={rebuilt.to} politicians={rebuilt.politicians} /> : null}
+                      cc={rebuilt.cc ? <Mailboxes line={rebuilt.cc} politicians={rebuilt.politicians} /> : null}
+                      at={null}
+                      sent={rebuilt.sent}
+                      subject={rebuilt.subject}
+                      action={<Muted>{copy.rebuilt(message.fromName || message.fromAddress)}</Muted>}
+                    >
+                      <MessageText text={rebuilt.text} quoted={rebuilt.quoted} />
+                    </ThreadEmail>
+                  ))}
                   <ThreadEmail
-                    key={i}
                     from={
                       <Mailbox
-                        name={rebuilt.fromName}
-                        address={rebuilt.fromAddress}
-                        politicians={rebuilt.politicians}
+                        name={message.fromName}
+                        address={message.fromAddress}
+                        politicians={message.politicians}
                       />
                     }
-                    to={rebuilt.to ? <Mailboxes line={rebuilt.to} politicians={rebuilt.politicians} /> : null}
-                    cc={rebuilt.cc ? <Mailboxes line={rebuilt.cc} politicians={rebuilt.politicians} /> : null}
-                    at={null}
-                    sent={rebuilt.sent}
-                    subject={rebuilt.subject}
-                    action={<Muted>{copy.rebuilt(message.fromName || message.fromAddress)}</Muted>}
+                    to={<Mailboxes line={message.to} politicians={message.politicians} />}
+                    cc={message.cc ? <Mailboxes line={message.cc} politicians={message.politicians} /> : null}
+                    at={message.at}
+                    subject={message.subject}
                   >
-                    <MessageText text={rebuilt.text} quoted={rebuilt.quoted} />
+                    {message.text === null ? (
+                      <Muted>{copy.unreadable}</Muted>
+                    ) : message.forwarded.length && !message.text ? (
+                      <Muted>{copy.forwardedAlone}</Muted>
+                    ) : (
+                      <MessageText text={message.text} quoted={message.quoted} auto={message.auto} />
+                    )}
                   </ThreadEmail>
-                ))}
-                <ThreadEmail
-                  from={
-                    <Mailbox name={message.fromName} address={message.fromAddress} politicians={message.politicians} />
-                  }
-                  to={<Mailboxes line={message.to} politicians={message.politicians} />}
-                  cc={message.cc ? <Mailboxes line={message.cc} politicians={message.politicians} /> : null}
-                  at={message.at}
-                  subject={message.subject}
-                >
-                  {message.text === null ? (
-                    <Muted>{copy.unreadable}</Muted>
-                  ) : message.forwarded.length && !message.text ? (
-                    <Muted>{copy.forwardedAlone}</Muted>
-                  ) : (
-                    <MessageText text={message.text} quoted={message.quoted} auto={message.auto} />
-                  )}
-                </ThreadEmail>
-              </Fragment>
-            ))}
-          </section>
+                </Fragment>
+              ))}
+            </Thread>
+          </div>
           <ThreadPeople people={thread.people} />
         </Grid>
       )}
