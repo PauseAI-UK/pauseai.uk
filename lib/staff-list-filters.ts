@@ -372,15 +372,16 @@ export type SupporterBarChoices = SupporterChoices & {
 };
 
 /**
- * The supporters list's filters, each named after the column it filters
- * on, in the columns' order: their nation and how near somewhere they
- * are, and their MP; their activities and subscriptions; the events they
- * registered for; and whether they wrote in a campaign. Consent, the
- * contact filter, has its own button. Its choices are each topic by each
- * way, as those we can contact about it, a chip for each way; one by email
- * or phone shows that column; and when they were first seen, last
+ * The supporters list's filters. Consent, the contact filter, is first, as
+ * it's who a message can go to, and has its own button. Its choices are
+ * each list by each way, as those on it, a chip for each way; one by email
+ * or phone shows that column. Then those named after a column, in the
+ * columns' order: their activities; the events they registered for;
+ * whether they wrote in a campaign; and when they were first seen, last
  * registered for an event or unsubscribed, the lists the dashboard's tiles
- * open, the last two only from those tiles. Activities, consents, nations,
+ * open, the last two only from those tiles. Last, where they are, which
+ * the Place column shows but none is named after: how near somewhere,
+ * their MP and their nation. Activities, consents, nations,
  * MPs and events can each be chosen more than once; a supporter has one
  * nation and one MP.
  */
@@ -390,30 +391,6 @@ export const SUPPORTER_FILTERS = listFilters(
     const copy = supportersCopy.supporters.filters;
     const { columns } = supportersCopy.supporters;
     return {
-      nation: {
-        label: politiciansCopy.politician.country,
-        oneEach: true,
-        options: choicesOf(staffVocabulary.countries),
-      },
-      near: {
-        label: copy.near,
-        options: near ? [{ value: near, label: nearWords(near, found) }] : [],
-        place: {
-          within: "within",
-          placeholder: copy.nearPlaceholder,
-          distances: NEAR_MILES.map((n) => ({ value: String(n), label: copy.miles(n) })),
-        },
-      },
-      mp: {
-        label: politiciansCopy.politician.roles.commons,
-        oneEach: true,
-        searchable: true,
-        options: mps.map((mp) => ({ value: String(mp.id), label: copy.mpChoice(mp.name, mp.constituency) })),
-      },
-      activity: {
-        label: columns.badges,
-        options: SUPPORTER_BADGES.map((badge) => ({ value: badge, label: supportersCopy.supporters.badges[badge] })),
-      },
       contact: {
         label: columns.subscriptions,
         // Who a message can go to, so its own button. Each list includes those it should, so one at a time.
@@ -426,6 +403,10 @@ export const SUPPORTER_FILTERS = listFilters(
           help: listHelp?.(list),
           group: { label: copy.ways[way], icon: channelIcon?.(way), chip: copy.wayChips[way] },
         })),
+      },
+      activity: {
+        label: columns.badges,
+        options: SUPPORTER_BADGES.map((badge) => ({ value: badge, label: supportersCopy.supporters.badges[badge] })),
       },
       event: {
         label: copy.event,
@@ -443,6 +424,26 @@ export const SUPPORTER_FILTERS = listFilters(
       first: { label: copy.first, options: WINDOW_OPTIONS },
       registered: { label: copy.registered, options: WINDOW_OPTIONS, linkedOnly: true },
       unsubscribed: { label: copy.unsubscribed, options: WINDOW_OPTIONS, linkedOnly: true },
+      near: {
+        label: copy.near,
+        options: near ? [{ value: near, label: nearWords(near, found) }] : [],
+        place: {
+          within: "within",
+          placeholder: copy.nearPlaceholder,
+          distances: NEAR_MILES.map((n) => ({ value: String(n), label: copy.miles(n) })),
+        },
+      },
+      mp: {
+        label: politiciansCopy.politician.roles.commons,
+        oneEach: true,
+        searchable: true,
+        options: mps.map((mp) => ({ value: String(mp.id), label: copy.mpChoice(mp.name, mp.constituency) })),
+      },
+      nation: {
+        label: politiciansCopy.politician.country,
+        oneEach: true,
+        options: choicesOf(staffVocabulary.countries),
+      },
     };
   },
 );

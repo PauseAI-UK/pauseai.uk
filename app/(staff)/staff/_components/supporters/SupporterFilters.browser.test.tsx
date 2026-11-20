@@ -164,19 +164,19 @@ describe("SupporterFilters", () => {
     expect(offered).not.toContain(copy.filters.unsubscribed);
   });
 
-  it("offers every filter in the columns' order, events by name and day", async () => {
+  it("offers the filters named after a column in the columns' order, then where they are, events by name and day", async () => {
     const { filter, ...search } = supportersSearch({});
     void filter;
     await render(<SupporterFilters search={search} choices={choices} />);
     await page.getByRole("button", { name: staffVocabulary.filters.add }).click();
     expect([...document.querySelectorAll("#filter-add details > summary")].map((p) => p.textContent)).toEqual([
-      politiciansCopy.politician.country,
-      copy.filters.near,
-      politiciansCopy.politician.roles.commons,
       copy.columns.badges,
       copy.filters.event,
       copy.filters.campaign,
       copy.filters.first,
+      copy.filters.near,
+      politiciansCopy.politician.roles.commons,
+      politiciansCopy.politician.country,
     ]);
     // Consent isn't among them: it has its own button, first, its lists under their channels.
     const consent = await menu(copy.columns.subscriptions);
@@ -189,14 +189,14 @@ describe("SupporterFilters", () => {
       copy.filters.eventChoice("Oxford talk", "12 Oct 2026"),
       "/staff/supporters?event=evt-2",
     ]);
-    // Except offers the filters that repeat, each choice to leave out.
+    // Except offers the filters that repeat, each choice to leave out, Consent first, as on the bar.
     await menu(staffVocabulary.filters.except);
     expect([...document.querySelectorAll("#filter-except details > summary")].map((p) => p.textContent)).toEqual([
-      politiciansCopy.politician.country,
-      politiciansCopy.politician.roles.commons,
-      copy.columns.badges,
       copy.columns.subscriptions,
+      copy.columns.badges,
       copy.filters.event,
+      politiciansCopy.politician.roles.commons,
+      politiciansCopy.politician.country,
     ]);
     expect(await menu(staffVocabulary.filters.except)).toContainEqual([
       copy.filters.eventChoice("Oxford talk", "12 Oct 2026"),

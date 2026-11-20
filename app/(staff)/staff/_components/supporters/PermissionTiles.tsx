@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import ExternalLink from "../ui/ExternalLink";
 import StaffLink from "../ui/StaffLink";
 import {
@@ -230,37 +230,71 @@ function ListRow({ list, permissions }: { list: List; permissions: ContactPermis
 }
 
 /**
+ * Luma's own messages, a row as a list's: its name and the "?" with what
+ * they are; then each address that has joined our Luma calendar (`answers`,
+ * lumaCalendarAnswers), whether it's on it now, green if so, and under it
+ * since when, or what took it off and when. The address isn't a link, as
+ * it's Luma that writes to it.
+ */
+function LumaRow({ answers }: { answers: ContactPermission[] }) {
+  const id = "why-luma";
+  return (
+    <li className={styles.item}>
+      <span className={styles.head}>
+        <span className={styles.topic}>{copy.luma.name}</span>
+        <button type="button" className={styles.help} aria-label={copy.why} {...bubbleTrigger(id)}>
+          ?
+        </button>
+      </span>
+      {answers.map((answer) => (
+        <span key={answer.address} className={styles.answer} data-send={answer.send}>
+          <span className={styles.line}>
+            <Address channel="email" icon="email" address={answer.address} link={false} />
+            <span className={styles.tags}>
+              <Tag tone={answer.send === "yes" ? "green" : undefined}>
+                {answer.send === "yes" ? copy.luma.on : copy.luma.off}
+              </Tag>
+            </span>
+          </span>
+          <Reason permission={answer} />
+        </span>
+      ))}
+      <BubbleBox id={id} className={styles.popover}>
+        <strong className={styles.topicTitle}>{copy.topicTitle(copy.luma.name)}</strong>
+        {copy.luma.about.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </BubbleBox>
+    </li>
+  );
+}
+
+/**
  * Whether we'd contact a supporter on each list, a row each, every address
  * and number it has an answer for in it, by email, then text, then call;
- * then, for someone on our Luma calendar (`onLuma`), that they are, as
- * Luma's own messages go to them.
+ * then Luma's own messages, for someone with an address that has joined
+ * our Luma calendar (`luma`), on it now or not. With no row at all, `none`
+ * in their place, so the card still says whether we can.
  */
 export default function PermissionTiles({
   permissions,
-  onLuma = false,
+  luma = [],
+  none,
 }: {
   permissions: ContactPermission[];
-  onLuma?: boolean;
+  luma?: ContactPermission[];
+  none?: ReactNode;
 }) {
   const byWay = (a: ContactPermission, b: ContactPermission) => WAYS.indexOf(a.way) - WAYS.indexOf(b.way);
+  const rows = LISTS.flatMap((list) => {
+    const own = listAnswers(list, permissions).sort(byWay);
+    return own.length > 0 ? [<ListRow key={list} list={list} permissions={own} />] : [];
+  });
+  if (rows.length === 0 && luma.length === 0) return none;
   return (
     <ul className={styles.list}>
-      {LISTS.flatMap((list) => {
-        const own = listAnswers(list, permissions).sort(byWay);
-        return own.length > 0 ? [<ListRow key={list} list={list} permissions={own} />] : [];
-      })}
-      {onLuma && (
-        <li className={styles.item}>
-          <span className={styles.head}>
-            <span className={styles.topic}>{copy.luma.name}</span>
-          </span>
-          <span className={styles.answer} data-send="yes">
-            <span className={styles.line}>
-              <span className={styles.reason}>{copy.luma.on}</span>
-            </span>
-          </span>
-        </li>
-      )}
+      {rows}
+      {luma.length > 0 && <LumaRow answers={luma} />}
     </ul>
   );
 }

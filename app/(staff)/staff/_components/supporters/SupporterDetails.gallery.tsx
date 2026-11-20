@@ -47,6 +47,7 @@ export const supporterDetailsGallery: Example[] = [
                 groupTowns: [],
                 activity: [],
                 permissions: [],
+                luma: [],
               }}
             />
           </StaffPage>

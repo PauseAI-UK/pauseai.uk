@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { Topic, Way } from "./contact-permissions";
+import type { ContactPermission, Topic, Way } from "./contact-permissions";
 import { now } from "@/lib/now";
 import { logChange } from "@/lib/server/audit.server";
 import { queueOptOut } from "./civicrm-updates.server";
@@ -363,6 +363,10 @@ export async function stillOnCalendar(passStartedAt: Date, db?: Queryable): Prom
   return rows.map((row) => row.address);
 }
 
+/** SQL that's true of an opt-out `o` that takes its address off our Luma calendar while it's open (offCalendarFor). */
+const OFF_CALENDAR = `(o.list = 'events' OR (o.list = 'bulk' AND o.source IN (${CALENDAR_SOURCES.map((source) => `'${source}'`).join(", ")})))
+  AND o.way = 'email' AND o.resubscribed_at IS NULL`;
+
 /**
  * SQL that's true while any of the addresses in `emails` (an SQL array) has
  * opted out of the Luma calendar's emails, or of every bulk email in a way
@@ -370,10 +374,29 @@ export async function stillOnCalendar(passStartedAt: Date, db?: Queryable): Prom
  * Luma contact now, which the supporters list works out as it's read.
  */
 export function optedOutOfLuma(emails: string): string {
-  const sources = CALENDAR_SOURCES.map((source) => `'${source}'`).join(", ");
-  return `EXISTS (SELECT 1 FROM opt_outs o
-    WHERE (o.list = 'events' OR (o.list = 'bulk' AND o.source IN (${sources})))
-      AND o.way = 'email' AND o.resubscribed_at IS NULL AND o.address = ANY(${emails}))`;
+  return `EXISTS (SELECT 1 FROM opt_outs o WHERE ${OFF_CALENDAR} AND o.address = ANY(${emails}))`;
+}
+
+/**
+ * Whether each of `emails` that has joined our Luma calendar is on it now,
+ * so that Luma's own messages go to it, as an answer about events by email:
+ * a yes since it joined, or a no with what took it off, the latest opt-out
+ * that does (optedOutOfLuma), and when. Nothing for an address that never
+ * joined. In `emails`' order.
+ */
+export async function lumaCalendarAnswers(emails: string[]): Promise<ContactPermission[]> {
+  return query<ContactPermission>(
+    `SELECT 'events' AS topic, 'email' AS way, 'email' AS channel, p.email AS address,
+       CASE WHEN o.id IS NULL THEN 'yes' ELSE 'no' END AS send,
+       CASE WHEN o.id IS NULL THEN 'following' WHEN o.list = 'bulk' THEN 'no-bulk-email' ELSE 'unsubscribed' END AS reason,
+       coalesce(o.unsubscribed_at, p.since) AS at, coalesce(o.source, 'luma') AS source
+     FROM (SELECT email, min(contact_since) AS since FROM luma_people
+           WHERE email = ANY($1) AND contact_since IS NOT NULL GROUP BY email) p
+     LEFT JOIN LATERAL (SELECT o.id, o.list, o.unsubscribed_at, o.source FROM opt_outs o
+       WHERE ${OFF_CALENDAR} AND o.address = p.email ORDER BY o.unsubscribed_at DESC, o.id DESC LIMIT 1) o ON true
+     ORDER BY array_position($1, p.email)`,
+    [emails],
+  );
 }
 
 /**

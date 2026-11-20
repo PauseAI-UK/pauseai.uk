@@ -40,8 +40,8 @@ export const supportersCopy = {
       // The Consent filter: its lists under their way's heading; each way's chip named for it, before the lists it
       // finds or "not" and those it leaves out. Broadcasts name the list they go to the same way.
       lists: {
-        updates: "PauseAI UK Updates",
-        "updates-luma": "PauseAI UK Updates inc. Luma",
+        updates: "Updates",
+        "updates-luma": "Updates + Luma",
         volunteering: "Volunteering",
       } as Record<List, string>,
       ways: { email: "Email", text: "Text", call: "Call" } as Record<Way, string>,
@@ -86,7 +86,7 @@ export const supportersCopy = {
     },
     // In a download, each list they're on and the ways it reaches them, as the Consent column's lozenges say.
     subscriptions: {
-      listBy: (list: string, ways: string[]) => `⁂ ${list} by ${ways.join(", ").toLowerCase()}`,
+      listBy: (list: string, ways: string[]) => `${list} by ${ways.join(", ").toLowerCase()}`,
     },
     sources: {
       luma: "Luma",
@@ -99,9 +99,9 @@ export const supportersCopy = {
     } as Record<string, string>,
     // In a supporter's history, what an opt-out was from.
     lists: {
-      newsletter: "⁂ PauseAI UK Updates",
-      events: "⁂ Luma messages",
-      volunteering: "volunteering emails",
+      newsletter: "Updates",
+      events: "Luma messages",
+      volunteering: "Volunteering",
     } as Record<string, string>,
     // A supporter's page: one box of what we know, then the history.
     detail: {
@@ -208,7 +208,7 @@ export const supportersCopy = {
             ],
           },
           "updates-luma": {
-            about: "Everyone on PauseAI UK Updates, plus everyone on our Luma calendar.",
+            about: "Everyone on Updates, plus everyone on our Luma calendar.",
             on: [],
           },
           volunteering: {
@@ -218,16 +218,28 @@ export const supportersCopy = {
         } as Record<List, { about: string; on: string[] }>,
         // Where a person's lists are shown, inc. Luma is only where Luma alone reaches them, so it's named so.
         lumaOnly: {
-          name: "PauseAI UK Updates inc. Luma",
-          about: "On our Luma calendar, but not a member or similar. Only PauseAI UK Updates inc. Luma go to them.",
+          name: "Updates + Luma",
+          about: "On our Luma calendar, but not a member or similar. Only Updates + Luma go to them.",
           on: [] as string[],
         },
         // The "?" beside one list where a broadcast's is chosen, which opens what it means.
-        listHelp: (name: string) => `⁂ What ${name} means`,
-        // The last row: whether Luma's own emails go to them, as being on our Luma calendar decides.
+        listHelp: (name: string) => `What ${name} means`,
+        // In place of the rows, when no list has an answer for them: we hold no address or number of theirs; or we
+        // do, but nothing they've done is a yes or a no to any list.
+        none: {
+          noAddress: "No. We have no email address or phone number for them.",
+          noAnswer: "No. They haven't said we can.",
+        },
+        // The last row: whether Luma's own emails go to each address that has joined our Luma calendar. Its name,
+        // which "Unsubscribe them" offers too; what its "?" says; and the lozenge for an address on it now, or off.
         luma: {
-          name: "Luma messages (sent via Luma)",
-          on: "On our Luma calendar",
+          name: "Luma messages",
+          // A paragraph each.
+          about: [
+            "Invitations and blasts that we send using Luma to people on our Luma calendar. Can be via email or text, depending on Luma settings.",
+          ],
+          on: "On calendar",
+          off: "Off calendar",
         },
         // Why a blocked address is a no, under each of its topics: what blocked it, then the link to the list.
         blockedBecause: {
@@ -243,8 +255,6 @@ export const supportersCopy = {
           what: "What they opted out of",
           choose: "Choose…",
           bulk: "Every bulk email",
-          // Events by text: what we send their Luma number, as part of PauseAI UK Updates inc. Luma.
-          lumaTexts: "⁂ Texts to their Luma number",
           how: "How they told us",
           howPlaceholder: "e.g. “at a stall”, “by phone”",
           global: "Email opt-outs go to PauseAI Global and Luma too. Only the supporter can opt back in.",
@@ -344,7 +354,7 @@ export const supportersCopy = {
     // staff. Someone turned off events by email, or every bulk email, on the contact preferences page or an email's
     // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
     lumaRemoveFailed:
-      "⁂ Someone opted out of Luma messages but is still on our Luma calendar, so Luma will keep messaging them",
+      "Someone opted out of Luma messages but is still on our Luma calendar, so Luma will keep messaging them",
     // On the Luma import's run, so on its page and in the email: looking up where supporters are failed when
     // postcodes.io did partway. The next run carries on.
     placesFailed: "Postcodes.io failed: the next run carries on.",

@@ -147,6 +147,14 @@
   background: var(--surface-2);
 }
 
+/* Its name is a heading, which a prose page would size and space as its own: as a topic's name, with no room over it. */
+.global .topic {
+  margin: 0 0 var(--space-2);
+  font-family: inherit;
+  font-size: var(--text-lg);
+  line-height: inherit;
+}
+
 .global .what {
   margin-bottom: 0;
 }

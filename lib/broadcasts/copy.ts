@@ -386,7 +386,7 @@ export const broadcastsCopy = {
       to: (n: number) => `To ${count(n, "supporter", "supporters")}`,
     },
     // Under To, the list everyone it's to is on, as the Consent filter names it, then the channel.
-    onList: (list: string, channel: "email" | "text") => `⁂ ${list}, by ${channel === "email" ? "email" : "text"}`,
+    onList: (list: string, channel: "email" | "text") => `${list}, by ${channel === "email" ? "email" : "text"}`,
     // In To, when Consent is the only filter.
     everyoneWhoSaidYes: "Everyone who said yes",
     // Beside it, to the supporters list to filter them; once filtered, the mailings' "Change who".

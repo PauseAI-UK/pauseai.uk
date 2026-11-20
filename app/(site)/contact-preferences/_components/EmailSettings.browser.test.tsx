@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import { site } from "@/lib/content/site";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
 import { LUMA_CHOICE, LUMA_OFFERED, type SettingsView } from "@/lib/supporters/settings-view";
 import EmailSettings, { type SettingsActions } from "./EmailSettings";
@@ -140,7 +141,9 @@ describe("EmailSettings", () => {
   it("takes them off our Luma calendar by its box, which then can't be ticked again, and says why", async () => {
     const done = await show(exampleSettings);
     done.save.mockResolvedValueOnce({ ...exampleSettings, onLuma: false });
-    await expect.element(card("events").getByText(copy.lumaOff)).not.toBeInTheDocument();
+    await expect.element(card("events").getByText(copy.lumaOff.body, { exact: false })).not.toBeInTheDocument();
+    // While they're on it, why, as a topic's card says it.
+    await expect.element(why("events", copy.why.reasons.following!(""))).toBeVisible();
     await card("events").getByRole("checkbox").click();
     // Sent as drawn but unticked, which is what takes them off.
     expect(fields(done.save.mock.calls[0][0])).toContainEqual(["choice", LUMA_OFFERED]);
@@ -149,7 +152,13 @@ describe("EmailSettings", () => {
     // Only Luma can put them back on, so the box is locked, unticked, with how.
     await expect.element(card("events").getByRole("checkbox")).toBeDisabled();
     await expect.element(card("events").getByRole("checkbox")).not.toBeChecked();
-    await expect.element(card("events").getByText(copy.lumaOff)).toBeVisible();
+    await expect.element(card("events").getByText(copy.lumaOff.body, { exact: false })).toBeVisible();
+    await expect
+      .element(card("events").getByRole("link", { name: copy.lumaOff.link }))
+      .toHaveAttribute("href", site.social.luma);
+    await expect
+      .element(card("events").getByText(copy.why.reasons.following!(""), { exact: false }))
+      .not.toBeInTheDocument();
   });
 
   it("says a yes from PauseAI Global's volunteering list was given on joining", async () => {
@@ -346,9 +355,9 @@ describe("EmailSettings", () => {
     await expect
       .element(why("newsletter", copy.why.reasons.declined!(copy.sourceWords("march-2026-11"))))
       .toBeVisible();
-    // Events' no doesn't stand in for the newsletter's, and Luma's card gives no why.
+    // Events' no doesn't stand in for the newsletter's; Luma's card says why they get its messages.
     await expect.element(card("newsletter").getByRole("checkbox", { name: copy.ways.email })).not.toBeChecked();
-    await expect.element(card("events").getByText(copy.why.yes)).not.toBeInTheDocument();
+    await expect.element(why("events", copy.why.reasons.following!(""))).toBeVisible();
     // A yes the page has no words for: no why, and nothing to open on a phone.
     await expect.element(card("volunteering").getByText(copy.why.yes)).not.toBeInTheDocument();
     await expect.element(card("volunteering").getByRole("button", { name: copy.why.ask })).not.toBeInTheDocument();

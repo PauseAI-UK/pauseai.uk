@@ -3,6 +3,7 @@ import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { recordProblem, type DeliveryProblem } from "@/lib/email/email.server";
 import {
+  lumaCalendarAnswers,
   normaliseAddress,
   optOutOnComplaint,
   recordOptOut,
@@ -94,6 +95,47 @@ describeWithDatabase("opt-outs", () => {
       { address: "jane@example.com", source_ref: "msg_1", resubscribed_at: LATER },
       { address: "jane@example.com", source_ref: "msg_2", resubscribed_at: null },
     ]);
+  });
+});
+
+describeWithDatabase("lumaCalendarAnswers", () => {
+  useTestDatabase();
+
+  it("says whether each address that joined our Luma calendar is on it, since when, or what took it off", async () => {
+    const SINCE = new Date("2026-09-01T09:00:00Z");
+    await query(
+      `INSERT INTO luma_people (user_id, email, contact_since) VALUES
+         ('usr-on', 'on@example.com', $1), ('usr-off', 'off@example.com', $1), ('usr-bulk', 'bulk@example.com', $1),
+         ('usr-global', 'global@example.com', $1), ('usr-guest', 'guest@example.com', NULL)`,
+      [SINCE],
+    );
+    // Unsubscribed in Luma, then told staff too: the latest is what's said. Every bulk email by our link takes an
+    // address off; "No bulk emails" from CiviCRM doesn't, nor does an opt-out of the newsletter.
+    await recordOptOut({ ...jane("w1", "off@example.com"), unsubscribedAt: AT });
+    await query("UPDATE opt_outs SET resubscribed_at = $1", [LATER]);
+    await recordStaffOptOut({ address: "off@example.com", way: "email", list: "events" }, "jo@pauseai.uk", {
+      how: "Phoned",
+    });
+    await recordOptOut({ ...jane("l1", "bulk@example.com"), list: "bulk", source: "link" });
+    await recordOptOut({ ...jane("c1", "global@example.com"), list: "bulk", source: "civicrm" });
+    await recordOptOut({ ...jane("n1", "on@example.com"), list: "newsletter", source: "link" });
+    const answers = await lumaCalendarAnswers([
+      "global@example.com",
+      "bulk@example.com",
+      "off@example.com",
+      "guest@example.com",
+      "never@example.com",
+      "on@example.com",
+    ]);
+    // In the order asked, none for a guest who never joined the calendar, nor an address Luma never had.
+    expect(answers.map((a) => [a.address, a.send, a.reason, a.source])).toEqual([
+      ["global@example.com", "yes", "following", "luma"],
+      ["bulk@example.com", "no", "no-bulk-email", "link"],
+      ["off@example.com", "no", "unsubscribed", "staff"],
+      ["on@example.com", "yes", "following", "luma"],
+    ]);
+    expect(answers[0]).toMatchObject({ topic: "events", way: "email", channel: "email", at: SINCE });
+    expect(answers[1].at).toEqual(AT);
   });
 });
 

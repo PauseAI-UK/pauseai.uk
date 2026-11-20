@@ -53,19 +53,33 @@ describe("PermissionTiles", () => {
     expect([...updates.querySelectorAll("[popover] li")].map((li) => li.textContent)).toEqual(copy.details.updates.on);
   });
 
-  it("says someone on our Luma calendar is, and shows events' yes as Luma alone where Updates says no", async () => {
+  it("gives Luma's own messages a row as a list's, and shows events' yes as Luma alone where Updates says no", async () => {
     const [newsletter] = exampleSupporterDetails.permissions;
     const no = { ...newsletter, send: "no" as const, reason: "declined" as const };
-    const following = { ...newsletter, topic: "events" as const, reason: "following" as const };
-    const { rerender } = await render(<PermissionTiles permissions={[no, following]} onLuma />);
+    const following = { ...newsletter, topic: "events" as const, reason: "following" as const, source: "luma" };
+    const { rerender } = await render(<PermissionTiles permissions={[no, following]} luma={[following]} />);
     const [updates, lumaOnly, luma] = rows();
     expect(lines(updates)).toEqual([`jane@example.com${copy.answers.email.no}`]);
     expect(lines(lumaOnly)).toEqual([`jane@example.com${copy.answers.email.yes}`]);
-    expect(head(luma)).toBe(copy.luma.name);
-    expect(reasons(luma)).toEqual([copy.luma.on]);
+    // Its name and ?, then the address on our Luma calendar, green, and since when. Not a link: Luma writes to it.
+    expect(head(luma)).toBe(`${copy.luma.name}?`);
+    expect(lines(luma)).toEqual([`jane@example.com${copy.luma.on}`]);
+    expect(reasons(luma)).toEqual([copy.reasons.following("15 Oct 2026", copy.sources.luma)]);
+    expect(luma.querySelector("[class*=green]")).not.toBeNull();
+    expect(luma.querySelectorAll("a")).toHaveLength(0);
+    await page.getByRole("button", { name: copy.why }).last().click();
+    expect(luma.querySelector("[popover] strong")!.textContent).toBe(copy.topicTitle(copy.luma.name));
+    expect([...luma.querySelectorAll("[popover] p")].map((p) => p.textContent)).toEqual(copy.luma.about);
     // Where Updates says yes too, events' yes says no more, so it has no row.
-    await rerender(<PermissionTiles permissions={[newsletter, following]} onLuma />);
-    expect(rows().map(head)).toEqual([`${lists.updates}?`, copy.luma.name]);
+    await rerender(<PermissionTiles permissions={[newsletter, following]} luma={[following]} />);
+    expect(rows().map(head)).toEqual([`${lists.updates}?`, `${copy.luma.name}?`]);
+    // Off the calendar, the row stays, plain, with what took the address off and when.
+    const off = { ...following, send: "no" as const, reason: "unsubscribed" as const, source: "staff" };
+    await rerender(<PermissionTiles permissions={[newsletter]} luma={[off]} />);
+    const [, gone] = rows();
+    expect(lines(gone)).toEqual([`jane@example.com${copy.luma.off}`]);
+    expect(reasons(gone)).toEqual([copy.reasons.unsubscribed("15 Oct 2026", copy.sources.staff)]);
+    expect(gone.querySelector("[class*=green]")).toBeNull();
   });
 
   it("shows what stopped Luma alone reaching them, but not that they never followed the calendar", async () => {

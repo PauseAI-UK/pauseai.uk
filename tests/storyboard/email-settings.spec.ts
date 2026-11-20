@@ -151,7 +151,7 @@ test("Coming off our Luma calendar", async ({ page, request, flowDatabase }) => 
   await luma.uncheck();
   await expect(topicCard(page, "events").getByText(copy.settings.saved)).toBeVisible();
   await expect(luma).toBeDisabled();
-  await expect(topicCard(page, "events").getByText(copy.lumaOff)).toBeVisible();
+  await expect(topicCard(page, "events").getByText(copy.lumaOff.body)).toBeVisible();
   await expect(topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email })).toBeChecked();
   await topicCard(page, "events").scrollIntoViewIfNeeded();
   await frame(page, "Off the Luma calendar, its box locked", { window: true });

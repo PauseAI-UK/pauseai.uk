@@ -57,8 +57,9 @@ function OpenedBy({ opened }: { opened: Opened }) {
  */
 export const focusOnMount = (el: HTMLElement | null) => el?.focus();
 
-/** Topics in a sentence: "the UK newsletter and our event emails". */
-const inWords = (topics: Topic[]): string => topics.map((t) => copy.inSentence[t]).join(` ${copy.unsubscribe.and} `);
+/** What an email's link stops (unsubscribeTopics), in a sentence: Volunteering for an email to it, else Updates. */
+const inWords = (topics: Topic[]): string =>
+  copy.inSentence[topics.includes("volunteering") ? "volunteering" : "newsletter"];
 
 /**
  * An answer's reason in the person's words, with where it came from; nothing
@@ -141,6 +142,7 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
 /**
  * Luma's own emails: whether the address stays on our Luma calendar, one
  * box, ticked while it's on (`initial`); unticked, saving takes them off.
+ * While it's on, why, as a topic's card says it: they follow our calendar.
  * Once they're off (`off`), it can't be ticked again, as only Luma can put
  * them back on, and it says so. Not while all its email is held (`held`).
  */
@@ -156,10 +158,22 @@ function LumaCard({
   saving: Saving | null;
 }) {
   const [on, setOn] = useState(initial);
+  const reason = initial && (
+    <>
+      <strong>{copy.why.yes}</strong> {copy.why.reasons.following!("")}
+    </>
+  );
   return (
     <fieldset className={styles.card}>
       <legend className={styles.topic}>
         <span>{copy.topics.events}</span>
+        {reason && (
+          <span className={`${styles.askWrap} ${styles.phoneOnly}`}>
+            <Bubble id="why-luma" label="?" trigger={iconButtonClass("outline", styles.ask)} name={copy.why.ask}>
+              {reason}
+            </Bubble>
+          </span>
+        )}
       </legend>
       <p className={styles.what}>{copy.about.events}</p>
       <div className={styles.ways}>
@@ -171,7 +185,12 @@ function LumaCard({
           {saving && <SaveState state={saving}>{copy.settings[saving]}</SaveState>}
         </span>
       </div>
-      {off && <p className={styles.why}>{copy.lumaOff}</p>}
+      {reason && <p className={`${styles.why} ${styles.wideOnly}`}>{reason}</p>}
+      {off && (
+        <p className={styles.why}>
+          {copy.lumaOff.body} <a href={site.social.luma}>{copy.lumaOff.link}</a>.
+        </p>
+      )}
     </fieldset>
   );
 }

@@ -99,7 +99,7 @@ describe("SupporterDetails", () => {
     // So does the same letter in the history.
     expect(document.querySelector('a[href="/staff/letters/99"]')).not.toBeNull();
     // Beside the facts, whether we'd contact her on each list: by email, and by the phone she gave Luma, which
-    // she unsubscribed in Luma, under PauseAI UK Updates inc. Luma.
+    // she unsubscribed in Luma, under Updates + Luma. Then Luma's own messages, which that took her address off too.
     const subscriptions = page.getByRole("region", { name: copy.detail.listsTitle });
     await expect
       .element(
@@ -110,7 +110,7 @@ describe("SupporterDetails", () => {
           },
         ),
       )
-      .toHaveLength(1);
+      .toHaveLength(2);
     // When we've known her, the year said once, as both days are in it.
     await expect.element(page.getByText("1 Mar – 12 Oct 2026", { exact: true })).toBeVisible();
     // The history, folded until opened: what, linked, with a status only when it isn't approved.
@@ -215,6 +215,20 @@ describe("SupporterDetails", () => {
     expect(
       page.getByRole("button", { name: "Erase" }).element().closest("details")!.querySelector("#everything"),
     ).not.toBeNull();
+  });
+
+  it("says we can't contact someone we hold no address or number for", async () => {
+    await render(
+      <SupporterDetails
+        supporter={{
+          ...exampleSupporterDetails,
+          summary: { ...exampleSupporterDetails.summary, emails: [], phones: [] },
+          permissions: [],
+          luma: [],
+        }}
+      />,
+    );
+    await expect.element(page.getByText(supportersCopy.supporters.detail.permissions.none.noAddress)).toBeVisible();
   });
 
   it("copes with a supporter who has no name, nothing given and no activity, and with unknown statuses, lists and campaigns", async () => {
@@ -380,10 +394,13 @@ describe("SupporterDetails", () => {
             },
           ],
           permissions: [],
+          luma: [],
         }}
       />,
     );
     await expect.element(page.getByRole("heading", { level: 1, name: copy.noName })).toBeVisible();
+    // No list has an answer for their address, so the card says we can't, rather than nothing.
+    await expect.element(page.getByText(copy.detail.permissions.none.noAnswer)).toBeVisible();
     openHistory();
     await expect.element(page.getByText(copy.sources.luma, { exact: true }).first()).toBeVisible();
     await expect.element(page.getByText("Thing", { exact: false }).first()).toBeVisible();

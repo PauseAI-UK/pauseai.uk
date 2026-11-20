@@ -20,12 +20,13 @@ const words = copy.recordOptOut;
 /**
  * What a choice is called, as the Consent filter names its lists: Updates and
  * Volunteering; events by email, Luma's own messages, as opting out takes them
- * off our Luma calendar; events by text, what reaches their Luma number; or
- * every bulk email.
+ * off our Luma calendar; events by text, our texts to a number only inc.
+ * Luma reaches, by that list's name on a person's page (copy.lumaOnly), as
+ * the row above the menu has it; or every bulk email.
  */
 function choiceName({ list, way }: OptOutChoice): string {
   if (list === "bulk") return words.bulk;
-  if (list === "events") return way === "email" ? copy.luma.name : words.lumaTexts;
+  if (list === "events") return way === "email" ? copy.luma.name : copy.lumaOnly.name;
   return supportersCopy.supporters.filters.lists[list === "newsletter" ? "updates" : "volunteering"];
 }
 

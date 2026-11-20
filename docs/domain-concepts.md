@@ -1396,7 +1396,7 @@ source says who did.
 
 An open row can stop holding: the latest answer wins (below), so a yes
 since outlasts it, such as following our Luma calendar after unsubscribing
-from the newsletter, which puts them on PauseAI UK Updates inc. Luma. When
+from the newsletter, which puts them on Updates + Luma. When
 they say no again after that yes, `recordOptOut` ends the old row as the
 new one starts, so the new one is the latest answer. Their history shows
 the old one ended then. A no said again while the open row still holds
@@ -1622,18 +1622,24 @@ Staff never choose topics. They send to a list (`LISTS` in the same file),
 and the Consent filter, a broadcast and a supporter's page name only
 lists:
 
-| List                         | Who's on it                                 |
-| ---------------------------- | ------------------------------------------- |
-| PauseAI UK Updates           | a yes to `newsletter`                       |
-| PauseAI UK Updates inc. Luma | a yes to `newsletter`, or a yes to `events` |
-| Volunteering                 | a yes to `volunteering`                     |
+| List           | Who's on it                                 |
+| -------------- | ------------------------------------------- |
+| Updates        | a yes to `newsletter`                       |
+| Updates + Luma | a yes to `newsletter`, or a yes to `events` |
+| Volunteering   | a yes to `volunteering`                     |
+
+Those are the staff pages' names. To the people themselves, on the contact
+preferences page and in an email's unsubscribe page, Updates is "PauseAI UK
+Updates".
 
 As a no to the newsletter is a no to events, unsubscribing from PauseAI UK
 Updates leaves both Updates lists. It doesn't take anyone off the Luma
 calendar. Luma's own emails, which the calendar sends to everyone on it,
-are Luma's, not ours: no list controls them, and "Luma messages
-(sent via Luma)", on the contact preferences page and a supporter's page,
-is only whether they're on it. An email's unsubscribe link stops the list
+are Luma's, not ours: no list controls them, and "Luma messages", on the
+contact preferences page and a supporter's page, is only whether they're
+on it. A supporter's page has it as a row like a list's: each address that
+has joined the calendar, whether it's on it now, and since when or what
+took it off (`lumaCalendarAnswers`). An email's unsubscribe link stops the list
 it went to: PauseAI UK Updates for either Updates list, never the calendar.
 
 Where a person's own lists are shown (a supporter's page, the supporters

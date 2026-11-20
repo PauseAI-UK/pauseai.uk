@@ -21,7 +21,7 @@ import { SUPPORTERS_PAGE_SIZE } from "./supporters";
 import { channelOf, type Channel, type ContactPermission } from "./contact-permissions";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { permissionsFor } from "./permissions-for.server";
-import { optedOutOfLuma } from "./opt-outs.server";
+import { lumaCalendarAnswers, optedOutOfLuma } from "./opt-outs.server";
 import { refreshSupporterFacts, refreshSupportersList } from "./facts.server";
 import { SUPPORTER_SOURCES } from "./sources.server";
 import { contains, everyWord, phoneSearch } from "@/lib/server/search.server";
@@ -473,7 +473,7 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
   const [summary] = await query<SupporterSummary>(`SELECT ${SUMMARY_COLUMNS} FROM ${LIVE_SUMMARY}`, [id]);
   if (!summary) return undefined;
   const postcode = summary.place?.basis === "postcode" ? summary.place.given : null;
-  const [identities, contacts, groupTowns, activity, permissions, [mp], letters] = await Promise.all([
+  const [identities, contacts, groupTowns, activity, permissions, luma, [mp], letters] = await Promise.all([
     query<SupporterIdentity>(
       `SELECT source, email, name, seen_at AS "seenAt" FROM supporter_identity WHERE supporter_id = $1 ORDER BY seen_at NULLS LAST, email`,
       [id],
@@ -508,6 +508,7 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
       [id],
     ),
     permissionsFor(summary.emails, summary.phones),
+    lumaCalendarAnswers(summary.emails),
     // Their MP, in office for their postcode's constituency.
     postcode
       ? query<SupporterMp>(
@@ -528,5 +529,5 @@ export const getSupporter = cache(async function getSupporter(given: number): Pr
       [id],
     ),
   ]);
-  return { summary, letters, mp: mp ?? null, identities, contacts, groupTowns, activity, permissions };
+  return { summary, letters, mp: mp ?? null, identities, contacts, groupTowns, activity, permissions, luma };
 });

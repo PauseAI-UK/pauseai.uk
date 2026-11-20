@@ -15,7 +15,7 @@ export function settingsDate(date: Date | null): string {
 // Updates, and events, our Luma calendar, is Luma's own emails, its own card.
 const topicNames: Record<Topic, string> = {
   newsletter: "PauseAI UK Updates",
-  events: "Luma messages (sent via Luma)",
+  events: "Luma messages",
   volunteering: "Volunteering",
 };
 
@@ -23,15 +23,15 @@ const wayNames: Record<Way, string> = { email: "Email", text: "Text", call: "Cal
 
 // What each is, under its name on the page.
 const about: Record<Topic, string> = {
-  newsletter: "⁂ News and ways to help our campaign.",
-  events: "You're on our Luma calendar, and we message you via Luma.",
+  newsletter: "News about our campaigns and events.",
+  events: "Event invitations and updates, sent via Luma.",
   volunteering: "More in depth contact from staff and local groups.",
 };
 
 // "No bulk emails" set, which the person can lift on the page.
 const noBulk = {
   title: "You've turned off bulk email",
-  body: "⁂ So no PauseAI UK Updates, Volunteering or Luma emails, and no bulk email from PauseAI Global.",
+  body: "So no PauseAI UK Updates, Volunteering or Luma emails, and no bulk email from PauseAI Global.",
   button: "Restart emails",
 };
 
@@ -137,16 +137,17 @@ export const emailSettingsCopy = {
   topics: topicNames,
   // The Luma card's one box, ticked while they're on our Luma calendar.
   lumaBox: "Get them",
-  // Under the box once they've unticked it: we've taken them off, and only they can go back on, on Luma.
-  lumaOff: "⁂ You're off our Luma calendar. To get its messages again, subscribe to the calendar on Luma.",
+  // Under the box once they've unticked it: we've taken them off, and only they can go back on, on Luma. Then a
+  // link to our calendar there (site.social.luma) and a full stop.
+  lumaOff: { body: "You're off our Luma calendar.", link: "Subscribe again on Luma" },
   about,
   ways: wayNames,
-  // A topic in a sentence, as an unsubscribe says what of.
+  // What an email's unsubscribe link stops, in a sentence: PauseAI UK Updates for an email to either Updates list,
+  // or Volunteering. Never Luma's own messages, which no link of ours stops.
   inSentence: {
-    newsletter: "⁂ PauseAI UK Updates",
-    events: "⁂ our Luma calendar's emails",
+    newsletter: "PauseAI UK Updates",
     volunteering: "our volunteering emails",
-  } as Record<Topic, string>,
+  },
   // Under a topic, why it's on or off, from its answer.
   why: {
     yes: "Why:",
@@ -197,7 +198,7 @@ export const emailSettingsCopy = {
   },
   global: {
     title: "PauseAI Global",
-    body: "PauseAI Global, the international movement, may email you Critical Alerts when something urgent happens. To stop them, use the unsubscribe link in their emails.",
+    body: "PauseAI Global, the international movement, may email you Critical Alerts when something urgent happens, and other news now and then. To stop one kind, use the unsubscribe link in its emails.",
     // Only while Stop everything is offered, below.
     stopAll: "To stop them all, use “Stop everything” below.",
   },
@@ -212,14 +213,13 @@ export const emailSettingsCopy = {
     button: "Unsubscribe",
     done: (topics: string) => `You've unsubscribed from ${topics}`,
     // "them" for PauseAI UK Updates and every other.
-    doneBody: () => "⁂ You won't get them by email any more.",
+    doneBody: () => "You won't get them by email any more.",
     // In place of the button, where they get none of its topics by email already, for whatever reason.
     off: (topics: string) => `You're not subscribed to ${topics}`,
     // Under that, as nothing's changed.
     offBelow: "You can choose what you get below.",
     // After it, where the page shows their choices below.
     below: "You can choose what else you get below.",
-    and: "and",
   },
   // Under expired's title, on a number's page whose link has run out: there's no address to email a new one to.
   numberExpired: "For your privacy, this link only worked for 30 days. To stop our texts, reply STOP to any of them.",

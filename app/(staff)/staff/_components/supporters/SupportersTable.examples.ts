@@ -179,6 +179,19 @@ export const exampleSupporterDetails: SupporterDetails = {
       source: "luma",
     },
   ],
+  // Her address joined our Luma calendar, and came off it when she unsubscribed there.
+  luma: [
+    {
+      topic: "events",
+      way: "email",
+      channel: "email",
+      address: "jane@example.com",
+      send: "no",
+      reason: "unsubscribed",
+      at: new Date("2026-10-12T18:30:00Z"),
+      source: "luma-webhook",
+    },
+  ],
 };
 
 /** A member who joined through our site wanting to volunteer, and is on the newsletter in CiviCRM; never a contact of the Luma calendar. */
@@ -267,6 +280,7 @@ export const exampleMemberDetails: SupporterDetails = {
       source: "civicrm",
     })),
   ],
+  luma: [],
 };
 
 /** A supporter whose only address is blocked: they marked a letter as spam. */

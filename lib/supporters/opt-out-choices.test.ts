@@ -16,9 +16,10 @@ function answers(address: string, channel: "email" | "phone", no: string[] = [])
 it("offers each topic by each way we can send at each address and number, and every bulk email at each address", () => {
   const permissions = [...answers("jane@example.com", "email"), ...answers("+447700900123", "phone")];
   expect(optOutChoices(permissions).map(choiceValue)).toEqual([
+    // Events by email, Luma's own messages, after the lists, as a supporter's page has its rows.
     "email|newsletter|jane@example.com",
-    "email|events|jane@example.com",
     "email|volunteering|jane@example.com",
+    "email|events|jane@example.com",
     "email|bulk|jane@example.com",
     // Not events by text, as the newsletter goes to the number too, so a no to events alone would stop nothing.
     "text|newsletter|+447700900123",

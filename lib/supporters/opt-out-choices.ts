@@ -51,9 +51,14 @@ export function optOutChoices(permissions: Answer[], onLuma = false): OptOutChoi
       way,
       list: c.topic,
     }));
+  // By email, the lists, then Luma's own messages, as the rows of a supporter's page go, then every bulk email.
+  const lumaLast = (choices: OptOutChoice[]) => [
+    ...choices.filter((choice) => choice.list !== "events"),
+    ...choices.filter((choice) => choice.list === "events"),
+  ];
   return [
     ...addresses("email").flatMap((address) => [
-      ...topics(address, "email"),
+      ...lumaLast(topics(address, "email")),
       { address, way: "email" as const, list: "bulk" as const },
     ]),
     ...addresses("phone").flatMap((address) => [...topics(address, "text"), ...topics(address, "call")]),

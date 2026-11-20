@@ -510,7 +510,7 @@ test("A member who wrote to their MP", async ({ page, request, flowDatabase }) =
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lee Letter");
   await expect(page.getByText(copy.detail.firstCame.civicrm)).toBeVisible();
   await expect(page.getByText("29 Nov 2025", { exact: false }).first()).toBeVisible();
-  // Left the box on their letter unticked, but a member is on PauseAI UK Updates.
+  // Left the box on their letter unticked, but a member is on Updates.
   await expect(page.getByText(said("member", "civicrm"), { exact: false })).toHaveCount(1);
   await openHistory(page);
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
@@ -531,7 +531,7 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByRole("columnheader", { name: copy.columns.subscriptions })).toBeVisible();
   await frame(page, "The supporters list");
-  story("Staff filter to those they can email PauseAI UK Updates. Jane is there, as a member.");
+  story("Staff filter to those they can email Updates. Jane is there, as a member.");
 
   // Consent has its own button, as it's what lets a message go.
   const { lists } = copy.filters;
@@ -539,9 +539,9 @@ test("Supporters by subscription", async ({ page, request, flowDatabase }) => {
   await consent.getByRole("link", { name: lists.updates, exact: true }).first().click();
   await expect(page).toHaveURL(/contact=email%3Anewsletter%3Ayes(&|$)/);
   await expect(page.getByRole("row").filter({ hasText: "Jane Fixture" })).toBeVisible();
-  await frame(page, "Those who can be emailed PauseAI UK Updates");
+  await frame(page, "Those who can be emailed Updates");
   story(
-    "They change it to PauseAI UK Updates inc. Luma, which adds everyone on our Luma calendar. Each chip picks one list, so there's no + Add.",
+    "They change it to Updates + Luma, which adds everyone on our Luma calendar. Each chip picks one list, so there's no + Add.",
   );
 
   // Another list from the chip: including Luma, the second of email's three.
@@ -584,13 +584,13 @@ test("What the lists mean", async ({ page, flowDatabase }) => {
 
 test("A member who never opted in", async ({ page, request, flowDatabase }) => {
   story(
-    "Owen joined as a member without ticking Keep me informed. Joining the UK chapter is a yes to PauseAI UK Updates, so their page says we can email them.",
+    "Owen joined as a member without ticking Keep me informed. Joining the UK chapter is a yes to Updates, so their page says we can email them.",
   );
   await importCivicrm(request, BASE);
   await logInWithSupporters(page, flowDatabase);
   await page.goto(`${BASE}/staff/supporters`);
   await page.getByRole("link", { name: "Owen Member" }).click();
-  // On PauseAI UK Updates, a member.
+  // On Updates, a member.
   await expect(page.getByText(said("member", "civicrm"), { exact: false })).toHaveCount(1);
   await expect(page.getByText(copy.detail.permissions.answers.email.yes).first()).toBeVisible();
   await openHistory(page);
@@ -759,7 +759,7 @@ test("Recording an opt-out told to staff", async ({ page, request, flowDatabase 
 
 test("Taking someone only Luma reaches off our emails", async ({ page, request, flowDatabase }) => {
   story(
-    "Alex is on our Luma calendar and nothing else, so only PauseAI UK Updates inc. Luma goes to them. Alex tells staff they'd like no more of our emails, but to stay on the calendar.",
+    "Alex is on our Luma calendar and nothing else, so only Updates + Luma goes to them. Alex tells staff they'd like no more of our emails, but to stay on the calendar.",
   );
   await importLuma(request, BASE);
   await logInWithSupporters(page, flowDatabase);
@@ -789,7 +789,7 @@ test("Taking someone only Luma reaches off our emails", async ({ page, request, 
   await consents.scrollIntoViewIfNeeded();
   await frame(page, "Alex's consents: on the Luma calendar, and nothing else", { window: true });
   story(
-    "Unsubscribe them offers PauseAI UK Updates, which stops our emails and leaves Alex on the calendar, as well as Luma's own messages and every bulk email, which would each take them off it.",
+    "Unsubscribe them offers Updates, which stops our emails and leaves Alex on the calendar, as well as Luma's own messages and every bulk email, which would each take them off it.",
   );
   await openChoices();
   await expect(page.getByRole("button", { name: `${lists.updates}, ${ways.email}` })).toBeVisible();
@@ -802,8 +802,10 @@ test("Taking someone only Luma reaches off our emails", async ({ page, request, 
   story("Later Alex asks to come off the calendar too. Luma's own messages are what's left to opt out of.");
   await openChoices();
   await record(`${luma.name}, ${ways.email}`);
+  // Luma's row stays, to say the address came off the calendar, and how.
   await expect(consents.getByText(luma.on, { exact: true })).toHaveCount(0);
-  await expect(consents.getByText(said("unsubscribed", "staff"), { exact: false })).toBeVisible();
+  await expect(consents.getByText(luma.off, { exact: true })).toBeVisible();
+  await expect(consents.getByText(said("unsubscribed", "staff"), { exact: false })).toHaveCount(2);
   await consents.scrollIntoViewIfNeeded();
   await frame(page, "Off the Luma calendar too", { window: true });
 });

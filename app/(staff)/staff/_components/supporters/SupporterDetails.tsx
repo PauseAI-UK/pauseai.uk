@@ -416,7 +416,17 @@ export default function SupporterDetails({
         </Column>
         <Column span={2}>
           <Card look="aside" title={copy.detail.listsTitle} id="subscriptions">
-            <PermissionTiles permissions={permissions} onLuma={supporter.summary.lumaContact} />
+            <PermissionTiles
+              permissions={permissions}
+              luma={supporter.luma}
+              none={
+                <Empty>
+                  {supporter.summary.emails.length + supporter.summary.phones.length > 0
+                    ? copy.detail.permissions.none.noAnswer
+                    : copy.detail.permissions.none.noAddress}
+                </Empty>
+              }
+            />
             {optOut}
           </Card>
           {notes}

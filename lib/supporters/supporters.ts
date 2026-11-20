@@ -178,6 +178,11 @@ export type SupporterDetails = {
   activity: SupporterActivity[];
   /** Whether we may contact each of their addresses and numbers about each topic, and why. */
   permissions: ContactPermission[];
+  /**
+   * Whether each of their addresses that has joined our Luma calendar is on it now, and since when or what took it
+   * off (lumaCalendarAnswers): where Luma's own messages go, which no list of ours says.
+   */
+  luma: ContactPermission[];
 };
 
 /** A WhatsApp group's town, from an upload of its members a supporter is in: the group's name, and when it was uploaded. */

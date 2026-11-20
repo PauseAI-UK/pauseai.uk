@@ -9,7 +9,7 @@ import { supportersCopy } from "./copy";
 
 const words = supportersCopy.supporters.detail.permissions.recordOptOut;
 const { ways, lists } = supportersCopy.supporters.filters;
-const luma = supportersCopy.supporters.detail.permissions.luma;
+const { luma, lumaOnly } = supportersCopy.supporters.detail.permissions;
 /** The headings in the menu: the rows that aren't choices. */
 const headings = (menu: Element) =>
   [...menu.querySelectorAll("li")].filter((li) => !li.querySelector("button")).map((li) => li.textContent);
@@ -39,8 +39,8 @@ describe("OptOutForm", () => {
     // Each named as the lists are; events by email is Luma's own messages.
     expect([...menu.element().querySelectorAll("button")].map((button) => button.textContent)).toEqual([
       lists.updates,
-      luma.name,
       lists.volunteering,
+      luma.name,
       words.bulk,
       lists.updates,
       lists.volunteering,
@@ -84,7 +84,7 @@ describe("OptOutForm", () => {
         send: "yes" as const,
       })),
       { address: "+447700900123", channel: "phone", topic: "volunteering", way: "call", send: "yes" },
-      // A number only Luma gave: events by text, named as what reaches it.
+      // A number only inc. Luma reaches: events by text, named as that list is on their page.
       { address: "+447700900124", channel: "phone", topic: "events", way: "text", send: "yes" },
     ]);
     await render(<OptOutForm supporterId={4} choices={both} record={vi.fn()} opened />);
@@ -95,7 +95,7 @@ describe("OptOutForm", () => {
       ways.call,
       ways.text,
     ]);
-    await expect.element(page.getByRole("button", { name: `${words.lumaTexts}, ${ways.text}` })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: `${lumaOnly.name}, ${ways.text}` })).toBeVisible();
     await page.getByRole("button", { name: `${lists.updates}, ${ways.email} · jane@work.example.com` }).click();
     await expect
       .element(

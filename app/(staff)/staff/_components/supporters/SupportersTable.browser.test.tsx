@@ -319,8 +319,8 @@ describe("the supporters list in words: its downloads, cards and filters", () =>
     const search = supportersSearch({ q: "jo", near: "LS1", activity: "member" });
     expect(supporterWords(search, { events: [], mps: [] })).toEqual([
       `${staffVocabulary.search}: jo`,
-      `${supportersCopy.supporters.filters.near}: LS1`,
       `${supportersCopy.supporters.columns.badges}: ${supportersCopy.supporters.badges.member}`,
+      `${supportersCopy.supporters.filters.near}: LS1`,
     ]);
   });
 });
