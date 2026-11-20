@@ -267,7 +267,7 @@ test("A broadcast by email", async ({ page, request, flowDatabase }) => {
   await send.getByRole("button", { name: copy.schedule(EMAILABLE, "email") }).click();
   await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
   await frame(page, "The email, scheduled");
-  story("It's in the list of broadcasts, under Coming up.");
+  story("It's in the list of broadcasts, under Scheduled.");
   await page.goto(`${BASE}/staff/broadcasts`);
   await expect(page.getByRole("link", { name: "Events near you this month" })).toBeVisible();
   await frame(page, "The list of broadcasts");
@@ -1093,14 +1093,15 @@ test("Postmark says nothing of an email's copies", async ({ page, request, flowD
   await expect(page.getByRole("heading", { name: stateWords.tabs.held })).toBeVisible();
   await frame(page, "Those delayed");
   story(
-    "The hourly sending takes the last one, whose consent has ended, so it isn't sent. With nothing left to go, the email has all been sent, but it isn't done: it waits on the five delayed, with nothing to stop.",
+    "The hourly sending takes the last one, whose consent has ended, so it isn't sent. With nothing left to go, the email has all been sent, but it isn't done: it waits on the five delayed. Postmark's tries can't be stopped, so in place of Stop sending there's Give up.",
   );
   await runSending(request);
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   await expect(page.getByText(copy.paused.bar(2, 7))).toBeVisible();
   await expect(page.getByRole("button", { name: mailingCopy.stopSending })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: copy.giveUp })).toBeVisible();
   await frame(page, "Waiting on five delayed");
-  story("In the list of broadcasts, it's still coming up, waiting.");
+  story("In the list of broadcasts, it's under Sending, waiting.");
   await page.goto(`${BASE}/staff/broadcasts`);
   await expect(page.getByRole("listitem").filter({ hasText: title }).getByText(copy.paused.forDelayed)).toBeVisible();
   await frame(page, "Waiting, in the list");
@@ -1111,6 +1112,45 @@ test("Postmark says nothing of an email's copies", async ({ page, request, flowD
   await page.goto(`${BASE}/staff/broadcasts/${id}?tab=error`);
   await expect(page.getByRole("heading", { name: stateWords.tabs.error })).toBeVisible();
   await frame(page, "Sent, errors once its days ran out");
+});
+
+test("Giving up on delayed emails", async ({ page, flowDatabase }) => {
+  story(
+    "An email went by Postmark yesterday. All of it has gone, but Postmark is still trying two of its copies, and staff would rather not wait the rest of the week to hear.",
+  );
+  const title = "March on Saturday";
+  const id = addDue(flowDatabase, title, staffEmail());
+  runSql(
+    flowDatabase,
+    `UPDATE mailings SET send_by = 'postmark', state = 'sent', due_at = '2026-10-15T14:30:00Z',
+       updated_at = '2026-10-15T14:30:00Z' WHERE id = ${id};
+     WITH added AS (INSERT INTO supporters (created_at) SELECT '2026-10-01' FROM generate_series(1, 3) RETURNING id),
+     people AS (SELECT id, row_number() OVER (ORDER BY id) AS n FROM added),
+     c AS (
+       INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, merge_values, sent_at, provider_message_id)
+       SELECT ${id}, p.id, 'person' || p.n || '@example.com', CASE WHEN p.n = 1 THEN 'delivered' ELSE 'sent' END,
+         json_build_object('name', 'Person ' || p.n, 'place', 'Leeds', 'values', json_build_object('firstName', 'Person'), 'meets', '[]'::json),
+         '2026-10-15T14:40:00Z', 'pm-give-up-' || p.n
+       FROM people p RETURNING id, status)
+     INSERT INTO broadcast_message_events (message_id, kind, at, details)
+     SELECT id, CASE WHEN status = 'delivered' THEN 'delivered' ELSE 'soft-bounced' END, '2026-10-15T14:40:02Z',
+       CASE WHEN status = 'delivered' THEN '{}'::jsonb ELSE '{"reason": "Mailbox full"}'::jsonb END
+     FROM c`,
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByRole("button", { name: copy.giveUp })).toBeVisible();
+  await frame(page, "Waiting on two delayed, with Give up");
+  story(
+    "Give up stops waiting: the email is stopped, and the two delayed count as errors, as they would once its days ran out.",
+  );
+  await page.getByRole("button", { name: copy.giveUp }).click();
+  await expect(page.getByText(mailingCopy.states.cancelled, { exact: true })).toBeVisible();
+  await frame(page, "Stopped, two errors");
+  story("In the list of broadcasts, it stays under Just finished for a day after it went, stopped.");
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByRole("region", { name: mailingCopy.recent }).getByText(title)).toBeVisible();
+  await frame(page, "Stopped, under Just finished");
 });
 
 test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => {
@@ -1144,7 +1184,11 @@ test("A reply that asks us to stop", async ({ page, request, flowDatabase }) => 
   await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
   await page.getByRole("button", { name: copy.replies.bulk }).click();
   await frame(page, "Unsubscribe them, all bulk email chosen", { window: true });
+  story("Record opt-out is pressed twice, so a slip can't unsubscribe someone: the first press asks for the second.");
   await page.getByRole("button", { name: words.record }).click();
+  await expect(page.getByRole("button", { name: words.recordAgain })).toBeVisible();
+  await frame(page, "Press again to record it", { window: true });
+  await page.getByRole("button", { name: words.recordAgain }).click();
   await expect(page.getByText(/Recorded as an opt-out/).first()).toBeVisible();
   await frame(page, "Recorded as an opt-out");
 });

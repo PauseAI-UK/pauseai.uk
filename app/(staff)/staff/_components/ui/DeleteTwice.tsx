@@ -12,6 +12,20 @@ import MenuSubmit from "./MenuSubmit";
 export const ARMED_FOR = 4000;
 
 /**
+ * Whether a button pressed twice has had its first press, and the setter:
+ * it turns back after ARMED_FOR without a second.
+ */
+export function useArmed(): [boolean, (armed: boolean) => void] {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const timer = setTimeout(() => setArmed(false), ARMED_FOR);
+    return () => clearTimeout(timer);
+  }, [armed]);
+  return [armed, setArmed];
+}
+
+/**
  * The button, inside its form: the ghost one naming what it deletes, or,
  * armed, the red one that sends the form. It stays red and pending while
  * the form is sent, though the pending button, disabled, loses the focus.
@@ -30,13 +44,8 @@ function Press({
   short: boolean;
   menuItem: boolean;
 }) {
-  const [armed, setArmed] = useState(false);
+  const [armed, setArmed] = useArmed();
   const { pending } = useFormStatus();
-  useEffect(() => {
-    if (!armed) return;
-    const timer = setTimeout(() => setArmed(false), ARMED_FOR);
-    return () => clearTimeout(timer);
-  }, [armed]);
   if (menuItem) {
     // Two buttons, not one that changes: one turning into submit as it's clicked would send the form on the first press.
     return armed || pending ? (

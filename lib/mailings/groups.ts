@@ -13,16 +13,34 @@ export function mailingWhen(mailing: MailingBase): Date {
 /**
  * The mailings page's groups: Coming up, of those sending, then those
  * scheduled, soonest first, then the drafts, newest edited first; then
- * the rest under their months and years (monthsAndYears).
+ * Recent, in the order given, where a list has one; then the rest under
+ * their months and years (monthsAndYears). A list with Recent (broadcasts:
+ * broadcastsPage) has each apart instead, in the order given: Scheduled;
+ * Sending; Drafts; then Recent, headed Just finished.
  */
 export function mailingGroups<T extends MailingBase>(
-  { drafts, comingUp, sent }: { drafts: T[]; comingUp: T[]; sent: T[] },
+  {
+    drafts,
+    comingUp,
+    sending = [],
+    recent,
+    sent,
+  }: { drafts: T[]; comingUp: T[]; sending?: T[]; recent?: T[]; sent: T[] },
   now: Date,
 ): MailingGroup<T>[] {
   const coming = [...comingUp.filter((m) => m.state === "sending"), ...comingUp.filter((m) => m.state !== "sending")];
+  const words = mailingsCopy.mailingPages;
   const groups: MailingGroup<T>[] = [];
-  if (coming.length + drafts.length > 0) {
-    groups.push({ key: "coming", heading: mailingsCopy.mailingPages.comingUp, mailings: [...coming, ...drafts] });
+  const add = (key: string, heading: string, mailings: T[]) => {
+    if (mailings.length > 0) groups.push({ key, heading, mailings });
+  };
+  if (recent) {
+    add("coming", words.scheduled, coming);
+    add("sending", words.sending, sending);
+    add("drafts", words.drafts, drafts);
+    add("recent", words.recent, recent);
+  } else {
+    add("coming", words.comingUp, [...coming, ...drafts]);
   }
   for (const { key, heading, items } of monthsAndYears(sent, (mailing) => mailingWhen(mailing).toISOString(), now)) {
     groups.push({ key, heading, mailings: items });

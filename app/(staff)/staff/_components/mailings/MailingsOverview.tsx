@@ -56,6 +56,8 @@ export type OverviewLook<T extends MailingBase> = {
   paused?: (mailing: T) => { word: string; till: string } | undefined;
   /** Every count shows, none folded behind how many are fine: a mailing's replies and answers are what staff look for. */
   unfolded?: boolean;
+  /** The keys of counts that aren't fine for this one, though they're grey, so aren't folded with those that are. */
+  notFine?: (mailing: T) => string[];
 };
 
 /** Where one stands in a list, as a sentence after a dot in its colour: red for something wrong, blue for going out or waiting, green for ready to go, grey for normal. */
@@ -164,7 +166,7 @@ function Standing<T extends MailingBase>({
         (look.unfolded ? (
           <EveryCount counts={countsOpening(href, look.counts(mailing))} />
         ) : (
-          <NeedsAndFine counts={countsOpening(href, look.counts(mailing))} />
+          <NeedsAndFine counts={countsOpening(href, look.counts(mailing))} also={look.notFine?.(mailing)} />
         ))}
     </span>
   );

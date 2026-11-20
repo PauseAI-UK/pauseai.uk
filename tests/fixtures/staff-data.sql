@@ -1212,7 +1212,10 @@ SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
   ('Volunteer evening', 'email', 'cancelled', interval '-8 days', NULL, 'volunteers meet on Thursday evening to plan the month.'),
   ('Banner drop on Sunday', 'email', 'sent', interval '-1 day', NULL, 'we are dropping a banner on Sunday. Come and hold one end.'),
   ('Leafleting last week', 'email', 'sent', interval '-9 days', NULL, 'thank you to everyone who leafleted last week.'),
-  ('Thank you for coming.', 'text', 'cancelled', interval '-9 days', 'Thank you for coming.', NULL)
+  ('Thank you for coming.', 'text', 'cancelled', interval '-9 days', 'Thank you for coming.', NULL),
+  -- Done with in the last day, so the list has them under Recent: one all sent, one Jo stopped.
+  ('Petition handed in', 'email', 'sent', interval '-3 hours', NULL, 'we handed in the petition this morning. Thank you for signing.'),
+  ('Workshop moved to Friday', 'email', 'cancelled', interval '-5 hours', NULL, 'the workshop has moved to Friday.')
 ) m (title, channel, state, due, template, words);
 INSERT INTO mailings (id, title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at, state, template_id, created_at, opened_at)
   OVERRIDING SYSTEM VALUE
@@ -1324,7 +1327,17 @@ SELECT nextval(pg_get_serial_sequence('broadcast_messages', 'id')) AS id, c.* FR
     ('Leafleting last week', 'usr-fixture-6', 'sent', NULL, NULL, false, false),
     -- A text delivered, and one WhatsApp held till its days ran out, so it was cancelled.
     ('Thank you for coming.', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
-    ('Thank you for coming.', 'usr-seed-10', 'cancelled', NULL, NULL, false, false)
+    ('Thank you for coming.', 'usr-seed-10', 'cancelled', NULL, NULL, false, false),
+    -- Those done with in the last day: Petition handed in all delivered; Workshop moved to Friday reached two
+    -- before Jo stopped it, and never the other three.
+    ('Petition handed in', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('Petition handed in', 'usr-fixture-3', 'delivered', NULL, 'delivered', false, false),
+    ('Petition handed in', 'usr-fixture-6', 'delivered', NULL, 'delivered', false, false),
+    ('Workshop moved to Friday', 'usr-fixture-1', 'delivered', NULL, 'delivered', false, false),
+    ('Workshop moved to Friday', 'usr-fixture-3', 'delivered', NULL, 'delivered', false, false),
+    ('Workshop moved to Friday', 'usr-seed-10', 'cancelled', NULL, NULL, false, false),
+    ('Workshop moved to Friday', 'usr-seed-12', 'cancelled', NULL, NULL, false, false),
+    ('Workshop moved to Friday', 'usr-seed-18', 'cancelled', NULL, NULL, false, false)
   ) v (title, luma_user, status, reason, report, was_read, stopped)) c
   JOIN mailings m ON m.audience = 'supporters' AND m.title = c.title
   LEFT JOIN supporter_links k ON k.luma_user_id = c.luma_user

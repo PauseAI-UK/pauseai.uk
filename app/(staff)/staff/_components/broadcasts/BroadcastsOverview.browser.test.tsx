@@ -228,6 +228,9 @@ describe("BroadcastsOverview", () => {
     ]) {
       await expect.element(page.getByText(said)).toBeVisible();
     }
+    // Those it never sent aren't fine for one stopped, so they show, for each of the seven; for the one sent,
+    // those are as expected, folded with the fine.
+    expect(page.getByRole("link", { name: `8 ${stateWords.counts["not-sent"]}` }).all()).toHaveLength(7);
     // CiviCRM down, or no fresh pull from it, read the same.
     expect(page.getByText(words.gaveUp.civicrm!(3, 5)).all()).toHaveLength(2);
     expect(words.gaveUp.pull!(3, 5)).toBe(words.gaveUp.civicrm!(3, 5));

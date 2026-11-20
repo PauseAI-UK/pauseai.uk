@@ -66,6 +66,28 @@ describe("mailingGroups", () => {
     ]);
   });
 
+  it("with Recent, has each apart, in the order given: Scheduled, Sending, Drafts, Just finished", () => {
+    const groups = mailingGroups(
+      {
+        drafts: [one(5, { state: "draft" })],
+        comingUp: [one(1, { state: "scheduled" })],
+        sending: [one(6, { state: "sending" })],
+        recent: [one(2, { state: "sending" }), one(3, {})],
+        sent: [one(4, { sentAt: new Date("2026-10-01T09:00:00Z") })],
+      },
+      now,
+    );
+    expect(groups.map((g) => [g.key, g.heading, ids(g.mailings)])).toEqual([
+      ["coming", mailingsCopy.mailingPages.scheduled, [1]],
+      ["sending", mailingsCopy.mailingPages.sending, [6]],
+      ["drafts", mailingsCopy.mailingPages.drafts, [5]],
+      ["recent", mailingsCopy.mailingPages.recent, [2, 3]],
+      ["2026-10", "October 2026", [4]],
+    ]);
+    // Each left out with none in it.
+    expect(mailingGroups({ drafts: [], comingUp: [], recent: [], sent: [] }, now)).toEqual([]);
+  });
+
   it("has no Coming up with nothing coming, and nothing for none", () => {
     expect(mailingGroups({ drafts: [], comingUp: [], sent: [] }, now)).toEqual([]);
     expect(

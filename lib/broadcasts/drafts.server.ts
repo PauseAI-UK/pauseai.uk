@@ -61,6 +61,7 @@ import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { filterProblems } from "@/lib/server/stored-filters.server";
 import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
 import { broadcastsCopy } from "./copy";
+import { DELAYED } from "./delayed";
 
 // A broadcast to supporters written on the site: a mailing to the supporters
 // list's filter, with one channel and its topics, fixed when it's made from
@@ -437,19 +438,23 @@ export async function scheduleBroadcast(id: number, version: number, by: string)
 
 /**
  * Stops a broadcast: a scheduled one becomes a draft again; one sending
- * sends no more. Either waits for CiviCRM no longer, so scheduled again it
- * has its days to wait afresh (waitStopsAt). Says whether it stopped.
+ * sends no more; one all sent but for emails Postmark delayed (DELAYED)
+ * waits for them no longer, so they count as errors, as they do once its
+ * days run out. Either of the first two waits for CiviCRM no longer, so
+ * scheduled again it has its days to wait afresh (waitStopsAt). Says
+ * whether it stopped.
  */
 export async function stopBroadcast(id: number, by: string): Promise<boolean> {
   return transaction(async (db) => {
-    const [broadcast] = await query<{ state: string }>(
-      "SELECT state FROM mailings WHERE id = $1 AND audience = 'supporters' FOR UPDATE",
+    const [broadcast] = await query<{ state: string; delayed: boolean }>(
+      `SELECT m.state, EXISTS (SELECT 1 FROM broadcast_messages c WHERE c.mailing_id = m.id AND ${DELAYED}) AS delayed
+       FROM mailings m WHERE m.id = $1 AND m.audience = 'supporters' FOR UPDATE OF m`,
       [id],
       db,
     );
     if (broadcast?.state === "scheduled") {
       await markUnscheduled(id, db);
-    } else if (broadcast?.state === "sending") {
+    } else if (broadcast?.state === "sending" || (broadcast?.state === "sent" && broadcast.delayed)) {
       await query(
         "UPDATE broadcast_messages SET status = 'cancelled' WHERE status = 'scheduled' AND mailing_id = $1",
         [id],

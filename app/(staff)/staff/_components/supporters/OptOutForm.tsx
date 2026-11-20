@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/Controls";
 import { Field } from "@/components/ui/Field";
@@ -11,6 +12,7 @@ import type { FilterOption } from "@/lib/staff-list-filters";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import MenuSelect from "../ui/MenuSelect";
+import { useArmed } from "../ui/DeleteTwice";
 import styles from "./OptOutForm.module.css";
 import { supportersCopy } from "./copy";
 
@@ -31,6 +33,35 @@ function menuOptions(choices: OptOutChoice[]): FilterOption[] {
       icon: <ChannelIcon channel={choice.way} />,
     },
   }));
+}
+
+/**
+ * Record opt-out, inside its form. `twice`, it's pressed twice, as a delete
+ * is (DeleteTwice): the first press turns it red, asking for a second, which
+ * sends the form; it turns back if the second doesn't come in time. Not on
+ * losing the focus, as the red one is wider, so turning back as Cancel is
+ * pressed would move Cancel from under the pointer. It stays red and
+ * pending while the form is sent.
+ */
+function RecordButton({ disabled, twice }: { disabled: boolean; twice: boolean }) {
+  const [armed, setArmed] = useArmed();
+  const { pending } = useFormStatus();
+  if (!twice) {
+    return (
+      <SubmitButton variant="primary" size="small" fit disabled={disabled}>
+        {words.record}
+      </SubmitButton>
+    );
+  }
+  return armed || pending ? (
+    <SubmitButton variant="danger" size="small" fit autoFocus>
+      {words.recordAgain}
+    </SubmitButton>
+  ) : (
+    <Button variant="primary" size="small" fit type="button" disabled={disabled} onClick={() => setArmed(true)}>
+      {words.record}
+    </Button>
+  );
 }
 
 /**
@@ -56,6 +87,7 @@ export function UnsubscribeForm({
   spaced = true,
   opened = false,
   end = false,
+  twice = false,
 }: {
   id: string;
   hidden: Record<string, string>;
@@ -69,6 +101,8 @@ export function UnsubscribeForm({
   opened?: boolean;
   /** Its buttons at the right, as under a text's reply, whose answer opens at the right. */
   end?: boolean;
+  /** Record opt-out pressed twice (RecordButton), as under a reply, where it's two presses from the thread. */
+  twice?: boolean;
 }) {
   const [open, setOpen] = useState(opened);
   const [already, setAlready] = useState(false);
@@ -125,9 +159,7 @@ export function UnsubscribeForm({
       )}
       <p className={styles.note}>{words.global}</p>
       <div className={styles.buttons}>
-        <SubmitButton variant="primary" size="small" fit disabled={!choice || (!howKnown && !how.trim())}>
-          {words.record}
-        </SubmitButton>
+        <RecordButton disabled={!choice || (!howKnown && !how.trim())} twice={twice} />
         <Button variant="ghost" size="small" fit type="button" onClick={() => setOpen(false)}>
           {words.cancel}
         </Button>

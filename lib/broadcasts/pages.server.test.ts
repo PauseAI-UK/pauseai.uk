@@ -2,7 +2,13 @@ import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { query } from "@/lib/server/db.server";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
-import { createBroadcastDraft, getWrittenBroadcast, saveBroadcastDraft, scheduleBroadcast } from "./drafts.server";
+import {
+  createBroadcastDraft,
+  getWrittenBroadcast,
+  saveBroadcastDraft,
+  scheduleBroadcast,
+  stopBroadcast,
+} from "./drafts.server";
 import {
   choosingConsent,
   choosingBroadcast,
@@ -108,14 +114,14 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     await query("INSERT INTO broadcast_message_events (message_id, kind) VALUES ($1, 'read')", [copies[0]]);
     const { groups, now } = await broadcastsPage();
     expect(typeof now).toBe("string");
-    const coming = groups[0].mailings;
-    expect(coming.map((m) => [m.id, m.state])).toEqual([
-      [onTemplate, "scheduled"],
-      [later, "scheduled"],
-      [expect.any(Number), "draft"],
+    expect(groups.map((group) => [group.key, group.mailings.map((m) => m.state)])).toEqual([
+      ["coming", ["scheduled", "scheduled"]],
+      ["drafts", ["draft"]],
+      [expect.any(String), ["sent"]],
     ]);
-    expect(coming[2].to).toBe(5);
-    expect(groups[1].mailings[0]).toMatchObject({
+    expect(groups[0].mailings.map((m) => m.id)).toEqual([onTemplate, later]);
+    expect(groups[1].mailings[0].to).toBe(5);
+    expect(groups[2].mailings[0]).toMatchObject({
       id: went,
       channel: "email",
       to: 5,
@@ -474,7 +480,7 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect((await stands()).summary).toMatchObject(waiting);
     const listed = async () =>
       (await broadcastsPage()).groups.map((group) => [group.key, group.mailings.map((m) => m.state)]);
-    expect(await listed()).toEqual([["coming", ["sending"]]]);
+    expect(await listed()).toEqual([["sending", ["sending"]]]);
     // Its seven days over, those still delayed never will arrive: errors, done with but not sent.
     await query("UPDATE mailings SET due_at = now() - interval '7 days' WHERE id = $1", [id]);
     expect((await listed())[0][1]).toEqual(["sent"]);
@@ -492,6 +498,74 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     // By Gmail, nothing is ever said of what arrives, so nothing's delayed for silence.
     await query("UPDATE mailings SET send_by = 'gmail', due_at = now() WHERE id = $1", [id]);
     expect(await stands()).toMatchObject({ summary: { states: { sent: 2, held: 1 } } });
+  });
+
+  it("lists under Sending those going out, then those waiting, however long ago; under Recent, those done with in the last day", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith");
+    const broadcast = (subject: string) => scheduled(EMAIL_FILTER, { subject, body: EVENT_WORDS, sendBy: "gmail" });
+    const coming = await broadcast("Coming");
+    const waitingNow = await broadcast("Waiting for CiviCRM");
+    await query(
+      "UPDATE mailings SET due_at = now() - interval '1 hour', waiting_since = now(), wait_reason = 'civicrm' WHERE id = $1",
+      [waitingNow],
+    );
+    const sending = await broadcast("Sending");
+    await startSending(sending);
+    const resting = await broadcast("Resting");
+    await startSending(resting);
+    await query("UPDATE mailings SET try_failed_at = now(), due_at = now() - interval '9 days' WHERE id = $1", [
+      resting,
+    ]);
+    const done = async (subject: string, state: string, ago: string) => {
+      const id = await broadcast(subject);
+      await sent(id, [["delivered", null]]);
+      await query("UPDATE mailings SET state = $2 WHERE id = $1", [id, state]);
+      await query(`UPDATE broadcast_messages SET sent_at = now() - interval '${ago}' WHERE mailing_id = $1`, [id]);
+      return id;
+    };
+    const sentToday = await done("Sent today", "sent", "2 hours");
+    const stoppedToday = await done("Stopped today", "cancelled", "23 hours");
+    const sentBefore = await done("Sent before", "sent", "25 hours");
+    const { groups } = await broadcastsPage();
+    // One past its time, waiting for CiviCRM, hasn't started, so it's still coming up, first, as it was due first.
+    expect(groups.map((group) => [group.key, group.mailings.map((m) => m.id)])).toEqual([
+      ["coming", [waitingNow, coming]],
+      ["sending", [sending, resting]],
+      ["recent", [sentToday, stoppedToday]],
+      [expect.any(String), [sentBefore]],
+    ]);
+    expect(groups.map((group) => group.heading).slice(0, 3)).toEqual(["Scheduled", "Sending", "Just finished"]);
+  });
+
+  it("gives up on emails Postmark delayed when stopped, counting them as errors, though one delivered after is delivered", async () => {
+    for (const n of [1, 2, 3]) await addFollower(`usr-${n}`, `p${n}@example.com`, `Person ${n}`);
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS, sendBy: "postmark" });
+    const copies = await sent(id, [
+      ["delivered", null],
+      ["sent", null],
+      ["sent", null],
+    ]);
+    await query("UPDATE broadcast_messages SET sent_at = now() - interval '11 minutes' WHERE mailing_id = $1", [id]);
+    await query("UPDATE mailings SET due_at = now() - interval '1 day' WHERE id = $1", [id]);
+    const stands = async () => {
+      const data = await broadcastPageData(id, {}, JO);
+      return data!.kind === "written" && data!.summary;
+    };
+    expect(await stands()).toMatchObject({ state: "sending", pause: { kind: "delayed", delayed: 2 } });
+    expect(await stopBroadcast(id, JO)).toBe(true);
+    expect(await stands()).toMatchObject({ state: "cancelled", pause: null, states: { held: 0, error: 2 } });
+    // Nothing more to give up on.
+    expect(await stopBroadcast(id, JO)).toBe(false);
+    // Postmark delivers one after all.
+    await query("UPDATE broadcast_messages SET status = 'delivered' WHERE id = $1", [copies[1]]);
+    expect(await stands()).toMatchObject({ states: { delivered: 2, error: 1 } });
+  });
+
+  it("stops nothing sent with nothing delayed", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith");
+    const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS, sendBy: "postmark" });
+    await sent(id, [["delivered", null]]);
+    expect(await stopBroadcast(id, JO)).toBe(false);
   });
 
   it("says a text WhatsApp held till its broadcast's days ran out is an error of WhatsApp's limit; one stopped otherwise, that it stopped", async () => {

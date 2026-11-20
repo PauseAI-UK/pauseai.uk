@@ -66,6 +66,7 @@ export default function ReplyActions({
           { value: "bulk", label: text ? copy.replies.allTexts : copy.replies.bulk },
         ]}
         howKnown
+        twice
         record={deal}
         spaced={false}
         end={text}

@@ -316,7 +316,7 @@ describe("a broadcast's page", () => {
     expect(bar().className).not.toBe(going);
   });
 
-  it("shows one all sent but for delayed emails as sending, waiting on them, with nothing to stop", async () => {
+  it("shows one all sent but for delayed emails as sending, waiting on them, with Give up in place of Stop sending", async () => {
     const stopsAt = new Date("2026-11-25T20:04:00Z");
     const pause: SendingPause = { kind: "delayed", delayed: 45, stopsAt };
     // Its state is sent; its summary says sending (withPause).
@@ -332,6 +332,7 @@ describe("a broadcast's page", () => {
     await expect
       .element(page.getByRole("button", { name: mailingsCopy.mailingPages.stopSending }))
       .not.toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: copy.giveUp })).toBeVisible();
     // No tag saying it's sent.
     await expect
       .element(page.getByText(mailingsCopy.mailingPages.states.sent, { exact: true }))

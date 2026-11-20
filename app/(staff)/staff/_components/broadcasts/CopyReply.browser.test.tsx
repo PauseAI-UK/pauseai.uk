@@ -180,8 +180,17 @@ describe("replies to broadcasts", () => {
       expect(page.getByRole("textbox", { name: words.how }).query()).toBeNull();
       await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
       await page.getByRole("button", { name: choice }).click();
+      // Pressed twice: the first asks for the second.
       await page.getByRole("button", { name: words.record }).click();
+      await page.getByRole("button", { name: words.recordAgain }).click();
     };
+    // Cancel after the first press sends nothing.
+    await page.getByRole("button", { name: optOut }).click();
+    await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+    await page.getByRole("button", { name: copy.replies.bulk }).click();
+    await page.getByRole("button", { name: words.record }).click();
+    await page.getByRole("button", { name: words.cancel }).click();
+    expect(deal).not.toHaveBeenCalled();
     await unsubscribe(copy.replies.topics(`${topics.newsletter}, ${topics.events}`));
     await vi.waitFor(() => expect(deal).toHaveBeenCalledTimes(1));
     expect(Object.fromEntries((deal.mock.calls[0][0] as FormData).entries())).toEqual({

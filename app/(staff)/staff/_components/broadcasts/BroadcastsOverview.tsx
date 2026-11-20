@@ -29,6 +29,8 @@ const LOOK: OverviewLook<BroadcastSummary> = {
   counts: broadcastCounts,
   sentence,
   paused: (broadcast) => (broadcast.pause ? pauseInBrief(broadcast.pause) : undefined),
+  // One stopped didn't reach those it never sent to, which isn't fine, as it is for those who'd opted out.
+  notFine: (broadcast) => (broadcast.state === "cancelled" ? ["not-sent"] : []),
   untitled: copy.untitled,
   none: copy.none,
   mark: (broadcast) => <BroadcastChannelMark channel={broadcast.channel} />,

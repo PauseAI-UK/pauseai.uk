@@ -39,7 +39,8 @@ import { howOptedOutFrom, optedOutFrom } from "@/lib/supporters/opt-outs.server"
 import { checkStoredFilter, filterProblems } from "@/lib/server/stored-filters.server";
 import { supporterChoices, type SupporterChoices } from "@/lib/supporters/records.server";
 import { broadcastsCopy } from "./copy";
-import { SENDING_DAYS, SILENT_MINUTES } from "./days";
+import { SENDING_DAYS } from "./days";
+import { DELAYED, SOFT_BOUNCED } from "./delayed";
 
 // What the pages of broadcasts to supporters show: the list of them, a draft
 // to write, one scheduled or sent with its recipients, and one copy as sent.
@@ -124,17 +125,11 @@ export type CopyState = (typeof COPY_STATES)[number] | "scheduled";
 // Held by WhatsApp, as the person has had enough marketing messages lately (holdCopy, in sending.server.ts): put
 // back to go no sooner than a time still to come.
 const HELD = "c.status = 'scheduled' AND c.not_before > now()";
-const SOFT_BOUNCED =
-  "EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind = 'soft-bounced')";
-// Postmark took it SILENT_MINUTES ago or more and has said nothing of it since: no delivery, bounce, soft bounce or
-// complaint. Gmail and WhatsApp aren't asked, as Gmail never says, and a text's receipts are WhatsApp's own.
-const SILENT = `c.sent_at <= now() - make_interval(mins => ${SILENT_MINUTES})
-  AND EXISTS (SELECT 1 FROM mailings g WHERE g.id = c.mailing_id AND g.channel = 'email' AND g.send_by = 'postmark')
-  AND NOT EXISTS (SELECT 1 FROM broadcast_message_events e WHERE e.message_id = c.id AND e.kind <> 'sent')`;
-// Sent, and not there yet, as Postmark is still trying it (a soft bounce) or has said nothing of it (SILENT).
-const DELAYED = `c.status = 'sent' AND (${SOFT_BOUNCED} OR (${SILENT}))`;
-// Its broadcast's SENDING_DAYS are over, so a copy still delayed never will arrive. In hours, as sendingStopsAt counts.
-const DAYS_OUT = `(SELECT g.due_at + make_interval(hours => ${SENDING_DAYS * 24}) FROM mailings g WHERE g.id = c.mailing_id) <= now()`;
+// Its broadcast's SENDING_DAYS are over (in hours, as sendingStopsAt counts), or it was stopped, as staff gave up on
+// those delayed (stopBroadcast): a copy still delayed counts as never arriving. If Postmark delivers it after
+// all, it's delivered.
+const DAYS_OUT = `(SELECT g.state = 'cancelled' OR g.due_at + make_interval(hours => ${SENDING_DAYS * 24}) <= now()
+  FROM mailings g WHERE g.id = c.mailing_id)`;
 
 const COPY_STATE = `CASE
   WHEN ${TO_LOOK_AT} THEN 'look'
@@ -223,7 +218,12 @@ async function withPause(row: SummaryRow): Promise<BroadcastSummary> {
   return { ...summary, pause: sendingPause({ ...facts, atLimit }) };
 }
 
-/** The page of broadcasts: what's coming up, and those sent under their months and years; and now, which says which year needn't be written. */
+/**
+ * The page of broadcasts: what's coming up; what's sending, or waiting; the
+ * drafts; what's recent, done with since it started in the last day; and
+ * the rest under their months and years;
+ * and now, which says which year needn't be written.
+ */
 export async function broadcastsPage(): Promise<{ groups: MailingGroup<BroadcastSummary>[]; now: string }> {
   // A draft or one scheduled has no messages yet, so how many it goes to is who its filters find now.
   const [unsent, rows] = await Promise.all([
@@ -249,14 +249,21 @@ export async function broadcastsPage(): Promise<{ groups: MailingGroup<Broadcast
     Promise.all(rows.map(withPause)),
   ]);
   const at = now();
+  const dayAgo = at.getTime() - 24 * 60 * 60 * 1000;
+  // Done with: sent or stopped. Just finished while it started sending in the last day; after that, under its month.
+  const done = all.filter((m) => m.state !== "sending");
+  const doneRecently = done.filter((m) => m.sentAt && m.sentAt.getTime() >= dayAgo);
   return {
     groups: mailingGroups(
       {
         drafts: counted.filter((m) => m.state === "draft"),
-        comingUp: [...counted.filter((m) => m.state === "scheduled"), ...all.filter((m) => m.state === "sending")].sort(
-          (a, b) => a.dueAt!.getTime() - b.dueAt!.getTime(),
-        ),
-        sent: all.filter((m) => m.state !== "sending"),
+        comingUp: counted
+          .filter((m) => m.state === "scheduled")
+          .sort((a, b) => a.dueAt!.getTime() - b.dueAt!.getTime()),
+        // Going out, then waiting, however long ago it started, as it isn't done.
+        sending: [...all.filter((m) => m.state === "sending" && !m.pause), ...all.filter((m) => m.pause)],
+        recent: doneRecently,
+        sent: done.filter((m) => !doneRecently.includes(m)),
       },
       at,
     ),
