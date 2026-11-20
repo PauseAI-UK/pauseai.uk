@@ -259,9 +259,21 @@ describe("BroadcastWriter's Consent", () => {
     await vi.waitFor(() => expect(subject()).not.toBeNull(), WAIT);
     expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
     await choose(copy.consentChannel, copy.channels.text);
+    // The list picked there is chosen at once, the form still greyed, with Calculating, and no call for a Consent.
+    let done = () => {};
+    actions.changeConsent.mockImplementation(() => new Promise((resolve) => (done = () => resolve(5))));
     await choose(copy.facts.saidYes, lists["updates-luma"]);
     await vi.waitFor(
       () => expect(actions.changeConsent).toHaveBeenCalledWith(3, "text:newsletter:yes text:events:yes"),
+      WAIT,
+    );
+    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([false, true, false]);
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.calculating)).toBeVisible();
+    expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
+    expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
+    done();
+    await vi.waitFor(
+      () => expect(page.getByText(mailingsCopy.mailingPages.savePill.calculating).query()).toBeNull(),
       WAIT,
     );
     expect(actions.create).not.toHaveBeenCalled();

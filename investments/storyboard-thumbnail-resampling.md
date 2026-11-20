@@ -23,3 +23,4 @@ shown.
 ## Hits
 
 - 2026-11-17: "PostCard" and "PostList" (phone) differed in the gate's determinism check, inside the thumbnail alone, ~15 min
+- 2026-11-20: "PostCard" and "PostList" (phone) differed from main in a review of a branch that touches neither, inside the thumbnail alone, ~5 min

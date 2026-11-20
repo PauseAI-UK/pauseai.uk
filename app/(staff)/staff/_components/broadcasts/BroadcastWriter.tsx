@@ -558,9 +558,9 @@ export default function BroadcastWriter({
     numbered: Boolean(data.textNumber),
     sends: data.sends,
   }).filter((problem) => problem !== "cannot-send");
-  // Greyed, before a Consent by the channel picked: that comes first. What only new words have wrong is said
-  // under Send for approval, not again by Schedule.
-  const shownProblems = [...(blank ? ["no-consent"] : []), ...problems].filter(
+  // Greyed, before a Consent by the channel picked: that comes first, till one's picked. What only new words have
+  // wrong is said under Send for approval, not again by Schedule.
+  const shownProblems = [...(blank && !picked ? ["no-consent"] : []), ...problems].filter(
     (problem) => !(NEW_WORDS_PROBLEMS as string[]).includes(problem),
   );
   const fromName = email ? draft.fromName || BROADCAST_SENDER.name : TEXT_SENDER_NAME;
