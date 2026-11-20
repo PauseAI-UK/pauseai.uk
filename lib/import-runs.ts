@@ -226,6 +226,10 @@ export type GmailRead = {
   bounces: number;
   /** One-off emails kept, as threads with politicians, in an account that keeps them. */
   oneOffs?: number;
+  /** Answers to replies to broadcasts that staff wrote in its Gmail rather than on the site, kept. */
+  answers?: number;
+  /** It looked again at its replies to broadcasts of the last two weeks for answers written in Gmail, as it does about weekly. */
+  caughtUp?: boolean;
   /** The mailbox's history had gone, so it was searched instead. */
   restarted?: boolean;
   /** Why it couldn't be read. Read again next time, from where it got to, unless it was disconnected. */

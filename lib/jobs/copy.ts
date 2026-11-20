@@ -89,6 +89,10 @@ export const jobsCopy = {
       oneOffs: "One-off emails",
     },
     oneOffs: (n: number) => `${n} one-off ${plural(n, "email", "emails")} kept.`,
+    // Answers to replies to broadcasts that staff wrote in the mailbox's Gmail, kept in their threads.
+    answers: (n: number) => `⁂ ${count(n, "answer", "answers")} written in Gmail kept.`,
+    // It looked again at the last two weeks' replies to broadcasts for answers written in Gmail, as it does weekly.
+    caughtUp: "⁂ Looked again at the last two weeks' replies to broadcasts for answers written in Gmail.",
     // After the totals, in a run that searched for addresses staff added to politicians': what it found, and how many wait.
     searched: (s: AddressSearch) =>
       `Searched for ${count(s.searched, "added address", "added addresses")}, keeping ${count(s.kept, "earlier email", "earlier emails")}.` +

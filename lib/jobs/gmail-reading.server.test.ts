@@ -59,6 +59,14 @@ function mailbox({
         messages: (search[new URL(request.url).searchParams.get("q")!] ?? []).map((id) => ({ id })),
       }),
     ),
+    http.get(`${API}/threads/:id`, ({ params }) => {
+      fetched.push(`thread:${String(params.id)}`);
+      return HttpResponse.json({
+        messages: Object.entries(messages)
+          .filter(([id, message]) => (message.threadId ?? `thread-${id}`) === params.id)
+          .map(([id]) => ({ id })),
+      });
+    }),
     http.get(`${API}/messages/:id`, ({ request, params }) => {
       const id = String(params.id);
       const message = messages[id];
@@ -205,6 +213,86 @@ describeWithDatabase("reading Gmail", () => {
         body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "On Saturday." }] }] },
       },
     ]);
+  });
+
+  it("catches up, about weekly, on answers written in Gmail in the last two weeks' threads of replies, which reading only what's new passed over", async () => {
+    await connectTestGmail(JO, "1000");
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id::int AS id`,
+    );
+    const [{ id: copy }] = await query<{ id: number }>(
+      `INSERT INTO broadcast_messages (mailing_id, status, rfc_message_id, topics)
+       VALUES ($1, 'sent', 'copy-1@pauseai.uk', '{newsletter}') RETURNING id::int AS id`,
+      [mailing],
+    );
+    const hoursAgo = (n: number) => new Date(Date.now() - n * 60 * 60 * 1000);
+    // Jane's reply, kept by a read days ago; and one three weeks ago, too old to look at again.
+    await query(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, $2, 'jane@example.com', 'Re: News', $3, 'r1', 'thread-jane', 'k1', false),
+         ($1, $4, 'sam@example.com', 'Re: News', $3, 'r2', 'thread-sam', 'k2', false)`,
+      [copy, hoursAgo(72), JO, hoursAgo(21 * 24)],
+    );
+    // An email the site sent from Jo's Gmail in Jane's thread, which is ours already.
+    await query(
+      `INSERT INTO email_sends (purpose, address, outcome, message_id, backend, sender)
+       VALUES ('broadcast-answer', 'jane@example.com', 'sent', 'site-sent', 'gmail', $1)`,
+      [JO],
+    );
+    const at = (hours: number) => String(hoursAgo(hours).getTime());
+    const fetched = mailbox({
+      // New since the last read: an answer in Jane's thread, kept as reading keeps one.
+      history: ["new"],
+      messages: {
+        r1: { headers: { From: "Jane <jane@example.com>" }, threadId: "thread-jane", internalDate: at(72) },
+        // Written in Gmail before answers written there were kept.
+        old: { headers: { From: JO }, raw: "Subject: Re\r\n\r\nYes!", threadId: "thread-jane", internalDate: at(70) },
+        "site-sent": { headers: { From: JO }, threadId: "thread-jane", internalDate: at(69) },
+        new: {
+          headers: { From: JO, "In-Reply-To": "<copy-1@pauseai.uk>" },
+          raw: "Subject: Re\r\n\r\nAnd see you.",
+          threadId: "thread-jane",
+          internalDate: at(1),
+        },
+        sam: { headers: { From: JO }, threadId: "thread-sam", internalDate: at(20 * 24) },
+      },
+    });
+    expect(await read()).toEqual([{ account: JO, replies: 0, autoReplies: 0, bounces: 0, answers: 2, caughtUp: true }]);
+    expect(await query("SELECT gmail_message_id FROM broadcast_answers ORDER BY sent_at")).toEqual([
+      { gmail_message_id: "old" },
+      { gmail_message_id: "new" },
+    ]);
+    // Only the thread of the reply in the last two weeks.
+    expect(fetched.filter((call) => call.startsWith("thread:"))).toEqual(["thread:thread-jane"]);
+    // The next read has caught up already.
+    fetched.length = 0;
+    expect(await read()).toEqual([{ account: JO, replies: 0, autoReplies: 0, bounces: 0 }]);
+    expect(fetched.filter((call) => call.startsWith("thread:"))).toEqual([]);
+  });
+
+  it("marks an account caught up once it looked at a thread, though it kept nothing, and skips a message gone since", async () => {
+    await connectTestGmail(JO, "1000");
+    const [{ id: mailing }] = await query<{ id: number }>(
+      `INSERT INTO mailings (title, audience, channel, topic, filter, body, created_by, state)
+       VALUES ('', 'supporters', 'email', 'newsletter', '{}', '{}', 'staff@pauseai.uk', 'draft') RETURNING id::int AS id`,
+    );
+    const [{ id: copy }] = await query<{ id: number }>(
+      "INSERT INTO broadcast_messages (mailing_id, status, topics) VALUES ($1, 'sent', '{newsletter}') RETURNING id::int AS id",
+      [mailing],
+    );
+    await query(
+      `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+         gmail_thread_id, blob_key, automatic)
+       VALUES ($1, now() - interval '1 day', 'jane@example.com', 'Re: News', $2, 'r1', 'thread-jane', 'k1', false)`,
+      [copy, JO],
+    );
+    mailbox({ messages: { r1: { headers: { From: "Jane <jane@example.com>" }, threadId: "thread-jane" } } });
+    // The thread lists a message Gmail no longer has.
+    server.use(http.get(`${API}/threads/:id`, () => HttpResponse.json({ messages: [{ id: "r1" }, { id: "gone" }] })));
+    expect(await read()).toEqual([{ account: JO, replies: 0, autoReplies: 0, bounces: 0, caughtUp: true }]);
+    expect(await query("SELECT 1 FROM broadcast_answers")).toEqual([]);
   });
 
   it("keeps a politician's reply whole and marks the letter replied to; keeps our answer, but not as a reply", async () => {
