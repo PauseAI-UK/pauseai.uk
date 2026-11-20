@@ -132,8 +132,8 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
  * Nothing for one with no ask. `due` replaces how long till one scheduled
  * sends, as for a broadcast past its time that waits. `paused` replaces the
  * words over the bar of one sending with nothing going out for now, and its
- * bar is grey; `stoppable` false leaves out Stop sending, for one with
- * nothing left to send.
+ * bar is grey; `stopLabel` replaces Stop sending, as for a broadcast with
+ * nothing left to send but emails it's waiting to hear arrived.
  */
 export function MailingStanding({
   mailing,
@@ -143,7 +143,7 @@ export function MailingStanding({
   line,
   due,
   paused,
-  stoppable = true,
+  stopLabel = copy.stopSending,
 }: {
   mailing: Pick<Mailing, "ask" | "to" | "sent" | "failed" | "answered">;
   written?: WrittenMailing;
@@ -152,7 +152,7 @@ export function MailingStanding({
   line?: string;
   due?: string;
   paused?: string;
-  stoppable?: boolean;
+  stopLabel?: string;
 }) {
   if (written?.state === "scheduled") {
     return (
@@ -188,11 +188,9 @@ export function MailingStanding({
                 {paused ?? copy.sendingBar(mailing.sent + mailing.failed, mailing.to)}
               </Progress>
             </div>
-            {stoppable && (
-              <div className={styles.actions}>
-                <StopMailing id={written.id} label={copy.stopSending} action={stop} full />
-              </div>
-            )}
+            <div className={styles.actions}>
+              <StopMailing id={written.id} label={stopLabel} action={stop} full />
+            </div>
           </div>
         </Card>
       </Grid>

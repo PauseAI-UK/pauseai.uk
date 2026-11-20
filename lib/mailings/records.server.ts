@@ -128,14 +128,16 @@ export async function listMailings(): Promise<MailingSummary[]> {
 }
 
 /**
- * The mailings page's three parts, of the mailings to politicians: the drafts, newest edited first, each
- * with how many its filter finds now; those coming up or sending, soonest
- * first; and the rest, as listMailings has them.
+ * The mailings page's parts, of the mailings to politicians: those
+ * scheduled, and those sending, each soonest first; the drafts, newest
+ * edited first, each with how many its filter finds now; and those done
+ * with, as listMailings has them.
  */
 export async function mailingsOverview(): Promise<{
+  scheduled: MailingSummary[];
+  sending: MailingSummary[];
   drafts: MailingSummary[];
-  comingUp: MailingSummary[];
-  sent: MailingSummary[];
+  done: MailingSummary[];
 }> {
   const [drafts, all] = await Promise.all([
     query<MailingSummary & { filter: unknown }>(
@@ -150,11 +152,13 @@ export async function mailingsOverview(): Promise<{
       to: (await politicianAudience(checkStoredFilter(filter)!)).recipients.length,
     })),
   );
-  const coming = (m: MailingSummary) => m.state === "scheduled" || m.state === "sending";
+  const soonest = (state: string) =>
+    all.filter((m) => m.state === state).sort((a, b) => a.dueAt!.getTime() - b.dueAt!.getTime());
   return {
+    scheduled: soonest("scheduled"),
+    sending: soonest("sending"),
     drafts: counted,
-    comingUp: all.filter(coming).sort((a, b) => a.dueAt!.getTime() - b.dueAt!.getTime()),
-    sent: all.filter((m) => !coming(m)),
+    done: all.filter((m) => m.state !== "scheduled" && m.state !== "sending"),
   };
 }
 

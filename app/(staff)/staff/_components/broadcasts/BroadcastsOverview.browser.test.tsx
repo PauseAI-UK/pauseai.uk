@@ -32,14 +32,15 @@ describe("BroadcastsOverview", () => {
       <BroadcastsOverview
         groups={mailingGroups<BroadcastSummary>(
           {
+            scheduled: [],
             drafts: [],
-            comingUp: [
+            sending: [
               sending(4, "Going badly", {
                 states: { ...exampleBroadcastSummary.states, "opted-out": 1, error: 2, unreached: 0, look: 1 },
               }),
               sending(6, "Going well", {}),
             ],
-            sent: [],
+            done: [],
           },
           new Date(now),
         )}
@@ -74,14 +75,13 @@ describe("BroadcastsOverview", () => {
       <BroadcastsOverview
         groups={mailingGroups<BroadcastSummary>(
           {
-            drafts: [],
-            comingUp: [
-              sending(4, null),
-              sending(6, { kind: "held", held: 3, until, stopsAt: until }),
-              // Scheduled, past its time, waiting for CiviCRM: it has no bar.
+            // Scheduled, past its time, waiting for CiviCRM: it has no bar.
+            scheduled: [
               { ...sending(8, { kind: "waiting", reason: "pull", said: null, endsAt: until }), state: "scheduled" },
             ],
-            sent: [],
+            sending: [sending(4, null), sending(6, { kind: "held", held: 3, until, stopsAt: until })],
+            drafts: [],
+            done: [],
           },
           new Date(now),
         )}
@@ -140,10 +140,11 @@ describe("BroadcastsOverview", () => {
       <BroadcastsOverview
         groups={mailingGroups<BroadcastSummary>(
           {
+            scheduled: [waiting, plain],
+            sending: [],
             drafts: [held, turnedDown, ready],
-            comingUp: [waiting, plain],
             // By Postmark, so it counts what arrived.
-            sent: [
+            done: [
               {
                 ...exampleBroadcastSummary,
                 title: "",
@@ -199,9 +200,10 @@ describe("BroadcastsOverview", () => {
       <BroadcastsOverview
         groups={mailingGroups<BroadcastSummary>(
           {
+            scheduled: [],
+            sending: [],
             drafts: [],
-            comingUp: [],
-            sent: [
+            done: [
               went(1, "Sent", { state: "sent" }),
               went(2, "Stopped by us", stopped),
               went(3, "Out of time", gaveUp("limit")),
@@ -228,6 +230,9 @@ describe("BroadcastsOverview", () => {
     ]) {
       await expect.element(page.getByText(said)).toBeVisible();
     }
+    // Those it never sent aren't fine for one stopped, so they show, for each of the seven; for the one sent,
+    // those are as expected, folded with the fine.
+    expect(page.getByRole("link", { name: `8 ${stateWords.counts["not-sent"]}` }).all()).toHaveLength(7);
     // CiviCRM down, or no fresh pull from it, read the same.
     expect(page.getByText(words.gaveUp.civicrm!(3, 5)).all()).toHaveLength(2);
     expect(words.gaveUp.pull!(3, 5)).toBe(words.gaveUp.civicrm!(3, 5));

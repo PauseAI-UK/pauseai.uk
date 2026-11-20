@@ -289,7 +289,8 @@ export default function BroadcastView({
   copyIt?: FormAction;
 }) {
   const { summary, tab } = data;
-  // All sent but for delayed emails, it's shown as sending, waiting on them (withPause), with nothing to stop.
+  // All sent but for delayed emails, it's shown as sending, waiting on them (withPause), with Give up to stop
+  // waiting, as Postmark's tries can't be stopped.
   const delayed = summary.pause?.kind === "delayed";
   const written = delayed ? { ...data.written, state: "sending" as const } : data.written;
   const path = `/staff/broadcasts/${written.id}`;
@@ -339,7 +340,7 @@ export default function BroadcastView({
         mailing={summary}
         written={written}
         stop={stop}
-        stoppable={!delayed}
+        stopLabel={delayed ? copy.giveUp : undefined}
         reschedule={reschedule}
         line={copy.scheduledLine(summary.to, written.channel, written.fromName || written.sentFrom!)}
         due={summary.pause ? copy.waitingDue : undefined}

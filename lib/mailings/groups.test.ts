@@ -42,35 +42,44 @@ describe("mailingWhen", () => {
 describe("mailingGroups", () => {
   const now = new Date("2026-10-30T12:00:00Z");
 
-  it("puts coming up first, sending before scheduled, then the drafts; then each month of the last year, then each year", () => {
+  it("puts each group in the order given: Scheduled, Sending, Drafts, Just finished; then each month of the last year, then each year", () => {
     const groups = mailingGroups(
       {
-        drafts: [one(1, { state: "draft" })],
-        comingUp: [one(2, { state: "scheduled" }), one(3, { state: "sending" })],
-        sent: [
+        scheduled: [one(1, { state: "scheduled" })],
+        sending: [one(2, { state: "sending" })],
+        drafts: [one(3, { state: "draft" })],
+        done: [
+          // Started sending a day ago to the minute, so just finished; a moment longer, and it isn't.
+          one(9, { sentAt: new Date("2026-10-29T12:00:00Z") }),
+          one(10, { sentAt: new Date("2026-10-30T11:00:00Z"), state: "cancelled" }),
+          one(5, { sentAt: new Date("2026-10-29T11:59:59Z") }),
           one(4, { sentAt: new Date("2026-10-01T09:00:00Z") }),
-          one(5, { sentAt: new Date("2026-10-29T09:00:00Z") }),
           one(6, { sentAt: new Date("2025-11-01T00:00:00Z") }),
           one(7, { sentAt: new Date("2025-10-31T23:00:00Z") }),
-          one(8, { sentAt: new Date("2024-03-01T00:00:00Z") }),
+          // Stopped before any went: never just finished, under when it was due.
+          one(8, { state: "cancelled", dueAt: new Date("2024-03-01T00:00:00Z") }),
         ],
       },
       now,
     );
-    expect(groups.map((g) => [g.heading, ids(g.mailings)])).toEqual([
-      [mailingsCopy.mailingPages.comingUp, [3, 2, 1]],
-      ["October 2026", [5, 4]],
-      ["November 2025", [6]],
-      ["2025", [7]],
-      ["2024", [8]],
+    const words = mailingsCopy.mailingPages;
+    expect(groups.map((g) => [g.key, g.heading, ids(g.mailings)])).toEqual([
+      ["scheduled", words.scheduled, [1]],
+      ["sending", words.sending, [2]],
+      ["drafts", words.drafts, [3]],
+      ["just-finished", words.justFinished, [9, 10]],
+      ["2026-10", "October 2026", [5, 4]],
+      ["2025-11", "November 2025", [6]],
+      ["2025", "2025", [7]],
+      ["2024", "2024", [8]],
     ]);
   });
 
-  it("has no Coming up with nothing coming, and nothing for none", () => {
-    expect(mailingGroups({ drafts: [], comingUp: [], sent: [] }, now)).toEqual([]);
+  it("leaves out each group with none in it, and has nothing for none", () => {
+    expect(mailingGroups({ scheduled: [], sending: [], drafts: [], done: [] }, now)).toEqual([]);
     expect(
       mailingGroups(
-        { drafts: [], comingUp: [], sent: [one(1, { sentAt: new Date("2026-10-01T00:00:00Z") })] },
+        { scheduled: [], sending: [], drafts: [], done: [one(1, { sentAt: new Date("2026-10-01T00:00:00Z") })] },
         now,
       ).map((g) => g.key),
     ).toEqual(["2026-10"]);

@@ -332,12 +332,14 @@ export const broadcastsCopy = {
     // the day it stops if they still haven't gone.
     heldLeft: (n: number, next: string, stops: string) =>
       `WhatsApp has delayed ${plural(n, "the last text", `the last ${n} texts`)}, as ${plural(n, "that person has", "those people have")} had too many marketing messages from businesses recently. It will try again on ${next}, and give up on ${stops}.`,
-    // On one all sent but for emails delayed by a soft bounce or Postmark's silence: how many, and the day those
-    // still delayed become errors.
+    // On one all sent but for emails delayed by a soft bounce or Postmark's silence: how many, that their tries
+    // can't be stopped, and the day those still delayed become errors, or now, with Give up.
     delayedLeft: (n: number, stops: string) =>
       n === 1
-        ? `Postmark has an email it hasn't managed to deliver yet, and is still trying. If it's not delivered by ${stops} we'll count it as an error.`
-        : `Postmark has ${n} emails it hasn't managed to deliver yet, and is still trying. Any not delivered by ${stops} we'll count as errors.`,
+        ? `Postmark has an email it hasn't delivered yet and is still retrying. We can't stop it. If it's not delivered by ${stops} it will count as an error, or click Give up to count it as an error now.`
+        : `Postmark has ${n} emails it hasn't delivered yet and is still retrying. We can't stop these. Any not delivered by ${stops} will count as errors, or click Give up to count them as errors now.`,
+    // In place of Stop sending, on one all sent but for delayed emails: stops waiting for them, counting them as errors.
+    giveUp: "Give up",
     // One with nothing going out for now, though it's sending or past its time (SendingPause), in a few words. In
     // the list, in place of "Sending now" over when it went: the word, over what it waits for or till when. And
     // over its bar, in the list and on its page, in place of "Sending:".

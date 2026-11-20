@@ -385,7 +385,7 @@ test("Pasting names", async ({ page, request, flowDatabase }) => {
 });
 
 test("Rescheduling a mailing", async ({ page, request, flowDatabase }) => {
-  story("A mailing is scheduled for 30 October. The mailings page shows it coming up, with when it goes.");
+  story("A mailing is scheduled for 30 October. The mailings page shows it under Scheduled, with when it goes.");
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   const id = addMailing(flowDatabase, "Edinburgh reminder", "scheduled", ["scheduled", "scheduled", "scheduled"]);

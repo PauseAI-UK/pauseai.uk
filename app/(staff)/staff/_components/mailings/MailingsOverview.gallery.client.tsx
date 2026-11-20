@@ -12,9 +12,10 @@ export function MailingsOverviewExample({ empty = false }: { empty?: boolean }) 
     ? []
     : mailingGroups(
         {
+          scheduled: [exampleScheduled],
+          sending: [exampleSending],
           drafts: [exampleDraft, { ...exampleDraft, id: 7, title: "" }],
-          comingUp: [exampleScheduled, exampleSending],
-          sent: [...exampleMailings, { ...exampleMailings[1], id: 9, sentAt: new Date("2025-07-09T10:00:00Z") }],
+          done: [...exampleMailings, { ...exampleMailings[1], id: 9, sentAt: new Date("2025-07-09T10:00:00Z") }],
         },
         new Date(now),
       );

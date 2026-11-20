@@ -11,7 +11,7 @@ export const mailingsOverviewGallery: Example[] = [
     variants: [
       {
         label:
-          "Coming up: one sending, one scheduled and two drafts; then October, June and 2025, each sent row a box of counts",
+          "One scheduled, one sending and two drafts, each under its heading; then October, June and 2025, each sent row a box of counts",
         render: () => (
           <StaffPage as="div">
             <MailingsOverviewExample />

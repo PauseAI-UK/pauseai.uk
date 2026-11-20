@@ -214,8 +214,12 @@ export const mailingsCopy = {
       "time-passed": "You can't send it into the past!",
       "cannot-send": "Sending isn't built yet.",
     } as Record<string, string>,
-    // The list of mailings: the heading over those not sent yet.
-    comingUp: "Coming up",
+    // The lists of mailings and of broadcasts, their headings, in order (mailingGroups): those scheduled; those
+    // going out now, or waiting; the drafts; those sent or stopped since they started sending in the last day.
+    scheduled: "Scheduled",
+    sending: "Sending",
+    drafts: "Drafts",
+    justFinished: "Just finished",
     // Who a mailing's for, when everyone a filter found was ticked: that filter, the day, how many, then those
     // added and taken off since, by name. With more changes than a few, or no such filter, the names ticked.
     pickedFrom: (when: string, n: number) => `as found on ${when} (${n})`,
