@@ -170,7 +170,7 @@ describeWithDatabase("listBlocks", () => {
     expect((await listBlocks("others", {}, "all")).blocks).toHaveLength(BLOCKS_PAGE_SIZE + 1);
   });
 
-  it("gives each its history: bounces soft and hard and from which mailbox, texts refused and skipped, and unblocks", async () => {
+  it("gives each its history: bounces soft and hard and from which mailbox, the text refused, and unblocks", async () => {
     const jane = await addFollower("usr-1", "jane@example.com", "Jane", { phone: NUMBER });
     await recordProblem({
       address: "jo@example.org",
@@ -190,16 +190,15 @@ describeWithDatabase("listBlocks", () => {
     );
     await recordProblem({ address: "jo@example.org", messageId: null, kind: "hard", reason: "Gone", canReset: true });
     await query("UPDATE email_problems SET at = '2026-10-04T10:00:00Z' WHERE reason = 'Gone'");
-    // A number unblocked, then refused again, then skipped by a later text.
-    const first = await refusedText(jane, "2026-10-05T10:00:00Z");
+    // A number unblocked, then refused again, then skipped by a later text, which its history leaves out.
+    await refusedText(jane, "2026-10-05T10:00:00Z");
     await forgetUnreachable(NUMBER, "sam@pauseai.uk", "On WhatsApp now");
     await query("UPDATE audit_log SET at = '2026-10-06T10:00:00Z' WHERE details->>'address' = $1", [NUMBER]);
     const second = await refusedText(jane, "2026-10-07T10:00:00Z");
     const skipped = (await createBroadcastDraft("jo@pauseai.uk", { contact: "text:events:yes" }))!;
-    await query("UPDATE mailings SET title = 'Later', due_at = '2026-10-08T10:00:00Z' WHERE id = $1", [skipped]);
-    const [{ id: skip }] = await query<{ id: number }>(
+    await query(
       `INSERT INTO broadcast_messages (mailing_id, supporter_id, address, status, skip_reason)
-       VALUES ($1, $2, $3, 'skipped', 'not-on-whatsapp') RETURNING id::int AS id`,
+       VALUES ($1, $2, $3, 'skipped', 'not-on-whatsapp')`,
       [skipped, jane, NUMBER],
     );
 
@@ -213,22 +212,11 @@ describeWithDatabase("listBlocks", () => {
     ]);
     expect(historyOf(NUMBER)).toEqual([
       {
-        at: new Date("2026-10-08T10:00:00Z"),
-        what: "skipped",
-        copy: { id: skip, broadcast: skipped, title: "Later" },
-      },
-      {
         at: new Date("2026-10-07T10:00:00Z"),
         what: "refused",
         copy: { id: second.id, broadcast: second.broadcast, title: "Join us" },
       },
       { at: new Date("2026-10-06T10:00:00Z"), what: "unblocked", by: "sam@pauseai.uk", note: "On WhatsApp now" },
-      // The copy that marked it before is placed when its broadcast was due, as the mark has moved on.
-      {
-        at: new Date("2026-10-05T10:00:00Z"),
-        what: "skipped",
-        copy: { id: first.id, broadcast: first.broadcast, title: "Join us" },
-      },
     ]);
   });
 

@@ -285,6 +285,24 @@ describe("a repeating filter's lozenge's menu", () => {
     expect(open().querySelector("a")!.getAttribute("href")).toBe("/list?ask=x");
   });
 
+  it("starts the second half at its start for an ask just chosen, from + Filter or in place of another", async () => {
+    const asks: Filter = { ...ask, options: [...ask.options, { value: "z", label: "Z" }] };
+    const starting: Filter = { ...answer, start: "yes" };
+    const { rerender } = await render(bar([asks, starting], {}));
+    await page.getByRole("button", { name: copy.add }).click();
+    await page.getByText("Ask", { exact: true }).click();
+    await expect
+      .element(page.getByRole("link", { name: "X", exact: true }))
+      .toHaveAttribute("href", "/list?ask=x&answer=x.yes");
+    await away();
+    // Swapping X for Z drops X's answers and starts Z's.
+    await rerender(bar([asks, starting], { ask: "x", answer: ["x.no"] }));
+    await page.getByRole("group", { name: "X" }).getByRole("button").nth(0).click();
+    await expect
+      .element(page.getByRole("link", { name: "Z", exact: true }))
+      .toHaveAttribute("href", "/list?ask=z&answer=z.yes");
+  });
+
   it("ticks a box's parts with it, and it with every part, keeping only it in the URL", async () => {
     const nested: Filter = {
       ...tag,

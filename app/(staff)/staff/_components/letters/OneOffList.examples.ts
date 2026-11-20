@@ -10,7 +10,7 @@ export const exampleOneOffs: OneOffThreadRow[] = [
     someoneElse: false,
     latestAt: new Date("2026-10-20T09:00:00Z"),
     messages: 2,
-    people: [{ id: 1, name: "Polly Placeholder", isTest: false }],
+    people: [{ id: 1, name: "Polly Placeholder", isTest: false, constituency: "Exampleton", party: "Labour" }],
     participants: ["Joseph Example", "Polly Placeholder"],
     mailboxes: ["joseph@pauseai.uk", "policy@pauseai.uk"],
     answered: true,
@@ -49,6 +49,7 @@ export const exampleOneOffThread: OneOffThread = {
       cc: "",
       subject: "Meeting about the bill",
       account: "joseph@pauseai.uk",
+      gmailMessageId: "19a00000000001",
       politicians: { "polly.placeholder.mp@parliament.uk": 1 },
       text: "Dear Polly,\n\nCould we meet?",
       quoted: "",
@@ -64,6 +65,7 @@ export const exampleOneOffThread: OneOffThread = {
       cc: "someone@example.com",
       subject: "Re: Meeting about the bill",
       account: "joseph@pauseai.uk",
+      gmailMessageId: "19a00000000002",
       politicians: { "polly.placeholder.mp@parliament.uk": 1 },
       text: null,
       quoted: "",
@@ -79,6 +81,7 @@ export const exampleOneOffThread: OneOffThread = {
       cc: "",
       subject: "Automatic reply: Meeting about the bill",
       account: "joseph@pauseai.uk",
+      gmailMessageId: "19a00000000003",
       politicians: { "polly.placeholder.mp@parliament.uk": 1 },
       text: "I'm away until Monday.\n\nThis email may be confidential.",
       quoted: "> Could we meet?",
@@ -95,7 +98,7 @@ export const exampleOneOffThread: OneOffThread = {
  */
 export const exampleForwardThread: OneOffThread = {
   ...exampleOneOffs[1],
-  people: [{ id: 1, name: "Polly Placeholder", isTest: false }],
+  people: [{ id: 1, name: "Polly Placeholder", isTest: false, constituency: "Exampleton", party: "Labour" }],
   messages_: [
     {
       id: 4,
@@ -106,6 +109,7 @@ export const exampleForwardThread: OneOffThread = {
       cc: "",
       subject: "Fwd: my MP's answer",
       account: "policy@pauseai.uk",
+      gmailMessageId: "19a00000000004",
       politicians: {},
       text: "",
       quoted: "",

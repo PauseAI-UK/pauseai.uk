@@ -40,8 +40,9 @@ function Happened({ event }: { event: BlockEvent }) {
 /**
  * A row's History button, which opens a bubble of everything that
  * happened to its address or number, newest first: each bounce, complaint
- * or hold, each text WhatsApp refused or that was skipped as it had, and
- * each time staff unblocked it, with why. A row whose history is only what
+ * or hold, the text WhatsApp refused, and each time staff unblocked it,
+ * with why. The texts skipped since a refusal aren't listed: the row's
+ * count says how many. A row whose history is only what
  * blocked it, which the row says already, or nothing, as for a number whose
  * copies have been deleted, says it has none instead.
  */

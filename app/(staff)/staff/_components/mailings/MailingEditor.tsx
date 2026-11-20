@@ -43,8 +43,8 @@ type Props = {
   labelledBy: string;
   /** An email to one person, such as an answer to a reply: the formatting alone, with no merge fields or parts, so no sidebar. */
   plain?: boolean;
-  /** Puts the cursor in it as it appears, as when it was opened to write in. */
-  autoFocus?: boolean;
+  /** Puts the cursor in it as it appears, as when it was opened to write in: at its end, or at a position in it. */
+  autoFocus?: boolean | number;
 };
 
 /** Whether a field can be used: every recipient has a value for it, or those without get its fallback. */
@@ -606,7 +606,7 @@ export default function MailingEditor({
   const editor = useEditor({
     extensions,
     content: whatsApp ? withoutLinks(initial) : initial,
-    autofocus: autoFocus ? "end" : false,
+    autofocus: autoFocus === true ? "end" : autoFocus,
     // Rendered on the server too, where there's no editor yet.
     immediatelyRender: false,
     editorProps: {

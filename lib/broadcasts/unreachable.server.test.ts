@@ -3,7 +3,7 @@ import { query } from "@/lib/server/db.server";
 import { addFollower } from "@/tests/broadcast-fixtures";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { createBroadcastDraft } from "./drafts.server";
-import { forgetUnreachable, markUnreachable, numberBlocks, numberEvents, unreachable } from "./unreachable.server";
+import { forgetUnreachable, markUnreachable, numberBlocks, numberRefusals, unreachable } from "./unreachable.server";
 
 const NUMBER = "+447700900001";
 
@@ -39,7 +39,7 @@ describeWithDatabase("numbers WhatsApp can't reach", () => {
     expect(await unreachable([NUMBER])).toEqual(new Set());
   });
 
-  it("lists a mark: when, when texts try it again, the copy refused, whose number it is, and the copies skipped", async () => {
+  it("lists a mark: when, when texts try it again, the copy refused, whose number it is, and how many were skipped", async () => {
     const supporter = await addFollower("usr-1", "jane@example.com", "Jane", { phone: NUMBER });
     const refused = await copyTo(supporter, "Refused", "2026-10-01T10:00:00Z", "skipped", "not-on-whatsapp");
     const skipped = await copyTo(supporter, "Skipped", "2026-10-08T10:00:00Z", "skipped", "not-on-whatsapp");
@@ -57,33 +57,15 @@ describeWithDatabase("numbers WhatsApp can't reach", () => {
         refused: 1,
       },
     ]);
-    expect(await numberEvents([NUMBER])).toEqual([
-      {
-        number: NUMBER,
-        at: new Date("2026-10-08T10:00:00Z"),
-        refused: false,
-        copy: { id: skipped.id, broadcast: skipped.broadcast, title: "Skipped" },
-      },
+    // Only the copy refused: the one skipped is counted, not listed.
+    expect(await numberRefusals([NUMBER, "+447700900002"])).toEqual([
       {
         number: NUMBER,
         at: new Date("2026-10-01T10:05:00Z"),
-        refused: true,
         copy: { id: refused.id, broadcast: refused.broadcast, title: "Refused" },
       },
     ]);
-  });
-
-  it("places a skip no sooner than the refusal it was skipped for, though its broadcast was due before", async () => {
-    const supporter = await addFollower("usr-1", "jane@example.com", "Jane", { phone: NUMBER });
-    const refused = await copyTo(supporter, "Refused", "2026-10-01T10:00:00Z", "skipped", "not-on-whatsapp");
-    // Due an hour before WhatsApp refused the first, but sent after it, so skipped.
-    await copyTo(supporter, "Skipped", "2026-10-01T09:00:00Z", "skipped", "not-on-whatsapp");
-    await markUnreachable(NUMBER, refused.id);
-    await query("UPDATE whatsapp_unreachable SET at = '2026-10-01T10:05:00Z'");
-    expect((await numberEvents([NUMBER])).map((event) => [event.refused, event.at])).toEqual([
-      [false, new Date("2026-10-01T10:05:00Z")],
-      [true, new Date("2026-10-01T10:05:00Z")],
-    ]);
+    expect(skipped.id).not.toBe(refused.id);
   });
 
   it("lists a mark whose copy has gone, every skip counted, and whose it is from the copies", async () => {
@@ -94,14 +76,8 @@ describeWithDatabase("numbers WhatsApp can't reach", () => {
     await query("UPDATE whatsapp_unreachable SET message_id = NULL");
     const [block] = await numberBlocks([NUMBER]);
     expect(block).toMatchObject({ copy: null, supporters: [{ id: supporter, name: "Jane" }], refused: 1 });
-    // A skip whose broadcast was never due is placed when it was made.
-    await query("UPDATE mailings SET due_at = NULL");
-    const [event] = await numberEvents([NUMBER]);
-    expect(event).toMatchObject({ refused: false });
-    const [made] = await query<{ at: Date }>("SELECT created_at AS at FROM mailings WHERE id = $1", [
-      refused.broadcast,
-    ]);
-    expect(event.at).toEqual(made.at);
+    // With its copy gone, there's no refusal to list.
+    expect(await numberRefusals([NUMBER])).toEqual([]);
   });
 
   it("forgets a mark with a note of why, logged; not without one, nor a number with none", async () => {

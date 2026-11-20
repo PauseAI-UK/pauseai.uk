@@ -65,7 +65,7 @@ describe("PoliticianFilters", () => {
     expect(inset(staffVocabulary.neverAsked.event)).toBe(inset(everyone));
     const asks = await menu(edinburgh);
     expect(asks.find(([text]) => text === ask("frontier-ai-letter").title)![1]).toBe(
-      "/staff/politicians?q=blake&house=lords&status=retired&party=Labour&ask=frontier-ai-letter&sort=asks&dir=asc",
+      "/staff/politicians?q=blake&house=lords&status=retired&party=Labour&ask=frontier-ai-letter&answer=frontier-ai-letter.replied&sort=asks&dir=asc",
     );
     // Status goes back to those in office by its blank choice.
     expect((await menu(`${copy.status}: ${politiciansCopy.personStatuses.retired}`))[0]).toEqual([
@@ -185,7 +185,7 @@ describe("PoliticianFilters, more than one ask", () => {
     expect(chip.map(([text]) => text)).not.toContain(letter);
     const other = exampleAsks.find((one) => one.title !== letter && one.title !== edinburgh)!;
     expect(chip.find(([text]) => text === other.title)![1]).toBe(
-      `/staff/politicians?ask=frontier-ai-letter&ask=${other.slug}&answer=frontier-ai-letter.signed`,
+      `/staff/politicians?ask=frontier-ai-letter&ask=${other.slug}&answer=frontier-ai-letter.signed&answer=${other.slug}.replied`,
     );
     // An ask whose answers are all left out has no chip of everyone asked.
     expect(chips()).not.toContain(staffVocabulary.everyoneAsked.event);

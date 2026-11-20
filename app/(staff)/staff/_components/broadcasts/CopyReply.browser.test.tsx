@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { SITE_ACTOR } from "@/lib/broadcasts/broadcasts";
 import { staffTime } from "@/lib/staff-time";
+import { gmailMessageLink } from "@/lib/email/gmail-links";
 import { broadcastCounts } from "./BroadcastView";
 import { CopyStatus } from "../letters/CopyStatus";
 import {
@@ -248,6 +249,70 @@ describe("replies to broadcasts", () => {
     // Discard closes it.
     await draft.getByRole("button", { name: copy.replies.discard }).click();
     await expect.element(page.getByRole("article")).not.toBeInTheDocument();
+  });
+
+  it("open in Gmail from the thread's heading, at the newest reply read from the mailbox, and not for a text", async () => {
+    const { rerender } = await render(<MessageCopyView one={emailCopy} />);
+    const newest = exampleBroadcastReplies.at(-1)!;
+    await expect
+      .element(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail }))
+      .toHaveAttribute("href", gmailMessageLink("hello@pauseai.uk", newest.providerId));
+    await rerender(<MessageCopyView one={{ ...emailCopy, replies: [], answers: [] }} />);
+    await expect
+      .element(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail }))
+      .not.toBeInTheDocument();
+  });
+
+  it("start an email's answer with a greeting and a sign-off, the cursor between, and send nothing till more is written", async () => {
+    const answer = vi.fn<AnswerAction>(async () => ({ sent: true }));
+    await render(
+      <MessageCopyView one={emailCopy} actions={{ deal: vi.fn(), answer, react: vi.fn() }} signer="Francis" />,
+    );
+    await page.getByRole("button", { name: copy.replies.reply }).click();
+    const editor = page.getByRole("textbox", { name: copy.replies.answerLabel });
+    await expect.element(editor).toHaveFocus();
+    const lines = () => [...editor.element().querySelectorAll("p")].map((p) => p.textContent);
+    const [signOff] = copy.signature;
+    // To them by their first name.
+    expect(lines()).toEqual([`${copy.greeting} Jane,`, "", "", signOff, "Francis"]);
+    const send = page.getByRole("button", { name: copy.replies.send });
+    await expect.element(send).toBeDisabled();
+    await userEvent.keyboard("Thanks for coming.");
+    expect(lines()).toEqual([`${copy.greeting} Jane,`, "Thanks for coming.", "", signOff, "Francis"]);
+    await send.click();
+    await vi.waitFor(() => expect(answer).toHaveBeenCalledOnce());
+  });
+
+  it("start an email's answer to someone with no first name with the greeting's fallback, and a text's with nothing", async () => {
+    const { rerender } = await render(
+      <MessageCopyView
+        one={{ ...emailCopy, name: null }}
+        actions={{ deal: vi.fn(), answer: vi.fn(), react: vi.fn() }}
+        signer="Francis"
+      />,
+    );
+    await page.getByRole("button", { name: copy.replies.reply }).click();
+    const editor = page.getByRole("textbox", { name: copy.replies.answerLabel });
+    await expect
+      .poll(() => editor.element().querySelector("p")?.textContent)
+      .toBe(`${copy.greeting} ${copy.fallbacks.firstName},`);
+    await rerender(
+      <AnswerableReply
+        replyId={4}
+        from="PauseAI UK"
+        to="07700 900001"
+        subject=""
+        answer={vi.fn()}
+        greet={{ to: "Jane", from: "Francis" }}
+        text
+        opened
+      >
+        {() => <p>Their text</p>}
+      </AnswerableReply>,
+    );
+    const bubble = page.getByRole("textbox", { name: copy.replies.answerLabel });
+    await expect.element(bubble).toBeVisible();
+    expect(bubble.element().textContent).toBe("");
   });
 
   it("send an answer with Ctrl+Enter or Cmd+Enter, saying why one didn't go, and keep it to send again", async () => {

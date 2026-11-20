@@ -21,8 +21,31 @@ const copy = broadcastsCopy.broadcastPages.replies;
 /** Sends an answer to reply `replyId`, once for each `draftId`. */
 export type AnswerAction = (replyId: number, draftId: string, body: JSONContent) => Promise<AnswerResult>;
 
-/** A draft not yet written: its own ID, which sends it once however often Send is pressed, and no words. */
-const newDraft = () => ({ id: uuid(), doc: EMPTY_MAILING_DOC as JSONContent });
+/** A paragraph of `words`, or an empty one. */
+const paragraph = (words?: string): JSONContent =>
+  words ? { type: "paragraph", content: [{ type: "text", text: words }] } : { type: "paragraph" };
+
+/**
+ * What an email's answer starts as, to be written between, in a new
+ * broadcast's words: a greeting to `to` (their first name), blank lines,
+ * and its sign-off's first line, over `from` (the staff member's). Where
+ * the cursor goes in it: the first blank line.
+ */
+function startOf({ to, from }: { to: string; from: string }): { doc: JSONContent; cursor: number } {
+  const greeting = `${broadcastsCopy.broadcastPages.greeting} ${to},`;
+  const [signOff] = broadcastsCopy.broadcastPages.signature;
+  return {
+    doc: {
+      type: "doc",
+      content: [paragraph(greeting), paragraph(), paragraph(), paragraph(signOff), paragraph(from)],
+    },
+    // Past the greeting's paragraph, its words and its two ends, into the next.
+    cursor: greeting.length + 3,
+  };
+}
+
+/** A draft not yet written: its own ID, which sends it once however often Send is pressed, and `doc`. */
+const newDraft = (doc: JSONContent) => ({ id: uuid(), doc });
 
 /** Whether Cmd+Enter, or Ctrl+Enter off a Mac, was pressed, as Gmail sends with. */
 const isSendKey = (event: KeyboardEvent) => event.key === "Enter" && (event.metaKey || event.ctrlKey);
@@ -38,8 +61,10 @@ const isSendKey = (event: KeyboardEvent) => event.key === "Enter" && (event.meta
  * (`answer`); sent, it closes, and the page shows it in the thread. One
  * that didn't go stays open, saying why. Discard closes it, its words gone.
  * To someone with "Do not email" (`doNotEmail`), it warns that it goes all
- * the same. To a text's reply (`text`), it's a bubble of ours, with no
- * subject, and goes by WhatsApp.
+ * the same. With `greet`, an email's starts with a greeting and a
+ * sign-off (startOf), the cursor between, and Send waits for words of the
+ * staff member's own. To a text's reply (`text`), it's a bubble of ours,
+ * with no subject, and goes by WhatsApp.
  * `opened` shows it being written to begin with, as the gallery does,
  * leaving the cursor where it is.
  */
@@ -52,6 +77,7 @@ export default function AnswerableReply({
   doNotEmail = false,
   opened = false,
   text = false,
+  greet,
   children,
 }: {
   replyId: number;
@@ -62,20 +88,26 @@ export default function AnswerableReply({
   doNotEmail?: boolean;
   opened?: boolean;
   text?: boolean;
+  /** Their first name and the staff member's, for an email's greeting and sign-off. */
+  greet?: { to: string; from: string };
   children: (write: (() => void) | undefined) => ReactNode;
 }) {
+  const [start] = useState(() =>
+    greet && !text ? startOf(greet) : { doc: EMPTY_MAILING_DOC as JSONContent, cursor: undefined },
+  );
   const [open, setOpen] = useState(opened);
   // Opened by pressing it, rather than shown open, so the cursor goes to it.
   const [pressed, setPressed] = useState(false);
-  const [draft, setDraft] = useState(newDraft);
+  const [draft, setDraft] = useState(() => newDraft(start.doc));
   const [failed, setFailed] = useState<Exclude<AnswerResult, { sent: true }>["reason"]>();
   const [sending, startSending] = useTransition();
   const label = useId();
-  const blank = !hasWords(draft.doc);
+  // Nothing written: no words, or only what it started with.
+  const blank = !hasWords(draft.doc) || draft.doc === start.doc;
 
   function fold() {
     setOpen(false);
-    setDraft(newDraft());
+    setDraft(newDraft(start.doc));
     setFailed(undefined);
   }
 
@@ -111,13 +143,13 @@ export default function AnswerableReply({
             </span>
             <MailingEditor
               key={draft.id}
-              initial={EMPTY_MAILING_DOC}
+              initial={start.doc}
               onChange={(doc) => setDraft((was) => ({ ...was, doc }))}
               fields={[]}
               conditions={[]}
               labelledBy={label}
               plain
-              autoFocus={pressed}
+              autoFocus={pressed && (start.cursor ?? true)}
             />
             <div className={`${styles.buttons} ${styles.draftButtons}`}>
               <Button variant="primary" size="small" fit type="button" disabled={blank || sending} onClick={sendIt}>

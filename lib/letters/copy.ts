@@ -244,8 +244,6 @@ export const lettersCopy = {
       who.length === 1 ? `Thread with ${who[0]}` : `Thread between ${new Intl.ListFormat("en-GB").format(who)}`,
     // A thread's own step of the trail above its page: the title's first word.
     crumb: "Thread",
-    // Under a thread's subject, a fact each: a label, then what the list's column of that name shows.
-    fact: (label: string, value: string | number) => `${label}: ${value}`,
     unreadable: "This message couldn't be read.",
     // A message rebuilt from a forward's quote of it, at the right of its subject: who forwarded it.
     rebuilt: (forwarder: string) => `Quoted in ${forwarder}'s forward`,

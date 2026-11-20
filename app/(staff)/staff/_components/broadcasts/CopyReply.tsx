@@ -18,7 +18,7 @@ import ReplyActions, { ReplyButton } from "./ReplyActions";
 import ReplyReactions, { OurReaction, standingOf, type ReactAction } from "./ReplyReactions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";
-import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
+import { FIELDS_AS_WORDS, firstNameOf, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { kindWords } from "@/lib/broadcasts/whatsapp-messages";
 import { toText } from "@/lib/letters/format";
 import { letterFor } from "@/lib/mailings/doc";
@@ -114,16 +114,19 @@ function Answer({
  * automatic has the thread's buttons, at its foot: what to record it as, and
  * Reply, or Follow up under our last answer, which opens one to write
  * (`answer`), but to a text's more than a day old, which WhatsApp takes no
- * answer to.
+ * answer to. With `signer`, an email's answer starts with a greeting to
+ * them by first name and a sign-off from `signer`.
  */
 export default function Reply({
   reply,
   one,
   actions,
+  signer,
 }: {
   reply: BroadcastReply;
   one: MessageCopy;
   actions?: ReplyHandlers;
+  signer?: string;
 }) {
   const when = reply.dealtAt && staffTime(reply.dealtAt);
   const text = one.channel === "text";
@@ -274,6 +277,11 @@ export default function Reply({
       answer={actions.answer}
       doNotEmail={reply.doNotEmail}
       text={text}
+      greet={
+        signer
+          ? { to: firstNameOf(one.name) ?? broadcastsCopy.broadcastPages.fallbacks.firstName, from: signer }
+          : undefined
+      }
     >
       {(write) => (
         <>
