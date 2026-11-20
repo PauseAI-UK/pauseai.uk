@@ -303,6 +303,27 @@ describe("SupporterDetails", () => {
               href: null,
               status: null,
             },
+            // Events by email is Luma's own messages; by text, our texts to a number only Updates + Luma reaches.
+            {
+              source: "staff",
+              at: new Date("2026-01-02T00:00:00Z"),
+              kind: "opted-out",
+              title: "events",
+              campaignTitle: null,
+              detail: "luma@example.com",
+              href: null,
+              status: null,
+            },
+            {
+              source: "whatsapp",
+              at: new Date("2026-01-02T00:00:00Z"),
+              kind: "opted-out",
+              title: "events",
+              campaignTitle: null,
+              detail: "+447700900009",
+              href: null,
+              status: null,
+            },
             {
               source: "staff",
               at: new Date("2026-01-02T00:00:00Z"),
@@ -406,6 +427,13 @@ describe("SupporterDetails", () => {
     await expect.element(page.getByText("Thing", { exact: false }).first()).toBeVisible();
     await expect.element(page.getByText(copy.detail.statuses.waitlist, { exact: false }).first()).toBeVisible();
     await expect.element(page.getByText("other-list", { exact: false })).toBeVisible();
+    const history = [...document.querySelectorAll("li")].map((li) => li.textContent ?? "");
+    expect(history.find((line) => line.includes("luma@example.com"))).toContain(
+      `${copy.detail.kinds["opted-out"]} ${copy.lists.events}`,
+    );
+    expect(history.find((line) => line.includes("+447700900009"))).toContain(
+      `${copy.detail.kinds["opted-out"]} ${copy.filters.lists["updates-luma"]}`,
+    );
     // An opt-out staff recorded says who, and how the person told them, or that it was their reply.
     await expect
       .element(page.getByText(copy.detail.toldStaff("jo@pauseai.uk", "At a stall"), { exact: false }))
