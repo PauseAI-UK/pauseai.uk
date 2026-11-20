@@ -742,6 +742,34 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   await frame(page, "The list, by last activity");
 });
 
+test("A one-off thread", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly answered Joseph's email, outside any mailing, and her answer was kept from his mailbox. Its page is titled with her name, though her email gave only her address, and says where she sits and her party under it, as a letter's does. Open in Gmail, at the right of the thread's heading, opens it in Joseph's mailbox.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase, ["supporters"]);
+  const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
+  const [thread] = runSql(
+    flowDatabase,
+    "INSERT INTO one_off_threads (subject, someone_else, latest_at) VALUES ('Re: Coffee next week?', false, '2026-08-02T09:00:00Z') RETURNING id",
+  );
+  const address = "polly.placeholder.mp@parliament.uk";
+  runSql(
+    flowDatabase,
+    `INSERT INTO one_off_thread_people (thread_id, notable_person_id) VALUES (${thread}, ${polly});
+     INSERT INTO one_off_messages (thread_id, account, gmail_message_id, gmail_thread_id, from_address, from_name, addresses, subject, at, from_us, blob_key, size)
+     VALUES (${thread}, 'joseph@pauseai.uk', '19a0f00d', '19a0f00d', '${address}', '', ARRAY['${address}', 'joseph@pauseai.uk'],
+       'Re: Coffee next week?', '2026-08-02T09:00:00Z', false, 'fixture/one-off-polly.eml.gz', 1);`,
+  );
+  await page.goto(`${BASE}/staff/one-off/${thread}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Thread with Polly Placeholder" })).toBeVisible();
+  await expect(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail })).toHaveAttribute(
+    "href",
+    /authuser=joseph%40pauseai\.uk#all\/19a0f00d$/,
+  );
+  await frame(page, "Her thread, with Open in Gmail");
+});
+
 test("Marking a politician", async ({ page, request, flowDatabase }) => {
   story(
     "Polly Placeholder is an important target: its lozenge is filled in the Marks card, under her notes, and Personal connection's is empty. Staff press Personal connection to fill it, and Important target to empty it.",
