@@ -4,7 +4,6 @@ import { ButtonAnchor, ButtonLink, type ButtonSize, type ButtonVariant } from "@
 import FeatureCard from "@/components/ui/FeatureCard";
 import { groupNamed, type GroupName } from "@/lib/content/groups";
 import PageSection, { Lede, SectionHeader } from "@/components/ui/Section";
-import Callout from "@/components/ui/Callout";
 import { PhotoCardBody, PhotoCardImage, photoCardClass } from "@/components/ui/PhotoCard";
 import styles from "./GroupPage.module.css";
 
@@ -44,13 +43,8 @@ export type GroupPageContent = {
   features?: { heading: string; lede: string; items: { title: string; text: string }[] };
   /** Photos of events the group has held. */
   activities?: { gridStyle?: CSSProperties; items: ActivityItem[] };
-  contact: {
-    lede: string;
-    /** Text beside the buttons. */
-    details?: ReactNode;
-    calloutStyle?: CSSProperties;
-    actions: GroupAction[];
-  };
+  /** How to reach the group: a sentence, then its buttons, the first the one to press. */
+  contact: { lede: string; actions: GroupAction[] };
 };
 
 const PHOTO_TINT = "linear-gradient(135deg, rgb(var(--amber-rgb) / 0.35), rgb(var(--black-rgb) / 0.65))";
@@ -177,18 +171,11 @@ export default function GroupPage({ content }: { content: GroupPageContent }) {
       )}
       <Band tone="muted">
         <GroupSectionHeader heading="Link up with the group" lede={contact.lede} />
-        <Callout style={contact.calloutStyle}>
-          {contact.details && <div>{contact.details}</div>}
-          {contact.actions.length > 1 ? (
-            <div className={styles.actions}>
-              {contact.actions.map((action) => (
-                <Action key={action.label} action={action} size="large" />
-              ))}
-            </div>
-          ) : (
-            <Action action={contact.actions[0]} size="large" />
-          )}
-        </Callout>
+        <div className={`${styles.actions} ${styles.contactActions}`}>
+          {contact.actions.map((action) => (
+            <Action key={action.label} action={action} size="large" />
+          ))}
+        </div>
       </Band>
     </main>
   );

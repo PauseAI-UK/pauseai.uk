@@ -382,7 +382,7 @@ holds it.
   component.
 - **Write it once.** Pages that share a shape share a component: each
   group's page is `GroupPage` and its content in
-  `lib/content/group-pages.tsx`.
+  `lib/content/group-pages.ts`.
 - **Browsers.** The site is built for browsers up to about a year old. In
   older ones it may look a bit off, but every page must stay readable and
   every link and form usable. Use a new feature without asking; flag one

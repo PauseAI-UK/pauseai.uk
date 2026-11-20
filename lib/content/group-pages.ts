@@ -1,32 +1,38 @@
 import type { Metadata } from "next";
-import type { GroupPageContent } from "@/components/groups/GroupPage";
+import type { GroupAction, GroupPageContent } from "@/components/groups/GroupPage";
 import { groupNamed, type GroupName } from "./groups";
 import { site } from "./site";
-import { Lede } from "@/components/ui/Section";
 
 // What each group's page says, rendered by components/groups/GroupPage.tsx.
 // A local group's name, path, map pin and header logo are in
 // ./local-groups.ts; an affinity group's name, path and the words that carry
 // its name are in ./groups.ts.
+//
+// Every contact section has a button for the WhatsApp community and one to
+// email. A group with an address of its own leads with its email button; the
+// rest lead with WhatsApp, then email the team. Manchester leads with what
+// its organiser offers, a chat.
 
 const WHATSAPP = { label: "Join the WhatsApp community", href: site.whatsappUrl, newTab: true } as const;
-const WEST_OF_ENGLAND_LINKTREE = "https://linktr.ee/PauseAI_West_of_England";
+const EMAIL_THE_TEAM = { label: "Email the team", href: `mailto:${site.contactEmail}` } as const;
+const WEST_OF_ENGLAND_LINKS = {
+  label: "All our links",
+  href: "https://linktr.ee/PauseAI_West_of_England",
+  variant: "ghost",
+  newTab: true,
+} as const;
+const MANCHESTER_CHAT = {
+  label: "Book a 1-on-1 chat",
+  href: "https://calendly.com/adr-skapars/pauseai-manchester-1-on-1",
+  newTab: true,
+} as const;
 const CAMBRIDGE_EMAIL = "cambridge@pauseai.uk";
 
-/** The email address and the WhatsApp community, as an affinity group's contact section lists them. */
-const EMAIL_AND_WHATSAPP = (
-  <>
-    <Lede>
-      Email: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
-    </Lede>
-    <Lede>
-      WhatsApp:{" "}
-      <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-        PauseAI UK WhatsApp
-      </a>
-    </Lede>
-  </>
-);
+/** The contact buttons of a group with no address of its own. */
+const WHATSAPP_THEN_TEAM: GroupAction[] = [
+  { ...WHATSAPP, variant: "primary" },
+  { ...EMAIL_THE_TEAM, variant: "ghost" },
+];
 
 export const groupPages: Record<GroupName, GroupPageContent> = {
   Scotland: {
@@ -65,16 +71,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "Join the WhatsApp community to connect with local organisers and hear about UK-wide events and campaigns.",
-      calloutStyle: { marginTop: 18 },
-      details: (
-        <Lede>
-          WhatsApp:{" "}
-          <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-            PauseAI UK WhatsApp
-          </a>
-        </Lede>
-      ),
-      actions: [{ ...WHATSAPP, variant: "primary" }],
+      actions: WHATSAPP_THEN_TEAM,
     },
   },
 
@@ -96,12 +93,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
           variant: "ghost",
           newTab: true,
         },
-        {
-          label: "Book a 1-on-1 chat",
-          href: "https://calendly.com/adr-skapars/pauseai-manchester-1-on-1",
-          variant: "ghost",
-          newTab: true,
-        },
+        { ...MANCHESTER_CHAT, variant: "ghost" },
       ],
       photo: "/images/local-groups/manchester/manchester_public.jpg",
       photoStyle: {
@@ -135,23 +127,10 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "Join the WhatsApp community to connect with local organisers and hear about UK-wide events and campaigns. Want to learn more? Book a 1-on-1 chat.",
-      calloutStyle: { marginTop: 18 },
-      details: (
-        <Lede>
-          WhatsApp:{" "}
-          <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-            PauseAI UK WhatsApp
-          </a>
-        </Lede>
-      ),
       actions: [
-        {
-          label: "Book a 1-on-1 chat",
-          href: "https://calendly.com/adr-skapars/pauseai-manchester-1-on-1",
-          variant: "primary",
-          newTab: true,
-        },
+        { ...MANCHESTER_CHAT, variant: "primary" },
         { label: "Email us", href: "mailto:Adr.Skapars@gmail.com", variant: "ghost" },
+        { ...WHATSAPP, variant: "ghost" },
       ],
     },
   },
@@ -160,10 +139,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     name: "West of England",
     hero: {
       lede: "A new group bringing AI safety conversations and action to Bristol and the wider West of England.",
-      actions: [
-        { label: "Join the WhatsApp group", href: site.whatsappUrl, variant: "primary", newTab: true },
-        { label: "All our links", href: WEST_OF_ENGLAND_LINKTREE, variant: "ghost", newTab: true },
-      ],
+      actions: [{ ...WHATSAPP, variant: "primary" }, WEST_OF_ENGLAND_LINKS],
       photo: "/images/local-groups/west-of-england/bristol-launch.jpg",
       photoStyle: {
         backgroundSize: "cover, cover",
@@ -174,23 +150,7 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "Join the UK-wide WhatsApp to connect with organisers and hear about national events and campaigns.",
-      details: (
-        <>
-          <Lede>
-            WhatsApp:{" "}
-            <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-              PauseAI UK WhatsApp
-            </a>
-          </Lede>
-          <Lede>
-            All our links:{" "}
-            <a href={WEST_OF_ENGLAND_LINKTREE} target="_blank" rel="noreferrer">
-              linktr.ee/PauseAI_West_of_England
-            </a>
-          </Lede>
-        </>
-      ),
-      actions: [{ label: "Join the WhatsApp group", href: site.whatsappUrl, variant: "primary", newTab: true }],
+      actions: [...WHATSAPP_THEN_TEAM, WEST_OF_ENGLAND_LINKS],
     },
   },
 
@@ -231,38 +191,31 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
       ],
     },
     contact: {
-      lede: "Contact us through the above methods if you can host an event, promote a meetup, or want to collaborate on outreach.",
-      actions: [{ label: "Email Leicester", href: "mailto:leicester@pauseai.info", variant: "primary" }],
+      lede: "Get in touch if you can host an event, promote a meetup, or want to collaborate on outreach.",
+      actions: [
+        { label: "Email Leicester", href: "mailto:leicester@pauseai.info", variant: "primary" },
+        { ...WHATSAPP, variant: "ghost" },
+      ],
     },
   },
 
   Cambridge: {
     name: "Cambridge",
     hero: {
-      lede: "⁂ A new group bringing AI safety conversations and action to Cambridge, with talks, socials and letter-writing nights.",
+      lede: "Conversations on AI risk in Cambridge, grounded in collaboration between students, researchers, and local residents.",
       actions: [
         { ...WHATSAPP, variant: "primary" },
-        { label: `⁂ Email ${CAMBRIDGE_EMAIL}`, href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "ghost" },
+        { label: `Email ${CAMBRIDGE_EMAIL}`, href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "ghost" },
       ],
       photo: "/images/local-groups/cambridge/hero.webp",
       illustration: true,
     },
     contact: {
-      lede: "⁂ Email us to hear about the next meet, or join the WhatsApp community to connect with organisers across the UK.",
-      details: (
-        <>
-          <Lede>
-            Email: <a href={`mailto:${CAMBRIDGE_EMAIL}`}>{CAMBRIDGE_EMAIL}</a>
-          </Lede>
-          <Lede>
-            WhatsApp:{" "}
-            <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-              PauseAI UK WhatsApp
-            </a>
-          </Lede>
-        </>
-      ),
-      actions: [{ label: "⁂ Email Cambridge", href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "primary" }],
+      lede: "Email us to attend the next meet, or to host an event in Cambridge.",
+      actions: [
+        { label: "Email Cambridge", href: `mailto:${CAMBRIDGE_EMAIL}`, variant: "primary" },
+        { ...WHATSAPP, variant: "ghost" },
+      ],
     },
   },
 
@@ -296,20 +249,10 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
     },
     contact: {
       lede: "Email us to join the mailing list, attend the next meet, or host an event on campus.",
-      details: (
-        <>
-          <Lede>
-            Email: <a href="mailto:oxford@pauseai.info">oxford@pauseai.info</a>
-          </Lede>
-          <Lede>
-            National chat:{" "}
-            <a href={site.whatsappUrl} target="_blank" rel="noreferrer">
-              WhatsApp community
-            </a>
-          </Lede>
-        </>
-      ),
-      actions: [{ label: "Email Oxford", href: "mailto:oxford@pauseai.info", variant: "primary" }],
+      actions: [
+        { label: "Email Oxford", href: "mailto:oxford@pauseai.info", variant: "primary" },
+        { ...WHATSAPP, variant: "ghost" },
+      ],
     },
   },
 
@@ -319,63 +262,50 @@ export const groupPages: Record<GroupName, GroupPageContent> = {
       lede: "We gather researchers, students, campaigners, and neighbours to push for safer AI development through public action and dialogue.",
       actions: [
         { ...WHATSAPP, variant: "primary" },
-        { label: "Email the team", href: `mailto:${site.contactEmail}`, variant: "ghost" },
+        { ...EMAIL_THE_TEAM, variant: "ghost" },
       ],
       photo: "/images/book-launch-2025/G1kOF_EXMAA7yfX.jpeg",
       badge: "Central meetups & actions",
     },
     contact: {
-      lede: "We meet regularly in central London for talks, workshops, and campaign planning.",
-      details: (
-        <>
-          <Lede style={{ maxWidth: 640 }}>
-            New to the movement? Start by joining the WhatsApp community, then drop us an email if you&apos;d like to
-            host or speak at an event.
-          </Lede>
-          <p>
-            <strong>Contact:</strong> <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
-          </p>
-        </>
-      ),
-      actions: [{ ...WHATSAPP, variant: "primary" }],
+      lede: "We meet regularly in central London for talks, workshops, and campaign planning. New to the movement? Start by joining the WhatsApp community, then drop us an email if you'd like to host or speak at an event.",
+      actions: WHATSAPP_THEN_TEAM,
     },
   },
 
   Parents: {
     name: "Parents",
     hero: {
-      lede: "⁂ We're parents and carers worried about the world our children will grow up in. Together we campaign to stop the race to superintelligent AI until it can be shown to be safe.",
+      lede: "We're parents and carers worried about the world our children will grow up in. Together we campaign to stop the race to superintelligent AI until it can be shown to be safe.",
       actions: [
         { ...WHATSAPP, variant: "primary" },
-        { label: "Email the team", href: `mailto:${site.contactEmail}`, variant: "ghost" },
+        { ...EMAIL_THE_TEAM, variant: "ghost" },
       ],
       photo: "/images/groups/parents-hero.webp",
       illustration: true,
-      badge: "⁂ Make your voice heard",
+      badge: "Make your voice heard",
     },
     contact: {
-      lede: "⁂ Join the WhatsApp community to meet other parents and carers, or email us to find out more.",
-      details: EMAIL_AND_WHATSAPP,
-      actions: [{ ...WHATSAPP, variant: "primary" }],
+      lede: "Join the WhatsApp community to meet other parents and carers, or email us to find out more.",
+      actions: WHATSAPP_THEN_TEAM,
     },
   },
 
   Teachers: {
     name: "Teachers",
     hero: {
-      lede: "⁂ We're teachers, lecturers and school staff watching AI change classrooms faster than anyone can keep up. We campaign to stop the race to superintelligent AI until it can be shown to be safe.",
+      lede: "We're teachers, lecturers and school staff watching AI change classrooms faster than anyone can keep up. We campaign to stop the race to superintelligent AI until it can be shown to be safe.",
       actions: [
         { ...WHATSAPP, variant: "primary" },
-        { label: "Email the team", href: `mailto:${site.contactEmail}`, variant: "ghost" },
+        { ...EMAIL_THE_TEAM, variant: "ghost" },
       ],
       photo: "/images/groups/teachers-hero.webp",
       illustration: true,
-      badge: "⁂ Make your voice heard",
+      badge: "Make your voice heard",
     },
     contact: {
-      lede: "⁂ Join the WhatsApp community to meet other teachers and school staff, or email us to find out more.",
-      details: EMAIL_AND_WHATSAPP,
-      actions: [{ ...WHATSAPP, variant: "primary" }],
+      lede: "Join the WhatsApp community to meet other teachers and school staff, or email us to find out more.",
+      actions: WHATSAPP_THEN_TEAM,
     },
   },
 };

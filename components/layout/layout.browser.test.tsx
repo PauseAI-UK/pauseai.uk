@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { affinityGroups, groupNamed, groups } from "@/lib/content/groups";
+import { localGroups } from "@/lib/content/local-groups";
 import { site } from "@/lib/content/site";
 import { navigation } from "@/tests/browser/navigation";
 import CookieConsent, { cookieDomains, CookieSettingsLink } from "./CookieConsent";
@@ -79,6 +80,31 @@ describe("Nav", () => {
     ]);
     expect(links.map(([href]) => href).sort()).toEqual(groups.map((group) => group.href).sort());
     expect(links.slice(-affinityGroups.length)).toEqual(affinityGroups.map((group) => [group.href, group.menu]));
+  });
+
+  it("puts the local groups, in alphabetical order, and the affinity groups in two columns with headings", async () => {
+    const { container } = await render(<Nav />);
+    const menu = container.querySelector('nav a[href="#local-groups"]')!.nextElementSibling!;
+    const columns = [...menu.children].map((column) => ({
+      heading: column.getAttribute("aria-label"),
+      shown: column.firstElementChild!.textContent,
+      links: [...column.querySelectorAll("a")].map((a) => a.textContent!),
+    }));
+    expect(columns).toHaveLength(2);
+    // Each column shows the heading it's labelled with.
+    for (const { heading, shown } of columns) expect(shown).toBe(heading);
+    const [local, communities] = columns;
+    expect(local.links).toEqual(localGroups.map((group) => group.name).sort());
+    expect(communities.links).toEqual(affinityGroups.map((group) => group.menu));
+    expect(local.heading).not.toBe(communities.heading);
+  });
+
+  it("gives a menu of one kind of link a single column, with no heading", async () => {
+    const { container } = await render(<Nav />);
+    const menu = container.querySelector('nav a[href="/campaigns/"]')!.nextElementSibling!;
+    expect(menu.children).toHaveLength(1);
+    expect(menu.firstElementChild!.getAttribute("aria-label")).toBeNull();
+    expect(menu.firstElementChild!.firstElementChild!.tagName).toBe("A");
   });
 
   it("shows the PauseAI UK logo, and a group's branding on its page", async () => {

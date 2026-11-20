@@ -9,7 +9,8 @@ import Brand from "./Brand";
 import styles from "./Nav.module.css";
 
 // Each dropdown's links: [href, label].
-const ABOUT_LINKS = [
+type NavLink = [href: string, label: string];
+const ABOUT_LINKS: NavLink[] = [
   ["/what-is-pauseai-uk/", "What is PauseAI UK?"],
   ["/track-record/", "Track record"],
   ["/theory-of-change/", "Theory of change"],
@@ -17,18 +18,18 @@ const ABOUT_LINKS = [
   ["/global-ai-sentiment-2026/", "Global AI sentiment 2026"],
   ["/jobs/", "Jobs"],
 ];
-// The local groups, then the affinity groups.
-const GROUP_LINKS = [
-  ["/london/", "London"],
-  ["/scotland/", "Scotland"],
-  ["/oxford/", "Oxford"],
-  ["/leicester/", "Leicester"],
-  ["/manchester/", "Manchester"],
-  ["/west-of-england/", "West of England"],
+// The local groups, in alphabetical order.
+const LOCAL_GROUP_LINKS: NavLink[] = [
   ["/cambridge/", "Cambridge"],
-  ...affinityGroups.map((group) => [`${group.href}/`, group.menu]),
+  ["/leicester/", "Leicester"],
+  ["/london/", "London"],
+  ["/manchester/", "Manchester"],
+  ["/oxford/", "Oxford"],
+  ["/scotland/", "Scotland"],
+  ["/west-of-england/", "West of England"],
 ];
-const CAMPAIGN_LINKS = [
+const AFFINITY_GROUP_LINKS: NavLink[] = affinityGroups.map((group) => [`${group.href}/`, group.menu]);
+const CAMPAIGN_LINKS: NavLink[] = [
   ["/campaigns/regulate-letter-pm/", "Regulate AI developers now"],
   ["/campaigns/support-sobel-bill/", "Support the Artificial Superintelligence Bill"],
   ["/future-of-workforce-inquiry/", "Future of the Workforce Inquiry"],
@@ -98,10 +99,18 @@ export default function Nav() {
     return () => document.removeEventListener("click", handleDocClick);
   }, [dropdown, update]);
 
-  const dropdowns = [
-    { label: "About", href: "/what-is-pauseai-uk/", links: ABOUT_LINKS },
-    { label: "Groups", href: `${navPrefix}#local-groups`, links: GROUP_LINKS },
-    { label: "Campaigns", href: "/campaigns/", links: CAMPAIGN_LINKS },
+  // A dropdown's links come in columns, side by side: one, or several that each have a heading.
+  const dropdowns: { label: string; href: string; columns: { heading?: string; links: NavLink[] }[] }[] = [
+    { label: "About", href: "/what-is-pauseai-uk/", columns: [{ links: ABOUT_LINKS }] },
+    {
+      label: "Groups",
+      href: `${navPrefix}#local-groups`,
+      columns: [
+        { heading: "Local", links: LOCAL_GROUP_LINKS },
+        { heading: "Communities", links: AFFINITY_GROUP_LINKS },
+      ],
+    },
+    { label: "Campaigns", href: "/campaigns/", columns: [{ links: CAMPAIGN_LINKS }] },
   ];
 
   return (
@@ -119,7 +128,7 @@ export default function Nav() {
           <span></span>
         </button>
         <nav className={open ? `${styles.links} ${styles.open}` : styles.links}>
-          {dropdowns.map(({ label, href, links }, i) => (
+          {dropdowns.map(({ label, href, columns }, i) => (
             <div
               key={label}
               className={[
@@ -167,21 +176,30 @@ export default function Nav() {
                 </svg>
               </SiteLink>
               <div className={styles.dropdown} role="menu">
-                {links.map(([linkHref, linkLabel]) => (
-                  <Link
-                    key={linkHref}
-                    href={linkHref}
-                    role="menuitem"
-                    onClick={(e) => {
-                      // Neither the pointer still over it nor focus left on
-                      // the link holds it open on the new page.
-                      e.currentTarget.blur();
-                      setDismissed(i);
-                      closeMenu();
-                    }}
-                  >
-                    {linkLabel}
-                  </Link>
+                {columns.map(({ heading, links }) => (
+                  <div key={links[0][0]} className={styles.column} role="group" aria-label={heading}>
+                    {heading && (
+                      <div className={styles.columnHeading} aria-hidden="true">
+                        {heading}
+                      </div>
+                    )}
+                    {links.map(([linkHref, linkLabel]) => (
+                      <Link
+                        key={linkHref}
+                        href={linkHref}
+                        role="menuitem"
+                        onClick={(e) => {
+                          // Neither the pointer still over it nor focus left on
+                          // the link holds it open on the new page.
+                          e.currentTarget.blur();
+                          setDismissed(i);
+                          closeMenu();
+                        }}
+                      >
+                        {linkLabel}
+                      </Link>
+                    ))}
+                  </div>
                 ))}
               </div>
             </div>

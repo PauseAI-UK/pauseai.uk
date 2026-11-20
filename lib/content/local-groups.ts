@@ -83,7 +83,7 @@ export const localGroups: LocalGroup[] = [
   {
     name: "Cambridge",
     href: "/cambridge",
-    blurb: "⁂ New local group bringing AI safety conversations and action to Cambridge.",
+    blurb: "Conversations on AI risk with students, researchers, and local residents.",
     imageSrc: "/images/local-groups/cambridge/hero.webp",
     lng: 0.1218,
     lat: 52.2053,

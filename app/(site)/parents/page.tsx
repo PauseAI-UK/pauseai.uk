@@ -3,7 +3,7 @@ import { groupMetadata, groupPages } from "@/lib/content/group-pages";
 
 export const metadata = groupMetadata(
   "Parents",
-  "⁂ PauseAI Parents: parents and carers campaigning to stop the race to superintelligent AI.",
+  "PauseAI Parents: parents and carers campaigning to stop the race to superintelligent AI.",
 );
 
 export default function ParentsPage() {

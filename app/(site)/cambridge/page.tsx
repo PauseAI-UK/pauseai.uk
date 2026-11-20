@@ -3,7 +3,7 @@ import { groupMetadata, groupPages } from "@/lib/content/group-pages";
 
 export const metadata = groupMetadata(
   "Cambridge",
-  "⁂ Join the Cambridge group of PauseAI for talks, socials, and AI safety action.",
+  "PauseAI Cambridge links students, researchers, and locals to discuss and act on AI safety.",
 );
 
 export default function CambridgePage() {

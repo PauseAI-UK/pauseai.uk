@@ -69,7 +69,20 @@ describe("GroupPage", () => {
     expect(bands.map((band) => named[getComputedStyle(band).backgroundColor as keyof typeof named])).toEqual(colours);
   });
 
-  it("wraps several contact buttons together, and leaves out sections and details it wasn't given", async () => {
+  it("ends with the contact sentence and its buttons, and nothing else", async () => {
+    const { container } = await render(<GroupPage content={groupPages.Manchester} />);
+    const { lede, actions } = groupPages.Manchester.contact;
+    const contact = container.querySelector("main > section:last-child .container")!;
+    // The heading and the sentence, then the buttons in the order given.
+    expect([...contact.children].map((child) => child.textContent)).toEqual([
+      `Link up with the group${lede}`,
+      actions.map((action) => action.label).join(""),
+    ]);
+    const buttons = [...contact.lastElementChild!.querySelectorAll("a")];
+    expect(buttons.map((a) => a.getAttribute("href"))).toEqual(actions.map((action) => action.href));
+  });
+
+  it("leaves out the sections and the badge it wasn't given", async () => {
     const { container } = await render(
       <GroupPage
         content={{
@@ -86,11 +99,7 @@ describe("GroupPage", () => {
         }}
       />,
     );
-    // Both buttons share one wrapper, and it's the only thing in the callout: no details.
-    const actions = page.getByRole("link", { name: "A" }).element().parentElement!;
-    expect(page.getByRole("link", { name: "B" }).element().parentElement).toBe(actions);
-    expect(actions.querySelectorAll("a")).toHaveLength(2);
-    expect(actions.parentElement!.children).toHaveLength(1);
+    await expect.element(page.getByRole("link", { name: "A" })).toBeVisible();
     expect(container.querySelector('[data-testid="hero-badge"]')).toBeNull();
     await expect.element(page.getByText("l", { exact: true })).toBeVisible();
     expect(container.querySelector("article .inline-link")).toBeNull();

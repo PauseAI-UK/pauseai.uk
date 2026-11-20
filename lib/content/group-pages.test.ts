@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { groupMetadata, groupPages } from "./group-pages";
 import { groups } from "./groups";
+import { site } from "./site";
 
 describe("group pages", () => {
   it("has a page for every group, under its own name", () => {
@@ -8,10 +9,31 @@ describe("group pages", () => {
     for (const [name, page] of Object.entries(groupPages)) expect(page.name).toBe(name);
   });
 
-  it("gives every page a hero action and a contact button", () => {
-    for (const page of Object.values(groupPages)) {
-      expect(page.hero.actions.length, page.name).toBeGreaterThan(0);
-      expect(page.contact.actions.length, page.name).toBeGreaterThan(0);
+  it("gives every page a hero action", () => {
+    for (const page of Object.values(groupPages)) expect(page.hero.actions.length, page.name).toBeGreaterThan(0);
+  });
+
+  it("gives every contact section a WhatsApp button and an email button, the first the only primary one", () => {
+    for (const { name, contact } of Object.values(groupPages)) {
+      const hrefs = contact.actions.map((action) => action.href);
+      expect(hrefs, name).toContain(site.whatsappUrl);
+      expect(
+        hrefs.filter((href) => href.startsWith("mailto:")),
+        name,
+      ).toHaveLength(1);
+      expect(
+        contact.actions.map((action) => action.variant),
+        name,
+      ).toEqual(["primary", ...contact.actions.slice(1).map(() => "ghost")]);
+    }
+  });
+
+  it("leads with a group's own address, and with WhatsApp where the email goes to the team", () => {
+    const first = (name: keyof typeof groupPages) => groupPages[name].contact.actions[0].href;
+    for (const name of ["Oxford", "Leicester", "Cambridge"] as const) expect(first(name), name).toMatch(/^mailto:/);
+    for (const name of ["London", "Scotland", "West of England", "Parents", "Teachers"] as const) {
+      expect(first(name), name).toBe(site.whatsappUrl);
+      expect(groupPages[name].contact.actions[1].href, name).toBe(`mailto:${site.contactEmail}`);
     }
   });
 });
