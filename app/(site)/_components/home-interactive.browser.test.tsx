@@ -221,7 +221,10 @@ describe("OnboardingFormEmbed", () => {
     window.dispatchEvent(new Event("load"));
     expect(srcs).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(8000);
-    await expect.poll(() => container.querySelector("[role=status]")?.textContent).toContain("Form didn't load.");
+    // The browser really fetches the form, and whether its load event has
+    // come yet decides the words before the link, so this looks for the link
+    // alone. "offers a link if the form never reports in" checks each wording.
+    await expect.poll(() => container.querySelector("[role=status]")?.textContent).toContain("Open it in a new tab");
   });
 
   it("fetches the form before the page has loaded once the reader is nearly at it", async () => {
