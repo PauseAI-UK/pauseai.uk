@@ -2,7 +2,7 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import type { LumaEvent } from "@/lib/site-events";
 import { now } from "@/lib/now";
-import { LUMA_PAGE_SIZE, lumaList, lumaPost, type LumaPage } from "./luma-api.server";
+import { LUMA_PAGE_SIZE, LumaRefused, lumaList, lumaPost, type LumaPage } from "./luma-api.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { problem } from "../problems.server";
 import { serverCopy } from "@/lib/server/copy";
@@ -208,9 +208,20 @@ export async function listCalendarContacts(cursor?: string): Promise<LumaPage<Ca
  * Takes an address off the calendar's contacts, so Luma sends it none of the
  * calendar's invites or newsletters
  * (https://docs.luma.com/reference/post_v1-calendars-contacts-remove). They
- * can still register for events, and follow again themselves. Throws as
- * lumaPost does.
+ * can still register for events, and follow again themselves. An address
+ * that isn't a contact is off the calendar already, so Luma's 404 for it is
+ * done; Luma's docs don't list that answer, but its message, unlike the plain
+ * "Not found." of a 404 for a path it doesn't know, says so. Otherwise throws
+ * as lumaPost does.
  */
 export async function removeCalendarContact(email: string): Promise<void> {
-  await lumaPost("/v1/calendars/contacts/remove", { email });
+  try {
+    await lumaPost("/v1/calendars/contacts/remove", { email });
+  } catch (error) {
+    const notAContact =
+      error instanceof LumaRefused &&
+      error.status === 404 &&
+      /couldn.t find that contact/i.test(error.lumaMessage ?? "");
+    if (!notAContact) throw error;
+  }
 }

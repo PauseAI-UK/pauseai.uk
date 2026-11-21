@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { LumaRateLimited, lumaList, lumaPost } from "./luma-api.server";
+import { LumaRateLimited, LumaRefused, lumaList, lumaPost } from "./luma-api.server";
 
 const LIST = "https://public-api.luma.com/v1/things/list";
 
@@ -102,5 +102,19 @@ describe("lumaPost", () => {
     await expect(lumaPost("/v1/things/do", {})).rejects.toThrow("Luma answered 500");
     vi.stubEnv("LUMA_API_KEY", "");
     await expect(lumaPost("/v1/things/do", {})).rejects.toThrow("LUMA_API_KEY is not set");
+  });
+
+  it("gives a refusal's status, and Luma's message when its answer has one", async () => {
+    server.use(http.post(POST, () => HttpResponse.json({ message: "No such thing." }, { status: 404 })));
+    const error = await lumaPost("/v1/things/do", {}).catch((e) => e);
+    expect(error).toBeInstanceOf(LumaRefused);
+    expect(error).toMatchObject({ status: 404, lumaMessage: "No such thing." });
+    expect(error.message).toBe("Luma answered 404 for /v1/things/do: No such thing.");
+    server.use(http.post(POST, () => HttpResponse.json({ message: { text: "odd" } }, { status: 400 })));
+    expect(await lumaPost("/v1/things/do", {}).catch((e) => e)).toMatchObject({
+      status: 400,
+      lumaMessage: undefined,
+      message: "Luma answered 400 for /v1/things/do",
+    });
   });
 });
