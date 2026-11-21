@@ -6,7 +6,8 @@
 .scroller {
   overflow-x: auto;
 }
-.picture {
+.picture,
+.besidePicture {
   display: block;
   width: 100%;
   height: auto;

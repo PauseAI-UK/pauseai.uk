@@ -46,6 +46,8 @@ Two more scripts check the migrations:
 | `hero-photos-avif.mjs`           | `npm run data:hero-photos`                        | Makes the AVIF copy of each photo in the home page's hero (`public/images/front-page-hero-optimized/`), which the page serves where a browser can show it, and each photo's preview, a tiny copy that fills its place as a blur until it loads. Run it after adding or changing a photo. |
 | `march-preview.mjs`              | `npm run march:preview`                           | Remakes the march page's link preview, a picture of its hero, from the dev server. Run it after changing the march's date, time or route, or the hero.                                                                                                                                   |
 
+`briefing-images.mjs`, run with `node scripts/briefing-images.mjs <file.html> --figures <names> --flags <codes>`, makes a week's briefing's pictures from its designer's HTML: each drawing as a PNG, drawn in the design's font, and each flag it lacks, waving like the others. Without `--figures` it lists the drawings. `docs/code-structure.md`, "Adding a week's briefing", covers it.
+
 `docs/development.md`, section 5, covers the photos.
 
 ## The gate
