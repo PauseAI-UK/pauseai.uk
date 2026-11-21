@@ -106,10 +106,10 @@ describe("lumaPost", () => {
 
   it("gives a refusal's status, and Luma's message when its answer has one", async () => {
     server.use(http.post(POST, () => HttpResponse.json({ message: "No such thing." }, { status: 404 })));
-    const error = await lumaPost("/v1/things/do", {}).catch((e) => e);
+    const error = await lumaPost("/v1/things/do", {}).catch((e: Error) => e);
     expect(error).toBeInstanceOf(LumaRefused);
     expect(error).toMatchObject({ status: 404, lumaMessage: "No such thing." });
-    expect(error.message).toBe("Luma answered 404 for /v1/things/do: No such thing.");
+    expect((error as Error).message).toBe("Luma answered 404 for /v1/things/do: No such thing.");
     server.use(http.post(POST, () => HttpResponse.json({ message: { text: "odd" } }, { status: 400 })));
     expect(await lumaPost("/v1/things/do", {}).catch((e) => e)).toMatchObject({
       status: 400,
