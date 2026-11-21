@@ -690,7 +690,8 @@ It follows the rules above, with these particulars:
   `components/briefings/`: `BriefingBox`, `BriefingColumns`,
   `BriefingQuote`, `BriefingText`'s pieces, the charts, `BriefingSources`.
   A new week's briefing is the design's HTML rewritten with those pieces
-  in a new file, listed first in the folder's `index.ts`. A new chart is a
+  in a new file, listed first in the folder's `index.ts` ("Adding a week's
+  briefing", below). A new chart is a
   new component in `components/briefings/`.
 - **Colours by topic.** The `--briefing-*` tokens are the design's palette,
   one a topic. A box sets `--tone` on itself (`toneStyle` in `tone.ts`),
@@ -700,6 +701,75 @@ It follows the rules above, with these particulars:
   paragraphs, lists, headings and source marks a briefing is written in,
   inside `:where()`, so any piece's own class outranks them. A box spaces
   what's in it with its `gap`.
+
+#### Adding a week's briefing
+
+The designer sends the week's briefing as one HTML page. Each week's is
+written the same way, so the briefings stay alike:
+
+1. **A branch of its own**, `briefing-<13th>-<20th>-<november>`, from
+   `npm run worktree`.
+2. **A file named for the week**:
+   `lib/content/briefings/ai-news-weekly-briefing-13th-20th-november.tsx`,
+   with that as its `slug`. Its `title` is "AI News Weekly Briefing -
+   13th-20th November", with hyphens, whatever the HTML's `<h1>` has; its
+   `date` is the week's last day, the Friday; its `author` is the byline's
+   name. List it first in `index.ts`.
+3. **Its week** is the masthead's calendar: Monday to Friday, each day's
+   events, `what` as the calendar words it, `tone` by its dot's colour
+   below. The calendar rings each day with something on, whichever days
+   the design rings.
+4. **Its key stories**: each bold lead is a `lead`, the words after it its
+   `body`.
+5. **The rest, piece by piece.** Each `<section class="box ...">` is a
+   `BriefingBox`, its tab's words the `title`, its class the `tone`. Inside
+   it, what the design's classes become:
+
+   | The design's                          | The kit's                                                                              |
+   | ------------------------------------- | -------------------------------------------------------------------------------------- |
+   | `h3` with `<span class="accent">`     | `h3` with `<Accent>`                                                                   |
+   | `.lab`                                | `<Subhead>`                                                                            |
+   | `blockquote.q`, `.who` under it       | `<BriefingQuote who="…">`, `size="small"` when two are side by side                    |
+   | `.grid2`                              | `<BriefingColumns layout="even">`                                                      |
+   | `.split`, text and a quote            | `<BriefingColumns layout="aside">`                                                     |
+   | `.split`, text and a drawing          | `<BriefingColumns layout="figure">`                                                    |
+   | `.bottom`, two boxes in a row         | `<BriefingColumns layout="pair">`                                                      |
+   | `<figure>` across the box             | `<BriefingFigure>`                                                                     |
+   | `<figure>` in a column beside text    | `<BriefingFigure beside>`                                                              |
+   | `.flags` after a heading              | `<BriefingFlags>` under the heading                                                    |
+   | `.cols2`                              | `<ColumnList>`                                                                         |
+   | `ul.sub`                              | a `ul` inside the `li`                                                                 |
+   | a dashed frame round a story          | `<BriefingInset>`                                                                      |
+   | a last line under a dashed rule       | `<Aside>`                                                                              |
+   | `.item`'s dashed rule between stories | nothing: the next `h3` starts the story                                                |
+   | `.nextcal`                            | `<WeekCalendar>` above the list of dates                                               |
+   | `<sup class="c"><a href="#s4">`       | `{cite(4)}`, `{cite(1, 7)}` for two                                                    |
+   | `.sources li id="s4"`                 | `<li id="source-4">` in `<BriefingSources>`, `<i>` as `<em>`, links `rel="noreferrer"` |
+
+   The tones by colour: blue `#1f6aa5` parliament, purple `#7b4f9d`
+   industry, teal `#0b8a84` international, red `#b3261e` risk, green
+   `#5b9a3c` good, grey `#4b4b48` diary.
+
+   The words are the author's final copy, not placeholders, copied exactly, but
+   straight quotes and apostrophes made curly (“ ” ‘ ’). A link to the
+   march is `MARCH_PATH` (`lib/content/redirect-addresses.ts`).
+
+6. **Its pictures**: `node scripts/briefing-images.mjs <file.html>` lists
+   the drawings; name them, in that order, with `--figures`, and give the
+   flags' two-letter codes with `--flags`. It writes each drawing as a PNG
+   in `public/images/briefings/`, in the design's font, and prints the
+   width and height for its `BriefingFigure`, and adds any flag missing
+   from `flags/`. A figure's `alt` says what the drawing says.
+7. **Something the kit lacks** is a new piece, or a variant of one, in
+   `components/briefings/`, with its example in the gallery
+   (`app/(tools)/gallery/_examples/briefings.tsx`), a test in
+   `briefings.browser.test.tsx`, and a frame in a flow of
+   `tests/storyboard/briefings.spec.ts`, whose line in `docs/testing.md`
+   says it. Look at it in the gallery first: it may be there already.
+8. **Check it.** `lib/content/briefings/index.test.tsx` checks every
+   briefing cites only the sources it lists, numbered in order. Then the
+   gate, and a look at the briefing's frames on both viewports beside the
+   design's HTML.
 
 ### The march sign-up
 
