@@ -379,7 +379,7 @@ describe("BriefingText", () => {
   });
 
   it("sets a column list in two columns, one on a phone", async () => {
-    const list = (
+    await render(
       <BriefingSheet>
         <ColumnList>
           <li>One</li>
@@ -387,14 +387,12 @@ describe("BriefingText", () => {
           <li>Three</li>
           <li>Four</li>
         </ColumnList>
-      </BriefingSheet>
+      </BriefingSheet>,
     );
-    await render(list);
     const top = (name: string) => page.getByText(name).element().getBoundingClientRect();
     expect(top("Three").left).toBeGreaterThan(top("One").right);
     expect(top("Three").top).toBe(top("One").top);
     await page.viewport(390, 800);
-    await render(list);
     expect(top("Three").left).toBe(top("One").left);
   });
 });
