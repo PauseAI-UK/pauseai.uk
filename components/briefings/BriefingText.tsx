@@ -20,6 +20,11 @@ export function Flag({ children }: { children: ReactNode }) {
   );
 }
 
+/** A list of short items in two columns, read down each, one column on a phone. */
+export function ColumnList({ children }: { children: ReactNode }) {
+  return <ul className={styles.columnList}>{children}</ul>;
+}
+
 /** A last paragraph set off by a dashed rule, such as what's further ahead. */
 export function Aside({ children }: { children: ReactNode }) {
   return <p className={styles.aside}>{children}</p>;

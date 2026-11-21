@@ -15,7 +15,7 @@ import BriefingPicture from "@/components/briefings/BriefingPicture";
 import BriefingQuote from "@/components/briefings/BriefingQuote";
 import BriefingSheet from "@/components/briefings/BriefingSheet";
 import BriefingSources from "@/components/briefings/BriefingSources";
-import { Accent, Aside, Flag, Subhead } from "@/components/briefings/BriefingText";
+import { Accent, Aside, ColumnList, Flag, Subhead } from "@/components/briefings/BriefingText";
 import BudgetChart from "@/components/briefings/BudgetChart";
 import CommitmentsTable from "@/components/briefings/CommitmentsTable";
 import KeyStories from "@/components/briefings/KeyStories";
@@ -285,6 +285,27 @@ export const briefingsKit: Group = {
       ],
     },
     {
+      name: "ColumnList",
+      file: "components/briefings/BriefingText.tsx",
+      variants: [
+        {
+          label: "Short items in two columns",
+          render: () =>
+            onSheet(
+              <BriefingBox title="International & cooperation" tone="international">
+                <Subhead>The report calls for:</Subhead>
+                <ColumnList>
+                  <li>emergency shutdown authority</li>
+                  <li>mandatory third-party oversight & inspections</li>
+                  <li>baseline standards for all developers</li>
+                  <li>a cap on recursive self improvement</li>
+                </ColumnList>
+              </BriefingBox>,
+            ),
+        },
+      ],
+    },
+    {
       name: "Aside",
       file: "components/briefings/BriefingText.tsx",
       variants: [
@@ -348,6 +369,29 @@ export const briefingsKit: Group = {
                     </sup>
                   }
                 />
+              </BriefingBox>,
+            ),
+        },
+        {
+          label: "A narrow diagram beside the text",
+          render: () =>
+            onSheet(
+              <BriefingBox title="This week in Westminster" tone="parliament">
+                <BriefingColumns layout="figure">
+                  <p>A story the diagram beside it explains.</p>
+                  <BriefingFigure
+                    src="/images/briefings/regulator-at-every-stage.png"
+                    alt="A diagram of a regulator acting at each stage of a model's life"
+                    width={1140}
+                    height={978}
+                    cite={
+                      <sup>
+                        <a href="#source-1">1</a>
+                      </sup>
+                    }
+                    beside
+                  />
+                </BriefingColumns>
               </BriefingBox>,
             ),
         },

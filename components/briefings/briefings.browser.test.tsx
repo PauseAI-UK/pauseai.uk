@@ -15,7 +15,7 @@ import BriefingPicture from "./BriefingPicture";
 import BriefingQuote from "./BriefingQuote";
 import BriefingSheet from "./BriefingSheet";
 import BriefingSources from "./BriefingSources";
-import { Accent, Aside, Flag, Subhead } from "./BriefingText";
+import { Accent, Aside, ColumnList, Flag, Subhead } from "./BriefingText";
 import BudgetChart, { tickStep } from "./BudgetChart";
 import CommitmentsTable from "./CommitmentsTable";
 import KeyStories from "./KeyStories";
@@ -251,6 +251,32 @@ describe("BriefingFigure", () => {
     expect(region.tabIndex).toBe(0);
     expect(region.scrollWidth).toBeGreaterThan(region.clientWidth);
   });
+
+  it("beside the text, fits a phone's width, with nothing to scroll", async () => {
+    await page.viewport(390, 800);
+    const { container } = await render(
+      <BriefingSheet>
+        <BriefingBox title="Westminster" tone="parliament">
+          <BriefingColumns layout="figure">
+            <p>A story</p>
+            <BriefingFigure
+              src="/images/briefings/regulator-at-every-stage.png"
+              alt="A narrow diagram"
+              width={1140}
+              height={978}
+              cite={<sup>1</sup>}
+              beside
+            />
+          </BriefingColumns>
+        </BriefingBox>
+      </BriefingSheet>,
+    );
+    expect(page.getByRole("region").query()).toBeNull();
+    const box = container.querySelector("section")!.getBoundingClientRect();
+    const picture = page.getByRole("img", { name: "A narrow diagram" }).element().getBoundingClientRect();
+    expect(picture.width).toBeGreaterThan(box.width - 60);
+    expect(picture.right).toBeLessThanOrEqual(box.right);
+  });
 });
 
 describe("BriefingFlags", () => {
@@ -350,6 +376,26 @@ describe("BriefingText", () => {
     expect(getComputedStyle(page.getByText("POSTPONED").element()).color).toBe(token("--briefing-risk"));
     expect(getComputedStyle(page.getByText("Further ahead").element()).borderTopStyle).toBe("dashed");
     expect(container.querySelector("h3")).not.toBeNull();
+  });
+
+  it("sets a column list in two columns, one on a phone", async () => {
+    const list = (
+      <BriefingSheet>
+        <ColumnList>
+          <li>One</li>
+          <li>Two</li>
+          <li>Three</li>
+          <li>Four</li>
+        </ColumnList>
+      </BriefingSheet>
+    );
+    await render(list);
+    const top = (name: string) => page.getByText(name).element().getBoundingClientRect();
+    expect(top("Three").left).toBeGreaterThan(top("One").right);
+    expect(top("Three").top).toBe(top("One").top);
+    await page.viewport(390, 800);
+    await render(list);
+    expect(top("Three").left).toBe(top("One").left);
   });
 });
 
