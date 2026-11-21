@@ -1,5 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
+import { readJsonIfAny } from "@/lib/server/json.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // One page of a list from Luma's official API (LUMA_API_KEY, scoped to our
@@ -40,7 +41,7 @@ export class LumaRefused extends Error {
 /** The error for Luma's answer to `path` that isn't ok: LumaRateLimited for a 429, otherwise LumaRefused. */
 async function refusal(res: Response, path: string): Promise<Error> {
   if (res.status === 429) return new LumaRateLimited(Number(res.headers.get("retry-after")) || 60);
-  const body = (await res.json().catch(() => undefined)) as { message?: unknown } | undefined;
+  const body = (await readJsonIfAny(res)) as { message?: unknown } | null | undefined;
   return new LumaRefused(res.status, path, typeof body?.message === "string" ? body.message : undefined);
 }
 
