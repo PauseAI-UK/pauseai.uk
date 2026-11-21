@@ -7,6 +7,7 @@ import {
   listCalendarContacts,
   listCalendarEvents,
   listEventTags,
+  removeCalendarContact,
 } from "./luma-calendar.server";
 
 const CALENDAR = "https://public-api.luma.com/v1/calendars/events/list";
@@ -311,6 +312,51 @@ describe("listCalendarContacts", () => {
     expect((await listCalendarContacts()).entries).toEqual([
       { userId: "usr-a", email: "a@example.com", name: "", createdAt: "2026-01-01T00:00:00Z" },
     ]);
+  });
+});
+
+describe("removeCalendarContact", () => {
+  const REMOVE = "https://public-api.luma.com/v1/calendars/contacts/remove";
+  beforeEach(() => vi.stubEnv("LUMA_API_KEY", "k"));
+  afterEach(() => vi.unstubAllEnvs());
+
+  /** Luma answers the removal with this status and body. */
+  const answer = (status: number, body?: unknown) =>
+    server.use(
+      http.post(REMOVE, () =>
+        body === undefined ? new HttpResponse(null, { status }) : HttpResponse.json(body, { status }),
+      ),
+    );
+
+  it("asks Luma to remove the address", async () => {
+    let sent: unknown;
+    server.use(
+      http.post(REMOVE, async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json({});
+      }),
+    );
+    await removeCalendarContact("jane.smith@example.com");
+    expect(sent).toEqual({ email: "jane.smith@example.com" });
+  });
+
+  it("is done when Luma says the address isn't a contact, as it's off the calendar already", async () => {
+    // Luma's answer, word for word, to removing an address that was never on the calendar.
+    answer(404, { message: "We couldn’t find that contact on your calendar.", code: null });
+    await expect(removeCalendarContact("jane.smith@example.com")).resolves.toBeUndefined();
+  });
+
+  it("throws on any other refusal, a 404 for a path Luma doesn't know among them", async () => {
+    answer(404, { message: "Not found." });
+    await expect(removeCalendarContact("jane.smith@example.com")).rejects.toThrow(
+      "Luma answered 404 for /v1/calendars/contacts/remove: Not found.",
+    );
+    answer(404);
+    await expect(removeCalendarContact("jane.smith@example.com")).rejects.toThrow("Luma answered 404");
+    answer(500, { message: "We couldn’t find that contact on your calendar." });
+    await expect(removeCalendarContact("jane.smith@example.com")).rejects.toThrow("Luma answered 500");
+    answer(429);
+    await expect(removeCalendarContact("jane.smith@example.com")).rejects.toMatchObject({ retryAfter: 60 });
   });
 });
 
