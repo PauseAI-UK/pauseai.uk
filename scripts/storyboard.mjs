@@ -537,7 +537,8 @@ function planLine(chosen, key) {
 
 /** Which flows a review pictures (`reached`, flowsReached's), and why. */
 function planSummary(reached, total) {
-  const files = `the ${reached.changed.length} files this branch changes from main`;
+  const count = reached.changed.length;
+  const files = `the ${count} ${count === 1 ? "file" : "files"} this branch changes from main`;
   if (reached.unknown.length > 0)
     return [
       `Storyboard: every flow, ${total}, as what ${reached.unknown.slice(0, 3).join(", ")} can change isn't known.`,
@@ -546,12 +547,12 @@ function planSummary(reached, total) {
     ].join("\n");
   if (reached.run.size === 0 && reached.changed.length === 0)
     return `Storyboard: none of the ${total} flows: this branch changes nothing from main.`;
-  if (reached.run.size === 0) return `Storyboard: none of the ${total} flows: ${files} reach none.`;
+  if (reached.run.size === 0) return `Storyboard: none of the ${total} flows: none is reached by ${files}.`;
   if (reached.fresh === total)
     return `Storyboard: every flow, ${total}: none has a record of what it opens, as each was recorded another way, or not at all.`;
-  if (reached.run.size === total) return `Storyboard: every flow, ${total}: ${files} reach them all.`;
+  if (reached.run.size === total) return `Storyboard: every flow, ${total}: all are reached by ${files}.`;
   const why = [
-    reached.reached && `${reached.reached} that ${files} can reach`,
+    reached.reached && `${reached.reached} reached by ${files}`,
     reached.swept && `every desktop flow, as ${reached.everything.slice(0, 3).join(", ")} changed`,
     reached.fresh && `${reached.fresh} new, or with no record of what they open`,
   ].filter(Boolean);

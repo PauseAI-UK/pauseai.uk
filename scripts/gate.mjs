@@ -17,9 +17,8 @@
 // origin/main is as last fetched.
 //
 // The storyboard is the review (`npm run storyboard`), where CI runs the
-// flows without pictures: it runs the flows a change can reach, with
-// pictures, and carries the rest from the last run, so the gate and the
-// review are one run. CI runs every flow.
+// flows without pictures: it runs the flows the branch's change can reach,
+// with pictures, so the gate and the review are one run. CI runs every flow.
 //
 // Every command has a time limit and a log in tmp/gate/, emptied each run.
 // While they run, a line a minute says which are still going and how long
@@ -289,8 +288,9 @@ export function groupState(states) {
 /**
  * The group a command is in: the two long ones each their own, and the
  * rest, quick, together. The gate's storyboard is "flows": it checks that
- * every flow works, through the review (`npm run storyboard`), and with it
- * the determinism check, which runs the gallery's flows again.
+ * the flows the branch's change reaches work, through the review
+ * (`npm run storyboard`), and with it the determinism check, which runs the
+ * gallery's flows again.
  *
  * @param {string} id
  */

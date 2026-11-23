@@ -6,25 +6,30 @@ Size: M. Kind: tools.
 
 A review's time is its flows': the fixture build takes 8 to 20 seconds, and every flow on both viewports takes about five minutes on seven workers. The suite grows with every feature: 348 flows on 31 October 2026, 578 on 11 November. Pictures and the settling before them are most of a flow's time.
 
-A review runs only the flows a change can reach (`docs/testing.md`, "Which flows a review runs"). On the 79 later pushes of 37 PRs (12 November 2026), that was about half of a full review's time on average. A quarter of pushes need none. A sixth change a migration, `schema.sql` or the seed data, which reruns every desktop flow. What's left is mostly:
+A review pictures only the flows that the files a branch changes from main can reach, and runs main for the same flows (`docs/testing.md`, "Which flows a review runs"). A sixth of pushes change a migration, `schema.sql` or the seed data, which pictures every desktop flow (79 pushes of 37 PRs, 12 November 2026). What's left is mostly:
 
 - **Some files reach most flows.** `npm run reach` lists them, most first: narrowing what imports one makes every review that changes it shorter.
-- **The gallery's flows are a quarter of a review.** A review pictures only the frames of a group a change reaches, but a component whose examples are in the group's own file (most of the site's kit, `_examples/ui.tsx`) is pictured whenever its group is reached.
+- **The gallery's flows are a quarter of a full review.** A review pictures only the frames of a group a change reaches, but a component whose examples are in the group's own file (most of the site's kit, `_examples/ui.tsx`) is pictured whenever its group is reached.
 - **One file of seed data**, which every desktop flow reruns for (`test-data-builders.md`).
+- **A checkout with no kept runs pictures every flow.** Which pages a flow opens is known only from a run of it, kept on the machine that ran it. A new sandbox has none, so nothing says what its change reaches.
+- **A flow's record of its pages can be wrong.** One from an older main is out of date if a merge since changed which pages the flow opens, and the review then leaves the flow out. And some of the public pages' flows record other flows' pages in a run of every flow, but only their own when few run, so a review pictures a few more flows than it need.
 
 Main's frames are kept only on the machine that ran them.
 
-Choosing the flows takes about 8 seconds before the build starts, trying each tree the store keeps: about 5 of them building the import graph, which every review does again from nothing.
+Choosing the flows takes about 5 seconds before the build starts, building the import graph, which every review does again from nothing.
+
+A review still carries main's frames from one kept tree to another, by the map of what a change reaches (`carryFromNearest` in `scripts/storyboard.mjs`). It saved hundreds of flows when a review needed all of main. Now it saves a few flows and one build of main after a rebase, for the most intricate part of the review.
 
 ## Fix
 
 In order of what each would save:
 
-1. Have CI picture main on each push to it and keep the frames as an artifact, for a review to fetch. First compare one run of CI's with one made locally: fonts and the machine may make the pictures differ.
-2. Show the review as it fills: open the page at once, and add main's side as it arrives.
-3. Place a migration by the tables each flow uses, measured rather than read from the code. Each flow has a database of its own, so before it's dropped, `pg_stat_user_tables` in it says which tables the flow read or wrote, views' and functions' tables included; kept beside `opened`, a migration then reruns the flows that used what it alters, and every flow only for a collation or anything it can't place. Postgres keeps a connection's counts for up to a second or so before they show (https://www.postgresql.org/docs/current/monitoring-stats.html), so check none is missed before trusting it.
-4. An audit of the map that can be run again, after a change to how the site is built (a new Next, another bundler): the check below was made with scripts that weren't kept.
-5. Keep each flow's pages in the repo, so a checkout with no kept run near it chooses its flows in seconds, as CI could (`ci-speed.md`, "Each flow's pages, kept in the repo").
+1. Keep each flow's pages in the repo, so a checkout with no kept run chooses its flows in seconds, as CI could, and the record is the branch's own (`ci-speed.md`, "Each flow's pages, kept in the repo").
+2. Take out the carrying of main's frames between trees, leaving the store a plain cache by tree: main then runs a flow once for each commit of main that a review needs it at.
+3. Have CI picture main on each push to it and keep the frames as an artifact, for a review to fetch. First compare one run of CI's with one made locally: fonts and the machine may make the pictures differ.
+4. Show the review as it fills: open the page at once, and add this branch's side as it arrives.
+5. Place a migration by the tables each flow uses, measured rather than read from the code. Each flow has a database of its own, so before it's dropped, `pg_stat_user_tables` in it says which tables the flow read or wrote, views' and functions' tables included; kept beside `opened`, a migration then reruns the flows that used what it alters, and every flow only for a collation or anything it can't place. Postgres keeps a connection's counts for up to a second or so before they show (https://www.postgresql.org/docs/current/monitoring-stats.html), so check none is missed before trusting it.
+6. An audit of the map that can be run again, after a change to how the site is built (a new Next, another bundler): the check below was made with scripts that weren't kept.
 
 ## Placing a migration by the code that names its tables
 
@@ -54,20 +59,10 @@ Following the flows' runs by coverage to choose them, in place of imports, picke
 
 ## Hits
 
-- 2026-11-17: `--plan` on a branch one commit from main, changing five files that reach no flow, took 41s to say so, trying each of the 30 kept trees; a profile put most of it in rebuilding a long cache key for every flow and changed file, ~20 min
-
 - 2026-11-12: three full reviews in a row on one branch, five minutes each with the build, as each turned up one failing phone flow and the fix to a shared piece (the bubble) needed every flow run again; the changes after the first touched four files, ~20 min waiting
-- 2026-11-19: a review after rebasing a worktree onto a newer main found no frames kept for the new base, as `npm run worktree` starts main's run only for the base it begins from; it reached from an older kept tree, counting main's own commits since as changed, so it ran all 664 branch flows and then main's suite for 577, ~15 min. Starting main's frames for the new base when a worktree rebases would avoid it
-- 2026-11-23: a three-file CSS fix rebased onto a main nine minutes old before its gate; no kept tree for the new base, so it counted main's 11 newest files as the branch's and ran 576 branch flows rather than the events bands', with main's suite to follow
 - 2026-11-16: the gate's storyboard in a new sandbox had no frames to carry, so it ran all 626 branch flows (7 min) and then main's whole suite, and stopped at its 20-minute limit before comparing; the gate failed for that alone, ~25 min waiting
 - 2026-11-12: a full review took 12 minutes, not 5, with the machine busy with other work, and the staff kit's gallery flow (51 frames) passed its 60 seconds; the review after a one-line fix to a flow's step had to run whole again, ~25 min waiting
-- 2026-11-14: a moved file's path in a comment of the seed data (tests/fixtures/staff-data.sql) reruns every desktop flow, though no SQL changed; a comment-only change to a .sql fixture could reach nothing
-- 2026-11-14: a rename-only PR (names that say where code runs) added one marker package to `package.json`, and `package.json` reruns every desktop flow; with a kept tree 1,505 files back, the plan alone took about ten minutes of CPU before the build began
-- 2026-11-14: the letters feature-folders PR, stacked on six unmerged ones, had a kept tree 1,608 files back, so its review ran every flow (626), after about seven minutes of planning with no output
-- 2026-11-14: the broadcasts feature-folders PR, stacked on seven, ran every flow (626) against main's kept tree 1,677 files back, and showed 278 changed gallery frames from the PRs below it; telling its own took a script comparing against the letters worktree's run
-- 2026-11-14: the gate's import-cycle check failed reading a coverage file the backup's tests, run beside it, had just deleted; the repo's walk now skips coverage/
-- 2026-11-14: the oversight feature-folders PR, stacked on eight, planned for about fifteen minutes with no output against a kept tree 1,968 files back, past the gate's twenty-minute limit for the storyboard once the run was added, then ran every flow (626); telling its own 87 changed frames from the 368 against main took a script comparing with the base branch's kept tree (tmp/vsbase.mjs)
-- 2026-11-14: the Gmail-sending feature-folders PR, stacked on the docs PR, planned for about eleven minutes of CPU with no output before its build began, against a kept tree some 1,300 files back; a `--plan` alone took as long
+- 2026-11-14: a rename-only PR (names that say where code runs) added one marker package to `package.json`, and `package.json` reruns every desktop flow
 - 2026-11-16: a migration that only widened the CHECKs of `civicrm_updates`, a table no page shows, reran every desktop flow in the gate's review, though the change could reach none
-- 2026-11-16: a new worktree's keeping of main's frames failed at once (`lib/test-mps.json` not found), so the gate's review planned for about eleven minutes against a kept tree 2,023 files back, chose every flow, and stopped at its 20-minute limit, ~35 min
 - 2026-11-17: a migration reran all 658 flows on both viewports in the gate's review, beside `npm test`; the load reached 80 on 14 cores, so dozens of unrelated tests timed out at 10 seconds and the review stopped at its 20-minute limit; both had to run again, one at a time, ~35 min. Part of the load: Vitest also ran the tests of two agents' worktrees under `.claude/worktrees/`, which it now leaves out
+- 2026-11-23: a one-file CSS change reached 57 flows by main's kept records and 52 by a run of those flows alone: six of the public pages' flows had recorded every public page in the run of every flow, ~10 min finding why two plans differed

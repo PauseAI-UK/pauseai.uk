@@ -284,7 +284,7 @@ on the page: "Passed. No frames: this flow only checks."
 
 ```bash
 npm run test:storyboard   # CI's run: desktop runs every flow, phone only those tagged @phone; no screenshots
-npm run storyboard        # the review, and the gate's storyboard: the flows a change can reach, both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the page
+npm run storyboard        # the review, and the gate's storyboard: the flows this branch's change can reach, both viewports, screenshots, against main's frames (where this branch left origin/main), then opens the page
 npm run storyboard -- --plan   # which flows the review would run, and why, running none
 npm run test:report       # Playwright's own report, with the trace of a failed flow
 ```
@@ -362,8 +362,8 @@ test-results/storyboard-progress.json
 
 It's written when the run starts, after each flow and when the run ends.
 `kind` is which run it is: "review", with pictures on both viewports, or
-"flows", the gate's lighter run, which only checks that every flow works
-and so has fewer to do. `done` counts every flow that has finished, and
+"flows", CI's run (`npm run test:storyboard`), which only checks that
+every flow works. `done` counts every flow that has finished, and
 `failed` those of them that didn't pass. Anything that shows a run's
 progress, such as a terminal's status line, reads this file, not the run's
 output, which goes wherever whoever started it sent it. A run is going
@@ -701,27 +701,27 @@ recently. These put frames there:
   lists main's flows (`playwright test --list`, which builds nothing),
   runs main for just the flows not kept (`playwright test --test-list`),
   and keeps them. A flow that failed is kept too, to show as failed on
-  main, and is tried again by the next review. So main runs once for each
-  commit of main, for every branch and worktree off it.
+  main, and is tried again by the next review. So main runs a flow once
+  for each commit of main, for every branch and worktree off it that
+  pictures the flow.
 - **A review of a branch.** Its frames, the flows it carried as well as
   those it ran, are kept under the tree of the checkout as it was,
   uncommitted files and all: each carried flow looks as it would on that
   tree, or the review would have run it. When the branch merges, main's
-  tree is that tree if nothing else merged in between, and its frames are
-  there already. They're kept only if Playwright built the site for that
-  run (no server was already up, and no `--server`) and nothing in the
-  checkout changed while it ran, as only then is the build known to be that
-  tree's. A run narrowed by hand (a section, `-g`, one viewport) keeps
-  nothing, as the flows it didn't run weren't chosen as unchanged.
+  tree is that tree if nothing else merged in between, and its frames of
+  those flows are there already. They're kept only if Playwright built the
+  site for that run (no server was already up, and no `--server`) and
+  nothing in the checkout changed while it ran, as only then is the build
+  known to be that tree's. A run narrowed by hand (a section, `-g`, one
+  viewport) keeps nothing, as the flows it didn't run weren't chosen as
+  unchanged.
 - **Another kept tree.** Before running main for the flows not kept, the
   review looks for the kept tree nearest main's: of each, the flows that
   recorded their tree and what they opened, less those the change from
   the tree each ran on to main's can reach ("Which flows a review runs").
   From the one that leaves fewest to run, it carries the rest into main's
-  tree, and runs main for what's left. After a merge or a rebase, that's
-  usually what the last PR changed. A review of a branch carries from a
-  kept tree in the same way, when that leaves fewer flows to run than the
-  latest run here does, or there's none.
+  tree, and runs main for what's left. After a rebase, that's the flows
+  the branch's change reaches that main's merges since reach too.
 
 A flow kept under a tree it didn't run on keeps the tree it did run on
 (`tree`), so the next review asks what changed since then. One that ran on
@@ -730,13 +730,12 @@ runs main whole, replacing what was carried, and lists any carried flow
 that looks different run afresh, past the review's noise: a change the map
 missed.
 
-A review needs every flow of main's, and a run narrowed by hand those of
-its own flows that main has. Either shows main's frames of every flow
-that's kept, so the flows a review carries are beside main as it is now.
-`npm run worktree` starts the same thing in the
-background as it makes a branch (`npm run storyboard -- --only-main`), so
-the first review needn't wait: a review started meanwhile waits for it to
-finish. `--fresh-main` runs main again regardless.
+A review needs main's frames of the flows it pictures and checks, and of
+any flow of main's that this branch's suite no longer has, shown as gone.
+It gets them before it runs this branch's. A run narrowed by hand needs
+those of its own flows that main has, and gets them after. `--full` needs
+every flow of main's. Two reviews that need main to run take turns at
+main's checkout. `--fresh-main` runs main again regardless.
 
 Main's build is served on a port of its checkout's own, and the review
 won't run main while something already answers there, such as a server
@@ -781,8 +780,8 @@ Switches, after `--`:
 - `--paths`: print each frame's caption and picture;
 - `--changed`: print only the changed frames, as above;
 - `--server=URL`: a server you started for this branch;
-- `--fresh-main`, `--only-main`, `--this-suite-on-main` and
-  `--main-server=URL`: as above.
+- `--fresh-main`, `--this-suite-on-main` and `--main-server=URL`: as
+  above.
 
 Anything else goes to `playwright test`: a file (`staff-login`),
 `-g login`, `--headed`.
@@ -1561,8 +1560,8 @@ progress"):
 
 A step is `waiting`, `running`, `passed`, `failed` or `skipped`. `groups`
 sums them up as the three things worth watching: the two long ones each on
-its own, `test` and `flows` (the gate's storyboard, which checks that
-every flow works, where the review pictures them), and `checks`,
+its own, `test` and `flows` (the gate's storyboard, which is the review:
+the flows this branch's change reaches), and `checks`,
 everything else (the types, the linters, the placeholder check and the
 backup Worker's package), which is quick. A group is failed if any of its
 steps has, and running until all of them are done. Only the groups this
@@ -1590,7 +1589,7 @@ limit, and check on it when it's due:
 timeout 30m npm run gate > tmp/gate.out 2>&1          # its commands have limits of their own (above)
 timeout 15m npm test                                  # usually about 5 minutes
 timeout 15m npm run test:storyboard                   # usually a few minutes
-timeout 25m npm run storyboard -- --no-open           # seconds to 7 minutes, by how many flows a change reaches, and longer when it has to run main
+timeout 25m npm run storyboard -- --no-open           # seconds to 7 minutes, by how many flows the branch's change reaches, and up to twice that when it has to run main for them
 ```
 
 `timeout` stops the run at the limit and exits 124, so a run that ends that
