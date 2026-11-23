@@ -399,12 +399,6 @@
   flex: none;
 }
 
-/* Its "?", the kit's round button, a little smaller than its default. */
-.why {
-  --icon-button-size: 24px;
-  font-weight: 700;
-}
-
 /* What it opens: a paragraph to read, so wider than a bubble's few words. */
 .whyBubble {
   --bubble-width: 28rem;
