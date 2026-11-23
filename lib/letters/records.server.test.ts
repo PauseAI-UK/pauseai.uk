@@ -392,6 +392,8 @@ describeWithDatabase("a letter for its page", () => {
     const letter = await getSupporterLetter(postmark);
     expect(letter?.gmail).toEqual({ mailbox: "policy@pauseai.uk", search: "rfc822msgid:pm-1@mtasv.net" });
     expect(letter?.sent?.text).toBe("Dear MP");
+    // By Postmark, it has no Gmail to open.
+    expect(letter?.inGmail).toBeNull();
     vi.unstubAllEnvs();
   });
 
@@ -415,11 +417,14 @@ describeWithDatabase("a letter for its page", () => {
     });
     deliverToLettersInbox(testMail({ from: "test-mp@parliament.example", to: testProxy("jane.smith") }));
     await readGmail("test");
-    const [{ id, rfc }] = await query<{ id: number; rfc: string }>(
-      "SELECT letter_id::int AS id, rfc_message_id AS rfc FROM email_sends WHERE purpose = 'letter'",
+    const [{ id, rfc, thread }] = await query<{ id: number; rfc: string; thread: string }>(
+      "SELECT letter_id::int AS id, rfc_message_id AS rfc, gmail_thread_id AS thread FROM email_sends WHERE purpose = 'letter'",
     );
     const letter = (await getSupporterLetter(id))!;
     expect(letter.gmail).toEqual({ mailbox: LETTERS_INBOX, search: `rfc822msgid:${rfc}` });
+    // It went by the letters inbox's Gmail, so it opens in its thread there.
+    expect(thread).toEqual(expect.any(String));
+    expect(letter.inGmail).toEqual({ account: LETTERS_INBOX, threadId: thread });
     expect(letter.backend).toBe("gmail");
     expect(letter.sent).toEqual({
       text: "Dear Mr McTestface,\n\nPlease back a pause.",

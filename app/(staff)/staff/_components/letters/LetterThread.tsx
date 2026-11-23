@@ -168,8 +168,14 @@ export function SupporterLetterThread({ letter, link }: { letter: SupporterLette
       <StaffLink href={`/staff/supporters/${letter.supporterId}`}>{sender}</StaffLink>
     );
   const email = { from, to: mp, at: letter.sentAt, subject: letter.subject || letter.campaignTitle };
+  // One sent by Gmail opens there, at the right of the heading, as PauseAI's do.
+  const { inGmail } = letter;
   return (
-    <Thread>
+    <Thread
+      link={
+        inGmail && <OpenInGmail href={gmailMessageLink(inGmail.account, inGmail.threadId)} account={inGmail.account} />
+      }
+    >
       {sent ? (
         <LetterChanges {...email} sent={sent.text} draft={sent.draft} />
       ) : (
