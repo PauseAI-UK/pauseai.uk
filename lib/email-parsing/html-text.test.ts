@@ -135,6 +135,12 @@ describe("an HTML email's text", () => {
       '<span style="mso-bidi-font-weight:bold">Word\'s</span> <i style="font-style:normal">upright</i>.</p></b>' +
       '<div style="font-weight:600"><br></div>';
     expect(htmlText(html)).toBe("*Bold* and plain, *_both_*, Word's upright.");
+    // A piece starting with punctuation, as after a link, keeps it outside its marks; one all punctuation has none.
+    expect(
+      htmlText(
+        '<b><i>See </i></b><a href="https://example.org"><b><i>here</i></b></a><b><i>. Or there</i></b><b><i>.</i></b><br><b>.</b>',
+      ),
+    ).toBe("*_See_* *_here_* <https://example.org/>. *_Or there._*\n.");
     // A slant on a whole block is its look; italic round bold is left plain.
     expect(
       htmlText('<blockquote style="font-style:italic"><p>Plain</p></blockquote><p><i>Say <b>this</b></i></p>'),

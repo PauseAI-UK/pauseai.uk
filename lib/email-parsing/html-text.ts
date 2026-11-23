@@ -374,10 +374,12 @@ export function htmlText(html: string): string {
       const written = lines[i];
       const from = i === first && "at" in start ? start.at : 0;
       const piece = written.text.slice(from);
-      const words = piece.trim();
+      // Punctuation it starts with stays outside its marks, which can't pair after it.
+      const lead = piece.match(/^[\s.,;:!?)\]]*/)![0];
+      const words = piece.slice(lead.length).trim();
       // Not on words with a mark in them already, nor italic round bold, which mailParts can't read.
       if (!words || words.includes(mark) || (mark === "_" && words.includes("*"))) continue;
-      const head = written.text.slice(0, from) + piece.match(/^\s*/)![0];
+      const head = written.text.slice(0, from) + lead;
       const after = piece.match(/\s*$/)![0];
       written.text = `${head}${mark}${words}${mark}${after}`;
       if (i === last && !after) lastRun[mark] = { line: written, start: head.length, end: written.text.length };
