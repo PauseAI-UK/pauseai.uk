@@ -23,12 +23,12 @@ const copy = mailingsCopy.mailingPages;
 
 /**
  * How a mailing's letters stand, a count for each state (LETTER_STATES), in
- * the order it happens: what went, what came back, and what was marked as
- * spam; then what didn't go, the expected first. The same in the list and on
+ * the order it happens: what went, what came back, what waits for staff,
+ * and what was marked as spam; then what didn't go, the expected first. The same in the list and on
  * its page; a count of none isn't shown.
  */
 export function mailingCounts(mailing: MailingSummary): Count[] {
-  return stateCounts(mailing.states, ["sent", "replied", "answered", "spam", "not-sent", "error", "unreached"]);
+  return stateCounts(mailing.states, ["sent", "replied", "answered", "look", "spam", "not-sent", "error", "unreached"]);
 }
 
 /**
