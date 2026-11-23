@@ -41,7 +41,7 @@ How it would work:
 
 To settle first:
 
-- **Lists that differ between runs.** Of 664 flows over about 11,000 kept runs, 566 had the same list every time, 66 changed once and stayed, as a change to the code would make them, and 32 went back and forth. 26 of those are `public-pages` flows: each checks its page's links by asking for them, but skips those an earlier flow in the same worker has checked (`checkedLinks`, `tests/storyboard/public-pages.spec.ts`), so the menu's and footer's links are in the list of whichever flow a worker ran first. One flow that checks every public page's links, and none in the others, would make each list the same every run. The other six aren't explained: a press logo in `onboarding-embed`, `/staff` in "Folding the sidebar", `/what-is-pauseai-uk` in "Closing a submenu", and three addresses in two phone flows of `mailings` and `politicians`.
+- **Lists that differ between runs.** Of 664 flows over about 11,000 kept runs, 566 had the same list every time, 66 changed once and stayed, as a change to the code would make them, and 32 went back and forth. 26 of those were `public-pages` flows, which no longer check links themselves. The other six aren't explained: a press logo in `onboarding-embed`, `/staff` in "Folding the sidebar", `/what-is-pauseai-uk` in "Closing a submenu", and three addresses in two phone flows of `mailings` and `politicians`.
 - **Main's pictures.** The lists say which flows to run, but a review sets each frame beside main's, which still come from a kept run or from running main, for the reached flows only. What a review shows for a flow with no kept pictures needs deciding.
 
 ## Hits

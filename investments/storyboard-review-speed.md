@@ -12,7 +12,7 @@ A review pictures only the flows that the files a branch changes from main can r
 - **The gallery's flows are a quarter of a full review.** A review pictures only the frames of a group a change reaches, but a component whose examples are in the group's own file (most of the site's kit, `_examples/ui.tsx`) is pictured whenever its group is reached.
 - **One file of seed data**, which every desktop flow reruns for (`test-data-builders.md`).
 - **A checkout with no kept runs pictures every flow.** Which pages a flow opens is known only from a run of it, kept on the machine that ran it, beside main's frames. A new sandbox has neither, so nothing says what its change reaches, and main runs for every flow too.
-- **A flow's record of its pages can be wrong.** One from an older main is out of date if a merge since changed which pages the flow opens, and the review then leaves the flow out. And some of the public pages' flows record other flows' pages in a run of every flow, but only their own when few run, so a review pictures a few more flows than it needs.
+- **A flow's record of its pages can be wrong.** One from an older main is out of date if a merge since changed which pages the flow opens, and the review then leaves the flow out. Six flows record different pages from one run to the next, for reasons not yet known (`ci-speed.md`, "Lists that differ between runs").
 
 Choosing the flows takes about 5 seconds before the build starts, building the import graph, which every review does again from nothing.
 
@@ -44,4 +44,3 @@ Choosing flows by each flow's coverage, in place of imports, picked a little few
 - 2026-11-14: a rename-only PR (names that say where code runs) added one marker package to `package.json`, and `package.json` reruns every desktop flow
 - 2026-11-16: a migration that only widened the CHECKs of `civicrm_updates`, a table no page shows, reran every desktop flow in the gate's review, though the change could reach none
 - 2026-11-17: a migration reran all 658 flows on both viewports in the gate's review, beside `npm test`; the load reached 80 on 14 cores, so dozens of unrelated tests timed out at 10 seconds and the review stopped at its 20-minute limit; both had to run again, one at a time, ~35 min
-- 2026-11-23: a one-file CSS change reached 57 flows by main's kept records and 52 by a run of those flows alone: six of the public pages' flows had recorded every public page in the run of every flow, ~10 min finding why two plans differed
