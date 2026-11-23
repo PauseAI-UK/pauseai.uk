@@ -403,19 +403,20 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   const id = new URL(draftPage).pathname.split("/").at(-1);
   await preview.getByRole("button", { name: copy.submitTemplate }).click();
   story(
-    "Sent, it's back to the list of broadcasts, where the draft says it's waiting for WhatsApp, its row tinted to find it.",
+    "Sent, it stays on the draft, at its top, where a strip says they've gone and the words are locked till WhatsApp decides.",
   );
-  await page.waitForURL(`${BASE}/staff/broadcasts?submitted=${id}`);
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  await expect(page).toHaveURL(draftPage);
+  await frame(page, "The draft, sent for approval");
+  story("The list says the draft is waiting for WhatsApp.");
+  await page.goto(`${BASE}/staff/broadcasts`);
   await expect(page.getByText(copy.standing.waiting)).toBeVisible();
-  await frame(page, "Back on the list, the draft waiting for WhatsApp");
+  await frame(page, "The list, the draft waiting for WhatsApp");
   story("Whoever sent them, and the notification inbox, get the words by email.");
   const sent = newestEmail((one) => one.Cc === staffEmail())!;
   expect(sent.Subject).toBe(broadcastsCopy.notifications.templateSubmitted.subject("March day: where to meet"));
   await emailFrame(page, sent, "The email saying they've gone for approval");
-  story("On the draft, a strip at the top says they've gone, and the words are locked till WhatsApp decides.");
   await page.goto(draftPage);
-  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
-  await frame(page, "The draft, sent for approval");
   await templateBox(page).scrollIntoViewIfNeeded();
   await frame(page, "Its words locked", { window: true });
   story(
@@ -600,7 +601,7 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
   await savedAfter(page, () => page.getByLabel(copy.templateName).fill("PauseCon doors"));
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   await page.getByRole("button", { name: copy.submitTemplate }).click();
-  await page.waitForURL(`${BASE}/staff/broadcasts?submitted=${id}`);
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
   story("What goes to WhatsApp: the words, with a footer saying how to stop and a Stop button, as every text has.");
   const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
   await textFrame(

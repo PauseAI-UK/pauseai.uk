@@ -927,9 +927,11 @@ export default function BroadcastWriter({
                             .then(() => actions.submitTemplate(id))
                             // An outdated page says so over the draft, not here.
                             .catch((error: unknown) => (stale(error) ? ("outdated" as const) : ("broke" as const)));
-                          // Back to the list, where the broadcast's row says it's waiting for WhatsApp, and pulses.
+                          // It stays on the draft, brought back as sent, its top in view, where a strip says it's
+                          // waiting for WhatsApp.
                           if (result === "submitted") {
-                            router.push(`/staff/broadcasts?submitted=${id}`);
+                            router.refresh();
+                            window.scrollTo({ top: 0, behavior: "instant" });
                             return;
                           }
                           setSubmitting(false);

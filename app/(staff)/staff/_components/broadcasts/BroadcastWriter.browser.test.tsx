@@ -901,10 +901,14 @@ describe("BroadcastWriter, by text", () => {
     await button(copy.submitTemplate).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitBroke);
     await expect.element(button(copy.submitTemplate)).toBeEnabled();
-    // Sent: back to the list, where its row pulses.
+    // Sent: the draft is brought back as sent, at its top, where a strip says so; it goes nowhere else.
+    const refreshes = navigation.refreshes;
+    window.scrollTo({ top: 400, behavior: "instant" });
     actions.submitTemplate.mockResolvedValue("submitted");
     await button(copy.submitTemplate).click();
-    await vi.waitFor(() => expect(navigation.pushed).toEqual(["/staff/broadcasts?submitted=4"]), WAIT);
+    await vi.waitFor(() => expect(navigation.refreshes).toBe(refreshes + 1), WAIT);
+    expect(window.scrollY).toBe(0);
+    expect(navigation.pushed).toEqual([]);
   });
 
   it("warns that WhatsApp may not approve new words before a time less than a day off", async () => {
