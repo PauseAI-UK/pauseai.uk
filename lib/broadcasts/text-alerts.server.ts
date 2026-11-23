@@ -14,7 +14,7 @@ import { broadcastsCopy } from "./copy";
 // needs none: the dashboard lists it, and there's no hurry.
 
 /** How long a reply to a text waits for staff before they're emailed about it. */
-export const ALERT_AFTER_HOURS = 2;
+const ALERT_AFTER_HOURS = 2;
 
 /** A reply to a text waiting for staff, as the email names it. */
 type Waiting = {
