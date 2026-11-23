@@ -1190,6 +1190,7 @@ FROM (VALUES
   ('Thank you for coming.', 'thank you for coming. Here is what happens next.', 'approved', 'sam@pauseai.uk', interval '70 days'),
   ('write_to_your_mp', 'the AI bill has its second reading next week. Could you write to your MP?', 'approved', NULL, interval '80 days'),
   ('Rain on Saturday', 'bring a coat on Saturday: rain is forecast for the afternoon.', 'pending', 'jo@pauseai.uk', interval '2 hours'),
+  ('Coach times', 'the coach to the march leaves at 08:00 from outside the library.', 'pending', 'sam@pauseai.uk', interval '3 hours'),
   ('Have you written to your MP?', 'have you written to your MP?', 'rejected', 'jo@pauseai.uk', interval '1 day')
 ) t (name, words, status, by, ago);
 
@@ -1205,6 +1206,8 @@ SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
   ('Have you written to your MP?', 'text', 'draft', NULL, 'Have you written to your MP?', NULL),
   ('The march meets at 11:00 at Parliament Square.', 'text', 'scheduled', interval '2 days', 'The march meets at 11:00 at Parliament Square.', NULL),
   ('Rain on Saturday', 'text', 'draft', interval '3 days', 'Rain on Saturday', NULL),
+  -- Scheduled before WhatsApp approved its template, which it waits for.
+  ('Coach times', 'text', 'scheduled', interval '2 days', 'Coach times', NULL),
   ('Our next event is on Saturday.', 'text', 'sending', interval '-1 hour', 'Our next event is on Saturday.', NULL),
   ('PauseCon room change', 'text', 'sent', interval '-3 days', 'PauseCon room change', NULL),
   ('We are flyering on Saturday.', 'text', 'cancelled', interval '-6 days', 'We are flyering on Saturday.', NULL),

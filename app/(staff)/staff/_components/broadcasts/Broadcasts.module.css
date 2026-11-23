@@ -382,3 +382,39 @@
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
 }
+
+/* How long a broadcast keeps trying, as a sentence with its choice in it,
+   and the "?" after it: in a row, wrapping on a phone. */
+.keepsTrying {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+}
+
+/* The choice, as wide as its longest. */
+.length {
+  width: 7.5rem;
+  flex: none;
+}
+
+/* Its "?", the kit's round button, a little smaller than its default. */
+.why {
+  --icon-button-size: 24px;
+  font-weight: 700;
+}
+
+/* What it opens: a paragraph to read, so wider than a bubble's few words. */
+.whyBubble {
+  --bubble-width: 28rem;
+}
+
+/* Its paragraphs, a gap between. */
+.whyWords {
+  margin: 0;
+}
+
+.whyWords + .whyWords {
+  margin-top: var(--space-2);
+}

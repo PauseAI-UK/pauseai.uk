@@ -127,6 +127,9 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "schedule broadcast": { id: number; recipients: number };
   "stop broadcast": { id: number; was: MailingState };
   "resume broadcast": { id: number; copies: number };
+  "change broadcast times": { id: number; dueAt: string; finishMinutes: number | null };
+  // By WhatsApp, rejecting the template a scheduled text was on.
+  "unschedule broadcast": { id: number; templateId: number };
   "record opt-out": { address: string; list: string; way: string; how: string; replyId?: number };
   "deal with reply": { replyId: number; outcome: "opted-out" | "nothing" };
   "answer reply": { replyId: number; answerId: number };

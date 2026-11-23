@@ -78,6 +78,12 @@ describe("BroadcastsOverview", () => {
             // Scheduled, past its time, waiting for CiviCRM: it has no bar.
             scheduled: [
               { ...sending(8, { kind: "waiting", reason: "pull", said: null, endsAt: until }), state: "scheduled" },
+              // Waiting for WhatsApp's approval, it says so as it did before its time, not that it's paused.
+              {
+                ...sending(9, { kind: "waiting", reason: "approval", said: null, endsAt: until }),
+                state: "scheduled",
+                waiting: true,
+              },
             ],
             sending: [sending(4, null), sending(6, { kind: "held", held: 3, until, stopsAt: until })],
             drafts: [],
@@ -100,6 +106,8 @@ describe("BroadcastsOverview", () => {
     await expect.element(row(8).getByText(copy.paused.word, { exact: true })).toBeVisible();
     await expect.element(row(8).getByText(copy.paused.forCiviCrm)).toBeVisible();
     expect(row(8).getByRole("progressbar").elements()).toHaveLength(0);
+    await expect.element(row(9).getByText(copy.standing.waiting)).toBeVisible();
+    expect(row(9).getByText(copy.paused.word, { exact: true }).elements()).toHaveLength(0);
   });
 
   it("lists emails and texts, each with its channel, leading to its page", async () => {
@@ -212,6 +220,7 @@ describe("BroadcastsOverview", () => {
               went(6, "Template paused", gaveUp("template")),
               went(7, "Late", gaveUp("late")),
               went(8, "Failing", gaveUp("failing")),
+              went(9, "Never approved", gaveUp("approval")),
             ],
           },
           new Date(now),
@@ -227,12 +236,13 @@ describe("BroadcastsOverview", () => {
       words.gaveUp.template!(3, 5),
       words.gaveUp.late!(3, 5),
       words.gaveUp.failing!(3, 5),
+      words.gaveUp.approval!(0, 5),
     ]) {
       await expect.element(page.getByText(said)).toBeVisible();
     }
-    // Those it never sent aren't fine for one stopped, so they show, for each of the seven; for the one sent,
+    // Those it never sent aren't fine for one stopped, so they show, for each of the eight; for the one sent,
     // those are as expected, folded with the fine.
-    expect(page.getByRole("link", { name: `8 ${stateWords.counts["not-sent"]}` }).all()).toHaveLength(7);
+    expect(page.getByRole("link", { name: `8 ${stateWords.counts["not-sent"]}` }).all()).toHaveLength(8);
     // CiviCRM down, or no fresh pull from it, read the same.
     expect(page.getByText(words.gaveUp.civicrm!(3, 5)).all()).toHaveLength(2);
     expect(words.gaveUp.pull!(3, 5)).toBe(words.gaveUp.civicrm!(3, 5));

@@ -18,6 +18,7 @@ import {
   type BroadcastTerms,
   type RecipientSort,
   type SendingPause,
+  MOST_FINISH_MINUTES,
 } from "./broadcasts";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
@@ -39,7 +40,6 @@ import { howOptedOutFrom, optedOutFrom } from "@/lib/supporters/opt-outs.server"
 import { checkStoredFilter, filterProblems } from "@/lib/server/stored-filters.server";
 import { supporterChoices, type SupporterChoices } from "@/lib/supporters/records.server";
 import { broadcastsCopy } from "./copy";
-import { SENDING_DAYS } from "./days";
 import { DELAYED, SOFT_BOUNCED } from "./delayed";
 
 // What the pages of broadcasts to supporters show: the list of them, a draft
@@ -52,7 +52,9 @@ export type BroadcastSummary = MailingBase & {
   channel: BroadcastChannel;
   /** What sends an email; Gmail says nothing of what arrives, so its copies stay sent. */
   sendBy: BroadcastSendBy;
-  /** A draft whose new words WhatsApp is reviewing. */
+  /** When it stops trying, in minutes after its time; none for the most (sendingStopsAt). */
+  finishMinutes: number | null;
+  /** A draft or one scheduled whose template WhatsApp is reviewing. */
   waiting: boolean;
   /** A draft on words WhatsApp has approved, so it can be scheduled. */
   approved: boolean;
@@ -99,7 +101,7 @@ const UNFINISHED = `EXISTS (SELECT 1 FROM broadcast_message_events e
  * Where a copy stands, one state each, the first that applies: a reply to
  * check; they opted out because of it; something broke (its provider
  * refused it, its send cut off, its broadcast gave up, or it was delayed
- * till its broadcast's SENDING_DAYS ran out); it didn't reach them (a bounce,
+ * till its broadcast stopped trying); it didn't reach them (a bounce,
  * or a number found not on WhatsApp); not sent, as expected (they'd opted
  * out before, their consent ended, an address already blocked, we
  * cancelled); replied; read; delivered; sent; or still to go: held, which
@@ -125,10 +127,11 @@ export type CopyState = (typeof COPY_STATES)[number] | "scheduled";
 // Held by WhatsApp, as the person has had enough marketing messages lately (holdCopy, in sending.server.ts): put
 // back to go no sooner than a time still to come.
 const HELD = "c.status = 'scheduled' AND c.not_before > now()";
-// Its broadcast's SENDING_DAYS are over (in hours, as sendingStopsAt counts), or it was stopped, as staff gave up on
-// those delayed (stopBroadcast): a copy still delayed counts as never arriving. If Postmark delivers it after
-// all, it's delivered.
-const DAYS_OUT = `(SELECT g.state = 'cancelled' OR g.due_at + make_interval(hours => ${SENDING_DAYS * 24}) <= now()
+// Its broadcast has stopped trying (its finish, in minutes as sendingStopsAt counts), or it was stopped, as staff
+// gave up on those delayed (stopBroadcast): a copy still delayed counts as never arriving. If Postmark delivers it
+// after all, it's delivered.
+const DAYS_OUT = `(SELECT g.state = 'cancelled'
+    OR g.due_at + make_interval(mins => coalesce(g.finish_minutes, ${MOST_FINISH_MINUTES})) <= now()
   FROM mailings g WHERE g.id = c.mailing_id)`;
 
 const COPY_STATE = `CASE
@@ -171,7 +174,7 @@ const COPY_WHY = `CASE ${COPY_STATE}
 const SELECT_BROADCASTS = `
   SELECT m.id::int AS id, m.title, m.ask, NULL AS "askTitle", false AS imported, m.state, m.created_by AS "createdBy",
     coalesce(nullif(m.from_name, ''), m.sent_from) AS "fromName", m.sent_from AS "sentFrom", m.due_at AS "dueAt",
-    m.updated_at AS "updatedAt", m.channel, m.send_by AS "sendBy",
+    m.updated_at AS "updatedAt", m.channel, m.send_by AS "sendBy", m.finish_minutes AS "finishMinutes",
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'pending') AS waiting,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'approved') AS approved,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
@@ -400,6 +403,7 @@ export async function newBroadcastPageData(
       topics: ["newsletter"],
       template: null,
       sendBy: start.sendBy,
+      finishMinutes: null,
       waitingSince: null,
       waitReason: null,
       waitSaid: null,

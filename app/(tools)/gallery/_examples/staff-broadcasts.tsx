@@ -8,6 +8,7 @@ import { broadcastConsentGallery } from "@/app/(staff)/staff/_components/broadca
 import { broadcastSupportersGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastSupporters.gallery";
 import { channelWriterGallery } from "@/app/(staff)/staff/_components/broadcasts/ChannelWriter.gallery";
 import { broadcastWriterGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastWriter.gallery";
+import { broadcastTimesGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastTimes.gallery";
 import { broadcastsOverviewGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastsOverview.gallery";
 import { broadcastViewGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastView.gallery";
 import { broadcastForGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastFor.gallery";
@@ -33,6 +34,7 @@ export const staffBroadcasts: Group = {
     ...broadcastSupportersGallery,
     ...channelWriterGallery,
     ...broadcastWriterGallery,
+    ...broadcastTimesGallery,
     ...draftWriterGallery,
     ...broadcastsOverviewGallery,
     broadcastChannelMark,

@@ -25,6 +25,7 @@ import {
   scheduleBroadcast,
   sendBroadcastTest,
   resumeBroadcast,
+  retimeBroadcast,
   stopBroadcast,
   submitTemplate,
   withdrawTemplate,
@@ -99,6 +100,15 @@ it("takes only what a broadcast may change, by its channel", () => {
   expect(broadcastChangesFrom({ fromName: "Jo" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ templateId: "one" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ dueAt: FUTURE }, "text")).toEqual({ dueAt: FUTURE });
+  // Either, how long it keeps trying: half a day or whole days, in minutes, or null for seven days.
+  expect(broadcastChangesFrom({ finishMinutes: 720 }, "email")).toEqual({ finishMinutes: 720 });
+  expect(broadcastChangesFrom({ finishMinutes: null }, "text")).toEqual({ finishMinutes: null });
+  expect(broadcastChangesFrom({ finishMinutes: 1.5 }, "email")).toBeUndefined();
+  expect(broadcastChangesFrom({ finishMinutes: 0 }, "email")).toBeUndefined();
+  // Not a length it offers.
+  expect(broadcastChangesFrom({ finishMinutes: 90 }, "email")).toBeUndefined();
+  expect(broadcastChangesFrom({ finishMinutes: 8 * 24 * 60 }, "email")).toBeUndefined();
+  expect(broadcastChangesFrom({ finishMinutes: "90" }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ templateId: 3 }, "text")).toEqual({ templateId: 3 });
   expect(broadcastChangesFrom({ templateId: null }, "text")).toEqual({ templateId: null });
   // A text's title of its own, but not an email's, whose subject is its title.
@@ -309,7 +319,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
   });
 
-  it("schedules a text on an approved template, but not on new words till WhatsApp approves them", async () => {
+  it("schedules a text on an approved template, or on new words, sending them for approval as it does", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const template = await addTemplate("March day");
     const on = await draftOf(TEXT_FILTER);
@@ -322,16 +332,17 @@ describeWithDatabase("broadcasts to supporters", () => {
     const fresh = await draftOf(TEXT_FILTER);
     expect(
       await scheduleBroadcast(fresh, await readied(fresh, { body: saturday, title: "See you Saturday." }), JO),
-    ).toEqual({
-      scheduled: false,
-      problems: ["not-approved"],
+    ).toEqual({ scheduled: true });
+    expect(await getWrittenBroadcast(fresh)).toMatchObject({
+      state: "scheduled",
+      template: { status: "pending", name: "See you Saturday.", body: saturday },
     });
-    expect((await getWrittenBroadcast(fresh))!.template).toBeNull();
+    expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toHaveLength(1);
     // The very words of the approved template: nothing new to approve.
     const same = await draftOf(TEXT_FILTER);
     expect(
       await scheduleBroadcast(same, await readied(same, { body: EVENT_WORDS, title: "See you there." }), JO),
-    ).toEqual({ scheduled: false, problems: ["same-words", "not-approved"] });
+    ).toEqual({ scheduled: false, problems: ["same-words"] });
   });
 
   it("sends new words for approval, emailing who sent them and the inbox, and locks them till WhatsApp decides", async () => {
@@ -364,7 +375,8 @@ describeWithDatabase("broadcasts to supporters", () => {
       reason: "conflict",
     });
     expect(await saveBroadcastDraft(broadcast, version, { dueAt: FUTURE })).toMatchObject({ saved: true });
-    expect(await scheduleBroadcast(id, version + 1, JO)).toEqual({ scheduled: false, problems: ["not-approved"] });
+    // Scheduled while WhatsApp has them, they aren't sent again.
+    expect(await scheduleBroadcast(id, version + 1, JO)).toEqual({ scheduled: true });
     expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toHaveLength(1);
   });
 
@@ -505,6 +517,16 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toEqual([]);
     });
 
+    it("leaves a text a draft when Schedule sends its words for approval and WhatsApp doesn't take them", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      server.use(http.post(TEMPLATES, () => HttpResponse.json({ error: { message: "Bad" } }, { status: 400 })));
+      const id = await written();
+      const { version } = (await getWrittenBroadcast(id))!;
+      expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, submit: { failed: "Bad" } });
+      expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft", template: null });
+      expect(console.error).toHaveBeenCalled();
+    });
+
     it("deletes words taken back there too, reporting it if it can't", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const deleted: string[] = [];
@@ -631,12 +653,38 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await reviewTemplate(other, { approved: false, reason: "SCAM" })).toBe(true);
     expect(sent()[1]).toMatchObject({
       Subject: words.templateRejected.subject("Made in WhatsApp Manager"),
-      TextBody: words.templateRejected.body(words.templateRejectedWhy.reasons.SCAM!, SAID, []),
+      TextBody: words.templateRejected.body(words.templateRejectedWhy.reasons.SCAM!, SAID, [], 0),
     });
     expect(sent()[1].Cc).toBeUndefined();
     // WhatsApp's code is kept, and put in words where it's shown.
     expect(await query("SELECT status, rejected_reason FROM whatsapp_templates WHERE id = $1", [other])).toEqual([
       { status: "rejected", rejected_reason: "SCAM" },
+    ]);
+  });
+
+  it("makes a text scheduled on words WhatsApp rejects a draft again, saying so", async () => {
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const id = await draftOf(TEXT_FILTER);
+    const version = await readied(id, { body: EVENT_WORDS, title: "See you there." });
+    expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
+    // Past its time, waiting for WhatsApp.
+    await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'approval' WHERE id = $1", [id]);
+    const template = (await getWrittenBroadcast(id))!.template!.id;
+    const sent = outbox();
+    expect(await reviewTemplate(template, { approved: false, reason: "SCAM" })).toBe(true);
+    expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft", waitingSince: null, waitReason: null });
+    const words = broadcastsCopy.notifications;
+    expect(sent()[0].TextBody).toBe(
+      words.templateRejected.body(
+        words.templateRejectedWhy.reasons.SCAM!,
+        SAID,
+        [`https://pauseai.uk/staff/broadcasts/${id}`],
+        1,
+      ),
+    );
+    expect(await query("SELECT actor, details FROM audit_log WHERE action = 'unschedule broadcast'")).toEqual([
+      { actor: "whatsapp", details: { id, templateId: template } },
     ]);
   });
 
@@ -755,13 +803,20 @@ describeWithDatabase("broadcasts to supporters", () => {
     const gaveUp = () =>
       query(
         `UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now(), wait_reason = 'limit',
-           due_at = '2026-11-01T09:00:00Z', try_failed_at = now(), failed_in_a_row = 5 WHERE id = $1`,
+           due_at = '2026-11-01T09:00:00Z', try_failed_at = now(), failed_in_a_row = 5, finish_minutes = 60 WHERE id = $1`,
         [id],
       );
     await gaveUp();
     expect(await resumeBroadcast(id, JO)).toBe(true);
     const resumed = (await getWrittenBroadcast(id))!;
-    expect(resumed).toMatchObject({ state: "sending", gaveUp: false, waitingSince: null, waitReason: null });
+    // Trying for as long as it can, whenever it stopped trying before.
+    expect(resumed).toMatchObject({
+      state: "sending",
+      gaveUp: false,
+      waitingSince: null,
+      waitReason: null,
+      finishMinutes: null,
+    });
     // It goes at the next run, not resting after a try that failed before it stopped, and its count starts again.
     expect(await query("SELECT try_failed_at, failed_in_a_row FROM mailings WHERE id = $1", [id])).toEqual([
       { try_failed_at: null, failed_in_a_row: 0 },
@@ -780,6 +835,41 @@ describeWithDatabase("broadcasts to supporters", () => {
     await gaveUp();
     expect(await resumeBroadcast(id, JO)).toBe(true);
     expect(await getWrittenBroadcast(id)).toMatchObject({ state: "scheduled", gaveUp: false });
+  });
+
+  it("changes when one scheduled goes and how long it keeps trying, and only how long when one sending", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane");
+    const id = await draftOf(EMAIL_FILTER);
+    await scheduleBroadcast(id, await readied(id, { subject: "Events", body: EVENT_WORDS }), JO);
+    await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'pull' WHERE id = $1", [id]);
+    const due = new Date("2099-02-03T09:33:00Z");
+    expect(await retimeBroadcast(id, due, 24 * 60, JO)).toBe(true);
+    // At its new time, it waits for nothing yet.
+    expect(await getWrittenBroadcast(id)).toMatchObject({
+      dueAt: due,
+      finishMinutes: 24 * 60,
+      waitingSince: null,
+      waitReason: null,
+    });
+    expect(await retimeBroadcast(id, due, null, JO)).toBe(true);
+    expect((await getWrittenBroadcast(id))!.finishMinutes).toBeNull();
+    // Not a length it offers, nor a time already gone, nor with no time to go.
+    expect(await retimeBroadcast(id, due, 90, JO)).toBe(false);
+    expect(await retimeBroadcast(id, new Date("2020-01-01T09:03:00Z"), null, JO)).toBe(false);
+    expect(await retimeBroadcast(id, undefined, null, JO)).toBe(false);
+    expect(await query("SELECT details FROM audit_log WHERE action = 'change broadcast times'")).toHaveLength(2);
+    // Sending, it keeps its time, and only how long changes, to stop at a time still to come; a wait stays.
+    await startSending(id);
+    await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'civicrm' WHERE id = $1", [id]);
+    const { dueAt } = (await getWrittenBroadcast(id))!;
+    expect(await retimeBroadcast(id, due, 720, JO)).toBe(true);
+    expect(await getWrittenBroadcast(id)).toMatchObject({ dueAt, finishMinutes: 720, waitReason: "civicrm" });
+    await query("UPDATE mailings SET due_at = now() - interval '1 day' WHERE id = $1", [id]);
+    expect(await retimeBroadcast(id, undefined, 720, JO)).toBe(false);
+    // Sent, or not there, there's nothing to change.
+    await query("UPDATE mailings SET state = 'sent' WHERE id = $1", [id]);
+    expect(await retimeBroadcast(id, undefined, null, JO)).toBe(false);
+    expect(await retimeBroadcast(999, undefined, null, JO)).toBe(false);
   });
 
   it("sends again, on Resume of one that stopped as its copies kept failing, those refused, not those that may have gone", async () => {
