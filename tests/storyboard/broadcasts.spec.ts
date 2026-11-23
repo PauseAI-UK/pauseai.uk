@@ -736,7 +736,7 @@ test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }
   await postWhatsAppWebhook(request, BASE, reactionFrom(sent.number, "wamid.flow-reaction", sent.wamid, "👍"));
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
-  await expect(page.getByText(/reacted 👍/)).toBeVisible();
+  await expect(page.getByText(copy.replies.historyTheyReacted("👍"), { exact: true })).toBeVisible();
   await frame(page, "Their thumbs up, on our text");
   story("They take the reaction back, which WhatsApp tells us too. It leaves our text, and the thread says so.");
   await postWhatsAppWebhook(request, BASE, reactionFrom(sent.number, "wamid.flow-unreact", sent.wamid, undefined, 2));
