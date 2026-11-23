@@ -212,13 +212,14 @@ describeWithDatabase("sending broadcasts", () => {
     expect((await stateOf(id)).state).toBe("sent");
   });
 
-  it("starts none overnight, nor one not due", async () => {
+  it("starts none not due, and one due overnight in the night", async () => {
     await pulled();
-    await broadcast();
-    vi.setSystemTime(new Date("2026-11-02T05:18:00Z"));
-    expect(await startDueBroadcasts()).toEqual([]);
+    const id = await broadcast();
     vi.setSystemTime(new Date("2026-11-02T08:18:00Z"));
     expect(await startDueBroadcasts()).toEqual([]);
+    await query("UPDATE mailings SET due_at = '2026-11-02T03:03:00Z' WHERE id = $1", [id]);
+    vi.setSystemTime(new Date("2026-11-02T03:03:00Z"));
+    expect(await startDueBroadcasts()).toEqual([id]);
   });
 
   it("waits while no CiviCRM pull has finished for a day, telling staff once, and goes once one has", async () => {
@@ -871,7 +872,7 @@ describeWithDatabase("sending broadcasts", () => {
     await sendDueBroadcasts(LATER, 0);
     expect(await stateOf(id)).toMatchObject({ state: "cancelled", reason: "limit", gaveUp: true });
     expect(sent.at(-1)!.Subject).toBe(broadcastsCopy.notifications.broadcastGaveUp.subject("See you there", "limit"));
-    // Scheduled, it never started by its finish, as overnight, so it stopped trying with it.
+    // Scheduled, it never started by its finish, so it stopped trying with it.
     const late = await broadcast();
     await query("UPDATE mailings SET finish_minutes = 15 WHERE id = $1", [late]);
     expect(await startDueBroadcasts()).toEqual([]);

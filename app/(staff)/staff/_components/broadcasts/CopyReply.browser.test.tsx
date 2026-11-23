@@ -437,7 +437,7 @@ describe("replies to broadcasts", () => {
     expect(last.compareDocumentPosition(followUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("to a text that are more than words say what they were: a reaction its emoji under the message it's to, any other its kind over its words", async () => {
+  it("to a text that are more than words say what they were: a reaction its emoji on our message it's to, any other its kind over its words", async () => {
     await render(
       <MessageCopyView
         one={{
@@ -454,17 +454,20 @@ describe("replies to broadcasts", () => {
         .getByText(words, { exact: true })
         .elements()
         .find((element) => element.tagName !== "BUTTON")!.parentElement!;
-    const [thumb, , lost] = exampleTextKinds;
-    // A thumbs up to the broadcast, quoting its start, then taken back.
-    expect(bubble("👍").textContent).toContain("Hi Jane, the march meets at 11:00 at Parliament Square.");
-    // When it came, then, on the line under, when it went.
-    expect(bubble("👍").textContent).toContain(
-      `${copy.replies.reacted} · ${staffTime(thumb.receivedAt)}${copy.replies.reactionRemoved(staffTime(thumb.removedAt!))}`,
-    );
-    // A heart to our answer, quoting that, and still there.
-    expect(bubble("❤️").textContent).toContain("Yes, Parliament Square, by the statue.");
-    expect(bubble("❤️").textContent).not.toContain(copy.replies.reactionRemoved("").trim());
-    // One from before emojis were kept says so, with nothing in place of its emoji.
+    const [thumb, heart, lost] = exampleTextKinds;
+    // A thumbs up to the broadcast, taken back, so not on it; a heart to our answer, on its bubble, as ours on theirs.
+    const ourBubble = (words: RegExp) =>
+      page.getByText(words).first().element().closest("[class*=bubble]")!.textContent;
+    expect(ourBubble(/^Hi Jane, the march meets at 11:00/)).not.toContain("👍");
+    expect(ourBubble(/^Yes, Parliament Square, by the statue\./)).toContain("❤️");
+    // In the thread, who reacted and when, as ours is said; the one taken back, when, on the line under.
+    const said = (reply: BroadcastReply) =>
+      copy.replies.reactedBy(reply.text!, "Jane Example", staffTime(reply.receivedAt));
+    await expect
+      .element(page.getByText(`${said(thumb)}${copy.replies.reactionRemoved(staffTime(thumb.removedAt!))}`))
+      .toBeVisible();
+    await expect.element(page.getByText(said(heart), { exact: true })).toBeVisible();
+    // One from before emojis were kept says so.
     await expect
       .element(page.getByText(`${copy.replies.reactedNotKept} · ${staffTime(lost.receivedAt)}`))
       .toBeVisible();
@@ -480,23 +483,21 @@ describe("replies to broadcasts", () => {
     expect(document.body.textContent).not.toContain(copy.replies.noText);
   });
 
-  it("quote a text whose merge values weren't kept with its fields as words, and never an answer still being sent", async () => {
-    const [thumb, , lost] = exampleTextKinds;
+  it("put a reaction to a message of ours not known on the broadcast, and none on an answer still being sent", async () => {
+    const [thumb] = exampleTextKinds;
     await render(
       <MessageCopyView
         one={{
           ...exampleMessageCopy,
-          merge: null,
-          // A reaction from before what it's to was kept, beside an answer WhatsApp has no ID for yet.
-          replies: [thumb, lost],
+          replies: [{ ...thumb, removedAt: null, reactionTo: "wamid.unknown" }],
           answers: [{ ...exampleTextAnswers[0], providerId: null, replyId: thumb.id }],
         }}
       />,
     );
-    const quotes = page.getByText(/the march meets at 11:00 at Parliament Square\./).elements();
-    // The text itself, and the quote over each reaction.
-    expect(quotes).toHaveLength(3);
-    expect(quotes[1].textContent).not.toContain("Jane");
+    const bubbles = [...document.querySelectorAll("[class*=bubble]")].map((one) => one.textContent);
+    expect(bubbles.filter((words) => words!.includes("👍"))).toEqual([
+      expect.stringContaining("Hi Jane, the march meets at 11:00 at Parliament Square."),
+    ]);
   });
 
   it("to a text say WhatsApp won't take an answer only under their latest message, while it's unanswered", async () => {

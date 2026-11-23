@@ -583,7 +583,7 @@ job all leave broadcasts out.
   `template`), and approve it again.
 - **Sending** (`lib/broadcasts/sending.server.ts`). The 15-minute
   `send-mailings` run starts each broadcast that's due, as it does
-  mailings, none overnight: a copy for each it goes to then, once to each
+  mailings: a copy for each it goes to then, once to each
   address, with the topics whose yes it goes under and the Message-ID it
   goes with. A few copies are taken at a time, as `sending`, and checked
   just before they go: one whose answer is now no is skipped with why, and
@@ -832,10 +832,10 @@ logged-in staff member's own address. The refresh token is kept encrypted
   email still goes.
 - **Sending** (`lib/mailings/sending.server.ts`): the `send-mailings`
   job, at 3, 18, 33 and 48 minutes past every hour, starts each scheduled
-  mailing that's due. It starts none before 06:03 UTC. A mailing's time is
-  one of those runs, chosen by its hour and minutes (`SENDING` in
-  `lib/staff-time.ts`); one due at another time goes on the next run, and
-  one due overnight at 06:03.
+  mailing that's due, all night too. A mailing's time is one of those
+  runs, chosen by its hour and minutes (`SENDING` in `lib/staff-time.ts`),
+  between 06:00 and midnight in London; one due at another time goes on
+  the next run.
 
   Then the job sends the mailings' letters at Gmail's pace, one a second,
   marking each as it goes. A scheduled function has 30 seconds, so while

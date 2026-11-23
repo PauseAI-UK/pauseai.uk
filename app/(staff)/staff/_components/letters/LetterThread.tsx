@@ -9,7 +9,7 @@ import LetterChanges from "./LetterChanges";
 import MailFold from "./MailFold";
 import ThreadEmail from "./ThreadEmail";
 import ThreadText from "./ThreadText";
-import ExternalLink from "../ui/ExternalLink";
+import OpenInGmail from "../ui/OpenInGmail";
 import StaffLink from "../ui/StaffLink";
 import Strip from "../ui/Strip";
 import styles from "./LetterThread.module.css";
@@ -100,9 +100,7 @@ export default function LetterThread({
   const kept = thread.letter !== null;
   // Gmail opens a thread by its ID as it does a message, so one Gmail sent opens there, replies and all.
   const inGmail = thread.gmailThreadId && (
-    <ExternalLink href={gmailMessageLink(thread.sentFrom!, thread.gmailThreadId)}>
-      {lettersCopy.lettersInbox.openInGmail}
-    </ExternalLink>
+    <OpenInGmail href={gmailMessageLink(thread.sentFrom!, thread.gmailThreadId)} account={thread.sentFrom!} />
   );
   return (
     <Thread link={inGmail}>

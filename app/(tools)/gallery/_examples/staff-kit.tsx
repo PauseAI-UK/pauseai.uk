@@ -12,6 +12,7 @@ import { gridGallery } from "@/app/(staff)/staff/_components/ui/Grid.gallery";
 import { numberedGallery } from "@/app/(staff)/staff/_components/ui/Numbered.gallery";
 import { staffLinkGallery } from "@/app/(staff)/staff/_components/ui/StaffLink.gallery";
 import { externalLinkGallery } from "@/app/(staff)/staff/_components/ui/ExternalLink.gallery";
+import { openInGmailGallery } from "@/app/(staff)/staff/_components/ui/OpenInGmail.gallery";
 import { testTagGallery } from "@/app/(staff)/staff/_components/ui/TestTag.gallery";
 import { staffMemberGallery } from "@/app/(staff)/staff/_components/ui/StaffMember.gallery";
 import { formPendingGallery } from "@/app/(staff)/staff/_components/ui/FormPending.gallery";
@@ -68,6 +69,7 @@ export const staffKit: Group = {
     column,
     ...staffLinkGallery,
     ...externalLinkGallery,
+    ...openInGmailGallery,
     ...testTagGallery,
     ...staffMemberGallery,
     ...formPendingGallery,

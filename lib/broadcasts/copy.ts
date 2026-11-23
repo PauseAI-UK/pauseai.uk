@@ -67,6 +67,8 @@ export const broadcastsCopy = {
     previewNew: "Preview and approval",
     willGet: (n: number, channel: "email" | "text") =>
       `${count(n, "supporter", "supporters")} will be ${channel === "email" ? "emailed" : "texted"}.`,
+    // In its place, beside a spinner, while who it goes to is being worked out afresh.
+    counting: "⁂ Counting who it goes to",
     // Write.
     subject: "Subject",
     emailLabel: "Email",
@@ -285,10 +287,10 @@ export const broadcastsCopy = {
       sentBy: (by: string) => `Sent by ${by}`,
       // One a staff member wrote in the mailbox's Gmail rather than here, which says only the mailbox.
       sentInGmail: (account: string) => `Sent in ${account}'s Gmail`,
-      // Under their message on WhatsApp: the emoji to put on it, read out by a screen reader as this; ours on it,
-      // who put it there and when; and why one didn't go.
+      // Under their message on WhatsApp: the emoji to put on it, read out by a screen reader as this; who put an
+      // emoji on a message and when, ours on theirs or theirs on ours; and why one of ours didn't go.
       react: "React on WhatsApp",
-      ourReaction: (emoji: string, by: string, when: string) => `${by} reacted ${emoji}, ${when}`,
+      reactedBy: (emoji: string, by: string, when: string) => `${by} reacted ${emoji}, ${when}`,
       // In the copy's history, with who on a line under it.
       historyReacted: (emoji: string) => `We reacted ${emoji}`,
       reactionNotSent: "That didn't send to WhatsApp. Try again.",
@@ -331,9 +333,9 @@ export const broadcastsCopy = {
       } as Record<string, string>,
       // Any other kind, by WhatsApp's name for it.
       kindOther: (type: string) => `Message (${type}), which can't be shown here`,
-      // A reaction to one of our messages: over its emoji, the start of the message it's to; under it, that it's
-      // a reaction; one from before emojis were kept; and, on a line under that, when they took it back, or put
-      // another in its place.
+      // A reaction of theirs to one of our messages, whose emoji is on it, in the thread as who reacted and when
+      // (reactedBy): one from before emojis were kept, before when; and, on a line under, when they took it back,
+      // or put another in its place. In words, as a reply's kept, over its emoji.
       reacted: "Reacted",
       reactedNotKept: "A reaction, emoji lost",
       reactionRemoved: (when: string) => `Removed reaction · ${when}`,
@@ -423,15 +425,15 @@ export const broadcastsCopy = {
     },
     facts: {
       from: "From",
-      // What everyone a broadcast is to said yes to: its channel and topic, from the Consent filter.
-      saidYes: "Said yes to",
+      // The list everyone a broadcast is to is on: its channel and topic, from the Consent filter.
+      list: "⁂ List",
       // Who a broadcast went to: how many, over the rest of the list's filters, which narrow those who said yes.
       to: (n: number) => `To ${count(n, "supporter", "supporters")}`,
     },
     // Under To, the list everyone it's to is on, as the Consent filter names it, then the channel.
     onList: (list: string, channel: "email" | "text") => `${list}, by ${channel === "email" ? "email" : "text"}`,
     // In To, when Consent is the only filter.
-    everyoneWhoSaidYes: "Everyone who said yes",
+    everyoneOnList: "⁂ Everyone on the list",
     // Beside it, to the supporters list to filter them; once filtered, the mailings' "Change who".
     narrowDown: "Narrow down",
     threadTitle: "Thread",

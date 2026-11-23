@@ -714,10 +714,18 @@ export default function BroadcastWriter({
               {data.unknown.length > 0 && (
                 <Strip tone="amber">{mailingsCopy.mailingPages.unknownFilter(data.unknown.join(", "))}</Strip>
               )}
-              {/* Greyed, it's to no one yet: who the Consent finds once it's chosen. */}
+              {/* With no list chosen, it's to no one yet. While who it's to is worked out, a spinner, not the count
+                  from before, which would mislead. */}
               {!blank && (
                 <p className={styles.count} aria-busy={calculating || undefined}>
-                  {copy.willGet(data.count, draft.channel)}
+                  {calculating ? (
+                    <span className={own.counting}>
+                      <span className={own.spinner} aria-hidden="true" />
+                      {copy.counting}
+                    </span>
+                  ) : (
+                    copy.willGet(data.count, draft.channel)
+                  )}
                 </p>
               )}
             </>,

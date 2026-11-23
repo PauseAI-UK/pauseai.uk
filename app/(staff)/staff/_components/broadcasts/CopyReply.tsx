@@ -18,13 +18,12 @@ import ReplyActions, { ReplyButton } from "./ReplyActions";
 import ReplyReactions, { OurReaction, standingOf, type ReactAction } from "./ReplyReactions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";
-import { FIELDS_AS_WORDS, firstNameOf, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
+import { firstNameOf, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { kindWords } from "@/lib/broadcasts/whatsapp-messages";
-import { toText } from "@/lib/letters/format";
-import { letterFor } from "@/lib/mailings/doc";
 import styles from "./MessageCopyView.module.css";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { receiptOf } from "@/lib/broadcasts/receipts";
+import { theirReaction } from "@/lib/broadcasts/reactions";
 
 const copy = broadcastsCopy.broadcastPages;
 
@@ -35,16 +34,6 @@ const sender = (reply: BroadcastReply, one: MessageCopy) => {
   if (one.channel === "text") return name || phoneWords(reply.from);
   return named(name, reply.from);
 };
-
-/**
- * The words of the message of ours a reaction is to, for the bubble to
- * quote the start of: our answer WhatsApp calls that, or else the
- * broadcast's own text.
- */
-function reactedTo(reply: BroadcastReply, one: MessageCopy): string {
-  const answer = one.answers.find((each) => each.providerId !== null && each.providerId === reply.reactionTo);
-  return toText(answer ? answer.body : letterFor(one.body, one.merge ?? FIELDS_AS_WORDS));
-}
 
 /**
  * Our answer to a reply, in the thread after it: who sent it, or that it may
@@ -77,6 +66,7 @@ function Answer({
           when={answer.sentAt ? `${sentBy} · ${staffTime(answer.sentAt)}` : ""}
           ours
           receipt={answer.sentAt ? receiptOf(answer.events) : undefined}
+          badge={answer.providerId ? theirReaction(one, answer.providerId) : undefined}
         >
           <TextWords words={answer.body} />
           {!answer.sentAt && <p className={styles.dealt}>{copy.replies.stillSending(one.sentFrom)}</p>}
@@ -133,18 +123,10 @@ export default function Reply({
   const ours = text ? TEXT_SENDER_NAME : named(one.fromName, one.sentFrom);
   const reaction = reply.kind === "reaction";
   const kind = kindWords(reply.kind);
-  // A text's words as WhatsApp shows them, each web address a link; a reaction's, its emoji, large.
-  const said = reply.text && (
-    <p className={reaction ? styles.emoji : styles.text}>{text ? <LinkedText text={reply.text} /> : reply.text}</p>
-  );
-  // What they sent: for a reaction, the start of our message it's to, then its emoji; for any other that's more
-  // than words, what it was, over the words it came with; else its words.
-  const words = reaction ? (
-    <>
-      <span className={styles.quote}>{reactedTo(reply, one)}</span>
-      {said}
-    </>
-  ) : kind ? (
+  // A text's words as WhatsApp shows them, each web address a link.
+  const said = reply.text && <p className={styles.text}>{text ? <LinkedText text={reply.text} /> : reply.text}</p>;
+  // What they sent: for one that's more than words, what it was, over the words it came with; else its words.
+  const words = kind ? (
     <>
       <span className={styles.kind}>{kind}</span>
       {said}
@@ -152,17 +134,20 @@ export default function Reply({
   ) : (
     said || <Muted>{copy.replies.noText}</Muted>
   );
-  // Under a reaction, that it is one, before when; then, on a line under that, when they took it back, if they did.
-  const reacted = reaction ? `${reply.text ? copy.replies.reacted : copy.replies.reactedNotKept} · ` : "";
-  const came = `${reacted}${staffTime(reply.receivedAt)}`;
-  const cameAndWent = reply.removedAt ? (
-    <>
-      {came}
-      <br />
-      {copy.replies.reactionRemoved(staffTime(reply.removedAt))}
-    </>
-  ) : (
-    came
+  // A reaction's emoji is on our message it's to (theirReaction), so in the thread it's who reacted and when, as ours
+  // on theirs is said; one whose emoji wasn't kept says so; then, on a line under, when they took it back, if they did.
+  const theirs = reaction && (
+    <p className={styles.dealt}>
+      {reply.text
+        ? copy.replies.reactedBy(reply.text, sender(reply, one), staffTime(reply.receivedAt))
+        : `${copy.replies.reactedNotKept} · ${staffTime(reply.receivedAt)}`}
+      {reply.removedAt && (
+        <>
+          <br />
+          {copy.replies.reactionRemoved(staffTime(reply.removedAt))}
+        </>
+      )}
+    </p>
   );
   // What it was recorded as, but answered, which our answer after it says.
   const recorded = reply.outcome && reply.outcome !== "answered" && (
@@ -216,13 +201,25 @@ export default function Reply({
         {own}
       </>
     );
+    // A reaction of theirs has no bubble of its own: who reacted, in the card's foot, over the rest.
+    if (reaction) {
+      return (
+        <div className={styles.textReply}>
+          <div className={styles.textFoot}>
+            {theirs}
+            {closed && <Muted>{copy.replies.windowClosed}</Muted>}
+            {foot}
+          </div>
+        </div>
+      );
+    }
     return (
       <div className={styles.textReply}>
         {/* An emoji goes only on their latest message, which is the one to deal with. */}
         <ReplyReactions
           replyId={reply.id}
           who={sender(reply, one)}
-          when={cameAndWent}
+          when={staffTime(reply.receivedAt)}
           reactions={reactions}
           reactable={reply.reactable && latest}
           react={actions?.react}

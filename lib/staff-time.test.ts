@@ -76,21 +76,21 @@ describe("London's time, for when a mailing goes", () => {
     expect(londonWhen(new Date("2026-07-02T08:48:00Z"))).toBe("Thursday 2 July at 09:48");
     expect(londonWhenShort(new Date("2026-10-30T09:03:00Z"))).toBe("Fri 30 Oct, 09:03");
     expect(londonWhen(new Date("2026-10-30T09:33:00Z"), "short")).toBe("Fri 30 Oct at 09:33");
-    // Overnight, when the sending doesn't run, at its first run of the morning.
-    expect(londonWhen(new Date("2026-10-30T03:00:00Z"))).toBe("Friday 30 October at 06:03");
-    expect(londonWhen(new Date("2026-07-02T02:00:00Z"))).toBe("Thursday 2 July at 07:03");
+    // Overnight, at the hour it is, as the sending runs all night.
+    expect(londonWhen(new Date("2026-10-30T03:03:00Z"))).toBe("Friday 30 October at 03:03");
+    expect(londonWhen(new Date("2026-07-02T01:03:00Z"))).toBe("Thursday 2 July at 02:03");
   });
 });
 
-it("sends a mailing at the first run of the sending at or after its time, or overnight at the morning's first", () => {
+it("sends a mailing at the first run of the sending at or after its time, overnight too", () => {
   expect(sendsAt(new Date("2026-10-30T09:18:00.000Z"))).toEqual(new Date("2026-10-30T09:18:00.000Z"));
   // On the hour, as one due before the sending ran every 15 minutes is.
   expect(sendsAt(new Date("2026-10-30T09:00:00.000Z"))).toEqual(new Date("2026-10-30T09:03:00.000Z"));
   expect(sendsAt(new Date("2026-10-30T09:18:30.000Z"))).toEqual(new Date("2026-10-30T09:33:00.000Z"));
   // After the hour's last run, the next hour's first.
   expect(sendsAt(new Date("2026-10-30T09:50:00.000Z"))).toEqual(new Date("2026-10-30T10:03:00.000Z"));
-  expect(sendsAt(new Date("2026-10-30T23:50:00.000Z"))).toEqual(new Date("2026-10-31T06:03:00.000Z"));
-  expect(sendsAt(new Date("2026-10-30T00:00:00.000Z"))).toEqual(new Date("2026-10-30T06:03:00.000Z"));
+  expect(sendsAt(new Date("2026-10-30T23:50:00.000Z"))).toEqual(new Date("2026-10-31T00:03:00.000Z"));
+  expect(sendsAt(new Date("2026-10-30T02:00:00.000Z"))).toEqual(new Date("2026-10-30T02:03:00.000Z"));
 });
 
 describe("the first time a mailing can go", () => {

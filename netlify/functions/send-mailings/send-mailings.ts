@@ -11,9 +11,8 @@ export default async function sendMailings(): Promise<Response> {
 }
 
 // At 3, 18, 33 and 48 minutes past every hour, overnight too, for the letters
-// inbox's queue. A mailing due overnight still starts at 06:03
-// (startDueMailings). The staff pages offer these times (SENDING in
-// lib/staff-time.ts), so a change here is a change there. Netlify reads the
-// schedule without running the code, so it's written out, not built from
-// SENDING.
+// inbox's queue and for broadcasts still going. The staff pages offer these
+// times (SENDING in lib/staff-time.ts), so a change here is a change there.
+// Netlify reads the schedule without running the code, so it's written out,
+// not built from SENDING.
 export const config = { schedule: "3,18,33,48 * * * *" };

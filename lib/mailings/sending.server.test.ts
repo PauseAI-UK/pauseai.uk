@@ -86,12 +86,10 @@ describeWithDatabase("sending mailings", () => {
     ]);
   });
 
-  it("starts none overnight, though one is due: the morning's first run starts it", async () => {
+  it("starts one due overnight in the night", async () => {
     await addTestPolitician();
-    const due = await scheduled("2026-11-01T10:00:00Z");
-    vi.setSystemTime(new Date("2026-11-02T05:18:00Z"));
-    expect(await startDueMailings()).toEqual([]);
-    vi.setSystemTime(new Date("2026-11-02T06:18:00Z"));
+    const due = await scheduled("2026-11-02T02:03:00Z");
+    vi.setSystemTime(new Date("2026-11-02T02:03:00Z"));
     expect(await startDueMailings()).toEqual([due]);
   });
 

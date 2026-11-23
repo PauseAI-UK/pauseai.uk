@@ -70,8 +70,8 @@ export default function BroadcastConsent({
         </div>
       </FieldSet>
       {shown && (
-        <FieldSet label={copy.facts.saidYes}>
-          <div className={own.lists} role="radiogroup" aria-label={copy.facts.saidYes} aria-busy={pending || undefined}>
+        <FieldSet label={copy.facts.list}>
+          <div className={own.lists} role="radiogroup" aria-label={copy.facts.list} aria-busy={pending || undefined}>
             {lists.map(({ value: list, label }) => (
               <span key={list} className={own.list}>
                 <button

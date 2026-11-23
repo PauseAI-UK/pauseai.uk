@@ -9,7 +9,7 @@ import { exampleTextReactions } from "./BroadcastWriter.examples";
 const copy = broadcastsCopy.broadcastPages.replies;
 const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
 /** What Jo's 👍 says under the conversation. */
-const ours = copy.ourReaction("👍", "jo@pauseai.uk", staffTime(exampleTextReactions[1].sentAt));
+const ours = copy.reactedBy("👍", "jo@pauseai.uk", staffTime(exampleTextReactions[1].sentAt));
 const smiley = () => page.getByRole("button", { name: copy.react });
 const emoji = (name: string) => page.getByRole("group", { name: copy.react }).getByRole("button", { name });
 

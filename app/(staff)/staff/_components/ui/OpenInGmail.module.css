@@ -1,0 +1,40 @@
+/* The link, then its "i", on one line. */
+.open {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* The "i": a small round button in grey, as the "?" beside a list (PermissionTiles.module.css). */
+.help {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.help:hover,
+.help:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* What it opens: a question and a few lines, wider than a bubble's few words. */
+.bubble {
+  --bubble-width: 20rem;
+}
+
+.words {
+  margin: var(--space-1) 0 0;
+}
