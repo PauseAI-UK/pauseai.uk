@@ -1032,7 +1032,9 @@ that drives it or why nothing does.
   - one whose run stopped while sending, finished by the next run with that letter uncertain, and the letter's page;
   - a mailing's letters bouncing, the MPs on the dashboard and the day's report to the notification inbox;
   - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;
-  - one sent from your Gmail in a From name of its own, by the sending job, and the reply read from it.
+  - one sent from your Gmail in a From name of its own, by the sending job, and the reply read from it;
+  - a politician's reply to check: on the dashboard, its button to the mailing's letters to check, the letter's page with Reply and Nothing to do, and an answer written and sent from there, from your own Gmail;
+  - a reply that came to someone else's Gmail: where to answer it instead, and Nothing to do pressed, saying who.
 - `broadcasts.spec.ts`: Broadcasts to supporters:
   - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed, and what's written after is saved;
   - the list's Broadcast button with a Consent filter;
@@ -1062,6 +1064,7 @@ that drives it or why nothing does.
   - one to the newsletter's and events' yeses both, ticked as about our events;
   - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
   - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
+  - a reply to a text left waiting two hours, and the sending job's email to the notification inbox about it;
   - a reaction to a text by WhatsApp's webhook, as a bubble quoting the text, then taken back, and a photo kept as its caption;
   - our thumbs up on a reply to a text, from the smiley beside it, on its bubble and settling it, then taken away;
   - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;

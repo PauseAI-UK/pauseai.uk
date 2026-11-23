@@ -4,6 +4,7 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { runQueue } from "./letters-inbox-steps";
 import { stayOnPage } from "./loading-steps";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
+import { connectGmail } from "./gmail-steps";
 import { newestEmail } from "./outbox-steps";
 import { addPauseaiEmails, importPoliticians, recordAnswers } from "./politician-steps";
 import { WEBHOOK_AUTH } from "./postmark-steps";
@@ -29,7 +30,8 @@ export const section: Section = { name: "Mailings", part: "Staff pages", order: 
 // hourly job; and the pages of mailings scheduled, sending and sent, made in
 // the database as scheduling would make them; one whose run stopped while
 // sending, finished by the next with its letter uncertain; letters of one
-// bouncing.
+// bouncing; and a politician's reply to check, answered from the page, or
+// marked as needing nothing by someone who can't answer from its mailbox.
 
 const copy = mailingsCopy.mailingPages;
 const choosing = politiciansCopy.choosing;
@@ -813,6 +815,96 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
     .click();
   await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(invitation);
+});
+
+/**
+ * A sent mailing, Edinburgh follow-up, with one letter, to Polly
+ * Placeholder, sent from `mailbox` as PauseAI UK, and her reply to it there,
+ * which nobody has dealt with. Returns the mailing's and the letter's IDs.
+ */
+function pollyReplied(database: string, mailbox: string): { mailing: string; letter: string } {
+  const [mailing] = runSql(
+    database,
+    `INSERT INTO mailings (title, subject, audience, channel, filter, body, created_by, sent_from, from_name, due_at, state, ask)
+     VALUES ('Edinburgh follow-up', 'Edinburgh follow-up', 'politicians', 'email', '{"list": "politicians", "params": {}}',
+       '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Will you come and meet us?"}]}]}',
+       'jo@pauseai.uk', '${mailbox}', 'PauseAI UK', '2026-10-20T08:00:00Z', 'sent', 'edinburgh-conference-2026')
+     RETURNING id`,
+  );
+  const [letter] = runSql(
+    database,
+    `INSERT INTO letters (kind, notable_person_id, status, sent_at, replied_at)
+     SELECT 'pauseai', id, 'sent', '2026-10-20T08:00:00Z', '2026-10-21T10:00:00Z' FROM notable_people
+     WHERE name = 'Polly Placeholder' RETURNING id`,
+  );
+  runSql(
+    database,
+    `INSERT INTO letters_from_pauseai (id, mailing_id) VALUES (${letter}, ${mailing});
+     INSERT INTO email_sends (at, purpose, letter_id, address, outcome, message_id, backend, sender, rfc_message_id, gmail_thread_id)
+     SELECT '2026-10-20T08:00:00Z', 'mailing', ${letter}, lower(email), 'sent', 'gmail-flow-${letter}', 'gmail', '${mailbox}',
+       'fixture-letter-3@pauseai.uk', 'thread-flow-${letter}' FROM notable_people WHERE name = 'Polly Placeholder';
+     INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address, from_name,
+       subject, at, from_us, blob_key, size)
+     SELECT ${letter}, '${mailbox}', 'gmail-flow-reply-${letter}', 'thread-flow-${letter}', 'fixture-polly-thanks@example.org',
+       lower(email), name, 'Re: Edinburgh follow-up', '2026-10-21T10:00:00Z', false, 'fixture/polly-thanks.eml.gz', 512
+     FROM notable_people WHERE name = 'Polly Placeholder';`,
+  );
+  return { mailing, letter };
+}
+
+test("A politician's reply to check", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly Placeholder answered a mailing's letter, which went from your own Gmail. Nobody has dealt with her reply, so the staff home lists it, with how many wait.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  addStaffAccount(flowDatabase, staffEmail());
+  connectGmail(flowDatabase, staffEmail());
+  const { mailing, letter } = pollyReplied(flowDatabase, staffEmail());
+  await logInAsStaff(page, BASE, staffEmail(), "/staff");
+  const strip = page.getByRole("listitem").filter({ hasText: '"Edinburgh follow-up"' });
+  await expect(strip).toBeVisible();
+  await frame(page, "The staff home, with a reply to check");
+  story("See replies opens the mailing's letters with a reply to check. Hers is in blue.");
+  await strip.getByRole("link", { name: dashboardCopy.home.dashboard.actions.broadcastRepliesButton }).click();
+  await expect(page).toHaveURL(`${BASE}/staff/mailings/${mailing}?tab=look`);
+  await expect(page.getByRole("row").filter({ hasText: "Polly Placeholder" })).toBeVisible();
+  await frame(page, "The mailing's replies to check");
+  story(
+    "Her letter's page has Reply and Nothing to do under her reply. Setting her answer to the ask, beside it, would deal with it too.",
+  );
+  await page.goto(`${BASE}/staff/mailings/${mailing}/letters/${letter}`);
+  const answers = mailingsCopy.answers;
+  await expect(page.getByRole("button", { name: answers.reply })).toBeVisible();
+  await frame(page, "Her reply, waiting");
+  story("Reply opens an answer at the foot of the thread, from the mailbox her reply came to, in the mailing's name.");
+  await page.getByRole("button", { name: answers.reply }).click();
+  const editor = page.getByRole("textbox", { name: answers.answerLabel });
+  await expect(editor).toBeFocused();
+  await editor.pressSequentially("Dear Ms Placeholder, thank you. Would Tuesday at 2pm suit you?");
+  await editor.evaluate((box) => box.scrollIntoView({ block: "end", behavior: "instant" }));
+  await frame(page, "Writing an answer", { window: true });
+  story("Sent, it's in the thread, saying who sent it, and her letter is no longer to check.");
+  await page.getByRole("button", { name: answers.send }).click();
+  await expect(page.getByText(answers.sentBy(staffEmail()))).toBeVisible();
+  await frame(page, "The answer, sent");
+});
+
+test("A reply to someone else's mailbox", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly's reply came to Jo's own Gmail, so only Jo can answer it from the site. Anyone else is told to answer it in Gmail there, or can say there's nothing to do.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  const { mailing, letter } = pollyReplied(flowDatabase, "jo@pauseai.uk");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/mailings/${mailing}/letters/${letter}`);
+  const answers = mailingsCopy.answers;
+  await expect(page.getByText(answers.answerElsewhere("jo@pauseai.uk"))).toBeVisible();
+  await frame(page, "Where to answer it");
+  story("Nothing to do deals with it, and says who said so.");
+  await page.getByRole("button", { name: answers.nothing }).click();
+  // Said by this flow's staff member, at whatever time.
+  await expect(page.getByText(answers.nothingDone(staffEmail(), ""))).toBeVisible();
+  await frame(page, "Nothing to do, said");
 });
 
 test("From a mailing to its ask", async ({ page, request, flowDatabase }) => {
