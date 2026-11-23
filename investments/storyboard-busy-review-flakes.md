@@ -19,6 +19,11 @@ once, they come out the same each time, so they're hard to catch.
   sticky bar with the Saved pill differs faintly along its edge. A review
   with `--fresh-main` found main's kept picture and its fresh one
   different; 8 runs alone all came out the same.
+- politicians, "A salutation to check", "Her salutation, set" (phone):
+  the whole page sits about a pixel higher in one run than another, as if
+  the window's scroll or the page's height differed by one when the frame
+  was taken. It differed from main in one full review and not in the one
+  before it, of the same branch.
 
 ## Fix
 
@@ -32,3 +37,4 @@ it, or the frame measure it once it has settled.
 - 2026-11-18: the march highlight differed from main in a full review of a branch that didn't touch it, and between that branch's two reviews, ~15 min
 - 2026-11-19: BroadcastWriter in the gallery differed from main's fresh run, after the rebase of the same branch; same picture in 8 runs of the branch alone, with and without its changes, ~15 min
 - 2026-11-20: BroadcastWriter in the gallery (phone) differed from main along the two sticky bars with the Saved pill, in a review of a branch that changes neither, ~10 min
+- 2026-11-23: "A salutation to check" (phone) differed from main by a pixel's shift of the whole page, in a full review of a branch that only changes how mail is read and drawn, and not in the review before it; ~5 min

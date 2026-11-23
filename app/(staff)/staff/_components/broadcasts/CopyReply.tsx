@@ -18,6 +18,7 @@ import ReplyActions, { ReplyButton } from "./ReplyActions";
 import ReplyReactions, { OurReaction, standingOf, type ReactAction } from "./ReplyReactions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";
+import ThreadText from "../letters/ThreadText";
 import { firstNameOf, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { kindWords } from "@/lib/broadcasts/whatsapp-messages";
 import styles from "./MessageCopyView.module.css";
@@ -123,8 +124,19 @@ export default function Reply({
   const ours = text ? TEXT_SENDER_NAME : named(one.fromName, one.sentFrom);
   const reaction = reply.kind === "reaction";
   const kind = kindWords(reply.kind);
-  // A text's words as WhatsApp shows them, each web address a link.
-  const said = reply.text && <p className={styles.text}>{text ? <LinkedText text={reply.text} /> : reply.text}</p>;
+  // A text's words as WhatsApp shows them, each web address a link; an email's as the letter pages show one, its
+  // lists, quotes, bold and italics drawn (ThreadText).
+  const said =
+    reply.text &&
+    (text ? (
+      <p className={styles.text}>
+        <LinkedText text={reply.text} />
+      </p>
+    ) : (
+      <div className={styles.emailText}>
+        <ThreadText text={reply.text} />
+      </div>
+    ));
   // What they sent: for one that's more than words, what it was, over the words it came with; else its words.
   const words = kind ? (
     <>
