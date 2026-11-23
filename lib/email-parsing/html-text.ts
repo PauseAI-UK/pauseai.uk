@@ -39,8 +39,21 @@ const BLOCKS = new Set([
 /** Elements with a blank line before and after. */
 const PARAGRAPHS = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre"]);
 
-/** Elements that make their words bold or italic, and the mark either side of a piece of them: Gmail's plain text's. */
-const MARKS: Record<string, string> = { b: "*", strong: "*", i: "_", em: "_" };
+/**
+ * The marks either side of an element's words, as Gmail's plain text writes
+ * them: "*" if it's bold, "_" if it's italic. Its style says, if it sets a
+ * weight or a slant, as Google Docs' spans do (and its "<b
+ * style="font-weight:normal">" round a whole document undoes); otherwise
+ * its tag: b, strong or a heading bold, i or em italic.
+ */
+function marksOf(name: string, attribs: Record<string, string>): string[] {
+  const style = (attribs.style ?? "").toLowerCase();
+  const weight = /(?:^|[;\s])font-weight\s*:\s*([a-z0-9]+)/.exec(style)?.[1];
+  const slant = /(?:^|[;\s])font-style\s*:\s*([a-z]+)/.exec(style)?.[1];
+  const bold = weight ? weight.startsWith("bold") || Number(weight) >= 600 : /^(b|strong|h[1-6])$/.test(name);
+  const italic = slant ? slant !== "normal" : name === "i" || name === "em";
+  return [...(bold ? ["*"] : []), ...(italic ? ["_"] : [])];
+}
 
 /** HTML's own spaces, which only stand between words: a non-breaking space is kept, as a sender typed it. */
 const SPACE = /[ \t\r\n\f]+/g;
@@ -227,6 +240,9 @@ const OUTLOOK_RULE = "_".repeat(32);
 /** A quoted message's From line, as Outlook writes it in English or Welsh, maybe in bold. */
 const QUOTED_FROM = /^\*?(From|Oddi wrth):/i;
 
+/** A bullet as Word writes it in a symbol font: Symbol's dot, Courier's "o", Wingdings' square, arrow or tick. */
+const BULLETS = /^[·•o§▪Øü]$/;
+
 /** A line all in bold that doesn't end a sentence: a heading. */
 const HEADING = /^\*[^*]+[^*.,:;]\*$/;
 
@@ -243,15 +259,20 @@ type Open = {
   attribution?: boolean;
   start?: { line: Line; at: number };
   href?: string;
-  /** Word's list mark. */
-  marker?: boolean;
+  /** Word's list mark, as Word writes it or as it's left once Gmail has quoted it. */
+  marker?: "word" | "symbol";
   /** A paragraph with no space under it. */
   tight?: boolean;
   /** A blockquote that quotes, rather than indents. */
   quote?: boolean;
   /** A block whose style gives it space under it. */
   spaced?: boolean;
+  /** Its styles' marks, each with where its words start if it's the outermost in that style. */
+  styled?: { mark: string; start?: MarkStart }[];
 };
+
+/** Where a piece in a style starts: a place on a line, or the start of the line at `index`, not yet written. */
+type MarkStart = { line: Line; at: number } | { index: number };
 
 /** An HTML part's text, as a mailer's plain text would write it. */
 export function htmlText(html: string): string {
@@ -311,16 +332,32 @@ export function htmlText(html: string): string {
     target.text += target.text === "" || target.text.endsWith(" ") ? spaced.trimStart() : spaced;
   };
   /**
+   * Where a piece in a style starts: where the line being written is up to,
+   * or, with none, the next line to be written, so a block that starts in a
+   * style, as a heading does, writes no line of its own. Right after a
+   * piece in the same style, as Outlook writes an address in several, it
+   * starts where that one did, its marks taken off: one piece.
+   */
+  const from = (mark: string): MarkStart => {
+    if (!line) return { index: lines.length };
+    const last = lastRun[mark];
+    if (last?.line === line && last.end === line.text.length) {
+      line.text = line.text.slice(0, last.start) + line.text.slice(last.start + 1, -1);
+      return { line, at: last.start };
+    }
+    return { line, at: line.text.length };
+  };
+  /**
    * Marks the words written since `start` with `mark` either side, outside
    * their spaces, on each line they run over, so a mark never pairs across
    * lines; not on a line whose words have the mark in them already.
    */
-  const marked = (start: { line: Line; at: number }, mark: string) => {
-    const first = lines.indexOf(start.line);
+  const marked = (start: MarkStart, mark: string) => {
+    const first = "index" in start ? start.index : lines.indexOf(start.line);
     const last = lines.indexOf(line ?? lines.at(-1)!);
     for (let i = first; i <= last; i++) {
       const written = lines[i];
-      const from = i === first ? start.at : 0;
+      const from = i === first && "at" in start ? start.at : 0;
       const piece = written.text.slice(from);
       const words = piece.trim();
       if (!words || words.includes(mark)) continue;
@@ -381,24 +418,20 @@ export function htmlText(html: string): string {
         } else if (name === "a" && attribs.href) {
           open.href = attribs.href;
           open.start = { line: current(), at: current().text.length };
-        } else if (name in MARKS) {
-          const mark = MARKS[name];
-          if (markDepth[mark]++ === 0) {
-            const at = current();
-            const last = lastRun[mark];
-            if (last?.line === at && last.end === at.text.length) {
-              // Right after a piece in the same style, as Outlook writes one in several: one piece.
-              at.text = at.text.slice(0, last.start) + at.text.slice(last.start + 1, -1);
-              open.start = { line: at, at: last.start };
-            } else {
-              open.start = { line: at, at: at.text.length };
-            }
-          }
         } else if (/mso-list:\s*ignore/i.test(attribs.style ?? "")) {
           // Word's list mark, a symbol-font bullet or a number, written as text before the item's words.
-          open.marker = true;
+          open.marker = "word";
+          open.start = { line: current(), at: current().text.length };
+        } else if (/font-family:\s*"?(symbol|wingdings)/i.test(attribs.style ?? "") && !line?.text.trim()) {
+          // The same mark once Gmail has quoted it, its mso-list taken off: a bullet in a symbol font starting a line.
+          open.marker = "symbol";
           open.start = { line: current(), at: current().text.length };
         }
+        // Only the outermost element in a style marks its words.
+        open.styled = marksOf(name, attribs).map((mark) => ({
+          mark,
+          start: markDepth[mark]++ ? undefined : from(mark),
+        }));
       },
       ontext(text) {
         write(text);
@@ -410,19 +443,23 @@ export function htmlText(html: string): string {
         if (open.hides) hidden--;
         if (wasHidden) return;
         if (open.attribution) attribution = lines.findLast((written) => written.text.trim());
+        // Italic marks go on inside bold ones, "*_both_*", as mailParts reads them.
+        for (const { mark, start } of (open.styled ?? []).toReversed()) {
+          markDepth[mark]--;
+          if (start) marked(start, mark);
+        }
         if (name === "a" && open.start) {
           const { line: at, at: from } = open.start;
           const words = at.text.slice(from).trim();
           const address = linkAddress(open.href!);
           if (at === line && words && address && !showsAddress(words, address)) at.text += ` <${address}>`;
-        } else if (name in MARKS) {
-          const mark = MARKS[name];
-          markDepth[mark]--;
-          if (open.start) marked(open.start, mark);
         } else if (open.marker && open.start) {
           const { line: at, at: from } = open.start;
           const mark = at.text.slice(from).replace(/[\s\u00a0]+/g, "");
-          at.text = at.text.slice(0, from) + (/^(\d+|[a-z]|[ivx]+)[.)]$/i.test(mark) ? `${mark} ` : "- ");
+          const numbered = /^(\d+|[a-z]|[ivx]+)[.)]$/i.test(mark);
+          // Words in a symbol font that aren't a bullet are words.
+          if (open.marker === "word" || numbered || BULLETS.test(mark))
+            at.text = at.text.slice(0, from) + (numbered ? `${mark} ` : "- ");
         } else if (name === "br") {
           // A void element: its line ended when it opened.
         } else if (BLOCKS.has(name)) {

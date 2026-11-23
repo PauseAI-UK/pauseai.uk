@@ -11,7 +11,7 @@ describe("an HTML email's text", () => {
 
   it("puts a blank line around a paragraph, a heading and a preformatted block, which keeps its lines", () => {
     expect(htmlText("<h1>News</h1>Before<p>One</p><p>Two</p><pre>a  b\nc</pre>After")).toBe(
-      "News\n\nBefore\n\nOne\n\nTwo\n\na  b\nc\n\nAfter",
+      "*News*\n\nBefore\n\nOne\n\nTwo\n\na  b\nc\n\nAfter",
     );
   });
 
@@ -87,6 +87,13 @@ describe("an HTML email's text", () => {
     expect(htmlText(item("·", "Health") + item("2.", "Housing") + item("o", "Roads"))).toBe(
       "- Health\n2. Housing\n- Roads",
     );
+    // As Gmail quotes it, its mso-list gone: a bullet in a symbol font starting a line, not other words in one.
+    const quoted = (mark: string, words: string) =>
+      `<p class="MsoNormal"><span style="font-family:Symbol"><span>${mark}<span style="font:7pt">&nbsp; </span></span></span>${words}</p>`;
+    expect(htmlText(quoted("·", "Call") + quoted("3.", "Read") + quoted("αβ", "Greek"))).toBe(
+      "- Call\n3. Read\nαβ  Greek",
+    );
+    expect(htmlText('<p>See <span style="font-family:Symbol">·</span> here</p>')).toBe("See · here");
   });
 
   it("writes a table's cells on a line, a space between", () => {
@@ -102,6 +109,15 @@ describe("an HTML email's text", () => {
     expect(htmlText("<b>*Starred*</b> <i>An <em>italic</em> title</i>, <i>snake_case</i>, <b><i>both</i></b>")).toBe(
       "*Starred* _An italic title_, snake_case, *_both_*",
     );
+  });
+
+  it("takes bold and italic from a style, as Google Docs writes them, and a style's undoing of a tag's", () => {
+    const html =
+      '<b style="font-weight:normal" id="docs-internal-guid-1"><p><span style="font-weight:700">Bold</span> and ' +
+      '<span style="font-weight:400">plain</span>, <span style="font-style:italic;font-weight:bold">both</span>, ' +
+      '<span style="mso-bidi-font-weight:bold">Word\'s</span> <i style="font-style:normal">upright</i>.</p></b>' +
+      '<div style="font-weight:600"><br></div>';
+    expect(htmlText(html)).toBe("*Bold* and plain, *_both_*, Word's upright.");
   });
 
   it("joins pieces in the same style written one after another, as Outlook writes an address", () => {
