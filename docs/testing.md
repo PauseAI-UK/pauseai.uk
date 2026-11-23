@@ -1009,6 +1009,7 @@ that drives it or why nothing does.
   - an MP's email changed there, from its edit, with why: where her main address came from, before and after, her old one among her linked addresses, and the change in her record;
   - a salutation made from the name, set to Ms from its bubble's choices, with why;
   - ControlAI's statement imported, and its ask's page;
+  - the superintelligence EDM's signers imported, and its ask's page;
   - those invited to an ask and those going, ticked together in the chip's second half;
   - two asks at once, each with its own answer and column: Any reply ticking every reply with it, one unticked, and the second ask added from + Filter; then one removed with its answer;
   - PauseAI's email to one, from her history, and its Gmail search copied;
@@ -1173,7 +1174,7 @@ that drives it or why nothing does.
 - `/blog/feed.xml`, `/campaigns/briefings/feed.xml`: `public-pages`: each feed, its type and entries, and its link in the head of its section's index and a post's page.
 - `/api/cron/[job]`, each scheduled job's run (`lib/jobs/jobs.server.ts`), Vitest-tested beside it for every job:
   - `import-parliament`, `import-scottish-parliament`, `import-senedd`, `import-ni-assembly`: `importPoliticians()` in `tests/storyboard/politician-steps.ts`, at the start of the staff flows that need politicians, which then gives them their Airtable records' details; `imports` runs Parliament's again to hold it.
-  - `import-controlai`, `import-controlai-statement`: Not driven. The `staff-navigation` and `politicians` sections run them through their buttons.
+  - `import-controlai`, `import-controlai-statement`, `import-edm`: Not driven. The `staff-navigation` and `politicians` sections run them through their buttons.
   - `tidy-logs`: Not driven: nothing a person sees changes but its run on its own page.
   - `send-mailings`:
     - `mailings`: a mailing scheduled from your Gmail, then started and sent by the job.

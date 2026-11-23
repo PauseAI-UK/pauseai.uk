@@ -35,6 +35,7 @@ export const JOBS = {
   "import-ni-assembly": { slug: "ni-assembly", schedule: "nightly", cron: "24 6 * * *" },
   "import-controlai": { slug: "controlai", schedule: "nightly", cron: "25 6 * * *" },
   "import-controlai-statement": { slug: "controlai-statement", schedule: "nightly", cron: "26 6 * * *" },
+  "import-edm": { slug: "edm", schedule: "nightly", cron: "28 6 * * *" },
   "tidy-logs": { slug: "tidying", schedule: "nightly", cron: "27 6 * * *" },
 } as const satisfies Record<string, { slug: string; schedule: JobSchedule; cron: string; budgetMs?: number }>;
 
@@ -155,6 +156,20 @@ export type ControlAiStatementResult = {
   unmatched: string[];
 };
 export type ControlAiStatementImport = ImportRun<"import-controlai-statement", ControlAiStatementResult>;
+
+/**
+ * What an import of the EDM's signers did: how many signed, those matched,
+ * the statuses set and removed, and each signer it couldn't match, by name
+ * and Parliament's ID, which, with every MP on our list, is a fault.
+ */
+export type EdmResult = {
+  signers: number;
+  matched: number;
+  added: number;
+  removed: number;
+  unmatched: string[];
+};
+export type EdmImport = ImportRun<"import-edm", EdmResult>;
 
 /** Where supporters are, looked up after a Luma import: the postcodes and towns looked up, and whether postcodes.io failed partway. */
 export type PlacesLookup = { postcodes: number; towns: number; failed: boolean };
@@ -305,6 +320,7 @@ export type AnyImportRun =
   | PoliticianImport
   | ControlAiImport
   | ControlAiStatementImport
+  | EdmImport
   | LumaImport
   | CivicrmImport
   | GmailReading

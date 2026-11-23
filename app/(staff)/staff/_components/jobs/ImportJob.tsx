@@ -1,7 +1,8 @@
 import { Fragment, type ReactNode } from "react";
 import { staffMemberText } from "@/lib/staff-member";
 import { site } from "@/lib/content/site";
-import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK } from "@/lib/asks/asks";
+import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK } from "@/lib/asks/asks";
+import { EDM_PAGE } from "@/lib/asks/edm";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
 import type { RunningJob } from "@/lib/server/import-runs.server";
 import {
@@ -51,6 +52,7 @@ const SOURCES: Record<ImportJob, ImportSource> = {
   "import-ni-assembly": "ni-assembly",
   "import-controlai": "controlai",
   "import-controlai-statement": "controlai",
+  "import-edm": "parliament",
   "import-civicrm": "civicrm",
   "read-gmail": "gmail",
   "send-mailings": "sending",
@@ -114,6 +116,13 @@ const ABOUT: Record<
     then: [{ ...jobsCopy.controlAiStatement.introThen, href: askHref(CONTROLAI_STATEMENT_ASK) }],
     button: jobsCopy.controlAiStatement.importNow,
     none: jobsCopy.controlAiStatement.never,
+  },
+  "import-edm": {
+    intro: jobsCopy.edm.intro,
+    href: EDM_PAGE,
+    then: [{ ...jobsCopy.edm.introThen, href: askHref(EDM_ASK) }],
+    button: jobsCopy.edm.importNow,
+    none: jobsCopy.edm.never,
   },
   "import-civicrm": {
     intro: jobsCopy.civicrm.intro,

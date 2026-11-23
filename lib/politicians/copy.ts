@@ -130,7 +130,11 @@ export const politiciansCopy = {
     // it; an import's is "from" it.
     setBy: (who: string, when: string) => `set by ${who}, ${when}`,
     answerSetBy: (who: string) => `set by ${who}`,
-    fromImport: { airtable: "from Airtable", controlai: "from ControlAI's letter" } as Record<string, string>,
+    fromImport: {
+      airtable: "from Airtable",
+      controlai: "from ControlAI's letter",
+      parliament: "⁂ from Parliament",
+    } as Record<string, string>,
     // The form on an ask staff record: its name, the note's field and what it asks, and Save for an event's answer.
     setStatus: "Set status",
     note: "Note",

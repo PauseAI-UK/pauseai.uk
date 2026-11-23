@@ -93,6 +93,8 @@ function AnswerColumn({ group, kind, slug }: { group: AskAnswerGroup; kind: AskK
 export default function AskView({ ask }: { ask: AskPageData }) {
   const path = `/staff/asks/${ask.slug}`;
   const answered = answeredOf(ask);
+  // What's signed is linked by its title, whether a letter, a statement or a motion.
+  const linkText = ask.kind === "event" ? page.theEvent : ask.title;
   return (
     <div className={styles.page}>
       <Band
@@ -113,9 +115,9 @@ export default function AskView({ ask }: { ask: AskPageData }) {
         <BandFact label={page.readIt[ask.kind]}>
           {ask.url &&
             (ask.url.startsWith("/") ? (
-              <StaffLink href={ask.url}>{page.theLink[ask.kind]}</StaffLink>
+              <StaffLink href={ask.url}>{linkText}</StaffLink>
             ) : (
-              <ExternalLink href={ask.url}>{page.theLink[ask.kind]}</ExternalLink>
+              <ExternalLink href={ask.url}>{linkText}</ExternalLink>
             ))}
         </BandFact>
       </Band>

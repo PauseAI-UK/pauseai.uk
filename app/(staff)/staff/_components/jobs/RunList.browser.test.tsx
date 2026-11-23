@@ -7,12 +7,14 @@ import {
   type ControlAiImport,
   NEWER_RUN,
   type ControlAiStatementImport,
+  type EdmImport,
   type PoliticianImport,
 } from "@/lib/import-runs";
 import RunList from "./RunList";
 import {
   exampleControlAiResult,
   exampleControlAiStatementResult,
+  exampleEdmResult,
   exampleFailedRun,
   exampleHeldImport,
   exampleImportResult,
@@ -284,6 +286,16 @@ describe("RunList", () => {
       .element(page.getByText(jobsCopy.controlAiStatement.result(exampleControlAiStatementResult), { exact: false }))
       .toBeVisible();
     await expect.element(page.getByText(/Only 0 supporters/)).toBeVisible();
+  });
+
+  it("says what a read of the EDM did, and why one failed", async () => {
+    const runs: EdmImport[] = [
+      ran("import-edm", exampleEdmResult, { id: 2 }),
+      failed("import-edm", "No one has signed the EDM", { id: 1 }),
+    ];
+    await render(<RunList runs={runs} none="None" />);
+    await expect.element(page.getByText(jobsCopy.edm.result(exampleEdmResult), { exact: false })).toBeVisible();
+    await expect.element(page.getByText(/No one has signed the EDM/)).toBeVisible();
   });
 
   it("says what each ControlAI read did, and why one failed", async () => {

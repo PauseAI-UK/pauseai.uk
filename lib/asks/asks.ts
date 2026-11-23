@@ -97,18 +97,26 @@ export const FRONTIER_AI_LETTER_ASK = "frontier-ai-letter";
 export const CONTROLAI_LETTER_ASK = "controlai-letter";
 /** ControlAI's UK campaign statement, which politicians back on its page. */
 export const CONTROLAI_STATEMENT_ASK = "controlai-statement";
+/** The early day motion for a global pause on superintelligent AI, which MPs sign (lib/asks/edm.ts). */
+export const EDM_ASK = "superintelligence-edm";
 
 /**
  * The asks the code names, by slug, which staff can edit but never delete:
  * a campaign, the public list of signatories or an import depends on them.
  */
-export const NAMED_ASKS: readonly string[] = [FRONTIER_AI_LETTER_ASK, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK];
+export const NAMED_ASKS: readonly string[] = [
+  FRONTIER_AI_LETTER_ASK,
+  CONTROLAI_LETTER_ASK,
+  CONTROLAI_STATEMENT_ASK,
+  EDM_ASK,
+];
 
 /**
  * The asks an import answers, which staff can't: ControlAI's letter and
- * statement (lib/jobs/controlai-import.server.ts, controlai-statement-import.server.ts).
+ * statement, and the EDM (lib/jobs/controlai-import.server.ts,
+ * controlai-statement-import.server.ts, edm-import.server.ts).
  */
-export const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK];
+export const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK];
 
 export const ASKERS: readonly Asker[] = ["supporters", "pauseai", "controlai"];
 

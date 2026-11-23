@@ -93,7 +93,7 @@ describe("AskView", () => {
   it("an event: Edit, a link on our site or another's, and when there's nothing", async () => {
     const { rerender } = await render(<AskView ask={{ ...exampleEventAskPage, url: "/events" }} />);
     await expect.element(link(asksCopy.asks.edit)).toHaveAttribute("href", `${path}/edit`);
-    await expect.element(link(words.theLink.event)).toHaveAttribute("href", "/events");
+    await expect.element(link(words.theEvent)).toHaveAttribute("href", "/events");
     await rerender(
       <AskView
         ask={{
@@ -107,7 +107,8 @@ describe("AskView", () => {
         }}
       />,
     );
-    await expect.element(link(words.theLink.letter)).toHaveAttribute("target", "_blank");
+    // What's signed is linked by its title.
+    await expect.element(link(exampleAskPage.title)).toHaveAttribute("target", "_blank");
     await says(words.noWay);
     await says(words.none);
     // Nobody has answered, but some were asked: their column still shows, and for an event says they're invited.

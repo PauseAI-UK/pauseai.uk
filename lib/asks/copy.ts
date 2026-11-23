@@ -41,10 +41,10 @@ export const asksCopy = {
     // The rest of the form's fields, by the kind of ask: the title reads on from "sign" or "attend".
     byKind: {
       letter: {
-        title: "Which letter",
+        title: "⁂ What to sign",
         titleExample: "Giant pause button funding request to the Chancellor",
-        date: "When the letter was started",
-        url: "Where to read the letter",
+        date: "⁂ When it was started",
+        url: "⁂ Where to read it",
       },
       event: {
         title: "Which event",
@@ -78,7 +78,7 @@ export const asksCopy = {
     none: "No asks yet.",
     // Over the list's upcoming events; the rest go under their months and years.
     comingUp: "Coming up",
-    kinds: { letter: "Sign a letter", event: "Attend an event" } as Record<string, string>,
+    kinds: { letter: "⁂ Sign something", event: "Attend an event" } as Record<string, string>,
     // Over a mailing's or campaign's ask, and before it on their lists.
     askTo: { letter: "Ask to sign", event: "Ask to attend" } as Record<string, string>,
     noAsk: "No ask",
@@ -88,7 +88,8 @@ export const asksCopy = {
       when: "When",
       on: "On",
       readIt: { letter: "Read it", event: "Find out more" } as Record<string, string>,
-      theLink: { letter: "The letter", event: "The event" } as Record<string, string>,
+      // The link to an event; one to what's signed is its title.
+      theEvent: "The event",
       writtenTo: "written to",
       lettersWord: (n: number) => plural(n, "letter", "letters"),
       replied: "replies",

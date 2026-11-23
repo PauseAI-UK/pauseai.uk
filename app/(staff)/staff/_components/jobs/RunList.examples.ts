@@ -2,6 +2,7 @@ import {
   type AnyImportRun,
   type ControlAiImportResult,
   type ControlAiStatementResult,
+  type EdmResult,
   type GmailRead,
   type GmailReadResult,
   type ImportJob,
@@ -19,6 +20,7 @@ import {
 type Results = Record<PoliticianImportJob, PoliticianImportResult> & {
   "import-controlai": ControlAiImportResult;
   "import-controlai-statement": ControlAiStatementResult;
+  "import-edm": EdmResult;
   "import-luma": LumaImportResult;
   "import-civicrm": CivicrmImportResult;
   "read-gmail": GmailReadResult;
@@ -202,6 +204,15 @@ export const exampleControlAiStatementResult: ControlAiStatementResult = {
   added: 3,
   removed: 0,
   unmatched: [],
+};
+
+/** What a read of the EDM did: a few new signers, and one MP we don't have. */
+export const exampleEdmResult: EdmResult = {
+  signers: 22,
+  matched: 21,
+  added: 2,
+  removed: 0,
+  unmatched: ["Jane Smith (99999)"],
 };
 
 /** What an hour's sending did: a mailing started and most of it sent. */

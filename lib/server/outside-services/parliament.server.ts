@@ -1,11 +1,12 @@
 import "server-only";
+import { EDM_API, edmSigners, type EdmSigner } from "@/lib/asks/edm";
 import { memberUrl, parliamentEnding, parliamentMembers, parliamentMembersUrl } from "@/lib/politicians/parliament";
 import type { Ending, OfficialMember } from "@/lib/politicians/import-changes";
 import { outsideFetch } from "./outside-fetch.server";
 
-// Parliament's Members Data Platform and Members API, no key needed.
-// lib/politicians/parliament.ts knows their paths and reads their answers; this fetches
-// them.
+// Parliament's Members Data Platform and Members API, and its API for
+// motions, no key needed. lib/politicians/parliament.ts and lib/asks/edm.ts
+// know their paths and read their answers; this fetches them.
 
 // The Members API answers 429 when asked too much at once. Wait as it says
 // (Retry-After, in seconds), or longer each time, and try again.
@@ -34,6 +35,11 @@ export async function parliamentMembersNow(): Promise<OfficialMember[]> {
     getJson(parliamentMembersUrl("Lords")),
   ]);
   return [...parliamentMembers(commons), ...parliamentMembers(lords)];
+}
+
+/** Who has signed the superintelligence EDM (lib/asks/edm.ts). */
+export async function edmSignersNow(): Promise<EdmSigner[]> {
+  return edmSigners(await getJson(EDM_API));
 }
 
 /** Why each of these members' membership ended, by their ID, a few at a time. */

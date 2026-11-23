@@ -189,6 +189,29 @@ export function wikidataAnswer(query: string) {
   };
 }
 
+/**
+ * The superintelligence EDM from Parliament's API for motions: two MPs who
+ * signed, the first its sponsor, and one who signed and withdrew.
+ */
+export const EDM_ANSWER = {
+  StatusCode: 200,
+  Response: {
+    Id: 66900,
+    UIN: 1133,
+    Title: "Global pause on superintelligent AI",
+    Sponsors: [
+      {
+        MemberId: 90002,
+        Member: { Name: "Polly Placeholder" },
+        CreatedWhen: "2026-11-09T09:03:49.58",
+        IsWithdrawn: false,
+      },
+      { MemberId: 90003, Member: { Name: "Mo Example" }, CreatedWhen: "2026-11-11T16:20:00", IsWithdrawn: false },
+      { MemberId: 90001, Member: { Name: "Ms Dora Dummy" }, CreatedWhen: "2026-11-12T10:00:00", IsWithdrawn: true },
+    ],
+  },
+};
+
 /** ControlAI's statement's page: its supporters as links to their pages on their bodies' sites. */
 export const CONTROLAI_STATEMENT_HTML = `<!doctype html><html><body>
 <h1>Join Our Supporters</h1>

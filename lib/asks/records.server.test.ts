@@ -150,6 +150,7 @@ describeWithDatabase("asks and campaigns", () => {
   it("lists every ask, newest first, those without a date last", async () => {
     const asks = await listAsks();
     expect(asks.map((ask) => [ask.slug, ask.date])).toEqual([
+      ["superintelligence-edm", "2026-11-10"],
       ["edinburgh-conference-2026", "2026-11-01"],
       ["go-to-parliament-oct-2026", "2026-10-20"],
       ["controlai-letter", "2026-09-11"],
@@ -157,7 +158,7 @@ describeWithDatabase("asks and campaigns", () => {
       ["deepmind-letter", "2025-08-29"],
       ["controlai-statement", "2025-02-06"],
     ]);
-    expect(asks[0]).toEqual({
+    expect(asks[1]).toEqual({
       slug: "edinburgh-conference-2026",
       title: expect.any(String),
       kind: "event",
@@ -173,6 +174,7 @@ describeWithDatabase("asks and campaigns", () => {
         "edinburgh-conference-2026",
         "frontier-ai-letter",
         "go-to-parliament-oct-2026",
+        "superintelligence-edm",
       ].sort(),
     );
   });
@@ -201,6 +203,7 @@ describeWithDatabase("asks and campaigns", () => {
       "controlai-letter": ["controlai"],
       "edinburgh-conference-2026": ["pauseai"],
       "go-to-parliament-oct-2026": ["supporters"],
+      "superintelligence-edm": [],
     });
   });
 

@@ -8,6 +8,7 @@ import { runTidying } from "./log-retention.server";
 import { importLuma } from "@/lib/events/luma-import.server";
 import { importCivicrm } from "./civicrm-import.server";
 import { importControlAiStatement } from "./controlai-statement-import.server";
+import { importEdm } from "./edm-import.server";
 import { importPoliticians } from "@/lib/politicians/imports.server";
 import { runSending } from "./sending.server";
 
@@ -37,6 +38,7 @@ const RUNS: Record<ImportJob, RunJob> = {
   "import-ni-assembly": (by) => importPoliticianCounts("ni-assembly", by),
   "import-controlai": (by) => importControlAiLetter(by),
   "import-controlai-statement": (by) => importControlAiStatement(by),
+  "import-edm": (by) => importEdm(by),
   "tidy-logs": (by) => runTidying(by),
 };
 

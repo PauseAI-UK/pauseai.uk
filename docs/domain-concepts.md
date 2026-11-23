@@ -141,10 +141,12 @@ either finds them.
 
 ## Asks
 
-Something we ask notable people to do whose answer we record: sign a
-letter, come to an event (`asks`, `lib/asks/asks.ts`). Each has a slug, a title,
-a kind (`letter` or `event`), a date, a link to the letter or the
-event, and who asks it. That's one or more of:
+Something we ask notable people to do whose answer we record: sign
+something, such as a letter, a statement or an early day motion, or come to
+an event (`asks`, `lib/asks/asks.ts`). Each has a slug, a title, a kind
+(`letter`, for anything signed, or `event`), a date, a link to what's signed
+or the event, and who asks it. That's none, when we don't know of anyone,
+or one or more of:
 
 - supporters, in their letters or in person;
 - PauseAI, in its own emails;
@@ -159,9 +161,10 @@ within these rules:
   (below) haven't, and follow a change of kind.
 - An ask can be deleted only while no answer, campaign or mailing refers to
   it, and nobody is marked invited to it.
-- The asks `lib/asks/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter and
-  ControlAI's letter) can be changed there but never deleted, as campaigns,
-  the public list of signatories and the ControlAI import depend on them.
+- The asks `lib/asks/asks.ts` names (`NAMED_ASKS`: the Frontier AI letter,
+  ControlAI's letter and statement, and the superintelligence EDM) can be
+  changed there but never deleted, as campaigns, the public list of
+  signatories and the imports depend on them.
 
 A person's answer to an ask is a status (`ask_statuses`): one row per
 person per ask, with a status, a date, a note, and who set it. Someone who
@@ -208,15 +211,21 @@ ask page's columns. Its Asks column
 lists answers. Filtered by an ask, that column is the ask's own instead,
 headed with its title and saying how each stands on it.
 
-Staff set statuses by hand, with a note, for every ask but two, which
-imports set from controlai.org (`IMPORTED_ASKS`, `updated_by` `controlai`):
+Staff set statuses by hand, with a note, for every ask but three, which
+imports set (`IMPORTED_ASKS`). Two come from controlai.org (`updated_by`
+`controlai`):
 ControlAI's letter to the Prime Minister, from the names in its PDF
 (`lib/jobs/controlai-import.server.ts`), and its UK campaign statement, from its
 page's links to each supporter's page on their body's site, by the ID their
 body gives them or the name in the page's address
 (`lib/jobs/controlai-statement-import.server.ts`). As every sitting politician is
 on our list, a link the statement's import matches to no one is a problem of
-its run. Statuses with `updated_by` `airtable` were copied from Airtable's
+its run. The third is EDM 1133, the early day motion for a global pause on
+superintelligent AI, which MPs sign: its import reads its signers from
+Parliament's API for motions, by Parliament's ID for each, dated the day
+they signed, leaving out those who withdrew (`lib/jobs/edm-import.server.ts`,
+`updated_by` `parliament`). An EDM is open to sign until Parliament's
+session ends. Statuses with `updated_by` `airtable` were copied from Airtable's
 records before the site kept answers itself. Staff change them like any
 other.
 

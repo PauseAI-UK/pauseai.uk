@@ -114,6 +114,7 @@ export const MIGRATION_ASKS = [
   "controlai-letter",
   "edinburgh-conference-2026",
   "go-to-parliament-oct-2026",
+  "superintelligence-edm",
 ];
 
 /** Adds a politician straight into the tables, and returns their ID. */

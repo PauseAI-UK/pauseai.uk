@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { memberUrl } from "@/lib/politicians/parliament";
-import { parliamentEndings, parliamentMembersNow } from "./parliament.server";
+import { edmSignersNow, parliamentEndings, parliamentMembersNow } from "./parliament.server";
 
 const LISTS = "https://data.parliament.uk/membersdataplatform/services/mnis/members/query/:query/Addresses/";
 
@@ -14,6 +14,10 @@ it("reads both Houses' members, past the byte-order mark Parliament starts its J
     ["commons", "Mo Example"],
     ["lords", "Lord Seedling of Example"],
   ]);
+});
+
+it("reads who has signed the EDM", async () => {
+  expect((await edmSignersNow()).map((s) => s.name)).toEqual(["Polly Placeholder", "Mo Example"]);
 });
 
 it("asks why each member left, a few at a time", async () => {

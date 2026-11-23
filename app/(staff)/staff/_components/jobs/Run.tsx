@@ -5,6 +5,7 @@ import {
   type AnyImportRun,
   type ControlAiImport,
   type ControlAiStatementImport,
+  type EdmImport,
   type LumaImport,
   type CivicrmImport,
   type GmailReading,
@@ -163,6 +164,18 @@ function ControlAiStatementRun({
     <RunBox
       run={run}
       summary={run.status === "failed" ? null : jobsCopy.controlAiStatement.result(run.result)}
+      open={open}
+      variant={variant}
+    />
+  );
+}
+
+/** A copy of the EDM's signers: what it did. Signers it couldn't match are a problem of the run. */
+function EdmRun({ run, open, variant }: { run: EdmImport; open?: boolean; variant?: Variant }) {
+  return (
+    <RunBox
+      run={run}
+      summary={run.status === "failed" ? null : jobsCopy.edm.result(run.result)}
       open={open}
       variant={variant}
     />
@@ -341,6 +354,8 @@ export default function Run({
       return <ControlAiRun run={run} open={open} variant={variant} />;
     case "import-controlai-statement":
       return <ControlAiStatementRun run={run} open={open} variant={variant} />;
+    case "import-edm":
+      return <EdmRun run={run} open={open} variant={variant} />;
     case "import-luma":
       return <LumaRun run={run} open={open} variant={variant} />;
     case "import-civicrm":
