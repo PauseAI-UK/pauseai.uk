@@ -261,7 +261,7 @@ jobs:
         run: npm ci
 
       - name: Download coverage
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
 
@@ -269,7 +269,7 @@ jobs:
         run: node scripts/merge-coverage.mjs coverage-*/coverage-final.json
 
       - name: Download the tests' times
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: test-times-*
 
@@ -461,7 +461,7 @@ jobs:
         run: test "${{ needs.storyboard-shard.result }}" = success
 
       - name: Download the flows' times
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: storyboard-times-*
 
