@@ -137,7 +137,7 @@ jobs:
     # not: tests/checks/playwright-image.test.ts fails when they differ. It
     # runs as root, so apt needs no sudo.
     container:
-      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
     # Tests that need a database make their own in this Postgres
     # (tests/database.ts, scripts/fresh-database.mjs). From inside the
     # container it's reached by its name, which LOCAL_POSTGRES_HOST names as
@@ -261,7 +261,7 @@ jobs:
         run: npm ci
 
       - name: Download coverage
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
 
@@ -269,7 +269,7 @@ jobs:
         run: node scripts/merge-coverage.mjs coverage-*/coverage-final.json
 
       - name: Download the tests' times
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: test-times-*
 
@@ -339,7 +339,7 @@ jobs:
         shard: [1, 2, 3]
     # In Playwright's image, as the Test job is.
     container:
-      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
     # Tests that need a database make their own in this Postgres
     # (tests/database.ts, scripts/fresh-database.mjs), reached by its name
     # as in the Test job.
@@ -461,7 +461,7 @@ jobs:
         run: test "${{ needs.storyboard-shard.result }}" = success
 
       - name: Download the flows' times
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: storyboard-times-*
 

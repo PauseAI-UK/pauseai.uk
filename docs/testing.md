@@ -36,11 +36,10 @@ long each file last took, `scripts/ci-parts.mjs`), each writing its
 coverage with the thresholds off, and its Test job merges them and fails
 on any file under 100% (`scripts/merge-coverage.mjs`). The node and browser
 projects can map a statement to different ranges, and a range that runs to
-its line's end ends at column `Infinity`, which JSON writes as `null`. Merged
-as written, the two ranges stay apart, one never run, and a few components
-fail on statements a whole run covers; Vitest's own `--merge-reports` does
-the same. So the merge reads a `null` column as `Infinity`, and a range then
-takes the count of the one around it, as in a whole run.
+its line's end ends at column `Infinity`, which JSON writes as `null`.
+Istanbul merges a range with a `null` end with its twin, the one range with
+the same start and end line, and a range with no twin takes the count of the
+one around it, as in a whole run.
 
 While writing tests, `npm run test:changed` is quicker. It:
 

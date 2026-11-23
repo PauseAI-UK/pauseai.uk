@@ -13,3 +13,4 @@ Either give the token the `workflow` scope, or say in AGENTS.md that a change to
 ## Hits
 
 - 2026-11-12: a new CI step was refused at the push; the check went into an npm script CI already runs, then back into the workflow for a maintainer to push, ~30 min
+- 2026-11-23: the weekly Dependabot PR needed CI's Playwright image bumped in the workflow; the push with its fixes was refused and left for a maintainer
