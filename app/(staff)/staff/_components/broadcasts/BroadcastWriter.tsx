@@ -84,6 +84,7 @@ import NotIcon from "../ui/NotIcon";
 import Strip from "../ui/Strip";
 import { DraftFinish } from "./BroadcastTimes";
 import Numbered from "../ui/Numbered";
+import IconText from "../ui/IconText";
 import { phoneWords } from "@/lib/phone";
 import styles from "../mailings/MailingWriter.module.css";
 import own from "./Broadcasts.module.css";
@@ -720,8 +721,7 @@ export default function BroadcastWriter({
                 <p className={styles.count} aria-busy={calculating || undefined}>
                   {calculating ? (
                     <span className={own.counting}>
-                      <span className={own.spinner} aria-hidden="true" />
-                      {copy.counting}
+                      <IconText icon={<span className={own.spinner} aria-hidden="true" />}>{copy.counting}</IconText>
                     </span>
                   ) : (
                     copy.willGet(data.count, draft.channel)

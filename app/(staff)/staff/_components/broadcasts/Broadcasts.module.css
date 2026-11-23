@@ -413,16 +413,14 @@
   margin-top: var(--space-2);
 }
 
-/* A draft's count while who it goes to is worked out afresh: a spinner, as a pending button's (Button.module.css), then why. */
+/* A draft's count while who it goes to is worked out afresh: a spinner, as a pending button's (Button.module.css),
+   centred on the words' lowercase letters (IconText), then why. */
 .counting {
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: center;
   color: var(--text-secondary);
 }
 
 .spinner {
-  flex: none;
+  display: block;
   width: 1em;
   height: 1em;
   border: 2px solid currentColor;
