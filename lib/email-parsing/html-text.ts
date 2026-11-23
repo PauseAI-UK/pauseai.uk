@@ -277,7 +277,7 @@ type Open = {
   /** A quote with no margin under it, which one straight after with none over it joins. */
   joins?: boolean;
   /** Its styles' marks, each with where its words start if it's the outermost in that style. */
-  styled?: { mark: string; start?: MarkStart }[];
+  styled: { mark: string; start?: MarkStart }[];
 };
 
 /** Where a piece in a style starts: a place on a line, or the start of the line at `index`, not yet written. */
@@ -383,7 +383,7 @@ export function htmlText(html: string): string {
   const parser = new Parser(
     {
       onopentag(name, attribs) {
-        const open: Open = { hides: NOT_TEXT.has(name) || isHidden(attribs) };
+        const open: Open = { hides: NOT_TEXT.has(name) || isHidden(attribs), styled: [] };
         stack.push(open);
         if (open.hides) hidden++;
         if (hidden) return;
@@ -461,7 +461,7 @@ export function htmlText(html: string): string {
         if (wasHidden) return;
         if (open.attribution) attribution = lines.findLast((written) => written.text.trim());
         // Italic marks go on inside bold ones, "*_both_*", as mailParts reads them.
-        for (const { mark, start } of (open.styled ?? []).toReversed()) {
+        for (const { mark, start } of open.styled.toReversed()) {
           markDepth[mark]--;
           if (start) marked(start, mark);
         }

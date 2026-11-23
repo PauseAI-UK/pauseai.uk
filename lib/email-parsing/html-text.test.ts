@@ -35,6 +35,8 @@ describe("an HTML email's text", () => {
     expect(htmlText(`${OUTLOOK}<p class="MsoNormal">Laura</p><p class="MsoNormal">Laura Moodie</p>`)).toBe(
       "Laura\nLaura Moodie",
     );
+    // A paragraph of no class in Outlook's mail has a browser's space.
+    expect(htmlText(`${OUTLOOK}<p class="MsoNormal">Laura</p><p>Pasted</p>`)).toBe("Laura\n\nPasted");
   });
 
   it("spaces Outlook's paragraphs as Outlook does: by Word's own margins, a line's worth and more only", () => {
