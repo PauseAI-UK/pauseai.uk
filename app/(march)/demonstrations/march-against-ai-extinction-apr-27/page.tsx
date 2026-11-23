@@ -18,6 +18,7 @@ export const metadata = pageMetadata({
   absoluteTitle: true,
   openGraph: { title: `${march.name} — ${march.dateLong}` },
   // Made by scripts/march-preview.mjs.
+  // ⁂ These picture the placeholder date and place: run `npm run march:preview` again once those words are final.
   images: {
     openGraph: { url: "/images/march-signup/apr-27/open-graph-1200-630.jpg", width: 1200, height: 630 },
     twitter: "/images/march-signup/apr-27/open-graph-1600-840.jpg",
