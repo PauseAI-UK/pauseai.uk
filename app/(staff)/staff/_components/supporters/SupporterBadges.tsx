@@ -1,5 +1,5 @@
 import Tag from "@/components/ui/Tag";
-import type { SupporterSummary } from "@/lib/supporters/supporters";
+import { signedUpForMarch, type SupporterSummary } from "@/lib/supporters/supporters";
 import styles from "./SupporterBadges.module.css";
 import { supportersCopy } from "./copy";
 
@@ -11,7 +11,7 @@ export function supporterBadgeWords(supporter: SupporterSummary): string {
     supporter.lumaContact && badges.lumaContact,
     supporter.events > 0 && badges.registered,
     supporter.letters > 0 && badges.letter,
-    supporter.sources.includes("march-2026-11") && badges.march,
+    signedUpForMarch(supporter.sources) && badges.march,
     supporter.sources.includes("paper-signup") && badges.paper,
     supporter.sources.includes("whatsapp-community") && badges.whatsapp,
   ]
@@ -21,7 +21,7 @@ export function supporterBadgeWords(supporter: SupporterSummary): string {
 
 /**
  * What a supporter is to us, as lozenges: a member, a contact of the Luma
- * calendar, registered for events, wrote to their MP, signed up for the
+ * calendar, registered for events, wrote to their MP, signed up for a
  * march, on a paper sign-up form, in our WhatsApp community. Coloured by how
  * involved it shows them to be: green for a member, blue for having taken
  * part (an event, a letter), and grey for having signed up. Small in the
@@ -35,7 +35,7 @@ export default function SupporterBadges({ supporter, large }: { supporter: Suppo
       {supporter.lumaContact && <Tag>{badges.lumaContact}</Tag>}
       {supporter.events > 0 && <Tag tone="blue">{badges.registered}</Tag>}
       {supporter.letters > 0 && <Tag tone="blue">{badges.letter}</Tag>}
-      {supporter.sources.includes("march-2026-11") && <Tag>{badges.march}</Tag>}
+      {signedUpForMarch(supporter.sources) && <Tag>{badges.march}</Tag>}
       {supporter.sources.includes("paper-signup") && <Tag>{badges.paper}</Tag>}
       {supporter.sources.includes("whatsapp-community") && <Tag>{badges.whatsapp}</Tag>}
     </span>

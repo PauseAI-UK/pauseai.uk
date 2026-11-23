@@ -1,14 +1,14 @@
 import { m } from "./classes";
 import Marker from "./Marker";
 
-/** Why we're marching: the heading and lead in one column, the argument in the other. */
-export default function SignupCase() {
+/** Why we're marching, or marched, once it's `past`: the heading and lead in one column, the argument in the other. */
+export default function SignupCase({ past = false }: { past?: boolean }) {
   return (
     <section className={m("band")} aria-labelledby="case-title">
       <div className={`container ${m("split split-even")}`}>
         <div className={m("stack")}>
           <h2 className={m("heading")} id="case-title">
-            <Marker type="highlight">Why we&rsquo;re marching</Marker>
+            <Marker type="highlight">{past ? "⁂ Why we marched" : "Why we’re marching"}</Marker>
           </h2>
           <p className={m("lead")}>
             Thousands of people across the UK believe that companies will soon build superintelligent AI that they

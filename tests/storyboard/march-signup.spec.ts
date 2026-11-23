@@ -1,4 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
+import { march, novemberMarch } from "@/lib/content/march";
 import { marchSignupCopy as copy } from "@/lib/content/march-signup";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { hydrated, layoutSettled, scrollSettled } from "./settle";
@@ -6,9 +7,10 @@ import type { Section } from "./report/frames";
 
 export const section: Section = { name: "March sign-up", part: "Public site", order: 40 };
 
-// The march sign-up (app/(march)/): the site's header, without the march
-// banner; the marks drawn in marker pen; the form, which adds the person to
-// the Luma event; and the card it turns into, in place: the share card.
+// The marches' pages (app/(march)/). The next march's sign-up: the site's
+// header; the marks drawn in marker pen; the form, which adds the person to
+// the Luma event; and the card it turns into, in place: the share card. And
+// the page of the march before it, a record now it's over.
 
 const header = (page: Page) => page.getByRole("banner");
 /** The share card's confirmation, where focus lands after registering. */
@@ -29,19 +31,19 @@ function marchEvents(page: Page) {
 }
 
 async function openSignup(page: Page) {
-  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-nov-26`);
+  await page.goto(`${BASE}${march.path}`);
   await hydrated(page);
   await layoutSettled(page, "main");
 }
 
 /**
- * Every marker-pen mark drawn: each is drawn as its words scroll into view,
- * so each is brought into view in turn until it has been, then the page goes
- * back to the top.
+ * Every marker-pen mark drawn, all `count` of them: each is drawn as its
+ * words scroll into view, so each is brought into view in turn until it has
+ * been, then the page goes back to the top.
  */
-async function allMarked(page: Page) {
+async function allMarked(page: Page, count: number) {
   const marks = page.locator("svg.rough-annotation");
-  await expect(marks).toHaveCount(7);
+  await expect(marks).toHaveCount(count);
   for (const mark of await marks.all()) {
     await mark.evaluate((svg) => svg.parentElement!.scrollIntoView({ block: "center", behavior: "instant" }));
     await expect(mark.locator("path").first()).toBeAttached();
@@ -114,14 +116,13 @@ async function copyMidWindow(page: Page): Promise<void> {
 
 test("Registering for the march", { tag: "@phone" }, async ({ page }) => {
   story(
-    "Someone opens the march page, under the site's own header but without the march banner, as this is the page it points to. Headings and the march's demand are highlighted in orange, and key words underlined, as with a marker pen.",
+    "Someone opens the next march's page, under the site's own header. It says when the march is, but not yet where it starts and ends. Headings and the march's demand are highlighted in orange, and key words underlined, as with a marker pen.",
   );
   await openSignup(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("March Against AI Extinction");
   await expect(header(page)).toBeInViewport();
-  await expect(page.getByRole("complementary", { name: "March Against AI Extinction" })).toHaveCount(0);
   await expect(page.getByRole("contentinfo")).toBeVisible();
-  await allMarked(page);
+  await allMarked(page, 7);
   await frame(page, "The march page");
   story("They press Register now, which takes them to the form at the foot of the page, and fill it in.");
 
@@ -136,7 +137,7 @@ test("Registering for the march", { tag: "@phone" }, async ({ page }) => {
   const confirmation = registered(page);
   await expect(confirmation).toBeFocused();
   await expect(confirmation).toContainText(madeUpAddress("Testy McTestface", 43, "example.org"));
-  await expect(page).toHaveURL(`${BASE}/demonstrations/march-against-ai-extinction-nov-26#register`);
+  await expect(page).toHaveURL(`${BASE}${march.path}#register`);
   await expect(page.getByRole("link", { name: copy.share.impact.link })).toBeVisible();
   await scrollSettled(page);
   await expectBelowHeader(page, confirmation);
@@ -151,11 +152,8 @@ test("Registration fails", { tag: "@phone" }, async ({ page }) => {
   await fillIn(page, "luma-fails@example.org");
   await page.getByRole("button", { name: copy.form.submit, exact: true }).click();
   await expect(page.locator("form").getByRole("alert")).toContainText(copy.form.failed);
-  await expect(page.getByRole("link", { name: copy.form.lumaFallback })).toHaveAttribute(
-    "href",
-    "https://luma.com/pauseai-nov26",
-  );
-  await expect(page).toHaveURL(`${BASE}/demonstrations/march-against-ai-extinction-nov-26#register`);
+  await expect(page.getByRole("link", { name: copy.form.lumaFallback })).toHaveAttribute("href", march.lumaUrl);
+  await expect(page).toHaveURL(`${BASE}${march.path}#register`);
   await messageMidWindow(page);
   await frame(page, "The form's message");
 });
@@ -251,8 +249,43 @@ test("Seeing all the details", { tag: "@phone" }, async ({ page }) => {
   await page.getByRole("link", { name: "See all details" }).click();
   await scrollSettled(page);
   await expect(page.getByRole("heading", { name: "On the day" })).toBeInViewport();
-  await expect(page.getByRole("link", { name: "Downing Street" })).toBeInViewport();
+  await expect(page.locator("#on-the-day").getByText(march.dateLong)).toBeInViewport();
   await frame(page, "On the day");
+});
+
+test("A march that's over", { tag: "@phone" }, async ({ page }) => {
+  story(
+    "Someone follows an old link to the march of November 2026. Its page is still there, as a record: when it was and its route, why we marched and what we want, with no count of who's registered and no form.",
+  );
+  await page.goto(`${BASE}${novemberMarch.path}`);
+  await hydrated(page);
+  await layoutSettled(page, "main");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("March Against AI Extinction");
+  const hero = page.locator("section").filter({ has: page.getByRole("heading", { level: 1 }) });
+  await expect(hero.getByText(novemberMarch.dateLong)).toBeVisible();
+  await expect(hero.getByText(novemberMarch.route!.end.name)).toBeVisible();
+  await expect(page.locator("form")).toHaveCount(0);
+  await expect(page.getByText(/already registered/)).toHaveCount(0);
+  await allMarked(page, 5);
+  await frame(page, "The page of a march that's over");
+  story("Where the form was, the page says the march has happened, and offers the next march and joining us.");
+
+  const next = page.getByRole("main").locator(`a[href="${march.path}"]`);
+  await expect(next).toHaveCount(2);
+  await next.last().scrollIntoViewIfNeeded();
+  await scrollSettled(page);
+  await expect(page.getByRole("main").locator('a[href="/#join"]')).toBeInViewport();
+  await frame(page, "The foot of the page", { window: true });
+  story("They press the button for the next march, which takes them to its sign-up.");
+
+  await next.last().click();
+  await expect(page).toHaveURL(`${BASE}${march.path}`);
+  await hydrated(page);
+  await layoutSettled(page, "main");
+  await expect(page.getByRole("link", { name: "Register now" })).toBeVisible();
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await scrollSettled(page);
+  await frame(page, "The next march's sign-up", { window: true });
 });
 
 test("What we want, highlighted", { tag: "@phone" }, async ({ page }) => {

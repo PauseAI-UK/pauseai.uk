@@ -27,6 +27,11 @@ describe("SupporterBadges", () => {
     await expect.element(page.getByText(supportersCopy.supporters.badges.whatsapp, { exact: true })).toBeVisible();
   });
 
+  it("marks a sign-up for the next march as it does the last's", async () => {
+    await render(<SupporterBadges supporter={{ ...exampleSupporter, sources: ["march-2027-04"] }} />);
+    await expect.element(page.getByText(supportersCopy.supporters.badges.march)).toBeVisible();
+  });
+
   it("is larger on their own page than in the list", async () => {
     const height = () =>
       page.getByText(supportersCopy.supporters.badges.registered).element().getBoundingClientRect().height;

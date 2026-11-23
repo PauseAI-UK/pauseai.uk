@@ -8,7 +8,7 @@ afterEach(() => vi.unstubAllEnvs());
 describe("marchEventId", () => {
   it("is the march's own event in production", () => {
     vi.stubEnv("DEPLOY_CONTEXT", "production");
-    expect(marchEventId()).toBe("evt-1HKCXSHaJqGO3Bg");
+    expect(marchEventId()).toBe("evt-KUmBRhl5Kha9DKj");
   });
 
   it("is the test event on every other deploy", () => {
@@ -29,7 +29,7 @@ describe("getMarchSignupCount", () => {
       }),
     );
     expect(await getMarchSignupCount()).toBe(42);
-    expect(asked).toBe("evt-1HKCXSHaJqGO3Bg");
+    expect(asked).toBe("evt-KUmBRhl5Kha9DKj");
   });
 });
 
@@ -43,7 +43,7 @@ describe("getMarchGuests", () => {
       }),
     );
     expect(await getMarchGuests()).toEqual([{ name: "Jane Fixture", avatar: null }]);
-    expect(asked).toBe("evt-1HKCXSHaJqGO3Bg");
+    expect(asked).toBe("evt-KUmBRhl5Kha9DKj");
   });
 
   it("gives none when Luma can't say", async () => {

@@ -5,11 +5,19 @@ import {
   eventsCounted,
   eventsOf,
   registrationStatus,
+  signedUpForMarch,
   supporterTitle,
   type SupporterActivity,
   type SupporterDetails,
 } from "./supporters";
 import { supportersCopy } from "./copy";
+
+it("counts a sign-up for any march as signing up for a march", () => {
+  expect(signedUpForMarch(["luma", "march-2026-11"])).toBe(true);
+  expect(signedUpForMarch(["march-2027-04"])).toBe(true);
+  expect(signedUpForMarch(["luma", "paper-signup"])).toBe(false);
+  expect(signedUpForMarch([])).toBe(false);
+});
 
 it("gives a registration's status with a capital, or registered when approved or unknown", () => {
   const { statuses, registered } = supportersCopy.supporters.detail;

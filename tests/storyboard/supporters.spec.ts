@@ -444,7 +444,7 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   );
   const email = madeUpAddress("Marta Marcher", 42, "example.org");
   const form = marchSignupCopy.form;
-  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-nov-26?utm_source=nl#register`);
+  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-apr-27?utm_source=nl#register`);
   await page.getByLabel(form.name).fill("Marta Marcher");
   await page.getByLabel(form.email).fill(email);
   await page.getByRole("textbox", { name: new RegExp(`^${form.phone}`) }).fill("07700 900123");
@@ -473,7 +473,7 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   // Her email and number in Updates' row, each with its reason.
   await expect(
     page.getByText(
-      copy.detail.permissions.reasons.asked("16 Oct 2026", copy.detail.permissions.sources["march-2026-11"]),
+      copy.detail.permissions.reasons.asked("16 Oct 2026", copy.detail.permissions.sources["march-2027-04"]),
       { exact: false },
     ),
   ).toHaveCount(2);

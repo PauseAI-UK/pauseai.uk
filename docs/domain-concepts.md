@@ -1044,7 +1044,7 @@ One person filling in one of our forms once (`form_entries`): their name,
 email, address, city and postcode as they gave them, their phone number in
 international format ("Phone numbers", below), the box to hear from us
 (`contact_consent`), where they came from (`utm_source`) and when.
-`form` says which form: `email-your-mp`, `march-2026-11`, `paper-signup`
+`form` says which form: `email-your-mp`, a march's sign-up (`march-2026-11`, `march-2027-04`), `paper-signup`
 ("Paper sign-ups", below), `whatsapp-community` ("WhatsApp groups", below),
 or `web-form` for pauseai.info's old letter form. Every entry has an email
 but a WhatsApp member's, which has a number instead.

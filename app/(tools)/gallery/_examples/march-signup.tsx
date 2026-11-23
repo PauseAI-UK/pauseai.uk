@@ -1,17 +1,20 @@
-// The march sign-up, the march's page (app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/),
-// each in the sub-site's frame, which gives it its type and colours.
+// The marches' pages, the next march's sign-up and a past march's record
+// (app/(march)/demonstrations/_components/), each in the sub-site's frame,
+// which gives it its type and colours.
 import type { ReactNode } from "react";
-import MarchSignupFrame from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/MarchSignupFrame";
-import MarchSignups from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/MarchSignups";
-import Marker from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/Marker";
-import SignupCount from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupCount";
-import SignupCase from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupCase";
-import SignupDay from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupDay";
-import SignupDemand from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupDemand";
-import SignupGoing from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupGoing";
-import SignupHero from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupHero";
-import SignupPhotos from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupPhotos";
-import SignupTurnout from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupTurnout";
+import MarchOver from "@/app/(march)/demonstrations/_components/MarchOver";
+import MarchSignupFrame from "@/app/(march)/demonstrations/_components/MarchSignupFrame";
+import MarchSignups from "@/app/(march)/demonstrations/_components/MarchSignups";
+import Marker from "@/app/(march)/demonstrations/_components/Marker";
+import SignupCount from "@/app/(march)/demonstrations/_components/SignupCount";
+import SignupCase from "@/app/(march)/demonstrations/_components/SignupCase";
+import SignupDay from "@/app/(march)/demonstrations/_components/SignupDay";
+import SignupDemand from "@/app/(march)/demonstrations/_components/SignupDemand";
+import SignupGoing from "@/app/(march)/demonstrations/_components/SignupGoing";
+import SignupHero from "@/app/(march)/demonstrations/_components/SignupHero";
+import SignupPhotos from "@/app/(march)/demonstrations/_components/SignupPhotos";
+import SignupTurnout from "@/app/(march)/demonstrations/_components/SignupTurnout";
+import { march, novemberMarch } from "@/lib/content/march";
 import type { Group } from "../_components/types";
 import { ShareCardExample, SignupFormExample, SignupRegisterExample } from "./march-signup.client";
 
@@ -19,11 +22,11 @@ const inFrame = (children: ReactNode) => <MarchSignupFrame>{children}</MarchSign
 
 export const marchSignup: Group = {
   id: "march-signup",
-  title: "The march sign-up",
+  title: "The marches' pages",
   examples: [
     {
       name: "MarchSignupFrame",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/MarchSignupFrame.tsx",
+      file: "app/(march)/demonstrations/_components/MarchSignupFrame.tsx",
       variants: [
         {
           label: "The sub-site's frame: its background and type",
@@ -33,23 +36,27 @@ export const marchSignup: Group = {
     },
     {
       name: "SignupHero",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupHero.tsx",
+      file: "app/(march)/demonstrations/_components/SignupHero.tsx",
       variants: [
         {
           label: "The sign-up page's first screen, with how many have registered",
           render: () =>
             inFrame(
               <MarchSignups signups={1234}>
-                <SignupHero />
+                <SignupHero march={march} />
               </MarchSignups>,
             ),
         },
-        { label: "When Luma can't say how many", render: () => inFrame(<SignupHero />) },
+        { label: "When Luma can't say how many", render: () => inFrame(<SignupHero march={march} />) },
+        {
+          label: "A past march, with its route and the way to the next march",
+          render: () => inFrame(<SignupHero march={novemberMarch} past />),
+        },
       ],
     },
     {
       name: "SignupGoing",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupGoing.tsx",
+      file: "app/(march)/demonstrations/_components/SignupGoing.tsx",
       variants: [
         {
           label: "How many have registered, as under the hero's buttons",
@@ -66,7 +73,7 @@ export const marchSignup: Group = {
     },
     {
       name: "Marker",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/Marker.tsx",
+      file: "app/(march)/demonstrations/_components/Marker.tsx",
       variants: [
         {
           label: "Words underlined in marker pen",
@@ -90,42 +97,51 @@ export const marchSignup: Group = {
     },
     {
       name: "SignupCase",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupCase.tsx",
-      variants: [{ label: "Why we're marching", render: () => inFrame(<SignupCase />) }],
+      file: "app/(march)/demonstrations/_components/SignupCase.tsx",
+      variants: [
+        { label: "Why we're marching", render: () => inFrame(<SignupCase />) },
+        { label: "On a past march's page", render: () => inFrame(<SignupCase past />) },
+      ],
     },
     {
       name: "SignupDemand",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupDemand.tsx",
+      file: "app/(march)/demonstrations/_components/SignupDemand.tsx",
       variants: [{ label: "What we want", render: () => inFrame(<SignupDemand />) }],
     },
     {
       name: "SignupTurnout",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupTurnout.tsx",
-      variants: [{ label: "The turnouts, the goal circled", render: () => inFrame(<SignupTurnout />) }],
+      file: "app/(march)/demonstrations/_components/SignupTurnout.tsx",
+      variants: [
+        { label: "The turnouts, the goal circled", render: () => inFrame(<SignupTurnout />) },
+        { label: "On a past march's page, ending at its own turnout", render: () => inFrame(<SignupTurnout past />) },
+      ],
     },
     {
       name: "SignupPhotos",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupPhotos.tsx",
+      file: "app/(march)/demonstrations/_components/SignupPhotos.tsx",
       variants: [{ label: "The photo staircase, and the press", render: () => inFrame(<SignupPhotos />) }],
     },
     {
       name: "SignupDay",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupDay.tsx",
-      variants: [{ label: "On the day", render: () => inFrame(<SignupDay />) }],
+      file: "app/(march)/demonstrations/_components/SignupDay.tsx",
+      variants: [
+        { label: "On the day, before the route is settled", render: () => inFrame(<SignupDay march={march} />) },
+        { label: "With the route", render: () => inFrame(<SignupDay march={novemberMarch} />) },
+      ],
     },
     {
       name: "SignupRegister",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupRegister.tsx",
+      file: "app/(march)/demonstrations/_components/SignupRegister.tsx",
       variants: [{ label: "The register band, with the form", render: () => <SignupRegisterExample /> }],
     },
     {
       name: "SignupForm",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupForm.tsx",
+      file: "app/(march)/demonstrations/_components/SignupForm.tsx",
       variants: [{ label: "The form, whose action logs what it's sent", render: () => <SignupFormExample /> }],
     },
     {
       name: "SignupCount",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupCount.tsx",
+      file: "app/(march)/demonstrations/_components/SignupCount.tsx",
       variants: [
         {
           label: "How many have registered, as in the form's corner",
@@ -135,7 +151,7 @@ export const marchSignup: Group = {
     },
     {
       name: "MarchSignups",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/MarchSignups.tsx",
+      file: "app/(march)/demonstrations/_components/MarchSignups.tsx",
       variants: [
         {
           label: "The count for the hero and the form, the register band in it",
@@ -145,15 +161,20 @@ export const marchSignup: Group = {
     },
     {
       name: "SignupFlow",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupFlow.tsx",
+      file: "app/(march)/demonstrations/_components/SignupFlow.tsx",
       variants: [
         { label: "The cards, starting with the form, in the register band", render: () => <SignupRegisterExample /> },
       ],
     },
     {
       name: "ShareCard",
-      file: "app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/ShareCard.tsx",
+      file: "app/(march)/demonstrations/_components/ShareCard.tsx",
       variants: [{ label: "The share card, after registering", render: () => <ShareCardExample /> }],
+    },
+    {
+      name: "MarchOver",
+      file: "app/(march)/demonstrations/_components/MarchOver.tsx",
+      variants: [{ label: "A past march's last band, where the form was", render: () => inFrame(<MarchOver />) }],
     },
   ],
 };

@@ -4,11 +4,14 @@ import type { FeaturedGuest } from "@/lib/going";
 import { getEventGuestCount } from "@/lib/server/outside-services/luma-guests.server";
 import { getEventGoing } from "@/lib/server/outside-services/luma-public.server";
 
-// The march's Luma event: the one the sign-up registers people for, and
-// whose guests it counts.
+// The next march's Luma event: the one the sign-up registers people for,
+// and whose guests it counts.
 
-/** The march's Luma event (https://luma.com/pauseai-nov26), which production registers people for and every deploy counts. */
-const MARCH_EVENT_ID = "evt-1HKCXSHaJqGO3Bg";
+/** The march's Luma event (https://luma.com/pauseai-april-27), which production registers people for and every deploy counts. */
+const MARCH_EVENT_ID = "evt-KUmBRhl5Kha9DKj";
+
+/** The form its sign-ups are kept as (form_entries.form). */
+export const MARCH_FORM = "march-2027-04";
 
 /**
  * "Luma API Testing" (https://luma.com/qry332td), a test event on the PauseAI

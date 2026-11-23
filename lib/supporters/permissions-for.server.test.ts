@@ -400,6 +400,25 @@ describeWithDatabase("permissionsFor", () => {
     expect(await phoneAnswer("+447700900024", "events")).toEqual(["no", "ended", expect.any(String), "paper-signup"]);
   });
 
+  it("takes the next march's sign-up as it does the last's: texts on its day, and the newsletter if the box is ticked", async () => {
+    await query("UPDATE day_texts SET ends_at = now() + interval '1 day' WHERE form = 'march-2027-04'");
+    await formEntry("a@example.com", "march-2027-04", "+447700900040", true, "2026-12-01T00:00:00Z");
+    await formEntry("b@example.com", "march-2027-04", "+447700900041", false, "2026-12-01T00:00:00Z");
+    expect(await phoneAnswer("+447700900040", "newsletter")).toEqual([
+      "yes",
+      "asked",
+      "2026-12-01T00:00:00.000Z",
+      "march-2027-04",
+    ]);
+    expect((await phoneAnswer("+447700900041", "newsletter"))?.slice(0, 2)).toEqual(["no", "declined"]);
+    expect(await phoneAnswer("+447700900041", "events")).toEqual([
+      "yes",
+      "gave-number",
+      "2026-12-01T00:00:00.000Z",
+      "march-2027-04",
+    ]);
+  });
+
   it("texts the newsletter to a number given with a ticked box on a form whose box covers texts", async () => {
     await formEntry("m@example.com", "march-2026-11", "+447700900030", true, "2026-11-01T00:00:00Z");
     await formEntry("d@example.com", "march-2026-11", "+447700900031", false, "2026-11-01T00:00:00Z");

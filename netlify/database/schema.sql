@@ -203,7 +203,7 @@ CREATE TABLE public.form_entries (
     utm_source text,
     bulk_notice_at timestamp with time zone,
     CONSTRAINT form_entries_email_check CHECK (((email IS NOT NULL) OR ((form = 'whatsapp-community'::text) AND (phone IS NOT NULL)))),
-    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text]))),
+    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'march-2027-04'::text, 'paper-signup'::text, 'whatsapp-community'::text]))),
     CONSTRAINT form_entries_phone_check CHECK ((NOT (((phone)::public.phone)::text IS DISTINCT FROM phone)))
 );
 
@@ -1382,7 +1382,7 @@ UNION ALL
     f.created_at AS at,
     f.form AS source
    FROM public.form_entries f
-  WHERE (f.contact_consent AND (f.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text])) AND (f.phone IS NOT NULL))
+  WHERE (f.contact_consent AND ((f.form = 'paper-signup'::text) OR (f.form ~~ 'march-%'::text)) AND (f.phone IS NOT NULL))
 UNION ALL
  SELECT lower(TRIM(BOTH FROM f.email)) AS address,
     'email'::text AS way,
@@ -1404,7 +1404,7 @@ UNION ALL
     f.created_at AS at,
     f.form AS source
    FROM public.form_entries f
-  WHERE ((NOT f.contact_consent) AND (f.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text])) AND (f.phone IS NOT NULL))
+  WHERE ((NOT f.contact_consent) AND ((f.form = 'paper-signup'::text) OR (f.form ~~ 'march-%'::text)) AND (f.phone IS NOT NULL))
 UNION ALL
  SELECT lower(TRIM(BOTH FROM f.email)) AS address,
     'email'::text AS way,

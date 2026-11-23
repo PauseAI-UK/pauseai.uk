@@ -1,6 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 import GoingFaces from "@/components/events/GoingFaces";
-import { march } from "@/lib/content/march";
+import { march as nextMarch, type March } from "@/lib/content/march";
 import type { FeaturedGuest } from "@/lib/going";
 import { m } from "./classes";
 import SignupGoing from "./SignupGoing";
@@ -9,13 +10,23 @@ import SignupGoing from "./SignupGoing";
 const FACES = 3;
 
 /**
- * The sign-up page's first screen: the march's name, when and where, the
- * buttons to the form and to the day's details, and under them how many
- * have registered, with the faces of the first `guests` Luma features. On a
- * desktop the words sit over the photo's darker side; on a phone the photo
- * is a block of its own at the top, fading into the words.
+ * A march's page's first screen: the march's name, when and where, with its
+ * route once that's settled. For the sign-up, the buttons to the form and to
+ * the day's details, and under them how many have registered, with the
+ * faces of the first `guests` Luma features. For a march that's `past`, one
+ * button, to the next march. On a desktop the words sit over the photo's
+ * darker side; on a phone the photo is a block of its own at the top, fading
+ * into the words.
  */
-export default function SignupHero({ guests = [] }: { guests?: FeaturedGuest[] }) {
+export default function SignupHero({
+  march,
+  guests = [],
+  past = false,
+}: {
+  march: March;
+  guests?: FeaturedGuest[];
+  past?: boolean;
+}) {
   return (
     <section className={m("hero")}>
       <div className={m("hero-photo")}>
@@ -26,7 +37,11 @@ export default function SignupHero({ guests = [] }: { guests?: FeaturedGuest[] }
           <span>March Against</span> <span className={m("hero-title-hit")}>AI Extinction</span>
         </h1>
 
-        <p className={m("hero-lede")}>Join us for the biggest ever demonstration for AI safety</p>
+        <p className={m("hero-lede")}>
+          {past
+            ? "⁂ We marched through London for AI safety"
+            : "Join us for the biggest ever demonstration for AI safety"}
+        </p>
 
         <div className={m("hero-facts")}>
           <div className={m("hero-fact")}>
@@ -41,26 +56,40 @@ export default function SignupHero({ guests = [] }: { guests?: FeaturedGuest[] }
             <Icon name="map-pin" />
             <p>
               {march.city}
-              <br />
-              <span className={m("hero-route")}>
-                {march.start.name}
-                <Icon name="arrow-right" label="to" />
-                {march.end.name}
-              </span>
+              {march.route && (
+                <>
+                  <br />
+                  <span className={m("hero-route")}>
+                    {march.route.start.name}
+                    <Icon name="arrow-right" label="to" />
+                    {march.route.end.name}
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>
 
-        <div className={m("hero-cta")}>
-          <a className={m("btn")} href="#register">
-            Register now
-          </a>
-          <a className={m("btn btn-light")} href="#on-the-day">
-            See all details
-          </a>
-        </div>
+        {past ? (
+          <div className={m("hero-cta")}>
+            <Link className={m("btn")} href={nextMarch.path}>
+              ⁂ Join the next march
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className={m("hero-cta")}>
+              <a className={m("btn")} href="#register">
+                Register now
+              </a>
+              <a className={m("btn btn-light")} href="#on-the-day">
+                See all details
+              </a>
+            </div>
 
-        <SignupGoing>{guests.length > 0 && <GoingFaces guests={guests.slice(0, FACES)} />}</SignupGoing>
+            <SignupGoing>{guests.length > 0 && <GoingFaces guests={guests.slice(0, FACES)} />}</SignupGoing>
+          </>
+        )}
       </div>
     </section>
   );

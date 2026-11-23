@@ -8,7 +8,7 @@ import type { PhoneNumber } from "@/lib/phone";
 // linked to a supporter in the same transaction.
 
 /** The forms whose entries this keeps; Email your MP's are kept with their letter (./mp-letters.ts). */
-export type EntryForm = "march-2026-11";
+export type EntryForm = "march-2026-11" | "march-2027-04";
 
 export type FormEntry = {
   name: string;

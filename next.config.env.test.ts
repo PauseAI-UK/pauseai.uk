@@ -79,15 +79,15 @@ describe("redirects", () => {
     expect(redirects.filter((r) => !r.permanent)).toEqual([
       {
         source: "/demonstrations",
-        destination: "/demonstrations/march-against-ai-extinction-nov-26",
+        destination: "/demonstrations/march-against-ai-extinction-apr-27",
         permanent: false,
       },
-      { source: "/protests", destination: "/demonstrations/march-against-ai-extinction-nov-26", permanent: false },
+      { source: "/protests", destination: "/demonstrations/march-against-ai-extinction-apr-27", permanent: false },
       { source: "/campaigns", destination: `/campaigns/${campaigns[0].slug}`, permanent: false },
-      { source: "/march", destination: "/demonstrations/march-against-ai-extinction-nov-26", permanent: false },
+      { source: "/march", destination: "/demonstrations/march-against-ai-extinction-apr-27", permanent: false },
       {
         source: "/march-against-ai-extinction",
-        destination: "/demonstrations/march-against-ai-extinction-nov-26",
+        destination: "/demonstrations/march-against-ai-extinction-apr-27",
         permanent: false,
       },
     ]);
