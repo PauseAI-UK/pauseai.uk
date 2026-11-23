@@ -736,3 +736,25 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
     changed: [...changed],
   };
 }
+
+/**
+ * Which flows of `suite` (keys) a review pictures: those that `changed` can
+ * reach, the files this branch changes from main and those of them added or
+ * deleted. It's flowsToRun's answer for that one change, so it returns the
+ * same.
+ *
+ * What a flow reaches comes from what it opened, which only a run of it
+ * tells: `records` are flows' runs, wherever they're kept, and the first of
+ * a flow's that passed and recorded what it opened this way (RECORDING) is
+ * the one read. A flow with none is pictured, as nothing says what it
+ * reaches: one new on this branch, say.
+ */
+export function flowsReached({ suite, records, phoneTagged, context, changed }) {
+  const byKey = new Map();
+  for (const run of records) {
+    if (byKey.has(run.key) || run.status !== "passed" || !run.opened || run.recording !== RECORDING) continue;
+    // As if run on main, on these dependencies: only what it opened is asked of it.
+    byKey.set(run.key, { ...run, tree: "main", seen: undefined, setup: undefined });
+  }
+  return flowsToRun({ suite, carried: [...byKey.values()], phoneTagged, context, changedSince: () => changed });
+}

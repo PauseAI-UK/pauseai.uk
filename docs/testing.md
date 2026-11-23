@@ -302,11 +302,14 @@ the flows and pictures them.
 
 **The review** (`scripts/storyboard.mjs`):
 
-- works out which flows might show something new since the latest run
-  ("Which flows a review runs", below), and carries the rest;
-- runs those against this branch, with screenshots;
-- takes main's frames from where they're kept, running main's own suite
-  first for any that aren't ("Main's frames are main's own", below);
+- works out which flows the files this branch changes from main can reach
+  ("Which flows a review runs", below), and pictures only those;
+- takes main's frames of those flows from where they're kept, running
+  main's own suite first for any that aren't ("Main's frames are main's
+  own", below);
+- runs them against this branch, with screenshots, but for any that
+  nothing changed since the latest run here reaches, which it carries from
+  that run;
 - pairs the frames by section, flow and caption, and diffs them pixel by
   pixel;
 - opens the run's page (`test-results/storyboard/index.html` leads to the
@@ -315,9 +318,14 @@ the flows and pictures them.
 Main is where this branch left origin/main, the merge base a pull request
 compares with. Nothing is fetched.
 
+The review is for looking at what a change does to the pages. It doesn't
+check that every flow still works: CI does, and `npm run test:storyboard`
+is CI's run, every flow without pictures, for a change that might break
+flows it doesn't reach.
+
 The page shows:
 
-- The flows, in sections. Each frame has its caption and, on desktop and
+- The flows the review pictures, in sections. Each frame has its caption and, on desktop and
   phone, this branch's picture, main's and the diff, which open in a
   lightbox. A phone/desktop toggle stays on the flow being looked at.
 - A control to show all the flows, only those with changed frames (just
@@ -367,18 +375,18 @@ and it takes as long as the branch's. That run writes to the same file,
 the one in the checkout the review was started in, with `side` "main", so
 one place says how far the review is and which half it's on.
 
-When a review that stands for every flow ends, it records how it went, and
-the commit and tree it pictured (`scripts/storyboard.mjs`):
+When a review of every flow, or of the flows it chose itself, ends, it
+records how it went, and the commit and tree it pictured
+(`scripts/storyboard.mjs`):
 
 ```
 test-results/storyboard-review.json
 {"commit":"8fbe0082…","tree":"3c1d…","main":"0d3fde1e…","endedAt":"2026-11-12T11:24:30.000Z","complete":true,"full":false,"run":"2026-11-12T11-18-17","flows":566,"failed":0,"changed":1077}
 ```
 
-A review stands for every flow when it ran them all (`full`), or chose
-which to run itself, as every flow it didn't run would look as it did. So a
-reader can say whether the code it's looking at has had its review: it has
-if `tree` is that code's, uncommitted files and all. A run narrowed by
+`full` is whether it ran every flow, and `flows` how many its page has. So
+a reader can say whether the code it's looking at has had its review: it
+has if `tree` is that code's, uncommitted files and all. A run narrowed by
 hand, to a section, `-g` or one viewport, doesn't write it. `main` is the
 commit of main it was compared with, and `changed` is null for a review
 with no run of main to compare with. The gate's status has the same `commit`, for its flows
@@ -466,19 +474,19 @@ so a page you have open is never changed by the next run. `latest` points
 at the newest run that finished, and `index.html` beside it opens that
 run's page by name. The newest five runs are kept.
 
-A partial run is one that selects less than the whole suite: a section,
-`-g`, `--desktop` or `--phone`, or the flows the review chose. It starts
-from the latest run's frames, as hard links, and replaces only the flows it
-runs, so the review stays whole. Each carried flow says when it was shot,
-and the summary line counts them. A flow that's gone from the suite,
-renamed or deleted, isn't carried. A full run starts empty. A review may
-start from a tree the store keeps instead (below), its pictures linked
-into the run's folder in the same way.
+A run narrowed by hand, to a section, `-g`, `--desktop` or `--phone`,
+starts from the latest run's frames, as hard links, and replaces only the
+flows it runs, so the review it adds to stays as it was. Each carried flow
+says when it was shot, and the summary line counts them. A flow that's
+gone from the suite, renamed or deleted, isn't carried. A run of every
+flow starts empty. A review that chooses its flows starts from those of
+the latest run's that it still pictures and needn't run again (below).
 
 **Which flows a review runs.** Given no selection of its own,
-`npm run storyboard` runs only the flows that might show something new, and
-carries the rest, so every review is as small as the change. Each flow
-keeps these with its frames (`frames.json`):
+`npm run storyboard` pictures only the flows that the files this branch
+changes from main can reach, so every review is as small as the change,
+whatever main has merged since the last one. Its page shows those flows
+and no others. Each flow keeps these with its frames (`frames.json`):
 
 - `tree`, the tree of the code it ran on, when the build was that tree's:
   Playwright built it for the run. With a server already up, whose build
@@ -504,22 +512,36 @@ keeps these with its frames (`frames.json`):
   next review asks what changed since then, as what changed before was
   found not to reach it.
 
-The review then runs (`scripts/storyboard-reach.mjs`, `flowsToRun`):
+The review pictures (`scripts/storyboard-reach.mjs`, `flowsReached`):
 
-- each flow with nothing to carry: new to the suite, failed last time,
-  recorded without its tree or another way, or run on other dependencies;
-- each flow that the files changed since its tree, or since it was last
-  carried, can reach;
+- each flow that the files changed since this branch left main can reach,
+  uncommitted and untracked ones too;
+- each flow with no record of what it opened: one new on this branch, or
+  recorded another way;
 - when one of those files reaches every flow, every desktop flow, and the
   phone's tagged ones, as CI runs;
 - when the map can't place one of those files, every flow.
 
-It carries the rest from the latest run here, or from a tree the store
-keeps (below), whichever leaves fewer to run. So a new worktree's first
-review starts from main's frames and runs only what the branch changed.
-With nothing to run, it runs nothing: the page is every flow carried,
-beside main as it is now. `--plan` says which flows a review would run,
-and why, and runs none. `--full` runs every flow regardless.
+What a flow opened is read from whichever run of it is found first:
+main's, the latest run here, or any tree the store keeps (below). So a new
+worktree's first review reads it from another checkout's runs. A record
+from an older main can be out of date: if a merge since changed which
+pages a flow opens, a review can leave that flow out until one records it
+again.
+
+Of the flows it pictures, the review runs (`flowsToRun`) those with
+nothing to carry: never run here, failed last time, recorded without their
+tree, run on other dependencies, or reached by a file changed since they
+last ran. It carries the rest from the latest run here, so a second review
+of a branch runs only what the change since the first can reach. With
+nothing to picture or to run, it runs nothing. `--plan` says which flows a
+review would picture and run, and why, and runs none. `--full` runs every
+flow regardless.
+
+A flow that main's own merges changed isn't pictured, unless this branch's
+change reaches it too: nothing of it is this branch's to review. So a
+rebase onto a newer main runs only what the branch's own change reaches,
+on both sides.
 
 What a flow can reach:
 
@@ -582,8 +604,11 @@ examples in it, and what they import (`galleryParts` in
 none of that, and isn't a plain stylesheet, reaches only the frames whose
 file of examples reaches it. The review runs the flow, which loads and
 checks the whole page, but pictures only those frames, and carries the rest
-from the run it chose (`STORYBOARD_CARRY`, read by `gallery.spec.ts`; the
-pictures are filled in by `fillCarried`, `scripts/storyboard-store.mjs`).
+from the latest run here or from main's frames of the flow, which they
+look the same as, whichever leaves less to run (`STORYBOARD_CARRY`, read by
+`gallery.spec.ts`; the pictures are filled in by `fillCarried`,
+`scripts/storyboard-store.mjs`). That's why the review gets main's frames
+before it runs this branch's.
 So a change to one staff component pictures its own frame, not the fifty
 of the staff kit. A frame with its examples in the group's own file (most
 of the site's kit, in `_examples/ui.tsx`) is pictured whenever the group
@@ -619,17 +644,23 @@ the repo as it is:
   none uses `globalThis`, but those the test lists;
 - that the files the map names by their paths exist.
 
-**Spot checks.** A review that carries flows also runs six of them
-anyway, chosen by a hash of the tree and the flow, and compares each with
-what it would have carried, as the review compares a frame with main's. A
-gallery flow it would picture in part can be one: it's then run whole, and
-the frames it would have carried compared.
-It does so even when the change reaches no flow, unless nothing changed
-but docs and unit tests. If
-one looks different, the map missed something in the files changed (or a
-frame differs from run to run): the review says which flows, at once and
-at its end, and runs every flow. Find what the map missed and fix it, or
-log a hit on `investments/storyboard-review-speed.md` naming the flows.
+**Spot checks.** A review that chooses its flows also runs six that the
+change doesn't reach, and compares each with main's frames of it, as it
+compares any frame with main's: the two should look the same. The six are
+chosen by a hash of main's tree and the flow, so every review of a branch
+checks the same ones, whose frames on main are kept after the first, and
+a branch from another commit of main checks others. They're on the page
+with the rest. A gallery flow the review would picture in part can be one:
+it's then run whole, and the frames it would have carried compared with
+what they'd have been carried from. A flow main hasn't passed isn't
+checked. It checks even when the change reaches no flow, unless nothing
+changed but docs and unit tests, or there are no frames of main's own to
+check against (`--no-main`, `--this-suite-on-main`). If one looks
+different, the map missed something in the files changed (or a frame
+differs from run to run): the review says which flows, at once and at its
+end, and runs every flow, on main too. Find what the map missed and fix
+it, or log a hit on `investments/storyboard-review-speed.md` naming the
+flows.
 
 The map can't see what isn't in the tree: an environment file, or the
 machine's fonts and browser. And it takes a page that Next prefetched,

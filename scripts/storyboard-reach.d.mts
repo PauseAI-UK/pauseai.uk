@@ -40,6 +40,13 @@ export function reachedFlows<R extends Run>(args: {
   everything: string[];
   unknown: string[];
 };
+export function flowsReached<R extends CarriedRun>(args: {
+  suite: Set<string>;
+  records: R[];
+  phoneTagged: { has(key: string): boolean };
+  context: Context;
+  changed: Changed;
+}): ReturnType<typeof flowsToRun<R>>;
 export function flowsToRun<R extends CarriedRun>(args: {
   suite: Set<string>;
   carried: R[];

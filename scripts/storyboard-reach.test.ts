@@ -6,6 +6,7 @@ import {
   appRoutes,
   closure,
   flowReach,
+  flowsReached,
   flowsToRun,
   folderPattern,
   handOvers,
@@ -766,6 +767,52 @@ describe("flowsToRun", () => {
       [{ ...passed(home, "t1"), seen: "t5" }, passed(letters, "t1"), passed(events, "t5"), passed(phoneHome, "t5")],
     );
     expect(asked).toEqual(["t5", "t1"]);
+  });
+});
+
+describe("flowsReached", () => {
+  const recorded = (r: ReturnType<typeof run>, more: Record<string, unknown> = {}) => ({
+    ...r,
+    status: "passed",
+    recording: RECORDING,
+    ...more,
+  });
+  const fresh = "desktop|home|A new flow";
+  const suite = new Set([home.key, letters.key, events.key, fresh]);
+  const reach = (records: Record<string, unknown>[], files: string[]) =>
+    flowsReached({
+      suite,
+      records: records as never,
+      phoneTagged: new Set(),
+      context: reachContext(root),
+      changed: { files, addedOrDeleted: [] },
+    });
+
+  it("pictures the flows this branch's files reach, and those with no record of what they open", () => {
+    const chosen = reach([recorded(home), recorded(letters), recorded(events)], ["components/Letters.tsx"]);
+    expect(chosen.run).toEqual(new Set([fresh, letters.key]));
+    expect(chosen).toMatchObject({ fresh: 1, reached: 1, changed: ["components/Letters.tsx"] });
+  });
+
+  it("reads what a flow opened from the first run that passed and recorded it this way, whatever tree, review or dependencies it was on", () => {
+    const chosen = reach(
+      [
+        { ...recorded(letters), status: "failed", opened: ["/"] },
+        { ...recorded(letters), opened: undefined },
+        { ...recorded(letters), recording: RECORDING - 1, opened: ["/"] },
+        recorded(letters, { tree: "t1", seen: "t9", setup: "old" }),
+        recorded(letters, { opened: ["/"] }),
+        recorded(home, { tree: "t2" }),
+        recorded(events),
+      ],
+      ["components/Letters.tsx"],
+    );
+    expect(chosen.run).toEqual(new Set([fresh, letters.key]));
+  });
+
+  it("pictures none when the branch changes nothing", () => {
+    const chosen = reach([recorded(home), recorded(letters), recorded(events), recorded(run(fresh, ["/"]))], []);
+    expect(chosen.run).toEqual(new Set());
   });
 });
 
