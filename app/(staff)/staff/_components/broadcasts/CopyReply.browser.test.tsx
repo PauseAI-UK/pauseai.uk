@@ -471,6 +471,15 @@ describe("replies to broadcasts", () => {
     await expect
       .element(page.getByText(`${copy.replies.reactedNotKept} · ${staffTime(lost.receivedAt)}`))
       .toBeVisible();
+    // In the history, each says what they reacted, or that its emoji is lost, the one taken back with when under it.
+    for (const said of [
+      copy.replies.historyTheyReacted("👍"),
+      copy.replies.historyTheyReacted("❤️"),
+      copy.replies.reactedNotKept,
+      copy.replies.historyReactionRemoved,
+    ]) {
+      await expect.element(page.getByText(said, { exact: true })).toBeVisible();
+    }
     // A photo, over its caption; a place, its link to a map a link; a voice note and a kind with no name, alone.
     expect(bubble("Our banner from last time").textContent).toContain(copy.replies.kinds.image);
     await expect.element(page.getByText(copy.replies.kinds.location)).toBeVisible();

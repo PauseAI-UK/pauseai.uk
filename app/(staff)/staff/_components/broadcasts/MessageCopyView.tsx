@@ -151,9 +151,19 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
           {
             at: reply.receivedAt,
             status: "replied",
-            label: copy.events.replied,
+            // A reaction says so, with its emoji if it was kept, and when they took it back under it.
+            label:
+              reply.kind !== "reaction"
+                ? copy.events.replied
+                : reply.text
+                  ? copy.replies.historyTheyReacted(reply.text)
+                  : copy.replies.reactedNotKept,
             tag: replyTag,
             details: { from: shown(reply.from), to: ourAddress, backend: replyBackend, messageId: reply.providerId },
+            ...(reply.removedAt &&
+              under([
+                { at: reply.removedAt, status: "replied", details: {}, label: copy.replies.historyReactionRemoved },
+              ])),
           },
         ],
   );

@@ -291,8 +291,10 @@ export const broadcastsCopy = {
       // emoji on a message and when, ours on theirs or theirs on ours; and why one of ours didn't go.
       react: "React on WhatsApp",
       reactedBy: (emoji: string, by: string, when: string) => `${by} reacted ${emoji}, ${when}`,
-      // In the copy's history, with who on a line under it.
+      // In the copy's history: ours, with who on a line under it; theirs, with, under it, when they took it back.
       historyReacted: (emoji: string) => `We reacted ${emoji}`,
+      historyTheyReacted: (emoji: string) => `They reacted ${emoji}`,
+      historyReactionRemoved: "Removed reaction",
       reactionNotSent: "That didn't send to WhatsApp. Try again.",
       stillSending: (account: string) => `Unsure if this sent. Check ${account}'s Sent folder in Gmail.`,
       optedOut: (by: string, when: string) => `Recorded as an opt-out by ${by}, ${when}`,
@@ -426,14 +428,14 @@ export const broadcastsCopy = {
     facts: {
       from: "From",
       // The list everyone a broadcast is to is on: its channel and topic, from the Consent filter.
-      list: "⁂ List",
+      list: "List",
       // Who a broadcast went to: how many, over the rest of the list's filters, which narrow those who said yes.
       to: (n: number) => `To ${count(n, "supporter", "supporters")}`,
     },
     // Under To, the list everyone it's to is on, as the Consent filter names it, then the channel.
     onList: (list: string, channel: "email" | "text") => `${list}, by ${channel === "email" ? "email" : "text"}`,
     // In To, when Consent is the only filter.
-    everyoneOnList: "⁂ Everyone on the list",
+    everyoneOnList: "Everyone on the list",
     // Beside it, to the supporters list to filter them; once filtered, the mailings' "Change who".
     narrowDown: "Narrow down",
     threadTitle: "Thread",
