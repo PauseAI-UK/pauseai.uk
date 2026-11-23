@@ -164,6 +164,9 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       quoted: "",
       // The office copied their caseworker in.
       cc: "Casey Worker <casey.worker@parliament.uk>",
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
     {
       id: 2,
@@ -177,6 +180,9 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       text: "Dear Mr McTestface,\n\nThank you. Could we meet?\n\nJane",
       quoted: "",
       cc: null,
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
   ],
 };
@@ -202,6 +208,9 @@ export const exampleAutoRepliedLetterDetails: SupporterLetterDetails = {
       ].join("\n\n"),
       quoted: "",
       cc: null,
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
     {
       id: 4,
@@ -215,6 +224,9 @@ export const exampleAutoRepliedLetterDetails: SupporterLetterDetails = {
       text: "I'm away until Monday.",
       quoted: "",
       cc: null,
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
   ],
 };
@@ -314,6 +326,7 @@ export const examplePauseaiLetterDetails: PauseaiLetterDetails = {
   createdAt: new Date("2026-10-01T12:00:00Z"),
   sentAt: new Date("2026-10-01T12:00:00Z"),
   repliedAt: null,
+  toCheck: false,
   mpName: "Polly Placeholder",
   politicianId: 1,
   mpEmail: "polly.placeholder.mp@parliament.uk",

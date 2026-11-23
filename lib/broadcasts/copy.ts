@@ -263,28 +263,12 @@ export const broadcastsCopy = {
     replies: {
       topics: (topics: string) => `${topics} (this email)`,
       bulk: "All bulk email",
-      nothing: "Nothing to do",
+      // Answering it, Nothing to do, and who sent our answer, as a mailing's letter's thread says them.
+      ...mailingsCopy.answers,
       // In a copy's history, under Recorded as an opt-out: How they told us (recordOptOut.how), and this.
       how: "By replying to this email",
-      // Answering a reply: the folded draft at the foot of the thread, the draft opened, and why one didn't go.
-      reply: "Reply",
-      // Reply, under our last answer to their latest reply.
-      followUp: "Follow up",
-      answerLabel: "Your reply",
-      send: "Send reply",
-      sending: "Sending…",
-      discard: "Discard",
       // Over the draft, to someone with "Do not email": it goes all the same, as it answers them.
       doNotEmail: "They've opted out of all email. Only answer what they asked.",
-      notSent: {
-        blank: "The reply is empty.",
-        gone: "Their reply has been deleted, so this can't answer it.",
-        blocked: "Not sent: their address is blocked, as email to it bounced or they marked ours as spam.",
-        failed: "Error sending via Gmail. Try again, or reply in Gmail itself.",
-        window: "Not sent: it's more than a day since their messge, so WhatsApp won't let us reply.",
-      },
-      // Our answer in the thread: who sent it; one whose sending never finished.
-      sentBy: (by: string) => `Sent by ${by}`,
       // One a staff member wrote in the mailbox's Gmail rather than here, which says only the mailbox.
       sentInGmail: (account: string) => `Sent in ${account}'s Gmail`,
       // Under their message on WhatsApp: the emoji to put on it, read out by a screen reader as this; who put an
@@ -302,7 +286,6 @@ export const broadcastsCopy = {
       sentAutomatically: "Sent automatically",
       optedOutAutomatically: (when: string) => `Recorded as an opt-out automatically, ${when}`,
       automatically: "Automatically",
-      nothingDone: (by: string, when: string) => `Nothing to do, said ${by}, ${when}`,
       // In its history.
       // Each with who, on a line under it.
       historyOptedOut: "Recorded as an opt-out",
@@ -489,7 +472,7 @@ export const broadcastsCopy = {
       "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
     // What a problem names a supporter's copy of a broadcast as, and our answer to a reply.
     copyOf: (id: number) => `Broadcast copy ${id}`,
-    answerTo: (id: number) => `Our reply to reply ${id}`,
+    answerTo: mailingsCopy.answers.answerTo,
     // WhatsApp gets an error, so it sends the webhook again.
     whatsAppWebhookNotRecorded: "A WhatsApp webhook couldn't be recorded",
   },
@@ -512,6 +495,15 @@ export const broadcastsCopy = {
           : reason === "civicrm"
             ? `“${title}” was due to go, but hasn't been sent.\n\nWe check everyone with CiviCRM before sending to them, and the check failed. CiviCRM said: ${said ?? "nothing"}\n\nIt will send as soon as the check works. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`
             : `“${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and our import from CiviCRM hasn't worked for a day.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
+    },
+    // Replies to a broadcast's texts that nobody has dealt with for a couple of hours, to whoever made it and the
+    // inbox, once each (lib/broadcasts/text-alerts.server.ts): who sent each, the hours left to answer it before
+    // WhatsApp stops taking our words, and a link to its thread.
+    textsWaiting: {
+      subject: (n: number, title: string) => `${count(n, "text reply", "text replies")} to answer: ${title}`,
+      body: (title: string, lines: string[]) =>
+        `These replies to “${title}” are waiting for someone to answer them. WhatsApp lets us reply only within 24 hours of their message, so either reply to them or mark that nothing needs doing.\n\n${lines.join("\n")}`,
+      line: (who: string, hours: number, link: string) => `- ${who}: ${count(hours, "hour", "hours")} left. ${link}`,
     },
     // A broadcast whose Gmail, Postmark or WhatsApp has said at every try since `since` that it can't send for now,
     // as at a limit or down, to whoever scheduled it and the inbox, once: it goes on by itself, or stops at `stops`.

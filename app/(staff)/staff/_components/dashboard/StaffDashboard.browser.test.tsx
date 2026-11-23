@@ -43,6 +43,22 @@ describe("StaffDashboard", () => {
     await expect.element(page.getByRole("list", { name: copy.actionsTitle })).not.toBeInTheDocument();
   });
 
+  it("lists politicians' replies to mailings to look at, amber, for every staff member", async () => {
+    const dashboard = {
+      ...exampleQuietDashboard,
+      actions: [{ kind: "mailing-replies" as const, count: 3, mailingId: 21, title: "Edinburgh" }],
+    };
+    await render(<StaffDashboard dashboard={dashboard} permissions={[]} />);
+    const items = page.getByRole("list", { name: copy.actionsTitle }).getByRole("listitem").all();
+    expect(items.map((item) => item.element().textContent)).toEqual([
+      `${copy.actions.broadcastReplies(3, "Edinburgh")}${copy.actions.mailingRepliesDetail}${copy.actions.broadcastRepliesButton}`,
+    ]);
+    expect(items[0].element().firstElementChild!.className).toMatch(/amber/);
+    await expect
+      .element(page.getByRole("link", { name: copy.actions.broadcastRepliesButton }))
+      .toHaveAttribute("href", "/staff/mailings/21?tab=look");
+  });
+
   it("lists what needs a person as a strip each, red when broken and amber when waiting, a button each, or nothing", async () => {
     const { rerender } = await render(<StaffDashboard dashboard={exampleDashboard} permissions={[]} />);
     const list = page.getByRole("list", { name: copy.actionsTitle });

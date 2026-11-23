@@ -66,6 +66,7 @@ describeWithDatabase("mailings", () => {
     ]);
     // Each letter in one state: the reply, the bounce, the one Gmail refused, the one stopped, and the spam complaint.
     expect(mailings[4].states).toEqual({
+      look: 0,
       sent: 0,
       replied: 1,
       answered: 0,
@@ -112,6 +113,7 @@ describeWithDatabase("mailings", () => {
         personalised: true,
         answer: null,
         skipReason: null,
+        toCheck: false,
       },
     ]);
     expect(mailing).toMatchObject({ recipientsTotal: 2, page: 1, pages: 1, pageSize: 100 });
@@ -170,6 +172,7 @@ describeWithDatabase("mailings", () => {
     expect(mailing).toMatchObject({ tab: "not-sent", recipientsTotal: 2, to: 8, answered: 2 });
     expect(mailing.recipients.map((r) => r.skipReason)).toEqual([null, "left-office"]);
     expect(mailing.states).toEqual({
+      look: 0,
       sent: 1,
       replied: 1,
       answered: 1,
@@ -180,15 +183,79 @@ describeWithDatabase("mailings", () => {
     });
   });
 
-  it("puts a letter in the same state in SQL as on its tag, for every status, answered, replied or neither", async () => {
+  it("puts a letter whose reply nobody has dealt with in to check, until something at or after it deals with it", async () => {
+    const people = ["Polly", "Dora", "Rob", "Jo", "Sam", "Kim", "Lee", "Ann", "Ben"];
+    const ids = new Map<string, number>();
+    for (const name of people) {
+      const politician = await addTestPolitician({ name: `${name} Example`, airtableId: `rec${name}` });
+      ids.set(name, politician);
+      ids.set(`${name} letter`, await addLetter(EDINBURGH, politician, { replied: "2026-10-04" }));
+    }
+    const letter = (name: string) => ids.get(`${name} letter`)!;
+    let gmail = 0;
+    const message = async (name: string, at: string, { fromUs = false, dealtBy = null as string | null } = {}) => {
+      gmail++;
+      const [{ id }] = await query<{ id: number }>(
+        `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, at, from_us,
+           blob_key, size, dealt_by, dealt_at)
+         VALUES ($1, 'policy@pauseai.uk', $2, 't', $3, $4, $5, $2, 1, $6, CASE WHEN $6::text IS NOT NULL THEN now() END)
+         RETURNING id::int AS id`,
+        [letter(name), `g${gmail}`, fromUs ? "policy@pauseai.uk" : "office@parliament.uk", at, fromUs, dealtBy],
+      );
+      return { id, gmail: `g${gmail}` };
+    };
+    const ask = (name: string, by: string, at: string) =>
+      query(
+        `INSERT INTO ask_statuses (notable_person_id, ask, ask_kind, status, updated_by, updated_at)
+         VALUES ($1, 'edinburgh-conference-2026', 'event', 'going', $2, $3)`,
+        [ids.get(name), by, at],
+      );
+    // Polly's reply waits.
+    await message("Polly", "2026-10-04");
+    // Our answer after Dora's deals with it; Nothing to do on Rob's.
+    await message("Dora", "2026-10-04");
+    await message("Dora", "2026-10-05", { fromUs: true });
+    await message("Rob", "2026-10-04", { dealtBy: "jo@pauseai.uk" });
+    // Jo's was automatic, as its event says.
+    const auto = await message("Jo", "2026-10-04");
+    await query(
+      `INSERT INTO letter_events (letter_id, status, details) VALUES ($1, 'auto_reply', jsonb_build_object('gmailMessageId', $2::text))`,
+      [letter("Jo"), auto.gmail],
+    );
+    // A staff member set Sam's answer to the ask after it came; an import set Kim's; Lee's was set before.
+    await message("Sam", "2026-10-04");
+    await ask("Sam", "jo@pauseai.uk", "2026-10-05");
+    await message("Kim", "2026-10-04");
+    await ask("Kim", "controlai", "2026-10-05");
+    await ask("Lee", "jo@pauseai.uk", "2026-10-01");
+    await message("Lee", "2026-10-04");
+    // Ann wrote again after our answer; Ben's latest is marked, which deals with his first too.
+    await message("Ann", "2026-10-04");
+    await message("Ann", "2026-10-05", { fromUs: true });
+    await message("Ann", "2026-10-06");
+    await message("Ben", "2026-10-04");
+    await message("Ben", "2026-10-06", { dealtBy: "jo@pauseai.uk" });
+    const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM mailings WHERE title = $1", [EDINBURGH]);
+    const names = async (tab: RecipientTab) => (await getMailing(id, 1, tab))!.recipients.map((r) => r.name);
+    expect(await names("look")).toEqual(["Ann Example", "Kim Example", "Lee Example", "Polly Example"]);
+    expect(await names("replied")).toEqual(["Ben Example", "Dora Example", "Jo Example", "Rob Example"]);
+    expect(await names("answered")).toEqual(["Sam Example"]);
+    const mailing = (await getMailing(id))!;
+    expect(mailing.states.look).toBe(4);
+    expect(mailing.recipients.filter((r) => r.toCheck).map((r) => r.name)).toEqual(await names("look"));
+  });
+
+  it("puts a letter in the same state in SQL as on its tag, for every status, answered, replied, to check or none", async () => {
     const cases = LETTER_STATUSES.flatMap((status) =>
-      [false, true].flatMap((answered) => [false, true].map((replied) => ({ status, answered, replied }))),
+      [false, true].flatMap((answered) =>
+        [false, true].flatMap((replied) => [false, true].map((toCheck) => ({ status, answered, replied, toCheck }))),
+      ),
     );
     const rows = await query<{ state: string }>(
-      `SELECT ${letterStateSql("c.answered")} AS state
-       FROM jsonb_to_recordset($1::jsonb) AS c(status text, answered boolean, replied boolean),
+      `SELECT ${letterStateSql("c.answered", "c.to_check")} AS state
+       FROM jsonb_to_recordset($1::jsonb) AS c(status text, answered boolean, replied boolean, to_check boolean),
          LATERAL (SELECT c.status, CASE WHEN c.replied THEN now() END AS replied_at) l`,
-      [JSON.stringify(cases)],
+      [JSON.stringify(cases.map(({ toCheck, ...one }) => ({ ...one, to_check: toCheck })))],
     );
     expect(rows.map((row) => row.state)).toEqual(cases.map((one) => letterState(one).state));
   });

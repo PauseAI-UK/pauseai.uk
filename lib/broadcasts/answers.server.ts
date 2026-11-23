@@ -16,6 +16,7 @@ import { send } from "@/lib/email/sending.server";
 import { sendReaction, sendText } from "@/lib/server/outside-services/whatsapp.server";
 import { REACTION_DAYS, REACTIONS } from "./broadcasts";
 import { emailCopy } from "@/lib/email/copy";
+import type { AnswerResult } from "@/lib/mailings/answers";
 
 // Staff's answers to replies to broadcasts, written on the copy's Thread
 // page (broadcast_answers). An answer to an email goes by Gmail from the
@@ -106,13 +107,6 @@ export async function reactionsTo(copyId: number): Promise<BroadcastReaction[]> 
     ),
   );
 }
-
-/**
- * What became of an answer: sent; or not, as it had no words, the reply's
- * gone, the address is blocked, Gmail or WhatsApp failed, or it's more than
- * a day since a reply to a text, when WhatsApp takes no words of ours.
- */
-export type AnswerResult = { sent: true } | { sent: false; reason: "blank" | "gone" | "blocked" | "failed" | "window" };
 
 /**
  * Sends staff member `by`'s answer, `body`, to reply `replyId`, once for
@@ -258,11 +252,11 @@ export async function keepGmailAnswer(
 }
 
 /** How long after someone's last message WhatsApp takes words of our own to them. */
-const WINDOW_HOURS = 24;
+export const REPLY_WINDOW_HOURS = 24;
 
 /** Whether WhatsApp still takes an answer to a reply to a text that came at `receivedAt`: within a day of it. */
 export function inWindow(receivedAt: Date): boolean {
-  return now().getTime() - receivedAt.getTime() < WINDOW_HOURS * 60 * 60 * 1000;
+  return now().getTime() - receivedAt.getTime() < REPLY_WINDOW_HOURS * 60 * 60 * 1000;
 }
 
 /** Whether WhatsApp still delivers an emoji on a message that came at `receivedAt`: within REACTION_DAYS of it. */

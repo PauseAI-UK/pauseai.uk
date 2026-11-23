@@ -16,7 +16,6 @@ import { messageCopyViewGallery } from "@/app/(staff)/staff/_components/broadcas
 import { replyActionsGallery } from "@/app/(staff)/staff/_components/broadcasts/ReplyActions.gallery";
 import { replyReactionsGallery } from "@/app/(staff)/staff/_components/broadcasts/ReplyReactions.gallery";
 import { copyReplyGallery } from "@/app/(staff)/staff/_components/broadcasts/CopyReply.gallery";
-import { answerableReplyGallery } from "@/app/(staff)/staff/_components/broadcasts/AnswerableReply.gallery";
 import { supporterBroadcastsGallery } from "@/app/(staff)/staff/_components/broadcasts/SupporterBroadcasts.gallery";
 import { textBubbleGallery } from "@/app/(staff)/staff/_components/broadcasts/TextBubble.gallery";
 import { textFoldGallery } from "@/app/(staff)/staff/_components/broadcasts/TextFold.gallery";
@@ -47,7 +46,6 @@ export const staffBroadcasts: Group = {
     ...replyReactionsGallery,
     unsubscribeForm,
     ...copyReplyGallery,
-    ...answerableReplyGallery,
     ...supporterBroadcastsGallery,
     ...textBubbleGallery,
     ...textFoldGallery,

@@ -1,13 +1,14 @@
 import "server-only";
 import { IMPORT_JOBS, POLITICIAN_IMPORT_JOBS, type PoliticianImportJob } from "@/lib/import-runs";
 import { query } from "@/lib/server/db.server";
+import { replyToCheck } from "@/lib/letters/copy-states";
 import { latestRun } from "@/lib/server/import-runs.server";
 import type { DashboardAction } from "./dashboard";
 
 // What needs a person, at the top of the dashboard: each import held for a
 // decision, each politician in office whose address is blocked, any import
 // whose newest run failed, mail in the letters inbox a read couldn't
-// handle, and replies to broadcasts waiting to be checked.
+// handle, and replies to broadcasts and to mailings waiting to be checked.
 
 /** Every import of a body's members still held for a decision, oldest first. */
 async function heldImports(): Promise<DashboardAction[]> {
@@ -43,13 +44,25 @@ async function broadcastReplies(): Promise<DashboardAction[]> {
   return waiting.map((broadcast) => ({ kind: "broadcast-replies", ...broadcast }));
 }
 
+/** Politicians' replies to mailings waiting for staff (replyToCheck): each mailing with any, its title and how many, the oldest waiting first. */
+async function mailingReplies(): Promise<DashboardAction[]> {
+  const waiting = await query<{ count: number; mailingId: number; title: string }>(
+    `SELECT count(*)::int AS count, m.id::int AS "mailingId", m.title
+     FROM letter_replies r JOIN letters_from_pauseai p ON p.id = r.letter_id JOIN mailings m ON m.id = p.mailing_id
+     WHERE ${replyToCheck("m.ask")}
+     GROUP BY m.id ORDER BY min(r.at), m.id`,
+  );
+  return waiting.map((mailing) => ({ kind: "mailing-replies", ...mailing }));
+}
+
 /** What waits for a person now. */
 export async function needsAPerson(): Promise<DashboardAction[]> {
-  const [held, blocked, imports, replies] = await Promise.all([
+  const [held, blocked, imports, replies, letterReplies] = await Promise.all([
     heldImports(),
     blockedMps(),
     Promise.all(IMPORT_JOBS.map((job) => latestRun(job))),
     broadcastReplies(),
+    mailingReplies(),
   ]);
   const failed: DashboardAction[] = imports.flatMap((run) =>
     run?.status === "failed" ? [{ kind: "failed-import", job: run.job, at: run.at, error: run.error }] : [],
@@ -71,5 +84,5 @@ export async function needsAPerson(): Promise<DashboardAction[]> {
         )
       : [],
   );
-  return [...held, ...blocked, ...failed, ...inbox, ...replies];
+  return [...held, ...blocked, ...failed, ...inbox, ...replies, ...letterReplies];
 }

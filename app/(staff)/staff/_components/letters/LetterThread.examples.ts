@@ -31,6 +31,9 @@ export const exampleThread: LetterThread = {
       text: "Dear Jo,\n\nThank you for writing to me. I'd be glad to meet.\n\nPolly",
       quoted: "On 5 Jun 2026, Jo wrote:\n> Will you come and meet us?",
       cc: null,
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
     {
       id: 2,
@@ -44,6 +47,9 @@ export const exampleThread: LetterThread = {
       text: null,
       quoted: "",
       cc: null,
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
   ],
 };

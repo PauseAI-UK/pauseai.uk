@@ -90,6 +90,7 @@ export default function LetterView({
               skipReason={letter.kind === "pauseai" ? letter.skipReason : null}
               answered={Boolean(ask && politician.statuses[ask.slug])}
               replied={Boolean(letter.repliedAt)}
+              toCheck={letter.kind === "pauseai" && letter.toCheck}
               autoReplied={letter.events.some((event) => event.status === "auto_reply")}
               // A mailing's letter goes by Gmail, but one copied from Airtable; a supporter's by Gmail or Postmark.
               sentBy={letter.kind === "pauseai" && letter.backend !== "airtable" ? "gmail" : null}

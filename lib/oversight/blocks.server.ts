@@ -24,6 +24,7 @@ const FOUND_BY_PURPOSE: Record<Purpose, Exclude<FoundBy, "unrecorded">> = {
   "forwarded-reply": "letter",
   mailing: "mailing",
   "mailing-test": "mailing",
+  "mailing-answer": "mailing",
   "bulk-notice": "other",
   "preferences-link": "other",
   "staff-login": "other",

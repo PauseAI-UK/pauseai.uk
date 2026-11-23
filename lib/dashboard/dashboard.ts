@@ -72,7 +72,9 @@ export type DashboardAction =
   | { kind: "failed-import"; job: ImportJob; at: Date; error: string }
   | { kind: "letters-inbox"; inbox: string; count: number; at: Date }
   /** Replies to one broadcast waiting for staff: the broadcast, its title, and how many. */
-  | { kind: "broadcast-replies"; count: number; broadcastId: number; title: string };
+  | { kind: "broadcast-replies"; count: number; broadcastId: number; title: string }
+  /** Politicians' replies to one mailing waiting for staff: the mailing, its title, and how many. */
+  | { kind: "mailing-replies"; count: number; mailingId: number; title: string };
 
 export type Dashboard = {
   /** The window's length in days. */

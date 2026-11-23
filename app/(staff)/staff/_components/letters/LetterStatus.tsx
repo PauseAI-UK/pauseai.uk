@@ -16,6 +16,7 @@ export default function LetterStatus(letter: {
   skipReason?: SkipReason | null;
   answered: boolean;
   replied: boolean;
+  toCheck?: boolean;
   autoReplied?: boolean;
   sentBy?: string | null;
 }) {

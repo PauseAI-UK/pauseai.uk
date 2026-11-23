@@ -247,12 +247,27 @@ describe("fixtureResponse", () => {
     expect(await gmail("/history?startHistoryId=1").json()).toEqual({ historyId: "1000" });
     expect(await gmail("/messages?q=x").json()).toEqual({ resultSizeEstimate: 0 });
     expect(gmail("/messages/abc").status).toBe(404);
-    // An email it sent says the Message-ID it went with.
-    const raw = Buffer.from("Message-ID: <ours@pauseai.uk>\r\nSubject: Hi\r\n\r\nHello").toString("base64url");
+    // An email it sent says the Message-ID it went with, who it's from and its subject, and gives itself whole.
+    const message = "Message-ID: <ours@pauseai.uk>\r\nFrom: Jo <jo@pauseai.uk>\r\nSubject: Hi\r\n\r\nHello";
+    const raw = Buffer.from(message).toString("base64url");
     const { id } = await gmail("/messages/send", { method: "POST", body: JSON.stringify({ raw }) }).json();
     expect(await gmail(`/messages/${id}?format=metadata&metadataHeaders=Message-ID`).json()).toMatchObject({
       id,
-      payload: { headers: [{ name: "Message-ID", value: "<ours@pauseai.uk>" }] },
+      payload: {
+        headers: [
+          { name: "Message-ID", value: "<ours@pauseai.uk>" },
+          { name: "From", value: "Jo <jo@pauseai.uk>" },
+          { name: "Subject", value: "Hi" },
+        ],
+      },
     });
+    expect(await gmail(`/messages/${id}?format=raw`).json()).toEqual({ id, raw });
+    // A header it doesn't have is empty.
+    const bare = Buffer.from("Subject: Bare\r\n\r\nHello").toString("base64url");
+    const { id: bareId } = await gmail("/messages/send", {
+      method: "POST",
+      body: JSON.stringify({ raw: bare }),
+    }).json();
+    expect((await gmail(`/messages/${bareId}`).json()).payload.headers[0]).toEqual({ name: "Message-ID", value: "" });
   });
 });

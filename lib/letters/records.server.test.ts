@@ -477,6 +477,7 @@ describeWithDatabase("a letter for its page", () => {
       kind: "pauseai",
       id,
       status: "sent",
+      toCheck: false,
       skipReason: null,
       createdAt: new Date("2026-10-01T09:00:00Z"),
       sentAt: new Date("2026-10-01T09:00:00Z"),

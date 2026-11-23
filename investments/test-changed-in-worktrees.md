@@ -31,3 +31,4 @@ the newer one.
 - 2026-11-20: in tmp/worktrees/broadcast-finish-time, traced it to tinyexec's `PATH` and the old git, then ran the test files by hand, ~10 min
 - 2026-11-23: in tmp/worktrees/maps-link-warning, ran the two affected test files by hand, then the gate's test group, ~3 min
 - 2026-11-23: in tmp/worktrees/broadcast-tidy-ups, it exited 0 having run nothing, so it looked like a pass; ran the test files by hand, ~3 min
+- 2026-11-23: in tmp/worktrees/mailing-replies-to-check, ran the affected test files by hand, ~5 min

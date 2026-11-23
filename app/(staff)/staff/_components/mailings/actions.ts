@@ -28,6 +28,8 @@ import {
 } from "@/lib/mailings/drafts.server";
 import { politicianAudience } from "@/lib/mailings/recipients.server";
 import { mailingAudience } from "@/lib/mailings/records.server";
+import { answerLetterReply, markNothingToDo } from "@/lib/mailings/replies.server";
+import type { AnswerResult } from "@/lib/mailings/answers";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { staffBack, storedFilter } from "@/lib/staff-search";
@@ -230,4 +232,31 @@ export async function pickMany(mailing: number, politicians: number[], ticked: b
   await toPoliticians(mailing);
   await changePicks(mailing, ticked ? { tick: politicians } : { untick: politicians });
   revalidatePath("/staff/politicians");
+}
+
+/**
+ * Nothing to do, under a politician's reply to a mailing's letter: marks it,
+ * and those before it, as needing nothing, as the staff member; then the
+ * mailing's pages are shown afresh.
+ */
+export async function nothingToDoNow(form: FormData): Promise<void> {
+  const { email } = await requireStaff();
+  const replyId = idFrom(form, "replyId");
+  if (replyId && (await markNothingToDo(replyId, email))) revalidatePath("/staff/mailings", "layout");
+}
+
+/** A draft's own ID, as the page makes it: a UUID. */
+const DRAFT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Send reply, under a politician's reply to a mailing's letter: sends the
+ * staff member's answer, once for the page's `draftId`, and shows the
+ * mailing's pages afresh once it's gone; says whether it went, or why not.
+ */
+export async function answerLetterReplyNow(replyId: number, draftId: string, body: unknown): Promise<AnswerResult> {
+  const { email } = await requireStaff();
+  if (!Number.isSafeInteger(replyId) || !DRAFT_ID.test(draftId)) return { sent: false, reason: "gone" };
+  const result = await answerLetterReply(replyId, draftId, body, email);
+  if (result.sent) revalidatePath("/staff/mailings", "layout");
+  return result;
 }

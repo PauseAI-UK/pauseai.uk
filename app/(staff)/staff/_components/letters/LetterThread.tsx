@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Muted } from "@/components/ui/Text";
 import type { LetterDoc } from "@/lib/letters/format";
 import type { SupporterLetterDetails } from "@/lib/letters/records.server";
-import type { LetterThread as Thread } from "@/lib/letters/threads.server";
+import type { LetterThread as Thread, ThreadMessage } from "@/lib/letters/threads.server";
 import { named } from "@/lib/email-parsing/addresses";
 import { gmailMessageLink } from "@/lib/email/gmail-links";
 import LetterChanges from "./LetterChanges";
@@ -81,17 +81,20 @@ export function Thread({
  * Open in Gmail at the right of its heading if Gmail sent it, each message
  * as an email: the letter as it went, from the Gmail it went from; or, for an imported one, whose text isn't kept, a note saying so
  * with `link`, the way to it in Gmail, beside it, in its place. Then each
- * reply and answer, oldest first.
+ * reply and answer, oldest first, each with what `foot` puts under its
+ * words, such as who dealt with it and what to do with it.
  */
 export default function LetterThread({
   thread,
   link,
   showLetter,
+  foot,
 }: {
   thread: Thread;
   link?: ReactNode;
   /** The letter as it reads, a mailing's letter (MailingLetter). */
   showLetter: (letter: LetterDoc) => ReactNode;
+  foot?: (message: ThreadMessage) => ReactNode;
 }) {
   const politician = named(thread.to.name, thread.to.email);
   const ours = thread.sentFrom
@@ -138,6 +141,7 @@ export default function LetterThread({
           ) : (
             <MessageText text={message.text} quoted={message.quoted} auto={message.auto} />
           )}
+          {foot?.(message)}
         </ThreadEmail>
       ))}
       {thread.messages.length === 0 && (

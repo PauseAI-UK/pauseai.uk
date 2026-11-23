@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { CAMPAIGN_LETTER_STATE, type SkipReason } from "./copy-states";
+import { CAMPAIGN_LETTER_STATE, MAILING_TO_CHECK, type SkipReason } from "./copy-states";
 import { config } from "@/lib/server/config.server";
 import type { AskStatus } from "@/lib/asks/asks";
 import { answerSql } from "@/lib/asks/invited";
@@ -262,6 +262,8 @@ export type PauseaiLetterDetails = {
   sentAt: Date | null;
   /** When a reply from anyone but us first reached us. */
   repliedAt: Date | null;
+  /** Whether a reply of theirs waits for staff (MAILING_TO_CHECK). */
+  toCheck: boolean;
   mpName: string;
   politicianId: number;
   mpEmail: string | null;
@@ -318,7 +320,7 @@ export const getPauseaiLetter = cache(async function getPauseaiLetter(
     Omit<PauseaiLetterDetails, "gmail" | "events"> & { inGmail: PauseaiInGmail; events: AsJson<LetterEvent>[] }
   >(
     `SELECT 'pauseai' AS kind, l.id::int AS id, l.status, p.skip_reason AS "skipReason", l.created_at AS "createdAt",
-       l.sent_at AS "sentAt", l.replied_at AS "repliedAt",
+       l.sent_at AS "sentAt", l.replied_at AS "repliedAt", ${MAILING_TO_CHECK} AS "toCheck",
        n.name AS "mpName", n.id::int AS "politicianId", n.email AS "mpEmail", m.id::int AS "mailingId",
        m.title AS mailing, m.ask AS "mailingAsk", p.personalised,
        CASE WHEN p.airtable_id IS NOT NULL THEN 'airtable' WHEN l.sent_at IS NOT NULL THEN 'gmail' END AS backend,
