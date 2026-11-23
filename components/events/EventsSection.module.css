@@ -30,6 +30,7 @@
    heading, wrapping under it when there isn't room. */
 .actions {
   display: flex;
+  max-width: 100%;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
