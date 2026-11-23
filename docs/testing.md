@@ -613,8 +613,8 @@ of the staff kit. A frame with its examples in the group's own file (most
 of the site's kit, in `_examples/ui.tsx`) is pictured whenever the group
 is reached at all. A frame the run carried from has no frame for, a
 component new to the group, is pictured. `--plan` says how much of each
-such flow it pictures (`gallery: staff-kit, 1 of 50 sections`). Main's side
-does the same when it carries from a kept tree. `tests/checks/gallery.test.ts`
+such flow it pictures (`gallery: staff-kit, 1 of 50 sections`). Main runs
+a gallery flow whole. `tests/checks/gallery.test.ts`
 keeps what this depends on true: a file of examples beside a component
 holds that component's examples alone, and a group takes nothing but them
 from it.
@@ -714,20 +714,16 @@ recently. These put frames there:
   known to be that tree's. A run narrowed by hand (a section, `-g`, one
   viewport) keeps nothing, as the flows it didn't run weren't chosen as
   unchanged.
-- **Another kept tree.** Before running main for the flows not kept, the
-  review looks for the kept tree nearest main's: of each, the flows that
-  recorded their tree and what they opened, less those the change from
-  the tree each ran on to main's can reach ("Which flows a review runs").
-  From the one that leaves fewest to run, it carries the rest into main's
-  tree, and runs main for what's left. After a rebase, that's the flows
-  the branch's change reaches that main's merges since reach too.
 
-A flow kept under a tree it didn't run on keeps the tree it did run on
-(`tree`), so the next review asks what changed since then. One that ran on
-the tree itself is never replaced by one carried there. `--fresh-main`
-runs main whole, replacing what was carried, and lists any carried flow
-that looks different run afresh, past the review's noise: a change the map
-missed.
+Nothing else puts frames under main's tree: a commit of main nobody has
+pictured runs main for the flows a review needs, even when an older commit
+of main has them kept.
+
+A flow a review carried keeps the tree it did run on (`tree`), so the next
+review asks what changed since then. One that ran on the tree itself is
+never replaced by one carried there. `--fresh-main` runs main whole,
+replacing what was carried, and lists any carried flow that looks
+different run afresh, past the review's noise: a change the map missed.
 
 A review needs main's frames of the flows it pictures and checks, and of
 any flow of main's that this branch's suite no longer has, shown as gone.

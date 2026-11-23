@@ -110,18 +110,13 @@ export function keepRuns(store, tree, runDir, runs, flows, platform = process.pl
 }
 
 /**
- * Whether a flow kept under `tree` ran on another: carried there, as the
- * change between the two can't reach it (scripts/storyboard-reach.mjs), so
- * it looks the same on both. `run.tree` is the tree it ran on; a flow kept
- * without one ran on the tree it's under.
+ * Whether a flow kept under `tree` ran on another: a review carried it from
+ * its latest run, as the change between the two can't reach it
+ * (scripts/storyboard-reach.mjs), so it looks the same on both. `run.tree`
+ * is the tree it ran on; a flow kept without one ran on the tree it's under.
  */
 export function ranElsewhere(run, tree) {
   return run.tree !== undefined && run.tree !== tree;
-}
-
-/** Adds `runs`, flows kept under other trees, to what's kept of `tree` (keepRuns says which replace what). */
-export function carryKept(store, tree, runs, platform = process.platform) {
-  return addRuns(store, tree, runs, undefined, platform);
 }
 
 /** The trees kept for `platform`, most recently used first. */
