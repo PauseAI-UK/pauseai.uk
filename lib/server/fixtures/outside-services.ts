@@ -12,6 +12,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
+import { now } from "@/lib/now";
 import lumaFuture from "./luma-calendar-future.json";
 import lumaPast from "./luma-calendar-past.json";
 import lumaGuests from "./luma-guests.json";
@@ -407,8 +408,9 @@ function linkedPage(): Response {
   );
 }
 
-/** The Message-ID of each email the fixture Gmail sent, by its ID, for the life of the process. */
-const SENT_GMAIL = ((globalThis as { fixtureSentGmail?: Map<string, string> }).fixtureSentGmail ??= new Map());
+/** Each email the fixture Gmail sent, whole, and when, by its ID, for the life of the process. */
+const SENT_GMAIL = ((globalThis as { fixtureSentGmail?: Map<string, { raw: string; at: number }> }).fixtureSentGmail ??=
+  new Map());
 
 // Google's OAuth and Gmail, for any account. A token names its account
 // (lib/server/outside-services/gmail.server.ts makes the code "fixture:<account>"),
@@ -456,21 +458,26 @@ function googleResponse(
     const sending = JSON.parse(String(init!.body)) as { raw: string; threadId?: string };
     const raw = Buffer.from(sending.raw, "base64url").toString();
     const id = fixtureUuid(raw.replace(UUIDS, "uuid")).replace(/-/g, "").slice(0, 16);
-    SENT_GMAIL.set(id, /^Message-ID: *(.+)$/im.exec(raw)?.[1].trim() ?? "");
+    SENT_GMAIL.set(id, { raw, at: now().getTime() });
     // The letters inbox keeps what it sent; mail to one of its own addresses, as the supporter's copy is, comes back to it.
     if (letters) keepSent(raw, id, toLettersInbox(raw), scope);
     // In the thread it joins, as an answer to a message there is; else a thread of its own.
     return json({ id, threadId: sending.threadId ?? id, labelIds: ["SENT"] });
   }
-  // An email it sent, by its headers: the Message-ID it was sent with, kept as it was.
+  // An email it sent, whole, or by its headers: the Message-ID it was sent with, kept as it was, and who it's from
+  // and its subject; dated when it went.
   const sent = /\/messages\/(\w+)$/.exec(pathname)?.[1];
-  if (sent && SENT_GMAIL.has(sent)) {
+  const kept = sent && SENT_GMAIL.get(sent);
+  if (kept && params.get("format") === "raw")
+    return json({ id: sent, raw: Buffer.from(kept.raw).toString("base64url") });
+  if (kept) {
+    const header = (name: string) => new RegExp(`^${name}: *(.+)$`, "im").exec(kept.raw)?.[1].trim() ?? "";
     return json({
       id: sent,
       threadId: sent,
       labelIds: ["SENT"],
-      internalDate: "0",
-      payload: { headers: [{ name: "Message-ID", value: SENT_GMAIL.get(sent) }] },
+      internalDate: String(kept.at),
+      payload: { headers: ["Message-ID", "From", "Subject"].map((name) => ({ name, value: header(name) })) },
     });
   }
   if (pathname.endsWith("/history")) return json({ historyId: "1000" });

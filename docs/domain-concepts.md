@@ -501,8 +501,10 @@ The states, their colours and their words are one set (`lib/letters/copy-states.
 (`CopyStatus.tsx` and `CopyCounts.tsx` in
 `app/(staff)/staff/_components/mailings/`). Each kind adds its own: a broadcast's
 copies are delivered, read, opted out or to check, worked out in
-`lib/broadcasts/pages.server.ts`; a letter is answered or marked spam, and
-has no "to check", as nothing marks a reply to it dealt with. A letter's
+`lib/broadcasts/pages.server.ts`; a letter is answered or marked spam, and a
+mailing's letter is to check while a reply to it waits for staff
+(`replyToCheck`, below). A campaign's letter has no "to check", as the
+supporter who wrote it answers their MP. A letter's
 state is worked out twice, in TypeScript for its tag wherever it's shown
 (`letterState`) and in SQL for counting and listing by state
 (`letterStateSql`), and a test checks they agree for every status.
@@ -781,6 +783,16 @@ job all leave broadcasts out.
   amber, which come first among its recipients; the staff home says how
   many wait. A message from the mailbox's own address in the thread is an
   answer of ours sent from its Gmail, and isn't kept as a reply.
+- **Texts left waiting** (`lib/broadcasts/text-alerts.server.ts`). WhatsApp
+  takes words of ours only within a day of the person's message, and
+  nothing else tells staff of a reply to a text. So the `send-mailings`
+  job emails the notification inbox, copied to whoever made the
+  broadcast, about each reply to a text that has waited for staff two
+  hours or more (`ALERT_AFTER_HOURS`) while there's still time to answer
+  it: one email a broadcast, each reply with the hours left and a link to
+  its Thread. Each reply is named once (`broadcast_replies.alerted_at`).
+  A reply to an email gets no email: the staff home lists it, and there's
+  no hurry.
 - **Answers** (`lib/broadcasts/answers.server.ts`). Staff answer a reply on
   its Thread page: Reply, first of its buttons, opens a draft after it,
   which Send reply or Cmd+Enter (Ctrl+Enter off a Mac) sends. It goes by Gmail
@@ -899,7 +911,29 @@ logged-in staff member's own address. The refresh token is kept encrypted
 
 - **Threads.** Each PauseAI letter has a page with its whole thread
   (`/staff/mailings/<id>/letters/<letter>`), reached from the politician's
-  history and the mailing's recipients. A letter whose text the page
+  history and the mailing's recipients.
+- **Replies to check** (`lib/mailings/replies.server.ts`). A reply from the
+  politician's side, not automatic, waits for staff, and its letter is "to
+  check" (`replyToCheck` in `lib/letters/copy-states.ts`), until something
+  at or after it in the thread deals with it: a message of ours, sent from
+  the letter's page or written in the mailbox's Gmail and read from there;
+  Nothing to do, pressed on it or a later reply (`letter_replies.dealt_by`);
+  or a staff member setting the politician's answer to the mailing's ask
+  since it came. An import setting the answer names no staff member, so
+  doesn't count. It's worked out each time rather than kept, but for
+  Nothing to do. The mailing's page counts and lists the letters to check,
+  and the staff home says how many replies wait, a line a mailing.
+
+  On the letter's page, the latest reply waiting has the buttons. Reply
+  opens a draft at the foot of the thread (`AnswerableReply`, as a
+  broadcast's Thread has), which goes by Gmail from the mailbox the reply
+  came to, as the mailing's From name, in the reply's Gmail thread, naming
+  the reply and our letter (purpose `mailing-answer`). It's sent once for
+  each draft (`letter_answers`, with who sent it), and kept on the letter at
+  once, as reading the mailbox skips what the site sent. Only the policy
+  team's shared mailbox (`POLICY_INBOX`) can be answered from by any staff
+  member; a reply that came to a person's own mailbox has Reply only for
+  them, and for anyone else a line saying where to answer it. A letter whose text the page
   doesn't have, one copied from Airtable, has Copy Gmail search in its
   place (`lib/letters/links.ts`): a search for the letter by its
   Message-ID, to paste into Gmail wherever the mailbox it went from can be
