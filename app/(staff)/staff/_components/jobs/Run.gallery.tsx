@@ -4,6 +4,7 @@ import Run from "./Run";
 import {
   exampleControlAiResult,
   exampleControlAiStatementResult,
+  exampleEdmResult,
   exampleHeldImport,
   exampleImportResult,
   exampleFailedRun,
@@ -57,6 +58,14 @@ const RUNS: Record<ImportJob, Variant> = {
     render: () => (
       <StaffPage as="div">
         <Run run={exampleRun("import-controlai-statement", exampleControlAiStatementResult)} />
+      </StaffPage>
+    ),
+  },
+  "import-edm": {
+    label: "A read of the EDM's signers",
+    render: () => (
+      <StaffPage as="div">
+        <Run run={exampleRun("import-edm", exampleEdmResult)} />
       </StaffPage>
     ),
   },

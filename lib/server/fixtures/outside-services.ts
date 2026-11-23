@@ -23,6 +23,7 @@ import stripePaymentIntents from "./stripe-payment-intents.json";
 import { failingResponse } from "./failing-services";
 import {
   CONTROLAI_STATEMENT_HTML,
+  EDM_ANSWER,
   NI_ASSEMBLY,
   PARLIAMENT_ENDING,
   PARLIAMENT_MEMBERS,
@@ -338,6 +339,9 @@ export function fixtureResponse(url: string, init?: RequestInit, scope?: string)
   }
   if (hostname === "query.wikidata.org" && pathname === "/sparql") {
     return json(wikidataAnswer(new URLSearchParams(String(init?.body ?? "")).get("query") ?? ""));
+  }
+  if (hostname === "oralquestionsandmotions-api.parliament.uk" && pathname === "/EarlyDayMotion/66900") {
+    return json(EDM_ANSWER);
   }
   if (hostname === "controlai.org" && pathname === "/statement") {
     return new Response(CONTROLAI_STATEMENT_HTML, { headers: { "Content-Type": "text/html" } });

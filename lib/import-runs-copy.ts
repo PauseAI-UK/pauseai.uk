@@ -10,6 +10,7 @@ export const importRunsCopy = {
     ...politiciansCopy.politicianImports.titles,
     "import-controlai": jobsCopy.controlAi.title,
     "import-controlai-statement": jobsCopy.controlAiStatement.title,
+    "import-edm": jobsCopy.edm.title,
     "import-luma": jobsCopy.luma.title,
     "import-civicrm": jobsCopy.civicrm.title,
     "read-gmail": jobsCopy.gmailReading.title,

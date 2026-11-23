@@ -54,6 +54,11 @@ describeWithDatabase("POST /api/cron/<job>", () => {
     expect(await answer("import-controlai-statement")).toMatchObject({ supporters: 5, matched: 2, added: 2 });
   });
 
+  it("reads the EDM's signers and says what it did", async () => {
+    await answer("import-parliament");
+    expect(await answer("import-edm")).toMatchObject({ signers: 2, matched: 2, added: 2 });
+  });
+
   it("reads ControlAI's letter and says what it did", async () => {
     // No politicians yet, so nobody matches.
     expect(await answer("import-controlai")).toMatchObject({ signatories: 6, matched: 0, added: 0 });

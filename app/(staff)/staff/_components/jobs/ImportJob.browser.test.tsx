@@ -80,6 +80,7 @@ describe("ImportOverview", () => {
       "/staff/scheduled-jobs/ni-assembly",
       "/staff/scheduled-jobs/controlai",
       "/staff/scheduled-jobs/controlai-statement",
+      "/staff/scheduled-jobs/edm",
       "/staff/scheduled-jobs/tidying",
     ]);
     expect(cards.map((card) => card.querySelector("h3 a")!.textContent)).toEqual([
@@ -93,6 +94,7 @@ describe("ImportOverview", () => {
       importRunsCopy.jobTitles["import-ni-assembly"],
       importRunsCopy.jobTitles["import-controlai"],
       importRunsCopy.jobTitles["import-controlai-statement"],
+      importRunsCopy.jobTitles["import-edm"],
       importRunsCopy.jobTitles["tidy-logs"],
     ]);
     // Under the name, its newest run on a line: how it ended, after a dot of its colour, when, and what it found.
@@ -104,7 +106,8 @@ describe("ImportOverview", () => {
     expect(tone(2)).toBeUndefined();
     expect(status(2).textContent).toBe(jobsCopy.sending.never);
     expect(status(6).textContent).toBe(politiciansCopy.politicianImports.never);
-    expect(status(10).textContent).toBe(jobsCopy.tidying.never);
+    expect(status(10).textContent).toBe(jobsCopy.edm.never);
+    expect(status(11).textContent).toBe(jobsCopy.tidying.never);
     // Its name alone: how often it runs is the heading over it, and when, its foot.
     expect(cards[0].querySelector("h3")!.textContent).toBe(importRunsCopy.jobTitles["import-luma"]);
     expect(cards[1].querySelector("h3")!.textContent).toBe(importRunsCopy.jobTitles["read-gmail"]);
@@ -178,6 +181,9 @@ describe("ImportJobPage", () => {
     expect(askLinks(8)).toEqual([["/staff/asks/controlai-letter", "ControlAI's letter to the Prime Minister"]]);
     expect(askLinks(9)).toEqual([["/staff/asks/controlai-statement", "ControlAI's campaign statement"]]);
     expect(cards[9].textContent).toContain("“ControlAI's campaign statement”.");
+    // The EDM's links the motion on Parliament's site, then its ask.
+    expect(link(10)).toBe("https://edm.parliament.uk/early-day-motion/66900");
+    expect(askLinks(10)).toEqual([["/staff/asks/superintelligence-edm", jobsCopy.edm.introThen.link]]);
     // CiviCRM's card links CiviCRM; Gmail's leads to where it's connected; the sending's to the campaigns' letters
     // and the mailings, the tidying's to the audit log, the mailings and the errors.
     expect(link(3)).toBe("https://crm.pauseai.info/");
@@ -198,12 +204,12 @@ describe("ImportJobPage", () => {
         jobsCopy.sending.introLast.after,
       ].join(""),
     );
-    expect([...cards[10].querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
+    expect([...cards[11].querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
       "/staff/audit-log",
       "/staff/mailings",
       "/staff/errors",
     ]);
-    expect(cards[10].textContent).toBe(
+    expect(cards[11].textContent).toBe(
       [
         jobsCopy.tidying.intro.before,
         jobsCopy.tidying.intro.link,

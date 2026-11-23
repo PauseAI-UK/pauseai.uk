@@ -17,6 +17,7 @@ import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 import { notesCopy } from "@/app/(staff)/staff/_components/notes/copy";
 import { asksCopy } from "@/lib/asks/copy";
+import { EDM_ASK } from "@/lib/asks/asks";
 
 export const section: Section = { name: "Politicians", part: "Staff pages", order: 30 };
 
@@ -906,4 +907,26 @@ test("ControlAI's statement", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/asks/controlai-statement`);
   await expect(page.getByText("Morag Example").first()).toBeVisible();
   await frame(page, "The statement's ask");
+});
+
+test("The superintelligence EDM", async ({ page, request, flowDatabase }) => {
+  story(
+    "MPs sign an early day motion for a global pause on superintelligent AI. Its nightly import reads who has signed from Parliament, and marks them as having signed.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}${importPath("import-edm")}`);
+  await page.getByRole("button", { name: jobsCopy.edm.importNow }).click();
+  await expect(page.getByText(/2 signers/)).toBeVisible();
+  await frame(page, "The import's page");
+
+  story("The ask's page lists who signed it, and links to the motion on Parliament's site.");
+  await page.goto(`${BASE}/staff/asks/${EDM_ASK}`);
+  await expect(page.getByText("Mo Example").first()).toBeVisible();
+  await frame(page, "The motion's ask");
+
+  story("An MP who signed has it among their asks, set from Parliament.");
+  await page.getByText("Mo Example").first().click();
+  await expect(page.getByText(politiciansCopy.politician.fromImport.parliament)).toBeVisible();
+  await frame(page, "An MP who signed");
 });

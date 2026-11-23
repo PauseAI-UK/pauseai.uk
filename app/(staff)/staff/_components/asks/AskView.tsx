@@ -23,6 +23,16 @@ const copy = asksCopy.asks;
 const page = copy.page;
 
 /**
+ * Where an ask's link leads, as its text, as the page's title already names
+ * what's there: the site, without www, or on ours, the page or file's own
+ * name ("Frontier-AI-Open-Letter.pdf"). The table takes only links that
+ * start https:// or /.
+ */
+function whereItIs(url: string): string | undefined {
+  return url.startsWith("/") ? url.split("/").filter(Boolean).at(-1) : new URL(url).hostname.replace(/^www\./, "");
+}
+
+/**
  * What a column of answers is called, as a politician's form and the politicians list's filter say it: its answer,
  * or for those asked who haven't, the words of the ask's kind.
  */
@@ -93,6 +103,7 @@ function AnswerColumn({ group, kind, slug }: { group: AskAnswerGroup; kind: AskK
 export default function AskView({ ask }: { ask: AskPageData }) {
   const path = `/staff/asks/${ask.slug}`;
   const answered = answeredOf(ask);
+  const linkText = ask.url && whereItIs(ask.url);
   return (
     <div className={styles.page}>
       <Band
@@ -113,9 +124,9 @@ export default function AskView({ ask }: { ask: AskPageData }) {
         <BandFact label={page.readIt[ask.kind]}>
           {ask.url &&
             (ask.url.startsWith("/") ? (
-              <StaffLink href={ask.url}>{page.theLink[ask.kind]}</StaffLink>
+              <StaffLink href={ask.url}>{linkText}</StaffLink>
             ) : (
-              <ExternalLink href={ask.url}>{page.theLink[ask.kind]}</ExternalLink>
+              <ExternalLink href={ask.url}>{linkText}</ExternalLink>
             ))}
         </BandFact>
       </Band>
