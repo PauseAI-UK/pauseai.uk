@@ -45,7 +45,7 @@ import {
 import { removeCalendarContact } from "@/lib/server/outside-services/luma-calendar.server";
 import { randomId } from "@/lib/server/random-id.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
-import { problem } from "@/lib/server/problems.server";
+import { describeError, problem } from "@/lib/server/problems.server";
 import { supportersCopy } from "./copy";
 import { emailCopy } from "@/lib/email/copy";
 
@@ -308,9 +308,11 @@ async function onLuma(address: string): Promise<boolean> {
 const mayChangeLuma = (): boolean => config.production || config.fixtures;
 
 /**
- * Takes the address off our Luma calendar, if this build may; a failure is
- * reported, not thrown, and the next full pass over the calendar's contacts
- * tries again (stillOnCalendar).
+ * Takes the address off our Luma calendar, if this build may, for the full
+ * pass over the calendar's contacts, which still lists it (stillOnCalendar).
+ * A failure is reported, not thrown: on the pass's run, as the person is still
+ * on the calendar, though Luma failed to take them off when they opted out
+ * too.
  */
 export async function offCalendar(address: string): Promise<void> {
   if (!mayChangeLuma()) return;
@@ -322,13 +324,28 @@ export async function offCalendar(address: string): Promise<void> {
 }
 
 /**
+ * Takes the address off our Luma calendar, if this build may, as an opt-out
+ * is kept. A failure is only logged: the next full pass over the calendar's
+ * contacts, within the hour, tries again and reports it if that fails too
+ * (offCalendar), so a short outage at Luma tells no one.
+ */
+async function offCalendarNow(address: string): Promise<void> {
+  if (!mayChangeLuma()) return;
+  try {
+    await removeCalendarContact(address);
+  } catch (error) {
+    console.warn(supportersCopy.problems.lumaRemoveFailed, describeError(error));
+  }
+}
+
+/**
  * Takes off our Luma calendar each address of `optOuts`, just recorded,
  * whose opt-out does (offCalendarFor), once each. Every path that records
  * opt-outs calls it, once they're kept.
  */
 export async function offCalendarAfter(optOuts: CalendarOptOut[]): Promise<void> {
   const addresses = new Set(optOuts.filter(offCalendarFor).map((optOut) => normaliseAddress(optOut.address)));
-  for (const address of addresses) await offCalendar(address);
+  for (const address of addresses) await offCalendarNow(address);
 }
 
 /**

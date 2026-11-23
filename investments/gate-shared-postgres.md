@@ -42,3 +42,4 @@ Not known yet. A failure reproduces at a load of about 100 (above); find what th
 - 2026-11-17: `npm test` alone in the gate (`--only test`) had 17 database tests time out at 10s (statuses, guests' numbers, the hourly broadcast run, finding an MP), with four worktrees' runs of main's storyboard going and the load average at about 79, ~10 min
 - 2026-11-17: in the gate beside the determinism check, the load average about 40, `scripts/fresh-database.test.ts` timed out at 41s and the backup tests' `worker/rules.test.ts` at 60s, ~5 min
 - 2026-11-18: `container/backup.test.ts` failed in the gate beside `npm test`, with nothing else running: `createdb` ending "could not open file "base/1/2834": Interrupted system call", ~5 min
+- 2026-11-21: `container/backup.test.ts`'s "reports an empty database as having no tables" timed out at 60s in the gate beside `npm test` and the storyboard, the load average at 57; the file took 160s, ~10 min

@@ -350,9 +350,9 @@ export const supportersCopy = {
   },
   // What went wrong without stopping the work (lib/server/problems.server.ts).
   problems: {
-    // No job reaches this: it's kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and emailed to
-    // staff. Someone turned off events by email, or every bulk email, on the contact preferences page or an email's
-    // unsubscribe link, but Luma didn't take them off the calendar, which goes on emailing them.
+    // On the Luma import's run, so on its page and in the email: someone turned off events by email, or every bulk
+    // email, on the contact preferences page or an email's unsubscribe link, Luma didn't take them off the calendar
+    // then, and the full pass over its contacts, which still lists them, failed to as well. Luma goes on emailing them.
     lumaRemoveFailed:
       "Someone opted out of Luma messages but is still on our Luma calendar, so Luma will keep messaging them",
     // On the Luma import's run, so on its page and in the email: looking up where supporters are failed when

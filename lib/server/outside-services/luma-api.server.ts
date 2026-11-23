@@ -1,5 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
+import { readJsonIfAny } from "@/lib/server/json.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // One page of a list from Luma's official API (LUMA_API_KEY, scoped to our
@@ -26,6 +27,24 @@ export class LumaRateLimited extends Error {
   }
 }
 
+/** Luma answered with an error other than a 429: its status, and the message its answer gave, if it gave one. */
+export class LumaRefused extends Error {
+  constructor(
+    public readonly status: number,
+    path: string,
+    public readonly lumaMessage?: string,
+  ) {
+    super(`Luma answered ${status} for ${path}${lumaMessage ? `: ${lumaMessage}` : ""}`);
+  }
+}
+
+/** The error for Luma's answer to `path` that isn't ok: LumaRateLimited for a 429, otherwise LumaRefused. */
+async function refusal(res: Response, path: string): Promise<Error> {
+  if (res.status === 429) return new LumaRateLimited(Number(res.headers.get("retry-after")) || 60);
+  const body = (await readJsonIfAny(res)) as { message?: unknown } | null | undefined;
+  return new LumaRefused(res.status, path, typeof body?.message === "string" ? body.message : undefined);
+}
+
 /** LUMA_API_KEY, or throws without it. */
 function lumaKey(): string {
   if (!config.lumaApiKey) throw new Error("LUMA_API_KEY is not set");
@@ -35,8 +54,8 @@ function lumaKey(): string {
 /**
  * Fetches `path` with `params`: its JSON, and the requests left in this
  * minute when Luma says. Uncached, unless `revalidate` says how many seconds
- * Next may keep the answer. Throws LumaRateLimited on a 429, and an Error
- * for a missing key or any other answer that isn't ok.
+ * Next may keep the answer. Throws LumaRateLimited on a 429, LumaRefused
+ * on any other answer that isn't ok, and an Error for a missing key.
  */
 export async function lumaGet<T>(
   path: string,
@@ -47,8 +66,7 @@ export async function lumaGet<T>(
     headers: { "x-luma-api-key": lumaKey(), accept: "application/json" },
     ...(revalidate === undefined ? { cache: "no-store" } : { next: { revalidate } }),
   });
-  if (res.status === 429) throw new LumaRateLimited(Number(res.headers.get("retry-after")) || 60);
-  if (!res.ok) throw new Error(`Luma answered ${res.status} for ${path}`);
+  if (!res.ok) throw await refusal(res, path);
   const remaining = res.headers.get("x-ratelimit-remaining");
   return { data: (await res.json()) as T, remaining: remaining === null ? undefined : Number(remaining) };
 }
@@ -78,7 +96,6 @@ export async function lumaPost<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  if (res.status === 429) throw new LumaRateLimited(Number(res.headers.get("retry-after")) || 60);
-  if (!res.ok) throw new Error(`Luma answered ${res.status} for ${path}`);
+  if (!res.ok) throw await refusal(res, path);
   return (await res.json()) as T;
 }

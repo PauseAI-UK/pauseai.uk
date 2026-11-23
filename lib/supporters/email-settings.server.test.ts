@@ -38,6 +38,8 @@ const REMOVE = "https://public-api.luma.com/v1/calendars/contacts/remove";
  * newsletter by email and text, and events by text on the day.
  */
 async function jane(consent = true) {
+  // Her number's yes to texts about the march lasts until the march ends: a day from now, whatever the date.
+  await query("UPDATE day_texts SET ends_at = now() + interval '1 day' WHERE form = 'march-2026-11'");
   await addFormEntry("march-2026-11", {
     name: "Jane Smith",
     email: JANE,
@@ -320,10 +322,11 @@ describeWithDatabase("the contact preferences page", () => {
     expect(removed).toEqual([{ email: JANE }]);
   });
 
-  it("reports Luma failing to remove someone, and records their opt-out all the same", async () => {
+  it("leaves Luma failing to remove someone to the import's next pass, and records their opt-out all the same", async () => {
     vi.stubEnv("DEPLOY_CONTEXT", "production");
     vi.stubEnv("LUMA_API_KEY", "k");
     server.use(http.post(REMOVE, () => new HttpResponse("Down", { status: 500 })));
+    const warned = vi.spyOn(console, "warn").mockImplementation(() => {});
     await query("INSERT INTO luma_people (user_id, email, name, contact_since) VALUES ('usr-1', $1, 'Jane', now())", [
       JANE,
     ]);
@@ -331,9 +334,12 @@ describeWithDatabase("the contact preferences page", () => {
       await saveSettings(JANE, new Set([LUMA_OFFERED]));
       return run.problems;
     });
-    expect(problems).toEqual([
-      { what: supportersCopy.problems.lumaRemoveFailed, error: "Luma answered 500 for /v1/calendars/contacts/remove" },
-    ]);
+    expect(problems).toEqual([]);
+    expect(warned).toHaveBeenCalledWith(
+      supportersCopy.problems.lumaRemoveFailed,
+      "Luma answered 500 for /v1/calendars/contacts/remove",
+    );
+    warned.mockRestore();
     // Updates by email, ticked by her place on the calendar, went with it.
     expect(await optOuts()).toEqual([
       { address: JANE, list: "newsletter", way: "email", source: "preferences", open: true },
