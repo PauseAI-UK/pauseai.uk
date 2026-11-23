@@ -1472,7 +1472,7 @@ npm run lint              # ESLint, failing on warnings too (also runs in npm ru
 npm run lint:css          # Stylelint (also runs in npm run build)
 npm run lint:unused       # Knip: unused files, exports and dependencies
 npm run format:check      # Prettier, on everything .prettierignore doesn't list (npm run format fixes it)
-npm run placeholders      # fails on placeholder copy, naming each line (also runs in npm run build)
+npm run placeholders      # fails on placeholder copy, naming each line
 npm run test:browser      # Vitest browser project
 npm run test:watch        # Vitest in watch mode
 npm run test:storyboard   # Playwright: every flow, without screenshots, as CI runs them
@@ -1481,11 +1481,11 @@ npm run storyboard:determinism  # the gallery pictured twice, once with space ab
 npm run test:report       # open the last Playwright report
 ```
 
-- `npm run build` runs the placeholder check, the types, the Node project
-  and the linters first, then `next build`. Only the Node project, because
-  Netlify's build has no browser. While any copy is a placeholder,
-  `npm run placeholders` fails, and so does the build: placeholders can't be
-  deployed (AGENTS.md).
+- `npm run build` runs the types, the Node project and the linters first,
+  then `next build`. Only the Node project, because Netlify's build has no
+  browser. It leaves out the placeholder check, so a branch with placeholder
+  copy still gets a deploy preview. CI runs the check, and requires it before
+  a merge, so placeholders can't reach main (AGENTS.md).
 - **Ports.** The storyboard builds and starts the site itself on this
   checkout's own port, or reuses a server already there (except in CI). The
   port, and main's beside it for the review, come from a hash of the
