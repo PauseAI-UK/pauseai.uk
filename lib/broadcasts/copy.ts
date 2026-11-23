@@ -500,10 +500,10 @@ export const broadcastsCopy = {
     // inbox, once each (lib/broadcasts/text-alerts.server.ts): who sent each, the hours left to answer it before
     // WhatsApp stops taking our words, and a link to its thread.
     textsWaiting: {
-      subject: (n: number, title: string) => `⁂ ${count(n, "text reply", "text replies")} to answer: ${title}`,
+      subject: (n: number, title: string) => `${count(n, "text reply", "text replies")} to answer: ${title}`,
       body: (title: string, lines: string[]) =>
-        `⁂ These replies to “${title}” are waiting for someone to answer them. WhatsApp lets us reply only within a day of their message, so answer each in time, or mark it as needing nothing.\n\n${lines.join("\n")}`,
-      line: (who: string, hours: number, link: string) => `- ⁂ ${who}: ${count(hours, "hour", "hours")} left. ${link}`,
+        `These replies to “${title}” are waiting for someone to answer them. WhatsApp lets us reply only within 24 hours of their message, so either reply to them or mark that nothing needs doing.\n\n${lines.join("\n")}`,
+      line: (who: string, hours: number, link: string) => `- ${who}: ${count(hours, "hour", "hours")} left. ${link}`,
     },
     // A broadcast whose Gmail, Postmark or WhatsApp has said at every try since `since` that it can't send for now,
     // as at a limit or down, to whoever scheduled it and the inbox, once: it goes on by itself, or stops at `stops`.

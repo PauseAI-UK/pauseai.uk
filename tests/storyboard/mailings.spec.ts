@@ -892,7 +892,7 @@ test("A politician's reply to check", async ({ page, request, flowDatabase }) =>
 
 test("A reply to someone else's mailbox", async ({ page, request, flowDatabase }) => {
   story(
-    "Polly's reply came to Jo's own Gmail, so only Jo can answer it from the site. Anyone else is told to answer it in Gmail there, or can say there's nothing to do.",
+    "Polly's reply came to Jo's own Gmail, so only Jo can answer it from the site. Anyone else is told so, and can say there's nothing to do.",
   );
   await importPoliticians(request, BASE, flowDatabase);
   const { mailing, letter } = pollyReplied(flowDatabase, "jo@pauseai.uk");
@@ -900,7 +900,7 @@ test("A reply to someone else's mailbox", async ({ page, request, flowDatabase }
   await page.goto(`${BASE}/staff/mailings/${mailing}/letters/${letter}`);
   const answers = mailingsCopy.answers;
   await expect(page.getByText(answers.answerElsewhere("jo@pauseai.uk"))).toBeVisible();
-  await frame(page, "Where to answer it");
+  await frame(page, "Only Jo can reply");
   story("Nothing to do deals with it, and says who said so.");
   await page.getByRole("button", { name: answers.nothing }).click();
   // Said by this flow's staff member, at whatever time.

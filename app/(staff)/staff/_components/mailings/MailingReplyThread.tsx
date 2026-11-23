@@ -26,8 +26,8 @@ export type WaitingReply = { id: number; account: string };
  * answer from this page. Under the reply waiting for staff (`waiting`),
  * if any: Reply, which opens an answer at the foot of the thread, from the
  * mailbox it came to, as the letter's From name; or, if the staff member
- * can't answer from that mailbox (`canAnswer`), where to answer it
- * instead. Beside either, Nothing to do (`deal`).
+ * can't answer from that mailbox (`canAnswer`), whose mailbox it came to,
+ * as only they can. Beside either, Nothing to do (`deal`).
  */
 export default function MailingReplyThread({
   thread,

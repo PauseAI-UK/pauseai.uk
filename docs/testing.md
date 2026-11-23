@@ -1034,7 +1034,7 @@ that drives it or why nothing does.
   - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;
   - one sent from your Gmail in a From name of its own, by the sending job, and the reply read from it;
   - a politician's reply to check: on the dashboard, its button to the mailing's letters to check, the letter's page with Reply and Nothing to do, and an answer written and sent from there, from your own Gmail;
-  - a reply that came to someone else's Gmail: where to answer it instead, and Nothing to do pressed, saying who.
+  - a reply that came to someone else's Gmail: only they can reply, and Nothing to do pressed, saying who.
 - `broadcasts.spec.ts`: Broadcasts to supporters:
   - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed, and what's written after is saved;
   - the list's Broadcast button with a Consent filter;

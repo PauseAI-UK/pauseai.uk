@@ -17,7 +17,7 @@ export const mailingReplyThreadGallery: Example[] = [
         ),
       },
       {
-        label: "A reply waiting that came to another staff member's mailbox: where to answer it, and Nothing to do",
+        label: "A reply waiting that came to another staff member's mailbox: only they can reply, and Nothing to do",
         render: () => (
           <StaffPage as="div">
             <MailingReplyThreadExample canAnswer={false} />

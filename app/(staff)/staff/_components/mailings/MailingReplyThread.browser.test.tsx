@@ -39,7 +39,7 @@ describe("MailingReplyThread", () => {
     expect(answer.mock.calls[0][0]).toBe(1);
   });
 
-  it("says where to answer a reply that came to someone else's mailbox, with Nothing to do beside it", async () => {
+  it("says only the owner can reply to a reply that came to their mailbox, with Nothing to do beside it", async () => {
     await render(<MailingReplyThreadExample canAnswer={false} />);
     await expect.element(page.getByText(copy.answerElsewhere("jo@pauseai.uk"))).toBeVisible();
     await expect.element(page.getByRole("button", { name: copy.reply })).not.toBeInTheDocument();

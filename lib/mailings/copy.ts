@@ -317,8 +317,8 @@ export const mailingsCopy = {
     // Our answer in the thread: who sent it.
     sentBy: (by: string) => `Sent by ${by}`,
     // Under a politician's reply to a mailing's letter that came to a staff member's own mailbox, to anyone else,
-    // in place of Reply.
-    answerElsewhere: (account: string) => `⁂ This came to ${account}, so reply to it in Gmail there.`,
+    // in place of Reply: only that staff member can reply to it from here.
+    answerElsewhere: (account: string) => `⁂ This came to ${account}, so only they can reply to it.`,
     // What a problem names our answer as (lib/server/problems.server.ts).
     answerTo: (id: number) => `Our reply to reply ${id}`,
   },

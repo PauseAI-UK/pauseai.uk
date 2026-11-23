@@ -933,7 +933,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   once, as reading the mailbox skips what the site sent. Only the policy
   team's shared mailbox (`POLICY_INBOX`) can be answered from by any staff
   member; a reply that came to a person's own mailbox has Reply only for
-  them, and for anyone else a line saying where to answer it. A letter whose text the page
+  them, and for anyone else a line saying so. A letter whose text the page
   doesn't have, one copied from Airtable, has Copy Gmail search in its
   place (`lib/letters/links.ts`): a search for the letter by its
   Message-ID, to paste into Gmail wherever the mailbox it went from can be
