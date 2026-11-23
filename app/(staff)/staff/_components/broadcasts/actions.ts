@@ -6,7 +6,8 @@
 // as a broadcast is to someone who said yes to it.
 import { revalidatePath } from "next/cache";
 import { dealWithReply, type ReplyDecision } from "@/lib/broadcasts/replies.server";
-import { answerReply, reactToReply, type AnswerResult, type ReactionResult } from "@/lib/broadcasts/answers.server";
+import { answerReply, reactToReply, type ReactionResult } from "@/lib/broadcasts/answers.server";
+import type { AnswerResult } from "@/lib/mailings/answers";
 import { redirect } from "next/navigation";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { fakeRecipient, finishKept } from "@/lib/broadcasts/broadcasts";

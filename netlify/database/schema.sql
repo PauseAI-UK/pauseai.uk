@@ -1202,6 +1202,7 @@ CREATE TABLE public.broadcast_replies (
     kind text,
     reaction_to text,
     removed_at timestamp with time zone,
+    alerted_at timestamp with time zone,
     CONSTRAINT broadcast_replies_check CHECK (((outcome IS NULL) = (dealt_by IS NULL))),
     CONSTRAINT broadcast_replies_check1 CHECK (((outcome IS NULL) = (dealt_at IS NULL))),
     CONSTRAINT broadcast_replies_check2 CHECK ((NOT (automatic AND (outcome IS NOT NULL)))),
@@ -1864,7 +1865,7 @@ CREATE TABLE public.email_sends (
     CONSTRAINT email_sends_from_address_check CHECK ((from_address = lower(from_address))),
     CONSTRAINT email_sends_gmail_sender CHECK (((backend = 'postmark'::text) OR (sender IS NOT NULL))),
     CONSTRAINT email_sends_outcome_check CHECK ((outcome = ANY (ARRAY['sent'::text, 'refused'::text, 'failed'::text]))),
-    CONSTRAINT email_sends_purpose_check CHECK ((purpose = ANY (ARRAY['letter'::text, 'forwarded-reply'::text, 'staff-login'::text, 'staff-alert'::text, 'mailing'::text, 'mailing-test'::text, 'letter-copy'::text, 'relay'::text, 'supporter-notice'::text, 'office-notice'::text, 'staff-report'::text, 'broadcast'::text, 'preferences-link'::text, 'bulk-notice'::text, 'broadcast-answer'::text]))),
+    CONSTRAINT email_sends_purpose_check CHECK ((purpose = ANY (ARRAY['letter'::text, 'forwarded-reply'::text, 'staff-login'::text, 'staff-alert'::text, 'mailing'::text, 'mailing-test'::text, 'letter-copy'::text, 'relay'::text, 'supporter-notice'::text, 'office-notice'::text, 'staff-report'::text, 'broadcast'::text, 'preferences-link'::text, 'bulk-notice'::text, 'broadcast-answer'::text, 'mailing-answer'::text]))),
     CONSTRAINT email_sends_sender_check CHECK ((sender = lower(sender)))
 );
 
@@ -2005,6 +2006,33 @@ CREATE TABLE public.job_presses (
 );
 
 --
+-- Name: letter_answers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.letter_answers (
+    id bigint NOT NULL,
+    reply_id bigint NOT NULL,
+    draft_id uuid NOT NULL,
+    sent_by text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    kept_id bigint,
+    CONSTRAINT letter_answers_sent_by_check CHECK ((sent_by = lower(sent_by)))
+);
+
+--
+-- Name: letter_answers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.letter_answers ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.letter_answers_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
 -- Name: letter_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2080,7 +2108,12 @@ CREATE TABLE public.letter_replies (
     blob_key text NOT NULL,
     size integer NOT NULL,
     from_supporter boolean DEFAULT false NOT NULL,
+    dealt_by text,
+    dealt_at timestamp with time zone,
     CONSTRAINT letter_replies_account_check CHECK ((account = lower(account))),
+    CONSTRAINT letter_replies_dealt CHECK (((dealt_by IS NULL) = (dealt_at IS NULL))),
+    CONSTRAINT letter_replies_dealt_by_check CHECK ((dealt_by = lower(dealt_by))),
+    CONSTRAINT letter_replies_dealt_theirs CHECK (((dealt_by IS NULL) OR (NOT from_us))),
     CONSTRAINT letter_replies_from_address_check CHECK ((from_address = lower(from_address))),
     CONSTRAINT letter_replies_gmail_ids CHECK (((gmail_message_id IS NULL) = (gmail_thread_id IS NULL))),
     CONSTRAINT letter_replies_size_check CHECK ((size >= 0))
@@ -3057,6 +3090,27 @@ ALTER TABLE ONLY public.job_presses
     ADD CONSTRAINT job_presses_pkey PRIMARY KEY (job);
 
 --
+-- Name: letter_answers letter_answers_draft_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.letter_answers
+    ADD CONSTRAINT letter_answers_draft_id_key UNIQUE (draft_id);
+
+--
+-- Name: letter_answers letter_answers_kept_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.letter_answers
+    ADD CONSTRAINT letter_answers_kept_id_key UNIQUE (kept_id);
+
+--
+-- Name: letter_answers letter_answers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.letter_answers
+    ADD CONSTRAINT letter_answers_pkey PRIMARY KEY (id);
+
+--
 -- Name: letter_events letter_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3742,6 +3796,12 @@ CREATE INDEX form_entries_phone ON public.form_entries USING btree (phone);
 CREATE INDEX import_runs_job_at ON public.import_runs USING btree (job, at DESC, id DESC);
 
 --
+-- Name: letter_answers_reply; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX letter_answers_reply ON public.letter_answers USING btree (reply_id);
+
+--
 -- Name: letter_events_letter_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4141,6 +4201,20 @@ ALTER TABLE ONLY public.event_owners
 
 ALTER TABLE ONLY public.form_entry_luma
     ADD CONSTRAINT form_entry_luma_entry_id_fkey FOREIGN KEY (entry_id) REFERENCES public.form_entries(id) ON DELETE CASCADE;
+
+--
+-- Name: letter_answers letter_answers_kept_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.letter_answers
+    ADD CONSTRAINT letter_answers_kept_id_fkey FOREIGN KEY (kept_id) REFERENCES public.letter_replies(id) ON DELETE SET NULL;
+
+--
+-- Name: letter_answers letter_answers_reply_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.letter_answers
+    ADD CONSTRAINT letter_answers_reply_id_fkey FOREIGN KEY (reply_id) REFERENCES public.letter_replies(id) ON DELETE CASCADE;
 
 --
 -- Name: letter_events letter_events_letter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

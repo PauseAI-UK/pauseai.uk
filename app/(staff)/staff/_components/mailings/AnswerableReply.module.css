@@ -1,0 +1,24 @@
+/* The answer's buttons, under its editor. */
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* Why the answer didn't go, or an emoji under a reply. */
+.problem {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* Words that name the editor for a screen reader, which the draft's headers already say to the eye. */
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

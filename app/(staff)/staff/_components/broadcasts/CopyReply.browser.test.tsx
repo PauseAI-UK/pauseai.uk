@@ -19,8 +19,8 @@ import {
 import type { BroadcastAnswer } from "@/lib/broadcasts/answers.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import MessageCopyView from "./MessageCopyView";
-import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
-import ReplyActions, { ReplyButton } from "./ReplyActions";
+import AnswerableReply, { ReplyButton, type AnswerAction } from "../mailings/AnswerableReply";
+import ReplyActions from "./ReplyActions";
 import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { lettersCopy } from "../letters/copy";
@@ -310,22 +310,28 @@ describe("replies to broadcasts", () => {
       .poll(() => editor.element().querySelector("p")?.textContent)
       .toBe(`${copy.greeting} ${copy.fallbacks.firstName},`);
     await rerender(
-      <AnswerableReply
-        replyId={4}
-        from="PauseAI UK"
-        to="07700 900001"
-        subject=""
-        answer={vi.fn()}
-        greet={{ to: "Jane", from: "Francis" }}
-        text
-        opened
-      >
-        {() => <p>Their text</p>}
-      </AnswerableReply>,
+      <MessageCopyView
+        one={{ ...exampleMessageCopy, replies: exampleTextReplies, answers: [] }}
+        actions={{ deal: vi.fn(), answer: vi.fn(), react: vi.fn() }}
+        signer="Francis"
+      />,
     );
+    await page.getByRole("button", { name: copy.replies.reply }).click();
     const bubble = page.getByRole("textbox", { name: copy.replies.answerLabel });
     await expect.element(bubble).toBeVisible();
     expect(bubble.element().textContent).toBe("");
+  });
+
+  it('warn over an answer to someone with "Do not email" that it goes all the same', async () => {
+    const replies = emailCopy.replies.map((reply) => ({ ...reply, doNotEmail: true }));
+    await render(
+      <MessageCopyView
+        one={{ ...emailCopy, replies, answers: [] }}
+        actions={{ deal: vi.fn(), answer: vi.fn(), react: vi.fn() }}
+      />,
+    );
+    await page.getByRole("button", { name: copy.replies.reply }).click();
+    await expect.element(page.getByText(copy.replies.doNotEmail)).toBeVisible();
   });
 
   it("send an answer with Ctrl+Enter or Cmd+Enter, saying why one didn't go, and keep it to send again", async () => {
@@ -338,7 +344,6 @@ describe("replies to broadcasts", () => {
         subject="Re: Thanks"
         answer={answer}
         opened
-        doNotEmail
       >
         {(write) => (
           <>
@@ -350,8 +355,6 @@ describe("replies to broadcasts", () => {
     );
     const draft = page.getByRole("article", { name: "Re: Thanks" });
     const editor = draft.getByRole("textbox", { name: copy.replies.answerLabel });
-    // To someone with "Do not email", it warns that it goes all the same.
-    await expect.element(page.getByText(copy.replies.doNotEmail)).toBeVisible();
     // Shown open, it leaves the cursor where it is.
     await expect.element(editor).not.toHaveFocus();
     // With no words, the keys send nothing; Enter alone is a new line.

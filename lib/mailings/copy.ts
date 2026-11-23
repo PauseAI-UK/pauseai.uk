@@ -295,4 +295,26 @@ export const mailingsCopy = {
     // about one stopping names it.
     resume: "Resume sending",
   },
+  // Answering a reply in a thread, a broadcast's or a mailing's letter's: the folded draft at the foot of the
+  // thread, the draft opened, and why one didn't go; what staff can record it as instead; and who dealt with it.
+  answers: {
+    reply: "Reply",
+    // Reply, under our last answer to their latest reply.
+    followUp: "Follow up",
+    answerLabel: "Your reply",
+    send: "Send reply",
+    sending: "Sending…",
+    discard: "Discard",
+    notSent: {
+      blank: "The reply is empty.",
+      gone: "Their reply has been deleted, so this can't answer it.",
+      blocked: "Not sent: their address is blocked, as email to it bounced or they marked ours as spam.",
+      failed: "Error sending via Gmail. Try again, or reply in Gmail itself.",
+      window: "Not sent: it's more than a day since their messge, so WhatsApp won't let us reply.",
+    },
+    nothing: "Nothing to do",
+    nothingDone: (by: string, when: string) => `Nothing to do, said ${by}, ${when}`,
+    // Our answer in the thread: who sent it.
+    sentBy: (by: string) => `Sent by ${by}`,
+  },
 };

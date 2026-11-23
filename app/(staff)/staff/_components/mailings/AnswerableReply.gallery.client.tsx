@@ -3,8 +3,7 @@
 // AnswerableReply's example, which logs the answer sent (AnswerableReply.gallery.tsx), and the answer MessageCopyView's uses.
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import ThreadEmail from "../letters/ThreadEmail";
-import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
-import { ReplyButton } from "./ReplyActions";
+import AnswerableReply, { ReplyButton, type AnswerAction } from "./AnswerableReply";
 
 /** An answer that logs what it'd send, and goes. */
 export const sent =

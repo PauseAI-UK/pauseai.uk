@@ -16,6 +16,7 @@ import { send } from "@/lib/email/sending.server";
 import { sendReaction, sendText } from "@/lib/server/outside-services/whatsapp.server";
 import { REACTION_DAYS, REACTIONS } from "./broadcasts";
 import { emailCopy } from "@/lib/email/copy";
+import type { AnswerResult } from "@/lib/mailings/answers";
 
 // Staff's answers to replies to broadcasts, written on the copy's Thread
 // page (broadcast_answers). An answer to an email goes by Gmail from the
@@ -106,13 +107,6 @@ export async function reactionsTo(copyId: number): Promise<BroadcastReaction[]> 
     ),
   );
 }
-
-/**
- * What became of an answer: sent; or not, as it had no words, the reply's
- * gone, the address is blocked, Gmail or WhatsApp failed, or it's more than
- * a day since a reply to a text, when WhatsApp takes no words of ours.
- */
-export type AnswerResult = { sent: true } | { sent: false; reason: "blank" | "gone" | "blocked" | "failed" | "window" };
 
 /**
  * Sends staff member `by`'s answer, `body`, to reply `replyId`, once for

@@ -1,6 +1,12 @@
 import "server-only";
 import { ARRIVED, MAILING_FAILED, statusIn } from "@/lib/letters/status";
-import { LETTER_STATES, letterStateSql, type CountedLetterState, type SkipReason } from "@/lib/letters/copy-states";
+import {
+  LETTER_STATES,
+  letterStateSql,
+  MAILING_TO_CHECK,
+  type CountedLetterState,
+  type SkipReason,
+} from "@/lib/letters/copy-states";
 import type { AskStatus } from "@/lib/asks/asks";
 import { answerSql } from "@/lib/asks/invited";
 import { mailingGroups, type MailingGroup } from "./groups";
@@ -78,6 +84,8 @@ export type MailingRecipient = {
   answer: AskStatus | null;
   /** Why it wasn't sent, if it was skipped. */
   skipReason: SkipReason | null;
+  /** Whether a reply of theirs waits for staff (MAILING_TO_CHECK). */
+  toCheck: boolean;
 };
 
 /** Which of a mailing's recipients its page lists: everyone, or those whose letter is in one state. */
@@ -90,7 +98,7 @@ const answeredAsk = (ask: string) =>
     WHERE st.notable_person_id = l.notable_person_id AND st.ask = ${ask} AND ${answerSql("st.status")})`;
 
 /** A mailing's letter's state (letterStateSql), its mailing `m`. */
-const LETTER_STATE = letterStateSql(answeredAsk("m.ask"));
+const LETTER_STATE = letterStateSql(answeredAsk("m.ask"), MAILING_TO_CHECK);
 
 /** A mailing with a page of its recipients in a tab, of `recipientsTotal`, on `pages` pages of `pageSize`. */
 export type Mailing = MailingSummary & {
@@ -215,6 +223,7 @@ export async function getMailing(id: number, page = 1, tab: RecipientTab = "all"
          l.replied_at AS "repliedAt",
          EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = l.id AND e.status = 'auto_reply') AS "autoReplied",
          (SELECT count(*)::int FROM letter_replies r WHERE r.letter_id = l.id AND NOT r.from_us) AS replies, p.personalised, p.skip_reason AS "skipReason",
+         ${MAILING_TO_CHECK} AS "toCheck",
          (SELECT s.status FROM ask_statuses s WHERE s.notable_person_id = n.id AND s.ask = $4 AND ${answerSql("s.status")}) AS answer
        ${from} ORDER BY n.name COLLATE english, l.id LIMIT $2 OFFSET $3`,
       [id, RECIPIENTS_PAGE_SIZE, (page - 1) * RECIPIENTS_PAGE_SIZE, mailing.ask],

@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { listFor, unsubscribeTopics, type Topic } from "@/lib/supporters/contact-permissions";
 import { UnsubscribeForm } from "../supporters/OptOutForm";
+import { ReplyButton } from "../mailings/AnswerableReply";
 import styles from "./ReplyActions.module.css";
 import { supportersCopy } from "../supporters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
@@ -11,18 +11,6 @@ import { broadcastsCopy } from "@/lib/broadcasts/copy";
 const copy = broadcastsCopy.broadcastPages;
 /** Each list's name, as the Consent filter says it. */
 const listNames = supportersCopy.supporters.filters.lists;
-
-/**
- * Reply, in orange: opens the answer to a reply at the foot of the thread
- * (AnswerableReply). Follow up, under our answer to it (`followUp`).
- */
-export function ReplyButton({ write, followUp = false }: { write: () => void; followUp?: boolean }) {
-  return (
-    <Button variant="primary" size="small" fit type="button" onClick={write}>
-      {followUp ? copy.replies.followUp : copy.replies.reply}
-    </Button>
-  );
-}
 
 /**
  * Under a reply waiting for staff: Reply, while its answer isn't open

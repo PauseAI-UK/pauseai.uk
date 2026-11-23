@@ -314,6 +314,7 @@ export const examplePauseaiLetterDetails: PauseaiLetterDetails = {
   createdAt: new Date("2026-10-01T12:00:00Z"),
   sentAt: new Date("2026-10-01T12:00:00Z"),
   repliedAt: null,
+  toCheck: false,
   mpName: "Polly Placeholder",
   politicianId: 1,
   mpEmail: "polly.placeholder.mp@parliament.uk",

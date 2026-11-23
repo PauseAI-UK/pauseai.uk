@@ -10,6 +10,7 @@ import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { ChatBubble, ChatWall } from "./TextBubble";
 import chat from "./Broadcasts.module.css";
 import styles from "./ReplyActions.module.css";
+import answers from "../mailings/AnswerableReply.module.css";
 
 const copy = broadcastsCopy.broadcastPages.replies;
 
@@ -115,7 +116,7 @@ export default function ReplyReactions({
       <ChatBubble who={who} when={when} beside={smiley} badge={standing?.emoji}>
         {children}
       </ChatBubble>
-      {failed && <p className={styles.problem}>{copy.reactionNotSent}</p>}
+      {failed && <p className={answers.problem}>{copy.reactionNotSent}</p>}
     </ChatWall>
   );
 }

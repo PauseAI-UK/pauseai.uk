@@ -1,4 +1,4 @@
-// AnswerableReply in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
+// AnswerableReply in the component gallery (app/(tools)/gallery/), in the staff mailings group (app/(tools)/gallery/_examples/staff-mailings-events.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import { AnswerableReplyExample } from "./AnswerableReply.gallery.client";
@@ -6,7 +6,7 @@ import { AnswerableReplyExample } from "./AnswerableReply.gallery.client";
 export const answerableReplyGallery: Example[] = [
   {
     name: "AnswerableReply",
-    file: "app/(staff)/staff/_components/broadcasts/AnswerableReply.tsx",
+    file: "app/(staff)/staff/_components/mailings/AnswerableReply.tsx",
     variants: [
       {
         label: "A reply with its Reply button, and its answer opened, being written as it will be sent",
