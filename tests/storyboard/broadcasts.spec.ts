@@ -744,9 +744,8 @@ test("A reply to a text left waiting", async ({ page, request, flowDatabase }) =
   );
   await runSending(request);
   const words = broadcastsCopy.notifications.textsWaiting;
-  const alert = newestEmail(
-    (email) => email.Subject === words.subject(1, "PauseCon doors") && Boolean(email.Cc?.includes(staffEmail())),
-  )!;
+  // Copied to Jo, who made it. No other flow leaves a text reply waiting, so this subject is this flow's.
+  const alert = newestEmail((email) => email.Subject === words.subject(1, "PauseCon doors"))!;
   await emailFrame(page, alert, "The email staff get");
 });
 

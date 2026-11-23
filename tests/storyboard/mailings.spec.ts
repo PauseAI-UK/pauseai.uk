@@ -819,8 +819,9 @@ test("Old mailings", async ({ page, request, flowDatabase }) => {
 
 /**
  * A sent mailing, Edinburgh follow-up, with one letter, to Polly
- * Placeholder, sent from `mailbox` as PauseAI UK, and her reply to it there,
- * which nobody has dealt with. Returns the mailing's and the letter's IDs.
+ * Placeholder, sent from `mailbox` as PauseAI UK, and her reply to it there
+ * the next day, before the flow's now, which nobody has dealt with. Returns
+ * the mailing's and the letter's IDs.
  */
 function pollyReplied(database: string, mailbox: string): { mailing: string; letter: string } {
   const [mailing] = runSql(
@@ -828,25 +829,25 @@ function pollyReplied(database: string, mailbox: string): { mailing: string; let
     `INSERT INTO mailings (title, subject, audience, channel, filter, body, created_by, sent_from, from_name, due_at, state, ask)
      VALUES ('Edinburgh follow-up', 'Edinburgh follow-up', 'politicians', 'email', '{"list": "politicians", "params": {}}',
        '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Will you come and meet us?"}]}]}',
-       'jo@pauseai.uk', '${mailbox}', 'PauseAI UK', '2026-10-20T08:00:00Z', 'sent', 'edinburgh-conference-2026')
+       'jo@pauseai.uk', '${mailbox}', 'PauseAI UK', '2026-10-14T08:00:00Z', 'sent', 'edinburgh-conference-2026')
      RETURNING id`,
   );
   const [letter] = runSql(
     database,
     `INSERT INTO letters (kind, notable_person_id, status, sent_at, replied_at)
-     SELECT 'pauseai', id, 'sent', '2026-10-20T08:00:00Z', '2026-10-21T10:00:00Z' FROM notable_people
+     SELECT 'pauseai', id, 'sent', '2026-10-14T08:00:00Z', '2026-10-15T10:00:00Z' FROM notable_people
      WHERE name = 'Polly Placeholder' RETURNING id`,
   );
   runSql(
     database,
-    `INSERT INTO letters_from_pauseai (id, mailing_id) VALUES (${letter}, ${mailing});
+    `INSERT INTO letters_from_pauseai (id, mailing_id, merge_values) VALUES (${letter}, ${mailing}, '{}');
      INSERT INTO email_sends (at, purpose, letter_id, address, outcome, message_id, backend, sender, rfc_message_id, gmail_thread_id)
-     SELECT '2026-10-20T08:00:00Z', 'mailing', ${letter}, lower(email), 'sent', 'gmail-flow-${letter}', 'gmail', '${mailbox}',
+     SELECT '2026-10-14T08:00:00Z', 'mailing', ${letter}, lower(email), 'sent', 'gmail-flow-${letter}', 'gmail', '${mailbox}',
        'fixture-letter-3@pauseai.uk', 'thread-flow-${letter}' FROM notable_people WHERE name = 'Polly Placeholder';
      INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address, from_name,
        subject, at, from_us, blob_key, size)
      SELECT ${letter}, '${mailbox}', 'gmail-flow-reply-${letter}', 'thread-flow-${letter}', 'fixture-polly-thanks@example.org',
-       lower(email), name, 'Re: Edinburgh follow-up', '2026-10-21T10:00:00Z', false, 'fixture/polly-thanks.eml.gz', 512
+       lower(email), name, 'Re: Edinburgh follow-up', '2026-10-15T10:00:00Z', false, 'fixture/polly-thanks.eml.gz', 512
      FROM notable_people WHERE name = 'Polly Placeholder';`,
   );
   return { mailing, letter };
@@ -857,7 +858,7 @@ test("A politician's reply to check", async ({ page, request, flowDatabase }) =>
     "Polly Placeholder answered a mailing's letter, which went from your own Gmail. Nobody has dealt with her reply, so the staff home lists it, with how many wait.",
   );
   await importPoliticians(request, BASE, flowDatabase);
-  addStaffAccount(flowDatabase, staffEmail());
+  // Their account, with their Gmail connected, as they'd connect it on /staff/me.
   connectGmail(flowDatabase, staffEmail());
   const { mailing, letter } = pollyReplied(flowDatabase, staffEmail());
   await logInAsStaff(page, BASE, staffEmail(), "/staff");
