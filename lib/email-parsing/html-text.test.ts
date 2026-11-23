@@ -135,6 +135,10 @@ describe("an HTML email's text", () => {
       '<span style="mso-bidi-font-weight:bold">Word\'s</span> <i style="font-style:normal">upright</i>.</p></b>' +
       '<div style="font-weight:600"><br></div>';
     expect(htmlText(html)).toBe("*Bold* and plain, *_both_*, Word's upright.");
+    // A slant on a whole block is its look; italic round bold is left plain.
+    expect(
+      htmlText('<blockquote style="font-style:italic"><p>Plain</p></blockquote><p><i>Say <b>this</b></i></p>'),
+    ).toBe("Plain\n\nSay *this*");
   });
 
   it("joins pieces in the same style written one after another, as Outlook writes an address", () => {
@@ -154,6 +158,10 @@ describe("an HTML email's text", () => {
         "www.example.org, jo@example.com, 0207, named, across\nlines, bad.",
     );
     expect(htmlText('<a href="https://example.org/b">example.org/c</a>')).toBe("example.org/c <https://example.org/b>");
+    // In bold, straight after other bold words: its words are still its address.
+    expect(htmlText('<b>See&nbsp;</b><a href="http://www.example.org"><b>http://www.example.org/</b></a>')).toBe(
+      "*See*\u00a0*http://www.example.org/*",
+    );
   });
 
   it("marks with '> ' what a blockquote quotes: one under 'On … wrote:', a citation, or one starting with its headers", () => {
@@ -245,6 +253,7 @@ describe("a link's address", () => {
       "https://pauseai.us1.list-manage.com/track/click?u=1",
       "https://mandrillapp.com/track/click/1",
       "https://d1.hubspotlinks.com/Ctc/1",
+      "https://mail.onelink.me/107872968?pid=nativeplacement",
       "https://www.google.com/maps/search/15+Richmond+Road",
       "https://google.co.uk/maps/search/London",
       "https://abc.awstrack.me/L0/https:%2F%2Fexample.org%E0%A4%A/1",

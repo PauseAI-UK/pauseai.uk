@@ -51,7 +51,9 @@ function marksOf(name: string, attribs: Record<string, string>): string[] {
   const weight = /(?:^|[;\s])font-weight\s*:\s*([a-z0-9]+)/.exec(style)?.[1];
   const slant = /(?:^|[;\s])font-style\s*:\s*([a-z]+)/.exec(style)?.[1];
   const bold = weight ? weight.startsWith("bold") || Number(weight) >= 600 : /^(b|strong|h[1-6])$/.test(name);
-  const italic = slant ? slant !== "normal" : name === "i" || name === "em";
+  // A slant set on a block, as a mailer sets on a whole quote, is a look, not words stressed.
+  const italic =
+    slant && !BLOCKS.has(name) && !PARAGRAPHS.has(name) ? slant !== "normal" : name === "i" || name === "em";
   return [...(bold ? ["*"] : []), ...(italic ? ["_"] : [])];
 }
 
@@ -197,6 +199,7 @@ function tellsNothing(url: URL): boolean {
     host.endsWith(".list-manage.com") ||
     host === "mandrillapp.com" ||
     host.endsWith(".hubspotlinks.com") ||
+    host.endsWith(".onelink.me") ||
     (/^(www\.)?google\.[a-z.]+$/.test(host) && url.pathname.startsWith("/maps/search/"))
   );
 }
@@ -372,7 +375,8 @@ export function htmlText(html: string): string {
       const from = i === first && "at" in start ? start.at : 0;
       const piece = written.text.slice(from);
       const words = piece.trim();
-      if (!words || words.includes(mark)) continue;
+      // Not on words with a mark in them already, nor italic round bold, which mailParts can't read.
+      if (!words || words.includes(mark) || (mark === "_" && words.includes("*"))) continue;
       const head = written.text.slice(0, from) + piece.match(/^\s*/)![0];
       const after = piece.match(/\s*$/)![0];
       written.text = `${head}${mark}${words}${mark}${after}`;
@@ -467,7 +471,11 @@ export function htmlText(html: string): string {
         }
         if (name === "a" && open.start) {
           const { line: at, at: from } = open.start;
-          const words = at.text.slice(from).trim();
+          // Its words without a bold or italic piece's marks, which may have come on round them.
+          const words = at.text
+            .slice(from)
+            .trim()
+            .replace(/^[*_]+|[*_]+$/g, "");
           const address = linkAddress(open.href!);
           if (at === line && words && address && !showsAddress(words, address)) at.text += ` <${address}>`;
         } else if (open.marker && open.start) {
