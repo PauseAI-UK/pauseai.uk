@@ -41,6 +41,8 @@ const WITHOUT_SUPPORTERS = `NOT (
     "schedule broadcast",
     "stop broadcast",
     "resume broadcast",
+    "change broadcast times",
+    "unschedule broadcast",
   )}])
   OR details ? 'supporterId'
   OR (action = ANY(ARRAY[${auditActions("block address", "unblock address")}])

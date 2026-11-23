@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
 import BroadcastView, { broadcastCounts } from "./BroadcastView";
@@ -12,8 +12,11 @@ import {
   exampleBroadcastEmail,
   exampleBroadcastSent,
   exampleBroadcastSummary,
+  exampleBroadcastText,
+  exampleTemplates,
   exampleTextWords,
 } from "./BroadcastWriter.examples";
+import { staffMemberText } from "@/lib/staff-member";
 import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { lettersCopy } from "../letters/copy";
@@ -273,6 +276,60 @@ describe("a broadcast's page", () => {
     await expect.poll(() => document.body.textContent).toContain(copy.scheduledLine(290, "email", "hello@pauseai.uk"));
   });
 
+  it("says when one scheduled or sending keeps trying until, and changes both times, or once sending, that alone", async () => {
+    const dueAt = new Date("2099-01-07T07:18:00Z");
+    const scheduled = {
+      ...exampleBroadcastSent,
+      summary: { ...exampleBroadcastSummary, state: "scheduled" as const },
+      written: { ...exampleBroadcastSent.written, state: "scheduled" as const, dueAt, finishMinutes: 720 },
+    };
+    const changed: FormData[] = [];
+    const reschedule = async (form: FormData) => void changed.push(form);
+    const view = await render(
+      <BroadcastView data={scheduled} who={who} contact={null} {...actions} reschedule={reschedule} />,
+    );
+    await expect.element(page.getByRole("term").filter({ hasText: copy.keepsTryingUntil })).toBeVisible();
+    await expect
+      .element(page.getByText(londonWhen(new Date("2099-01-07T19:18:00Z"), "short"), { exact: true }))
+      .toBeVisible();
+    await button(copy.changeTimes).click();
+    await expect.element(page.getByRole("button", { name: mailingsCopy.mailingPages.day })).toBeVisible();
+    await button(copy.saveTimes).click();
+    await expect
+      .poll(() => changed.map((form) => [form.get("day"), form.get("finish-minutes")]))
+      .toEqual([["2099-01-07", "720"]]);
+    // Sending, its time is past changing; when it keeps trying until isn't. The bubble open still, closed first.
+    await userEvent.keyboard("{Escape}");
+    const sending = {
+      ...scheduled,
+      summary: { ...scheduled.summary, state: "sending" as const },
+      written: { ...scheduled.written, state: "sending" as const },
+    };
+    await view.rerender(<BroadcastView data={sending} who={who} contact={null} {...actions} />);
+    // As Started beside it says its time.
+    await expect.element(page.getByText(staffTime(new Date("2099-01-07T19:18:00Z")), { exact: true })).toBeVisible();
+    await button(copy.changeTimes).click();
+    await expect.element(page.getByRole("combobox", { name: copy.keepsTryingFor })).toBeVisible();
+    await expect
+      .element(page.getByRole("button", { name: mailingsCopy.mailingPages.day, exact: true }))
+      .not.toBeInTheDocument();
+    // Sent, it tries no more.
+    await view.rerender(<BroadcastView data={exampleBroadcastSent} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByRole("term").filter({ hasText: copy.keepsTryingUntil })).not.toBeInTheDocument();
+  });
+
+  it("says one past its time that waits for WhatsApp's approval is waiting for it, not when it sends", async () => {
+    const due = new Date("2026-11-07T07:18:00Z");
+    const pause: SendingPause = { kind: "waiting", reason: "approval", said: null, endsAt: due };
+    const data = {
+      ...exampleBroadcastSent,
+      summary: { ...exampleBroadcastSummary, state: "scheduled" as const, pause },
+      written: { ...exampleBroadcastSent.written, state: "scheduled" as const, dueAt: due },
+    };
+    await render(<BroadcastView data={data} who={who} contact={null} {...actions} />);
+    await expect.element(page.getByText(copy.standing.waiting)).toBeVisible();
+  });
+
   it("says one past its time that waits for CiviCRM is waiting to go, not when it sends", async () => {
     const due = new Date("2026-11-07T07:18:00Z");
     const pause: SendingPause = { kind: "waiting", reason: "pull", said: null, endsAt: due };
@@ -520,11 +577,24 @@ describe("BroadcastWaiting", () => {
       ["template", copy.gaveUpTemplate],
       ["limit", copy.gaveUpLimit],
       ["late", copy.gaveUpLate],
+      ["approval", copy.gaveUpApproval],
       ["failing", copy.gaveUpFailing],
     ] as const) {
       await rerender(stopped(waitReason));
       await expect.element(page.getByText(words)).toBeVisible();
     }
+  });
+
+  it("says, in blue, that one scheduled waits for WhatsApp to approve its template, before its time or after", async () => {
+    const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null };
+    const scheduled = (dueAt: Date) => (
+      <BroadcastWaiting written={{ ...exampleBroadcastText, state: "scheduled", dueAt, template }} pause={null} />
+    );
+    const by = staffMemberText(template.createdBy!);
+    const { rerender } = await render(scheduled(new Date("2099-01-01T09:18:00Z")));
+    await expect.element(page.getByText(copy.approvalStrip(by, staffTime(template.requestedAt), false))).toBeVisible();
+    await rerender(scheduled(new Date("2020-01-01T09:18:00Z")));
+    await expect.element(page.getByText(copy.approvalStrip(by, staffTime(template.requestedAt), true))).toBeVisible();
   });
 });
 

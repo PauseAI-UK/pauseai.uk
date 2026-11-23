@@ -5,7 +5,7 @@
 // words of their own.
 import { count, plural } from "@/lib/content/plural";
 import { mailingsCopy } from "@/lib/mailings/copy";
-import { daysInWords, FAILURES_TO_STOP, SENDING_DAYS, WAIT_DAYS } from "./days";
+import { daysInWords, FAILURES_TO_STOP, WAIT_DAYS } from "./days";
 
 /** What one supporter's copy of a broadcast is, by how it went: the first word of its page's title, and its step of the trail above it. */
 const copyKind = (channel: "email" | "text") => (channel === "email" ? "Email" : "Text");
@@ -178,7 +178,7 @@ export const broadcastsCopy = {
     templatePending: (by: string, at: string) => `${by}, approval requested ${at}, withdraw request to change`,
     // At the top of a draft whose words WhatsApp is reviewing, in amber, as the words are locked till it decides.
     awaitingApproval: (by: string, at: string) =>
-      `Waiting for WhatsApp approval, sent on ${at} by ${by}. It can't be changed or scheduled until WhatsApp decides.`,
+      `Waiting for WhatsApp approval, sent on ${at} by ${by}. You can no longer edit the template. If you're confident enough to send the message without a test send, you can schedule it so it goes automatically when approved.`,
     withdrawTemplate: "Withdraw approval request",
     // The same, pressed once, asking for a second press.
     withdrawSure: "Withdraw it",
@@ -195,17 +195,41 @@ export const broadcastsCopy = {
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
-      "not-approved": "Send the template for approval by WhatsApp first. This can take 24 hours.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
-      "too-slow": `That's too many to send in ${daysInWords(SENDING_DAYS)}. Send it to fewer people.`,
+      "too-slow": "That's too many to send before it stops trying. Send it to fewer people, or keep trying for longer.",
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
       "no-time": "Choose what time it will be sent.",
       "time-passed": "You can't send it into the past!",
       "cannot-send": "Sending isn't built yet.",
     } as Record<string, string>,
-    // In place of not-approved, for words WhatsApp has already.
-    reviewing: "WhatsApp is reviewing the template. This can take 24 hours.",
+    // When it goes: when it stops trying to reach those it hasn't, and the button that changes it; once changing
+    // it, under its day and time, what to set it to.
+    keepsTryingUntil: "Keeps trying until",
+    // On its page, in place of the mailings' Change the time, as it changes both; and its bubble's button.
+    changeTimes: "Change the times",
+    saveTimes: "Change them",
+    // How long it keeps trying, as a sentence with its choice in it: before the choice, each choice (half a day,
+    // or days), and after it, until when.
+    keepsTryingFor: "Keeps trying for",
+    finishChoice: (minutes: number) => (minutes < 24 * 60 ? "12 hours" : count(minutes / (24 * 60), "day", "days")),
+    untilWhen: (when: string) => `until ${when}`,
+    // The "?" after it, named, and what it opens, a paragraph each: why it keeps trying, and what to choose.
+    whyKeepsTrying: "Why it keeps trying",
+    keepsTryingWhy: [
+      "Some people can't be reached straight away, because of sending limits, outages, or WhatsApp holding back marketing texts.",
+      "We keep trying for this long, then stop. If the message is only meaningful for a limited time, for example it is about an event, then change the stop time.",
+    ],
+    // Under Schedule, for a text whose template WhatsApp hasn't approved: scheduling sends it for approval, if it
+    // isn't with WhatsApp already.
+    schedulesForApproval: "Scheduling also sends the template to WhatsApp for approval.",
+    // Under its time, for a text whose template WhatsApp hasn't approved, due in less than a day.
+    approvalSoon:
+      "WhatsApp can take 24 hours to approve a template, but you've scheduled the broadcast to start sooner than that. It will still be sent, but late, if approval is slow.",
     // Its page.
+    // Under where one scheduled stands, while WhatsApp hasn't approved its template: who sent it, when, and that it
+    // goes at its time once approved, or, past its time, as soon as it is.
+    approvalStrip: (by: string, at: string, due: boolean) =>
+      `Waiting for WhatsApp to approve the template, sent by ${by} ${at}. ${due ? "It goes as soon as it's approved." : "It goes at its scheduled time once it's approved."}`,
     scheduledLine: (n: number, channel: "email" | "text", from: string) =>
       `${channel === "email" ? count(n, "email", "emails") : count(n, "text", "texts")} from ${from}`,
     textTitle: "The text",
@@ -228,6 +252,7 @@ export const broadcastsCopy = {
           `WhatsApp paused its template: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
         late: (n: number, of: number) =>
           `CiviCRM was down when its time ran out: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
+        approval: () => "WhatsApp never approved the template, so it wasn't sent",
         failing: (n: number, of: number) =>
           `Kept failing to send: stopped after ${n.toLocaleString("en-GB")} of ${of.toLocaleString("en-GB")}`,
       } as Record<string, (n: number, of: number) => string>,
@@ -328,12 +353,14 @@ export const broadcastsCopy = {
     // Where a scheduled broadcast says when it sends, while it waits for CiviCRM, past its time.
     waitingDue: "Waiting for CiviCRM",
     gaveUp: `Stopped after ${daysInWords(WAIT_DAYS)}, as CiviCRM couldn't be reached.`,
-    // The same, for one a day's limit of emails left too slow.
-    gaveUpLimit: `Stopped after ${daysInWords(SENDING_DAYS)}, before everyone got it.`,
+    // The same, for one that reached its finish (keepsTrying) before it had all gone.
+    gaveUpLimit: "Stopped trying, before everyone got it.",
     // The same, for a text whose template WhatsApp paused or disabled, for its quality.
     gaveUpTemplate: "Stopped, as WhatsApp paused or disabled the template it used.",
-    // The same, for one whose days ran out while it waited for CiviCRM.
-    gaveUpLate: `Stopped after ${daysInWords(SENDING_DAYS)}, as CiviCRM was down when they ran out.`,
+    // The same, for one that reached its finish while it waited for CiviCRM.
+    gaveUpLate: "Stopped trying while CiviCRM was down.",
+    // The same, for a text that reached its finish before WhatsApp approved its template.
+    gaveUpApproval: "Never sent, as WhatsApp didn't approve the template before it stopped trying.",
     // The same, for one so many of whose copies failed one after another that it stopped (FAILURES_TO_STOP).
     gaveUpFailing: `Stopped, as the last ${FAILURES_TO_STOP} emails or texts it tried all failed. Each one's page says why.`,
     // On one sending that has paused after its sends failed, or what sends it couldn't for now, till when it tries again.
@@ -423,11 +450,12 @@ export const broadcastsCopy = {
         suppressed: "PauseAI Global says not to email them",
         cancelled: "we stopped the broadcast",
         // Its broadcast stopped by itself.
-        limit: `the broadcast's ${daysInWords(SENDING_DAYS)} ran out`,
+        limit: "the broadcast stopped trying first",
         civicrm: `CiviCRM was down for ${daysInWords(WAIT_DAYS)}`,
         pull: `CiviCRM was down for ${daysInWords(WAIT_DAYS)}`,
         template: "WhatsApp paused the template",
-        late: `the broadcast's ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down`,
+        late: "the broadcast stopped trying while CiviCRM was down",
+        approval: "WhatsApp never approved the template",
         failing: "the broadcast stopped after its sending kept failing",
       } as Record<string, string>,
       notYet: "The broadcast is still sending, so this hasn't gone yet.",
@@ -463,14 +491,23 @@ export const broadcastsCopy = {
   },
   // The emails to staff (lib/email/notifications.server.ts).
   notifications: {
-    // A broadcast that can't go, as CiviCRM didn't answer its check or no pull has completed for a day, to whoever
-    // scheduled it and the inbox, once: it goes by itself when it can, or stops at `stops`.
+    // A broadcast that can't go, as CiviCRM didn't answer its check, no pull has completed for a day, or WhatsApp
+    // hasn't approved a text's template, to whoever scheduled it and the inbox, once: it goes by itself when it can,
+    // or stops at `stops`.
     broadcastWaiting: {
       subject: (title: string) => `Not sent yet: ${title}`,
-      body: (title: string, reason: "civicrm" | "pull", said: string | null, stops: string, link: string) =>
-        reason === "civicrm"
-          ? `“${title}” was due to go, but hasn't been sent.\n\nWe check everyone with CiviCRM before sending to them, and the check failed. CiviCRM said: ${said ?? "nothing"}\n\nIt will send as soon as the check works. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`
-          : `“${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and our import from CiviCRM hasn't worked for a day.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
+      body: (
+        title: string,
+        reason: "civicrm" | "pull" | "approval",
+        said: string | null,
+        stops: string,
+        link: string,
+      ) =>
+        reason === "approval"
+          ? `“${title}” was due to go, but WhatsApp hasn't approved its template yet.\n\nIt will send as soon as WhatsApp approves it. If that hasn't happened by ${stops}, it will be stopped without sending, and you'll get another email.\n\n${link}`
+          : reason === "civicrm"
+            ? `“${title}” was due to go, but hasn't been sent.\n\nWe check everyone with CiviCRM before sending to them, and the check failed. CiviCRM said: ${said ?? "nothing"}\n\nIt will send as soon as the check works. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`
+            : `“${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and our import from CiviCRM hasn't worked for a day.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
     },
     // A broadcast whose Gmail, Postmark or WhatsApp has said at every try since `since` that it can't send for now,
     // as at a limit or down, to whoever scheduled it and the inbox, once: it goes on by itself, or stops at `stops`.
@@ -481,28 +518,35 @@ export const broadcastsCopy = {
     },
     // A broadcast that waited too long and stopped, to whoever scheduled it and the inbox: how many it didn't reach.
     broadcastGaveUp: {
-      subject: (title: string, reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing") =>
+      subject: (title: string, reason: "civicrm" | "pull" | "approval" | "limit" | "template" | "late" | "failing") =>
         reason === "template"
           ? `Stopped, as WhatsApp paused the template it used: ${title}`
           : reason === "failing"
             ? `Stopped, as sending kept failing: ${title}`
-            : `Stopped after ${daysInWords(reason === "limit" || reason === "late" ? SENDING_DAYS : WAIT_DAYS)}: ${title}`,
+            : reason === "approval"
+              ? `Never sent, as WhatsApp didn't approve the template: ${title}`
+              : reason === "limit" || reason === "late"
+                ? `Stopped trying: ${title}`
+                : `Stopped after ${daysInWords(WAIT_DAYS)}: ${title}`,
       // How to send it to those it didn't reach: the button on its page (mailingsCopy.mailingPages.resume).
       resume: `To send it to them, press “${mailingsCopy.mailingPages.resume}” on its page.`,
-      // Why, for an email that Gmail's daily limit left too slow, in place of CiviCRM's sentence.
-      whyGmailLimit: `It was too large a broadcast for Gmail to send within ${daysInWords(SENDING_DAYS)}.`,
-      // The same, for a text that our WhatsApp number's daily limit left too slow.
-      whyWhatsAppLimit: `It was too large a broadcast for our WhatsApp number to send within ${daysInWords(SENDING_DAYS)}.`,
+      // Why, for an email that reached its finish before it had all gone, in place of CiviCRM's sentence.
+      whyGmailLimit: "It stopped trying before everyone got it, as Gmail rate limits what we can send.",
+      // The same, for a text, held back by our WhatsApp number's daily limit, or by WhatsApp.
+      whyWhatsAppLimit:
+        "It stopped trying before everyone got it. Our WhatsApp number can only send so many a day, and WhatsApp holds back texts to people who've had a lot of marketing.",
       // Why, for a text whose template WhatsApp paused or disabled, for its quality.
       whyTemplate:
         "WhatsApp paused or disabled its template, as people blocked, reported or didn't read texts on it. Change the template before it goes again.",
-      // Why, for one whose days ran out while it waited for CiviCRM.
-      whyLate: `Its ${daysInWords(SENDING_DAYS)} ran out while CiviCRM was down, and we don't send to anyone without checking with it first.`,
+      // Why, for one that reached its finish while it waited for CiviCRM.
+      whyLate: "It stopped trying while CiviCRM was down, and we don't send to anyone without checking with it first.",
+      // Why, for a text that reached its finish before WhatsApp approved its template: it was never sent.
+      whyApproval: "WhatsApp didn't approve its template before it stopped trying, so it was never sent.",
       // Why, for one so many of whose copies failed one after another (FAILURES_TO_STOP): something may be wrong with what sends it.
       whyFailing: `The last ${FAILURES_TO_STOP} messages we tried to send all failed, so something may be fundamentally wrong. Check each copy and fix any problem before sending again.`,
       body: (
         title: string,
-        reason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing",
+        reason: "civicrm" | "pull" | "approval" | "limit" | "template" | "late" | "failing",
         notReached: number,
         link: string,
         channel: "email" | "text",
@@ -512,6 +556,7 @@ export const broadcastsCopy = {
           limit: channel === "text" ? words.whyWhatsAppLimit : words.whyGmailLimit,
           template: words.whyTemplate,
           late: words.whyLate,
+          approval: words.whyApproval,
           failing: words.whyFailing,
           civicrm: `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`,
           pull: `CiviCRM couldn't be reached for ${daysInWords(WAIT_DAYS)}, and we don't email anyone without checking with it first.`,
@@ -564,10 +609,11 @@ export const broadcastsCopy = {
       body: (name: string, stopped: number) =>
         `WhatsApp paused or disabled “${name}”, as people blocked, reported or didn't read texts on it. ${count(stopped, "text", "texts")} on it stopped. Write a new template with different words before texting again.`,
     },
+    // With how many texts on it were scheduled, and are drafts again.
     templateRejected: {
       subject: (name: string) => `WhatsApp rejected the template: ${name}`,
-      body: (reason: string, words: string, links: string[]) =>
-        `WhatsApp rejected the template with ${reason}\n\nChange it, and send it for approval again.\n\n${words}\n\n${links.join("\n")}`,
+      body: (reason: string, words: string, links: string[], unscheduled: number) =>
+        `WhatsApp rejected the template with ${reason}\n\n${unscheduled ? `${plural(unscheduled, "The broadcast using it was scheduled, so it's a draft again.", `${unscheduled} broadcasts using it were scheduled, so they're drafts again.`)}\n\n` : ""}Change it, and send it for approval again.\n\n${words}\n\n${links.join("\n")}`,
     },
   },
 };

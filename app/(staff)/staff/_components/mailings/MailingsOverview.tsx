@@ -181,13 +181,11 @@ function Row<T extends MailingBase>({
   year,
   now,
   look,
-  pulse,
 }: {
   mailing: T;
   year: string;
   now: Date;
   look: OverviewLook<T>;
-  pulse: boolean;
 }) {
   const href = `${look.base}/${mailing.id}`;
   const title = (
@@ -207,7 +205,7 @@ function Row<T extends MailingBase>({
   const by = !look.from && mailing.createdBy ? copy.by(staffMemberText(mailing.createdBy)) : null;
   const paused = look.paused?.(mailing);
   return (
-    <li className={styles.row} data-pulse={pulse || undefined}>
+    <li className={styles.row}>
       <span className={styles.when}>
         <When mailing={mailing} year={year} now={now} paused={paused} />
       </span>
@@ -260,13 +258,10 @@ export default function MailingsOverview<T extends MailingBase = MailingSummary>
   groups,
   now,
   look = MAILINGS_LOOK as unknown as OverviewLook<T>,
-  pulse,
 }: {
   groups: MailingGroup<T>[];
   now: string;
   look?: OverviewLook<T>;
-  /** The one to draw the eye to, just changed on its own page. */
-  pulse?: number;
 }) {
   if (groups.length === 0) return <Empty>{look.none}</Empty>;
   const year = now.slice(0, 4);
@@ -279,14 +274,7 @@ export default function MailingsOverview<T extends MailingBase = MailingSummary>
             <h2 id={`mailings-${group.key}`}>{group.heading}</h2>
             <ul className={styles.rows}>
               {group.mailings.map((mailing) => (
-                <Row
-                  key={mailing.id}
-                  mailing={mailing}
-                  year={year}
-                  now={new Date(now)}
-                  look={look}
-                  pulse={mailing.id === pulse}
-                />
+                <Row key={mailing.id} mailing={mailing} year={year} now={new Date(now)} look={look} />
               ))}
             </ul>
           </section>

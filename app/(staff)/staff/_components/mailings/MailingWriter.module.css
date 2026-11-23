@@ -205,6 +205,11 @@
   color: var(--status-red);
 }
 
+/* What it does that's worth knowing, after what stops it: in the words' own colour, bullet and all. */
+.problems .note {
+  color: var(--text);
+}
+
 /* "Letter" close over the letter, and "Find recipient who:" over its buttons. */
 .letter,
 .find {

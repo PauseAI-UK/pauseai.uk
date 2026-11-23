@@ -262,19 +262,33 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     });
   });
 
-  it("schedules, changes the time, and stops", async () => {
+  it("schedules, changes the times, and stops", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane");
     const id = await draft();
     await saveBroadcast(id, 1, { subject: "Hi", body: EVENT_WORDS, dueAt: FUTURE });
     expect(await scheduleBroadcastNow(id, 2)).toEqual({ scheduled: true });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/broadcasts");
-    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-03", hour: "9", minute: "33" }));
-    expect((await getWrittenBroadcast(id))!.dueAt).toEqual(new Date("2099-02-03T09:33:00.000Z"));
+    const finish = { "finish-minutes": "720" };
+    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-03", hour: "9", minute: "33", ...finish }));
+    expect(await getWrittenBroadcast(id)).toMatchObject({
+      dueAt: new Date("2099-02-03T09:33:00.000Z"),
+      finishMinutes: 720,
+    });
+    // Seven days, the most, is kept as none.
+    await rescheduleBroadcastNow(
+      form({ id: String(id), day: "2099-02-03", hour: "9", minute: "33", "finish-minutes": "10080" }),
+    );
+    expect((await getWrittenBroadcast(id))!.finishMinutes).toBeNull();
     const moved = (await getWrittenBroadcast(id))!.dueAt;
-    await rescheduleBroadcastNow(form({ id: "", day: "2099-02-03", hour: "9", minute: "3" }));
-    await rescheduleBroadcastNow(form({ id: String(id), day: "soon", hour: "9", minute: "3" }));
-    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-04", hour: "25", minute: "3" }));
-    await rescheduleBroadcastNow(form({ id: "999", day: "2099-02-04", hour: "9", minute: "3" }));
+    await rescheduleBroadcastNow(form({ id: "", day: "2099-02-03", hour: "9", minute: "3", ...finish }));
+    // No length, or one that isn't minutes; a time that isn't one.
+    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-04", hour: "9", minute: "3" }));
+    await rescheduleBroadcastNow(
+      form({ id: String(id), day: "2099-02-04", hour: "9", minute: "3", "finish-minutes": "x" }),
+    );
+    await rescheduleBroadcastNow(form({ id: String(id), day: "soon", hour: "9", minute: "3", ...finish }));
+    await rescheduleBroadcastNow(form({ id: String(id), day: "2099-02-04", hour: "25", minute: "3", ...finish }));
+    await rescheduleBroadcastNow(form({ id: "999", day: "2099-02-04", hour: "9", minute: "3", ...finish }));
     expect((await getWrittenBroadcast(id))!.dueAt).toEqual(moved);
     await stopBroadcastNow(form({ id: "" }));
     expect((await getWrittenBroadcast(id))!.state).toBe("scheduled");

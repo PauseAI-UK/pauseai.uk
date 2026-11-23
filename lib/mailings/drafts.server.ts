@@ -73,6 +73,8 @@ export type MailingChanges = Partial<
     templateId: number | null;
     /** What sends an email to supporters: a broadcast's BroadcastSendBy (lib/broadcasts/broadcasts.ts), checked before it's saved. */
     sendBy: string;
+    /** When a broadcast to supporters stops, in minutes after its time; null for the most (sendingStopsAt in lib/broadcasts/broadcasts.ts). */
+    finishMinutes: number | null;
   }
 >;
 
@@ -88,6 +90,7 @@ const COLUMNS: Record<keyof MailingChanges, string> = {
   title: "title",
   templateId: "template_id",
   sendBy: "send_by",
+  finishMinutes: "finish_minutes",
 };
 
 /** A save, or why not: someone else saved since, it's no longer a draft, or it's gone. */

@@ -9,8 +9,8 @@ import { dealWithReply, type ReplyDecision } from "@/lib/broadcasts/replies.serv
 import { answerReply, reactToReply, type AnswerResult, type ReactionResult } from "@/lib/broadcasts/answers.server";
 import { redirect } from "next/navigation";
 import { looksLikeEmail } from "@/lib/email-your-mp";
-import { fakeRecipient } from "@/lib/broadcasts/broadcasts";
-import { addAttachment, deleteDraft, removeAttachment, rescheduleMailing } from "@/lib/mailings/drafts.server";
+import { fakeRecipient, finishKept } from "@/lib/broadcasts/broadcasts";
+import { addAttachment, deleteDraft, removeAttachment } from "@/lib/mailings/drafts.server";
 import {
   changeBroadcastConsent,
   changeBroadcastFilter,
@@ -20,6 +20,7 @@ import {
   getWrittenBroadcast,
   broadcastChangesFrom,
   resumeBroadcast,
+  retimeBroadcast,
   saveBroadcastDraft,
   scheduleBroadcast,
   sendBroadcastTest,
@@ -261,14 +262,17 @@ export async function resumeBroadcastNow(form: FormData): Promise<void> {
   revalidatePath(`${LIST}/${id}`);
 }
 
-/** Changes when the form's scheduled broadcast goes: its day and hour, in London. */
+/**
+ * Change the times: when the form's broadcast goes, if it's scheduled, a day
+ * and hour in London, and how long it keeps trying, in minutes
+ * (retimeBroadcast), the most kept as none.
+ */
 export async function rescheduleBroadcastNow(form: FormData): Promise<void> {
   const { email } = await requireStaff("supporters");
   const id = idFrom(form);
-  const dueAt = dueAtFrom(form);
-  if (!id || !dueAt) return;
-  if (!(await getWrittenBroadcast(id))) return;
-  await rescheduleMailing(id, dueAt, email);
+  const minutes = Number(form.get("finish-minutes"));
+  if (!id || !Number.isInteger(minutes)) return;
+  await retimeBroadcast(id, dueAtFrom(form), finishKept(minutes), email);
   revalidatePath(LIST);
   revalidatePath(`${LIST}/${id}`);
 }

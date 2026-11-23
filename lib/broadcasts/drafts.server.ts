@@ -14,6 +14,8 @@ import {
   broadcastScheduleProblems,
   broadcastTerms,
   choiceTerms,
+  finishFits,
+  sendingStopsAt,
   isAvailableSendBy,
   rejectionWords,
   sameWords,
@@ -27,6 +29,7 @@ import {
   type BroadcastTerms,
 } from "./broadcasts";
 import { now } from "@/lib/now";
+import { sendsAt } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { gmailAccount, GMAIL_DAILY_LIMIT } from "@/lib/email/gmail-accounts.server";
@@ -114,12 +117,14 @@ export type WrittenBroadcast = WrittenMailing & {
   template: WhatsAppTemplate | null;
   /** What sends it, for an email (lib/broadcasts/broadcasts.ts, BROADCAST_SEND_BY). */
   sendBy: BroadcastSendBy;
+  /** When it stops if it hasn't all gone, in minutes after its time; none for the most (sendingStopsAt). */
+  finishMinutes: number | null;
   /**
    * Since when it's waited for CiviCRM, and why; or that it stopped by
    * itself, and why (StopReason in broadcast-sending.server.ts).
    */
   waitingSince: Date | null;
-  waitReason: "civicrm" | "pull" | "limit" | "template" | "late" | "failing" | null;
+  waitReason: "civicrm" | "pull" | "approval" | "limit" | "template" | "late" | "failing" | null;
   /** What CiviCRM's check last said, as it failed, while it waits for it; null otherwise. */
   waitSaid: string | null;
   gaveUp: boolean;
@@ -163,13 +168,21 @@ export async function getWrittenBroadcast(id: number, opening = false): Promise<
   const [{ templateId, ...own }] = await query<
     Pick<
       WrittenBroadcast,
-      "title" | "channel" | "topics" | "sendBy" | "waitingSince" | "waitReason" | "waitSaid" | "gaveUp"
+      | "title"
+      | "channel"
+      | "topics"
+      | "sendBy"
+      | "finishMinutes"
+      | "waitingSince"
+      | "waitReason"
+      | "waitSaid"
+      | "gaveUp"
     > & {
       templateId: number | null;
     }
   >(
     `SELECT title, channel, ${TOPICS_OF} AS topics, template_id::int AS "templateId", send_by AS "sendBy",
-       waiting_since AS "waitingSince",
+       finish_minutes AS "finishMinutes", waiting_since AS "waitingSince",
        wait_reason AS "waitReason", wait_said AS "waitSaid", gave_up AS "gaveUp"
      FROM mailings WHERE id = $1`,
     [id],
@@ -312,13 +325,22 @@ export function sameTerms(terms: BroadcastTerms | undefined, broadcast: Broadcas
  * are fixed (senderOf). An email may say what sends it, of what can now
  * (isAvailableSendBy). A text has no subject, may name a
  * template, or null for none, and may have a title of its own, as it has no
- * subject to be one.
+ * subject to be one. Either may say when it finishes, in whole minutes
+ * after its time, one it can have (finishFits), or null for the most.
  */
 export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel): MailingChanges | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  const { templateId, title, sendBy, ...rest } = value as Record<string, unknown>;
-  const changes = mailingChangesFrom(rest);
-  if (!changes || "ask" in changes || "sentFrom" in changes || "fromName" in changes) return undefined;
+  const { templateId, title, sendBy, finishMinutes, ...rest } = value as Record<string, unknown>;
+  const parsed = mailingChangesFrom(rest);
+  if (!parsed || "ask" in parsed || "sentFrom" in parsed || "fromName" in parsed) return undefined;
+  if (
+    finishMinutes !== undefined &&
+    !(finishMinutes === null || (Number.isInteger(finishMinutes) && finishFits(finishMinutes as number)))
+  ) {
+    return undefined;
+  }
+  const changes: MailingChanges =
+    finishMinutes === undefined ? parsed : { ...parsed, finishMinutes: finishMinutes as number | null };
   if (channel === "email") {
     if (templateId !== undefined || title !== undefined) return undefined;
     if (sendBy === undefined) return changes;
@@ -363,7 +385,9 @@ export async function saveBroadcastDraft(
 export type BroadcastScheduleResult =
   | { scheduled: true }
   | { scheduled: false; problems: BroadcastScheduleProblem[] }
-  | { scheduled: false; reason: "conflict" | "not-draft" | "gone" };
+  | { scheduled: false; reason: "conflict" | "not-draft" | "gone" }
+  /** A text's new words, which scheduling sends for approval, that didn't go: why (submitTemplate). */
+  | { scheduled: false; submit: Exclude<TemplateSubmitResult, "submitted"> };
 
 /**
  * How what sends a broadcast stands, for the page to say and for scheduling
@@ -420,20 +444,33 @@ async function scheduleProblems(
  * Schedules a draft broadcast at `version`, if nothing stops it. Who it goes to
  * isn't fixed: sending finds them, a message each, keeping their name, place
  * and merge values, which erasing them deletes. A text goes only on a
- * template WhatsApp has approved.
+ * template WhatsApp has approved: one with new words has them sent for
+ * approval first (submitTemplate), which leaves its version as it was, and
+ * is scheduled once WhatsApp has taken them, to wait for its approval
+ * (startDueBroadcasts); if WhatsApp doesn't take them, it stays a draft, and
+ * says why.
  */
 export async function scheduleBroadcast(id: number, version: number, by: string): Promise<BroadcastScheduleResult> {
-  return transaction(async (db) => {
+  const checked = await transaction(async (db): Promise<BroadcastScheduleResult | "submit"> => {
     const refused = await lockDraft(id, version, db, "supporters");
     if (refused) return { scheduled: false, reason: refused };
     const broadcast = (await getWrittenBroadcast(id))!;
     const { problems, recipients } = await scheduleProblems(broadcast);
     if (problems.length) return { scheduled: false, problems };
+    // New words, never sent or rejected: with no problems, it has words (no-template).
+    if (broadcast.channel === "text" && !["approved", "pending"].includes(broadcast.template?.status ?? "")) {
+      return "submit";
+    }
     await markScheduled(id, db);
     // Who it goes to isn't kept: sending finds them, so it reaches whoever the filters find then.
     await logChange(by, "schedule broadcast", { id, recipients }, db);
     return { scheduled: true };
   });
+  if (checked !== "submit") return checked;
+  const submitted = await submitTemplate(id, by);
+  if (submitted !== "submitted") return { scheduled: false, submit: submitted };
+  // Its words now wait for WhatsApp, so this time it's scheduled.
+  return scheduleBroadcast(id, version, by);
 }
 
 /**
@@ -475,6 +512,47 @@ export async function stopBroadcast(id: number, by: string): Promise<boolean> {
 }
 
 /**
+ * Changes a broadcast's times (Change the times). One scheduled: when it
+ * goes, to a run still to come, waiting for nothing at its new time, as
+ * rescheduleMailing has it; one sending keeps its time. Either: how long after
+ * its time it keeps trying (`finishMinutes`), one of FINISH_CHOICES or null for
+ * the most, and only to a time still to come. Says whether it did.
+ */
+export async function retimeBroadcast(
+  id: number,
+  dueAt: Date | undefined,
+  finishMinutes: number | null,
+  by: string,
+): Promise<boolean> {
+  if (!finishFits(finishMinutes)) return false;
+  return transaction(async (db) => {
+    const [broadcast] = await query<{ state: string; dueAt: Date }>(
+      `SELECT state, due_at AS "dueAt" FROM mailings
+       WHERE id = $1 AND audience = 'supporters' AND state IN ('scheduled', 'sending') FOR UPDATE`,
+      [id],
+      db,
+    );
+    if (!broadcast) return false;
+    const scheduled = broadcast.state === "scheduled";
+    const due = scheduled ? dueAt : broadcast.dueAt;
+    if (!due || (scheduled && sendsAt(due) <= now()) || sendingStopsAt({ dueAt: due, finishMinutes }) <= now()) {
+      return false;
+    }
+    await query(
+      `UPDATE mailings SET due_at = $2, finish_minutes = $3, updated_at = now(),
+         waiting_since = CASE WHEN $4 THEN NULL ELSE waiting_since END,
+         wait_reason = CASE WHEN $4 THEN NULL ELSE wait_reason END,
+         wait_said = CASE WHEN $4 THEN NULL ELSE wait_said END
+       WHERE id = $1`,
+      [id, due, finishMinutes, scheduled],
+      db,
+    );
+    await logChange(by, "change broadcast times", { id, dueAt: due.toISOString(), finishMinutes }, db);
+    return true;
+  });
+}
+
+/**
  * A copy `c` that failed in a way it can be sent again: its channel refused
  * it, rather than its send breaking off, when it may have gone, and it
  * didn't bounce, which blocks the address.
@@ -486,8 +564,8 @@ export const SEND_AGAIN = `c.status = 'failed'
 /**
  * Sets going again a broadcast that stopped as it hadn't all gone in time
  * (gave_up): its copies that never went are to go again, or, for one that
- * never started, it's scheduled again. From now, so it has its days to go
- * in again (sendingStopsAt), and waiting for nothing, so its days to wait
+ * never started, it's scheduled again. From now, so it has the most time to go
+ * in again (sendingStopsAt), whatever its finish was, and waiting for nothing, so its days to wait
  * too (waitStopsAt); nor resting after tries that failed before it stopped,
  * so it goes at the next run. One that stopped as its copies kept failing
  * sends again those its channel refused too (SEND_AGAIN), as whatever
@@ -512,6 +590,7 @@ export async function resumeBroadcast(id: number, by: string): Promise<boolean> 
     );
     await query(
       `UPDATE mailings SET state = $2, gave_up = false, waiting_since = NULL, wait_reason = NULL, wait_said = NULL, due_at = $3,
+         finish_minutes = NULL,
          try_failed_at = NULL, failed_in_a_row = 0, held_back_since = NULL, held_back_told = false, updated_at = now()
        WHERE id = $1`,
       [id, stopped.started ? "sending" : "scheduled", now()],
@@ -704,6 +783,9 @@ export async function deleteApprovedTemplate(id: number, by: string): Promise<Te
   });
 }
 
+/** Who the audit log says made a text scheduled on a template WhatsApp rejected a draft again. */
+const JOB_REVIEW = "whatsapp";
+
 /** What WhatsApp decided about a template: approved, or rejected and why, by its code (INVALID_FORMAT), which is kept. */
 export type TemplateReview = { approved: true } | { approved: false; reason: string };
 
@@ -711,18 +793,36 @@ export type TemplateReview = { approved: true } | { approved: false; reason: str
  * Records WhatsApp's decision on a template waiting for it, as its webhook
  * or a check of its templates tells it, and emails whoever sent it and the
  * notification inbox, with the words and the texts on them. An approved
- * template can be scheduled; a rejected one's words can be changed and sent
- * again. Says whether there was one waiting.
+ * template's texts can be scheduled, and one scheduled goes at its time, or
+ * at once if that's passed; a rejected one's words can be changed and sent
+ * again, so a text scheduled on it is a draft again, waiting for nothing.
+ * Says whether there was one waiting.
  */
 export async function reviewTemplate(templateId: number, review: TemplateReview): Promise<boolean> {
-  const [template] = await query<{ name: string; body: MailingDoc; createdBy: string | null }>(
-    `UPDATE whatsapp_templates SET status = $2,
-       approved_at = CASE WHEN $2 = 'approved' THEN now() END,
-       rejected_at = CASE WHEN $2 = 'rejected' THEN now() END, rejected_reason = $3
-     WHERE id = $1 AND status = 'pending' RETURNING name, body, created_by AS "createdBy"`,
-    [templateId, review.approved ? "approved" : "rejected", review.approved ? null : review.reason],
-  );
-  if (!template) return false;
+  const reviewed = await transaction(async (db) => {
+    const [template] = await query<{ name: string; body: MailingDoc; createdBy: string | null }>(
+      `UPDATE whatsapp_templates SET status = $2,
+         approved_at = CASE WHEN $2 = 'approved' THEN now() END,
+         rejected_at = CASE WHEN $2 = 'rejected' THEN now() END, rejected_reason = $3
+       WHERE id = $1 AND status = 'pending' RETURNING name, body, created_by AS "createdBy"`,
+      [templateId, review.approved ? "approved" : "rejected", review.approved ? null : review.reason],
+      db,
+    );
+    if (!template) return undefined;
+    const unscheduled = review.approved
+      ? []
+      : await query<{ id: number }>(
+          `UPDATE mailings SET state = 'draft', waiting_since = NULL, wait_reason = NULL, version = version + 1,
+             updated_at = now()
+           WHERE template_id = $1 AND state = 'scheduled' RETURNING id::int AS id`,
+          [templateId],
+          db,
+        );
+    for (const { id } of unscheduled) await logChange(JOB_REVIEW, "unschedule broadcast", { id, templateId }, db);
+    return { template, unscheduled: unscheduled.length };
+  });
+  if (!reviewed) return false;
+  const { template, unscheduled } = reviewed;
   const texts = await query<{ id: number }>("SELECT id::int AS id FROM mailings WHERE template_id = $1 ORDER BY id", [
     templateId,
   ]);
@@ -733,7 +833,7 @@ export async function reviewTemplate(templateId: number, review: TemplateReview)
     ? [copy.templateApproved.subject(template.name), copy.templateApproved.body(words, links)]
     : [
         copy.templateRejected.subject(template.name),
-        copy.templateRejected.body(rejectionWords(review.reason), words, links),
+        copy.templateRejected.body(rejectionWords(review.reason), words, links, unscheduled),
       ];
   await notifyStaff(subject, body, null, "staff-alert", template.createdBy ?? undefined);
   return true;

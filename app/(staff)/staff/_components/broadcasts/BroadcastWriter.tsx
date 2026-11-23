@@ -12,6 +12,7 @@ import { DeleteTwice } from "../ui/DeleteTwice";
 import { Field, Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
+import { now } from "@/lib/now";
 import { looksLikeEmail } from "@/lib/email-your-mp";
 import { leavePage } from "@/lib/leave-page.client";
 import {
@@ -81,6 +82,7 @@ import { BandFact, Facts } from "../ui/Band";
 import Grid, { Card } from "../ui/Grid";
 import NotIcon from "../ui/NotIcon";
 import Strip from "../ui/Strip";
+import { DraftFinish } from "./BroadcastTimes";
 import Numbered from "../ui/Numbered";
 import { phoneWords } from "@/lib/phone";
 import styles from "../mailings/MailingWriter.module.css";
@@ -100,10 +102,15 @@ type Changes = {
   /** What sends an email. */
   sendBy: BroadcastSendBy;
   dueAt: Date | null;
+  /** When it stops trying, in minutes after its time; null for the most (sendingStopsAt). */
+  finishMinutes: number | null;
   templateId: number | null;
   /** A text's, which has no subject to be one. */
   title: string;
 };
+
+/** How long WhatsApp can take to approve a template: a text due sooner than this, on one it hasn't, is warned of it. */
+const APPROVAL_MS = 24 * 60 * 60 * 1000;
 
 /** The broadcast pages' Server Actions (app/(staff)/staff/_components/broadcasts/actions.ts), which the page hands in. */
 export type BroadcastWriterActions = DraftActions & {
@@ -501,6 +508,7 @@ export default function BroadcastWriter({
       body: draft.body,
       sendBy: draft.sendBy,
       dueAt: draft.dueAt,
+      finishMinutes: draft.finishMinutes,
       templateId: draft.template?.status === "approved" ? draft.template.id : null,
       title: draft.title,
     },
@@ -512,6 +520,8 @@ export default function BroadcastWriter({
   const [submitting, setSubmitting] = useState(false);
   // Why the words didn't go for approval just now, so they're still here to send again: an alert under the button.
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Why Schedule, sending new words for approval as it does, didn't just now.
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   // New words sent to WhatsApp, waiting for it to approve them.
   const waiting = draft.template?.status === "pending" ? draft.template : undefined;
   // Once taken back, the words can be changed again: Write is brought fully into view once the page has them.
@@ -553,6 +563,7 @@ export default function BroadcastWriter({
     title: values.title,
     body: written ? body : EMPTY_MAILING_DOC,
     dueAt: values.dueAt,
+    finishMinutes: values.finishMinutes,
     recipients: data.count,
     unknown: data.unknown,
     byGmail: gmailChecked,
@@ -916,9 +927,11 @@ export default function BroadcastWriter({
                             .then(() => actions.submitTemplate(id))
                             // An outdated page says so over the draft, not here.
                             .catch((error: unknown) => (stale(error) ? ("outdated" as const) : ("broke" as const)));
-                          // Back to the list, where the broadcast's row says it's waiting for WhatsApp, and pulses.
+                          // It stays on the draft, brought back as sent, its top in view, where a strip says it's
+                          // waiting for WhatsApp.
                           if (result === "submitted") {
-                            router.push(`/staff/broadcasts?submitted=${id}`);
+                            router.refresh();
+                            window.scrollTo({ top: 0, behavior: "instant" });
                             return;
                           }
                           setSubmitting(false);
@@ -962,6 +975,21 @@ export default function BroadcastWriter({
 
             <Card span={6} title={<Numbered n={5}>{copy.sections.when}</Numbered>} id="when-title">
               <DueSection dueAt={values.dueAt} onChange={(dueAt) => change({ dueAt })} />
+              {/* Once it has a time: when it stops trying, which moves with it. */}
+              {values.dueAt && (
+                <DraftFinish
+                  dueAt={values.dueAt}
+                  finishMinutes={values.finishMinutes}
+                  onChange={(finishMinutes) => change({ finishMinutes })}
+                />
+              )}
+              {/* A text WhatsApp hasn't approved, due sooner than it may take to. */}
+              {!email &&
+                words === "new" &&
+                values.dueAt &&
+                new Date(values.dueAt).getTime() - now().getTime() < APPROVAL_MS && (
+                  <Strip tone="amber">{copy.approvalSoon}</Strip>
+                )}
             </Card>
 
             <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
@@ -991,16 +1019,28 @@ export default function BroadcastWriter({
                   label={copy.schedule(data.count, draft.channel)}
                   disabled={problems.length > 0 || !data.sends || calculating}
                   saveNow={saveNow}
-                  schedule={() => actions.schedule(id, version.current)}
+                  schedule={async () => {
+                    setScheduleError(null);
+                    const result = await actions.schedule(id, version.current);
+                    // New words WhatsApp didn't take for approval: why, under the button, as under Send for approval.
+                    if ("submit" in result) {
+                      const why = result.submit;
+                      setScheduleError(
+                        typeof why === "object" ? copy.submitFailed(why.failed) : copy.submitRefused[why],
+                      );
+                    }
+                    return result;
+                  }}
                   stale={stale}
                 />
                 <DeleteDraft id={id} action={actions.deleteDraft} />
               </div>
-              {/* Words with WhatsApp already aren't to be sent for approval: it's reviewing them. */}
+              {scheduleError && <Alert>{scheduleError}</Alert>}
+              {/* Then, a bullet as they are but in the words' own colour, that new words go to WhatsApp for approval as
+                  it's scheduled, unless they're with it already. */}
               <ProblemList
-                problems={shownProblems.map((problem) =>
-                  waiting && problem === "not-approved" ? copy.reviewing : copy.problems[problem],
-                )}
+                problems={shownProblems.map((problem) => copy.problems[problem])}
+                notes={words === "new" && !waiting ? [copy.schedulesForApproval] : []}
               />
             </Card>
           </>,

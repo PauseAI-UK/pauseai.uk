@@ -19,6 +19,9 @@ import {
   sendingDays,
   sendingPause,
   sendingStopsAt,
+  FINISH_CHOICES,
+  finishFits,
+  finishKept,
   textSender,
   waitEndsAt,
   type SchedulingBroadcast,
@@ -348,10 +351,12 @@ describe("sendingDays", () => {
 
 describe("sendingPause", () => {
   const dueAt = new Date("2026-11-07T07:18:00Z");
+  const timed = { dueAt, finishMinutes: null };
   const going = {
     state: "sending",
     channel: "text" as const,
     dueAt,
+    finishMinutes: null as number | null,
     waitingSince: null,
     waitReason: null,
     waitSaid: null,
@@ -377,14 +382,24 @@ describe("sendingPause", () => {
       kind: "waiting",
       reason: "civicrm",
       said: "Down",
-      endsAt: waitEndsAt(since, { dueAt }),
+      endsAt: waitEndsAt(since, timed),
     });
-    // Scheduled, past its time: its days to send haven't begun, so only the wait ends it.
     expect(sendingPause({ ...waiting, state: "scheduled", waitReason: "pull" })).toEqual({
       kind: "waiting",
       reason: "pull",
       said: "Down",
-      endsAt: waitEndsAt(since, null),
+      endsAt: waitEndsAt(since, timed),
+    });
+  });
+
+  it("is waiting for WhatsApp's approval, past its time, till it stops trying", () => {
+    const since = new Date("2026-11-07T07:33:00Z");
+    const waiting = { ...going, state: "scheduled", waitingSince: since, waitReason: "approval", finishMinutes: 600 };
+    expect(sendingPause(waiting)).toEqual({
+      kind: "waiting",
+      reason: "approval",
+      said: null,
+      endsAt: new Date("2026-11-07T17:18:00Z"),
     });
   });
 
@@ -405,7 +420,7 @@ describe("sendingPause", () => {
       kind: "held",
       held: 2,
       until: heldTill,
-      stopsAt: sendingStopsAt(dueAt),
+      stopsAt: sendingStopsAt(timed),
     });
     // With any that can go now, the held ones don't pause it.
     expect(sendingPause({ ...all, restingUntil: null, toGo: 1 })).toEqual({ kind: "limit", channel: "text" });
@@ -415,13 +430,38 @@ describe("sendingPause", () => {
 
   it("is delayed for one sent with emails delayed, till its days run out, and only that", () => {
     const sent = { ...going, state: "sent", channel: "email" as const, toGo: 0, held: 45, atLimit: true };
-    expect(sendingPause(sent)).toEqual({ kind: "delayed", delayed: 45, stopsAt: sendingStopsAt(dueAt) });
+    expect(sendingPause(sent)).toEqual({ kind: "delayed", delayed: 45, stopsAt: sendingStopsAt(timed) });
     // None delayed, it's done.
     expect(sendingPause({ ...sent, held: 0 })).toBeNull();
     // One sent with no time, which none has, is none either.
     expect(sendingPause({ ...sent, dueAt: null })).toBeNull();
     // Stopped, it waits on nothing.
     expect(sendingPause({ ...sent, state: "cancelled" })).toBeNull();
+  });
+});
+
+describe("a broadcast's finish", () => {
+  const dueAt = new Date("2026-11-07T07:18:00Z");
+  const at = (iso: string) => new Date(iso);
+
+  it("is seven days after its time, or the minutes after it it keeps", () => {
+    expect(sendingStopsAt({ dueAt, finishMinutes: null })).toEqual(at("2026-11-14T07:18:00Z"));
+    expect(sendingStopsAt({ dueAt, finishMinutes: 90 })).toEqual(at("2026-11-07T08:48:00Z"));
+  });
+
+  it("is chosen as half a day, or one to seven days, the most kept as none", () => {
+    expect(FINISH_CHOICES).toEqual([720, 1440, 2880, 4320, 5760, 7200, 8640, 10080]);
+    expect(finishFits(null)).toBe(true);
+    expect(finishFits(720)).toBe(true);
+    expect(finishFits(90)).toBe(false);
+    expect(finishKept(10080)).toBeNull();
+    expect(finishKept(720)).toBe(720);
+  });
+
+  it("ends a wait for CiviCRM at the finish, if that's sooner", () => {
+    const since = at("2026-11-07T08:18:00Z");
+    expect(waitEndsAt(since, { dueAt, finishMinutes: null })).toEqual(at("2026-11-10T08:18:00Z"));
+    expect(waitEndsAt(since, { dueAt, finishMinutes: 24 * 60 })).toEqual(at("2026-11-08T07:18:00Z"));
   });
 });
 
@@ -441,6 +481,7 @@ describe("broadcastScheduleProblems", () => {
     title: "Hello",
     body: WORDS,
     dueAt: new Date("2099-01-01T09:18:00Z"),
+    finishMinutes: null,
     recipients: 3,
     unknown: [],
     byGmail: false,
@@ -478,16 +519,13 @@ describe("broadcastScheduleProblems", () => {
     ]);
   });
 
-  it("lets words go for approval with nothing stopping them but the approval and the time", () => {
-    expect(approvalProblems(["not-approved", "no-time", "time-passed"])).toEqual([]);
-    expect(approvalProblems(["no-recipients", "not-approved", "no-number"])).toEqual(["no-recipients", "no-number"]);
+  it("lets words go for approval with nothing stopping them but the time", () => {
+    expect(approvalProblems(["no-time", "time-passed"])).toEqual([]);
+    expect(approvalProblems(["no-recipients", "no-time", "no-number"])).toEqual(["no-recipients", "no-number"]);
   });
 
   it("wants new words for a text named, as they're a template's", () => {
-    expect(broadcastScheduleProblems({ ...good, channel: "text", approved: false, title: " " })).toEqual([
-      "no-name",
-      "not-approved",
-    ]);
+    expect(broadcastScheduleProblems({ ...good, channel: "text", approved: false, title: " " })).toEqual(["no-name"]);
     expect(broadcastScheduleProblems({ ...good, channel: "text", title: "" })).toEqual([]);
   });
 
@@ -507,33 +545,28 @@ describe("broadcastScheduleProblems", () => {
     });
     const problems = (body: MailingDoc, approved = false) =>
       broadcastScheduleProblems({ ...good, channel: "text", approved, body });
-    expect(problems(words(text("Hi "), field("firstName"), text(", see you there.")))).toEqual(["not-approved"]);
-    expect(problems(words(field("firstName"), text(", see you there.")))).toEqual(["field-edge", "not-approved"]);
-    expect(problems(words(text("See you there, "), field("firstName")))).toEqual(["field-edge", "not-approved"]);
+    expect(problems(words(text("Hi "), field("firstName"), text(", see you there.")))).toEqual([]);
+    expect(problems(words(field("firstName"), text(", see you there.")))).toEqual(["field-edge"]);
+    expect(problems(words(text("See you there, "), field("firstName")))).toEqual(["field-edge"]);
     expect(problems(words(text("Hi "), field("firstName"), text(" "), field("lastName"), text("!")))).toEqual([
       "fields-together",
-      "not-approved",
     ]);
-    expect(problems(words(field("firstName"), field("lastName")))).toEqual([
-      "field-edge",
-      "fields-together",
-      "not-approved",
-    ]);
+    expect(problems(words(field("firstName"), field("lastName")))).toEqual(["field-edge", "fields-together"]);
     expect(
       problems(words(text("Hi "), field("firstName"), text(", your name is "), field("firstName"), text("."))),
-    ).toEqual(["field-twice", "not-approved"]);
+    ).toEqual(["field-twice"]);
     // Two fields, each once, aren't twice.
-    expect(problems(words(text("Hi "), field("firstName"), text(", or "), field("name"), text(" in full.")))).toEqual([
-      "not-approved",
-    ]);
+    expect(problems(words(text("Hi "), field("firstName"), text(", or "), field("name"), text(" in full.")))).toEqual(
+      [],
+    );
     // An approved template is WhatsApp's to judge, and an email takes fields anywhere.
     expect(problems(words(field("firstName"), text(" hi")), true)).toEqual([]);
     expect(broadcastScheduleProblems({ ...good, body: words(field("firstName")) })).toEqual([]);
     expect(misplacedFields(words(text("No fields here")))).toEqual({ atEdge: false, together: false, twice: false });
   });
 
-  it("wants a text's words approved by WhatsApp, but not an email's, said after all but the time", () => {
-    expect(broadcastScheduleProblems({ ...good, channel: "text", approved: false })).toEqual(["not-approved"]);
+  it("schedules a text whose words WhatsApp hasn't approved, as scheduling sends them for approval", () => {
+    expect(broadcastScheduleProblems({ ...good, channel: "text", approved: false })).toEqual([]);
     expect(
       broadcastScheduleProblems({
         ...good,
@@ -543,14 +576,20 @@ describe("broadcastScheduleProblems", () => {
         recipients: 0,
         dueAt: null,
       }),
-    ).toEqual(["no-recipients", "no-number", "not-approved", "no-time"]);
-    expect(broadcastScheduleProblems({ ...good, approved: false })).toEqual([]);
+    ).toEqual(["no-recipients", "no-number", "no-time"]);
+  });
+
+  it("wants it to have time to all go before it stops trying, each part day a whole one", () => {
+    // 3,600 at Gmail's limit, none left today: three days, today's the first.
+    const big = { ...good, recipients: 3600, remaining: 0, daily: 1800 };
+    expect(broadcastScheduleProblems(big)).toEqual([]);
+    expect(broadcastScheduleProblems({ ...big, finishMinutes: 2 * 24 * 60 + 1 })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...big, finishMinutes: 2 * 24 * 60 })).toEqual(["too-slow"]);
   });
 
   it("won't send for approval new words an approved template has already, but a chosen template is fine", () => {
     expect(broadcastScheduleProblems({ ...good, channel: "text", approved: false, sameWords: true })).toEqual([
       "same-words",
-      "not-approved",
     ]);
     expect(broadcastScheduleProblems({ ...good, channel: "text", sameWords: true })).toEqual([]);
   });

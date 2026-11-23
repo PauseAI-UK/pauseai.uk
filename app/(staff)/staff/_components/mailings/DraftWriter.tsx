@@ -404,14 +404,20 @@ export const TEST_NEEDS: string[] = ["no-subject", "no-letter", "no-template"];
 
 /**
  * What stops the button over it, as errors: a red bullet each, in the
- * order of the page's sections; nothing when nothing does.
+ * order of the page's sections; then `notes`, what it does that's worth
+ * knowing, a bullet each in the words' own colour; nothing when there's none.
  */
-export function ProblemList({ problems }: { problems: string[] }) {
-  if (problems.length === 0) return null;
+export function ProblemList({ problems, notes = [] }: { problems: string[]; notes?: string[] }) {
+  if (problems.length + notes.length === 0) return null;
   return (
     <ul className={styles.problems}>
       {problems.map((problem) => (
         <li key={problem}>{problem}</li>
+      ))}
+      {notes.map((note) => (
+        <li key={note} className={styles.note}>
+          {note}
+        </li>
       ))}
     </ul>
   );

@@ -212,12 +212,18 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       id,
       since,
     ]);
-    const waiting = { kind: "waiting", reason: "civicrm", said: "Down", endsAt: waitEndsAt(since, null) };
+    const { dueAt: due } = (await getWrittenBroadcast(id))!;
+    const waiting = {
+      kind: "waiting",
+      reason: "civicrm",
+      said: "Down",
+      endsAt: waitEndsAt(since, { dueAt: due!, finishMinutes: null }),
+    };
     expect(await pauses(id)).toEqual({ page: waiting, list: waiting });
-    // Sending, it stops when its days run out, if that's sooner.
+    // Sending, it stops when it stops trying, if that's sooner.
     await startSending(id);
     const { dueAt } = (await getWrittenBroadcast(id))!;
-    const sooner = { ...waiting, endsAt: waitEndsAt(since, { dueAt: dueAt! }) };
+    const sooner = { ...waiting, endsAt: waitEndsAt(since, { dueAt: dueAt!, finishMinutes: null }) };
     expect(await pauses(id)).toEqual({ page: sooner, list: sooner });
   });
 
@@ -255,7 +261,12 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       [copies[2]],
     );
     const { dueAt } = (await getWrittenBroadcast(id))!;
-    const held = { kind: "held", held: 2, until: sooner, stopsAt: sendingStopsAt(dueAt!) };
+    const held = {
+      kind: "held",
+      held: 2,
+      until: sooner,
+      stopsAt: sendingStopsAt({ dueAt: dueAt!, finishMinutes: null }),
+    };
     expect(await pauses(id)).toEqual({ page: held, list: held });
   });
 
@@ -480,7 +491,10 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     expect(await broadcastPageData(id, { tab: "held" }, JO)).toMatchObject({ tab: "held", recipientsTotal: 2 });
     // All sent, it's said to be sending, waiting on those delayed, with what's still coming up.
     const [{ dueAt }] = await query<{ dueAt: Date }>('SELECT due_at AS "dueAt" FROM mailings WHERE id = $1', [id]);
-    const waiting = { state: "sending", pause: { kind: "delayed", delayed: 2, stopsAt: sendingStopsAt(dueAt) } };
+    const waiting = {
+      state: "sending",
+      pause: { kind: "delayed", delayed: 2, stopsAt: sendingStopsAt({ dueAt, finishMinutes: null }) },
+    };
     expect((await stands()).summary).toMatchObject(waiting);
     const listed = async () =>
       (await broadcastsPage()).groups.map((group) => [group.key, group.mailings.map((m) => m.state)]);
