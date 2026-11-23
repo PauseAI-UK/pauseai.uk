@@ -5,7 +5,7 @@ import { listAsks } from "@/lib/asks/records.server";
 import { getPauseaiLetter } from "@/lib/letters/records.server";
 import { getPolitician } from "@/lib/politicians/records.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
-import { canAnswerFrom, replyWaiting } from "@/lib/mailings/replies.server";
+import { replyWaiting } from "@/lib/mailings/replies.server";
 import { letterId, mailingId } from "@/lib/staff-search";
 import FindInGmail from "../../../../../_components/letters/FindInGmail";
 import { letterTitle } from "../../../../../_components/letters/LetterHistory";
@@ -39,11 +39,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function MailingLetterPage({ params }: Params) {
   const { email } = await requireStaff();
   const ids = await idsOf(params);
-  const [pauseaiLetter, thread, asks, waiting] = await Promise.all([
+  const [pauseaiLetter, thread, asks, reply] = await Promise.all([
     getPauseaiLetter(...ids),
     letterThread(...ids),
     listAsks(),
-    replyWaiting(ids[1]),
+    replyWaiting(ids[1], email),
   ]);
   const letter = found(pauseaiLetter);
   const politician = found(await getPolitician(letter.politicianId));
@@ -67,8 +67,7 @@ export default async function MailingLetterPage({ params }: Params) {
         <MailingReplyThread
           thread={found(thread)}
           link={<FindInGmail find={letter.gmail} />}
-          waiting={waiting ?? null}
-          canAnswer={Boolean(waiting && canAnswerFrom(waiting.account, email))}
+          {...reply}
           deal={nothingToDoNow}
           answer={answerLetterReplyNow}
         />

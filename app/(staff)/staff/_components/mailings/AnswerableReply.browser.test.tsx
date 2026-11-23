@@ -2,7 +2,7 @@ import { expect, it, describe } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { mailingsCopy } from "./copy";
-import { AnswerableReplyExample } from "./AnswerableReply.gallery.client";
+import { AnswerableReplyExample, ReplyButtonExample } from "./AnswerableReply.gallery.client";
 
 const copy = mailingsCopy.answers;
 
@@ -14,5 +14,13 @@ describe("AnswerableReply's example in the gallery", () => {
     const logged = page.getByRole("list", { name: "Event log" }).getByRole("listitem");
     await expect.element(logged).toBeVisible();
     expect(logged.element().textContent).toMatch(/^answer\(1, "[0-9a-f-]{36}", \{"type":"doc"/);
+  });
+
+  it("logs Reply's press", async () => {
+    await render(<ReplyButtonExample />);
+    await page.getByRole("button", { name: copy.reply }).click();
+    await expect
+      .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+      .toHaveTextContent("write()");
   });
 });

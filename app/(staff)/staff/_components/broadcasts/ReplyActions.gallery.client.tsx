@@ -3,7 +3,6 @@
 // ReplyActions' examples, which log what's pressed (ReplyActions.gallery.tsx, and OptOutForm's in supporters/).
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import ReplyActions from "./ReplyActions";
-import { ReplyButton } from "../mailings/AnswerableReply";
 
 /** What to record a reply as, under it: to an email, or to a text (`text`). */
 export function ReplyActionsExample({ write = false, text = false }: { write?: boolean; text?: boolean }) {
@@ -20,9 +19,4 @@ export function ReplyActionsExample({ write = false, text = false }: { write?: b
       )}
     </Logged>
   );
-}
-
-/** Reply, logging its press. */
-export function ReplyButtonExample() {
-  return <Logged>{(log) => <ReplyButton write={() => log("write")()} />}</Logged>;
 }

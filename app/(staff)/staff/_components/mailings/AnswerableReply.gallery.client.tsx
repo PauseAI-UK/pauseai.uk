@@ -42,3 +42,8 @@ export function AnswerableReplyExample({ opened = false }: { opened?: boolean })
     </Logged>
   );
 }
+
+/** Reply, logging its press. */
+export function ReplyButtonExample() {
+  return <Logged>{(log) => <ReplyButton write={() => log("write")()} />}</Logged>;
+}

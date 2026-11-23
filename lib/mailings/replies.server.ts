@@ -38,9 +38,13 @@ export function canAnswerFrom(account: string, staff: string): boolean {
 /**
  * The politician's reply on a mailing's letter `letterId` that its page puts
  * the buttons under: their latest, while any reply waits for staff
- * (replyToCheck), with the mailbox it came to; undefined if none waits.
+ * (replyToCheck), with the mailbox it came to, or null if none waits; and
+ * whether staff member `staff` can answer it from that mailbox.
  */
-export async function replyWaiting(letterId: number): Promise<{ id: number; account: string } | undefined> {
+export async function replyWaiting(
+  letterId: number,
+  staff: string,
+): Promise<{ waiting: { id: number; account: string } | null; canAnswer: boolean }> {
   const [reply] = await query<{ id: number; account: string }>(
     `SELECT r.id::int AS id, r.account FROM letter_replies r
        JOIN letters_from_pauseai p ON p.id = r.letter_id JOIN mailings m ON m.id = p.mailing_id
@@ -48,7 +52,7 @@ export async function replyWaiting(letterId: number): Promise<{ id: number; acco
      ORDER BY r.at DESC, r.id DESC LIMIT 1`,
     [letterId],
   );
-  return reply;
+  return { waiting: reply ?? null, canAnswer: Boolean(reply && canAnswerFrom(reply.account, staff)) };
 }
 
 /**

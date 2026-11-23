@@ -19,6 +19,7 @@ import { mailingPartsGallery } from "@/app/(staff)/staff/_components/mailings/Ma
 import { dueTimeGallery } from "@/app/(staff)/staff/_components/mailings/DueTime.gallery";
 import { mailingButtonsGallery } from "@/app/(staff)/staff/_components/mailings/MailingButtons.gallery";
 import { answerableReplyGallery } from "@/app/(staff)/staff/_components/mailings/AnswerableReply.gallery";
+import { mailingReplyThreadGallery } from "@/app/(staff)/staff/_components/mailings/MailingReplyThread.gallery";
 
 // The events' examples, in the order the group shows them.
 const [eventsTable, eventTabs, eventGroups, missing, eventsIntro] = eventsTableGallery;
@@ -49,5 +50,6 @@ export const staffMailingsEvents: Group = {
     ...dueTimeGallery,
     ...mailingButtonsGallery,
     ...answerableReplyGallery,
+    ...mailingReplyThreadGallery,
   ],
 };
