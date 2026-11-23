@@ -217,23 +217,23 @@ export const jobsCopy = {
   },
   // The nightly import of the superintelligence EDM's signers (lib/jobs/edm-import.server.ts).
   edm: {
-    title: "⁂ Superintelligence early day motion",
+    title: "EDM for a global pause on superintelligent AI",
     intro: {
-      before: "⁂ Imports the MPs who have signed ",
-      link: "the early day motion",
+      before: "Imports the MPs who have signed ",
+      link: "EDM 1133 of the 2026–27 session",
       after: ", marking them as having signed “",
     },
     // The ask they're marked as having signed, linked to its page; the quotes around it aren't.
     introThen: {
-      link: "⁂ Early day motion for a global pause on superintelligent AI",
+      link: "EDM for a global pause on superintelligent AI",
       after: "”. This can't be changed by hand.",
     },
-    importNow: "⁂ Import the early day motion now",
+    importNow: "Import EDM 1133 now",
     never: "Not imported yet.",
     result: (r: { signers: number; matched: number; added: number; removed: number }) =>
-      `⁂ ${r.signers} signers, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
+      `${r.signers} signers, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
     // A problem of the run: signers we don't have, by name and Parliament's ID, which follow.
-    unmatched: "⁂ Signers of the early day motion we couldn't find here:",
+    unmatched: "Signers of EDM 1133 we couldn't find here:",
   },
   // What went wrong without stopping a job's work (lib/server/problems.server.ts): each on the job's run, so on
   // its page and in the email, as something the job carried on past.

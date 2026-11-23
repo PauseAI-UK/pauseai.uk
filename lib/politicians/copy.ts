@@ -133,7 +133,7 @@ export const politiciansCopy = {
     fromImport: {
       airtable: "from Airtable",
       controlai: "from ControlAI's letter",
-      parliament: "⁂ from Parliament",
+      parliament: "from Parliament",
     } as Record<string, string>,
     // The form on an ask staff record: its name, the note's field and what it asks, and Save for an event's answer.
     setStatus: "Set status",

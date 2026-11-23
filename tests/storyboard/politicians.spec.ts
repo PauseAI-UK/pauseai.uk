@@ -920,7 +920,7 @@ test("The superintelligence EDM", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(/2 signers/)).toBeVisible();
   await frame(page, "The import's page");
 
-  story("The ask's page lists who signed it, and links to the motion by its title.");
+  story("The ask's page lists who signed it, and links to the motion on Parliament's site.");
   await page.goto(`${BASE}/staff/asks/${EDM_ASK}`);
   await expect(page.getByText("Mo Example").first()).toBeVisible();
   await frame(page, "The motion's ask");
