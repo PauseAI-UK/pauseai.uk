@@ -741,7 +741,7 @@ test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }
   story("They take the reaction back, which WhatsApp tells us too. It leaves our text, and the thread says so.");
   await postWhatsAppWebhook(request, BASE, reactionFrom(sent.number, "wamid.flow-unreact", sent.wamid, undefined, 2));
   await page.goto(page.url());
-  await expect(page.getByText(/Removed reaction/)).toBeVisible();
+  await expect(page.getByText(copy.replies.historyReactionRemoved, { exact: true })).toBeVisible();
   await frame(page, "The reaction, taken back");
   story(
     "Then they send a photo with a caption. The site keeps the caption and says a photo came with it, which it can't show.",
