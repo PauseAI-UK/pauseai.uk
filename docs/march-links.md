@@ -1,7 +1,9 @@
 # Links to the march sign-up
 
-The march sign-up is at pauseai.uk/demonstrations/march-against-ai-extinction-nov-26. The short link pauseai.uk/march
-redirects there and keeps the tags, so it's the one to give out. pauseai.uk/march-against-ai-extinction does the same.
+The next march's sign-up is at pauseai.uk/demonstrations/march-against-ai-extinction-apr-27. The short link
+pauseai.uk/march redirects there and keeps the tags, so it's the one to give out. pauseai.uk/march-against-ai-extinction
+does the same. Both go to whichever march is next (`MARCH_PATH` in `lib/content/redirect-addresses.ts`), so a link
+given out for one march leads to the one after it once it's over. A past march keeps its own page, without the form.
 
 Every tracked link to the sign-up has one tag and nothing else: utm_source,
 a short code saying where the link came from. Google Analytics counts
@@ -66,7 +68,7 @@ the tag is lost, and the visit counts as untagged.
 ## The sign-up's events
 
 The sign-up sends two events straight to Google Analytics through gtag
-(`app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/analytics.client.ts`).
+(`app/(march)/demonstrations/_components/analytics.client.ts`).
 GA gets page views the same way, set up by `gtag("config", "G-DLLRWZCYD7")`
 in `components/layout/CookieConsent.tsx`. The events:
 

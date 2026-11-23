@@ -46,9 +46,13 @@ const stopped = {
 const pressed = (box: { title: string; body: string; button: string }): string =>
   `${box.title}. ${box.body} [${box.button}]`;
 
+/** A march's sign-up, whichever march it was for. */
+const MARCH_SIGNUP = "when you signed up for the March Against AI Extinction";
+
 /** Where a yes or an opt-out came from, as the page tells the person: the form, or how they did it. */
 const sources: Record<string, string> = {
-  "march-2026-11": "when you signed up for the March Against AI Extinction",
+  "march-2026-11": MARCH_SIGNUP,
+  "march-2027-04": MARCH_SIGNUP,
   "email-your-mp": "when you wrote to your MP",
   "web-form": "when you wrote to your MP",
   "paper-signup": "on a paper sign-up form",
@@ -85,6 +89,7 @@ export const emailSettingsCopy = {
       `You ticked the box to hear from PauseAI UK on ${where}. But you've asked PauseAI not to send you bulk email, so we won't send you anything yet.\n\nIf you'd like our emails, you can change that here:\n\n${link}\n\nThe link works for ${days} days. If you'd rather not hear from us, do nothing: we won't email you about this again.`,
     where: {
       "march-2026-11": "the March Against AI Extinction sign-up",
+      "march-2027-04": "the March Against AI Extinction sign-up",
       "email-your-mp": "our Email your MP form",
     } as Record<string, string>,
     paper: (where: string, date: string) => `a paper form at ${where} on ${date}`,
@@ -162,7 +167,7 @@ export const emailSettingsCopy = {
       "joined-whatsapp": () => "you joined our WhatsApp community.",
       subscribed: () => "you're on PauseAI UK's list with PauseAI Global.",
       following: () => "you follow our calendar on Luma.",
-      "gave-number": (source: string) => `you gave your number for texts on the day ${source}.`,
+      "gave-number": (source: string) => `you gave your number for texts about events ${source}.`,
       volunteered: () => "you said you'd like to volunteer.",
       member: () => "you're a member of PauseAI UK.",
       wrote: () => "you wrote to your MP with us.",

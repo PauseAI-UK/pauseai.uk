@@ -1,21 +1,23 @@
-import { march } from "@/lib/content/march";
+import type { March, MarchStop } from "@/lib/content/march";
 import { site } from "@/lib/content/site";
 import { m } from "./classes";
 import Marker from "./Marker";
 
-const mapUrl = (stop: { name: string; area: string }) =>
+const mapUrl = (stop: MarchStop) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${stop.name}, ${stop.area}`)}`;
 
-const STOPS = [
-  { kind: "From", stop: march.start },
-  { kind: "To", stop: march.end },
-];
-
 /**
- * On the day: when and the route, under the heading, and beside them what
- * to bring and how to help. The hero's See all details comes here.
+ * On the day: when and the route, under the heading, or that the route is
+ * still to come, and beside them what to bring and how to help. The hero's
+ * See all details comes here.
  */
-export default function SignupDay() {
+export default function SignupDay({ march }: { march: March }) {
+  const stops = march.route
+    ? [
+        { kind: "From", stop: march.route.start },
+        { kind: "To", stop: march.route.end },
+      ]
+    : [];
   return (
     <section id="on-the-day" className={m("band band-white")} aria-labelledby="day-title">
       <div className={`container ${m("split")}`}>
@@ -27,7 +29,7 @@ export default function SignupDay() {
             <p className={m("route-when")}>
               <time dateTime={march.dateIso}>{march.dateLong}</time>, {march.time}
             </p>
-            {STOPS.map(({ kind, stop }) => (
+            {stops.map(({ kind, stop }) => (
               <p key={kind}>
                 <strong>{kind}</strong>{" "}
                 <a className={m("text-link")} href={mapUrl(stop)} target="_blank" rel="noreferrer">
@@ -36,6 +38,7 @@ export default function SignupDay() {
                 , {stop.area}
               </p>
             ))}
+            {!march.route && <p>We’ll announce the route nearer the day.</p>}
           </div>
         </div>
 

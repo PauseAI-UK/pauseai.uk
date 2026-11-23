@@ -1,0 +1,43 @@
+import JsonLd from "@/components/layout/JsonLd";
+import { march, marchEventJsonLd } from "@/lib/content/march";
+import { pageMetadata } from "@/lib/metadata";
+import { getMarchGuests, getMarchSignupCount } from "@/lib/events/march.server";
+import SignupCase from "../_components/SignupCase";
+import SignupDay from "../_components/SignupDay";
+import SignupDemand from "../_components/SignupDemand";
+import MarchSignups from "../_components/MarchSignups";
+import SignupHero from "../_components/SignupHero";
+import SignupPhotos from "../_components/SignupPhotos";
+import SignupRegister from "../_components/SignupRegister";
+import SignupTurnout from "../_components/SignupTurnout";
+
+export const metadata = pageMetadata({
+  title: `${march.name} — ${march.dateShort}, ${march.city}`,
+  description: `Join the biggest ever demonstration for AI safety. ${march.dateLong}, ${march.city} — organised by PauseAI UK.`,
+  path: march.path,
+  absoluteTitle: true,
+  openGraph: { title: `${march.name} — ${march.dateLong}` },
+  // Made by scripts/march-preview.mjs.
+  images: {
+    openGraph: { url: "/images/march-signup/apr-27/open-graph-1200-630.jpg", width: 1200, height: 630 },
+    twitter: "/images/march-signup/apr-27/open-graph-1600-840.jpg",
+  },
+});
+
+export default async function MarchSignupPage() {
+  const [signups, guests] = await Promise.all([getMarchSignupCount(), getMarchGuests()]);
+  return (
+    <main id="main">
+      <JsonLd data={marchEventJsonLd(march)} />
+      <MarchSignups signups={signups}>
+        <SignupHero march={march} guests={guests} />
+        <SignupCase />
+        <SignupDemand />
+        <SignupTurnout />
+        <SignupPhotos />
+        <SignupDay march={march} />
+        <SignupRegister />
+      </MarchSignups>
+    </main>
+  );
+}

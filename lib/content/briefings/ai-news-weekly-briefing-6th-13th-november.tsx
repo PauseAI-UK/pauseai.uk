@@ -8,7 +8,7 @@ import BriefingSources from "@/components/briefings/BriefingSources";
 import { Aside } from "@/components/briefings/BriefingText";
 import CommitmentsTable from "@/components/briefings/CommitmentsTable";
 import WeekCalendar from "@/components/briefings/WeekCalendar";
-import { MARCH_PATH } from "../redirect-addresses";
+import { novemberMarch } from "../march";
 import { cite, defineBriefing } from "./define";
 
 const NORWAY = { code: "no", name: "Norway" };
@@ -281,7 +281,7 @@ const briefing = defineBriefing({
             </li>
             <li>
               <strong>Sat 21 Nov:</strong> PauseAI UK March Against AI Extinction, All Souls’ Place to Downing Street,
-              12–3pm. <a href={MARCH_PATH}>PauseAI UK</a>
+              12–3pm. <a href={novemberMarch.path}>PauseAI UK</a>
             </li>
           </ul>
           <Aside>

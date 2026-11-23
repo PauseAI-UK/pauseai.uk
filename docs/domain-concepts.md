@@ -1087,7 +1087,7 @@ One person filling in one of our forms once (`form_entries`): their name,
 email, address, city and postcode as they gave them, their phone number in
 international format ("Phone numbers", below), the box to hear from us
 (`contact_consent`), where they came from (`utm_source`) and when.
-`form` says which form: `email-your-mp`, `march-2026-11`, `paper-signup`
+`form` says which form: `email-your-mp`, a march's sign-up (`march-2026-11`, `march-2027-04`), `paper-signup`
 ("Paper sign-ups", below), `whatsapp-community` ("WhatsApp groups", below),
 or `web-form` for pauseai.info's old letter form. Every entry has an email
 but a WhatsApp member's, which has a number instead.
@@ -1651,9 +1651,11 @@ or a call to a number. The topics:
   list; and every volunteer, by email and text (below).
 - **Events**, our Luma calendar: being on it, which registering for an
   event does too, for email. A number given at a Luma registration has the
-  answer of the account that gave it, for texts; a number given on a form
-  for "text updates on the day" is a yes for texts until the day ends
-  (`day_texts`). A no to the newsletter is a no to events too.
+  answer of the account that gave it, for texts; a number given on a
+  march's sign-up, which asks for it "for text updates about events", is a
+  yes for texts, as the email registered is for email. November 2026's
+  sign-up asked for a number for the day alone, so its numbers have no yes
+  from that. A no to the newsletter is a no to events too.
 - **Volunteering**: CiviCRM's `volunteer_updates` list, for email; and a
   member's number, for calls and texts, if they chose to volunteer or lead when
   joining, or joined before 30 June 2026 on the Tally form, which didn't
@@ -1709,7 +1711,7 @@ latest thing the person said about the consent, a stop or a yes, a stop
 winning a tie, so a box ticked after an unsubscribe opens it again. Last,
 if they said nothing that counts, why not: a box left unticked, not on
 the calendar, a member who didn't choose to volunteer, gone from the
-chapter, a day's texts over. A consent the address or number has had
+chapter. A consent the address or number has had
 nothing to do with has no row, unless it's stopped.
 A box ticked on the contact preferences page is a yes (`chose`), and an opt-out
 of every bulk email or all email is the stop "No bulk emails" or "Do not

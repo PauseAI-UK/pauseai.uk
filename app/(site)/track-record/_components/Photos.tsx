@@ -11,6 +11,17 @@ export function Photos({ count, children }: { count: 1 | 3 | 4; children: ReactN
 }
 
 /**
+ * An entry's film, to play where it stands: `poster` shows until it's
+ * played, and nothing of the film loads before. `label` says what it is to
+ * a screen reader.
+ */
+export function Film({ src, poster, label }: { src: string; poster: string; label: string }) {
+  return (
+    <video className={styles.film} src={src} poster={poster} controls playsInline preload="none" aria-label={label} />
+  );
+}
+
+/**
  * A thumbnail that opens the full photo in the lightbox (see Gallery.tsx).
  * Without JavaScript it is a plain link to the photo. It fills its cell,
  * unless given the thumbnail's `width` and `height`, when it shows whole.

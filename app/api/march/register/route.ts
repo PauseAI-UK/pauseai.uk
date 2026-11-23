@@ -10,7 +10,7 @@ import { checkMarchRegistration, type MarchRegisterResult } from "@/lib/march-re
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { sendBulkNotice } from "@/lib/supporters/email-settings.server";
 import { addFormEntry } from "@/lib/supporters/form-entries.server";
-import { marchEventId } from "@/lib/events/march.server";
+import { MARCH_FORM, marchEventId } from "@/lib/events/march.server";
 import { addLumaGuest } from "@/lib/server/outside-services/luma-guests.server";
 import { problem } from "@/lib/server/problems.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
@@ -44,10 +44,10 @@ async function register(input: unknown, request: Request): Promise<MarchRegister
   const result = await addLumaGuest(event, { name: registration.name, email: registration.email });
   // Kept even when Luma didn't take them: they gave us their details. If it
   // can't be kept, Luma's answer still stands.
-  await addFormEntry("march-2026-11", registration, { eventId: event, status: result.status }).then(
+  await addFormEntry(MARCH_FORM, registration, { eventId: event, status: result.status }).then(
     async (id) => {
       console.log(`[march] Kept sign-up ${id}: Luma ${result.status}.`);
-      await sendBulkNotice(id, emailSettingsCopy.bulkNotice.where["march-2026-11"], request);
+      await sendBulkNotice(id, emailSettingsCopy.bulkNotice.where[MARCH_FORM], request);
     },
     (error: unknown) => problem(serverCopy.problems.logs.signUpNotKept, error),
   );

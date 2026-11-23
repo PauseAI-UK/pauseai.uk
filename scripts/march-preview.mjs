@@ -1,22 +1,25 @@
 #!/usr/bin/env node
-// Remakes the link preview for the march sign-up: a picture of /march's hero
-// (its photo, headline, date, time and route), which WhatsApp, X, Bluesky and
-// the rest show for a link to /march. The date and route are in the picture,
-// so run this whenever they change in lib/content/march.ts, or the hero does.
+// Remakes the link preview for the next march's sign-up: a picture of
+// /march's hero (its photo, headline, date, time and place), which WhatsApp,
+// X, Bluesky and the rest show for a link to /march. The date and place are
+// in the picture, so run this whenever they change in lib/content/march.ts,
+// or the hero does.
 //
 //   npm run dev                      # in another terminal
 //   npm run march:preview            # or: node scripts/march-preview.mjs <base url>
 //
 // It loads the page in headless Chromium at 1200×630, hides what only works on
 // the page (the buttons, the count of those registered, the header, the
-// cookie banner and Next's dev badge), and writes public/images/march-signup/
+// cookie banner and Next's dev badge), and writes public/images/march-signup/apr-27/
 // open-graph-1200-630.jpg (Open Graph) and open-graph-1600-840.jpg (X), the
-// same layout at 4/3 the pixels. app/(march)/demonstrations/march-against-ai-extinction-nov-26/page.tsx names them.
+// same layout at 4/3 the pixels. The march's page.tsx names them
+// (app/(march)/demonstrations/march-against-ai-extinction-apr-27/). The
+// pictures beside that folder are the November 2026 march's, made the same way.
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
 
 const base = process.argv[2] ?? "http://localhost:3000";
-const out = "public/images/march-signup";
+const out = "public/images/march-signup/apr-27";
 
 const css = `
   [class*="hero-cta"], [class*="hero-going"], header, [role="dialog"],
@@ -35,7 +38,7 @@ try {
     ["1600-840", 4 / 3],
   ]) {
     const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: scale });
-    await page.goto(`${base}/demonstrations/march-against-ai-extinction-nov-26`, { waitUntil: "networkidle" });
+    await page.goto(`${base}/march`, { waitUntil: "networkidle" });
     await page.addStyleTag({ content: css });
     await page.evaluate(() => document.fonts.ready);
     const hero = page.locator("section:has(> [class*='hero-inner'])");

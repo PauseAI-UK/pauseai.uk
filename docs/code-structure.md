@@ -706,12 +706,18 @@ It follows the rules above, with these particulars:
 
 ### The march sign-up
 
-`/demonstrations/march-against-ai-extinction-nov-26` (`app/(march)/demonstrations/march-against-ai-extinction-nov-26/`)
-is a sub-site in the site's style, with a few looks of its own
-(`docs/style-guide.md`, "The briefings and the march"). It follows the
-rules above, with these exceptions:
+The marches' pages (`app/(march)/demonstrations/`) are a sub-site in the
+site's style, with a few looks of its own (`docs/style-guide.md`, "The
+briefings and the march"). Each march has a page, named for its month: the
+next march's is the sign-up, and a past march's a record of it, the same
+sections with how many registered in the end, and without the day's
+details or the form. Each march's
+facts are in `lib/content/march.ts`, where `march` is the next one, which
+`/march` leads to. The sub-site follows the rules above, with these
+exceptions:
 
-- **One stylesheet for the sub-site.** Its components share
+- **One stylesheet for the sub-site.** Its components, which the marches'
+  pages share, are in `_components/` beside them, and share
   `_components/march.module.css`, written in the order its rules cascade,
   and take their classes through `m()` (`_components/classes.ts`). Its
   element styles sit inside `:where(.frame)`, and every page of the
@@ -720,9 +726,8 @@ rules above, with these exceptions:
   rest are the site's tokens.
 - **Its own fields.** The form's controls are its own, drawn to match the
   site's, not the kit's (`tests/checks/form-controls.test.ts`).
-- **No march banner.** Its layout renders the site's `<Nav>` and
-  `<Footer>`, but not the march banner, as this is the page the banner
-  points to. A skip link comes before the header.
+- **A skip link.** Its layout renders the site's `<Nav>` and `<Footer>`,
+  with a skip link before the header.
 - **Marker pen.** `Marker` draws a hand-drawn underline, circle or
   highlight in the orange with rough-notation. An underline is there from
   the start; a circle or highlight draws in once its words are a third of

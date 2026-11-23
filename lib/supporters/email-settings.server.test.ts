@@ -35,12 +35,10 @@ const REMOVE = "https://public-api.luma.com/v1/calendars/contacts/remove";
 
 /**
  * Jane, who ticked the march's box and gave a number, so she has the
- * newsletter by email and text, and events by text on the day.
+ * newsletter by email and text, and events by text.
  */
 async function jane(consent = true) {
-  // Her number's yes to texts about the march lasts until the march ends: a day from now, whatever the date.
-  await query("UPDATE day_texts SET ends_at = now() + interval '1 day' WHERE form = 'march-2026-11'");
-  await addFormEntry("march-2026-11", {
+  await addFormEntry("march-2027-04", {
     name: "Jane Smith",
     email: JANE,
     phone: phoneNumber("07700 900123"),

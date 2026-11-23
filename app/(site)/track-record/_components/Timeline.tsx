@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Photos, Shot } from "./Photos";
+import { novemberMarch, novemberMarchFilm } from "@/lib/content/march";
+import { Film, Photos, Shot } from "./Photos";
 import { EntryList, EntryText, TimelineEntry } from "./TimelineEntry";
 import styles from "./Timeline.module.css";
 import { TimelineList } from "./TimelineList";
@@ -11,6 +12,25 @@ export default function Timeline() {
     <section className={styles.timeline}>
       <div className="container">
         <TimelineList>
+          <TimelineEntry
+            id="march-against-ai-extinction"
+            month="November"
+            year="2026"
+            title="March Against AI Extinction"
+          >
+            <EntryText>
+              <p>
+                Over 1,000 people marched against AI extinction, right through the heart of London, from All
+                Souls&rsquo; Place to Downing Street.{" "}
+                <Link href={novemberMarch.path} className="inline-link">
+                  See the march&rsquo;s page
+                </Link>
+                .
+              </p>
+            </EntryText>
+            <Film src={novemberMarchFilm.src} poster={novemberMarchFilm.poster} label={novemberMarchFilm.label} />
+          </TimelineEntry>
+
           <TimelineEntry
             id="edinburgh-panel-discussion"
             month="November"

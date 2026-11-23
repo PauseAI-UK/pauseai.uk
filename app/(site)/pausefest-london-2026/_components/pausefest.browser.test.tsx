@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { march } from "@/lib/content/march";
+import { novemberMarch } from "@/lib/content/march";
 import { pausefest, type FestDay } from "@/lib/content/pausefest";
 import Going from "./Going";
 import PauseFestHero from "./PauseFestHero";
@@ -37,7 +37,7 @@ describe("Programme", () => {
     await render(<Programme days={pausefest.days} />);
     const marchBand = page.getByRole("listitem").filter({ hasText: "March Against AI Extinction" });
     const marchLink = marchBand.getByRole("link", { name: "Register" });
-    await expect.element(marchLink).toHaveAttribute("href", march.path);
+    await expect.element(marchLink).toHaveAttribute("href", novemberMarch.path);
     await expect.element(marchLink).not.toHaveAttribute("target");
     await expect
       .element(marchBand.getByRole("link", { name: "Bus from Oxford →" }))
