@@ -117,9 +117,9 @@ describe("the sign-up's sections", () => {
     const steps = page.getByRole("listitem").all();
     expect(steps).toHaveLength(4);
     await expect.element(steps[1]).toHaveTextContent("February 2026300Five times bigger");
-    await expect.element(steps[2]).toHaveTextContent("21st November 2026");
-    await expect.element(steps[3]).toHaveTextContent(march.dateWritten);
-    await expect.element(steps[3]).toHaveTextContent("Our goal this time");
+    await expect.element(steps[2]).toHaveTextContent(/^21st November 2026/);
+    expect(steps[3].element().textContent).toContain(march.dateWritten);
+    await expect.element(steps[3]).toHaveTextContent(/Our goal this time$/);
     await expect.element(page.getByText(/this march will be no exception/)).toBeVisible();
     // The goal's figure alone is in a Marker's span.
     expect(container.querySelectorAll(`.${m("turnout-figure")} > span`)).toHaveLength(1);
@@ -130,7 +130,7 @@ describe("the sign-up's sections", () => {
     const { container } = await render(<SignupTurnout past />);
     const steps = page.getByRole("listitem").all();
     expect(steps).toHaveLength(3);
-    await expect.element(steps[2]).toHaveTextContent("21st November 2026");
+    await expect.element(steps[2]).toHaveTextContent(/^21st November 2026/);
     expect(page.getByText(/this march will be no exception/).query()).toBeNull();
     expect(container.querySelector(`.${m("turnout-figure")} > span`)).toBeNull();
   });
