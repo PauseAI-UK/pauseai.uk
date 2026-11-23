@@ -340,11 +340,15 @@ function whenAsked(list) {
   return { has: (key) => (keys ??= new Set(list().keys())).has(key) };
 }
 
+/** How many frames of the gallery's flows a choice of flows (flowsToRun's) carries, and so doesn't picture. */
+const framesCarried = (chosen) => [...chosen.carried.values()].reduce((sum, frames) => sum + frames.length, 0);
+
 /**
  * Of `sources`, each some flows to carry from (`runs`), the one that leaves
  * fewest of `suite` (keys) to run on `tree` (flowsToRun, worked out on the
- * checkout of `context`), the first of them on a tie: what flowsToRun
- * returns, and its `source`. Undefined with no sources.
+ * checkout of `context`): what flowsToRun returns, and its `source`. On a
+ * tie, the one that leaves fewest of the gallery's frames to picture, then
+ * the first. Undefined with no sources.
  */
 function nearest(sources, suiteKeys, tree, context, phoneTagged) {
   let best;
@@ -357,7 +361,9 @@ function nearest(sources, suiteKeys, tree, context, phoneTagged) {
       setup: setupOf(context.root),
       changedSince: (at) => changedBetween(at, tree),
     });
-    if (!best || chosen.run.size < best.run.size) best = { ...chosen, source };
+    const fewer = best && chosen.run.size - best.run.size;
+    if (!best || fewer < 0 || (fewer === 0 && framesCarried(chosen) > framesCarried(best)))
+      best = { ...chosen, source };
     // None to run: no source can leave fewer, and the first wins a tie.
     if (best.run.size === 0) break;
   }
