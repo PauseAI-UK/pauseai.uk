@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeShards, parseCoverage, shortfalls } from "./merge-coverage.mjs";
+import { mergeShards, shortfalls } from "./merge-coverage.mjs";
 
 /** Start line, start column, end line, end column; Infinity ends at the line's end. */
 type Range = [number, number, number, number];
@@ -37,20 +37,14 @@ function report(path: string, { statements = [], functions = [], branches = [] }
 
 /** A shard's coverage-final.json of one file, written and read back as CI does. */
 function shard(entries: Entries, path = "/repo/app/Form.tsx") {
-  return parseCoverage(JSON.stringify({ [path]: report(path, entries) }));
+  return JSON.parse(JSON.stringify({ [path]: report(path, entries) }));
 }
 
 // `const { pending } = useFormStatus();` on line 11: the node project ends
-// the call at column 36, the browser at the line's end.
+// the call at column 36, the browser at the line's end, which JSON writes as
+// a null column.
 const hookByNode: Entries = { statements: [[[11, 22, 11, 36], 0]] };
 const hookByBrowser: Entries = { statements: [[[11, 22, 11, Infinity], 137]] };
-
-describe("parseCoverage", () => {
-  it("reads a null column as the line's end, Infinity", () => {
-    const data = shard(hookByBrowser);
-    expect(data["/repo/app/Form.tsx"].statementMap[0].end.column).toBe(Infinity);
-  });
-});
 
 describe("mergeShards", () => {
   it.each([
@@ -59,12 +53,6 @@ describe("mergeShards", () => {
   ])("counts a hook's call each project ends differently as run, with %s", (_, order) => {
     const map = mergeShards(order.map((entries) => shard(entries)));
     expect(shortfalls(map)).toEqual([]);
-  });
-
-  it("would leave the node project's twin of it unrun, read with a null column", () => {
-    const asWritten = (entries: Entries) => JSON.parse(JSON.stringify({ "/a.tsx": report("/a.tsx", entries) }));
-    const map = mergeShards([asWritten(hookByNode), asWritten(hookByBrowser)]);
-    expect(shortfalls(map)).toEqual(["/a.tsx: statements 50%"]);
   });
 
   it("covers a file one shard ran by what the other reports of it unloaded, all zeros", () => {

@@ -11,20 +11,15 @@
 // file its tests didn't load as the node project maps it, all zeros. Istanbul
 // merges a range with no match by adding the count of the nearest range
 // around it, which is how one whole run comes out covered. A range that runs
-// to its line's end has the column Infinity, which JSON writes as null, so
-// the shards' files are read with a null column as Infinity: read as null,
-// no range is around another, and the merge keeps a twin never run.
+// to its line's end has the column Infinity, which JSON writes as null, and
+// Istanbul matches it to the one range with the same start and end line
+// (https://github.com/vitest-dev/istanbuljs/pull/25).
 import { readFileSync } from "node:fs";
 import { createCoverageMap } from "@vitest/istanbul-lib-coverage";
 
 const METRICS = ["statements", "branches", "functions", "lines"];
 
-/** A coverage-final.json's text, parsed with a null column as Infinity. */
-export function parseCoverage(text) {
-  return JSON.parse(text, (key, value) => (key === "column" && value === null ? Infinity : value));
-}
-
-/** The shards' coverage, each parsed by parseCoverage, merged. */
+/** The shards' coverage-final.json files, parsed, merged. */
 export function mergeShards(shards) {
   const map = createCoverageMap({});
   for (const shard of shards) map.merge(shard);
@@ -43,7 +38,7 @@ export function shortfalls(map, root = "") {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const map = mergeShards(process.argv.slice(2).map((file) => parseCoverage(readFileSync(file, "utf8"))));
+  const map = mergeShards(process.argv.slice(2).map((file) => JSON.parse(readFileSync(file, "utf8"))));
   const short = shortfalls(map, process.cwd());
   const total = map.getCoverageSummary();
   for (const metric of METRICS) console.log(`${metric}: ${total[metric].covered}/${total[metric].total}`);
