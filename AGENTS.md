@@ -6,6 +6,8 @@ Read `README.md` first. It links the docs in `docs/`, including the code's struc
 
 `investments/` holds technical investment, the work that would make the code easier to change or the site safer to run: architecture refactors, operations, small fixes and missing tools, one file each. It isn't for features or for bugs in what the site does for people: tell the person you're working with about those instead. When one costs you time (a script in `tmp/` you'd want again, the same edit in many places, a flaky test, a long wait on a check, a bug the design made easy), add a dated line under its "Hits", or start a file for it. `investments/README.md` says how, and `npm run investments` lists the most hit. When your work fixes part of an item, or finds its cause, always rewrite its file to say only what's left: its Problem and Fix as things stand, without the hits for what's fixed. Delete the file if nothing's left (`investments/README.md`, "Keeping a file true"). Nothing private goes in a hit, and nothing about how you used production services or the database.
 
+Commit a hit on the branch where you found it, as soon as it's written, and push it if the branch has a PR, so it merges with that PR rather than being left behind in a working tree.
+
 ## Comments describe the code as it is
 
 A comment says what the code does and why, as it stands. It doesn't tell the code's history: not what it replaced, what changed or moved, what it used to do, or which plan or PR brought it. That belongs in the commit message. Write "Every field is the kit's", not "Fields now come from the kit instead of each form's own". The same goes for docs. The rest of the rules (no counts that go stale, explain once at the definition, what a test fixture's comment says) are in `docs/code-structure.md`, "Comments".
@@ -25,6 +27,8 @@ Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to scree
 ## Serving a branch
 
 When Francis asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background. Once it says it's serving, give him the link it prints: by then it has checked the link in Firefox (`docs/development.md`, "Serving a branch"). Leave it running until he's done with it, then stop it with `--stop`.
+
+Link to a page that shows what the branch changes, such as the staff page of a fixture record it affects, rather than the home page or `/staff/login`: the login appears over any staff page, with buttons to log in. Open the link first to check it shows the change.
 
 ## The CI gate
 
@@ -58,7 +62,21 @@ Running one Vitest project (`npm run test:node`, `npm run test:browser`) or one 
 
 ## Pull request descriptions are short
 
-A title, then what the change does and why, in plain words, as short paragraphs. Use bullets where there's a list, such as the parts of a change or what a reviewer should know, not for everything. Write it fresh for the PR as it ends up, clearly and in the style guide's voice (`docs/style-guide.md`), rather than adding a line per commit. Leave out what the diff or the commits already say: file lists, and how it was tested beyond "the CI gate passes". Anything left for later gets one line saying so, and no more.
+A title, then what the change does and why, in plain words, as short paragraphs. Use bullets where there's a list, such as the parts of a change or what a reviewer should know, not for everything. Write it fresh for the PR as it ends up, clearly and in the style guide's voice (`docs/style-guide.md`), rather than adding a line per commit. Leave out what the diff or the commits already say: file lists, and how it was tested beyond "the CI gate passes". Anything left for later gets one line saying so, and no more. No "Generated with Claude Code" line or similar, even if a session's instructions add one; commits keep their `Co-Authored-By` line. If a later change makes the title or description wrong, rewrite them rather than adding to them.
+
+## A pull request's life
+
+- Once the code and its unit tests are done, push and open a draft (`gh pr create --draft`), before the storyboard review, so it can be read early. Hold the first push back while a migration may still change ("Migrations are fixed once pushed", below).
+- After each push, watch CI (`gh pr checks <number> --watch`; `gh run view <id> --log-failed` for a failure) and fix what fails, then push again. Reading CI's logs needs no one's say-so.
+- When the PR has a conflict with main, rebase onto `origin/main` soon, check the migrations' numbers against main's, rerun the fast checks and push with `--force-with-lease`.
+- Mark it ready (`gh pr ready`) as soon as you're happy with it, and say so: don't ask whether to. You needn't wait for the gate, for CI, or for a review of every flow, if the frames of what changed look right. CI blocks the merge anyway; say what's red and why.
+- After the frames have been looked at, a rebase or a change no one would see (a test, a fix with no visible change) needs no local review: push and let CI's storyboard run every flow.
+- Never merge a PR, and never push to main.
+
+## A bug is reproduced before it's fixed
+
+- A bug found by reading the code, such as in a review, gets a test first: see it fail on the code as it is, then fix the code and see it pass. Say in the PR that each fix has a test that failed without it.
+- When something misbehaves in production, reproduce it before shipping a fix, rather than opening a PR for each guess. Use fake data first: a test, or a script in `tmp/`, running the site's code on fixtures shaped like production's (its sizes, duplicates and slow services). Read-only queries of production can show what shape that needs. A copy of production's database is a last resort: ask first, and delete it, and anything else downloaded, once production is working ("The repo is public", below).
 
 ## Migrations are fixed once pushed
 
@@ -141,6 +159,8 @@ Before you say a change is done, run `npm test`. That's both Vitest projects wit
 ## Never write final copy
 
 People write the words visitors and recipients read: page text, letters, emails, form labels and messages. When code needs copy that doesn't exist yet, write a placeholder: a draft in plain English that starts with ⁂, e.g. "⁂ Import the calendar now", so a person can see what the words must say and it can't be mistaken for the real thing.
+
+A placeholder is still a draft someone reads, so it follows the style guide ("Interface text"): plain sentences, without a colon that sets something up and then delivers it ("sends its own emails: mainly Critical Alerts"), which reads as machine-written.
 
 `npm run placeholders` fails while ⁂ appears anywhere in the repo outside this file, and names each line. CI, the gate and Netlify's build run it, so placeholders can't be merged by accident. It isn't one of the tests, so while a branch's copy waits, `npm test` still checks its coverage: only the placeholder check's own row of the gate's table fails.
 

@@ -69,8 +69,21 @@ share main's frames, in the main checkout's
 `test-results/storyboard-frames/`.
 
 The branch tracks nothing, so push it the first time with
-`git push -u origin fix-footer`. When it's merged, run
-`git worktree remove tmp/worktrees/fix-footer` and `git branch -D fix-footer`.
+`git push -u origin fix-footer`.
+
+When its PR has merged, remove it. PRs are squash-merged, so
+`git branch -d` refuses the branch and `git branch --merged` doesn't list
+it. Instead:
+
+1. `gh pr list --head fix-footer --state merged` confirms it merged.
+2. Check the branch holds nothing the merge lacks, by comparing the two
+   patches, where `<merge>` is the squashed commit on main:
+   `diff <(git diff $(git merge-base fix-footer <merge>^) fix-footer) <(git diff <merge>^ <merge>)`.
+   If they differ, keep the branch.
+3. If it's being served, stop that first (`npm run serve -- fix-footer --stop`).
+4. `git worktree remove tmp/worktrees/fix-footer`, without `--force`: if
+   it has uncommitted work, git refuses, and the work is kept.
+5. `git branch -D fix-footer`.
 
 ## 3. Postgres
 
@@ -435,6 +448,13 @@ Each checkout has its own ports, so branches can be served side by side.
 The script's `next dev` shares `.next` with the checkout, so don't run a
 storyboard review in the same checkout meanwhile.
 
+Nor run two `next dev`s in one checkout, such as a second beside the one
+you're using: both write `.next/dev`, each overwriting the other's Server
+Action IDs, and actions in the browser fail with "An unexpected response
+was received from the server". To try a page while one runs, use the
+storyboard's build (`docs/testing.md`, "The storyboard") or another
+worktree.
+
 #### How fast a page loads
 
 To see what a change does to a page's load on a phone's connection, set the
@@ -746,6 +766,22 @@ What they need from your machine:
 Netlify deploys the site, configured in `netlify.toml`. Pushing to `main`
 deploys the live site, and pull requests get previews. Netlify applies the
 migrations in `netlify/database/migrations/` on deploy.
+
+- **The server's log**, whatever the site's route handlers, actions and
+  jobs write, is in Netlify under Cloud compute → Functions →
+  `___netlify-server-handler`, not under Logs & metrics
+  ([Netlify's docs](https://docs.netlify.com/build/functions/logs)).
+- **A request's address** on the live site can have Netlify's host,
+  `main--pauseaiuk.netlify.app`, rather than `pauseai.uk`, so don't compare
+  `request.url`'s host with the public one.
+- **Each deploy preview has a database branch** of its own, which lasts
+  until the preview is deleted, and Netlify deletes previews only after
+  30 or 90 days. Netlify allows only so many branches, and past that a
+  preview's deploy fails with a 500 from `createSiteDatabaseBranch`.
+  Deleting closed PRs' previews frees their branches. Netlify's API can do
+  that with a personal access token, though its database branch API refuses
+  tokens ("must be performed from the Netlify dashboard"). Such a token
+  reaches the whole account, so it never goes into GitHub or CI.
 
 A Worker in `backup/` backs the database up to Cloudflare every night. It's
 deployed on its own (`backup/README.md`).
