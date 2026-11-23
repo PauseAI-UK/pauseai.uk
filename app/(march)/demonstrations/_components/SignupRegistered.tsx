@@ -11,7 +11,7 @@ export default function SignupRegistered({ count, children: faces }: { count: nu
     <div className={m("hero-going")}>
       {faces}
       <p>
-        ⁂ <strong>{count.toLocaleString("en-GB")}</strong> people registered
+        <strong>{count.toLocaleString("en-GB")}</strong> people registered
       </p>
     </div>
   );

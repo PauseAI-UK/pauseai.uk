@@ -38,7 +38,7 @@ export default function SignupDay({ march }: { march: March }) {
                 , {stop.area}
               </p>
             ))}
-            {!march.route && <p>⁂ We’ll announce the route nearer the day.</p>}
+            {!march.route && <p>We’ll announce the route nearer the day.</p>}
           </div>
         </div>
 

@@ -48,17 +48,17 @@ const REDIRECTS = [
     to: "/demonstrations/march-against-ai-extinction-nov-26",
   },
   {
-    // Temporary: there's no list of demonstrations yet, so it goes to the current one.
-    name: "the demonstrations section, to the current march",
+    // Temporary: there's no list of demonstrations yet, so it goes to the track record, which tells of them.
+    name: "the demonstrations section, to the track record",
     from: "/demonstrations",
-    to: "/demonstrations/march-against-ai-extinction-apr-27",
+    to: "/track-record",
     permanent: false,
   },
   {
     // Temporary, as /demonstrations is.
-    name: "the old protests section, to the current march",
+    name: "the old protests section, to the track record",
     from: "/protests",
-    to: "/demonstrations/march-against-ai-extinction-apr-27",
+    to: "/track-record",
     permanent: false,
   },
   {

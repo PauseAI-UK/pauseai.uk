@@ -36,7 +36,7 @@ const emailSubject = `The biggest ever demonstration for AI safety - ${march.cit
 
 /** The end of the share message, and the whole of it where posts are short. */
 const shortMessage =
-  `⁂ PauseAI UK is organising a march through London, expected to be the biggest ever demonstration for AI safety.\n\n` +
+  `PauseAI UK is organising a march through London, expected to be the biggest ever demonstration for AI safety.\n\n` +
   `Saturday 10 April 2027, 12–3pm\n\n` +
   `Register now: ${shareUrl}`;
 

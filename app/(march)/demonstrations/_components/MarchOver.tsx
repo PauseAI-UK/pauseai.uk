@@ -13,15 +13,15 @@ export default function MarchOver() {
     <section className={m("band")} aria-labelledby="over-title">
       <div className={`container ${m("stack")}`}>
         <h2 className={m("heading")} id="over-title">
-          <Marker type="highlight">⁂ This march has happened</Marker>
+          <Marker type="highlight">This march has happened</Marker>
         </h2>
-        <p className={m("lead")}>⁂ Thank you to everyone who marched with us. There’s another march coming.</p>
+        <p className={m("lead")}>Thank you to everyone who marched with us. There’s another march coming.</p>
         <div className={m("over-actions")}>
           <Link className={m("btn")} href={march.path}>
-            ⁂ Register for the next march
+            Register for the next march
           </Link>
           <Link className={m("btn btn-light")} href="/#join">
-            ⁂ Join PauseAI UK
+            Join PauseAI UK
           </Link>
         </div>
       </div>

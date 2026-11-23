@@ -5,13 +5,13 @@ import { pageMetadata } from "@/lib/metadata";
 import MarchOver from "../_components/MarchOver";
 import SignupCase from "../_components/SignupCase";
 import SignupDemand from "../_components/SignupDemand";
-import SignupHero from "../_components/SignupHero";
+import PastHero from "../_components/PastHero";
 import SignupPhotos from "../_components/SignupPhotos";
 import SignupTurnout from "../_components/SignupTurnout";
 
 export const metadata = pageMetadata({
   title: `${novemberMarch.name} — ${novemberMarch.dateShort}, ${novemberMarch.city}`,
-  description: `⁂ PauseAI UK marched through ${novemberMarch.city} for AI safety on ${novemberMarch.dateLong}.`,
+  description: `PauseAI UK marched through ${novemberMarch.city} for AI safety on ${novemberMarch.dateLong}.`,
   path: novemberMarch.path,
   absoluteTitle: true,
   openGraph: { title: `${novemberMarch.name} — ${novemberMarch.dateLong}` },
@@ -30,7 +30,7 @@ export default async function NovemberMarchPage() {
   return (
     <main id="main">
       <JsonLd data={marchEventJsonLd(novemberMarch)} />
-      <SignupHero march={novemberMarch} past registered={registered} guests={guests} />
+      <PastHero march={novemberMarch} registered={registered} guests={guests} />
       <SignupCase past />
       <SignupDemand />
       <SignupTurnout past />

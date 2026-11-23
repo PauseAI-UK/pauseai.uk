@@ -2,10 +2,12 @@
 // (app/(march)/demonstrations/_components/), each in the sub-site's frame,
 // which gives it its type and colours.
 import type { ReactNode } from "react";
+import HeroFacts from "@/app/(march)/demonstrations/_components/HeroFacts";
 import MarchOver from "@/app/(march)/demonstrations/_components/MarchOver";
 import MarchSignupFrame from "@/app/(march)/demonstrations/_components/MarchSignupFrame";
 import MarchSignups from "@/app/(march)/demonstrations/_components/MarchSignups";
 import Marker from "@/app/(march)/demonstrations/_components/Marker";
+import PastHero from "@/app/(march)/demonstrations/_components/PastHero";
 import SignupCount from "@/app/(march)/demonstrations/_components/SignupCount";
 import SignupCase from "@/app/(march)/demonstrations/_components/SignupCase";
 import SignupDay from "@/app/(march)/demonstrations/_components/SignupDay";
@@ -49,9 +51,30 @@ export const marchSignup: Group = {
             ),
         },
         { label: "When Luma can't say how many", render: () => inFrame(<SignupHero march={march} />) },
+      ],
+    },
+    {
+      name: "PastHero",
+      file: "app/(march)/demonstrations/_components/PastHero.tsx",
+      variants: [
         {
-          label: "A past march, with its route, the way to the next march and how many registered",
-          render: () => inFrame(<SignupHero march={novemberMarch} past registered={1234} />),
+          label: "A past march's first screen: what we said of the day, its film, and how many registered",
+          render: () => inFrame(<PastHero march={novemberMarch} registered={1234} />),
+        },
+      ],
+    },
+    {
+      name: "HeroFacts",
+      file: "app/(march)/demonstrations/_components/HeroFacts.tsx",
+      variants: [
+        {
+          label: "A march's when and where, with its route",
+          render: () =>
+            inFrame(
+              <div style={{ padding: 24, background: "var(--text)", color: "var(--white)" }}>
+                <HeroFacts march={novemberMarch} />
+              </div>,
+            ),
         },
       ],
     },

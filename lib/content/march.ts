@@ -58,6 +58,13 @@ export const novemberMarch: March = {
   image: "/images/march-nov-26/luma-cover.webp",
 };
 
+/** The film of the November 2026 march, for its page and the track record: the file, and a still from it to show until it's played. */
+export const novemberMarchFilm = {
+  src: "/videos/march-against-ai-extinction-nov-26.mp4",
+  poster: "/images/march-nov-26/film-still.jpg",
+  label: "Film of the March Against AI Extinction, 21 November 2026",
+};
+
 /**
  * The next march, 10 April 2027, 12pm to 3pm in London (BST), as its Luma
  * event has it. Its route isn't settled.
@@ -69,12 +76,12 @@ export const march: March = {
   startAt: "2027-04-10T11:00:00Z",
   endAt: "2027-04-10T14:00:00Z",
   route: null,
-  dateLong: "⁂ Saturday 10th April, 2027",
-  dateShort: "⁂ Sat 10 Apr 2027",
-  dateWritten: "⁂ 10th April 2027",
+  dateLong: "Saturday 10th April, 2027",
+  dateShort: "Sat 10 Apr 2027",
+  dateWritten: "10th April 2027",
   dateIso: "2027-04-10",
   time: "12:00 PM - 3:00 PM",
-  city: "⁂ London",
+  city: "London",
   // The sign-up's hero photo.
   image: "/images/march-signup/hero-march.jpg",
 };

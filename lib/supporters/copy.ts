@@ -92,8 +92,8 @@ export const supportersCopy = {
       luma: "Luma",
       "email-your-mp": "Letter",
       "web-form": "pauseai.info letter",
-      "march-2026-11": "March sign-up",
-      "march-2027-04": "⁂ April 2027 march sign-up",
+      "march-2026-11": "November 2026 march sign-up",
+      "march-2027-04": "April 2027 march sign-up",
       "paper-signup": "Paper sign-up",
       "whatsapp-community": "WhatsApp community",
       civicrm: "Member",
@@ -151,7 +151,7 @@ export const supportersCopy = {
           member: (when: string) => `A member of the UK chapter in CiviCRM, since ${when}`,
           subscribed: (when: string) => `On volunteer list in CiviCRM, ${when}`,
           following: (when: string) => `Follows the Luma calendar, since ${when}`,
-          "gave-number": (when: string, source: string) => `⁂ Gave it on ${source} for texts about events, ${when}`,
+          "gave-number": (when: string, source: string) => `Gave it on ${source} for texts about events, ${when}`,
           // From CiviCRM, a number given when joining; from the preferences page, volunteering chosen there.
           volunteered: (when: string, source: string) =>
             source === "CiviCRM"

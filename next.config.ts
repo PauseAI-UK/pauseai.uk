@@ -200,12 +200,12 @@ const nextConfig: NextConfig = {
       { source: "/staff/import-data/:job", destination: "/staff/scheduled-jobs/:job", permanent: true },
       // The Glasgow local group became the Scotland local group.
       { source: "/glasgow", destination: "/scotland", permanent: true },
-      // There's no list of demonstrations yet, so /demonstrations goes to the current one.
-      // Temporary, so browsers don't remember it when the next demonstration comes.
-      { source: "/demonstrations", destination: MARCH_PATH, permanent: false },
+      // There's no list of demonstrations yet, so /demonstrations goes to the track record,
+      // which tells of them. Temporary, so browsers don't remember it once there's a list.
+      { source: "/demonstrations", destination: "/track-record", permanent: false },
       // Demonstrations were under /protests, and links to them were shared: each
       // keeps working, at the same page under /demonstrations.
-      { source: "/protests", destination: MARCH_PATH, permanent: false },
+      { source: "/protests", destination: "/track-record", permanent: false },
       { source: "/protests/:path+", destination: "/demonstrations/:path+", permanent: true },
       // /campaigns goes to the first campaign in priority order, which can
       // change, so temporary. Here rather than a page's redirect(): a page

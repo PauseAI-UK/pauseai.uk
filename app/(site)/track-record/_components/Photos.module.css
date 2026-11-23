@@ -14,6 +14,17 @@
   max-width: 640px;
 }
 
+/* An entry's film, the size of a single photo. */
+.film {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  margin-top: 28px;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: var(--black);
+}
+
 .three {
   grid-template-columns: 1.3fr 1fr 1fr;
   grid-auto-rows: 260px;

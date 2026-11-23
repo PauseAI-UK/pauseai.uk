@@ -4,15 +4,21 @@ import Marker from "./Marker";
 
 type Step = { date: string; figure: string; note: string; goal?: boolean };
 
-/* The turnouts so far, oldest first. */
-const TURNOUT: Step[] = [
+/* The turnouts before the November 2026 march, oldest first. */
+const EARLIER: Step[] = [
   { date: "June 2025", figure: "60", note: "Our biggest protest of 2025" },
   { date: "February 2026", figure: "300", note: "Five times bigger" },
-  { date: novemberMarch.dateWritten, figure: "⁂ 000", note: "⁂ Our biggest march so far" },
 ];
 
+/* The November 2026 march's. */
+const NOVEMBER: Step = {
+  date: novemberMarch.dateWritten,
+  figure: "1,500",
+  note: "Our biggest march so far",
+};
+
 /* The next march's, the number we hope for. */
-const GOAL: Step = { date: march.dateWritten, figure: "⁂ 0,000", note: "Our goal this time", goal: true };
+const GOAL: Step = { date: march.dateWritten, figure: "10,000", note: "Our goal this time", goal: true };
 
 /**
  * Our protests are growing: the turnouts so far, then, on the sign-up, the
@@ -20,7 +26,7 @@ const GOAL: Step = { date: march.dateWritten, figure: "⁂ 0,000", note: "Our go
  * own turnout.
  */
 export default function SignupTurnout({ past = false }: { past?: boolean }) {
-  const steps = past ? TURNOUT : [...TURNOUT, GOAL];
+  const steps = past ? [...EARLIER, NOVEMBER] : [...EARLIER, NOVEMBER, GOAL];
   return (
     <section className={m("band band-turnout")} aria-labelledby="turnout-title">
       <div className={`container ${m("stack-wide")}`}>
@@ -32,7 +38,7 @@ export default function SignupTurnout({ past = false }: { past?: boolean }) {
             For the past 3 years,{" "}
             <strong>PauseAI UK has consistently held the largest rallies for AI safety in the world</strong>.{" "}
             {past
-              ? "⁂ Each time has been bigger than the last."
+              ? "Each time has been bigger than the last."
               : "Each time is bigger than the last and this march will be no exception."}
           </p>
         </div>

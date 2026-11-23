@@ -8,7 +8,7 @@ export default function SignupCase({ past = false }: { past?: boolean }) {
       <div className={`container ${m("split split-even")}`}>
         <div className={m("stack")}>
           <h2 className={m("heading")} id="case-title">
-            <Marker type="highlight">{past ? "⁂ Why we marched" : "Why we’re marching"}</Marker>
+            <Marker type="highlight">{past ? "Why we marched" : "Why we’re marching"}</Marker>
           </h2>
           <p className={m("lead")}>
             Thousands of people across the UK believe that companies will soon build superintelligent AI that they

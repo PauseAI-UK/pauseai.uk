@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import { march, novemberMarch } from "@/lib/content/march";
+import { march, novemberMarch, novemberMarchFilm } from "@/lib/content/march";
 import { marchSignupCopy as copy } from "@/lib/content/march-signup";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { hydrated, layoutSettled, scrollSettled } from "./settle";
@@ -251,6 +251,28 @@ test("Seeing all the details", { tag: "@phone" }, async ({ page }) => {
   await expect(page.getByRole("heading", { name: "On the day" })).toBeInViewport();
   await expect(page.locator("#on-the-day").getByText(march.dateLong)).toBeInViewport();
   await frame(page, "On the day");
+});
+
+test("The march in the track record", { tag: "@phone" }, async ({ page }) => {
+  story(
+    "Someone opens the track record. It starts with the November 2026 march: how many marched and where, and the film of the day, to play.",
+  );
+  await page.goto(`${BASE}/track-record`);
+  await hydrated(page);
+  const entry = page.locator("#march-against-ai-extinction");
+  await expect(entry.getByRole("heading", { level: 3 })).toHaveText("March Against AI Extinction");
+  await expect(entry.locator("video")).toHaveAttribute("poster", novemberMarchFilm.poster);
+  await entry.scrollIntoViewIfNeeded();
+  await scrollSettled(page);
+  await frame(page, "The march in the track record", { window: true });
+  story("They follow the entry's link to the march's page.");
+
+  await entry.locator(`a[href="${novemberMarch.path}"]`).click();
+  await expect(page).toHaveURL(`${BASE}${novemberMarch.path}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("March Against AI Extinction");
+  await hydrated(page);
+  await layoutSettled(page, "main");
+  await frame(page, "The march that's over", { window: true });
 });
 
 test("A march that's over", { tag: "@phone" }, async ({ page }) => {

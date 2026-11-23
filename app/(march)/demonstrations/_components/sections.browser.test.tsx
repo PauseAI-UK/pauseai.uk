@@ -6,6 +6,7 @@ import { m } from "./classes";
 import MarchOver from "./MarchOver";
 import MarchSignupFrame from "./MarchSignupFrame";
 import MarchSignups from "./MarchSignups";
+import PastHero from "./PastHero";
 import SignupCase from "./SignupCase";
 import SignupDay from "./SignupDay";
 import SignupDemand from "./SignupDemand";
@@ -61,22 +62,48 @@ describe("the sign-up's sections", () => {
     const { container } = await render(
       // The sign-up's count around it isn't the past march's, so the hero doesn't show it.
       <MarchSignups signups={99}>
-        <SignupHero march={novemberMarch} past registered={1234} guests={guests} />
+        <PastHero march={novemberMarch} registered={1234} guests={guests} />
       </MarchSignups>,
     );
     await expect.element(page.getByRole("heading", { level: 1, name: "March Against AI Extinction" })).toBeVisible();
+    await expect.element(page.getByText("What. A. Day.")).toBeVisible();
+    // Said twice to be past: above its name, and beside its date.
+    await expect.element(page.getByText("Past march")).toBeVisible();
+    await expect.element(page.getByText("Took place")).toBeVisible();
+    await expect.element(page.getByText("Saturday 21st November, 2026")).toBeVisible();
+    await expect.element(page.getByRole("img", { name: "to" })).toBeVisible();
+    // The next march's card, with its date and place, is the one link.
     const links = page.getByRole("link").all();
     expect(links).toHaveLength(1);
     await expect.element(links[0]).toHaveAttribute("href", march.path);
+    expect(container.querySelector(`.${m("hero-next")}`)!.textContent).toContain(`${march.dateLong} · ${march.city}`);
     expect(page.getByText(/already registered/).query()).toBeNull();
     const going = container.querySelector(`.${m("hero-going")}`)!;
     expect(going.querySelector("strong")!.textContent).toBe("1,234");
     expect(going.querySelectorAll("li")).toHaveLength(3);
   });
 
-  it("says nothing of how many registered for a past march when Luma can't say", async () => {
-    const { container } = await render(<SignupHero march={novemberMarch} past />);
+  it("says nothing of how many registered for a past march when Luma can't say, and shows no faces", async () => {
+    const { container } = await render(<PastHero march={novemberMarch} />);
     expect(container.querySelector(`.${m("hero-going")}`)).toBeNull();
+    const faceless = await render(<PastHero march={novemberMarch} registered={1234} />);
+    expect(faceless.container.querySelector(`.${m("hero-going")} ul`)).toBeNull();
+  });
+
+  it("has a past march's film to play, beside its words, loading nothing until it's played", async () => {
+    await page.viewport(1280, 800);
+    const { container } = await render(
+      <MarchSignupFrame>
+        <PastHero march={novemberMarch} />
+      </MarchSignupFrame>,
+    );
+    const film = container.querySelector("video")!;
+    expect(film.controls).toBe(true);
+    expect(film.preload).toBe("none");
+    expect(film.getAttribute("poster")).toBe("/images/march-nov-26/film-still.jpg");
+    expect(film.getAttribute("src")).toBe("/videos/march-against-ai-extinction-nov-26.mp4");
+    const words = page.getByRole("heading", { level: 1 }).element().getBoundingClientRect();
+    expect(film.getBoundingClientRect().left).toBeGreaterThan(words.right);
   });
 
   it("says how many have registered under the buttons, with the first three faces", async () => {
@@ -108,7 +135,7 @@ describe("the sign-up's sections", () => {
   it("heads a past march's case in the past", async () => {
     await render(<SignupCase past />);
     expect(page.getByRole("heading", { name: /Why we.re marching/ }).query()).toBeNull();
-    await expect.element(page.getByRole("heading", { level: 2 })).toBeVisible();
+    await expect.element(page.getByRole("heading", { level: 2, name: "Why we marched" })).toBeVisible();
     await expect.element(page.getByText("The agent had not been instructed to attack Hugging Face")).toBeVisible();
   });
 
@@ -142,6 +169,7 @@ describe("the sign-up's sections", () => {
     expect(steps).toHaveLength(3);
     expect(steps[2].element().textContent).toMatch(/^21st November 2026/);
     expect(page.getByText(/this march will be no exception/).query()).toBeNull();
+    expect(page.getByText("Our goal this time").query()).toBeNull();
     expect(container.querySelector(`.${m("turnout-figure")} > span`)).toBeNull();
   });
 

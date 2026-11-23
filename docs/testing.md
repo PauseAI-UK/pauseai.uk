@@ -910,6 +910,7 @@ that drives it or why nothing does.
 - `march-signup.spec.ts`: The march sign-up:
   - the next march's page under the site's header, its marker-pen marks drawn;
   - the page of a march that's over, with how many registered and without the form, leading to the next march's;
+  - the march in the track record, with its film, and its link to the march's page;
   - how many have registered, in the hero and the form, asked for again on coming back to the page;
   - the hero's words near the window's edge 1920px wide, and in line with the header and the page below wider than that;
   - registering, Luma failing, and an email or a phone number the server won't take;
