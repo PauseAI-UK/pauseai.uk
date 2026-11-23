@@ -5,6 +5,7 @@ import { march as nextMarch, type March } from "@/lib/content/march";
 import type { FeaturedGuest } from "@/lib/going";
 import { m } from "./classes";
 import SignupGoing from "./SignupGoing";
+import SignupRegistered from "./SignupRegistered";
 
 /** How many of Luma's featured guests the hero shows. */
 const FACES = 3;
@@ -14,19 +15,23 @@ const FACES = 3;
  * route once that's settled. For the sign-up, the buttons to the form and to
  * the day's details, and under them how many have registered, with the
  * faces of the first `guests` Luma features. For a march that's `past`, one
- * button, to the next march. On a desktop the words sit over the photo's
- * darker side; on a phone the photo is a block of its own at the top, fading
- * into the words.
+ * button, to the next march, and under it how many `registered`, with the
+ * same faces. On a desktop the words sit over the photo's darker side; on a
+ * phone the photo is a block of its own at the top, fading into the words.
  */
 export default function SignupHero({
   march,
   guests = [],
   past = false,
+  registered = null,
 }: {
   march: March;
   guests?: FeaturedGuest[];
   past?: boolean;
+  /** How many registered for a past march: null when Luma can't say. */
+  registered?: number | null;
 }) {
+  const faces = guests.length > 0 && <GoingFaces guests={guests.slice(0, FACES)} />;
   return (
     <section className={m("hero")}>
       <div className={m("hero-photo")}>
@@ -71,11 +76,15 @@ export default function SignupHero({
         </div>
 
         {past ? (
-          <div className={m("hero-cta")}>
-            <Link className={m("btn")} href={nextMarch.path}>
-              ⁂ Join the next march
-            </Link>
-          </div>
+          <>
+            <div className={m("hero-cta")}>
+              <Link className={m("btn")} href={nextMarch.path}>
+                ⁂ Join the next march
+              </Link>
+            </div>
+
+            <SignupRegistered count={registered}>{faces}</SignupRegistered>
+          </>
         ) : (
           <>
             <div className={m("hero-cta")}>
@@ -87,7 +96,7 @@ export default function SignupHero({
               </a>
             </div>
 
-            <SignupGoing>{guests.length > 0 && <GoingFaces guests={guests.slice(0, FACES)} />}</SignupGoing>
+            <SignupGoing>{faces}</SignupGoing>
           </>
         )}
       </div>

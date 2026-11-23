@@ -707,7 +707,8 @@ The marches' pages (`app/(march)/demonstrations/`) are a sub-site in the
 site's style, with a few looks of its own (`docs/style-guide.md`, "The
 briefings and the march"). Each march has a page, named for its month: the
 next march's is the sign-up, and a past march's a record of it, the same
-sections without the count, the day's details or the form. Each march's
+sections with how many registered in the end, and without the day's
+details or the form. Each march's
 facts are in `lib/content/march.ts`, where `march` is the next one, which
 `/march` leads to. The sub-site follows the rules above, with these
 exceptions:

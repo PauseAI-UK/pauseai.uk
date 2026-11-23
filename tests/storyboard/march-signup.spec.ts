@@ -255,7 +255,7 @@ test("Seeing all the details", { tag: "@phone" }, async ({ page }) => {
 
 test("A march that's over", { tag: "@phone" }, async ({ page }) => {
   story(
-    "Someone follows an old link to the march of November 2026. Its page is still there, as a record: when it was and its route, why we marched and what we want, with no count of who's registered and no form.",
+    "Someone follows an old link to the march of November 2026. Its page is still there, as a record: when it was and its route, how many registered, why we marched and what we want, with no form.",
   );
   await page.goto(`${BASE}${novemberMarch.path}`);
   await hydrated(page);
@@ -265,6 +265,8 @@ test("A march that's over", { tag: "@phone" }, async ({ page }) => {
   await expect(hero.getByText(novemberMarch.dateLong)).toBeVisible();
   await expect(hero.getByText(novemberMarch.route!.end.name)).toBeVisible();
   await expect(page.locator("form")).toHaveCount(0);
+  // The fixture event's approved guests, under the hero's button, not as an invitation to join them.
+  await expect(hero.locator("strong")).toHaveText("1,234");
   await expect(page.getByText(/already registered/)).toHaveCount(0);
   await allMarked(page, 5);
   await frame(page, "The page of a march that's over");

@@ -1,5 +1,6 @@
 import JsonLd from "@/components/layout/JsonLd";
 import { marchEventJsonLd, novemberMarch } from "@/lib/content/march";
+import { getNovemberMarchGuests, getNovemberMarchSignupCount } from "@/lib/events/march.server";
 import { pageMetadata } from "@/lib/metadata";
 import MarchOver from "../_components/MarchOver";
 import SignupCase from "../_components/SignupCase";
@@ -22,12 +23,14 @@ export const metadata = pageMetadata({
 });
 
 // The march of November 2026, as a record now it's over: the sign-up's
-// page without its count, the day's details or the form.
-export default function NovemberMarchPage() {
+// page with how many registered in the end, and without the day's details
+// or the form.
+export default async function NovemberMarchPage() {
+  const [registered, guests] = await Promise.all([getNovemberMarchSignupCount(), getNovemberMarchGuests()]);
   return (
     <main id="main">
       <JsonLd data={marchEventJsonLd(novemberMarch)} />
-      <SignupHero march={novemberMarch} past />
+      <SignupHero march={novemberMarch} past registered={registered} guests={guests} />
       <SignupCase past />
       <SignupDemand />
       <SignupTurnout past />

@@ -6,7 +6,7 @@ Size: M. Kind: architecture.
 
 Adding the next march takes the same edit in many places, because each march's sign-up is a form of its own, named for its month (`march-2026-11`, `march-2027-04`), and the form's name is listed by hand wherever forms are:
 
-- the `form_entries` check and `day_texts`, in a migration;
+- the `form_entries` check, in a migration;
 - `EntryForm`, `SUPPORTER_SOURCES` and `MARCH_SOURCES`;
 - five maps of words by form, in `lib/content/email-settings.ts` and `lib/supporters/copy.ts`;
 - `MARCH_EVENT_ID` and `MARCH_FORM` in `lib/events/march.server.ts`;

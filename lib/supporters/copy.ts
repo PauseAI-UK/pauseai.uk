@@ -151,7 +151,7 @@ export const supportersCopy = {
           member: (when: string) => `A member of the UK chapter in CiviCRM, since ${when}`,
           subscribed: (when: string) => `On volunteer list in CiviCRM, ${when}`,
           following: (when: string) => `Follows the Luma calendar, since ${when}`,
-          "gave-number": (when: string, source: string) => `Gave it on ${source} for texts on the day, ${when}`,
+          "gave-number": (when: string, source: string) => `⁂ Gave it on ${source} for texts about events, ${when}`,
           // From CiviCRM, a number given when joining; from the preferences page, volunteering chosen there.
           volunteered: (when: string, source: string) =>
             source === "CiviCRM"
@@ -170,7 +170,6 @@ export const supportersCopy = {
           "not-volunteer": (when: string) => `Gave it when joining, not as a volunteer, ${when}`,
           "not-following": () => "Not a follower of the Luma calendar",
           left: (when: string, source: string) => `No longer shared with us by ${source}, ${when}`,
-          ended: (_when: string, source: string) => `Gave it on ${source} for texts on the day, which is over`,
         } as Record<Reason, (when: string, source: string, topic?: Topic) => string>,
         // Where an answer came from, by its source: a form, Luma, its webhook or its list of the calendar's
         // contacts, or CiviCRM.

@@ -13,6 +13,7 @@ import SignupDemand from "@/app/(march)/demonstrations/_components/SignupDemand"
 import SignupGoing from "@/app/(march)/demonstrations/_components/SignupGoing";
 import SignupHero from "@/app/(march)/demonstrations/_components/SignupHero";
 import SignupPhotos from "@/app/(march)/demonstrations/_components/SignupPhotos";
+import SignupRegistered from "@/app/(march)/demonstrations/_components/SignupRegistered";
 import SignupTurnout from "@/app/(march)/demonstrations/_components/SignupTurnout";
 import { march, novemberMarch } from "@/lib/content/march";
 import type { Group } from "../_components/types";
@@ -49,8 +50,23 @@ export const marchSignup: Group = {
         },
         { label: "When Luma can't say how many", render: () => inFrame(<SignupHero march={march} />) },
         {
-          label: "A past march, with its route and the way to the next march",
-          render: () => inFrame(<SignupHero march={novemberMarch} past />),
+          label: "A past march, with its route, the way to the next march and how many registered",
+          render: () => inFrame(<SignupHero march={novemberMarch} past registered={1234} />),
+        },
+      ],
+    },
+    {
+      name: "SignupRegistered",
+      file: "app/(march)/demonstrations/_components/SignupRegistered.tsx",
+      variants: [
+        {
+          label: "How many registered for a past march, as under its hero's button",
+          render: () =>
+            inFrame(
+              <div style={{ padding: 24, background: "var(--text)", color: "var(--white)" }}>
+                <SignupRegistered count={1234} />
+              </div>,
+            ),
         },
       ],
     },

@@ -34,7 +34,25 @@ export function getMarchSignupCount(): Promise<number | null> {
   return getEventGuestCount(MARCH_EVENT_ID);
 }
 
-/** The guests Luma features for the march, as its page on luma.com shows them: none when Luma can't say. */
-export async function getMarchGuests(): Promise<FeaturedGuest[]> {
-  return (await getEventGoing(MARCH_EVENT_ID))?.guests ?? [];
+/** The guests Luma features for an event, as its page on luma.com shows them: none when Luma can't say. */
+async function featuredGuests(event: string): Promise<FeaturedGuest[]> {
+  return (await getEventGoing(event))?.guests ?? [];
+}
+
+/** The guests Luma features for the march. */
+export function getMarchGuests(): Promise<FeaturedGuest[]> {
+  return featuredGuests(MARCH_EVENT_ID);
+}
+
+/** The Luma event of the march of 21 November 2026 (https://luma.com/pauseai-nov26), for its page, a record of it. */
+const NOVEMBER_MARCH_EVENT_ID = "evt-1HKCXSHaJqGO3Bg";
+
+/** How many registered for the November 2026 march, as getEventGuestCount counts them. */
+export function getNovemberMarchSignupCount(): Promise<number | null> {
+  return getEventGuestCount(NOVEMBER_MARCH_EVENT_ID);
+}
+
+/** The guests Luma features for the November 2026 march. */
+export function getNovemberMarchGuests(): Promise<FeaturedGuest[]> {
+  return featuredGuests(NOVEMBER_MARCH_EVENT_ID);
 }

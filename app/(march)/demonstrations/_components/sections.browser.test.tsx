@@ -56,10 +56,12 @@ describe("the sign-up's sections", () => {
     await expect.element(page.getByText(/All Souls' Place/)).toBeVisible();
   });
 
-  it("has a past march's hero lead to the next march, with no form to go to or count", async () => {
-    await render(
-      <MarchSignups signups={1234}>
-        <SignupHero march={novemberMarch} past />
+  it("has a past march's hero lead to the next march, with how many registered and their faces", async () => {
+    const guests = ["Jane Smith", "Sam Jones", "Alex Brown", "Kim Lee"].map((name) => ({ name, avatar: null }));
+    const { container } = await render(
+      // The sign-up's count around it isn't the past march's, so the hero doesn't show it.
+      <MarchSignups signups={99}>
+        <SignupHero march={novemberMarch} past registered={1234} guests={guests} />
       </MarchSignups>,
     );
     await expect.element(page.getByRole("heading", { level: 1, name: "March Against AI Extinction" })).toBeVisible();
@@ -67,6 +69,14 @@ describe("the sign-up's sections", () => {
     expect(links).toHaveLength(1);
     await expect.element(links[0]).toHaveAttribute("href", march.path);
     expect(page.getByText(/already registered/).query()).toBeNull();
+    const going = container.querySelector(`.${m("hero-going")}`)!;
+    expect(going.querySelector("strong")!.textContent).toBe("1,234");
+    expect(going.querySelectorAll("li")).toHaveLength(3);
+  });
+
+  it("says nothing of how many registered for a past march when Luma can't say", async () => {
+    const { container } = await render(<SignupHero march={novemberMarch} past />);
+    expect(container.querySelector(`.${m("hero-going")}`)).toBeNull();
   });
 
   it("says how many have registered under the buttons, with the first three faces", async () => {

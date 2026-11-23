@@ -466,7 +466,7 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
 
   await marta.getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Marta Marcher");
-  // Her number, without the country code, a yes for texts on the march's day and, as she agreed, after.
+  // Her number, without the country code, a yes for texts about events and, as she ticked the box, Updates.
   await expect(page.getByText("07700 900123", { exact: false }).first()).toBeVisible();
   await openEverything(page);
   await expect(page.getByText("LS1 1AA", { exact: true })).toBeVisible();

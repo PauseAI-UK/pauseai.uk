@@ -909,7 +909,7 @@ that drives it or why nothing does.
   - the address bar saying which events are shown, and a link to a local group's events or the online ones.
 - `march-signup.spec.ts`: The march sign-up:
   - the next march's page under the site's header, its marker-pen marks drawn;
-  - the page of a march that's over, without the count or the form, leading to the next march's;
+  - the page of a march that's over, with how many registered and without the form, leading to the next march's;
   - how many have registered, in the hero and the form, asked for again on coming back to the page;
   - the hero's words near the window's edge 1920px wide, and in line with the header and the page below wider than that;
   - registering, Luma failing, and an email or a phone number the server won't take;
