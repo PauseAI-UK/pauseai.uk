@@ -288,7 +288,7 @@ test("A march that's over", { tag: "@phone" }, async ({ page }) => {
   await expect(hero.getByText(novemberMarch.route!.end.name)).toBeVisible();
   await expect(page.locator("form")).toHaveCount(0);
   // The fixture event's approved guests, under the hero's button, not as an invitation to join them.
-  await expect(hero.locator("strong")).toHaveText("1,234");
+  await expect(hero.getByText("people registered")).toContainText("1,234");
   await expect(page.getByText(/already registered/)).toHaveCount(0);
   await allMarked(page, 5);
   await frame(page, "The page of a march that's over");

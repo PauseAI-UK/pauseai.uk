@@ -13,7 +13,7 @@ const EARLIER: Step[] = [
 /* The November 2026 march's. */
 const NOVEMBER: Step = {
   date: novemberMarch.dateWritten,
-  figure: "1,500",
+  figure: "1,300",
   note: "Our biggest march so far",
 };
 
