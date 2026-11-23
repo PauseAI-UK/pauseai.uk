@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react";
 import ExternalLink from "../ui/ExternalLink";
 import StaffLink from "../ui/StaffLink";
+import HelpButton from "../ui/HelpButton";
 import {
   LIST_TOPICS,
   lumaOnly,
@@ -16,7 +17,6 @@ import { staffDate } from "@/lib/staff-time";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import Tag from "@/components/ui/Tag";
 import { BubbleBox } from "@/components/ui/Bubble";
-import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import styles from "./PermissionTiles.module.css";
 import { supportersCopy } from "./copy";
 
@@ -77,14 +77,9 @@ export function ListHelp({ list }: { list: List }) {
   const id = `list-help-${useId()}`;
   return (
     <>
-      <button
-        type="button"
-        className={styles.help}
-        aria-label={copy.listHelp(supportersCopy.supporters.filters.lists[list])}
-        {...bubbleTrigger(id)}
-      >
+      <HelpButton bubble={id} name={copy.listHelp(supportersCopy.supporters.filters.lists[list])}>
         ?
-      </button>
+      </HelpButton>
       <BubbleBox id={id} className={styles.popover}>
         <ListDetails list={list} />
       </BubbleBox>
@@ -198,9 +193,9 @@ function ListRow({ list, permissions }: { list: List; permissions: ContactPermis
     <li className={styles.item}>
       <span className={styles.head}>
         <span className={styles.topic}>{personListName(list)}</span>
-        <button type="button" className={styles.help} aria-label={copy.why} {...bubbleTrigger(id)}>
+        <HelpButton bubble={id} name={copy.why}>
           ?
-        </button>
+        </HelpButton>
       </span>
       {lines(permissions).map(({ permission, both }) => (
         <span key={`${permission.way}-${permission.address}`} className={styles.answer} data-send={permission.send}>
@@ -242,9 +237,9 @@ function LumaRow({ answers }: { answers: ContactPermission[] }) {
     <li className={styles.item}>
       <span className={styles.head}>
         <span className={styles.topic}>{copy.luma.name}</span>
-        <button type="button" className={styles.help} aria-label={copy.why} {...bubbleTrigger(id)}>
+        <HelpButton bubble={id} name={copy.why}>
           ?
-        </button>
+        </HelpButton>
       </span>
       {answers.map((answer) => (
         <span key={answer.address} className={styles.answer} data-send={answer.send}>

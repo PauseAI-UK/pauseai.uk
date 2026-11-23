@@ -122,7 +122,7 @@ function addTemplates(database: string) {
 }
 
 /**
- * A broadcast that went, as sending leaves one: to everyone who said yes, the
+ * A broadcast that went, as sending leaves one: to everyone on the list, the
  * first delivered and read and answered, the next failed, the next skipped as
  * they'd stopped. Returns its ID and the first's copy.
  */
@@ -171,25 +171,25 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   await page.getByRole("link", { name: copy.newBroadcast }).click();
   await expect(page).toHaveURL(`${BASE}/staff/broadcasts/new`);
   const channel = page.getByRole("radiogroup", { name: copy.consentChannel });
-  const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
-  await expect(saidYes).toHaveCount(0);
+  const lists = page.getByRole("group", { name: copy.facts.list });
+  await expect(lists).toHaveCount(0);
   await frame(page, "New broadcast, email or text to choose");
   story("Text shows the lists by text, and the greyed writer below becomes a text's.");
   await channel.getByRole("radio", { name: copy.channels.text }).click();
-  await expect(saidYes.getByRole("radio")).toHaveCount(3);
+  await expect(lists.getByRole("radio")).toHaveCount(3);
   await frame(page, "The lists by text, and a text's writer");
   story("Email does the same by email.");
   await channel.getByRole("radio", { name: copy.channels.email }).click();
-  await expect(saidYes.getByRole("radio")).toHaveCount(3);
+  await expect(lists.getByRole("radio")).toHaveCount(3);
   await frame(page, "The lists by email, and an email's writer");
-  story("Choosing one makes the draft, to everyone who said yes. Change who can narrow them, but needn't.");
-  await saidYes
+  story("Choosing one makes the draft, to everyone on the list. Change who can narrow them, but needn't.");
+  await lists
     .getByRole("radio", { name: supportersCopy.supporters.filters.lists["updates-luma"], exact: true })
     .click();
   await expect(page).toHaveURL(/\/staff\/broadcasts\/\d+$/);
-  await expect(page.getByText(copy.everyoneWhoSaidYes, { exact: true })).toBeVisible();
+  await expect(page.getByText(copy.everyoneOnList, { exact: true })).toBeVisible();
   await expect(page.getByText(copy.willGet(EMAILABLE, "email"))).toBeVisible();
-  await frame(page, "The new email, to everyone who said yes");
+  await frame(page, "The new email, to everyone on the list");
   story(
     "With nothing written yet, Text shows a text's form instead, greyed till a Consent by text is chosen. Email goes back to the draft as it was.",
   );
@@ -201,9 +201,9 @@ test("New broadcast, from the Broadcasts page", async ({ page, request, flowData
   story(
     "Its Consent can change while it's a draft, but, once it has words, only by email. Another list takes the place of the one it had.",
   );
-  await saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }).click();
+  await lists.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }).click();
   await expect(
-    saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }),
+    lists.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true }),
   ).toBeChecked();
   await frame(page, "To Updates in place of including Luma");
   story("What's written after the change is saved, as anything written is.");
@@ -730,18 +730,18 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
 
 test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }) => {
   story(
-    "A supporter reacts to a text with a thumbs up. WhatsApp's webhook says which message it's to and the emoji, so it shows on the text's page as a reply, for staff to check as any other.",
+    "A supporter reacts to a text with a thumbs up. WhatsApp's webhook says which message it's to and the emoji, so it shows on our text, as WhatsApp shows it, and in the thread as a reply, for staff to check as any other.",
   );
   const sent = await textSent(request, flowDatabase);
   await postWhatsAppWebhook(request, BASE, reactionFrom(sent.number, "wamid.flow-reaction", sent.wamid, "👍"));
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
-  await expect(page.getByText("👍")).toBeVisible();
-  await frame(page, "The reaction, as a bubble");
-  story("They take the reaction back, which WhatsApp tells us too. The bubble stays, saying so.");
+  await expect(page.getByText(copy.replies.historyTheyReacted("👍"), { exact: true })).toBeVisible();
+  await frame(page, "Their thumbs up, on our text");
+  story("They take the reaction back, which WhatsApp tells us too. It leaves our text, and the thread says so.");
   await postWhatsAppWebhook(request, BASE, reactionFrom(sent.number, "wamid.flow-unreact", sent.wamid, undefined, 2));
   await page.goto(page.url());
-  await expect(page.getByText(/Removed reaction/)).toBeVisible();
+  await expect(page.getByText(copy.replies.historyReactionRemoved, { exact: true })).toBeVisible();
   await frame(page, "The reaction, taken back");
   story(
     "Then they send a photo with a caption. The site keeps the caption and says a photo came with it, which it can't show.",
@@ -943,7 +943,7 @@ test("A number WhatsApp can't reach", async ({ page, request, flowDatabase }) =>
 
 test("Changing who a broadcast goes to", async ({ page, request, flowDatabase }) => {
   story(
-    "On a draft to everyone who said yes, Narrow down opens the supporters list choosing for it: the dark strip at the top naming the draft, and the dark bar at the foot.",
+    "On a draft to everyone on the list, Narrow down opens the supporters list choosing for it: the dark strip at the top naming the draft, and the dark bar at the foot.",
   );
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
@@ -1451,9 +1451,9 @@ test("What the lists mean, and a change waiting on the site", async ({ page, req
   await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await startFromList(page, EMAIL, EMAILABLE);
-  const saidYes = page.getByRole("group", { name: copy.facts.saidYes });
+  const lists = page.getByRole("group", { name: copy.facts.list });
   const bubble = await openBubble(
-    saidYes.getByRole("button", {
+    lists.getByRole("button", {
       name: supportersCopy.supporters.detail.permissions.listHelp(supportersCopy.supporters.filters.lists.updates),
     }),
   );
@@ -1465,7 +1465,7 @@ test("What the lists mean, and a change waiting on the site", async ({ page, req
   );
   // The site's answer held back, so the wait stays to be seen.
   const actions = await holdActions(page);
-  const volunteering = saidYes.getByRole("radio", {
+  const volunteering = lists.getByRole("radio", {
     name: supportersCopy.supporters.filters.lists.volunteering,
     exact: true,
   });
@@ -1488,7 +1488,7 @@ test("What the lists mean, and a change waiting on the site", async ({ page, req
     .click();
   await expect(page.getByText(copy.problems["no-consent"])).toBeVisible();
   const held = await holdActions(page);
-  const byText = saidYes.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true });
+  const byText = lists.getByRole("radio", { name: supportersCopy.supporters.filters.lists.updates, exact: true });
   await byText.click();
   await expect(byText).toBeChecked();
   await expect(calculating).toBeVisible();

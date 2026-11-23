@@ -93,7 +93,7 @@ describe("BroadcastWriter's Consent", () => {
       [copy.channels.email, true, false],
       [copy.channels.text, false, true],
     ]);
-    expect(radios(copy.facts.saidYes)).toEqual([
+    expect(radios(copy.facts.list)).toEqual([
       [lists.updates, true, false],
       [lists["updates-luma"], false, false],
       [lists.volunteering, false, false],
@@ -111,8 +111,8 @@ describe("BroadcastWriter's Consent", () => {
 
   it("swaps its list for another, but not for the one it has", async () => {
     const actions = await renderWriter();
-    await choose(copy.facts.saidYes, lists.updates);
-    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await choose(copy.facts.list, lists.updates);
+    await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, LUMA), WAIT);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
   });
@@ -128,8 +128,8 @@ describe("BroadcastWriter's Consent", () => {
         },
       },
     });
-    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([false, false, false]);
-    await choose(copy.facts.saidYes, lists.volunteering);
+    expect(radios(copy.facts.list).map(([, on]) => on)).toEqual([false, false, false]);
+    await choose(copy.facts.list, lists.volunteering);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, "email:volunteering:yes"), WAIT);
   });
 
@@ -138,26 +138,26 @@ describe("BroadcastWriter's Consent", () => {
     await choose(copy.consentChannel, copy.channels.text);
     await vi.waitFor(
       () =>
-        expect(radios(copy.facts.saidYes).map(([name]) => name)).toEqual([
+        expect(radios(copy.facts.list).map(([name]) => name)).toEqual([
           lists.updates,
           lists["updates-luma"],
           lists.volunteering,
         ]),
       WAIT,
     );
-    expect(radios(copy.facts.saidYes).every(([, checked, disabled]) => !checked && !disabled)).toBe(true);
+    expect(radios(copy.facts.list).every(([, checked, disabled]) => !checked && !disabled)).toBe(true);
     expect(actions.changeConsent).not.toHaveBeenCalled();
   });
 
   it("changes the Consent, whose action brings the page back, so it isn't fetched again", async () => {
     const actions = await renderWriter();
     const refreshes = navigation.refreshes;
-    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, LUMA), WAIT);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
     // Refused, nothing changes either.
     actions.changeConsent.mockResolvedValue(false);
-    await choose(copy.facts.saidYes, lists.volunteering);
+    await choose(copy.facts.list, lists.volunteering);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledTimes(2), WAIT);
     expect(navigation.refreshes).toBe(refreshes);
   });
@@ -170,7 +170,7 @@ describe("BroadcastWriter's Consent", () => {
     actions.save.mockImplementation(async (_id, at) =>
       at === version ? { saved: true, version: ++version } : { saved: false, reason: "conflict" },
     );
-    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalled(), WAIT);
     await page.getByLabelText(copy.subject).fill("After the change");
     await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.saved), WAIT).toBeInTheDocument();
@@ -191,7 +191,7 @@ describe("BroadcastWriter's Consent", () => {
     actions.save.mockImplementation((_id, at) =>
       inTurn(() => (at === version ? { saved: true, version: ++version } : { saved: false, reason: "conflict" })),
     );
-    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalled(), WAIT);
     await page.getByLabelText(copy.subject).fill("While it changes");
     // Longer than a change waits to be saved.
@@ -203,34 +203,39 @@ describe("BroadcastWriter's Consent", () => {
     expect(page.getByText(mailingsCopy.mailingPages.saveStates.conflict).query()).toBeNull();
   });
 
-  it("shows the list pressed as chosen at once, and Calculating by the title, the count faint and Schedule off, till its change is done", async () => {
+  it("shows the list pressed as chosen at once, and Calculating by the title, a spinner in place of the count and Schedule off, till its change is done", async () => {
     let done = () => {};
     const slow = () => new Promise((resolve) => (done = () => resolve(5)));
     const chosen = () =>
-      radios(copy.facts.saidYes)
+      radios(copy.facts.list)
         .filter(([, on]) => on)
         .map(([name]) => name);
     const calculating = () => page.getByText(mailingsCopy.mailingPages.savePill.calculating).query();
-    const count = () => page.getByText(copy.willGet(412, "email")).element();
+    const count = () => page.getByText(copy.willGet(412, "email")).query();
+    const counting = () => page.getByText(copy.counting).query();
     const actions = await renderWriter();
     actions.changeConsent.mockImplementation(slow);
     expect(chosen()).toEqual([lists.updates]);
     expect(calculating()).toBeNull();
-    expect(count().hasAttribute("aria-busy")).toBe(false);
+    expect(counting()).toBeNull();
+    expect(count()).not.toBeNull();
     await expect.element(button(copy.schedule(412, "email"))).toBeEnabled();
-    await choose(copy.facts.saidYes, lists.volunteering);
+    await choose(copy.facts.list, lists.volunteering);
     await vi.waitFor(() => expect(chosen()).toEqual([lists.volunteering]), WAIT);
     await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.calculating)).toBeVisible();
-    expect(count().hasAttribute("aria-busy")).toBe(true);
+    // Not the count from before, which would mislead, but that it's being worked out.
+    expect(count()).toBeNull();
+    expect(counting()!.closest("[aria-busy=true]")).not.toBeNull();
     await expect.element(button(copy.schedule(412, "email"))).toBeDisabled();
     // Another press waits for this one.
-    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await choose(copy.facts.list, lists["updates-luma"]);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
     done();
     // The page the action brings back has the draft's new list; here it's still the old, so that shows again.
     await vi.waitFor(() => expect(calculating()).toBeNull(), WAIT);
     expect(chosen()).toEqual([lists.updates]);
-    expect(count().hasAttribute("aria-busy")).toBe(false);
+    expect(counting()).toBeNull();
+    expect(count()!.closest("[aria-busy]")).toBeNull();
     await expect.element(button(copy.schedule(412, "email"))).toBeEnabled();
   });
 
@@ -262,12 +267,12 @@ describe("BroadcastWriter's Consent", () => {
     // The list picked there is chosen at once, the form still greyed, with Calculating, and no call for a Consent.
     let done = () => {};
     actions.changeConsent.mockImplementation(() => new Promise((resolve) => (done = () => resolve(5))));
-    await choose(copy.facts.saidYes, lists["updates-luma"]);
+    await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(
       () => expect(actions.changeConsent).toHaveBeenCalledWith(3, "text:newsletter:yes text:events:yes"),
       WAIT,
     );
-    expect(radios(copy.facts.saidYes).map(([, on]) => on)).toEqual([false, true, false]);
+    expect(radios(copy.facts.list).map(([, on]) => on)).toEqual([false, true, false]);
     await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.calculating)).toBeVisible();
     expect(page.getByText(copy.problems["no-consent"]).query()).toBeNull();
     expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
@@ -305,7 +310,7 @@ describe("BroadcastWriter's Consent", () => {
       />,
     );
     expect(radios(copy.consentChannel).every(([, checked, disabled]) => !checked && !disabled)).toBe(true);
-    expect(group(copy.facts.saidYes).query()).toBeNull();
+    expect(group(copy.facts.list).query()).toBeNull();
     expect(page.getByText("Who").element().closest("[inert]")).not.toBeNull();
     expect(
       page
@@ -322,7 +327,7 @@ describe("BroadcastWriter's Consent", () => {
     await choose(copy.consentChannel, copy.channels.text);
     await vi.waitFor(() => expect(subject()).toBeNull(), WAIT);
     expect(radios(copy.consentChannel)[1]).toEqual([copy.channels.text, true, false]);
-    await choose(copy.facts.saidYes, lists.volunteering);
+    await choose(copy.facts.list, lists.volunteering);
     await vi.waitFor(() => expect(actions.create).toHaveBeenCalledWith("text:volunteering:yes"), WAIT);
     expect(actions.save).not.toHaveBeenCalled();
   });

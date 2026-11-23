@@ -1,0 +1,8 @@
+/* What it opens: a question and a few lines, wider than a bubble's few words. */
+.bubble {
+  --bubble-width: 20rem;
+}
+
+.words {
+  margin: var(--space-1) 0 0;
+}

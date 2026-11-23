@@ -29,7 +29,7 @@ export function BroadcastContact({ params }: { params: Params }) {
 /** Who else a broadcast is to, as pills that can't be changed here: the list's filters but Consent, which BroadcastContact says. */
 export function BroadcastWho({ params, choices }: { params: Params; choices: SupporterChoices }) {
   const pills = othersThanConsent(params, choices);
-  if (pills.length === 0) return <Muted>{broadcastsCopy.broadcastPages.everyoneWhoSaidYes}</Muted>;
+  if (pills.length === 0) return <Muted>{broadcastsCopy.broadcastPages.everyoneOnList}</Muted>;
   return <Pills pills={pills} label={mailingsCopy.mailingPages.whoLabel} />;
 }
 

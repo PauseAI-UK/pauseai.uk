@@ -79,24 +79,22 @@ export function fromLondon(day: string, hour: number, minute = 0): Date {
 }
 
 /**
- * When the sending runs, in UTC: at these minutes past each hour, from the
- * first hour to the end of the day (netlify/functions/send-mailings, whose
- * test checks its schedule says the same). London's hours start when UTC's
- * do, so its runs are at the same minutes.
+ * When the sending runs: at these minutes past every hour, all night too
+ * (netlify/functions/send-mailings, whose test checks its schedule says the
+ * same). London's hours start when UTC's do, so its runs are at the same
+ * minutes.
  */
-export const SENDING = { minutes: [3, 18, 33, 48], firstHour: 6 } as const;
+export const SENDING = { minutes: [3, 18, 33, 48] } as const;
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
-/** The moment a mailing due at `at` goes: the first run of the sending at or after it, or overnight the day's first. */
+/** The moment a mailing due at `at` goes: the first run of the sending at or after it. */
 export function sendsAt(at: Date): Date {
   const time = new Date(at).getTime();
   const hour = Math.floor(time / HOUR) * HOUR;
   const minute = SENDING.minutes.find((m) => hour + m * MINUTE >= time);
-  const sends = new Date(minute === undefined ? hour + HOUR + SENDING.minutes[0] * MINUTE : hour + minute * MINUTE);
-  if (sends.getUTCHours() < SENDING.firstHour) sends.setUTCHours(SENDING.firstHour, SENDING.minutes[0]);
-  return sends;
+  return new Date(minute === undefined ? hour + HOUR + SENDING.minutes[0] * MINUTE : hour + minute * MINUTE);
 }
 
 /** When a mailing due at `at` goes, in London: "Thursday 30 October at 09:18", or `short`, "Thu 30 Oct at 09:18". */

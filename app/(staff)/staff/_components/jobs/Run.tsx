@@ -17,7 +17,7 @@ import { importChangeCount } from "@/lib/politicians/import-changes";
 import RunBox from "./RunBox";
 import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
-import ExternalLink from "../ui/ExternalLink";
+import OpenInGmail from "../ui/OpenInGmail";
 import { politiciansCopy } from "../politicians/copy";
 import { lettersCopy } from "../letters/copy";
 import { jobsCopy } from "./copy";
@@ -278,9 +278,7 @@ function GmailRun({ run, open, variant }: { run: GmailReading; open?: boolean; v
                   {a.notUnderstood.map((m) => (
                     <li key={m.gmailMessageId}>
                       {m.from}, &ldquo;{m.subject}&rdquo;: {inbox.reasons[m.reason]}.{" "}
-                      <ExternalLink href={gmailMessageLink(a.account, m.gmailMessageId)}>
-                        {inbox.openInGmail}
-                      </ExternalLink>
+                      <OpenInGmail href={gmailMessageLink(a.account, m.gmailMessageId)} account={a.account} />
                     </li>
                   ))}
                 </ul>

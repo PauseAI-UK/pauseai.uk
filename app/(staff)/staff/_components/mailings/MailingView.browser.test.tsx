@@ -193,7 +193,7 @@ describe("MailingView", () => {
       ]);
   });
 
-  it("Change the time starts one due overnight, or on the hour, at the run it goes on", async () => {
+  it("Change the time starts one due on the hour at the run it goes on, overnight too", async () => {
     vi.useFakeTimers({ now: new Date("2026-12-01T08:58:00Z"), toFake: ["Date", "setInterval", "clearInterval"] });
     onTestFinished(() => void vi.useRealTimers());
     await view({
@@ -201,8 +201,17 @@ describe("MailingView", () => {
       reschedule: async () => {},
     });
     await page.getByRole("button", { name: copy.changeTime }).click();
-    await expect.element(page.getByRole("combobox", { name: copy.hour })).toHaveValue("6");
+    const hour = page.getByRole("combobox", { name: copy.hour });
+    await expect.element(hour).toHaveValue("3");
     await expect.element(page.getByRole("combobox", { name: copy.minutes })).toHaveValue("3");
+    // Its hour, outside the day's, is offered, before them.
+    expect(
+      hour
+        .getByRole("option")
+        .all()
+        .slice(0, 2)
+        .map((one) => one.element().textContent),
+    ).toEqual(["03", "06"]);
   });
 
   it("Change the time never offers a time too soon: it starts at the first it can go, and moves on as time passes", async () => {
@@ -216,8 +225,12 @@ describe("MailingView", () => {
     const hour = page.getByRole("combobox", { name: copy.hour });
     const minute = page.getByRole("combobox", { name: copy.minutes });
     const option = (name: string) => page.getByRole("option", { name, exact: true });
-    // The hours the sending runs in: overnight ones aren't offered. The minutes are its runs.
-    expect(hour.getByRole("option").all()[0].element().textContent).toBe("06");
+    // The day's hours, 06 to 23, all year. The minutes are the sending's runs.
+    const hours = hour
+      .getByRole("option")
+      .all()
+      .map((one) => one.element().textContent);
+    expect([hours[0], hours.at(-1), hours.length]).toEqual(["06", "23", 18]);
     expect(
       minute
         .getByRole("option")

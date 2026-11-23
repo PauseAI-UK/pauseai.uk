@@ -121,6 +121,8 @@ test("Links to events", async ({ page }) => {
   await expect(nearButton(page, copy.nearShort("Oxford"))).toHaveAttribute("aria-pressed", "true");
   await expect(events(page).getByText("AI risk talk")).toBeVisible();
   await expect(events(page).getByText("PauseAI London: Protest at Parliament")).toHaveCount(0);
+  // The browser scrolls to #events once the page has loaded, which can be after it's hydrated: the frame waits for it.
+  await expect(events(page)).toBeInViewport();
   await frame(page, "From a link to Oxford's events");
   story("A link to the online events opens with Online chosen.");
 

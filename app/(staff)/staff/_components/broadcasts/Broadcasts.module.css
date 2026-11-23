@@ -399,12 +399,6 @@
   flex: none;
 }
 
-/* Its "?", the kit's round button, a little smaller than its default. */
-.why {
-  --icon-button-size: 24px;
-  font-weight: 700;
-}
-
 /* What it opens: a paragraph to read, so wider than a bubble's few words. */
 .whyBubble {
   --bubble-width: 28rem;
@@ -417,4 +411,32 @@
 
 .whyWords + .whyWords {
   margin-top: var(--space-2);
+}
+
+/* A draft's count while who it goes to is worked out afresh: a spinner, as a pending button's (Button.module.css),
+   centred on the words' lowercase letters (IconText), then why. */
+.counting {
+  color: var(--text-secondary);
+}
+
+.spinner {
+  display: block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
 }

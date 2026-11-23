@@ -6,7 +6,7 @@ import type { OneOffMessage, OneOffThread } from "@/lib/letters/one-off-emails.s
 import { MessageText, Thread } from "./LetterThread";
 import ThreadEmail from "./ThreadEmail";
 import Empty from "../ui/Empty";
-import ExternalLink from "../ui/ExternalLink";
+import OpenInGmail from "../ui/OpenInGmail";
 import Grid, { Card, spanClass } from "../ui/Grid";
 import PageHead from "../ui/PageHead";
 import StaffLink from "../ui/StaffLink";
@@ -106,9 +106,7 @@ export default function OneOffThreadView({ thread }: { thread: OneOffThread }) {
             <Thread
               title={copy.thread}
               link={
-                <ExternalLink href={gmailLinkOf(thread.messages_.at(-1)!)}>
-                  {lettersCopy.lettersInbox.openInGmail}
-                </ExternalLink>
+                <OpenInGmail href={gmailLinkOf(thread.messages_.at(-1)!)} account={thread.messages_.at(-1)!.account} />
               }
             >
               {thread.messages_.map((message) => (

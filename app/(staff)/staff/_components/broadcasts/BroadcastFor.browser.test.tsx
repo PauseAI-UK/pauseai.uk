@@ -75,7 +75,7 @@ describe("BroadcastFor", () => {
       filter: { list: "supporters" as const, params: { contact: "email:events:yes" } },
     };
     await render(<BroadcastFor data={{ ...exampleBroadcastSent, written }} actions={actions} />);
-    expect(to().textContent).toContain(copy.everyoneWhoSaidYes);
+    expect(to().textContent).toContain(copy.everyoneOnList);
     expect(to().querySelector("ul")).toBeNull();
   });
 
@@ -100,7 +100,7 @@ describe("BroadcastFor", () => {
     expect(pills.all()).toHaveLength(1);
     await view.unmount();
     await render(<BroadcastWho params={{ contact: "text:events:yes" }} choices={exampleSupporterChoices} />);
-    await expect.element(page.getByText(copy.everyoneWhoSaidYes)).toBeVisible();
+    await expect.element(page.getByText(copy.everyoneOnList)).toBeVisible();
   });
 });
 

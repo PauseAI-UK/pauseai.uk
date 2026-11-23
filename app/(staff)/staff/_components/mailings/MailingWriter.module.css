@@ -20,11 +20,6 @@
   font-size: var(--text-lg);
 }
 
-/* While they're being counted afresh: faint, as it's the count from before. */
-.count[aria-busy="true"] {
-  opacity: 0.45;
-}
-
 /* Who they are, under a warning: opens the list below it, its arrow as a summary's. */
 .whoToggle {
   padding: 0;
@@ -94,28 +89,9 @@
   gap: var(--space-2);
 }
 
+/* Its "?" (HelpButton), lifted by the gap under the select beside it, so their middles are level. */
 .help {
-  display: inline-grid;
-  place-items: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: none;
   margin-bottom: var(--field-gap);
-  padding: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: var(--text-xs);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.help:hover,
-.help:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 .label {

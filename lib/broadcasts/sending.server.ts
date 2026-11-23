@@ -14,7 +14,7 @@ import type { Topic } from "@/lib/supporters/contact-permissions";
 import { checkMailingDoc, type MailingRecipientValues } from "@/lib/mailings/doc";
 import { now } from "@/lib/now";
 import type { StoredFilter } from "@/lib/staff-search";
-import { SENDING, staffTime } from "@/lib/staff-time";
+import { staffTime } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
 import { SEND_AGAIN, TOPICS_OF } from "./drafts.server";
 import { broadcastEmailChannel, textBackend } from "./channels.server";
@@ -271,14 +271,13 @@ async function start(broadcast: Due): Promise<void> {
 }
 
 /**
- * Starts every broadcast that's due, but none overnight, as mailings to
- * politicians: a text only once WhatsApp has approved its template, which
- * it waits for; and only once a CiviCRM pull has completed in the last day, or
- * it waits. One still not started by its finish stops (giveUp): never
- * approved ("approval"), or waiting for CiviCRM ("late"). Returns those it started.
+ * Starts every broadcast that's due, as mailings to politicians: a text
+ * only once WhatsApp has approved its template, which it waits for; and
+ * only once a CiviCRM pull has completed in the last day, or it waits. One
+ * still not started by its finish stops (giveUp): never approved
+ * ("approval"), or waiting for CiviCRM ("late"). Returns those it started.
  */
 export async function startDueBroadcasts(): Promise<number[]> {
-  if (now().getUTCHours() < SENDING.firstHour) return [];
   const due = await query<Due>(
     `SELECT ${DUE_COLUMNS} FROM mailings
      WHERE audience = 'supporters' AND state = 'scheduled' AND due_at <= $1 ORDER BY due_at, id`,
@@ -289,7 +288,7 @@ export async function startDueBroadcasts(): Promise<number[]> {
   for (const broadcast of due) {
     const unapproved = broadcast.templateStatus === "pending";
     if (now() >= sendingStopsAt(broadcast)) {
-      // Overnight at its finish, it never had a run to start in: it ran out of time, as one at a day's limit does.
+      // Past its finish before a run could start it: it ran out of time, as one at a day's limit does.
       await giveUp(broadcast, unapproved ? "approval" : broadcast.waitingSince ? "late" : "limit");
       continue;
     }

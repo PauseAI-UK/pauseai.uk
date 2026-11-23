@@ -44,11 +44,14 @@ describe("SupporterLetterThread", () => {
     await expect.element(page.getByText(copy.supporterNoText)).toBeVisible();
   });
 
-  it("one from the letters inbox: its changes to the draft, then each message both ways, any Cc, with no Gmail", async () => {
+  it("one from the letters inbox: Open in Gmail, its changes to the draft, then each message both ways, any Cc", async () => {
     await render(<SupporterLetterThread letter={exampleProxiedLetterDetails} link={<a href="#gmail">Gmail</a>} />);
-    // Its text is here, so there's no way to it in Gmail.
+    // Its text is here, so there's no search for it in Gmail; it went by Gmail, so it opens there, in the letters inbox.
     await expect.element(page.getByRole("article").first()).toBeVisible();
-    expect(page.getByRole("link", { name: "Gmail" }).all()).toHaveLength(0);
+    expect(page.getByRole("link", { name: "Gmail", exact: true }).all()).toHaveLength(0);
+    await expect
+      .element(page.getByRole("link", { name: lettersCopy.lettersInbox.openInGmail }))
+      .toHaveAttribute("href", gmailMessageLink("fixture-letters@pauseai.uk", "thread-letter-1"));
     const [, reply, answer] = page.getByRole("article").all();
     await expect.element(reply.getByText("Thank you for writing to me.", { exact: false })).toBeVisible();
     // The office's reply is to Jane; her answer, to the MP.

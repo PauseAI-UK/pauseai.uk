@@ -199,7 +199,7 @@ export const supportersCopy = {
         whoIsOn: "Who's on it",
         details: {
           updates: {
-            about: "Everyone who said yes to hearing from PauseAI UK.",
+            about: "Everyone who wants to hear from PauseAI UK.",
             on: [
               "Joined PauseAI in the UK",
               "Emailed their MP",

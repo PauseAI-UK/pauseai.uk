@@ -6,15 +6,7 @@ import DatePicker from "@/components/ui/DatePicker";
 import { Field } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import styles from "./DueTime.module.css";
-import {
-  earliestRun,
-  fromLondon,
-  londonDayTime,
-  notTooSoon,
-  sendsAt,
-  SENDING,
-  type LondonTime,
-} from "@/lib/staff-time";
+import { earliestRun, londonDayTime, notTooSoon, sendsAt, SENDING, type LondonTime } from "@/lib/staff-time";
 import { mailingsCopy } from "./copy";
 
 const copy = mailingsCopy.mailingPages;
@@ -25,20 +17,20 @@ export const CHECK_EVERY = 30_000;
 const twoDigits = (n: number) => String(n).padStart(2, "0");
 
 /**
- * The hours a mailing can be due in on `day`, in London: those the sending
- * runs in, so overnight ones aren't offered. Which those are moves with the
- * clocks.
+ * The hours a mailing can be due in, in London: 06 to 23, as staff send in
+ * the day, though the sending runs all night. `hour`, if it's outside
+ * those, as a time moved on to the first it can go at can be, is offered
+ * too, so the picker shows it.
  */
-function sendingHours(day: string): number[] {
-  return Array.from({ length: 24 }, (_, h) => h).filter(
-    (h) => londonDayTime(sendsAt(fromLondon(day, h, SENDING.minutes[0]))).hour === h,
-  );
+function dayHours(hour: number | null): number[] {
+  const hours = Array.from({ length: 18 }, (_, i) => i + 6);
+  return hour === null || hours.includes(hour) ? hours : [hour, ...hours];
 }
 
 /**
  * When a mailing goes, as its time: the run of the sending a time picks, in
- * London, so one due at a time the sending doesn't run at, on the hour or
- * overnight, shows as the run it goes on.
+ * London, so one due at a time the sending doesn't run at, such as on the
+ * hour, shows as the run it goes on.
  */
 export function dueTime(dueAt: Date): LondonTime {
   return londonDayTime(sendsAt(dueAt));
@@ -98,7 +90,7 @@ export function DueTimeFields({
                 {copy.choose}
               </option>
             )}
-            {sendingHours(day).map((h) => (
+            {dayHours(hour).map((h) => (
               // On the first day it can go, the hours too soon can't be chosen.
               <option key={h} value={h} disabled={firstDay && h < earliest.hour}>
                 {twoDigits(h)}

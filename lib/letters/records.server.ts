@@ -247,6 +247,8 @@ export type SupporterLetterDetails = LetterSummary & {
   sent: { text: string; draft: string | null } | null;
   /** Every message kept of its thread, oldest first, whether or not its own text is. */
   messages: ThreadMessage[];
+  /** The Gmail it went from and its thread there, for one sent by Gmail, to open it in. */
+  inGmail: { account: string; threadId: string } | null;
 };
 
 /** One of PauseAI's letters, for its own page: to whom, at which address now, in which mailing, and what happened. */
@@ -364,31 +366,36 @@ export const getSupporterLetter = cache(async function getSupporterLetter(
 ): Promise<SupporterLetterDetails | undefined> {
   const [letter] = await recentLetters({ letterId: id });
   if (!letter) return undefined;
-  const [{ subject, postmarkId, rfcId, sentBy, mpEmail, campaignAsk, forwards: json, doc, draft }] = await query<{
-    subject: string;
-    postmarkId: string | null;
-    rfcId: string | null;
-    sentBy: string | null;
-    mpEmail: string | null;
-    campaignAsk: string | null;
-    forwards: AsJson<LetterForward>[];
-    doc: unknown;
-    draft: string | null;
-  }>(
-    `SELECT s.subject, c.ask AS "campaignAsk", (SELECT e.message_id FROM email_sends e WHERE e.letter_id = s.id AND e.purpose = 'letter'
+  const [{ subject, postmarkId, rfcId, sentBy, mpEmail, campaignAsk, forwards: json, doc, draft, inGmail }] =
+    await query<{
+      subject: string;
+      postmarkId: string | null;
+      rfcId: string | null;
+      sentBy: string | null;
+      mpEmail: string | null;
+      campaignAsk: string | null;
+      forwards: AsJson<LetterForward>[];
+      doc: unknown;
+      draft: string | null;
+      inGmail: { account: string; threadId: string } | null;
+    }>(
+      `SELECT s.subject, c.ask AS "campaignAsk", (SELECT e.message_id FROM email_sends e WHERE e.letter_id = s.id AND e.purpose = 'letter'
        AND e.outcome = 'sent' ORDER BY e.at DESC, e.id DESC LIMIT 1) AS "postmarkId",
        (SELECT e.rfc_message_id FROM email_sends e WHERE e.letter_id = s.id AND e.purpose = 'letter'
         AND e.outcome = 'sent' ORDER BY e.at DESC, e.id DESC LIMIT 1) AS "rfcId",
        (SELECT e.sender FROM email_sends e WHERE e.letter_id = s.id AND e.purpose = 'letter' AND e.imported
         ORDER BY e.at DESC, e.id DESC LIMIT 1) AS "sentBy",
+       (SELECT json_build_object('account', e.sender, 'threadId', e.gmail_thread_id) FROM email_sends e
+        WHERE e.letter_id = s.id AND e.purpose = 'letter' AND e.outcome = 'sent' AND e.gmail_thread_id IS NOT NULL
+        ORDER BY e.at DESC, e.id DESC LIMIT 1) AS "inGmail",
        s.letter AS doc, s.draft, n.email AS "mpEmail",
        coalesce((SELECT json_agg(json_build_object('at', e.at, 'address', e.address, 'outcome', e.outcome) ORDER BY e.at, e.id)
                  FROM email_sends e WHERE e.letter_id = s.id AND e.purpose = 'forwarded-reply'), '[]') AS forwards
      FROM letters_from_supporters s JOIN letters l USING (id) JOIN notable_people n ON n.id = l.notable_person_id
        JOIN campaigns c ON c.slug = s.campaign
      WHERE s.id = $1`,
-    [id],
-  );
+      [id],
+    );
   const forwards = withDates(json);
   const sentDoc = checkDoc(doc);
   const messages = await threadMessages(id);
@@ -401,10 +408,21 @@ export const getSupporterLetter = cache(async function getSupporterLetter(
       : postmarkId
         ? policyCopy(postmarkId, mpEmail, letter.sentAt)
         : null;
-    return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent, messages };
+    return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent, messages, inGmail };
   }
   const gmail = policyCopy(postmarkId, mpEmail, letter.sentAt);
-  return { ...letter, kind: "supporter", subject, mpEmail, campaignAsk, gmail, forwards, sent: null, messages };
+  return {
+    ...letter,
+    kind: "supporter",
+    subject,
+    mpEmail,
+    campaignAsk,
+    gmail,
+    forwards,
+    sent: null,
+    messages,
+    inGmail,
+  };
 });
 
 /** A letter on an MP's page for staff without `supporters`: what happened to it, and nothing of who wrote it. */

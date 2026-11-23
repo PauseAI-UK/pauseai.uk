@@ -41,6 +41,13 @@ describe("BroadcastTimes' examples in the gallery", () => {
       .toBeVisible();
   });
 
+  it("says the time it stops overnight as it is, as the sending runs all night", async () => {
+    await render(<ChangeTimesFormExample scheduled />);
+    await page.getByRole("combobox", { name: mailingsCopy.mailingPages.hour }).selectOptions("14");
+    await length().selectOptions(copy.finishChoice(720));
+    await expect.element(page.getByText(copy.untilWhen("Sat 16 Jan at 02:18"))).toBeVisible();
+  });
+
   it("changes only how long one sending keeps trying", async () => {
     await render(<ChangeTimesFormExample scheduled={false} />);
     expect(page.getByRole("combobox", { name: mailingsCopy.mailingPages.hour }).elements()).toHaveLength(0);

@@ -83,31 +83,6 @@
   flex: none;
 }
 
-/* The "?", which opens how we know. */
-.help {
-  display: inline-grid;
-  place-items: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: none;
-  padding: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: var(--text-xs);
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.help:hover,
-.help:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 /* The topic's name, what it is, then each "when" under its small label. */
 .topicTitle {
   display: block;

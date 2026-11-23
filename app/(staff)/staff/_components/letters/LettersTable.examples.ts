@@ -62,6 +62,7 @@ export const exampleSupporterLetterDetails: SupporterLetterDetails = {
   forwards: [],
   sent: null,
   messages: [],
+  inGmail: null,
 };
 
 const LETTERS_INBOX = "fixture-letters@pauseai.uk";
@@ -98,6 +99,7 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
   backend: "gmail",
   repliedAt: new Date("2026-10-13T09:00:00Z"),
   gmail: { mailbox: LETTERS_INBOX, search: "rfc822msgid:letter-1@pauseai.uk" },
+  inGmail: { account: LETTERS_INBOX, threadId: "thread-letter-1" },
   events: [
     {
       at: new Date("2026-10-13T10:00:00Z"),

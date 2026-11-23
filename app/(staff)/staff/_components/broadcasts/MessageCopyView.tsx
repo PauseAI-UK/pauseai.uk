@@ -6,6 +6,7 @@ import type { MessageCopy } from "@/lib/broadcasts/pages.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import { phoneWords } from "@/lib/phone";
 import Reply, { type ReplyHandlers } from "./CopyReply";
+import { theirReaction } from "@/lib/broadcasts/reactions";
 import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { MailingLetter } from "../mailings/MailingLetter";
@@ -16,7 +17,7 @@ import { Thread } from "../letters/LetterThread";
 import ThreadEmail from "../letters/ThreadEmail";
 import bubble from "./Broadcasts.module.css";
 import own from "./MessageCopyView.module.css";
-import ExternalLink from "../ui/ExternalLink";
+import GmailLink from "../ui/OpenInGmail";
 import Grid, { Card, Column } from "../ui/Grid";
 import PageHead from "../ui/PageHead";
 import StaffLink from "../ui/StaffLink";
@@ -66,6 +67,7 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
           when={one.sentAt ? staffTime(one.sentAt) : ""}
           ours
           receipt={one.sentAt ? receiptOf(one.events) : undefined}
+          badge={theirReaction(one, null)}
         >
           <TextWords words={letterFor(one.body, merge)} />
           {/* Its footer, as they got it, where we know it. */}
@@ -149,9 +151,19 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
           {
             at: reply.receivedAt,
             status: "replied",
-            label: copy.events.replied,
+            // A reaction says so, with its emoji if it was kept, and when they took it back under it.
+            label:
+              reply.kind !== "reaction"
+                ? copy.events.replied
+                : reply.text
+                  ? copy.replies.historyTheyReacted(reply.text)
+                  : copy.replies.reactedNotKept,
             tag: replyTag,
             details: { from: shown(reply.from), to: ourAddress, backend: replyBackend, messageId: reply.providerId },
+            ...(reply.removedAt &&
+              under([
+                { at: reply.removedAt, status: "replied", details: {}, label: copy.replies.historyReactionRemoved },
+              ])),
           },
         ],
   );
@@ -248,11 +260,7 @@ function historyOf(one: MessageCopy): HistoryEntry[] {
 function OpenInGmail({ one }: { one: MessageCopy }) {
   const newest = one.replies.findLast((reply) => reply.account);
   if (!newest) return null;
-  return (
-    <ExternalLink href={gmailMessageLink(newest.account!, newest.providerId)}>
-      {lettersCopy.lettersInbox.openInGmail}
-    </ExternalLink>
-  );
+  return <GmailLink href={gmailMessageLink(newest.account!, newest.providerId)} account={newest.account!} />;
 }
 
 /**

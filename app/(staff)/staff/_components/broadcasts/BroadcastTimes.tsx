@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import Bubble from "@/components/ui/Bubble";
-import { iconButtonClass } from "@/components/ui/IconButton";
+import { helpButtonClass } from "../ui/HelpButton";
 import { Select } from "@/components/ui/Controls";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { FINISH_CHOICES, finishKept, MOST_FINISH_MINUTES, sendingStopsAt } from "@/lib/broadcasts/broadcasts";
@@ -54,13 +54,7 @@ function FinishChoice({
       </span>
       <span>{copy.untilWhen(londonWhen(sendingStopsAt({ dueAt, finishMinutes }), "short"))}</span>
       {/* Why it keeps trying, and what to choose, at length, a press away. */}
-      <Bubble
-        id={why}
-        label="?"
-        trigger={iconButtonClass("outline", own.why)}
-        name={copy.whyKeepsTrying}
-        className={own.whyBubble}
-      >
+      <Bubble id={why} label="?" trigger={helpButtonClass()} name={copy.whyKeepsTrying} className={own.whyBubble}>
         {copy.keepsTryingWhy.map((paragraph) => (
           <p key={paragraph} className={own.whyWords}>
             {paragraph}

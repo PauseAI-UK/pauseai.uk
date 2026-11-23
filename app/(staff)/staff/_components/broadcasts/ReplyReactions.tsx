@@ -132,7 +132,7 @@ export function OurReaction({ reaction, className }: { reaction: BroadcastReacti
   const failure = reaction.events.find((event) => event.kind === "failed");
   return (
     <p className={className}>
-      {copy.ourReaction(reaction.emoji, staffMemberText(reaction.sentBy), staffTime(reaction.sentAt))}
+      {copy.reactedBy(reaction.emoji, staffMemberText(reaction.sentBy), staffTime(reaction.sentAt))}
       {failure && (
         <>
           <br />
