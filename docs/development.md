@@ -573,7 +573,7 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
 - **Global's CiviCRM.** Its chapter contacts API, at
   `https://crm.pauseai.info/`, is specified in
   [a document in PauseAI/pauseai-civicrm](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md).
-  That repo is private, so an agent can't read the spec: ask Francis to
+  That repo is private, so an agent can't read the spec: ask someone with access to
   paste it. The hourly CiviCRM import reads its `get` with the UK chapter's
   key, `CIVICRM_CHAPTER_KEY`, in Netlify, and sends our opt-outs to its
   `updateSubscriptions`; each broadcast's copies are checked with its

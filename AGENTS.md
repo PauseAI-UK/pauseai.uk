@@ -26,7 +26,7 @@ Put throwaway scripts, logs and screenshots in `tmp/` at the repo root (to scree
 
 ## Serving a branch
 
-When Francis asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background. Once it says it's serving, give him the link it prints: by then it has checked the link in Firefox (`docs/development.md`, "Serving a branch"). Leave it running until he's done with it, then stop it with `--stop`.
+When the person you're working with asks for a branch to be served, run `npm run serve -- <branch or PR number>` in the background. Once it says it's serving, give them the link it prints: by then it has checked the link in Firefox (`docs/development.md`, "Serving a branch"). Leave it running until they're done with it, then stop it with `--stop`.
 
 Link to a page that shows what the branch changes, such as the staff page of a fixture record it affects, rather than the home page or `/staff/login`: the login appears over any staff page, with buttons to log in. Open the link first to check it shows the change.
 

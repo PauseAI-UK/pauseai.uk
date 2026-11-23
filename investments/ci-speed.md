@@ -26,7 +26,7 @@ In the order to do them:
 
 To confirm the machines, print each job's processor and memory (`lscpu`, `free`) in the Test and Storyboard parts.
 
-A change to `.github/workflows/` is pushed by Francis (`ci-workflow-pushes.md`).
+A change to `.github/workflows/` is pushed by a maintainer (`ci-workflow-pushes.md`).
 
 ## Each flow's pages, kept in the repo
 

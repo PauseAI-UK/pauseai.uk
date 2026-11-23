@@ -26,7 +26,7 @@ Log a hit when you:
 - meet a flaky test (and fix it, as `docs/testing.md` says)
 - wait more than five minutes for a check
 - find a bug that the design made easy to write
-- have to ask Francis something the docs should have said
+- have to ask the person you're working with something the docs should have said
 - work around a tool, check or rule
 
 The repo is public. A hit names no one and quotes no data, and says nothing about how you used production services or the database.
@@ -55,7 +55,7 @@ So weigh hits against size. Weigh an architecture item by the changes it would m
 
 Once a month, add the month's hits and choose what's next.
 
-`npm run friction-sweep` gives some of those hits. It reads Claude Code's session logs on Francis's machine and counts, for each week, the sessions that did any of these by hand:
+`npm run friction-sweep` gives some of those hits. It reads Claude Code's session logs on the machine it runs on and counts, for each week, the sessions that did any of these by hand:
 
 - set `TEST_DATABASE_URL`
 - ran the gate's checks

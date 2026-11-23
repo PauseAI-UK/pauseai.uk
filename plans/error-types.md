@@ -45,9 +45,9 @@ Postgres error by its code, not its words.
 
 ## Steps
 
-Each is its own PR and passes the gate. Show Francis the first's design,
+Each is its own PR and passes the gate. Show the reviewer the first's design,
 with a few call sites converted, before converting the rest. Moving a
-group of reviewed problem strings is checked with him first; new wording
+group of reviewed problem strings is checked with them first; new wording
 is a placeholder.
 
 1. **Problems by code.** `problem()` takes a code and its values; a run
