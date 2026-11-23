@@ -34,6 +34,7 @@ it, or the frame measure it once it has settled.
 
 ## Hits
 
+- 2026-11-23: "Filtering politicians" on a phone timed out waiting for its page to rest, once, in a full review of a branch that doesn't touch it, and passed in the next full review of the same code. The first ran on packages behind the lockfile, so it may be that rather than the busy review
 - 2026-11-18: the march highlight differed from main in a full review of a branch that didn't touch it, and between that branch's two reviews, ~15 min
 - 2026-11-19: BroadcastWriter in the gallery differed from main's fresh run, after the rebase of the same branch; same picture in 8 runs of the branch alone, with and without its changes, ~15 min
 - 2026-11-20: BroadcastWriter in the gallery (phone) differed from main along the two sticky bars with the Saved pill, in a review of a branch that changes neither, ~10 min
