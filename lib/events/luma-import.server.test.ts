@@ -782,6 +782,10 @@ describeWithDatabase("importLuma", () => {
         return HttpResponse.json({});
       }),
     );
+    // Only the live site changes the live calendar.
+    luma.contacts = [contact(1), contact(2)];
+    await importLuma("jo@pauseai.uk");
+    expect(removed).toEqual([]);
     vi.stubEnv("DEPLOY_CONTEXT", "production");
     luma.contacts = [contact(1), contact(2)];
     await importLuma("jo@pauseai.uk");
