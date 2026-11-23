@@ -492,6 +492,17 @@ describe("replies to broadcasts", () => {
     expect(document.body.textContent).not.toContain(copy.replies.noText);
   });
 
+  it("say under a reaction that's their latest, a day old, that WhatsApp won't take an answer", async () => {
+    const [, heart] = exampleTextKinds;
+    await render(
+      <MessageCopyView
+        one={{ ...exampleMessageCopy, replies: [{ ...heart, answerable: false, outcome: null }], answers: [] }}
+        actions={{ deal: vi.fn(), answer: vi.fn<AnswerAction>(), react: vi.fn() }}
+      />,
+    );
+    await expect.element(page.getByText(copy.replies.windowClosed)).toBeVisible();
+  });
+
   it("put a reaction to a message of ours not known on the broadcast, and none on an answer still being sent", async () => {
     const [thumb] = exampleTextKinds;
     await render(
