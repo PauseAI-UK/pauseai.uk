@@ -6,7 +6,7 @@ import type { FullConfig, Reporter, Suite, TestCase, TestResult } from "@playwri
 // outside the run that wants to show it, such as a terminal's status line
 // (docs/testing.md, "The storyboard's progress"). Every run writes one file,
 // always at the same place in its checkout, when it starts, after each flow
-// and when it ends: the review (`npm run storyboard`) and the gate's run
+// and when it ends: the review (`npm run storyboard`) and CI's run
 // (`npm run test:storyboard`) alike. A review that has to run main's flows
 // first, in main's own checkout, points that run at the file of the
 // checkout it's reviewing (STORYBOARD_PROGRESS, scripts/storyboard.mjs), so
@@ -18,8 +18,8 @@ export const progressFile = () =>
 
 /**
  * What the file holds. `kind` is which run it is: "review", with pictures
- * on both viewports (STORYBOARD_SHOTS), or "flows", the gate's lighter run
- * that only checks they work. `side` is which side of the review the run makes:
+ * on both viewports (STORYBOARD_SHOTS), or "flows", CI's run, which only
+ * checks that every flow works. `side` is which side of the review the run makes:
  * "main" for the one whose frames this branch's are set beside
  * (STORYBOARD_SIDE "main-run"), and "branch" for any other run. `pid` is
  * the run's process, so a reader can tell a run that was killed, which

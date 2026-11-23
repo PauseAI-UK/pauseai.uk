@@ -12,11 +12,10 @@
 //   npm run storyboard -- --no-open         # leave the page closed (an agent reads storyboard.json)
 //   npm run storyboard -- --paths           # print each frame's caption and picture, to open one directly
 //   npm run storyboard -- --changed         # print only the frames that changed against main (storyboard-changed.mjs)
-//   npm run storyboard -- --full            # every flow, not just those a change since their last run reaches (below)
-//   npm run storyboard -- --plan            # say which flows a review would run, and why, and run none
+//   npm run storyboard -- --full            # every flow, not just those this branch's change reaches (below)
+//   npm run storyboard -- --plan            # say which flows a review would picture and run, and why, and run none
 //   npm run storyboard -- --server=URL      # a server you started for this branch (default: Playwright builds one on this checkout's port)
 //   npm run storyboard -- --fresh-main      # run main again even if its frames are kept (below)
-//   npm run storyboard -- --only-main       # no review: just keep main's frames, for the reviews to come
 //   npm run storyboard -- --this-suite-on-main   # main's frames from this branch's suite, not main's own (below)
 //   npm run storyboard -- --main-server=URL # the same, on a server you started for main
 //   npm run storyboard -- staff-login -g login    # anything else goes to `playwright test`
@@ -27,35 +26,33 @@
 // test-results/storyboard/latest points at it, and index.html beside it
 // opens its page. The newest few runs are kept.
 //
-// A partial run (one that selects less than the whole suite: a section, -g,
-// one viewport) starts from the latest run's frames, as hard links, and
-// replaces the flows it runs: the review stays whole, each flow saying when
-// it was shot. Flows gone from the suite aren't carried. A full run starts
-// empty.
+// Given no selection of its own, a review pictures only the flows that the
+// files this branch changes from main can reach, and those new to the suite
+// (scripts/storyboard-reach.mjs, flowsReached), and its page shows only
+// them. It gets main's frames of those flows first, running main for any
+// not kept, then runs this branch's. A flow of them that nothing changed
+// since the latest run here reaches is carried from that run, not run again
+// (flowsToRun). With nothing to picture, it runs nothing. A changed file the
+// map can't place pictures every flow, and the review says which file.
+// `--full` runs every flow anyway. Checking that every flow still works is
+// CI's run (`npm run test:storyboard`), not the review's.
 //
-// Given no selection of its own, a review runs only the flows that might
-// show something new (scripts/storyboard-reach.mjs, flowsToRun): those the
-// files changed since each flow's last run can reach, those that failed, and
-// those new to the suite. The rest are carried: from the latest run here, or
-// from a tree the store keeps, whichever leaves fewer to run, so a new
-// worktree's first review starts from main's frames. With nothing to run, it
-// runs nothing. Such a review stands for every flow, as the gate's run of
-// the flows does (scripts/gate.mjs), and its frames, carried ones too, are
-// kept under its tree. A changed file the map can't place runs every flow,
-// and the review says which file. `--full` runs every flow anyway.
+// A run narrowed by hand (a section, -g, one viewport) starts from the
+// latest run's frames, as hard links, and replaces the flows it runs, each
+// flow saying when it was shot. Flows gone from the suite aren't carried.
 //
-// A review that carries flows also runs a few of them anyway (spotChecks),
-// and compares each with what it would have carried. If one looks
-// different, the map of what a change reaches has missed something: the
-// review says so, and runs every flow.
+// A review also runs a few flows the change doesn't reach (spotChecks), and
+// compares each with main's frames of it, which it should look the same as.
+// If one looks different, the map of what a change reaches has missed
+// something: the review says so, and runs every flow.
 //
 // Main's frames are main's own: its suite, run on its build, in its own
 // checkout (scripts/main-checkout.mjs). Nothing of this branch's goes into
 // them, so they're kept under main's tree for every branch and worktree
-// (scripts/storyboard-store.mjs), and main runs only the flows not kept
-// yet. A full review keeps this branch's frames there too, under its own
-// tree: they're main's once the branch has merged, if main's tree is then
-// the one reviewed.
+// (scripts/storyboard-store.mjs), and main runs only the flows a review
+// needs that aren't kept yet. A review keeps this branch's frames there
+// too, under its own tree: they're main's once the branch has merged, if
+// main's tree is then the one reviewed.
 //
 // `--this-suite-on-main` runs this branch's suite against main's build
 // instead (scripts/serve-main.mjs, its output in the run's folder,
@@ -100,7 +97,7 @@ import {
   runFolder,
   selectFlows,
 } from "./storyboard-main.mjs";
-import { flowsToRun, reachContext, readByNoFlow, sqlWithoutComments } from "./storyboard-reach.mjs";
+import { flowsReached, flowsToRun, reachContext, readByNoFlow, sqlWithoutComments } from "./storyboard-reach.mjs";
 import {
   carryKept,
   fillCarried,
@@ -123,7 +120,7 @@ const LATEST = join(DIR, "latest");
 /** How the last full review went, and on which commit. */
 const REVIEW_RECORD = "test-results/storyboard-review.json";
 const RUNS_KEEP = 5;
-/** How many of the flows a review would carry it runs anyway, to check them against what's carried (spotChecks). */
+/** How many of the flows a change doesn't reach a review runs anyway, to check them against main's (spotChecks). */
 const SPOT_CHECKS = 6;
 /** How many trees' frames the store keeps (scripts/storyboard-store.mjs). */
 const TREES_KEEP = 30;
@@ -139,7 +136,6 @@ const options = {
   freshMain: false,
   full: false,
   plan: false,
-  onlyMain: false,
   thisSuite: false,
 };
 const passThrough = [];
@@ -155,7 +151,6 @@ for (const arg of process.argv.slice(2)) {
   else if (arg === "--fresh-main") options.freshMain = true;
   else if (arg === "--full") options.full = true;
   else if (arg === "--plan") options.plan = true;
-  else if (arg === "--only-main") options.onlyMain = true;
   else if (arg === "--this-suite-on-main") options.thisSuite = true;
   else passThrough.push(arg);
 }
@@ -213,6 +208,7 @@ function carryEnv(dir, carried) {
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
 const readJson = (file) => JSON.parse(readFileSync(file, "utf8"));
 const writeJson = (file, data) => {
+  mkdirSync(dirname(file), { recursive: true });
   // Removed first: in a carried run it may be a hard link to the last run's.
   rmSync(file, { force: true });
   writeFileSync(file, JSON.stringify(data, null, 2));
@@ -310,18 +306,28 @@ function setupOf(dir) {
     .slice(0, 16);
 }
 
-/** Each tree the store keeps, but `except`, as flows to carry from: those that passed and whose pictures are there. */
+/** A flow's run, with the key it's chosen by. */
+const withKey = (run) => ({ ...run, key: flowKey(run) });
+
+/** What the store keeps of `tree`, as flows to carry from: those that passed and whose pictures are there. */
+function keptSource(tree) {
+  const kept = readTree(STORE, tree);
+  const runs = kept.frames.filter((run) => run.status === "passed" && picturesKept(STORE, run)).map(withKey);
+  return { tree, kept, runs };
+}
+
+/** Each tree the store keeps, but `except`, as flows to carry from (keptSource): those with any. */
 function keptSources(except) {
   return keptTrees(STORE)
     .filter((tree) => tree !== except)
-    .map((tree) => {
-      const kept = readTree(STORE, tree);
-      const runs = kept.frames
-        .filter((run) => run.status === "passed" && picturesKept(STORE, run))
-        .map((run) => ({ ...run, key: flowKey(run) }));
-      return { tree, kept, runs };
-    })
+    .map(keptSource)
     .filter((source) => source.runs.length > 0);
+}
+
+/** The latest run here, as flows to carry from, if there is one. */
+function latestSources() {
+  const latest = join(LATEST, "branch", "frames.json");
+  return existsSync(latest) ? [{ latest: true, runs: readJson(latest).frames.map(withKey) }] : [];
 }
 
 /**
@@ -334,11 +340,15 @@ function whenAsked(list) {
   return { has: (key) => (keys ??= new Set(list().keys())).has(key) };
 }
 
+/** How many frames of the gallery's flows a choice of flows (flowsToRun's) carries, and so doesn't picture. */
+const framesCarried = (chosen) => [...chosen.carried.values()].reduce((sum, frames) => sum + frames.length, 0);
+
 /**
  * Of `sources`, each some flows to carry from (`runs`), the one that leaves
  * fewest of `suite` (keys) to run on `tree` (flowsToRun, worked out on the
- * checkout of `context`), the first of them on a tie: what flowsToRun
- * returns, and its `source`. Undefined with no sources.
+ * checkout of `context`): what flowsToRun returns, and its `source`. On a
+ * tie, the one that leaves fewest of the gallery's frames to picture, then
+ * the first. Undefined with no sources.
  */
 function nearest(sources, suiteKeys, tree, context, phoneTagged) {
   let best;
@@ -351,7 +361,9 @@ function nearest(sources, suiteKeys, tree, context, phoneTagged) {
       setup: setupOf(context.root),
       changedSince: (at) => changedBetween(at, tree),
     });
-    if (!best || chosen.run.size < best.run.size) best = { ...chosen, source };
+    const fewer = best && chosen.run.size - best.run.size;
+    if (!best || fewer < 0 || (fewer === 0 && framesCarried(chosen) > framesCarried(best)))
+      best = { ...chosen, source };
     // None to run: no source can leave fewer, and the first wins a tie.
     if (best.run.size === 0) break;
   }
@@ -359,19 +371,40 @@ function nearest(sources, suiteKeys, tree, context, phoneTagged) {
 }
 
 /**
- * The flows this review runs, and where the rest are carried from (nearest):
- * the latest run here, or a tree the store keeps. Undefined to run them all,
- * with nothing to carry from.
+ * The flows a review pictures: those the files this branch changes from main
+ * can reach (flowsReached). What each flow opened is read from whichever
+ * run of it comes first: main's own, the latest run here, or any tree the
+ * store keeps.
  */
-function chooseFlows() {
-  const sources = [];
-  const latest = join(LATEST, "branch", "frames.json");
-  if (existsSync(latest))
-    sources.push({ latest: true, runs: readJson(latest).frames.map((run) => ({ ...run, key: flowKey(run) })) });
-  sources.push(...keptSources());
-  if (sources.length === 0) return undefined;
-  const phoneTagged = whenAsked(() => listFlows(["--project=phone"], process.cwd(), process.env, "0"));
-  return nearest(sources, new Set(suite.keys()), treeBefore, reachContext(process.cwd()), phoneTagged);
+function reachedFromMain() {
+  const records = [
+    ...readTree(STORE, sinceTree).frames,
+    ...latestSources().flatMap((source) => source.runs),
+    ...keptTrees(STORE)
+      .filter((tree) => tree !== sinceTree)
+      .flatMap((tree) => readTree(STORE, tree).frames),
+  ];
+  return flowsReached({
+    suite: new Set(suite.keys()),
+    records: records.map(withKey),
+    phoneTagged,
+    context,
+    changed: changedBetween(sinceTree, treeBefore),
+  });
+}
+
+/**
+ * Of the flows a review pictures (`keys`), those it runs, and where the rest
+ * are carried from (nearest): the latest run here, for a flow nothing
+ * changed since reaches, or main's own frames, which the frames of a gallery
+ * flow that this branch's change doesn't reach look like. With nothing to
+ * carry from, it runs them all.
+ */
+function chooseRuns(keys) {
+  // Main's own frames stand for this branch's only beside main's own, not beside this suite's run on main.
+  const main = options.thisSuite ? [] : [keptSource(sinceTree)].filter((source) => source.runs.length > 0);
+  const best = nearest([...latestSources(), ...main], keys, treeBefore, context, phoneTagged);
+  return best ?? { run: new Set(keys), carried: new Map() };
 }
 
 /**
@@ -405,26 +438,47 @@ function withoutKey(run) {
 }
 
 /**
- * A few of the flows a review would carry, which it runs anyway: each with
- * the frames it would have carried, their pictures by their files. Chosen
- * by a hash of the tree and the flow, so the same review checks the same
- * ones, and another tree's checks others.
+ * A few flows a review runs though this branch's change doesn't reach them,
+ * or reaches only some frames of them (a gallery flow): `reached` is
+ * flowsReached's. Chosen by a hash of main's tree and the flow, so every
+ * review of a branch checks the same ones, whose frames on main are then
+ * kept, and a branch from another commit of main checks others.
  */
-function spotChecks(chosen) {
-  const order = (key) => createHash("sha256").update(`${treeBefore} ${key}`).digest("hex");
-  const keys = [...suite.keys()]
-    .filter((key) => !chosen.run.has(key) || chosen.carried.has(key))
+function spotKeys(reached) {
+  const order = (key) => createHash("sha256").update(`${sinceTree} ${key}`).digest("hex");
+  return [...suite.keys()]
+    .filter((key) => !reached.run.has(key) || reached.carried.has(key))
     .sort((a, b) => order(a).localeCompare(order(b)))
     .slice(0, SPOT_CHECKS);
-  const pictureOf = carriedPicture(chosen.source);
-  return keys.map((key) => {
-    // A gallery flow the review would picture in part is run whole, and checked by the frames it would have carried.
+}
+
+/**
+ * What each of the spot checks (`keys`, spotKeys) is checked against, its
+ * frames' pictures by their files. A flow the change doesn't reach: main's
+ * frames of it, which it should look the same as. A gallery flow the review
+ * would have pictured in part (`chosen`, chooseRuns's), which it runs
+ * whole: the frames it would have carried. One with neither isn't checked,
+ * as a flow main hasn't passed.
+ */
+function spotChecks(keys, reached, chosen) {
+  const main = new Map(keptSource(sinceTree).runs.map((run) => [run.key, run]));
+  return keys.flatMap((key) => {
     const part = chosen.carried.get(key);
-    const frames = (part ?? chosen.source.runs.find((carried) => carried.key === key).frames).map((frame) => ({
+    if (part) {
+      const pictureOf = carriedPicture(chosen.source);
+      const frames = part.map((frame) => ({
+        caption: frame.caption,
+        file: frame.png || frame.picture ? pictureOf(frame) : undefined,
+      }));
+      return [{ key, frames, whole: false }];
+    }
+    const run = main.get(key);
+    if (reached.run.has(key) || !run) return [];
+    const frames = run.frames.map((frame) => ({
       caption: frame.caption,
-      file: frame.png || frame.picture ? pictureOf(frame) : undefined,
+      file: frame.picture ? picturePath(STORE, frame.picture) : undefined,
     }));
-    return { key, frames, whole: !part };
+    return [{ key, frames, whole: true }];
   });
 }
 
@@ -435,9 +489,9 @@ function carriedPicture(source) {
 }
 
 /**
- * The spot checks that failed: flows that, run again, didn't pass, or have
- * other frames than the ones the review would have carried (some of them,
- * in order, for a gallery flow it would have pictured in part), or a
+ * The spot checks (spotChecks) that failed: flows that didn't pass, or have
+ * other frames than the ones they're checked against (some of them, in
+ * order, for a gallery flow the review would have pictured in part), or a
  * picture that differs past the review's noise (comparePngs).
  */
 async function spotMisses(spot) {
@@ -445,7 +499,9 @@ async function spotMisses(spot) {
   const missed = [];
   for (const { key, frames: carried, whole } of spot) {
     const run = ran.get(key);
-    let same = run?.status === "passed" && (!whole || run.frames.length === carried.length);
+    // Not run, as when the build failed: nothing to check.
+    if (!run) continue;
+    let same = run.status === "passed" && (!whole || run.frames.length === carried.length);
     // Each carried frame with the one run again that it stands for: the one in its place, or, for a flow the
     // review would have pictured in part, the next with its caption.
     let next = 0;
@@ -469,7 +525,7 @@ async function spotMisses(spot) {
 /** What to do about flows the map missed, said where it's found and again at the end. */
 function missedSummary(missed, changed) {
   return [
-    `Storyboard: ${missed.length} of the flows this review would have carried look different run again:`,
+    `Storyboard: ${missed.length} of the flows this branch's change shouldn't reach look different from main's:`,
     ...missed.map((key) => `  ${key}`),
     `  So the map of what a change reaches (scripts/storyboard-reach.mjs) missed something in the ${changed.length} files changed,`,
     `  or a frame of theirs differs from run to run. So every flow is run. Find which, and fix the map or the frame;`,
@@ -477,7 +533,7 @@ function missedSummary(missed, changed) {
   ].join("\n");
 }
 
-/** A flow a review chosen by chooseFlows runs, and, for a gallery flow it pictures in part, how much of it. */
+/** A flow a review runs (`chosen`, chooseRuns's), and, for a gallery flow it pictures in part, how much of it. */
 function planLine(chosen, key) {
   const carried = chosen.carried.get(key);
   if (!carried) return key;
@@ -485,39 +541,44 @@ function planLine(chosen, key) {
   return `${key}, ${of - carried.length} of ${of} sections`;
 }
 
-/** What a review chosen by chooseFlows runs, and why. */
-function planSummary(chosen, total) {
-  const from = chosen.source.latest
-    ? "the latest run"
-    : `the kept tree ${chosen.source.tree.slice(0, 12)} (nearer than the latest run here)`;
-  if (chosen.unknown.length > 0)
+/** Which flows a review pictures (`reached`, flowsReached's), and why. */
+function planSummary(reached, total) {
+  const count = reached.changed.length;
+  const files = `the ${count} ${count === 1 ? "file" : "files"} this branch changes from main`;
+  if (reached.unknown.length > 0)
     return [
-      `Storyboard: every flow, ${total}, as what ${chosen.unknown.slice(0, 3).join(", ")} can change isn't known.`,
+      `Storyboard: every flow, ${total}, as what ${reached.unknown.slice(0, 3).join(", ")} can change isn't known.`,
       `  Teach scripts/storyboard-reach.mjs what such a file reaches (EVERYTHING, NOTHING, or how it's read),`,
       `  or add a hit to investments/storyboard-review-speed.md naming the file.`,
     ].join("\n");
-  if (chosen.run.size === 0 && chosen.changed.length === 0)
-    return `Storyboard: none of the ${total} flows to run: nothing has changed since ${from}.`;
-  if (chosen.run.size === 0)
-    return `Storyboard: none of the ${total} flows to run: the ${chosen.changed.length} files changed since ${from} reach none.`;
-  if (chosen.fresh === total)
-    return `Storyboard: every flow, ${total}: none has a record to carry it by, as each was recorded another way, on other dependencies, or not at all.`;
-  if (chosen.run.size === total)
-    return `Storyboard: every flow, ${total}: the ${chosen.changed.length} files changed since ${from} reach them all.`;
-  const inPart = chosen.carried.size > 0 ? `, ${chosen.carried.size} of them gallery flows in part` : "";
+  if (reached.run.size === 0 && reached.changed.length === 0)
+    return `Storyboard: none of the ${total} flows: this branch changes nothing from main.`;
+  if (reached.run.size === 0) return `Storyboard: none of the ${total} flows: none is reached by ${files}.`;
+  if (reached.fresh === total)
+    return `Storyboard: every flow, ${total}: none has a record of what it opens, as each was recorded another way, or not at all.`;
+  if (reached.run.size === total) return `Storyboard: every flow, ${total}: all are reached by ${files}.`;
   const why = [
-    chosen.reached &&
-      `${chosen.reached} that the ${chosen.changed.length} files changed since they last ran can reach${inPart}`,
-    chosen.swept && `every desktop flow, as ${chosen.everything.slice(0, 3).join(", ")} changed`,
-    chosen.fresh && `${chosen.fresh} new, failed or with no run to carry`,
+    reached.reached && `${reached.reached} reached by ${files}`,
+    reached.swept && `every desktop flow, as ${reached.everything.slice(0, 3).join(", ")} changed`,
+    reached.fresh && `${reached.fresh} new, or with no record of what they open`,
   ].filter(Boolean);
-  return `Storyboard: ${chosen.run.size} of ${total} flows: ${why.join("; ")}. The rest are carried from ${from}.`;
+  return `Storyboard: ${reached.run.size} of ${total} flows: ${why.join("; ")}. The rest aren't pictured.`;
+}
+
+/** Which of the `pictured` flows a review runs (`chosen`, chooseRuns's), if not all: the rest it carries, and where from. */
+function runsSummary(chosen, pictured) {
+  if (chosen.run.size === pictured && chosen.carried.size === 0) return undefined;
+  const from = chosen.source.latest ? "the latest run here" : "main's frames";
+  const inPart = chosen.carried.size > 0 ? `, ${chosen.carried.size} of them gallery flows in part` : "";
+  if (chosen.run.size === pictured)
+    return `Storyboard: all ${pictured} to run${inPart}, the rest of each of those carried from ${from}.`;
+  return `Storyboard: ${chosen.run.size} of those ${pictured} to run${inPart}. The rest are carried from ${from}, as nothing changed since reaches them.`;
 }
 
 /**
- * The last review that stands for every flow, and the tree and commit it
- * pictured, for the gate and anything that shows whether this code has had
- * one (docs/testing.md, "The storyboard's progress").
+ * The last review of every flow, or of the flows it chose itself, and the
+ * tree and commit it pictured, for the gate and anything that shows whether
+ * this code has had one (docs/testing.md, "The storyboard's progress").
  */
 function recordReview(result) {
   mkdirSync(dirname(REVIEW_RECORD), { recursive: true });
@@ -563,6 +624,14 @@ async function waitFor(url, child, timeoutMs) {
 
 // Main: where this branch left it.
 const base = options.main !== undefined ? git("merge-base", options.main, "HEAD") : undefined;
+/**
+ * Where this branch left main, for choosing a review's flows by what the
+ * branch changes: the same, and with --no-main where it left origin/main,
+ * if this checkout has one.
+ */
+const since =
+  base ?? (spawnSync("git", ["merge-base", "origin/main", "HEAD"], { encoding: "utf8" }).stdout.trim() || undefined);
+const sinceTree = since && git("rev-parse", `${since}^{tree}`);
 
 /**
  * The environment for a command in main's checkout: this one's, but for
@@ -619,20 +688,20 @@ async function runMainSuite(workDir, lines, carried) {
 }
 
 /**
- * Main's frames from the store, once it has every flow of `wanted` (keys)
- * that main has, or every flow of main's if `wanted` is undefined: main's
- * suite is listed, and run for the flows not kept, only if the store
- * doesn't have them. `workDir` is where a run of main puts its frames on
- * their way there. Returns main's tree and what's kept of it.
+ * Main's frames from the store, once it has the flows of main's that
+ * `wants` picks from them (keys), or every flow of main's if `wants` is
+ * undefined: main's suite is listed, and run for the flows not kept, only
+ * if the store doesn't have them. `workDir` is where a run of main puts its
+ * frames on their way there. Returns main's tree and what's kept of it.
  */
-async function mainFromStore(workDir, wanted) {
+async function mainFromStore(workDir, wants) {
   const tree = git("rev-parse", `${base}^{tree}`);
   let kept = readTree(STORE, tree);
   let needed, missing;
   const lookAgain = () => {
     kept = readTree(STORE, tree);
     if (!kept.flows) return false;
-    needed = wanted ? wanted.filter((key) => key in kept.flows) : Object.keys(kept.flows);
+    needed = wants ? wants(Object.keys(kept.flows)) : Object.keys(kept.flows);
     missing = options.freshMain ? needed : missingFlows(STORE, kept, needed);
     return missing.length === 0;
   };
@@ -660,6 +729,8 @@ async function mainFromStore(workDir, wanted) {
           );
           missing = near.run;
           inPart = near.carried;
+          // With the flows just carried into it, as nothing else reads it again when none is left to run.
+          kept = readTree(STORE, tree);
         }
       }
       if (missing.length > 0) {
@@ -803,22 +874,6 @@ async function mainWithThisSuite(pictured, lines) {
   return selectFlows(readJson(join(runDir, "main-run", "frames.json")), pictured);
 }
 
-if (options.onlyMain) {
-  if (base === undefined) throw new Error("--only-main keeps main's frames, so it needs a main: drop --no-main.");
-  console.log(`\n▶ Storyboard: main is ${git("log", "-1", "--format=%h %s", base)}\n`);
-  mkdirSync("test-results", { recursive: true });
-  // Beside the store when it can be, so the pictures go into it as hard links.
-  const workDir = mkdtempSync(join("test-results", "storyboard-only-main-"));
-  try {
-    const { tree } = await mainFromStore(workDir, undefined);
-    touchTree(STORE, tree);
-    pruneStore(STORE, TREES_KEEP);
-  } finally {
-    rmSync(workDir, { recursive: true, force: true });
-  }
-  process.exit(0);
-}
-
 // Folders nothing here reads, which a checkout may have from reviews laid out another way: one review
 // straight in DIR, and main's frames kept in the checkout itself.
 for (const old of ["branch", "main", "main-run", "diff", "storyboard.json", "../storyboard-main"]) {
@@ -830,23 +885,91 @@ for (const old of ["branch", "main", "main-run", "diff", "storyboard.json", "../
 const suite = listFlows([]);
 const treeBefore = workingTree();
 const commitBefore = git("rev-parse", "HEAD");
-const chosen = options.full || options.projects.length > 0 || passThrough.length > 0 ? undefined : chooseFlows();
+// Main's own frames, from the store: not with --no-main, nor when this branch's suite makes main's.
+const fromStore = options.main !== undefined && !options.thisSuite;
+/**
+ * Whether the review chooses its flows, by what this branch changes from main: unless it's told which to run,
+ * or to run them all, or there's no main to tell the changes from.
+ */
+const choosing = !options.full && options.projects.length === 0 && passThrough.length === 0 && since !== undefined;
+/** What this checkout's flows reach, read from its code, and the phone's flows of CI's run: for choosing by. */
+const context = choosing ? reachContext(process.cwd()) : undefined;
+const phoneTagged = whenAsked(() => listFlows(["--project=phone"], process.cwd(), process.env, "0"));
+/** The flows the review pictures, when it chooses them (reachedFromMain): its page shows only these. */
+const reached = choosing ? reachedFromMain() : undefined;
+// Flows the change doesn't reach that the review runs anyway, to check the map against main's frames
+// (spotKeys): none when it pictures every flow, or without main's own frames, or when nothing changed but
+// files no flow reads, as docs and unit tests.
+const spot =
+  reached && fromStore && reached.unknown.length === 0 && reached.changed.some((file) => !readByNoFlow(file))
+    ? spotKeys(reached)
+    : [];
 if (options.plan) {
-  if (!chosen) {
-    console.log(
-      `Storyboard: every flow, ${suite.size}: ${options.full ? "--full" : "there's no run to carry any from"}.`,
-    );
+  if (!reached) {
+    const all = `every flow, ${suite.size}`;
+    const why = options.full
+      ? `${all}: --full`
+      : since === undefined
+        ? `${all}: there's no main to tell this branch's changes from`
+        : "the flows it's told to, as a run narrowed by hand does";
+    console.log(`Storyboard: ${why}.`);
   } else {
-    console.log(planSummary(chosen, suite.size));
+    console.log(planSummary(reached, suite.size));
+    // By what's kept now: main's frames of the flows, once a review has them, may leave less of a gallery flow to picture.
+    const chosen = chooseRuns(new Set(reached.run));
+    const runs = runsSummary(chosen, reached.run.size);
+    if (runs) console.log(runs);
     for (const key of [...chosen.run].sort()) console.log(`  ${planLine(chosen, key)}`);
+    if (spot.length > 0)
+      console.log(`Storyboard: and ${spot.length} flows the change doesn't reach, to check they look as main's do.`);
   }
   process.exit(0);
 }
-// The flows it would carry that it runs anyway, to check the map (spotChecks): none when it runs every flow,
-// or when nothing changed but files no flow reads, as docs and unit tests.
-const spot =
-  chosen && chosen.unknown.length === 0 && chosen.changed.some((file) => !readByNoFlow(file)) ? spotChecks(chosen) : [];
-/** Whether the review has chosen its flows and found none to run: it's then every flow carried, beside main as it is now. */
+
+mkdirSync(runDir, { recursive: true });
+const branchFrames = join(runDir, "branch", "frames.json");
+const mainFrames = join(runDir, "main", "frames.json");
+let mainError;
+
+/**
+ * Main's side of the page, from the store: the flows of main's that `shown` says (of a key), once main has run
+ * those of them `wants` picks that aren't kept (mainFromStore). `carriedMain`, a carried run's main frames,
+ * fills in for what isn't kept. A failure waits for the end: the review of this branch's own frames is still
+ * written.
+ */
+async function mainSide(wants, shown, carriedMain) {
+  console.log(`\n▶ Storyboard: main is ${git("log", "-1", "--format=%h %s", base)}\n`);
+  try {
+    const { tree, kept } = await mainFromStore(runDir, wants);
+    touchTree(STORE, tree);
+    // The pictures are linked into the run, so every path stays inside its folder: latest/ works, and
+    // pruning the store never breaks a run.
+    const selected = linkFlows(STORE, kept, { has: shown }, runDir);
+    // Carried, for what isn't kept: only flows main still has, and none shot by this branch's suite.
+    const stillMains = { has: (key) => key in kept.flows && shown(key) };
+    writeJson(
+      mainFrames,
+      carriedMain ? carryFlows(carryable(carriedMain, stillMains, "main-run/"), selected) : selected,
+    );
+  } catch (error) {
+    mainError = error;
+  }
+}
+
+/** Whether a flow of main's is on a page of the flows `keys`: one of them, or one this branch's suite no longer has, shown as gone. */
+const onPage = (keys) => (key) => keys.has(key) || !suite.has(key);
+
+// A review gets main's frames first, of the flows it pictures and checks: this branch's side then carries
+// from them what its change doesn't reach of a flow (chooseRuns). With no flow to picture, main isn't asked.
+if (reached && fromStore) {
+  const keys = new Set([...reached.run, ...spot]);
+  if (keys.size > 0) await mainSide((mains) => mains.filter(onPage(keys)), onPage(keys));
+  else writeJson(mainFrames, { frames: [] });
+}
+
+/** Of the flows the review pictures, those it runs, and where it carries the rest from (chooseRuns). */
+const chosen = reached ? chooseRuns(new Set(reached.run)) : undefined;
+/** Whether the review has found no flow to run: its page is then what it carries, beside main as it is now. */
 const nothing = chosen?.run.size === 0 && spot.length === 0;
 /** A file for `playwright test --test-list` of the flows `keys`. */
 function testList(keys) {
@@ -858,47 +981,52 @@ function testList(keys) {
 let wanted;
 /** The arguments that select the flows the review chose, if it chose. */
 let chosenArgs = [];
-if (chosen) {
-  console.log(`\n▶ ${planSummary(chosen, suite.size)}${nothing ? "" : " --full runs every one."}\n`);
+if (reached) {
+  console.log(
+    `\n▶ ${planSummary(reached, suite.size)}${reached.run.size === suite.size ? "" : " --full runs every one."}`,
+  );
+  const runs = runsSummary(chosen, reached.run.size);
+  if (runs) console.log(`▶ ${runs}`);
   for (const key of chosen.carried.keys())
-    if (!spot.some((check) => check.key === key))
-      console.log(`▶ Storyboard: ${planLine(chosen, key)}, the rest carried.`);
-  if (spot.length > 0) console.log(`▶ Storyboard: and ${spot.length} of the rest, to check they look as carried.\n`);
-  const keys = [...chosen.run, ...spot.map((check) => check.key)];
-  wanted = new Map([...suite].filter(([key]) => keys.includes(key)));
+    if (!spot.includes(key)) console.log(`▶ Storyboard: ${planLine(chosen, key)}, the rest carried.`);
+  if (spot.length > 0)
+    console.log(`▶ Storyboard: and ${spot.length} flows the change doesn't reach, to check they look as main's do.`);
+  console.log("");
+  const keys = new Set([...chosen.run, ...spot]);
+  wanted = new Map([...suite].filter(([key]) => keys.has(key)));
   if (!nothing) chosenArgs = [testList([...wanted.keys()])];
 } else {
   wanted = listFlows([...options.projects, ...passThrough]);
 }
 const partial = [...suite.keys()].some((key) => !wanted.has(key));
-// Main's own frames, from the store: not with --no-main, nor when this branch's suite makes main's.
-const fromStore = options.main !== undefined && !options.thisSuite;
 
-mkdirSync(runDir, { recursive: true });
-const branchFrames = join(runDir, "branch", "frames.json");
-const mainFrames = join(runDir, "main", "frames.json");
-/** A tree the store keeps, when the review chose to carry from it and not from the latest run. */
-const seed = chosen && !chosen.source.latest ? chosen.source : undefined;
-const carried = !seed && partial && existsSync(join(LATEST, "branch")) ? LATEST : undefined;
+/** The flows a review pictures and doesn't run: carried as they are. */
+const leftAlone = reached && { has: (key) => reached.run.has(key) && !wanted.has(key) };
+/** The run this one starts from: the latest, when a review chose to carry from it, and for a run narrowed by hand. */
+const carried = (reached ? chosen.source?.latest : partial) && existsSync(join(LATEST, "branch")) ? LATEST : undefined;
 if (carried) {
-  if (!chosen) console.log(`\n▶ Storyboard: a partial run; the other flows are carried from the latest run.\n`);
+  if (!reached) console.log(`\n▶ Storyboard: a partial run; the other flows are carried from the latest run.\n`);
   linkTree(join(carried, "branch"), join(runDir, "branch"));
-  if (existsSync(join(carried, "main"))) linkTree(join(carried, "main"), join(runDir, "main"));
-  // Main's pictures from a run with --this-suite-on-main, which stay in the run. Not into a run that
-  // reads main's own from the store: its flows of those are dropped below.
-  if (!fromStore && existsSync(join(carried, "main-run")))
-    linkTree(join(carried, "main-run"), join(runDir, "main-run"));
-  // Flows gone from the suite go from the review.
-  writeJson(branchFrames, carryable(readJson(branchFrames), suite));
-}
-if (seed) {
-  // The kept tree's flows that this run leaves alone, their pictures linked into the run's folder.
-  const leftAlone = { has: (key) => suite.has(key) && !chosen.run.has(key) };
-  mkdirSync(dirname(branchFrames), { recursive: true });
-  writeJson(branchFrames, linkFlows(STORE, seed.kept, leftAlone, runDir, "branch"));
+  // Main's side of the latest run too, but under a review's own, made from the store above.
+  if (!(reached && fromStore)) {
+    if (existsSync(join(carried, "main"))) linkTree(join(carried, "main"), join(runDir, "main"));
+    // Main's pictures from a run with --this-suite-on-main, which stay in the run. Not into a run that
+    // reads main's own from the store: its flows of those are dropped below.
+    if (!fromStore && existsSync(join(carried, "main-run")))
+      linkTree(join(carried, "main-run"), join(runDir, "main-run"));
+  }
+  // Flows gone from the suite go from the review, and those a review no longer pictures.
+  writeJson(branchFrames, carryable(readJson(branchFrames), leftAlone || suite));
+} else if (reached) {
+  // Main's frames of the flows this run leaves alone, their pictures linked into the run's folder: or, with
+  // nothing to carry from, no flow yet.
+  writeJson(
+    branchFrames,
+    chosen.source ? linkFlows(STORE, chosen.source.kept, leftAlone, runDir, "branch") : { frames: [] },
+  );
 }
 /** Main's flows carried from the latest run, for the flows this run doesn't replace. */
-const carriedMain = carried && existsSync(mainFrames) ? readJson(mainFrames) : undefined;
+const carriedMain = carried && !(reached && fromStore) && existsSync(mainFrames) ? readJson(mainFrames) : undefined;
 
 const full = !partial && passThrough.length === 0;
 // Whether the build is known to be of the code as it is: Playwright makes it for this run.
@@ -912,26 +1040,27 @@ if (!builtHere && !nothing)
 const stamps = { STORYBOARD_TREE: builtHere ? treeBefore : "", STORYBOARD_SETUP: setupOf(process.cwd()) };
 // The gallery's flows it pictures in part, but those it spot-checks, which it runs whole: each with the frames it
 // carries from the run it chose.
-const spotted = new Set(spot.map((check) => check.key));
-const inPart = new Map([...(chosen?.carried ?? [])].filter(([key]) => !spotted.has(key)));
+const inPart = new Map([...(chosen?.carried ?? [])].filter(([key]) => !spot.includes(key)));
 let code = nothing
   ? 0
   : runSuite("branch", options.server ?? LOCAL_URL, { ...stamps, ...carryEnv(runDir, inPart) }, chosenArgs);
 if (inPart.size > 0 && existsSync(branchFrames))
   writeJson(branchFrames, fillCarried(readJson(branchFrames), inPart, runDir, "branch", carriedPicture(chosen.source)));
 
-// The flows run only to check them: if one looks different from what would have been carried, the map
-// missed something, and every other flow runs too, the gallery's it pictured in part whole.
-const missed = spot.length > 0 && existsSync(branchFrames) ? await spotMisses(spot) : [];
+// The flows run only to check them: if one looks different from main's, or from what would have been carried
+// of it, the map missed something, and every other flow runs too, on both sides, the gallery's it pictured in
+// part whole.
+const missed = spot.length > 0 ? await spotMisses(spotChecks(spot, reached, chosen)) : [];
 if (missed.length > 0) {
-  console.log(`\n▶ ${missedSummary(missed, chosen.changed)}\n`);
+  console.log(`\n▶ ${missedSummary(missed, reached.changed)}\n`);
   const rest = [...suite.keys()].filter((key) => !wanted.has(key) || inPart.has(key));
   code = runSuite("branch", options.server ?? LOCAL_URL, stamps, [testList(rest)]) || code;
+  await mainSide(undefined, () => true);
 }
 
-// A review that stands for every flow keeps them all under the tree they picture, the carried ones too, as each
-// looks as it would on this tree: if the build was this tree's, and nothing in the checkout changed meanwhile.
-if (existsSync(branchFrames) && (full || chosen) && (nothing || (builtHere && workingTree() === treeBefore))) {
+// A review keeps its flows under the tree they picture, the carried ones too, as each looks as it would on
+// this tree: if the build was this tree's, and nothing in the checkout changed meanwhile.
+if (existsSync(branchFrames) && (full || reached) && (nothing || (builtHere && workingTree() === treeBefore))) {
   // Each flow the review carried is known to look as it does at this tree, so the next review asks only what
   // changed since (flowsToRun).
   const manifest = readJson(branchFrames);
@@ -940,34 +1069,25 @@ if (existsSync(branchFrames) && (full || chosen) && (nothing || (builtHere && wo
   keepRuns(STORE, treeBefore, runDir, manifest.frames, Object.fromEntries(suite));
 }
 
-let mainError;
-if (options.main === undefined || !existsSync(branchFrames)) {
-  if (carriedMain) writeJson(mainFrames, carryable(carriedMain, suite));
+// Main's side, for any run but a review's from the store, made first (above). What board.ts pairs this
+// branch's frames with: this run's flows, and a carried run's main frames for the rest of the page.
+/** The flows this run's page has, once this branch's side is written. */
+const pageKeys = () => new Set(readJson(branchFrames).frames.map(flowKey));
+if (reached && fromStore) {
+  // Made already.
+} else if (options.main === undefined || !existsSync(branchFrames)) {
+  if (carriedMain) writeJson(mainFrames, carryable(carriedMain, pageKeys()));
+} else if (fromStore) {
+  // Every flow of main's for a run of every flow, and a run narrowed by hand asks only for its own: its
+  // page shows main's frames of every flow it has that's kept, so the carried ones are beside main as it is now.
+  if (partial) await mainSide((mains) => mains.filter((key) => wanted.has(key)), onPage(pageKeys()), carriedMain);
+  else await mainSide(undefined, () => true, carriedMain);
 } else {
   console.log(`\n▶ Storyboard: main is ${git("log", "-1", "--format=%h %s", base)}\n`);
   try {
-    let selected, mainSuite, foreign;
-    if (fromStore) {
-      // Every flow of main's, but for a run narrowed by hand, which asks only for its own: a review that
-      // chose its flows is every flow beside main as it is now, and main carries what it can.
-      const { tree, kept } = await mainFromStore(runDir, partial && !chosen ? [...wanted.keys()] : undefined);
-      touchTree(STORE, tree);
-      // Every flow of main's that's kept, not just this run's: a partial run's carried flows are then
-      // beside main as it is now. The pictures are linked into the run, so every path stays inside its
-      // folder: latest/ works, and pruning the store never breaks a run.
-      selected = linkFlows(STORE, kept, { has: () => true }, runDir);
-      // Carried, for what isn't kept: only flows main still has, and none shot by this branch's suite.
-      mainSuite = { has: (key) => key in kept.flows };
-      foreign = "main-run/";
-    } else {
-      selected = await mainWithThisSuite(picturedFlows(readJson(branchFrames), wanted.keys()), wanted);
-      mainSuite = suite;
-    }
-    mkdirSync(dirname(mainFrames), { recursive: true });
-    // What board.ts pairs this branch's frames with: this run's flows, and a carried run's main frames for the rest.
-    writeJson(mainFrames, carriedMain ? carryFlows(carryable(carriedMain, mainSuite, foreign), selected) : selected);
+    const selected = await mainWithThisSuite(picturedFlows(readJson(branchFrames), wanted.keys()), wanted);
+    writeJson(mainFrames, carriedMain ? carryFlows(carryable(carriedMain, pageKeys()), selected) : selected);
   } catch (error) {
-    // The review of this branch's own frames is still written; the failure is reported at the end.
     mainError = error;
   }
 }
@@ -982,8 +1102,8 @@ if (existsSync(branchFrames)) {
       summary.mainMissing ? `, ${summary.mainMissing} with main missing` : ""
     }. ${join(runDir, "index.html")}\n`,
   );
-  // A review that stands for every flow: run whole, or of every flow that might show something new.
-  if (full || chosen) {
+  // A review of this code: of every flow, or of those the review chose as the ones its change reaches.
+  if (full || reached) {
     recordReview({
       complete: true,
       full,
@@ -991,7 +1111,7 @@ if (existsSync(branchFrames)) {
       flows: summary.flows,
       failed: summary.failed,
       changed: withMain ? summary.changed : null,
-      // Flows the review would have carried that looked different run again (spotChecks).
+      // Flows the change shouldn't reach that looked different from main's (spotChecks).
       ...(missed.length > 0 ? { missed } : {}),
     });
   }
@@ -1040,8 +1160,8 @@ if (mainError)
 
 // Said again at the end, where it's read: every flow ran because a changed file couldn't be placed, or
 // because a flow that would have been carried looked different.
-if (chosen?.unknown.length) console.log(`\n${planSummary(chosen, suite.size)}\n`);
-if (missed.length > 0) console.log(`\n${missedSummary(missed, chosen.changed)}\n`);
+if (reached?.unknown.length) console.log(`\n${planSummary(reached, suite.size)}\n`);
+if (missed.length > 0) console.log(`\n${missedSummary(missed, reached.changed)}\n`);
 
 if (options.open && existsSync(page)) {
   const opener = platform() === "darwin" ? "open" : platform() === "win32" ? "start" : "xdg-open";

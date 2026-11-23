@@ -57,16 +57,13 @@ That:
 2. adds `tmp/worktrees/fix-footer` under the main checkout, as a new branch
    from `origin/main` (the folder is gitignored);
 3. runs `npm ci` there;
-4. prints the ports its storyboard will use;
-5. leaves the storyboard keeping main's frames, in the background, so the
-   branch's first review doesn't wait for main (`docs/testing.md`, "They're
-   kept by tree"). Its output is `tmp/storyboard-main.log` in the worktree.
-   It does nothing if they're kept already, and needs Postgres running.
+4. prints the ports its storyboard will use.
 
 Each checkout has its own databases, outboxes and ports for the storyboard
 (`tests/checkout.mjs`), so worktrees can run it at the same time. They
 share main's frames, in the main checkout's
-`test-results/storyboard-frames/`.
+`test-results/storyboard-frames/` (`docs/testing.md`, "They're kept by
+tree").
 
 The branch tracks nothing, so push it the first time with
 `git push -u origin fix-footer`.
