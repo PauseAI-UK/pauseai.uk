@@ -13,3 +13,22 @@ it("shows an email's words, its bold, and its links leaving the site", async () 
   expect(link.element().closest("strong")?.textContent).toContain("Out now:");
   expect(screen.container.textContent).toContain("Bye");
 });
+
+it("shows an email's lists as lists, nested and numbered, what it quotes set apart, and Outlook's rule as a line", async () => {
+  const screen = await render(
+    <div style={{ whiteSpace: "pre-wrap" }}>
+      <ThreadText
+        text={`It asks for:\n- a summit\n  3. first\n- a treaty\n\nOn Mon, Jo wrote:\n> Will you?\n${"_".repeat(32)}\nFrom: Jo`}
+      />
+    </div>,
+  );
+  const bullets = screen.container.querySelector("ul")!;
+  expect([...bullets.children].map((item) => item.firstChild?.textContent)).toEqual(["a summit", "a treaty"]);
+  const numbered = bullets.querySelector("ol")!;
+  expect(numbered.start).toBe(3);
+  expect(numbered.textContent).toBe("first");
+  expect(screen.container.querySelector("blockquote")?.textContent).toBe("Will you?");
+  expect(screen.container.querySelector("hr")).not.toBeNull();
+  expect(screen.container.textContent).toContain("It asks for:\n");
+  expect(screen.container.textContent).toContain("From: Jo");
+});

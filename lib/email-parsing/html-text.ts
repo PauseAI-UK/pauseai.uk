@@ -99,23 +99,45 @@ function opening(html: string): string {
     .replace(/\s+/g, " ");
 }
 
-/** Whether a length in CSS is nothing, or as good as: "0", "0cm", Word's "0.0001pt". */
-function isNoLength(value: string): boolean {
-  const length = parseFloat(value);
-  return Number.isFinite(length) && Math.abs(length) < 0.01;
+/** Points in one of each CSS unit; a bare number is pixels. */
+const POINTS: Record<string, number> = {
+  pt: 1,
+  px: 0.75,
+  "": 0.75,
+  cm: 28.35,
+  mm: 2.835,
+  in: 72,
+  pc: 12,
+  em: 12,
+  rem: 12,
+};
+
+/**
+ * Whether a margin in CSS is about a line high, so a blank line in text: 9pt
+ * or more (a browser's paragraph has 12pt, Word's "auto" spacing 14pt). A
+ * heading's 6pt under it, or Word's "0.0001pt", is none. A margin that isn't
+ * a length ("auto", a percentage) is a line.
+ */
+function isLineHigh(value: string): boolean {
+  const length = /^(-?[\d.]+)([a-z]*)$/.exec(value);
+  if (!length || !(length[2] in POINTS)) return true;
+  return parseFloat(length[1]) * POINTS[length[2]] >= 9;
 }
 
 /**
  * Whether a paragraph has space above it or below it: by its style's margin
- * on that side if it sets one; otherwise none for Outlook's and Word's (class
- * Mso…), whose own styles give none, and a line's worth for any other.
+ * on that side if it sets one, else by Word's own (mso-margin-top-alt, which
+ * Outlook shows, "auto" being a paragraph's usual space), else by the
+ * margin's shorthand; otherwise none for Outlook's and Word's (class Mso…),
+ * whose own styles give none, and a line's worth for any other.
  */
 function hasSpace(attribs: Record<string, string>, side: "top" | "bottom"): boolean {
   const style = (attribs.style ?? "").toLowerCase();
-  const own = new RegExp(`margin-${side}\\s*:\\s*([^;!]+)`).exec(style)?.[1];
+  const own = new RegExp(`(?:^|[;\\s])margin-${side}\\s*:\\s*([^;!]+)`).exec(style)?.[1];
+  const word = new RegExp(`mso-margin-${side}-alt\\s*:\\s*([^;!]+)`).exec(style)?.[1];
   const shorthand = /(?:^|;)\s*margin\s*:\s*([^;!]+)/.exec(style)?.[1].trim().split(/\s+/);
-  const margin = own ?? (shorthand && (side === "top" ? shorthand[0] : (shorthand[2] ?? shorthand[0])));
-  if (margin !== undefined) return !isNoLength(margin.trim());
+  const margin = own ?? word ?? (shorthand && (side === "top" ? shorthand[0] : (shorthand[2] ?? shorthand[0])));
+  if (margin !== undefined) return isLineHigh(margin.trim());
   return !/\bmso/i.test(attribs.class ?? "");
 }
 
@@ -186,6 +208,12 @@ const OUTLOOK_RULE = "_".repeat(32);
 
 /** A quoted message's From line, as Outlook writes it in English or Welsh, maybe in bold. */
 const QUOTED_FROM = /^\*?(From|Oddi wrth):/i;
+
+/** A line all in bold that doesn't end a sentence: a heading. */
+const HEADING = /^\*[^*]+[^*.,:;]\*$/;
+
+/** A line ending a sentence, as the paragraph before a heading does: a signature's "Kind regards," doesn't. */
+const SENTENCE_END = /[.!?)]$/;
 
 /** A list being written: numbered or not, and its next number. */
 type List = { ordered: boolean; next: number };
@@ -386,6 +414,8 @@ function render(lines: Line[]): string {
     const written = words || mark ? `${quote}${mark}${words}` : quote;
     const blank = !words && !mark;
     if (blank && (!out.length || !out.at(-1)!.replace(/[>\s]/g, ""))) continue;
+    // A heading, a line all bold, stands apart from the paragraph it follows, however its margins are set.
+    if (!mark && HEADING.test(words) && SENTENCE_END.test(out.at(-1) ?? "")) out.push(quote.trimEnd());
     out.push(written.trimEnd());
   }
   while (out.length && !out.at(-1)!.replace(/[>\s]/g, "")) out.pop();

@@ -20,8 +20,30 @@ describe("an HTML email's text", () => {
       '<p class="MsoNormal">Dear Jo,<o:p></o:p></p><p class="MsoNormal"><o:p>&nbsp;</o:p></p>' +
       '<p class="MsoNormal">Thank you.<o:p></o:p></p><p class="MsoNormal">Sam Jones<o:p></o:p></p>' +
       '<p class="MsoNormal" style="margin-bottom:12.0pt">Spaced under</p><p style="margin:0cm 0cm 0.0001pt">Tight</p>' +
-      '<p style="margin: 6pt">Spaced</p><p style="margin:auto">After</p>';
+      '<p style="margin: 12px">Spaced</p><p style="margin:auto">After</p>';
     expect(htmlText(html)).toBe("Dear Jo,\n\nThank you.\nSam Jones\nSpaced under\n\nTight\n\nSpaced\n\nAfter");
+  });
+
+  it("spaces Outlook's paragraphs as Outlook does: by Word's own margins, a line's worth and more only", () => {
+    const html =
+      '<p class="MsoNormal">Tight</p><p class="MsoNormal" style="mso-margin-top-alt:auto;mso-margin-bottom-alt:auto">Auto</p>' +
+      '<p class="MsoNormal" style="mso-margin-top-alt:0cm;margin-bottom:6.0pt">Six points under</p>' +
+      '<p class="MsoNormal" style="margin-bottom:.5cm">Half a centimetre</p><p class="MsoNormal" style="margin-bottom:1em">An em</p>' +
+      '<p class="MsoNormal" style="margin-bottom:5%">Five per cent</p><p class="MsoNormal" style="margin-bottom:1ex">An ex</p>' +
+      '<p class="MsoNormal">End</p>';
+    expect(htmlText(html)).toBe(
+      "Tight\n\nAuto\n\nSix points under\nHalf a centimetre\n\nAn em\n\nFive per cent\n\nAn ex\n\nEnd",
+    );
+  });
+
+  it("puts a blank line above a heading, a line all bold, after a sentence's end, but not under a signature's sign-off", () => {
+    const html =
+      '<p class="MsoNormal">It can be damaged.</p><p class="MsoNormal"><b>Catering</b></p><p class="MsoNormal">No food.</p>' +
+      '<p class="MsoNormal">Kind regards,</p><p class="MsoNormal"><b>Sam Jones</b></p>' +
+      '<p class="MsoNormal">Note:</p><p class="MsoNormal"><b>Not a heading.</b></p>';
+    expect(htmlText(html)).toBe(
+      "It can be damaged.\n\n*Catering*\nNo food.\nKind regards,\n*Sam Jones*\nNote:\n*Not a heading.*",
+    );
   });
 
   it("leaves out what can't be seen: the head, styles, scripts, comments, hidden elements and invisible characters", () => {

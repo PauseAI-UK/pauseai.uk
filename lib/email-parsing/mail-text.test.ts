@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mailParts } from "./mail-text";
+import { mailBlocks, mailParts } from "./mail-text";
 
 describe("mailParts", () => {
   it("leaves plain words alone", () => {
@@ -58,5 +58,83 @@ describe("mailParts", () => {
     expect(mailParts("2 * 3 * 4")).toEqual([{ text: "2 * 3 * 4" }]);
     expect(mailParts("* one\n* two")).toEqual([{ text: "* one\n* two" }]);
     expect(mailParts("*one\n\ntwo*")).toEqual([{ text: "*one\n\ntwo*" }]);
+  });
+});
+
+describe("mailBlocks", () => {
+  it("leaves lines with no list, quote or rule as they are", () => {
+    expect(mailBlocks("Dear Jane,\n\nThanks.")).toEqual([{ text: "Dear Jane,\n\nThanks." }]);
+  });
+
+  it("reads a list's items, bulleted or numbered from its first number, apart from the lines around them", () => {
+    expect(mailBlocks("It asks for:\n- a summit\n* a treaty\n• a pause\n\n3. first\n4) then\nAfter")).toEqual([
+      { text: "It asks for:" },
+      {
+        list: {
+          ordered: false,
+          start: 1,
+          items: [
+            { text: "a summit", nested: [] },
+            { text: "a treaty", nested: [] },
+            { text: "a pause", nested: [] },
+          ],
+        },
+      },
+      { text: "" },
+      {
+        list: {
+          ordered: true,
+          start: 3,
+          items: [
+            { text: "first", nested: [] },
+            { text: "then", nested: [] },
+          ],
+        },
+      },
+      { text: "After" },
+    ]);
+  });
+
+  it("nests an indented item's list in the item above, and starts a new list where the kind changes", () => {
+    const one = (text: string) => ({ text, nested: [] });
+    expect(mailBlocks("- a\n  1. a one\n  2. a two\n    - deep\n- b\n1. c")).toEqual([
+      {
+        list: {
+          ordered: false,
+          start: 1,
+          items: [
+            {
+              text: "a",
+              nested: [
+                {
+                  ordered: true,
+                  start: 1,
+                  items: [
+                    one("a one"),
+                    { text: "a two", nested: [{ ordered: false, start: 1, items: [one("deep")] }] },
+                  ],
+                },
+              ],
+            },
+            one("b"),
+          ],
+        },
+      },
+      { list: { ordered: true, start: 1, items: [one("c")] } },
+    ]);
+    expect(mailBlocks("  - in\n- out")).toEqual([
+      { list: { ordered: false, start: 1, items: [one("in"), one("out")] } },
+    ]);
+  });
+
+  it("reads what's quoted, quotes within it, and Outlook's rule; not a dash or a number that starts no item", () => {
+    expect(
+      mailBlocks(`On Mon, Jo wrote:\n\n> Will you?\n>\n> > Yes\n${"_".repeat(32)}\nFrom: Jo\n-1 vote\n2.5 times\n-`),
+    ).toEqual([
+      { text: "On Mon, Jo wrote:\n" },
+      { quote: [{ text: "Will you?\n" }, { quote: [{ text: "Yes" }] }] },
+      { rule: true },
+      { text: "From: Jo\n-1 vote\n2.5 times\n-" },
+    ]);
   });
 });
