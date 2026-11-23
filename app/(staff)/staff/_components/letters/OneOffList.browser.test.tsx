@@ -60,7 +60,7 @@ describe("the one-off emails", () => {
     await expect.element(page.getByText("may be confidential", { exact: false })).not.toBeVisible();
     expect(page.getByText(lettersCopy.letterThread.quoted).query()).toBeNull();
     await page.getByText(lettersCopy.letterThread.autoInFull).click();
-    await expect.element(page.getByText("> Could we meet?", { exact: false })).toBeVisible();
+    await expect.element(page.getByRole("blockquote").filter({ hasText: "Could we meet?" })).toBeVisible();
     for (const name of ["Placeholder, Polly", "polly.placeholder.mp@parliament.uk"]) {
       await expect.element(link(name)).toHaveAttribute("href", "/staff/politicians/1");
     }

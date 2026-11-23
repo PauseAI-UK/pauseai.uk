@@ -36,6 +36,21 @@ describe("an HTML email's text", () => {
     );
   });
 
+  it("spaces a block by the margins its style sets, as Outlook on the web's paragraphs, and none otherwise", () => {
+    const html =
+      '<div style="margin-top:1em;margin-bottom:1em">One</div><div style="margin:1em 0">Two</div>' +
+      "<div>Three</div><div>Four</div><div style='margin-top:4px'>Five</div>";
+    expect(htmlText(html)).toBe("One\n\nTwo\n\nThree\nFour\nFive");
+  });
+
+  it("keeps a blockquote that only indents, with no margin, tight to the lines round it, as Gmail's signature", () => {
+    const indent = (words: string) =>
+      `<blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex">${words}</blockquote>`;
+    expect(htmlText(`<div>Joseph</div><br>${indent("Joseph Miller")}${indent("Director")}<div>After</div>`)).toBe(
+      "Joseph\n\nJoseph Miller\nDirector\nAfter",
+    );
+  });
+
   it("puts a blank line above a heading, a line all bold, after a sentence's end, but not under a signature's sign-off", () => {
     const html =
       '<p class="MsoNormal">It can be damaged.</p><p class="MsoNormal"><b>Catering</b></p><p class="MsoNormal">No food.</p>' +
@@ -60,8 +75,9 @@ describe("an HTML email's text", () => {
       "<div>It asks for:</div><ul><li>a summit</li><li>a treaty<ol start='3'><li>first</li><li>then</li></ol></li></ul>" +
       "After the list.<li>Stray</li>";
     expect(htmlText(html)).toBe(
-      "It asks for:\n- a summit\n- a treaty\n  3. first\n  4. then\n\nAfter the list.\n- Stray",
+      "It asks for:\n\n- a summit\n- a treaty\n  3. first\n  4. then\n\nAfter the list.\n- Stray",
     );
+    expect(htmlText('<div>Tight:</div><ul style="margin-top:0cm"><li>one</li></ul>')).toBe("Tight:\n- one");
   });
 
   it("writes Word's list marks as a dash or the number they are", () => {
@@ -79,11 +95,19 @@ describe("an HTML email's text", () => {
     );
   });
 
-  it("marks bold words with asterisks, outside their spaces, once however nested, not across lines", () => {
+  it("marks bold words with asterisks and italic ones with underscores, outside their spaces, once however nested, on each line", () => {
     expect(htmlText("A <b>bold </b>word, <strong>very <b>bold</b></strong>, <b> </b><b>two<br>lines</b>.")).toBe(
-      "A *bold* word, *very bold*, two\nlines.",
+      "A *bold* word, *very bold*, *two*\n*lines*.",
     );
-    expect(htmlText("<b>*Starred*</b>")).toBe("*Starred*");
+    expect(htmlText("<b>*Starred*</b> <i>An <em>italic</em> title</i>, <i>snake_case</i>, <b><i>both</i></b>")).toBe(
+      "*Starred* _An italic title_, snake_case, *_both_*",
+    );
+  });
+
+  it("joins pieces in the same style written one after another, as Outlook writes an address", () => {
+    expect(
+      htmlText("<p><b>jo</b><b>.smith</b><a href='mailto:jo@example.com'><b>@example.com</b></a> | <b>0207</b></p>"),
+    ).toBe("*jo.smith@example.com* | *0207*");
   });
 
   it("writes a link's address after its words, unless its words are a web address already", () => {
@@ -93,9 +117,10 @@ describe("an HTML email's text", () => {
       '<a href="mailto:jo@example.com">jo@example.com</a>, <a href="tel:0207">0207</a>, <a href="https://example.org/c"></a>' +
       '<a name="anchor">named</a>, <a href="https://example.org/d">across<br>lines</a>, <a href="https://exa mple.org">bad</a>.';
     expect(htmlText(html)).toBe(
-      "Read the motion <https://example.org/motion>, https://example.org/a, example.org/b <https://example.org/b>, " +
-        "www.example.org <https://www.example.org/>, jo@example.com, 0207, named, across\nlines, bad.",
+      "Read the motion <https://example.org/motion>, https://example.org/a, example.org/b, " +
+        "www.example.org, jo@example.com, 0207, named, across\nlines, bad.",
     );
+    expect(htmlText('<a href="https://example.org/b">example.org/c</a>')).toBe("example.org/c <https://example.org/b>");
   });
 
   it("marks with '> ' what a blockquote quotes: one under 'On … wrote:', a citation, or one starting with its headers", () => {

@@ -4,7 +4,8 @@ import { Parser } from "htmlparser2";
 // rest of lib/email-parsing reads it as it reads any plain text: a line for
 // each of its lines, a blank line between paragraphs, "- " before a list's
 // item, "> " before what a blockquote quotes, a bold piece between
-// asterisks, and a link's address in angle brackets after its words, when
+// asterisks, an italic one between underscores, and a link's address in
+// angle brackets after its words, when
 // its words don't already show where it goes. What the sender hid, and the
 // head, its styles and scripts, aren't text.
 
@@ -38,8 +39,8 @@ const BLOCKS = new Set([
 /** Elements with a blank line before and after. */
 const PARAGRAPHS = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre"]);
 
-/** Elements that make their words bold. */
-const BOLD = new Set(["b", "strong"]);
+/** Elements that make their words bold or italic, and the mark either side of a piece of them: Gmail's plain text's. */
+const MARKS: Record<string, string> = { b: "*", strong: "*", i: "_", em: "_" };
 
 /** HTML's own spaces, which only stand between words: a non-breaking space is kept, as a sender typed it. */
 const SPACE = /[ \t\r\n\f]+/g;
@@ -125,20 +126,28 @@ function isLineHigh(value: string): boolean {
 }
 
 /**
- * Whether a paragraph has space above it or below it: by its style's margin
- * on that side if it sets one, else by Word's own (mso-margin-top-alt, which
- * Outlook shows, "auto" being a paragraph's usual space), else by the
- * margin's shorthand; otherwise none for Outlook's and Word's (class Mso…),
- * whose own styles give none, and a line's worth for any other.
+ * Whether an element's style gives it space above it or below it: by its
+ * margin on that side if it sets one, else by Word's own (mso-margin-top-alt,
+ * which Outlook shows, "auto" being a paragraph's usual space), else by the
+ * margin's shorthand. Undefined if it sets none.
  */
-function hasSpace(attribs: Record<string, string>, side: "top" | "bottom"): boolean {
+function marginSpace(attribs: Record<string, string>, side: "top" | "bottom"): boolean | undefined {
   const style = (attribs.style ?? "").toLowerCase();
   const own = new RegExp(`(?:^|[;\\s])margin-${side}\\s*:\\s*([^;!]+)`).exec(style)?.[1];
   const word = new RegExp(`mso-margin-${side}-alt\\s*:\\s*([^;!]+)`).exec(style)?.[1];
   const shorthand = /(?:^|;)\s*margin\s*:\s*([^;!]+)/.exec(style)?.[1].trim().split(/\s+/);
   const margin = own ?? word ?? (shorthand && (side === "top" ? shorthand[0] : (shorthand[2] ?? shorthand[0])));
-  if (margin !== undefined) return isLineHigh(margin.trim());
-  return !/\bmso/i.test(attribs.class ?? "");
+  return margin === undefined ? undefined : isLineHigh(margin.trim());
+}
+
+/**
+ * Whether a paragraph or a list has space above it or below it: by its
+ * style's margin (marginSpace); otherwise none for Outlook's and Word's
+ * (class Mso…), whose own styles give none, and a line's worth for any other,
+ * as a browser gives.
+ */
+function hasSpace(attribs: Record<string, string>, side: "top" | "bottom"): boolean {
+  return marginSpace(attribs, side) ?? !/\bmso/i.test(attribs.class ?? "");
 }
 
 /**
@@ -185,13 +194,22 @@ export function linkAddress(href: string): string | undefined {
   return /^https?:$/.test(url.protocol) && !tellsNothing(url) ? url.href : undefined;
 }
 
+/** An address as a reader would type it: without its "https://", "www." or a closing "/". */
+const typed = (address: string) =>
+  address
+    .toLowerCase()
+    .replace(/^(https?:\/\/)?(www\.)?/, "")
+    .replace(/\/$/, "");
+
 /**
  * Whether a link's words are a web address already, which a reader sees and
- * the page links. One without its "https://", such as "example.org", the page
- * can't link, so it gets its address after it, as Gmail's plain text writes it.
+ * the page links, or its own address without the "https://" ("example.org/b"
+ * for https://www.example.org/b/), which says where it goes. Another
+ * address without its "https://" the page can't link, so it gets its
+ * address after it, as Gmail's plain text writes it.
  */
-function showsAddress(words: string): boolean {
-  return /^https?:\/\/\S+$/i.test(words);
+function showsAddress(words: string, address: string): boolean {
+  return /^https?:\/\/\S+$/i.test(words) || typed(words) === typed(address);
 }
 
 /**
@@ -231,6 +249,8 @@ type Open = {
   tight?: boolean;
   /** A blockquote that quotes, rather than indents. */
   quote?: boolean;
+  /** A block whose style gives it space under it. */
+  spaced?: boolean;
 };
 
 /** An HTML part's text, as a mailer's plain text would write it. */
@@ -241,7 +261,10 @@ export function htmlText(html: string): string {
   let line: Line | undefined;
   let hidden = 0;
   let quoteDepth = 0;
-  let boldDepth = 0;
+  /** How many bold or italic elements are open, by their mark: only the outermost marks its words. */
+  const markDepth: Record<string, number> = { "*": 0, _: 0 };
+  /** The last piece marked in each style, where its first mark is and where it ends, so one right after it joins it. */
+  const lastRun: Record<string, { line: Line; start: number; end: number } | undefined> = {};
   let preDepth = 0;
   let blankWanted = false;
   /** The shallowest quote since the last line, so a blank line between two quotes is outside both. */
@@ -287,6 +310,26 @@ export function htmlText(html: string): string {
     const target = current();
     target.text += target.text === "" || target.text.endsWith(" ") ? spaced.trimStart() : spaced;
   };
+  /**
+   * Marks the words written since `start` with `mark` either side, outside
+   * their spaces, on each line they run over, so a mark never pairs across
+   * lines; not on a line whose words have the mark in them already.
+   */
+  const marked = (start: { line: Line; at: number }, mark: string) => {
+    const first = lines.indexOf(start.line);
+    const last = lines.indexOf(line ?? lines.at(-1)!);
+    for (let i = first; i <= last; i++) {
+      const written = lines[i];
+      const from = i === first ? start.at : 0;
+      const piece = written.text.slice(from);
+      const words = piece.trim();
+      if (!words || words.includes(mark)) continue;
+      const head = written.text.slice(0, from) + piece.match(/^\s*/)![0];
+      const after = piece.match(/\s*$/)![0];
+      written.text = `${head}${mark}${words}${mark}${after}`;
+      if (i === last && !after) lastRun[mark] = { line: written, start: head.length, end: written.text.length };
+    }
+  };
 
   const parser = new Parser(
     {
@@ -305,21 +348,28 @@ export function htmlText(html: string): string {
           current().rule = true;
           endLine();
         } else if (BLOCKS.has(name)) {
-          endLine();
+          // A block has no space round it unless its style gives it some, as Outlook on the web's paragraphs do.
+          open.spaced = marginSpace(attribs, "bottom") === true;
+          if (marginSpace(attribs, "top")) endParagraph();
+          else endLine();
         } else if (PARAGRAPHS.has(name)) {
-          const paragraph = name === "p";
-          open.tight = paragraph && !hasSpace(attribs, "bottom");
-          if (paragraph && !hasSpace(attribs, "top")) endLine();
-          else endParagraph();
           const following =
             name === "blockquote" ? opening(html.slice(parser.endIndex + 1, parser.endIndex + 2000)) : "";
-          if (name === "blockquote" && isQuote(attribs, lines, attribution, following)) {
-            open.quote = true;
-            quoteDepth++;
-          }
+          open.quote = name === "blockquote" && isQuote(attribs, lines, attribution, following);
+          // A paragraph by its margins; a blockquote that only indents, as Gmail's signature does, by any it sets.
+          const side = (side: "top" | "bottom") =>
+            name === "p"
+              ? hasSpace(attribs, side)
+              : open.quote || name !== "blockquote" || marginSpace(attribs, side) !== false;
+          open.tight = !side("bottom");
+          if (side("top")) endParagraph();
+          else endLine();
+          if (open.quote) quoteDepth++;
           if (name === "pre") preDepth++;
         } else if (name === "ul" || name === "ol") {
-          endLine();
+          // A list has a blank line above it where a browser gives it space, unless it's in another.
+          if (!lists.length && hasSpace(attribs, "top")) endParagraph();
+          else endLine();
           lists.push({ ordered: name === "ol", next: Number(attribs.start) || 1 });
         } else if (name === "li") {
           endLine();
@@ -331,8 +381,19 @@ export function htmlText(html: string): string {
         } else if (name === "a" && attribs.href) {
           open.href = attribs.href;
           open.start = { line: current(), at: current().text.length };
-        } else if (BOLD.has(name)) {
-          if (boldDepth++ === 0) open.start = { line: current(), at: current().text.length };
+        } else if (name in MARKS) {
+          const mark = MARKS[name];
+          if (markDepth[mark]++ === 0) {
+            const at = current();
+            const last = lastRun[mark];
+            if (last?.line === at && last.end === at.text.length) {
+              // Right after a piece in the same style, as Outlook writes one in several: one piece.
+              at.text = at.text.slice(0, last.start) + at.text.slice(last.start + 1, -1);
+              open.start = { line: at, at: last.start };
+            } else {
+              open.start = { line: at, at: at.text.length };
+            }
+          }
         } else if (/mso-list:\s*ignore/i.test(attribs.style ?? "")) {
           // Word's list mark, a symbol-font bullet or a number, written as text before the item's words.
           open.marker = true;
@@ -353,19 +414,11 @@ export function htmlText(html: string): string {
           const { line: at, at: from } = open.start;
           const words = at.text.slice(from).trim();
           const address = linkAddress(open.href!);
-          if (at === line && words && address && !showsAddress(words)) at.text += ` <${address}>`;
-        } else if (BOLD.has(name)) {
-          boldDepth--;
-          const start = open.start;
-          if (start && start.line === line) {
-            const piece = start.line.text.slice(start.at);
-            const words = piece.trim();
-            if (words && !words.includes("*")) {
-              const before = piece.match(/^\s*/)![0];
-              const after = piece.match(/\s*$/)![0];
-              start.line.text = `${start.line.text.slice(0, start.at)}${before}*${words}*${after}`;
-            }
-          }
+          if (at === line && words && address && !showsAddress(words, address)) at.text += ` <${address}>`;
+        } else if (name in MARKS) {
+          const mark = MARKS[name];
+          markDepth[mark]--;
+          if (open.start) marked(open.start, mark);
         } else if (open.marker && open.start) {
           const { line: at, at: from } = open.start;
           const mark = at.text.slice(from).replace(/[\s\u00a0]+/g, "");
@@ -373,7 +426,8 @@ export function htmlText(html: string): string {
         } else if (name === "br") {
           // A void element: its line ended when it opened.
         } else if (BLOCKS.has(name)) {
-          endLine();
+          if (open.spaced) endParagraph();
+          else endLine();
         } else if (PARAGRAPHS.has(name)) {
           if (open.quote) gapDepth = Math.min(gapDepth, --quoteDepth);
           if (name === "pre") preDepth--;

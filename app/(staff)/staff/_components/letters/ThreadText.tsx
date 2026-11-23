@@ -2,7 +2,10 @@ import { mailBlocks, mailParts, type MailBlock, type MailList, type MailPart } f
 import ExternalLink from "../ui/ExternalLink";
 import styles from "./ThreadText.module.css";
 
-/** Pieces of an email's text, each link leaving the site and each bold piece bold. */
+/** An email's text in pieces, italic ones too: text from a kept email is read from its HTML. */
+const partsOf = (text: string) => mailParts(text, { italics: true });
+
+/** Pieces of an email's text, each link leaving the site and each bold or italic piece so. */
 function Parts({ parts }: { parts: MailPart[] }) {
   return parts.map((part, i) => {
     if ("link" in part) {
@@ -19,6 +22,13 @@ function Parts({ parts }: { parts: MailPart[] }) {
         </strong>
       );
     }
+    if ("italic" in part) {
+      return (
+        <em key={i}>
+          <Parts parts={part.italic} />
+        </em>
+      );
+    }
     return part.text;
   });
 }
@@ -27,7 +37,7 @@ function Parts({ parts }: { parts: MailPart[] }) {
 function List({ list }: { list: MailList }) {
   const items = list.items.map((item, i) => (
     <li key={i}>
-      <Parts parts={mailParts(item.text)} />
+      <Parts parts={partsOf(item.text)} />
       {item.nested.map((nested, j) => (
         <List key={j} list={nested} />
       ))}
@@ -58,7 +68,7 @@ function Blocks({ blocks }: { blocks: MailBlock[] }) {
       );
     }
     if ("rule" in block) return <hr key={i} className={styles.rule} />;
-    return <Parts key={i} parts={mailParts(i < blocks.length - 1 ? `${block.text}\n` : block.text)} />;
+    return <Parts key={i} parts={partsOf(i < blocks.length - 1 ? `${block.text}\n` : block.text)} />;
   });
 }
 

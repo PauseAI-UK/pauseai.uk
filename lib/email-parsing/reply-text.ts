@@ -216,8 +216,13 @@ export function letterText(text: string): string {
   return unwrapped(text.replace(/^[ \t]*> ?/gm, ""));
 }
 
-/** A line without the asterisks around its bold words; a list's "* " has none to pair with. */
-const withoutBold = (line: string) => line.replace(/\*([^*\n]*[^*\s])\*/g, "$1");
+/**
+ * A line without the asterisks around its bold words or the underscores
+ * around its italic ones; a list's "* " has none to pair with, nor does an
+ * underscore within a word.
+ */
+const withoutMarks = (line: string) =>
+  line.replace(/\*([^*\n]*[^*\s])\*/g, "$1").replace(/(^|[^\w])_([^_\n]*[^_\s])_(?![\w])/g, "$1$2");
 
 /**
  * A message's parts; all of it what it says if that would leave nothing.
@@ -227,9 +232,9 @@ const withoutBold = (line: string) => line.replace(/\*([^*\n]*[^*\s])\*/g, "$1")
 export function replyParts(text: string, wrapped = true): ReplyParts {
   const unwrap = wrapped ? unwrapped : (lines: string) => lines;
   const all = text.split("\n");
-  // Where the fold starts is found by the lines' words, bold or not.
-  const unbold = all.map(withoutBold);
-  const unmarked = unbold.findIndex((line, i) => !QUOTED.test(line) && startsFolded(unbold, i));
+  // Where the fold starts is found by the lines' words, bold, italic or not.
+  const plain = all.map(withoutMarks);
+  const unmarked = plain.findIndex((line, i) => !QUOTED.test(line) && startsFolded(plain, i));
   let lines = trimEnd(unmarked === -1 ? all : all.slice(0, unmarked));
   let quoted = false;
   while (lines.length && QUOTED.test(lines.at(-1)!)) {

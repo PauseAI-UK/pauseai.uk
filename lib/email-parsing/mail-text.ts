@@ -1,11 +1,15 @@
 // A plain-text email's marks, as Gmail's plain text writes them: a link as
 // its address, often twice ("https://a.org <https://a.org>"), bold words
-// between asterisks, a list's items after "- " or "1. ", indented when
-// nested, what a message quotes after "> ", and Outlook's rule over the
-// headers of the message it answers. ThreadText shows them.
+// between asterisks, italic ones between underscores (as html-text.ts
+// writes them), a list's items after "- " or "1. ", indented when nested,
+// what a message quotes after "> ", and Outlook's rule over the headers of
+// the message it answers. ThreadText shows them.
 
 /** A piece of an email's text: words, a link, or bold pieces. */
-export type MailPart = { text: string } | { link: string } | { bold: MailPart[] };
+export type PlainPart = { text: string } | { link: string } | { bold: PlainPart[] };
+
+/** A piece of an email's text, italic pieces too. */
+export type MailPart = { text: string } | { link: string } | { bold: MailPart[] } | { italic: MailPart[] };
 
 /** An address, up to a space or an angle bracket. */
 const URL = /https?:\/\/[^\s<>"]+/g;
@@ -18,11 +22,34 @@ const AFTER_URL = /[.,;:!?)\]'*]+$/;
  * a "* " list aren't bold; within a paragraph, so a stray one pairs with nothing
  * further down.
  */
-const BOLD = /(^|[\s(])\*(?=\S)((?:(?!\n\s*\n)[^*])*?[^\s*])\*(?=$|[\s).,;:!?])/gm;
+const BOLD = /(^|[\s(_])\*(?=\S)((?:(?!\n\s*\n)[^*])*?[^\s*])\*(?=$|[\s).,;:!?_])/gm;
+
+/**
+ * Underscores around words on one line, not within a word, so "snake_case"
+ * and "first_last@example.org" aren't italic.
+ */
+const ITALIC = /(^|[^\w])_(?=\S)([^_\n]*?[^\s_])_(?!\w)/g;
+
+/** The italic pieces among the words in `parts`, which are outside links, so an address's underscores are left alone. */
+function italicised(parts: MailPart[]): MailPart[] {
+  return parts.flatMap((part) => {
+    if (!("text" in part)) return [part];
+    const pieces: MailPart[] = [];
+    let from = 0;
+    for (const match of part.text.matchAll(ITALIC)) {
+      const start = match.index + match[1].length;
+      if (start > from) pieces.push({ text: part.text.slice(from, start) });
+      pieces.push({ italic: [{ text: match[2] }] });
+      from = match.index + match[0].length;
+    }
+    if (from < part.text.length) pieces.push({ text: part.text.slice(from) });
+    return pieces;
+  });
+}
 
 /** The links in `text`, an address given twice being one link. */
-function linked(text: string): MailPart[] {
-  const parts: MailPart[] = [];
+function linked(text: string): PlainPart[] {
+  const parts: PlainPart[] = [];
   const add = (words: string) => {
     if (words) parts.push({ text: words });
   };
@@ -41,16 +68,22 @@ function linked(text: string): MailPart[] {
   return parts;
 }
 
-/** An email's text, in pieces. */
-export function mailParts(text: string): MailPart[] {
+/**
+ * An email's text, in pieces; italic ones too with `italics`, for text read
+ * from HTML. Plain text a person typed keeps its underscores.
+ */
+export function mailParts(text: string): PlainPart[];
+export function mailParts(text: string, options: { italics: true }): MailPart[];
+export function mailParts(text: string, { italics = false }: { italics?: boolean } = {}): MailPart[] {
+  const styled = (words: string) => (italics ? italicised(linked(words)) : linked(words));
   const parts: MailPart[] = [];
   let from = 0;
   for (const match of text.matchAll(BOLD)) {
     const start = match.index + match[1].length;
-    parts.push(...linked(text.slice(from, start)), { bold: linked(match[2]) });
+    parts.push(...styled(text.slice(from, start)), { bold: styled(match[2]) });
     from = match.index + match[0].length;
   }
-  parts.push(...linked(text.slice(from)));
+  parts.push(...styled(text.slice(from)));
   return parts;
 }
 

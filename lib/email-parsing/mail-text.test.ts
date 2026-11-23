@@ -61,6 +61,27 @@ describe("mailParts", () => {
   });
 });
 
+describe("mailParts with italics", () => {
+  it("makes words between underscores italic, in bold too, but not an underscore within a word or an address", () => {
+    expect(mailParts("_A title_, *_both_*, snake_case, jo_smith@example.org", { italics: true })).toEqual([
+      { italic: [{ text: "A title" }] },
+      { text: ", " },
+      { bold: [{ italic: [{ text: "both" }] }] },
+      { text: ", snake_case, jo_smith@example.org" },
+    ]);
+    expect(mailParts("See https://example.org/_a_/ and _this_", { italics: true })).toEqual([
+      { text: "See " },
+      { link: "https://example.org/_a_/" },
+      { text: " and " },
+      { italic: [{ text: "this" }] },
+    ]);
+  });
+
+  it("leaves underscores alone without italics, as in text a person typed", () => {
+    expect(mailParts("_not italic_")).toEqual([{ text: "_not italic_" }]);
+  });
+});
+
 describe("mailBlocks", () => {
   it("leaves lines with no list, quote or rule as they are", () => {
     expect(mailBlocks("Dear Jane,\n\nThanks.")).toEqual([{ text: "Dear Jane,\n\nThanks." }]);

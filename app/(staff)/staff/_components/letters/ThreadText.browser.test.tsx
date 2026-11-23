@@ -3,6 +3,12 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import ThreadText from "./ThreadText";
 
+it("shows an email's italics", async () => {
+  const screen = await render(<ThreadText text={"See _Confronting AI Risk_, snake_case"} />);
+  expect(screen.container.querySelector("em")?.textContent).toBe("Confronting AI Risk");
+  expect(screen.container.textContent).toBe("See Confronting AI Risk, snake_case");
+});
+
 it("shows an email's words, its bold, and its links leaving the site", async () => {
   const screen = await render(
     <ThreadText text={"Dear Jane,\n\n*Out now: https://example.org/a\n<https://example.org/a>*\n\nBye"} />,

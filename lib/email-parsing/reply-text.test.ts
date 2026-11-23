@@ -315,6 +315,17 @@ describe("replyText", () => {
     });
   });
 
+  it("finds a signature or a footer by its words, italic or not, an underscore within a word left alone", () => {
+    expect(
+      replyParts("Thanks.\n\n_Sam Jones |_ Caseworker\n_For Polly Placeholder MSP_ for Lothian\n_Phone:_ 0131", false)
+        .text,
+    ).toBe("Thanks.");
+    expect(replyParts("See file_name_here.\n\n_Sent from my iPhone_", false)).toEqual({
+      text: "See file_name_here.",
+      quoted: "_Sent from my iPhone_",
+    });
+  });
+
   it("finds a signature or a quote's header by its words, bold or not", () => {
     expect(
       replyParts("Thanks.\n\n*Sam Jones |* Caseworker\n*For Polly Placeholder MSP* for Lothian\n*Phone:* 0131", false),

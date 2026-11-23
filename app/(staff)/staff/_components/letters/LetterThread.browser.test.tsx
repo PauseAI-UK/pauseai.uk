@@ -149,7 +149,8 @@ describe("LetterThread", () => {
         [copy.headers.subject, "Re: Edinburgh follow-up"],
       ],
     ]);
-    await expect.element(page.getByText("Will you come and meet us?")).toBeVisible();
+    // The letter's words; the reply's quote of them is folded under it.
+    await expect.element(page.getByText("Will you come and meet us?").first()).toBeVisible();
     await expect.element(page.getByText(/I'd be glad to meet/)).toBeVisible();
     await expect.element(page.getByText(copy.unreadable)).toBeVisible();
     expect(page.getByText(copy.noReplies).query()).toBeNull();
