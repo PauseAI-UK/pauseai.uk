@@ -6,7 +6,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run placeholders && npm run typecheck && vitest run --project node && npm run lint && npm run lint:css && next build",
+    "build": "npm run typecheck && vitest run --project node && npm run lint && npm run lint:css && next build",
     "typecheck": "next typegen && tsc --noEmit",
     "start": "next start",
     "gate": "node scripts/gate.mjs",

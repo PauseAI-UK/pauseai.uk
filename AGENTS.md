@@ -163,7 +163,7 @@ People write the words visitors and recipients read: page text, letters, emails,
 
 A placeholder is still a draft someone reads, so it follows the style guide ("Interface text"): plain sentences, without a colon that sets something up and then delivers it ("sends its own emails: mainly Critical Alerts"), which reads as machine-written.
 
-`npm run placeholders` fails while ⁂ appears anywhere in the repo outside this file, and names each line. CI, the gate and Netlify's build run it, so placeholders can't be merged by accident. It isn't one of the tests, so while a branch's copy waits, `npm test` still checks its coverage: only the placeholder check's own row of the gate's table fails.
+`npm run placeholders` fails while ⁂ appears anywhere in the repo outside this file, and names each line. CI and the gate run it, so placeholders can't be merged by accident. Netlify's build doesn't, so a branch with placeholders still gets a deploy preview. It isn't one of the tests, so while a branch's copy waits, `npm test` still checks its coverage: only the placeholder check's own row of the gate's table fails.
 
 After every storyboard review of a branch with placeholders, run `npm run copy` and give the person you're working with the page it writes, so they can see the copy waiting for approval: it writes one page, `test-results/copy.html`, with each placeholder the branch adds or changes, its file and line, and the frames that picture it (`docs/testing.md`, "The copy to approve").
 
