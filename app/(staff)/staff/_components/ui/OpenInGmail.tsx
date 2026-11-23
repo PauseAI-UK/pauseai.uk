@@ -4,6 +4,7 @@ import { useId } from "react";
 import Bubble from "@/components/ui/Bubble";
 import { lettersCopy } from "../letters/copy";
 import ExternalLink from "./ExternalLink";
+import { helpButtonClass } from "./HelpButton";
 import IconText from "./IconText";
 import styles from "./OpenInGmail.module.css";
 
@@ -21,7 +22,7 @@ export default function OpenInGmail({ href, account }: { href: string; account: 
     <IconText
       after
       icon={
-        <Bubble id={id} label="i" trigger={styles.help} name={copy.gmailHelp.name} className={styles.bubble}>
+        <Bubble id={id} label="i" trigger={helpButtonClass()} name={copy.gmailHelp.name} className={styles.bubble}>
           <strong>{copy.gmailHelp.title(account)}</strong>
           <p className={styles.words}>{copy.gmailHelp.words(account)}</p>
         </Bubble>

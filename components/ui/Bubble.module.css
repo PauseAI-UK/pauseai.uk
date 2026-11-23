@@ -13,6 +13,9 @@
   box-shadow: 0 6px 24px rgb(var(--text-rgb) / 0.15);
   color: var(--text);
   font-size: var(--text-sm);
+  /* The body's (styles/base.css), as a bubble can sit inside something
+     with its own, such as an icon's line-height of 0 (ui/IconText). */
+  line-height: 1.65;
 }
 
 /* Where the browser can't anchor it, it has no pointer, as it's in the

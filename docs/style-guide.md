@@ -12,6 +12,17 @@ designing or building something, look there: the piece may already be
 there, or need only a variant. `docs/testing.md` ("The component gallery")
 says how to add to it and picture it.
 
+### One look, one piece of code
+
+Something that looks like something already on the site uses the same
+code: the same component, or the same class from it. Never copy its CSS.
+Copies drift apart, and the one that drifts is the one that looks wrong.
+If what you need is in a feature's own files rather than the kit, move it
+to the kit (`components/ui/`, or `app/(staff)/staff/_components/ui/` for
+the staff pages) and have both use it. A copy you find while working,
+however small, is merged on the same branch, not left for later
+(`HelpButton`, the grey "?" and "i", is one).
+
 The look lives in the components, not in this file. Each one owns its
 styles in a CSS module beside it. The only global CSS is two files:
 

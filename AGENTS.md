@@ -149,7 +149,7 @@ To see a component, use the component gallery (`/gallery`, fixture builds only; 
 npm run storyboard -- --no-main --no-open --paths gallery -g 'gallery: ui$'   # the UI kit, both viewports
 ```
 
-A new component gets its example in a `Component.gallery.tsx` beside it, or in `app/(tools)/gallery/_examples/` outside a staff feature's folder (`tests/checks/gallery.test.ts` fails otherwise; `docs/testing.md`, "The component gallery"); look at it there before saying it's done. Check the gallery before writing a component or CSS, too: what you need may exist, or need only a variant (`docs/style-guide.md`).
+A new component gets its example in a `Component.gallery.tsx` beside it, or in `app/(tools)/gallery/_examples/` outside a staff feature's folder (`tests/checks/gallery.test.ts` fails otherwise; `docs/testing.md`, "The component gallery"); look at it there before saying it's done. Check the gallery before writing a component or CSS, too: what you need may exist, or need only a variant (`docs/style-guide.md`). Something that looks like what's already on the site uses its code, never a copy of its CSS; a copy you find, however small, is made one shared component on your branch (`docs/style-guide.md`, "One look, one piece of code").
 
 ## Every change needs 100% test coverage
 

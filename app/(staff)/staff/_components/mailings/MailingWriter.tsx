@@ -54,6 +54,7 @@ import Bubble from "@/components/ui/Bubble";
 import NotIcon from "../ui/NotIcon";
 import Strip from "../ui/Strip";
 import Numbered from "../ui/Numbered";
+import { helpButtonClass } from "../ui/HelpButton";
 import styles from "./MailingWriter.module.css";
 import { mailingsCopy } from "./copy";
 import { politiciansCopy } from "../politicians/copy";
@@ -131,7 +132,7 @@ function Warning({
 /** A "?" that opens a few words on what the thing beside it is for. */
 function Help({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
-    <Bubble id={id} label="?" trigger={styles.help} name={label}>
+    <Bubble id={id} label="?" trigger={helpButtonClass(styles.help)} name={label}>
       {children}
     </Bubble>
   );
