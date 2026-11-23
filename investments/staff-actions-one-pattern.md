@@ -24,4 +24,4 @@ Convert one form at a time, the silent ones first.
 
 ## Hits
 
-- 2026-11-06: "Save filter" gave no sign it was working while slow; Francis asked for the standard dimming and spinner
+- 2026-11-06: "Save filter" gave no sign it was working while slow; the reviewer asked for the standard dimming and spinner

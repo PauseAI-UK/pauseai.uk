@@ -8,8 +8,8 @@ GitHub refuses a push that changes a file in `.github/workflows/` from a token w
 
 ## Fix
 
-Either give the token the `workflow` scope, or say in AGENTS.md that a change to a workflow is committed and left for Francis to push.
+Either give the token the `workflow` scope, or say in AGENTS.md that a change to a workflow is committed and left for a maintainer to push.
 
 ## Hits
 
-- 2026-11-12: a new CI step was refused at the push; the check went into an npm script CI already runs, then back into the workflow for Francis to push, ~30 min
+- 2026-11-12: a new CI step was refused at the push; the check went into an npm script CI already runs, then back into the workflow for a maintainer to push, ~30 min
