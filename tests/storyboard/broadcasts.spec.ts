@@ -476,8 +476,10 @@ test("A Google Maps link first in a text", async ({ page, request, flowDatabase 
   story("With the march's page linked before the map, the warning goes.");
   await page.getByRole("textbox", { name: copy.templateWords }).click();
   await page.keyboard.press("ControlOrMeta+Home");
-  await page.keyboard.type("Details: https://pauseai.uk/march ");
+  await savedAfter(page, () => page.keyboard.type("Details: https://pauseai.uk/march "));
   await expect(warning).toBeHidden();
+  await expect(page.getByText("March Against AI Extinction & for a pause")).toBeVisible();
+  await page.getByRole("button", { name: copy.submitTemplate }).scrollIntoViewIfNeeded();
   await frame(page, "No warning, the march's page first", { window: true });
 });
 
