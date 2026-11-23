@@ -39,6 +39,11 @@ const EXCEPTIONS = new Map([
     "lib/server/outside-services/gmail.server.ts  gmailHistory",
     "history gone is an answer: the read searches, and says so",
   ],
+  // Luma failing to take someone off the calendar as they opt out: the next full pass over its contacts retries and reports.
+  [
+    "lib/supporters/email-settings.server.ts  offCalendarNow",
+    "the Luma import's next pass tries again, and reports it if that fails too",
+  ],
   // Postmark refusing a suppressed address is kept as that address blocked, which staff see.
   ["lib/email/email.server.ts  sendWith", "a suppressed address is recorded as blocked, its own report"],
   // A file that isn't UTF-8 is read as Windows-1252, as spreadsheets save it: the catch is the question.

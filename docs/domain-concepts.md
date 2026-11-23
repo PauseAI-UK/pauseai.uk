@@ -1423,7 +1423,8 @@ Three things tell us:
   it listed them again is closed. One from our contact preferences page or an
   email's unsubscribe link stays open, and the pass takes anyone it still
   lists with one off the calendar again (`stillOnCalendar`), as taking them
-  off may have failed. That catches what the webhook doesn't: returns,
+  off may have failed. Only the pass reports a failure, on its run, so a
+  short outage at Luma, which the next pass gets past, tells no one. That catches what the webhook doesn't: returns,
   removals, blocks, and anyone who left before the webhook was set up on
   22 Oct 2026. So someone who leaves, comes back and leaves again within a
   pass has one opt-out, not two: the second unsubscribe finds the first
