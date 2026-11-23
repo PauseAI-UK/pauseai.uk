@@ -68,7 +68,7 @@ export const broadcastsCopy = {
     willGet: (n: number, channel: "email" | "text") =>
       `${count(n, "supporter", "supporters")} will be ${channel === "email" ? "emailed" : "texted"}.`,
     // In its place, beside a spinner, while who it goes to is being worked out afresh.
-    counting: "⁂ Counting who it goes to",
+    counting: "Counting who it will go to",
     // Write.
     subject: "Subject",
     emailLabel: "Email",

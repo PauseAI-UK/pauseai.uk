@@ -218,7 +218,7 @@ export const lettersCopy = {
     // Behind the "i" after it: what a screen reader calls the "i"; then, for someone Gmail shows their own inbox,
     // which mailbox it needs and how to add it.
     gmailHelp: {
-      name: "⁂ About Open in Gmail",
+      name: "About Open in Gmail",
       title: (account: string) => `Logged in as ${account}?`,
       words: (account: string) =>
         `This opens the thread in that mailbox. If Gmail shows your own inbox, add ${account} as an account in Gmail (your picture at the top right, then Add another account) and try again.`,
