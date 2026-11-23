@@ -1085,6 +1085,7 @@ that drives it or why nothing does.
   - a supporter merged into another by their mobile number, whose old ID's page redirects to the one kept;
   - a letter writer reached from the letters page;
   - a march sign-up, with what they gave and the link they came by;
+  - a march sign-up's number given without the box: texts about events, and no Updates;
   - the list's Consent column, and its filter: those who can be emailed about events, then the newsletter, then leaving out those who get events emails;
   - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, and one who unsubscribed there;
   - a hold in CiviCRM in Blocked addresses, lifted with a note;

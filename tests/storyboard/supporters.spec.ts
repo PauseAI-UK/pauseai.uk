@@ -483,6 +483,45 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   await frame(page, "Marta's page");
 });
 
+test("A march sign-up's number, without the box", async ({ page, flowDatabase }) => {
+  story(
+    "Noor signs up for the march and gives her phone number, which the form asks for for text updates about events. She leaves the box to hear about future campaigns unticked.",
+  );
+  const form = marchSignupCopy.form;
+  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-apr-27#register`);
+  await page.getByLabel(form.name).fill("Noor Number");
+  await page.getByLabel(form.email).fill(madeUpAddress("Noor Number", 45, "example.org"));
+  const phone = page.getByRole("textbox", { name: new RegExp(`^${form.phone}`) });
+  await phone.fill("07700 900145");
+  await expect(page.getByText(form.phoneHint)).toBeVisible();
+  await expect(page.getByLabel(form.consent)).not.toBeChecked();
+  await phone.scrollIntoViewIfNeeded();
+  await frame(page, "The form, with her number and the box unticked", { window: true });
+  story(
+    "On her page, staff see that we may text her number about events, as she gave it for that, and that she isn't on PauseAI UK Updates, as she left the box unticked.",
+  );
+
+  await page.getByRole("button", { name: form.submit, exact: true }).click();
+  await expect(page.getByRole("heading", { name: marchSignupCopy.share.title })).toBeVisible();
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters`);
+  await page.getByRole("row").filter({ hasText: "Noor Number" }).getByRole("link").first().click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Noor Number");
+  const sources = copy.detail.permissions.sources;
+  await expect(
+    page.getByText(copy.detail.permissions.reasons["gave-number"]("16 Oct 2026", sources["march-2027-04"]), {
+      exact: false,
+    }),
+  ).toBeVisible();
+  // Her email and her number, each a no to Updates for the box left unticked.
+  await expect(
+    page.getByText(copy.detail.permissions.reasons.declined("16 Oct 2026", sources["march-2027-04"]), {
+      exact: false,
+    }),
+  ).toHaveCount(2);
+  await frame(page, "Noor's page");
+});
+
 test("A member who wrote to their MP", async ({ page, request, flowDatabase }) => {
   story(
     "Lee writes to their MP. The CiviCRM import finds Lee is a member too, and the two are one supporter, with both a Member and a Wrote to MP activity.",
