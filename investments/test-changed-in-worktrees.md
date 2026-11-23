@@ -27,3 +27,4 @@ have `scripts/test-changed.mjs` pass Vitest the changed files itself
 - 2026-11-19: in tmp/worktrees/consents-redo, the same, so ran the gate's test group instead, ~3 min
 - 2026-11-19: in the main checkout, ran the affected test files by hand, then the whole `npm test`, ~10 min
 - 2026-11-19: in tmp/worktrees/home-photos-load, ran the gate's test group instead, ~4 min
+- 2026-11-23: in tmp/worktrees/maps-link-warning, ran the two affected test files by hand, then the gate's test group, ~3 min

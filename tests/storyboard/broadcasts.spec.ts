@@ -459,6 +459,30 @@ test("A text's preview, as WhatsApp shows it", async ({ page, request, flowDatab
   await frame(page, "The words opened", { window: true });
 });
 
+test("A Google Maps link first in a text", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write a text whose first link is to Google Maps. WhatsApp breaks the card for that link in a template's text, so the preview warns them to put another link first.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("We meet at 11:00 at Parliament Square: https://maps.app.goo.gl/AbCdEfGh12345");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: where to meet"));
+  const warning = page.getByText(copy.mapsFirst);
+  await warning.scrollIntoViewIfNeeded();
+  await frame(page, "The warning under the preview", { window: true });
+  story("With the march's page linked before the map, the warning goes.");
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.press("ControlOrMeta+Home");
+  await savedAfter(page, () => page.keyboard.type("Details: https://pauseai.uk/march "));
+  await expect(warning).toBeHidden();
+  await expect(page.getByText("March Against AI Extinction & for a pause")).toBeVisible();
+  await page.getByRole("button", { name: copy.submitTemplate }).scrollIntoViewIfNeeded();
+  await frame(page, "No warning, the march's page first", { window: true });
+});
+
 test("WhatsApp won't take a new template", async ({ page, request, flowDatabase }) => {
   story("Staff write a new template for a text and send it for approval, but it's longer than WhatsApp allows.");
   await importLuma(request, BASE);
