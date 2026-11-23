@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { htmlText, linkAddress } from "./html-text";
 
+/** Outlook's styles, which a message it writes carries in its head: its paragraphs have no margin. */
+const OUTLOOK = "<head><style>p.MsoNormal, li.MsoNormal, div.MsoNormal {margin:0cm;}</style></head>";
+
 describe("an HTML email's text", () => {
   it("writes Gmail's lines and paragraphs as plain text does, its entities as characters", () => {
     const html =
@@ -17,6 +20,7 @@ describe("an HTML email's text", () => {
 
   it("writes Outlook's paragraphs without space between them, its empty ones as blank lines", () => {
     const html =
+      OUTLOOK +
       '<p class="MsoNormal">Dear Jo,<o:p></o:p></p><p class="MsoNormal"><o:p>&nbsp;</o:p></p>' +
       '<p class="MsoNormal">Thank you.<o:p></o:p></p><p class="MsoNormal">Sam Jones<o:p></o:p></p>' +
       '<p class="MsoNormal" style="margin-bottom:12.0pt">Spaced under</p><p style="margin:0cm 0cm 0.0001pt">Tight</p>' +
@@ -24,8 +28,18 @@ describe("an HTML email's text", () => {
     expect(htmlText(html)).toBe("Dear Jo,\n\nThank you.\nSam Jones\nSpaced under\n\nTight\n\nSpaced\n\nAfter");
   });
 
+  it("spaces Outlook's paragraphs as a browser does once Gmail has quoted them, their styles gone", () => {
+    expect(htmlText('<p class="MsoNormal">Laura</p><p class="MsoNormal">Laura Moodie</p>')).toBe(
+      "Laura\n\nLaura Moodie",
+    );
+    expect(htmlText(`${OUTLOOK}<p class="MsoNormal">Laura</p><p class="MsoNormal">Laura Moodie</p>`)).toBe(
+      "Laura\nLaura Moodie",
+    );
+  });
+
   it("spaces Outlook's paragraphs as Outlook does: by Word's own margins, a line's worth and more only", () => {
     const html =
+      OUTLOOK +
       '<p class="MsoNormal">Tight</p><p class="MsoNormal" style="mso-margin-top-alt:auto;mso-margin-bottom-alt:auto">Auto</p>' +
       '<p class="MsoNormal" style="mso-margin-top-alt:0cm;margin-bottom:6.0pt">Six points under</p>' +
       '<p class="MsoNormal" style="margin-bottom:.5cm">Half a centimetre</p><p class="MsoNormal" style="margin-bottom:1em">An em</p>' +
@@ -53,6 +67,7 @@ describe("an HTML email's text", () => {
 
   it("puts a blank line above a heading, a line all bold, after a sentence's end, but not under a signature's sign-off", () => {
     const html =
+      OUTLOOK +
       '<p class="MsoNormal">It can be damaged.</p><p class="MsoNormal"><b>Catering</b></p><p class="MsoNormal">No food.</p>' +
       '<p class="MsoNormal">Kind regards,</p><p class="MsoNormal"><b>Sam Jones</b></p>' +
       '<p class="MsoNormal">Note:</p><p class="MsoNormal"><b>Not a heading.</b></p>';
@@ -84,13 +99,13 @@ describe("an HTML email's text", () => {
     const item = (mark: string, words: string) =>
       `<p class="MsoListParagraph"><span style="font-family:Symbol"><span style="mso-list:Ignore">${mark}` +
       `<span style="font:7.0pt">&nbsp;&nbsp;&nbsp; </span></span></span>${words}</p>`;
-    expect(htmlText(item("·", "Health") + item("2.", "Housing") + item("o", "Roads"))).toBe(
+    expect(htmlText(OUTLOOK + item("·", "Health") + item("2.", "Housing") + item("o", "Roads"))).toBe(
       "- Health\n2. Housing\n- Roads",
     );
     // As Gmail quotes it, its mso-list gone: a bullet in a symbol font starting a line, not other words in one.
     const quoted = (mark: string, words: string) =>
       `<p class="MsoNormal"><span style="font-family:Symbol"><span>${mark}<span style="font:7pt">&nbsp; </span></span></span>${words}</p>`;
-    expect(htmlText(quoted("·", "Call") + quoted("3.", "Read") + quoted("αβ", "Greek"))).toBe(
+    expect(htmlText(OUTLOOK + quoted("·", "Call") + quoted("3.", "Read") + quoted("αβ", "Greek"))).toBe(
       "- Call\n3. Read\nαβ  Greek",
     );
     expect(htmlText('<p>See <span style="font-family:Symbol">·</span> here</p>')).toBe("See · here");
@@ -153,12 +168,21 @@ describe("an HTML email's text", () => {
     );
   });
 
-  it("leaves a blockquote that only sets words apart unmarked, as a signature or a quotation in a letter", () => {
-    const html =
-      '<p>Yours sincerely,<br>Jo</p><blockquote class="gmail_quote" style="border-left:1px solid #ccc"><p>Jo Smith<br>Director</p></blockquote>' +
-      "<p>Our quote:</p><blockquote><p>Safety cannot be a secret.</p></blockquote>";
-    expect(htmlText(html)).toBe(
-      "Yours sincerely,\nJo\n\nJo Smith\nDirector\n\nOur quote:\n\nSafety cannot be a secret.",
+  it("leaves a blockquote that only sets words apart unmarked, as a quotation in a letter", () => {
+    expect(htmlText("<p>Our quote:</p><blockquote><p>Safety cannot be a secret.</p></blockquote>")).toBe(
+      "Our quote:\n\nSafety cannot be a secret.",
+    );
+  });
+
+  it("marks Gmail's quote, with its bar, as a quote: a question a reply answers under it, or a signature", () => {
+    const gmail = (words: string) =>
+      `<blockquote class="gmail_quote" style="margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204)">${words}</blockquote>`;
+    expect(htmlText(`<div>Thanks.</div><div><br></div>${gmail("How many?")}<div><br></div><div>Twelve.</div>`)).toBe(
+      "Thanks.\n\n> How many?\n\nTwelve.",
+    );
+    // Two straight after each other, neither with a margin between, are one, as they show.
+    expect(htmlText(`<div>Jo</div><div><br></div>${gmail("Jo Smith")}${gmail("Director")}<div>After</div>`)).toBe(
+      "Jo\n\n> Jo Smith\n> Director\n\nAfter",
     );
   });
 

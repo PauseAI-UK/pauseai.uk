@@ -83,11 +83,13 @@ const WROTE = /\b(wrote|ysgrifennodd):\s*$/i;
 const QUOTE_START = /^\s*(On\s[^]{5,300}?\b(wrote|ysgrifennodd):|\*?(From|Oddi wrth):)/i;
 
 /**
- * Whether a blockquote quotes another message: a citation (Apple Mail's,
- * Thunderbird's), or one under the line Gmail marks as a quote's, in any
- * language, or under "On … wrote:", or starting with that or a quoted
- * message's headers. Otherwise it sets words apart, however it's classed or
- * styled: a quotation in a letter, a signature, or Gmail's indent.
+ * Whether a blockquote quotes another message, or shows as a quote does: a
+ * citation (Apple Mail's, Thunderbird's); Gmail's quote, with its bar down
+ * the side, which a reply quotes a question with to answer it under it (and
+ * which some put round their signature, so it shows with a bar there too);
+ * one under the line Gmail marks as a quote's, in any language, or under
+ * "On … wrote:"; or one starting with that or a quoted message's headers.
+ * Otherwise it sets words apart: a quotation in a letter, or Gmail's indent.
  * `following` is some of the text it starts with.
  */
 function isQuote(
@@ -99,6 +101,7 @@ function isQuote(
   const over = lines.findLast((line) => line.text.trim());
   return (
     attribs.type?.toLowerCase() === "cite" ||
+    (/\bgmail_quote\b/.test(attribs.class ?? "") && /border-left\s*:\s*[^;]*solid/i.test(attribs.style ?? "")) ||
     (over !== undefined && (over === attribution || WROTE.test(over.text.trim()))) ||
     QUOTE_START.test(following)
   );
@@ -156,12 +159,16 @@ function marginSpace(attribs: Record<string, string>, side: "top" | "bottom"): b
 /**
  * Whether a paragraph or a list has space above it or below it: by its
  * style's margin (marginSpace); otherwise none for Outlook's and Word's
- * (class Mso…), whose own styles give none, and a line's worth for any other,
- * as a browser gives.
+ * (class Mso…) where the message has their styles, which give none, and a
+ * line's worth for any other, as a browser gives. Gmail takes those styles
+ * out of a message it quotes, so there their paragraphs show spaced.
  */
-function hasSpace(attribs: Record<string, string>, side: "top" | "bottom"): boolean {
-  return marginSpace(attribs, side) ?? !/\bmso/i.test(attribs.class ?? "");
+function hasSpace(attribs: Record<string, string>, side: "top" | "bottom", msoStyled: boolean): boolean {
+  return marginSpace(attribs, side) ?? !(msoStyled && /\bmso/i.test(attribs.class ?? ""));
 }
+
+/** Whether HTML has Outlook's or Word's styles, which give their paragraphs no margin. */
+const hasMsoStyles = (html: string) => /<style[^>]*>[^]*?\.MsoNormal\b[^]*?<\/style>/i.test(html);
 
 /**
  * A link's true address: a scanner's, a search engine's or a mail service's
@@ -267,6 +274,8 @@ type Open = {
   quote?: boolean;
   /** A block whose style gives it space under it. */
   spaced?: boolean;
+  /** A quote with no margin under it, which one straight after with none over it joins. */
+  joins?: boolean;
   /** Its styles' marks, each with where its words start if it's the outermost in that style. */
   styled?: { mark: string; start?: MarkStart }[];
 };
@@ -287,6 +296,9 @@ export function htmlText(html: string): string {
   /** The last piece marked in each style, where its first mark is and where it ends, so one right after it joins it. */
   const lastRun: Record<string, { line: Line; start: number; end: number } | undefined> = {};
   let preDepth = 0;
+  const msoStyled = hasMsoStyles(html);
+  /** The last quote to close: how many lines there were then, and whether one straight after joins it. */
+  let quoteEnd: { at: number; joins: boolean } | undefined;
   let blankWanted = false;
   /** The shallowest quote since the last line, so a blank line between two quotes is outside both. */
   let gapDepth = 0;
@@ -396,16 +408,21 @@ export function htmlText(html: string): string {
           // A paragraph by its margins; a blockquote that only indents, as Gmail's signature does, by any it sets.
           const side = (side: "top" | "bottom") =>
             name === "p"
-              ? hasSpace(attribs, side)
+              ? hasSpace(attribs, side, msoStyled)
               : open.quote || name !== "blockquote" || marginSpace(attribs, side) !== false;
           open.tight = !side("bottom");
-          if (side("top")) endParagraph();
+          if (open.quote) open.joins = marginSpace(attribs, "bottom") === false;
+          if (open.quote && quoteEnd?.at === lines.length && quoteEnd.joins && marginSpace(attribs, "top") === false) {
+            // Straight after a quote, neither with a margin between, as a signature's lines in quotes are: one quote.
+            blankWanted = false;
+            endLine();
+          } else if (side("top")) endParagraph();
           else endLine();
           if (open.quote) quoteDepth++;
           if (name === "pre") preDepth++;
         } else if (name === "ul" || name === "ol") {
           // A list has a blank line above it where a browser gives it space, unless it's in another.
-          if (!lists.length && hasSpace(attribs, "top")) endParagraph();
+          if (!lists.length && hasSpace(attribs, "top", msoStyled)) endParagraph();
           else endLine();
           lists.push({ ordered: name === "ol", next: Number(attribs.start) || 1 });
         } else if (name === "li") {
@@ -466,7 +483,10 @@ export function htmlText(html: string): string {
           if (open.spaced) endParagraph();
           else endLine();
         } else if (PARAGRAPHS.has(name)) {
-          if (open.quote) gapDepth = Math.min(gapDepth, --quoteDepth);
+          if (open.quote) {
+            gapDepth = Math.min(gapDepth, --quoteDepth);
+            quoteEnd = { at: lines.length, joins: open.joins! };
+          }
           if (name === "pre") preDepth--;
           if (open.tight) endLine();
           else endParagraph();
