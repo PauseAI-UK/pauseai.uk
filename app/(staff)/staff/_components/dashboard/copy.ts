@@ -33,6 +33,9 @@ export const dashboardCopy = {
         broadcastReplies: (n: number, title: string) => `${count(n, "reply", "replies")} to "${title}" to check`,
         broadcastRepliesDetail: "Answer them promptly, and record anyone asking to stop as an opt-out.",
         broadcastRepliesButton: "See replies",
+        // Politicians' replies to one mailing waiting for someone to answer them, set their answer to its ask, or say
+        // there's nothing to do: a line each mailing, its title and button as a broadcast's.
+        mailingRepliesDetail: "⁂ Reply to each, set their answer to the ask, or mark it as nothing to do.",
       },
       // The windows: each a tab, its length in days; "Show" is the tabs' name, read out by a screen reader.
       window: (days: number) => `${days} days`,

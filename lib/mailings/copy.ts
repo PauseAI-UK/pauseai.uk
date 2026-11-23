@@ -316,5 +316,10 @@ export const mailingsCopy = {
     nothingDone: (by: string, when: string) => `Nothing to do, said ${by}, ${when}`,
     // Our answer in the thread: who sent it.
     sentBy: (by: string) => `Sent by ${by}`,
+    // Under a politician's reply to a mailing's letter that came to a staff member's own mailbox, to anyone else,
+    // in place of Reply.
+    answerElsewhere: (account: string) => `⁂ This came to ${account}, so reply to it in Gmail there.`,
+    // What a problem names our answer as (lib/server/problems.server.ts).
+    answerTo: (id: number) => `Our reply to reply ${id}`,
   },
 };

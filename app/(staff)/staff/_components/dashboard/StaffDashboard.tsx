@@ -71,16 +71,27 @@ function Action({ action }: { action: DashboardAction }) {
                 words.broadcastRepliesButton,
                 `/staff/broadcasts/${action.broadcastId}?tab=look`,
               ]
-            : [
-                words.failedImport(importRunsCopy.jobTitles[action.job]),
-                words.failedImportDetail(action.error, staffTime(action.at)),
-                words.seeRun,
-                importPath(action.job),
-              ];
+            : action.kind === "mailing-replies"
+              ? [
+                  words.broadcastReplies(action.count, action.title),
+                  words.mailingRepliesDetail,
+                  words.broadcastRepliesButton,
+                  `/staff/mailings/${action.mailingId}?tab=look`,
+                ]
+              : [
+                  words.failedImport(importRunsCopy.jobTitles[action.job]),
+                  words.failedImportDetail(action.error, staffTime(action.at)),
+                  words.seeRun,
+                  importPath(action.job),
+                ];
   return (
     <li>
       <Strip
-        tone={action.kind === "held-import" || action.kind === "broadcast-replies" ? "amber" : "red"}
+        tone={
+          action.kind === "held-import" || action.kind === "broadcast-replies" || action.kind === "mailing-replies"
+            ? "amber"
+            : "red"
+        }
         action={
           <StaffLink className={buttonClass({ variant: "primary", size: "small", fit: true })} href={href}>
             {button}

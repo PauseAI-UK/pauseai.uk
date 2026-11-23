@@ -252,11 +252,11 @@ export async function keepGmailAnswer(
 }
 
 /** How long after someone's last message WhatsApp takes words of our own to them. */
-const WINDOW_HOURS = 24;
+export const REPLY_WINDOW_HOURS = 24;
 
 /** Whether WhatsApp still takes an answer to a reply to a text that came at `receivedAt`: within a day of it. */
 export function inWindow(receivedAt: Date): boolean {
-  return now().getTime() - receivedAt.getTime() < WINDOW_HOURS * 60 * 60 * 1000;
+  return now().getTime() - receivedAt.getTime() < REPLY_WINDOW_HOURS * 60 * 60 * 1000;
 }
 
 /** Whether WhatsApp still delivers an emoji on a message that came at `receivedAt`: within REACTION_DAYS of it. */

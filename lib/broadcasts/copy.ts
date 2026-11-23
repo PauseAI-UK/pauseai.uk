@@ -472,7 +472,7 @@ export const broadcastsCopy = {
       "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
     // What a problem names a supporter's copy of a broadcast as, and our answer to a reply.
     copyOf: (id: number) => `Broadcast copy ${id}`,
-    answerTo: (id: number) => `Our reply to reply ${id}`,
+    answerTo: mailingsCopy.answers.answerTo,
     // WhatsApp gets an error, so it sends the webhook again.
     whatsAppWebhookNotRecorded: "A WhatsApp webhook couldn't be recorded",
   },
@@ -495,6 +495,15 @@ export const broadcastsCopy = {
           : reason === "civicrm"
             ? `“${title}” was due to go, but hasn't been sent.\n\nWe check everyone with CiviCRM before sending to them, and the check failed. CiviCRM said: ${said ?? "nothing"}\n\nIt will send as soon as the check works. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`
             : `“${title}” was due to go, but hasn't been sent.\n\nWe check every address with CiviCRM before emailing it, and our import from CiviCRM hasn't worked for a day.\n\nYou don't need to do anything. It will send as soon as CiviCRM is back. If that hasn't happened by ${stops}, it will be stopped, and you'll get another email.\n\n${link}`,
+    },
+    // Replies to a broadcast's texts that nobody has dealt with for a couple of hours, to whoever made it and the
+    // inbox, once each (lib/broadcasts/text-alerts.server.ts): who sent each, the hours left to answer it before
+    // WhatsApp stops taking our words, and a link to its thread.
+    textsWaiting: {
+      subject: (n: number, title: string) => `⁂ ${count(n, "text reply", "text replies")} to answer: ${title}`,
+      body: (title: string, lines: string[]) =>
+        `⁂ These replies to “${title}” are waiting for someone to answer them. WhatsApp lets us reply only within a day of their message, so answer each in time, or mark it as needing nothing.\n\n${lines.join("\n")}`,
+      line: (who: string, hours: number, link: string) => `- ⁂ ${who}: ${count(hours, "hour", "hours")} left. ${link}`,
     },
     // A broadcast whose Gmail, Postmark or WhatsApp has said at every try since `since` that it can't send for now,
     // as at a limit or down, to whoever scheduled it and the inbox, once: it goes on by itself, or stops at `stops`.

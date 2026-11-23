@@ -74,6 +74,7 @@ const LISTED: Record<string, readonly string[]> = {
     "preferences-link",
     "bulk-notice",
     "broadcast-answer",
+    "mailing-answer",
   ]),
   "preference_choices.way": WAYS,
   "preference_choices.topic": every<Topic | "bulk">()(["newsletter", "events", "volunteering", "bulk"]),

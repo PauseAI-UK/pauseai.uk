@@ -43,7 +43,8 @@ export type Purpose =
   | "broadcast"
   | "preferences-link"
   | "bulk-notice"
-  | "broadcast-answer";
+  | "broadcast-answer"
+  | "mailing-answer";
 
 /** What sends an email: Postmark, or a staff member's connected Gmail, as that account. */
 export type Backend = { name: "postmark" } | { name: "gmail"; account: string };
@@ -178,6 +179,7 @@ const TRANSACTIONAL: ReadonlySet<Purpose> = new Set([
   "bulk-notice",
   // An answer to what the person wrote to us.
   "broadcast-answer",
+  "mailing-answer",
 ]);
 
 /** Whether the address has "Do not email", in CiviCRM or as an opt-out of ours of all email. */

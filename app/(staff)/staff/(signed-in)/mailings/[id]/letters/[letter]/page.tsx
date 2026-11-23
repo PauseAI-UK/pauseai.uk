@@ -5,12 +5,13 @@ import { listAsks } from "@/lib/asks/records.server";
 import { getPauseaiLetter } from "@/lib/letters/records.server";
 import { getPolitician } from "@/lib/politicians/records.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
+import { canAnswerFrom, replyWaiting } from "@/lib/mailings/replies.server";
 import { letterId, mailingId } from "@/lib/staff-search";
 import FindInGmail from "../../../../../_components/letters/FindInGmail";
 import { letterTitle } from "../../../../../_components/letters/LetterHistory";
 import LetterView from "../../../../../_components/letters/LetterView";
-import LetterThread from "../../../../../_components/letters/LetterThread";
-import { MailingLetter } from "../../../../../_components/mailings/MailingLetter";
+import MailingReplyThread from "../../../../../_components/mailings/MailingReplyThread";
+import { answerLetterReplyNow, nothingToDoNow } from "../../../../../_components/mailings/actions";
 import Page from "../../../../../_components/ui/Page";
 import { setAskStatus } from "../../../../../_components/politicians/actions";
 import AskRow, { AskRows } from "../../../../../_components/politicians/AskRow";
@@ -31,13 +32,19 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 /**
  * One of a mailing's letters: how it stands, the letter as it went and
- * every reply in its thread, with Find it in Gmail,
- * beside the mailing's ask, to set the politician's answer, and its history.
+ * every reply in its thread, with Find it in Gmail, and what to do with a
+ * reply waiting for staff, beside the mailing's ask, to set the
+ * politician's answer, and its history.
  */
 export default async function MailingLetterPage({ params }: Params) {
-  await requireStaff();
+  const { email } = await requireStaff();
   const ids = await idsOf(params);
-  const [pauseaiLetter, thread, asks] = await Promise.all([getPauseaiLetter(...ids), letterThread(...ids), listAsks()]);
+  const [pauseaiLetter, thread, asks, waiting] = await Promise.all([
+    getPauseaiLetter(...ids),
+    letterThread(...ids),
+    listAsks(),
+    replyWaiting(ids[1]),
+  ]);
   const letter = found(pauseaiLetter);
   const politician = found(await getPolitician(letter.politicianId));
   return (
@@ -57,10 +64,13 @@ export default async function MailingLetterPage({ params }: Params) {
           </AskRows>
         )}
       >
-        <LetterThread
+        <MailingReplyThread
           thread={found(thread)}
           link={<FindInGmail find={letter.gmail} />}
-          showLetter={(doc) => <MailingLetter doc={doc} />}
+          waiting={waiting ?? null}
+          canAnswer={Boolean(waiting && canAnswerFrom(waiting.account, email))}
+          deal={nothingToDoNow}
+          answer={answerLetterReplyNow}
         />
       </LetterView>
     </Page>

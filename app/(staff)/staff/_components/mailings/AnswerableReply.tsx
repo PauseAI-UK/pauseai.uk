@@ -132,7 +132,7 @@ export default function AnswerableReply({
         plain
         autoFocus={pressed && (first.cursor ?? true)}
       />
-      <div className={styles.buttons}>
+      <div className={`${styles.buttons} ${styles.draftButtons}`}>
         <Button variant="primary" size="small" fit type="button" disabled={blank || sending} onClick={sendIt}>
           {sending ? copy.sending : copy.send}
         </Button>

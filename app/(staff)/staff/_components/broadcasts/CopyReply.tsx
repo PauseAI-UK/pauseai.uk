@@ -24,6 +24,7 @@ import ThreadText from "../letters/ThreadText";
 import { firstNameOf, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { kindWords } from "@/lib/broadcasts/whatsapp-messages";
 import styles from "./MessageCopyView.module.css";
+import answerStyles from "../mailings/AnswerableReply.module.css";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { receiptOf } from "@/lib/broadcasts/receipts";
 import { theirReaction } from "@/lib/broadcasts/reactions";
@@ -104,7 +105,7 @@ function Answer({
           badge={answer.providerId ? theirReaction(one, answer.providerId) : undefined}
         >
           <TextWords words={answer.body} />
-          {!answer.sentAt && <p className={styles.dealt}>{copy.replies.stillSending(one.sentFrom)}</p>}
+          {!answer.sentAt && <p className={answerStyles.dealt}>{copy.replies.stillSending(one.sentFrom)}</p>}
         </ChatBubble>
       </ChatWall>
     );
@@ -118,7 +119,7 @@ function Answer({
       bubble
     );
   }
-  const by = <p className={styles.dealt}>{answer.sentAt ? sentBy : copy.replies.stillSending(one.sentFrom)}</p>;
+  const by = <p className={answerStyles.dealt}>{answer.sentAt ? sentBy : copy.replies.stillSending(one.sentFrom)}</p>;
   return (
     <ThreadEmail
       from={named(one.fromName, one.sentFrom)}
@@ -183,7 +184,7 @@ export default function Reply({
   // A reaction's emoji is on our message it's to (theirReaction), so in the thread it's who reacted and when, as ours
   // on theirs is said; one whose emoji wasn't kept says so; then, on a line under, when they took it back, if they did.
   const theirs = reaction && (
-    <p className={styles.dealt}>
+    <p className={answerStyles.dealt}>
       {reply.text
         ? copy.replies.reactedBy(reply.text, sender(reply, one), staffTime(reply.receivedAt))
         : `${copy.replies.reactedNotKept} · ${staffTime(reply.receivedAt)}`}
@@ -197,7 +198,7 @@ export default function Reply({
   );
   // What it was recorded as, but answered, which our answer after it says.
   const recorded = reply.outcome && reply.outcome !== "answered" && (
-    <p className={styles.dealt}>
+    <p className={answerStyles.dealt}>
       {reply.dealtBy === SITE_ACTOR
         ? copy.replies.optedOutAutomatically(when!)
         : (reply.outcome === "opted-out" ? copy.replies.optedOut : copy.replies.nothingDone)(
@@ -243,7 +244,7 @@ export default function Reply({
     const foot = (recorded || ourEmoji || own) && (
       <>
         {recorded}
-        {ourEmoji && <OurReaction reaction={ourEmoji} className={styles.dealt} />}
+        {ourEmoji && <OurReaction reaction={ourEmoji} className={answerStyles.dealt} />}
         {own}
       </>
     );

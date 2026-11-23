@@ -4,7 +4,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { listFor, unsubscribeTopics, type Topic } from "@/lib/supporters/contact-permissions";
 import { UnsubscribeForm } from "../supporters/OptOutForm";
 import { ReplyButton } from "../mailings/AnswerableReply";
-import styles from "./ReplyActions.module.css";
+import answerStyles from "../mailings/AnswerableReply.module.css";
 import { supportersCopy } from "../supporters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
@@ -42,7 +42,7 @@ export default function ReplyActions({
   deal: (form: FormData) => void | Promise<void>;
 }) {
   return (
-    <div className={styles.actions}>
+    <div className={answerStyles.actions}>
       <UnsubscribeForm
         id={`opt-out-${replyId}`}
         hidden={{ replyId: String(replyId) }}

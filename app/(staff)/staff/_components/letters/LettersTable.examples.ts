@@ -164,6 +164,9 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       quoted: "",
       // The office copied their caseworker in.
       cc: "Casey Worker <casey.worker@parliament.uk>",
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
     {
       id: 2,
@@ -177,6 +180,9 @@ export const exampleProxiedLetterDetails: SupporterLetterDetails = {
       text: "Dear Mr McTestface,\n\nThank you. Could we meet?\n\nJane",
       quoted: "",
       cc: null,
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
   ],
 };
@@ -202,6 +208,9 @@ export const exampleAutoRepliedLetterDetails: SupporterLetterDetails = {
       ].join("\n\n"),
       quoted: "",
       cc: null,
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
     {
       id: 4,
@@ -215,6 +224,9 @@ export const exampleAutoRepliedLetterDetails: SupporterLetterDetails = {
       text: "I'm away until Monday.",
       quoted: "",
       cc: null,
+      dealtBy: null,
+      dealtAt: null,
+      sentBy: null,
     },
   ],
 };
@@ -256,6 +268,9 @@ export const exampleRepliedLetterDetails: SupporterLetterDetails = {
         name: "Testy McTestface MP",
         to: LETTER_ADDRESS,
         cc: "caseworker@parliament.uk",
+        dealtBy: null,
+        dealtAt: null,
+        sentBy: null,
         replyTo: MP_ADDRESS,
         messageId: "<reply@parliament.uk>",
         handling: [
@@ -280,6 +295,9 @@ export const exampleRepliedLetterDetails: SupporterLetterDetails = {
         from: LETTER_ADDRESS,
         to: MP_ADDRESS,
         cc: "jane@example.com",
+        dealtBy: null,
+        dealtAt: null,
+        sentBy: null,
         messageId: "0a1b2c3d-1111-2222-3333-444455556666",
       },
     },

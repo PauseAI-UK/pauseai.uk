@@ -75,6 +75,7 @@ export const emailCopy = {
       "preferences-link": "Contact preferences link",
       "bulk-notice": "Notice about bulk emails",
       "broadcast-answer": "Answer to a reply to a broadcast",
+      "mailing-answer": "⁂ Answer to a politician's reply to a mailing",
     } satisfies Record<Purpose, string>,
     // The filter of what was being sent when it was blocked (FOUND_BY in lib/email/block-filters.ts), named as its
     // column is: each type of email folded into one of four, a broadcast's texts too; then, for nothing the site
