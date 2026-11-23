@@ -104,6 +104,9 @@ export const broadcastsCopy = {
     // Preview.
     chooseTemplate: "Choose a template to see the text here.",
     findRecipient: "Show a fake recipient who…",
+    // Under the text, when its first link is to Google Maps, whose card WhatsApp gets wrong in a template's text.
+    mapsFirst:
+      "⁂ WhatsApp shows a broken preview for a Google Maps link when it's the first link in a text. Put another link before it, such as the event's page.",
     testTo: "Send a test copy to",
     sendTest: "Send test",
     testVia: {

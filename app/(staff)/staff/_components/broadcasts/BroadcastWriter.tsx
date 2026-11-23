@@ -76,7 +76,7 @@ import BroadcastConsent from "./BroadcastConsent";
 import { othersThanConsent } from "../supporters/SupporterFilters";
 import { MailingLetter } from "../mailings/MailingLetter";
 import TextBubble, { type TextDoc } from "./TextBubble";
-import { firstLink, type LinkCard } from "@/lib/broadcasts/link-card";
+import { firstLink, mapsLink, type LinkCard } from "@/lib/broadcasts/link-card";
 import { BandFact, Facts } from "../ui/Band";
 import Grid, { Card } from "../ui/Grid";
 import NotIcon from "../ui/NotIcon";
@@ -238,7 +238,11 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
 /** How long the words' link must stay the same before its page is asked for its card, so typing it doesn't ask for each letter. */
 const CARD_PAUSE_MS = 600;
 
-/** A text's bubble, with the card WhatsApp shows for its first link once its page has said what goes on it; each link asked about once. */
+/**
+ * A text's bubble, with the card WhatsApp shows for its first link once its
+ * page has said what goes on it; each link asked about once. Under it, a
+ * warning when that link is to Google Maps, whose card WhatsApp breaks (mapsLink).
+ */
 function TextPreview({
   words,
   footer,
@@ -260,7 +264,12 @@ function TextPreview({
     );
     return () => clearTimeout(timer);
   }, [link, cards, linkCard]);
-  return <TextBubble words={words} card={link ? cards[link] : null} footer={footer} time={time} />;
+  return (
+    <>
+      <TextBubble words={words} card={link ? cards[link] : null} footer={footer} time={time} />
+      {link && mapsLink(link) && <Alert tone="amber">{copy.mapsFirst}</Alert>}
+    </>
+  );
 }
 
 /**

@@ -829,6 +829,16 @@ describe("BroadcastWriter, by text", () => {
     expect(actions.linkCard).toHaveBeenCalledTimes(2);
   });
 
+  it("warns when the words' first link is to Google Maps, and not when another link comes first", async () => {
+    await renderWriter({ draft: exampleBroadcastText });
+    await pick(copy.newTemplate);
+    const words = page.getByRole("textbox", { name: copy.templateWords });
+    await words.fill("Meet here https://maps.app.goo.gl/AbCdEfGh12345");
+    await expect.element(page.getByText(copy.mapsFirst)).toBeVisible();
+    await words.fill("See https://pauseai.uk/march then meet here https://maps.app.goo.gl/AbCdEfGh12345");
+    await expect.element(page.getByText(copy.mapsFirst)).not.toBeInTheDocument();
+  });
+
   it("opens on a draft's new words, titled by them, to send to WhatsApp before they can be scheduled", async () => {
     const actions = await renderWriter({
       draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords },
