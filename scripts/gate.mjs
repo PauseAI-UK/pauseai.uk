@@ -14,7 +14,8 @@
 // CI's jobs are: the types then the storyboard (both write .next), the tests with coverage, the linters and the
 // placeholder check one after another, and the backup Worker's package. Not
 // `next build`: the storyboard builds the site. Nothing is fetched;
-// origin/main is as last fetched.
+// origin/main is as last fetched. `npm test` and the backup Worker's tests
+// use a Postgres of the gate's own (scripts/gate-postgres.mjs).
 //
 // The storyboard is the review (`npm run storyboard`), where CI runs the
 // flows without pictures: it runs the flows the branch's change can reach,
@@ -44,6 +45,8 @@ import {
 import { constants } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { testServerUrl } from "./fresh-database.mjs";
+import { postgresDir, startPostgres, stopPostgres, sweepPostgres } from "./gate-postgres.mjs";
 
 export const LOG_DIR = "tmp/gate";
 const MINUTE = 60_000;
@@ -92,9 +95,11 @@ export function changedFiles(outputs, exists = existsSync) {
 /**
  * A command the gate runs: `id` names its log, `minutes` is its limit,
  * `required` skips the rest of its lane when it fails, and `skip` says why
- * it isn't run at all.
+ * it isn't run at all. `postgres` marks one whose tests make databases, to
+ * run on the gate's own Postgres, and `env` is what it adds to the
+ * environment (`withEnv`).
  *
- * @typedef {{ id: string, label: string, command: string, args: string[], minutes: number, cwd?: string, required?: boolean, skip?: string }} Step
+ * @typedef {{ id: string, label: string, command: string, args: string[], minutes: number, cwd?: string, required?: boolean, skip?: string, postgres?: boolean, env?: Record<string, string> }} Step
  */
 
 /** @returns {Step} */
@@ -195,7 +200,7 @@ export function slowPlan({ storyboard }, files = []) {
         ...(storyboard ? [npm("storyboard", ["run", "storyboard", "--", "--no-open"], 30)] : []),
         ...(storyboard && picturing ? [npm("determinism", ["run", "storyboard:determinism"], 20)] : []),
       ],
-      [npm("test", ["test"], 15)],
+      [npm("test", ["test"], 15, { postgres: true })],
       [
         npm("lint", ["run", "lint"], 5),
         npm("lint-css", ["run", "lint:css"], 3),
@@ -205,11 +210,22 @@ export function slowPlan({ storyboard }, files = []) {
       ],
       [
         npm("backup-install", ["ci", "--no-audit", "--no-fund"], 5, { cwd: "backup", required: true }),
-        npm("backup-test", ["test"], 10, { cwd: "backup" }),
+        npm("backup-test", ["test"], 10, { cwd: "backup", postgres: true }),
         npm("backup-typecheck", ["run", "typecheck"], 3, { cwd: "backup" }),
       ],
     ],
   ];
+}
+
+/**
+ * `phases` with `env` added to each step marked `postgres`.
+ *
+ * @param {Step[][][]} phases
+ * @param {Record<string, string>} env
+ * @returns {Step[][][]}
+ */
+export function withEnv(phases, env) {
+  return phases.map((lanes) => lanes.map((lane) => lane.map((step) => (step.postgres ? { ...step, env } : step))));
 }
 
 /** @param {number} ms */
@@ -399,7 +415,12 @@ export function runStep(step, logDir = LOG_DIR, report = () => {}, changed = () 
   const out = openSync(log, "w");
   const started = Date.now();
   report(`▶ ${step.label} (${log}, limit ${step.minutes}m)`);
-  const child = spawn(step.command, step.args, { cwd: step.cwd, stdio: ["ignore", out, out], detached: true });
+  const child = spawn(step.command, step.args, {
+    cwd: step.cwd,
+    env: { ...process.env, ...step.env },
+    stdio: ["ignore", out, out],
+    detached: true,
+  });
   closeSync(out);
   running.set(child, { step, log, started });
   changed(step, "running");
@@ -494,7 +515,7 @@ async function main(args) {
 
   const pick = (phases) => (options.only ? onlyGroups(phases, options.only) : phases);
   const fast = pick(fastPlan(files));
-  const slow = pick(options.fast ? [] : slowPlan(options, files));
+  let slow = pick(options.fast ? [] : slowPlan(options, files));
   const status = statusWriter([...fast, ...slow].flat(2), commit, undefined, kept);
 
   if (options.only) console.log(`Gate: only ${options.only.join(", ")}`);
@@ -502,6 +523,7 @@ async function main(args) {
   const results = await runPlan(fast, LOG_DIR, console.log, status.set);
   if (!options.fast && passed(results)) {
     console.log(`\nGate: what CI runs${options.storyboard ? "" : ", but the storyboard"}`);
+    slow = withPostgres(slow);
     results.push(...(await runPlan(slow, LOG_DIR, console.log, status.set)));
   } else if (!options.fast) {
     console.log("\nGate: a fast check failed, so the rest didn't run.");
@@ -517,6 +539,32 @@ async function main(args) {
   const ok = passed(results);
   console.log(ok ? "Gate passed." : "Gate failed.");
   process.exit(ok ? 0 : 1);
+}
+
+/**
+ * `phases` with the steps marked `postgres` pointed at a server of this
+ * gate's own, started now and stopped as the gate exits; or as they are,
+ * saying why, when TEST_DATABASE_URL names a server (it comes before the PG*
+ * variables) or the server won't start.
+ *
+ * @param {Step[][][]} phases
+ */
+function withPostgres(phases) {
+  if (!phases.flat(2).some((step) => step.postgres)) return phases;
+  if (testServerUrl()) {
+    console.log("Gate: the tests use the server TEST_DATABASE_URL names.");
+    return phases;
+  }
+  for (const dir of sweepPostgres()) console.log(`Gate: stopped the Postgres a killed gate left in ${dir}.`);
+  const dir = postgresDir(process.pid);
+  const started = startPostgres(dir);
+  if ("problem" in started) {
+    console.log(`Gate: the tests use the usual Postgres, as one of the gate's own didn't start: ${started.problem}`);
+    return phases;
+  }
+  process.on("exit", () => stopPostgres(dir));
+  console.log(`Gate: npm test and the backup tests use a Postgres of the gate's own, in ${dir}.`);
+  return withEnv(phases, started.env);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

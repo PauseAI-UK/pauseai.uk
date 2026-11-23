@@ -50,6 +50,8 @@ The branch isn't done until `npm run gate` exits 0. It takes the files changed s
 - the four linters, then the placeholder check, one after another;
 - the backup Worker's package.
 
+`npm test` and the backup Worker's tests use a Postgres of the gate's own, in memory, so the storyboard's writes don't slow their databases (`docs/testing.md`, "`npm run gate`").
+
 Each command has a time limit and a log in `tmp/gate/`. While they run, a line a minute says which are still running and whose log has gone quiet. The gate ends with a table of exit codes and the end of each failed log. Go by those exit codes, not a grep of the output: `npm test` can report every test passing and still fail on coverage.
 
 It takes a few minutes, so run it in the background with its output going to a file in `tmp/`, and look at that file each minute (`docs/testing.md`, "`npm run gate`").

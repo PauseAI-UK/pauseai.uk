@@ -17,6 +17,7 @@ import {
   slowPlan,
   statusWriter,
   tail,
+  withEnv,
 } from "./gate.mjs";
 
 /** A step that runs a line of JavaScript in Node. */
@@ -162,6 +163,20 @@ describe("slowPlan", () => {
   it("leaves out the storyboard when asked", () => {
     const [[types]] = slowPlan({ storyboard: false });
     expect(types.map((step) => step.id)).toEqual(["typecheck"]);
+  });
+
+  it("marks the tests that make databases, and not the storyboard, to run on the gate's own Postgres", () => {
+    const steps = slowPlan({ storyboard: true }, ["tests/storyboard/frame.ts"]).flat(2);
+    expect(steps.filter((step) => step.postgres).map((step) => step.id)).toEqual(["test", "backup-test"]);
+  });
+});
+
+describe("withEnv", () => {
+  it("adds the variables to the steps marked postgres alone", () => {
+    const env = { PGHOST: "/dev/shm/gate-postgres-1" };
+    const steps = withEnv(slowPlan({ storyboard: true }), env).flat(2);
+    expect(steps.filter((step) => step.env).map((step) => step.id)).toEqual(["test", "backup-test"]);
+    expect(steps.find((step) => step.id === "test")?.env).toBe(env);
   });
 });
 
@@ -309,6 +324,13 @@ describe("runStep", () => {
     const result = await runStep(step, logDir());
     expect(result.code).toBe(127);
     expect(result.note).toContain("ENOENT");
+  });
+
+  it("runs a command with its step's variables added to the gate's", async () => {
+    const dir = logDir();
+    const step = { ...node("env", "console.log(process.env.PGHOST, typeof process.env.PATH)"), env: { PGHOST: "/x" } };
+    expect((await runStep(step, dir)).code).toBe(0);
+    expect(readFileSync(join(dir, "env.log"), "utf8")).toBe("/x string\n");
   });
 
   it("doesn't run a skipped step", async () => {

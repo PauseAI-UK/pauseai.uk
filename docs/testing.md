@@ -1534,6 +1534,21 @@ mistake. `--fast` stops after them anyway.
 - the four linters, then `npm run placeholders`, one after another;
 - the backup Worker's `npm ci`, tests and types.
 
+`npm test` and the backup Worker's tests run on a Postgres of the gate's
+own (`scripts/gate-postgres.mjs`), started for the run and thrown away
+after it, with its files in memory (`/dev/shm`, or the temporary folder
+where there's none) and made as CI's service is. Dropping a database makes
+Postgres first write every changed page on the server to disk, other
+databases' too. On the usual server, beside the storyboard and its builds,
+that write could wait on a busy disk for over ten seconds, and every test
+dropping a database waited with it. On the gate's own server, under the
+same load, the longest drop took under four seconds. The storyboard keeps
+the usual server, as a fixture server left running from an earlier review
+uses that one. When `TEST_DATABASE_URL` names a server, or the gate's own
+won't start (no `initdb` on the PATH, say), the tests use the usual one,
+and the gate says so. A gate that was killed leaves its server running;
+the next gate stops it.
+
 A lane stops at a failed `typecheck` or backup `npm ci`, as what follows
 needs it. Each linter runs whether or not the one before it passed. A
 branch with placeholder copy fails `npm run placeholders` alone, so the

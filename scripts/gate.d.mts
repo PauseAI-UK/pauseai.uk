@@ -7,6 +7,8 @@ type Step = {
   cwd?: string;
   required?: boolean;
   skip?: string;
+  postgres?: boolean;
+  env?: Record<string, string>;
 };
 type Result = { step: Step; code: number | null; ms: number; log?: string; note?: string };
 type State = "waiting" | "running" | "passed" | "failed" | "skipped";
@@ -19,6 +21,7 @@ export function changedFiles(outputs: string[], exists?: (file: string) => boole
 export function fastPlan(files: string[]): Step[][][];
 export const PICTURING: string[];
 export function slowPlan(options: { storyboard: boolean }, files?: string[]): Step[][][];
+export function withEnv(phases: Step[][][], env: Record<string, string>): Step[][][];
 export function formatDuration(ms: number): string;
 export function formatTable(results: Result[]): string;
 export function tail(file: string, count: number): string;
