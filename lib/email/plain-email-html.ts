@@ -1,4 +1,4 @@
-import { mailParts, type MailPart } from "@/lib/email-parsing/mail-text";
+import { mailParts, type PlainPart } from "@/lib/email-parsing/mail-text";
 
 // An email written as plain text, as HTML too. A mail app shows a text-only
 // email in whatever it keeps for plain text, often a fixed-width font in
@@ -25,7 +25,7 @@ function spaced(text: string): string {
     .replace(/ {2,}/g, (spaces) => `${KEPT_SPACE.repeat(spaces.length - 1)} `);
 }
 
-function partHtml(part: MailPart): string {
+function partHtml(part: PlainPart): string {
   if ("link" in part) return `<a href="${escape(part.link)}">${escape(part.link)}</a>`;
   if ("bold" in part) return `<strong>${part.bold.map(partHtml).join("")}</strong>`;
   return escape(part.text).replace(/\n/g, "<br>");

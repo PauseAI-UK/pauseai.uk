@@ -428,7 +428,10 @@ holds it.
   directly (`lib/email/notifications.server.ts`). ESLint lets only
   `lib/email/email.server.ts` import Postmark's and Gmail's sending.
 - **Reading email** is all in `lib/email-parsing/`: addresses, MIME,
-  subjects, bounces, quoted mail, a plain text's links.
+  subjects, bounces, quoted mail, a plain text's links. A message is read
+  from its HTML when it has any (`html-text.ts`, with `htmlparser2`), as
+  that's what its writer and reader saw, written out as plain text so the
+  rest reads both alike; otherwise from its plain text.
 - **The database** is reached only through `lib/server/db.server.ts`, the
   one file that imports `pg` or reads `NETLIFY_DB_URL` (ESLint). Queries
   are plain SQL. One built from parts, such as a list's filters, uses the

@@ -11,10 +11,10 @@ const FORWARD_MARK =
   /^\s*(-{2,}\s*Forwarded message\s*-{2,}|Begin forwarded message:|-{2,}\s*Original Message\s*-{2,}|_{10,})\s*$/i;
 
 /** A quoted header's line: its name and value, a mailer's bold or quoting marks around it. */
-const FIELD = /^\s*>*\s*\*?(From|Sent|Date|To|Cc|Subject):\*?\s*(.*)$/i;
+const FIELD = /^\s*(?:>\s*)*\*?(From|Sent|Date|To|Cc|Subject):\*?\s*(.*)$/i;
 
 /** An "On … wrote:" line: what's between On and the address, and the address. */
-const WROTE = /^\s*>*\s*On (.{5,180}?)\s*<?\s*([\w.+'&-]+@[\w.-]+\.\w+)\s*>?\s*wrote:\s*$/i;
+const WROTE = /^\s*(?:>\s*)*On (.{5,180}?)\s*<?\s*([\w.+'&-]+@[\w.-]+\.\w+)\s*>?\s*wrote:\s*$/i;
 
 /** The last time or year in an "On … wrote:" line's date, after which its writer's name begins. */
 const DATE_END = /(\d{1,2}[:.]\d{2}(?::\d{2})?(?:\s*[AP]M)?|\b\d{4}\b),?/gi;
@@ -62,7 +62,7 @@ function headersAt(lines: string[], i: number): Start | undefined {
   if (!head || head[1].toLowerCase() !== "from") return undefined;
   // Thunderbird puts Subject and Date over From.
   let first = i;
-  while (first > 0 && FIELD.exec(lines[first - 1]) && !/^\s*>*\s*\*?from:/i.test(lines[first - 1])) first--;
+  while (first > 0 && FIELD.exec(lines[first - 1]) && !/^\s*(?:>\s*)*\*?from:/i.test(lines[first - 1])) first--;
   const { found, end } = fields(first);
   const sent = found.sent ?? found.date;
   if (sent === undefined) return undefined;
@@ -77,7 +77,7 @@ function headersAt(lines: string[], i: number): Start | undefined {
 function wroteAt(lines: string[], i: number, subject: string): Start | undefined {
   const one = WROTE.exec(lines[i]);
   const two =
-    !one && /^\s*>*\s*On /.test(lines[i]) && i + 1 < lines.length && WROTE.exec(`${lines[i]} ${lines[i + 1]}`);
+    !one && /^\s*(?:>\s*)*On /.test(lines[i]) && i + 1 < lines.length && WROTE.exec(`${lines[i]} ${lines[i + 1]}`);
   const match = one || two;
   if (!match) return undefined;
   const { sent, name } = dateAndName(match[1]);
@@ -88,14 +88,26 @@ function wroteAt(lines: string[], i: number, subject: string): Start | undefined
   };
 }
 
-/** A quoted message's own text: without a forward's mark at its end, its quoting taken off if every line has it. */
+/** How deep a line is quoted: how many "> " it starts with. */
+const quoteDepth = (line: string) => /^(\s*>)*/.exec(line)![0].replace(/[^>]/g, "").length;
+
+/**
+ * A quoted message's own text: without a forward's mark at its end, its
+ * quoting taken off, as deep as its first line's. A line quoted less, such
+ * as the disclaimer Parliament's mail adds under a whole email, stays as it is.
+ */
 function bodyOf(lines: string[]): string {
-  let body = [...lines];
+  const body = [...lines];
   while (body.length && (!body.at(-1)!.trim() || FORWARD_MARK.test(body.at(-1)!))) body.pop();
-  const written = body.filter((line) => line.trim());
-  if (written.length && written.every((line) => /^\s*>/.test(line)))
-    body = body.map((line) => line.replace(/^\s*> ?/, ""));
-  return body.join("\n").trim();
+  const first = body.find((line) => line.replace(/[\s>]/g, ""));
+  if (first === undefined) return "";
+  const depth = quoteDepth(first);
+  const unquote = (line: string) => {
+    let rest = line;
+    for (let level = 0; level < depth && /^\s*>/.test(rest); level++) rest = rest.replace(/^\s*> ?/, "");
+    return rest;
+  };
+  return body.map(unquote).join("\n").trim();
 }
 
 /**

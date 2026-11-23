@@ -26,6 +26,12 @@
   overflow-wrap: anywhere;
 }
 
+/* An email reply's words: its lines and their indents kept, as the letter pages keep them. */
+.emailText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* In a text's reply that's more than words: what it was, in grey, a line of its own. */
 .kind {
   display: block;

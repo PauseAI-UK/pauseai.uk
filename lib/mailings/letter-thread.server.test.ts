@@ -97,7 +97,7 @@ describeWithDatabase("a mailing's letter thread", () => {
       gmailThreadId: "thread-1",
       messages: [
         expect.objectContaining({ fromName: "Polly", fromUs: false, text: "Thanks,\nPolly" }),
-        expect.objectContaining({ fromUs: true, text: "Ours & yours" }),
+        expect.objectContaining({ fromUs: true, text: "Ours & *yours*" }),
       ],
     });
     expect(await letterThread(mailing, id + 1)).toBeUndefined();
@@ -134,13 +134,21 @@ describeWithDatabase("a mailing's letter thread", () => {
       messages: [{ text: null }],
     });
     await saveLetterReply("pdf.eml.gz", gzipSync("Content-Type: application/pdf\r\n\r\n%PDF"));
-    expect(await messageContent("pdf.eml.gz")).toEqual({ text: null, quoted: "", cc: null, auto: false, whole: null });
+    expect(await messageContent("pdf.eml.gz")).toEqual({
+      text: null,
+      quoted: "",
+      cc: null,
+      auto: false,
+      whole: null,
+      wrapped: true,
+    });
     expect(await messageContent("never-kept.eml.gz")).toEqual({
       text: null,
       quoted: "",
       cc: null,
       auto: false,
       whole: null,
+      wrapped: true,
     });
   });
 });

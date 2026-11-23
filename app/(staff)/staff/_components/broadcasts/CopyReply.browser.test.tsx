@@ -75,6 +75,19 @@ describe("replies to broadcasts", () => {
     });
   });
 
+  it("show an email's lists, quotes, bold and italics, as the letter pages do", async () => {
+    const reply = {
+      ...exampleBroadcastReplies[0],
+      text: "I can bring *two* friends:\n- Sam\n- Jo\n\nSee _the poster_.\n\n> When is it?",
+    };
+    await render(<MessageCopyView one={{ ...emailCopy, replies: [reply], answers: [] }} />);
+    const words = page.getByText("I can bring", { exact: false }).element().closest("div")!;
+    expect([...words.querySelectorAll("li")].map((item) => item.textContent)).toEqual(["Sam", "Jo"]);
+    expect(words.querySelector("strong")?.textContent).toBe("two");
+    expect(words.querySelector("em")?.textContent).toBe("the poster");
+    expect(words.querySelector("blockquote")?.textContent).toBe("When is it?");
+  });
+
   it("offer Follow up under their latest, once we've answered it, and nothing to write under any before it", async () => {
     // Their latest, recorded as needing nothing, can still be answered.
     const { rerender } = await render(

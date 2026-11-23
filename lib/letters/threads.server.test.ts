@@ -23,6 +23,7 @@ describeWithDatabase("letter threads", () => {
       cc: "Casey Wörker <casey@parliament.uk>",
       auto: false,
       whole: "Yes.\n\nOn Mon, Jo wrote:\n> Will you?",
+      wrapped: true,
     });
     await saveLetterReply(
       "html.eml.gz",

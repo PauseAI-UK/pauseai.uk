@@ -31,7 +31,7 @@ const WROTE_DATE = /\d{1,2}[:.]\d{2}|\b\d{4}\b/;
 
 /** A line starting what a mailer or an office adds under every message. */
 const FOOTER_LINE =
-  /^\s*\*?(UK Parliament Disclaimer|Sent from (my|Outlook|Mail)\b|Get Outlook for\b|Anfonwyd o['’]\w*|DISCLAIMER\b|CONFIDENTIALITY( NOTICE)?\b|This (e-?mail|message)\b.{0,60}\b(confidential|intended|privileged)\b|Your personal information and what rights\b|Privacy (Policy|Notice)\s*:)/i;
+  /^\s*\*?(UK Parliament Disclaimer|Sent from (my|Outlook|(Yahoo )?Mail)\b|Get Outlook for\b|Anfonwyd o['’]\w*|DISCLAIMER\b|CONFIDENTIALITY( NOTICE)?\b|This (e-?mail|message)\b.{0,60}\b(confidential|intended|privileged)\b|Your personal information and what rights\b|Privacy (Policy|Notice)\s*:)/i;
 
 /** A ruled line, as HTML mail's comes as plain text, over a footer. */
 const RULE_LINE = /^\s*-{10,}\s*$/;
@@ -216,10 +216,25 @@ export function letterText(text: string): string {
   return unwrapped(text.replace(/^[ \t]*> ?/gm, ""));
 }
 
-/** A message's parts; all of it what it says if that would leave nothing. */
-export function replyParts(text: string): ReplyParts {
+/**
+ * A line without the asterisks around its bold words or the underscores
+ * around its italic ones; a list's "* " has none to pair with, nor does an
+ * underscore within a word.
+ */
+const withoutMarks = (line: string) =>
+  line.replace(/\*([^*\n]*[^*\s])\*/g, "$1").replace(/(^|[^\w])_([^_\n]*[^_\s])_(?![\w])/g, "$1$2");
+
+/**
+ * A message's parts; all of it what it says if that would leave nothing.
+ * `wrapped` says a mailer wrapped its lines, which are then rewrapped; text
+ * read from HTML has none.
+ */
+export function replyParts(text: string, wrapped = true): ReplyParts {
+  const unwrap = wrapped ? unwrapped : (lines: string) => lines;
   const all = text.split("\n");
-  const unmarked = all.findIndex((_, i) => !QUOTED.test(all[i]!) && startsFolded(all, i));
+  // Where the fold starts is found by the lines' words, bold, italic or not.
+  const plain = all.map(withoutMarks);
+  const unmarked = plain.findIndex((line, i) => !QUOTED.test(line) && startsFolded(plain, i));
   let lines = trimEnd(unmarked === -1 ? all : all.slice(0, unmarked));
   let quoted = false;
   while (lines.length && QUOTED.test(lines.at(-1)!)) {
@@ -227,6 +242,6 @@ export function replyParts(text: string): ReplyParts {
     quoted = true;
   }
   if (quoted) lines = trimEnd(lines.slice(0, lines.length - wroteLines(lines)));
-  if (!lines.length) return { text: unwrapped(text), quoted: "" };
-  return { text: unwrapped(lines.join("\n")), quoted: all.slice(lines.length).join("\n").trim() };
+  if (!lines.length) return { text: unwrap(text), quoted: "" };
+  return { text: unwrap(lines.join("\n")), quoted: all.slice(lines.length).join("\n").trim() };
 }
