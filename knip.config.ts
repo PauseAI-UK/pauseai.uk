@@ -34,7 +34,7 @@ const config: KnipConfig = {
       ],
       // Postgres's own tools, installed with Postgres rather than from npm, and
       // OpenSSL's, which scripts/measure-replay.mjs makes a certificate with.
-      ignoreBinaries: ["pg_dump", "psql", "openssl"],
+      ignoreBinaries: ["pg_dump", "psql", "initdb", "createdb", "openssl"],
     },
   },
 };

@@ -121,30 +121,35 @@ describe("isRunning", () => {
 
 const hasInitdb = spawnSync("initdb", ["--version"]).status === 0;
 
-// CI's test jobs have Postgres's client, not its server, so this runs where initdb is installed.
+// CI's test jobs have Postgres's client, not its server, so this runs where initdb is installed. initdb
+// alone takes a couple of seconds, and over six beside the rest of the tests.
 describe.skipIf(!hasInitdb)("a real server", () => {
-  it("starts, makes databases with the site's extensions in CI's collation, and is gone once stopped", () => {
-    const dir = postgresDir(process.pid, temporary());
-    const started = startPostgres(dir);
-    expect(started).toHaveProperty("env");
-    try {
-      const env = { ...process.env, ...(started as { env: Record<string, string> }).env };
-      execFileSync("createdb", ["gate_postgres_test"], { env });
-      const said = execFileSync(
-        "psql",
-        [
-          "-XAtq",
-          "-d",
-          "gate_postgres_test",
-          "-c",
-          "CREATE EXTENSION pg_trgm; CREATE EXTENSION unaccent; SELECT datcollate, current_setting('TimeZone') FROM pg_database WHERE datname = current_database()",
-        ],
-        { env, encoding: "utf8" },
-      );
-      expect(said.trim()).toBe("C.UTF-8|Etc/UTC");
-    } finally {
-      stopPostgres(dir);
-    }
-    expect(existsSync(dir)).toBe(false);
-  });
+  it(
+    "starts, makes databases with the site's extensions in CI's collation, and is gone once stopped",
+    { timeout: 60_000 },
+    () => {
+      const dir = postgresDir(process.pid, temporary());
+      const started = startPostgres(dir);
+      expect(started).toHaveProperty("env");
+      try {
+        const env = { ...process.env, ...(started as { env: Record<string, string> }).env };
+        execFileSync("createdb", ["gate_postgres_test"], { env });
+        const said = execFileSync(
+          "psql",
+          [
+            "-XAtq",
+            "-d",
+            "gate_postgres_test",
+            "-c",
+            "CREATE EXTENSION pg_trgm; CREATE EXTENSION unaccent; SELECT datcollate, current_setting('TimeZone') FROM pg_database WHERE datname = current_database()",
+          ],
+          { env, encoding: "utf8" },
+        );
+        expect(said.trim()).toBe("C.UTF-8|Etc/UTC");
+      } finally {
+        stopPostgres(dir);
+      }
+      expect(existsSync(dir)).toBe(false);
+    },
+  );
 });
