@@ -3,7 +3,7 @@
 // MessageCopyView's example, which logs what's done with a reply (MessageCopyView.gallery.tsx).
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import MessageCopyView from "./MessageCopyView";
-import { sent } from "./AnswerableReply.gallery.client";
+import { sent } from "../mailings/AnswerableReply.gallery.client";
 import type { BroadcastAnswer, ReactionResult } from "@/lib/broadcasts/answers.server";
 import {
   exampleBroadcastAnswers,

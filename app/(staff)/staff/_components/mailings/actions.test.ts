@@ -11,7 +11,7 @@ import {
 } from "@/lib/mailings/drafts.server";
 import { createBroadcastDraft, getWrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import { createSession } from "@/lib/accounts/auth.server";
-import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
+import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import {
   attachToMailing,
@@ -30,6 +30,8 @@ import {
   scheduleMailingNow,
   sendMailingTest,
   stopMailingNow,
+  nothingToDoNow,
+  answerLetterReplyNow,
 } from "./actions";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
@@ -285,6 +287,68 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     const id = (await createBroadcastDraft(JO, { contact: "email:newsletter:yes" }))!;
     await expect(saveMailing(id, 1, { subject: "Mine" })).rejects.toThrow();
     expect((await getWrittenBroadcast(id))!.subject).toBe("");
+  });
+
+  /** Polly's reply, to a letter in the Edinburgh mailing from the policy team's mailbox: its ID. */
+  async function pollyReplied(): Promise<number> {
+    vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
+    const polly = await addTestPolitician();
+    const [{ letter }] = await query<{ letter: number }>(
+      "INSERT INTO letters (kind, notable_person_id, status, sent_at) VALUES ('pauseai', $1, 'sent', now()) RETURNING id::int AS letter",
+      [polly],
+    );
+    await query(
+      `INSERT INTO letters_from_pauseai (id, mailing_id)
+       SELECT $1, id FROM mailings WHERE title = 'Edinburgh Conference Nov 26 Invitation'`,
+      [letter],
+    );
+    const [{ reply }] = await query<{ reply: number }>(
+      `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, subject, at,
+         from_us, blob_key, size)
+       VALUES ($1, 'policy@pauseai.uk', 'g1', 't1', 'polly@parliament.uk', 'Re', now(), false, 'k', 1)
+       RETURNING id::int AS reply`,
+      [letter],
+    );
+    return reply;
+  }
+
+  it("marks a politician's reply as needing nothing, showing the pages afresh, and nothing for one it can't name", async () => {
+    const reply = await pollyReplied();
+    await nothingToDoNow(form({}));
+    expect(revalidatePath).not.toHaveBeenCalled();
+    await nothingToDoNow(form({ replyId: String(reply) }));
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings", "layout");
+    expect(await query("SELECT dealt_by FROM letter_replies")).toEqual([{ dealt_by: JO }]);
+    // Marked already.
+    revalidatePath.mockClear();
+    await nothingToDoNow(form({ replyId: String(reply) }));
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("sends an answer to a politician's reply, showing the pages afresh once it's gone, and nothing for a reply or draft it can't name", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await connectTestGmail("policy@pauseai.uk");
+    const reply = await pollyReplied();
+    server.use(
+      http.post("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", () =>
+        HttpResponse.json({ id: "g-answer", threadId: "t1" }),
+      ),
+      // Gmail not giving it back leaves it sent all the same.
+      http.get("https://gmail.googleapis.com/gmail/v1/users/me/messages/g-answer", () =>
+        HttpResponse.json({}, { status: 500 }),
+      ),
+    );
+    const DRAFT = "6f1c2a0e-5b7d-4c1e-9a3f-2d8e4b6c0a11";
+    expect(await answerLetterReplyNow(reply, "not-a-uuid", LETTER)).toEqual({ sent: false, reason: "gone" });
+    expect(await answerLetterReplyNow(1.5, DRAFT, LETTER)).toEqual({ sent: false, reason: "gone" });
+    expect(await answerLetterReplyNow(reply, DRAFT, { type: "doc", content: [] })).toEqual({
+      sent: false,
+      reason: "blank",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(await answerLetterReplyNow(reply, DRAFT, LETTER)).toEqual({ sent: true });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings", "layout");
+    expect(await query("SELECT sent_by FROM letter_answers")).toEqual([{ sent_by: JO }]);
   });
 });
 

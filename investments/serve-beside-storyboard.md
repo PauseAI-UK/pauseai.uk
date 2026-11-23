@@ -22,3 +22,4 @@ the storyboard's reach and `next build` ignore the second folder.
 
 - 2026-11-23: in tmp/worktrees/broadcast-finish-time, stopped a served branch Francis was testing to run the gate, restarted it on a fresh database, and left the storyboard to CI, ~10 min
 - 2026-11-23: in tmp/worktrees/edm-import, stopped a storyboard review partway to serve the branch for a copy round, then ran it again from the start once serving stopped, ~10 min
+- 2026-11-23: in tmp/worktrees/mailing-replies-to-check, asked for a storyboard review while the branch was served; had to choose between them

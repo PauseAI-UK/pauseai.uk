@@ -728,6 +728,27 @@ test("A reply to a text", async ({ page, request, flowDatabase }) => {
   await textFrame(page, OUR_CHAT, shownText(flowDatabase, answer), "The answer, as they get it");
 });
 
+test("A reply to a text left waiting", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter answers a text, and two hours on nobody has dealt with their reply. WhatsApp lets us answer only within a day, so the next sending run emails the notification inbox about it, copied to whoever made the broadcast.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    messageFrom(sent.number, "wamid.flow-waiting", sent.wamid, { text: "Is there step-free access?" }),
+  );
+  runSql(
+    flowDatabase,
+    `UPDATE broadcast_replies SET received_at = received_at - interval '3 hours' WHERE provider_message_id = 'wamid.flow-waiting'`,
+  );
+  await runSending(request);
+  const words = broadcastsCopy.notifications.textsWaiting;
+  // Copied to Jo, who made it. No other flow leaves a text reply waiting, so this subject is this flow's.
+  const alert = newestEmail((email) => email.Subject === words.subject(1, "PauseCon doors"))!;
+  await emailFrame(page, alert, "The email staff get");
+});
+
 test("A reaction to a text, and a photo", async ({ page, request, flowDatabase }) => {
   story(
     "A supporter reacts to a text with a thumbs up. WhatsApp's webhook says which message it's to and the emoji, so it shows on our text, as WhatsApp shows it, and in the thread as a reply, for staff to check as any other.",

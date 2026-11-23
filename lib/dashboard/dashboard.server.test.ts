@@ -272,4 +272,41 @@ describeWithDatabase("dashboard", () => {
       { kind: "broadcast-replies", count: 1, broadcastId: news.mailing, title: "News" },
     ]);
   });
+
+  it("says, for each mailing with politicians' replies waiting for a person, how many, the oldest waiting first", async () => {
+    const letterIn = async (title: string) => {
+      const politician = await addTestPolitician({ name: `${title} MP`, airtableId: `rec${title}` });
+      const [{ id }] = await query<{ id: number }>(
+        "INSERT INTO letters (kind, notable_person_id, status, sent_at) VALUES ('pauseai', $1, 'sent', now()) RETURNING id::int AS id",
+        [politician],
+      );
+      const [{ mailing }] = await query<{ mailing: number }>(
+        `INSERT INTO mailings (title, audience, channel, filter, created_by, state)
+         VALUES ($1, 'politicians', 'email', '{}', 'jo@pauseai.uk', 'sent')
+         RETURNING id::int AS mailing`,
+        [title],
+      );
+      await query("INSERT INTO letters_from_pauseai (id, mailing_id) VALUES ($1, $2)", [id, mailing]);
+      return { mailing, letter: id };
+    };
+    const edinburgh = await letterIn("Edinburgh");
+    const debate = await letterIn("Debate");
+    const reply = (letter: number, gmail: string, ago: string, fromUs = false) =>
+      query(
+        `INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, from_address, at, from_us,
+           blob_key, size)
+         VALUES ($1, 'policy@pauseai.uk', $2, 't', 'office@parliament.uk', now() - $3::interval, $4, $2, 1)`,
+        [letter, gmail, ago, fromUs],
+      );
+    // One we answered waits no more.
+    await reply(edinburgh.letter, "g1", "3 hours");
+    await reply(edinburgh.letter, "g2", "2 hours", true);
+    expect(await needsAPerson()).toEqual([]);
+    await reply(edinburgh.letter, "g3", "1 hour");
+    await reply(debate.letter, "g4", "2 hours");
+    expect(await needsAPerson()).toEqual([
+      { kind: "mailing-replies", count: 1, mailingId: debate.mailing, title: "Debate" },
+      { kind: "mailing-replies", count: 1, mailingId: edinburgh.mailing, title: "Edinburgh" },
+    ]);
+  });
 });

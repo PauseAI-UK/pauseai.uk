@@ -135,6 +135,9 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "answer reply": { replyId: number; answerId: number };
   /** An emoji put on a reply to a text, or taken away (an empty one). */
   "react to reply": { replyId: number; emoji: string };
+  /** A politician's reply to a mailing's letter, and those before it, marked as needing nothing. */
+  "nothing to do on letter reply": { replyId: number; letterId: number };
+  "answer letter reply": { replyId: number; letterId: number; answerId: number };
 };
 
 /** What rows logged earlier may hold beyond AuditDetails: actions no longer logged, and earlier details of some that are. */

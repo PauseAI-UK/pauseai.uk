@@ -32,6 +32,11 @@ export type ThreadMessage = {
   quoted: string;
   /** Who it was copied to, as its Cc said; null if nobody, or the kept message can't be read. */
   cc: string | null;
+  /** For a politician's reply to a mailing's letter, who marked it as needing nothing, and when. */
+  dealtBy: string | null;
+  dealtAt: Date | null;
+  /** For our answer sent from its page, the staff member who sent it. */
+  sentBy: string | null;
 };
 
 /** One of PauseAI's letters and its thread: the letter as it went, rebuilt from its mailing (lib/mailings/letter-thread.server.ts), and each message after. */
@@ -91,7 +96,8 @@ export function messageText(raw: Buffer): string | null {
 export async function threadMessages(letterId: number): Promise<ThreadMessage[]> {
   const replies = await query<Omit<ThreadMessage, "text" | "cc"> & { blobKey: string }>(
     `SELECT id::int AS id, at, from_name AS "fromName", from_address AS "fromAddress", from_us AS "fromUs",
-       from_supporter AS "fromSupporter", subject, blob_key AS "blobKey",
+       from_supporter AS "fromSupporter", subject, blob_key AS "blobKey", dealt_by AS "dealtBy", dealt_at AS "dealtAt",
+       (SELECT a.sent_by FROM letter_answers a WHERE a.kept_id = r.id) AS "sentBy",
        EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = r.letter_id AND e.status = 'auto_reply'
          AND e.details->>'gmailMessageId' = r.gmail_message_id) AS auto
      FROM letter_replies r WHERE letter_id = $1 ORDER BY at, id`,

@@ -274,6 +274,8 @@ const LEADS: { [A in AuditAction]: LeadOf<A> } = {
   "deal with reply": none,
   "answer reply": none,
   "react to reply": none,
+  "nothing to do on letter reply": none,
+  "answer letter reply": none,
   "download supporters": none,
   "download blocked emails": none,
   "download letters": none,

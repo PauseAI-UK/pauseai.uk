@@ -112,6 +112,21 @@ describe("MailingsOverview", () => {
     expect(page.getByRole("button").all()).toEqual([]);
   });
 
+  it("counts letters with a reply to check, after those answered", async () => {
+    const waiting = {
+      ...exampleMailings[1],
+      id: 11,
+      states: { ...exampleMailings[1].states, answered: 1, look: 2 },
+    };
+    await render(
+      <MailingsOverview
+        groups={mailingGroups({ scheduled: [], sending: [], drafts: [], done: [waiting] }, new Date(now))}
+        now={now}
+      />,
+    );
+    await expect.element(row("Ben Lake")).toMatchTextContent(`1 ${states.counts.answered}2 ${states.counts.look}`);
+  });
+
   it("an ask with no sender says only the ask", async () => {
     const lone = {
       ...exampleMailings[1],

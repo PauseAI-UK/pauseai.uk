@@ -2,6 +2,7 @@ import type { Mailing, MailingSummary } from "@/lib/mailings/records.server";
 
 /** No letters in any state, for an example to add its own. */
 const NO_STATES: MailingSummary["states"] = {
+  look: 0,
   sent: 0,
   replied: 0,
   answered: 0,
@@ -139,6 +140,7 @@ export const exampleMailing: Mailing = {
       personalised: true,
       answer: "going",
       skipReason: null,
+      toCheck: false,
     },
     {
       letterId: 12,
@@ -155,6 +157,7 @@ export const exampleMailing: Mailing = {
       personalised: false,
       answer: null,
       skipReason: null,
+      toCheck: false,
     },
     {
       letterId: 13,
@@ -171,6 +174,7 @@ export const exampleMailing: Mailing = {
       personalised: false,
       answer: null,
       skipReason: null,
+      toCheck: false,
     },
   ],
 };

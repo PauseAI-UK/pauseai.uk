@@ -34,7 +34,8 @@ export const STILL_TO_GO = new Set(["held", "to-go"]);
 export type SkipReason = "blocked" | "left-office" | "no-email";
 
 /**
- * A letter's states, each counted, the first that applies: the office marked
+ * A letter's states, each counted, the first that applies: a mailing's
+ * letter has a reply waiting for staff (MAILING_TO_CHECK); the office marked
  * it as spam; something broke (Gmail or Postmark refused it, or its send cut
  * off, so it may or may not have gone); it didn't reach them (it bounced);
  * not sent, as expected (no address, left office, address already blocked,
@@ -42,7 +43,7 @@ export type SkipReason = "blocked" | "left-office" | "no-email";
  * replied; sent, saying so when only an automatic reply came back. A letter still to go is queued, scheduled or sending, and in
  * no count.
  */
-export const LETTER_STATES = ["spam", "error", "unreached", "not-sent", "answered", "replied", "sent"] as const;
+export const LETTER_STATES = ["look", "spam", "error", "unreached", "not-sent", "answered", "replied", "sent"] as const;
 export type CountedLetterState = (typeof LETTER_STATES)[number];
 export type LetterState = CountedLetterState | "queued" | "scheduled" | "sending";
 
@@ -52,6 +53,7 @@ export function letterState({
   skipReason,
   answered,
   replied,
+  toCheck = false,
   autoReplied,
   sentBy,
 }: {
@@ -59,12 +61,15 @@ export function letterState({
   skipReason?: SkipReason | null;
   answered: boolean;
   replied: boolean;
+  /** A mailing's letter with a reply waiting for staff (MAILING_TO_CHECK). */
+  toCheck?: boolean;
   /** Whether only an automatic reply came back, which is no reply. */
   autoReplied?: boolean;
   /** What sends it, to say what refused one that failed; unknown for a supporter's. */
   sentBy?: string | null;
 }): { state: LetterState; why: string | null } {
   if (status === "queued" || status === "scheduled" || status === "sending") return { state: status, why: null };
+  if (toCheck) return { state: "look", why: null };
   if (status === "spam_complaint") return { state: "spam", why: null };
   if (status === "uncertain") return { state: "error", why: "unfinished" };
   if (status === "not_sent") return { state: "error", why: sentBy ?? null };
@@ -78,12 +83,13 @@ export function letterState({
 
 /**
  * letterState in SQL, of the letter `l`, `answered` its condition for its
- * politician having answered the ask: for counting letters by state, and
- * listing those in one.
+ * politician having answered the ask and `toCheck` for a reply waiting for
+ * staff: for counting letters by state, and listing those in one.
  */
-export function letterStateSql(answered: string): string {
+export function letterStateSql(answered: string, toCheck = "false"): string {
   return `CASE
     WHEN l.status IN ('queued', 'scheduled', 'sending') THEN l.status
+    WHEN ${toCheck} THEN 'look'
     WHEN l.status = 'spam_complaint' THEN 'spam'
     WHEN ${statusIn("l.status", ["uncertain", "not_sent"])} THEN 'error'
     WHEN l.status = 'bounced' THEN 'unreached'
@@ -99,3 +105,22 @@ export const CAMPAIGN_ANSWERED = `EXISTS (SELECT 1 FROM ask_statuses st
 
 /** A campaign `c`'s letter `l`'s state (letterStateSql). */
 export const CAMPAIGN_LETTER_STATE = letterStateSql(CAMPAIGN_ANSWERED);
+
+/**
+ * Whether reply `r` to a mailing's letter, in SQL, waits for staff: the
+ * politician's side's, not automatic (an 'auto_reply' event names it), and
+ * nothing at or after it deals with it: a message of ours in the thread,
+ * Nothing to do pressed on it or a later reply, or a staff member setting
+ * the politician's answer to the mailing's ask, `ask`, since it came. An
+ * import setting the answer names no staff member, so doesn't count.
+ */
+export const replyToCheck = (ask: string) => `NOT r.from_us AND NOT r.from_supporter
+  AND NOT EXISTS (SELECT 1 FROM letter_events e WHERE e.letter_id = r.letter_id AND e.status = 'auto_reply'
+    AND e.details->>'gmailMessageId' = r.gmail_message_id)
+  AND NOT EXISTS (SELECT 1 FROM letter_replies d WHERE d.letter_id = r.letter_id AND (d.at, d.id) >= (r.at, r.id)
+    AND (d.from_us OR d.dealt_at IS NOT NULL))
+  AND NOT EXISTS (SELECT 1 FROM ask_statuses s JOIN letters sl ON sl.notable_person_id = s.notable_person_id
+    WHERE sl.id = r.letter_id AND s.ask = ${ask} AND s.updated_at >= r.at AND s.updated_by LIKE '%@%')`;
+
+/** Whether a mailing `m`'s letter `l` has a reply waiting for staff (replyToCheck), in SQL. */
+export const MAILING_TO_CHECK = `EXISTS (SELECT 1 FROM letter_replies r WHERE r.letter_id = l.id AND ${replyToCheck("m.ask")})`;

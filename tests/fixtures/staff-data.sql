@@ -1075,6 +1075,14 @@ WHERE m.sent_from IS NOT NULL;
 INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address, from_name, subject, at, from_us, blob_key, size)
 SELECT o.id, 'joseph@pauseai.uk', 'gmail-old-reply-' || o.id, 'thread-old-' || o.id, 'old-reply-' || o.id || '@parliament.uk', lower(n.email), n.name, 'Re: Invitation to speak on panel with Professor Stuart Russell', now() - o.sent + interval '1 day', false, o.reply, 400
 FROM seeded_old o JOIN notable_people n ON n.airtable_id = o.politician WHERE o.reply IS NOT NULL;
+-- Joseph's answer to it, sent from the letter's page, so it's no longer to check.
+INSERT INTO letter_replies (letter_id, account, gmail_message_id, gmail_thread_id, rfc_message_id, from_address, from_name, subject, at, from_us, blob_key, size)
+SELECT r.letter_id, r.account, 'gmail-old-answer-' || r.letter_id, r.gmail_thread_id, 'fixture-joseph-answer@mail.gmail.com', 'joseph@pauseai.uk', 'Joseph Example', r.subject, r.at + interval '2 hours', true, 'fixture/joseph-answer.eml.gz', 300
+FROM letter_replies r WHERE r.gmail_message_id LIKE 'gmail-old-reply-%';
+INSERT INTO letter_answers (reply_id, draft_id, sent_by, created_at, kept_id)
+SELECT r.id, gen_random_uuid(), 'joseph@pauseai.uk', a.at, a.id
+FROM letter_replies r JOIN letter_replies a ON a.letter_id = r.letter_id AND a.gmail_message_id LIKE 'gmail-old-answer-%'
+WHERE r.gmail_message_id LIKE 'gmail-old-reply-%';
 INSERT INTO letter_events (letter_id, at, status, details)
 SELECT o.id, now() - o.sent + interval '1 minute', 'auto_reply', jsonb_build_object('from', lower(n.email), 'gmailMessageId', 'gmail-old-auto-' || o.id)
 FROM seeded_old o JOIN notable_people n ON n.airtable_id = o.politician WHERE o.key = 'deepmind-25';

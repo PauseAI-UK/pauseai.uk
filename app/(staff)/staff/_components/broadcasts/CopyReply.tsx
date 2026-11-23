@@ -3,6 +3,7 @@
 // A reply in a copy's thread (MessageCopyView), on the client, as what opens
 // its answer (AnswerableReply's) is a function its buttons are given.
 import type { ReactNode } from "react";
+import type { JSONContent } from "@tiptap/react";
 import { staffMemberText } from "@/lib/staff-member";
 import { Muted } from "@/components/ui/Text";
 import { named } from "@/lib/email-parsing/addresses";
@@ -12,9 +13,10 @@ import type { BroadcastAnswer } from "@/lib/broadcasts/answers.server";
 import type { MessageCopy } from "@/lib/broadcasts/pages.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import { staffTime } from "@/lib/staff-time";
-import AnswerableReply, { type AnswerAction } from "./AnswerableReply";
+import AnswerableReply, { ReplyButton, type AnswerAction, type AnswerStart } from "../mailings/AnswerableReply";
 import { MailingLetter } from "../mailings/MailingLetter";
-import ReplyActions, { ReplyButton } from "./ReplyActions";
+import ReplyActions from "./ReplyActions";
+import Alert from "../ui/Alert";
 import ReplyReactions, { OurReaction, standingOf, type ReactAction } from "./ReplyReactions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import ThreadEmail from "../letters/ThreadEmail";
@@ -22,11 +24,44 @@ import ThreadText from "../letters/ThreadText";
 import { firstNameOf, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { kindWords } from "@/lib/broadcasts/whatsapp-messages";
 import styles from "./MessageCopyView.module.css";
+import answerStyles from "../mailings/AnswerableReply.module.css";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { receiptOf } from "@/lib/broadcasts/receipts";
 import { theirReaction } from "@/lib/broadcasts/reactions";
 
 const copy = broadcastsCopy.broadcastPages;
+
+/** A paragraph of `words`, or an empty one. */
+const paragraph = (words?: string): JSONContent =>
+  words ? { type: "paragraph", content: [{ type: "text", text: words }] } : { type: "paragraph" };
+
+/**
+ * What an email's answer starts as, to be written between, in a new
+ * broadcast's words: a greeting to `to` (their first name), blank lines,
+ * and its sign-off's first line, over `from` (the staff member's). Where
+ * the cursor goes in it: the first blank line.
+ */
+function startOf({ to, from }: { to: string; from: string }): AnswerStart {
+  const greeting = `${copy.greeting} ${to},`;
+  const [signOff] = copy.signature;
+  return {
+    doc: {
+      type: "doc",
+      content: [paragraph(greeting), paragraph(), paragraph(), paragraph(signOff), paragraph(from)],
+    },
+    // Past the greeting's paragraph, its words and its two ends, into the next.
+    cursor: greeting.length + 3,
+  };
+}
+
+/** An answer to a text being written: a bubble of ours, with no subject. */
+const textShell = (draft: ReactNode) => (
+  <ChatWall>
+    <ChatBubble who={TEXT_SENDER_NAME} when="" ours>
+      {draft}
+    </ChatBubble>
+  </ChatWall>
+);
 
 /** Who a reply is from: their name as their copy had it, when it's from the address the copy went to. */
 const sender = (reply: BroadcastReply, one: MessageCopy) => {
@@ -70,7 +105,7 @@ function Answer({
           badge={answer.providerId ? theirReaction(one, answer.providerId) : undefined}
         >
           <TextWords words={answer.body} />
-          {!answer.sentAt && <p className={styles.dealt}>{copy.replies.stillSending(one.sentFrom)}</p>}
+          {!answer.sentAt && <p className={answerStyles.dealt}>{copy.replies.stillSending(one.sentFrom)}</p>}
         </ChatBubble>
       </ChatWall>
     );
@@ -84,7 +119,7 @@ function Answer({
       bubble
     );
   }
-  const by = <p className={styles.dealt}>{answer.sentAt ? sentBy : copy.replies.stillSending(one.sentFrom)}</p>;
+  const by = <p className={answerStyles.dealt}>{answer.sentAt ? sentBy : copy.replies.stillSending(one.sentFrom)}</p>;
   return (
     <ThreadEmail
       from={named(one.fromName, one.sentFrom)}
@@ -149,7 +184,7 @@ export default function Reply({
   // A reaction's emoji is on our message it's to (theirReaction), so in the thread it's who reacted and when, as ours
   // on theirs is said; one whose emoji wasn't kept says so; then, on a line under, when they took it back, if they did.
   const theirs = reaction && (
-    <p className={styles.dealt}>
+    <p className={answerStyles.dealt}>
       {reply.text
         ? copy.replies.reactedBy(reply.text, sender(reply, one), staffTime(reply.receivedAt))
         : `${copy.replies.reactedNotKept} · ${staffTime(reply.receivedAt)}`}
@@ -163,7 +198,7 @@ export default function Reply({
   );
   // What it was recorded as, but answered, which our answer after it says.
   const recorded = reply.outcome && reply.outcome !== "answered" && (
-    <p className={styles.dealt}>
+    <p className={answerStyles.dealt}>
       {reply.dealtBy === SITE_ACTOR
         ? copy.replies.optedOutAutomatically(when!)
         : (reply.outcome === "opted-out" ? copy.replies.optedOut : copy.replies.nothingDone)(
@@ -209,7 +244,7 @@ export default function Reply({
     const foot = (recorded || ourEmoji || own) && (
       <>
         {recorded}
-        {ourEmoji && <OurReaction reaction={ourEmoji} className={styles.dealt} />}
+        {ourEmoji && <OurReaction reaction={ourEmoji} className={answerStyles.dealt} />}
         {own}
       </>
     );
@@ -284,12 +319,11 @@ export default function Reply({
       to={sender(reply, one)}
       subject={reply.subject}
       answer={actions.answer}
-      doNotEmail={reply.doNotEmail}
-      text={text}
-      greet={
-        signer
-          ? { to: firstNameOf(one.name) ?? broadcastsCopy.broadcastPages.fallbacks.firstName, from: signer }
-          : undefined
+      // To someone with "Do not email", a warning that it goes all the same.
+      warning={reply.doNotEmail && <Alert tone="amber">{copy.replies.doNotEmail}</Alert>}
+      shell={text ? textShell : undefined}
+      start={
+        signer && !text ? startOf({ to: firstNameOf(one.name) ?? copy.fallbacks.firstName, from: signer }) : undefined
       }
     >
       {(write) => (
