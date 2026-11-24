@@ -3,11 +3,14 @@ import { config } from "@/lib/server/config.server";
 import { saveRawToOutbox, saveToOutbox } from "@/lib/server/fixtures/outbox";
 import { toMime, type MimeEmail } from "../mime.server";
 import { decodedText, messageIds } from "@/lib/email-parsing/mime.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { googleFake } from "@/lib/server/fixtures/fakes/google";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { orFallback } from "./fallback.server";
 import { type FailureKind, kindOfStatus, OutsideFailure } from "./outside-failure.server";
 import { fieldText, parseJsonIfAny, readJsonIfAny } from "../json.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const GMAIL: Outside = { service: "gmail", fake: googleFake };
 
 // The only file that talks to Google: logging staff in with their Google
 // account, the OAuth consent that connects a staff member's Gmail, and the
@@ -17,7 +20,7 @@ import { serverProblems } from "@/lib/server/copy";
 // it. GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are its OAuth client's.
 //
 // With DATA_FIXTURES=1, consent comes straight back to the site, and every
-// call is answered by lib/server/fixtures/outside-services.ts, which knows the
+// call is answered by lib/server/fixtures/fakes/google.ts, which knows the
 // account from its token.
 
 const CONSENT_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -134,7 +137,7 @@ export async function googleLoginAccount(
 
 async function tokenRequest(params: Record<string, string>): Promise<Record<string, unknown>> {
   const { id, secret } = client();
-  const res = await outsideFetch("gmail", TOKEN_URL, {
+  const res = await outsideFetch(GMAIL, TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ ...params, client_id: id, client_secret: secret }).toString(),
@@ -165,7 +168,7 @@ export async function gmailAccessToken(refreshToken: string): Promise<{ token: s
 
 /** Tells Google the site no longer wants the token. A token Google had already dropped is no matter. */
 export async function revokeGmail(refreshToken: string): Promise<void> {
-  const res = await outsideFetch("gmail", `${REVOKE_URL}?${new URLSearchParams({ token: refreshToken })}`, {
+  const res = await outsideFetch(GMAIL, `${REVOKE_URL}?${new URLSearchParams({ token: refreshToken })}`, {
     method: "POST",
   });
   if (!res.ok && res.status !== 400)
@@ -173,7 +176,7 @@ export async function revokeGmail(refreshToken: string): Promise<void> {
 }
 
 async function api<T>(accessToken: string, path: string, init: RequestInit = {}): Promise<T> {
-  const res = await outsideFetch("gmail", `${API}${path}`, {
+  const res = await outsideFetch(GMAIL, `${API}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json", ...init.headers },
     cache: "no-store",
@@ -212,7 +215,7 @@ export async function gmailSendName(accessToken: string): Promise<string> {
   );
   const own = sendAs.find((address) => address.isPrimary)?.displayName;
   if (own) return own;
-  const res = await outsideFetch("gmail", USERINFO, {
+  const res = await outsideFetch(GMAIL, USERINFO, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
     cache: "no-store",
   });

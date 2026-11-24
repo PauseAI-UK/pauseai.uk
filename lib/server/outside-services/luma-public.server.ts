@@ -3,8 +3,11 @@ import { isAllowedEventImage } from "@/lib/event-image-hosts";
 import type { EventGoing } from "@/lib/going";
 import { orFallback } from "./fallback.server";
 import { outsideJson } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { lumaFake } from "@/lib/server/fixtures/fakes/luma";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const LUMA: Outside = { service: "luma", fake: lumaFake };
 
 // An event as its page on luma.com shows anyone, from the data that page
 // loads: when it starts and ends, how many are going, and the few guests
@@ -62,7 +65,7 @@ function going(data: ApiEvent): EventGoing | null {
 export async function getPublicEvent(eventId: string): Promise<PublicEvent | null> {
   return orFallback(serverProblems.lumaGuestsDown(), null, async () => {
     const res = await outsideFetch(
-      "luma",
+      LUMA,
       `https://api.lu.ma/event/get?${new URLSearchParams({ event_api_id: eventId })}`,
       {
         headers: { accept: "application/json" },

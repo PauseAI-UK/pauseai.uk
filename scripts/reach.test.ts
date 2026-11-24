@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { isSiteCode, mostReaching, newestRuns, reachLines } from "./reach.mjs";
+import { isSiteCode, keepFor, mostReaching, newestRuns, reachLines } from "./reach.mjs";
 import { reachContext } from "./storyboard-reach.mjs";
 
 // A checkout of a few files: two pages that share a component and a loader, and the specs that open them.
@@ -58,10 +58,26 @@ describe("mostReaching", () => {
   });
 
   it("keeps to the files under a folder, if asked", () => {
-    expect(mostReaching([letters, events], reachContext(root), "lib/").map(({ path }) => path)).toEqual([
-      "lib/format.ts",
-      "lib/letters.ts",
+    expect(
+      mostReaching(
+        [letters, events],
+        reachContext(root),
+        keepFor("lib/", () => []),
+      ).map(({ path }) => path),
+    ).toEqual(["lib/format.ts", "lib/letters.ts"]);
+  });
+
+  it("keeps to the files a branch changes, if asked, a spec among them", () => {
+    const branch = () => ["lib/letters.ts", "tests/storyboard/events.spec.ts", "docs/testing.md"];
+    expect(mostReaching([letters, events], reachContext(root), keepFor("--branch", branch))).toEqual([
+      { path: "lib/letters.ts", flows: 1 },
+      { path: "tests/storyboard/events.spec.ts", flows: 1 },
     ]);
+  });
+
+  it("keeps to the site's files for a count", () => {
+    expect(keepFor("100", () => [])("lib/letters.ts")).toBe(true);
+    expect(keepFor("100", () => [])("lib/letters.test.ts")).toBe(false);
   });
 });
 

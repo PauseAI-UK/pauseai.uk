@@ -3,8 +3,11 @@ import { config } from "@/lib/server/config.server";
 import { siteUrlIfKnown } from "@/lib/site-url.server";
 import { orFallback } from "./fallback.server";
 import { refusal } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { noFake } from "@/lib/server/fixtures/fakes/none";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const NETLIFY: Outside = { service: "netlify", fake: noFake };
 
 /**
  * Starts the Luma import in its background function on Netlify
@@ -18,7 +21,7 @@ export async function startLumaImport(): Promise<void> {
   const url = siteUrlIfKnown("/.netlify/functions/import-luma-background", undefined);
   if (config.localBuild || !config.cronSecret || !url) return;
   await orFallback(serverProblems.lumaImportNotStarted(), undefined, async () => {
-    const res = await outsideFetch("netlify", url.toString(), {
+    const res = await outsideFetch(NETLIFY, url.toString(), {
       method: "POST",
       headers: { Authorization: `Bearer ${config.cronSecret}` },
     });

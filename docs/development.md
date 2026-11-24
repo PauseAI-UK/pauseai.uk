@@ -331,8 +331,8 @@ npm run dev
 ```
 
 The example `.env.local` sets `DATA_FIXTURES=1`. With it, every call to an
-outside service gets a canned answer from
-`lib/server/fixtures/outside-services.ts`. Nothing leaves your machine, and
+outside service gets a canned answer from its fake in
+`lib/server/fixtures/fakes/`. Nothing leaves your machine, and
 you need no keys. Leave a service's keys blank: a real key set in
 `.env.local` changes nothing, as the call still gets the canned answer.
 Where the code checks for a key before calling a service at all, as for

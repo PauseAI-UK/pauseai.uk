@@ -1,6 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { fixtureResponse } from "@/lib/server/fixtures/outside-services";
+import type { Fake } from "@/lib/server/fixtures/fake";
 import { OutsideFailure, type OutsideService, retryAfterOf } from "./outside-failure.server";
 
 /**
@@ -15,6 +15,9 @@ const ASKED_AGAIN = [429, 503];
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** A service, and its fake, which answers in its place in a fixture build (lib/server/fixtures/fakes/). */
+export type Outside = { service: OutsideService; fake: Fake };
+
 export type OutsideInit = RequestInit & {
   /**
    * How many more times to ask after an answer of 429 or 503, waiting as its
@@ -27,22 +30,29 @@ export type OutsideInit = RequestInit & {
 
 /**
  * fetch() for calls to outside services (Luma, Airtable, postcodes.io, ...). With
- * DATA_FIXTURES=1 it answers from lib/server/fixtures/ instead, so a test build
+ * DATA_FIXTURES=1 the service's fake answers instead, unless the storyboard
+ * flow has made the service fail (lib/server/fixtures/failing-services.ts), so a test build
  * renders the same data every time and works offline (docs/testing.md).
  * The calling code still parses the response, so it is exercised either way.
  * A service that can't be reached, or doesn't answer in time, throws an
- * OutsideFailure for `service`, of kind `unreachable` or `timeout`. An
+ * OutsideFailure for the service, of kind `unreachable` or `timeout`. An
  * answer that isn't ok is returned, for the binding to say what kind of
  * refusal it is.
  */
-export async function outsideFetch(service: OutsideService, url: string, init: OutsideInit = {}): Promise<Response> {
+export async function outsideFetch({ service, fake }: Outside, url: string, init: OutsideInit = {}): Promise<Response> {
   const { retries = 0, ...request } = init;
   if (config.fixtures) {
-    // The storyboard flow's database, for the fakes that keep what they're sent, one set each flow.
-    // Imported here, so a component that renders on fixture data in the browser doesn't load it.
+    // The storyboard flow's database, for the fakes that keep what they're sent, one set each flow, and the
+    // services it has made fail. Imported here, as they read Node's files, so a component that renders on
+    // fixture data in the browser doesn't load them.
     const { flowDatabase } = await import("../flow-database.server");
+    const { failingResponse } = await import("@/lib/server/fixtures/failing-services");
+    const scope = await flowDatabase();
+    const parsed = new URL(url);
     return (
-      fixtureResponse(url, request, await flowDatabase()) ?? new Response("No fixture for this URL", { status: 404 })
+      failingResponse(parsed.hostname, scope) ??
+      fake(parsed, request, scope) ??
+      new Response("No fixture for this URL", { status: 404 })
     );
   }
   for (let attempt = 0; ; attempt++) {

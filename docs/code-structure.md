@@ -218,7 +218,7 @@ folder, or on the list with its reason.
 | a problem message                        | the `problems` of the feature's `lib/<feature>/copy.ts`; the server's own, `serverProblems` (`lib/server/copy.ts`)                                                                                         |
 | a public tool's words                    | one copy object in `lib/content/<tool>.ts`, such as `copy` in `lib/content/email-your-mp.ts`                                                                                                               |
 | content the site shows                   | `lib/content/`: a blog post is `lib/content/blog/<slug>.tsx`, a briefing `lib/content/briefings/<slug>.tsx`, each listed newest first in its folder's `index.ts`                                           |
-| a call to an outside service             | its binding in `lib/server/outside-services/`, and its canned answers in `lib/server/fixtures/outside-services.ts` ("Outside services", below)                                                             |
+| a call to an outside service             | its binding in `lib/server/outside-services/`, and its canned answers, its fake, in `lib/server/fixtures/fakes/` ("Outside services", below)                                                               |
 | a route that needs a URL                 | `app/api/`                                                                                                                                                                                                 |
 | a redirect                               | `redirects()` in `next.config.ts` ("Redirects are in `next.config.ts`", below)                                                                                                                             |
 | a scheduled job                          | its function in `netlify/functions/<job>/`, its work in the app, run by `lib/jobs/jobs.server.ts` ("Scheduled jobs", below)                                                                                |
@@ -606,7 +606,9 @@ holds it.
   ControlAI, WhatsApp, CiviCRM) are each called from one binding in
   `lib/server/outside-services/`, through `outsideFetch`
   (`outside-fetch.server.ts` there), so tests and fixture builds can answer
-  instead (`docs/testing.md`, "Mocking"). ESLint fails on importing
+  instead (`docs/testing.md`, "Mocking"). The binding hands `outsideFetch`
+  its service's fake (`lib/server/fixtures/fakes/`), so a change to one fake
+  reaches only the flows that call that service. ESLint fails on importing
   `outsideFetch` elsewhere, `fetch()` in server code, a network module, HTTP
   client or SDK (`NETWORK_IMPORTS`), and a service's API host outside its
   binding (`SERVICES`, where a new binding's host goes).

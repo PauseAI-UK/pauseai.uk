@@ -842,8 +842,9 @@ describe("this repo", { timeout: 120_000 }, () => {
       "lib/content/blog/index.ts: calls checkPostAuthors() as it loads",
       "lib/content/briefings/index.ts: calls checkPostAuthors() as it loads",
       // The fakes' mail and answers, kept for each flow's database across the build's copies of a module: no code.
+      "lib/server/fixtures/fakes/blobs.ts: uses globalThis",
+      "lib/server/fixtures/fakes/google.ts: uses globalThis",
       "lib/server/fixtures/letters-inbox.ts: uses globalThis",
-      "lib/server/fixtures/outside-services.ts: uses globalThis",
       // Handed the run in progress by run-store.server.ts (HANDED_OVER), and the keeper of errors by
       // instrumentation.ts, which a flow that kept an error records as opened (ERRORS_KEPT).
       "lib/server/problems.server.ts: uses globalThis",

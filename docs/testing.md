@@ -95,7 +95,9 @@ copy waits for approval still has its coverage checked.
 Mock only where the site calls an outside service. All such calls go
 through `outsideFetch`, from the bindings in `lib/server/outside-services/`
 (`docs/code-structure.md`, "Outside services"), and the canned responses
-live in one place: `lib/server/fixtures/outside-services.ts`.
+are each service's fake, in `lib/server/fixtures/fakes/`. A fixture build
+asks the fake its binding hands `outsideFetch`; the tests ask every fake in
+turn (`lib/server/fixtures/outside-services.ts`).
 
 - **Vitest Node:** MSW (`tests/fixtures/msw.ts`) answers every outside
   request from the fixtures. A request with no fixture fails the test. To
@@ -711,6 +713,10 @@ imports it, so fewer pages reach it, makes those reviews shorter: work
 down the list, and run it again after the next review to see whether it
 helped. `npm run reach -- 100` lists the top hundred, and
 `npm run reach -- lib/email` only the files under that folder.
+`npm run reach -- --branch` lists the files the branch changes from
+origin/main, committed or not, so a review that pictures more flows than
+its change seems worth shows which file reaches them: `--plan` says so
+whenever a change reaches a flow.
 
 **Main's frames are main's own.** They come from main's suite, run on
 main's build, in a checkout of main's own: a git worktree in your temp

@@ -99,7 +99,7 @@ const OWN_CATCHES = [
   // Reads the error to say what became of an email: blocked, to try later, failed, or possibly gone.
   "lib/email/email.server.ts",
   // Disconnects an account whose token Google revoked, by the error, and throws it on.
-  "lib/email/gmail-accounts.server.ts",
+  "lib/email/gmail-access.server.ts",
   // The helper for sending something a run has taken: sendWithCare() itself.
   "lib/email/send-with-care.server.ts",
   // Names each clean-up that failed for whoever erased, whatever failed in it: the erasure itself is done.

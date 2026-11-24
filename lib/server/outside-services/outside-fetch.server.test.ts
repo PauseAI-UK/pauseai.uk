@@ -3,9 +3,19 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { describeError } from "@/lib/server/problems.server";
 import { OutsideFailure } from "./outside-failure.server";
-import { OUTSIDE_TIMEOUT_MS, outsideFetch } from "./outside-fetch.server";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { failService } from "@/lib/server/fixtures/failing-services";
+import { lumaFake } from "@/lib/server/fixtures/fakes/luma";
+import { OUTSIDE_TIMEOUT_MS, outsideFetch, type Outside } from "./outside-fetch.server";
 
+const LUMA: Outside = { service: "luma", fake: lumaFake };
 const CALENDAR = "https://public-api.luma.com/v1/calendars/events/list?after=2026-01-01T00:00:00.000Z";
+
+/** The storyboard flow a request is from, as its cookie says. */
+const flow = vi.hoisted(() => ({ database: undefined as string | undefined }));
+vi.mock("../flow-database.server", () => ({ flowDatabase: async () => flow.database }));
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -21,7 +31,7 @@ describe("outsideFetch", () => {
       }),
     );
 
-    const res = await outsideFetch("luma", CALENDAR, { headers: { authorization: "x" } });
+    const res = await outsideFetch(LUMA, CALENDAR, { headers: { authorization: "x" } });
 
     expect(await res.json()).toEqual({ live: true });
     expect(auth).toBe("x");
@@ -32,7 +42,7 @@ describe("outsideFetch", () => {
     const short = AbortSignal.timeout(20);
     const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(short);
 
-    const failed = await outsideFetch("luma", CALENDAR).catch((error: unknown) => error);
+    const failed = await outsideFetch(LUMA, CALENDAR).catch((error: unknown) => error);
     expect(failed).toBeInstanceOf(OutsideFailure);
     expect(failed).toMatchObject({
       service: "luma",
@@ -47,7 +57,7 @@ describe("outsideFetch", () => {
 
   it("says a service that can't be reached is unreachable, keeping why as the cause", async () => {
     server.use(http.get("https://public-api.luma.com/v1/calendars/events/list", () => HttpResponse.error()));
-    const failed = await outsideFetch("luma", CALENDAR).catch((error: unknown) => error);
+    const failed = await outsideFetch(LUMA, CALENDAR).catch((error: unknown) => error);
     expect(failed).toBeInstanceOf(OutsideFailure);
     expect(failed).toMatchObject({ service: "luma", kind: "unreachable", status: 0 });
     expect(describeError(failed)).toMatch(/^Luma couldn't be reached \(.+\)/);
@@ -57,7 +67,7 @@ describe("outsideFetch", () => {
     server.use(
       http.get("https://public-api.luma.com/v1/calendars/events/list", () => new HttpResponse(null, { status: 503 })),
     );
-    expect((await outsideFetch("luma", CALENDAR)).status).toBe(503);
+    expect((await outsideFetch(LUMA, CALENDAR)).status).toBe(503);
   });
 
   it("asks again after a 429 or a 503 when told it may, waiting as the answer says or longer each time", async () => {
@@ -71,7 +81,7 @@ describe("outsideFetch", () => {
     let asked = 0;
     server.use(http.get("https://public-api.luma.com/v1/calendars/events/list", () => answers[asked++]));
     const waits = vi.spyOn(globalThis, "setTimeout");
-    const answered = outsideFetch("luma", CALENDAR, { retries: 3 });
+    const answered = outsideFetch(LUMA, CALENDAR, { retries: 3 });
     await vi.runAllTimersAsync();
     expect(await (await answered).json()).toEqual({ live: true });
     expect(asked).toBe(4);
@@ -90,7 +100,7 @@ describe("outsideFetch", () => {
         return new HttpResponse(null, { status: 503 });
       }),
     );
-    const answered = outsideFetch("luma", CALENDAR, { retries: 2 });
+    const answered = outsideFetch(LUMA, CALENDAR, { retries: 2 });
     await vi.runAllTimersAsync();
     expect((await answered).status).toBe(503);
     expect(asked).toBe(3);
@@ -99,7 +109,7 @@ describe("outsideFetch", () => {
       http.get("https://public-api.luma.com/v1/calendars/events/list", () => new HttpResponse(null, { status: 500 })),
     );
     asked = 0;
-    expect((await outsideFetch("luma", CALENDAR, { retries: 2 })).status).toBe(500);
+    expect((await outsideFetch(LUMA, CALENDAR, { retries: 2 })).status).toBe(500);
     vi.useRealTimers();
   });
 
@@ -108,7 +118,7 @@ describe("outsideFetch", () => {
     const timeout = vi.spyOn(AbortSignal, "timeout");
     const own = new AbortController().signal;
 
-    expect((await outsideFetch("luma", CALENDAR, { signal: own })).ok).toBe(true);
+    expect((await outsideFetch(LUMA, CALENDAR, { signal: own })).ok).toBe(true);
     expect(timeout).not.toHaveBeenCalled();
     timeout.mockRestore();
   });
@@ -118,7 +128,7 @@ describe("outsideFetch", () => {
       vi.stubEnv("DATA_FIXTURES", "1");
       server.use(http.all("*", () => HttpResponse.error()));
 
-      const res = await outsideFetch("luma", CALENDAR);
+      const res = await outsideFetch(LUMA, CALENDAR);
 
       const data = await res.json();
       expect(data.entries.length).toBeGreaterThan(0);
@@ -127,9 +137,21 @@ describe("outsideFetch", () => {
     it("returns a 404 for a URL with no fixture", async () => {
       vi.stubEnv("DATA_FIXTURES", "1");
 
-      const res = await outsideFetch("luma", "https://example.com/anything");
+      const res = await outsideFetch(LUMA, "https://example.com/anything");
 
       expect(res.status).toBe(404);
+    });
+
+    it("answers as the service does when it's down, for the flow that made it fail", async () => {
+      vi.stubEnv("DATA_FIXTURES", "1");
+      const dir = mkdtempSync(join(tmpdir(), "failing-"));
+      vi.stubEnv("FAILING_DIR", dir);
+      failService("flow_fetch", "public-api.luma.com", dir);
+      flow.database = "flow_fetch";
+
+      expect((await outsideFetch(LUMA, CALENDAR)).status).toBe(503);
+      flow.database = undefined;
+      rmSync(dir, { recursive: true, force: true });
     });
   });
 });

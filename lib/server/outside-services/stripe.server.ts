@@ -1,9 +1,12 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { stripeFake } from "@/lib/server/fixtures/fakes/stripe";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { orFallback } from "./fallback.server";
 import { outsideJson } from "./outside-failure.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const STRIPE: Outside = { service: "stripe", fake: stripeFake };
 
 /** The key of the question every donate link's checkout asks, "Are you happy to be named on our wall of thanks?". */
 export const WALL_OF_THANKS_FIELD = "areyouhappytobenamedonourwallofthanks";
@@ -62,7 +65,7 @@ async function list<T extends { id: string }>(
   do {
     const params = new URLSearchParams({ ...query, limit: "100" });
     if (after) params.set("starting_after", after);
-    const res = await outsideFetch("stripe", `https://api.stripe.com/v1/${path}?${params}`, {
+    const res = await outsideFetch(STRIPE, `https://api.stripe.com/v1/${path}?${params}`, {
       headers: { authorization: `Bearer ${key}` },
       next: { revalidate: 3600 },
     });

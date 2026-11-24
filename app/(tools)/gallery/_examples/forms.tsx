@@ -100,7 +100,7 @@ export const forms: Group = {
     },
     {
       name: "DateRange",
-      file: "components/ui/Controls.tsx",
+      file: "components/ui/DatePicker.tsx",
       variants: [
         {
           label: "From a day to another",

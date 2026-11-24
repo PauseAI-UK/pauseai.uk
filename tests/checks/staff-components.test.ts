@@ -14,7 +14,7 @@ const STAFF_COMPONENTS = "app/(staff)/staff/_components";
 
 const STAYS: Record<string, string[]> = {
   [STAFF_COMPONENTS]: [
-    // A link to one of the public site's campaigns (lib/email-your-mp.ts), which supporters', politicians', letters'
+    // A link to one of the public site's campaigns (lib/content/campaigns.ts), which supporters', politicians', letters'
     // and the audit log's pages show: in mailings', whose campaigns' pages they are, it would make politicians and
     // mailings use each other.
     "CampaignName",
@@ -55,11 +55,13 @@ const STAYS: Record<string, string[]> = {
     // Small helpers any page may use.
     "browser-errors",
     "dated-groups",
+    "email-address",
     "found",
     "leave-page",
     "metadata",
     "now",
     "phone",
+    "postcodes",
     "site-url",
     "staff-time",
     "time-range",
@@ -94,15 +96,17 @@ const STAYS: Record<string, string[]> = {
     "problems",
   ],
   "lib/server": [
-    // The database, settings, problems and runs, the import log they're kept in, what a fixture build adds, and the
-    // words of the problems this folder's own code reports.
+    // The database, settings, problems and runs, the import log they're kept in and what reads it, what a fixture
+    // build adds, and the words of the problems this folder's own code reports and of the database's notes.
     "config",
     "copy",
     "db",
+    "db-copy",
     "fixtures-only",
     "flow-database",
     "json",
     "import-runs",
+    "import-run-lists",
     "migrations-check",
     "page-loaders",
     "problems",

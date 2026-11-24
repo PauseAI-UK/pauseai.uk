@@ -9,6 +9,7 @@ import {
 } from "@/lib/politicians/scottish-parliament";
 import { SENEDD_MEMBERS_URL, seneddMembers } from "@/lib/politicians/senedd";
 import { refusal } from "./outside-failure.server";
+import { devolvedBodiesFake } from "@/lib/server/fixtures/fakes/devolved-bodies";
 import { outsideFetch } from "./outside-fetch.server";
 
 // The Scottish Parliament's, the Senedd's and the Northern Ireland Assembly's
@@ -25,7 +26,7 @@ const USER_AGENT = "PauseAI UK (https://pauseai.uk)";
 type Body = "scottish-parliament" | "senedd" | "ni-assembly";
 
 async function fetchOk(body: Body, url: string, accept: string): Promise<Response> {
-  const res = await outsideFetch(body, url, {
+  const res = await outsideFetch({ service: body, fake: devolvedBodiesFake }, url, {
     headers: { Accept: accept, "User-Agent": USER_AGENT },
     cache: "no-store",
   });

@@ -1,13 +1,16 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
 import { getStore } from "@netlify/blobs";
-import { outsideFetch } from "./outside-fetch.server";
+import { blobsFake } from "@/lib/server/fixtures/fakes/blobs";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
+
+const BLOBS: Outside = { service: "blobs", fake: blobsFake };
 
 // The only file that uses Netlify Blobs: the replies to our letters, each
 // message kept whole, gzipped. Netlify gives a deployed function its
 // credentials in the environment. The client takes its fetch, so its
 // requests go through outsideFetch, and a fixture build's are answered by
-// lib/server/fixtures/outside-services.ts.
+// lib/server/fixtures/fakes/blobs.ts.
 
 /** The store of the messages in our letters' threads. */
 const LETTER_REPLIES = "letter-replies";
@@ -20,7 +23,7 @@ function store() {
   return getStore({
     name: LETTER_REPLIES,
     // The client always asks with the URL as a string.
-    fetch: (url, init) => outsideFetch("blobs", String(url), init),
+    fetch: (url, init) => outsideFetch(BLOBS, String(url), init),
     ...(fixtures && { siteID: "fixture", token: "fixture", edgeURL: FIXTURE_BLOBS_URL }),
   });
 }

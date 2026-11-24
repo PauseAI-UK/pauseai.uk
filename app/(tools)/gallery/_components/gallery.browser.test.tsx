@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { GROUPS } from "../_examples";
@@ -7,12 +7,6 @@ import { anchor, exampleKey } from "./anchors";
 import GalleryGroup from "./GalleryGroup";
 import GalleryIndex from "./GalleryIndex";
 import { Controlled, Logged } from "./wiring";
-
-// The examples import async server components (the local groups' events),
-// which fetch through the fixture services, which need Node's crypto. Those
-// render only on the page (their variants are `server`), so the browser
-// never fetches.
-vi.mock("@/lib/server/fixtures/outside-services", () => ({ fixtureResponse: () => null }));
 
 describe("GalleryIndex", () => {
   it("has a card for each group, linking to its page, with what's in it", async () => {

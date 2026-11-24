@@ -5,8 +5,11 @@ import { now } from "@/lib/now";
 import { LUMA_NOT_A_CONTACT, LUMA_PAGE_SIZE, lumaList, lumaPost, type LumaPage } from "./luma-api.server";
 import { orFallback } from "./fallback.server";
 import { OutsideFailure, outsideJson } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { lumaFake } from "@/lib/server/fixtures/fakes/luma";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const LUMA: Outside = { service: "luma", fake: lumaFake };
 
 /** The two halves of the calendar: from today on, and before today. */
 export type EventPeriod = "future" | "past";
@@ -68,7 +71,7 @@ export async function getEvents(period: EventPeriod = "future"): Promise<LumaEve
 /** The calendar's public events that `params` asks for, by `key`; none, reported, if Luma fails. */
 async function publicEvents(key: string, params: URLSearchParams): Promise<LumaEvent[]> {
   return orFallback(serverProblems.lumaEventsDown(), [], async () => {
-    const res = await outsideFetch("luma", `https://public-api.luma.com/v1/calendars/events/list?${params}`, {
+    const res = await outsideFetch(LUMA, `https://public-api.luma.com/v1/calendars/events/list?${params}`, {
       headers: { "x-luma-api-key": key, accept: "application/json" },
       next: { revalidate: 3600 },
     });
