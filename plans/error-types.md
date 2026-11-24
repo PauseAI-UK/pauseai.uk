@@ -28,7 +28,7 @@ makes sense: don't do it again.
 | PR 1: the bugs, the general rules, error pages, saving  | 1 and 2    | **DONE** in #462   |
 | PR 2: the server side                                   | 3 and 4    | **DONE** in #464   |
 | PR 3: stored errors                                     | 5          | **DONE** in #467   |
-| PR 4: visitors' forms                                   | part of 6  | **DONE** in #PRNUM   |
+| PR 4: visitors' forms                                   | part of 6  | **DONE** in #471   |
 | PR 5: staff forms                                       | 6 and 7    | **TO DO**          |
 
 Of the problems below, 1 to 10 and 13 are DONE, but for what's noted under
@@ -278,9 +278,9 @@ or "is it worth trying again?" in the same way for two services. Only
 `email.server.ts` works this out (`accountsFault`), and only for Gmail and
 Postmark. Only Parliament's code retries.
 
-### 11. Forms are told about failure in many different ways: DONE in #PRNUM for visitors' forms
+### 11. Forms are told about failure in many different ways: DONE in #471 for visitors' forms
 
-**DONE in #PRNUM** for the first of the three below. **TO DO:** the staff actions, the other two. What follows is the problem as it was found.
+**DONE in #471** for the first of the three below. **TO DO:** the staff actions, the other two. What follows is the problem as it was found.
 
 - Three server functions return the finished English for the visitor, so
   the wording is chosen deep in server code: `turnstile.server.ts`,
@@ -459,7 +459,7 @@ PR.
 - **A problem whose detail is a list.** It replaces the 7 places that join
   a list with commas. The job's page can then show the list as a list.
 
-### E. One way for forms to report failure: DONE in #PRNUM for visitors' forms, TO DO for staff's
+### E. One way for forms to report failure: DONE in #471 for visitors' forms, TO DO for staff's
 
 This fixes problem 11.
 
@@ -739,7 +739,7 @@ for the runs, as they're tidied away. A broadcast that stopped while
 waiting for CiviCRM keeps its `wait_said` for good, so that one needs its
 rows moved first.
 
-## PR 4: visitors' forms: DONE in #PRNUM
+## PR 4: visitors' forms: DONE in #471
 
 The first part of step 6. Don't do it again. What was built:
 
