@@ -7,7 +7,10 @@
 //
 // By default on this checkout's own port (OWN_URL, tests/checkout.mjs). Every
 // response names the checkout it was built from (FIXTURE_CHECKOUT,
-// next.config.ts), so the storyboard can refuse another checkout's server.
+// next.config.ts), so the storyboard can refuse another checkout's server, and
+// the tree, so it can stop its own once the code has changed
+// (scripts/fixture-server.mjs). The tree is taken before the build: a file
+// changed while it builds makes the server out of date.
 // The build gets a fresh database of its own, with the test MPs, for
 // requests that carry no flow's cookie (tests/storyboard/fixtures.ts). Never
 // the real one. `next build` directly, as scripts/serve-main.mjs builds main:
@@ -17,6 +20,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { CHECKOUT_DIR, OUTBOX_DIR, OWN_URL, REQUESTS_DIR, SERVER_DATABASE } from "../tests/checkout.mjs";
 import { fixtureEnv, TEST_MP_EMAIL } from "../lib/server/fixtures/fixture-env.mjs";
+import { workingTree } from "./fixture-server.mjs";
 
 const at = process.argv.indexOf("--port");
 const port = at === -1 ? new URL(OWN_URL).port : process.argv[at + 1];
@@ -25,6 +29,7 @@ const env = {
   ...process.env,
   ...fixtureEnv({ outboxDir: OUTBOX_DIR, origin: `http://localhost:${port}` }),
   FIXTURE_CHECKOUT: CHECKOUT_DIR,
+  FIXTURE_TREE: workingTree(),
 };
 env.NETLIFY_DB_URL = execFileSync("node", ["scripts/fresh-database.mjs", SERVER_DATABASE, "--test-mp", TEST_MP_EMAIL], {
   encoding: "utf8",

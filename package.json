@@ -27,7 +27,7 @@
     "test:browser": "vitest run --project browser",
     "test:changed": "node scripts/test-changed.mjs",
     "test:watch": "vitest",
-    "test:storyboard": "playwright test",
+    "test:storyboard": "node scripts/fixture-server.mjs && playwright test",
     "storyboard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/storyboard.mjs",
     "storyboard:changed": "node scripts/storyboard-changed.mjs",
     "storyboard:determinism": "node scripts/storyboard-determinism.mjs",

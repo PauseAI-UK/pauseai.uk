@@ -486,8 +486,11 @@ whatever main has merged since the last one. Its page shows those flows
 and no others. Each flow keeps these with its frames (`frames.json`):
 
 - `tree`, the tree of the code it ran on, when the build was that tree's:
-  Playwright built it for the run. With a server already up, whose build
-  may be older, a flow records none, and the next review runs it again.
+  Playwright built it for the run, or this checkout's server already up
+  was built from it, as its `X-Fixture-Tree` header says. This checkout's
+  server built from other code is stopped first, for Playwright to build
+  afresh (`scripts/fixture-server.mjs`). With `--server`, a flow records
+  none, and the next review runs it again.
 - `setup`, a hash of the dependencies installed (`node_modules`) and the
   Node running them, which the tree doesn't hold.
 - `opened`, what it opened: each page, action, API route and public file,
@@ -741,7 +744,8 @@ recently. These put frames there:
   tree, or the review would have run it. When the branch merges, main's
   tree is that tree if nothing else merged in between, and its frames of
   those flows are there already. They're kept only if Playwright built the
-  site for that run (no server was already up, and no `--server`) and
+  site for that run, or the server already up was built from that tree, and
+  no `--server`, and
   nothing in the checkout changed while it ran, as only then is the build
   known to be that tree's. A run narrowed by hand (a section, `-g`, one
   viewport) keeps nothing, as the flows it didn't run weren't chosen as

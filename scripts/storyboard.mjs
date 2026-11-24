@@ -65,7 +65,6 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
-  copyFileSync,
   existsSync,
   linkSync,
   openSync,
@@ -82,9 +81,10 @@ import {
 } from "node:fs";
 import { platform, tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { LOCAL_URL, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE } from "../tests/checkout.mjs";
+import { LOCAL_URL, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE, OWN_URL } from "../tests/checkout.mjs";
 import { writeStoryboard } from "../tests/storyboard/report/board.ts";
 import { comparePngs } from "../tests/storyboard/report/frames.ts";
+import { stopStaleServer, workingTree } from "./fixture-server.mjs";
 import { serverEnv } from "./fresh-database.mjs";
 import { checkOutMain, lockMain } from "./main-checkout.mjs";
 import { describeChanged } from "./storyboard-changed.mjs";
@@ -243,23 +243,6 @@ function listFlows(args, cwd = process.cwd(), env = process.env, shots = "1") {
   });
   if (result.status !== 0) throw new Error(`Couldn't list the flows in ${cwd}:\n${result.stderr}`);
   return listedFlows(JSON.parse(result.stdout));
-}
-
-/**
- * The hash of this checkout's tree as it is now, with what's uncommitted
- * and untracked: what a run of the suite here pictures.
- */
-function workingTree() {
-  const dir = mkdtempSync(join(tmpdir(), "pauseai-storyboard-index-"));
-  try {
-    const env = { ...process.env, GIT_INDEX_FILE: join(dir, "index") };
-    // From the checkout's own index, so git reads only the files that have changed.
-    copyFileSync(git("rev-parse", "--path-format=absolute", "--git-path", "index"), env.GIT_INDEX_FILE);
-    execFileSync("git", ["add", "--all"], { env });
-    return execFileSync("git", ["write-tree"], { env, encoding: "utf8" }).trim();
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
 }
 
 /** `fn`, asked once for each set of arguments. */
@@ -976,8 +959,11 @@ if (carried) {
 const carriedMain = carried && !(reached && fromStore) && existsSync(mainFrames) ? readJson(mainFrames) : undefined;
 
 const full = !partial && passThrough.length === 0;
-// Whether the build is known to be of the code as it is: Playwright makes it for this run.
-const builtHere = !options.server && !(await answers(LOCAL_URL));
+// Whether the build is known to be of the code as it is: one already up that was built from it, or one Playwright
+// makes for this run, after this checkout's own built from other code is stopped. Not a server named with
+// --server or LOCAL_URL, nor another checkout's, which tests/storyboard/global-setup.ts refuses.
+const builtHere =
+  !options.server && LOCAL_URL === OWN_URL && (await stopStaleServer({ tree: treeBefore })) !== "foreign";
 if (!builtHere && !nothing)
   console.log(
     `\n▶ Storyboard: a server is already up at ${options.server ?? LOCAL_URL}. Its build may be older than the code, so this run's flows aren't recorded as this code's, and the next review runs them again. Stop it, and the review builds its own.\n`,

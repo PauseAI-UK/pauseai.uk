@@ -19,6 +19,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { LOCAL_URL } from "../tests/checkout.mjs";
+import { stopStaleServer } from "./fixture-server.mjs";
 import { flowKey } from "./storyboard-main.mjs";
 
 /** The space put above the first component: a sliver of a pixel and a few whole ones. */
@@ -82,10 +83,14 @@ async function answers(url) {
   }
 }
 
-/** A server on this checkout's port (scripts/serve-fixture.mjs), once it answers, or undefined if one already did. */
+/**
+ * A server on this checkout's port (scripts/serve-fixture.mjs), once it answers, or undefined if one built from
+ * the code as it is already did. One built from other code is stopped first (scripts/fixture-server.mjs).
+ */
 async function startServer() {
+  await stopStaleServer({ url: LOCAL_URL });
   if (await answers(LOCAL_URL)) {
-    console.log(`On the server already up at ${LOCAL_URL}: stop it first if it's from before your last change.`);
+    console.log(`On the server already up at ${LOCAL_URL}.`);
     return undefined;
   }
   console.log(`Building and serving this checkout at ${LOCAL_URL}…`);

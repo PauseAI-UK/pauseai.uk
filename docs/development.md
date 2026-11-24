@@ -734,7 +734,8 @@ What they need from your machine:
   npm run test:storyboard
   ```
 
-  Stop and start it again after changing code.
+  After a change to the code, the next run stops it, and Playwright builds
+  and serves the code as it is (`scripts/fixture-server.mjs`).
 
   Each of the storyboard's flows gets its own database, copied from a
   template on the test server (`TEST_DATABASE_URL`, or your local
