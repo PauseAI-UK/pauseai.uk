@@ -33,7 +33,7 @@
 // not kept, then runs this branch's. A flow of them that nothing changed
 // since the latest run here reaches is carried from that run, not run again
 // (flowsToRun). With nothing to picture, it runs nothing. A changed file the
-// map can't place pictures every flow, and the review says which file.
+// map can't place pictures no flow, and the review says which file.
 // `--full` runs every flow anyway. Checking that every flow still works is
 // CI's run (`npm run test:storyboard`), not the review's.
 //
@@ -504,14 +504,20 @@ function planLine(chosen, key) {
 
 /** Which flows a review pictures (`reached`, flowsReached's), and why. */
 function planSummary(reached, total) {
+  const plan = flowsSummary(reached, total);
+  if (reached.unknown.length === 0) return plan;
+  return [
+    plan,
+    `  What ${reached.unknown.slice(0, 3).join(", ")} can change isn't known, so it reaches no flow but the spot checks.`,
+    `  Teach scripts/storyboard-reach.mjs what such a file reaches (EVERYTHING, SET_UP, NOTHING, or how it's read),`,
+    `  or add a hit to investments/storyboard-review-speed.md naming the file.`,
+  ].join("\n");
+}
+
+/** Which flows a review pictures, and why: planSummary's first line. */
+function flowsSummary(reached, total) {
   const count = reached.changed.length;
   const files = `the ${count} ${count === 1 ? "file" : "files"} this branch changes from main`;
-  if (reached.unknown.length > 0)
-    return [
-      `Storyboard: every flow, ${total}, as what ${reached.unknown.slice(0, 3).join(", ")} can change isn't known.`,
-      `  Teach scripts/storyboard-reach.mjs what such a file reaches (EVERYTHING, NOTHING, or how it's read),`,
-      `  or add a hit to investments/storyboard-review-speed.md naming the file.`,
-    ].join("\n");
   if (reached.run.size === 0 && reached.changed.length === 0)
     return `Storyboard: none of the ${total} flows: this branch changes nothing from main.`;
   if (reached.run.size === 0) return `Storyboard: none of the ${total} flows: none is reached by ${files}.`;
@@ -842,12 +848,9 @@ const phoneTagged = whenAsked(() => listFlows(["--project=phone"], process.cwd()
 /** The flows the review pictures, when it chooses them (reachedFromMain): its page shows only these. */
 const reached = choosing ? reachedFromMain() : undefined;
 // Flows the change doesn't reach that the review runs anyway, to check the map against main's frames
-// (spotKeys): none when it pictures every flow, or without main's own frames, or when nothing changed but
-// files no flow reads, as docs and unit tests.
-const spot =
-  reached && fromStore && reached.unknown.length === 0 && reached.changed.some((file) => !readByNoFlow(file))
-    ? spotKeys(reached)
-    : [];
+// (spotKeys): none without main's own frames, or when nothing changed but files no flow reads, as docs and
+// unit tests.
+const spot = reached && fromStore && reached.changed.some((file) => !readByNoFlow(file)) ? spotKeys(reached) : [];
 if (options.plan) {
   if (!reached) {
     const all = `every flow, ${suite.size}`;
@@ -1110,8 +1113,8 @@ if (options.changed && existsSync(join(runDir, "storyboard.json"))) {
 if (mainError)
   console.error(`\nStoryboard: main's side failed, so nothing is compared with it. ${mainError.message}\n`);
 
-// Said again at the end, where it's read: every flow ran because a changed file couldn't be placed, or
-// because a flow that would have been carried looked different.
+// Said again at the end, where it's read: a changed file couldn't be placed, so only the spot checks stood
+// for it, or a flow that would have been carried looked different, so every flow ran.
 if (reached?.unknown.length) console.log(`\n${planSummary(reached, suite.size)}\n`);
 if (missed.length > 0) console.log(`\n${missedSummary(missed, reached.changed)}\n`);
 

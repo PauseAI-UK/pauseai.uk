@@ -517,9 +517,19 @@ The review pictures (`scripts/storyboard-reach.mjs`, `flowsReached`):
   uncommitted and untracked ones too;
 - each flow with no record of what it opened: one new on this branch, or
   recorded another way;
-- when one of those files reaches every flow, every desktop flow, and the
-  phone's tagged ones, as CI runs;
-- when the map can't place one of those files, every flow.
+- when one of those files reaches every flow (the proxy, the
+  instrumentation: site code that runs on every page), every desktop flow,
+  and the phone's tagged ones, as CI runs.
+
+The set-up every flow stands on reaches no flow by itself (`SET_UP` in
+`scripts/storyboard-reach.mjs`): the dependencies (`package.json`, the
+lockfile, `.nvmrc`), `tsconfig.json`, the build's and Playwright's
+settings, the database's migrations, schema and seed data, and the
+storyboard's own set-up. A break there breaks every flow alike, which the
+spot checks (below) see; a migration that breaks a query fails the unit
+tests, which run every query on the migrated database; and the code
+changed with it reaches its own flows. Main's CI runs every flow after
+each merge.
 
 What a flow opened is read from whichever run of it is found first:
 main's, the latest run here, or any tree the store keeps (below). So a new
@@ -628,8 +638,8 @@ from it.
 - **A file added or deleted** reaches the flows that reach a file listing
   its folder: the sitemap and `tests/routes.ts` walk `app/`.
 
-**A file the map can't place** runs every flow, and the review says which
-file, at its start and its end: a file at the top of the repo that nothing
+**A file the map can't place** reaches no flow but the spot checks, and
+the review says which file, at its start and its end: a file at the top of the repo that nothing
 imports (a build tool's settings), data that no file names, or a file Next
 serves at an address of its own (`opengraph-image`, `icon`). Teach
 `scripts/storyboard-reach.mjs` what such a file reaches, or log a hit on
