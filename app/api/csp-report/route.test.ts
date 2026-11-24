@@ -41,7 +41,7 @@ describe("POST /api/csp-report", () => {
   let warn: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    warn = vi.spyOn(console, "info").mockImplementation(() => {});
   });
 
   afterEach(() => {

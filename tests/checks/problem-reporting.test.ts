@@ -1,56 +1,69 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { featureLibFolders } from "../../eslint.config.mjs";
+import { isAppServerFile, parse, serverSources } from "./server-code";
 
 // Something going wrong is reported with problem() (lib/server/problems.server.ts),
-// never written to the log by hand. console.error reaches only Netlify's
-// logs, where nobody looks; problem() logs it and keeps it on the run.
-// String(error) drops the error's cause, so a network failure is kept as
-// "fetch failed" and nothing more; problem() and describeError() keep it.
-// This fails on either in the code where jobs and requests run: lib/server,
-// each feature's folder of logic, app/api and netlify/functions, other than
-// problems.server.ts itself. Warnings and information (console.warn, console.log)
-// are for what isn't a problem.
+// which keeps it, never only written to the log, where nobody looks. ESLint
+// keeps console itself out of the site's code (CONSOLE_RULE in
+// eslint.config.mjs), so what's left is note(), the log's one way in, and
+// String(error), which drops the error's cause, so a network failure is kept
+// as "fetch failed" and nothing more; problem() and describeError() keep it.
+// This fails on a note() handed an error, and on String(error), in the code
+// where jobs and requests run (server-code.ts), other than problems.server.ts
+// itself. The exceptions below are the few failures that are only noted, each
+// with why.
 
-const ROOT = join(__dirname, "..", "..");
-const DIRS = ["lib/server", ...featureLibFolders(), "app/api", "netlify/functions"];
 const HELPER = "lib/server/problems.server.ts";
 
 /** Names an error is usually caught as. */
 const ERROR_NAMES = /^(e|err|error|cause|reason)$/;
 
-function codeFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) return codeFiles(path);
-    return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [path] : [];
-  });
+/** The failures that are only noted, as "file  function", with why nobody need be told. */
+const ONLY_NOTED = new Map([
+  [
+    "lib/supporters/email-settings.server.ts  offCalendarNow",
+    "the Luma import's next pass tries again within the hour, and reports it if that fails too",
+  ],
+  ["lib/server/db.server.ts  getPool", "the pool opens another connection, and the next query carries on"],
+]);
+
+/** The name of the function `node` is in, for naming a hit. */
+function enclosingFunction(node: ts.Node): string {
+  for (let up: ts.Node | undefined = node; up; up = up.parent) {
+    if (ts.isFunctionDeclaration(up) && up.name) return up.name.text;
+  }
+  return "(top level)";
 }
 
-/** Every console.error and String(error) in `source`, as "what@line". */
-export function handWrittenReports(source: ts.SourceFile): string[] {
-  const found: string[] = [];
-  const at = (node: ts.Node) => source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+/** Whether `node` is an error by its name, or describeError() of one. */
+function isError(node: ts.Node): boolean {
+  if (ts.isIdentifier(node)) return ERROR_NAMES.test(node.text);
+  return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "describeError";
+}
+
+type Hit = { what: string; line: number; fn: string };
+
+/** Every note() handed an error, and every String(error), in `source`. */
+export function handWrittenReports(source: ts.SourceFile): Hit[] {
+  const found: Hit[] = [];
+  const hit = (node: ts.Node, what: string) =>
+    found.push({
+      what,
+      line: source.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+      fn: enclosingFunction(node),
+    });
   const visit = (node: ts.Node) => {
-    if (
-      ts.isPropertyAccessExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "console" &&
-      node.name.text === "error"
-    ) {
-      found.push(`console.error@${at(node)}`);
-    }
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "String" &&
-      node.arguments.length === 1 &&
-      ts.isIdentifier(node.arguments[0]) &&
-      ERROR_NAMES.test(node.arguments[0].text)
-    ) {
-      found.push(`String(${node.arguments[0].text})@${at(node)}`);
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+      const [first] = node.arguments;
+      if (node.expression.text === "note" && node.arguments.some(isError)) hit(node, "note(error)");
+      if (
+        node.expression.text === "String" &&
+        node.arguments.length === 1 &&
+        ts.isIdentifier(first) &&
+        ERROR_NAMES.test(first.text)
+      ) {
+        hit(node, `String(${first.text})`);
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -58,34 +71,50 @@ export function handWrittenReports(source: ts.SourceFile): string[] {
   return found;
 }
 
-function parse(file: string, text: string): ts.SourceFile {
-  return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-}
-
 // Parsing every server file takes about a second alone, and past the 5s default beside the gate's other checks.
 describe("problem reporting", { timeout: 60_000 }, () => {
-  it("finds console.error and String(error), and lets warnings, information and other strings through", () => {
+  it("finds a note() handed an error and String(error), and lets other notes and strings through", () => {
     const code = `
-      console.error("x", e);
-      console.warn("y");
-      console.log("z");
+      note("Nothing to record");
+      note("y", count);
+      function quiet() { note("It broke", describeError(error)); }
+      note("It broke", e);
       const a = String(error), b = String(err), c = String(reason);
       const d = String(42), f = String(name);
       problem("It broke", error);`;
-    expect(handWrittenReports(parse("a.ts", code))).toEqual([
-      "console.error@2",
-      "String(error)@5",
-      "String(err)@5",
-      "String(reason)@5",
+    expect(handWrittenReports(parse("a.ts", code)).map((h) => `${h.what}@${h.line} in ${h.fn}`)).toEqual([
+      "note(error)@4 in quiet",
+      "note(error)@5 in (top level)",
+      "String(error)@6 in (top level)",
+      "String(err)@6 in (top level)",
+      "String(reason)@6 in (top level)",
     ]);
   });
 
-  it("nothing where jobs and requests run writes an error to the log by hand, or loses its cause", () => {
-    const hits = DIRS.flatMap((dir) => codeFiles(join(ROOT, dir))).flatMap((path) => {
-      const file = relative(ROOT, path);
-      if (file === HELPER) return [];
-      return handWrittenReports(parse(file, readFileSync(path, "utf8"))).map((hit) => `${file}  ${hit}`);
-    });
-    expect(hits, "report it with problem(), or describe it with describeError()").toEqual([]);
+  it("knows the server's files under app/ by their name or their directive", () => {
+    expect(isAppServerFile("app/api/x/route.ts", "")).toBe(true);
+    expect(isAppServerFile("app/(staff)/staff/page.tsx", "")).toBe(true);
+    expect(isAppServerFile("app/(staff)/layout.tsx", "")).toBe(true);
+    expect(isAppServerFile("app/x/mp-letters.server.ts", "")).toBe(true);
+    expect(isAppServerFile("app/x/actions.ts", '"use server";\n')).toBe(true);
+    expect(isAppServerFile("app/x/Form.tsx", '"use client";\n')).toBe(false);
+    expect(isAppServerFile("app/x/draft.client.ts", "")).toBe(false);
+  });
+
+  it("nothing where jobs and requests run only notes an error, or loses its cause", () => {
+    const hits = serverSources()
+      .filter((source) => source.fileName !== HELPER)
+      .flatMap((source) =>
+        handWrittenReports(source).map((hit) =>
+          hit.what === "note(error)" ? `${source.fileName}  ${hit.fn}` : `${source.fileName}  ${hit.what}@${hit.line}`,
+        ),
+      );
+    const unexplained = hits.filter((hit) => !ONLY_NOTED.has(hit));
+    expect(
+      unexplained,
+      "report it with problem(), which keeps it, or describe it with describeError(); note() is for what isn't a failure",
+    ).toEqual([]);
+    // An exception that no longer notes an error is one to delete.
+    expect([...ONLY_NOTED.keys()].filter((key) => !hits.includes(key))).toEqual([]);
   });
 });

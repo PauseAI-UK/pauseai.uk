@@ -55,7 +55,7 @@ export default function HeroMarqueeEffects() {
         cleanups.push(() => window.removeEventListener("resize", update));
       }
 
-      if (document.fonts?.ready) {
+      if (document.fonts) {
         void document.fonts.ready.then(update);
       }
 

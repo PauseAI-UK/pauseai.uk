@@ -91,17 +91,17 @@ describeWithDatabase("oversight's Server Actions", () => {
     expect(await isBlocked("jane@example.com")).toBe(true);
   });
 
-  it("unblockAddress leaves the address blocked, and logs why, if Postmark can't be reached", async () => {
+  it("unblockAddress fails, leaving the address blocked, if Postmark can't be reached", async () => {
     vi.stubEnv("POSTMARK_SERVER_TOKEN", "server-token");
     await saveStaffAccount("jo@pauseai.uk", ["supporters"], "test");
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(
       http.post("https://api.postmarkapp.com/message-streams/*", () => new HttpResponse(null, { status: 500 })),
     );
     await recordProblem({ address: "a@example.org", messageId: null, kind: "hard", reason: "", canReset: true });
-    await unblockAddress(form({ address: "a@example.org", note: "Fixed" }));
+    // Thrown, so the staff member sees it failed, and it's kept as an error.
+    await expect(unblockAddress(form({ address: "a@example.org", note: "Fixed" }))).rejects.toThrow(
+      "Postmark refused to unsuppress the address: 500",
+    );
     expect(await isBlocked("a@example.org")).toBe(true);
-    expect(error).toHaveBeenCalled();
-    error.mockRestore();
   });
 });

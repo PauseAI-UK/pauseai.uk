@@ -3,7 +3,8 @@ import { config } from "@/lib/server/config.server";
 import { randomUUID } from "node:crypto";
 import { saveToOutbox } from "@/lib/server/fixtures/outbox";
 import { outsideFetch } from "./outside-fetch.server";
-import { readJsonIfAny } from "../json.server";
+import { fieldText, readJsonIfAny } from "../json.server";
+import { note } from "../problems.server";
 
 // The only file that talks to Postmark, over its HTTP API through
 // outsideFetch. Not the postmark npm package: it makes its own requests,
@@ -134,7 +135,7 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
   const result = ((await readJsonIfAny(res)) ?? {}) as Record<string, unknown>;
   if (!res.ok || result.ErrorCode !== 0 || typeof result.MessageID !== "string") {
     throw new PostmarkError(
-      `Postmark refused the email: ${res.status} ${result.ErrorCode ?? ""} ${result.Message ?? ""}`.trim(),
+      `Postmark refused the email: ${res.status} ${fieldText(result.ErrorCode)} ${fieldText(result.Message)}`.trim(),
       result.ErrorCode as number | undefined,
       res.status,
     );
@@ -183,7 +184,7 @@ export async function unsuppress(address: string): Promise<void> {
 
 /** Says in the server log what happened to an email. Quiet in unit tests, which send plenty. */
 function log(line: string): void {
-  if (config.nodeEnv !== "test") console.info(line);
+  if (config.nodeEnv !== "test") note(line);
 }
 
 /** A display name that can't break out of the From header's quotes. */

@@ -9,7 +9,7 @@ const VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 beforeEach(() => {
   vi.stubEnv("TURNSTILE_SECRET_KEY", "0x4AAAAAAA-real-looking");
   vi.spyOn(console, "error").mockImplementation(() => {});
-  vi.spyOn(console, "warn").mockImplementation(() => {});
+  vi.spyOn(console, "info").mockImplementation(() => {});
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -67,7 +67,7 @@ describe("checkNotSpam", () => {
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
     expect(await check(undefined)).toEqual({ drop: false });
-    expect(console.warn).toHaveBeenCalledWith("Turnstile keys are not set, so the spam check was skipped");
+    expect(console.info).toHaveBeenCalledWith("Turnstile keys are not set, so the spam check was skipped");
   });
 
   it("fails closed with a site key but no secret, or with a test secret", async () => {
@@ -82,7 +82,7 @@ describe("checkNotSpam", () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
     expect(await check(undefined)).toEqual({ drop: false });
-    expect(console.warn).not.toHaveBeenCalled();
+    expect(console.info).not.toHaveBeenCalled();
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "1x00000000000000000000AA");
     expect(await check(undefined)).toEqual({ drop: false });
     vi.stubEnv("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA");

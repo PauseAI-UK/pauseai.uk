@@ -12,6 +12,7 @@ import {
   exampleNumber,
   exampleNumberHolds,
   exampleOnlyLuma,
+  exampleSaved,
   exampleSettings,
   exampleStopped,
   exampleUnsubscribed,
@@ -21,10 +22,10 @@ import SettingsStart from "./SettingsStart";
 
 const fields = (form: FormData) => [...form.entries()];
 
-/** Actions that each give `next`, and record their forms. */
+/** Actions that each give `next`, a save with the boxes as its form has them, and record their forms. */
 function actions(next: SettingsView | null = exampleSettings) {
   return {
-    save: vi.fn<SettingsActions["save"]>(async () => next),
+    save: vi.fn<SettingsActions["save"]>(async (form) => next && exampleSaved(next, form)),
     lift: vi.fn<SettingsActions["lift"]>(async () => next),
     stopAll: vi.fn<SettingsActions["stopAll"]>(async () => next),
     unsubscribe: vi.fn<SettingsActions["unsubscribe"]>(async () => ({ done: true, view: next })),
@@ -100,11 +101,29 @@ describe("EmailSettings", () => {
     await expect.element(page.getByText(copy.global.body, { exact: false })).toBeVisible();
   });
 
+  it("says a change wasn't saved when saving it fails, puts its box back, and saves the next one", async () => {
+    const done = await show(exampleSettings);
+    // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
+    done.save.mockRejectedValueOnce(
+      Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1" }),
+    );
+    const box = card("volunteering").getByRole("checkbox", { name: copy.ways.email });
+    await box.click();
+    await expect.element(card("volunteering").getByRole("status")).toHaveTextContent(copy.settings.failed);
+    // As it's saved, not as it was clicked, so trying again is one click.
+    await expect.element(box).not.toBeChecked();
+    await box.click();
+    await expect.element(card("volunteering").getByRole("status")).toHaveTextContent(copy.settings.saved);
+    await expect.element(box).toBeChecked();
+  });
+
   it("saves each box as it's changed, with whose page it is, and says so under its topic", async () => {
     const done = await show(exampleSettings);
     // Slow to answer, so it says it's saving meanwhile.
     let answer = () => {};
-    done.save.mockImplementationOnce(() => new Promise((resolve) => (answer = () => resolve(exampleSettings))));
+    done.save.mockImplementationOnce(
+      (form) => new Promise((resolve) => (answer = () => resolve(exampleSaved(exampleSettings, form)))),
+    );
     await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
     await expect.element(card("volunteering").getByRole("status")).toHaveTextContent(copy.settings.saving);
     answer();
@@ -128,7 +147,9 @@ describe("EmailSettings", () => {
     await expect.element(card("volunteering").getByText(copy.settings.saved)).not.toBeInTheDocument();
     // Saved only once every save is: a change made while another saves says Saving till both are.
     let first = () => {};
-    done.save.mockImplementationOnce(() => new Promise((resolve) => (first = () => resolve(exampleSettings))));
+    done.save.mockImplementationOnce(
+      (form) => new Promise((resolve) => (first = () => resolve(exampleSaved(exampleSettings, form)))),
+    );
     await card("volunteering").getByRole("checkbox", { name: copy.ways.text }).click();
     await card("newsletter").getByRole("checkbox", { name: copy.ways.text }).click();
     await expect.element(card("newsletter").getByRole("status")).toHaveTextContent(copy.settings.saving);
@@ -382,5 +403,23 @@ describe("SettingsStart", () => {
     await expect.element(page.getByRole("alert")).toHaveTextContent("Please wait for the spam check");
     await render(<SettingsStart ask={ask} days={7} turnstileSiteKey="site" />);
     await expect.element(page.getByRole("button", { name: copy.start.button }).last()).toBeDisabled();
+  });
+});
+
+describe("exampleSaved, the tests' and the gallery's save", () => {
+  it("answers with each box as the form has it, and Luma's only where the page drew it", () => {
+    const form = new FormData();
+    form.append("choice", "volunteering:email");
+    // No Luma box on the page: they stay on our calendar, though it isn't ticked.
+    const saved = exampleSaved(exampleSettings, form);
+    expect(saved.onLuma).toBe(true);
+    const sends = (topic: string) => saved.answers.filter((a) => a.topic === topic).map((a) => `${a.way} ${a.send}`);
+    expect(sends("newsletter")).toEqual(["email no", "text no"]);
+    expect(sends("volunteering")).toEqual(["email yes", "text no", "call no"]);
+    // With the box drawn and unticked, they come off it.
+    form.append("choice", LUMA_OFFERED);
+    expect(exampleSaved(exampleSettings, form).onLuma).toBe(false);
+    form.append("choice", LUMA_CHOICE);
+    expect(exampleSaved(exampleSettings, form).onLuma).toBe(true);
   });
 });

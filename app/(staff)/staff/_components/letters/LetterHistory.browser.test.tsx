@@ -132,7 +132,9 @@ describe("LetterHistory", () => {
         notice("2026-10-10T10:00:00Z", "bounced"),
       ],
     });
-    expect(told.map((e) => [e.status, e.under?.map((u) => `${u.status} ${u.details.notice ?? ""}`.trim())])).toEqual([
+    expect(
+      told.map((e) => [e.status, e.under?.map((u) => `${u.status} ${String(u.details.notice ?? "")}`.trim())]),
+    ).toEqual([
       ["replied", ["notice resent", "relayed", "notice bounced", "relay_bounced"]],
       ["sent", ["notice resent"]],
       ["bounced", ["notice bounced"]],

@@ -67,6 +67,17 @@ export function problem(what: string, error?: unknown, { told = false } = {}): v
   });
 }
 
+/**
+ * Writes to the log something that isn't a problem, for whoever reads
+ * Netlify's logs: a webhook with nothing to record, a submission the spam
+ * check turned away. The one way to (CONSOLE_RULE in eslint.config.mjs). A
+ * failure is reported with problem(), which keeps it; the few that are only
+ * noted say why (tests/checks/problem-reporting.test.ts).
+ */
+export function note(what: string, ...more: unknown[]): void {
+  console.info(what, ...more);
+}
+
 /** How many causes deep to go: enough for a fetch's cause and its cause. */
 const CAUSES = 4;
 

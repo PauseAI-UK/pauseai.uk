@@ -43,7 +43,7 @@ describeWithDatabase("the database", () => {
   });
 
   it("warns the dev server, once, when the database is behind on migrations", async () => {
-    const error = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(console, "info").mockImplementation(() => {});
     try {
       vi.stubEnv("NODE_ENV", "development");
       // The test database has no ledger, so it's behind.
@@ -88,7 +88,7 @@ describeWithDatabase("the database", () => {
   });
 
   it("warns of a connection dropped while idle, rather than crashing", async () => {
-    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warning = vi.spyOn(console, "info").mockImplementation(() => {});
     try {
       await closeDb();
       terminate(await pid());

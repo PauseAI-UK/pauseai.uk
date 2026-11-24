@@ -15,6 +15,7 @@ import NotFoundMain from "@/components/layout/NotFoundMain";
 import SiteFrame from "@/components/layout/SiteFrame";
 import { groups } from "@/lib/content/groups";
 import type { Group } from "../_components/types";
+import { ErrorMainExample } from "./layout.client";
 import styles from "../_components/Gallery.module.css";
 
 // A group with its own logo, and one without.
@@ -111,6 +112,16 @@ export const layout: Group = {
       name: "NotFoundMain",
       file: "components/layout/NotFoundMain.tsx",
       variants: [{ label: "A 404, between the site's header and footer", render: () => <NotFoundMain as="div" /> }],
+    },
+    {
+      name: "ErrorMain",
+      file: "components/layout/ErrorMain.tsx",
+      variants: [
+        {
+          label: "In place of a page that threw, between the site's header and footer",
+          render: () => <ErrorMainExample />,
+        },
+      ],
     },
     {
       name: "Footer",

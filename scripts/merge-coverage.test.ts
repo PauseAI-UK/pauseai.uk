@@ -160,6 +160,33 @@ describe("mergeShards", () => {
     expect(map.fileCoverageFor("/repo/app/Form.tsx").s).toEqual({ 0: 1, 1: 1 });
   });
 
+  it("covers a statement mapped apart only where its block didn't run, by the block's count where it did", () => {
+    // if (config.fixtures) {
+    //   const { flowDatabase } = await import("../flow-database.server");
+    // A shard that ran the block maps the line as one statement; one that loaded
+    // the file but never took the `if` maps the import() inside it as another.
+    const ran = shard({
+      statements: [
+        [[20, 2, 25, Infinity], 100],
+        [[23, 29, 23, Infinity], 27],
+      ],
+    });
+    const notTaken = shard({
+      statements: [
+        [[20, 2, 25, Infinity], 50],
+        [[23, 29, 23, Infinity], 0],
+        [[23, 35, 23, Infinity], 0],
+      ],
+    });
+    expect(shortfalls(mergeShards([ran, notTaken]))).toEqual([]);
+    expect(shortfalls(mergeShards([notTaken, ran]))).toEqual([]);
+    // With no shard that ran the block, it's uncovered.
+    expect(shortfalls(mergeShards([notTaken, notTaken]))).toEqual([
+      "/repo/app/Form.tsx: statements 33.33%",
+      "/repo/app/Form.tsx: lines 50%",
+    ]);
+  });
+
   it("adds up the shards' counts of a file each maps alike", () => {
     const map = mergeShards([shard({ statements: [[[1, 0, 1, 10], 1]] }), shard({ statements: [[[1, 0, 1, 10], 2]] })]);
     expect(map.fileCoverageFor("/repo/app/Form.tsx").s).toEqual({ 0: 3 });

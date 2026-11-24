@@ -96,6 +96,24 @@ describe("Notes", () => {
     await expect.element(first.getByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("says so, and stays open with what was written, when saving an edit fails", async () => {
+    const { edit } = await renderNotes();
+    // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
+    edit.mockRejectedValue(
+      Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1" }),
+    );
+    const first = notes().nth(0);
+    await first.getByRole("button", { name: copy.edit }).click();
+    await first.getByRole("button", { name: copy.save }).click();
+    await expect.element(first.getByRole("alert")).toHaveTextContent(copy.notSaved);
+    await expect.element(first.getByRole("textbox", { name: copy.note })).toBeVisible();
+    // The next try starts afresh.
+    edit.mockResolvedValue(undefined);
+    await first.getByRole("button", { name: copy.save }).click();
+    await expect.element(first.getByRole("alert")).not.toBeInTheDocument();
+    await expect.element(first.getByRole("textbox", { name: copy.note })).not.toBeInTheDocument();
+  });
+
   it("lets an admin delete any note still young enough, but edit none of them", async () => {
     await renderNotes(exampleNoteAdmin);
     for (const i of [0, 1]) {

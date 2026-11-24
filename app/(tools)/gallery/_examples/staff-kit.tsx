@@ -6,6 +6,7 @@
 import { staffNavGallery } from "@/app/(staff)/staff/_components/shell/StaffNav.gallery";
 import { navIconGallery } from "@/app/(staff)/staff/_components/shell/NavIcon.gallery";
 import { siteUpdatedGallery } from "@/app/(staff)/staff/_components/shell/SiteUpdated.gallery";
+import { staffErrorGallery } from "@/app/(staff)/staff/_components/shell/StaffError.gallery";
 import type { Group } from "../_components/types";
 import { staffPageGallery } from "@/app/(staff)/staff/_components/ui/StaffPage.gallery";
 import { gridGallery } from "@/app/(staff)/staff/_components/ui/Grid.gallery";
@@ -78,6 +79,7 @@ export const staffKit: Group = {
     ...navFoldGallery,
     ...navIconGallery,
     ...siteUpdatedGallery,
+    ...staffErrorGallery,
     ...withheldGallery,
     ...choiceSearchGallery,
     listTable,

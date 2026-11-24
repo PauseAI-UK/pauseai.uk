@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { outsideFetch } from "./outside-fetch.server";
+import { OUTSIDE_TIMEOUT_MS, outsideFetch } from "./outside-fetch.server";
 
 const CALENDAR = "https://public-api.luma.com/v1/calendars/events/list?after=2026-01-01T00:00:00.000Z";
 
@@ -23,6 +23,26 @@ describe("outsideFetch", () => {
 
     expect(await res.json()).toEqual({ live: true });
     expect(auth).toBe("x");
+  });
+
+  it("gives up on a service that doesn't answer in time, so a run gets to record its failure", async () => {
+    server.use(http.get("https://public-api.luma.com/v1/calendars/events/list", () => new Promise<never>(() => {})));
+    const short = AbortSignal.timeout(20);
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(short);
+
+    await expect(outsideFetch(CALENDAR)).rejects.toMatchObject({ name: "TimeoutError" });
+    expect(timeout).toHaveBeenCalledWith(OUTSIDE_TIMEOUT_MS);
+    timeout.mockRestore();
+  });
+
+  it("leaves a caller's own time limit as it is", async () => {
+    server.use(http.get("https://public-api.luma.com/v1/calendars/events/list", () => HttpResponse.json({})));
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const own = new AbortController().signal;
+
+    expect((await outsideFetch(CALENDAR, { signal: own })).ok).toBe(true);
+    expect(timeout).not.toHaveBeenCalled();
+    timeout.mockRestore();
   });
 
   describe("with DATA_FIXTURES=1", () => {

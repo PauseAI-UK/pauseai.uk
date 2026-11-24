@@ -393,7 +393,10 @@ holds it.
 - **A caught error is rethrown or reported** with `problem()`
   (`lib/server/problems.server.ts`), in our words, with the error. Every
   way out of a catch reports first: an early `break`, `continue` or
-  `return` for one kind of error loses it however often it happens.
+  `return` for one kind of error loses it however often it happens. A
+  Server Action that catches an error so that its page carries on keeps it
+  with `keepCaught()` (`lib/oversight/errors-seen.server.ts`), as Next
+  would have had it been thrown.
   - During a job's run (`asRun()` in `lib/server/import-runs.server.ts`),
     the problem is kept on the run, shown on the job's page and emailed to
     staff once, until a run goes right.
@@ -401,14 +404,51 @@ holds it.
     thrown one is: on the Errors page, and emailed to staff when new
     (`lib/oversight/errors-seen.server.ts`; `docs/domain-concepts.md`,
     "Errors"). So a thrown error needs no catch to be noticed.
-  - Nothing in the server's code writes an error to the log by hand:
-    `console.error` reaches only Netlify's logs, and `String(error)` drops
-    the cause. `describeError()` keeps it.
+  - Nothing in the site's code uses `console`, which reaches only
+    Netlify's logs (`CONSOLE_RULE` in `eslint.config.mjs`). What isn't a
+    failure is written there with `note()`, beside `problem()`. A failure
+    that's only noted, because something else will report it, is listed
+    with why in `tests/checks/problem-reporting.test.ts`.
+  - An error is said in words with `describeError()`, which keeps its
+    cause: `String(error)` and `${error}` drop it.
   - `tests/checks/caught-errors.test.ts` (which names its few catches that
     answer a question rather than carry on past a failure) and
-    `problem-reporting.test.ts` hold these.
-- **A promise nobody waits for** says so with `void`
-  (`@typescript-eslint/no-floating-promises`).
+    `problem-reporting.test.ts` hold these, in the code where jobs and
+    requests run (`tests/checks/server-code.ts`).
+- **Every layout has an error page beside it**, an `error.tsx`, so a page
+  that throws, or whose Server Action does, keeps the header and footer, or
+  the staff navigation, and offers to load again: `ErrorMain`
+  (`components/layout/`) on the public pages, `StaffError` on the signed-in
+  ones. Only an error in the root layout itself reaches
+  `app/global-error.tsx`, which replaces the whole document
+  (`tests/checks/error-pages.test.ts`).
+- **A save from an event goes through `useSave`** (`components/ui/`): a
+  box that saves as it's ticked, a button that sends, anything that calls
+  the server outside a form's own action. It says when the save has
+  failed, for the component to say so where the person is looking, and
+  tells the site of what the browser threw. Without it the failure
+  replaces the page, or shows nothing. What happens to what was changed
+  depends on what it is:
+  - **A choice that saves as it's made**, a tick box or a switch, shows
+    the choice at once and goes back if its save fails, so it always ends
+    up showing what's saved, and trying again is one click. It uses
+    `useSavedChoice`, beside `useSave`, which does that.
+  - **Something typed and then sent**, a note or a reply, keeps what was
+    typed and stays open, saying it wasn't sent. ESLint refuses an async function
+    written in place as an event's handler or handed to a transition
+    (`SAVE_RULES` in `eslint.config.mjs`, with the components still to move).
+- **An outside service has a time limit.** `outsideFetch` gives up on one
+  that hasn't answered in `OUTSIDE_TIMEOUT_MS`, unless the call sets its
+  own, so a run whose service hangs gets to record its failure before
+  Netlify stops the function.
+- **ESLint holds the rest**, with the types (`TYPED_RULES` and
+  `TYPED_SITE_RULES` in `eslint.config.mjs`):
+  - A promise nobody waits for says so with `void`, and one isn't handed
+    to something that takes none, such as a timer.
+  - What's thrown is an `Error`, and one thrown in place of another names
+    it as its `cause`.
+  - What a `.catch()` is handed is `unknown` until it's checked.
+  - A `switch` over a set of codes handles every one, or has a `default`.
 
 ### Server code
 

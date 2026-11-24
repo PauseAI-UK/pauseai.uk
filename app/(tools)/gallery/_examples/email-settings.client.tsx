@@ -1,6 +1,7 @@
 "use client";
 
 import EmailSettings from "@/app/(site)/contact-preferences/_components/EmailSettings";
+import { exampleSaved } from "@/app/(site)/contact-preferences/_components/EmailSettings.examples";
 import SettingsStart from "@/app/(site)/contact-preferences/_components/SettingsStart";
 import type { SettingsView } from "@/lib/supporters/settings-view";
 import type { Topic } from "@/lib/supporters/contact-permissions";
@@ -26,7 +27,8 @@ export function SettingsStartExample() {
 /**
  * The page for `view`, or its link run out with none; from an email's
  * unsubscribe link under `unsubscribe`; a number's link, `number`. Each
- * action logs, and gives the page as it was.
+ * action logs. A save gives the page with its boxes as they were sent, and
+ * the others the page as it was.
  */
 export function EmailSettingsExample({
   view,
@@ -50,7 +52,10 @@ export function EmailSettingsExample({
             unsubscribe={unsubscribe}
             initial={view}
             actions={{
-              save: same("save"),
+              save: async (form) => {
+                log("save")(Object.fromEntries(form.entries()));
+                return view && exampleSaved(view, form);
+              },
               lift: same("lift"),
               stopAll: same("stopAll"),
               unsubscribe: async (form) => ({ done: true, view: await same("unsubscribe")(form) }),

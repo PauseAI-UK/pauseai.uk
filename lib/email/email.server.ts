@@ -331,7 +331,7 @@ export async function sendWith(
       : { sent: false, reason: "failed", mayHaveGone: true, detail };
   }
   // It went: a failure to log it is reported, never thrown, so no caller takes it for one that didn't.
-  await log("sent", id, threadId).catch((error) =>
+  await log("sent", id, threadId).catch((error: unknown) =>
     problem(emailCopy.problems.sentUnrecorded(`An email of type '${purpose}' to ${address}`), error),
   );
   return { sent: true, id, messageId: rfcId, threadId, backend };

@@ -12,7 +12,7 @@ import { sendBulkNotice } from "@/lib/supporters/email-settings.server";
 import { addFormEntry } from "@/lib/supporters/form-entries.server";
 import { marchEventId } from "@/lib/events/march.server";
 import { addLumaGuest } from "@/lib/server/outside-services/luma-guests.server";
-import { problem } from "@/lib/server/problems.server";
+import { note, problem } from "@/lib/server/problems.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
 import { serverCopy } from "@/lib/server/copy";
 
@@ -32,7 +32,7 @@ async function register(input: unknown, request: Request): Promise<MarchRegister
   // A bot is told it worked, so it has no reason to try again differently.
   const honeypot = raw[HONEYPOT_FIELD];
   if (typeof honeypot === "string" && honeypot.trim() !== "") {
-    console.warn("[march] Honeypot filled in; ignoring the sign-up.");
+    note("[march] Honeypot filled in; ignoring the sign-up.");
     return { ok: true };
   }
 
@@ -46,7 +46,7 @@ async function register(input: unknown, request: Request): Promise<MarchRegister
   // can't be kept, Luma's answer still stands.
   await addFormEntry("march-2026-11", registration, { eventId: event, status: result.status }).then(
     async (id) => {
-      console.log(`[march] Kept sign-up ${id}: Luma ${result.status}.`);
+      note(`[march] Kept sign-up ${id}: Luma ${result.status}.`);
       await sendBulkNotice(id, emailSettingsCopy.bulkNotice.where["march-2026-11"], request);
     },
     (error: unknown) => problem(serverCopy.problems.logs.signUpNotKept, error),

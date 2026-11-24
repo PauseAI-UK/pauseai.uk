@@ -1,7 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import IconButton from "@/components/ui/IconButton";
+import { useSave } from "@/components/ui/useSave";
 import type { BroadcastReaction, ReactionResult } from "@/lib/broadcasts/answers.server";
 import { REACTIONS } from "@/lib/broadcasts/broadcasts";
 import { staffMemberText } from "@/lib/staff-member";
@@ -61,18 +62,20 @@ export default function ReplyReactions({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const [failed, setFailed] = useState(false);
+  // Whether WhatsApp refused the last one pressed; `broke`, whether sending it threw.
+  const [refused, setRefused] = useState(false);
+  const [send, pending, broke] = useSave(react!, {
+    done: (result) => {
+      setRefused(!result.sent);
+      if (result.sent) setOpen(false);
+    },
+  });
+  const failed = refused || broke;
   const standing = standingOf(reactions);
   // Ours pressed again takes it away; another puts it in place of ours.
   const press = (pressed: string) => {
-    const emoji = pressed === standing?.emoji ? "" : pressed;
-    setFailed(false);
-    startTransition(async () => {
-      const result = await react!(replyId, emoji);
-      setFailed(!result.sent);
-      if (result.sent) setOpen(false);
-    });
+    setRefused(false);
+    send(replyId, pressed === standing?.emoji ? "" : pressed);
   };
   // Opened, the emoji go to the smiley's right if they fit in the conversation, or else float under it.
   const tray = useRef<HTMLSpanElement>(null);

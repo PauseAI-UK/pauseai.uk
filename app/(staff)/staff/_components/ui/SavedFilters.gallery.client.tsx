@@ -54,7 +54,7 @@ export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES
               values,
               path: "/staff/politicians",
               name: "Party: Labour",
-              summary: (params) => [`Party ${params.party}`],
+              summary: (params) => [`Party ${[params.party].flat().join(", ")}`],
               actions: { save: log("save"), update: log("update"), rename: log("rename"), remove: log("remove") },
             })}
           />

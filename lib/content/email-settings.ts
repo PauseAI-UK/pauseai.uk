@@ -133,6 +133,8 @@ export const emailSettingsCopy = {
     // Beside a topic's boxes, as a change of them is saved; as the staff pages' drafts say it.
     saving: "Saving…",
     saved: "Saved",
+    // In their place, when saving a change failed: the request never arrived, or the server threw.
+    failed: "Not saved. Try again.",
   },
   topics: topicNames,
   // The Luma card's one box, ticked while they're on our Luma calendar.

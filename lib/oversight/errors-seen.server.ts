@@ -229,6 +229,14 @@ export const keepRequestError: Instrumentation.onRequestError = async (thrown, _
 };
 
 /**
+ * Keeps an error a Server Action caught so that its page carries on, as
+ * Next would have had it been thrown: `route` is the page it's shown on.
+ */
+export async function keepCaught(thrown: unknown, route: string): Promise<void> {
+  await keep({ kind: "action", route, ...thrownParts(thrown), browser: null });
+}
+
+/**
  * Keeps a problem reported outside a run, by its sentence, with the error's
  * words if it came with one. Started at once, and where there's a request,
  * the platform waits for it after the response has gone.

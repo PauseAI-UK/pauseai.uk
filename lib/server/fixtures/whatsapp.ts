@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { config } from "../config.server";
 import { GRAPH_VERSION } from "../outside-services/graph-api";
+import { note } from "../problems.server";
 import { saveNoteToOutbox } from "./outbox";
 import { textNote } from "./whatsapp-outbox";
 
@@ -33,7 +34,7 @@ const idOf = (text: string): string => createHash("sha256").update(text).digest(
 /** Writes `words` to the outbox, as Postmark's fake does an email: OUTBOX_DIR, or tmp/outbox in the dev server. */
 function toOutbox(words: string): void {
   const outbox = config.outboxDir ?? (config.nodeEnv === "development" ? "tmp/outbox" : undefined);
-  if (outbox) console.info(`WhatsApp's fake wrote ${saveNoteToOutbox(outbox, words)}`);
+  if (outbox) note(`WhatsApp's fake wrote ${saveNoteToOutbox(outbox, words)}`);
 }
 
 type Send = {

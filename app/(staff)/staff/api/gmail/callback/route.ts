@@ -6,18 +6,17 @@ import {
   GMAIL_STATE_COOKIE,
   type GmailConnectOutcome,
 } from "@/lib/email/gmail-connect";
+import { emailCopy } from "@/lib/email/copy";
 import { connectGmail } from "@/lib/email/gmail-accounts.server";
+import { parseJsonIfAny } from "@/lib/server/json.server";
+import { problem } from "@/lib/server/problems.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { siteUrl } from "@/lib/site-url.server";
 
 /** The state and the page to go back to, kept by the connect route, if the cookie holds them. */
 function started(cookie: string | undefined): { state: string; back: string } | undefined {
-  try {
-    const value = JSON.parse(cookie ?? "");
-    return typeof value.state === "string" ? { state: value.state, back: backPath(value.back) } : undefined;
-  } catch {
-    return undefined;
-  }
+  const value = parseJsonIfAny(cookie ?? "") as { state?: unknown; back?: string } | null | undefined;
+  return typeof value?.state === "string" ? { state: value.state, back: backPath(value.back) } : undefined;
 }
 
 /** Connects `email`'s Gmail with `code`, saying how it went. */
@@ -26,7 +25,7 @@ async function connect(email: string, code: string, request: NextRequest): Promi
     const result = await connectGmail(email, code, siteUrl(GMAIL_CALLBACK_PATH, request).href);
     return result.connected ? "connected" : result.reason;
   } catch (error) {
-    console.error(`Couldn't connect ${email}'s Gmail:`, error);
+    problem(emailCopy.problems.gmailNotConnected, error);
     return "failed";
   }
 }

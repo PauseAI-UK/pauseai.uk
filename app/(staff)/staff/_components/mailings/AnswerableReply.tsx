@@ -1,9 +1,10 @@
 "use client";
 
-import { useId, useState, useTransition, type KeyboardEvent, type ReactNode } from "react";
+import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { JSONContent } from "@tiptap/react";
 import { Button } from "@/components/ui/Button";
 import { ErrorText } from "@/components/ui/Text";
+import { useSave } from "@/components/ui/useSave";
 import { answerSubject } from "@/lib/email-parsing/subjects";
 import { hasWords } from "@/lib/letters/format";
 import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
@@ -85,7 +86,14 @@ export default function AnswerableReply({
   const [pressed, setPressed] = useState(false);
   const [draft, setDraft] = useState(() => newDraft(first.doc));
   const [failed, setFailed] = useState<Exclude<AnswerResult, { sent: true }>["reason"]>();
-  const [sending, startSending] = useTransition();
+  // `broke`: sending threw, which reads as the reply having failed to send.
+  const [send, sending, broke] = useSave(answer, {
+    done: (result) => {
+      if (result.sent) fold();
+      else setFailed(result.reason);
+    },
+  });
+  const notSent = broke ? "failed" : failed;
   const label = useId();
   // Nothing written: no words, or only what it started with.
   const blank = !hasWords(draft.doc) || draft.doc === first.doc;
@@ -98,11 +106,7 @@ export default function AnswerableReply({
 
   function sendIt() {
     if (blank || sending) return;
-    startSending(async () => {
-      const result = await answer(replyId, draft.id, draft.doc);
-      if (result.sent) fold();
-      else setFailed(result.reason);
-    });
+    send(replyId, draft.id, draft.doc);
   }
 
   const write = () => {
@@ -140,9 +144,9 @@ export default function AnswerableReply({
           {copy.discard}
         </Button>
       </div>
-      {failed && (
+      {notSent && (
         <p className={styles.problem} role="alert">
-          <ErrorText>{copy.notSent[failed]}</ErrorText>
+          <ErrorText>{copy.notSent[notSent]}</ErrorText>
         </p>
       )}
     </div>

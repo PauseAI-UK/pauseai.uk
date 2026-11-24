@@ -17,7 +17,7 @@ Pending states are built three ways (`useFormStatus`, `useOptimistic` as a savin
 ## Fix
 
 - One result type, `{ ok: true, … } | { ok: false, reason }`, with `reason` a key into the feature's copy.
-- One `useStaffAction` hook over `useActionState`, which gives the pending flag and the message.
+- One hook, which gives the pending flag and the message: `useSave` (`components/ui/useSave.ts`) for a save from an event, which says when one has thrown, and one over `useActionState` for a form.
 - A check in `tests/checks/` that every staff action returns the result type.
 
 Convert one form at a time, the silent ones first.

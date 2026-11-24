@@ -12,6 +12,12 @@
   cursor: pointer;
 }
 
+/* A click that didn't save: ringed as a field with something wrong in it is. */
+.box[aria-invalid="true"] {
+  outline: 2px solid var(--danger);
+  outline-offset: var(--focus-offset);
+}
+
 .box:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);

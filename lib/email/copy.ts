@@ -144,6 +144,10 @@ export const emailCopy = {
     // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission. No job
     // reaches it, so it's always kept as an error.
     tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
+    // A staff member pressed Connect Gmail and agreed at Google, but the last step failed: Google refused, or the
+    // site couldn't save the connection. Their own page tells them to try again; this is for whoever reads the
+    // errors. Not in a job, so it's always kept as an error.
+    gmailNotConnected: "Connecting a staff member's Gmail failed at the last step",
     // An email didn't go, as Gmail or Postmark errored.
     sendFailed: (purpose: string) => `An email of type '${purpose}' couldn't be sent`,
     // Something should have emailed staff, but NOTIFICATION_INBOX isn't set, so nobody heard.

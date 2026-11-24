@@ -127,14 +127,14 @@ describe("tokens", () => {
 
   it("says a refresh token was revoked when Google calls it an invalid grant", async () => {
     server.use(http.post(TOKEN, () => HttpResponse.json({ error: "invalid_grant" }, { status: 400 })));
-    const error = await gmailAccessToken("r").catch((e: GmailError) => e);
+    const error = await gmailAccessToken("r").catch((e: unknown) => e);
     expect(error).toMatchObject({
       revoked: true,
       status: 400,
       message: "Google refused the token request: 400 invalid_grant",
     });
     server.use(http.post(TOKEN, () => new HttpResponse("down", { status: 503 })));
-    expect(await gmailAccessToken("r").catch((e: GmailError) => e)).toMatchObject({ revoked: false, status: 503 });
+    expect(await gmailAccessToken("r").catch((e: unknown) => e)).toMatchObject({ revoked: false, status: 503 });
   });
 
   it("revokes a token, minding only an answer that isn't Google's no-such-token", async () => {

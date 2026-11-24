@@ -1,6 +1,6 @@
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
-import { featureLayers, importRules } from "../../eslint.config.mjs";
+import { featureLayers, importRules, TYPED_RULES_OFF } from "../../eslint.config.mjs";
 
 // The rule that holds each staff feature to the features it uses (FEATURES
 // in eslint.config.mjs), on made-up files of two features: events, which
@@ -13,7 +13,7 @@ const eslint = new ESLint({
     {
       files: ["**/*.{ts,tsx}"],
       languageOptions: { parserOptions: { projectService: false } },
-      rules: { "@typescript-eslint/no-floating-promises": "off" },
+      rules: TYPED_RULES_OFF,
     },
   ],
 });

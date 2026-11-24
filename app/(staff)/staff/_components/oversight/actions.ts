@@ -14,18 +14,15 @@ import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 /**
  * Unblocks an address, on either page of blocked addresses or a politician's.
  * Any address but a politician's needs `supporters`, as its page does. If
- * the provider can't be reached, it's logged and the address stays blocked.
+ * the provider can't be reached, the address stays blocked and the error is
+ * thrown on, for the staff member to see and the errors page to keep.
  */
 export async function unblockAddress(form: FormData): Promise<void> {
   const staff = await requireStaff();
   const parsed = unblockFrom(form);
   if (!parsed) return;
   if (!canSeeSupporters(staff) && !(await isPoliticianAddress(parsed.address))) return;
-  try {
-    await unblock(parsed.address, staff.email, parsed.note);
-  } catch (error) {
-    console.error(error);
-  }
+  await unblock(parsed.address, staff.email, parsed.note);
   // The addresses page, the politicians list and their pages all show it.
   revalidatePath("/staff", "layout");
 }

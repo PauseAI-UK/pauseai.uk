@@ -3,13 +3,14 @@ import { config } from "@/lib/server/config.server";
 import { createSession } from "@/lib/accounts/auth.server";
 import { afterLogin, NEXT_PARAM, sessionCookie } from "@/lib/accounts/session";
 import { siteUrl } from "@/lib/site-url.server";
+import { readFormIfAny } from "@/lib/server/json.server";
 
 // The dev login (DevLogin): in a fixture build, the login page's second
 // form posts an address and gets a session for it at once, with no email
 // and no link, and goes on to the page it was given. Anywhere else it doesn't exist: a 404, whatever is posted.
 export async function POST(request: NextRequest) {
   if (!config.fixtures) return new NextResponse(null, { status: 404 });
-  const form = await request.formData().catch(() => undefined);
+  const form = await readFormIfAny(request);
   const email = form?.get("email");
   const next = afterLogin(form?.get(NEXT_PARAM));
   if (typeof email !== "string" || !/^[^@\s]+@pauseai\.uk$/i.test(email.trim())) {

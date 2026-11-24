@@ -54,14 +54,25 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
 
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get("https://controlai.org/uk-pm-letter", () => new HttpResponse(null, { status: 500 })));
+    revalidatePath.mockClear();
     await runJobNow("import-controlai");
-    // The failure, and that nobody could be emailed about it, as NOTIFICATION_INBOX isn't set here.
-    expect(error).toHaveBeenCalledTimes(2);
+    // That nobody could be emailed about the failed run, as NOTIFICATION_INBOX isn't set here.
+    expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith(emailCopy.problems.noInbox);
     expect(await runs()).toEqual([
       { job: "import-controlai", status: "ok", startedBy: "jo@pauseai.uk" },
       { job: "import-controlai", status: "failed", startedBy: "jo@pauseai.uk" },
     ]);
+    // The crash is kept as an error too, as a scheduled run's is, and the job's page still refreshes to show the run.
+    expect(await query("SELECT kind, route, name, words FROM errors_seen")).toEqual([
+      {
+        kind: "action",
+        route: "/staff/scheduled-jobs/controlai",
+        name: "Error",
+        words: "<url> returned <n>",
+      },
+    ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/controlai");
   });
 
   it("the Luma import's button copies the Luma calendar as the staff member", async () => {
@@ -100,8 +111,8 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get("https://business.senedd.wales/*", () => new HttpResponse(null, { status: 500 })));
     await runJobNow("import-senedd");
-    // The failure, and that nobody could be emailed about it, as NOTIFICATION_INBOX isn't set here.
-    expect(error).toHaveBeenCalledTimes(2);
+    // That nobody could be emailed about the failed run, as NOTIFICATION_INBOX isn't set here.
+    expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith(emailCopy.problems.noInbox);
     expect(await runs()).toEqual([{ job: "import-senedd", status: "failed", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");

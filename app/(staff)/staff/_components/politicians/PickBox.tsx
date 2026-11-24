@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useOptimistic, useRef, useTransition } from "react";
+import { useEffect, useRef } from "react";
+import { useSavedChoice } from "@/components/ui/useSave";
 import styles from "./PickBox.module.css";
 
 /**
  * A tick box that saves as it's clicked, by `action`, with whether it's now
  * ticked; it shows the click at once, and what's saved once the page has
- * it. `some` shows it part ticked, as the box over a list is when only
- * some of its rows are.
+ * it. If saving fails, the click is undone and the box is marked as wrong,
+ * until it's clicked again. `some` shows it part ticked, as the box over a
+ * list is when only some of its rows are.
  */
 export default function PickBox({
   ticked,
@@ -20,8 +22,7 @@ export default function PickBox({
   label: string;
   action: (ticked: boolean) => Promise<void>;
 }) {
-  const [shown, show] = useOptimistic(ticked);
-  const [pending, start] = useTransition();
+  const [shown, choose, pending, failed] = useSavedChoice(ticked, action, (now) => now);
   const box = useRef<HTMLInputElement>(null);
   useEffect(() => {
     box.current!.indeterminate = some && !pending;
@@ -33,13 +34,8 @@ export default function PickBox({
       className={styles.box}
       aria-label={label}
       checked={shown}
-      onChange={(event) => {
-        const now = event.target.checked;
-        start(async () => {
-          show(now);
-          await action(now);
-        });
-      }}
+      aria-invalid={failed || undefined}
+      onChange={(event) => choose(event.target.checked)}
     />
   );
 }
