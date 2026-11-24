@@ -13,8 +13,9 @@ import {
 } from "@/lib/server/outside-services/postmark.server";
 import { now } from "@/lib/now";
 import { plainAsHtml } from "./plain-email-html";
-import { problem } from "@/lib/server/problems.server";
-import { emailCopy } from "./copy";
+import { describeError, problem } from "@/lib/server/problems.server";
+import { emailProblems } from "./copy";
+import { staffAccount } from "@/lib/problems";
 
 // Every email the site sends goes through sendWith(), whatever it's for:
 // most by send() (sending.server.ts), staff's notifications by notifyStaff()
@@ -147,15 +148,6 @@ export type DeliveryProblem = {
 
 /** Who the audit log says blocked an address. */
 const PROVIDER = "postmark";
-
-/** The addresses Postmark's refusal names as inactive ("Found inactive addresses: a@x.org, b@y.org."), bare. */
-function inactiveAddresses(message: string): string[] {
-  const list = /Found inactive addresses: (.*?)\.(?:\s|$)/.exec(message)?.[1] ?? "";
-  return list
-    .split(",")
-    .map((each) => bareAddress(each))
-    .filter(Boolean);
-}
 
 /**
  * The emails that go even to an address with "Do not email": what the
@@ -291,34 +283,38 @@ export async function sendWith(
     }
   } catch (error) {
     if (error instanceof PostmarkError && error.inactive) {
+      // What Postmark said, for the address's page.
+      const reason = describeError(error);
       // Postmark names the suppressed addresses, which may be a Cc rather
       // than the To; failing that, it's the To.
-      const named = inactiveAddresses(error.message);
+      const named = error.inactiveAddresses;
       const inactive = named.length ? named : [address];
       for (const each of inactive) {
         const problem = {
           address: each,
           messageId: null,
           kind: "hard",
-          reason: error.message,
+          reason,
           canReset: true,
         } as const;
-        if (await recordProblem(problem)) await hooks.blocked(each, error.message);
+        if (await recordProblem(problem)) await hooks.blocked(each, reason);
       }
       if (inactive.includes(address)) {
         await log("refused");
         return { sent: false, reason: "blocked" };
       }
       await log("failed");
-      return { sent: false, reason: "failed", detail: error.message };
+      return { sent: false, reason: "failed", detail: reason };
     }
     problem(
-      emailCopy.problems.sendFailed(error instanceof GmailError ? `${purpose}, by Gmail as ${from}` : purpose),
+      backend.name === "gmail"
+        ? emailProblems.sendFailedByGmail({ purpose, account: staffAccount(backend.account) })
+        : emailProblems.sendFailed({ purpose }),
       error,
     );
     await log("failed");
     // What the provider said, for whoever looks at the copy that failed.
-    const detail = (error as Error).message;
+    const detail = describeError(error);
     // The account's or provider's fault, or something before the email was handed over, as getting a token: try later.
     const providers = error instanceof GmailError || error instanceof PostmarkError;
     const fault = accountsFault(error);
@@ -331,9 +327,7 @@ export async function sendWith(
       : { sent: false, reason: "failed", mayHaveGone: true, detail };
   }
   // It went: a failure to log it is reported, never thrown, so no caller takes it for one that didn't.
-  await log("sent", id, threadId).catch((error: unknown) =>
-    problem(emailCopy.problems.sentUnrecorded(`An email of type '${purpose}' to ${address}`), error),
-  );
+  await log("sent", id, threadId).catch((error: unknown) => problem(emailProblems.sentUnrecorded({ purpose }), error));
   return { sent: true, id, messageId: rfcId, threadId, backend };
 }
 

@@ -3,7 +3,7 @@ import { isPostmark } from "@/lib/email/postmark-webhooks.server";
 import { forwardReply } from "@/lib/letters/inbound.server";
 import { problem } from "@/lib/server/problems.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 /**
  * Postmark's inbound webhook: mail to a letter's own address, such as jane.smith.482913@letters.pauseai.uk. Answers
@@ -12,6 +12,6 @@ import { serverCopy } from "@/lib/server/copy";
 export async function POST(request: Request) {
   if (!isPostmark(request)) return NextResponse.json({ error: "Not allowed" }, { status: 401 });
   const payload = await readJsonIfAny(request);
-  if (payload === undefined) problem(serverCopy.problems.logs.badBody("Postmark"));
+  if (payload === undefined) problem(serverProblems.badBody({ from: "Postmark" }));
   return NextResponse.json({ forwarded: (await forwardReply(payload ?? {})).length });
 }

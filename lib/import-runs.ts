@@ -3,6 +3,7 @@
 import type { ControlAiMatchProblem } from "./controlai-letter";
 import type { Ending, ImportChanges, OfficialMember } from "@/lib/politicians/import-changes";
 import { nextCronRun } from "./cron";
+import type { Problem } from "./problems";
 
 /**
  * How often a job runs on its own: every 5 minutes, every 15, hourly or
@@ -79,9 +80,6 @@ export const NEWER_RUN = "newer run";
 
 /** ok or failed; a body's import is instead unchanged, held, applied or discarded. */
 export type ImportRunStatus = "ok" | "failed" | "unchanged" | "held" | "applied" | "discarded";
-
-/** One thing that went wrong during a run without stopping it: what, in our words, and the error's own, if it came from one; `told` once an alert of its own has gone. */
-export type Problem = { what: string; error?: string; told?: true };
 
 /** One run of a job: how it ended, what went wrong along the way, and the job's own account of what it found, unless it failed. */
 export type ImportRun<Job extends ImportJob, Result> = {

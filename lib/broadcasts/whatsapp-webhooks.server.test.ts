@@ -10,7 +10,7 @@ import { notifications, type Notification } from "@/tests/notifications";
 import { createBroadcastDraft } from "./drafts.server";
 import { linkPage } from "@/lib/supporters/email-settings.server";
 import { recordWhatsAppWebhook } from "./whatsapp-webhooks.server";
-import { broadcastsCopy } from "./copy";
+import { broadcastProblems, broadcastsCopy } from "./copy";
 
 /** A webhook carrying one change. */
 const hook = (field: string, value: Record<string, unknown>) => ({ entry: [{ changes: [{ field, value }] }] });
@@ -415,7 +415,7 @@ describeWithDatabase("WhatsApp's webhook", () => {
     await sentCopy();
     await recordWhatsAppWebhook(message({ text: { body: "stop" }, context: { id: "wamid.out-1" } }));
     expect(await stops()).toEqual(["reply"]);
-    expect(error).toHaveBeenCalledWith(broadcastsCopy.problems.stopNotAnswered, expect.anything());
+    expect(error).toHaveBeenCalledWith(broadcastProblems.stopNotAnswered().what, expect.anything());
     expect(await query("SELECT 1 FROM broadcast_answers")).toEqual([]);
     error.mockClear();
     vi.unstubAllEnvs();

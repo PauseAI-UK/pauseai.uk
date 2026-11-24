@@ -2,9 +2,11 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import { tallySources, type GuestEntry, type SourceCounts } from "@/lib/trackers";
 import { LUMA_PAGE_SIZE, lumaList, type LumaPage } from "./luma-api.server";
+import { orFallback } from "./fallback.server";
+import { OutsideFailure, outsideJson, refusal } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { problem } from "../problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { describeError, problem } from "../problems.server";
+import { serverProblems } from "@/lib/server/copy";
 
 // An event's guests, through Luma's official API: the list, for the flyering
 // trackers' tallies and for the import, which keeps each guest; how many are
@@ -67,19 +69,16 @@ export async function getSourceCounts(
   since?: Date,
   until?: Date,
 ): Promise<SourceCounts | null> {
-  const entries: GuestEntry[] = [];
-  let cursor: string | undefined;
-  try {
+  return orFallback(serverProblems.lumaGuestsDown(), null, async () => {
+    const entries: GuestEntry[] = [];
+    let cursor: string | undefined;
     do {
       const page = await guestsPage(eventApiId, cursor, TRACKER_REVALIDATE);
       for (const guest of page.entries) entries.push({ guest });
       cursor = page.nextCursor;
     } while (cursor);
-  } catch (error) {
-    problem(serverCopy.problems.logs.lumaGuestsDown, error);
-    return null;
-  }
-  return tallySources(entries, tags, since, until);
+    return tallySources(entries, tags, since, until);
+  });
 }
 
 /**
@@ -110,8 +109,9 @@ const GUEST_COUNT_REVALIDATE = 60;
 export async function getEventGuestCount(eventId: string): Promise<number | null> {
   const key = config.lumaApiKey;
   if (!key) return null;
-  try {
+  return orFallback(serverProblems.lumaGuestsDown(), null, async () => {
     const res = await outsideFetch(
+      "luma",
       `https://public-api.luma.com/v1/events/get?${new URLSearchParams({ event_id: eventId })}`,
       {
         headers: { "x-luma-api-key": key, accept: "application/json" },
@@ -119,13 +119,10 @@ export async function getEventGuestCount(eventId: string): Promise<number | null
       },
     );
     if (!res.ok) return null;
-    const data = (await res.json()) as { guest_counts?: { approved?: { guests?: unknown } } };
-    const going = data.guest_counts?.approved?.guests;
+    const data = (await outsideJson("luma", res)) as { guest_counts?: { approved?: { guests?: unknown } } } | null;
+    const going = data?.guest_counts?.approved?.guests;
     return typeof going === "number" ? going : null;
-  } catch (error) {
-    problem(serverCopy.problems.logs.lumaGuestsDown, error);
-    return null;
-  }
+  });
 }
 
 /** A guest as the import keeps them. */
@@ -208,29 +205,31 @@ export async function addLumaGuest(
   if (!key) return { status: "not-configured" };
 
   try {
-    const res = await outsideFetch("https://public-api.luma.com/v1/events/guests/add", {
+    const res = await outsideFetch("luma", ADD_GUESTS_URL, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
       body: JSON.stringify({ event_id: eventId, guests: [{ email: guest.email, name: guest.name }] }),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!res.ok) {
-      // The start of the body says why: a bad key, an unknown event, a rate limit.
-      const body = (await res.text()).slice(0, 300);
-      const reason = `Luma responded ${res.status}${body ? `: ${body}` : ""}`;
-      problem(serverCopy.problems.logs.lumaRefusedGuest, reason);
-      return { status: "failed", reason };
-    }
-    const data = (await res.json()) as { skipped?: { email?: unknown }[] };
+    if (!res.ok) throw await guestsRefusal(res);
+    const data = (await outsideJson("luma", res)) as { skipped?: { email?: unknown }[] } | null;
     const email = guest.email.toLowerCase();
-    const skipped = (data.skipped ?? []).some((s) => typeof s.email === "string" && s.email.toLowerCase() === email);
+    const skipped = (data?.skipped ?? []).some((s) => typeof s.email === "string" && s.email.toLowerCase() === email);
     return skipped ? { status: "skipped" } : { status: "added" };
   } catch (error) {
-    problem(serverCopy.problems.logs.lumaRefusedGuest, error);
-    const err = error as Error;
-    if (err.name === "TimeoutError") return { status: "failed", reason: `Luma did not respond within ${timeoutMs}ms` };
-    return { status: "failed", reason: `Request to Luma failed: ${err.message}` };
+    // Whatever went wrong, the visitor is told it failed: a bug of ours here is reported like Luma failing.
+    problem(serverProblems.lumaRefusedGuest(), error);
+    if (error instanceof OutsideFailure && error.kind === "timeout")
+      return { status: "failed", reason: `Luma did not respond within ${timeoutMs}ms` };
+    return { status: "failed", reason: describeError(error) };
   }
+}
+
+const ADD_GUESTS_URL = "https://public-api.luma.com/v1/events/guests/add";
+
+/** The failure for Luma refusing guests. The start of its body says why: a bad key, an unknown event, a rate limit. */
+async function guestsRefusal(res: Response): Promise<OutsideFailure> {
+  return refusal("luma", res, { said: (await res.text()).slice(0, 300) });
 }
 
 /** How many guests go in one call to Luma, and how long the call may take. */
@@ -266,24 +265,15 @@ async function addBatch(
   guests: { name: string; email: string }[],
   key: string,
 ): Promise<Set<string> | "failed"> {
-  try {
-    const res = await outsideFetch("https://public-api.luma.com/v1/events/guests/add", {
+  return orFallback(serverProblems.lumaRefusedGuest(), "failed", async () => {
+    const res = await outsideFetch("luma", ADD_GUESTS_URL, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
       body: JSON.stringify({ event_id: eventId, guests: guests.map(({ email, name }) => ({ email, name })) }),
       signal: AbortSignal.timeout(ADD_GUESTS_TIMEOUT_MS),
     });
-    if (!res.ok) {
-      problem(
-        serverCopy.problems.logs.lumaRefusedGuest,
-        `Luma responded ${res.status}: ${(await res.text()).slice(0, 300)}`,
-      );
-      return "failed";
-    }
-    const data = (await res.json()) as { skipped?: { email?: unknown }[] };
-    return new Set((data.skipped ?? []).flatMap((s) => (typeof s.email === "string" ? [s.email.toLowerCase()] : [])));
-  } catch (error) {
-    problem(serverCopy.problems.logs.lumaRefusedGuest, error);
-    return "failed";
-  }
+    if (!res.ok) throw await guestsRefusal(res);
+    const data = (await outsideJson("luma", res)) as { skipped?: { email?: unknown }[] } | null;
+    return new Set((data?.skipped ?? []).flatMap((s) => (typeof s.email === "string" ? [s.email.toLowerCase()] : [])));
+  });
 }

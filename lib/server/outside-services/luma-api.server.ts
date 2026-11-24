@@ -1,6 +1,7 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
+import { notSet, type OutsideFailure, refusal, retryAfterOf } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // One page of a list from Luma's official API (LUMA_API_KEY, scoped to our
@@ -20,53 +21,52 @@ export type LumaPage<T> = {
   remaining?: number;
 };
 
-/** Luma answered 429: wait `retryAfter` seconds. */
-export class LumaRateLimited extends Error {
-  constructor(public readonly retryAfter: number) {
-    super(`Luma's rate limit reached: retry after ${retryAfter}s`);
-  }
-}
+/**
+ * Luma's own code on a failure for an address that isn't one of the
+ * calendar's contacts. Its 404 for one says so only in its message, unlike
+ * the plain "Not found." of a 404 for a path it doesn't know.
+ */
+export const LUMA_NOT_A_CONTACT = "not-a-contact";
 
-/** Luma answered with an error other than a 429: its status, and the message its answer gave, if it gave one. */
-export class LumaRefused extends Error {
-  constructor(
-    public readonly status: number,
-    path: string,
-    public readonly lumaMessage?: string,
-  ) {
-    super(`Luma answered ${status} for ${path}${lumaMessage ? `: ${lumaMessage}` : ""}`);
+/**
+ * The failure for Luma's answer to `path` that isn't ok, with the message
+ * its answer gave, if it gave one: rate-limited for a 429, to wait as its
+ * Retry-After says or a minute.
+ */
+async function lumaRefusal(res: Response, path: string): Promise<OutsideFailure> {
+  if (res.status === 429) {
+    const retryAfter = retryAfterOf(res) || 60;
+    return refusal("luma", res, { retryAfter, message: `Luma's rate limit reached: retry after ${retryAfter}s` });
   }
-}
-
-/** The error for Luma's answer to `path` that isn't ok: LumaRateLimited for a 429, otherwise LumaRefused. */
-async function refusal(res: Response, path: string): Promise<Error> {
-  if (res.status === 429) return new LumaRateLimited(Number(res.headers.get("retry-after")) || 60);
   const body = (await readJsonIfAny(res)) as { message?: unknown } | null | undefined;
-  return new LumaRefused(res.status, path, typeof body?.message === "string" ? body.message : undefined);
+  const said = typeof body?.message === "string" ? body.message : undefined;
+  const notAContact = res.status === 404 && /couldn.t find that contact/i.test(said ?? "");
+  return refusal("luma", res, { asked: path, said, ...(notAContact && { serviceCode: LUMA_NOT_A_CONTACT }) });
 }
 
 /** LUMA_API_KEY, or throws without it. */
 function lumaKey(): string {
-  if (!config.lumaApiKey) throw new Error("LUMA_API_KEY is not set");
+  if (!config.lumaApiKey) throw notSet("luma", "LUMA_API_KEY");
   return config.lumaApiKey;
 }
 
 /**
  * Fetches `path` with `params`: its JSON, and the requests left in this
  * minute when Luma says. Uncached, unless `revalidate` says how many seconds
- * Next may keep the answer. Throws LumaRateLimited on a 429, LumaRefused
- * on any other answer that isn't ok, and an Error for a missing key.
+ * Next may keep the answer. Throws an OutsideFailure: rate-limited on a
+ * 429, by its status on any other answer that isn't ok, and unauthorised
+ * for a missing key.
  */
 export async function lumaGet<T>(
   path: string,
   params: URLSearchParams,
   revalidate?: number,
 ): Promise<{ data: T; remaining?: number }> {
-  const res = await outsideFetch(`https://public-api.luma.com${path}?${params}`, {
+  const res = await outsideFetch("luma", `https://public-api.luma.com${path}?${params}`, {
     headers: { "x-luma-api-key": lumaKey(), accept: "application/json" },
     ...(revalidate === undefined ? { cache: "no-store" } : { next: { revalidate } }),
   });
-  if (!res.ok) throw await refusal(res, path);
+  if (!res.ok) throw await lumaRefusal(res, path);
   const remaining = res.headers.get("x-ratelimit-remaining");
   return { data: (await res.json()) as T, remaining: remaining === null ? undefined : Number(remaining) };
 }
@@ -90,12 +90,12 @@ export async function lumaList<T>(path: string, params: URLSearchParams, revalid
  * missing key, a 429 or any other answer that isn't ok.
  */
 export async function lumaPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await outsideFetch(`https://public-api.luma.com${path}`, {
+  const res = await outsideFetch("luma", `https://public-api.luma.com${path}`, {
     method: "POST",
     headers: { "x-luma-api-key": lumaKey(), "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  if (!res.ok) throw await refusal(res, path);
+  if (!res.ok) throw await lumaRefusal(res, path);
   return (await res.json()) as T;
 }

@@ -10,7 +10,7 @@ import {
   type FoundPlace,
 } from "@/lib/server/outside-services/postcodes.server";
 import { problem } from "@/lib/server/problems.server";
-import { supportersCopy } from "./copy";
+import { supporterProblems } from "./copy";
 
 // Where supporters are (the supporter_place view): each postcode and town
 // they or their events gave, and each postcode's constituency, looked up at
@@ -100,7 +100,7 @@ export async function lookUpPlaces(db?: Queryable): Promise<PlacesLookup> {
       result.towns++;
     }
   } catch (error) {
-    problem(supportersCopy.problems.placesFailed, error);
+    problem(supporterProblems.placesFailed(), error);
     result.failed = true;
   }
   return result;

@@ -18,7 +18,7 @@ import { WHATSAPP_ERRORS } from "./whatsapp-texts.server";
 import { markUnreachable } from "./unreachable.server";
 import { applyTemplateStatus } from "./whatsapp-templates.server";
 import { keptInWords, messageWords, type WhatsAppMessage } from "./whatsapp-messages";
-import { broadcastsCopy } from "./copy";
+import { broadcastProblems, broadcastsCopy } from "./copy";
 
 // What WhatsApp's webhook tells us (app/api/whatsapp/route.ts), each change
 // by its field: what became of each text sent (delivered, read, failed),
@@ -218,7 +218,7 @@ async function answerStop(number: string, topics: Topic[], replyId?: number): Pr
       );
     }
   } catch (error) {
-    problem(broadcastsCopy.problems.stopNotAnswered, error);
+    problem(broadcastProblems.stopNotAnswered(), error);
   }
 }
 

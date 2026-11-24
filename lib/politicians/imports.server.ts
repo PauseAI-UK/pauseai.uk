@@ -40,8 +40,10 @@ import { parliamentEndings, parliamentMembersNow } from "@/lib/server/outside-se
 import { memberHonours, mspPeople, seneddPeople } from "@/lib/server/outside-services/wikidata.server";
 import { addPolitician } from "./records.server";
 import { problem } from "@/lib/server/problems.server";
-import { politiciansCopy } from "./copy";
+import { politicianProblems, politiciansCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
+import { publicText } from "@/lib/problems";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 
 // Imports each body's members from its own list, nightly
 // (/api/cron/import-<body>) or when staff ask: Parliament's, both Houses;
@@ -129,13 +131,8 @@ async function withSalutations(
   const pairs = matchMembers(ours, members);
   const need = members.filter((m) => !pairs.has(m) || pairs.get(m)!.salutationToCheck).map((m) => m.officialId);
   if (need.length === 0) return members;
-  let people: Map<number, WikidataPerson>;
-  try {
-    people = await lookUp(need);
-  } catch (error) {
-    problem(politiciansCopy.politicianImports.genderLookupFailed, error);
-    return members;
-  }
+  const people = await orFallback(politicianProblems.genderLookupFailed(), undefined, () => lookUp(need));
+  if (!people) return members;
   return members.map((m) => {
     const person = people.get(m.officialId);
     if (!person) return m;
@@ -155,15 +152,12 @@ async function withSalutations(
  * asked, no one, and the run says so.
  */
 async function honoursOf(body: Body, members: OfficialMember[]): Promise<Map<number, Honour>> {
-  try {
-    return await memberHonours(
+  return orFallback(politicianProblems.honourLookupFailed(), new Map<number, Honour>(), () =>
+    memberHonours(
       body,
       members.filter((m) => m.house !== "lords").map((m) => m.officialId),
-    );
-  } catch (error) {
-    problem(politiciansCopy.politicianImports.honourLookupFailed, error);
-    return new Map();
-  }
+    ),
+  );
 }
 
 /**
@@ -339,7 +333,7 @@ async function checkSeats(): Promise<string[]> {
   );
   const held = new Map(rows.map((row) => [row.constituency, row.mps]));
   const doubled = rows.filter((row) => row.mps > 1).map((row) => row.constituency);
-  if (doubled.length > 0) problem(politiciansCopy.politicianImports.twoMps, doubled.join(", "));
+  if (doubled.length > 0) problem(politicianProblems.twoMps({ constituencies: doubled.map(publicText) }));
   return Object.values(constituencies)
     .filter((name) => !held.has(name))
     .sort((a, b) => a.localeCompare(b, "en-GB"));
@@ -370,13 +364,31 @@ export async function importPoliticians(body: Body, startedBy: string): Promise<
       const ours = await bodyPoliticians(body, db);
       const { pairs, ...changes } = compareMembers(ours, members, endings);
       for (const kept of keptSalutations(pairs)) {
-        problem(politiciansCopy.politicianImports.keptSalutation(kept.name, kept.ours, body, kept.theirs));
+        problem(
+          politicianProblems.keptSalutation({
+            name: publicText(kept.name),
+            ours: publicText(kept.ours),
+            body,
+            theirs: publicText(kept.theirs),
+          }),
+        );
       }
       for (const slip of misspeltSalutations(pairs, changes.added)) {
-        problem(politiciansCopy.politicianImports.misspeltSalutation(slip.name, slip.salutation));
+        problem(
+          politicianProblems.misspeltSalutation({
+            name: publicText(slip.name),
+            salutation: publicText(slip.salutation),
+          }),
+        );
       }
       for (const missing of missingHonours(pairs, changes.added, honours)) {
-        problem(politiciansCopy.politicianImports.missingHonour(missing.name, missing.salutation, missing.honour));
+        problem(
+          politicianProblems.missingHonour({
+            name: publicText(missing.name),
+            salutation: publicText(missing.salutation),
+            honour: missing.honour,
+          }),
+        );
       }
       // The very first import of a body fills it from nothing, so there's nothing to check it against.
       const held = ours.length > 0 && holdsImport(changes);

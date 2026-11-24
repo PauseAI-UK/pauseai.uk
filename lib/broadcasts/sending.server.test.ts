@@ -15,8 +15,8 @@ import { hashOf } from "@/lib/supporters/email-settings.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { recordProblem } from "@/lib/email/email.server";
 import { inRun } from "@/lib/server/run-store.server";
-import { broadcastsCopy } from "./copy";
-import { emailCopy } from "@/lib/email/copy";
+import { broadcastProblems, broadcastsCopy } from "./copy";
+import { emailProblems } from "@/lib/email/copy";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 const HELLO = "hello@pauseai.uk";
@@ -363,7 +363,7 @@ describeWithDatabase("sending broadcasts", () => {
       problems: r.problems,
     }));
     expect(run).toEqual({ sent: 0, skipped: 0, failed: 0, waiting: 1, left: 1 });
-    expect(problems.map((p) => p.what)).toEqual([broadcastsCopy.problems.civicrmCheckFailed]);
+    expect(problems.map((p) => p.what)).toEqual([broadcastProblems.civicrmCheckFailed().what]);
     expect(gmail).toEqual([]);
     expect(await stateOf(id)).toEqual({ state: "sending", waiting: true, reason: "civicrm", gaveUp: false });
     // What CiviCRM said is kept for its page, and staff are told it.
@@ -740,7 +740,7 @@ describeWithDatabase("sending broadcasts", () => {
     }));
     expect(run).toEqual({ sent: 0, skipped: 0, failed: 0, waiting: 1, left: 2 });
     expect(gmail).toEqual([]);
-    expect(problems.map((p) => p.what)).toEqual([broadcastsCopy.problems.civicrmCheckFailed]);
+    expect(problems.map((p) => p.what)).toEqual([broadcastProblems.civicrmCheckFailed().what]);
     expect(await stateOf(id)).toEqual({ state: "sending", waiting: true, reason: "civicrm", gaveUp: false });
   });
 
@@ -769,8 +769,7 @@ describeWithDatabase("sending broadcasts", () => {
     expect((await copies()).map((copy) => copy.status)).toEqual(["scheduled", "scheduled"]);
     expect(gmail).toEqual([]);
     const [{ first }] = await query<{ first: number }>("SELECT min(id)::int AS first FROM broadcast_messages");
-    const words = emailCopy.problems;
-    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(broadcastsCopy.problems.copyOf(first)));
+    expect(error.mock.calls.map(([what]) => what)).toContain(broadcastProblems.copyNotSentYet({ copy: first }).what);
     vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
     expect(await sendDueBroadcasts(LATER, 0)).toMatchObject({ sent: 2, left: 0 });
   });
@@ -787,8 +786,7 @@ describeWithDatabase("sending broadcasts", () => {
     expect(gmail).toHaveLength(1);
     expect((await copies()).map((copy) => copy.status)).toEqual(["sending"]);
     const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM broadcast_messages");
-    const words = emailCopy.problems;
-    expect(error.mock.calls.map(([what]) => what)).toContain(words.sentUnrecorded(broadcastsCopy.problems.copyOf(id)));
+    expect(error.mock.calls.map(([what]) => what)).toContain(broadcastProblems.copySentUnrecorded({ copy: id }).what);
   });
 
   it("puts back a copy that didn't go when keeping that fails, so it's tried again", async () => {
@@ -1343,7 +1341,7 @@ describeWithDatabase("sending texts", () => {
     const { run, problems } = await inRun(async (r) => ({ run: await sendDueBroadcasts(LATER), problems: r.problems }));
     expect(run).toMatchObject({ sent: 0, failed: 1, left: 0 });
     expect(await copies()).toMatchObject([{ address: "+447700900123", status: "failed" }]);
-    expect(problems.map((p) => p.what)).toEqual([emailCopy.problems.sendFailed("broadcast")]);
+    expect(problems.map((p) => p.what)).toEqual([emailProblems.sendFailed({ purpose: "broadcast" }).what]);
     // Kept as cut off, so Resume never sends it again.
     expect(await query("SELECT details FROM broadcast_message_events WHERE kind = 'failed'")).toEqual([
       { details: { unfinished: true } },

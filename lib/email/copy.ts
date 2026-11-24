@@ -5,6 +5,7 @@
 // problems sending and connected Gmail report. The staff pages' own are in
 // app/(staff)/staff/_components/email/copy.ts.
 import { plural } from "@/lib/content/plural";
+import { defineProblems, type SafeText } from "@/lib/problems";
 import type { FoundBy } from "./block-filters";
 import type { Purpose } from "./email.server";
 
@@ -137,24 +138,33 @@ export const emailCopy = {
         `Google stopped our access to ${account}'s Gmail. ${lettersInbox ? "Letters to MPs, and the replies to them, wait until it's connected again." : "Mailings sent using that mailbox, and replies, will be paused until it's connected again."} Log in as ${account} and connect it on its account page:\n\n${link}`,
     },
   },
-  // What went wrong sending, without stopping the work (lib/server/problems.server.ts). Each can happen in a job or
-  // not: in a job, staff see it on the job's page and in the email; not in one, it's kept as an error
-  // (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff.
-  problems: {
-    // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission. No job
-    // reaches it, so it's always kept as an error.
-    tokenNotRevoked: (account: string) => `${account}'s Gmail token couldn't be revoked at Google`,
-    // A staff member pressed Connect Gmail and agreed at Google, but the last step failed: Google refused, or the
-    // site couldn't save the connection. Their own page tells them to try again; this is for whoever reads the
-    // errors. Not in a job, so it's always kept as an error.
-    gmailNotConnected: "Connecting a staff member's Gmail failed at the last step",
-    // An email didn't go, as Gmail or Postmark errored.
-    sendFailed: (purpose: string) => `An email of type '${purpose}' couldn't be sent`,
-    // Something should have emailed staff, but NOTIFICATION_INBOX isn't set, so nobody heard.
-    noInbox: "NOTIFICATION_INBOX isn't set, so nobody was emailed",
+  // What the problems of sending something to one person say of it (sendWithCare in send-with-care.server.ts),
+  // after its name, which each feature gives: "Letter 12", "Relay 3".
+  sends: {
     // Something went wrong before an email went: the letter or broadcast copy is back in line for the next run.
     notSentYet: (what: string) => `${what} couldn't be sent, it will be tried again`,
     // An email went, but recording that failed: a person must check, as sending it again would send it twice.
     sentUnrecorded: (what: string) => `${what} was sent, but couldn't be marked as sent. Check before sending it again`,
   },
 };
+
+// What went wrong sending, without stopping the work (lib/problems.ts). Each can happen in a job or not: in a job,
+// staff see it on the job's page and in the email; not in one, it's kept as an error
+// (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff.
+export const emailProblems = defineProblems("email", {
+  // Staff disconnecting their Gmail: it disconnects as normal, but Google still holds the permission. No job
+  // reaches it, so it's always kept as an error.
+  tokenNotRevoked: (p: { account: SafeText }) => `${p.account}'s Gmail token couldn't be revoked at Google`,
+  // A staff member pressed Connect Gmail and agreed at Google, but the last step failed: Google refused, or the
+  // site couldn't save the connection. Their own page tells them to try again; this is for whoever reads the
+  // errors. Not in a job, so it's always kept as an error.
+  gmailNotConnected: "Connecting a staff member's Gmail failed at the last step",
+  // An email didn't go, as Postmark errored, or, for one going by Gmail, as it couldn't go by that account.
+  sendFailed: (p: { purpose: Purpose }) => `An email of type '${p.purpose}' couldn't be sent`,
+  sendFailedByGmail: (p: { purpose: Purpose; account: SafeText }) =>
+    `An email of type '${p.purpose}, by Gmail as ${p.account}' couldn't be sent`,
+  // Something should have emailed staff, but NOTIFICATION_INBOX isn't set, so nobody heard.
+  noInbox: "NOTIFICATION_INBOX isn't set, so nobody was emailed",
+  // An email went, but logging it failed, so the list of sent emails doesn't have it.
+  sentUnrecorded: (p: { purpose: Purpose }) => emailCopy.sends.sentUnrecorded(`An email of type '${p.purpose}'`),
+});

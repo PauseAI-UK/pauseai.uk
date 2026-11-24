@@ -82,6 +82,9 @@ const STAYS: Record<string, string[]> = {
     "cron",
     "import-runs",
     "import-runs-copy",
+    // How a feature declares the problems it reports, which every feature's copy file does, and the browser reads
+    // to show a run's.
+    "problems",
   ],
   "lib/server": [
     // The database, settings, problems and runs, the import log they're kept in, what a fixture build adds, and the

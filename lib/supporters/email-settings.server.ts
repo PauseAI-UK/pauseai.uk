@@ -46,8 +46,8 @@ import { removeCalendarContact } from "@/lib/server/outside-services/luma-calend
 import { randomId } from "@/lib/server/random-id.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
 import { describeError, note, problem } from "@/lib/server/problems.server";
-import { supportersCopy } from "./copy";
-import { emailCopy } from "@/lib/email/copy";
+import { supporterProblems } from "./copy";
+import { emailProblems } from "@/lib/email/copy";
 
 // The contact preferences page (/contact-preferences), where anyone sees and changes
 // what PauseAI UK sends an address, and why. It opens only from a link
@@ -319,7 +319,7 @@ export async function offCalendar(address: string): Promise<void> {
   try {
     await removeCalendarContact(address);
   } catch (error) {
-    problem(supportersCopy.problems.lumaRemoveFailed, error);
+    problem(supporterProblems.lumaRemoveFailed(), error);
   }
 }
 
@@ -334,7 +334,7 @@ async function offCalendarNow(address: string): Promise<void> {
   try {
     await removeCalendarContact(address);
   } catch (error) {
-    note(supportersCopy.problems.lumaRemoveFailed, describeError(error));
+    note(supporterProblems.lumaRemoveFailed().what, describeError(error));
   }
 }
 
@@ -595,7 +595,7 @@ export async function sendBulkNotice(entryId: number, where: string, request?: R
   try {
     return await bulkNotice(entryId, where, request);
   } catch (error) {
-    problem(emailCopy.problems.sendFailed("bulk-notice"), error);
+    problem(emailProblems.sendFailed({ purpose: "bulk-notice" }), error);
     return false;
   }
 }

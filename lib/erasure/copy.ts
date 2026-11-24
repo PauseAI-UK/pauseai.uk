@@ -1,6 +1,8 @@
 // The words of erasing a supporter, which the server uses too: the red
 // button at the foot of a supporter's page, the page it goes to, and what
 // couldn't be cleared afterwards.
+import { defineProblems } from "@/lib/problems";
+import type { EraseLeftover } from "@/lib/staff-search";
 
 export const erasureCopy = {
   // Erasing a supporter: the red button at the foot of their page, and the
@@ -42,3 +44,10 @@ export const erasureCopy = {
     },
   },
 };
+
+// What went wrong without stopping the work (lib/problems.ts): kept as an error
+// (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff.
+export const erasureProblems = defineProblems("erasure", {
+  // A person was erased, but a clean-up after it failed: what the notice says to whoever erased them, on one line.
+  notCleared: (p: { what: EraseLeftover }) => `${erasureCopy.erase.partly} ${erasureCopy.erase.notCleared[p.what]}`,
+});

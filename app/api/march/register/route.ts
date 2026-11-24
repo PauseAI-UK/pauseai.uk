@@ -14,7 +14,7 @@ import { marchEventId } from "@/lib/events/march.server";
 import { addLumaGuest } from "@/lib/server/outside-services/luma-guests.server";
 import { note, problem } from "@/lib/server/problems.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 /** The form's honeypot field: hidden from people, filled in by bots that fill in everything. */
 const HONEYPOT_FIELD = "website";
@@ -22,7 +22,7 @@ const HONEYPOT_FIELD = "website";
 /** Answers with a MarchRegisterResult, always 200. The logs leave out the email address. */
 export async function POST(request: Request) {
   const body = await readJsonIfAny(request);
-  if (body === undefined) problem(serverCopy.problems.logs.badBody("The march form"));
+  if (body === undefined) problem(serverProblems.badBody({ from: "The march form" }));
   return NextResponse.json(await register(body ?? null, request));
 }
 
@@ -49,16 +49,16 @@ async function register(input: unknown, request: Request): Promise<MarchRegister
       note(`[march] Kept sign-up ${id}: Luma ${result.status}.`);
       await sendBulkNotice(id, emailSettingsCopy.bulkNotice.where["march-2026-11"], request);
     },
-    (error: unknown) => problem(serverCopy.problems.logs.signUpNotKept, error),
+    (error: unknown) => problem(serverProblems.signUpNotKept(), error),
   );
   switch (result.status) {
     case "added":
       return { ok: true };
     case "skipped":
-      problem(serverCopy.problems.logs.lumaSkippedGuest);
+      problem(serverProblems.lumaSkippedGuest());
       break;
     case "not-configured":
-      problem(serverCopy.problems.logs.lumaNotConfigured);
+      problem(serverProblems.lumaNotConfigured());
       break;
     case "failed":
       // Reported where it failed (addLumaGuest).

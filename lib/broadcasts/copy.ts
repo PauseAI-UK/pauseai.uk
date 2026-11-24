@@ -4,7 +4,9 @@
 // to staff about them. The staff pages read them here too, as they have no
 // words of their own.
 import { count, plural } from "@/lib/content/plural";
+import { emailCopy } from "@/lib/email/copy";
 import { mailingsCopy } from "@/lib/mailings/copy";
+import { defineProblems, type SafeText } from "@/lib/problems";
 import { daysInWords, FAILURES_TO_STOP, WAIT_DAYS } from "./days";
 
 /** What one supporter's copy of a broadcast is, by how it went: the first word of its page's title, and its step of the trail above it. */
@@ -453,29 +455,6 @@ export const broadcastsCopy = {
     supporterNone: "No broadcasts sent to them.",
     supporterColumns: { message: "Broadcast", status: "Status" },
   },
-  // What went wrong without stopping the work (lib/server/problems.server.ts). Each can happen in a job or not:
-  // in a job, staff see it on the job's page and in the email; not in one, it's kept as an error
-  // (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff. whatsAppWebhookNotRecorded
-  // is in no job.
-  problems: {
-    // Sending a broadcast: CiviCRM didn't answer its check of the addresses, so it waits (staff are told by email).
-    civicrmCheckFailed: "CiviCRM didn't answer, so a broadcast is waiting to send",
-    // WhatsApp's API didn't answer when asked for our number, so no text could be sent or scheduled just then.
-    whatsAppUnanswered: "WhatsApp didn't answer, so no text could go just then",
-    // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
-    templateNotSent: (name: string) => `WhatsApp didn't take template ${name} for approval`,
-    templateNotDeleted: (name: string) => `WhatsApp didn't delete template ${name}, which was withdrawn here`,
-    // An approved template staff deleted, which WhatsApp then wouldn't: it's kept, as it was.
-    approvedNotDeleted: (name: string) => `WhatsApp gave an error while deleting template ${name}`,
-    // The text answering a reply of "stop" didn't go, though the stop is kept.
-    stopNotAnswered:
-      "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
-    // What a problem names a supporter's copy of a broadcast as, and our answer to a reply.
-    copyOf: (id: number) => `Broadcast copy ${id}`,
-    answerTo: mailingsCopy.answers.answerTo,
-    // WhatsApp gets an error, so it sends the webhook again.
-    whatsAppWebhookNotRecorded: "A WhatsApp webhook couldn't be recorded",
-  },
   // The emails to staff (lib/email/notifications.server.ts).
   notifications: {
     // A broadcast that can't go, as CiviCRM didn't answer its check, no pull has completed for a day, or WhatsApp
@@ -613,3 +592,31 @@ export const broadcastsCopy = {
     },
   },
 };
+
+// What went wrong without stopping the work (lib/problems.ts). Each can happen in a job or not: in a job, staff see
+// it on the job's page and in the email; not in one, it's kept as an error (lib/oversight/errors-seen.server.ts), on
+// the errors page and emailed to staff. whatsAppWebhookNotRecorded is in no job.
+export const broadcastProblems = defineProblems("broadcasts", {
+  // Sending a broadcast: CiviCRM didn't answer its check of the addresses, so it waits (staff are told by email).
+  civicrmCheckFailed: "CiviCRM didn't answer, so a broadcast is waiting to send",
+  // WhatsApp's API didn't answer when asked for our number, so no text could be sent or scheduled just then.
+  whatsAppUnanswered: "WhatsApp didn't answer, so no text could go just then",
+  // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
+  templateNotSent: (p: { template: SafeText }) => `WhatsApp didn't take template ${p.template} for approval`,
+  templateNotDeleted: (p: { template: SafeText }) =>
+    `WhatsApp didn't delete template ${p.template}, which was withdrawn here`,
+  // An approved template staff deleted, which WhatsApp then wouldn't: it's kept, as it was.
+  approvedNotDeleted: (p: { template: SafeText }) => `WhatsApp gave an error while deleting template ${p.template}`,
+  // The text answering a reply of "stop" didn't go, though the stop is kept.
+  stopNotAnswered:
+    "A supporter replied STOP and their texts are stopped, but our WhatsApp reply confirming it failed to send",
+  // A supporter's copy of a broadcast, or our answer to a reply: something went wrong before it went, so it's
+  // tried again; or it went, but recording that failed.
+  copyNotSentYet: (p: { copy: number }) => emailCopy.sends.notSentYet(`Broadcast copy ${p.copy}`),
+  copySentUnrecorded: (p: { copy: number }) => emailCopy.sends.sentUnrecorded(`Broadcast copy ${p.copy}`),
+  answerNotSentYet: (p: { reply: number }) => emailCopy.sends.notSentYet(mailingsCopy.answers.answerTo(p.reply)),
+  answerSentUnrecorded: (p: { reply: number }) =>
+    emailCopy.sends.sentUnrecorded(mailingsCopy.answers.answerTo(p.reply)),
+  // WhatsApp gets an error, so it sends the webhook again.
+  whatsAppWebhookNotRecorded: "A WhatsApp webhook couldn't be recorded",
+});

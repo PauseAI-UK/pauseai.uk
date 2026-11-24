@@ -2,6 +2,7 @@ import "server-only";
 import { importPath, type AnyImportRun, type ImportJob, type ImportRunStatus } from "@/lib/import-runs";
 import { query } from "./db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
+import { type Problem, problemKey, problemSaid } from "@/lib/problems";
 import { describeError } from "./problems.server";
 import { currentRun, inRun } from "./run-store.server";
 import { importRunsCopy } from "@/lib/import-runs-copy";
@@ -73,16 +74,26 @@ export async function asRun<Done extends Ran>(
   }
 }
 
-/** What a run went wrong with, as the alert tells it apart from the run before: its problems by name, those with an alert of their own aside, or that it failed. */
+/** The problems of a run that its alert is about: those without an alert of their own. */
+function untold(run: AnyImportRun): Problem[] {
+  return run.problems.filter((p) => !p.told);
+}
+
+/**
+ * What a run went wrong with, as the alert tells it apart from the run
+ * before: that it failed, or each of its problems, by its code, whatever
+ * its values, and by its sentence, which is all that one kept before
+ * problems had codes is known by.
+ */
 function wentWrong(run: AnyImportRun | undefined): string[] {
   if (!run) return [];
   if (run.status === "failed") return ["failed"];
-  return run.problems.filter((p) => !p.told).map((p) => p.what);
+  return untold(run).flatMap((p) => [problemKey(p), p.what]);
 }
 
 /**
  * Emails the notification inbox about run `id` if it went wrong in a way the
- * run before didn't: a failure, or a problem by its name. A job failing every
+ * run before didn't: a failure, or a problem by its code. A job failing every
  * hour, or stuck on the same problem, says so once; it says so again once a
  * run has gone right, or when something new goes wrong. A run kept, from
  * before one run went at a time, as having stopped because another was
@@ -95,9 +106,12 @@ async function alertIfNew(job: ImportJob, id: number): Promise<void> {
      ORDER BY at DESC, id DESC LIMIT 2`,
     [job, id],
   );
-  const wrong = wentWrong(run);
   const already = new Set(wentWrong(before));
-  if (!wrong.length || wrong.every((what) => already.has(what))) return;
+  const isNew =
+    run.status === "failed"
+      ? !already.has("failed")
+      : untold(run).some((p) => !already.has(problemKey(p)) && !already.has(p.what));
+  if (!isNew) return;
   const title = importRunsCopy.jobTitles[job];
   const link = staffLink(importPath(job), undefined);
   if (run.status === "failed") {
@@ -110,7 +124,7 @@ async function alertIfNew(job: ImportJob, id: number): Promise<void> {
     words.subject(title),
     words.body(
       title,
-      run.problems.filter((p) => !p.told).map((p) => (p.error ? `- ${p.what} ${p.error}` : `- ${p.what}`)),
+      untold(run).map((p) => `- ${[p.what, problemSaid(p)].filter(Boolean).join(" ")}`),
       link,
     ),
   );

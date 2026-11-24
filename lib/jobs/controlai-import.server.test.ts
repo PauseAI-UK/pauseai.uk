@@ -143,7 +143,7 @@ describeWithDatabase("importControlAiLetter", () => {
 
     server.resetHandlers();
     server.use(http.get(CONTROLAI_LETTER_PAGE, () => new HttpResponse(null, { status: 500 })));
-    await expect(importControlAiLetter(NIGHTLY)).rejects.toThrow(`${CONTROLAI_LETTER_PAGE} returned 500`);
+    await expect(importControlAiLetter(NIGHTLY)).rejects.toThrow(`ControlAI answered 500 for ${CONTROLAI_LETTER_PAGE}`);
     expect(await statuses()).toEqual([]);
     expect((await recentControlAiImports()).map((run) => run.status)).toEqual(["failed", "failed", "failed", "failed"]);
   });

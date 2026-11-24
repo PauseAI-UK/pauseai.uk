@@ -16,7 +16,8 @@ import {
   sentToday,
 } from "./gmail-accounts.server";
 import { decryptToken } from "./gmail-tokens.server";
-import { emailCopy } from "./copy";
+import { emailCopy, emailProblems } from "./copy";
+import { staffAccount } from "@/lib/problems";
 
 const JO = "jo@pauseai.uk";
 const TOKEN = "https://oauth2.googleapis.com/token";
@@ -131,7 +132,10 @@ describeWithDatabase("connected Gmail accounts", () => {
     server.use(http.post(REVOKE, () => new HttpResponse(null, { status: 500 })));
     expect(await disconnectGmail(JO, JO)).toBe(true);
     await vi.waitFor(() =>
-      expect(error).toHaveBeenCalledWith(emailCopy.problems.tokenNotRevoked(JO), expect.any(String)),
+      expect(error).toHaveBeenCalledWith(
+        emailProblems.tokenNotRevoked({ account: staffAccount(JO) }).what,
+        expect.any(String),
+      ),
     );
     expect(await gmailAccounts()).toEqual([]);
   });

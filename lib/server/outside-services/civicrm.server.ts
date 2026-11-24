@@ -1,5 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
+import { kindOfStatus, OutsideFailure, outsideJson } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // The only file that talks to Global's CRM, CiviCRM, through its chapter
@@ -48,12 +49,21 @@ export type CivicrmContact = {
   volunteerUpdates: ListStatus;
 };
 
-class CivicrmRequestError extends Error {}
+/** CiviCRM failing: refusing a request, or answering with something that isn't what it's asked for. */
+class CivicrmRequestError extends OutsideFailure {
+  constructor(message: string, status = 0) {
+    super("civicrm", status ? kindOfStatus(status) : "refused", { status, message });
+  }
+}
 
 /** CIVICRM_CHAPTER_KEY, or throws: without it, nothing can be read from CiviCRM. */
 export function civicrmKey(): string {
   const key = config.civicrmChapterKey;
-  if (!key) throw new Error("CIVICRM_CHAPTER_KEY isn't set, so nothing can be read from CiviCRM");
+  if (!key) {
+    throw new OutsideFailure("civicrm", "unauthorised", {
+      message: "CIVICRM_CHAPTER_KEY isn't set, so nothing can be read from CiviCRM",
+    });
+  }
   return key;
 }
 
@@ -159,7 +169,7 @@ async function call(
   method: "GET" | "POST",
 ): Promise<Record<string, unknown>[]> {
   const encoded = new URLSearchParams({ params: JSON.stringify(params) });
-  const res = await outsideFetch(method === "GET" ? `${API}/${action}?${encoded}` : `${API}/${action}`, {
+  const res = await outsideFetch("civicrm", method === "GET" ? `${API}/${action}?${encoded}` : `${API}/${action}`, {
     method,
     headers: {
       "X-Civi-Auth": `Bearer ${key}`,
@@ -170,8 +180,11 @@ async function call(
     cache: "no-store",
   });
   if (!res.ok)
-    throw new CivicrmRequestError(`CiviCRM request failed with status ${res.status}: ${said(await res.text())}`);
-  const data: unknown = await res.json();
+    throw new CivicrmRequestError(
+      `CiviCRM request failed with status ${res.status}: ${said(await res.text())}`,
+      res.status,
+    );
+  const data: unknown = await outsideJson("civicrm", res);
   const values = (data as { values?: unknown })?.values;
   if (!Array.isArray(values)) throw new CivicrmRequestError(`CiviCRM's answer to ${action} had no list of values`);
   return values as Record<string, unknown>[];

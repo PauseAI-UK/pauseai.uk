@@ -1,9 +1,11 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
 import { copy } from "@/lib/content/email-your-mp";
+import { orFallback } from "./fallback.server";
+import { outsideJson } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { note, problem } from "../problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 // Cloudflare Turnstile, checked on the server. Ported from pauseai-website's
 // src/lib/server/turnstile-verify.ts. With neither key set, it's skipped,
@@ -29,22 +31,22 @@ async function verifyTurnstile(token: string | undefined): Promise<string | unde
   }
   if (!secret) {
     if (isDev()) return undefined;
-    problem(serverCopy.problems.logs.turnstileUnset);
+    problem(serverProblems.turnstileUnset());
     return copy.errors.spamUnavailable;
   }
   if (!isDev() && TEST_SECRET.test(secret)) {
-    problem(serverCopy.problems.logs.turnstileTestKey);
+    problem(serverProblems.turnstileTestKey());
     return copy.errors.spamMisconfigured;
   }
   if (!token) return copy.errors.spamWait;
 
-  try {
-    const res = await outsideFetch(VERIFY_URL, {
+  return orFallback(serverProblems.turnstileDown(), copy.errors.spamUnreachable, async () => {
+    const res = await outsideFetch("turnstile", VERIFY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ secret, response: token }),
     });
-    const result = await res.json();
+    const result = await outsideJson("turnstile", res);
     if (result?.success !== true) {
       note("Turnstile rejected a submission:", result?.["error-codes"]);
       return copy.errors.spamFailed;
@@ -53,10 +55,7 @@ async function verifyTurnstile(token: string | undefined): Promise<string | unde
     // URL is main--pauseaiuk.netlify.app, not pauseai.uk. The widget's
     // allowed hostnames, set in Cloudflare, say where tokens can be made.
     return undefined;
-  } catch (error) {
-    problem(serverCopy.problems.logs.turnstileDown, error);
-    return copy.errors.spamUnreachable;
-  }
+  });
 }
 
 /**

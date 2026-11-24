@@ -5,7 +5,7 @@ import { signedByMeta } from "@/lib/server/outside-services/whatsapp.server";
 import { note, problem } from "@/lib/server/problems.server";
 import { recordWhatsAppWebhook, type WhatsAppWebhook } from "@/lib/broadcasts/whatsapp-webhooks.server";
 import { verifyToken } from "@/lib/broadcasts/whatsapp-verify-token.mjs";
-import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { broadcastProblems } from "@/lib/broadcasts/copy";
 
 /**
  * Meta checking the callback URL as it's set in the App Dashboard: it sends
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     note(`WhatsApp webhook: ${applied} applied`);
     return NextResponse.json({ applied });
   } catch (error) {
-    problem(broadcastsCopy.problems.whatsAppWebhookNotRecorded, error);
+    problem(broadcastProblems.whatsAppWebhookNotRecorded(), error);
     return NextResponse.json({ error: "Not recorded" }, { status: 500 });
   }
 }

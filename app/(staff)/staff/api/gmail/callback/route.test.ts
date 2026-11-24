@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { http, HttpResponse } from "msw";
-import { emailCopy } from "@/lib/email/copy";
+import { emailProblems } from "@/lib/email/copy";
 import { gmailAccounts } from "@/lib/email/gmail-accounts.server";
 import { createSession } from "@/lib/accounts/auth.server";
 import { describeWithDatabase, TEST_GMAIL_TOKEN_KEY, useTestDatabase } from "@/tests/database";
@@ -69,6 +69,6 @@ describeWithDatabase("GET /staff/api/gmail/callback", () => {
     server.use(http.post("https://oauth2.googleapis.com/token", () => HttpResponse.json({}, { status: 400 })));
     expect((await callback({ code: "c", state: "st" })).headers.get("location")).toMatch(/gmail=failed$/);
     // Reported as a problem, which keeps it as an error, and without the staff member's address.
-    expect(error).toHaveBeenCalledWith(emailCopy.problems.gmailNotConnected, "Google refused the token request: 400");
+    expect(error).toHaveBeenCalledWith(emailProblems.gmailNotConnected().what, "Google refused the token request: 400");
   });
 });

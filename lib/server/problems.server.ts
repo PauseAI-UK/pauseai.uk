@@ -1,4 +1,5 @@
 import "server-only";
+import type { Problem, Reported, ReportedProblem } from "@/lib/problems";
 
 // A problem is something that went wrong during a run of a job without
 // stopping it: an event Luma wouldn't give, a mailbox Gmail refused, an
@@ -12,13 +13,6 @@ import "server-only";
 // instrumentation.ts, as the server starts; each registers itself here, so
 // this module loads anywhere, the browser included, where neither is.
 
-/**
- * One thing that went wrong during a run: what, and the error's own words,
- * if it came from one. `told` when an alert of its own has gone, so the
- * run's alert leaves it out.
- */
-export type Problem = { what: string; error?: string; told?: true };
-
 /** A run in progress: its problems so far. */
 export type Run = { problems: Problem[] };
 
@@ -29,8 +23,8 @@ export function registerRunStore(find: () => Run | undefined): void {
   findRun = find;
 }
 
-/** What keeps a problem reported outside a run: its sentence, and the error's words if it had one. */
-type Keeper = (what: string, described: string | undefined) => void;
+/** What keeps a problem reported outside a run: the problem, with the error's words if it had one. */
+type Keeper = (problem: ReportedProblem) => void;
 
 /**
  * Where the keeper is held: on the global object, not in this module. Next
@@ -47,24 +41,26 @@ export function registerProblemKeeper(keep: Keeper | undefined): void {
 }
 
 /**
- * Reports something that went wrong without stopping the work: `what` in our
- * words, and the error, if there was one. `what` is how the run's email tells
- * a new problem from an old one, so a count or a list goes in `error`. `told` if staff have been emailed
- * about it already, by an alert of its own, which a run's email then leaves out; outside a run, it isn't kept.
+ * Reports something that went wrong without stopping the work: one of a
+ * feature's declared problems (defineProblems in lib/problems.ts), with the
+ * error, if there was one. It's logged, and kept: on the run in progress,
+ * or with no run, as an error. `told` if staff have been emailed about it
+ * already, by an alert of its own, which a run's email then leaves out;
+ * outside a run, it isn't kept.
  */
-export function problem(what: string, error?: unknown, { told = false } = {}): void {
-  const described = error === undefined ? undefined : describeError(error);
-  console.error(what, ...(described === undefined ? [] : [described]));
-  const run = findRun();
-  if (!run) {
-    if (!told) held[KEEPER]?.(what, described);
-    return;
-  }
-  run.problems.push({
+export function problem({ code, values, what }: Reported, error?: unknown, { told = false } = {}): void {
+  const said = error === undefined ? undefined : describeError(error);
+  console.error(what, ...(said === undefined ? [] : [said]));
+  const kept: ReportedProblem = {
+    code,
+    values,
     what,
-    ...(described !== undefined && { error: described }),
+    ...(said !== undefined && { said }),
     ...(told && { told: true as const }),
-  });
+  };
+  const run = findRun();
+  if (run) run.problems.push(kept);
+  else if (!told) held[KEEPER]?.(kept);
 }
 
 /**

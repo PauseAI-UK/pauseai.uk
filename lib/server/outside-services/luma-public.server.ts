@@ -1,9 +1,10 @@
 import "server-only";
 import { isAllowedEventImage } from "@/lib/event-image-hosts";
-import { problem } from "../problems.server";
 import type { EventGoing } from "@/lib/going";
+import { orFallback } from "./fallback.server";
+import { outsideJson } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 // An event as its page on luma.com shows anyone, from the data that page
 // loads: when it starts and ends, how many are going, and the few guests
@@ -59,18 +60,19 @@ function going(data: ApiEvent): EventGoing | null {
  * Luma errs.
  */
 export async function getPublicEvent(eventId: string): Promise<PublicEvent | null> {
-  try {
-    const res = await outsideFetch(`https://api.lu.ma/event/get?${new URLSearchParams({ event_api_id: eventId })}`, {
-      headers: { accept: "application/json" },
-      next: { revalidate: EVENT_REVALIDATE },
-    });
+  return orFallback(serverProblems.lumaGuestsDown(), null, async () => {
+    const res = await outsideFetch(
+      "luma",
+      `https://api.lu.ma/event/get?${new URLSearchParams({ event_api_id: eventId })}`,
+      {
+        headers: { accept: "application/json" },
+        next: { revalidate: EVENT_REVALIDATE },
+      },
+    );
     if (!res.ok) return null;
-    const data = (await res.json()) as ApiEvent;
+    const data = ((await outsideJson("luma", res)) ?? {}) as ApiEvent;
     return { startAt: timestamp(data.event?.start_at), endAt: timestamp(data.event?.end_at), going: going(data) };
-  } catch (error) {
-    problem(serverCopy.problems.logs.lumaGuestsDown, error);
-    return null;
-  }
+  });
 }
 
 /** How many are going to an event and who Luma features: null when Luma errs or gives no count. */

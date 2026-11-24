@@ -10,8 +10,9 @@ import { browserVersionOf } from "@/lib/user-agent";
 import { config } from "@/lib/server/config.server";
 import { query } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
+import type { ReportedProblem } from "@/lib/problems";
 import { describeError, problem } from "@/lib/server/problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 import { oversightCopy } from "./copy";
 
 // What goes wrong on the site outside a job's run, kept so that it reaches
@@ -218,7 +219,7 @@ async function keep(happening: Happening): Promise<void> {
       const id = await count(happening);
       if (id !== undefined) await tell(id, happening);
     } catch (error) {
-      problem(serverCopy.problems.logs.errorNotKept, error);
+      problem(serverProblems.errorNotKept(), error);
     }
   });
 }
@@ -237,20 +238,21 @@ export async function keepCaught(thrown: unknown, route: string): Promise<void> 
 }
 
 /**
- * Keeps a problem reported outside a run, by its sentence, with the error's
- * words if it came with one. Started at once, and where there's a request,
- * the platform waits for it after the response has gone.
+ * Keeps a problem reported outside a run, with the error's words if it came
+ * with one: one row for each code, whatever its values and so its sentence.
+ * Started at once, and where there's a request, the platform waits for it
+ * after the response has gone.
  */
-export function keepProblem(what: string, described: string | undefined): void {
+export function keepProblem(problem: ReportedProblem): void {
   if (keeping.getStore()) return;
   const kept = keep({
     kind: "problem",
     route: "",
     name: "",
-    code: null,
-    words: steadyWords(what),
-    byCode: false,
-    latestWords: [what, described].filter(Boolean).join(": ").slice(0, LATEST_WORDS_KEPT),
+    code: problem.code.slice(0, CODE_KEPT),
+    words: steadyWords(problem.what),
+    byCode: true,
+    latestWords: [problem.what, problem.said].filter(Boolean).join(": ").slice(0, LATEST_WORDS_KEPT),
     stack: null,
     browser: null,
   });

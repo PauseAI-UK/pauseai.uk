@@ -6,6 +6,7 @@
 
 import type { AddressSearch } from "@/lib/import-runs";
 import { count, plural } from "@/lib/content/plural";
+import { defineProblems, listed, type SafeText } from "@/lib/problems";
 
 /** What a CiviCRM import run sent CiviCRM before it pulled, at the start of its line. */
 const sentToCivicrm = (u: { sent: number; refused: number; unanswered: number }): string =>
@@ -212,8 +213,6 @@ export const jobsCopy = {
     never: "Not imported yet.",
     result: (r: { supporters: number; matched: number; added: number; removed: number }) =>
       `${r.supporters} supporters, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
-    // A problem of the run: links on the page to politicians we don't have, which follow.
-    unmatched: "Supporters on ControlAI's page we couldn't find here:",
   },
   // The nightly import of the superintelligence EDM's signers (lib/jobs/edm-import.server.ts).
   edm: {
@@ -232,24 +231,32 @@ export const jobsCopy = {
     never: "Not imported yet.",
     result: (r: { signers: number; matched: number; added: number; removed: number }) =>
       `${r.signers} signers, ${r.matched} found here; ${r.added} added, ${r.removed} removed.`,
-    // A problem of the run: signers we don't have, by name and Parliament's ID, which follow.
-    unmatched: "Signers of EDM 1133 we couldn't find here:",
-  },
-  // What went wrong without stopping a job's work (lib/server/problems.server.ts): each on the job's run, so on
-  // its page and in the email, as something the job carried on past.
-  problems: {
-    // The Gmail read: Gmail errored or refused for a connected account, so its new mail wasn't read this time.
-    couldntRead: (account: string) => `Gmail gave errors or refused connection, or our internal error, for ${account}`,
-    // The Gmail read: the mailbox was read, but Gmail wouldn't give the account's name.
-    nameUnknown: (account: string) => `Couldn't fetch name of ${account} from Gmail`,
-    // The Gmail read: mail in the letters inbox that couldn't be matched to anything, so a person must look. How many follows.
-    notUnderstood: "Messages in the letters inbox that couldn't be matched, so need a person to look at:",
-    // The CiviCRM import: a pull came back much shorter than the last, so nobody was taken as gone from the
-    // chapter, in case it's CiviCRM's mistake. The counts follow; Global should be told.
-    civicrmTooFew: "CiviCRM returned far fewer contacts than last time, so nobody was marked gone. Tell Global:",
-    // The CiviCRM import: some contacts' phone numbers couldn't be read as numbers, so they came in without them.
-    // How many follows.
-    civicrmNumbersUnread:
-      "Some contacts' phone numbers were badly formatted, so they were imported without them. Fix them in CiviCRM:",
   },
 };
+
+// What went wrong on a job's run without stopping it (lib/problems.ts), so on its page and in the email.
+export const jobProblems = defineProblems("jobs", {
+  // The Gmail read: Gmail errored or refused for a connected account, so its new mail wasn't read this time.
+  couldntRead: (p: { account: SafeText }) =>
+    `Gmail gave errors or refused connection, or our internal error, for ${p.account}`,
+  // The Gmail read: the mailbox was read, but Gmail wouldn't give the account's name.
+  nameUnknown: (p: { account: SafeText }) => `Couldn't fetch name of ${p.account} from Gmail`,
+  // The Gmail read: mail in the letters inbox that couldn't be matched to anything, so a person must look, and
+  // how many.
+  notUnderstood: (p: { count: number }) =>
+    `Messages in the letters inbox that couldn't be matched, so need a person to look at: ${p.count}`,
+  // The CiviCRM import: a pull came back much shorter than the last, so nobody was taken as gone from the
+  // chapter, in case it's CiviCRM's mistake, with the counts; Global should be told.
+  civicrmTooFew: (p: { returned: number; before: number }) =>
+    `CiviCRM returned far fewer contacts than last time, so nobody was marked gone. Tell Global: ${p.returned} returned, ${p.before} before`,
+  // The CiviCRM import: some contacts' phone numbers couldn't be read as numbers, so they came in without them,
+  // and how many.
+  civicrmNumbersUnread: (p: { count: number }) =>
+    `Some contacts' phone numbers were badly formatted, so they were imported without them. Fix them in CiviCRM: ${p.count}`,
+  // ControlAI's statement's import: links on the page to politicians we don't have.
+  controlAiUnmatched: (p: { supporters: readonly SafeText[] }) =>
+    `Supporters on ControlAI's page we couldn't find here: ${listed(p.supporters)}`,
+  // The EDM's import: signers we don't have, by name and Parliament's ID.
+  edmUnmatched: (p: { signers: readonly SafeText[] }) =>
+    `Signers of EDM 1133 we couldn't find here: ${listed(p.signers)}`,
+});

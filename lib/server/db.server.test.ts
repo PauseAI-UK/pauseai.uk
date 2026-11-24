@@ -93,7 +93,7 @@ describeWithDatabase("the database", () => {
       await closeDb();
       terminate(await pid());
       await vi.waitFor(() =>
-        expect(warning).toHaveBeenCalledWith(serverCopy.problems.logs.connectionDropped, expect.any(String)),
+        expect(warning).toHaveBeenCalledWith(serverCopy.notes.connectionDropped, expect.any(String)),
       );
       expect(await query("SELECT 1 AS one")).toEqual([{ one: 1 }]);
     } finally {

@@ -27,7 +27,8 @@ import {
 } from "./one-off-emails.server";
 import { gmailMessageHeaders, type GmailMessageHeaders } from "@/lib/server/outside-services/gmail.server";
 import { politicianBook } from "./book.server";
-import { lettersCopy } from "./copy";
+import { letterProblems, lettersCopy } from "./copy";
+import { outsideId } from "@/lib/problems";
 
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 const POLLY = "polly.placeholder.mp@parliament.uk";
@@ -476,7 +477,7 @@ describeWithDatabase("one-off emails", () => {
         expect(await josephs("m3")).toBe("kept");
         expect(await keptIds()).toEqual(["m3"]);
         expect(logged).toHaveBeenCalledTimes(1);
-        expect(logged).toHaveBeenCalledWith(lettersCopy.problems.unreadable, "m2");
+        expect(logged).toHaveBeenCalledWith(letterProblems.unreadable({ message: outsideId("m2") }).what);
         failing("m1", 500);
         await expect(josephs("m3")).rejects.toThrow();
         logged.mockRestore();

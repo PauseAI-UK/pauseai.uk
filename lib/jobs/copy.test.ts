@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
-import { jobsCopy } from "./copy";
+import { jobProblems, jobsCopy } from "./copy";
+import { staffAccount } from "@/lib/problems";
 
 it("counts the errors a night's tidying deleted, none for a run kept from before it did", () => {
   const counts = { importRuns: 12, auditEntries: 3, drafts: 4 };
@@ -26,7 +27,7 @@ it("says what a sending run did with broadcasts, when it has them", () => {
 });
 
 it("names the account in a Gmail read's problems", () => {
-  for (const words of [jobsCopy.problems.couldntRead, jobsCopy.problems.nameUnknown]) {
-    expect(words("jo@pauseai.uk")).toContain("jo@pauseai.uk");
+  for (const said of [jobProblems.couldntRead, jobProblems.nameUnknown]) {
+    expect(said({ account: staffAccount("jo@pauseai.uk") }).what).toContain("jo@pauseai.uk");
   }
 });

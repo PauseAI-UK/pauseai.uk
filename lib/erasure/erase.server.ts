@@ -10,7 +10,7 @@ import { eraseFromSavedFilters } from "@/lib/server/saved-filters.server";
 import { refreshSupportersList } from "@/lib/supporters/facts.server";
 import { problem } from "@/lib/server/problems.server";
 import type { EraseLeftover } from "@/lib/staff-search";
-import { erasureCopy } from "./copy";
+import { erasureProblems } from "./copy";
 
 // Erasing a supporter, when they ask to be forgotten: for each source,
 // what that source holds about them goes. A form entry goes with its letter,
@@ -211,7 +211,7 @@ async function leftOver(what: EraseLeftover, clear: () => Promise<void>): Promis
     await clear();
     return [];
   } catch (error) {
-    problem(`${erasureCopy.erase.partly} ${erasureCopy.erase.notCleared[what]}`, error);
+    problem(erasureProblems.notCleared({ what }), error);
     return [what];
   }
 }

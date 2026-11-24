@@ -9,7 +9,8 @@ import { importControlAiStatement } from "./controlai-statement-import.server";
 import { query } from "@/lib/server/db.server";
 import { listRuns } from "@/lib/server/import-runs.server";
 import { importPoliticians } from "@/lib/politicians/imports.server";
-import { jobsCopy } from "./copy";
+import { jobProblems } from "./copy";
+import { publicText } from "@/lib/problems";
 
 const signed = () =>
   query<{ name: string; by: string }>(
@@ -74,9 +75,8 @@ describeWithDatabase("importControlAiStatement", () => {
     expect(result).toMatchObject({ matched: 4, added: 2, removed: 3 });
     expect(result.unmatched).toEqual(["https://members.parliament.uk/member/99999/contact"]);
     const [run] = (await listRuns("import-controlai-statement")) as ControlAiStatementImport[];
-    expect(run.problems).toEqual([
-      expect.objectContaining({ what: jobsCopy.controlAiStatement.unmatched, error: result.unmatched[0] }),
-    ]);
+    expect(run.problems).toEqual([jobProblems.controlAiUnmatched({ supporters: result.unmatched.map(publicText) })]);
+    expect(run.problems[0].what).toContain(result.unmatched[0]);
   });
 
   it("changes nothing when the page links to too few, as its shape must have changed", async () => {

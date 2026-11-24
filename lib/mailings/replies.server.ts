@@ -3,17 +3,16 @@ import { named } from "@/lib/email-parsing/addresses";
 import { answerSubject } from "@/lib/email-parsing/subjects";
 import { gmailAccess } from "@/lib/email/gmail-accounts.server";
 import { send } from "@/lib/email/sending.server";
-import { emailCopy } from "@/lib/email/copy";
+import { sendWithCare } from "@/lib/email/send-with-care.server";
 import { checkDoc, isBlank, toHtml, toText } from "@/lib/letters/format";
 import { keepReply } from "@/lib/letters/replies.server";
 import { logChange } from "@/lib/server/audit.server";
 import { config } from "@/lib/server/config.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { gmailMessageHeaders } from "@/lib/server/outside-services/gmail.server";
-import { problem } from "@/lib/server/problems.server";
 import { replyToCheck } from "@/lib/letters/copy-states";
 import type { AnswerResult } from "./answers";
-import { mailingsCopy } from "./copy";
+import { mailingProblems } from "./copy";
 
 // What staff do with a politician's reply to a mailing's letter, on the
 // letter's page. A reply waits for them (replyToCheck in
@@ -131,50 +130,53 @@ export async function answerLetterReply(
   const thread = [reply.letterMessageId, reply.rfcMessageId]
     .filter((id): id is string => Boolean(id))
     .map((id) => `<${id}>`);
-  let result: Awaited<ReturnType<typeof send>>;
-  try {
-    result = await send(
-      {
-        From: named(reply.fromName, reply.account),
-        To: named(reply.toName || null, reply.to),
-        Subject: answerSubject(reply.subject),
-        TextBody: toText(doc),
-        HtmlBody: toHtml(doc),
-        Headers: thread.length
-          ? [
-              { Name: "In-Reply-To", Value: thread.at(-1)! },
-              { Name: "References", Value: thread.join(" ") },
-            ]
-          : [],
-      },
-      "mailing-answer",
-      reply.letterId,
-      { backend: { name: "gmail", account: reply.account }, threadId: reply.threadId },
-    );
-  } catch (error) {
-    // Nothing went (send never throws after it has): gone, so it can be sent again.
-    await query("DELETE FROM letter_answers WHERE id = $1", [answer.id]);
-    problem(emailCopy.problems.notSentYet(mailingsCopy.answers.answerTo(replyId)), error);
-    return { sent: false, reason: "failed" };
-  }
-  if (!result.sent) {
-    await query("DELETE FROM letter_answers WHERE id = $1", [answer.id]);
-    return { sent: false, reason: result.reason };
-  }
-  await logChange(by, "answer letter reply", { replyId, letterId: reply.letterId, answerId: answer.id });
-  try {
-    const token = await gmailAccess(reply.account);
-    await keepReply(reply.account, token, reply.letterId, await gmailMessageHeaders(token, result.id, KEPT_HEADERS), {
-      fromUs: true,
-    });
-    await query(
-      `UPDATE letter_answers a SET kept_id = r.id FROM letter_replies r
-       WHERE a.id = $1 AND r.account = $2 AND r.gmail_message_id = $3`,
-      [answer.id, reply.account, result.id],
-    );
-  } catch (error) {
-    // It went, but isn't on the letter, so the reply still waits, and staff are told to check before sending again.
-    problem(emailCopy.problems.sentUnrecorded(mailingsCopy.answers.answerTo(replyId)), error);
-  }
-  return { sent: true };
+  const gone = () => query("DELETE FROM letter_answers WHERE id = $1", [answer.id]);
+  const result = await sendWithCare<{ id: string }, Extract<AnswerResult, { sent: false }>>({
+    problems: {
+      notSentYet: mailingProblems.answerNotSentYet({ reply: replyId }),
+      sentUnrecorded: mailingProblems.answerSentUnrecorded({ reply: replyId }),
+    },
+    send: async () => {
+      const sent = await send(
+        {
+          From: named(reply.fromName, reply.account),
+          To: named(reply.toName || null, reply.to),
+          Subject: answerSubject(reply.subject),
+          TextBody: toText(doc),
+          HtmlBody: toHtml(doc),
+          Headers: thread.length
+            ? [
+                { Name: "In-Reply-To", Value: thread.at(-1)! },
+                { Name: "References", Value: thread.join(" ") },
+              ]
+            : [],
+        },
+        "mailing-answer",
+        reply.letterId,
+        { backend: { name: "gmail", account: reply.account }, threadId: reply.threadId },
+      );
+      if (sent.sent) return { went: sent };
+      await gone();
+      return { unsent: { sent: false, reason: sent.reason } };
+    },
+    // It went: if it can't be put on the letter, the reply still waits, and staff are told to check before sending again.
+    record: async (sent) => {
+      await logChange(by, "answer letter reply", { replyId, letterId: reply.letterId, answerId: answer.id });
+      const token = await gmailAccess(reply.account);
+      await keepReply(reply.account, token, reply.letterId, await gmailMessageHeaders(token, sent.id, KEPT_HEADERS), {
+        fromUs: true,
+      });
+      await query(
+        `UPDATE letter_answers a SET kept_id = r.id FROM letter_replies r
+         WHERE a.id = $1 AND r.account = $2 AND r.gmail_message_id = $3`,
+        [answer.id, reply.account, sent.id],
+      );
+    },
+    // Nothing went: gone, so it can be sent again.
+    putBack: async () => {
+      await gone();
+      return { sent: false, reason: "failed" };
+    },
+  });
+  return result.sent ? { sent: true } : result;
 }

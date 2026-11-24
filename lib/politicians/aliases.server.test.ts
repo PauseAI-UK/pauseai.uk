@@ -12,7 +12,7 @@ import {
   removePoliticianAddress,
   searchAddedAddresses,
 } from "./aliases.server";
-import { politiciansCopy } from "./copy";
+import { politicianProblems } from "./copy";
 
 const GMAIL = "https://gmail.googleapis.com/gmail/v1/users/me";
 
@@ -294,7 +294,7 @@ describeWithDatabase("a politician's aliases", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await searchAddedAddresses(LATER())).toEqual({ searched: 0, kept: 1, waiting: 2 });
     expect(error).toHaveBeenCalledWith(
-      politiciansCopy.problems.addressNotSearched("polly.personal@example.com"),
+      politicianProblems.addressNotSearched({ politician: polly.id }).what,
       expect.stringContaining("Quota exceeded"),
     );
     error.mockRestore();
@@ -330,7 +330,7 @@ describeWithDatabase("a politician's aliases", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await searchAddedAddresses(LATER())).toMatchObject({ searched: 1, waiting: 0 });
     expect(error).toHaveBeenCalledWith(
-      politiciansCopy.problems.addressNotSearched("polly.personal@example.com"),
+      politicianProblems.addressNotSearched({ politician: polly.id }).what,
       expect.anything(),
     );
     error.mockRestore();

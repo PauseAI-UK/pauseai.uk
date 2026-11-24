@@ -6,7 +6,8 @@ import { query, type Queryable } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { applyEventTag, listEventTags } from "@/lib/server/outside-services/luma-calendar.server";
 import { problem } from "@/lib/server/problems.server";
-import { eventsCopy } from "./copy";
+import { eventProblems, eventsCopy } from "./copy";
+import { publicText } from "@/lib/problems";
 
 // Tags our upcoming events on Luma, during the Luma import. Each event is
 // settled once: tagged if it's clear which of the calendar's tags it should
@@ -50,7 +51,7 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
     calendarTags = await listEventTags();
     done.requests++;
   } catch (error) {
-    problem(eventsCopy.problems.lumaTagsUnread, error);
+    problem(eventProblems.lumaTagsUnread(), error);
     return done;
   }
   for (const event of events) {
@@ -64,7 +65,7 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
           await applyEventTag(tag, event.id);
         }
       } catch (error) {
-        problem(eventsCopy.problems.lumaTagRefused(event.name), error);
+        problem(eventProblems.lumaTagRefused({ event: publicText(event.name) }), error);
         continue;
       }
       done.tagged++;

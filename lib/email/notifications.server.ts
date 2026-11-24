@@ -6,7 +6,7 @@ import { sendWith, type Purpose, type SendHooks } from "./email.server";
 import { nameLine, notifyDomain } from "@/lib/server/outside-services/postmark.server";
 import { problem } from "@/lib/server/problems.server";
 import { staffAddressLine } from "./staff-address.server";
-import { emailCopy } from "./copy";
+import { emailCopy, emailProblems } from "./copy";
 
 // Emails to the notification inbox (NOTIFICATION_INBOX): something on the
 // site needs a person. An MP's address bouncing, mail in the letters inbox
@@ -55,7 +55,7 @@ export async function notifyStaff(
 ): Promise<boolean> {
   const inbox = config.notificationInbox;
   if (!inbox) {
-    problem(emailCopy.problems.noInbox);
+    problem(emailProblems.noInbox());
     return false;
   }
   const to = nameLine(emailCopy.inboxNames.notifications, inbox);

@@ -11,7 +11,8 @@ import { fetchStatement } from "@/lib/server/outside-services/controlai.server";
 import { problem } from "@/lib/server/problems.server";
 import { now } from "@/lib/now";
 import { londonDayTime } from "@/lib/staff-time";
-import { jobsCopy } from "./copy";
+import { jobProblems } from "./copy";
+import { publicText } from "@/lib/problems";
 
 // Copies the supporters of ControlAI's statement into the statuses of its
 // ask (CONTROLAI_STATEMENT_ASK), nightly (/api/cron/import-controlai-statement)
@@ -105,7 +106,9 @@ export async function importControlAiStatement(startedBy: string): Promise<Contr
         unmatched,
       } satisfies ControlAiStatementResult;
     });
-    if (result.unmatched.length > 0) problem(jobsCopy.controlAiStatement.unmatched, result.unmatched.join(", "));
+    if (result.unmatched.length > 0) {
+      problem(jobProblems.controlAiUnmatched({ supporters: result.unmatched.map(publicText) }));
+    }
     return { status: "ok", result } as const;
   });
   return result;

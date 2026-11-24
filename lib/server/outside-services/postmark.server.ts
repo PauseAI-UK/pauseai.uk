@@ -2,6 +2,8 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import { randomUUID } from "node:crypto";
 import { saveToOutbox } from "@/lib/server/fixtures/outbox";
+import { bareAddress } from "@/lib/email-parsing/addresses";
+import { kindOfStatus, OutsideFailure } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { fieldText, readJsonIfAny } from "../json.server";
 import { note } from "../problems.server";
@@ -64,17 +66,34 @@ export type Email = {
   Tag?: string;
 };
 
-export class PostmarkError extends Error {
+/**
+ * The addresses a refusal of Postmark's names as inactive, bare. Its answer
+ * has them only in its message ("Found inactive addresses: a@x.org,
+ * b@y.org."), with no field for them
+ * (https://postmarkapp.com/developer/api/overview#error-codes).
+ */
+function inactiveIn(message: string): string[] {
+  const list = /Found inactive addresses: (.*?)\.(?:\s|$)/.exec(message)?.[1] ?? "";
+  return list
+    .split(",")
+    .map((each) => bareAddress(each))
+    .filter(Boolean);
+}
+
+/**
+ * Postmark failing: `code` is its ErrorCode and `said` its Message, where
+ * it answered with them. With no status, nothing was asked, as the site's
+ * token isn't set, which is unauthorised.
+ */
+export class PostmarkError extends OutsideFailure {
   /** Postmark refused because the address is suppressed: it bounced or complained before. */
   readonly inactive: boolean;
-  constructor(
-    message: string,
-    code?: number,
-    /** The HTTP status Postmark answered with, if it answered. */
-    readonly status?: number,
-  ) {
-    super(message);
+  /** The suppressed addresses its refusal names, which may be a Cc rather than the To; none if it names none. */
+  readonly inactiveAddresses: string[];
+  constructor(message: string, code?: number, status = 0, said = "") {
+    super("postmark", status ? kindOfStatus(status) : "unauthorised", { status, serviceCode: code, said, message });
     this.inactive = code === INACTIVE_RECIPIENT;
+    this.inactiveAddresses = this.inactive ? inactiveIn(said) : [];
   }
 }
 
@@ -122,7 +141,7 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
     return randomUUID();
   }
   if (!token && !fixtures) throw new PostmarkError("POSTMARK_SERVER_TOKEN is not set");
-  const res = await outsideFetch(SEND_URL, {
+  const res = await outsideFetch("postmark", SEND_URL, {
     method: "POST",
     // The fixture Postmark (DATA_FIXTURES=1) doesn't check the token.
     headers: {
@@ -138,6 +157,7 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
       `Postmark refused the email: ${res.status} ${fieldText(result.ErrorCode)} ${fieldText(result.Message)}`.trim(),
       result.ErrorCode as number | undefined,
       res.status,
+      fieldText(result.Message),
     );
   }
   log(
@@ -167,7 +187,7 @@ export async function unsuppress(address: string): Promise<void> {
   }
   if (!token && !fixtures) throw new PostmarkError("POSTMARK_SERVER_TOKEN is not set");
   for (const stream of Object.values(STREAMS)) {
-    const res = await outsideFetch(unsuppressUrl(stream), {
+    const res = await outsideFetch("postmark", unsuppressUrl(stream), {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -177,7 +197,7 @@ export async function unsuppress(address: string): Promise<void> {
       body: JSON.stringify({ Suppressions: [{ EmailAddress: address }] }),
     });
     if (!res.ok && !(stream === STREAMS.broadcast && (await noSuchStream(res)))) {
-      throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`);
+      throw new PostmarkError(`Postmark refused to unsuppress the address: ${res.status}`, undefined, res.status);
     }
   }
 }

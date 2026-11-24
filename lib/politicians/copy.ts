@@ -3,7 +3,8 @@
 // the imports of each body's members, and the problems finding an MP and
 // searching for an address report. The staff pages' own are in
 // app/(staff)/staff/_components/politicians/copy.ts.
-import type { Body } from "./import-changes";
+import type { Body, Honour } from "./import-changes";
+import { defineProblems, listed, type SafeText } from "@/lib/problems";
 import { count, plural } from "@/lib/content/plural";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 
@@ -343,22 +344,6 @@ export const politiciansCopy = {
     noEmail: "None",
     apply: "Apply",
     discard: "Discard",
-    // A problem of the run: Wikidata couldn't be asked, so new MSPs' or MSs' salutations are their names until the next run.
-    genderLookupFailed: "Couldn't ask Wikidata for new members' genders, so their salutations are their names for now",
-    // A problem of Parliament's import: constituencies with two MPs in office, which follow, so a postcode there finds the wrong one.
-    twoMps: "Constituencies with two MPs in office:",
-    // A problem of an import: a salutation staff set by hand, which the import keeps, unlike the one the title their body records makes.
-    keptSalutation: (name: string, ours: string, body: Body, theirs: string) =>
-      `${name}: staff set ${ours}; ${bodyNames[body]} records ${theirs}`,
-    // A problem of an import: a salutation that doesn't spell its politician's name as the name is written, case and
-    // all, such as a slip in typing.
-    misspeltSalutation: (name: string, salutation: string) =>
-      `${name}: the salutation ${salutation} doesn't spell the name as it's written`,
-    // A problem of an import: Wikidata says a politician is Sir or Dame, and their salutation doesn't.
-    missingHonour: (name: string, salutation: string, honour: string) =>
-      `${name}: Wikidata says ${honour}, but the salutation is ${salutation}`,
-    // A problem of the run: Wikidata couldn't be asked who's Sir or Dame, so no salutation was checked for it.
-    honourLookupFailed: "Couldn't ask Wikidata who's Sir or Dame, so no salutation was checked for it",
   },
   // Whether a notable person is in office: the shared words, as asks' pages say it too.
   personStatuses: staffVocabulary.personStatuses,
@@ -371,13 +356,34 @@ export const politiciansCopy = {
         `${job} would change ${changes} politicians, so it's held until someone checks it. Review it, then apply or discard it:\n\n${link}`,
     },
   },
-  // What went wrong without stopping the work (lib/server/problems.server.ts).
-  problems: {
-    // On the Gmail read's run, so on its page and in the email: searching the mailboxes for an address staff added
-    // to a politician's failed, so its earlier mail may not be kept.
-    addressNotSearched: (address: string) => `Couldn't search policy@ and Joseph's inbox for ${address}`,
-    // No job reaches this: it's kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and emailed to
-    // staff. A visitor looking up their MP is told it failed.
-    mpLookupFailed: "The MP lookup failed",
-  },
 };
+
+// What went wrong without stopping the work (lib/problems.ts). All but mpLookupFailed are on a job's run, so on its
+// page and in the email. A politician's name, salutation and constituency are public.
+export const politicianProblems = defineProblems("politicians", {
+  // On the Gmail read's run: searching the mailboxes for an address staff added to a politician failed, so its
+  // earlier mail may not be kept. The politician is named by their ID here, as the address may be a person's own.
+  addressNotSearched: (p: { politician: number }) =>
+    `Couldn't search policy@ and Joseph's inbox for an address added to politician ${p.politician}`,
+  // No job reaches this: it's kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and emailed
+  // to staff. A visitor looking up their MP is told it failed.
+  mpLookupFailed: "The MP lookup failed",
+  // An import: Wikidata couldn't be asked, so new MSPs' or MSs' salutations are their names until the next run.
+  genderLookupFailed: "Couldn't ask Wikidata for new members' genders, so their salutations are their names for now",
+  // Parliament's import: constituencies with two MPs in office, so a postcode there finds the wrong one.
+  twoMps: (p: { constituencies: readonly SafeText[] }) =>
+    `Constituencies with two MPs in office: ${listed(p.constituencies)}`,
+  // An import: a salutation staff set by hand, which the import keeps, unlike the one the title their body records
+  // makes.
+  keptSalutation: (p: { name: SafeText; ours: SafeText; body: Body; theirs: SafeText }) =>
+    `${p.name}: staff set ${p.ours}; ${bodyNames[p.body]} records ${p.theirs}`,
+  // An import: a salutation that doesn't spell its politician's name as the name is written, case and all, such as
+  // a slip in typing.
+  misspeltSalutation: (p: { name: SafeText; salutation: SafeText }) =>
+    `${p.name}: the salutation ${p.salutation} doesn't spell the name as it's written`,
+  // An import: Wikidata says a politician is Sir or Dame, and their salutation doesn't.
+  missingHonour: (p: { name: SafeText; salutation: SafeText; honour: Honour }) =>
+    `${p.name}: Wikidata says ${p.honour}, but the salutation is ${p.salutation}`,
+  // An import: Wikidata couldn't be asked who's Sir or Dame, so no salutation was checked for it.
+  honourLookupFailed: "Couldn't ask Wikidata who's Sir or Dame, so no salutation was checked for it",
+});

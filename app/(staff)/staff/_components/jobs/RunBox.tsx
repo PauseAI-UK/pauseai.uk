@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { staffMemberText } from "@/lib/staff-member";
 import { type AnyImportRun, NEWER_RUN, NIGHTLY, runStatus, runTone } from "@/lib/import-runs";
+import { problemSaid } from "@/lib/problems";
 import { staffClock, staffTime } from "@/lib/staff-time";
 import Actions from "@/components/ui/Actions";
 import { Muted } from "@/components/ui/Text";
@@ -79,12 +80,15 @@ export default function RunBox({ run, summary, open, actions, variant = "row", c
               : jobsCopy.runs.decidedBy(staffMemberText(run.decidedBy))}
           </Muted>
         )}
-        {run.problems.map((p, i) => (
-          <span key={i} className={styles.problem}>
-            {p.what}
-            {p.error && <Muted> {p.error}</Muted>}
-          </span>
-        ))}
+        {run.problems.map((p, i) => {
+          const said = problemSaid(p);
+          return (
+            <span key={i} className={styles.problem}>
+              {p.what}
+              {said && <Muted> {said}</Muted>}
+            </span>
+          );
+        })}
       </span>
     </>
   );

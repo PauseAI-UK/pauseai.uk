@@ -13,7 +13,7 @@ import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 import { oversightCopy } from "@/lib/oversight/copy";
 
 export const section: Section = { name: "Errors", part: "Staff pages", order: 135 };
@@ -202,7 +202,7 @@ test("The spam check can't be reached", async ({ page, flowDatabase }) => {
   await frame(page, "What Jane is told");
 
   story("The notification inbox is emailed about it, once.");
-  const words = serverCopy.problems.logs.turnstileDown;
+  const words = serverProblems.turnstileDown().what;
   const email = await notified(errors.email.server.subject(words));
   await emailFrame(page, email, "The email to the notification inbox");
 

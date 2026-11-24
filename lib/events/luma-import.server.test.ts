@@ -7,8 +7,9 @@ import { server } from "@/tests/fixtures/msw";
 import { startRunning } from "@/lib/server/import-runs.server";
 import { ANOTHER_RUNNING, runJob } from "@/lib/jobs/jobs.server";
 import { importLuma } from "./luma-import.server";
-import { eventsCopy } from "./copy";
-import { supportersCopy } from "@/lib/supporters/copy";
+import { eventProblems } from "./copy";
+import { outsideId } from "@/lib/problems";
+import { supporterProblems } from "@/lib/supporters/copy";
 
 const API = "https://public-api.luma.com/v1";
 
@@ -177,7 +178,7 @@ describeWithDatabase("importLuma", () => {
       { id: "gst-2", phone: null },
     ]);
     expect(await query("SELECT problems FROM import_runs")).toEqual([
-      { problems: [{ what: eventsCopy.problems.numbersUnread, error: "1 on event evt-live" }] },
+      { problems: [eventProblems.numbersUnread({ unread: 1, event: outsideId("evt-live") })] },
     ]);
   });
 
@@ -806,7 +807,7 @@ describeWithDatabase("importLuma", () => {
     await importLuma("jo@pauseai.uk");
     const [latest] = await query<{ problems: unknown }>("SELECT problems FROM import_runs ORDER BY id DESC LIMIT 1");
     expect(latest.problems).toEqual([
-      { what: supportersCopy.problems.lumaRemoveFailed, error: "Luma answered 500 for /v1/calendars/contacts/remove" },
+      { ...supporterProblems.lumaRemoveFailed(), said: "Luma answered 500 for /v1/calendars/contacts/remove" },
     ]);
   });
 

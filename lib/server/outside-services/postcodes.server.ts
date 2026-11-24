@@ -2,8 +2,9 @@ import "server-only";
 import { constituencyName } from "@/lib/politicians/constituencies";
 import type { Place } from "@/lib/site-events";
 import { outsideFetch } from "./outside-fetch.server";
-import { problem } from "../problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { orFallback } from "./fallback.server";
+import { outsideJson, refusal } from "./outside-failure.server";
+import { serverProblems } from "@/lib/server/copy";
 
 // postcodes.io: the UK's open postcode API, no key needed. It gives the
 // constituency's name and its official code; we take the official name for
@@ -22,11 +23,11 @@ function constituencyOf(result: Record<string, unknown> | undefined): string | n
 }
 
 export async function constituencyForPostcode(postcode: string): Promise<ConstituencyResult> {
-  try {
-    const res = await outsideFetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
+  return orFallback(serverProblems.postcodesDown(), { ok: false, reason: "failed" }, async () => {
+    const res = await outsideFetch("postcodes", `https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
     if (res.status === 404) return { ok: false, reason: "not_found" };
     if (!res.ok) return { ok: false, reason: "failed" };
-    const data = await res.json();
+    const data = await outsideJson("postcodes", res);
     const constituency = constituencyOf(data?.result);
     if (!constituency) return { ok: false, reason: "no_constituency" };
     const { latitude, longitude } = data.result;
@@ -36,10 +37,7 @@ export async function constituencyForPostcode(postcode: string): Promise<Constit
       constituency,
       ...(place && { place }),
     };
-  } catch (error) {
-    problem(serverCopy.problems.logs.postcodesDown, error);
-    return { ok: false, reason: "failed" };
-  }
+  });
 }
 
 export type PostcodePlaceResult =
@@ -53,21 +51,18 @@ export type PostcodePlaceResult =
  */
 export async function placeForPostcode(postcode: string): Promise<PostcodePlaceResult> {
   const code = postcode.trim();
-  try {
+  return orFallback(serverProblems.postcodesDown(), { ok: false, reason: "failed" }, async () => {
     const full = await placeAt(`postcodes/${encodeURIComponent(code)}`, code);
     if (full.ok || full.reason === "failed") return full;
     return await placeAt(`outcodes/${encodeURIComponent(code)}`, code);
-  } catch (error) {
-    problem(serverCopy.problems.logs.postcodesDown, error);
-    return { ok: false, reason: "failed" };
-  }
+  });
 }
 
 async function placeAt(path: string, code: string): Promise<PostcodePlaceResult> {
-  const res = await outsideFetch(`https://api.postcodes.io/${path}`);
+  const res = await outsideFetch("postcodes", `https://api.postcodes.io/${path}`);
   if (res.status === 404) return { ok: false, reason: "not_found" };
   if (!res.ok) return { ok: false, reason: "failed" };
-  const result = (await res.json())?.result;
+  const result = (await outsideJson("postcodes", res))?.result;
   const { latitude, longitude } = result ?? {};
   if (typeof latitude !== "number" || typeof longitude !== "number") return { ok: false, reason: "not_found" };
   const district = [result.admin_district].flat()[0];
@@ -108,13 +103,14 @@ export const POSTCODES_AT_ONCE = 100;
  * fails, so nothing is recorded as unknown that wasn't.
  */
 export async function placesForPostcodes(postcodes: string[]): Promise<Map<string, FoundPlace | null>> {
-  const res = await outsideFetch("https://api.postcodes.io/postcodes", {
+  const res = await outsideFetch("postcodes", "https://api.postcodes.io/postcodes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ postcodes }),
   });
-  if (!res.ok) throw new Error(`postcodes.io returned ${res.status}`);
-  const results: { query: string; result: Record<string, unknown> | null }[] = (await res.json()).result;
+  if (!res.ok) throw refusal("postcodes", res);
+  const results: { query: string; result: Record<string, unknown> | null }[] = (await outsideJson("postcodes", res))
+    ?.result;
   return new Map(
     results.map(({ query, result }) => [
       query,
@@ -137,10 +133,10 @@ export async function placesForPostcodes(postcodes: string[]): Promise<Map<strin
  * know. It spans constituencies, so it has none. Throws if the request fails.
  */
 export async function placeForOutcode(outcode: string): Promise<FoundPlace | null> {
-  const res = await outsideFetch(`https://api.postcodes.io/outcodes/${encodeURIComponent(outcode)}`);
+  const res = await outsideFetch("postcodes", `https://api.postcodes.io/outcodes/${encodeURIComponent(outcode)}`);
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`postcodes.io returned ${res.status}`);
-  const result = (await res.json())?.result;
+  if (!res.ok) throw refusal("postcodes", res);
+  const result = (await outsideJson("postcodes", res))?.result;
   if (typeof result?.latitude !== "number" || typeof result?.longitude !== "number") return null;
   return {
     latitude: result.latitude,
@@ -158,9 +154,9 @@ export async function placeForOutcode(outcode: string): Promise<FoundPlace | nul
  * fails.
  */
 export async function placeNamed(name: string): Promise<FoundPlace | null> {
-  const res = await outsideFetch(`https://api.postcodes.io/places?q=${encodeURIComponent(name)}&limit=10`);
-  if (!res.ok) throw new Error(`postcodes.io returned ${res.status}`);
-  const places: Record<string, unknown>[] = (await res.json()).result ?? [];
+  const res = await outsideFetch("postcodes", `https://api.postcodes.io/places?q=${encodeURIComponent(name)}&limit=10`);
+  if (!res.ok) throw refusal("postcodes", res);
+  const places: Record<string, unknown>[] = (await outsideJson("postcodes", res))?.result ?? [];
   const best = places.find((p) => p.local_type === "City" || p.local_type === "Town") ?? places[0];
   if (!best || typeof best.latitude !== "number" || typeof best.longitude !== "number") return null;
   return {
@@ -180,10 +176,7 @@ export async function placeFor(text: string): Promise<FoundPlace | null | "faile
   const postcode = await placeForPostcode(text);
   if (postcode.ok) return { ...postcode.place, place: postcode.name, country: null };
   if (postcode.reason === "failed") return "failed";
-  try {
+  return orFallback(serverProblems.postcodesDown(), "failed", async () => {
     return await placeNamed(text.trim());
-  } catch (error) {
-    problem(serverCopy.problems.logs.postcodesDown, error);
-    return "failed";
-  }
+  });
 }

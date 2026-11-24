@@ -2,30 +2,26 @@ import "server-only";
 import { EDM_API, edmSigners, type EdmSigner } from "@/lib/asks/edm";
 import { memberUrl, parliamentEnding, parliamentMembers, parliamentMembersUrl } from "@/lib/politicians/parliament";
 import type { Ending, OfficialMember } from "@/lib/politicians/import-changes";
+import { refusal } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // Parliament's Members Data Platform and Members API, and its API for
 // motions, no key needed. lib/politicians/parliament.ts and lib/asks/edm.ts
 // know their paths and read their answers; this fetches them.
 
-// The Members API answers 429 when asked too much at once. Wait as it says
-// (Retry-After, in seconds), or longer each time, and try again.
+// The Members API answers 429 when asked too much at once: each request is
+// asked again, as outsideFetch does, up to this many times in all.
 const ATTEMPTS = 5;
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 async function getJson(url: string): Promise<unknown> {
-  for (let attempt = 1; ; attempt++) {
-    const res = await outsideFetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
-    // The Members Data Platform starts its JSON with a byte-order mark.
-    if (res.ok) return JSON.parse((await res.text()).replace(/^﻿/, ""));
-    if ((res.status !== 429 && res.status !== 503) || attempt === ATTEMPTS)
-      throw new Error(`${url} returned ${res.status}`);
-    const retryAfter = Number(res.headers.get("retry-after"));
-    await wait(
-      Number.isFinite(retryAfter) && res.headers.has("retry-after") ? retryAfter * 1000 : 1000 * 2 ** (attempt - 1),
-    );
-  }
+  const res = await outsideFetch("parliament", url, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    retries: ATTEMPTS - 1,
+  });
+  if (!res.ok) throw refusal("parliament", res, { asked: url });
+  // The Members Data Platform starts its JSON with a byte-order mark.
+  return JSON.parse((await res.text()).replace(/^﻿/, ""));
 }
 
 /** Every sitting member of both Houses, with their emails and websites, as Parliament lists them. */

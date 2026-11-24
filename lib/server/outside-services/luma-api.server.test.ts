@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { LumaRateLimited, LumaRefused, lumaList, lumaPost } from "./luma-api.server";
+import { LUMA_NOT_A_CONTACT, lumaList, lumaPost } from "./luma-api.server";
+import { OutsideFailure } from "./outside-failure.server";
 
 const LIST = "https://public-api.luma.com/v1/things/list";
 
@@ -48,13 +49,13 @@ describe("lumaList", () => {
     fetchSpy.mockRestore();
   });
 
-  it("throws LumaRateLimited on a 429, with Luma's retry-after or a minute", async () => {
+  it("says a 429 is a rate limit, with Luma's retry-after or a minute", async () => {
     server.use(http.get(LIST, () => new HttpResponse(null, { status: 429, headers: { "retry-after": "30" } })));
     await expect(lumaList("/v1/things/list", new URLSearchParams())).rejects.toMatchObject({ retryAfter: 30 });
     server.use(http.get(LIST, () => new HttpResponse(null, { status: 429 })));
     const error = await lumaList("/v1/things/list", new URLSearchParams()).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(LumaRateLimited);
-    expect(error).toMatchObject({ retryAfter: 60 });
+    expect(error).toBeInstanceOf(OutsideFailure);
+    expect(error).toMatchObject({ service: "luma", kind: "rate-limited", status: 429, retryAfter: 60 });
   });
 
   it("throws on any other answer that isn't ok, and without the key, without calling Luma", async () => {
@@ -68,7 +69,8 @@ describe("lumaList", () => {
         return HttpResponse.json({});
       }),
     );
-    await expect(lumaList("/v1/things/list", new URLSearchParams())).rejects.toThrow("LUMA_API_KEY is not set");
+    const unset = await lumaList("/v1/things/list", new URLSearchParams()).catch((e: unknown) => e);
+    expect(unset).toMatchObject({ kind: "unauthorised", status: 0, message: "LUMA_API_KEY is not set" });
     expect(called).toBe(false);
   });
 });
@@ -107,14 +109,22 @@ describe("lumaPost", () => {
   it("gives a refusal's status, and Luma's message when its answer has one", async () => {
     server.use(http.post(POST, () => HttpResponse.json({ message: "No such thing." }, { status: 404 })));
     const error = await lumaPost("/v1/things/do", {}).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(LumaRefused);
-    expect(error).toMatchObject({ status: 404, lumaMessage: "No such thing." });
+    expect(error).toBeInstanceOf(OutsideFailure);
+    expect(error).toMatchObject({ kind: "not-found", status: 404, said: "No such thing.", serviceCode: undefined });
     expect((error as Error).message).toBe("Luma answered 404 for /v1/things/do: No such thing.");
     server.use(http.post(POST, () => HttpResponse.json({ message: { text: "odd" } }, { status: 400 })));
     expect(await lumaPost("/v1/things/do", {}).catch((e: unknown) => e)).toMatchObject({
+      kind: "refused",
       status: 400,
-      lumaMessage: undefined,
+      said: undefined,
       message: "Luma answered 400 for /v1/things/do",
+    });
+    // A 404 whose message says the address isn't a contact has a code of its own, so nothing reads the message.
+    const notAContact = { message: "We couldn’t find that contact." };
+    server.use(http.post(POST, () => HttpResponse.json(notAContact, { status: 404 })));
+    expect(await lumaPost("/v1/things/do", {}).catch((e: unknown) => e)).toMatchObject({
+      kind: "not-found",
+      serviceCode: LUMA_NOT_A_CONTACT,
     });
   });
 });

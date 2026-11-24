@@ -825,6 +825,21 @@ order, alongside the others:
   in `tests/storyboard/fixtures.ts`), so two flows never share a letter or a
   link.
 
+- **Something failing, on purpose.** Fixture data never fails by itself,
+  so a flow that shows what happens when something does makes it fail:
+  - an outside service down: `failService(flowDatabase, host, FAILING_DIR)`
+    (`lib/server/fixtures/failing-services.ts`), from then on in that flow;
+  - a page that throws: a table it reads renamed in the flow's own
+    database, with `runSql`;
+  - a save whose request never arrives: `page.route()` aborting the POST
+    to the page's own address, where a Server Action is sent, and
+    `page.unroute()` when the connection is back;
+  - an error in the browser's own scripts: the fixture build's page that
+    breaks (`/broken`).
+
+  A step that ticks a box checks it wasn't ticked already: Playwright's
+  `check()` does nothing to one that is, and sends nothing.
+
 **Rules:**
 
 - Every new interactive behaviour goes in a flow, existing or new, with a
@@ -1426,7 +1441,12 @@ import("@/tests/next-headers"))` and put the session cookie in
   writes an error to the log by hand, and every job runs as a run of
   the import log (`docs/code-structure.md`, "Rules"). Three checks fail
   otherwise: `tests/checks/caught-errors.test.ts`, which names its few
-  exceptions, `problem-reporting.test.ts` and `cron-runs.test.ts`.
+  exceptions and the files with a catch of their own,
+  `problem-reporting.test.ts` and `cron-runs.test.ts`. Two more hold what
+  an error is known by: `declared-problems.test.ts`, each feature's
+  declared problems to one name a feature and to being reported, and
+  `error-text.test.ts`, that nothing decides what to do by an error's
+  words.
 - **Tests find elements the way a person does**: by role and accessible
   name, label or text (`getByRole`, `getByLabelText`, `getByText`), or by
   the attributes the markup has for its state (`aria-expanded`,

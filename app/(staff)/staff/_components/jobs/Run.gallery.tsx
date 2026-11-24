@@ -19,8 +19,9 @@ import {
 } from "./RunList.examples";
 import StaffPage from "../ui/StaffPage";
 import { type ImportJob, type PoliticianImportJob } from "@/lib/import-runs";
-import { jobsCopy } from "./copy";
 import { HeldImportExample } from "./Run.gallery.client";
+import { jobProblems } from "@/lib/jobs/copy";
+import { staffAccount } from "@/lib/problems";
 
 /** A body's import, as its page shows it: what it changed, and what relinking the one-off threads did. */
 const importRun = (job: PoliticianImportJob, label: string): Variant => ({
@@ -117,7 +118,7 @@ const RUNS: Record<ImportJob, Variant> = {
             { ...exampleCivicrmResult, contacts: 120, gone: 0, held: true },
             {
               id: 3,
-              problems: [{ what: jobsCopy.problems.civicrmTooFew, error: "120 returned, 1536 before" }],
+              problems: [jobProblems.civicrmTooFew({ returned: 120, before: 1536 })],
             },
           )}
         />
@@ -133,8 +134,8 @@ const RUNS: Record<ImportJob, Variant> = {
           run={exampleRun("read-gmail", exampleGmailResult, {
             problems: [
               {
-                what: jobsCopy.problems.couldntRead("jo@pauseai.uk"),
-                error: "Gmail answered 500 for /history",
+                ...jobProblems.couldntRead({ account: staffAccount("jo@pauseai.uk") }),
+                said: "Gmail answered 500 for /history",
               },
             ],
           })}
@@ -144,7 +145,7 @@ const RUNS: Record<ImportJob, Variant> = {
           run={exampleRun(
             "read-gmail",
             { accounts: [exampleLettersInboxRead] },
-            { id: 4, problems: [{ what: jobsCopy.problems.notUnderstood, error: "2", told: true }] },
+            { id: 4, problems: [{ ...jobProblems.notUnderstood({ count: 2 }), told: true }] },
           )}
           open
         />
@@ -156,8 +157,8 @@ const RUNS: Record<ImportJob, Variant> = {
               id: 3,
               problems: [
                 {
-                  what: jobsCopy.problems.couldntRead("al@pauseai.uk"),
-                  error: "Google refused the token request: 400 invalid_grant",
+                  ...jobProblems.couldntRead({ account: staffAccount("al@pauseai.uk") }),
+                  said: "Google refused the token request: 400 invalid_grant",
                   told: true,
                 },
               ],

@@ -24,7 +24,8 @@ import {
   sentBy,
 } from "./email.server";
 import { send } from "./sending.server";
-import { emailCopy } from "./copy";
+import { emailCopy, emailProblems } from "./copy";
+import { staffAccount } from "@/lib/problems";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
 const UNSUPPRESS = "https://api.postmarkapp.com/message-streams/:stream/suppressions/delete";
@@ -150,7 +151,7 @@ describeWithDatabase("send", () => {
     server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 300, Message: "Invalid" }, { status: 422 })));
     // What Postmark said, kept for the copy's tag.
     expect(await send(EMAIL, "staff-alert")).toEqual({ sent: false, reason: "failed", detail: expect.any(String) });
-    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("staff-alert"));
+    expect(error.mock.calls[0][0]).toBe(emailProblems.sendFailed({ purpose: "staff-alert" }).what);
     expect(await sends()).toMatchObject([{ outcome: "failed", messageId: null }]);
     expect(await isBlocked("jo@example.org")).toBe(false);
   });
@@ -351,7 +352,9 @@ describeWithDatabase("send by Gmail", () => {
       reason: "failed",
       detail: expect.any(String),
     });
-    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("mailing, by Gmail as jo@pauseai.uk"));
+    expect(error.mock.calls[0][0]).toBe(
+      emailProblems.sendFailedByGmail({ purpose: "mailing", account: staffAccount("jo@pauseai.uk") }).what,
+    );
     expect(await query("SELECT outcome, backend, sender, rfc_message_id FROM email_sends")).toEqual([
       { outcome: "failed", backend: "gmail", sender: "jo@pauseai.uk", rfc_message_id: null },
     ]);
@@ -394,7 +397,9 @@ describeWithDatabase("send by Gmail", () => {
       retry: true,
       detail: "No way to reach jo@pauseai.uk's Gmail",
     });
-    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sendFailed("mailing"));
+    expect(error.mock.calls[0][0]).toBe(
+      emailProblems.sendFailedByGmail({ purpose: "mailing", account: staffAccount("jo@pauseai.uk") }).what,
+    );
     expect(await query("SELECT outcome FROM email_sends")).toEqual([{ outcome: "failed" }]);
   });
 });

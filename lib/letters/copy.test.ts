@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { lettersCopy } from "./copy";
+import { letterProblems, lettersCopy } from "./copy";
 
 it("names a letter's page by whom it was from and to, and a supporter's letters' by who wrote them", () => {
   expect(lettersCopy.letters.oneTitle("Jane Smith", "Testy MP")).toContain("Jane Smith");
@@ -15,8 +15,18 @@ it("says which inbox the one-off emails are copied to", () => {
   expect(lettersCopy.allLetters.intro("policy@example.org")).toContain("policy@example.org");
 });
 
-it("names the letter a problem is about", () => {
-  expect(lettersCopy.problems.letterNotSent(7)).toContain("7");
+it("names the letter, copy, relay or message a problem is about, each with a code of its own", () => {
+  const said = [
+    letterProblems.letterNotSent({ letter: 7 }),
+    letterProblems.letterSentUnrecorded({ letter: 7 }),
+    letterProblems.copyNotSentYet({ letter: 7 }),
+    letterProblems.copySentUnrecorded({ letter: 7 }),
+    letterProblems.relayNotSentYet({ relay: 7 }),
+    letterProblems.relaySentUnrecorded({ relay: 7 }),
+  ];
+  for (const { what } of said) expect(what).toContain("7");
+  expect(new Set(said.map(({ what }) => what)).size).toBe(said.length);
+  expect(new Set(said.map(({ code }) => code)).size).toBe(said.length);
 });
 
 it("ends a bounced letter's reason with one full stop, whether Postmark's has one or not", () => {

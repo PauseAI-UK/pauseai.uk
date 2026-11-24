@@ -5,7 +5,8 @@ import { server } from "@/tests/fixtures/msw";
 import { notifications } from "@/tests/notifications";
 import { query } from "@/lib/server/db.server";
 import { LUMA_CALENDAR_MANAGE_URL, tagUpcomingEvents, unclearEventEmails } from "./tagging.server";
-import { eventsCopy } from "./copy";
+import { eventProblems, eventsCopy } from "./copy";
+import { publicText } from "@/lib/problems";
 
 const API = "https://public-api.luma.com/v1/calendars/event-tags";
 const CALENDAR_TAGS = ["Big events", "London", "Online", "Oxford"];
@@ -153,7 +154,9 @@ describeWithDatabase("tagging upcoming events", () => {
     const first = await tagUpcomingEvents();
     expect(first.tagged).toBe(0);
     expect(first.unclear).toHaveLength(1);
-    expect(errors.mock.calls.flat().join(" ")).toContain(eventsCopy.problems.lumaTagRefused("Refused"));
+    expect(errors.mock.calls.flat().join(" ")).toContain(
+      eventProblems.lumaTagRefused({ event: publicText("Refused") }).what,
+    );
     expect(await kept("refused")).toEqual({ tags: [], checked: false });
     refuse = false;
     expect((await tagUpcomingEvents()).tagged).toBe(1);
@@ -166,7 +169,7 @@ describeWithDatabase("tagging upcoming events", () => {
     server.use(http.get(`${API}/list`, () => new HttpResponse(null, { status: 500 })));
     await addEvent("oxford");
     expect(await tagUpcomingEvents()).toEqual({ tagged: 0, requests: 0, unclear: [] });
-    expect(errors.mock.calls.flat().join(" ")).toContain(eventsCopy.problems.lumaTagsUnread);
+    expect(errors.mock.calls.flat().join(" ")).toContain(eventProblems.lumaTagsUnread().what);
     expect(await kept("oxford")).toEqual({ tags: [], checked: false });
     errors.mockRestore();
   });

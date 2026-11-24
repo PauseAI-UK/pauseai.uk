@@ -7,7 +7,7 @@ import { importCivicrm } from "./civicrm-import.server";
 import { unblock } from "@/lib/oversight/delivery-problems.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { saveSettings } from "@/lib/supporters/email-settings.server";
-import { jobsCopy } from "./copy";
+import { jobProblems, jobsCopy } from "./copy";
 
 const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
 const UPDATE = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";
@@ -212,7 +212,7 @@ describeWithDatabase("importCivicrm", () => {
       { id: 3, phone: null },
     ]);
     const [run] = await query<{ problems: unknown }>("SELECT problems FROM import_runs WHERE job = 'import-civicrm'");
-    expect(run.problems).toEqual([{ what: jobsCopy.problems.civicrmNumbersUnread, error: "1" }]);
+    expect(run.problems).toEqual([jobProblems.civicrmNumbersUnread({ count: 1 })]);
   });
 
   it("marks nobody gone from a pull over 5% shorter than the last, and says so", async () => {
@@ -225,7 +225,7 @@ describeWithDatabase("importCivicrm", () => {
     const [run] = await query<{ problems: unknown }>(
       "SELECT problems FROM import_runs WHERE job = 'import-civicrm' ORDER BY id DESC LIMIT 1",
     );
-    expect(run.problems).toEqual([{ what: jobsCopy.problems.civicrmTooFew, error: "18 returned, 20 before" }]);
+    expect(run.problems).toEqual([jobProblems.civicrmTooFew({ returned: 18, before: 20 })]);
     // Its log says why nobody went.
     const held = { contacts: 18, added: 0, changed: 0, gone: 0, held: true as const, optOuts: 0, blocked: 0 };
     expect(jobsCopy.civicrm.result(held)).not.toBe(jobsCopy.civicrm.result({ ...held, held: undefined }));

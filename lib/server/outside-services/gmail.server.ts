@@ -4,9 +4,10 @@ import { saveRawToOutbox, saveToOutbox } from "@/lib/server/fixtures/outbox";
 import { toMime, type MimeEmail } from "../mime.server";
 import { decodedText, messageIds } from "@/lib/email-parsing/mime.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { problem } from "../problems.server";
+import { orFallback } from "./fallback.server";
+import { type FailureKind, kindOfStatus, OutsideFailure } from "./outside-failure.server";
 import { fieldText, readJsonIfAny } from "../json.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 // The only file that talks to Google: the OAuth consent that connects a
 // staff member's Gmail, and the Gmail API, over HTTP through outsideFetch,
@@ -40,15 +41,17 @@ const GMAIL_SCOPES = [
  */
 const LETTERS_INBOX_SCOPES = ["https://www.googleapis.com/auth/gmail.modify"];
 
-export class GmailError extends Error {
+/**
+ * Google or Gmail failing. With no status, nothing was asked, as the
+ * account isn't connected or the site's own keys aren't set, which is
+ * unauthorised, as a revoked token is.
+ */
+export class GmailError extends OutsideFailure {
   /** Google no longer accepts the refresh token: it was revoked, or the account's access removed. */
   readonly revoked: boolean;
-  constructor(
-    message: string,
-    readonly status: number,
-    revoked = false,
-  ) {
-    super(message);
+  constructor(message: string, status: number, revoked = false, details: { kind?: FailureKind; said?: string } = {}) {
+    const kind = details.kind ?? (revoked || status === 0 ? "unauthorised" : kindOfStatus(status));
+    super("gmail", kind, { status, message, said: details.said });
     this.revoked = revoked;
   }
 }
@@ -86,7 +89,7 @@ export function gmailConsentUrl(account: string, redirectUri: string, state: str
 
 async function tokenRequest(params: Record<string, string>): Promise<Record<string, unknown>> {
   const { id, secret } = client();
-  const res = await outsideFetch(TOKEN_URL, {
+  const res = await outsideFetch("gmail", TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ ...params, client_id: id, client_secret: secret }).toString(),
@@ -117,13 +120,15 @@ export async function gmailAccessToken(refreshToken: string): Promise<{ token: s
 
 /** Tells Google the site no longer wants the token. A token Google had already dropped is no matter. */
 export async function revokeGmail(refreshToken: string): Promise<void> {
-  const res = await outsideFetch(`${REVOKE_URL}?${new URLSearchParams({ token: refreshToken })}`, { method: "POST" });
+  const res = await outsideFetch("gmail", `${REVOKE_URL}?${new URLSearchParams({ token: refreshToken })}`, {
+    method: "POST",
+  });
   if (!res.ok && res.status !== 400)
     throw new GmailError(`Google refused to revoke the token: ${res.status}`, res.status);
 }
 
 async function api<T>(accessToken: string, path: string, init: RequestInit = {}): Promise<T> {
-  const res = await outsideFetch(`${API}${path}`, {
+  const res = await outsideFetch("gmail", `${API}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json", ...init.headers },
     cache: "no-store",
@@ -131,8 +136,15 @@ async function api<T>(accessToken: string, path: string, init: RequestInit = {})
   if (!res.ok) {
     // Google's own words say which limit it was, and often when to retry.
     const body = (await readJsonIfAny(res)) as { error?: { message?: string } } | undefined;
-    const reason = body?.error?.message ? `: ${body.error.message}` : "";
-    throw new GmailError(`Gmail answered ${res.status} for ${path.split("?")[0]}${reason}`, res.status);
+    const said = body?.error?.message;
+    // Past its limit a minute Gmail answers 429, or 403 with words naming the quota or the rate.
+    const limited = res.status === 429 || (res.status === 403 && /quota|rate/i.test(said ?? ""));
+    throw new GmailError(
+      `Gmail answered ${res.status} for ${path.split("?")[0]}${said ? `: ${said}` : ""}`,
+      res.status,
+      false,
+      { said, ...(limited && { kind: "rate-limited" as const }) },
+    );
   }
   return (await res.json()) as T;
 }
@@ -155,7 +167,7 @@ export async function gmailSendName(accessToken: string): Promise<string> {
   );
   const own = sendAs.find((address) => address.isPrimary)?.displayName;
   if (own) return own;
-  const res = await outsideFetch(USERINFO, {
+  const res = await outsideFetch("gmail", USERINFO, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
     cache: "no-store",
   });
@@ -323,13 +335,10 @@ export async function gmailMessageHeaders(
  * say, as the email has gone all the same.
  */
 export async function gmailMessageId(accessToken: string, id: string): Promise<string | undefined> {
-  try {
+  return orFallback(serverProblems.messageIdUnknown(), undefined, async () => {
     const message = await gmailMessageHeaders(accessToken, id, ["Message-ID"]);
     return messageIds(message.headers.get("message-id"))[0];
-  } catch (error) {
-    problem(serverCopy.problems.anywhere.messageIdUnknown, error);
-    return undefined;
-  }
+  });
 }
 
 /** A whole message, as it arrived. */

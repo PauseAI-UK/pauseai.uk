@@ -14,7 +14,8 @@ import {
   GmailError,
   revokeGmail,
 } from "@/lib/server/outside-services/gmail.server";
-import { emailCopy } from "./copy";
+import { emailCopy, emailProblems } from "./copy";
+import { staffAccount } from "@/lib/problems";
 
 // Staff members' Gmail, connected so mailings to politicians can be sent
 // from it and replies read from it. Each staff member connects their own,
@@ -107,7 +108,9 @@ async function forget(account: string, by: string, why: string): Promise<string 
 export async function disconnectGmail(account: string, by: string): Promise<boolean> {
   const token = await forget(account, by, "disconnected");
   if (token === undefined) return false;
-  await revokeGmail(token).catch((error: unknown) => problem(emailCopy.problems.tokenNotRevoked(account), error));
+  await revokeGmail(token).catch((error: unknown) =>
+    problem(emailProblems.tokenNotRevoked({ account: staffAccount(account) }), error),
+  );
   return true;
 }
 

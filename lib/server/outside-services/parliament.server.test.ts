@@ -46,11 +46,11 @@ it("gives up after five busy answers, waiting longer each time without Retry-Aft
   vi.useFakeTimers({ toFake: ["setTimeout"] });
   let calls = 0;
   server.use(http.get(memberUrl(8), () => (calls++, new HttpResponse(null, { status: 429 }))));
-  const failed = expect(parliamentEndings([8])).rejects.toThrow("returned 429");
+  const failed = expect(parliamentEndings([8])).rejects.toThrow("Parliament answered 429");
   await vi.runAllTimersAsync();
   await failed;
   vi.useRealTimers();
   expect(calls).toBe(5);
   server.use(http.get(LISTS, () => new HttpResponse(null, { status: 500 })));
-  await expect(parliamentMembersNow()).rejects.toThrow("returned 500");
+  await expect(parliamentMembersNow()).rejects.toThrow("Parliament answered 500");
 });

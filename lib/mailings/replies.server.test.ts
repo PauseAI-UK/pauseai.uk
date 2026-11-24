@@ -11,10 +11,9 @@ import {
 import { server } from "@/tests/fixtures/msw";
 import { stubBlobsEnv } from "@/tests/gmail-sends";
 import { query } from "@/lib/server/db.server";
-import { emailCopy } from "@/lib/email/copy";
 import { threadMessages } from "@/lib/letters/threads.server";
 import { answerLetterReply, canAnswerFrom, markNothingToDo, replyWaiting } from "./replies.server";
-import { mailingsCopy } from "./copy";
+import { mailingProblems } from "./copy";
 
 const POLICY = "policy@pauseai.uk";
 const JO = "jo@pauseai.uk";
@@ -197,7 +196,6 @@ describeWithDatabase("replies to mailings", () => {
 
   it("are forgotten when they don't go, and kept as sent when keeping them on the letter fails", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const problems = emailCopy.problems;
     await connectTestGmail(POLICY);
     const { letter, reply } = await replied();
     // Gmail refusing it: forgotten, so it can be sent again, and the reply still waits.
@@ -208,15 +206,13 @@ describeWithDatabase("replies to mailings", () => {
     await refuseWrites("email_sends", "NEW.outcome = 'failed'", "INSERT");
     expect(await answerLetterReply(reply, DRAFT, words("Hi"), SAM)).toEqual({ sent: false, reason: "failed" });
     expect(await query("SELECT * FROM letter_answers")).toEqual([]);
-    expect(error.mock.calls.map(([what]) => what)).toContain(problems.notSentYet(mailingsCopy.answers.answerTo(reply)));
+    expect(error.mock.calls.map(([what]) => what)).toContain(mailingProblems.answerNotSentYet({ reply }).what);
     // It goes, but Gmail won't give it back to keep: sent, the reply still waiting, and staff told.
     gmailTakes();
     server.use(http.get(`${GMAIL}/g-answer`, () => HttpResponse.json({ error: { message: "no" } }, { status: 500 })));
     expect(await answerLetterReply(reply, DRAFT, words("Hi"), SAM)).toEqual({ sent: true });
     expect(await query("SELECT kept_id FROM letter_answers")).toEqual([{ kept_id: null }]);
     expect((await replyWaiting(letter, SAM)).waiting).not.toBeNull();
-    expect(error.mock.calls.map(([what]) => what)).toContain(
-      problems.sentUnrecorded(mailingsCopy.answers.answerTo(reply)),
-    );
+    expect(error.mock.calls.map(([what]) => what)).toContain(mailingProblems.answerSentUnrecorded({ reply }).what);
   });
 });

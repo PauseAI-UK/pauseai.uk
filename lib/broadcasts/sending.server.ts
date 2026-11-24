@@ -40,8 +40,8 @@ import { describeError, problem } from "@/lib/server/problems.server";
 import { recordWhatsAppStop } from "./whatsapp-stops.server";
 import { templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 import { markUnreachable, unreachable } from "./unreachable.server";
-import { broadcastsCopy } from "./copy";
-import { emailCopy } from "@/lib/email/copy";
+import { broadcastProblems, broadcastsCopy } from "./copy";
+import { emailProblems } from "@/lib/email/copy";
 
 // Sending broadcasts to supporters, in the send-mailings run every 15 minutes, as
 // mailings to politicians go. A broadcast that's due starts: who it goes to
@@ -535,9 +535,8 @@ async function withCare(taken: Copy[], send: (went: (id: number) => void) => Pro
   } catch (error) {
     const left = taken.filter((copy) => !went.has(copy.id));
     await putBack(left);
-    const words = emailCopy.problems;
     // Named by the batch's first, which is always there.
-    problem(words.notSentYet(broadcastsCopy.problems.copyOf(taken[0].id)), error);
+    problem(broadcastProblems.copyNotSentYet({ copy: taken[0].id }), error);
     return false;
   }
 }
@@ -556,8 +555,7 @@ async function keep(copy: Copy, result: ChannelResult, run: BroadcastRun, went: 
     await keepSent(copy, result, run);
   } catch (error) {
     if (!mayHaveGone) throw error;
-    const words = emailCopy.problems;
-    problem(words.sentUnrecorded(broadcastsCopy.problems.copyOf(copyId)), error);
+    problem(broadcastProblems.copySentUnrecorded({ copy: copyId }), error);
   }
 }
 
@@ -714,7 +712,7 @@ async function checkCopies(
     suppressed = await sender.ask(going);
   } catch (error) {
     // Nothing is sent unchecked.
-    problem(broadcastsCopy.problems.civicrmCheckFailed, error);
+    problem(broadcastProblems.civicrmCheckFailed(), error);
     await putBack(going);
     await wait(broadcast, "civicrm", describeError(error));
     return undefined;
@@ -844,7 +842,7 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
         );
       } catch (error) {
         // The send broke off, and WhatsApp may have taken it by then: failed, as an email is, never sent twice.
-        problem(emailCopy.problems.sendFailed("broadcast"), error);
+        problem(emailProblems.sendFailed({ purpose: "broadcast" }), error);
         return { sent: false, reason: "failed", mayHaveGone: true };
       }
     },
