@@ -257,11 +257,9 @@ describe("handOvers", () => {
 
   it("joins what's handed over to the module it's handed to, so a flow that reaches the one reaches the other", () => {
     const graph = importGraph(root);
-    expect(graph.get("lib/server/problems.server.ts")).toEqual([
-      "lib/server/run-store.server.ts",
-      "instrumentation.ts",
-    ]);
-    expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).toContain("lib/server/errors.ts");
+    expect(graph.get("lib/server/problems.server.ts")).toEqual(["lib/server/run-store.server.ts"]);
+    expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).toContain("lib/server/run-store.server.ts");
+    expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).not.toContain("lib/server/errors.ts");
     expect(importGraph(join(root, "components")).has("lib/server/problems.server.ts")).toBe(false);
   });
 
@@ -346,12 +344,12 @@ describe("flowReach", () => {
       "components/box.module.css",
       "styles/tokens.css",
       "public/images/logo.svg",
-      "next.config.ts",
-      "lib/redirects.ts",
       "proxy.ts",
       "lib/session.ts",
     ])
       expect(reach).toContain(file);
+    expect(reach).not.toContain("next.config.ts");
+    expect(reach).not.toContain("lib/redirects.ts");
     expect(reach).not.toContain("components/Letters.tsx");
     expect(reach).not.toContain("lib/server/errors.ts");
   });
@@ -360,14 +358,7 @@ describe("flowReach", () => {
     const { opened, ...nothing } = home;
     void opened;
     expect(flowReach(nothing, reachContext(root))).toEqual(
-      new Set([
-        "tests/storyboard/home.spec.ts",
-        "tests/storyboard/fixtures.ts",
-        "next.config.ts",
-        "lib/redirects.ts",
-        "proxy.ts",
-        "lib/session.ts",
-      ]),
+      new Set(["tests/storyboard/home.spec.ts", "tests/storyboard/fixtures.ts", "proxy.ts", "lib/session.ts"]),
     );
   });
 
@@ -439,13 +430,13 @@ describe("reachedFlows", () => {
     );
   });
 
-  it("reruns every flow for what the build's settings and the proxy import", () => {
-    expect(reached(["lib/redirects.ts"]).keys).toEqual(everyRun);
+  it("reruns every flow for what the proxy imports, and none for what only the build's settings import", () => {
     expect(reached(["lib/session.ts"]).keys).toEqual(everyRun);
+    expect(reached(["lib/redirects.ts"])).toEqual(nothingReached);
   });
 
-  it("reruns, for what handles an error, the flows that kept one and those that reach where problems are reported", () => {
-    expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(post, broken));
+  it("reruns, for what keeps an error, the flows that kept one, and for the run store, those that reach where problems are reported", () => {
+    expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(broken));
     expect(reached(["lib/server/run-store.server.ts"]).keys).toEqual(keysOf(post));
   });
 
@@ -464,26 +455,28 @@ describe("reachedFlows", () => {
     expect(reached(["lib/fonts/inter.woff2"]).keys).toEqual(everyRun);
   });
 
-  it("says which files reach every flow, and reruns nothing for docs, tests, types and the review's own code", () => {
+  it("says which files reach every flow, and reruns nothing for docs, tests, types, the set-up and the review's own code", () => {
+    expect(reached(["proxy.ts", "instrumentation-client.ts", "docs/testing.md"])).toEqual({
+      keys: everyRun,
+      carried: new Map(),
+      everything: ["proxy.ts", "instrumentation-client.ts"],
+      unknown: [],
+    });
     expect(
       reached([
         "netlify/database/migrations/0200_x.sql",
+        "netlify/database/schema.sql",
+        "tests/fixtures/staff-data.sql",
+        "package.json",
+        "package-lock.json",
         ".nvmrc",
-        "docs/testing.md",
-        "netlify/database/schema.test.ts",
+        "tsconfig.json",
+        "next.config.ts",
+        "playwright.config.ts",
+        "tests/storyboard/global-setup.ts",
+        "scripts/fresh-database.mjs",
       ]),
-    ).toEqual({
-      keys: new Set(),
-      carried: new Map(),
-      everything: ["netlify/database/migrations/0200_x.sql", ".nvmrc"],
-      unknown: [],
-    });
-    expect(reached(["next.config.ts"])).toEqual({
-      keys: everyRun,
-      carried: new Map(),
-      everything: ["next.config.ts"],
-      unknown: [],
-    });
+    ).toEqual(nothingReached);
     expect(
       reached([
         "docs/testing.md",
@@ -541,6 +534,9 @@ describe("reachedFlows", () => {
     expect(added(["app/(site)/new/page.tsx"], ["app/(site)/new/page.tsx"])).toEqual(keysOf(sitemap));
     expect(added(["app/(site)/new/page.tsx"], [])).toEqual(new Set());
     expect(added(["lib/new.ts"], ["lib/new.ts"])).toEqual(new Set());
+    // Under app/, what lists it finds the routes: a file that's no route's adds none.
+    expect(added([], ["app/(site)/_components/New.tsx"])).toEqual(new Set());
+    expect(added([], ["app/(site)/new/layout.tsx"])).toEqual(keysOf(sitemap));
     // A file that reaches every flow by rule isn't followed to what lists its folder.
     writeFileSync(join(root, "app/sitemap.ts"), `readdirSync(join(process.cwd(), "netlify", "database"));`);
     try {
@@ -550,6 +546,29 @@ describe("reachedFlows", () => {
       expect(listing("netlify/database-notes/new.ts")).toEqual(keysOf(sitemap));
     } finally {
       writeFileSync(join(root, "app/sitemap.ts"), FILES["app/sitemap.ts"]);
+    }
+  });
+
+  it("follows no set-up file to what it lists, though every flow reaches it and it names the folder", () => {
+    const setUp = "scripts/fresh-database.mjs";
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    writeFileSync(
+      join(root, setUp),
+      `readdirSync(join(process.cwd(), "netlify", "database"));\nreadFileSync(join(process.cwd(), "lib", "mps.json"));`,
+    );
+    writeFileSync(
+      join(root, "tests/storyboard/fixtures.ts"),
+      `import "../../${setUp}";\n${FILES["tests/storyboard/fixtures.ts"]}`,
+    );
+    try {
+      const context = reachContext(root);
+      expect(flowReach(home, context)).toContain(setUp);
+      expect(reachedFlows({ files: ["lib/new.ts"], addedOrDeleted: ["lib/new.ts"], runs, context }).keys).toEqual(
+        new Set(),
+      );
+    } finally {
+      rmSync(join(root, setUp));
+      writeFileSync(join(root, "tests/storyboard/fixtures.ts"), FILES["tests/storyboard/fixtures.ts"]);
     }
   });
 
@@ -683,22 +702,15 @@ describe("flowsToRun", () => {
       carried: [...carried, passed(untagged)],
       phoneTagged: new Set([phoneHome.key]),
       context: reachContext(root),
-      changedSince: () => since(["netlify/database/schema.sql"]),
+      changedSince: () => since(["instrumentation.ts"]),
     });
     expect(chosen.run).toEqual(suite);
-    expect(chosen).toMatchObject({ swept: 4, reached: 0, everything: ["netlify/database/schema.sql"] });
+    expect(chosen).toMatchObject({ swept: 4, everything: ["instrumentation.ts"] });
   });
 
-  it("runs every flow, on both viewports, when the map can't place a changed file", () => {
-    const untagged = run("phone|staff|Untagged", ["/staff/letters"]);
-    const chosen = flowsToRun({
-      suite: new Set([...suite, untagged.key]),
-      carried: [...carried, passed(untagged)],
-      phoneTagged: new Set(),
-      context: reachContext(root),
-      changedSince: () => since(["postcss.config.mjs"]),
-    });
-    expect(chosen.run).toEqual(new Set([...suite, untagged.key]));
+  it("runs no more flows for a changed file the map can't place, and says which it was", () => {
+    const chosen = choose(() => since(["postcss.config.mjs"]));
+    expect(chosen.run).toEqual(new Set([fresh]));
     expect(chosen.unknown).toEqual(["postcss.config.mjs"]);
   });
 
@@ -751,10 +763,7 @@ describe("flowsToRun", () => {
     expect(part.run).toEqual(keysOf(galleryKit));
     expect(part.carried).toEqual(new Map([[galleryKit.key, [tabs, hero]]]));
     expect(part.reached).toBe(1);
-    expect(choose(["components/kit/Band.tsx", "netlify/database/schema.sql"]).carried).toEqual(new Map());
-    const unknown = choose(["components/kit/Band.tsx", "postcss.config.mjs"]);
-    expect(unknown.run).toEqual(keysOf(galleryKit, home));
-    expect(unknown.carried).toEqual(new Map());
+    expect(choose(["components/kit/Band.tsx", "proxy.ts"]).carried).toEqual(new Map());
   });
 
   it("asks what changed since a review last carried a flow, not since it ran", () => {
@@ -832,7 +841,8 @@ describe("this repo", { timeout: 120_000 }, () => {
       // The fakes' mail and answers, kept for each flow's database across the build's copies of a module: no code.
       "lib/server/fixtures/letters-inbox.ts: uses globalThis",
       "lib/server/fixtures/outside-services.ts: uses globalThis",
-      // Handed the keeper of errors by instrumentation.ts, and the run in progress by run-store.server.ts (HANDED_OVER).
+      // Handed the run in progress by run-store.server.ts (HANDED_OVER), and the keeper of errors by
+      // instrumentation.ts, which a flow that kept an error records as opened (ERRORS_KEPT).
       "lib/server/problems.server.ts: uses globalThis",
       "lib/server/run-store.server.ts: calls registerRunStore() as it loads",
     ]);

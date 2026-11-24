@@ -5,11 +5,15 @@
 // import; a flow reaches those and its spec file's imports. A changed file
 // reaches the flows whose reach has it.
 //
-// Some files can't be traced like that, and reach every flow: the database's
-// migrations and seed data, the build's and Playwright's set-up. Others reach
-// none: docs, plans, unit tests, the review page's own code. A file that is
-// none of these, and that nothing imports or names, can't be placed: every
-// flow runs, and the review says which file it was, so this map can be taught.
+// Some files can't be traced like that. The proxy and the instrumentation
+// run on every page, so reach every flow. The set-up every flow stands on
+// (SET_UP: the dependencies, the database's migrations and seed data, the
+// build's and Playwright's settings) reaches none by itself: a break there
+// breaks every flow alike, which the review's spot checks see. Docs, plans,
+// unit tests and the review page's own code reach none either. A file that
+// is none of these, and that nothing imports or names, can't be placed: it
+// reaches no flow, and the review says which file it was, so this map can
+// be taught.
 //
 // Plain JavaScript, as scripts/storyboard.mjs imports it with Node.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -25,15 +29,26 @@ import ts from "typescript";
  */
 export const RECORDING = 1;
 
-/** Files no import leads to that every flow depends on: a change to one reruns everything. */
-const EVERYTHING = [
+/**
+ * Site code no import leads to that runs on every page: a change to one
+ * reruns everything, as it can break some pages and not others.
+ */
+const EVERYTHING = [/^proxy\.ts$/, /^instrumentation(-client)?\.ts$/];
+
+/**
+ * What every flow stands on but no flow's own reach holds: the dependencies,
+ * the build's and Playwright's settings, the database's migrations and seed
+ * data, and the storyboard's set-up. A change to one reaches no flow by
+ * itself. What breaks breaks every flow alike, which the review's spot
+ * checks see, as the unit tests see a query a migration breaks; the code
+ * changed with it reaches its own flows.
+ */
+const SET_UP = [
   /^package(-lock)?\.json$/,
   /^\.(nvmrc|npmrc)$/,
   /^tsconfig\.json$/,
   /^playwright\.config\.ts$/,
   /^next\.config\.ts$/,
-  /^proxy\.ts$/,
-  /^instrumentation(-client)?\.ts$/,
   // The migrations, the schema and how they're applied; not the unit tests beside them.
   /^netlify\/database\/(?!.*\.test\.ts$)/,
   /^tests\/fixtures\/.*\.sql$/,
@@ -149,12 +164,17 @@ export function importsOf(path, text) {
 /**
  * Code handed to a module as another loads, which the first then calls
  * without importing it: lib/server/problems.server.ts is told how to find the run
- * in progress by run-store.server.ts, and what keeps an error by instrumentation.ts.
- * A flow that reaches the module reaches what's handed to it, as if it were
- * imported. handOvers finds the places in the site's code that could be
- * another, and the tests check each is here or known not to be one.
+ * in progress by run-store.server.ts. A flow that reaches the module reaches
+ * what's handed to it, as if it were imported. handOvers finds the places in
+ * the site's code that could be another, and the tests check each is here or
+ * known not to be one.
+ *
+ * problems.server.ts is also handed what keeps an error, by
+ * instrumentation.ts, which isn't joined here: what that keeper runs is
+ * reached only by a flow that kept an error, and such a flow records
+ * instrumentation.ts as opened (ERRORS_KEPT).
  */
-const HANDED_OVER = { "lib/server/problems.server.ts": ["lib/server/run-store.server.ts", "instrumentation.ts"] };
+const HANDED_OVER = { "lib/server/problems.server.ts": ["lib/server/run-store.server.ts"] };
 
 /**
  * Where the site's code (`dirs` under `root`) could hand code over without
@@ -260,6 +280,12 @@ const ROUTE_FILES = [
 /** Files Next serves from `app/` that this map doesn't match to an address: a change to one can't be placed. */
 const UNMATCHED_ROUTE_FILES = /^app\/(.*\/)?(opengraph-image|twitter-image|icon|apple-icon|favicon)\.[a-z]+$/;
 const LEAVES = ["page", "route"];
+
+/** A file of `app/` that Next routes by: a page, a route handler, or one of ROUTE_FILES. */
+function isRouteFile(path) {
+  const name = /^app\/(?:.*\/)?([\w-]+)\.[jt]sx?$/.exec(path)?.[1];
+  return name !== undefined && [...ROUTE_FILES, ...LEAVES].includes(name);
+}
 const EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 
 /** A folder's name as it matches a URL's segment: a group or a slot matches none. */
@@ -414,17 +440,11 @@ function carriedFrames(run, context, hits) {
 const plainStyles = (path) => path.endsWith(".css") && !path.endsWith(".module.css");
 
 /**
- * What every flow runs, whatever it opens: the build's settings and the
- * proxy, and Playwright's own set-up. What they import, every flow reaches.
+ * The site's code every flow runs, whatever it opens: the proxy. What it
+ * imports, every flow reaches. The build's settings and Playwright's set-up
+ * run for every flow too, but are SET_UP's, as are what they import.
  */
-const ALWAYS = [
-  "next.config.ts",
-  "proxy.ts",
-  "playwright.config.ts",
-  "tests/storyboard/global-setup.ts",
-  "tests/storyboard/global-teardown.ts",
-  "scripts/serve-fixture.mjs",
-];
+const ALWAYS = ["proxy.ts"];
 /** As ALWAYS, if the repo has it: what Next runs in every browser as a page starts. */
 const ALWAYS_IF_THERE = ["instrumentation-client.ts"];
 
@@ -569,12 +589,15 @@ function readers(context, path) {
 /**
  * The files that list a folder `path` is in or under (the sitemap and the
  * tests' list of routes walk `app/`): what they find changes when a file
- * there is added or deleted.
+ * there is added or deleted. Not a set-up file (SET_UP), as what it lists
+ * is set-up too, such as the migrations.
  */
 function listers(context, path) {
   const folders = path.split("/").slice(0, -1);
   // The files that list any folder at all, found once for the context.
-  context.listing ??= [...context.graph.keys()].filter((file) => /\breaddir(Sync)?\(/.test(textOf(context, file)));
+  context.listing ??= [...context.graph.keys()].filter(
+    (file) => !SET_UP.some((re) => re.test(file)) && /\breaddir(Sync)?\(/.test(textOf(context, file)),
+  );
   return context.listing.filter((file) => folders.some((folder) => namesFolder(textOf(context, file), folder)));
 }
 
@@ -616,7 +639,7 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
     reachThrough([path]);
     if (EVERYTHING.some((re) => re.test(path))) {
       everything.push(path);
-    } else if (NOTHING.some((re) => re.test(path))) {
+    } else if (SET_UP.some((re) => re.test(path)) || NOTHING.some((re) => re.test(path))) {
       continue;
     } else if (IMPORTED.test(path)) {
       // A route's own file, added or deleted as well as changed: the flows that opened an address it serves, or one below it.
@@ -641,8 +664,13 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
     }
   }
   // What lists a folder finds something else when a file in it comes or goes. Not for a file that reaches every
-  // flow anyway, as a new migration does: how far that goes is flowsToRun's to say.
-  for (const path of addedOrDeleted) if (!EVERYTHING.some((re) => re.test(path))) reachThrough(listers(context, path));
+  // flow anyway, nor for set-up. Under app/, what lists it (the sitemap, the tests' routes) finds the routes, so
+  // only a route's own file counts there.
+  for (const path of addedOrDeleted) {
+    if ([...EVERYTHING, ...SET_UP].some((re) => re.test(path))) continue;
+    if (path.startsWith("app/") && !isRouteFile(path)) continue;
+    reachThrough(listers(context, path));
+  }
   const paths = [...reaching];
   const carried = new Map();
   for (const run of runs) {
@@ -668,11 +696,14 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
  * - a flow whose tree git no longer has, so `changedSince(tree)` is
  *   undefined (`fresh` too);
  * - a flow that the files changed since its tree reach (`reached`);
- * - when one of those files reaches everything (a migration, the seed
- *   data): every desktop flow, and the phone's flows of `phoneTagged`, the
- *   ones CI runs there (`everything`, the files, and `swept`, the flows);
- * - when the map can't place one of them (`unknown`: a file at the top
- *   that nothing imports, or one no code names): every flow.
+ * - when one of those files reaches everything (the proxy, the
+ *   instrumentation): every desktop flow, and the phone's flows of
+ *   `phoneTagged`, the ones CI runs there (`everything`, the files, and
+ *   `swept`, the flows).
+ *
+ * A file the map can't place (`unknown`: a file at the top that nothing
+ * imports, or one no code names) adds no flow; it's returned for the
+ * review to name.
  *
  * A flow a review carried says the tree it was carried at (`seen`): the
  * files changed since then are what can have reached it since, as those
@@ -722,12 +753,10 @@ export function flowsToRun({ suite, carried, phoneTagged, context, setup, change
   }
   const fresh = run.size;
   for (const key of [...reached, ...swept]) run.add(key);
-  // A file the map can't place: every flow, on both viewports.
-  if (unknown.size > 0) for (const key of suite) run.add(key);
-  // Only what nothing else makes run whole: a file that reaches everything, or one the map can't place.
+  // Only what nothing else makes run whole: a file that reaches everything.
   return {
     run,
-    carried: new Map(unknown.size > 0 ? [] : [...inPart].filter(([key]) => !swept.has(key))),
+    carried: new Map([...inPart].filter(([key]) => !swept.has(key))),
     fresh,
     reached: reached.size,
     swept: swept.size,

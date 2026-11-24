@@ -36,6 +36,9 @@ const STAYS: Record<string, string[]> = {
     "time-windows",
     // A staff member's name in words, which every feature that shows who did something uses.
     "staff-member",
+    // The staff page to go back to after a form, which the asks', mailings', saved filters' and Gmail's forms take,
+    // apart from staff-search so a form that needs only it doesn't import every list's search.
+    "staff-back",
     // The audit log, which every feature writes to: what each entry holds, and a field's change.
     "audit-events",
     "field-changes",

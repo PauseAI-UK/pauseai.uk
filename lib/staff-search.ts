@@ -41,6 +41,7 @@ import {
   type SortOf,
 } from "@/lib/staff-lists";
 import { parseSort, type SortSpec } from "@/lib/staff-sort";
+import { staffBack } from "@/lib/staff-back";
 import { EVENT_GROUPINGS, EVENT_SORTS, type EventFilter } from "@/lib/events/list";
 import { isSupporterBadge, NEAR_MILES, type SupporterFilter } from "@/lib/supporters/supporters";
 
@@ -459,11 +460,6 @@ export function accountsSearch(params: Partial<Record<string, ParamValue>>): {
  */
 export function askFormSearch(params: Record<string, ParamValue>): { back: string; notice: string } {
   return { back: staffBack(firstOf(params.back), "/staff/asks"), notice: firstOf(params.notice) };
-}
-
-/** A staff page to go back to, with its query, never another site's; `fallback` for anything else. */
-export function staffBack(back: string | null | undefined, fallback: string): string {
-  return back && /^\/staff(\/[\w\-/]*)?(\?[^#]*)?$/.test(back) && !back.includes("//") ? back : fallback;
 }
 
 // Who a list shows, kept apart from how it shows them (the sort and the

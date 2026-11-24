@@ -517,9 +517,19 @@ The review pictures (`scripts/storyboard-reach.mjs`, `flowsReached`):
   uncommitted and untracked ones too;
 - each flow with no record of what it opened: one new on this branch, or
   recorded another way;
-- when one of those files reaches every flow, every desktop flow, and the
-  phone's tagged ones, as CI runs;
-- when the map can't place one of those files, every flow.
+- when one of those files reaches every flow (the proxy, the
+  instrumentation: site code that runs on every page), every desktop flow,
+  and the phone's tagged ones, as CI runs.
+
+The set-up every flow stands on reaches no flow by itself (`SET_UP` in
+`scripts/storyboard-reach.mjs`): the dependencies (`package.json`, the
+lockfile, `.nvmrc`), `tsconfig.json`, the build's and Playwright's
+settings, the database's migrations, schema and seed data, and the
+storyboard's own set-up. A break there breaks every flow alike, which the
+spot checks (below) see; a migration that breaks a query fails the unit
+tests, which run every query on the migrated database; and the code
+changed with it reaches its own flows. Main's CI runs every flow after
+each merge.
 
 What a flow opened is read from whichever run of it is found first:
 main's, the latest run here, or any tree the store keeps (below). So a new
@@ -571,17 +581,19 @@ So the storyboard keeps what a flow reaches to what it pictures:
 Imports of types alone (`import type`) don't count, as they're gone once
 compiled. A stylesheet's `@import` and `composes` do. So does code handed
 to a module without an import (`HANDED_OVER`): `lib/server/problems.server.ts` is
-told how to find the run in progress by `run-store.server.ts`, and what keeps an
-error by `instrumentation.ts`, so a flow that reaches the one reaches the
-others. A changed file reaches the flows whose reach has it, and some
-files reach more:
+told how to find the run in progress by `run-store.server.ts`, so a flow that
+reaches the one reaches the other. It's also handed what keeps an error, by
+`instrumentation.ts`, which isn't joined: a flow that kept an error records
+`instrumentation.ts` as opened. A changed file reaches the flows whose reach
+has it, and some files reach more or less:
 
-- **Every flow:** the migrations and `schema.sql`, the seed data
-  (`tests/fixtures/*.sql`), `package.json`, `next.config.ts`, `proxy.ts`,
-  `instrumentation.ts`, `playwright.config.ts`, and the storyboard's set-up
-  (`EVERYTHING`). Data no import leads to can change any page. A SQL file
-  changed only in its comments reaches none: what Postgres runs is the same
-  (`sqlWithoutComments`).
+- **Every flow:** `proxy.ts` and the instrumentation, site code that runs
+  on every page (`EVERYTHING`).
+- **No flow by itself:** the set-up every flow stands on (`SET_UP`): the
+  migrations and `schema.sql`, the seed data (`tests/fixtures/*.sql`),
+  `package.json` and the lockfile, `tsconfig.json`, `next.config.ts`,
+  `playwright.config.ts`, and the storyboard's set-up. What breaks there
+  breaks every flow alike, which the spot checks see.
 - **No flow:** docs, plans, investments, unit tests, the review page's own
   code, and the settings of the tools that don't build the site
   (`NOTHING`), unless a flow imports one.
@@ -626,10 +638,12 @@ from it.
 - **A route's own file**, added or deleted as well as changed, reaches the
   flows that opened an address it serves (a layout's, any below it).
 - **A file added or deleted** reaches the flows that reach a file listing
-  its folder: the sitemap and `tests/routes.ts` walk `app/`.
+  its folder: the sitemap and `tests/routes.ts` walk `app/`. Under `app/`,
+  only a route's own file counts, as they list the routes. A set-up file
+  lists only set-up, so it's no lister.
 
-**A file the map can't place** runs every flow, and the review says which
-file, at its start and its end: a file at the top of the repo that nothing
+**A file the map can't place** reaches no flow but the spot checks, and
+the review says which file, at its start and its end: a file at the top of the repo that nothing
 imports (a build tool's settings), data that no file names, or a file Next
 serves at an address of its own (`opengraph-image`, `icon`). Teach
 `scripts/storyboard-reach.mjs` what such a file reaches, or log a hit on

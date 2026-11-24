@@ -3,7 +3,7 @@
 // back to the page it started from (app/(staff)/staff/api/gmail/); and the
 // daily limit.
 
-import { staffBack } from "@/lib/staff-search";
+import { staffBack } from "@/lib/staff-back";
 
 /** The Gmail a new mailing is sent from when it's connected: the policy team's shared account. */
 export const DEFAULT_SENDER = "policy@pauseai.uk";
