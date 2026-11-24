@@ -88,8 +88,8 @@ export function gmailConsentUrl(account: string, redirectUri: string, state: str
   })}`;
 }
 
-/** What logging in asks Google for: only the account's address. */
-const LOGIN_SCOPES = ["openid", "email"];
+/** What logging in asks Google for: the account's address, and its name, kept on the staff account. */
+const LOGIN_SCOPES = ["openid", "email", "profile"];
 
 /**
  * Where to send someone logging in: Google's page to choose their account,
@@ -114,20 +114,22 @@ export function googleLoginUrl(redirectUri: string, state: string, fixtureAccoun
 }
 
 /**
- * The address of the account someone chose on Google's page, from the code
- * it came back with, if Google says it's verified, in lower case. Google's
+ * The account someone chose on Google's page, from the code it came back
+ * with: its address, if Google says it's verified, in lower case, and its
+ * name, empty if Google gave none. Google's
  * ID token comes straight from Google over HTTPS, so its claims are trusted
  * without checking its signature
  * (https://developers.google.com/identity/openid-connect/openid-connect#obtainuserinfo).
  */
-export async function googleLoginEmail(code: string, redirectUri: string): Promise<string | undefined> {
+export async function googleLoginAccount(
+  code: string,
+  redirectUri: string,
+): Promise<{ email: string; name: string } | undefined> {
   const data = await tokenRequest({ code, redirect_uri: redirectUri, grant_type: "authorization_code" });
   const payload = Buffer.from(String(data.id_token).split(".")[1] ?? "", "base64url").toString();
-  const claims = (parseJsonIfAny(payload) ?? {}) as {
-    email?: unknown;
-    email_verified?: unknown;
-  };
-  return claims.email_verified === true && typeof claims.email === "string" ? claims.email.toLowerCase() : undefined;
+  const claims = (parseJsonIfAny(payload) ?? {}) as { email?: unknown; email_verified?: unknown; name?: unknown };
+  if (claims.email_verified !== true || typeof claims.email !== "string") return undefined;
+  return { email: claims.email.toLowerCase(), name: typeof claims.name === "string" ? claims.name.trim() : "" };
 }
 
 async function tokenRequest(params: Record<string, string>): Promise<Record<string, unknown>> {

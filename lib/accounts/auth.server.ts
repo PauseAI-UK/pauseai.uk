@@ -26,11 +26,20 @@ const USER_AGENT_LENGTH = 512;
  * Starts a session for a staff member, giving them an account if it's
  * their first login: for a day, or with "Keep me signed in", 30 days. Keeps
  * the browser's User-Agent, cut to USER_AGENT_LENGTH, to say which browser
- * it is. Returns the token for the cookie.
+ * it is, and their name, from their Google account, if it's given. Returns
+ * the token for the cookie.
  */
-export async function createSession(email: string, remember = false, userAgent: string | null = null): Promise<string> {
+export async function createSession(
+  email: string,
+  remember = false,
+  userAgent: string | null = null,
+  name = "",
+): Promise<string> {
   await accountOnLogin(email);
-  await query("UPDATE staff_accounts SET last_login_at = now(), last_seen_at = now() WHERE email = lower($1)", [email]);
+  await query(
+    "UPDATE staff_accounts SET last_login_at = now(), last_seen_at = now(), name = COALESCE(NULLIF($2, ''), name) WHERE email = lower($1)",
+    [email, name],
+  );
   const token = randomBytes(32).toString("base64url");
   await query("DELETE FROM staff_sessions WHERE expires_at < now()");
   await query(

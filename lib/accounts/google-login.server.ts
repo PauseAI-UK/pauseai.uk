@@ -85,15 +85,18 @@ export function readStarted(cookie: string | undefined): Started | undefined {
   };
 }
 
+/** The Google account someone logged in with: its address, and its name, empty if Google gave none. */
+export type GoogleAccount = { email: string; name: string };
+
 /**
- * The note the live site passes on to `preview`: that `email` logged in,
+ * The note the live site passes on to `preview`: that `account` logged in,
  * for the browser holding `nonce`, until NOTE_SECONDS from `now`. Its claims
  * and their Ed25519 signature, each base64url, joined by a dot.
  */
-export function signLogin(email: string, preview: string, nonce: string, now = Date.now()): string {
+export function signLogin(account: GoogleAccount, preview: string, nonce: string, now = Date.now()): string {
   const key = config.googleLoginSigningKey;
   if (!key) throw new Error("GOOGLE_LOGIN_SIGNING_KEY isn't set");
-  const claims = { email, origin: preview, nonce, expires: now + NOTE_SECONDS * 1000 };
+  const claims = { ...account, origin: preview, nonce, expires: now + NOTE_SECONDS * 1000 };
   const body = Buffer.from(JSON.stringify(claims)).toString("base64url");
   const privateKey = createPrivateKey({ key: Buffer.from(key, "base64"), format: "der", type: "pkcs8" });
   return `${body}.${sign(null, Buffer.from(body), privateKey).toString("base64url")}`;
@@ -103,27 +106,33 @@ export function signLogin(email: string, preview: string, nonce: string, now = D
  * Who a note says logged in, if the live site signed it, for `origin`, this
  * site, and `nonce`, this browser's, and it hasn't expired.
  */
-export function readLogin(note: string, origin: string, nonce: string, now = Date.now()): string | undefined {
+export function readLogin(note: string, origin: string, nonce: string, now = Date.now()): GoogleAccount | undefined {
   const [body, signature = ""] = note.split(".");
   const publicKey = createPublicKey({ key: Buffer.from(LIVE_LOGIN_KEY, "base64"), format: "der", type: "spki" });
   if (!verify(null, Buffer.from(body), publicKey, Buffer.from(signature, "base64url"))) return undefined;
   // Signed by the live site, so it's what signLogin made.
-  const claims = JSON.parse(Buffer.from(body, "base64url").toString()) as {
-    email: string;
+  const claims = JSON.parse(Buffer.from(body, "base64url").toString()) as GoogleAccount & {
     origin: string;
     nonce: string;
     expires: number;
   };
-  return claims.origin === origin && claims.nonce === nonce && claims.expires > now ? claims.email : undefined;
+  if (claims.origin !== origin || claims.nonce !== nonce || claims.expires <= now) return undefined;
+  return { email: claims.email, name: claims.name };
 }
 
 /**
- * Logs `email` in: a session, kept if they ticked the box, and on to the
- * page they were going to, forgetting the login under way.
+ * Logs `account` in: a session, kept if they ticked the box, keeping their
+ * name, and on to the page they were going to, forgetting the login under
+ * way.
  */
-export async function loggedIn(request: NextRequest, email: string, started: Started, to: URL): Promise<NextResponse> {
+export async function loggedIn(
+  request: NextRequest,
+  account: GoogleAccount,
+  started: Started,
+  to: URL,
+): Promise<NextResponse> {
   const response = NextResponse.redirect(to, 303);
-  const token = await createSession(email, started.remember, request.headers.get("user-agent"));
+  const token = await createSession(account.email, started.remember, request.headers.get("user-agent"), account.name);
   response.cookies.set(sessionCookie(token, started.remember));
   if (started.remember) response.cookies.set(keepCookie());
   response.cookies.delete({ name: GOOGLE_LOGIN_COOKIE, path: GOOGLE_API_PATH });

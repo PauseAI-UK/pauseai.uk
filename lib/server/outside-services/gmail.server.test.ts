@@ -11,7 +11,7 @@ import {
   gmailAccessToken,
   gmailConsentUrl,
   GmailError,
-  googleLoginEmail,
+  googleLoginAccount,
   googleLoginUrl,
   gmailFullMessage,
   gmailThreadMessageIds,
@@ -95,14 +95,14 @@ describe("consent", () => {
 });
 
 describe("logging in", () => {
-  it("asks Google only for the address, offering pauseai.uk accounts to choose from", () => {
+  it("asks Google for the address and name, offering pauseai.uk accounts to choose from", () => {
     const url = new URL(googleLoginUrl("https://pauseai.uk/staff/api/google/callback", "st"));
     expect(url.origin + url.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
     expect(Object.fromEntries(url.searchParams)).toEqual({
       client_id: "client-id",
       redirect_uri: "https://pauseai.uk/staff/api/google/callback",
       response_type: "code",
-      scope: "openid email",
+      scope: "openid email profile",
       hd: "pauseai.uk",
       prompt: "select_account",
       state: "st",
@@ -125,16 +125,21 @@ describe("logging in", () => {
     server.use(http.post(TOKEN, () => HttpResponse.json(body ?? { access_token: "a", id_token: token })));
   }
 
-  it("takes the verified address from Google's ID token, in lower case, with the same redirect", async () => {
+  it("takes the verified address from Google's ID token, in lower case, and the name, with the same redirect", async () => {
     let form: URLSearchParams | undefined;
     server.use(
       http.post(TOKEN, async ({ request }) => {
         form = new URLSearchParams(await request.text());
-        const claims = Buffer.from(JSON.stringify({ email: "Jo@PauseAI.uk", email_verified: true }));
+        const claims = Buffer.from(
+          JSON.stringify({ email: "Jo@PauseAI.uk", email_verified: true, name: " Jo Bloggs " }),
+        );
         return HttpResponse.json({ id_token: `e30.${claims.toString("base64url")}.sig` });
       }),
     );
-    expect(await googleLoginEmail("code-1", "https://pauseai.uk/cb")).toBe("jo@pauseai.uk");
+    expect(await googleLoginAccount("code-1", "https://pauseai.uk/cb")).toEqual({
+      email: "jo@pauseai.uk",
+      name: "Jo Bloggs",
+    });
     expect(Object.fromEntries(form!)).toMatchObject({
       code: "code-1",
       redirect_uri: "https://pauseai.uk/cb",
@@ -143,20 +148,25 @@ describe("logging in", () => {
     });
   });
 
+  it("gives an empty name when Google gives none", async () => {
+    idToken({ email: "jo@pauseai.uk", email_verified: true });
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toEqual({ email: "jo@pauseai.uk", name: "" });
+  });
+
   it("gives no address Google hasn't verified, or for a token without one", async () => {
     idToken({ email: "jo@pauseai.uk", email_verified: false });
-    expect(await googleLoginEmail("c", "https://pauseai.uk/cb")).toBeUndefined();
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toBeUndefined();
     idToken({ email_verified: true });
-    expect(await googleLoginEmail("c", "https://pauseai.uk/cb")).toBeUndefined();
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toBeUndefined();
     idToken(null, { id_token: "not-a-token" });
-    expect(await googleLoginEmail("c", "https://pauseai.uk/cb")).toBeUndefined();
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toBeUndefined();
     idToken(null, { access_token: "a" });
-    expect(await googleLoginEmail("c", "https://pauseai.uk/cb")).toBeUndefined();
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toBeUndefined();
   });
 
   it("fails when Google refuses the code", async () => {
     server.use(http.post(TOKEN, () => HttpResponse.json({ error: "invalid_grant" }, { status: 400 })));
-    await expect(googleLoginEmail("c", "https://pauseai.uk/cb")).rejects.toThrow(GmailError);
+    await expect(googleLoginAccount("c", "https://pauseai.uk/cb")).rejects.toThrow(GmailError);
   });
 });
 

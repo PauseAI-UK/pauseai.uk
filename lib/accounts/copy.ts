@@ -88,5 +88,5 @@ export const accountsCopy = {
 export const accountProblems = defineProblems("accounts", {
   // Someone chose their account on Google's page, but the site couldn't learn who they were from Google, or, for a
   // deploy preview, couldn't sign the login it passes on. They're back on the login page, told to try again.
-  googleLoginFailed: "⁂ Logging a staff member in with Google failed at the last step",
+  googleLoginFailed: "Logging a staff member in with Google failed at the last step",
 });

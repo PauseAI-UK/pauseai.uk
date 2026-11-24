@@ -17,6 +17,7 @@ import { TEST_LOGIN_SIGNING_KEY } from "@/tests/login-keys";
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 vi.mock("@/lib/accounts/live-login-key", () => import("@/tests/login-keys"));
 
+const JO = { email: "jo@pauseai.uk", name: "Jo Bloggs" };
 const PREVIEW = "https://deploy-preview-12--pauseaiuk.netlify.app";
 const NOW = Date.parse("2026-11-24T12:00:00Z");
 
@@ -86,15 +87,15 @@ describe("the login under way", () => {
 
 describe("the note the live site passes on", () => {
   it("says who logged in, for the preview and nonce it was signed for, for a minute", () => {
-    const note = signLogin("jo@pauseai.uk", PREVIEW, "n", NOW);
-    expect(readLogin(note, PREVIEW, "n", NOW + 59_000)).toBe("jo@pauseai.uk");
+    const note = signLogin(JO, PREVIEW, "n", NOW);
+    expect(readLogin(note, PREVIEW, "n", NOW + 59_000)).toEqual(JO);
     expect(readLogin(note, PREVIEW, "n", NOW + 60_000)).toBeUndefined();
     expect(readLogin(note, "https://other--pauseaiuk.netlify.app", "n", NOW)).toBeUndefined();
     expect(readLogin(note, PREVIEW, "other", NOW)).toBeUndefined();
   });
 
   it("is refused if it's been changed, or isn't signed with the live site's key", () => {
-    const note = signLogin("jo@pauseai.uk", PREVIEW, "n", NOW);
+    const note = signLogin(JO, PREVIEW, "n", NOW);
     const [, signature] = note.split(".");
     const forged = Buffer.from(
       JSON.stringify({ email: "admin@pauseai.uk", origin: PREVIEW, nonce: "n", expires: NOW + 60_000 }),
@@ -107,11 +108,11 @@ describe("the note the live site passes on", () => {
 
   it("can't be signed without the key, as on a preview", () => {
     vi.stubEnv("GOOGLE_LOGIN_SIGNING_KEY", "");
-    expect(() => signLogin("jo@pauseai.uk", PREVIEW, "n")).toThrow("GOOGLE_LOGIN_SIGNING_KEY isn't set");
+    expect(() => signLogin(JO, PREVIEW, "n")).toThrow("GOOGLE_LOGIN_SIGNING_KEY isn't set");
   });
 
   it("lasts a minute from now unless told otherwise", () => {
-    expect(readLogin(signLogin("jo@pauseai.uk", PREVIEW, "n"), PREVIEW, "n")).toBe("jo@pauseai.uk");
+    expect(readLogin(signLogin(JO, PREVIEW, "n"), PREVIEW, "n")).toEqual(JO);
   });
 });
 
@@ -123,7 +124,7 @@ describeWithDatabase("logging in", () => {
       headers: { "user-agent": "Firefox" },
     });
     const to = new URL("https://pauseai.uk/staff/letters");
-    const res = await loggedIn(request, "jo@pauseai.uk", { remember: false, next: "/staff/letters" }, to);
+    const res = await loggedIn(request, JO, { remember: false, next: "/staff/letters" }, to);
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe("https://pauseai.uk/staff/letters");
     expect(await sessionEmail(res.cookies.get("staff_session")!.value)).toBe("jo@pauseai.uk");
@@ -134,12 +135,7 @@ describeWithDatabase("logging in", () => {
 
   it("keeps them signed in for 30 days if they asked", async () => {
     const request = new NextRequest("https://pauseai.uk/staff/api/google/callback");
-    const res = await loggedIn(
-      request,
-      "jo@pauseai.uk",
-      { remember: true, next: "/staff" },
-      new URL("https://pauseai.uk/staff"),
-    );
+    const res = await loggedIn(request, JO, { remember: true, next: "/staff" }, new URL("https://pauseai.uk/staff"));
     expect(res.cookies.get("staff_session")?.maxAge).toBe(30 * 86_400);
     expect(res.cookies.get("staff_keep")?.value).toBe("1");
   });

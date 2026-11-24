@@ -23,9 +23,11 @@ function callback(params: Record<string, string>, cookie: string | null = STARTE
   return GET(request);
 }
 
-/** Google answering the code with an ID token for `email`, verified or not. */
+/** Google answering the code with an ID token for `email`, verified or not, named Jo Bloggs. */
 function googleSays(email: string, verified = true) {
-  const claims = Buffer.from(JSON.stringify({ email, email_verified: verified })).toString("base64url");
+  const claims = Buffer.from(JSON.stringify({ email, email_verified: verified, name: "Jo Bloggs" })).toString(
+    "base64url",
+  );
   server.use(
     http.post("https://oauth2.googleapis.com/token", () => HttpResponse.json({ id_token: `e30.${claims}.s` })),
   );
@@ -103,7 +105,10 @@ describeWithDatabase("GET /staff/api/google/callback", () => {
       const res = await callback({ code: "c", state: "st" }, FOR_PREVIEW);
       const to = new URL(res.headers.get("location")!);
       expect(to.origin + to.pathname).toBe(`${PREVIEW}/staff/api/google/handoff`);
-      expect(readLogin(to.searchParams.get("login")!, PREVIEW, "n")).toBe("jo@pauseai.uk");
+      expect(readLogin(to.searchParams.get("login")!, PREVIEW, "n")).toEqual({
+        email: "jo@pauseai.uk",
+        name: "Jo Bloggs",
+      });
       expect(res.cookies.get("staff_session")).toBeUndefined();
       expect(res.cookies.get("staff_google_login")?.value).toBe("");
     });

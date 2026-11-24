@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   GOOGLE_LOGIN_COOKIE,
+  type GoogleAccount,
   loggedIn,
   readStarted,
   signLogin,
@@ -9,33 +10,36 @@ import {
 import { accountProblems } from "@/lib/accounts/copy";
 import { isStaffEmail } from "@/lib/accounts/permissions";
 import { GOOGLE_API_PATH, GOOGLE_CALLBACK_PATH, GOOGLE_HANDOFF_PATH, LOGIN_PATH } from "@/lib/accounts/session";
-import { googleLoginEmail } from "@/lib/server/outside-services/gmail.server";
+import { googleLoginAccount } from "@/lib/server/outside-services/gmail.server";
 import { problem } from "@/lib/server/problems.server";
 import { siteUrl } from "@/lib/site-url.server";
 
 /**
- * The address of the account chosen at Google; empty if they went back
- * without choosing; "failed" if the state isn't the one this browser started
- * with, or Google wouldn't say.
+ * The account chosen at Google; undefined if they went back without
+ * choosing; "failed" if the state isn't the one this browser started with,
+ * or Google wouldn't say.
  */
-async function chosen(request: NextRequest, started: Started | undefined): Promise<string> {
+async function chosen(
+  request: NextRequest,
+  started: Started | undefined,
+): Promise<GoogleAccount | "failed" | undefined> {
   const params = request.nextUrl.searchParams;
   if (started?.state === undefined || params.get("state") !== started.state) return "failed";
   const code = params.get("code");
-  if (!code) return "";
+  if (!code) return undefined;
   try {
-    return (await googleLoginEmail(code, siteUrl(GOOGLE_CALLBACK_PATH, request).href)) ?? "failed";
+    return (await googleLoginAccount(code, siteUrl(GOOGLE_CALLBACK_PATH, request).href)) ?? "failed";
   } catch (error) {
     problem(accountProblems.googleLoginFailed(), error);
     return "failed";
   }
 }
 
-/** The preview's handoff, with a note signed for it saying `email` logged in; or its login page, if it can't be signed. */
-function passedOn(email: string, started: Started & { preview: string }): URL {
+/** The preview's handoff, with a note signed for it saying `account` logged in; or its login page, if it can't be signed. */
+function passedOn(account: GoogleAccount, started: Started & { preview: string }): URL {
   try {
     const handoff = new URL(GOOGLE_HANDOFF_PATH, started.preview);
-    handoff.searchParams.set("login", signLogin(email, started.preview, started.nonce!));
+    handoff.searchParams.set("login", signLogin(account, started.preview, started.nonce!));
     return handoff;
   } catch (error) {
     problem(accountProblems.googleLoginFailed(), error);
@@ -62,11 +66,11 @@ function onTo(to: URL): NextResponse {
 export async function GET(request: NextRequest) {
   const started = readStarted(request.cookies.get(GOOGLE_LOGIN_COOKIE)?.value);
   const site = (path: string) => (started?.preview ? new URL(path, started.preview) : siteUrl(path, request));
-  const email = await chosen(request, started);
-  if (email === "failed") return onTo(site(`${LOGIN_PATH}?failed=1`));
-  if (!email) return onTo(site(LOGIN_PATH));
-  if (!isStaffEmail(email)) return onTo(site(`${LOGIN_PATH}?other=1`));
+  const account = await chosen(request, started);
+  if (account === "failed") return onTo(site(`${LOGIN_PATH}?failed=1`));
+  if (!account) return onTo(site(LOGIN_PATH));
+  if (!isStaffEmail(account.email)) return onTo(site(`${LOGIN_PATH}?other=1`));
   const { preview } = started!;
-  if (preview) return onTo(passedOn(email, { ...started!, preview }));
-  return loggedIn(request, email, started!, siteUrl(started!.next, request));
+  if (preview) return onTo(passedOn(account, { ...started!, preview }));
+  return loggedIn(request, account, started!, siteUrl(started!.next, request));
 }

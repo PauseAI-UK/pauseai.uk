@@ -13,11 +13,11 @@ import { siteUrl } from "@/lib/site-url.server";
 export async function GET(request: NextRequest) {
   const started = readStarted(request.cookies.get(GOOGLE_LOGIN_COOKIE)?.value);
   const note = request.nextUrl.searchParams.get("login") ?? "";
-  const email = started?.nonce ? readLogin(note, siteUrl("/", request).origin, started.nonce) : undefined;
-  if (!email) {
+  const account = started?.nonce ? readLogin(note, siteUrl("/", request).origin, started.nonce) : undefined;
+  if (!account) {
     const response = NextResponse.redirect(siteUrl(`${LOGIN_PATH}?failed=1`, request), 303);
     response.cookies.delete({ name: GOOGLE_LOGIN_COOKIE, path: GOOGLE_API_PATH });
     return response;
   }
-  return loggedIn(request, email, started!, siteUrl(started!.next, request));
+  return loggedIn(request, account, started!, siteUrl(started!.next, request));
 }

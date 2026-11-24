@@ -803,7 +803,7 @@ Set up outside the code:
 - **Gmail and logging in:** the PauseAI UK Google Cloud project, under the organisation of PauseAI's Google Workspace. That Workspace's primary domain is pauseai.info, and pauseai.uk is in it too. A Workspace has only one organisation (https://cloud.google.com/resource-manager/docs/creating-managing-organization). The project needs:
   - the Gmail API turned on;
   - the Internal user type (Google Auth Platform → Audience), so any account in the Workspace can log in or grant access and Google doesn't review the app (https://support.google.com/cloud/answer/15549945). That's pauseai.info's accounts too, so the site lets in only pauseai.uk addresses itself;
-  - the scopes `gmail.send`, `gmail.readonly` and `userinfo.profile`, which the app asks for when an account connects. The last is for the account's name, used when its address sends as none of its own. Logging in asks only for `openid` and `email`, which need no setting up;
+  - the scopes `gmail.send`, `gmail.readonly` and `userinfo.profile`, which the app asks for when an account connects. The last is for the account's name, used when its address sends as none of its own. Logging in asks for `openid`, `email` and `profile`, for the address and the name kept on the staff account, which need no setting up;
   - a web application OAuth client whose redirect URIs are `https://pauseai.uk/staff/api/gmail/callback` and `https://pauseai.uk/staff/api/google/callback`.
 
   The client's ID and secret go into Netlify as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. `GMAIL_TOKEN_KEY` is 32 random bytes in base64. Previews have other addresses, so Gmail can be connected only on the live site.

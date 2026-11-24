@@ -230,7 +230,7 @@ describe("fixtureResponse", () => {
       access_token: "fixture-access:jo@pauseai.uk",
       expires_in: 3599,
       refresh_token: "fixture-refresh:jo@pauseai.uk",
-      id_token: `e30.${Buffer.from('{"email":"jo@pauseai.uk","email_verified":true}').toString("base64url")}.fixture`,
+      id_token: `e30.${Buffer.from('{"email":"jo@pauseai.uk","email_verified":true,"name":"Jo"}').toString("base64url")}.fixture`,
     });
     expect(await token("refresh_token=fixture-refresh%3Ajo%40pauseai.uk")).toEqual({
       access_token: "fixture-access:jo@pauseai.uk",
