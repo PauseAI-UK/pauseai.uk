@@ -107,7 +107,8 @@ export async function sendLetterVia<Unsent>(
   channel: MailingChannel,
   letter: TakenLetter<Unsent>,
 ): Promise<SentWithCare<Unsent>> {
-  return sendWithCare<object, Unsent>({
+  type Went = { read: ReadLetter<Unsent>; result: Extract<ChannelResult, { sent: true }> };
+  return sendWithCare<Went, Unsent>({
     problems: letter.problems,
     send: async () => {
       const read = await letter.read();
@@ -115,9 +116,15 @@ export async function sendLetterVia<Unsent>(
       if (held !== undefined) return { unsent: held };
       // The channel never throws once it has sent (send in email.server.ts), so whatever's thrown here, nothing went.
       const result = await channel.send(await read.message(), read.purpose);
-      return result.sent ? { went: read.sentDetails(result) } : { unsent: await read.unsent(result) };
+      return result.sent ? { went: { read, result } } : { unsent: await read.unsent(result) };
     },
-    record: (details) => transition(letter.id, ["sending"], "sent", { event: "sent", details, stamp: "sent_at" }),
+    // Its event's details are worked out here, once it has gone: nothing that fails from now on may put it back.
+    record: ({ read, result }) =>
+      transition(letter.id, ["sending"], "sent", {
+        event: "sent",
+        details: read.sentDetails(result),
+        stamp: "sent_at",
+      }),
     putBack: letter.putBack,
   });
 }

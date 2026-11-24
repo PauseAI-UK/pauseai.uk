@@ -13,7 +13,7 @@ const ROOT = join(__dirname, "..", "..");
 const DIRS = ["lib/server", ...featureLibFolders(), "netlify/functions"];
 
 /** Every .ts and .tsx file under `dir` that isn't a test. */
-export function codeFiles(dir: string): string[] {
+function codeFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return codeFiles(path);

@@ -50,7 +50,6 @@ function startOfDay(date: Date): Date {
  */
 export async function getEvents(period: EventPeriod = "future"): Promise<LumaEvent[]> {
   if (!config.lumaApiKey) return [];
-  const key = config.lumaApiKey;
 
   const today = startOfDay(now());
   const params = new URLSearchParams({
@@ -63,7 +62,11 @@ export async function getEvents(period: EventPeriod = "future"): Promise<LumaEve
   // own Luma calendar) only come back if asked for, as "view".
   params.append("access", "manage");
   params.append("access", "view");
+  return publicEvents(config.lumaApiKey, params);
+}
 
+/** The calendar's public events that `params` asks for, by `key`; none, reported, if Luma fails. */
+async function publicEvents(key: string, params: URLSearchParams): Promise<LumaEvent[]> {
   return orFallback(serverProblems.lumaEventsDown(), [], async () => {
     const res = await outsideFetch("luma", `https://public-api.luma.com/v1/calendars/events/list?${params}`, {
       headers: { "x-luma-api-key": key, accept: "application/json" },

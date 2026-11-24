@@ -1,7 +1,10 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { addTestLetter, addTestMp, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { query, transaction } from "@/lib/server/db.server";
-import { letterEvent, transition, transitionReading } from "./lifecycle.server";
+import { defineProblems } from "@/lib/problems";
+import { inRun } from "@/lib/server/run-store.server";
+import type { MailingChannel } from "./channels.server";
+import { letterEvent, sendLetterVia, transition, transitionReading } from "./lifecycle.server";
 import { sql } from "@/lib/server/sql.server";
 
 const letter = async (id: number) =>
@@ -85,5 +88,42 @@ describeWithDatabase("a letter's transitions", () => {
       { status: "notice", details: { notice: "bounced" } },
       { status: "copy_sent", details: {} },
     ]);
+  });
+
+  it("never puts back a letter that went, whatever fails afterwards, as that would send it twice", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const id = await addTestLetter({ politicianId: await addTestMp(), status: "sending", sentAt: null });
+    const problems = defineProblems("posting", { notSentYet: "It never went", sentUnrecorded: "It went, unrecorded" });
+    const sent: string[] = [];
+    const channel = {
+      send: async (message: { subject: string }) => {
+        sent.push(message.subject);
+        return { sent: true as const, id: "m1" };
+      },
+    } as unknown as MailingChannel;
+    const putBack = vi.fn(async () => "put back" as const);
+    const outcome = await inRun(async (run) => ({
+      result: await sendLetterVia(channel, {
+        id,
+        problems: { notSentYet: problems.notSentYet(), sentUnrecorded: problems.sentUnrecorded() },
+        putBack,
+        read: async () => ({
+          purpose: "letter" as const,
+          held: async () => undefined,
+          message: async () => ({ subject: "Hello" }) as never,
+          // What its event records can't be worked out: it has gone all the same.
+          sentDetails: () => {
+            throw new Error("no details");
+          },
+          unsent: async () => "unsent" as const,
+        }),
+      }),
+      problems: run.problems,
+    }));
+    expect(sent).toEqual(["Hello"]);
+    expect(outcome.result).toEqual({ sent: true, recorded: false });
+    expect(outcome.problems).toEqual([{ ...problems.sentUnrecorded(), said: "no details" }]);
+    expect(putBack).not.toHaveBeenCalled();
+    expect((await letter(id)).status).toBe("sending");
   });
 });
