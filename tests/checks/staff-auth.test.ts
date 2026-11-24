@@ -15,14 +15,15 @@ import { staffPageOf } from "@/lib/staff-sections";
 // doesn't count.
 //
 // Components (_components/) and the layout only render what a page hands
-// them, so they're not entry points, but a "use server" file among them is. The login page and the two login
-// routes (asking for a link, and where it goes) are how staff get a session,
-// so they can't require one.
+// them, so they're not entry points, but a "use server" file among them is. The login page and the three steps
+// of logging in with Google are how staff get a session, so they can't
+// require one.
 const ROOT = "app/(staff)";
 const OPEN = new Set([
   "staff/login/page.tsx",
-  "staff/api/login/route.ts",
-  "staff/api/callback/route.ts",
+  "staff/api/google/start/route.ts",
+  "staff/api/google/callback/route.ts",
+  "staff/api/google/handoff/route.ts",
   // The dev login: a fixture build's one-click session, a 404 anywhere else.
   "staff/api/dev-login/route.ts",
 ]);
@@ -185,8 +186,9 @@ describe("staff auth", () => {
           "async function helper() {}",
         ].join("\n"),
         "staff/login/page.tsx": "export default function Login() {}",
-        "staff/api/login/route.ts": "export async function POST() {}",
-        "staff/api/callback/route.ts": "export async function GET() {}",
+        "staff/api/google/start/route.ts": "export async function GET() {}",
+        "staff/api/google/callback/route.ts": "export async function GET() {}",
+        "staff/api/google/handoff/route.ts": "export async function GET() {}",
         "staff/_components/Table.tsx": "export function Table() {}",
         "staff/_components/page.tsx": "export default function NotAPage() {}",
         "staff/_components/events/actions.ts": '"use server";\nexport async function save() { await requireStaff(); }',

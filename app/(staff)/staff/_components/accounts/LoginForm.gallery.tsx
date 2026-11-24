@@ -12,21 +12,11 @@ export const loginFormGallery: Example[] = [
     file: "app/(staff)/staff/_components/accounts/LoginForm.tsx",
     variants: [
       {
-        label: "After a failed link, and one opened in another browser",
+        label: "Back from Google: it failed, and an account that isn't pauseai.uk's",
         render: () => (
           <StaffPage as="div">
             <LoginCard title={accountsCopy.login.title}>
-              <LoginForm failed="1" elsewhere="1" />
-            </LoginCard>
-          </StaffPage>
-        ),
-      },
-      {
-        label: "The link sent",
-        render: () => (
-          <StaffPage as="div">
-            <LoginCard title={accountsCopy.login.title}>
-              <LoginForm sent="1" />
+              <LoginForm failed="1" other="1" />
             </LoginCard>
           </StaffPage>
         ),

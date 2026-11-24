@@ -430,10 +430,12 @@ function googleResponse(
   if (hostname === "oauth2.googleapis.com" && pathname === "/token") {
     const form = new URLSearchParams(String(init!.body));
     const account = (form.get("code") ?? form.get("refresh_token")!).replace(/^fixture(-refresh)?:/, "");
+    // An ID token as Google's: header, claims and signature, each base64url, its claims the account's address.
+    const claims = Buffer.from(JSON.stringify({ email: account, email_verified: true })).toString("base64url");
     return json({
       access_token: `fixture-access:${account}`,
       expires_in: 3599,
-      ...(form.get("code") && { refresh_token: `fixture-refresh:${account}` }),
+      ...(form.get("code") && { refresh_token: `fixture-refresh:${account}`, id_token: `e30.${claims}.fixture` }),
     });
   }
   if (hostname === "oauth2.googleapis.com" && pathname === "/revoke") return json({});

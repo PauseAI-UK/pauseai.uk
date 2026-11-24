@@ -7,14 +7,12 @@ export const accountsCopy = {
   ...wordsTheServerUses,
   login: {
     title: "Staff log in",
-    intro: "Enter your staff email to sign in on this browser.",
-    emailLabel: "Email",
+    intro: "⁂ Sign in with your pauseai.uk Google account.",
     keep: "Keep me signed in",
-    button: "Send sign in link",
-    sent: "Check your email and open the link in this browser.",
-    again: "Try again",
-    failed: "The link you used has expired or has been used already. Please request a new one.",
-    elsewhere: "The link you used was made in another browser. Either open it there, or request a new one here.",
+    button: "⁂ Sign in with Google",
+    // Back from Google, when signing in didn't work, or the account chosen wasn't a pauseai.uk one.
+    failed: "⁂ Signing in didn't work. Please try again.",
+    other: "⁂ Only pauseai.uk accounts can sign in. Choose your pauseai.uk account on Google's page.",
   },
   // Your own page: your sessions and your Gmail.
   me: {

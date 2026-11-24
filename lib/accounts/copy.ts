@@ -1,7 +1,9 @@
 // The words of staff accounts that the server or pure code uses, or both
-// it and the staff pages: the login email, the dev login, and the accounts
+// it and the staff pages: the dev login, and the accounts
 // page and its permissions' names.
 // The staff pages' own are in app/(staff)/staff/_components/accounts/copy.ts.
+
+import { defineProblems } from "@/lib/problems";
 
 export const accountsCopy = {
   // The dev login's box under the login card, in a fixture build only.
@@ -15,12 +17,6 @@ export const accountsCopy = {
     permissions: (names: string) => `${names} permissions`,
     noPermissions: "Account with no permissions",
     noAccount: "No account yet: logging in makes one",
-  },
-  // The email with the login link.
-  loginEmail: {
-    subject: "Confirm sign in to PauseAI UK",
-    body: (link: string, minutes: number) =>
-      `Follow this link to sign in:\n\n${link}\n\nYou must use the browser you made the link with, and it will expire after ${minutes} minutes.\n\nIf you did not request this, please ignore this message.`,
   },
   // The accounts page (/staff/accounts), for admins: who may use the staff
   // pages, and what each may do.
@@ -87,3 +83,10 @@ export const accountsCopy = {
     lastAdmin: "The last administrator can't be removed or lose permissions to administrate.",
   },
 };
+
+// What went wrong logging in (lib/problems.ts), kept as an error, on the errors page and emailed to staff.
+export const accountProblems = defineProblems("accounts", {
+  // Someone chose their account on Google's page, but the site couldn't learn who they were from Google, or, for a
+  // deploy preview, couldn't sign the login it passes on. They're back on the login page, told to try again.
+  googleLoginFailed: "⁂ Logging a staff member in with Google failed at the last step",
+});

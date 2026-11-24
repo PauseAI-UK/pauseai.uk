@@ -33,9 +33,6 @@ INSERT INTO staff_sessions (token_hash, email, created_at, expires_at, remember,
   ('seed-session-jo-phone', 'jo@pauseai.uk', now() - interval '3 hours', now() + interval '21 hours', false,
    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36'),
   ('seed-session-jo-old', 'jo@pauseai.uk', now() - interval '20 days', now() - interval '19 days', false, NULL);
-INSERT INTO staff_login_links (token_hash, email, browser_hash, created_at, expires_at, used_at, remember) VALUES
-  ('seed-link-used', 'jo@pauseai.uk', 'seed-browser', now() - interval '3 days', now() - interval '3 days' + interval '15 minutes', now() - interval '3 days' + interval '2 minutes', true),
-  ('seed-link-expired', 'samuel.whitlock@pauseai.uk', 'seed-browser', now() - interval '1 day', now() - interval '1 day' + interval '15 minutes', NULL, false);
 
 -- ---------------------------------------------------------- politicians
 

@@ -123,18 +123,14 @@ describeWithDatabase("staff accounts", () => {
     expect(await listStaffAccounts()).toEqual([]);
   });
 
-  it("removes an account with its sessions and links, and does nothing for one that isn't there", async () => {
+  it("removes an account with its sessions, and does nothing for one that isn't there", async () => {
     await saveStaffAccount("jo@pauseai.uk", ["admin"], "x");
     await saveStaffAccount("samuel.whitlock@pauseai.uk", ["supporters"], "x");
     const token = await createSession("Samuel.Whitlock@pauseai.uk");
-    await query(
-      "INSERT INTO staff_login_links (token_hash, email, expires_at) VALUES ('h', 'samuel.whitlock@pauseai.uk', now() + interval '1 hour')",
-    );
     expect(await removeStaffAccount("Samuel.Whitlock@pauseai.uk", "jo@pauseai.uk")).toBe("changed");
     expect(await removeStaffAccount("samuel.whitlock@pauseai.uk", "jo@pauseai.uk")).toBe("unchanged");
     expect(await accountOf("samuel.whitlock@pauseai.uk")).toBeUndefined();
     expect(await sessionEmail(token)).toBeUndefined();
-    expect(await query("SELECT 1 FROM staff_login_links")).toEqual([]);
     expect((await log()).at(-1)).toEqual({
       actor: "jo@pauseai.uk",
       action: "remove staff account",

@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: accountsCopy.login.title };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sent?: string; failed?: string; elsewhere?: string; next?: string }>;
+  searchParams: Promise<{ failed?: string; other?: string; next?: string }>;
 }) {
   const params = await searchParams;
   return (

@@ -162,7 +162,6 @@ export async function removeStaffAccount(email: string, by: string): Promise<Acc
     if (row.permissions.includes("admin") && (await wouldLeaveNoAdmin(address, db))) return "last-admin";
     await query("DELETE FROM staff_accounts WHERE email = $1", [address], db);
     await query("DELETE FROM staff_sessions WHERE lower(email) = $1", [address], db);
-    await query("DELETE FROM staff_login_links WHERE lower(email) = $1", [address], db);
     await logChange(by, "remove staff account", { email: address, permissions: row.permissions }, db);
     return "changed";
   });

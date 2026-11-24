@@ -397,16 +397,15 @@ you in at once, with no email. There's a button for:
 The dev login exists only with `DATA_FIXTURES=1`. Its route is a 404
 anywhere else.
 
-To go through the real login instead:
-
-1. Type an address at pauseai.uk in the card. Any such address can log in,
-   and gets an account with no permissions the first time. An admin gives
-   it permissions on `/staff/accounts`.
-2. The login email is the newest file in `tmp/outbox/`. Open the
-   `/staff/api/callback?token=…` link in it, in the same browser.
+To go through the real login instead, press the card's button. The fixture
+build's Google comes straight back as staff@pauseai.uk, or as the address in
+the `fixture_google_account` cookie, if the browser has one, as the storyboard
+sets it. Any pauseai.uk address can log in, and gets an account with no
+permissions the first time. An admin gives it permissions on
+`/staff/accounts`.
 
 You're then at `/staff`, logged in for a day, or for 30 days with "Keep me
-signed in" ticked. Of the fixtures, the real login uses only Postmark's.
+signed in" ticked.
 
 #### See every component
 
@@ -801,13 +800,15 @@ Set up outside the code:
 
   Luma retries a delivery that isn't answered 2xx three more times, after 1, 2 and 4 minutes. It only sends unsubscribes that happen after the webhook exists.
 
-- **Gmail:** the PauseAI UK Google Cloud project, under the organisation of PauseAI's Google Workspace. That Workspace's primary domain is pauseai.info, and pauseai.uk is in it too. A Workspace has only one organisation (https://cloud.google.com/resource-manager/docs/creating-managing-organization). The project needs:
+- **Gmail and logging in:** the PauseAI UK Google Cloud project, under the organisation of PauseAI's Google Workspace. That Workspace's primary domain is pauseai.info, and pauseai.uk is in it too. A Workspace has only one organisation (https://cloud.google.com/resource-manager/docs/creating-managing-organization). The project needs:
   - the Gmail API turned on;
-  - the Internal user type (Google Auth Platform → Audience), so any account in the Workspace can grant access and Google doesn't review the app (https://support.google.com/cloud/answer/15549945);
-  - the scopes `gmail.send`, `gmail.readonly` and `userinfo.profile`, which the app asks for when an account connects. The last is for the account's name, used when its address sends as none of its own;
-  - a web application OAuth client whose redirect URI is `https://pauseai.uk/staff/api/gmail/callback`.
+  - the Internal user type (Google Auth Platform → Audience), so any account in the Workspace can log in or grant access and Google doesn't review the app (https://support.google.com/cloud/answer/15549945). That's pauseai.info's accounts too, so the site lets in only pauseai.uk addresses itself;
+  - the scopes `gmail.send`, `gmail.readonly` and `userinfo.profile`, which the app asks for when an account connects. The last is for the account's name, used when its address sends as none of its own. Logging in asks only for `openid` and `email`, which need no setting up;
+  - a web application OAuth client whose redirect URIs are `https://pauseai.uk/staff/api/gmail/callback` and `https://pauseai.uk/staff/api/google/callback`.
 
   The client's ID and secret go into Netlify as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. `GMAIL_TOKEN_KEY` is 32 random bytes in base64. Previews have other addresses, so Gmail can be connected only on the live site.
+
+  Google sends people back only to the redirect URIs listed, exactly, so a preview's login goes through the live site, which passes it back signed (`lib/accounts/google-login.server.ts`). `GOOGLE_LOGIN_SIGNING_KEY`, set in Netlify for production alone, is the private half of the Ed25519 key that signs it, PKCS #8 in base64; the public half is in `lib/accounts/live-login-key.ts`. To make a new pair, run `node -e 'const k=require("crypto").generateKeyPairSync("ed25519");console.log(k.privateKey.export({type:"pkcs8",format:"der"}).toString("base64"));console.log(k.publicKey.export({type:"spki",format:"der"}).toString("base64"))'`: the first line goes into Netlify, the second into that file. The live site passes a login on only to an address ending `--pauseaiuk.netlify.app`, so a local build that isn't a fixture build can't log in.
 
   The replies read from Gmail are kept in Netlify Blobs, in the `letter-replies` store, which needs no setting. The nightly backup archives them, with every other message kept there, using `BACKUP_SECRET`. That secret goes into Netlify, and into the Worker as `SITE_BACKUP_SECRET` (`backup/README.md`).
 

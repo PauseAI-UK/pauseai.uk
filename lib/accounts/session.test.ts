@@ -39,7 +39,7 @@ describe("returning after login", () => {
       "/staff/login",
       "/staff/login?next=/staff/letters",
       "/staff/api/logout",
-      "/staff/api/callback",
+      "/staff/api/google/callback",
     ]) {
       expect(afterLogin(next)).toBe("/staff");
     }

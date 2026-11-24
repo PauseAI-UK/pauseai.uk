@@ -38,7 +38,12 @@ describe("proxy", () => {
   });
 
   it("lets through the login steps, and anyone with a session cookie for requireStaff() to check", () => {
-    for (const path of ["/staff/login", "/staff/api/login", "/staff/api/callback"]) {
+    for (const path of [
+      "/staff/login",
+      "/staff/api/google/start",
+      "/staff/api/google/callback",
+      "/staff/api/google/handoff",
+    ]) {
       expect(visit(path).headers.get("x-middleware-next")).toBe("1");
     }
     expect(visit("/staff", "staff_session=anything").headers.get("x-middleware-next")).toBe("1");

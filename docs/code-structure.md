@@ -16,7 +16,7 @@ The repo is one Next.js app with three faces, each a route group in
 - **The tools**, `app/(tools)/`: the volunteer tools and trackers, and the
   component gallery (`/gallery`, fixture builds only; `docs/testing.md`,
   "The component gallery").
-- **The staff interface**, `app/(staff)/staff/`, behind email login: the
+- **The staff interface**, `app/(staff)/staff/`, behind Google login: the
   supporters, politicians, letters and the rest, made of features
   ("Feature folders", below).
 
