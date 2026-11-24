@@ -1282,6 +1282,16 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await expect.element(preview().getByText(examplePlace.address, { exact: true })).not.toBeInTheDocument();
   });
 
+  it("finds no place on a page the site has changed under, and says it's outdated", async () => {
+    const actions = await renderWriter({ draft: newWords });
+    await kind(top.place).click();
+    actions.findPlaces.mockRejectedValueOnce(gone());
+    await page.getByLabelText(places.find).fill("parliament square");
+    await button(places.findButton).click();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
+    await expect.element(page.getByText(places.none)).toBeVisible();
+  });
+
   it("warns of no Google Maps link first in the words when the top is a map", async () => {
     await renderWriter({
       draft: {
