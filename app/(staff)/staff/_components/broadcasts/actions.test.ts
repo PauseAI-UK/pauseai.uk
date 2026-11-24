@@ -499,8 +499,12 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     });
   });
 
-  it("finds the places some words name, for a text's map, only for staff", async () => {
-    expect(await findPlacesFor("Parliament Square")).toEqual([expect.objectContaining({ name: "Parliament Square" })]);
+  it("finds the places some words name, for a text's map, only for staff, and only by words", async () => {
+    expect(await findPlacesFor("Parliament Square")).toEqual({
+      ok: true,
+      places: [expect.objectContaining({ name: "Parliament Square" })],
+    });
+    await expect(findPlacesFor(undefined as unknown as string)).rejects.toThrow();
     await query("UPDATE staff_accounts SET permissions = '{}' WHERE email = $1", [JO]);
     await expect(findPlacesFor("Parliament Square")).rejects.toThrow();
   });
