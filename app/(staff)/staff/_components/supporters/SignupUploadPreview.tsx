@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
 import { useSave } from "@/components/ui/useSave";
+import { reportBrowserError, thrownByServer } from "@/lib/browser-errors";
 import type { FormResult } from "@/lib/form-result";
 import type { SignupUploadDone } from "@/lib/supporters/signup-uploads.server";
 import {
@@ -246,7 +247,11 @@ export default function SignupUploadPreview({
           if (gone) return;
           setOutcome({ of: input, is: result.ok ? result.plan : result.reason });
         },
-        () => !gone && setOutcome({ of: input, is: "failed" }),
+        (error: unknown) => {
+          // As useSave does: the server has kept its own, and the site is told of one the browser threw.
+          if (!thrownByServer(error)) reportBrowserError("browser-other", error);
+          if (!gone) setOutcome({ of: input, is: "failed" });
+        },
       );
     }, PREVIEW_DELAY_MS);
     return () => {

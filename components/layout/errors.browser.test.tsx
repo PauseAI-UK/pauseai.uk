@@ -6,6 +6,7 @@ import { render } from "vitest-browser-react";
 import type { reportBrowserError } from "@/lib/browser-errors";
 import ErrorReporter from "./ErrorReporter";
 import { useErrorTold } from "./useErrorTold";
+import { takeReported } from "@/tests/browser/reported";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -90,9 +91,9 @@ describe("useErrorTold", () => {
   });
 
   it("tells the site itself when nothing else is given to", async () => {
-    const fetch = vi.spyOn(window, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
-    await render(<Told error={new Error("Thrown in the browser")} />);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    const thrown = new Error("Thrown in the browser");
+    await render(<Told error={thrown} />);
+    expect(takeReported()).toEqual([thrown]);
   });
 });
 
@@ -164,11 +165,11 @@ describe("ErrorReporter", () => {
   });
 
   it("tells the site itself when nothing else is given to", async () => {
-    const fetch = vi.spyOn(window, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
     const on = new EventTarget();
     await render(<ErrorReporter on={on} />);
-    on.dispatchEvent(new ErrorEvent("error", { error: ours() }));
-    expect(fetch).toHaveBeenCalledTimes(1);
+    const thrown = ours();
+    on.dispatchEvent(new ErrorEvent("error", { error: thrown }));
+    expect(takeReported()).toEqual([thrown]);
   });
 
   it("listens on the window when given nothing else to", async () => {

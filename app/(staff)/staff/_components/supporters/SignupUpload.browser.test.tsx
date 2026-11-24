@@ -24,6 +24,7 @@ import { SignupUploadHelpExample } from "./SignupUploadHelp.gallery.client";
 import { SignupColumnNames } from "./SignupUploadHelp";
 import { SignupPlanViewExample, SignupUploadPreviewExample } from "./SignupUploadPreview.gallery.client";
 import { supportersCopy } from "./copy";
+import { takeReported } from "@/tests/browser/reported";
 
 const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", async (original) => ({
@@ -375,10 +376,12 @@ describe("SignupUploadPreview", () => {
     };
     const view = await show({ preview: down });
     await expect.element(page.getByText(words.failed)).toBeVisible();
+    expect(takeReported()).toHaveLength(1);
     await view.unmount();
     const failing = await show({ finish: down });
     await button().click();
     await expect.element(page.getByText(words.failed)).toBeVisible();
+    expect(takeReported()).toHaveLength(1);
     // The preview stays under it, to try again; something else chosen, it's no longer said.
     await expect.element(button()).toBeEnabled();
     await failing.rerender(
@@ -408,6 +411,14 @@ describe("SignupUploadPreview", () => {
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
     expect(page.getByText(words.failed).elements()).toEqual([]);
+    // Though not said, what the browser threw is still told to the site.
+    expect(takeReported()).toHaveLength(1);
+  });
+
+  it("leaves the site untold of a failed preview that the server threw, as the server has kept it", async () => {
+    await show({ preview: async () => Promise.reject(Object.assign(new Error("server"), { digest: "1234" })) });
+    await expect.element(page.getByText(words.failed)).toBeVisible();
+    expect(takeReported()).toEqual([]);
   });
 });
 
