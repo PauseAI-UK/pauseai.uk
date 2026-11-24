@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
 import { runJob } from "@/lib/jobs/jobs.server";
+import { keepCaught } from "@/lib/oversight/errors-seen.server";
 import { actionRequest } from "@/lib/site-url.server";
 import { idFrom } from "@/lib/staff-forms";
 import { decideHeldImport, isPoliticianImport } from "@/lib/politicians/imports.server";
@@ -22,8 +23,8 @@ function refreshImport(job: ImportJob): void {
  * A job's button, bound to the job's name: runs it as the staff member,
  * unless a run of it is going (lib/jobs/jobs.server.ts), then refreshes its
  * pages. Any staff member may run any job. A failure is in the import log,
- * shown on its page like a scheduled one, so it's logged rather than
- * crashing the page.
+ * shown on its page like a scheduled one, so it's kept as an error, as a
+ * scheduled run's is when it's thrown, rather than crashing the page.
  */
 export async function runJobNow(job: string): Promise<void> {
   const { email } = await requireStaff();
@@ -31,7 +32,7 @@ export async function runJobNow(job: string): Promise<void> {
   try {
     await runJob(job, email, await actionRequest());
   } catch (error) {
-    console.error(error);
+    await keepCaught(error, importPath(job));
   }
   refreshImport(job);
 }

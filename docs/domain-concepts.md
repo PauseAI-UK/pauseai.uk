@@ -1935,13 +1935,20 @@ its place and says in its result what's left.
 ## Errors
 
 What goes wrong outside a job's run is kept, so that it reaches someone
-(`errors_seen`, `lib/oversight/errors-seen.server.ts`). A job's failures and problems
-are its run's ("Imports", above), not these. Three things are kept:
+(`errors_seen`, `lib/oversight/errors-seen.server.ts`). The problems a job
+reports as it runs are its run's ("Imports", above), not these. Three things
+are kept:
 
 - **An error the server throws** in a page, a route handler, a Server
   Action or the proxy. Next hands each to `onRequestError`
   (`instrumentation.ts`,
   https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation).
+  A job that fails is one of these too. A job reports the errors it expects
+  as problems and carries on, so one that stops it is a bug: it's kept on
+  the failed run, with its words, and here, with its stack trace, and staff
+  are emailed about each. A scheduled run throws it on from its route; a
+  run a staff member started keeps it with `keepCaught()`, so that the
+  job's page still refreshes to show the failed run.
 - **A problem reported outside a run**: code that catches an error and
   carries on calls `problem()` (`lib/server/problems.server.ts`), which in a form
   or a webhook has no run to keep it on. It's kept by its sentence, with
