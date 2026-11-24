@@ -124,6 +124,20 @@ describeWithDatabase("GET /staff/api/google/callback", () => {
       expect((await callback({ state: "st" }, FOR_PREVIEW)).headers.get("location")).toBe(`${PREVIEW}/staff/login`);
     });
 
+    it("fails on the live site, signing nothing, for a cookie naming an address that isn't a preview's", async () => {
+      googleSays("jo@pauseai.uk");
+      const cookie = JSON.stringify({
+        state: "st",
+        preview: "https://evil.example",
+        nonce: "n",
+        remember: false,
+        next: "/staff",
+      });
+      const res = await callback({ code: "c", state: "st" }, cookie);
+      expect(res.headers.get("location")).toBe("https://pauseai.uk/staff/login?failed=1");
+      expect(res.cookies.get("staff_session")).toBeUndefined();
+    });
+
     it("fails, reporting it, when the live site can't sign the login", async () => {
       const error = vi.spyOn(console, "error").mockImplementation(() => {});
       vi.stubEnv("GOOGLE_LOGIN_SIGNING_KEY", "");

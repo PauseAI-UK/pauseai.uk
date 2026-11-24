@@ -38,6 +38,18 @@ describeWithDatabase("GET /staff/api/google/handoff", () => {
     expect(res.cookies.get("staff_google_login")?.value).toBe("");
   });
 
+  it("fails on the live site, even with a note signed for it, so the key logs in only on previews", async () => {
+    vi.stubEnv("DEPLOY_CONTEXT", "production");
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
+    const request = new NextRequest(
+      `https://pauseai.uk/staff/api/google/handoff?${new URLSearchParams({ login: signLogin(JO, "https://pauseai.uk", "n") })}`,
+    );
+    request.cookies.set("staff_google_login", STARTED);
+    const res = await GET(request);
+    expect(res.headers.get("location")).toBe("https://pauseai.uk/staff/login?failed=1");
+    expect(res.cookies.get("staff_session")).toBeUndefined();
+  });
+
   it("fails for a note for another preview or browser, or none, or without this browser's nonce", async () => {
     for (const [note, cookie] of [
       [signLogin(JO, "https://other--pauseaiuk.netlify.app", "n"), STARTED],

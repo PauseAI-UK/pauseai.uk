@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   GOOGLE_LOGIN_COOKIE,
   type GoogleAccount,
+  isPreviewOrigin,
   loggedIn,
   readStarted,
   signLogin,
@@ -62,9 +63,13 @@ function onTo(to: URL): NextResponse {
 // (lib/accounts/google-login.server.ts). Otherwise it goes back to the
 // login page they started from, saying why: `other` for an account that
 // isn't pauseai.uk's, `failed` for anything else, and nothing if they went
-// back from Google's page without choosing.
+// back from Google's page without choosing. A cookie naming an address
+// that isn't a preview's fails on the live site, as the start would have.
 export async function GET(request: NextRequest) {
   const started = readStarted(request.cookies.get(GOOGLE_LOGIN_COOKIE)?.value);
+  if (started?.preview !== undefined && !isPreviewOrigin(started.preview)) {
+    return onTo(siteUrl(`${LOGIN_PATH}?failed=1`, request));
+  }
   const site = (path: string) => (started?.preview ? new URL(path, started.preview) : siteUrl(path, request));
   const account = await chosen(request, started);
   if (account === "failed") return onTo(site(`${LOGIN_PATH}?failed=1`));
