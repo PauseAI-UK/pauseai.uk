@@ -405,3 +405,21 @@ describe("SettingsStart", () => {
     await expect.element(page.getByRole("button", { name: copy.start.button }).last()).toBeDisabled();
   });
 });
+
+describe("exampleSaved, the tests' and the gallery's save", () => {
+  it("answers with each box as the form has it, and Luma's only where the page drew it", () => {
+    const form = new FormData();
+    form.append("choice", "volunteering:email");
+    // No Luma box on the page: they stay on our calendar, though it isn't ticked.
+    const saved = exampleSaved(exampleSettings, form);
+    expect(saved.onLuma).toBe(true);
+    const sends = (topic: string) => saved.answers.filter((a) => a.topic === topic).map((a) => `${a.way} ${a.send}`);
+    expect(sends("newsletter")).toEqual(["email no", "text no"]);
+    expect(sends("volunteering")).toEqual(["email yes", "text no", "call no"]);
+    // With the box drawn and unticked, they come off it.
+    form.append("choice", LUMA_OFFERED);
+    expect(exampleSaved(exampleSettings, form).onLuma).toBe(false);
+    form.append("choice", LUMA_CHOICE);
+    expect(exampleSaved(exampleSettings, form).onLuma).toBe(true);
+  });
+});
