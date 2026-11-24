@@ -288,6 +288,16 @@ function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
   return conditions;
 }
 
+/**
+ * Every supporter's email addresses and numbers, as a WITH clause's two
+ * tables: `i` (supporter_id, email) and `c` (supporter_id, phone). Each is a
+ * view of views, with no index on its address, so joined straight to a list
+ * of addresses Postgres reads the whole view again for each one: seconds,
+ * for the unsubscribes. MATERIALIZED reads each once a query.
+ */
+export const SUPPORTER_ADDRESSES = `i AS MATERIALIZED (SELECT supporter_id, email FROM supporter_identity),
+  c AS MATERIALIZED (SELECT supporter_id, phone FROM supporter_contact)`;
+
 /** Those seen at `column` in the last `days` days, up to now. */
 const within = (column: string, days: number) =>
   sql`${sql.raw(column)} >= ${windowStart(days)} AND ${sql.raw(column)} <= ${now()}`;
@@ -390,9 +400,10 @@ async function supporterConditions(
     const consents = (filter.contact ?? []).map(({ topic, way }) => sql`(u.topic = ${topic} AND u.way = ${way})`);
     const which = consents.length ? sql.or(consents) : sql`true`;
     where.push(
-      sql`s.id IN (SELECT i.supporter_id FROM contact_unsubscribes u JOIN supporter_identity i ON i.email = u.address
+      sql`s.id IN (WITH ${sql.raw(SUPPORTER_ADDRESSES)}
+         SELECT i.supporter_id FROM contact_unsubscribes u JOIN i ON i.email = u.address
          WHERE u.way = 'email' AND ${which} AND ${within("u.at", filter.unsubscribedDays)}
-       UNION SELECT c.supporter_id FROM contact_unsubscribes u JOIN supporter_contact c ON c.phone = u.address
+       UNION SELECT c.supporter_id FROM contact_unsubscribes u JOIN c ON c.phone = u.address
          WHERE u.way <> 'email' AND ${which} AND ${within("u.at", filter.unsubscribedDays)})`,
     );
   }

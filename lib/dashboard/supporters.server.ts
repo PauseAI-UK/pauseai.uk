@@ -1,6 +1,7 @@
 import "server-only";
 import { query } from "@/lib/server/db.server";
 import type { SupporterSource } from "@/lib/supporters/supporters";
+import { SUPPORTER_ADDRESSES } from "@/lib/supporters/records.server";
 import { SERIES_POINTS, type SectionMetric, type SourcePoint, type Span, type SupportersTiles } from "./dashboard";
 import { seriesWindows, windowCounts, type MetricSource } from "./counts.server";
 
@@ -11,10 +12,10 @@ const SOURCES: Record<SectionMetric<"supporters">, MetricSource> = {
   // A stop of any consent, by a supporter's address or number: only one that's still a supporter's, as an opt-out
   // outlives its contact, so that they're never contacted.
   unsubscribes: {
-    from: `(SELECT i.supporter_id, u.at FROM contact_unsubscribes u
-            JOIN supporter_identity i ON u.way = 'email' AND i.email = u.address
+    from: `(WITH ${SUPPORTER_ADDRESSES}
+          SELECT i.supporter_id, u.at FROM contact_unsubscribes u JOIN i ON u.way = 'email' AND i.email = u.address
           UNION SELECT c.supporter_id, u.at FROM contact_unsubscribes u
-            JOIN supporter_contact c ON u.way <> 'email' AND c.phone = u.address) u WHERE true`,
+            JOIN c ON u.way <> 'email' AND c.phone = u.address) u WHERE true`,
     at: "u.at",
     count: "DISTINCT u.supporter_id",
   },
