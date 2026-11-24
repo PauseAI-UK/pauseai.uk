@@ -11,18 +11,27 @@
 // file its tests didn't load as the node project maps it, all zeros. Istanbul
 // merges a range with no match by adding the count of the nearest range
 // around it, which is how one whole run comes out covered. A range that runs
-// to its line's end has the column Infinity, which JSON writes as null, and
-// Istanbul matches it to the one range with the same start and end line
-// (https://github.com/vitest-dev/istanbuljs/pull/25).
+// to its line's end has the column Infinity, which JSON writes as null.
+// Istanbul matches a null to the one range with the same start and end line
+// (https://github.com/vitest-dev/istanbuljs/pull/25), but looks for no range
+// around one, so each null is made Infinity again before merging: a
+// statement that only a shard whose block didn't run maps apart, such as
+// the import() inside an `await import()`, then gets its block's count from
+// the shards that ran it.
 import { readFileSync } from "node:fs";
 import { createCoverageMap } from "@vitest/istanbul-lib-coverage";
 
 const METRICS = ["statements", "branches", "functions", "lines"];
 
+/** A shard's report with each range's end at its line's end as the run had it, Infinity, where JSON wrote null. */
+function asRun(shard) {
+  return JSON.parse(JSON.stringify(shard), (key, value) => (key === "column" && value === null ? Infinity : value));
+}
+
 /** The shards' coverage-final.json files, parsed, merged. */
 export function mergeShards(shards) {
   const map = createCoverageMap({});
-  for (const shard of shards) map.merge(shard);
+  for (const shard of shards) map.merge(asRun(shard));
   return map;
 }
 
