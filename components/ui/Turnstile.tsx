@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { copy } from "@/lib/content/email-your-mp";
+import { spamCheckCopy } from "@/lib/content/spam-check";
 
 // Cloudflare Turnstile's widget. The server checks the token it produces
 // (lib/server/outside-services/turnstile.server.ts). Tokens are single use, so the form remounts
@@ -86,7 +86,7 @@ export default function Turnstile({ siteKey, onToken }: { siteKey: string; onTok
   return (
     <div data-turnstile>
       <div ref={container} />
-      {failed && <p role="alert">{copy.errors.turnstileLoad}</p>}
+      {failed && <p role="alert">{spamCheckCopy.load}</p>}
     </div>
   );
 }

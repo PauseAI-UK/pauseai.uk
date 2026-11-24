@@ -28,16 +28,18 @@ makes sense: don't do it again.
 | PR 1: the bugs, the general rules, error pages, saving  | 1 and 2    | **DONE** in #462   |
 | PR 2: the server side                                   | 3 and 4    | **DONE** in #464   |
 | PR 3: stored errors                                     | 5          | **DONE** in #467   |
-| PR 4: forms                                             | 6 and 7    | **TO DO**          |
+| PR 4: visitors' forms                                   | part of 6  | **DONE** in #471   |
+| PR 5: staff forms                                       | 6 and 7    | **TO DO**          |
 
 Of the problems below, 1 to 10 and 13 are DONE, but for what's noted under
-7 and 13, and problem 12 is DONE. Problem 11 is TO DO.
+7 and 13, and problem 12 is DONE. Problem 11 is DONE for visitors' forms
+and TO DO for staff's.
 
-## Before starting PR 4
+## Before starting PR 5
 
 For whoever picks this up without having done the PRs before.
 
-**What PR 2 and PR 3 built, which PR 4 stands on** (`docs/code-structure.md`,
+**What the PRs before built, which PR 5 stands on** (`docs/code-structure.md`,
 "Errors", says each in full):
 
 - **A problem is declared and has a code.** A feature's copy file declares
@@ -59,6 +61,12 @@ For whoever picks this up without having done the PRs before.
   service failing, which service and what kind of failure. ESLint keeps
   `describeError()` to the files named for it (`DESCRIBE_ERROR_IMPORT` in
   `eslint.config.mjs`).
+- **A form's server code answers one shape** (`lib/form-result.ts`):
+  `{ ok: true, … }` or `{ ok: false, reason }`, the reason a code, which
+  the types hold (`Code`), with `fields` where a form says what's wrong
+  beside each one (`RefusedFields`). Every visitors' form is on it. The
+  browser asks a route through `lib/ask-server.ts`, and ESLint refuses
+  `fetch()` elsewhere in its code (`FETCH_RULE`).
 - **`OWN_CATCHES`** in `tests/checks/caught-errors.test.ts` lists the files
   with a `catch` of their own. Step 6 takes the Server Actions' off as
   they change shape.
@@ -68,7 +76,56 @@ reader takes both shapes: an old row has `what` and `error`, a new one
 `code`, `values`, `what` and `said`. `errors_seen` keys a problem's row by
 its code.
 
+**The staff side, as it stands.** Twelve files of Server Actions under
+`app/(staff)/staff/`, which the check for step 6 starts by listing:
+
+| File                                 | Actions |
+| ------------------------------------ | ------- |
+| `_components/erasure/actions.ts`     | 1       |
+| `_components/events/actions.ts`      | 1       |
+| `_components/asks/actions.ts`        | 2       |
+| `_components/jobs/actions.ts`        | 2       |
+| `_components/oversight/actions.ts`   | 2       |
+| `_components/notes/actions.ts`       | 3       |
+| `_components/supporters/actions.ts`  | 3       |
+| `_components/accounts/actions.ts`    | 4       |
+| `saved-filter-actions.ts`            | 4       |
+| `_components/politicians/actions.ts` | 5       |
+| `_components/mailings/actions.ts`    | 18      |
+| `_components/broadcasts/actions.ts`  | 21      |
+
+Smallest first is a good order. The last two come with the four
+components in `UNCONVERTED_SAVES`. It's more than one PR's worth: ask
+whoever reviews how to split it, such as the ten small files, then
+mailings, then broadcasts.
+
+`saved-filter-actions.ts` shows all three kinds of input E sorts, and is a
+good one to convert first and show: a list or an ID our form fills in
+(throw), a name that's only spaces (a reason, and the form says so), and a
+filter someone else deleted (a reason, and the form says so). None of its
+forms has anywhere to say anything yet, and no staff form uses
+`useActionState`, which the `staff-actions-one-pattern` investment
+proposes a hook over. So the first conversion also settles how a staff
+form shows a refusal: build that once, in the kit, look at it in the
+gallery, and show it before converting the rest.
+
 **How the work went, to save finding out again:**
+
+- A file the footer or a layout imports reaches every flow, so a change to
+  it pictures all of them: `lib/ask-server.ts` does, through the footer's
+  QR code (`investments/storyboard-reach-imports.md`, whose first refactor
+  would end that). `npm run reach` names the files that reach most, and
+  `npm run storyboard -- --plan` says how many flows a review would run.
+  Look before adding an import to a shared file.
+- A new file at the top of `lib/` is listed, with why, in `STAYS`
+  (`tests/checks/staff-components.test.ts`).
+- An action's answer is also made up in its component's tests, its
+  `*.examples.ts` and the gallery's examples
+  (`app/(tools)/gallery/_examples/`). The types find each one.
+- A table from each reason to its words has no branch to cover. Words
+  chosen with `&&` or `? :` need a test for each way.
+- The storyboard and `npm run serve` can't run in one checkout at once
+  (`investments/serve-beside-storyboard.md`).
 
 - A change to `problems.server.ts` or anything every flow reaches runs
   every flow in the gate: about 20 minutes. Run the affected test files
@@ -270,7 +327,9 @@ or "is it worth trying again?" in the same way for two services. Only
 `email.server.ts` works this out (`accountsFault`), and only for Gmail and
 Postmark. Only Parliament's code retries.
 
-### 11. Forms are told about failure in many different ways: TO DO
+### 11. Forms are told about failure in many different ways: DONE in #471 for visitors' forms
+
+**DONE in #471** for the first of the three below. **TO DO:** the staff actions, the other two. What follows is the problem as it was found.
 
 - Three server functions return the finished English for the visitor, so
   the wording is chosen deep in server code: `turnstile.server.ts`,
@@ -449,7 +508,7 @@ PR.
 - **A problem whose detail is a list.** It replaces the 7 places that join
   a list with commas. The job's page can then show the list as a list.
 
-### E. One way for forms to report failure: TO DO
+### E. One way for forms to report failure: DONE in #471 for visitors' forms, TO DO for staff's
 
 This fixes problem 11.
 
@@ -639,7 +698,7 @@ Enforced by:
 
 ## PR 2: the server side: DONE in #464
 
-Steps 3 and 4. Don't do these again. "Before starting PR 4", above, says
+Steps 3 and 4. Don't do these again. "Before starting PR 5", above, says
 what was built. Three things differ from what's planned below:
 
 - **The call is `problem(letterProblems.x({ … }), error)`**, not
@@ -729,28 +788,54 @@ for the runs, as they're tidied away. A broadcast that stopped while
 waiting for CiviCRM keeps its `wait_said` for good, so that one needs its
 rows moved first.
 
-## PR 4: forms: TO DO
+## PR 4: visitors' forms: DONE in #471
 
-Steps 6 and 7.
+The first part of step 6. Don't do it again. What was built:
 
-### Step 6. Form results (E)
+- **The result shape** (`lib/form-result.ts`), and `refused()` to make a
+  refusal.
+- **Every visitors' form on it**: the home page's postcode lookup, Email
+  your MP's lookup and its letter, the spam check, the contact preferences
+  page's six actions and the march sign-up, which answers a code for each
+  field that's wrong. No sentence was reworded. The spam check's are in
+  `lib/content/spam-check.ts`, for every form it guards.
+- **The browser's one way to ask the site** (`lib/ask-server.ts`).
 
-One form per commit, visitors' forms first. The four components in
-`UNCONVERTED_SAVES` move to `useSave` here, as their actions change shape,
-and the list is deleted.
+Enforced by:
+
+- **A reason is a code, not a sentence** (a type, `Code`).
+- **`fetch()` is refused in the browser's code** outside
+  `lib/ask-server.ts` (ESLint, `FETCH_RULE`).
+
+Two things differ from what was planned:
+
+- **A route answers a refusal as 200**, where some answered 400, 403, 409
+  or 500, as the march sign-up's always did. The helper can then throw on
+  any other status, and a form can't take a failure for an answer.
+- **The visitors' forms keep their own handling of a request that
+  fails**, each with its own sentence for it, and aren't on `useSave`.
+
+## PR 5: staff forms: TO DO
+
+The rest of step 6, and step 7.
+
+### Step 6. Form results (E), for staff's forms
+
+One form per commit. The four components in `UNCONVERTED_SAVES` move to
+`useSave` here, as their actions change shape, and the list is deleted.
+Where an action that did nothing on input it couldn't use now says so,
+the form needs somewhere to say it, the words are new, so placeholders,
+and the storyboard gets a flow.
 
 Enforced by:
 
 - **Every Server Action returns the one result shape**, or redirects (a
   check). It starts with a list of the actions not yet converted. The
-  `staff-actions-one-pattern` investment asks for the same check.
-- **A reason is a code, not a sentence** (a type).
+  `staff-actions-one-pattern` investment asks for the same check. The
+  contact preferences page's six are on the shape already.
 - **A staff form's own fields are read by helpers that throw**, such as
   one for a record's `id`. An action can't then forget to check, or return
   quietly.
-- **`fetch` is banned in browser code** outside one shared helper, which
-  checks the response's status (ESLint). Server code already has this
-  rule.
 
 ### Step 7. Finish
 

@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
+import { getJson } from "@/lib/ask-server";
 
 /** How often an open page asks for the count again, in milliseconds: the minute the server caches it for. */
 export const SIGNUPS_REFRESH_MS = 60_000;
 
 /** How many are going, from app/api/march/signups: null when Luma can't say. Throws when the server can't be reached. */
 export async function fetchMarchSignups(): Promise<number | null> {
-  const res = await fetch("/api/march/signups");
-  if (!res.ok) throw new Error(`The march's count answered ${res.status}`);
-  const { count } = (await res.json()) as { count: number | null };
+  const { count } = await getJson<{ count: number | null }>("/api/march/signups");
   return count;
 }
 

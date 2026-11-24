@@ -39,3 +39,4 @@ it, or the frame measure it once it has settled.
 - 2026-11-20: BroadcastWriter in the gallery (phone) differed from main along the two sticky bars with the Saved pill, in a review of a branch that changes neither, ~10 min
 - 2026-11-23: "A salutation to check" (phone) differed from main by a pixel's shift of the whole page, in a full review of a branch that only changes how mail is read and drawn, and not in the review before it; ~5 min
 - 2026-11-23: BroadcastWriter in the gallery (phone) differed from main along the sticky bar with the Saved pill again, no difference to the eye, in a review of a branch that changes neither, ~5 min
+- 2026-11-24: "A salutation to check" (phone) a pixel higher than main, and BroadcastWriter in the gallery (phone) different in 0.0% of its pixels, in a full review of a branch that changes neither page, 713 flows on seven workers with the machine's load at 26 to 38

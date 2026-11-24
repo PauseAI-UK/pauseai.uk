@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
+import { marchSignupCopy } from "@/lib/content/march-signup";
 import type { MarchRegisterResult } from "@/lib/march-registration";
 import SignupForm from "./SignupForm";
 
@@ -96,7 +97,7 @@ describe("SignupForm", () => {
         register={async () => ({
           ok: false,
           reason: "invalid",
-          errors: { name: "Please check your full name.", email: "Please enter a valid email address." },
+          fields: { name: "check", email: "invalid" },
         })}
       />,
     );
@@ -108,6 +109,19 @@ describe("SignupForm", () => {
     await expect.element(page.getByRole("link", { name: /Luma/ })).not.toBeInTheDocument();
     await expect.element(page.getByRole("button", { name: "Register" })).toBeEnabled();
     expect(pushed()).toEqual([]);
+  });
+
+  it("says what to fix in the phone number alone", async () => {
+    await render(
+      <SignupForm
+        {...formProps}
+        register={async () => ({ ok: false, reason: "invalid", fields: { phone: "invalid" } })}
+      />,
+    );
+    await fillIn();
+    await page.getByRole("button", { name: "Register" }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(marchSignupCopy.errors.phoneInvalid);
+    expect(page.getByRole("alert").element().textContent).not.toContain("full name");
   });
 
   it("offers the Luma page when Luma didn't take them", async () => {

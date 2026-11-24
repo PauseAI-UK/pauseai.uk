@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Controls";
 import { FieldError } from "@/components/ui/Field";
+import { postJson } from "@/lib/ask-server";
 import { copy } from "@/lib/content/email-your-mp";
-import { campaignBySlug, campaignPath } from "@/lib/email-your-mp";
+import { spamCheckCopy } from "@/lib/content/spam-check";
+import { campaignBySlug, campaignPath, type LetterSubmitted } from "@/lib/email-your-mp";
 import { toHtml } from "@/lib/letters/format";
 import AttachmentChips from "./AttachmentChips";
 import { markSent, readDraft, type Draft } from "./draft.client";
@@ -18,6 +20,19 @@ import styles from "./LetterPreview.module.css";
 type Props = {
   campaignSlug: string;
   turnstileSiteKey?: string;
+};
+
+/** Why a letter was refused, in words. */
+const REFUSED: Record<Extract<LetterSubmitted, { ok: false }>["reason"], string> = {
+  ...spamCheckCopy.refused,
+  "missing-fields": copy.errors.missingFields,
+  "invalid-email": copy.errors.invalidEmail,
+  "our-address": copy.errors.ourAddress,
+  "unknown-campaign": copy.errors.unknownCampaign,
+  "no-recipient": copy.errors.noRecipient,
+  "test-mp-only": copy.errors.testMpOnly,
+  "already-sent": copy.errors.alreadySent,
+  failed: copy.errors.failed,
 };
 
 /**
@@ -70,24 +85,19 @@ export default function LetterPreview({ campaignSlug, turnstileSiteKey }: Props)
     setError("");
     let sent = false;
     try {
-      const res = await fetch("/api/email-your-mp/letters", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          campaign: campaign.slug,
-          name: letter.name,
-          postcode: letter.postcode,
-          address: letter.address,
-          email: letter.email,
-          subject: letter.subject,
-          letter: letter.letter,
-          draftHash: letter.draftHash,
-          consent,
-          nickname: letter.nickname,
-          turnstileToken,
-        }),
+      const result = await postJson<LetterSubmitted>("/api/email-your-mp/letters", {
+        campaign: campaign.slug,
+        name: letter.name,
+        postcode: letter.postcode,
+        address: letter.address,
+        email: letter.email,
+        subject: letter.subject,
+        letter: letter.letter,
+        draftHash: letter.draftHash,
+        consent,
+        nickname: letter.nickname,
+        turnstileToken,
       });
-      const result = await res.json();
       if (result.ok) {
         sent = true;
         countConversion();
@@ -100,7 +110,7 @@ export default function LetterPreview({ campaignSlug, turnstileSiteKey }: Props)
         // conversion isn't cut off.
         router.push(`${campaignPath(campaign)}/sent`);
       } else {
-        setError(result.message);
+        setError(REFUSED[result.reason]);
       }
     } catch {
       setError(copy.preview.networkError);

@@ -288,7 +288,7 @@ describe("HomeEvents", () => {
   it("asks for a postcode, and says why one can't be looked up", async () => {
     const fetch = vi
       .spyOn(window, "fetch")
-      .mockResolvedValueOnce(Response.json({ ok: false, message: copy.postcodeNotFound }))
+      .mockResolvedValueOnce(Response.json({ ok: false, reason: "not-found" }))
       .mockRejectedValueOnce(new Error("offline"));
     await render(<HomeEvents events={EVENTS} />);
     await openPicker();

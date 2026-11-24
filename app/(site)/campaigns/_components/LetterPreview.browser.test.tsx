@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
+import { spamCheckCopy } from "@/lib/content/spam-check";
 import { navigation } from "@/tests/browser/navigation";
 import { readDraft, readSent, saveDraft } from "./draft.client";
 import { exampleDraft, exampleMp } from "./draft.examples";
@@ -137,7 +138,7 @@ describe("LetterPreview", () => {
   });
 
   it("shows the server's refusal, counts nothing, keeps the draft, and lets the sender try again", async () => {
-    respond = async () => Response.json({ ok: false, message: copy.errors.alreadySent }, { status: 400 });
+    respond = async () => Response.json({ ok: false, reason: "already-sent" });
     saveDraft(DRAFT);
     await render(<LetterPreview campaignSlug={letterToPm.slug} />);
     await send().click();
@@ -161,7 +162,7 @@ describe("LetterPreview", () => {
     await render(<LetterPreview campaignSlug={letterToPm.slug} />);
     await send().click();
     await expect.element(send()).toHaveAttribute("aria-busy", "true");
-    finish(Response.json({ ok: false, message: copy.errors.failed }));
+    finish(Response.json({ ok: false, reason: "failed" }));
     await expect.element(send()).toBeEnabled();
   });
 
@@ -174,7 +175,7 @@ describe("LetterPreview", () => {
       },
       remove: () => {},
     };
-    respond = async () => Response.json({ ok: false, message: copy.errors.spamFailed }, { status: 403 });
+    respond = async () => Response.json({ ok: false, reason: "spam-failed" });
     saveDraft(DRAFT);
     await render(<LetterPreview campaignSlug={letterToPm.slug} turnstileSiteKey="site-key" />);
 
@@ -182,7 +183,7 @@ describe("LetterPreview", () => {
     await vi.waitFor(() => expect(widgets).toHaveLength(1));
     widgets[0].callback("token-1");
     await send().click();
-    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.errors.spamFailed);
+    await expect.element(page.getByRole("alert")).toHaveTextContent(spamCheckCopy.refused["spam-failed"]);
     expect(sent[0].turnstileToken).toBe("token-1");
 
     await vi.waitFor(() => expect(widgets).toHaveLength(2));

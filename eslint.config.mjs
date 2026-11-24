@@ -126,9 +126,13 @@ const OUTSIDE_THROW_RULE = {
   message: `An outside service's binding throws an OutsideFailure (${OUTSIDE}/outside-failure.server.ts): refusal() for an answer that isn't ok, notSet() for a key of ours that's missing, or new OutsideFailure() with its kind.`,
 };
 
-const OUTSIDE_FETCH_RULE = {
+// Nothing calls fetch() itself. The server calls an outside service through
+// its binding, so a fixture build can answer instead. The browser asks the
+// site's own routes through lib/ask-server.ts, which throws on an answer
+// that isn't ok, so no form takes a failure for an answer.
+const FETCH_RULE = {
   selector: "CallExpression[callee.name='fetch']",
-  message: `Call outside services from a binding in ${OUTSIDE}/, through outsideFetch, so fixture builds can answer instead.`,
+  message: `In the browser, ask the site's own routes with getJson() or postJson() (lib/ask-server.ts), which check the answer's status. On the server, call outside services from a binding in ${OUTSIDE}/, through outsideFetch, so fixture builds can answer instead.`,
 };
 
 // Each service's API is named only in its own binding. `host` is a regular
@@ -216,8 +220,8 @@ const NETWORK_IMPORTS = [
 /**
  * no-restricted-syntax and no-restricted-imports for the site's own code:
  * everything above, but for what the file is allowed. `service` may name
- * its own API; `fetch` may call fetch() (code that runs in the browser
- * fetches the site's own API); `outsideFetch` may import it; `sendEmail`
+ * its own API; `fetch` may call fetch() (the browser's one helper for it, and
+ * the server's); `outsideFetch` may import it; `sendEmail`
  * may use Postmark's binding to send. `describeError` may import it. `fakes` may name every service's API,
  * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `binding` is an
  * outside service's, which throws only an OutsideFailure. `asyncHandlers`
@@ -246,7 +250,7 @@ function siteCodeRules({
       ...(env ? [] : [PROCESS_ENV_RULE]),
       ...(siteUrl ? [] : [SITE_URL_RULE]),
       ...(fakes ? [] : SERVICES.filter((other) => other !== service).map(hostRule)),
-      ...(fetch ? [] : [OUTSIDE_FETCH_RULE]),
+      ...(fetch ? [] : [FETCH_RULE]),
       ...(console ? [] : [CONSOLE_RULE]),
       ...(asyncHandlers ? [] : SAVE_RULES),
       ...(binding ? [OUTSIDE_THROW_RULE] : []),
@@ -611,13 +615,17 @@ const eslintConfig = defineConfig([
   // The site's own code, not its tests. A later block's list replaces an
   // earlier one's, so each file allowed one of these things comes after.
   ...[
-    { files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "proxy.ts"], fetch: true },
+    { files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "proxy.ts"] },
     // The server's clock runs in the browser too, where config can't go.
-    { files: ["lib/now.ts"], fetch: true, env: true },
-    { files: ["app/(staff)/**/*.tsx"], fetch: true, staff: true },
-    { files: UNCONVERTED_SAVES, fetch: true, staff: true, asyncHandlers: true },
+    { files: ["lib/now.ts"], env: true },
+    // The browser's one way to ask the site's routes, and its telling the site of an error, which outlives the page.
+    { files: ["lib/ask-server.ts", "lib/browser-errors.ts"], fetch: true },
+    { files: ["app/(staff)/**/*.tsx"], staff: true },
+    // The gallery's example of a Server Action the site no longer has, which it asks for by hand.
+    { files: ["app/(staff)/staff/_components/shell/SiteUpdated.gallery.client.tsx"], fetch: true, staff: true },
+    { files: UNCONVERTED_SAVES, staff: true, asyncHandlers: true },
     // The hook itself, whose transition is the one the rest go through.
-    { files: ["components/ui/useSave.ts"], fetch: true, asyncHandlers: true },
+    { files: ["components/ui/useSave.ts"], asyncHandlers: true },
     // The server's code: lib/server/, each feature's logic, and what answers a request.
     {
       files: [

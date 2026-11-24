@@ -1,6 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { copy } from "@/lib/content/email-your-mp";
+import type { SpamReason } from "@/lib/content/spam-check";
 import { orFallback } from "./fallback.server";
 import { outsideJson } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
@@ -17,13 +17,14 @@ const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 /** Cloudflare's dummy secrets (1x…, 2x…, 3x… then zeros), which pass or fail every token. */
 const TEST_SECRET = /^[123]x0{10}/;
 
-export type SpamCheck = { drop: true } | { drop: false; message?: string };
+/** `drop`, pretend it worked; else `reason`, why the form is refused, if it is. */
+export type SpamCheck = { drop: true } | { drop: false; reason?: SpamReason };
 
 function isDev(): boolean {
   return config.nodeEnv === "development";
 }
 
-async function verifyTurnstile(token: string | undefined): Promise<string | undefined> {
+async function verifyTurnstile(token: string | undefined): Promise<SpamReason | undefined> {
   const secret = config.turnstileSecretKey;
   if (!secret && !config.turnstileSiteKey) {
     if (!isDev()) note("Turnstile keys are not set, so the spam check was skipped");
@@ -32,15 +33,15 @@ async function verifyTurnstile(token: string | undefined): Promise<string | unde
   if (!secret) {
     if (isDev()) return undefined;
     problem(serverProblems.turnstileUnset());
-    return copy.errors.spamUnavailable;
+    return "spam-unavailable";
   }
   if (!isDev() && TEST_SECRET.test(secret)) {
     problem(serverProblems.turnstileTestKey());
-    return copy.errors.spamMisconfigured;
+    return "spam-misconfigured";
   }
-  if (!token) return copy.errors.spamWait;
+  if (!token) return "spam-wait";
 
-  return orFallback(serverProblems.turnstileDown(), copy.errors.spamUnreachable, async () => {
+  return orFallback(serverProblems.turnstileDown(), "spam-unreachable" as const, async () => {
     const res = await outsideFetch("turnstile", VERIFY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -49,7 +50,7 @@ async function verifyTurnstile(token: string | undefined): Promise<string | unde
     const result = await outsideJson("turnstile", res);
     if (result?.success !== true) {
       note("Turnstile rejected a submission:", result?.["error-codes"]);
-      return copy.errors.spamFailed;
+      return "spam-failed" as const;
     }
     // No check of the host Turnstile names: on Netlify, the request's own
     // URL is main--pauseaiuk.netlify.app, not pauseai.uk. The widget's
@@ -70,6 +71,6 @@ export async function checkNotSpam({
   turnstileToken?: string;
 }): Promise<SpamCheck> {
   if (nickname) return { drop: true };
-  const message = await verifyTurnstile(turnstileToken);
-  return message ? { drop: false, message } : { drop: false };
+  const reason = await verifyTurnstile(turnstileToken);
+  return reason ? { drop: false, reason } : { drop: false };
 }

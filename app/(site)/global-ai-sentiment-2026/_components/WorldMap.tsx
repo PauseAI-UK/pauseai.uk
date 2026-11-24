@@ -13,6 +13,7 @@ import {
   type CountryRow,
   type ResponseOption,
 } from "@/lib/content/aiSentiment2026";
+import { getJson } from "@/lib/ask-server";
 import {
   domainPosition,
   legendGradient,
@@ -91,9 +92,8 @@ export default function WorldMap() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/data/world-countries-50m.topo.json")
-      .then((res) => res.json())
-      .then((topology: Topology) => {
+    getJson<Topology>("/data/world-countries-50m.topo.json")
+      .then((topology) => {
         if (cancelled) return;
         const geo = feature(topology, topology.objects.countries) as unknown as FeatureCollection<
           Geometry,

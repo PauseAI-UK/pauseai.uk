@@ -58,14 +58,14 @@ describe("constituencyForPostcode", () => {
   });
 
   it("says when the postcode doesn't exist", async () => {
-    expect(await constituencyForPostcode("XX1 1XX")).toEqual({ ok: false, reason: "not_found" });
+    expect(await constituencyForPostcode("XX1 1XX")).toEqual({ ok: false, reason: "not-found" });
   });
 
   it("says when the postcode has no constituency", async () => {
     server.use(http.get(POSTCODES, () => HttpResponse.json({ result: { parliamentary_constituency: null } })));
-    expect(await constituencyForPostcode("GY1 1AA")).toEqual({ ok: false, reason: "no_constituency" });
+    expect(await constituencyForPostcode("GY1 1AA")).toEqual({ ok: false, reason: "no-constituency" });
     server.use(http.get(POSTCODES, () => HttpResponse.json({})));
-    expect(await constituencyForPostcode("GY1 1AA")).toEqual({ ok: false, reason: "no_constituency" });
+    expect(await constituencyForPostcode("GY1 1AA")).toEqual({ ok: false, reason: "no-constituency" });
   });
 
   it("fails on a server error or a network error", async () => {
@@ -109,7 +109,7 @@ describe("placeForPostcode", () => {
   });
 
   it("says when neither a postcode nor an outcode is found", async () => {
-    expect(await placeForPostcode("ZZ1 1ZZ")).toEqual({ ok: false, reason: "not_found" });
+    expect(await placeForPostcode("ZZ1 1ZZ")).toEqual({ ok: false, reason: "not-found" });
   });
 
   it("says it's not found when postcodes.io doesn't say where it is", async () => {
@@ -117,9 +117,9 @@ describe("placeForPostcode", () => {
       http.get(POSTCODES, () => new HttpResponse(null, { status: 404 })),
       http.get(OUTCODES, () => HttpResponse.json({ result: { latitude: null } })),
     );
-    expect(await placeForPostcode("AB1")).toEqual({ ok: false, reason: "not_found" });
+    expect(await placeForPostcode("AB1")).toEqual({ ok: false, reason: "not-found" });
     server.use(http.get(OUTCODES, () => HttpResponse.json({})));
-    expect(await placeForPostcode("AB1")).toEqual({ ok: false, reason: "not_found" });
+    expect(await placeForPostcode("AB1")).toEqual({ ok: false, reason: "not-found" });
   });
 
   it("fails on a server error or a network error, for a postcode or an outcode", async () => {

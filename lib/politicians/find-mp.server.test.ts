@@ -43,7 +43,7 @@ describeWithDatabase("findMp", () => {
 
   it("finds each test MP from their postcode without asking postcodes.io", async () => {
     server.use(http.all("*", () => HttpResponse.error()));
-    expect(await findMp("zz9 9zz")).toEqual({ ok: false, reason: "no_mp" });
+    expect(await findMp("zz9 9zz")).toEqual({ ok: false, reason: "no-mp" });
     await addTestMp();
     await addTestPolitician({
       airtableId: null,
@@ -60,8 +60,8 @@ describeWithDatabase("findMp", () => {
   });
 
   it("passes on postcodes.io's failures, and says when no MP sits for the constituency", async () => {
-    expect(await findMp("XX1 1XX")).toEqual({ ok: false, reason: "not_found" });
-    expect(await findMp("SW1A 1AA")).toEqual({ ok: false, reason: "no_mp" });
+    expect(await findMp("XX1 1XX")).toEqual({ ok: false, reason: "not-found" });
+    expect(await findMp("SW1A 1AA")).toEqual({ ok: false, reason: "no-mp" });
   });
 
   it("fails if the database does", async () => {

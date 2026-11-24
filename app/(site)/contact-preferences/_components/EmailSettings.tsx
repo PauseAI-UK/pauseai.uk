@@ -20,8 +20,10 @@ import {
   numberHolds,
   settingsTopics,
   topicAnswers,
+  type SettingsChanged,
   type SettingsTopic,
   type SettingsView,
+  type Unsubscribed,
 } from "@/lib/supporters/settings-view";
 import styles from "./EmailSettings.module.css";
 
@@ -32,14 +34,17 @@ import styles from "./EmailSettings.module.css";
  */
 type Opened = { kind: "link" | "copy"; token: string; number?: boolean };
 
-/** The page's actions, each given its form: those that change anything give the page afresh, or null once its link has run out. */
+/** The page's actions, each given its form: those that change anything give the page afresh, or refuse once its link has run out. */
 export type SettingsActions = {
-  save: (form: FormData) => Promise<SettingsView | null>;
-  lift: (form: FormData) => Promise<SettingsView | null>;
-  stopAll: (form: FormData) => Promise<SettingsView | null>;
-  unsubscribe: (form: FormData) => Promise<{ done: boolean; view: SettingsView | null }>;
-  resend: (form: FormData) => Promise<void>;
+  save: (form: FormData) => Promise<SettingsChanged>;
+  lift: (form: FormData) => Promise<SettingsChanged>;
+  stopAll: (form: FormData) => Promise<SettingsChanged>;
+  unsubscribe: (form: FormData) => Promise<Unsubscribed>;
+  resend: (form: FormData) => Promise<unknown>;
 };
+
+/** The page after a change: afresh, or null once its link has run out. */
+const viewAfter = (changed: SettingsChanged): SettingsView | null => (changed.ok ? changed.view : null);
 
 /** The hidden fields that say whose page a form is from. */
 function OpenedBy({ opened }: { opened: Opened }) {
@@ -471,7 +476,7 @@ export default function EmailSettings({
   // The boxes ticked: as the form had them at the last change, while it's being saved, then as what's saved
   // has them, so a change that didn't save goes back.
   const [ticked, save, savingNow, notSaved] = useSavedChoice(tickedIn(view), actions.save, tickedInForm, {
-    done: setView,
+    done: (changed) => setView(viewAfter(changed)),
   });
   const saving: { topic: Topic; state: Saving } | null = lastChanged && {
     topic: lastChanged,
@@ -516,7 +521,7 @@ export default function EmailSettings({
             <Hold
               view={view}
               opened={opened}
-              lift={async (form) => changeBelow(await actions.lift(form), "title")}
+              lift={async (form) => changeBelow(viewAfter(await actions.lift(form)), "title")}
               focus={focus === "hold"}
             />
           )}
@@ -562,7 +567,7 @@ export default function EmailSettings({
               <p>{copy.stopAll.body}</p>
               <FormStack
                 className={styles.buttonForm}
-                action={async (form) => changeBelow(await actions.stopAll(form), "hold")}
+                action={async (form) => changeBelow(viewAfter(await actions.stopAll(form)), "hold")}
               >
                 <OpenedBy opened={opened} />
                 <SubmitButton variant="ghost" fit>

@@ -21,7 +21,7 @@ describe("fetchMarchSignups", () => {
 
   it("throws when the server errs", async () => {
     vi.spyOn(window, "fetch").mockResolvedValue(new Response("Internal Server Error", { status: 500 }));
-    await expect(fetchMarchSignups()).rejects.toThrow("The march's count answered 500");
+    await expect(fetchMarchSignups()).rejects.toThrow("/api/march/signups answered 500");
   });
 });
 

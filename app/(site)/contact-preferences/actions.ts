@@ -5,7 +5,8 @@
 // and act only for its address, only while it works, but for an email's
 // unsubscribe button, which works forever.
 import { after } from "next/server";
-import type { SettingsView } from "@/lib/supporters/settings-view";
+import { refused } from "@/lib/form-result";
+import type { LinkAsked, SettingsChanged, Unsubscribed } from "@/lib/supporters/settings-view";
 import {
   emailSettingsLink,
   liftNoBulk,
@@ -28,50 +29,51 @@ const kindOf = (form: FormData): SettingsKind => (text(form, "kind") === "copy" 
  * it. Says what to tell them. The email goes after the answer, so how long
  * the answer takes doesn't tell whether we have the address.
  */
-export async function askForLinkNow(form: FormData): Promise<{ sent: string } | { message: string }> {
+export async function askForLinkNow(form: FormData): Promise<LinkAsked> {
   const address = text(form, "email").trim();
   const spam = await checkNotSpam({ turnstileToken: text(form, "turnstileToken") });
-  if (!spam.drop && spam.message) return { message: spam.message };
+  if (!spam.drop && spam.reason) return refused(spam.reason);
   const request = await actionRequest();
   after(() => emailSettingsLink(address, request));
-  return { sent: address };
+  return { ok: true, sent: address };
 }
 
 /** A page whose link has run out: emails its address a fresh one, after the answer, as askForLinkNow does. */
-export async function resendLinkNow(form: FormData): Promise<void> {
+export async function resendLinkNow(form: FormData): Promise<{ ok: true }> {
   const [kind, token] = [kindOf(form), text(form, "token")];
   const request = await actionRequest();
   after(() => resendLink(kind, token, request));
+  return { ok: true };
 }
 
-/** Does `change` to the page's address while its link works, and gives the page afresh; null once it doesn't. */
-async function changing(form: FormData, change: (address: string) => Promise<unknown>): Promise<SettingsView | null> {
+/** Does `change` to the page's address while its link works, and gives the page afresh; refused once it doesn't. */
+async function changing(form: FormData, change: (address: string) => Promise<unknown>): Promise<SettingsChanged> {
   const address = await openAddress(kindOf(form), text(form, "token"));
-  if (!address) return null;
+  if (!address) return refused("link-expired");
   await change(address);
-  return settingsFor(address);
+  return { ok: true, view: await settingsFor(address) };
 }
 
 /** Save: what's ticked becomes what the address and its numbers get. */
-export async function saveSettingsNow(form: FormData): Promise<SettingsView | null> {
+export async function saveSettingsNow(form: FormData): Promise<SettingsChanged> {
   const ticked = new Set(form.getAll("choice").map(String));
   return changing(form, (address) => saveSettings(address, ticked));
 }
 
 /** Lifting "No bulk emails". */
-export async function liftNoBulkNow(form: FormData): Promise<SettingsView | null> {
+export async function liftNoBulkNow(form: FormData): Promise<SettingsChanged> {
   return changing(form, liftNoBulk);
 }
 
 /** Stop everything. */
-export async function stopEverythingNow(form: FormData): Promise<SettingsView | null> {
+export async function stopEverythingNow(form: FormData): Promise<SettingsChanged> {
   return changing(form, stopEverything);
 }
 
 /** An email's unsubscribe button, which works however old the email: the page afresh while it works. */
-export async function unsubscribeNow(form: FormData): Promise<{ done: boolean; view: SettingsView | null }> {
+export async function unsubscribeNow(form: FormData): Promise<Unsubscribed> {
   const token = text(form, "token");
   const done = await unsubscribeCopy(token, "link");
   const address = await openAddress("copy", token);
-  return { done, view: address ? await settingsFor(address) : null };
+  return { ok: true, done, view: address ? await settingsFor(address) : null };
 }

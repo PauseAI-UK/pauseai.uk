@@ -7,13 +7,21 @@ import { Field, FieldError, Label } from "@/components/ui/Field";
 import { FilterForm } from "@/components/ui/Form";
 import { homeEventsCopy as copy } from "@/lib/content/home-events";
 import { localGroups, type LocalGroupName } from "@/lib/content/local-groups";
-import type { EventsWhere } from "@/lib/site-events";
+import { postJson } from "@/lib/ask-server";
+import type { EventsWhere, PlaceLookup } from "@/lib/site-events";
 import styles from "./EventsPlacePicker.module.css";
 
 /** The local groups by name, as a list to read: the list's own order is the map's. */
 const groupOptions = localGroups
   .map((group) => ({ value: group.name, label: group.name }))
   .sort((a, b) => a.label.localeCompare(b.label, "en-GB"));
+
+/** Why a postcode found no place, in words. */
+const REFUSED: Record<Extract<PlaceLookup, { ok: false }>["reason"], string> = {
+  "postcode-required": copy.postcodeRequired,
+  "not-found": copy.postcodeNotFound,
+  failed: copy.postcodeFailed,
+};
 
 /** A fresh location, as the visitor may have moved since the last; one that takes longer than this to find won't come. */
 const LOCATION_OPTIONS: PositionOptions = { timeout: 15 * 1000 };
@@ -69,13 +77,8 @@ export default function EventsPlacePicker({
     if (!postcode.trim()) return setError(copy.postcodeRequired);
     setLooking(true);
     try {
-      const res = await fetch("/api/events/place", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postcode }),
-      });
-      const result = await res.json();
-      if (!result.ok) return setError(result.message);
+      const result = await postJson<PlaceLookup>("/api/events/place", { postcode });
+      if (!result.ok) return setError(REFUSED[result.reason]);
       onChoose({ kind: "place", place: result.place, name: result.name });
     } catch {
       setError(copy.postcodeFailed);

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { copy } from "@/lib/content/email-your-mp";
+import { spamCheckCopy } from "@/lib/content/spam-check";
 import Turnstile, { loadTurnstile, TURNSTILE_SCRIPT, type TurnstileApi } from "@/components/ui/Turnstile";
 
 type TurnstileWindow = Window & { turnstile?: TurnstileApi; onTurnstileLoad?: () => void };
@@ -47,7 +47,7 @@ describe("Turnstile", () => {
     api.options["expired-callback"]();
     expect(onToken).toHaveBeenLastCalledWith("");
     api.options["error-callback"]();
-    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.errors.turnstileLoad);
+    await expect.element(page.getByRole("alert")).toHaveTextContent(spamCheckCopy.load);
     api.options.callback("token-2");
     await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
 
@@ -62,7 +62,7 @@ describe("Turnstile", () => {
     expect(scripts[0].src).toBe(TURNSTILE_SCRIPT);
 
     scripts[0].onerror!(new Event("error"));
-    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.errors.turnstileLoad);
+    await expect.element(page.getByRole("alert")).toHaveTextContent(spamCheckCopy.load);
   });
 
   it("resolves when the script has loaded, and rejects if it brought no API", async () => {

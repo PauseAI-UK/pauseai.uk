@@ -3,6 +3,8 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { site } from "@/lib/content/site";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
+import { spamCheckCopy, type SpamReason } from "@/lib/content/spam-check";
+import { refused } from "@/lib/form-result";
 import { LUMA_CHOICE, LUMA_OFFERED, type SettingsView } from "@/lib/supporters/settings-view";
 import EmailSettings, { type SettingsActions } from "./EmailSettings";
 import {
@@ -12,6 +14,7 @@ import {
   exampleNumber,
   exampleNumberHolds,
   exampleOnlyLuma,
+  exampleChanged,
   exampleSaved,
   exampleSettings,
   exampleStopped,
@@ -25,10 +28,10 @@ const fields = (form: FormData) => [...form.entries()];
 /** Actions that each give `next`, a save with the boxes as its form has them, and record their forms. */
 function actions(next: SettingsView | null = exampleSettings) {
   return {
-    save: vi.fn<SettingsActions["save"]>(async (form) => next && exampleSaved(next, form)),
-    lift: vi.fn<SettingsActions["lift"]>(async () => next),
-    stopAll: vi.fn<SettingsActions["stopAll"]>(async () => next),
-    unsubscribe: vi.fn<SettingsActions["unsubscribe"]>(async () => ({ done: true, view: next })),
+    save: vi.fn<SettingsActions["save"]>(async (form) => exampleChanged(next && exampleSaved(next, form))),
+    lift: vi.fn<SettingsActions["lift"]>(async () => exampleChanged(next)),
+    stopAll: vi.fn<SettingsActions["stopAll"]>(async () => exampleChanged(next)),
+    unsubscribe: vi.fn<SettingsActions["unsubscribe"]>(async () => ({ ok: true, done: true, view: next })),
     resend: vi.fn<SettingsActions["resend"]>(async () => {}),
   } satisfies SettingsActions;
 }
@@ -122,7 +125,7 @@ describe("EmailSettings", () => {
     // Slow to answer, so it says it's saving meanwhile.
     let answer = () => {};
     done.save.mockImplementationOnce(
-      (form) => new Promise((resolve) => (answer = () => resolve(exampleSaved(exampleSettings, form)))),
+      (form) => new Promise((resolve) => (answer = () => resolve(exampleChanged(exampleSaved(exampleSettings, form))))),
     );
     await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
     await expect.element(card("volunteering").getByRole("status")).toHaveTextContent(copy.settings.saving);
@@ -148,7 +151,7 @@ describe("EmailSettings", () => {
     // Saved only once every save is: a change made while another saves says Saving till both are.
     let first = () => {};
     done.save.mockImplementationOnce(
-      (form) => new Promise((resolve) => (first = () => resolve(exampleSaved(exampleSettings, form)))),
+      (form) => new Promise((resolve) => (first = () => resolve(exampleChanged(exampleSaved(exampleSettings, form))))),
     );
     await card("volunteering").getByRole("checkbox", { name: copy.ways.text }).click();
     await card("newsletter").getByRole("checkbox", { name: copy.ways.text }).click();
@@ -161,7 +164,7 @@ describe("EmailSettings", () => {
 
   it("takes them off our Luma calendar by its box, which then can't be ticked again, and says why", async () => {
     const done = await show(exampleSettings);
-    done.save.mockResolvedValueOnce({ ...exampleSettings, onLuma: false });
+    done.save.mockResolvedValueOnce(exampleChanged({ ...exampleSettings, onLuma: false }));
     await expect.element(card("events").getByText(copy.lumaOff.body, { exact: false })).not.toBeInTheDocument();
     // While they're on it, why, as a topic's card says it.
     await expect.element(why("events", copy.why.reasons.following!(""))).toBeVisible();
@@ -185,6 +188,13 @@ describe("EmailSettings", () => {
   it("says a yes from PauseAI Global's volunteering list was given on joining", async () => {
     await show(exampleVolunteer);
     await expect.element(why("volunteering", copy.why.reasons.volunteered!(""))).toBeVisible();
+  });
+
+  it("offers a fresh link when a change finds the page's link has run out", async () => {
+    await show(exampleSettings, null, actions(null));
+    await page.getByRole("button", { name: copy.stopAll.button }).click();
+    await expect.element(page.getByRole("heading", { name: copy.expired.title })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: copy.expired.button })).toBeVisible();
   });
 
   it("stops everything", async () => {
@@ -387,7 +397,7 @@ describe("EmailSettings", () => {
 
 describe("SettingsStart", () => {
   it("asks for an address, then says a link is on its way if we have it", async () => {
-    const ask = vi.fn(async (form: FormData) => ({ sent: String(form.get("email")) }));
+    const ask = vi.fn(async (form: FormData) => ({ ok: true as const, sent: String(form.get("email")) }));
     await render(<SettingsStart ask={ask} days={7} />);
     await page.getByRole("textbox", { name: copy.start.label }).fill("jane.smith@example.com");
     await page.getByRole("button", { name: copy.start.button }).click();
@@ -396,11 +406,11 @@ describe("SettingsStart", () => {
   });
 
   it("says why it couldn't, and waits for Turnstile before it can send", async () => {
-    const ask = vi.fn(async () => ({ message: "Please wait for the spam check" }));
+    const ask = vi.fn(async () => refused<SpamReason>("spam-wait"));
     await render(<SettingsStart ask={ask} days={7} />);
     await page.getByRole("textbox", { name: copy.start.label }).fill("jane.smith@example.com");
     await page.getByRole("button", { name: copy.start.button }).click();
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Please wait for the spam check");
+    await expect.element(page.getByRole("alert")).toHaveTextContent(spamCheckCopy.refused["spam-wait"]);
     await render(<SettingsStart ask={ask} days={7} turnstileSiteKey="site" />);
     await expect.element(page.getByRole("button", { name: copy.start.button }).last()).toBeDisabled();
   });

@@ -487,6 +487,23 @@ holds it.
     typed and stays open, saying it wasn't sent. ESLint refuses an async function
     written in place as an event's handler or handed to a transition
     (`SAVE_RULES` in `eslint.config.mjs`, with the components still to move).
+- **A form's server code answers one shape** (`lib/form-result.ts`),
+  whether it's a route or a Server Action: `{ ok: true, … }` with what the
+  form needs next, or `{ ok: false, reason }`. The reason is a code, one
+  of a fixed set, such as `"not-found"`, never a sentence, which the types
+  hold (`Code`). The component that shows the form says it in words from
+  its own feature's copy, so no wording is chosen in the server's code.
+  - A form that says what's wrong beside each field answers `fields` too,
+    each with a code (`RefusedFields`), as the march sign-up does.
+  - A route answers a refusal as 200: it's an answer. Any other status is
+    the server having gone wrong.
+  - **The browser asks the site's own routes through `lib/ask-server.ts`**
+    (`getJson()`, `postJson()`, `getBytes()`), which throws on an answer
+    that isn't ok, so no form takes a failure for an answer. ESLint
+    refuses `fetch()` anywhere else in the browser's code (`FETCH_RULE` in
+    `eslint.config.mjs`).
+  - The spam check refuses with a reason of its own (`SpamReason`), said
+    in the words of `lib/content/spam-check.ts`, whichever form it guards.
 - **An outside service fails in one way, as an `OutsideFailure`**
   (`lib/server/outside-services/outside-failure.server.ts`). Whatever a
   binding throws is one, or its own subclass of it (`GmailError`,

@@ -1,4 +1,5 @@
 // Made-up contact preferences, as the page gets them, for the gallery and the tests.
+import { refused } from "@/lib/form-result";
 import type { ContactPermission } from "@/lib/supporters/contact-permissions";
 import {
   choiceKey,
@@ -6,6 +7,7 @@ import {
   LUMA_CHOICE,
   LUMA_OFFERED,
   settingsTopics,
+  type SettingsChanged,
   type SettingsView,
 } from "@/lib/supporters/settings-view";
 
@@ -133,4 +135,9 @@ export function exampleSaved(view: SettingsView, form: FormData): SettingsView {
     }
   }
   return { ...view, answers, onLuma: ticked.has(LUMA_OFFERED) ? ticked.has(LUMA_CHOICE) : view.onLuma };
+}
+
+/** What a change answers: the page afresh as `view`, or for none, that its link has run out. */
+export function exampleChanged(view: SettingsView | null): SettingsChanged {
+  return view ? { ok: true, view } : refused("link-expired");
 }

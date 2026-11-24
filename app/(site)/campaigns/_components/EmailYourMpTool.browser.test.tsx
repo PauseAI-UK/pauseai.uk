@@ -190,7 +190,7 @@ describe("EmailYourMpTool", () => {
   });
 
   it("shows the server's message, or its own if the request fails", async () => {
-    respond = async () => Response.json({ ok: false, message: copy.lookup.notFound });
+    respond = async () => Response.json({ ok: false, reason: "not-found" });
     await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
     await lookUp();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.lookup.notFound);
@@ -209,7 +209,7 @@ describe("EmailYourMpTool", () => {
     await render(<EmailYourMpTool campaignSlug={letterToPm.slug} />);
     await lookUp();
     await expect.element(page.getByRole("button", { name: copy.lookup.looking })).toBeDisabled();
-    finish(Response.json({ ok: false, message: copy.lookup.notFound }));
+    finish(Response.json({ ok: false, reason: "not-found" }));
     await expect.element(page.getByRole("button", { name: copy.lookup.button })).toBeEnabled();
   });
 });
