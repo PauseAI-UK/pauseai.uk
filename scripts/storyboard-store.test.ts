@@ -11,7 +11,20 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+/** A picture to remove from the store as it's about to be linked, as another checkout's prune could. */
+let pruneOnLink: string | undefined;
+vi.mock("node:fs", async (original) => {
+  const fs = await original<typeof import("node:fs")>();
+  return {
+    ...fs,
+    linkSync: (from: string, to: string) => {
+      if (from === pruneOnLink) fs.rmSync(from);
+      return fs.linkSync(from, to);
+    },
+  };
+});
 import {
   fillCarried,
   flowFolder,
@@ -37,7 +50,10 @@ beforeEach(() => {
   store = storeDir(dir);
   runDir = join(dir, "run");
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+afterEach(() => {
+  pruneOnLink = undefined;
+  rmSync(dir, { recursive: true, force: true });
+});
 
 /** A flow of a run, its one frame's picture written to the run's folder with `contents`. */
 function run(flow: string, contents?: string, extra: Partial<{ status: "passed" | "failed"; viewport: string }> = {}) {
@@ -228,6 +244,25 @@ describe("linkFlows", () => {
     const kept = keepRuns(store, "t1", runDir, [run("log in", "one")]);
     rmSync(join(store, "pictures"), { recursive: true });
     expect(linkFlows(store, kept, new Set([key("log in")]), join(dir, "review")).frames).toEqual([]);
+  });
+
+  it("leaves out a flow whose picture another review prunes while it's linked, and links the rest", () => {
+    const kept = keepRuns(store, "t1", runDir, [run("log in", "one"), run("letters", "two")]);
+    const gone = picturePath(store, kept.frames[1].frames[0].picture!);
+    // Pruned just as it's linked, after any check that it's there.
+    pruneOnLink = gone;
+    const linked = linkFlows(store, kept, new Set([key("log in"), key("letters")]), join(dir, "review"));
+    expect(linked.frames.map((r) => r.flow)).toEqual(["log in"]);
+    expect(missingFlows(store, kept, [key("log in"), key("letters")])).toEqual([key("letters")]);
+  });
+
+  it("still fails on any other trouble linking a picture", () => {
+    const kept = keepRuns(store, "t1", runDir, [run("log in", "one")]);
+    const review = join(dir, "review");
+    // A file where the flow's folder should be.
+    mkdirSync(join(review, "main"), { recursive: true });
+    writeFileSync(join(review, "main/frames"), "");
+    expect(() => linkFlows(store, kept, new Set([key("log in")]), review)).toThrow(/ENOTDIR/);
   });
 });
 
