@@ -32,8 +32,6 @@ export const supportersCopy = {
       // The Event filter's choices: an event and its day.
       event: "Event",
       eventChoice: (name: string, day: string) => `${name}, ${day}`,
-      // The MP filter's choices: an MP and their constituency.
-      mpChoice: (name: string, constituency: string) => `${name}, ${constituency}`,
       // The Campaign filter, and its second half: whether they wrote in it.
       campaign: "Campaign",
       wrote: { "": "Wrote", no: "Didn't write" } as Record<string, string>,

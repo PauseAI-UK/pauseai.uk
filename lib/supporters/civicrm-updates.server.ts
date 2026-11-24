@@ -1,5 +1,5 @@
 import "server-only";
-import type { CivicrmUpdatesResult } from "@/lib/import-runs";
+import type { CivicrmUpdatesResult } from "@/lib/import-run-types";
 import { query, type Queryable } from "@/lib/server/db.server";
 import {
   updateSubscriptions,

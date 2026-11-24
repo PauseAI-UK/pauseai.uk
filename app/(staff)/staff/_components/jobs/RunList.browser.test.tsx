@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import {
-  type AnyImportRun,
-  type ControlAiImport,
-  NEWER_RUN,
-  type ControlAiStatementImport,
-  type EdmImport,
-  type PoliticianImport,
-} from "@/lib/import-runs";
+import { NEWER_RUN } from "@/lib/import-runs";
+import type {
+  AnyImportRun,
+  ControlAiImport,
+  ControlAiStatementImport,
+  EdmImport,
+  PoliticianImport,
+} from "@/lib/import-run-types";
 import type { Decide } from "./Run";
 import RunList from "./RunList";
 import { RefusalPlace } from "../ui/ResultForm";

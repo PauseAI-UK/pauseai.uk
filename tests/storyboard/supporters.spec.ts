@@ -208,7 +208,7 @@ test("Supporters by MP", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/supporters`);
   await expect(page.getByText(copy.total(7), { exact: true })).toBeVisible();
   const mp = politiciansCopy.politician.roles.commons;
-  const mo = copy.filters.mpChoice("Mo Example", "Manchester Central");
+  const mo = staffVocabulary.mpChoice("Mo Example", "Manchester Central");
   const menu = await openBubble(page.getByRole("button", { name: staffVocabulary.filters.add }));
   await menu.locator("summary", { hasText: new RegExp(`^${mp}$`) }).click();
   // The MPs show once something's typed in the box.

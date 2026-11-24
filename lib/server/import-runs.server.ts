@@ -1,5 +1,6 @@
 import "server-only";
-import { importPath, type AnyImportRun, type ImportJob, type ImportRunStatus } from "@/lib/import-runs";
+import { importPath, type ImportJob } from "@/lib/import-runs";
+import type { AnyImportRun, ImportRunStatus } from "@/lib/import-run-types";
 import { query } from "./db.server";
 import { COLUMNS, RUN_LASTS } from "./import-run-lists.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";

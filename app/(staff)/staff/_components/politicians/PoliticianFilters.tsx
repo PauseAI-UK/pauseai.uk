@@ -1,7 +1,8 @@
 import { POLITICIANS_LIST } from "@/lib/staff-lists";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Ask } from "@/lib/asks/records.server";
-import { filteredName, filterWords, POLITICIAN_FILTERS, politicianParams } from "@/lib/staff-list-filters";
+import { filteredName, filterWords } from "@/lib/staff-list-filters";
+import { POLITICIAN_FILTERS, politicianParams } from "@/lib/politicians/list-filters";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 import { firstOf, valuesOf, type Params } from "@/lib/list-params";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";

@@ -4,7 +4,6 @@ import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { AnyLetter } from "@/lib/letters/all-letters.server";
 import AllLetters from "./AllLetters";
-import { supportersCopy } from "../supporters/copy";
 import { lettersCopy } from "./copy";
 
 const copy = lettersCopy.allLetters;
@@ -161,9 +160,7 @@ describe("AllLetters", () => {
     group.find((summary) => summary.textContent === lettersCopy.letters.columns.to)!.click();
     await page.getByRole("searchbox").last().fill("poll");
     await expect
-      .element(
-        page.getByRole("link", { name: supportersCopy.supporters.filters.mpChoice("Polly Placeholder", "Testford") }),
-      )
+      .element(page.getByRole("link", { name: staffVocabulary.mpChoice("Polly Placeholder", "Testford") }))
       .toHaveAttribute("href", "/staff/emails?to=5&to=4");
   });
 

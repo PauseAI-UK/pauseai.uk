@@ -4,7 +4,8 @@ import { server } from "@/tests/fixtures/msw";
 import { toNotifications } from "@/tests/notifications";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { copy } from "@/lib/content/email-your-mp";
-import { NIGHTLY, runStatus, type GmailReading } from "@/lib/import-runs";
+import { NIGHTLY, runStatus } from "@/lib/import-runs";
+import type { GmailReading } from "@/lib/import-run-types";
 import { docFromMarkup } from "./format";
 import {
   addTestMp,

@@ -2,18 +2,18 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { gmailMessageLink } from "@/lib/email/gmail-links";
 import type { FormResult } from "@/lib/form-result";
-import {
-  type AnyImportRun,
-  type ControlAiImport,
-  type ControlAiStatementImport,
-  type EdmImport,
-  type LumaImport,
-  type CivicrmImport,
-  type GmailReading,
-  type PoliticianImport,
-  type Sending,
-  type Tidying,
-} from "@/lib/import-runs";
+import type {
+  AnyImportRun,
+  ControlAiImport,
+  ControlAiStatementImport,
+  EdmImport,
+  LumaImport,
+  CivicrmImport,
+  GmailReading,
+  PoliticianImport,
+  Sending,
+  Tidying,
+} from "@/lib/import-run-types";
 import type { House } from "@/lib/politicians/filters";
 import { importChangeCount } from "@/lib/politicians/import-changes";
 import RunBox from "./RunBox";

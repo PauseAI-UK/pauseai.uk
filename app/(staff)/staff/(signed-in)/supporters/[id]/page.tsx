@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
 import { now } from "@/lib/now";
-import { broadcastsToSupporter } from "@/lib/broadcasts/pages.server";
+import { broadcastsToSupporter } from "@/lib/broadcasts/supporter-pages.server";
 import { notesOn } from "@/lib/notes/records.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { getSupporter } from "@/lib/supporters/records.server";

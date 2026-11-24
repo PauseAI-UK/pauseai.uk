@@ -1,5 +1,6 @@
 import "server-only";
-import { IMPORT_JOBS, type AnyImportRun, type ImportJob } from "@/lib/import-runs";
+import { IMPORT_JOBS, type ImportJob } from "@/lib/import-runs";
+import type { AnyImportRun } from "@/lib/import-run-types";
 import { query } from "./db.server";
 
 // The log of the jobs' runs (./import-runs.server.ts), as the jobs' pages

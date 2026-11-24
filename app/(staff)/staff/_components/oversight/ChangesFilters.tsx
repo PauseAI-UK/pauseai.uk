@@ -1,6 +1,7 @@
 import { AUDIT_LOG_LIST } from "@/lib/staff-lists";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
-import { filteredName, filterWords, CHANGE_FILTERS, type ChangeChoices } from "@/lib/staff-list-filters";
+import { filteredName, filterWords } from "@/lib/staff-list-filters";
+import { CHANGE_FILTERS, type ChangeChoices } from "@/lib/oversight/list-filters";
 import { changesSearch, type ChangesSearch } from "@/lib/staff-search";
 import { type Params } from "@/lib/list-params";
 import { changeFiltersOf } from "./ChangesTable";

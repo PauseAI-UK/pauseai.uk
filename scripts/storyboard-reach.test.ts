@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   appRoutes,
+  folderRank,
   closure,
   flowReach,
   flowsReached,
@@ -307,6 +308,15 @@ describe("folderPattern", () => {
   });
 });
 
+describe("folderRank", () => {
+  it("ranks each URL segment as Next tries them: a name, [id], [...rest], [[...rest]], groups and slots left out", () => {
+    expect(folderRank("app/(site)/blog/[slug]")).toEqual([0, 1]);
+    expect(folderRank("app/@modal/(staff)/staff/[...path]")).toEqual([0, 2]);
+    expect(folderRank("app/(site)/people/[[...name]]")).toEqual([0, 3]);
+    expect(folderRank("app")).toEqual([]);
+  });
+});
+
 describe("appRoutes and routeFiles", () => {
   it("renders a URL with its page or route and every layout above it, and a metadata route from its file", () => {
     const routes = appRoutes(root);
@@ -321,11 +331,11 @@ describe("appRoutes and routeFiles", () => {
     expect(routeFiles(routes, "/sitemap.xml")).toContain("app/sitemap.ts");
   });
 
-  it("gives the files of every route that could serve a URL, and the not-found page's for one none serves", () => {
+  it("gives the files of the route Next picks for a URL, its own name before [slug], and the not-found page's for one none serves", () => {
     const routes = appRoutes(root);
     const feed = routeFiles(routes, "/blog/feed.xml");
     expect(feed).toContain("app/(site)/blog/feed.xml/route.ts");
-    expect(feed).toContain("app/(site)/blog/[slug]/page.tsx");
+    expect(feed).not.toContain("app/(site)/blog/[slug]/page.tsx");
     expect(feed.filter((file) => file === "app/layout.tsx")).toHaveLength(1);
     expect(routeFiles(routes, "/private")).toEqual(["app/layout.tsx", "app/not-found.tsx"]);
   });

@@ -1,4 +1,5 @@
-import { type AnyImportRun, type ImportJob, jobSchedule, runStatus } from "@/lib/import-runs";
+import { type ImportJob, jobSchedule, runStatus } from "@/lib/import-runs";
+import type { AnyImportRun } from "@/lib/import-run-types";
 import { staffDate } from "@/lib/staff-time";
 
 // How a job's page lays out its runs: a row each, under a heading for each

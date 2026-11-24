@@ -13,7 +13,7 @@ import {
   type PoliticianBook,
 } from "./one-off";
 import { parseMime, wholeTextOf } from "@/lib/email-parsing/mime.server";
-import type { Relinked } from "@/lib/import-runs";
+import type { Relinked } from "@/lib/import-run-types";
 import { query, transaction } from "@/lib/server/db.server";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
 import { connectedAccounts, readPoliticianBook } from "./book.server";

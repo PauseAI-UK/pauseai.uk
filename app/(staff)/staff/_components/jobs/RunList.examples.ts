@@ -1,20 +1,18 @@
-import {
-  type AnyImportRun,
-  type ControlAiImportResult,
-  type ControlAiStatementResult,
-  type EdmResult,
-  type GmailRead,
-  type GmailReadResult,
-  type ImportJob,
-  type LumaImportResult,
-  type CivicrmImportResult,
-  NIGHTLY,
-  type PoliticianImport,
-  type PoliticianImportJob,
-  type PoliticianImportResult,
-  type SendingResult,
-  type TidyingResult,
-} from "@/lib/import-runs";
+import { type ImportJob, NIGHTLY, type PoliticianImportJob } from "@/lib/import-runs";
+import type {
+  AnyImportRun,
+  ControlAiImportResult,
+  ControlAiStatementResult,
+  EdmResult,
+  GmailRead,
+  GmailReadResult,
+  LumaImportResult,
+  CivicrmImportResult,
+  PoliticianImport,
+  PoliticianImportResult,
+  SendingResult,
+  TidyingResult,
+} from "@/lib/import-run-types";
 import type { Problem } from "@/lib/problems";
 
 type Results = Record<PoliticianImportJob, PoliticianImportResult> & {

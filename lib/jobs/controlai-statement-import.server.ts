@@ -2,7 +2,7 @@ import "server-only";
 import { CONTROLAI_STATEMENT_ASK } from "@/lib/asks/asks";
 import { CONTROLAI } from "@/lib/controlai-letter";
 import { nameSlug, statementSupporters, type StatementSupporter } from "@/lib/controlai-statement";
-import type { ControlAiStatementResult } from "@/lib/import-runs";
+import type { ControlAiStatementResult } from "@/lib/import-run-types";
 import { BODY_HOUSES, type Body } from "@/lib/politicians/import-changes";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";

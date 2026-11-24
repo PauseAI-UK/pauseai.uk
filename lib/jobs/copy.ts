@@ -4,7 +4,7 @@
 // jobs' titles and its emails about failed runs, are below every feature
 // (importRunsCopy, in lib/import-runs-copy.ts).
 
-import type { AddressSearch } from "@/lib/import-runs";
+import type { AddressSearch } from "@/lib/import-run-types";
 import { count, plural } from "@/lib/content/plural";
 import { defineProblems, listed, type SafeText } from "@/lib/problems";
 

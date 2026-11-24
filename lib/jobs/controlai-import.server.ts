@@ -1,7 +1,7 @@
 import "server-only";
 import { CONTROLAI_LETTER_ASK } from "@/lib/asks/asks";
 import { CONTROLAI, matchSignatories, signatoriesIn, type Candidate } from "@/lib/controlai-letter";
-import type { ControlAiImportResult } from "@/lib/import-runs";
+import type { ControlAiImportResult } from "@/lib/import-run-types";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";

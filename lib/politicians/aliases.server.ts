@@ -8,7 +8,7 @@ import { ONE_OFF_HEADERS, isHeld, keepIfPoliticianThread } from "@/lib/letters/o
 import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "@/lib/server/outside-services/gmail.server";
 import { connectedAccounts, politicianBook } from "@/lib/letters/book.server";
-import type { AddressSearch } from "@/lib/import-runs";
+import type { AddressSearch } from "@/lib/import-run-types";
 import { problem } from "@/lib/server/problems.server";
 import { politicianProblems } from "./copy";
 

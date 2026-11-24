@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { campaignBySlug } from "@/lib/email-your-mp";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { LIST_ORDER } from "@/lib/staff-list-filters";
+import { LIST_ORDER } from "@/lib/supporters/list-filters";
 import SupporterFilters from "./SupporterFilters";
 import { supportersSearch } from "@/lib/staff-search";
 import { chips, menu } from "@/tests/browser/staff";
@@ -205,7 +205,7 @@ describe("SupporterFilters", () => {
   });
 
   it("offers MPs by name and constituency, and has a chip for one chosen", async () => {
-    const mo = copy.filters.mpChoice("Mo Manchester", "Manchester Central");
+    const mo = staffVocabulary.mpChoice("Mo Manchester", "Manchester Central");
     const { filter, ...search } = supportersSearch({ mp: ["7", "x"] });
     void filter;
     const { rerender } = await render(<SupporterFilters search={search} choices={choices} />);

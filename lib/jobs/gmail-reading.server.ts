@@ -1,6 +1,7 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { importPath, type GmailRead, type GmailReadResult } from "@/lib/import-runs";
+import { importPath } from "@/lib/import-runs";
+import type { GmailRead, GmailReadResult } from "@/lib/import-run-types";
 import { gmailMessageLink } from "@/lib/email/gmail-links";
 import { query } from "@/lib/server/db.server";
 import { handleDeliveryProblem } from "@/lib/oversight/delivery-problems.server";

@@ -1,5 +1,5 @@
 import "server-only";
-import type { PlacesLookup } from "@/lib/import-runs";
+import type { PlacesLookup } from "@/lib/import-run-types";
 import { query, type Queryable } from "@/lib/server/db.server";
 import { isOutcode } from "./signup-csv";
 import {

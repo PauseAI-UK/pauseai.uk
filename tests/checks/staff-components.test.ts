@@ -87,9 +87,10 @@ const STAYS: Record<string, string[]> = {
     // ControlAI's statement's signatories, which its import (jobs), politicians' official profiles and its binding read.
     "controlai-statement",
     // The import log, which every job keeps its runs in, whichever feature's it is: each job's name, page and
-    // schedule, when its cron next runs, and what its runs found, and its words.
+    // schedule, when its cron next runs, and what its runs found (types alone, so adding to one reaches no flow), and its words.
     "cron",
     "import-runs",
+    "import-run-types",
     "import-runs-copy",
     // How a feature declares the problems it reports, which every feature's copy file does, and the browser reads
     // to show a run's.
