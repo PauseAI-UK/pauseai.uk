@@ -1,12 +1,18 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { copy } from "@/lib/content/email-your-mp";
-import { campaignBySlug, draftLetter, looksLikeEmail, signatureAddress } from "@/lib/email-your-mp";
+import {
+  campaignBySlug,
+  draftLetter,
+  looksLikeEmail,
+  signatureAddress,
+  type LetterSubmitted,
+} from "@/lib/email-your-mp";
+import { refused } from "@/lib/form-result";
 import { draftHash, ownWords } from "@/lib/letters/changes";
 import { checkDoc, isBlank, toText, type LetterDoc } from "@/lib/letters/format";
 import { query, transaction } from "@/lib/server/db.server";
 import { findMp } from "@/lib/politicians/find-mp.server";
-import { sendLetter, type QueueReason } from "@/lib/letters/sending.server";
+import { sendLetter } from "@/lib/letters/sending.server";
 import { isLettersInboxAddress } from "@/lib/letters/letters-inbox.server";
 import { checkNotSpam } from "@/lib/server/outside-services/turnstile.server";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
@@ -35,9 +41,6 @@ export type LetterForm = {
   nickname: string;
   turnstileToken: string;
 };
-
-/** Kept, and sent, or queued and why; or refused, with the status and message to answer with. */
-export type SubmitResult = { ok: true; queued?: QueueReason } | { ok: false; status: number; message: string };
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -70,10 +73,6 @@ export function mayWriteTo(mp: { isTest: boolean }): boolean {
   return mp.isTest || config.production;
 }
 
-function fail(status: number, message: string): SubmitResult {
-  return { ok: false, status, message };
-}
-
 /** Whether `email` is one of ours, which a sender can't give: the letters inbox's, a proxy, or the policy team's. */
 function isOurAddress(email: string): boolean {
   const policy = config.policyInbox;
@@ -87,10 +86,10 @@ function isOurAddress(email: string): boolean {
  * failing to send: what stops it waits in the queue, with its reason
  * (lib/letters/sending.server.ts), and the result says so.
  */
-export async function submitLetter(form: LetterForm): Promise<SubmitResult> {
+export async function submitLetter(form: LetterForm): Promise<LetterSubmitted> {
   const spam = await checkNotSpam(form);
   if (spam.drop) return { ok: true };
-  if (spam.message) return fail(403, spam.message);
+  if (spam.reason) return refused(spam.reason);
 
   if (
     !form.name ||
@@ -101,17 +100,17 @@ export async function submitLetter(form: LetterForm): Promise<SubmitResult> {
     !form.letter ||
     isBlank(form.letter)
   ) {
-    return fail(400, copy.errors.missingFields);
+    return refused("missing-fields");
   }
-  if (!looksLikeEmail(form.email)) return fail(400, copy.errors.invalidEmail);
-  if (isOurAddress(form.email)) return fail(400, copy.errors.ourAddress);
+  if (!looksLikeEmail(form.email)) return refused("invalid-email");
+  if (isOurAddress(form.email)) return refused("our-address");
   const campaign = campaignBySlug(form.campaign);
-  if (!campaign) return fail(400, copy.errors.unknownCampaign);
+  if (!campaign) return refused("unknown-campaign");
 
   const found = await findMp(form.postcode);
   const mp = found.ok ? found.mp : undefined;
-  if (!mp?.email) return fail(400, copy.errors.noRecipient);
-  if (!mayWriteTo(mp)) return fail(403, copy.errors.testMpOnly);
+  if (!mp?.email) return refused("no-recipient");
+  if (!mayWriteTo(mp)) return refused("test-mp-only");
 
   // The draft the form began with, rebuilt as it made it, and what the sender changed.
   const draft = toText(
@@ -177,9 +176,9 @@ export async function submitLetter(form: LetterForm): Promise<SubmitResult> {
     });
   } catch (error) {
     problem(serverProblems.letterNotKept(), error);
-    return fail(500, copy.errors.failed);
+    return refused("failed");
   }
-  if (id === undefined) return fail(409, copy.errors.alreadySent);
+  if (id === undefined) return refused("already-sent");
   const [{ entryId }] = await query<{ entryId: number }>(
     'SELECT entry_id::int AS "entryId" FROM letters_from_supporters WHERE id = $1',
     [id],

@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { copy } from "@/lib/content/email-your-mp";
 import { checkNotSpam } from "./turnstile.server";
 
 const VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -51,16 +50,16 @@ describe("checkNotSpam", () => {
     server.use(
       http.post(VERIFY, () => HttpResponse.json({ success: false, "error-codes": ["invalid-input-response"] })),
     );
-    expect(await check("t")).toEqual({ drop: false, message: copy.errors.spamFailed });
+    expect(await check("t")).toEqual({ drop: false, reason: "spam-failed" });
   });
 
   it("asks the sender to wait when there's no token yet", async () => {
-    expect(await check(undefined)).toEqual({ drop: false, message: copy.errors.spamWait });
+    expect(await check(undefined)).toEqual({ drop: false, reason: "spam-wait" });
   });
 
   it("fails when Turnstile can't be reached", async () => {
     server.use(http.post(VERIFY, () => HttpResponse.error()));
-    expect(await check("t")).toEqual({ drop: false, message: copy.errors.spamUnreachable });
+    expect(await check("t")).toEqual({ drop: false, reason: "spam-unreachable" });
   });
 
   it("is skipped when neither key is set", async () => {
@@ -73,9 +72,9 @@ describe("checkNotSpam", () => {
   it("fails closed with a site key but no secret, or with a test secret", async () => {
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "0x4AAAAAAA-site");
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
-    expect(await check("t")).toEqual({ drop: false, message: copy.errors.spamUnavailable });
+    expect(await check("t")).toEqual({ drop: false, reason: "spam-unavailable" });
     vi.stubEnv("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA");
-    expect(await check("t")).toEqual({ drop: false, message: copy.errors.spamMisconfigured });
+    expect(await check("t")).toEqual({ drop: false, reason: "spam-misconfigured" });
   });
 
   it("in development, allows no secret and a test secret", async () => {

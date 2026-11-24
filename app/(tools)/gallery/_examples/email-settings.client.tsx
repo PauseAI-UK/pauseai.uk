@@ -1,7 +1,7 @@
 "use client";
 
 import EmailSettings from "@/app/(site)/contact-preferences/_components/EmailSettings";
-import { exampleSaved } from "@/app/(site)/contact-preferences/_components/EmailSettings.examples";
+import { exampleChanged, exampleSaved } from "@/app/(site)/contact-preferences/_components/EmailSettings.examples";
 import SettingsStart from "@/app/(site)/contact-preferences/_components/SettingsStart";
 import type { SettingsView } from "@/lib/supporters/settings-view";
 import type { Topic } from "@/lib/supporters/contact-permissions";
@@ -16,7 +16,7 @@ export function SettingsStartExample() {
           days={7}
           ask={async (form) => {
             log("ask")(Object.fromEntries(form.entries()));
-            return { sent: String(form.get("email")) };
+            return { ok: true, sent: String(form.get("email")) };
           }}
         />
       )}
@@ -44,7 +44,7 @@ export function EmailSettingsExample({
       {(log) => {
         const same = (name: string) => async (form: FormData) => {
           log(name)(Object.fromEntries(form.entries()));
-          return view;
+          return exampleChanged(view);
         };
         return (
           <EmailSettings
@@ -54,12 +54,15 @@ export function EmailSettingsExample({
             actions={{
               save: async (form) => {
                 log("save")(Object.fromEntries(form.entries()));
-                return view && exampleSaved(view, form);
+                return exampleChanged(view && exampleSaved(view, form));
               },
               lift: same("lift"),
               stopAll: same("stopAll"),
-              unsubscribe: async (form) => ({ done: true, view: await same("unsubscribe")(form) }),
-              resend: async (form) => void (await same("resend")(form)),
+              unsubscribe: async (form) => {
+                log("unsubscribe")(Object.fromEntries(form.entries()));
+                return { ok: true, done: true, view };
+              },
+              resend: same("resend"),
             }}
           />
         );

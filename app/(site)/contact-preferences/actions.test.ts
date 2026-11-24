@@ -71,35 +71,45 @@ describeWithDatabase("the contact preferences page's actions", () => {
   it("emails a link to an address we have, past the spam check, saying the same whoever's it is", async () => {
     const sent = notifications();
     await jane();
-    expect(await askForLinkNow(form({ email: ` ${JANE} ` }))).toEqual({ sent: JANE });
-    expect(await askForLinkNow(form({ email: "nobody@example.com" }))).toEqual({ sent: "nobody@example.com" });
+    expect(await askForLinkNow(form({ email: ` ${JANE} ` }))).toEqual({ ok: true, sent: JANE });
+    expect(await askForLinkNow(form({ email: "nobody@example.com" }))).toEqual({
+      ok: true,
+      sent: "nobody@example.com",
+    });
     await afterAnswers();
     expect(sent.map((email) => email.To)).toEqual([JANE]);
     vi.stubEnv("TURNSTILE_SECRET_KEY", "secret");
     vi.stubEnv("TURNSTILE_SITE_KEY", "site");
-    expect(await askForLinkNow(form({ email: JANE }))).toEqual({ message: expect.any(String) });
+    expect(await askForLinkNow(form({ email: JANE }))).toEqual({ ok: false, reason: "spam-wait" });
   });
 
   it("saves, lifts “No bulk emails” and stops everything for the link's address, only while it works", async () => {
     await jane();
     const token = await linkToken();
-    const view = await saveSettingsNow(form({ token, choice: ["volunteering:email"] }));
-    expect(view?.answers.find((a) => a.topic === "volunteering")).toMatchObject({ send: "yes", reason: "chose" });
-    expect((await stopEverythingNow(form({ token })))?.hold).toMatchObject({ kind: "no-bulk" });
-    expect((await liftNoBulkNow(form({ token })))?.hold).toBeNull();
+    const saved = await saveSettingsNow(form({ token, choice: ["volunteering:email"] }));
+    expect(saved).toMatchObject({
+      ok: true,
+      view: {
+        answers: expect.arrayContaining([
+          expect.objectContaining({ topic: "volunteering", send: "yes", reason: "chose" }),
+        ]),
+      },
+    });
+    expect(await stopEverythingNow(form({ token }))).toMatchObject({ ok: true, view: { hold: { kind: "no-bulk" } } });
+    expect(await liftNoBulkNow(form({ token }))).toMatchObject({ ok: true, view: { hold: null } });
     await query("UPDATE preference_links SET expires_at = now()");
-    expect(await saveSettingsNow(form({ token, choice: [] }))).toBeNull();
-    expect(await saveSettingsNow(form({ kind: "copy", token: "nope" }))).toBeNull();
+    expect(await saveSettingsNow(form({ token, choice: [] }))).toEqual({ ok: false, reason: "link-expired" });
+    expect(await saveSettingsNow(form({ kind: "copy", token: "nope" }))).toEqual({ ok: false, reason: "link-expired" });
   });
 
   it("unsubscribes by an email's button, and gives its page while it works", async () => {
     await jane();
     const token = await copyToken();
     const done = await unsubscribeNow(form({ kind: "copy", token }));
-    expect(done).toMatchObject({ done: true, view: { address: JANE } });
+    expect(done).toMatchObject({ ok: true, done: true, view: { address: JANE } });
     await query("UPDATE broadcast_messages SET sent_at = now() - interval '40 days'");
-    expect(await unsubscribeNow(form({ kind: "copy", token }))).toEqual({ done: true, view: null });
-    expect(await unsubscribeNow(form({ kind: "copy", token: "nope" }))).toEqual({ done: false, view: null });
+    expect(await unsubscribeNow(form({ kind: "copy", token }))).toEqual({ ok: true, done: true, view: null });
+    expect(await unsubscribeNow(form({ kind: "copy", token: "nope" }))).toEqual({ ok: true, done: false, view: null });
     expect(await query("SELECT list, source FROM opt_outs")).toEqual([{ list: "newsletter", source: "link" }]);
   });
 
@@ -108,7 +118,7 @@ describeWithDatabase("the contact preferences page's actions", () => {
     await jane();
     const token = await linkToken();
     await query("UPDATE preference_links SET expires_at = now(), created_at = now() - interval '1 hour'");
-    await resendLinkNow(form({ token }));
+    expect(await resendLinkNow(form({ token }))).toEqual({ ok: true });
     await afterAnswers();
     expect(sent.map((email) => email.To)).toEqual([JANE]);
   });

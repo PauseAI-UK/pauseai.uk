@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { copy } from "@/lib/content/email-your-mp";
 import { addTestMp, connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { LETTERS_INBOX } from "@/tests/gmail-sends";
 import { POST } from "./route";
@@ -44,9 +43,9 @@ describeWithDatabase("POST /api/email-your-mp/letters", () => {
     expect(await (await send(JSON.stringify({ nickname: "bot" }))).json()).toEqual({ ok: true });
   });
 
-  it("returns the reason and status when it refuses", async () => {
+  it("answers with the reason when it refuses", async () => {
     const res = await send("not json");
-    expect(res.status).toBe(403);
-    expect(await res.json()).toEqual({ ok: false, message: copy.errors.spamWait });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: false, reason: "spam-wait" });
   });
 });

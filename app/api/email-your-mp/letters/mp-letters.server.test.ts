@@ -221,37 +221,30 @@ describeWithDatabase("submitLetter", () => {
   it("refuses a letter that fails the spam check", async () => {
     expect(await submitLetter({ ...FORM, turnstileToken: "" })).toEqual({
       ok: false,
-      status: 403,
-      message: copy.errors.spamWait,
+      reason: "spam-wait",
     });
   });
 
   it("refuses missing fields, a bad email, one of ours, and an unknown campaign", async () => {
     expect(await submitLetter({ ...FORM, address: "" })).toMatchObject({
-      status: 400,
-      message: copy.errors.missingFields,
+      reason: "missing-fields",
     });
     expect(await submitLetter({ ...FORM, letter: undefined })).toMatchObject({
-      status: 400,
-      message: copy.errors.missingFields,
+      reason: "missing-fields",
     });
     expect(await submitLetter({ ...FORM, letter: docFromMarkup("\n- ") })).toMatchObject({
-      status: 400,
-      message: copy.errors.missingFields,
+      reason: "missing-fields",
     });
     expect(await submitLetter({ ...FORM, email: "jane" })).toMatchObject({
-      status: 400,
-      message: copy.errors.invalidEmail,
+      reason: "invalid-email",
     });
     for (const ours of [LETTERS_INBOX, testProxy("jane.smith"), "Policy@example.org"]) {
       expect(await submitLetter({ ...FORM, email: ours })).toMatchObject({
-        status: 400,
-        message: copy.errors.ourAddress,
+        reason: "our-address",
       });
     }
     expect(await submitLetter({ ...FORM, campaign: "nope" })).toMatchObject({
-      status: 400,
-      message: copy.errors.unknownCampaign,
+      reason: "unknown-campaign",
     });
   });
 
@@ -262,18 +255,16 @@ describeWithDatabase("submitLetter", () => {
 
   it("refuses a postcode with no MP, or an MP with no email", async () => {
     expect(await submitLetter({ ...FORM, postcode: "XX1 1XX" })).toMatchObject({
-      status: 400,
-      message: copy.errors.noRecipient,
+      reason: "no-recipient",
     });
     await query("UPDATE notable_people SET email = NULL WHERE id IN (SELECT id FROM politicians WHERE is_test)");
-    expect(await submitLetter(FORM)).toMatchObject({ status: 400, message: copy.errors.noRecipient });
+    expect(await submitLetter(FORM)).toMatchObject({ ok: false, reason: "no-recipient" });
   });
 
   it("outside production, writes only to the test MP", async () => {
     const sent = recordGmail();
     expect(await submitLetter({ ...FORM, postcode: "SW1A 1AA" })).toMatchObject({
-      status: 403,
-      message: copy.errors.testMpOnly,
+      reason: "test-mp-only",
     });
     expect(sent).toEqual([]);
     vi.stubEnv("DEPLOY_CONTEXT", "production");
@@ -287,8 +278,7 @@ describeWithDatabase("submitLetter", () => {
     expect(await submitLetter(real)).toEqual({ ok: true });
     expect(await submitLetter({ ...real, email: "JANE@example.com" })).toEqual({
       ok: false,
-      status: 409,
-      message: copy.errors.alreadySent,
+      reason: "already-sent",
     });
     expect(await submitLetter({ ...real, campaign: "support-sobel-bill" })).toEqual({ ok: true });
     expect(await submitLetter({ ...real, email: "sam@example.com" })).toEqual({ ok: true });
@@ -338,14 +328,14 @@ describeWithDatabase("submitLetter", () => {
     await query("UPDATE staff_accounts SET gmail_token = NULL, gmail_connected_at = NULL, gmail_history_id = NULL");
     const real = { ...FORM, postcode: "SW1A 1AA" };
     expect(await submitLetter(real)).toMatchObject({ ok: true, queued: "not_connected" });
-    expect(await submitLetter(real)).toMatchObject({ status: 409 });
+    expect(await submitLetter(real)).toEqual({ ok: false, reason: "already-sent" });
   });
 
   it("says it failed, and keeps nothing, if the letter can't be saved", async () => {
     const sent = recordGmail();
     // Saving fails after the letter's row is written, so finding none proves it was rolled back.
     vi.mocked(supporterProxy).mockRejectedValueOnce(new Error("the database went away"));
-    expect(await submitLetter(FORM)).toMatchObject({ status: 500, message: copy.errors.failed });
+    expect(await submitLetter(FORM)).toMatchObject({ ok: false, reason: "failed" });
     expect(sent).toEqual([]);
     expect(await query("SELECT id FROM letters")).toEqual([]);
   });

@@ -1,5 +1,6 @@
 import { copy } from "@/lib/content/email-your-mp";
 import { errorPageCopy } from "@/lib/content/error-page";
+import { spamCheckCopy } from "@/lib/content/spam-check";
 import { failService } from "@/lib/server/fixtures/failing-services";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
@@ -200,7 +201,7 @@ test("The spam check can't be reached", async ({ page, flowDatabase }) => {
   await lookUpTestMp(page, BASE);
   await fillLetter(page, madeUpAddress("Jane Smith", 44));
   await page.getByRole("button", { name: copy.preview.send }).click();
-  await expect(page.getByText(copy.errors.spamUnreachable)).toBeVisible();
+  await expect(page.getByText(spamCheckCopy.refused["spam-unreachable"])).toBeVisible();
   await frame(page, "What Jane is told");
 
   story("The notification inbox is emailed about it, once.");

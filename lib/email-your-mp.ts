@@ -3,7 +3,9 @@
 // checks what it's sent against the same campaigns.
 import { IMPORTED_ASKS } from "@/lib/asks/asks";
 import { campaigns, type Campaign, type LetterDetails, type MpStatuses } from "@/lib/content/email-your-mp";
+import type { SpamReason } from "@/lib/content/spam-check";
 import type { FormResult } from "@/lib/form-result";
+import type { QueueReason } from "@/lib/letters/sending.server";
 import { docFromMarkup, type Inline, type LetterDoc } from "@/lib/letters/format";
 import type { Place } from "@/lib/site-events";
 
@@ -29,6 +31,23 @@ export type { MpStatuses };
 export type MpLookup = FormResult<
   "postcode-required" | "not-found" | "no-constituency" | "no-mp" | "failed",
   { mp: Mp; statuses: MpStatuses; place: Place | null }
+>;
+
+/**
+ * What /api/email-your-mp/letters answers: the letter kept, and sent, or
+ * `queued` and why; or why it's refused, and nothing kept.
+ */
+export type LetterSubmitted = FormResult<
+  | SpamReason
+  | "missing-fields"
+  | "invalid-email"
+  | "our-address"
+  | "unknown-campaign"
+  | "no-recipient"
+  | "test-mp-only"
+  | "already-sent"
+  | "failed",
+  { queued?: QueueReason }
 >;
 
 /** Where the campaigns' pages are. */

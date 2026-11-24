@@ -7,6 +7,8 @@ import { FormStack } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import Turnstile from "@/components/ui/Turnstile";
 import { emailSettingsCopy as copy } from "@/lib/content/email-settings";
+import { spamCheckCopy } from "@/lib/content/spam-check";
+import type { LinkAsked } from "@/lib/supporters/settings-view";
 import { focusOnMount } from "./EmailSettings";
 import styles from "./EmailSettings.module.css";
 
@@ -20,7 +22,7 @@ export default function SettingsStart({
   days,
   turnstileSiteKey,
 }: {
-  ask: (form: FormData) => Promise<{ sent: string } | { message: string }>;
+  ask: (form: FormData) => Promise<LinkAsked>;
   days: number;
   turnstileSiteKey?: string;
 }) {
@@ -48,9 +50,9 @@ export default function SettingsStart({
         className={styles.card}
         action={async (form) => {
           const result = await ask(form);
-          if ("sent" in result) setSent(result.sent);
+          if (result.ok) setSent(result.sent);
           else {
-            setMessage(result.message);
+            setMessage(spamCheckCopy.refused[result.reason]);
             setToken("");
             setRound((n) => n + 1);
           }

@@ -1,3 +1,5 @@
+import type { SpamReason } from "@/lib/content/spam-check";
+import type { FormResult } from "@/lib/form-result";
 import { hasWay, type ContactPermission, type Topic, type Way } from "./contact-permissions";
 
 // What the contact preferences page shows for an address: PauseAI UK Updates and
@@ -33,6 +35,19 @@ export type SettingsView = {
   hold: SettingsHold | null;
   onLuma: boolean;
 };
+
+/** What asking for a link to the page answers: the address it was asked for, or why the spam check refused it. */
+export type LinkAsked = FormResult<SpamReason, { sent: string }>;
+
+/** What a change on the page answers: the page afresh, or that its link has run out. */
+export type SettingsChanged = FormResult<"link-expired", { view: SettingsView }>;
+
+/**
+ * What an email's unsubscribe button answers: whether it opted anything
+ * out, and the page afresh, or null for one whose link has run out, as the
+ * button works however old the email.
+ */
+export type Unsubscribed = { ok: true; done: boolean; view: SettingsView | null };
 
 /** Whether a page is for a number alone, opened by the link a stop's answer gave it, rather than an email address. */
 export const isNumber = (address: string): boolean => address.startsWith("+");

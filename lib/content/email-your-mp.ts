@@ -293,11 +293,5 @@ export const copy = {
     // The sender's email is one of ours: the letters inbox, a proxy, or the policy team's.
     ourAddress: "Please give your own email address, so your MP's reply can reach you.",
     failed: "Sorry! We failed to send the email, for technical reasons.",
-    spamUnavailable: "Spam protection is unavailable.",
-    spamMisconfigured: "Spam protection is misconfigured.",
-    spamWait: "Please wait for the anti-spam check to complete, then send your message again.",
-    spamFailed: "The anti-spam check failed. Please reload the page and try again.",
-    spamUnreachable: "Could not complete the anti-spam check. Please try again in a moment.",
-    turnstileLoad: "The anti-spam check could not load. Please refresh the page and try again.",
   },
 };
