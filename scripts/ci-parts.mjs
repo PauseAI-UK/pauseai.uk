@@ -130,5 +130,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const flows = chosen ? new Map([...listed].filter(([key]) => chosen.run.has(key))) : listed;
   const lines = flowsForPart(flows, part, count);
   writeFileSync(out, lines.join("\n"));
-  console.log(`Part ${part} of ${count}: ${lines.length} flows.`);
+  console.log(`Part ${part} of ${count}: ${lines.length} flow${lines.length === 1 ? "" : "s"}.`);
 }
