@@ -1,19 +1,20 @@
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   addFixtureData,
   addTestMps,
   copyDatabase,
   databaseNames,
-  defaultHost,
   dropDatabase,
   freshDatabase,
   isLocal,
+  localServer,
   noServer,
   resetDatabase,
   runSql,
+  serverEnv,
   serverSource,
   testServerUrl,
 } from "./fresh-database.mjs";
@@ -45,21 +46,6 @@ describe("isLocal", () => {
   });
 });
 
-describe("defaultHost", () => {
-  it("finds the first directory with the server's socket, or falls back to localhost", () => {
-    const linux = mkdtempSync(join(tmpdir(), "pg-"));
-    const mac = mkdtempSync(join(tmpdir(), "pg-"));
-    try {
-      writeFileSync(join(mac, ".s.PGSQL.5432"), "");
-      expect(defaultHost("5432", [linux, mac])).toBe(mac);
-      expect(defaultHost("5433", [linux, mac])).toBe("localhost");
-    } finally {
-      rmSync(linux, { recursive: true });
-      rmSync(mac, { recursive: true });
-    }
-  });
-});
-
 describe("testServerUrl", () => {
   it("prefers the environment, then .env.local, reading only that line", () => {
     const dir = mkdtempSync(join(tmpdir(), "env-"));
@@ -80,6 +66,44 @@ describe("testServerUrl", () => {
   });
 });
 
+describe("localServer", () => {
+  const own = { env: { PGHOST: "/dev/shm/checkout-postgres-1", PGPORT: "5432", PGUSER: "jane" } };
+
+  it("takes PGHOST's server, starting none of its own", () => {
+    const start = vi.fn();
+    expect(localServer({ PGHOST: "/run/pg" }, start)).toEqual({ host: "/run/pg" });
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  it("else takes the checkout's own, started", () => {
+    expect(localServer({}, () => own)).toEqual({
+      host: "/dev/shm/checkout-postgres-1",
+      port: "5432",
+      user: "jane",
+      own: true,
+    });
+  });
+
+  it("else, where that won't start, the local server's socket, saying why the first time alone", () => {
+    const warn = vi.fn();
+    const failed = () => ({ problem: "initdb: command not found" });
+    expect(localServer({ PGPORT: "5499" }, failed, warn)).toEqual({ host: "localhost" });
+    localServer({ PGPORT: "5499" }, failed, warn);
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn.mock.calls[0][0]).toContain("initdb: command not found");
+  });
+});
+
+describe("serverEnv", () => {
+  it("passes on TEST_DATABASE_URL, else the server's PG* variables", () => {
+    expect(serverEnv({ TEST_DATABASE_URL: "postgresql://env/x" })).toEqual({ TEST_DATABASE_URL: "postgresql://env/x" });
+    const own = () => ({ host: "/dev/shm/checkout-postgres-1", port: "5432", user: "jane", own: true });
+    expect(serverEnv({}, own)).toEqual({ PGHOST: "/dev/shm/checkout-postgres-1", PGPORT: "5432", PGUSER: "jane" });
+    expect(serverEnv({}, () => ({ host: "/run/pg" }))).toEqual({ PGHOST: "/run/pg" });
+    expect(serverEnv({ PGHOST: "/run/pg" })).toEqual({ PGHOST: "/run/pg" });
+  });
+});
+
 describe("serverSource and noServer", () => {
   it("say where the server was looked for, and what to do when none answers", () => {
     const dir = mkdtempSync(join(tmpdir(), "env-"));
@@ -92,16 +116,20 @@ describe("serverSource and noServer", () => {
       expect(serverSource({}, file)).toBe(`TEST_DATABASE_URL in ${file}`);
       rmSync(file);
       expect(serverSource({ PGHOST: "/run/pg" }, file)).toBe("PGHOST, /run/pg");
-      expect(serverSource({}, file, [dir])).toBe("localhost, with no server's socket in /var/run/postgresql or /tmp");
-      writeFileSync(join(dir, ".s.PGSQL.5432"), "");
-      expect(serverSource({}, file, [dir])).toBe(`the socket in ${dir}`);
+      expect(serverSource({}, file, () => ({ host: "/dev/shm/checkout-postgres-1", own: true }))).toBe(
+        "this checkout's own server, in /dev/shm/checkout-postgres-1",
+      );
+      expect(serverSource({}, file, () => ({ host: "localhost" }))).toBe(
+        "localhost, with no server's socket in /var/run/postgresql or /tmp",
+      );
+      expect(serverSource({}, file, () => ({ host: dir }))).toBe(`the socket in ${dir}`);
     } finally {
       rmSync(dir, { recursive: true });
     }
     const said = noServer("postgresql://u:secret@localhost:5433/postgres", "TEST_DATABASE_URL in the environment");
     expect(said).toContain("No Postgres answered at postgresql://u@localhost:5433/postgres");
     expect(said).not.toContain("secret");
-    expect(said).toContain("pg-start");
+    expect(said).toContain("Start Postgres");
     expect(noServer("postgresql://localhost/postgres")).toContain("(");
   });
 });

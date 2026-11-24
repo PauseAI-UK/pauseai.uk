@@ -17,7 +17,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { MAIN_DATABASE, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE } from "../tests/checkout.mjs";
 import { fixtureEnv } from "../lib/server/fixtures/fixture-env.mjs";
-import { testServerUrl } from "./fresh-database.mjs";
+import { serverEnv } from "./fresh-database.mjs";
 import { checkOutMain } from "./main-checkout.mjs";
 
 function option(name, fallback) {
@@ -33,11 +33,14 @@ const dir = MAIN_WORKTREE;
 
 checkOutMain(ref, dir);
 
-const env = { ...process.env, ...fixtureEnv({ outboxDir: MAIN_OUTBOX_DIR, origin: `http://localhost:${port}` }) };
-// The same test Postgres as this branch's (`db-test`, say), which the
-// worktree's own copy of the database script can't find in our .env.local.
-const testServer = testServerUrl();
-if (testServer) env.TEST_DATABASE_URL = testServer;
+// The same Postgres as this branch's, which main's copy of the database
+// script wouldn't find by itself: this checkout's own (main's has its own),
+// or `db-test`, say, from our .env.local.
+const env = {
+  ...process.env,
+  ...fixtureEnv({ outboxDir: MAIN_OUTBOX_DIR, origin: `http://localhost:${port}` }),
+  ...serverEnv(),
+};
 // A fresh database, if this version of the site has one.
 const freshDatabase = join(dir, "scripts", "fresh-database.mjs");
 if (existsSync(freshDatabase)) {

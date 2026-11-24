@@ -17,7 +17,7 @@ import { CHECKOUT_HEADER, FLOW_DATABASE_PREFIX } from "../lib/server/fixtures/fi
 export const CHECKOUT_DIR = process.cwd();
 
 /** A short hash of a checkout's path. */
-function checkoutHash(dir) {
+export function checkoutHash(dir) {
   return createHash("sha256").update(dir).digest("hex").slice(0, 8);
 }
 

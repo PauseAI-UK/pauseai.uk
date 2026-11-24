@@ -8,14 +8,17 @@
 //
 // Makes them on the server TEST_DATABASE_URL names, from the environment or
 // .env.local: `db-test` in docker-compose.yml, say. Without it, it connects
-// with the usual PG* variables, and without PGHOST it finds the local
-// server's Unix socket: /var/run/postgresql on Debian and Ubuntu, /tmp on a
-// Mac (Postgres.app, Homebrew), else it tries localhost.
+// with the usual PG* variables, and without PGHOST, on this checkout's own
+// server, in memory (scripts/own-postgres.mjs), which it starts if it isn't
+// running. Where that can't start (no initdb on the PATH), it finds the
+// local server's Unix socket: /var/run/postgresql on Debian and Ubuntu, /tmp
+// on a Mac (Postgres.app, Homebrew), else it tries localhost.
 import { execFileSync } from "node:child_process";
 import { createCipheriv, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import { userInfo } from "node:os";
+import { checkoutPostgres, defaultHost } from "./own-postgres.mjs";
 
 // From the repo root, where every script and test runs. (Not import.meta:
 // Playwright's loader, which the storyboard's fixtures import this through,
@@ -42,11 +45,6 @@ export function isLocal(url, env = process.env) {
   return host === "" || host.startsWith("/") || local.includes(host);
 }
 
-/** Where a local server listens when PGHOST doesn't say. */
-export function defaultHost(port = process.env.PGPORT ?? "5432", places = ["/var/run/postgresql", "/tmp"]) {
-  return places.find((dir) => existsSync(join(dir, `.s.PGSQL.${port}`))) ?? "localhost";
-}
-
 /**
  * TEST_DATABASE_URL, from the environment or else from `envFile`. Only that
  * one line is read: the rest of .env.local (DATA_FIXTURES, say) is for the
@@ -59,12 +57,47 @@ export function testServerUrl(env = process.env, envFile = ".env.local") {
   return line?.[1].replace(/^(["'])(.*)\1$/, "$2") || undefined;
 }
 
+let warnedNoOwn = false;
+
+/**
+ * The server databaseUrl uses when TEST_DATABASE_URL doesn't name one:
+ * PGHOST's; or else this checkout's own (scripts/own-postgres.mjs), started
+ * if it isn't running; or, where that can't start, the local server's
+ * socket (defaultHost), saying why the first time.
+ *
+ * @returns {{ host: string, port?: string, user?: string, own?: boolean }}
+ */
+export function localServer(env = process.env, own = checkoutPostgres, warn = console.warn) {
+  if (env.PGHOST) return { host: env.PGHOST };
+  const started = own();
+  if ("env" in started)
+    return { host: started.env.PGHOST, port: started.env.PGPORT, user: started.env.PGUSER, own: true };
+  if (!warnedNoOwn) {
+    warnedNoOwn = true;
+    warn(`This checkout's own Postgres didn't start (${started.problem}), so the local server is used.`);
+  }
+  return { host: defaultHost(env.PGPORT) };
+}
+
+/**
+ * The variables that point another checkout's scripts at this one's server:
+ * main's, in the storyboard's review (scripts/storyboard.mjs,
+ * scripts/serve-main.mjs), whose flows' databases this checkout makes.
+ */
+export function serverEnv(env = process.env, server = () => localServer(env)) {
+  const url = testServerUrl(env);
+  if (url) return { TEST_DATABASE_URL: url };
+  const { host, port, user } = server();
+  return { PGHOST: host, ...(port ? { PGPORT: port } : {}), ...(user ? { PGUSER: user } : {}) };
+}
+
 /** Where databaseUrl finds the server, as a message says it. */
-export function serverSource(env = process.env, envFile = ".env.local", places = undefined) {
+export function serverSource(env = process.env, envFile = ".env.local", server = () => localServer(env)) {
   if (env.TEST_DATABASE_URL) return "TEST_DATABASE_URL in the environment";
   if (testServerUrl({}, envFile)) return `TEST_DATABASE_URL in ${envFile}`;
   if (env.PGHOST) return `PGHOST, ${env.PGHOST}`;
-  const host = defaultHost(env.PGPORT, places);
+  const { host, own } = server();
+  if (own) return `this checkout's own server, in ${host}`;
   return host === "localhost"
     ? "localhost, with no server's socket in /var/run/postgresql or /tmp"
     : `the socket in ${host}`;
@@ -76,7 +109,7 @@ export function noServer(url, source = serverSource()) {
   shown.password = "";
   return [
     `No Postgres answered at ${shown} (${source}); psql's error is above.`,
-    "Start Postgres (pg-start, in the dev container), or set TEST_DATABASE_URL to a server that's running",
+    "Start Postgres, or set TEST_DATABASE_URL to a server that's running",
     '(docs/testing.md, "Where Postgres is").',
   ].join(" ");
 }
@@ -89,10 +122,11 @@ export function databaseUrl(name) {
     url.pathname = `/${name}`;
     return url.toString();
   }
-  const user = process.env.PGUSER ?? userInfo().username;
+  const local = localServer();
+  const user = local.user ?? process.env.PGUSER ?? userInfo().username;
   const password = process.env.PGPASSWORD ? `:${encodeURIComponent(process.env.PGPASSWORD)}` : "";
-  const host = process.env.PGHOST ?? defaultHost();
-  const port = process.env.PGPORT ?? "5432";
+  const host = local.host;
+  const port = local.port ?? process.env.PGPORT ?? "5432";
   return `postgresql://${encodeURIComponent(user)}${password}@localhost/${name}?host=${encodeURIComponent(host)}&port=${port}`;
 }
 

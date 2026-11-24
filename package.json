@@ -39,6 +39,7 @@
     "data:hero-photos": "node scripts/hero-photos-avif.mjs",
     "march:preview": "node scripts/march-preview.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
+    "db:own": "node scripts/own-postgres.mjs",
     "db:reset": "node scripts/db-reset.mjs",
     "db:schema": "node scripts/db-schema.mjs",
     "whatsapp:verify-token": "node scripts/whatsapp-verify-token.mjs"
