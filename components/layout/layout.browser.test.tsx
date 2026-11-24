@@ -139,8 +139,7 @@ describe("Nav", () => {
   });
 
   it("measures nothing once the header is gone", async () => {
-    // Following the march banner to the march page, which has no header,
-    // takes the header out of the page. The ResizeObserver reports it shrinking
+    // Going to a page without the header takes the header out of the page. The ResizeObserver reports it shrinking
     // to nothing, and the report can come after React has let go of it.
     const reports: ResizeObserverCallback[] = [];
     vi.stubGlobal(

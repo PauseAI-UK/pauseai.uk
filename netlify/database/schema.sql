@@ -203,7 +203,7 @@ CREATE TABLE public.form_entries (
     utm_source text,
     bulk_notice_at timestamp with time zone,
     CONSTRAINT form_entries_email_check CHECK (((email IS NOT NULL) OR ((form = 'whatsapp-community'::text) AND (phone IS NOT NULL)))),
-    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'paper-signup'::text, 'whatsapp-community'::text]))),
+    CONSTRAINT form_entries_form_check CHECK ((form = ANY (ARRAY['email-your-mp'::text, 'web-form'::text, 'march-2026-11'::text, 'march-2027-04'::text, 'paper-signup'::text, 'whatsapp-community'::text]))),
     CONSTRAINT form_entries_phone_check CHECK ((NOT (((phone)::public.phone)::text IS DISTINCT FROM phone)))
 );
 
@@ -1303,15 +1303,6 @@ ALTER TABLE public.civicrm_updates ALTER COLUMN id ADD GENERATED ALWAYS AS IDENT
 );
 
 --
--- Name: day_texts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.day_texts (
-    form text NOT NULL,
-    ends_at timestamp with time zone NOT NULL
-);
-
---
 -- Name: preference_choices; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1385,7 +1376,7 @@ UNION ALL
     f.created_at AS at,
     f.form AS source
    FROM public.form_entries f
-  WHERE (f.contact_consent AND (f.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text])) AND (f.phone IS NOT NULL))
+  WHERE (f.contact_consent AND ((f.form = 'paper-signup'::text) OR (f.form ~~ 'march-%'::text)) AND (f.phone IS NOT NULL))
 UNION ALL
  SELECT lower(TRIM(BOTH FROM f.email)) AS address,
     'email'::text AS way,
@@ -1407,7 +1398,7 @@ UNION ALL
     f.created_at AS at,
     f.form AS source
    FROM public.form_entries f
-  WHERE ((NOT f.contact_consent) AND (f.form = ANY (ARRAY['march-2026-11'::text, 'paper-signup'::text])) AND (f.phone IS NOT NULL))
+  WHERE ((NOT f.contact_consent) AND ((f.form = 'paper-signup'::text) OR (f.form ~~ 'march-%'::text)) AND (f.phone IS NOT NULL))
 UNION ALL
  SELECT lower(TRIM(BOTH FROM f.email)) AS address,
     'email'::text AS way,
@@ -1588,26 +1579,13 @@ UNION ALL
  SELECT f.phone AS address,
     'text'::text AS way,
     'events'::text AS topic,
-        CASE
-            WHEN (now() < d.ends_at) THEN 'said'::text
-            ELSE 'nothing'::text
-        END AS kind,
-        CASE
-            WHEN (now() < d.ends_at) THEN 'yes'::text
-            ELSE 'no'::text
-        END AS send,
-        CASE
-            WHEN (now() < d.ends_at) THEN 'gave-number'::text
-            ELSE 'ended'::text
-        END AS reason,
-        CASE
-            WHEN (now() < d.ends_at) THEN f.created_at
-            ELSE d.ends_at
-        END AS at,
+    'said'::text AS kind,
+    'yes'::text AS send,
+    'gave-number'::text AS reason,
+    f.created_at AS at,
     f.form AS source
-   FROM (public.form_entries f
-     JOIN public.day_texts d ON ((d.form = f.form)))
-  WHERE (f.phone IS NOT NULL);
+   FROM public.form_entries f
+  WHERE ((f.form ~~ 'march-%'::text) AND (f.form <> 'march-2026-11'::text) AND (f.phone IS NOT NULL));
 
 --
 -- Name: email_blocks; Type: TABLE; Schema: public; Owner: -
@@ -2995,13 +2973,6 @@ ALTER TABLE ONLY public.civicrm_updates
 
 ALTER TABLE ONLY public.civicrm_updates
     ADD CONSTRAINT civicrm_updates_pkey PRIMARY KEY (id);
-
---
--- Name: day_texts day_texts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.day_texts
-    ADD CONSTRAINT day_texts_pkey PRIMARY KEY (form);
 
 --
 -- Name: email_blocks email_blocks_pkey; Type: CONSTRAINT; Schema: public; Owner: -

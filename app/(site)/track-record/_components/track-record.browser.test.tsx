@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
+import { novemberMarch, novemberMarchFilm } from "@/lib/content/march";
 import Timeline from "./Timeline";
 import { Gallery, ShotLink } from "./Gallery";
-import { Photos, Shot } from "./Photos";
+import { Film, Photos, Shot } from "./Photos";
 import { EntryList, EntryText, TimelineEntry } from "./TimelineEntry";
 import { TimelineList } from "./TimelineList";
 
@@ -43,6 +44,26 @@ describe("TimelineEntry and Shot", () => {
   it("lists the whole track record", async () => {
     const { container } = await render(<Timeline />);
     expect(container.querySelectorAll("ol > li").length).toBeGreaterThan(5);
+  });
+
+  it("starts with the November 2026 march, its film to play and a link to its page", async () => {
+    const { container } = await render(<Timeline />);
+    const first = container.querySelector("ol > li")!;
+    expect(first.id).toBe("march-against-ai-extinction");
+    expect(first.querySelector("h3")!.textContent).toBe("March Against AI Extinction");
+    expect(first.querySelector(`a[href="${novemberMarch.path}"]`)).not.toBeNull();
+    const film = first.querySelector("video")!;
+    expect(film.getAttribute("src")).toBe(novemberMarchFilm.src);
+    expect(film.getAttribute("aria-label")).toBe(novemberMarchFilm.label);
+  });
+
+  it("has a film load nothing until it's played, showing its still", async () => {
+    const { container } = await render(<Film src="/film.mp4" poster="/still.jpg" label="A film" />);
+    const film = container.querySelector("video")!;
+    expect(film.controls).toBe(true);
+    expect(film.preload).toBe("none");
+    expect(film.getAttribute("poster")).toBe("/still.jpg");
+    await expect.element(page.getByLabelText("A film")).toBeVisible();
   });
 });
 

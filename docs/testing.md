@@ -38,7 +38,8 @@ projects can map a statement to different ranges, and a range that runs to
 its line's end ends at column `Infinity`, which JSON writes as `null`.
 Istanbul merges a range with a `null` end with its twin, the one range with
 the same start and end line, and a range with no twin takes the count of the
-one around it, as in a whole run.
+one around it, as in a whole run. It finds no range around one whose column
+is `null`, so the script makes each `null` `Infinity` again before merging.
 
 While writing tests, `npm run test:changed` is quicker. It:
 
@@ -1003,7 +1004,9 @@ that drives it or why nothing does.
   - a local group's events, with its venue set or not;
   - the address bar saying which events are shown, and a link to a local group's events or the online ones.
 - `march-signup.spec.ts`: The march sign-up:
-  - the page under the site's header, without the march banner, its marker-pen marks drawn;
+  - the next march's page under the site's header, its marker-pen marks drawn;
+  - the page of a march that's over, with how many registered and without the form, leading to the next march's;
+  - the march in the track record, with its film, and its link to the march's page;
   - how many have registered, in the hero and the form, asked for again on coming back to the page;
   - the hero's words near the window's edge 1920px wide, and in line with the header and the page below wider than that;
   - registering, Luma failing, and an email or a phone number the server won't take;
@@ -1192,6 +1195,7 @@ that drives it or why nothing does.
   - a supporter merged into another by their mobile number, whose old ID's page redirects to the one kept;
   - a letter writer reached from the letters page;
   - a march sign-up, with what they gave and the link they came by;
+  - a march sign-up's number given without the box: texts about events, and no Updates;
   - the list's Consent column, and its filter: those who can be emailed about events, then the newsletter, then leaving out those who get events emails;
   - members: one who also wrote to their MP, one CiviCRM says never opted in, one with "No bulk emails" there, with what a topic is from its ?, and one who unsubscribed there;
   - a hold in CiviCRM in Blocked addresses, lifted with a note;

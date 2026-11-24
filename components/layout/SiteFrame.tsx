@@ -7,7 +7,7 @@ import Nav from "./Nav";
  * The site's header and footer around a page: the only place they're drawn
  * (tests/checks/site-frame.test.ts), and drawn once, however many layouts a
  * page is inside (FrameOnce). `before` comes ahead of the header, such as a
- * skip link; `after` under it, such as the march banner.
+ * skip link; `after` under it, such as the tools' NoAnalytics.
  */
 export default function SiteFrame({
   before,

@@ -17,7 +17,7 @@ import type {
   SupporterRow,
   SupporterSummary,
 } from "./supporters";
-import { SUPPORTERS_PAGE_SIZE } from "./supporters";
+import { MARCH_SOURCES, SUPPORTERS_PAGE_SIZE } from "./supporters";
 import { channelOf, type Channel, type ContactPermission } from "./contact-permissions";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { permissionsFor } from "./permissions-for.server";
@@ -214,7 +214,7 @@ const BADGE_CONDITIONS: Record<SupporterBadge, string> = {
   lumaContact: LUMA_CONTACT,
   registered: "s.events > 0",
   letter: "s.letters > 0",
-  march: "'march-2026-11' = ANY(s.sources)",
+  march: `s.sources && ARRAY[${MARCH_SOURCES.map((source) => `'${source}'`).join(", ")}]`,
   paper: "'paper-signup' = ANY(s.sources)",
   whatsapp: "'whatsapp-community' = ANY(s.sources)",
 };

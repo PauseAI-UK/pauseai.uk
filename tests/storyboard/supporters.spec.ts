@@ -505,7 +505,7 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   );
   const email = madeUpAddress("Marta Marcher", 42, "example.org");
   const form = marchSignupCopy.form;
-  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-nov-26?utm_source=nl#register`);
+  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-apr-27?utm_source=nl#register`);
   await page.getByLabel(form.name).fill("Marta Marcher");
   await page.getByLabel(form.email).fill(email);
   await page.getByRole("textbox", { name: new RegExp(`^${form.phone}`) }).fill("07700 900123");
@@ -527,14 +527,14 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
 
   await marta.getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Marta Marcher");
-  // Her number, without the country code, a yes for texts on the march's day and, as she agreed, after.
+  // Her number, without the country code, a yes for texts about events and, as she ticked the box, Updates.
   await expect(page.getByText("07700 900123", { exact: false }).first()).toBeVisible();
   await openEverything(page);
   await expect(page.getByText("LS1 1AA", { exact: true })).toBeVisible();
   // Her email and number in Updates' row, each with its reason.
   await expect(
     page.getByText(
-      copy.detail.permissions.reasons.asked("16 Oct 2026", copy.detail.permissions.sources["march-2026-11"]),
+      copy.detail.permissions.reasons.asked("16 Oct 2026", copy.detail.permissions.sources["march-2027-04"]),
       { exact: false },
     ),
   ).toHaveCount(2);
@@ -542,6 +542,45 @@ test("A march sign-up's page", async ({ page, flowDatabase }) => {
   const history = page.getByRole("list", { name: copy.detail.activityTitle });
   await expect(history.getByText(copy.detail.cameFrom("nl"), { exact: false })).toBeVisible();
   await frame(page, "Marta's page");
+});
+
+test("A march sign-up's number, without the box", async ({ page, flowDatabase }) => {
+  story(
+    "Noor signs up for the march and gives her phone number, which the form asks for for text updates about events. She leaves the box to hear about future campaigns unticked.",
+  );
+  const form = marchSignupCopy.form;
+  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-apr-27#register`);
+  await page.getByLabel(form.name).fill("Noor Number");
+  await page.getByLabel(form.email).fill(madeUpAddress("Noor Number", 45, "example.org"));
+  const phone = page.getByRole("textbox", { name: new RegExp(`^${form.phone}`) });
+  await phone.fill("07700 900145");
+  await expect(page.getByText(form.phoneHint)).toBeVisible();
+  await expect(page.getByLabel(form.consent)).not.toBeChecked();
+  await phone.scrollIntoViewIfNeeded();
+  await frame(page, "The form, with her number and the box unticked", { window: true });
+  story(
+    "On her page, staff see that we may text her number about events, as she gave it for that, and that she isn't on PauseAI UK Updates, as she left the box unticked.",
+  );
+
+  await page.getByRole("button", { name: form.submit, exact: true }).click();
+  await expect(page.getByRole("heading", { name: marchSignupCopy.share.title })).toBeVisible();
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters`);
+  await page.getByRole("row").filter({ hasText: "Noor Number" }).getByRole("link").first().click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Noor Number");
+  const sources = copy.detail.permissions.sources;
+  await expect(
+    page.getByText(copy.detail.permissions.reasons["gave-number"]("16 Oct 2026", sources["march-2027-04"]), {
+      exact: false,
+    }),
+  ).toBeVisible();
+  // Her email and her number, each a no to Updates for the box left unticked.
+  await expect(
+    page.getByText(copy.detail.permissions.reasons.declined("16 Oct 2026", sources["march-2027-04"]), {
+      exact: false,
+    }),
+  ).toHaveCount(2);
+  await frame(page, "Noor's page");
 });
 
 test("A member who wrote to their MP", async ({ page, request, flowDatabase }) => {

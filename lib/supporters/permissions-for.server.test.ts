@@ -386,18 +386,37 @@ describeWithDatabase("permissionsFor", () => {
     expect(await phoneAnswer("+447700900022", "events")).toEqual(["no", "not-following", null, "luma"]);
     expect(await phoneAnswer("+447700900020", "events", "call")).toBeUndefined();
 
-    // A number for texts on the day, and the day over for another form.
-    await query("INSERT INTO day_texts (form, ends_at) VALUES ('paper-signup', now() - interval '1 day')");
-    await query("UPDATE day_texts SET ends_at = now() + interval '1 day' WHERE form = 'march-2026-11'");
-    await formEntry("m@example.com", "march-2026-11", "+447700900023", false, "2026-11-01T00:00:00Z");
-    await formEntry("p@example.com", "paper-signup", "+447700900024", false, "2026-11-01T00:00:00Z");
+    // A number given on a march's sign-up, but not November 2026's, which asked for it for the day alone, nor
+    // another form's.
+    await formEntry("a@example.com", "march-2027-04", "+447700900023", false, "2026-12-01T00:00:00Z");
+    await formEntry("m@example.com", "march-2026-11", "+447700900024", false, "2026-11-01T00:00:00Z");
+    await formEntry("p@example.com", "paper-signup", "+447700900025", false, "2026-11-01T00:00:00Z");
     expect(await phoneAnswer("+447700900023", "events")).toEqual([
       "yes",
       "gave-number",
-      "2026-11-01T00:00:00.000Z",
-      "march-2026-11",
+      "2026-12-01T00:00:00.000Z",
+      "march-2027-04",
     ]);
-    expect(await phoneAnswer("+447700900024", "events")).toEqual(["no", "ended", expect.any(String), "paper-signup"]);
+    expect(await phoneAnswer("+447700900024", "events")).toBeUndefined();
+    expect(await phoneAnswer("+447700900025", "events")).toBeUndefined();
+  });
+
+  it("takes the box on the next march's sign-up as on the last's, and its number for texts about events either way", async () => {
+    await formEntry("a@example.com", "march-2027-04", "+447700900040", true, "2026-12-01T00:00:00Z");
+    await formEntry("b@example.com", "march-2027-04", "+447700900041", false, "2026-12-01T00:00:00Z");
+    expect(await phoneAnswer("+447700900040", "newsletter")).toEqual([
+      "yes",
+      "asked",
+      "2026-12-01T00:00:00.000Z",
+      "march-2027-04",
+    ]);
+    expect((await phoneAnswer("+447700900041", "newsletter"))?.slice(0, 2)).toEqual(["no", "declined"]);
+    expect(await phoneAnswer("+447700900041", "events")).toEqual([
+      "yes",
+      "gave-number",
+      "2026-12-01T00:00:00.000Z",
+      "march-2027-04",
+    ]);
   });
 
   it("texts the newsletter to a number given with a ticked box on a form whose box covers texts", async () => {

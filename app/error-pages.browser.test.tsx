@@ -4,7 +4,7 @@ import { page } from "vitest/browser";
 import ErrorMain from "@/components/layout/ErrorMain";
 import type { reportBrowserError } from "@/lib/browser-errors";
 import { errorPageCopy } from "@/lib/content/error-page";
-import MarchError from "./(march)/demonstrations/march-against-ai-extinction-nov-26/error";
+import MarchError from "./(march)/demonstrations/error";
 import SiteError from "./(site)/error";
 import StaffOuterError from "./(staff)/error";
 import SignedInError from "./(staff)/staff/(signed-in)/error";
@@ -50,7 +50,7 @@ describe("the public error page", () => {
     await expect.element(page.getByRole("heading", { name: errorPageCopy.title })).toBeVisible();
   });
 
-  it("is the march sign-up's, where the layout's skip link leads", async () => {
+  it("is the marches' pages', where the layout's skip link leads", async () => {
     await render(<MarchError error={fromServer()} retry={() => {}} />);
     await expect.element(page.getByRole("main")).toHaveAttribute("id", "main");
   });

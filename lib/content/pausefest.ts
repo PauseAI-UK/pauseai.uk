@@ -3,7 +3,7 @@
 // The events, times and places are the PauseAI UK Luma calendar's, the words
 // its flyer's.
 import type { EventGoing } from "@/lib/going";
-import { march } from "./march";
+import { novemberMarch } from "./march";
 
 export type FestEvent = {
   title: string;
@@ -62,12 +62,12 @@ export const pausefest: {
       short: "Sat 21 Nov",
       events: [
         {
-          title: march.name,
+          title: novemberMarch.name,
           time: "12–3pm",
           place: "All Souls’ Place, W1B 3DA",
-          href: march.path,
+          href: novemberMarch.path,
           lumaId: "evt-1HKCXSHaJqGO3Bg",
-          image: march.image.src,
+          image: novemberMarch.image,
           featured: true,
           extras: [
             { label: "Bus from Oxford", href: "https://luma.com/2iot5awn" },

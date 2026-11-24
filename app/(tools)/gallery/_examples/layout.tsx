@@ -8,7 +8,6 @@ import FooterQr from "@/components/layout/FooterQr";
 import FooterYear from "@/components/layout/FooterYear";
 import JsonLd from "@/components/layout/JsonLd";
 import TagManagerNoscript from "@/components/layout/TagManagerNoscript";
-import MarchBanner from "@/components/layout/MarchBanner";
 import Nav from "@/components/layout/Nav";
 import NoAnalytics from "@/components/layout/NoAnalytics";
 import NotFoundMain from "@/components/layout/NotFoundMain";
@@ -70,11 +69,6 @@ export const layout: Group = {
       ],
     },
     {
-      name: "MarchBanner",
-      file: "components/layout/MarchBanner.tsx",
-      variants: [{ label: "The strip under the header until the march", render: () => <MarchBanner /> }],
-    },
-    {
       name: "FrameOnce",
       file: "components/layout/FrameOnce.tsx",
       variants: [
@@ -98,7 +92,7 @@ export const layout: Group = {
           label: "A 404 inside a section's frame: one header, one footer",
           render: () => (
             <CookieConsent analytics={false}>
-              <SiteFrame after={<MarchBanner />}>
+              <SiteFrame>
                 <SiteFrame>
                   <NotFoundMain as="div" />
                 </SiteFrame>

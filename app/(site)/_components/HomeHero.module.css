@@ -23,7 +23,7 @@
   padding: 12px 0;
   /* Fill the viewport minus the sticky nav so the last row's bottom
      edge sits flush with the viewport bottom on first load. */
-  height: calc(100dvh - 77px - var(--march-banner-h, 0px));
+  height: calc(100dvh - 77px);
   background: var(--bg);
   overflow: hidden;
 }
@@ -205,7 +205,7 @@
     /* svh = smallest viewport height (URL bar visible) — guarantees the
        bottom row's edge sits inside the visible viewport on first load
        instead of slipping below the browser chrome. */
-    height: calc(100svh - 77px - var(--march-banner-h, 0px));
+    height: calc(100svh - 77px);
     --row-gap: 8px;
     padding: 8px 0;
   }

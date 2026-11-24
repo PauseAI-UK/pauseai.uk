@@ -131,7 +131,7 @@ describe("SignupForm", () => {
     await expect.element(page.getByRole("alert")).toMatchTextContent(/^Sorry, your registration didn.t go through\./);
     await expect
       .element(page.getByRole("link", { name: "Register on our Luma event page instead." }))
-      .toHaveAttribute("href", "https://luma.com/pauseai-nov26");
+      .toHaveAttribute("href", "https://luma.com/pauseai-april-27");
     expect(pushed()).toEqual([]);
   });
 
