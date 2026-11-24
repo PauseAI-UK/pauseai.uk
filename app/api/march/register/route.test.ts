@@ -104,7 +104,7 @@ describeWithDatabase("POST /api/march/register", () => {
     expect(await registerForMarch({ ...person, email: "testy" })).toEqual({
       ok: false,
       reason: "invalid",
-      errors: { email: "Please enter a valid email address." },
+      fields: { email: "invalid" },
     });
     expect((await registerForMarch(null)).ok).toBe(false);
     expect((await registerForMarch("not JSON")).ok).toBe(false);

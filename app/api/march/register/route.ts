@@ -37,7 +37,7 @@ async function register(input: unknown, request: Request): Promise<MarchRegister
   }
 
   const check = checkMarchRegistration(raw);
-  if (!check.ok) return { ...check, reason: "invalid" };
+  if (!check.ok) return check;
 
   const { registration } = check;
   const event = marchEventId();

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { march } from "@/lib/content/march";
 import { marchSignupCopy } from "@/lib/content/march-signup";
-import type { MarchRegisterResult } from "@/lib/march-registration";
+import type { MarchInvalid, MarchRegisterResult } from "@/lib/march-registration";
 import { track } from "./analytics.client";
 import { cardMotionProps, type CardMotion } from "./card-motion";
 import { m } from "./classes";
@@ -14,10 +14,22 @@ const copy = marchSignupCopy.form;
 
 type FormError = { message: string; offerLuma: boolean };
 
+/** What's wrong with each field, in words. */
+const WRONG = {
+  name: { missing: marchSignupCopy.errors.missing("full name"), check: marchSignupCopy.errors.check("full name") },
+  email: { missing: marchSignupCopy.errors.emailMissing, invalid: marchSignupCopy.errors.emailInvalid },
+  phone: { invalid: marchSignupCopy.errors.phoneInvalid },
+};
+
+/** What to fix, a sentence for each field that's wrong, in the form's order. */
+function toFix({ name, email, phone }: MarchInvalid["fields"]): string {
+  return [name && WRONG.name[name], email && WRONG.email[email], phone && WRONG.phone[phone]].filter(Boolean).join(" ");
+}
+
 /** A name or email to fix is said as is; anything else offers Luma's own page instead. */
 function errorFor(result: Exclude<MarchRegisterResult, { ok: true }> | "unreachable"): FormError {
   if (result === "unreachable" || result.reason === "luma-failed") return { message: copy.failed, offerLuma: true };
-  return { message: Object.values(result.errors).join(" "), offerLuma: false };
+  return { message: toFix(result.fields), offerLuma: false };
 }
 
 /**

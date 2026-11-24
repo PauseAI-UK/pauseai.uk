@@ -2,7 +2,7 @@
 // It runs on the server, where it counts: the browser's `required` and
 // type="email" are only a convenience, and the route can be posted to
 // directly.
-import { marchSignupCopy } from "@/lib/content/march-signup";
+import type { Refused, RefusedFields } from "@/lib/form-result";
 import { phoneNumber, type PhoneNumber } from "@/lib/phone";
 
 /**
@@ -21,16 +21,20 @@ export type MarchRegistration = {
   utmSource: string | null;
 };
 
-export type MarchRegistrationCheck =
-  | { ok: true; registration: MarchRegistration }
-  | { ok: false; errors: Partial<Record<"name" | "email" | "phone", string>> };
+/** What can be wrong with each field the form checks: the form says each in its own words. */
+export type MarchFieldsWrong = { name: "missing" | "check"; email: "missing" | "invalid"; phone: "invalid" };
+
+/** A sign-up the form can't take, with what's wrong with each field. */
+export type MarchInvalid = RefusedFields<"invalid", MarchFieldsWrong>;
+
+export type MarchRegistrationCheck = { ok: true; registration: MarchRegistration } | MarchInvalid;
 
 /** What registering came to, as app/api/march/register answers it. */
 export type MarchRegisterResult =
   | { ok: true }
-  | (Extract<MarchRegistrationCheck, { ok: false }> & { reason: "invalid" })
+  | MarchInvalid
   /** Not on the guest list: Luma failed, skipped them, or isn't set up. */
-  | { ok: false; reason: "luma-failed" };
+  | Refused<"luma-failed">;
 
 const MAX_NAME_LENGTH = 100;
 /** The longest address SMTP allows. */
@@ -57,22 +61,21 @@ export function checkMarchRegistration(input: unknown): MarchRegistrationCheck {
   const raw = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
   const name = text(raw.name);
   const email = text(raw.email);
-  const { errors: words } = marchSignupCopy;
-  const errors: Partial<Record<"name" | "email" | "phone", string>> = {};
+  const fields: MarchInvalid["fields"] = {};
   // A number is kept in international format, or the person is asked to fix it: one that can't be texted is no use.
   const typedPhone = text(raw.phone);
   const phone = typedPhone ? phoneNumber(typedPhone) : null;
 
-  if (!name) errors.name = words.missing("full name");
-  else if (name.length > MAX_NAME_LENGTH || CONTROL_CHARS.test(name)) errors.name = words.check("full name");
+  if (!name) fields.name = "missing";
+  else if (name.length > MAX_NAME_LENGTH || CONTROL_CHARS.test(name)) fields.name = "check";
 
-  if (!email) errors.email = words.emailMissing;
+  if (!email) fields.email = "missing";
   else if (email.length > MAX_EMAIL_LENGTH || CONTROL_CHARS.test(email) || !EMAIL_PATTERN.test(email))
-    errors.email = words.emailInvalid;
+    fields.email = "invalid";
 
-  if (typedPhone && !phone) errors.phone = words.phoneInvalid;
+  if (typedPhone && !phone) fields.phone = "invalid";
 
-  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  if (Object.keys(fields).length > 0) return { ok: false, reason: "invalid", fields };
   return {
     ok: true,
     registration: {

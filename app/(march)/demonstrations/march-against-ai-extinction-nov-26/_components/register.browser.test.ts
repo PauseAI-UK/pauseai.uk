@@ -18,6 +18,6 @@ describe("registerForMarch", () => {
 
   it("throws when the server errs, as there's no answer to give", async () => {
     vi.spyOn(window, "fetch").mockResolvedValue(new Response("Internal Server Error", { status: 500 }));
-    await expect(registerForMarch({})).rejects.toThrow("The march sign-up answered 500");
+    await expect(registerForMarch({})).rejects.toThrow("/api/march/register answered 500");
   });
 });

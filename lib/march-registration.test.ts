@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { checkMarchRegistration } from "./march-registration";
-import { marchSignupCopy } from "@/lib/content/march-signup";
 
 const valid = { name: "Testy McTestface", email: "testy@example.org" };
 const blank = { phone: null, city: null, postcode: null, consent: false, utmSource: null };
@@ -46,10 +45,8 @@ describe("checkMarchRegistration", () => {
   it("asks for each field that's missing", () => {
     expect(checkMarchRegistration({ name: " ", email: "" })).toEqual({
       ok: false,
-      errors: {
-        name: "Please enter your full name.",
-        email: "Please enter your email address.",
-      },
+      reason: "invalid",
+      fields: { name: "missing", email: "missing" },
     });
   });
 
@@ -62,7 +59,8 @@ describe("checkMarchRegistration", () => {
     for (const name of ["x".repeat(101), "Testy\nMcTestface"]) {
       expect(checkMarchRegistration({ ...valid, name }), name).toEqual({
         ok: false,
-        errors: { name: "Please check your full name." },
+        reason: "invalid",
+        fields: { name: "check" },
       });
     }
   });
@@ -72,7 +70,7 @@ describe("checkMarchRegistration", () => {
       expect(checkMarchRegistration({ ...valid, phone }), String(phone)).toEqual(
         phone === 7
           ? { ok: true, registration: { ...valid, ...blank } }
-          : { ok: false, errors: { phone: marchSignupCopy.errors.phoneInvalid } },
+          : { ok: false, reason: "invalid", fields: { phone: "invalid" } },
       );
     }
   });
@@ -88,7 +86,8 @@ describe("checkMarchRegistration", () => {
     ]) {
       expect(checkMarchRegistration({ ...valid, email }), email).toEqual({
         ok: false,
-        errors: { email: "Please enter a valid email address." },
+        reason: "invalid",
+        fields: { email: "invalid" },
       });
     }
   });

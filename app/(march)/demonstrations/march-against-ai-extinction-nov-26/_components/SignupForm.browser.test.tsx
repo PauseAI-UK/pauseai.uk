@@ -96,7 +96,7 @@ describe("SignupForm", () => {
         register={async () => ({
           ok: false,
           reason: "invalid",
-          errors: { name: "Please check your full name.", email: "Please enter a valid email address." },
+          fields: { name: "check", email: "invalid" },
         })}
       />,
     );
