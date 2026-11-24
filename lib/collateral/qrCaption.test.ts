@@ -1,21 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { captionLayout, displayLink, type CaptionMeasure } from "./qrCaption";
+import { captionLayout, type CaptionMeasure } from "./qrCaption";
 import { qrShape, qrSvg } from "./qrShape";
 
 /** Every character is 0.6em wide. */
 const measure: CaptionMeasure = (_kind, text, fontSize) => text.length * fontSize * 0.6;
-
-describe("displayLink", () => {
-  it.each([
-    ["https://pauseai.uk/join", "pauseai.uk/join"],
-    ["pauseai.uk/", "pauseai.uk"],
-    ["https://www.example.com/a?b=1", "example.com/a?b=1"],
-    ["mailto:hello@pauseai.uk?subject=Hi", "hello@pauseai.uk"],
-    ["", ""],
-  ])("shows %s as %s", (input, expected) => {
-    expect(displayLink(input)).toBe(expected);
-  });
-});
 
 describe("captionLayout", () => {
   it("leaves the image square when there is no caption", () => {

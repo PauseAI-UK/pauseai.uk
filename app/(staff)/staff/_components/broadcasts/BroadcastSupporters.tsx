@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import type { ChoosingBroadcast } from "@/lib/broadcasts/pages.server";
+import type { ChoosingBroadcast } from "@/lib/broadcasts/supporter-pages.server";
 import type { FormResult } from "@/lib/form-result";
 import { storedFilter, type SupportersSearch } from "@/lib/staff-search";
 import { valuesOf } from "@/lib/list-params";

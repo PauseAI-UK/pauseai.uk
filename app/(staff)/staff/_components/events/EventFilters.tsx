@@ -1,5 +1,6 @@
 import { EVENTS_LIST } from "@/lib/staff-lists";
-import { filteredName, filterWords, EVENT_FILTERS, type EventChoices } from "@/lib/staff-list-filters";
+import { filteredName, filterWords } from "@/lib/staff-list-filters";
+import { EVENT_FILTERS, type EventChoices } from "@/lib/events/list-filters";
 import { EVENT_GROUPINGS } from "@/lib/events/list";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import { eventsSearch, type EventsSearch } from "@/lib/staff-search";

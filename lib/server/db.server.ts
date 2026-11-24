@@ -6,7 +6,7 @@ import { migrationsBehindMessage } from "./migrations-check.server";
 import { note } from "./problems.server";
 import { timed } from "./request-timing.server";
 import { render, Sql } from "./sql.server";
-import { serverCopy } from "./copy";
+import { dbCopy } from "./db-copy";
 
 // The only file that connects to the database (an ESLint rule bans "pg"
 // anywhere else). Netlify Database's Postgres, at NETLIFY_DB_URL. Queries are
@@ -38,7 +38,7 @@ async function getPool(): Promise<Pool> {
   // A connection the server drops while idle comes here; without a listener
   // it would be an uncaught error. Only a warning, not a problem for a run,
   // as the pool opens another and the next query carries on.
-  pool.on("error", (error) => note(serverCopy.notes.connectionDropped, error));
+  pool.on("error", (error) => note(dbCopy.notes.connectionDropped, error));
   // The dev server says in its terminal when the database needs
   // npm run db:migrate, rather than a page failing on a missing table.
   // Netlify's own databases are migrated on deploy, so only in development.

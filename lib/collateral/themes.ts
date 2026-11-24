@@ -1,3 +1,4 @@
+import { BRAND_ORANGE, INK } from "./colours";
 import { contrastOf, hexToRgb, luminance } from "./contrast";
 
 export type ThemeId = "orange" | "cream" | "black";
@@ -24,12 +25,8 @@ export interface Theme {
   onPhoto?: { muted?: string; accentText?: string };
 }
 
-// The orange in the logo (see public/images/logos). Every orange in the collateral tools comes from here,
-// except the darker shade below that is used for small text.
-export const BRAND_ORANGE = "#FF9416";
 /** The same hue as the logo orange, darkened until it reads as text on cream (WCAG AA). */
 const ORANGE_TEXT = "#A65A00";
-export const INK = "#1A1612";
 export const CREAM = "#FDF8F3";
 
 const LOGO_DIR = "/images/logos/collateral";

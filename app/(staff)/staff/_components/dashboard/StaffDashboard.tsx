@@ -1,4 +1,4 @@
-import { campaigns } from "@/lib/content/email-your-mp";
+import { CAMPAIGN_NAMES } from "@/lib/content/campaigns";
 import { importPath } from "@/lib/import-runs";
 import {
   type CampaignMetric,
@@ -119,7 +119,7 @@ function Change({ count, worse, days }: { count: Count; worse: boolean; days: Da
 
 /** A bar split by campaign under a number, with each campaign's share in the legend. Only for a number some campaign counted. */
 function CampaignBar({ counts }: { counts: Record<string, number> }) {
-  const parts = campaigns.filter((campaign) => counts[campaign.slug] > 0);
+  const parts = CAMPAIGN_NAMES.filter((campaign) => counts[campaign.slug] > 0);
   return (
     <>
       <span className={styles.bar} aria-hidden="true">

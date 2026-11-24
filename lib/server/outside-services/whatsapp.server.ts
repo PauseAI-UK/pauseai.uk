@@ -4,8 +4,11 @@ import { parseJsonIfAny } from "../json.server";
 import { orFallback } from "./fallback.server";
 import { kindOfStatus, OutsideFailure } from "./outside-failure.server";
 import { GRAPH_VERSION } from "./graph-api";
-import { outsideFetch } from "./outside-fetch.server";
+import { whatsAppFake } from "@/lib/server/fixtures/fakes/whatsapp";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const WHATSAPP: Outside = { service: "whatsapp", fake: whatsAppFake };
 
 // The only file that talks to WhatsApp, through Meta's Cloud API, with our
 // WhatsApp account's permanent token (WHATSAPP_TOKEN) and its ID
@@ -50,7 +53,7 @@ async function graph(
   path: string,
   init: { method?: "GET" | "POST" | "DELETE"; body?: object } = {},
 ): Promise<Record<string, unknown>> {
-  const res = await outsideFetch("whatsapp", `${GRAPH}/${path}`, {
+  const res = await outsideFetch(WHATSAPP, `${GRAPH}/${path}`, {
     method: init.method ?? "GET",
     headers: {
       Authorization: `Bearer ${keys.token}`,

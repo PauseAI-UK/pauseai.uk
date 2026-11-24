@@ -4,9 +4,12 @@ import { tallySources, type GuestEntry, type SourceCounts } from "@/lib/trackers
 import { LUMA_PAGE_SIZE, lumaList, type LumaPage } from "./luma-api.server";
 import { orFallback } from "./fallback.server";
 import { OutsideFailure, outsideJson, refusal } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { lumaFake } from "@/lib/server/fixtures/fakes/luma";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { problem } from "../problems.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const LUMA: Outside = { service: "luma", fake: lumaFake };
 
 // An event's guests, through Luma's official API: the list, for the flyering
 // trackers' tallies and for the import, which keeps each guest; how many are
@@ -111,7 +114,7 @@ export async function getEventGuestCount(eventId: string): Promise<number | null
   if (!key) return null;
   return orFallback(serverProblems.lumaGuestsDown(), null, async () => {
     const res = await outsideFetch(
-      "luma",
+      LUMA,
       `https://public-api.luma.com/v1/events/get?${new URLSearchParams({ event_id: eventId })}`,
       {
         headers: { "x-luma-api-key": key, accept: "application/json" },
@@ -205,7 +208,7 @@ export async function addLumaGuest(
   if (!key) return { status: "not-configured" };
 
   try {
-    const res = await outsideFetch("luma", ADD_GUESTS_URL, {
+    const res = await outsideFetch(LUMA, ADD_GUESTS_URL, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
       body: JSON.stringify({ event_id: eventId, guests: [{ email: guest.email, name: guest.name }] }),
@@ -264,7 +267,7 @@ async function addBatch(
   key: string,
 ): Promise<Set<string> | "failed"> {
   return orFallback(serverProblems.lumaRefusedGuest(), "failed", async () => {
-    const res = await outsideFetch("luma", ADD_GUESTS_URL, {
+    const res = await outsideFetch(LUMA, ADD_GUESTS_URL, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
       body: JSON.stringify({ event_id: eventId, guests: guests.map(({ email, name }) => ({ email, name })) }),

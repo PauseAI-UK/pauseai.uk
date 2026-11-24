@@ -2,7 +2,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { CANVAS_FONTS } from "./canvasFonts.client";
-import { CAPTION_FONTS } from "./qrCaption";
+import { CAPTION_FONTS } from "./captionFonts";
 import { defaultValues, FONT_LOADS, TEMPLATES } from "./templates";
 
 const root = process.cwd();

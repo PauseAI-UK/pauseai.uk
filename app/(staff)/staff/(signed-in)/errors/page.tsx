@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { pageNumber, type ParamValue } from "@/lib/list-params";
-import { listErrorsSeen } from "@/lib/oversight/errors-seen.server";
+import { listErrorsSeen } from "@/lib/oversight/errors-list.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import ErrorsSeen from "../../_components/oversight/ErrorsSeen";

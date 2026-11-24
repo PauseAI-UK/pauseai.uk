@@ -14,7 +14,7 @@ const STAFF_COMPONENTS = "app/(staff)/staff/_components";
 
 const STAYS: Record<string, string[]> = {
   [STAFF_COMPONENTS]: [
-    // A link to one of the public site's campaigns (lib/email-your-mp.ts), which supporters', politicians', letters'
+    // A link to one of the public site's campaigns (lib/content/campaigns.ts), which supporters', politicians', letters'
     // and the audit log's pages show: in mailings', whose campaigns' pages they are, it would make politicians and
     // mailings use each other.
     "CampaignName",
@@ -55,11 +55,13 @@ const STAYS: Record<string, string[]> = {
     // Small helpers any page may use.
     "browser-errors",
     "dated-groups",
+    "email-address",
     "found",
     "leave-page",
     "metadata",
     "now",
     "phone",
+    "postcodes",
     "site-url",
     "staff-time",
     "time-range",
@@ -85,24 +87,27 @@ const STAYS: Record<string, string[]> = {
     // ControlAI's statement's signatories, which its import (jobs), politicians' official profiles and its binding read.
     "controlai-statement",
     // The import log, which every job keeps its runs in, whichever feature's it is: each job's name, page and
-    // schedule, when its cron next runs, and what its runs found, and its words.
+    // schedule, when its cron next runs, and what its runs found (types alone, so adding to one reaches no flow), and its words.
     "cron",
     "import-runs",
+    "import-run-types",
     "import-runs-copy",
     // How a feature declares the problems it reports, which every feature's copy file does, and the browser reads
     // to show a run's.
     "problems",
   ],
   "lib/server": [
-    // The database, settings, problems and runs, the import log they're kept in, what a fixture build adds, and the
-    // words of the problems this folder's own code reports.
+    // The database, settings, problems and runs, the import log they're kept in and what reads it, what a fixture
+    // build adds, and the words of the problems this folder's own code reports and of the database's notes.
     "config",
     "copy",
     "db",
+    "db-copy",
     "fixtures-only",
     "flow-database",
     "json",
     "import-runs",
+    "import-run-lists",
     "migrations-check",
     "page-loaders",
     "problems",

@@ -13,7 +13,7 @@ import { dealWithReply, type ReplyDecision } from "@/lib/broadcasts/replies.serv
 import { answerReply, reactToReply, type ReactionResult } from "@/lib/broadcasts/answers.server";
 import type { AnswerResult } from "@/lib/mailings/answers";
 import { redirect } from "next/navigation";
-import { looksLikeEmail } from "@/lib/email-your-mp";
+import { looksLikeEmail } from "@/lib/email-address";
 import { choiceTerms, fakeRecipient, finishFits, finishKept, REACTIONS } from "@/lib/broadcasts/broadcasts";
 import {
   addAttachment,

@@ -336,7 +336,11 @@ export function appRoutes(root) {
     for (const name of LEAVES)
       for (const ext of EXTENSIONS)
         if (existsSync(join(root, folder, name + ext)))
-          routes.push({ pattern: folderPattern(folder), files: [...here, join(folder, name + ext)] });
+          routes.push({
+            pattern: folderPattern(folder),
+            rank: folderRank(folder),
+            files: [...here, join(folder, name + ext)],
+          });
     for (const [file, url] of [
       ["sitemap", "sitemap.xml"],
       ["robots", "robots.txt"],
@@ -344,7 +348,11 @@ export function appRoutes(root) {
     ])
       for (const ext of EXTENSIONS)
         if (existsSync(join(root, folder, file + ext)))
-          routes.push({ pattern: folderPattern(join(folder, url)), files: [...here, join(folder, file + ext)] });
+          routes.push({
+            pattern: folderPattern(join(folder, url)),
+            rank: folderRank(join(folder, url)),
+            files: [...here, join(folder, file + ext)],
+          });
     for (const entry of readdirSync(join(root, folder), { withFileTypes: true }))
       if (entry.isDirectory() && !entry.name.startsWith("_")) visit(join(folder, entry.name), here);
   };
@@ -353,12 +361,34 @@ export function appRoutes(root) {
 }
 
 /**
- * The files that render `path`: those of every route whose pattern matches
- * it, as which of a page and a catch-all beside it Next picks isn't worked
- * out here; or the not-found page's if none does.
+ * How specific each of an `app/` folder's URL segments is, as Next picks
+ * between routes that match one address: at each segment, a name of its own
+ * (0) before `[id]` (1), before `[...rest]` (2), before `[[...rest]]` (3)
+ * (sorted-routes.js in Next's router). A group or a slot is no segment.
+ */
+export function folderRank(folder) {
+  return folder
+    .split("/")
+    .slice(1)
+    .filter((name) => segmentPattern(name) !== undefined)
+    .map((name) => (/^\[\[\.\.\./.test(name) ? 3 : /^\[\.\.\./.test(name) ? 2 : /^\[/.test(name) ? 1 : 0));
+}
+
+/** Which of two ranks Next tries first: below nought for `a`, above for `b`, nought for neither. */
+function byRank(a, b) {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i];
+  return 0;
+}
+
+/**
+ * The files that render `path`: those of the route Next picks of those whose
+ * pattern matches it, the most specific (folderRank), or of each that ties
+ * with it, such as a page and a slot's; or the not-found page's if none does.
  */
 export function routeFiles(routes, path) {
-  const files = routes.filter((route) => route.pattern.test(path)).flatMap((route) => route.files);
+  const matching = routes.filter((route) => route.pattern.test(path));
+  const best = matching.reduce((most, route) => (byRank(route.rank, most.rank) < 0 ? route : most), matching[0]);
+  const files = matching.filter((route) => byRank(route.rank, best.rank) === 0).flatMap((route) => route.files);
   return files.length > 0 ? [...new Set(files)] : ["app/layout.tsx", "app/not-found.tsx"];
 }
 

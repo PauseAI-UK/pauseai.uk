@@ -1,6 +1,6 @@
 import "server-only";
 import { EDM_ASK } from "@/lib/asks/asks";
-import type { EdmResult } from "@/lib/import-runs";
+import type { EdmResult } from "@/lib/import-run-types";
 import { BODY_HOUSES } from "@/lib/politicians/import-changes";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";

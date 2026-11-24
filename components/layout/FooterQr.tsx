@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { site } from "@/lib/content/site";
-import { displayLink } from "@/lib/collateral/qrCaption";
+import { displayLink } from "@/lib/collateral/qr";
 import styles from "./FooterQr.module.css";
 
 /** The footer's QR code icon, which opens a big QR code for this page, in the QR generator's style. */

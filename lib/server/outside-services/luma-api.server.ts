@@ -2,7 +2,10 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
 import { notSet, type OutsideFailure, outsideJson, refusal, retryAfterOf } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { lumaFake } from "@/lib/server/fixtures/fakes/luma";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
+
+const LUMA: Outside = { service: "luma", fake: lumaFake };
 
 // One page of a list from Luma's official API (LUMA_API_KEY, scoped to our
 // calendar), for the import, which pages through events, guests and
@@ -62,7 +65,7 @@ export async function lumaGet<T>(
   params: URLSearchParams,
   revalidate?: number,
 ): Promise<{ data: T; remaining?: number }> {
-  const res = await outsideFetch("luma", `https://public-api.luma.com${path}?${params}`, {
+  const res = await outsideFetch(LUMA, `https://public-api.luma.com${path}?${params}`, {
     headers: { "x-luma-api-key": lumaKey(), accept: "application/json" },
     ...(revalidate === undefined ? { cache: "no-store" } : { next: { revalidate } }),
   });
@@ -90,7 +93,7 @@ export async function lumaList<T>(path: string, params: URLSearchParams, revalid
  * missing key, a 429 or any other answer that isn't ok.
  */
 export async function lumaPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await outsideFetch("luma", `https://public-api.luma.com${path}`, {
+  const res = await outsideFetch(LUMA, `https://public-api.luma.com${path}`, {
     method: "POST",
     headers: { "x-luma-api-key": lumaKey(), "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify(body),

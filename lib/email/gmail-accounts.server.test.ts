@@ -4,17 +4,8 @@ import { server } from "@/tests/fixtures/msw";
 import { notifications } from "@/tests/notifications";
 import { connectTestGmail, describeWithDatabase, TEST_GMAIL_TOKEN_KEY, useTestDatabase } from "@/tests/database";
 import { query } from "@/lib/server/db.server";
-import {
-  connectGmail,
-  disconnectGmail,
-  GMAIL_DAILY_LIMIT,
-  gmailAccess,
-  gmailAccount,
-  gmailAccounts,
-  gmailReadingState,
-  saveHistoryId,
-  sentToday,
-} from "./gmail-accounts.server";
+import { GMAIL_DAILY_LIMIT, gmailAccount, gmailAccounts, gmailReadingState, sentToday } from "./gmail-accounts.server";
+import { connectGmail, disconnectGmail, gmailAccess, saveHistoryId } from "./gmail-access.server";
 import { decryptToken } from "./gmail-tokens.server";
 import { emailCopy, emailProblems } from "./copy";
 import { staffAccount } from "@/lib/problems";

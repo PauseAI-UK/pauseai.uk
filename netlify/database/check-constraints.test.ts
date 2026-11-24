@@ -3,7 +3,8 @@ import { expect, it } from "vitest";
 import { ASK_STATUSES, ASKERS } from "@/lib/asks/asks";
 import { TOPICS, WAYS, type Topic } from "@/lib/supporters/contact-permissions";
 import { ERROR_KINDS } from "@/lib/oversight/error-key";
-import { IMPORT_JOBS, type ImportRunStatus } from "@/lib/import-runs";
+import { IMPORT_JOBS } from "@/lib/import-runs";
+import type { ImportRunStatus } from "@/lib/import-run-types";
 import { RECORDED_LETTER_EVENTS } from "@/lib/letters/status";
 import { COUNTRIES } from "@/lib/politicians/filters";
 import { query } from "@/lib/server/db.server";
@@ -26,7 +27,7 @@ import {
   type SubscriptionResult,
 } from "@/lib/server/outside-services/civicrm.server";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar.server";
-import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/records.server";
+import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/filters";
 import type { SignupUploadPerson } from "@/lib/supporters/signup-uploads.server";
 import { SIGNUP_KINDS } from "@/lib/supporters/signup-csv";
 import { PERMISSIONS } from "@/lib/accounts/permissions";

@@ -1,6 +1,6 @@
 import "server-only";
 import { sendWith, type Purpose, type SendOptions, type SendResult } from "./email.server";
-import { gmailAccess } from "./gmail-accounts.server";
+import { gmailAccess } from "./gmail-access.server";
 import { sendHooks } from "./notifications.server";
 import type { Email } from "@/lib/server/outside-services/postmark.server";
 

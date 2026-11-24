@@ -1,4 +1,4 @@
-import type { StaffEvent } from "@/lib/events/staff-events.server";
+import type { StaffEvent } from "@/lib/events/staff-events-list.server";
 import {
   EVENT_LIST_SHOWS,
   eventListColumns,

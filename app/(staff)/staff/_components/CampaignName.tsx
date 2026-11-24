@@ -1,4 +1,4 @@
-import { campaignBySlug } from "@/lib/email-your-mp";
+import { campaignNamed } from "@/lib/content/campaigns";
 import StaffLink from "./ui/StaffLink";
 
 /**
@@ -16,6 +16,6 @@ export default function CampaignName({
   title?: string | null;
   linked?: boolean;
 }) {
-  const name = campaignBySlug(slug)?.title ?? title ?? slug;
+  const name = campaignNamed(slug)?.title ?? title ?? slug;
   return linked ? <StaffLink href={`/staff/campaigns/${slug}`}>{name}</StaffLink> : <>{name}</>;
 }

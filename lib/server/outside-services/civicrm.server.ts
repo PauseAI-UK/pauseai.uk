@@ -1,7 +1,10 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
 import { kindOfStatus, OutsideFailure, outsideJson } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { civicrmFake } from "@/lib/server/fixtures/fakes/civicrm";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
+
+const CIVICRM: Outside = { service: "civicrm", fake: civicrmFake };
 
 // The only file that talks to Global's CRM, CiviCRM, through its chapter
 // contacts API, with our UK chapter's key, CIVICRM_CHAPTER_KEY. Its spec is
@@ -169,7 +172,7 @@ async function call(
   method: "GET" | "POST",
 ): Promise<Record<string, unknown>[]> {
   const encoded = new URLSearchParams({ params: JSON.stringify(params) });
-  const res = await outsideFetch("civicrm", method === "GET" ? `${API}/${action}?${encoded}` : `${API}/${action}`, {
+  const res = await outsideFetch(CIVICRM, method === "GET" ? `${API}/${action}?${encoded}` : `${API}/${action}`, {
     method,
     headers: {
       "X-Civi-Auth": `Bearer ${key}`,

@@ -2,7 +2,7 @@ import { Muted } from "@/components/ui/Text";
 import Tag from "@/components/ui/Tag";
 import type { SentEmail, SentPerson } from "@/lib/oversight/sent-emails.server";
 import type { SentEmailsSearch } from "@/lib/staff-search";
-import { SENT_EMAIL_FILTERS } from "@/lib/staff-list-filters";
+import { SENT_EMAIL_FILTERS } from "@/lib/oversight/list-filters";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { clearedPath, SENT_EMAILS_LIST, type SentEmailSort } from "@/lib/staff-lists";
 import { sortHref } from "@/lib/staff-sort";

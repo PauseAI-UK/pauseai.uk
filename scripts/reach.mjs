@@ -10,11 +10,15 @@
 //   npm run reach              the thirty files that reach the most flows
 //   npm run reach -- 100       the hundred
 //   npm run reach -- lib/email the files under lib/email/, most first
+//   npm run reach -- --branch  the files this branch changes from origin/main,
+//                              committed or not, those that reach most first:
+//                              which of them make a review picture the flows it does
 import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { flowReach, reachContext } from "./storyboard-reach.mjs";
 import { keptTrees, readTree, storeDir } from "./storyboard-store.mjs";
+import { changedFiles } from "./test-changed.mjs";
 
 /** Whether a file is the site's code, which a flow can reach: not a test, the storyboard's own code or a script. */
 export function isSiteCode(path) {
@@ -34,14 +38,13 @@ export function newestRuns(store) {
 }
 
 /**
- * The site's files `runs` reach, each with how many of them reach it, most
- * first, then by path; only those under `under`, if given.
+ * The files `runs` reach that `keep` keeps, the site's own if not told,
+ * each with how many of them reach it, most first, then by path.
  */
-export function mostReaching(runs, context, under = "") {
+export function mostReaching(runs, context, keep = isSiteCode) {
   const counts = new Map();
   for (const run of runs)
-    for (const path of flowReach(run, context))
-      if (isSiteCode(path) && path.startsWith(under)) counts.set(path, (counts.get(path) ?? 0) + 1);
+    for (const path of flowReach(run, context)) if (keep(path)) counts.set(path, (counts.get(path) ?? 0) + 1);
   return [...counts]
     .map(([path, flows]) => ({ path, flows }))
     .sort((a, b) => b.flows - a.flows || a.path.localeCompare(b.path));
@@ -53,16 +56,24 @@ export function reachLines(found, total, limit) {
   return found.slice(0, limit).map(({ path, flows }) => `${String(flows).padStart(width)}/${total}  ${path}`);
 }
 
+/** Which files to list, for the command line's argument: the branch's, those under a folder, or the site's. */
+export function keepFor(arg, branch) {
+  if (arg === "--branch") return (path) => branch().includes(path);
+  const under = /^\d+$/.test(arg) ? "" : arg;
+  return (path) => isSiteCode(path) && path.startsWith(under);
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const arg = process.argv[2] ?? "";
   const limit = /^\d+$/.test(arg) ? Number(arg) : arg ? Infinity : 30;
-  const under = /^\d+$/.test(arg) ? "" : arg;
+  let branch;
+  const keep = keepFor(arg, () => (branch ??= changedFiles()));
   const common = execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" });
   const runs = newestRuns(storeDir(dirname(common.trim())));
   if (runs.length === 0) {
     console.error("No kept flows say what they opened: run npm run storyboard first.");
     process.exit(1);
   }
-  const lines = reachLines(mostReaching(runs, reachContext(process.cwd()), under), runs.length, limit);
+  const lines = reachLines(mostReaching(runs, reachContext(process.cwd()), keep), runs.length, limit);
   console.log(lines.join("\n"));
 }

@@ -3,7 +3,10 @@ import { extractText } from "unpdf";
 import { CONTROLAI_LETTER_PAGE, pdfUrlIn } from "@/lib/controlai-letter";
 import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
 import { OutsideFailure, refusal } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { controlaiFake } from "@/lib/server/fixtures/fakes/controlai";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
+
+const CONTROLAI: Outside = { service: "controlai", fake: controlaiFake };
 
 // ControlAI's letter to the PM, read from its page on their site and the
 // PDF it links to, and its statement's page. lib/controlai-letter.ts reads
@@ -11,7 +14,7 @@ import { outsideFetch } from "./outside-fetch.server";
 // the statement.
 
 async function fetchOk(url: string): Promise<Response> {
-  const res = await outsideFetch("controlai", url, { cache: "no-store" });
+  const res = await outsideFetch(CONTROLAI, url, { cache: "no-store" });
   if (!res.ok) throw refusal("controlai", res, { asked: url });
   return res;
 }

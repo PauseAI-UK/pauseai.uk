@@ -1,4 +1,4 @@
-import type { ErrorSeen } from "@/lib/oversight/errors-seen.server";
+import type { ErrorSeen } from "@/lib/oversight/errors-list.server";
 
 // Errors as the staff pages show them, for the gallery and the tests: a
 // Postgres error in a page, known by its code; a problem our code reported;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { askAnswersHref, askSlug, asksAgreed, INVITED, isAnswer, standing } from "./asks";
+import { answeredByHand, askAnswersHref, askSlug, asksAgreed, INVITED, isAnswer, standing } from "./asks";
 
 describe("askSlug", () => {
   it("makes a slug of the title's letters and digits, then the date's month and year", () => {
@@ -45,5 +45,13 @@ describe("standing", () => {
     expect(askAnswersHref("our-letter", "signed", true)).toBe(
       "/staff/politicians?ask=our-letter&answer=signed&status=any",
     );
+  });
+});
+
+describe("answeredByHand", () => {
+  it("is true of a campaign's ask or one staff added, not one an import fills", () => {
+    expect(answeredByHand("frontier-ai-letter")).toBe(true);
+    expect(answeredByHand("giant-pause-button-oct-2026")).toBe(true);
+    expect(answeredByHand("controlai-letter")).toBe(false);
   });
 });

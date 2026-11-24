@@ -1,7 +1,7 @@
 import { Fragment } from "react";
-import type { AnyImportRun } from "@/lib/import-runs";
+import type { AnyImportRun } from "@/lib/import-run-types";
 import { type LogEntry, runLog } from "@/lib/jobs/run-log";
-import type { RunningJob } from "@/lib/server/import-runs.server";
+import type { RunningJob } from "@/lib/server/import-run-lists.server";
 import { staffClock } from "@/lib/staff-time";
 import Run, { type Decide } from "./Run";
 import boxes from "./RunBox.module.css";

@@ -1,6 +1,6 @@
 import { Muted } from "@/components/ui/Text";
 import { askHref } from "@/lib/asks/asks";
-import { campaignBySlug, campaignPath } from "@/lib/email-your-mp";
+import { campaignNamed, campaignPath } from "@/lib/content/campaigns";
 import type { CampaignSummary, CampaignVersion } from "@/lib/mailings/campaigns.server";
 import type { LetterSummary } from "@/lib/letters/records.server";
 import { type LettersSearch } from "@/lib/staff-search";
@@ -101,7 +101,7 @@ export type CampaignPageProps = {
 
 /** Where the public reads a campaign: its page on the site, or where its letter is kept; nothing if neither. */
 function PublicPage({ campaign }: { campaign: CampaignSummary }) {
-  const code = campaignBySlug(campaign.slug);
+  const code = campaignNamed(campaign.slug);
   if (code) return <StaffLink href={campaignPath(code)}>{copy.seePublicPage}</StaffLink>;
   if (!campaign.url) return <Muted>–</Muted>;
   return <ExternalLink href={campaign.url}>{copy.seePublicPage}</ExternalLink>;

@@ -1,6 +1,6 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { FormResult } from "@/lib/form-result";
-import type { ErrorSeen } from "@/lib/oversight/errors-seen.server";
+import type { ErrorSeen } from "@/lib/oversight/errors-list.server";
 import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
 import Band, { BandFact } from "../ui/Band";

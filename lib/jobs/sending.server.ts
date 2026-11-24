@@ -1,5 +1,6 @@
 import "server-only";
-import { JOBS, type SendingResult } from "@/lib/import-runs";
+import { JOBS } from "@/lib/import-runs";
+import type { SendingResult } from "@/lib/import-run-types";
 import { asRun } from "@/lib/server/import-runs.server";
 import { sendLetterQueue } from "@/lib/letters/queue.server";
 import { uncertainLetters } from "@/lib/letters/sending.server";

@@ -12,7 +12,7 @@ import type { Country, EmailState, House, PersonStatus } from "./filters";
 import { FLAG_CONDITIONS, type PoliticianFlag } from "@/lib/politician-flags";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { auditActions, type AuditEntry, logChange } from "@/lib/server/audit.server";
-import { ADDRESS_ACTIONS } from "@/lib/audit-events";
+import { ADDRESS_ACTIONS } from "@/lib/politicians/address-actions";
 import { EMAIL_COUNTS } from "./email-counts.server";
 import { CLOSE_ENOUGH, closeness, contains, everyWord } from "@/lib/server/search.server";
 import { proxyTag } from "@/lib/letters/letters-inbox.server";
@@ -27,7 +27,6 @@ import { sql, type Sql } from "@/lib/server/sql.server";
 // (politician-import.ts); staff set what no list has
 // (politician-edits.ts), and statuses, in the staff interface.
 
-export { COUNTRIES, HOUSES, PERSON_STATUSES } from "./filters";
 export type { Country, EmailState, House, PersonStatus } from "./filters";
 
 export type StatusRecord = {

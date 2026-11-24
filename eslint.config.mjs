@@ -681,7 +681,7 @@ const eslintConfig = defineConfig([
       ],
     },
     // The fakes read the fixture build's own settings, as the storyboard loads them outside the site.
-    { files: ["lib/server/fixtures/*.ts"], fakes: true, env: true },
+    { files: ["lib/server/fixtures/*.ts", "lib/server/fixtures/fakes/*.ts"], fakes: true, env: true },
     { files: ["lib/server/config.server.ts"], env: true, siteUrl: true },
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true, binding: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true, binding: true })),

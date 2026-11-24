@@ -1,6 +1,6 @@
 import "server-only";
 import { gzipSync } from "node:zlib";
-import type { GmailRead, NotUnderstoodReason } from "@/lib/import-runs";
+import type { GmailRead, NotUnderstoodReason } from "@/lib/import-run-types";
 import { query } from "@/lib/server/db.server";
 import type { DeliveryProblem } from "@/lib/email/email.server";
 import { sentBy } from "@/lib/email/email.server";

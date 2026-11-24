@@ -4,9 +4,8 @@ import { site } from "@/lib/content/site";
 import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK } from "@/lib/asks/asks";
 import { EDM_PAGE } from "@/lib/asks/edm";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
-import type { RunningJob } from "@/lib/server/import-runs.server";
+import type { RunningJob } from "@/lib/server/import-run-lists.server";
 import {
-  type AnyImportRun,
   IMPORT_JOBS,
   jobSchedule,
   type ImportJob,
@@ -17,6 +16,7 @@ import {
   runStatus,
   runTone,
 } from "@/lib/import-runs";
+import type { AnyImportRun } from "@/lib/import-run-types";
 import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { dueIn, staffClock, staffTime } from "@/lib/staff-time";

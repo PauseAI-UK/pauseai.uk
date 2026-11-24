@@ -7,14 +7,9 @@ import { TextInput } from "@/components/ui/Controls";
 import { Field, FieldError, FieldGroup, Label } from "@/components/ui/Field";
 import { FormStack } from "@/components/ui/Form";
 import { copy, type Campaign } from "@/lib/content/email-your-mp";
-import {
-  campaignPath,
-  draftLetter,
-  looksLikeEmail,
-  signatureAddress,
-  type Mp,
-  type MpStatuses,
-} from "@/lib/email-your-mp";
+import { draftLetter, signatureAddress, type Mp, type MpStatuses } from "@/lib/email-your-mp";
+import { campaignPath } from "@/lib/content/campaigns";
+import { looksLikeEmail } from "@/lib/email-address";
 import { draftHash } from "@/lib/letters/changes";
 import { toText } from "@/lib/letters/format";
 import AttachmentChips from "./AttachmentChips";

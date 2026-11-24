@@ -1,6 +1,9 @@
 import "server-only";
 import type { LinkCard } from "@/lib/broadcasts/link-card";
-import { outsideFetch } from "./outside-fetch.server";
+import { linkPagesFake } from "@/lib/server/fixtures/fakes/link-pages";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
+
+const LINK_PAGE: Outside = { service: "link-page", fake: linkPagesFake };
 
 // Any web page a text links to, read as WhatsApp reads it to make the
 // link's card: the Open Graph tags in its head, which WhatsApp looks for in
@@ -58,7 +61,7 @@ export async function linkCard(address: string): Promise<LinkCard | null> {
   const url = new URL(address);
   if (url.protocol !== "https:" && url.protocol !== "http:") return null;
   try {
-    const res = await outsideFetch("link-page", url.href, {
+    const res = await outsideFetch(LINK_PAGE, url.href, {
       headers: { "User-Agent": WHATSAPP_AGENT },
       signal: AbortSignal.timeout(WAIT_MS),
       cache: "no-store",

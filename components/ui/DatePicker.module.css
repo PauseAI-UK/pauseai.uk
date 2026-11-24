@@ -188,3 +188,10 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* A DateRange's from and to, in one row, each as wide as a date needs. */
+.range {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}

@@ -1,6 +1,7 @@
+import { captionFont } from "./captionFonts";
+import { BRAND_ORANGE, INK } from "./colours";
 import { QR_PANEL_PAD, qrMatrix } from "./qr";
-import { captionFont, type CaptionLayout } from "./qrCaption";
-import { BRAND_ORANGE, INK } from "./themes";
+import type { CaptionLayout } from "./qrCaption";
 
 /** One round data module, in px relative to the top-left of the QR panel. */
 export interface QrDot {

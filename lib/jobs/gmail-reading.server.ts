@@ -1,13 +1,15 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { importPath, type GmailRead, type GmailReadResult } from "@/lib/import-runs";
+import { importPath } from "@/lib/import-runs";
+import type { GmailRead, GmailReadResult } from "@/lib/import-run-types";
 import { gmailMessageLink } from "@/lib/email/gmail-links";
 import { query } from "@/lib/server/db.server";
 import { handleDeliveryProblem } from "@/lib/oversight/delivery-problems.server";
 import { lettersInbox } from "@/lib/letters/letters-inbox.server";
 import { readLettersInbox } from "@/lib/letters/letters-inbox-reading.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
-import { gmailAccess, gmailReadingState, saveGmailName, saveHistoryId } from "@/lib/email/gmail-accounts.server";
+import { gmailReadingState } from "@/lib/email/gmail-accounts.server";
+import { gmailAccess, saveGmailName, saveHistoryId } from "@/lib/email/gmail-access.server";
 import { asRun, type Ran } from "@/lib/server/import-runs.server";
 import { keepsPoliticianThreads } from "@/lib/letters/one-off";
 import { keepIfPoliticianThread, reportUnmatchedMail } from "@/lib/letters/one-off-emails.server";

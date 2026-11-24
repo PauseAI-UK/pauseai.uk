@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/content/email-your-mp";
-import { campaignBySlug, campaignPath } from "@/lib/email-your-mp";
+import { campaignBySlug } from "@/lib/email-your-mp";
+import { campaignPath } from "@/lib/content/campaigns";
 import { CONTROLAI_LETTER_PAGE, signedControlAiLetter, SOBEL_BILL_CAMPAIGN } from "@/lib/controlai-letter";
 import { readDraft, readLookup, type Draft, type Lookup } from "./draft.client";
 import LetterForm from "./LetterForm";

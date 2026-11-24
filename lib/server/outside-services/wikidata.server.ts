@@ -12,7 +12,10 @@ import {
   type WikidataPerson,
 } from "@/lib/politicians/wikidata";
 import { outsideJson, refusal } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { wikidataFake } from "@/lib/server/fixtures/fakes/wikidata";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
+
+const WIKIDATA: Outside = { service: "wikidata", fake: wikidataFake };
 
 // Wikidata's query service, and TheyWorkForYou's people data on GitHub, no
 // key needed. lib/politicians/wikidata.ts writes the queries and reads the answers; this
@@ -22,7 +25,7 @@ import { outsideFetch } from "./outside-fetch.server";
 const USER_AGENT = "PauseAI UK (https://pauseai.uk)";
 
 async function getJson(url: string, init: RequestInit = {}): Promise<unknown> {
-  const res = await outsideFetch("wikidata", url, {
+  const res = await outsideFetch(WIKIDATA, url, {
     ...init,
     headers: { Accept: "application/sparql-results+json, application/json", "User-Agent": USER_AGENT, ...init.headers },
     cache: "no-store",

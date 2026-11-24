@@ -4,7 +4,7 @@ import { addTestPolitician, connectTestGmail, describeWithDatabase, useTestDatab
 import { allResults, atOnce } from "@/tests/at-once";
 import { recordGmail, stubLettersInboxEnv } from "@/tests/gmail-sends";
 import { query } from "@/lib/server/db.server";
-import { listRuns } from "@/lib/server/import-runs.server";
+import { listRuns } from "@/lib/server/import-run-lists.server";
 import { runTidying } from "./log-retention.server";
 import { createDraft, saveDraft, scheduleMailing } from "@/lib/mailings/drafts.server";
 import { runSending } from "./sending.server";

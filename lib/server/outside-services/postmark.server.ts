@@ -4,9 +4,12 @@ import { randomUUID } from "node:crypto";
 import { saveToOutbox } from "@/lib/server/fixtures/outbox";
 import { bareAddress } from "@/lib/email-parsing/addresses";
 import { kindOfStatus, OutsideFailure } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { postmarkFake } from "@/lib/server/fixtures/fakes/postmark";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { fieldText, readJsonIfAny } from "../json.server";
 import { note } from "../problems.server";
+
+const POSTMARK: Outside = { service: "postmark", fake: postmarkFake };
 
 // The only file that talks to Postmark, over its HTTP API through
 // outsideFetch. Not the postmark npm package: it makes its own requests,
@@ -141,7 +144,7 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
     return randomUUID();
   }
   if (!token && !fixtures) throw new PostmarkError("POSTMARK_SERVER_TOKEN is not set");
-  const res = await outsideFetch("postmark", SEND_URL, {
+  const res = await outsideFetch(POSTMARK, SEND_URL, {
     method: "POST",
     // The fixture Postmark (DATA_FIXTURES=1) doesn't check the token.
     headers: {
@@ -187,7 +190,7 @@ export async function unsuppress(address: string): Promise<void> {
   }
   if (!token && !fixtures) throw new PostmarkError("POSTMARK_SERVER_TOKEN is not set");
   for (const stream of Object.values(STREAMS)) {
-    const res = await outsideFetch("postmark", unsuppressUrl(stream), {
+    const res = await outsideFetch(POSTMARK, unsuppressUrl(stream), {
       method: "POST",
       headers: {
         Accept: "application/json",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { listFilters, SUPPORTER_FILTERS } from "./staff-list-filters";
+import { listFilters } from "./staff-list-filters";
+import { SUPPORTER_FILTERS } from "@/lib/supporters/list-filters";
 import { defineStaffList } from "./staff-lists";
 import { supportersCopy } from "@/lib/supporters/copy";
 

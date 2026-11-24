@@ -1,6 +1,7 @@
 import "server-only";
 import constituencies from "./constituencies.json";
-import { importPath, NEWER_RUN, type PoliticianImportJob, type PoliticianImportResult } from "@/lib/import-runs";
+import { importPath, NEWER_RUN, type PoliticianImportJob } from "@/lib/import-runs";
+import type { PoliticianImportResult } from "@/lib/import-run-types";
 import { ownDomains } from "./domains";
 import {
   added,

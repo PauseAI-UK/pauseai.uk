@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 import { EVENT_IMAGE_HOSTS } from "@/lib/event-image-hosts";
 import { POLITICIAN_PHOTO_HOSTS } from "@/lib/politicians/photo-hosts";
-import { FIRST_CAMPAIGN_SLUG, MARCH_PATH, MARCH_SHORT_PATH } from "@/lib/content/redirect-addresses";
+import { FIRST_CAMPAIGN_SLUG } from "@/lib/content/campaigns";
+import { MARCH_PATH, MARCH_SHORT_PATH } from "@/lib/content/redirect-addresses";
 import { CHECKOUT_HEADER, TREE_HEADER } from "@/lib/server/fixtures/fixture-env.mjs";
 
 // Third-party origins the site actually depends on. Kept here as one list so

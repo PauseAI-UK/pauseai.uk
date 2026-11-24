@@ -10,17 +10,14 @@ import {
   stopBroadcast,
 } from "./drafts.server";
 import {
-  choosingConsent,
-  choosingBroadcast,
   messageCopy,
   broadcastPageData,
   broadcastsPage,
-  broadcastsToSupporter,
   broadcastCrumb,
   broadcastTitle,
   newBroadcastPageData,
-  withChoosing,
 } from "./pages.server";
+import { choosingConsent, choosingBroadcast, broadcastsToSupporter, withChoosing } from "./supporter-pages.server";
 import { broadcastsCopy } from "./copy";
 import { restsUntil, sendingStopsAt, waitEndsAt } from "./broadcasts";
 

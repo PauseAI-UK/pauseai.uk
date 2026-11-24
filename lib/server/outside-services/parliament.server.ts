@@ -3,7 +3,10 @@ import { EDM_API, edmSigners, type EdmSigner } from "@/lib/asks/edm";
 import { memberUrl, parliamentEnding, parliamentMembers, parliamentMembersUrl } from "@/lib/politicians/parliament";
 import type { Ending, OfficialMember } from "@/lib/politicians/import-changes";
 import { refusal } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { parliamentFake } from "@/lib/server/fixtures/fakes/parliament";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
+
+const PARLIAMENT: Outside = { service: "parliament", fake: parliamentFake };
 
 // Parliament's Members Data Platform and Members API, and its API for
 // motions, no key needed. lib/politicians/parliament.ts and lib/asks/edm.ts
@@ -14,7 +17,7 @@ import { outsideFetch } from "./outside-fetch.server";
 const ATTEMPTS = 5;
 
 async function getJson(url: string): Promise<unknown> {
-  const res = await outsideFetch("parliament", url, {
+  const res = await outsideFetch(PARLIAMENT, url, {
     headers: { Accept: "application/json" },
     cache: "no-store",
     retries: ATTEMPTS - 1,

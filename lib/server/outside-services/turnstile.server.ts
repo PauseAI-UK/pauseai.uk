@@ -3,9 +3,12 @@ import { config } from "@/lib/server/config.server";
 import type { SpamReason } from "@/lib/content/spam-check";
 import { orFallback } from "./fallback.server";
 import { outsideJson } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { turnstileFake } from "@/lib/server/fixtures/fakes/turnstile";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { note, problem } from "../problems.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const TURNSTILE: Outside = { service: "turnstile", fake: turnstileFake };
 
 // Cloudflare Turnstile, checked on the server. Ported from pauseai-website's
 // src/lib/server/turnstile-verify.ts. With neither key set, it's skipped,
@@ -42,7 +45,7 @@ async function verifyTurnstile(token: string | undefined): Promise<SpamReason | 
   if (!token) return "spam-wait";
 
   return orFallback(serverProblems.turnstileDown(), "spam-unreachable" as const, async () => {
-    const res = await outsideFetch("turnstile", VERIFY_URL, {
+    const res = await outsideFetch(TURNSTILE, VERIFY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ secret, response: token }),

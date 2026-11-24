@@ -4,7 +4,7 @@ import { Muted } from "@/components/ui/Text";
 import { phoneWords } from "@/lib/phone";
 import { staffMemberText } from "@/lib/staff-member";
 import Tag from "@/components/ui/Tag";
-import { displayPostcode } from "@/lib/email-your-mp";
+import { displayPostcode } from "@/lib/postcodes";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { UK_MAP_HEIGHT, UK_MAP_WIDTH, ukMapPoint, ukOutline } from "@/lib/supporters/uk-map";

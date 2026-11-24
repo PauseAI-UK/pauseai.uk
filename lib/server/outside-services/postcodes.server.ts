@@ -2,10 +2,13 @@ import "server-only";
 import { constituencyName } from "@/lib/politicians/constituencies";
 import type { FormResult } from "@/lib/form-result";
 import type { Place } from "@/lib/site-events";
-import { outsideFetch } from "./outside-fetch.server";
+import { postcodesFake } from "@/lib/server/fixtures/fakes/postcodes";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { orFallback } from "./fallback.server";
 import { outsideJson, refusal } from "./outside-failure.server";
 import { serverProblems } from "@/lib/server/copy";
+
+const POSTCODES: Outside = { service: "postcodes", fake: postcodesFake };
 
 // postcodes.io: the UK's open postcode API, no key needed. It gives the
 // constituency's name and its official code; we take the official name for
@@ -27,7 +30,7 @@ function constituencyOf(result: Record<string, unknown> | undefined): string | n
 
 export async function constituencyForPostcode(postcode: string): Promise<ConstituencyResult> {
   return orFallback(serverProblems.postcodesDown(), { ok: false, reason: "failed" }, async () => {
-    const res = await outsideFetch("postcodes", `https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
+    const res = await outsideFetch(POSTCODES, `https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
     if (res.status === 404) return { ok: false, reason: "not-found" };
     if (!res.ok) return { ok: false, reason: "failed" };
     const data = await outsideJson("postcodes", res);
@@ -61,7 +64,7 @@ export async function placeForPostcode(postcode: string): Promise<PostcodePlaceR
 }
 
 async function placeAt(path: string, code: string): Promise<PostcodePlaceResult> {
-  const res = await outsideFetch("postcodes", `https://api.postcodes.io/${path}`);
+  const res = await outsideFetch(POSTCODES, `https://api.postcodes.io/${path}`);
   if (res.status === 404) return { ok: false, reason: "not-found" };
   if (!res.ok) return { ok: false, reason: "failed" };
   const result = (await outsideJson("postcodes", res))?.result;
@@ -105,7 +108,7 @@ export const POSTCODES_AT_ONCE = 100;
  * fails, so nothing is recorded as unknown that wasn't.
  */
 export async function placesForPostcodes(postcodes: string[]): Promise<Map<string, FoundPlace | null>> {
-  const res = await outsideFetch("postcodes", "https://api.postcodes.io/postcodes", {
+  const res = await outsideFetch(POSTCODES, "https://api.postcodes.io/postcodes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ postcodes }),
@@ -135,7 +138,7 @@ export async function placesForPostcodes(postcodes: string[]): Promise<Map<strin
  * know. It spans constituencies, so it has none. Throws if the request fails.
  */
 export async function placeForOutcode(outcode: string): Promise<FoundPlace | null> {
-  const res = await outsideFetch("postcodes", `https://api.postcodes.io/outcodes/${encodeURIComponent(outcode)}`);
+  const res = await outsideFetch(POSTCODES, `https://api.postcodes.io/outcodes/${encodeURIComponent(outcode)}`);
   if (res.status === 404) return null;
   if (!res.ok) throw refusal("postcodes", res);
   const result = (await outsideJson("postcodes", res))?.result;
@@ -156,7 +159,7 @@ export async function placeForOutcode(outcode: string): Promise<FoundPlace | nul
  * fails.
  */
 export async function placeNamed(name: string): Promise<FoundPlace | null> {
-  const res = await outsideFetch("postcodes", `https://api.postcodes.io/places?q=${encodeURIComponent(name)}&limit=10`);
+  const res = await outsideFetch(POSTCODES, `https://api.postcodes.io/places?q=${encodeURIComponent(name)}&limit=10`);
   if (!res.ok) throw refusal("postcodes", res);
   const places: Record<string, unknown>[] = (await outsideJson("postcodes", res))?.result ?? [];
   const best = places.find((p) => p.local_type === "City" || p.local_type === "Town") ?? places[0];

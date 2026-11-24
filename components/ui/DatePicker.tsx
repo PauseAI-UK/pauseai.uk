@@ -229,3 +229,20 @@ export default function DatePicker({
     </span>
   );
 }
+
+/**
+ * Two days side by side, a dash between: from and to, each a DatePicker
+ * with its own name and label, either of which can be left empty. Goes in
+ * a FieldSet, which names the pair.
+ */
+export function DateRange({ from, to }: { from: DateProps; to: DateProps }) {
+  return (
+    <span className={styles.range}>
+      <DatePicker {...from} clearable />
+      <span aria-hidden="true">–</span>
+      <DatePicker {...to} clearable />
+    </span>
+  );
+}
+
+type DateProps = { name?: string; defaultValue?: string; "aria-label": string };

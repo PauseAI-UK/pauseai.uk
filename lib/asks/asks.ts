@@ -116,7 +116,12 @@ export const NAMED_ASKS: readonly string[] = [
  * statement, and the EDM (lib/jobs/controlai-import.server.ts,
  * controlai-statement-import.server.ts, edm-import.server.ts).
  */
-export const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK];
+const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK];
+
+/** Whether staff record answers to an ask by hand: any no import fills. */
+export function answeredByHand(ask: string): boolean {
+  return !IMPORTED_ASKS.includes(ask);
+}
 
 export const ASKERS: readonly Asker[] = ["supporters", "pauseai", "controlai"];
 

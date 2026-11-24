@@ -5,15 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { copy } from "@/lib/content/email-your-mp";
 import { postJson } from "@/lib/ask-server";
-import {
-  campaignBySlug,
-  campaignPath,
-  campaignToMoveTo,
-  isDone,
-  type Mp,
-  type MpLookup,
-  type MpStatuses,
-} from "@/lib/email-your-mp";
+import { campaignBySlug, campaignToMoveTo, isDone, type Mp, type MpLookup, type MpStatuses } from "@/lib/email-your-mp";
+import { campaignPath } from "@/lib/content/campaigns";
 import { TEST_MPS, type TestMp } from "@/lib/politicians/test-mps";
 import { readLookup, saveLookup } from "./draft.client";
 import MpCard from "./MpCard";

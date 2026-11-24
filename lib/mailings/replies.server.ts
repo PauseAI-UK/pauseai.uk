@@ -1,7 +1,7 @@
 import "server-only";
 import { named } from "@/lib/email-parsing/addresses";
 import { answerSubject } from "@/lib/email-parsing/subjects";
-import { gmailAccess } from "@/lib/email/gmail-accounts.server";
+import { gmailAccess } from "@/lib/email/gmail-access.server";
 import { send } from "@/lib/email/sending.server";
 import { sendWithCare } from "@/lib/email/send-with-care.server";
 import { checkDoc, isBlank, toHtml, toText } from "@/lib/letters/format";

@@ -5,7 +5,7 @@
 // Relative, as next.config.ts imports this file and its loader resolves only its own "@/" imports.
 import { CONTROLAI_LETTER_ASK, FRONTIER_AI_LETTER_ASK, type AskStatus, type AskStatuses } from "@/lib/asks/asks";
 import { signedControlAiLetter } from "../controlai-letter";
-import { FIRST_CAMPAIGN_SLUG } from "./redirect-addresses";
+import { CAMPAIGN_NAMES } from "./campaigns";
 import { site } from "./site";
 
 /** The MP's answer to each ask, keyed by the ask's slug (lib/asks/asks.ts). */
@@ -78,14 +78,13 @@ export type Campaign = CampaignCommon &
   );
 
 /**
- * In priority order. Plain /campaigns redirects to the first, and a
+ * In priority order, each named in ./campaigns.ts. Plain /campaigns redirects to the first, and a
  * campaign's page moves on to the first one the MP hasn't done. The last is
  * one nobody has done, so there's always one.
  */
 export const campaigns: Campaign[] = [
   {
-    slug: FIRST_CAMPAIGN_SLUG,
-    title: "Regulate AI developers now",
+    ...CAMPAIGN_NAMES[0],
     ask: FRONTIER_AI_LETTER_ASK,
     done: "signed",
     subject: "Request to co-sign letter on frontier AI risks",
@@ -125,8 +124,7 @@ ${d.senderName}`,
     ],
   },
   {
-    slug: "support-sobel-bill",
-    title: "Support the Artificial Superintelligence Bill",
+    ...CAMPAIGN_NAMES[1],
     // No ask and no "done": everyone is asked to go to the debate, so it's
     // always there to move on to. Its letter thanks an MP who signed
     // ControlAI's letter (lib/controlai-letter.ts).

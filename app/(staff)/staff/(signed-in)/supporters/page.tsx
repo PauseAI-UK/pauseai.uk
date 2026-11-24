@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { withChoosing } from "@/lib/broadcasts/pages.server";
+import { withChoosing } from "@/lib/broadcasts/supporter-pages.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { listSupporters, supporterChoices } from "@/lib/supporters/records.server";
 import { supportersSearch, type SupportersSearch } from "@/lib/staff-search";

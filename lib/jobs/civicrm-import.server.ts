@@ -1,5 +1,5 @@
 import "server-only";
-import type { CivicrmImportResult } from "@/lib/import-runs";
+import type { CivicrmImportResult } from "@/lib/import-run-types";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";
 import {

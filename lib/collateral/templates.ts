@@ -5,7 +5,8 @@ import { aspectClass, layoutMarginUnits, type AspectClass } from "./formats";
 import type { LintCollector } from "./lint";
 import { normaliseUrl, QR_GAP_UNITS, qrPlan, qrTarget, usableQrCodes, type QrCode } from "./qr";
 import { pauseBars, QR_INK, qrShape } from "./qrShape";
-import { BRAND_ORANGE, CREAM, INK, LOGO_ASPECT, type Theme } from "./themes";
+import { BRAND_ORANGE, INK } from "./colours";
+import { CREAM, LOGO_ASPECT, type Theme } from "./themes";
 import { coverRect, fitText, type FitResult, type Measure } from "./text";
 
 const DISPLAY_FONT = '"PAI Lato", Lato, system-ui, sans-serif';

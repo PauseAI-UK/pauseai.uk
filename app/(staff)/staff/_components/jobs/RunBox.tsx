@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { staffMemberText } from "@/lib/staff-member";
-import { type AnyImportRun, NEWER_RUN, NIGHTLY, runStatus, runTone } from "@/lib/import-runs";
+import { NEWER_RUN, NIGHTLY, runStatus, runTone } from "@/lib/import-runs";
+import type { AnyImportRun } from "@/lib/import-run-types";
 import { problemSaid } from "@/lib/problems";
 import { staffClock, staffTime } from "@/lib/staff-time";
 import Actions from "@/components/ui/Actions";

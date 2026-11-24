@@ -6,7 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/accounts/auth.server";
-import { disconnectGmail } from "@/lib/email/gmail-accounts.server";
+import { disconnectGmail } from "@/lib/email/gmail-access.server";
 import {
   type AccountChange,
   endStaffSessions,

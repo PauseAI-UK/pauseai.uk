@@ -845,6 +845,8 @@ if (options.plan) {
     console.log(`Storyboard: ${why}.`);
   } else {
     console.log(planSummary(reached, suite.size));
+    if (reached.reached > 0)
+      console.log("Storyboard: npm run reach -- --branch says which of the files changed reach the most flows.");
     // By what's kept now: main's frames of the flows, once a review has them, may leave less of a gallery flow to picture.
     const chosen = chooseRuns(new Set(reached.run));
     const runs = runsSummary(chosen, reached.run.size);

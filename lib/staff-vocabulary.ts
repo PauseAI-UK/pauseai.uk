@@ -13,6 +13,8 @@ const NO_REPLY = "(no reply)";
 
 export const staffVocabulary = {
   metaTitle: META_TITLE,
+  // A choice of an MP in a filter, the supporters' and the correspondence's: the MP and their constituency.
+  mpChoice: (name: string, constituency: string) => `${name}, ${constituency}`,
   // A staff page's title in the window's tab: its own, then the interface's.
   tabTitle: (title: string) => `${title} - ${META_TITLE}`,
   // How long from now till something, as dueIn() reckons it: within the hour in minutes, within two days in hours,

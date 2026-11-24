@@ -1,5 +1,6 @@
 import "server-only";
-import { JOBS, type LumaImportResult } from "@/lib/import-runs";
+import { JOBS } from "@/lib/import-runs";
+import type { LumaImportResult } from "@/lib/import-run-types";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { asRun, type Ran } from "@/lib/server/import-runs.server";
 import { offCalendar } from "@/lib/supporters/email-settings.server";

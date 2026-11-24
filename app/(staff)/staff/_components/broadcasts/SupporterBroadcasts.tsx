@@ -1,5 +1,5 @@
 import { Muted } from "@/components/ui/Text";
-import type { SupporterBroadcastRow } from "@/lib/broadcasts/pages.server";
+import type { SupporterBroadcastRow } from "@/lib/broadcasts/supporter-pages.server";
 import { staffDate } from "@/lib/staff-time";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import { copyWent } from "./BroadcastView";

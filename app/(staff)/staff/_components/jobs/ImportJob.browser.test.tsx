@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { IMPORT_JOBS, jobSchedule, NIGHTLY, type AnyImportRun, type ImportJob } from "@/lib/import-runs";
+import { IMPORT_JOBS, jobSchedule, NIGHTLY, type ImportJob } from "@/lib/import-runs";
+import type { AnyImportRun } from "@/lib/import-run-types";
 
 const SCHEDULE_ORDER = ["frequent", "quarter-hour", "hourly", "nightly"];
 import { staffTime } from "@/lib/staff-time";

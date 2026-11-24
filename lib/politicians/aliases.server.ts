@@ -3,12 +3,12 @@ import { isSharedInbox, keepsPoliticianThreads, nameParts, type PoliticianBook }
 import { auditActions, logChange } from "@/lib/server/audit.server";
 import { config } from "@/lib/server/config.server";
 import { query, transaction } from "@/lib/server/db.server";
-import { gmailAccess } from "@/lib/email/gmail-accounts.server";
+import { gmailAccess } from "@/lib/email/gmail-access.server";
 import { ONE_OFF_HEADERS, isHeld, keepIfPoliticianThread } from "@/lib/letters/one-off-emails.server";
 import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "@/lib/server/outside-services/gmail.server";
 import { connectedAccounts, politicianBook } from "@/lib/letters/book.server";
-import type { AddressSearch } from "@/lib/import-runs";
+import type { AddressSearch } from "@/lib/import-run-types";
 import { problem } from "@/lib/server/problems.server";
 import { politicianProblems } from "./copy";
 

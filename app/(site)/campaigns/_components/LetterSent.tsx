@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/content/email-your-mp";
-import { campaignBySlug, campaignPath } from "@/lib/email-your-mp";
+import { campaignBySlug } from "@/lib/email-your-mp";
+import { campaignPath } from "@/lib/content/campaigns";
 import { readSent, type Sent } from "./draft.client";
 import { Column } from "./FormParts";
 import styles from "./LetterSent.module.css";
