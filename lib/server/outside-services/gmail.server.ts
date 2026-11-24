@@ -6,7 +6,7 @@ import { decodedText, messageIds } from "@/lib/email-parsing/mime.server";
 import { googleFake } from "@/lib/server/fixtures/fakes/google";
 import { outsideFetch, type Outside } from "./outside-fetch.server";
 import { orFallback } from "./fallback.server";
-import { type FailureKind, kindOfStatus, OutsideFailure } from "./outside-failure.server";
+import { type FailureKind, kindOfStatus, OutsideFailure, outsideJson } from "./outside-failure.server";
 import { fieldText, parseJsonIfAny, readJsonIfAny } from "../json.server";
 import { serverProblems } from "@/lib/server/copy";
 
@@ -194,7 +194,7 @@ async function api<T>(accessToken: string, path: string, init: RequestInit = {})
       { said, ...(limited && { kind: "rate-limited" as const }) },
     );
   }
-  return (await res.json()) as T;
+  return (await outsideJson("gmail", res)) as T;
 }
 
 /** The account's address, and its mailbox's history ID now. */
@@ -219,7 +219,7 @@ export async function gmailSendName(accessToken: string): Promise<string> {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
     cache: "no-store",
   });
-  return res.ok ? (((await res.json()) as { name?: string }).name ?? "") : "";
+  return res.ok ? (((await outsideJson("gmail", res)) as { name?: string }).name ?? "") : "";
 }
 
 /**

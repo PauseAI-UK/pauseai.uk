@@ -62,10 +62,20 @@ export async function outsideFetch({ service, fake }: Outside, url: string, init
   }
 }
 
-/** The service's answer, whatever its status, or an OutsideFailure for none. */
+/** The statuses whose answer has no body, which a Response can't be made with one. */
+const NO_BODY = [204, 205, 304];
+
+/**
+ * The service's answer, whatever its status, or an OutsideFailure for none.
+ * Its body is read whole here, within the same time limit, so a connection
+ * that drops or stalls partway fails as the service's, as one that never
+ * answers does, and a binding can read the body without a failure of its own.
+ */
 async function answer(service: OutsideService, url: string, init: RequestInit): Promise<Response> {
   try {
-    return await fetch(url, { ...init, signal: init.signal ?? AbortSignal.timeout(OUTSIDE_TIMEOUT_MS) });
+    const res = await fetch(url, { ...init, signal: init.signal ?? AbortSignal.timeout(OUTSIDE_TIMEOUT_MS) });
+    const body = NO_BODY.includes(res.status) ? null : await res.arrayBuffer();
+    return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
   } catch (error) {
     const timedOut = error instanceof Error && error.name === "TimeoutError";
     throw new OutsideFailure(service, timedOut ? "timeout" : "unreachable", { cause: error });
