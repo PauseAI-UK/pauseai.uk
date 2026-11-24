@@ -289,9 +289,9 @@ npm run test:report       # Playwright's own report, with the trace of a failed 
 ```
 
 **CI's run** fails only on a flow's checks, never on how a page looks. CI
-runs its flows ("Which flows CI runs", below) in three parts at once, each
-a job of its own ("Storyboard (1 of 3)" and so on), and the Storyboard
-check passes when all three have passed. The flows are dealt into the
+runs its flows ("Which flows CI runs", below) in four parts at once, each
+a job of its own ("Storyboard (1 of 4)" and so on), and the Storyboard
+check passes when all four have passed. The flows are dealt into the
 parts in turn, so a section's flows, the gallery's slow ones too, are
 spread between them (`scripts/ci-parts.mjs`). Locally, the
 gate's storyboard is the review (`npm run gate`, below), so one run checks
@@ -1464,9 +1464,10 @@ not a mock.
   So in the dev container nothing needs setting or starting. When no
   server answers, the tests stop, saying where they looked and what to do
   (`noServer` in `scripts/fresh-database.mjs`). CI
-  runs a Postgres service. The jobs that run in Playwright's image reach it
-  by its name, `postgres`, which `LOCAL_POSTGRES_HOST` names as on this
-  machine, as the migrations refuse a database anywhere else.
+  runs a Postgres service. The jobs that run in CI's image ("CI's image",
+  below) reach it by its name, `postgres`, which `LOCAL_POSTGRES_HOST`
+  names as on this machine, as the migrations refuse a database anywhere
+  else.
 
 - **Netlify's build has no Postgres**, so `npm run build` skips these tests
   there (`NETLIFY=true`), and the global setup makes no template. CI runs
@@ -1498,6 +1499,22 @@ import("@/tests/next-headers"))` and put the session cookie in
   as React does within one request, until `newRequest()`.
   `lib/server/page-loaders.test.ts` uses it to show that each staff page's
   loaders query once for both its metadata and the page.
+
+### CI's image
+
+CI's Test and Storyboard jobs run in an image of the repo's own
+(`.github/ci-image/Dockerfile`): Ubuntu, as the runners are, with
+Chromium's system packages, Git and the Postgres 18 client, so a job
+installs nothing with apt. Chromium itself is kept in the Actions cache by
+`@playwright/test`'s version, so a Dependabot bump needs no new image.
+
+The image is in GitHub's registry, tagged with its Dockerfile's hash, and
+`ci.yml` names that tag (`tests/checks/ci-image.test.ts` fails when it
+doesn't). `.github/workflows/ci-image.yml` builds and pushes it when the
+Dockerfile changes. CI's jobs start at once, so on a pull request that
+changes the Dockerfile they may look for the new tag before it's pushed:
+rerun them once "Build CI's image" has passed. Both workflows are in
+`.github/workflows/`, so a maintainer pushes the change.
 
 ## Rules for new code
 

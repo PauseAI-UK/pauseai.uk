@@ -4,7 +4,7 @@ Size: M. Kind: tools.
 
 ## Problem
 
-On main, CI takes about 5½ minutes, and the storyboard is the slow path: its slowest part took 314 to 324 seconds on 24 November 2026, against 190 to 194 for the tests'. Each storyboard part spends about a minute before its flows run: 30 to 45 seconds starting its containers, about 11 installing Git and the Postgres client, about 15 on Node and the caches, and about 12 building the site from its cache.
+On main, the storyboard is CI's slow path. Its four parts' flows take about 150 to 160 seconds each, on top of a minute or so of setup: starting the containers, Node and the caches, and building the site from its cache. The tests' parts take about 160 to 190 seconds, so the two paths are now close. Both figures are simulated from main's runs of 24 November 2026, before the fourth part and CI's own image; measure them again over a few runs on main.
 
 A pull request runs only the flows its change can reach and the spot checks (`docs/testing.md`, "Which flows CI runs"). A PR that reaches no flow ends when the tests do, but a feature PR still runs most of the flows, as it touches files most flows reach (`npm run reach` lists them).
 
@@ -12,17 +12,9 @@ The machines differ: within one job nearly every test file or flow runs at the s
 
 ## Fix
 
-In the order to do them:
-
-1. **A fourth storyboard part.** Each part's flows go from about 220 seconds to about 165 on main, for one more machine a run. A line in the workflow's matrix and the `3` in `scripts/ci-parts.mjs`'s call.
-2. **An image of our own**, with Chromium, Git and the Postgres 18 client in it: perhaps 30 seconds off each Test and Storyboard part, from a smaller download (Playwright's image is 1,007 MB with three browsers, and CI uses one) and no install step to fail. Kept in GitHub's container registry (`ghcr.io`), free for a public image, and built by a workflow when its Dockerfile or the lockfile's Playwright version changes. Not measured.
-3. **Leave the gallery's flows out of CI**, if they check nothing a unit test doesn't: they're about 15% of the flows' time, and CI takes no pictures.
-4. **Run only the tests a PR can reach** (Vitest's `--changed`), now that a PR's storyboard can be quicker than its tests. Coverage would then be checked only for the changed files, as `npm run test:changed` does, with main's run checking all of it.
+1. **Leave the gallery's flows out of CI**, once every flow fails on a console error. They're about 15% of the flows' time, and without them the slowest part's flows would take about 120 to 130 seconds. But apart from `public-pages`, they're the only flows that fail on a console error, so they're CI's only check that a staff component hydrates: a hydration mismatch planted in `CopyButton` failed the gallery's `staff-kit` and `staff-letters` flows and nothing else, though 48 other flows opened it and its unit tests rendered it. Move the console check into the flows' shared fixture first, then the gallery's flows check nothing the others don't.
+2. **Run only the tests a PR can reach** (Vitest's `--changed`), now that a PR's storyboard can be quicker than its tests. Coverage would then be checked only for the changed files, as `npm run test:changed` does, with main's run checking all of it. Vitest follows imports, so it would miss the tests that read files by path, such as `tests/checks/`.
 
 A change to `.github/workflows/` is pushed by a maintainer (`ci-workflow-pushes.md`).
 
 ## Hits
-
-- 2026-11-19: Ubuntu's mirror timed out in "Install Git and the Postgres 18 client", failing four Test and Storyboard parts before anything ran, ~15 min and a push to run CI again
-- 2026-11-23: the same step timed out after its four minutes in two Test parts of one run, and the PR's token couldn't rerun them
-- 2026-11-19: the same step timed out again on `security.ubuntu.com`, failing a Storyboard part of a PR that changed only a unit test, ~5 min
