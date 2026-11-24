@@ -9,6 +9,7 @@ import {
   getSourceCounts,
   listEventGuests,
 } from "./luma-guests.server";
+import { inRun } from "../run-store.server";
 
 const TAGS = ["stratford", "brixton"] as const;
 const GUESTS = "https://public-api.luma.com/v1/events/guests/list";
@@ -223,6 +224,12 @@ describe("listEventGuests", () => {
 describe("addLumaGuest", () => {
   const ADD = "https://public-api.luma.com/v1/events/guests/add";
   const guest = (email: string) => ({ name: "Testy McTestface", email });
+  /** What adding a guest came to, and the errors' words of the problems it reported. */
+  const addingReports = (who: { name: string; email: string }, timeoutMs?: number) =>
+    inRun(async (run) => ({
+      result: await addLumaGuest("evt-test", who, timeoutMs),
+      said: run.problems.map((problem) => problem.said),
+    }));
 
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -270,34 +277,34 @@ describe("addLumaGuest", () => {
     expect(called).toBe(false);
   });
 
-  it("fails with Luma's status and what it said", async () => {
+  it("fails, reporting Luma's status and what it said", async () => {
     vi.stubEnv("LUMA_API_KEY", "key");
-    expect(await addLumaGuest("evt-test", guest("luma-fails@example.org"))).toEqual({
-      status: "failed",
-      reason: 'Luma answered 500: {"message":"Fixture failure"}',
+    expect(await addingReports(guest("luma-fails@example.org"))).toEqual({
+      result: { status: "failed" },
+      said: ['Luma answered 500: {"message":"Fixture failure"}'],
     });
     server.use(http.post(ADD, () => new HttpResponse(null, { status: 401 })));
-    expect(await addLumaGuest("evt-test", guest("testy@example.org"))).toEqual({
-      status: "failed",
-      reason: "Luma answered 401",
+    expect(await addingReports(guest("testy@example.org"))).toEqual({
+      result: { status: "failed" },
+      said: ["Luma answered 401"],
     });
   });
 
   it("fails when the request does", async () => {
     vi.stubEnv("LUMA_API_KEY", "key");
     server.use(http.post(ADD, () => HttpResponse.error()));
-    expect(await addLumaGuest("evt-test", guest("testy@example.org"))).toEqual({
-      status: "failed",
-      reason: expect.stringContaining("Luma couldn't be reached (fetch failed)") as string,
+    expect(await addingReports(guest("testy@example.org"))).toEqual({
+      result: { status: "failed" },
+      said: [expect.stringContaining("Luma couldn't be reached (fetch failed)") as string],
     });
   });
 
   it("gives up on a Luma that doesn't answer in time", async () => {
     vi.stubEnv("LUMA_API_KEY", "key");
     server.use(http.post(ADD, () => new Promise<Response>(() => {})));
-    expect(await addLumaGuest("evt-test", guest("testy@example.org"), 20)).toEqual({
-      status: "failed",
-      reason: "Luma did not respond within 20ms",
+    expect(await addingReports(guest("testy@example.org"), 20)).toEqual({
+      result: { status: "failed" },
+      said: [expect.stringContaining("Luma didn't answer in time") as string],
     });
   });
 });

@@ -112,7 +112,7 @@ describe("problem reporting", { timeout: 60_000 }, () => {
     const unexplained = hits.filter((hit) => !ONLY_NOTED.has(hit));
     expect(
       unexplained,
-      "report it with problem(), which keeps it, or describe it with describeError(); note() is for what isn't a failure",
+      "report it with problem(), which keeps it, or keep it in a column with keptError(); note() is for what isn't a failure",
     ).toEqual([]);
     // An exception that no longer notes an error is one to delete.
     expect([...ONLY_NOTED.keys()].filter((key) => !hits.includes(key))).toEqual([]);

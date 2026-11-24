@@ -208,17 +208,20 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     await addFollower("usr-1", "jane@example.com", "Jane Smith");
     const id = await scheduled(EMAIL_FILTER, { subject: "Going", body: EVENT_WORDS });
     const since = new Date("2026-11-11T07:18:00Z");
+    // A wait kept before how the check failed was: what it said, alone.
     await query("UPDATE mailings SET waiting_since = $2, wait_reason = 'civicrm', wait_said = 'Down' WHERE id = $1", [
       id,
       since,
     ]);
     const { dueAt: due } = (await getWrittenBroadcast(id))!;
-    const waiting = {
-      kind: "waiting",
-      reason: "civicrm",
-      said: "Down",
-      endsAt: waitEndsAt(since, { dueAt: due!, finishMinutes: null }),
-    };
+    const endsAt = waitEndsAt(since, { dueAt: due!, finishMinutes: null });
+    const waitingThen = { kind: "waiting", reason: "civicrm", said: "Down", endsAt };
+    expect(await pauses(id)).toEqual({ page: waitingThen, list: waitingThen });
+    await query("UPDATE mailings SET wait_said = NULL, wait_failure = $2 WHERE id = $1", [
+      id,
+      JSON.stringify({ said: "CiviCRM answered 503", service: "civicrm", kind: "refused", status: 503 }),
+    ]);
+    const waiting = { ...waitingThen, said: "CiviCRM answered 503" };
     expect(await pauses(id)).toEqual({ page: waiting, list: waiting });
     // Sending, it stops when it stops trying, if that's sooner.
     await startSending(id);

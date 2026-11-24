@@ -367,8 +367,13 @@ describeWithDatabase("sending broadcasts", () => {
     expect(gmail).toEqual([]);
     expect(await stateOf(id)).toEqual({ state: "sending", waiting: true, reason: "civicrm", gaveUp: false });
     // What CiviCRM said is kept for its page, and staff are told it.
-    const said = async () => (await query("SELECT wait_said AS said FROM mailings WHERE id = $1", [id]))[0].said;
-    expect(await said()).toBe("CiviCRM request failed with status 503: Down");
+    const failure = async () => (await query("SELECT wait_failure FROM mailings WHERE id = $1", [id]))[0].wait_failure;
+    expect(await failure()).toEqual({
+      said: "CiviCRM request failed with status 503: Down",
+      service: "civicrm",
+      kind: "refused",
+      status: 503,
+    });
     expect(sent.map((email) => email.Subject)).toEqual([
       broadcastsCopy.notifications.broadcastWaiting.subject("See you there"),
     ]);
@@ -378,7 +383,7 @@ describeWithDatabase("sending broadcasts", () => {
     recordGmail();
     await sendDueBroadcasts(LATER, 0);
     expect(await stateOf(id)).toEqual({ state: "sent", waiting: false, reason: null, gaveUp: false });
-    expect(await said()).toBeNull();
+    expect(await failure()).toBeNull();
   });
 
   it("stops one that started but CiviCRM hasn't answered for three days, telling who it didn't reach", async () => {

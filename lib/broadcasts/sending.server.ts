@@ -36,7 +36,7 @@ import {
 } from "@/lib/server/outside-services/civicrm.server";
 import type { Attachment } from "@/lib/server/outside-services/postmark.server";
 import { sendTemplate } from "@/lib/server/outside-services/whatsapp.server";
-import { describeError, problem } from "@/lib/server/problems.server";
+import { type KeptError, keptError, problem } from "@/lib/server/problems.server";
 import { recordWhatsAppStop } from "./whatsapp-stops.server";
 import { templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 import { markUnreachable, unreachable } from "./unreachable.server";
@@ -160,6 +160,7 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
   await query(
     `UPDATE mailings SET state = 'cancelled', gave_up = true, wait_reason = $2,
        wait_said = CASE WHEN $2 = 'civicrm' THEN wait_said END,
+       wait_failure = CASE WHEN $2 = 'civicrm' THEN wait_failure END,
        waiting_since = coalesce(waiting_since, $3), updated_at = now() WHERE id = $1`,
     [broadcast.id, reason, now()],
   );
@@ -202,18 +203,19 @@ export async function stopTextsOn(templateId: number): Promise<number> {
  * into sending when CiviCRM first fails has them all, unless its
  * finish comes first, which staff are told (waitEndsAt). WhatsApp's
  * approval of a text's template is waited for till its finish, whenever
- * that is (startDueBroadcasts). `said` is
- * what CiviCRM's check last said, as it failed, kept for its page.
+ * that is (startDueBroadcasts). `failure` is
+ * how CiviCRM's check last failed, kept for its page.
  */
-async function wait(broadcast: Due, reason: WaitReason, said: string | null = null): Promise<void> {
+async function wait(broadcast: Due, reason: WaitReason, failure?: KeptError): Promise<void> {
   const approval = reason === "approval";
   if (!approval && broadcast.waitingSince && now() >= waitStopsAt(broadcast.waitingSince)) {
     return giveUp(broadcast, reason);
   }
   const began = now();
   await query(
-    "UPDATE mailings SET waiting_since = coalesce(waiting_since, $3), wait_reason = $2, wait_said = $4 WHERE id = $1",
-    [broadcast.id, reason, began, said],
+    `UPDATE mailings SET waiting_since = coalesce(waiting_since, $3), wait_reason = $2, wait_said = NULL, wait_failure = $4
+     WHERE id = $1`,
+    [broadcast.id, reason, began, failure ? JSON.stringify(failure) : null],
   );
   if (broadcast.waitingSince) return;
   const email = broadcastsCopy.notifications.broadcastWaiting;
@@ -222,7 +224,7 @@ async function wait(broadcast: Due, reason: WaitReason, said: string | null = nu
     email.body(
       broadcast.title,
       reason,
-      said,
+      failure?.said ?? null,
       staffTime(approval ? sendingStopsAt(broadcast) : waitEndsAt(began, broadcast)),
       staffLink(`/staff/broadcasts/${broadcast.id}`, undefined),
     ),
@@ -264,7 +266,7 @@ async function start(broadcast: Due): Promise<void> {
     [broadcast.id, JSON.stringify(rows)],
   );
   await query(
-    "UPDATE mailings SET state = 'sending', waiting_since = NULL, wait_reason = NULL, wait_said = NULL, updated_at = now() WHERE id = $1",
+    "UPDATE mailings SET state = 'sending', waiting_since = NULL, wait_reason = NULL, wait_said = NULL, wait_failure = NULL, updated_at = now() WHERE id = $1",
     [broadcast.id],
   );
   await logChange(JOB, "start mailing", { id: broadcast.id });
@@ -714,7 +716,7 @@ async function checkCopies(
     // Nothing is sent unchecked.
     problem(broadcastProblems.civicrmCheckFailed(), error);
     await putBack(going);
-    await wait(broadcast, "civicrm", describeError(error));
+    await wait(broadcast, "civicrm", keptError(error));
     return undefined;
   }
   const blocked = await sender.blocked(going, suppressed);
@@ -724,9 +726,10 @@ async function checkCopies(
     run.skipped++;
   }
   if (broadcast.waitingSince) {
-    await query("UPDATE mailings SET waiting_since = NULL, wait_reason = NULL, wait_said = NULL WHERE id = $1", [
-      broadcast.id,
-    ]);
+    await query(
+      "UPDATE mailings SET waiting_since = NULL, wait_reason = NULL, wait_said = NULL, wait_failure = NULL WHERE id = $1",
+      [broadcast.id],
+    );
     broadcast.waitingSince = null;
   }
   return going.filter((copy) => !blocked.some((one) => one.copy === copy));

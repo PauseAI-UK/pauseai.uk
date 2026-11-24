@@ -68,6 +68,18 @@ const OUTSIDE_FETCH_IMPORT = {
   importNames: ["outsideFetch"],
   message: `Outside services are called only from their bindings in ${OUTSIDE}/. Use one, or add one there.`,
 };
+// An error's words go into the database by three ways: with a problem
+// (problem()), as an error on the Errors page (errors-seen.server.ts), and
+// in a column, with what kind of failure it was (keptError()). So what
+// reads one back can tell a rate limit from an outage without reading the
+// words. describeError(), which writes the words alone, is kept to the
+// files allowed it below, each with why.
+const DESCRIBE_ERROR_IMPORT = {
+  group: ["**/problems.server"],
+  importNames: ["describeError"],
+  message:
+    "To keep an error in a column, use keptError(), which keeps what kind of failure it was with its words. To report it, hand it to problem(). To log it, hand it to note().",
+};
 // console reaches only Netlify's logs, where nobody looks, so a failure
 // written there is lost. Both of the ways to the log are in
 // lib/server/problems.server.ts.
@@ -206,7 +218,7 @@ const NETWORK_IMPORTS = [
  * everything above, but for what the file is allowed. `service` may name
  * its own API; `fetch` may call fetch() (code that runs in the browser
  * fetches the site's own API); `outsideFetch` may import it; `sendEmail`
- * may use Postmark's binding to send. `fakes` may name every service's API,
+ * may use Postmark's binding to send. `describeError` may import it. `fakes` may name every service's API,
  * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `binding` is an
  * outside service's, which throws only an OutsideFailure. `asyncHandlers`
  * may write an async function in place as a handler or a transition. `staff` adds the staff pages' rule for links
@@ -221,6 +233,7 @@ function siteCodeRules({
   fetch = false,
   outsideFetch = false,
   sendEmail = false,
+  describeError = false,
   console = false,
   asyncHandlers = false,
   staff = false,
@@ -247,6 +260,7 @@ function siteCodeRules({
         patterns: [
           ...(sendEmail ? [] : [POSTMARK_IMPORT, GMAIL_IMPORT]),
           ...(outsideFetch ? [] : [OUTSIDE_FETCH_IMPORT]),
+          ...(describeError ? [] : [DESCRIBE_ERROR_IMPORT]),
         ],
       },
     ],
@@ -619,7 +633,10 @@ const eslintConfig = defineConfig([
     { files: [`${OUTSIDE}/*.ts`], outsideFetch: true, binding: true },
     ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true, binding: true })),
     { files: [`${OUTSIDE}/outside-fetch.server.ts`], fetch: true, binding: true },
-    { files: ["lib/email/email.server.ts"], sendEmail: true },
+    // What the provider said of a send that failed, which the letter's or copy's own record keeps for its page.
+    { files: ["lib/email/email.server.ts"], sendEmail: true, describeError: true },
+    // The Errors page's record of an error, and why a mailbox couldn't be read, in the run's own account of it.
+    { files: ["lib/oversight/errors-seen.server.ts", "lib/jobs/gmail-reading.server.ts"], describeError: true },
     { files: ["lib/site-url.server.ts"], siteUrl: true },
     { files: ["lib/server/db.server.ts"], database: true },
     { files: ["lib/server/problems.server.ts"], console: true },

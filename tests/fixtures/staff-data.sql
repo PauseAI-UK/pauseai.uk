@@ -190,7 +190,7 @@ FROM (VALUES
 -- The fixture calendar's events, past and future, and four more: a talk
 -- and a training that are over, a picnic taken off Luma, cancelled, and a
 -- partner's event we may only view.
-INSERT INTO luma_events (id, name, url, start_at, access, city, latitude, longitude, first_seen_at, changed_at, guests_synced_at, guests_error) VALUES
+INSERT INTO luma_events (id, name, url, start_at, access, city, latitude, longitude, first_seen_at, changed_at, guests_synced_at, guests_failure) VALUES
   ('evt-fixture-past-glasgow-stall', 'Glasgow street stall', 'fixture-past-glasgow-stall', now() - interval '270 days', 'manage', 'Glasgow', 55.8617, -4.2583, now() - interval '30 days', now() - interval '30 days', now() - interval '1 hour', NULL),
   ('evt-fixture-past-london-march', 'PauseAI London March', 'fixture-past-london-march', now() - interval '250 days', 'manage', 'London', 51.5045, -0.1262, now() - interval '30 days', now() - interval '30 days', now() - interval '1 hour', NULL),
   ('evt-seed-manchester-talk', 'AI and jobs: a talk in Manchester', 'seed-manchester-talk', now() - interval '10 days 18 hours', 'manage', 'Manchester', 53.4794, -2.2453, now() - interval '30 days', now() - interval '10 days 18 hours', now() - interval '1 hour', NULL),
@@ -203,7 +203,7 @@ INSERT INTO luma_events (id, name, url, start_at, access, city, latitude, longit
   ('evt-fixture-bristol-leafleting', 'Leafleting in Bristol', 'fixture-bristol-leafleting', now() + interval '32 days', 'manage', 'Bristol', 51.4545, -2.5879, now() - interval '30 days', now() - interval '5 days', NULL, NULL),
   ('evt-fixture-leicester-meetup', 'PauseAI Leicester meetup', 'fixture-leicester-meetup', now() + interval '36 days', 'manage', 'Leicester', 52.6369, -1.1398, now() - interval '30 days', now() - interval '5 days', NULL, NULL),
   ('evt-seed-cancelled-picnic', 'PauseAI Cambridge picnic', 'seed-cancelled-picnic', now() + interval '10 days', 'manage', 'Cambridge', 52.2053, 0.1218, now() - interval '30 days', now() - interval '3 days', now() - interval '3 days', NULL),
-  ('evt-seed-view-only', 'A partner''s event we can only view', 'seed-view-only', now() + interval '15 days', 'view', 'Leeds', 53.8008, -1.5491, now() - interval '30 days', now() - interval '5 days', now() - interval '1 hour', 'Luma answered 403: guests are not shared with viewers');
+  ('evt-seed-view-only', 'A partner''s event we can only view', 'seed-view-only', now() + interval '15 days', 'view', 'Leeds', 53.8008, -1.5491, now() - interval '30 days', now() - interval '5 days', now() - interval '1 hour', '{"said": "Luma answered 403: guests are not shared with viewers", "service": "luma", "kind": "unauthorised", "status": 403}');
 
 -- The fixture's people and more. Those with contact_since follow the
 -- calendar's emails, and its texts if they gave a number; Pat, Tom and
@@ -826,18 +826,18 @@ SELECT 'Events this month', 'Events this month', 'supporters', 'email', 'events'
 -- the next night's, and held now, as it would mark every MP without an ID as
 -- having left; ControlAI reads, one failed; and the
 -- signatory import, once.
-INSERT INTO import_runs (at, job, started_by, status, error, result, decided_by) VALUES
+INSERT INTO import_runs (at, job, started_by, status, failure, result, decided_by) VALUES
   (now() - interval '3 days', 'import-luma', 'nightly', 'ok', NULL, '{"events": 12, "eventsSynced": 8, "eventsLeft": 4, "guestsChanged": 40, "people": 18, "contacts": 9, "supportersAdded": 15, "linked": 20, "requests": 150, "stoppedBy": "rate-limit"}', NULL),
   (now() - interval '2 days', 'import-luma', 'nightly', 'ok', NULL, '{"events": 0, "eventsSynced": 4, "eventsLeft": 0, "guestsChanged": 6, "people": 2, "contacts": 1, "supportersAdded": 2, "linked": 2, "requests": 60, "stoppedBy": "time"}', NULL),
   (now() - interval '2 days' + interval '1 minute', 'import-luma', 'jo@pauseai.uk', 'unchanged', NULL, '{"events": 0, "eventsSynced": 0, "eventsLeft": 0, "guestsChanged": 0, "people": 0, "contacts": 0, "supportersAdded": 0, "linked": 0, "requests": 0, "stoppedBy": "running"}', NULL),
-  (now() - interval '1 day', 'import-luma', 'nightly', 'failed', 'Luma answered 500', '{}', NULL),
+  (now() - interval '1 day', 'import-luma', 'nightly', 'failed', '{"said": "Luma answered 500", "service": "luma", "kind": "refused", "status": 500}', '{}', NULL),
   (now() - interval '1 hour', 'import-luma', 'nightly', 'ok', NULL, '{"events": 1, "eventsSynced": 1, "eventsLeft": 0, "guestsChanged": 2, "people": 1, "contacts": 0, "supportersAdded": 1, "linked": 1, "requests": 5}', NULL),
   (now() - interval '2 days' + interval '1 hour', 'import-parliament', 'nightly', 'unchanged', NULL, '{"changes": {"added": [], "changed": [], "left": [], "renamed": [], "unofficial": [], "salutations": []}, "vacant": [], "relinked": {"read": 0, "unread": 0, "linked": 0, "unlinked": 0, "offices": 0}}', NULL),
   (now() - interval '6 days', 'import-parliament', 'nightly', 'applied', NULL, '{"changes": {"added": [], "changed": [], "left": [{"id": 0, "name": "Rob Removed", "house": "commons", "constituency": "Removed Seat", "status": "left_office", "date": null, "reason": null}], "renamed": [], "unofficial": [], "salutations": []}, "members": [], "endings": []}', 'jo@pauseai.uk'),
   (now() - interval '1 day' + interval '6 minutes', 'import-parliament', 'nightly', 'discarded', NULL, '{"changes": {"added": [], "changed": [], "left": [{"id": 0, "name": "Rob Removed", "house": "commons", "constituency": "Removed Seat", "status": "left_office", "date": null, "reason": null}], "renamed": [], "unofficial": [], "salutations": []}, "members": [], "endings": []}', 'newer run'),
   (now() - interval '1 hour' + interval '6 minutes', 'import-parliament', 'nightly', 'held', NULL, '{"changes": {"added": [{"officialId": 99901, "house": "commons", "name": "Nina New", "constituency": "New Seat", "party": "Green", "country": "england", "emails": ["nina.new.mp@parliament.uk"], "websites": [], "salutation": "Ms New"}], "changed": [], "left": [], "renamed": [], "unofficial": [], "salutations": []}, "members": [{"officialId": 99901, "house": "commons", "name": "Nina New", "constituency": "New Seat", "party": "Green", "country": "england", "emails": ["nina.new.mp@parliament.uk"], "websites": [], "salutation": "Ms New"}], "endings": []}', NULL),
   (now() - interval '2 days' + interval '2 hours', 'import-controlai', 'nightly', 'ok', NULL, '{"pdfUrl": "https://images.controlai.com/letter.pdf", "signatories": 86, "matched": 74, "added": 1, "removed": 0, "problems": [{"name": "Baroness Nobody", "kind": "nobody", "candidates": []}]}', NULL),
-  (now() - interval '1 day' + interval '2 hours', 'import-controlai', 'nightly', 'failed', 'No PDF linked from the letter page', '{}', NULL),
+  (now() - interval '1 day' + interval '2 hours', 'import-controlai', 'nightly', 'failed', '{"said": "No PDF linked from the letter page"}', '{}', NULL),
   -- CiviCRM's first pull, Kit's unsubscribe and Gil leaving the chapter the next day, then nothing new.
   (now() - interval '2 days', 'import-civicrm', 'nightly', 'ok', NULL, '{"contacts": 11, "added": 11, "changed": 0, "gone": 0, "optOuts": 0, "blocked": 1}', NULL),
   (now() - interval '1 day', 'import-civicrm', 'nightly', 'ok', NULL, '{"contacts": 10, "added": 0, "changed": 1, "gone": 1, "optOuts": 1, "blocked": 0}', NULL),

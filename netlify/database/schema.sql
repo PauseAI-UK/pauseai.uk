@@ -297,6 +297,8 @@ CREATE TABLE public.luma_events (
     location_type text,
     region text,
     tags_checked_at timestamp with time zone,
+    guests_failure jsonb,
+    hosts_failure jsonb,
     CONSTRAINT luma_events_access_check CHECK ((access = ANY (ARRAY['manage'::text, 'view'::text]))),
     CONSTRAINT luma_events_check CHECK (((latitude IS NULL) = (longitude IS NULL)))
 );
@@ -1977,7 +1979,8 @@ CREATE TABLE public.import_runs (
     decided_by text,
     decided_at timestamp with time zone,
     problems jsonb DEFAULT '[]'::jsonb NOT NULL,
-    CONSTRAINT import_runs_check CHECK (((status = 'failed'::text) = (error IS NOT NULL))),
+    failure jsonb,
+    CONSTRAINT import_runs_failed CHECK (((status = 'failed'::text) = ((error IS NOT NULL) OR (failure IS NOT NULL)))),
     CONSTRAINT import_runs_job_check CHECK ((job = ANY (ARRAY['import-parliament'::text, 'import-scottish-parliament'::text, 'import-senedd'::text, 'import-ni-assembly'::text, 'import-controlai'::text, 'import-controlai-statement'::text, 'import-edm'::text, 'import-luma'::text, 'read-gmail'::text, 'send-mailings'::text, 'tidy-logs'::text, 'import-civicrm'::text]))),
     CONSTRAINT import_runs_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unchanged'::text, 'held'::text, 'applied'::text, 'discarded'::text])))
 );
@@ -2252,6 +2255,7 @@ CREATE TABLE public.mailings (
     wait_said text,
     pasted jsonb,
     finish_minutes integer,
+    wait_failure jsonb,
     CONSTRAINT mailings_also_topics CHECK (((cardinality(also_topics) = 0) OR ((topic IS NOT NULL) AND (NOT (topic = ANY (also_topics)))))),
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),
@@ -2272,6 +2276,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_template_for_texts CHECK (((template_id IS NULL) OR (channel = 'text'::text))),
     CONSTRAINT mailings_topic_check CHECK ((topic = ANY (ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text]))),
     CONSTRAINT mailings_topic_for_supporters CHECK (((audience = 'supporters'::text) = (topic IS NOT NULL))),
+    CONSTRAINT mailings_wait_failure CHECK (((wait_failure IS NULL) OR (wait_reason = 'civicrm'::text))),
     CONSTRAINT mailings_wait_reason_check CHECK ((wait_reason = ANY (ARRAY['civicrm'::text, 'pull'::text, 'limit'::text, 'template'::text, 'late'::text, 'failing'::text, 'approval'::text]))),
     CONSTRAINT mailings_wait_said CHECK (((wait_said IS NULL) OR (wait_reason = 'civicrm'::text))),
     CONSTRAINT mailings_waiting CHECK (((waiting_since IS NULL) = (wait_reason IS NULL)))

@@ -701,7 +701,7 @@ job all leave broadcasts out.
 - **Waiting for CiviCRM.** Nothing goes unchecked. A broadcast
   waits while no CiviCRM pull has completed for a day, or CiviCRM doesn't
   answer its check; whoever scheduled it and the notification inbox are
-  emailed once, with what CiviCRM's check said as it failed (`wait_said`),
+  emailed once, with what CiviCRM's check said as it failed (`wait_failure`),
   and its page says since when and why, what the check last said, and when it stops if
   CiviCRM doesn't come back: three days on, or sooner if its seven run out
   first (`waitEndsAt`). It goes by itself
@@ -1873,7 +1873,9 @@ recorded (`import_runs`):
 
 - when it ran;
 - who started it (`nightly` or a staff email);
-- how it ended, and why it failed, if it did;
+- how it ended, and why it failed, if it did: the error's words, and for
+  an outside service failing, which service and what kind of failure
+  (`failure`);
 - its problems: what went wrong along the way without stopping it
   (`lib/server/problems.server.ts`). Each is one its feature declared
   (`lib/problems.ts`), kept as its code, such as `letters.copyNotSentYet`,

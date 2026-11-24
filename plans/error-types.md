@@ -27,16 +27,17 @@ makes sense: don't do it again.
 | ------------------------------------------------------- | ---------- | ------------------ |
 | PR 1: the bugs, the general rules, error pages, saving  | 1 and 2    | **DONE** in #462   |
 | PR 2: the server side                                   | 3 and 4    | **DONE** in #464   |
-| PR 3: stored errors and forms                           | 5, 6 and 7 | **TO DO**          |
+| PR 3: stored errors                                     | 5          | **DONE** in #467   |
+| PR 4: forms                                             | 6 and 7    | **TO DO**          |
 
 Of the problems below, 1 to 10 and 13 are DONE, but for what's noted under
-7 and 13. Problems 11 and 12 are TO DO.
+7 and 13, and problem 12 is DONE. Problem 11 is TO DO.
 
-## Before starting PR 3
+## Before starting PR 4
 
-For whoever picks this up without having done PR 1 and PR 2.
+For whoever picks this up without having done the PRs before.
 
-**What PR 2 built, which PR 3 stands on** (`docs/code-structure.md`,
+**What PR 2 and PR 3 built, which PR 4 stands on** (`docs/code-structure.md`,
 "Errors", says each in full):
 
 - **A problem is declared and has a code.** A feature's copy file declares
@@ -44,8 +45,7 @@ For whoever picks this up without having done PR 1 and PR 2.
   (`lib/server/problems.server.ts`) takes only one of those. What's kept
   is `{ code, values, what, said }`: `what` is the sentence, written as
   the problem is reported and kept beside its code, and `said` the
-  error's own words. The code is what's compared. Step 5's JSON columns
-  hold this shape.
+  error's own words. The code is what's compared.
 - **Values are IDs, counts and fixed codes**, which the types hold
   (`SafeValue`). Text goes through `publicText()`, `outsideId()` or
   `staffAccount()`. What a service said of something is handed to
@@ -54,9 +54,11 @@ For whoever picks this up without having done PR 1 and PR 2.
   is what every binding throws, with a `kind`. `orFallback()` carries on
   without a service, and `sendWithCare()`
   (`lib/email/send-with-care.server.ts`) sends something a run has taken.
-- **Three places still write `describeError()` to a text column**, which
-  step 5 moves: two in `lib/events/luma-import.server.ts` and one in
-  `lib/broadcasts/sending.server.ts`.
+- **An error kept in a column is kept with `keptError()`**
+  (`lib/server/problems.server.ts`): its words, and for an outside
+  service failing, which service and what kind of failure. ESLint keeps
+  `describeError()` to the files named for it (`DESCRIBE_ERROR_IMPORT` in
+  `eslint.config.mjs`).
 - **`OWN_CATCHES`** in `tests/checks/caught-errors.test.ts` lists the files
   with a `catch` of their own. Step 6 takes the Server Actions' off as
   they change shape.
@@ -281,7 +283,9 @@ Postmark. Only Parliament's code retries.
 - In about 19 places a staff action returns without doing anything when
   its input doesn't parse. Nothing is shown and nothing is recorded.
 
-### 12. Errors are stored as text: TO DO
+### 12. Errors are stored as text: DONE in #467
+
+**DONE in #467.** Each of the four has a JSON column beside it, which keeps what kind of failure it was. What follows is the problem as it was found.
 
 `import_runs.error`, `luma_events.guests_error`, `luma_events.hosts_error`
 and `mailings.wait_said` each hold the text of an error. Nothing can tell
@@ -491,9 +495,10 @@ as now, and isn't recorded as an error.
 The routes that only machines call, such as webhooks, can stay as they
 are. Nobody reads their error text.
 
-### F. Store errors as a code and details: TO DO
+### F. Store errors as a code and details: DONE in #467
 
-This fixes problem 12, and follows from A and C.
+This fixes problem 12, and follows from A and C. Step 5, below, says what
+was built and where it differs from what's planned here.
 
 **Decided: replace each text column with a JSON column.** It holds the
 same shape as a problem, `{ code, values, said }`. Four columns change:
@@ -583,7 +588,7 @@ hold it in place (H).
 ## PR 1: the bugs, the general rules, error pages and saving: DONE in #462
 
 Steps 1 and 2. Don't do these again. What follows says what was built, and
-where it differs from what was planned, for whoever does PR 2 and PR 3.
+where it differs from what was planned, for whoever does the PRs after.
 
 ### Step 1. The bugs that could be fixed straight away: DONE
 
@@ -634,7 +639,7 @@ Enforced by:
 
 ## PR 2: the server side: DONE in #464
 
-Steps 3 and 4. Don't do these again. "Before starting PR 3", above, says
+Steps 3 and 4. Don't do these again. "Before starting PR 4", above, says
 what was built. Three things differ from what's planned below:
 
 - **The call is `problem(letterProblems.x({ … }), error)`**, not
@@ -680,21 +685,53 @@ Enforced by:
   helper. A new `catch` anywhere else fails until it's added with a
   reason, which shows up in review.
 
-## PR 3: stored errors and forms: TO DO
+## PR 3: stored errors: DONE in #467
 
-Steps 5, 6 and 7. The migration is here on purpose. A pushed migration
-can't be edited, and by now PR 2 has settled the shape that's stored.
+Step 5. Don't do it again.
 
-### Step 5. Stored errors (F)
+### Step 5. Stored errors (F): DONE
 
-The migration adds the four JSON columns. It carries the `migration`
-label.
+Migration 0155 adds a JSON column beside each of the four text ones:
+`import_runs.failure`, `luma_events.guests_failure` and `hosts_failure`,
+and `mailings.wait_failure`. `keptError()` writes them. Nothing writes the
+text columns any more. A run's page and a broadcast's page read the JSON
+column's words, or the text column's for a row from before. The Luma
+import reads only the new columns.
 
 Enforced by:
 
-- **`describeError()` can't be imported** outside the code that reports
-  problems and records errors (ESLint), so an error's text can't be
-  written to a new column.
+- **`describeError()` can be imported only by the files named for it**
+  (`DESCRIBE_ERROR_IMPORT` in `eslint.config.mjs`), so an error's text
+  can't be written to a new column. `note()` takes the error itself.
+
+Three things differ from what was planned:
+
+- **The column holds the error, not a problem.** A problem's code, such
+  as `events.eventGuests`, says what was being done, which is the same
+  whether Luma rate-limited us or was down. So the column holds the
+  error's words with the failure's service, kind, status and the
+  service's own code: `{ "said": "Luma answered 429", "service": "luma",
+  "kind": "rate-limited", "status": 429 }`. An error that isn't an outside
+  service failing has its words alone.
+- **A failed run must have one column or the other.** The check on
+  `import_runs` that a failed run has its `error` takes either.
+- **Three places still keep an error's words alone**, and are the files
+  the ESLint rule names: what a provider said of a send that failed
+  (`lib/email/email.server.ts`), which a letter's or a copy's record
+  keeps; why a mailbox couldn't be read, in the Gmail job's own account
+  of its run (`lib/jobs/gmail-reading.server.ts`); and the Errors page's
+  record (`lib/oversight/errors-seen.server.ts`). None was one of the
+  four columns. **TO DO**, if they're wanted: the first two could keep
+  the kind too.
+
+The four text columns can be dropped once their rows have gone: a month
+for the runs, as they're tidied away. A broadcast that stopped while
+waiting for CiviCRM keeps its `wait_said` for good, so that one needs its
+rows moved first.
+
+## PR 4: forms: TO DO
+
+Steps 6 and 7.
 
 ### Step 6. Form results (E)
 

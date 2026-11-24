@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { defineProblems, type ReportedProblem } from "@/lib/problems";
-import { describeError, problem, registerProblemKeeper } from "./problems.server";
+import { OutsideFailure } from "./outside-services/outside-failure.server";
+import { describeError, keptError, note, problem, registerProblemKeeper } from "./problems.server";
 import { currentRun, inRun } from "./run-store.server";
 
 const letters = defineProblems("letters", {
@@ -66,6 +67,50 @@ it("describes an error with what caused it, a few deep, and anything else as it 
   expect(describeError(deep)).toBe("level 5 (level 4) (level 3) (level 2) (level 1)");
   const nameless = new Error("", { cause: new Error("") });
   expect(describeError(nameless)).toBe("Error (Error)");
+});
+
+it("notes an error in words, with what caused it, and anything else as it is", () => {
+  const logged = vi.spyOn(console, "info").mockImplementation(() => {});
+  note("The connection dropped", new Error("fetch failed", { cause: new Error("timeout") }), 3, "times");
+  note("Nothing to record");
+  expect(logged.mock.calls).toEqual([
+    ["The connection dropped", "fetch failed (timeout)", 3, "times"],
+    ["Nothing to record"],
+  ]);
+});
+
+it("keeps an outside service's failure with its service, kind, status and code, and any other error by its words", () => {
+  const limited = new OutsideFailure("luma", "rate-limited", { status: 429, said: "Slow down", asked: "/v1/events" });
+  expect(keptError(limited)).toEqual({
+    said: "Luma answered 429 for /v1/events: Slow down",
+    service: "luma",
+    kind: "rate-limited",
+    status: 429,
+  });
+  // As a column takes it: a failure without a code of the service's own has none.
+  expect(JSON.parse(JSON.stringify(keptError(limited)))).toEqual({
+    said: "Luma answered 429 for /v1/events: Slow down",
+    service: "luma",
+    kind: "rate-limited",
+    status: 429,
+  });
+  const inactive = new OutsideFailure("postmark", "refused", { status: 422, serviceCode: 406 });
+  expect(keptError(inactive)).toEqual({
+    said: "Postmark answered 422",
+    service: "postmark",
+    kind: "refused",
+    status: 422,
+    serviceCode: 406,
+  });
+  const down = new OutsideFailure("civicrm", "unreachable", { cause: new Error("fetch failed") });
+  expect(keptError(down)).toEqual({
+    said: "CiviCRM couldn't be reached (fetch failed)",
+    service: "civicrm",
+    kind: "unreachable",
+    status: 0,
+  });
+  expect(keptError(new Error("boom", { cause: new Error("why") }))).toEqual({ said: "boom (why)" });
+  expect(keptError("not an Error")).toEqual({ said: "not an Error" });
 });
 
 it("keeps a problem on the run in progress, across awaits, and only logs one outside a run", async () => {

@@ -1,5 +1,6 @@
 import "server-only";
 import type { Problem, Reported, ReportedProblem } from "@/lib/problems";
+import { type FailureKind, OutsideFailure, type OutsideService } from "./outside-services/outside-failure.server";
 
 // A problem is something that went wrong during a run of a job without
 // stopping it: an event Luma wouldn't give, a mailbox Gmail refused, an
@@ -68,10 +69,11 @@ export function problem({ code, values, what }: Reported, error?: unknown, { tol
  * Netlify's logs: a webhook with nothing to record, a submission the spam
  * check turned away. The one way to (CONSOLE_RULE in eslint.config.mjs). A
  * failure is reported with problem(), which keeps it; the few that are only
- * noted say why (tests/checks/problem-reporting.test.ts).
+ * noted say why (tests/checks/problem-reporting.test.ts), and are handed
+ * the error, which is written in words (describeError).
  */
 export function note(what: string, ...more: unknown[]): void {
-  console.info(what, ...more);
+  console.info(what, ...more.map((each) => (each instanceof Error ? describeError(each) : each)));
 }
 
 /** How many causes deep to go: enough for a fetch's cause and its cause. */
@@ -90,4 +92,33 @@ export function describeError(error: unknown): string {
     cause = cause instanceof Error ? cause.cause : undefined;
   }
   return text;
+}
+
+/**
+ * An error as a column keeps it (import_runs.failure, luma_events'
+ * guests_failure and hosts_failure, mailings.wait_failure): its words, and
+ * when it was an outside service failing, which service, what kind of
+ * failure, its status (0 if there was no answer) and the service's own
+ * code, where it has one. So what reads the column asks the kind, as a
+ * caller of the binding does, and never reads the words to tell a rate
+ * limit from an outage.
+ */
+export type KeptError = {
+  said: string;
+  service?: OutsideService;
+  kind?: FailureKind;
+  status?: number;
+  serviceCode?: string | number;
+};
+
+/**
+ * An error as a column keeps it. What writes an error to a column uses
+ * this, not describeError(), which ESLint keeps to the few files named for
+ * it (DESCRIBE_ERROR_IMPORT in eslint.config.mjs).
+ */
+export function keptError(error: unknown): KeptError {
+  const said = describeError(error);
+  if (!(error instanceof OutsideFailure)) return { said };
+  const { service, kind, status, serviceCode } = error;
+  return { said, service, kind, status, serviceCode };
 }
