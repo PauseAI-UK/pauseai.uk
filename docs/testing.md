@@ -581,17 +581,19 @@ So the storyboard keeps what a flow reaches to what it pictures:
 Imports of types alone (`import type`) don't count, as they're gone once
 compiled. A stylesheet's `@import` and `composes` do. So does code handed
 to a module without an import (`HANDED_OVER`): `lib/server/problems.server.ts` is
-told how to find the run in progress by `run-store.server.ts`, and what keeps an
-error by `instrumentation.ts`, so a flow that reaches the one reaches the
-others. A changed file reaches the flows whose reach has it, and some
-files reach more:
+told how to find the run in progress by `run-store.server.ts`, so a flow that
+reaches the one reaches the other. It's also handed what keeps an error, by
+`instrumentation.ts`, which isn't joined: a flow that kept an error records
+`instrumentation.ts` as opened. A changed file reaches the flows whose reach
+has it, and some files reach more or less:
 
-- **Every flow:** the migrations and `schema.sql`, the seed data
-  (`tests/fixtures/*.sql`), `package.json`, `next.config.ts`, `proxy.ts`,
-  `instrumentation.ts`, `playwright.config.ts`, and the storyboard's set-up
-  (`EVERYTHING`). Data no import leads to can change any page. A SQL file
-  changed only in its comments reaches none: what Postgres runs is the same
-  (`sqlWithoutComments`).
+- **Every flow:** `proxy.ts` and the instrumentation, site code that runs
+  on every page (`EVERYTHING`).
+- **No flow by itself:** the set-up every flow stands on (`SET_UP`): the
+  migrations and `schema.sql`, the seed data (`tests/fixtures/*.sql`),
+  `package.json` and the lockfile, `tsconfig.json`, `next.config.ts`,
+  `playwright.config.ts`, and the storyboard's set-up. What breaks there
+  breaks every flow alike, which the spot checks see.
 - **No flow:** docs, plans, investments, unit tests, the review page's own
   code, and the settings of the tools that don't build the site
   (`NOTHING`), unless a flow imports one.
@@ -636,7 +638,9 @@ from it.
 - **A route's own file**, added or deleted as well as changed, reaches the
   flows that opened an address it serves (a layout's, any below it).
 - **A file added or deleted** reaches the flows that reach a file listing
-  its folder: the sitemap and `tests/routes.ts` walk `app/`.
+  its folder: the sitemap and `tests/routes.ts` walk `app/`. Under `app/`,
+  only a route's own file counts, as they list the routes. A set-up file
+  lists only set-up, so it's no lister.
 
 **A file the map can't place** reaches no flow but the spot checks, and
 the review says which file, at its start and its end: a file at the top of the repo that nothing
