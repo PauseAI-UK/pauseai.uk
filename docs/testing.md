@@ -31,8 +31,7 @@ start`), so it is slower. Use it only for what Vitest can't see:
 `coverage/`. CI fails if it drops below the thresholds in
 `vitest.config.mts`.
 
-CI splits the tests between three jobs (Vitest's `--shard`, dealt by how
-long each file last took, `scripts/ci-parts.mjs`), each writing its
+CI splits the tests between three jobs (Vitest's `--shard`), each writing its
 coverage with the thresholds off, and its Test job merges them and fails
 on any file under 100% (`scripts/merge-coverage.mjs`). The node and browser
 projects can map a statement to different ranges, and a range that runs to
@@ -289,13 +288,11 @@ npm run test:report       # Playwright's own report, with the trace of a failed 
 ```
 
 **CI's run** fails only on a flow's checks, never on how a page looks. CI
-runs every flow, in three parts at once, each a job of its own
-("Storyboard (1 of 3)" and so on), and the Storyboard check passes when
-all three have passed. The flows are dealt into parts by how long each
-took in the last run, kept in the Actions cache, so the parts take about
-as long as each other (`scripts/ci-parts.mjs`; a flow with no time yet is
-taken as long as the middle one of its section). `.github/workflows/ci.yml`
-says why. Locally, the
+runs its flows ("Which flows CI runs", below) in three parts at once, each
+a job of its own ("Storyboard (1 of 3)" and so on), and the Storyboard
+check passes when all three have passed. The flows are dealt into the
+parts in turn, so a section's flows, the gallery's slow ones too, are
+spread between them (`scripts/ci-parts.mjs`). Locally, the
 gate's storyboard is the review (`npm run gate`, below), so one run checks
 the flows and pictures them.
 
@@ -689,15 +686,17 @@ how it was checked against what runs in each flow.
 request, the flows its change can reach, by the same map, and the spot
 checks, without pictures (`reachedForCi` in `scripts/ci-parts.mjs`). What
 each flow opened comes from main's last run of every flow: its reporter
-(`tests/storyboard/report/times.ts`) writes it, and the Storyboard job
+(`tests/storyboard/report/opened.ts`) writes it, and the Storyboard job
 keeps it in the Actions cache, by main's commit. A pull request's parts
-restore the newest, take the files changed from main's commit (the pull
-request's base) to the branch merged into main, which is what CI checks
-out, and deal what that reaches, and the flows main has no record of,
-between them by time. The spot checks are the six flows the change
+restore the one for its base, main's commit when it was pushed, and never
+the newest kept, so every part chooses from the same record. They take
+the files changed from that commit to the branch merged into main, which
+is what CI checks out, and deal what that reaches, and the flows main has
+no record of, between them. The spot checks are the six flows the change
 doesn't reach that main's commit picks, as a review's are, run only to
-see that they still pass. With nothing kept, or kept another way
-(`RECORDING`), every flow runs. So a flow the map misses breaks on main,
+see that they still pass. With nothing kept for the base, as when main's
+CI for it hasn't finished, or kept another way (`RECORDING`), every flow
+runs. So a flow the map misses breaks on main,
 after the merge, not on the pull request: when a change might break
 flows it doesn't reach, run `npm run test:storyboard` before pushing.
 

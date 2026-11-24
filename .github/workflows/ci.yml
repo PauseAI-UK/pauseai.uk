@@ -119,11 +119,9 @@ jobs:
       - name: Check types
         run: npm run typecheck
 
-  # The tests split between three jobs, dealt by how long each file took
-  # when last run (scripts/ci-parts.mjs), so the parts take about as long as
-  # each other. Each writes its coverage, with Vitest's thresholds off, as a
-  # shard can't know what the others cover; the Test job merges and checks
-  # them, and keeps the times for the next run.
+  # The tests split between three jobs, by Vitest's own `--shard`. Each
+  # writes its coverage, with Vitest's thresholds off, as a shard can't know
+  # what the others cover; the Test job merges and checks them.
   test-shard:
     name: Test (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
@@ -195,16 +193,7 @@ jobs:
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
-      # How long each test file took, in Vitest's own results cache, as the
-      # Test job kept it from the latest run: on main, or this branch's.
-      - name: Restore the tests' times
-        uses: actions/cache/restore@v6
-        with:
-          path: node_modules/.vite/vitest
-          key: test-times-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: test-times-
-
-      # Both Vitest projects (node and browser), a third of each by time. The
+      # Both Vitest projects (node and browser), a third of their files. The
       # browser project renders components in the image's Chromium.
       - name: Test
         run: >-
@@ -216,14 +205,6 @@ jobs:
         with:
           name: coverage-${{ matrix.shard }}
           path: coverage/coverage-final.json
-          retention-days: 1
-
-      - name: Upload the tests' times
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-times-${{ matrix.shard }}
-          path: node_modules/.vite/vitest
-          include-hidden-files: true
           retention-days: 1
 
   # One result for the parts, under the test check's own name: it fails if
@@ -267,20 +248,6 @@ jobs:
 
       - name: Every file at 100% coverage
         run: node scripts/merge-coverage.mjs coverage-*/coverage-final.json
-
-      - name: Download the tests' times
-        uses: actions/download-artifact@v8
-        with:
-          pattern: test-times-*
-
-      - name: Merge the tests' times
-        run: node scripts/ci-parts.mjs merge-vitest node_modules/.vite/vitest test-times-*/*/results.json
-
-      - name: Keep the tests' times
-        uses: actions/cache/save@v6
-        with:
-          path: node_modules/.vite/vitest
-          key: test-times-${{ github.run_id }}-${{ github.run_attempt }}
 
   build:
     name: Build
@@ -328,8 +295,8 @@ jobs:
 
   # The flows split between three jobs, each building the site: the flows
   # are most of the time, the setup and the build a minute or so. They're
-  # dealt by how long each took when last run, not by count, as the gallery's
-  # and the broadcasts' take far longer than most. On main, every flow runs.
+  # dealt in turn, so the gallery's slow flows don't all land in one part.
+  # On main, every flow runs.
   # On a pull request, only those its change can reach, by what each opened
   # when main last ran it, and a few spot checks (scripts/ci-parts.mjs,
   # reachedForCi; docs/testing.md, "Which flows CI runs").
@@ -416,36 +383,31 @@ jobs:
       # the comparison with main (npm run storyboard) is run by hand.
       # How long each flow took, as the Storyboard job kept it from the
       # latest run: on main, or this branch's.
-      - name: Restore the flows' times
-        uses: actions/cache/restore@v6
-        with:
-          path: storyboard-times.json
-          key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: storyboard-times-
-
-      # On a pull request: what each flow opened when main's CI last ran
-      # every flow, which the Storyboard job keeps, and main's commit, to
-      # tell what the pull request changes. With no record kept, every flow
-      # runs.
+      # On a pull request: what each flow opened when main's CI ran every
+      # flow on main's commit, which the Storyboard job keeps. By that commit
+      # alone, never the newest kept, so every part chooses from the same
+      # record. With none kept for it, every flow runs.
       - name: Restore what main's flows opened
         if: github.event_name == 'pull_request'
         uses: actions/cache/restore@v6
         with:
           path: storyboard-opened.json
-          key: storyboard-opened-${{ github.run_id }}
-          restore-keys: storyboard-opened-
+          key: storyboard-opened-${{ github.event.pull_request.base.sha }}
 
+      # Main's commit, to tell what the pull request changes. The checkout
+      # is the image's root's, not this job's user's, so Git is told it's safe.
       - name: Fetch main's commit
         if: github.event_name == 'pull_request'
-        run: git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
 
-      # A third of the flows by time (scripts/ci-parts.mjs): every part deals
-      # the same, from the same times, and runs its own. On a pull request,
-      # of the flows it can reach.
+      # A third of the flows (scripts/ci-parts.mjs): every part deals the
+      # same, and runs its own. On a pull request, of the flows it can reach.
       - name: Choose this part's flows
         id: choose
         run: |
-          node scripts/ci-parts.mjs storyboard ${{ matrix.shard }}/3 storyboard-times.json part-flows.txt \
+          node scripts/ci-parts.mjs storyboard ${{ matrix.shard }}/3 part-flows.txt \
             ${{ github.event_name == 'pull_request' && format('storyboard-opened.json {0}', github.event.pull_request.base.sha) || '' }}
           echo "flows=$(grep -c . part-flows.txt || true)" >> "$GITHUB_OUTPUT"
 
@@ -455,17 +417,14 @@ jobs:
         if: steps.choose.outputs.flows != '0'
         run: npm run test:storyboard -- --test-list=part-flows.txt
         env:
-          STORYBOARD_TIMES: part-times.json
           STORYBOARD_OPENED: part-opened.json
 
-      - name: Upload the flows' times and what they opened
+      - name: Upload what the flows opened
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v7
         with:
-          name: storyboard-times-${{ matrix.shard }}
-          path: |
-            part-times.json
-            part-opened.json
-          if-no-files-found: ignore
+          name: storyboard-opened-${{ matrix.shard }}
+          path: part-opened.json
           retention-days: 1
 
       - name: Upload report on failure
@@ -480,9 +439,8 @@ jobs:
 
   # One result for the three parts, under the storyboard check's own name.
   # It runs whatever they did, so a failed part fails it, rather than
-  # leaving it skipped. When they all passed, it keeps their flows' times
-  # for the next run, as one file, over the times of the flows that didn't
-  # run; and on main, what every flow opened, for pull requests to choose by.
+  # leaving it skipped. On main, when they all passed, it keeps what every
+  # flow opened, by main's commit, for pull requests to choose by.
   storyboard:
     name: Storyboard
     needs: storyboard-shard
@@ -492,35 +450,16 @@ jobs:
       - name: Every part passed
         run: test "${{ needs.storyboard-shard.result }}" = success
 
-      - name: Download the flows' times
+      - name: Download what the flows opened
+        if: github.event_name == 'push'
         uses: actions/download-artifact@v8
         with:
-          pattern: storyboard-times-*
-
-      - name: Restore the flows' times
-        uses: actions/cache/restore@v6
-        with:
-          path: storyboard-times.json
-          key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: storyboard-times-
-
-      - name: Merge the flows' times
-        run: |
-          shopt -s nullglob
-          [ -f storyboard-times.json ] || echo '{}' > storyboard-times.json
-          jq -s add storyboard-times.json storyboard-times-*/part-times.json > merged-times.json
-          mv merged-times.json storyboard-times.json
-
-      - name: Keep the flows' times
-        uses: actions/cache/save@v6
-        with:
-          path: storyboard-times.json
-          key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
+          pattern: storyboard-opened-*
 
       - name: Merge what the flows opened
         if: github.event_name == 'push'
         run: |
-          jq -s '{recording: .[0].recording, flows: (map(.flows) | add)}' storyboard-times-*/part-opened.json > storyboard-opened.json
+          jq -s '{recording: .[0].recording, flows: (map(.flows) | add)}' storyboard-opened-*/part-opened.json > storyboard-opened.json
 
       - name: Keep what the flows opened
         if: github.event_name == 'push'
