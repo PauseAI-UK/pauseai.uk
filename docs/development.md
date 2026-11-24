@@ -407,6 +407,12 @@ permissions the first time. An admin gives it permissions on
 You're then at `/staff`, logged in for a day, or for 30 days with "Keep me
 signed in" ticked.
 
+A local build without `DATA_FIXTURES=1` can't log in with Google, as Google
+sends people back only to the live site. Its login card takes your
+pauseai.uk address instead, and prints a link in the dev server's terminal
+("Log in as …"), which logs you in once, for 15 minutes
+(`lib/accounts/local-login.server.ts`).
+
 #### See every component
 
 http://localhost:3000/gallery is the component gallery: every component and
@@ -808,7 +814,7 @@ Set up outside the code:
 
   The client's ID and secret go into Netlify as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. `GMAIL_TOKEN_KEY` is 32 random bytes in base64. Previews have other addresses, so Gmail can be connected only on the live site.
 
-  Google sends people back only to the redirect URIs listed, exactly, so a preview's login goes through the live site, which passes it back signed (`lib/accounts/google-login.server.ts`). `GOOGLE_LOGIN_SIGNING_KEY`, set in Netlify for production alone, is the private half of the Ed25519 key that signs it, PKCS #8 in base64; the public half is in `lib/accounts/live-login-key.ts`. To make a new pair, run `node -e 'const k=require("crypto").generateKeyPairSync("ed25519");console.log(k.privateKey.export({type:"pkcs8",format:"der"}).toString("base64"));console.log(k.publicKey.export({type:"spki",format:"der"}).toString("base64"))'`: the first line goes into Netlify, the second into that file. The live site passes a login on only to an address ending `--pauseaiuk.netlify.app`, so a local build that isn't a fixture build can't log in.
+  Google sends people back only to the redirect URIs listed, exactly, so a preview's login goes through the live site, which passes it back signed (`lib/accounts/google-login.server.ts`). `GOOGLE_LOGIN_SIGNING_KEY`, set in Netlify for production alone, is the private half of the Ed25519 key that signs it, PKCS #8 in base64; the public half is in `lib/accounts/live-login-key.ts`. To make a new pair, run `node -e 'const k=require("crypto").generateKeyPairSync("ed25519");console.log(k.privateKey.export({type:"pkcs8",format:"der"}).toString("base64"));console.log(k.publicKey.export({type:"spki",format:"der"}).toString("base64"))'`: the first line goes into Netlify, the second into that file. The live site passes a login on only to an address ending `--pauseaiuk.netlify.app`, so a local build that isn't a fixture build logs in with a link printed in its terminal instead ("Log in to the staff interface", above).
 
   The replies read from Gmail are kept in Netlify Blobs, in the `letter-replies` store, which needs no setting. The nightly backup archives them, with every other message kept there, using `BACKUP_SECRET`. That secret goes into Netlify, and into the Worker as `SITE_BACKUP_SECRET` (`backup/README.md`).
 

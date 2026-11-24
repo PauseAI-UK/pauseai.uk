@@ -55,12 +55,22 @@ export const FIXTURE_GOOGLE_ACCOUNT_COOKIE = "fixture_google_account";
 /** The dev login's route (DevLogin): a session at once, in a fixture build only. */
 export const DEV_LOGIN_PATH = "/staff/api/dev-login";
 
-/** Staff paths that work without a session: the login page, the steps of logging in with Google, and the dev login. */
+/**
+ * Logging in on a local build without fixtures, which Google can't send
+ * back to: a link printed in the dev server's terminal (lib/accounts/local-login.server.ts).
+ */
+export const LOCAL_LOGIN_PATH = "/staff/api/local-login";
+
+/**
+ * Staff paths that work without a session: the login page, the steps of
+ * logging in with Google, the local build's printed link, and the dev login.
+ */
 export const OPEN_STAFF_PATHS = [
   LOGIN_PATH,
   GOOGLE_START_PATH,
   GOOGLE_CALLBACK_PATH,
   GOOGLE_HANDOFF_PATH,
+  LOCAL_LOGIN_PATH,
   DEV_LOGIN_PATH,
 ];
 

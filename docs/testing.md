@@ -1261,6 +1261,7 @@ that drives it or why nothing does.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `supporters.spec.ts`), and the redelivery that changes nothing.
 - `/staff/api/google/start`, `/staff/api/google/callback`: `staff-login`: logging in with the fixture build's Google (`logInWithGoogle` in `staff-login.spec.ts`).
 - `/staff/api/google/handoff`: Not driven: only a deploy preview uses it, with a login the live site signed. Vitest-tested.
+- `/staff/api/local-login`: Not driven: only a local build without fixtures has it, and the storyboard's is a fixture build. Vitest-tested.
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.
 - `/staff/api/gmail/connect`, `/staff/api/gmail/callback`:
   - `staff-login`: your Gmail connected from your own page.

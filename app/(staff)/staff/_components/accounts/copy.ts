@@ -13,6 +13,16 @@ export const accountsCopy = {
     // Back from Google, when signing in didn't work, or the account chosen wasn't a pauseai.uk one.
     failed: "Signing in didn't work. Please try again.",
     other: "Only pauseai.uk accounts can sign in. Choose your pauseai.uk account on Google's page.",
+    // On a local build without DATA_FIXTURES=1, which Google can't sign in to: the card takes an address, and prints a
+    // link in the dev server's terminal. Then, the page says to look there.
+    local: {
+      intro:
+        "⁂ This is a local build, so Google can't sign you in here. Type your pauseai.uk address and a link to sign in appears in the dev server's terminal.",
+      emailLabel: "Email",
+      button: "⁂ Print a sign in link",
+      printed:
+        "⁂ If that's a pauseai.uk address, the link to sign in is in the dev server's terminal. Open it in this browser.",
+    },
   },
   // Your own page: your sessions and your Gmail.
   me: {

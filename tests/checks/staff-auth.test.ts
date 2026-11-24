@@ -24,6 +24,8 @@ const OPEN = new Set([
   "staff/api/google/start/route.ts",
   "staff/api/google/callback/route.ts",
   "staff/api/google/handoff/route.ts",
+  // A local build's printed login link, a 404 anywhere else.
+  "staff/api/local-login/route.ts",
   // The dev login: a fixture build's one-click session, a 404 anywhere else.
   "staff/api/dev-login/route.ts",
 ]);

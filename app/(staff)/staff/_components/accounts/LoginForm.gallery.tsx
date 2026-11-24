@@ -21,6 +21,16 @@ export const loginFormGallery: Example[] = [
           </StaffPage>
         ),
       },
+      {
+        label: "On a local build without fixtures, the link printed in the terminal",
+        render: () => (
+          <StaffPage as="div">
+            <LoginCard title={accountsCopy.login.title}>
+              <LoginForm local printed="1" />
+            </LoginCard>
+          </StaffPage>
+        ),
+      },
     ],
   },
 ];

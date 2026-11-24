@@ -43,6 +43,7 @@ describe("proxy", () => {
       "/staff/api/google/start",
       "/staff/api/google/callback",
       "/staff/api/google/handoff",
+      "/staff/api/local-login",
     ]) {
       expect(visit(path).headers.get("x-middleware-next")).toBe("1");
     }
