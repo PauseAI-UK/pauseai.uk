@@ -1,6 +1,9 @@
 # CI's image for its jobs with a browser and a database (.github/workflows/ci.yml):
 # Chromium's system packages, Git, and the Postgres 18 client, to match the
-# server, for psql and pg_dump. Chromium itself isn't here: the jobs keep it
+# server, for psql and pg_dump. And zstd: actions/cache compresses with it
+# when it's there, as it is on the runner, and a cache made one way is
+# another version to one made the other, so without it every cache the
+# runner's jobs keep misses here. Chromium itself isn't here: the jobs keep it
 # in the Actions cache by @playwright/test's version, so a bump of the package
 # needs no new image. The version here is only the one whose list of system
 # packages is installed; a later Chromium that needs another fails to launch,
@@ -23,7 +26,7 @@ ARG PLAYWRIGHT_VERSION=1.65.1
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates git postgresql-common \
+  && apt-get install -y --no-install-recommends ca-certificates git postgresql-common zstd \
   && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
   && apt-get install -y --no-install-recommends postgresql-client-18 \
   && npx -y "playwright@${PLAYWRIGHT_VERSION}" install-deps chromium \

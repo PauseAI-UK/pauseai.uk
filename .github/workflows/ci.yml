@@ -133,7 +133,7 @@ jobs:
     # packages, Git and the Postgres 18 client, so the job installs none of
     # them. Its tag is its Dockerfile's hash (tests/checks/ci-image.test.ts).
     container:
-      image: ghcr.io/pauseai-uk/ci:6575a26391c3
+      image: ghcr.io/pauseai-uk/ci:4a78405e3585
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -315,7 +315,7 @@ jobs:
         shard: [1, 2, 3, 4]
     # In CI's own image, as the Test job is.
     container:
-      image: ghcr.io/pauseai-uk/ci:6575a26391c3
+      image: ghcr.io/pauseai-uk/ci:4a78405e3585
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
