@@ -111,7 +111,7 @@ A PR with a migration carries the `migration` label, so the open PRs whose merge
 - `npm run storyboard` pictures only the flows that the files your branch changes from main can reach, and those new to the suite, and its page shows only those; with nothing to picture, it runs nothing (`docs/testing.md`, "Which flows a review runs"). It runs main for the same flows, if their frames aren't kept. A second review carries from the first the flows nothing since reaches. A migration, the seed data, `package.json` and the build's settings picture no flow by themselves, as the spot checks and unit tests cover them; the proxy or instrumentation pictures every desktop flow. What main merged doesn't count, so a rebase reruns only what main's merges and your change both reach. `--plan` says what a review would picture and run, and why.
 - The review is for looking at what a change does to the pages, and doesn't check the flows it leaves out. When a change might break flows it doesn't reach, run `npm run test:storyboard` too: every flow, without pictures. CI on a pull request runs only the flows a change reaches, so a flow the map misses breaks on main, after the merge.
 - A check waits up to 15 seconds, so a change that breaks many flows takes a long time to fail them all. Watch a review's output as it runs, and once several flows fail on the same thing, stop it and fix that, rather than waiting for the end (`docs/testing.md`, "Long runs in the background").
-- If a review says it couldn't place a file, teach `scripts/storyboard-reach.mjs` what that kind of file reaches. If it says a server was already up, stop that server: its flows aren't recorded as this code's, so the next review runs them all again.
+- If a review says it couldn't place a file, teach `scripts/storyboard-reach.mjs` what that kind of file reaches. If it says a server was already up, that's one named with `--server`, or another checkout's: its flows aren't recorded as this code's, so the next review runs them all again.
 - A flaky flow, or a frame that differs between two runs of the same build, is fixed, never retried, skipped or masked. No stored baselines, no gate on pixels.
 - Any flaky test, Vitest or Playwright, is fixed at once, in whatever branch finds it, even when the branch has nothing to do with it (`docs/testing.md`, "Rules for new code").
 
@@ -141,7 +141,7 @@ Each run gets its own folder, so the review someone has open is never changed. A
 
 Main's frames are main's own: its suite, run on its build. They're kept by main's tree for every worktree, so main runs a flow once for each commit of main, when a review first pictures it (`docs/testing.md`, "Main's frames are main's own"). So a frame that differs shows everything the branch changes, a flow's steps as well as the site, and a flow or caption the branch renames shows as one gone and one new.
 
-The fixture server's port comes from the checkout's path, and the storyboard refuses a server built from another checkout. But it reuses this checkout's server however old its build is, so stop one left from before your last change.
+The fixture server's port comes from the checkout's path, and the storyboard refuses a server built from another checkout. It reuses this checkout's server only if it was built from the code as it is, and stops one built before a change (`scripts/fixture-server.mjs`).
 
 If no flow reaches what you need, add a `frame()` to one, or add a flow (see above), rather than writing a script in `tmp/`.
 

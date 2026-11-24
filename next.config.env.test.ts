@@ -126,16 +126,34 @@ describe("SITE_ORIGIN, for staff login links", () => {
   });
 });
 
-describe("the checkout a storyboard build names", () => {
-  it("is on every response of a build from serve-fixture.mjs, and on no other build's", async () => {
+describe("the checkout and tree a storyboard build names", () => {
+  it("are on every response of a build from serve-fixture.mjs, and on no other build's", async () => {
     vi.stubEnv("FIXTURE_CHECKOUT", "/home/jane/pauseai.uk");
+    vi.stubEnv("FIXTURE_TREE", "4b825dc642cb6eb9a060e54bf8d69288fbee4904");
     const config = await loadConfig({});
     expect(await config.headers!()).toContainEqual({
       source: "/:path*",
-      headers: [{ key: "X-Fixture-Checkout", value: "/home/jane/pauseai.uk" }],
+      headers: [
+        { key: "X-Fixture-Checkout", value: "/home/jane/pauseai.uk" },
+        { key: "X-Fixture-Tree", value: "4b825dc642cb6eb9a060e54bf8d69288fbee4904" },
+      ],
     });
     vi.stubEnv("FIXTURE_CHECKOUT", "");
     const names = (await config.headers!()).flatMap((rule) => rule.headers.map((header) => header.key));
     expect(names).not.toContain("X-Fixture-Checkout");
+    expect(names).not.toContain("X-Fixture-Tree");
+  });
+
+  it("names no tree for a build of a checkout that wasn't told its tree", async () => {
+    vi.stubEnv("FIXTURE_CHECKOUT", "/home/jane/pauseai.uk");
+    vi.stubEnv("FIXTURE_TREE", undefined);
+    const config = await loadConfig({});
+    expect(await config.headers!()).toContainEqual({
+      source: "/:path*",
+      headers: [
+        { key: "X-Fixture-Checkout", value: "/home/jane/pauseai.uk" },
+        { key: "X-Fixture-Tree", value: "" },
+      ],
+    });
   });
 });

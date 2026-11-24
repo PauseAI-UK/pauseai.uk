@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import { EVENT_IMAGE_HOSTS } from "@/lib/event-image-hosts";
 import { POLITICIAN_PHOTO_HOSTS } from "@/lib/politicians/photo-hosts";
 import { FIRST_CAMPAIGN_SLUG, MARCH_PATH, MARCH_SHORT_PATH } from "@/lib/content/redirect-addresses";
-import { CHECKOUT_HEADER } from "@/lib/server/fixtures/fixture-env.mjs";
+import { CHECKOUT_HEADER, TREE_HEADER } from "@/lib/server/fixtures/fixture-env.mjs";
 
 // Third-party origins the site actually depends on. Kept here as one list so
 // adding an embed means updating the policy in the same place.
@@ -145,9 +145,18 @@ const nextConfig: NextConfig = {
       },
       // A storyboard build names the checkout it was built from
       // (scripts/serve-fixture.mjs), so a run from another checkout refuses it
-      // (tests/storyboard/global-setup.ts).
+      // (tests/storyboard/global-setup.ts), and the tree, so a run in its own
+      // checkout stops it once the code has changed (scripts/fixture-server.mjs).
       ...(process.env.FIXTURE_CHECKOUT
-        ? [{ source: "/:path*", headers: [{ key: CHECKOUT_HEADER, value: process.env.FIXTURE_CHECKOUT }] }]
+        ? [
+            {
+              source: "/:path*",
+              headers: [
+                { key: CHECKOUT_HEADER, value: process.env.FIXTURE_CHECKOUT },
+                { key: TREE_HEADER, value: process.env.FIXTURE_TREE ?? "" },
+              ],
+            },
+          ]
         : []),
     ];
   },

@@ -6,3 +6,4 @@ export const FLOW_DATABASE_COOKIE: string;
 export const FLOW_DATABASE_PREFIX: string;
 export function fixtureEnv(options: { outboxDir: string; origin?: string }): Record<string, string>;
 export const CHECKOUT_HEADER: string;
+export const TREE_HEADER: string;
