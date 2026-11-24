@@ -12,7 +12,7 @@ import { lettersCopy } from "./copy";
 
 const copy = lettersCopy.letters;
 
-/** A letter's page's title: who it's from, a supporter or PauseAI, and to whom. */
+/** A letter's page's title: who it's from (a supporter or PauseAI) and to whom. */
 export function letterTitle(letter: Details): string {
   return copy.oneTitle(letter.kind === "supporter" ? letter.senderName : copy.fromPauseai, letter.mpName);
 }

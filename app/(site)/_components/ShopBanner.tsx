@@ -5,7 +5,7 @@ import Section, { Lede } from "@/components/ui/Section";
 import Callout from "@/components/ui/Callout";
 import styles from "./ShopBanner.module.css";
 
-// The merch shop.
+// The merch shop, linked from the home page.
 export default function ShopBanner() {
   return (
     <Section tone="muted" bordered>
