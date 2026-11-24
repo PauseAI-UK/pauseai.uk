@@ -39,7 +39,8 @@ projects can map a statement to different ranges, and a range that runs to
 its line's end ends at column `Infinity`, which JSON writes as `null`.
 Istanbul merges a range with a `null` end with its twin, the one range with
 the same start and end line, and a range with no twin takes the count of the
-one around it, as in a whole run.
+one around it, as in a whole run. It finds no range around one whose column
+is `null`, so the script makes each `null` `Infinity` again before merging.
 
 While writing tests, `npm run test:changed` is quicker. It:
 

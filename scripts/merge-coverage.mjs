@@ -13,16 +13,33 @@
 // around it, which is how one whole run comes out covered. A range that runs
 // to its line's end has the column Infinity, which JSON writes as null, and
 // Istanbul matches it to the one range with the same start and end line
-// (https://github.com/vitest-dev/istanbuljs/pull/25).
+// (https://github.com/vitest-dev/istanbuljs/pull/25). It finds no range
+// around a range with a null column, though, so each null is made Infinity
+// again first: a shard whose tests loaded a file by a mock maps a dynamic
+// import as a function of its own, a range the other shards haven't got.
 import { readFileSync } from "node:fs";
 import { createCoverageMap } from "@vitest/istanbul-lib-coverage";
 
 const METRICS = ["statements", "branches", "functions", "lines"];
 
+/**
+ * A parsed report with each range that runs to its line's end given its
+ * Infinity back, in place: Istanbul takes a null column for no range at all,
+ * and so finds no range around one.
+ */
+function restoreLineEnds(value) {
+  if (!value || typeof value !== "object") return value;
+  for (const [key, inner] of Object.entries(value)) {
+    if (key === "column" && inner === null) value.column = Infinity;
+    else restoreLineEnds(inner);
+  }
+  return value;
+}
+
 /** The shards' coverage-final.json files, parsed, merged. */
 export function mergeShards(shards) {
   const map = createCoverageMap({});
-  for (const shard of shards) map.merge(shard);
+  for (const shard of shards) map.merge(restoreLineEnds(shard));
   return map;
 }
 

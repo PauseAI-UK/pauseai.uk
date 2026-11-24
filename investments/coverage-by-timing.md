@@ -12,4 +12,5 @@ A check, run nightly or from the gate on demand, that runs the node project's te
 
 ## Hits
 
+- 2026-11-23: CI's merged coverage failed `outside-fetch.server.ts` at 80% on a PR that never touched it. Not timing: one shard mapped its dynamic import twice and the merge found no range around the extra one, as its end column was `null`. Fixed in `scripts/merge-coverage.mjs`; ~40 min, as the token couldn't rerun the job and it had to be reproduced from the run's artifacts
 - 2026-11-14: `lib/server/db.ts`'s flow pool closing after `closeDb()` was reached only if its one-second idle timer hadn't fired first, which failed coverage on #336, ~30 min

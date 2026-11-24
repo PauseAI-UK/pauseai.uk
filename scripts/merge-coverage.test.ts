@@ -160,6 +160,28 @@ describe("mergeShards", () => {
     expect(map.fileCoverageFor("/repo/app/Form.tsx").s).toEqual({ 0: 1, 1: 1 });
   });
 
+  it("covers a dynamic import that only a shard which never ran it maps twice, by the statement around it", () => {
+    // `const { flowDatabase } = await import("../flow-database.server");` on
+    // line 15, in an `if` from line 12 to 17. Every range runs to its line's
+    // end. A shard whose tests never took the `if` maps the import a second
+    // time, from column 35, as a function of its own.
+    const taken: Entries = {
+      statements: [
+        [[12, 2, 17, Infinity], 100],
+        [[15, 29, 15, Infinity], 100],
+      ],
+    };
+    const untaken: Entries = {
+      statements: [
+        [[12, 2, 17, Infinity], 50],
+        [[15, 29, 15, Infinity], 0],
+        [[15, 35, 15, Infinity], 0],
+      ],
+    };
+    expect(shortfalls(mergeShards([shard(taken), shard(untaken)]))).toEqual([]);
+    expect(shortfalls(mergeShards([shard(untaken), shard(taken)]))).toEqual([]);
+  });
+
   it("adds up the shards' counts of a file each maps alike", () => {
     const map = mergeShards([shard({ statements: [[[1, 0, 1, 10], 1]] }), shard({ statements: [[[1, 0, 1, 10], 2]] })]);
     expect(map.fileCoverageFor("/repo/app/Form.tsx").s).toEqual({ 0: 3 });
