@@ -1637,7 +1637,7 @@ npm run test:report       # open the last Playwright report
   changing code, stop a server you left running.
 - Run one section with `npm run test:storyboard -- staff-login`, one flow with
   `-g "Logging in with Google"`, or point at another fixture build with `LOCAL_URL`.
-- Browser tests need Chromium: `npx playwright install chromium`.
+- Browser tests need Chromium: `npm run browsers` (`docs/development.md`, "What you need").
 
 ### `npm run gate`
 
