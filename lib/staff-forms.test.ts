@@ -4,9 +4,11 @@ import {
   eraseFrom,
   eventFrom,
   dueAtFrom,
-  idFrom,
   noteEditFrom,
   noteFrom,
+  ownEmail,
+  ownId,
+  ownText,
   permissionsFrom,
   savedFilterNeeds,
   savedListFrom,
@@ -34,12 +36,23 @@ describe("dueAtFrom", () => {
   });
 });
 
-describe("idFrom", () => {
-  it("reads a positive whole number, and nothing else", () => {
-    expect(idFrom(form({ id: " 12 " }))).toBe(12);
-    expect(idFrom(form({ politicianId: "3" }), "politicianId")).toBe(3);
-    for (const id of ["0", "-1", "1.5", "x", ""]) expect(idFrom(form({ id }))).toBeUndefined();
-    expect(idFrom(form({ id: new Blob(["1"]) }))).toBeUndefined();
+describe("ownId", () => {
+  it("reads a row's ID, a positive whole number, and throws on anything else, as the form fills it in itself", () => {
+    expect(ownId(form({ id: " 12 " }))).toBe(12);
+    expect(ownId(form({ politicianId: "3" }), "politicianId")).toBe(3);
+    for (const id of ["0", "-1", "1.5", "x", ""]) {
+      expect(() => ownId(form({ id }))).toThrow(`A form's "id" isn't a row's ID`);
+    }
+    expect(() => ownId(form({ id: new Blob(["1"]) }))).toThrow(`A form's "id" isn't a row's ID`);
+    expect(() => ownId(form({}), "politicianId")).toThrow(`A form's "politicianId" isn't a row's ID`);
+  });
+});
+
+describe("ownText", () => {
+  it("reads a field the form fills in itself, trimmed, and throws when it's blank or not there", () => {
+    expect(ownText(form({ slug: " winter-reception " }), "slug")).toBe("winter-reception");
+    expect(() => ownText(form({ slug: "  " }), "slug")).toThrow(`A form came without its "slug"`);
+    expect(() => ownText(form({}), "address")).toThrow(`A form came without its "address"`);
   });
 });
 
@@ -48,32 +61,44 @@ describe("statusFrom", () => {
 
   it("reads the form: the status and its note, or blank to clear it", () => {
     expect(statusFrom(form(base))).toEqual({
+      ok: true,
       politicianId: 4,
       ask: "frontier-ai-letter",
       status: "signed",
       note: "At the march",
     });
-    expect(statusFrom(form({ ...base, status: "" }))!.status).toBeNull();
+    expect(statusFrom(form({ ...base, status: "" }))).toMatchObject({ status: null });
     // That they were asked, which either kind of ask allows.
-    expect(statusFrom(form({ ...base, status: "invited" }))!.status).toBe("invited");
+    expect(statusFrom(form({ ...base, status: "invited" }))).toMatchObject({ status: "invited" });
   });
 
-  it("refuses an unknown politician or status, an ask an import fills, or no note", () => {
-    expect(statusFrom(form({ ...base, note: " " }))).toBeUndefined();
-    expect(statusFrom(form({ ...base, politicianId: "x" }))).toBeUndefined();
-    expect(statusFrom(form({ ...base, status: "maybe" }))).toBeUndefined();
+  it("refuses a note that's blank, which is typed", () => {
+    expect(statusFrom(form({ ...base, note: " " }))).toEqual({ ok: false, reason: "blank" });
+    expect(statusFrom(form({ politicianId: "4", ask: "frontier-ai-letter", status: "signed" }))).toEqual({
+      ok: false,
+      reason: "blank",
+    });
+  });
+
+  it("throws on an unknown politician or status, no ask, or an ask an import fills, which the form fills in itself", () => {
+    expect(() => statusFrom(form({ ...base, politicianId: "x" }))).toThrow(`"politicianId" isn't a row's ID`);
+    expect(() => statusFrom(form({ ...base, status: "maybe" }))).toThrow("a status no ask allows");
+    expect(() => statusFrom(form({ ...base, ask: "" }))).toThrow(`without its "ask"`);
     // ControlAI's letter is set from its PDF, never by hand.
-    expect(statusFrom(form({ ...base, ask: "controlai-letter" }))).toBeUndefined();
+    expect(() => statusFrom(form({ ...base, ask: "controlai-letter" }))).toThrow("an ask an import fills");
   });
 
   it("takes an ask staff added, whether it exists being the database's to say", () => {
-    expect(statusFrom(form({ ...base, ask: "giant-pause-button-oct-2026" }))!.ask).toBe("giant-pause-button-oct-2026");
+    expect(statusFrom(form({ ...base, ask: "giant-pause-button-oct-2026" }))).toMatchObject({
+      ask: "giant-pause-button-oct-2026",
+    });
   });
 });
 
 describe("unblockFrom", () => {
   it("reads the address, lowercased, and the note", () => {
     expect(unblockFrom(form({ address: " Jo@Example.org ", note: " fixed " }))).toEqual({
+      ok: true,
       address: "jo@example.org",
       note: "fixed",
     });
@@ -81,22 +106,27 @@ describe("unblockFrom", () => {
 
   it("reads a number in international format", () => {
     expect(unblockFrom(form({ address: "+447700900001", note: "fixed" }))).toEqual({
+      ok: true,
       address: "+447700900001",
       note: "fixed",
     });
   });
 
-  it("refuses anything that isn't an address or a number, and an unblock with no note", () => {
-    expect(unblockFrom(form({ address: "jo@example.org" }))).toBeUndefined();
-    expect(unblockFrom(form({ address: "jo@example.org", note: "  " }))).toBeUndefined();
-    expect(unblockFrom(form({ address: "nobody" }))).toBeUndefined();
-    expect(unblockFrom(form({ address: "07700 900001", note: "fixed" }))).toBeUndefined();
-    expect(unblockFrom(form({}))).toBeUndefined();
+  it("refuses an unblock with no note, which is typed", () => {
+    expect(unblockFrom(form({ address: "jo@example.org" }))).toEqual({ ok: false, reason: "blank" });
+    expect(unblockFrom(form({ address: "jo@example.org", note: "  " }))).toEqual({ ok: false, reason: "blank" });
+  });
+
+  it("throws on anything that isn't an address or a number, which the form fills in itself", () => {
+    const not = `"address" isn't an address or a number`;
+    expect(() => unblockFrom(form({ address: "nobody", note: "fixed" }))).toThrow(not);
+    expect(() => unblockFrom(form({ address: "07700 900001", note: "fixed" }))).toThrow(not);
+    expect(() => unblockFrom(form({}))).toThrow(not);
   });
 });
 
 describe("permissionsFrom", () => {
-  it("reads whose, lowercased, and which boxes are ticked", () => {
+  it("reads whose, lowercased, as typed, and which boxes are ticked", () => {
     expect(permissionsFrom(form({ email: " Jo@PauseAI.uk ", "permission:supporters": "on" }))).toEqual({
       email: "jo@pauseai.uk",
       permissions: ["supporters"],
@@ -108,19 +138,39 @@ describe("permissionsFrom", () => {
       email: "jo@pauseai.uk",
       permissions: ["admin"],
     });
-    expect(permissionsFrom(form({ email: "nobody", "permission:admin": "on" }))).toBeUndefined();
+    // Not an address, which is for saving it to refuse.
+    expect(permissionsFrom(form({ email: " Nobody ", "permission:admin": "on" }))).toEqual({
+      email: "nobody",
+      permissions: ["admin"],
+    });
+  });
+});
+
+describe("ownEmail", () => {
+  it("reads whose account a row's form is about, lowercased, and throws on anything that isn't an address", () => {
+    expect(ownEmail(form({ email: " Jo@PauseAI.uk " }))).toBe("jo@pauseai.uk");
+    expect(() => ownEmail(form({ email: "nobody" }))).toThrow(`A form's "email" isn't an address`);
+    expect(() => ownEmail(form({}))).toThrow(`A form's "email" isn't an address`);
   });
 });
 
 describe("eraseFrom", () => {
-  it("needs the supporter, a reference and the confirmation box", () => {
+  it("reads the supporter and the reference, trimmed, with the confirmation box ticked", () => {
     expect(eraseFrom(form({ id: "7", reference: " ICO-123 ", confirm: "on" }))).toEqual({
+      ok: true,
       id: 7,
       reference: "ICO-123",
     });
-    expect(eraseFrom(form({ id: "7", reference: "", confirm: "on" }))).toBeUndefined();
-    expect(eraseFrom(form({ id: "7", reference: "x" }))).toBeUndefined();
-    expect(eraseFrom(form({ id: "x", reference: "x", confirm: "on" }))).toBeUndefined();
+  });
+
+  it("refuses a reference that's blank, which is typed", () => {
+    expect(eraseFrom(form({ id: "7", reference: "", confirm: "on" }))).toEqual({ ok: false, reason: "blank" });
+    expect(eraseFrom(form({ id: "7", reference: "  ", confirm: "on" }))).toEqual({ ok: false, reason: "blank" });
+  });
+
+  it("throws without the supporter or the box ticked, which the form fills in itself", () => {
+    expect(() => eraseFrom(form({ id: "7", reference: "x" }))).toThrow("without its box ticked");
+    expect(() => eraseFrom(form({ id: "x", reference: "x", confirm: "on" }))).toThrow(`"id" isn't a row's ID`);
   });
 });
 
@@ -150,33 +200,47 @@ describe("askFrom", () => {
     expect(askFrom(form({ title: "Letter", kind: "letter" }))).toMatchObject({ date: null, url: null });
   });
 
-  it("refuses one without a title or a kind it knows, a date that isn't one, or a link that isn't a whole https one", () => {
-    expect(askFrom(form({ title: "", kind: "event" }))).toBeUndefined();
-    expect(askFrom(form({ title: "A", kind: "petition" }))).toBeUndefined();
-    expect(askFrom(form({ title: "A", kind: "toString" }))).toBeUndefined();
-    expect(askFrom(form({ title: "A", kind: "event", date: "9 Dec" }))).toBeUndefined();
-    expect(askFrom(form({ title: "A", kind: "event", date: "2026-13-45" }))).toBeUndefined();
-    expect(askFrom(form({ title: "A", kind: "event", url: "http://example.org" }))).toBeUndefined();
-    expect(askFrom(form({ title: "A", kind: "event", url: "/events" }))).toBeUndefined();
+  it("throws on one without a title, or with a link that isn't a whole https one, which the form's Save won't send", () => {
+    expect(() => askFrom(form({ title: " ", kind: "event" }))).toThrow("without its title");
+    expect(() => askFrom(form({ title: "A", kind: "event", url: "http://example.org" }))).toThrow("isn't a whole one");
+    expect(() => askFrom(form({ title: "A", kind: "event", url: "/events" }))).toThrow("isn't a whole one");
+  });
+
+  it("throws on a kind it doesn't know or a date that isn't one, which the form fills in itself", () => {
+    expect(() => askFrom(form({ title: "A", kind: "petition" }))).toThrow("without its kind");
+    expect(() => askFrom(form({ title: "A", kind: "toString" }))).toThrow("without its kind");
+    expect(() => askFrom(form({ title: "A" }))).toThrow("without its kind");
+    expect(() => askFrom(form({ title: "A", kind: "event", date: "9 Dec" }))).toThrow("a date that isn't one");
+    expect(() => askFrom(form({ title: "A", kind: "event", date: "2026-13-45" }))).toThrow("a date that isn't one");
   });
 });
 
 describe("noteFrom and noteEditFrom", () => {
   it("read whom a new note is on and what it says, trimmed, its lines kept", () => {
     expect(noteFrom(form({ supporterId: "3", body: " One\nTwo " }))).toEqual({
+      ok: true,
       target: { supporterId: 3 },
       body: "One\nTwo",
     });
-    expect(noteFrom(form({ politicianId: "4", body: "Hi" }))).toEqual({ target: { politicianId: 4 }, body: "Hi" });
-    expect(noteEditFrom(form({ id: "5", body: "Fixed" }))).toEqual({ id: 5, body: "Fixed" });
+    expect(noteFrom(form({ politicianId: "4", body: "Hi" }))).toEqual({
+      ok: true,
+      target: { politicianId: 4 },
+      body: "Hi",
+    });
+    expect(noteEditFrom(form({ id: "5", body: "Fixed" }))).toEqual({ ok: true, id: 5, body: "Fixed" });
   });
 
-  it("refuse a note on no one, on two, or saying nothing", () => {
-    expect(noteFrom(form({ body: "Hi" }))).toBeUndefined();
-    expect(noteFrom(form({ supporterId: "3", politicianId: "4", body: "Hi" }))).toBeUndefined();
-    expect(noteFrom(form({ supporterId: "3", body: "  " }))).toBeUndefined();
-    expect(noteEditFrom(form({ id: "x", body: "Fixed" }))).toBeUndefined();
-    expect(noteEditFrom(form({ id: "5", body: "" }))).toBeUndefined();
+  it("refuse a note saying nothing, which is typed", () => {
+    expect(noteFrom(form({ supporterId: "3", body: "  " }))).toEqual({ ok: false, reason: "blank" });
+    expect(noteEditFrom(form({ id: "5", body: "" }))).toEqual({ ok: false, reason: "blank" });
+  });
+
+  it("throw on a note on no one or on two, or a note that isn't one, which the form fills in itself", () => {
+    expect(() => noteFrom(form({ body: "Hi" }))).toThrow("without the one it's about");
+    expect(() => noteFrom(form({ supporterId: "3", politicianId: "4", body: "Hi" }))).toThrow(
+      "without the one it's about",
+    );
+    expect(() => noteEditFrom(form({ id: "x", body: "Fixed" }))).toThrow(`"id" isn't a row's ID`);
   });
 });
 
@@ -200,18 +264,21 @@ describe("eventFrom", () => {
     });
   });
 
-  it("refuses a form with no event, or a link anywhere else", () => {
-    expect(eventFrom(form({ owner: "jo@pauseai.uk" }))).toBeUndefined();
-    expect(eventFrom(form({ eventId: "evt-1", doc: "https://example.com/docs.google.com/" }))).toBeUndefined();
-    expect(eventFrom(form({ eventId: "evt-1", doc: "http://docs.google.com/document/d/abc" }))).toBeUndefined();
+  it("throws on a form with no event, or a link anywhere else, which its doc box's pattern never sends", () => {
+    expect(() => eventFrom(form({ owner: "jo@pauseai.uk" }))).toThrow(`without its "eventId"`);
+    const elsewhere = "a link that isn't to Google Docs or Drive";
+    expect(() => eventFrom(form({ eventId: "evt-1", doc: "https://example.com/docs.google.com/" }))).toThrow(elsewhere);
+    expect(() => eventFrom(form({ eventId: "evt-1", doc: "http://docs.google.com/document/d/abc" }))).toThrow(
+      elsewhere,
+    );
   });
 });
 
 describe("a saved filter's form", () => {
   it("is for a list that has them", () => {
     expect(savedListFrom(form({ list: "events" }))).toBe("events");
-    expect(savedListFrom(form({ list: "mailings" }))).toBeUndefined();
-    expect(savedListFrom(form({}))).toBeUndefined();
+    expect(() => savedListFrom(form({ list: "mailings" }))).toThrow("A saved filter's form came without its list");
+    expect(() => savedListFrom(form({}))).toThrow("A saved filter's form came without its list");
   });
 
   it("needs the supporters permission only for that list", () => {

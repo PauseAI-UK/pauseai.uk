@@ -33,6 +33,13 @@ export const erasureCopy = {
     confirm: "I'm sure this person asked to be erased",
     button: "Erase",
     cancel: "Cancel",
+    // Why the form wasn't sent on, by the server's reason.
+    refused: {
+      // Under the reference's field, when it holds nothing but spaces.
+      blank: "We need to know how and when they asked.",
+      // At the top of the page, when someone else erased this supporter after the page loaded.
+      gone: "Someone has already erased this supporter.",
+    },
     done: "Erased. We've kept only their blocked addresses and unsubscribes, so we never contact them again.",
     // In amber, over what couldn't be cleared afterwards: the person is erased all the same.
     partly: "Erased everything except:",

@@ -6,7 +6,10 @@ import { MAX_ATTACHMENT_BYTES } from "@/lib/mailings/attachments";
 import { earliestRun, fromLondon, londonDayTime, SENDING } from "@/lib/staff-time";
 import type { MailingAttachmentSummary, SaveResult } from "@/lib/mailings/drafts.server";
 import { Button } from "@/components/ui/Button";
+import { FieldError } from "@/components/ui/Field";
 import { SaveState as SaveStatePill, type SaveStateValue as SaveState } from "@/components/ui/SaveState";
+import { useSave } from "@/components/ui/useSave";
+import type { FormResult } from "@/lib/form-result";
 import { CHECK_EVERY, DueTimeFields, dueTime } from "./DueTime";
 import { keepDraftOnReload } from "../shell/stale-actions.client";
 import IconText from "../ui/IconText";
@@ -25,15 +28,17 @@ const SAVE_DELAY = 800;
 
 export type { SaveState };
 
-export type AttachResult = (SaveResult | { saved: false; reason: "too-big" }) & {
-  attachments: MailingAttachmentSummary[];
-};
+/** Why a draft's save is refused: someone else has saved it since, it's no longer a draft, or it's gone. */
+export type SaveRefusal = Exclude<SaveResult, { saved: true }>["reason"];
+
+/** What a draft has attached once a file is added or taken off, and the version that made. */
+export type Attached = { version: number; attachments: MailingAttachmentSummary[] };
 
 /** The Server Actions saving a draft takes, which the page hands in. */
 export type DraftActions = {
-  save: (id: number, version: number, changes: unknown) => Promise<SaveResult | undefined>;
-  attach: (form: FormData) => Promise<AttachResult | undefined>;
-  detach: (id: number, version: number, attachmentId: number) => Promise<AttachResult>;
+  save: (id: number, version: number, changes: unknown) => Promise<FormResult<SaveRefusal, { version: number }>>;
+  attach: (form: FormData) => Promise<FormResult<SaveRefusal | "too-big", Attached>>;
+  detach: (id: number, version: number, attachmentId: number) => Promise<FormResult<SaveRefusal, Attached>>;
 };
 
 /**
@@ -193,8 +198,8 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     saving.current = true;
     setSaveState("saving");
     try {
-      const result = (await actions.save(id, version.current, changes))!;
-      if (result.saved) {
+      const result = await actions.save(id, version.current, changes);
+      if (result.ok) {
         version.current = result.version;
         setSaveState("saved");
       } else {
@@ -254,14 +259,17 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     }
   }
 
-  /** Shows what's attached after an attach or a detach; whether it was done. */
-  function attached(result: AttachResult | undefined): boolean {
-    if (!result) return false;
-    setAttachments(result.attachments);
-    if (result.saved) version.current = result.version;
-    else if (result.reason === "too-big") setFileProblem(copy.tooBig);
-    else setSaveState("conflict");
-    return result.saved;
+  /** The draft's changed elsewhere, as a save refused says: for anything else refused for that, such as scheduling it. */
+  const conflicted = () => setSaveState("conflict");
+
+  /** Shows what's attached after an attach or a detach, or why it wasn't done; whether it was. */
+  function attached(result: FormResult<SaveRefusal | "too-big", Attached>): boolean {
+    if (result.ok) {
+      setAttachments(result.attachments);
+      version.current = result.version;
+    } else if (result.reason === "too-big") setFileProblem(copy.tooBig);
+    else conflicted();
+    return result.ok;
   }
 
   /**
@@ -284,7 +292,13 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     }
   }
 
-  const detach = async (file: number) => void attached(await actions.detach(id, version.current, file));
+  /** Takes a file off. One that can't be, as the request never arrived or the server threw, is said under the files. */
+  async function detach(file: number) {
+    setFileProblem("");
+    const result = await actions.detach(id, version.current, file).catch(() => null);
+    if (result === null) return setFileProblem(staffVocabulary.notDone);
+    attached(result);
+  }
 
   useEffect(() => {
     const unsaved = takeUnsaved(id, firstVersion);
@@ -321,6 +335,7 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
     detach,
     fileProblem,
     stale,
+    conflicted,
     restored,
   };
 }
@@ -332,7 +347,10 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
  * this button with it: as it goes, the window goes to the top, so the new
  * page shows from its top, as a new page would. Till then the button stays
  * pending, and the page where it was. An outdated page (useDraftWriter's
- * `stale`) can't schedule: the button's back, and the draft says why.
+ * `stale`) can't schedule: the button's back, and the draft says why. One
+ * refused (`schedule` answers not ok) has the button back too, for what
+ * calls it to say why. If scheduling throws, or never arrives, the button's
+ * back and says so under its row, in the kit's words.
  */
 export function ScheduleButton({
   label,
@@ -344,7 +362,7 @@ export function ScheduleButton({
   label: string;
   disabled: boolean;
   saveNow: () => Promise<unknown>;
-  schedule: () => Promise<{ scheduled: boolean }>;
+  schedule: () => Promise<{ ok: boolean }>;
   stale: (error: unknown) => boolean;
 }) {
   const [scheduling, setScheduling] = useState(false);
@@ -355,31 +373,48 @@ export function ScheduleButton({
     },
     [],
   );
+  const back = () => {
+    trying.current = false;
+    setScheduling(false);
+  };
+  const [send, , failed] = useSave(
+    async () => {
+      await saveNow();
+      trying.current = true;
+      try {
+        return (await schedule()).ok;
+      } catch (error) {
+        if (stale(error)) return false;
+        back();
+        throw error;
+      }
+    },
+    {
+      done: (scheduled) => {
+        if (!scheduled) back();
+      },
+    },
+  );
   return (
-    <Button
-      variant="primary"
-      fit
-      disabled={disabled}
-      pending={scheduling}
-      onClick={async () => {
-        setScheduling(true);
-        await saveNow();
-        trying.current = true;
-        const scheduled = await schedule().then(
-          (result) => result.scheduled,
-          (error: unknown) => {
-            if (stale(error)) return false;
-            throw error;
-          },
-        );
-        if (!scheduled) {
-          trying.current = false;
-          setScheduling(false);
-        }
-      }}
-    >
-      {label}
-    </Button>
+    <>
+      <Button
+        variant="primary"
+        fit
+        disabled={disabled}
+        pending={scheduling}
+        onClick={() => {
+          setScheduling(true);
+          send();
+        }}
+      >
+        {label}
+      </Button>
+      {failed && (
+        <div className={styles.notScheduled}>
+          <FieldError announce="alert">{staffVocabulary.notDone}</FieldError>
+        </div>
+      )}
+    </>
   );
 }
 

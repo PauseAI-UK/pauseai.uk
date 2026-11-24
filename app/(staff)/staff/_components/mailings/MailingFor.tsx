@@ -1,9 +1,7 @@
 import type { MailingPageData } from "@/lib/mailings/pages.server";
 import { FilterPills } from "./MailingParts";
-import MailingView from "./MailingView";
+import MailingView, { type MailingViewActions } from "./MailingView";
 import MailingWriter, { type MailingWriterActions } from "./MailingWriter";
-
-type FormAction = (form: FormData) => void | Promise<void>;
 
 /**
  * A mailing's page, as it stands: a draft, to go on writing; one
@@ -15,7 +13,7 @@ export default function MailingFor({
   actions,
 }: {
   data: MailingPageData;
-  actions: MailingWriterActions & { stop: FormAction; reschedule: FormAction; copy?: FormAction };
+  actions: MailingWriterActions & MailingViewActions;
 }) {
   if (data.kind === "imported") {
     return <MailingView mailing={data.mailing} asks={[]} stop={actions.stop} reschedule={actions.reschedule} />;

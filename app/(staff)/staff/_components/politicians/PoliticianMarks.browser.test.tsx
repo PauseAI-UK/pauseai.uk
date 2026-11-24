@@ -1,9 +1,38 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import PoliticianMarks from "./PoliticianMarks";
 import { PoliticianMarksExample } from "./PoliticianMarks.gallery.client";
+import { examplePolitician } from "./PoliticianTable.examples";
 import { politiciansCopy } from "./copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+
+describe("PoliticianMarks", () => {
+  const important = () => page.getByRole("switch", { name: politiciansCopy.politician.importantTarget });
+
+  it("shows where each mark stands, and can't be pressed, without a way to set them", async () => {
+    await render(<PoliticianMarks politician={examplePolitician} />);
+    await expect.element(important()).toBeChecked();
+    await expect.element(important()).toBeDisabled();
+    await expect
+      .element(page.getByRole("switch", { name: politiciansCopy.politician.personalConnection }))
+      .toBeDisabled();
+    expect(document.querySelector("form")).toBeNull();
+  });
+
+  it("says under a mark when turning it fails", async () => {
+    // As the server throws: an error with a digest, which the server has kept, so the browser tells no one.
+    const setMark = vi.fn().mockRejectedValue(Object.assign(new Error("The server threw"), { digest: "1" }));
+    await render(<PoliticianMarks politician={examplePolitician} setMark={setMark} />);
+    await important().click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    expect(Object.fromEntries(setMark.mock.calls[0][0] as FormData)).toEqual({
+      politicianId: String(examplePolitician.id),
+      mark: "importantTarget",
+      on: "false",
+    });
+  });
+});
 
 describe("PoliticianMarks's examples in the gallery", () => {
   // Their Server Actions are logged, not sent: pressing each adds its line to the event log.

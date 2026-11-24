@@ -10,19 +10,19 @@ export const addAliasFormGallery: Example[] = [
     variants: [
       {
         label: "Added: its earlier emails are found soon",
-        render: () => <AddAliasFormExample result={{ added: true }} />,
+        render: () => <AddAliasFormExample result={{ ok: true }} />,
       },
       {
         label: "Not an email address",
-        render: () => <AddAliasFormExample result={{ added: false, why: "invalid" }} />,
+        render: () => <AddAliasFormExample result={{ ok: false, reason: "invalid" }} />,
       },
       {
         label: "An address they have already",
-        render: () => <AddAliasFormExample result={{ added: false, why: "exists" }} />,
+        render: () => <AddAliasFormExample result={{ ok: false, reason: "exists" }} />,
       },
       {
         label: "The Lords' shared inbox",
-        render: () => <AddAliasFormExample result={{ added: false, why: "shared" }} />,
+        render: () => <AddAliasFormExample result={{ ok: false, reason: "shared" }} />,
       },
     ],
   },

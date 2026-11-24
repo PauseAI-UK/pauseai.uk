@@ -356,9 +356,10 @@ describeWithDatabase("a politician's aliases", () => {
       added: false,
       why: "invalid",
     });
+    // A politician no longer there.
     expect(await addPoliticianAddress(polly.id + 99, "a@example.com", "jo@pauseai.uk", "Her own address")).toEqual({
       added: false,
-      why: "exists",
+      why: "gone",
     });
     // The Lords' shared inbox is no one's own address.
     expect(

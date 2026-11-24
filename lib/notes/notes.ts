@@ -1,7 +1,8 @@
 import type { Permission } from "@/lib/accounts/permissions";
+import type { FormResult } from "@/lib/form-result";
 
 // Notes staff write about a supporter or a politician: who may change one,
-// and the links in its text.
+// what their forms' Server Actions answer, and the links in its text.
 
 export type Note = {
   id: number;
@@ -31,6 +32,21 @@ export function canEditNote(note: Pick<Note, "writtenBy" | "createdAt">, reader:
 export function canDeleteNote(note: Pick<Note, "writtenBy" | "createdAt">, reader: NoteReader, at: Date): boolean {
   return (note.writtenBy === reader.email || reader.permissions.includes("admin")) && stillYoung(note, at);
 }
+
+/**
+ * Why a note wasn't changed: it has gone, as far as this reader can see, or
+ * it's past changing (canEditNote, canDeleteNote).
+ */
+export type NoteUnchanged = "gone" | "too-late";
+
+/** Adds a note: refused for one that says nothing, or when whoever it's about has gone. */
+export type AddNote = (form: FormData) => Promise<FormResult<"blank" | "gone">>;
+
+/** Saves a note's new text: refused for one that says nothing, or a note that can't be changed. */
+export type EditNote = (form: FormData) => Promise<FormResult<"blank" | NoteUnchanged>>;
+
+/** Deletes a note: refused for one past deleting. One that has gone already is as deleted as was asked. */
+export type DeleteNote = (form: FormData) => Promise<FormResult<"too-late">>;
 
 /** A stretch of a note's text: words, or a link, as written and where it leads. */
 export type NotePart = { text: string; href?: string };

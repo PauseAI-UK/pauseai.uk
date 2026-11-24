@@ -3,7 +3,7 @@
 // ImportJob's examples, which log what's pressed (ImportJob.gallery.tsx).
 import { ImportJobPage } from "./ImportJob";
 import { exampleFailedRun, exampleImportResult, exampleRun } from "./RunList.examples";
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 
 /** The time the examples are shown at, after their runs. */
 const NOW = new Date("2026-11-04T09:30:00Z");
@@ -21,7 +21,13 @@ export function ImportJobPageExample({
     <Logged>
       {(log) =>
         never ? (
-          <ImportJobPage job="import-controlai" runs={[]} run={log("run")} decide={log("decide")} now={NOW} />
+          <ImportJobPage
+            job="import-controlai"
+            runs={[]}
+            run={loggedDone(log, "run")}
+            decide={loggedDone(log, "decide")}
+            now={NOW}
+          />
         ) : (
           <ImportJobPage
             now={NOW}
@@ -35,8 +41,8 @@ export function ImportJobPageExample({
               }),
               exampleRun("import-parliament", exampleImportResult, { id: 5, at: new Date("2026-11-01T06:21:00Z") }),
             ]}
-            run={log("run")}
-            decide={log("decide")}
+            run={loggedDone(log, "run")}
+            decide={loggedDone(log, "decide")}
           />
         )
       }

@@ -17,7 +17,7 @@ import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/cop
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
-import { emailCopy } from "@/lib/email/copy";
+import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
 
 export const section: Section = { name: "Letters and bounces", part: "Staff pages", order: 100 };
 
@@ -309,7 +309,15 @@ test("Unblocking an MP's address", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("heading", { level: 1, name: bouncy.name })).toBeVisible();
   await expect(page.getByRole("region", { name: politiciansCopy.politician.blocked.title })).toBeVisible();
   await frame(page, "The MP's page");
-  story("Staff check with the MP's office, then unblock the address, with a note.");
+  story("Staff press Unblock with only spaces for the note of why. The form says it needs one.");
+  const blockedBox = page.getByRole("region", { name: politiciansCopy.politician.blocked.title });
+  await page.getByLabel(emailCopy.emails.note).fill("   ");
+  await page.getByRole("button", { name: emailCopy.emails.unblock }).click();
+  await expect(blockedBox.getByRole("alert")).toHaveText(emailCopy.unblockRefused.blank);
+  // From the top, so the frame is of the whole page, wherever the button left the window.
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await frame(page, "The MP's page, with no note of why");
+  story("They check with the MP's office, then unblock the address, with a note.");
 
   await page.getByLabel(emailCopy.emails.note).fill("Checked with their office");
   await page.getByRole("button", { name: emailCopy.emails.unblock }).click();

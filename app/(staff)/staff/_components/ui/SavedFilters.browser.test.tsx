@@ -16,10 +16,10 @@ import { eventsCopy } from "@/lib/events/copy";
 const copy = staffVocabulary.filters.saved;
 
 const actions = (): SavedFilterActions => ({
-  save: vi.fn(async () => {}),
-  update: vi.fn(async () => {}),
-  rename: vi.fn(async () => {}),
-  remove: vi.fn(async () => {}),
+  save: vi.fn(async () => ({ ok: true as const })),
+  update: vi.fn(async () => ({ ok: true as const })),
+  rename: vi.fn(async () => ({ ok: true as const })),
+  remove: vi.fn(async () => ({ ok: true as const })),
 });
 
 const row = (id: number, name: string, params: SavedFilter["params"] = { party: "Labour" }): SavedFilter => ({
@@ -72,7 +72,7 @@ describe("SavedFilters' chip", () => {
   it("keeps Save's menu up while Update for everyone waits, greyed with a spinner, and pressable once", async () => {
     const did = actions();
     let finish = () => {};
-    did.update = vi.fn(() => new Promise<void>((done) => (finish = done)));
+    did.update = vi.fn(() => new Promise<{ ok: true }>((done) => (finish = () => done({ ok: true }))));
     await bar(
       { party: "Labour", saved: "7" },
       { rows: [row(7, "Labour only")], loaded: { ...LOADED, edited: true } },

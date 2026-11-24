@@ -9,6 +9,7 @@ import { answerSubject } from "@/lib/email-parsing/subjects";
 import { hasWords } from "@/lib/letters/format";
 import { EMPTY_MAILING_DOC } from "@/lib/mailings/doc";
 import type { AnswerResult } from "@/lib/mailings/answers";
+import type { FormResult } from "@/lib/form-result";
 import { uuid } from "@/lib/uuid";
 import MailingEditor from "./MailingEditor";
 import ThreadEmail from "../letters/ThreadEmail";
@@ -17,8 +18,11 @@ import { mailingsCopy } from "./copy";
 
 const copy = mailingsCopy.answers;
 
+/** Why an answer didn't go (AnswerResult). */
+export type AnswerRefusal = Exclude<AnswerResult, { sent: true }>["reason"];
+
 /** Sends an answer to reply `replyId`, once for each `draftId`. */
-export type AnswerAction = (replyId: number, draftId: string, body: JSONContent) => Promise<AnswerResult>;
+export type AnswerAction = (replyId: number, draftId: string, body: JSONContent) => Promise<FormResult<AnswerRefusal>>;
 
 /** What an answer starts as, and where the cursor goes in it; none for the end. */
 export type AnswerStart = { doc: JSONContent; cursor?: number };
@@ -85,11 +89,11 @@ export default function AnswerableReply({
   // Opened by pressing it, rather than shown open, so the cursor goes to it.
   const [pressed, setPressed] = useState(false);
   const [draft, setDraft] = useState(() => newDraft(first.doc));
-  const [failed, setFailed] = useState<Exclude<AnswerResult, { sent: true }>["reason"]>();
+  const [failed, setFailed] = useState<AnswerRefusal>();
   // `broke`: sending threw, which reads as the reply having failed to send.
   const [send, sending, broke] = useSave(answer, {
     done: (result) => {
-      if (result.sent) fold();
+      if (result.ok) fold();
       else setFailed(result.reason);
     },
   });

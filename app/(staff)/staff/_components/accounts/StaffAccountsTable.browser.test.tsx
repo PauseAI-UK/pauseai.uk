@@ -4,8 +4,12 @@ import { page, userEvent } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { type StaffAccount } from "@/lib/accounts/staff-accounts.server";
 import StaffAccountsTable, { AddStaff } from "./StaffAccountsTable";
+import { AddStaffExample } from "./StaffAccountsTable.gallery.client";
 import { action } from "@/tests/browser/staff";
 import { accountsCopy } from "./copy";
+
+/** What an action that throws on the server rejects with: an error with a digest, which the server has kept. */
+const serverThrew = () => Object.assign(new Error("The server threw"), { digest: "1" });
 
 describe("StaffAccountsTable", () => {
   const accounts = [
@@ -195,6 +199,29 @@ describe("StaffAccountsTable", () => {
     expect(save.sent[0]).toEqual({ email: "jo@pauseai.uk", "permission:admin": "on" });
     await expect.poll(open).toBe(false);
   });
+
+  it("says under the buttons when a save fails, leaving the bubble open with its boxes as they were ticked", async () => {
+    const { save } = await renderTable();
+    save.fn.mockRejectedValueOnce(serverThrew());
+    const copy = accountsCopy.accounts;
+    await page.getByRole("row").filter({ hasText: "jo@pauseai.uk" }).getByRole("button", { name: copy.edit }).click();
+    const form = page.getByRole("form", { name: copy.editLabel("jo@pauseai.uk") });
+    await form.getByRole("checkbox", { name: copy.names.admin }).click();
+    await form.getByRole("button", { name: copy.save }).click();
+    await expect.element(form.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    await expect.element(form.getByRole("checkbox", { name: copy.names.admin })).toBeChecked();
+    expect(form.element().closest("[popover]")!.matches(":popover-open")).toBe(true);
+  });
+
+  it("says by a row's button when ending its sessions fails", async () => {
+    const { end } = await renderTable();
+    end.fn.mockRejectedValueOnce(serverThrew());
+    const form = page.getByRole("form", {
+      name: `${accountsCopy.accounts.endSessions}: samuel.whitlock@pauseai.uk`,
+    });
+    await form.getByRole("button").click();
+    await expect.element(form.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+  });
 });
 
 describe("AddStaff", () => {
@@ -228,5 +255,24 @@ describe("AddStaff", () => {
     await expect.element(field).toHaveValue("");
     await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
     await expect.element(field).toHaveAttribute("aria-invalid", "false");
+
+    // An add that fails says so under the field.
+    save.fn.mockRejectedValueOnce(serverThrew());
+    await userEvent.fill(field, "sam@pauseai.uk");
+    await addButton.click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+  });
+});
+
+describe("the accounts page's examples in the gallery", () => {
+  // Their Server Actions are logged, not sent: pressing each adds its line to the event log.
+  const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
+
+  it("logs someone added", async () => {
+    await render(<AddStaffExample />);
+    await page.getByRole("button", { name: accountsCopy.accounts.addStaff }).click();
+    await page.getByRole("textbox", { name: accountsCopy.accounts.addLabel }).fill("lee@pauseai.uk");
+    await page.getByRole("button", { name: accountsCopy.accounts.add, exact: true }).click();
+    await expect.element(log().nth(0)).toHaveTextContent('saveStaffAccount({"email":"lee@pauseai.uk"})');
   });
 });

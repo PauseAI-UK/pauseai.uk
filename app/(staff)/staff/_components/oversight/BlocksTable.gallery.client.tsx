@@ -45,7 +45,10 @@ export function BlocksTableExample({
           page={page}
           of={BLOCKED_ADDRESSES_LIST}
           search={BLOCKED_ADDRESSES_LIST.read({})}
-          unblock={log("unblock")}
+          unblock={(form) => {
+            log("unblock")(form);
+            return Promise.resolve({ ok: true });
+          }}
           letterLinks={letterLinks}
         />
       )}

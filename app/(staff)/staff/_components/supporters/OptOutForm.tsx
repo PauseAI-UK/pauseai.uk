@@ -4,13 +4,14 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/Controls";
 import { Field } from "@/components/ui/Field";
-import { FormStack } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { FormResult } from "@/lib/form-result";
 import { choiceValue, type OptOutChoice } from "@/lib/supporters/opt-out-choices";
 import type { FilterOption } from "@/lib/staff-list-filters";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "@/components/ui/ChannelIcon";
 import MenuSelect from "../ui/MenuSelect";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import styles from "./OptOutForm.module.css";
 import { supportersCopy } from "./copy";
 
@@ -55,19 +56,24 @@ function menuOptions(choices: OptOutChoice[]): FilterOption[] {
  * what they opted out of, one of `options`, sent as `field` with `hidden`'s
  * fields; how they told us, typed, which must be, unless it's known
  * (`howKnown`); then Record opt-out and Cancel. Recording closes it, for the page
- * to show the opt-out, or says, if `record` answers false, they were opted
- * out of it already. `spaced` sets it apart from what's above it.
+ * to show the opt-out, or says, if `record` answers that they were `already`,
+ * they were opted out of it already. Refused, it stays open and says why
+ * under its fields, in the feature's words for the reason (`says`), or at
+ * the page's top for a reason in `atTop`, as any ResultForm does. `spaced`
+ * sets it apart from what's above it.
  * `opened` shows it open to begin with, as the gallery does. A supporter's
  * page has it under their consents (OptOutForm), and a reply under its
  * words (ReplyActions).
  */
-export function UnsubscribeForm({
+export function UnsubscribeForm<Reason extends string = never>({
   id,
   hidden,
   field,
   options,
   howKnown = false,
   record,
+  says,
+  atTop,
   before,
   beside,
   spaced = true,
@@ -79,7 +85,9 @@ export function UnsubscribeForm({
   field: string;
   options: FilterOption[];
   howKnown?: boolean;
-  record: (form: FormData) => Promise<boolean | void> | void;
+  record: (form: FormData) => Promise<FormResult<Reason, { already?: boolean }>>;
+  says: Record<Reason, string>;
+  atTop?: readonly Reason[];
   before?: ReactNode;
   beside?: ReactNode;
   spaced?: boolean;
@@ -108,11 +116,15 @@ export function UnsubscribeForm({
     );
   }
   return (
-    <FormStack
+    <ResultForm
+      stack
       className={space}
       aria-label={words.open}
-      action={async (form) => {
-        setAlready((await record(form)) === false);
+      action={record}
+      says={says}
+      atTop={atTop}
+      done={(result) => {
+        setAlready(result.already === true);
         setOpen(false);
         setChoice("");
         setHow("");
@@ -140,6 +152,7 @@ export function UnsubscribeForm({
           />
         </Field>
       )}
+      <Refusal />
       <p className={styles.note}>{words.global}</p>
       <div className={styles.buttons}>
         <SubmitButton variant="primary" size="small" fit disabled={!choice || (!howKnown && !how.trim())}>
@@ -149,9 +162,12 @@ export function UnsubscribeForm({
           {words.cancel}
         </Button>
       </div>
-    </FormStack>
+    </ResultForm>
   );
 }
+
+/** What recording a supporter's opt-out answers (the supporters' recordOptOutNow): whether they were opted out of it already, or why it wasn't recorded. */
+export type RecordOptOut = (form: FormData) => Promise<FormResult<"blank" | "gone", { already: boolean }>>;
 
 /**
  * Unsubscribe them, under a supporter's consents: what they opted out of,
@@ -166,7 +182,7 @@ export default function OptOutForm({
 }: {
   supporterId: number;
   choices: OptOutChoice[];
-  record: (form: FormData) => Promise<boolean>;
+  record: RecordOptOut;
   opened?: boolean;
 }) {
   if (choices.length === 0) return null;
@@ -177,6 +193,8 @@ export default function OptOutForm({
       field="choice"
       options={menuOptions(choices)}
       record={record}
+      says={words.refused}
+      atTop={["gone"]}
       opened={opened}
     />
   );

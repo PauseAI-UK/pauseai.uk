@@ -6,17 +6,19 @@ import { Select, TextInput } from "@/components/ui/Controls";
 import { Label } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { EventSaved } from "@/lib/events/staff-events.server";
+import type { FormResult } from "@/lib/form-result";
 import { GOOGLE_DOC_PATTERN } from "@/lib/staff-forms";
 import Bubble from "@/components/ui/Bubble";
 import Notice from "../ui/Notice";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import styles from "./EventsTable.module.css";
 import { eventsCopy } from "@/lib/events/copy";
 import { staffMemberText } from "@/lib/staff-member";
 
 const copy = eventsCopy.events;
 
-/** The Server Action that saves an event's owner and Google Doc, saying whom it emailed. */
-export type SaveEvent = (form: FormData) => Promise<EventSaved>;
+/** The Server Action that saves an event's owner and Google Doc, saying whom it emailed. It's never refused. */
+export type SaveEvent = (form: FormData) => Promise<FormResult<never, EventSaved>>;
 
 // Always given by EventsEditing, round the table.
 const SavedContext = createContext<((saved: EventSaved) => void) | null>(null);
@@ -47,7 +49,8 @@ export function EventsEditing({ children }: { children: ReactNode }) {
  * account, and the link to its Google Doc, only to Google Docs or Drive,
  * blank to clear it; Save, off till they differ from what's saved, saves
  * them together and closes it, and Cancel closes it as it was. With no owner, that's the select's first choice,
- * which can't be chosen back.
+ * which can't be chosen back. A save that fails says so under the buttons, the bubble still open with
+ * the link as typed.
  */
 export function EventEdit({
   event,
@@ -81,13 +84,15 @@ export function EventEdit({
       trigger={buttonClass({ variant: "ghost", size: "small", fit: true })}
       label={copy.edit}
     >
-      <form
+      <ResultForm
         ref={form}
         className={styles.editor}
         aria-label={copy.editLabel(event.name)}
         onInput={() => setChanged(differs())}
-        action={async (data) => {
-          setSaved(await save(data));
+        action={save}
+        says={{}}
+        done={(saved) => {
+          setSaved(saved);
           close();
         }}
       >
@@ -131,7 +136,8 @@ export function EventEdit({
             {copy.cancel}
           </Button>
         </span>
-      </form>
+        <Refusal />
+      </ResultForm>
     </Bubble>
   );
 }

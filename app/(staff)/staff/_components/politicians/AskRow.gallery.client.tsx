@@ -1,7 +1,7 @@
 "use client";
 
 // AskRow's examples, which log the answers set (AskRow.gallery.tsx).
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 import { exampleAsks } from "../asks/AsksList.examples";
 import AskRow, { AskRows, PoliticianAsks } from "./AskRow";
 import { examplePolitician } from "./PoliticianTable.examples";
@@ -39,11 +39,11 @@ export function AskRowExample({
     <Logged>
       {(log) =>
         others ? (
-          <PoliticianAsks politician={politician} asks={exampleAsks} setStatus={log("setStatus")} />
+          <PoliticianAsks politician={politician} asks={exampleAsks} setStatus={loggedDone(log, "setStatus")} />
         ) : (
           <AskRows>
-            <AskRow politician={politician} ask={exampleAsks[0]!} setStatus={log("setStatus")} />
-            <AskRow politician={politician} ask={exampleAsks[4]!} setStatus={log("setStatus")} />
+            <AskRow politician={politician} ask={exampleAsks[0]!} setStatus={loggedDone(log, "setStatus")} />
+            <AskRow politician={politician} ask={exampleAsks[4]!} setStatus={loggedDone(log, "setStatus")} />
           </AskRows>
         )
       }

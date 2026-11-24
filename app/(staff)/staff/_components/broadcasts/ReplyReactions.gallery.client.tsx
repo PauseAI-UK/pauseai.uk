@@ -36,7 +36,7 @@ export function ReplyReactionsExample({
             reactable={!tooOld}
             react={async (replyId, emoji) => {
               log("react")(replyId, emoji);
-              return refused ? { sent: false, reason: "failed" } : { sent: true };
+              return refused ? { ok: false, reason: "failed" } : { ok: true };
             }}
           >
             <p>Great, thanks!</p>

@@ -377,6 +377,67 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
   await frame(page, "The audit log");
 });
 
+test("A note of only spaces", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff start a note on Jane Fixture's page, but type only spaces. The draft says it needs something written, and stays open.",
+  );
+  await importLuma(request, BASE);
+  const [jane] = runSql(
+    flowDatabase,
+    "SELECT supporter_id FROM supporter_links WHERE matched_value = 'jane.fixture@example.com' LIMIT 1",
+  );
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters/${jane}`);
+  const card = page.getByRole("region", { name: notesCopy.notes.title });
+  await card.getByRole("button", { name: notesCopy.notes.write }).click();
+  const draft = card.getByRole("textbox", { name: notesCopy.notes.note });
+  await draft.fill("   ");
+  await card.getByRole("button", { name: notesCopy.notes.add }).click();
+  await expect(card.getByRole("alert")).toHaveText(notesCopy.notes.blank);
+  await expect(draft).toHaveAttribute("aria-invalid", "true");
+  await frame(page, "A draft of only spaces");
+
+  story("With words in it, the note is added. Editing it down to spaces is refused the same way.");
+  await draft.fill("Met her at the Leeds stall.");
+  await card.getByRole("button", { name: notesCopy.notes.add }).click();
+  await expect(card.getByText("Met her at the Leeds stall.")).toBeVisible();
+  await card.getByRole("button", { name: notesCopy.notes.edit }).click();
+  await card.getByRole("textbox", { name: notesCopy.notes.note }).fill("  ");
+  await card.getByRole("button", { name: notesCopy.notes.save }).click();
+  await expect(card.getByRole("alert")).toHaveText(notesCopy.notes.blank);
+  await frame(page, "An edit of only spaces");
+
+  story("They cancel, and the note is as it was.");
+  await card.getByRole("button", { name: notesCopy.notes.cancel }).click();
+  await expect(card.getByText("Met her at the Leeds stall.")).toBeVisible();
+});
+
+test("A note a colleague deletes meanwhile", async ({ page, request, flowDatabase }) => {
+  story("Staff write a note on Jane Fixture's page, then open it to edit. Before they save, an admin deletes it.");
+  await importLuma(request, BASE);
+  const [jane] = runSql(
+    flowDatabase,
+    "SELECT supporter_id FROM supporter_links WHERE matched_value = 'jane.fixture@example.com' LIMIT 1",
+  );
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters/${jane}`);
+  const card = page.getByRole("region", { name: notesCopy.notes.title });
+  await card.getByRole("button", { name: notesCopy.notes.write }).click();
+  await card.getByRole("textbox", { name: notesCopy.notes.note }).fill("Met her at the Leeds stall.");
+  await card.getByRole("button", { name: notesCopy.notes.add }).click();
+  await expect(card.getByText("Met her at the Leeds stall.")).toBeVisible();
+  await card.getByRole("button", { name: notesCopy.notes.edit }).click();
+  await card.getByRole("textbox", { name: notesCopy.notes.note }).fill("Met her at the Leeds stall in October.");
+  // The admin's delete, on a page of their own.
+  runSql(flowDatabase, "DELETE FROM notes");
+
+  story("Save can't, and the page says why at its top. The card no longer has the note.");
+  await card.getByRole("button", { name: notesCopy.notes.save }).click();
+  await expect(page.getByRole("alert").filter({ hasText: notesCopy.notes.gone.note })).toBeVisible();
+  await expect(card.getByText(notesCopy.notes.none)).toBeVisible();
+  await frame(page, "Gone, said at the top");
+});
+
 test("Merged by phone number", async ({ page, request, flowDatabase }) => {
   story(
     "A newer Luma guest gives Jane Fixture's mobile number. The next pass over everyone's numbers makes the two one supporter.",
@@ -656,10 +717,21 @@ test("Erasing a supporter", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(/\/staff\/supporters\/\d+\/erase$/);
   await expect(page.getByRole("button", { name: erasureCopy.erase.button })).toBeDisabled();
   await frame(page, "The erase page");
-  story("Staff give the request's reference, tick the box and erase Sam. The supporters list says it's done.");
+  story(
+    "Staff tick the box and press Erase with only spaces for the request's reference. The form says what it needs, and stays as it was, the box still ticked.",
+  );
+  const reference = page.getByRole("textbox", { name: erasureCopy.erase.referenceLabel });
+  const sure = page.getByRole("checkbox", { name: erasureCopy.erase.confirm });
+  await reference.fill("   ");
+  await sure.check();
+  await page.getByRole("button", { name: erasureCopy.erase.button }).click();
+  await expect(page.getByRole("alert").filter({ hasText: erasureCopy.erase.refused.blank })).toBeVisible();
+  await expect(reference).toHaveAttribute("aria-invalid", "true");
+  await expect(sure).toBeChecked();
+  await frame(page, "No reference given");
+  story("They give the reference and erase Sam. The supporters list says it's done.");
 
-  await page.getByRole("textbox", { name: erasureCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
-  await page.getByRole("checkbox", { name: erasureCopy.erase.confirm }).check();
+  await reference.fill("Request of 16 Oct 2026");
   await page.getByRole("button", { name: erasureCopy.erase.button }).click();
   await expect(page).toHaveURL(`${BASE}/staff/supporters?erased=1`);
   await expect(page.getByRole("status")).toHaveText(erasureCopy.erase.done);
@@ -703,6 +775,43 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
   await expect(page.getByText(copy.total(10), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
   await frame(page, "The supporters list, after the CiviCRM import");
+});
+
+test("A supporter a colleague erases meanwhile", async ({ page, request, flowDatabase }) => {
+  story("Staff open the erase page for Sam Fixture. Before they press Erase, a colleague erases Sam.");
+  await importLuma(request, BASE);
+  await logInWithSupporters(page, flowDatabase);
+  await page.goto(`${BASE}/staff/supporters`);
+  await page.getByRole("link", { name: "Sam Fixture" }).click();
+  await openEverything(page);
+  await page.getByRole("link", { name: erasureCopy.erase.title }).click();
+  await expect(page).toHaveURL(/\/staff\/supporters\/\d+\/erase$/);
+  const sam = Number(/supporters\/(\d+)\/erase$/.exec(page.url())![1]);
+  await page.getByRole("textbox", { name: erasureCopy.erase.referenceLabel }).fill("Request of 16 Oct 2026");
+  await page.getByRole("checkbox", { name: erasureCopy.erase.confirm }).check();
+  // The colleague's erasure, on a page of their own.
+  runSql(flowDatabase, `DELETE FROM supporters WHERE id = ${sam}`);
+
+  story("Erase can't, and the page says why at its top.");
+  await page.getByRole("button", { name: erasureCopy.erase.button }).click();
+  await expect(page.getByRole("alert").filter({ hasText: erasureCopy.erase.refused.gone })).toBeVisible();
+  await frame(page, "Erased already, said at the top");
+
+  story(
+    "The same happens to a note being written about Jane Fixture when a colleague erases her. It isn't added, and her page says why.",
+  );
+  const [jane] = runSql(
+    flowDatabase,
+    "SELECT supporter_id FROM supporter_links WHERE matched_value = 'jane.fixture@example.com' LIMIT 1",
+  );
+  await page.goto(`${BASE}/staff/supporters/${jane}`);
+  const card = page.getByRole("region", { name: notesCopy.notes.title });
+  await card.getByRole("button", { name: notesCopy.notes.write }).click();
+  await card.getByRole("textbox", { name: notesCopy.notes.note }).fill("Met her at the Leeds stall.");
+  runSql(flowDatabase, `DELETE FROM supporters WHERE id = ${jane}`);
+  await card.getByRole("button", { name: notesCopy.notes.add }).click();
+  await expect(page.getByRole("alert").filter({ hasText: notesCopy.notes.gone.supporter })).toBeVisible();
+  await frame(page, "The note isn't added");
 });
 
 test("A hold in CiviCRM", async ({ page, request, flowDatabase }) => {

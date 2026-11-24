@@ -2,12 +2,12 @@
 
 // SignupUploadPreview's examples, with the gallery's Server Actions (SignupUploadPreview.gallery.tsx).
 import { exampleSignupPlan, exampleWhatsappPlan } from "./SignupUpload.examples";
-import SignupUploadPreview, { SignupPlanView } from "./SignupUploadPreview";
+import SignupUploadPreview, { SignupPlanView, type SignupUploadActions } from "./SignupUploadPreview";
 
 /** The upload's Server Actions in the gallery: a preview with someone in every pile, and an import that's upload 6. */
-export const exampleUploadActions = {
-  preview: async () => exampleSignupPlan,
-  finish: async () => ({ uploadId: exampleSignupPlan.rows.length }),
+export const exampleUploadActions: SignupUploadActions = {
+  preview: async () => ({ ok: true, plan: exampleSignupPlan }),
+  finish: async () => ({ ok: true, uploadId: exampleSignupPlan.rows.length }),
 };
 
 /** The preview of a file with someone in every pile. */

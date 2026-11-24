@@ -33,7 +33,9 @@ export function EventsTableExample({
           save={async (form) => {
             log("save")(form);
             const chosen = String(form.get("owner"));
-            return emailed ? { emailed: [chosen, "joseph@pauseai.uk"], owner: chosen } : { emailed: [], owner: null };
+            return emailed
+              ? { ok: true, emailed: [chosen, "joseph@pauseai.uk"], owner: chosen }
+              : { ok: true, emailed: [], owner: null };
           }}
         />
       )}

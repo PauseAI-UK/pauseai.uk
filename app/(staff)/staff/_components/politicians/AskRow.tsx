@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { Segmented, TextInput } from "@/components/ui/Controls";
-import { FilterForm } from "@/components/ui/Form";
+import { Segmented } from "@/components/ui/Controls";
+// A row of fields along their bottoms, as a FilterForm lays them out.
 import { ANSWER_CHOICES, INVITED, standing } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
+import type { FormResult } from "@/lib/form-result";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { answeredByHand } from "@/lib/email-your-mp";
 import type { Ask } from "@/lib/asks/records.server";
@@ -17,13 +18,15 @@ import { AskLead } from "../asks/AskLine";
 import { BubbleBox } from "@/components/ui/Bubble";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
 import Menu from "../ui/Menu";
+import { Refusal, RefusedTextInput, ResultForm } from "../ui/ResultForm";
 import { staffMemberText } from "@/lib/staff-member";
 import styles from "../ui/Details.module.css";
 import { politiciansCopy } from "./copy";
 
 const copy = politiciansCopy.politician;
 
-type SetStatus = (form: FormData) => void | Promise<void>;
+/** Sets an answer to an ask (the politicians' setAskStatus), refused when its note is blank. */
+export type SetStatus = (form: FormData) => Promise<FormResult<"blank">>;
 
 /**
  * Setting where they stand on an ask staff record, with a note: that they
@@ -32,14 +35,15 @@ type SetStatus = (form: FormData) => void | Promise<void>;
  * recorded, that they were never asked is one to pick too, set apart from the
  * rest, to clear it. Not when a letter put the ask to them, as then they
  * were asked whatever's recorded: asked is what clears it, and stands for
- * nothing recorded.
+ * nothing recorded. A note of only spaces is refused, which it says under
+ * the note.
  */
 function AnswerForm({ politician, ask, setStatus }: { politician: Politician; ask: Ask; setStatus: SetStatus }) {
   const current = politician.statuses[ask.slug]?.status ?? "";
   const byLetter = Boolean(politician.askedByLetter[ask.slug]);
   const [chosen, setChosen] = useState<string>(current);
   return (
-    <FilterForm action={setStatus} aria-label={`${copy.setStatus}: ${ask.title}`}>
+    <ResultForm action={setStatus} says={copy.answerRefused} filters aria-label={`${copy.setStatus}: ${ask.title}`}>
       <input type="hidden" name="politicianId" value={politician.id} />
       <input type="hidden" name="ask" value={ask.slug} />
       <span className={styles.statusChoices}>
@@ -59,12 +63,15 @@ function AnswerForm({ politician, ask, setStatus }: { politician: Politician; as
       </span>
       <label className={styles.note}>
         <span className={styles.noteLabel}>{copy.note}</span>
-        <TextInput name="note" placeholder={copy.notePlaceholder} required />
+        <RefusedTextInput name="note" placeholder={copy.notePlaceholder} required wrong={["blank"]} />
       </label>
       <SubmitButton variant="primary" size="small" name="status" value={chosen} disabled={!chosen && !current}>
         {copy.save}
       </SubmitButton>
-    </FilterForm>
+      <span className={styles.refused}>
+        <Refusal />
+      </span>
+    </ResultForm>
   );
 }
 

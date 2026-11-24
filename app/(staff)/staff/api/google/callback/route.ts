@@ -11,6 +11,7 @@ import {
 import { accountProblems } from "@/lib/accounts/copy";
 import { isStaffEmail } from "@/lib/accounts/permissions";
 import { GOOGLE_API_PATH, GOOGLE_CALLBACK_PATH, GOOGLE_HANDOFF_PATH, LOGIN_PATH } from "@/lib/accounts/session";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import { googleLoginAccount } from "@/lib/server/outside-services/gmail.server";
 import { problem } from "@/lib/server/problems.server";
 import { siteUrl } from "@/lib/site-url.server";
@@ -28,12 +29,12 @@ async function chosen(
   if (started?.state === undefined || params.get("state") !== started.state) return "failed";
   const code = params.get("code");
   if (!code) return undefined;
-  try {
-    return (await googleLoginAccount(code, siteUrl(GOOGLE_CALLBACK_PATH, request).href)) ?? "failed";
-  } catch (error) {
-    problem(accountProblems.googleLoginFailed(), error);
-    return "failed";
-  }
+  const callback = siteUrl(GOOGLE_CALLBACK_PATH, request).href;
+  // Google failing is reported, and they try again. Anything else thrown is a bug of ours, and is thrown on.
+  return (
+    (await orFallback(accountProblems.googleLoginFailed(), undefined, () => googleLoginAccount(code, callback))) ??
+    "failed"
+  );
 }
 
 /** The preview's handoff, with a note signed for it saying `account` logged in; or its login page, if it can't be signed. */

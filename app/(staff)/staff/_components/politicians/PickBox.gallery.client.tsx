@@ -8,13 +8,19 @@ import PickBox from "./PickBox";
 export function PickBoxExample() {
   return (
     <Logged>
-      {(log) => (
-        <div style={{ display: "flex", gap: "var(--space-4)" }}>
-          <PickBox ticked label="Ticked" action={async (on) => log("pick")(on)} />
-          <PickBox ticked={false} label="Not ticked" action={async (on) => log("pick")(on)} />
-          <PickBox ticked={false} some label="Some ticked" action={async (on) => log("pick")(on)} />
-        </div>
-      )}
+      {(log) => {
+        const pick = (on: boolean) => {
+          log("pick")(on);
+          return Promise.resolve({ ok: true as const });
+        };
+        return (
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+            <PickBox ticked label="Ticked" action={pick} says={{}} />
+            <PickBox ticked={false} label="Not ticked" action={pick} says={{}} />
+            <PickBox ticked={false} some label="Some ticked" action={pick} says={{}} />
+          </div>
+        );
+      }}
     </Logged>
   );
 }

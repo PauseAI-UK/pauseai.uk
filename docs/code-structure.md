@@ -486,7 +486,7 @@ holds it.
   - **Something typed and then sent**, a note or a reply, keeps what was
     typed and stays open, saying it wasn't sent. ESLint refuses an async function
     written in place as an event's handler or handed to a transition
-    (`SAVE_RULES` in `eslint.config.mjs`, with the components still to move).
+    (`SAVE_RULES` in `eslint.config.mjs`).
 - **A form's server code answers one shape** (`lib/form-result.ts`),
   whether it's a route or a Server Action: `{ ok: true, … }` with what the
   form needs next, or `{ ok: false, reason }`. The reason is a code, one
@@ -504,6 +504,57 @@ holds it.
     `eslint.config.mjs`).
   - The spam check refuses with a reason of its own (`SpamReason`), said
     in the words of `lib/content/spam-check.ts`, whichever form it guards.
+- **A staff Server Action answers that shape or redirects**, and never
+  returns quietly. Input it can't use is one of three things, each handled
+  its own way:
+  - **A field the form fills in itself is missing or malformed**, such as
+    a record's `id` that isn't a number, or an argument a component passes
+    that isn't what it passes. Staff can't cause that by typing, so it's a
+    bug in the form or a request made up. The action throws, after
+    `requireStaff()`, and it's kept as an error. The readers in
+    `lib/staff-forms.ts` throw for these (`ownId()`, `savedListFrom()`),
+    so an action can't forget to check.
+  - **Staff typed something the form can't take**, such as a name that's
+    only spaces. The action answers a reason, such as `"blank"`, and the
+    form says so under the field.
+  - **The thing has gone since the page loaded**, such as a filter someone
+    else deleted. The action answers `"gone"`, having refreshed the page
+    (`revalidatePath`), and the page says so at its top.
+    Deleting what's already gone is done, and says nothing.
+
+  A visitors' form never throws on bad input: bots post anything, and a
+  refusal there is the form working.
+
+  Every Server Action, a visitors' form's too, declares what it answers
+  where it's written: `Promise<FormResult<…>>`, or `Promise<never>` for
+  one that always redirects. ESLint refuses any other (`ACTION_RULE` in
+  `eslint.config.mjs`), so the result isn't behind a type's name of its
+  own, though its reasons can be.
+
+- **A staff form that sends a Server Action is a `ResultForm`**
+  (`app/(staff)/staff/_components/ui/ResultForm.tsx`), never a plain
+  `<form action>`, which ESLint refuses in the staff pages
+  (`STAFF_FORM_RULES` in `eslint.config.mjs`). It's built on
+  `useFormResult` (`components/ui/useFormResult.ts`), which is
+  `useActionState` with the failures caught.
+  - It takes the feature's words for each reason (`says`), and says a
+    refusal where its `<Refusal />` is: under the field it's about, or
+    under the button of a form with no field. Every `ResultForm` has one,
+    which the same rules check.
+  - A text field of one that isn't held in state is a `RefusedTextInput`
+    or `RefusedTextArea`. React empties a form's fields once its action
+    ends, and these keep what was typed when the form wasn't done. One
+    the refusal is about names the reasons that are its (`wrong`), and is
+    marked wrong (`aria-invalid`) while the form is refused for one.
+  - A reason in `atTop`, which is `"gone"`, is said at the top of the page
+    instead (`RefusalPlace`, in the signed-in layout), as the page catching
+    up often takes the form away. It stays until a form is next sent or
+    the address changes.
+  - An action that throws, or never arrives, is said under the button too,
+    in the kit's own words, where a plain form loses the whole page to the
+    error page.
+  - What isn't a form, such as a box that saves as it's ticked, calls its
+    action through `useSave` (above), and reads the same shape from it.
 - **An outside service fails in one way, as an `OutsideFailure`**
   (`lib/server/outside-services/outside-failure.server.ts`). Whatever a
   binding throws is one, or its own subclass of it (`GmailError`,

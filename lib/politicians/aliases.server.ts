@@ -241,8 +241,11 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
   };
 }
 
+/** Why an address wasn't added: what was typed, or, "gone", a politician no longer there. */
+export type AddRefusal = "invalid" | "exists" | "shared" | "note" | "gone";
+
 /** What adding an address did, or why it didn't. */
-export type AddResult = { added: true } | { added: false; why: "invalid" | "exists" | "shared" | "note" };
+export type AddResult = { added: true } | { added: false; why: AddRefusal };
 
 /**
  * Adds an address to a politician's by hand, with a note of why, logged, and relinks every
@@ -262,7 +265,6 @@ export async function addPoliticianAddress(
   // The audit log refuses a staff member's address without a note of why too (audit_log_edit_note).
   const note = givenNote.trim();
   if (!note) return { added: false, why: "note" };
-  // Already theirs, however: their email, a past one, one their body lists, their office's, or a form of their name.
   const [who] = await query<{
     id: number;
     name: string;
@@ -274,7 +276,8 @@ export async function addPoliticianAddress(
      JOIN politicians p ON p.id = n.id WHERE n.id = $1`,
     [politicianId],
   );
-  if (!who) return { added: false, why: "exists" };
+  if (!who) return { added: false, why: "gone" };
+  // Already theirs, however: their email, a past one, one their body lists, their office's, or a form of their name.
   const known = await politicianAliases(who);
   const theirs = [
     known.email?.toLowerCase(),

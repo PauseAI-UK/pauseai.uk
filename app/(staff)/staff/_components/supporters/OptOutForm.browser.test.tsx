@@ -3,9 +3,25 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { CONSENTS } from "@/lib/supporters/contact-permissions";
 import { optOutChoices } from "@/lib/supporters/opt-out-choices";
-import OptOutForm from "./OptOutForm";
+import { refused } from "@/lib/form-result";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { RefusalPlace } from "../ui/ResultForm";
+import OptOutForm, { type RecordOptOut } from "./OptOutForm";
 import { OptOutFormExample } from "./OptOutForm.gallery.client";
 import { supportersCopy } from "./copy";
+
+// The page's address, which the place a page says things at its top reads.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/staff/supporters/4",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+/** A stand-in for the Server Action, answering each send in turn with one of `answers`. */
+function recording(...answers: Awaited<ReturnType<RecordOptOut>>[]) {
+  const action = vi.fn<RecordOptOut>();
+  for (const answer of answers) action.mockResolvedValueOnce(answer);
+  return action;
+}
 
 const words = supportersCopy.supporters.detail.permissions.recordOptOut;
 const { ways, lists } = supportersCopy.supporters.filters;
@@ -23,9 +39,16 @@ const choices = optOutChoices([
   })),
 ]);
 
+/** Chooses every bulk email, and says how they told us. */
+async function fillIn(how: string) {
+  await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+  await page.getByRole("button", { name: `${words.bulk}, ${ways.email}` }).click();
+  await page.getByRole("textbox", { name: words.how }).fill(how);
+}
+
 describe("OptOutForm", () => {
   it("opens to choose what they opted out of, at which address or number, and how they told us", async () => {
-    const record = vi.fn(async () => true);
+    const record = recording({ ok: true, already: false });
     await render(<OptOutForm supporterId={4} choices={choices} record={record} />);
     await page.getByRole("button", { name: words.open }).click();
     // Nothing chosen to begin with, so nothing can be recorded yet.
@@ -53,7 +76,7 @@ describe("OptOutForm", () => {
     await page.getByRole("textbox", { name: words.how }).fill("Asked at the Leeds stall");
     await page.getByRole("button", { name: words.record }).click();
     await expect.element(page.getByRole("button", { name: words.open })).toBeVisible();
-    expect(Object.fromEntries((record.mock.calls[0] as unknown as [FormData])[0].entries())).toEqual({
+    expect(Object.fromEntries(record.mock.calls[0][0])).toEqual({
       supporterId: "4",
       choice: "email|bulk|jane.smith@example.com",
       how: "Asked at the Leeds stall",
@@ -62,16 +85,48 @@ describe("OptOutForm", () => {
   });
 
   it("says when they were opted out of it already, and Cancel closes it unsent", async () => {
-    const record = vi.fn(async () => false);
+    const record = recording({ ok: true, already: true });
     await render(<OptOutForm supporterId={4} choices={choices} record={record} opened />);
     await page.getByRole("button", { name: words.cancel }).click();
     expect(record).not.toHaveBeenCalled();
     await page.getByRole("button", { name: words.open }).click();
-    await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
-    await page.getByRole("button", { name: `${words.bulk}, ${ways.email}` }).click();
-    await page.getByRole("textbox", { name: words.how }).fill("Phoned");
+    await fillIn("Phoned");
     await page.getByRole("button", { name: words.record }).click();
     await expect.element(page.getByText(words.already)).toBeVisible();
+  });
+
+  it("stays open when it's refused or fails, saying why under how they told us, with what was typed", async () => {
+    const record = recording(refused("blank"));
+    // As the server throws: an error with a digest, which the server has kept, so the browser tells no one.
+    record.mockRejectedValueOnce(Object.assign(new Error("The server threw"), { digest: "1" }));
+    record.mockResolvedValueOnce({ ok: true, already: false });
+    await render(<OptOutForm supporterId={4} choices={choices} record={record} opened />);
+    await fillIn("Phoned");
+    await page.getByRole("button", { name: words.record }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(words.refused.blank);
+    await expect.element(page.getByRole("textbox", { name: words.how })).toHaveValue("Phoned");
+    await page.getByRole("button", { name: words.record }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    await expect.element(page.getByRole("textbox", { name: words.how })).toHaveValue("Phoned");
+    // Recorded, it closes, with nothing left to say.
+    await page.getByRole("button", { name: words.record }).click();
+    await expect.element(page.getByRole("button", { name: words.open })).toBeVisible();
+    await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
+    expect(record).toHaveBeenCalledTimes(3);
+  });
+
+  it("says at the top of the page that the supporter has gone", async () => {
+    await render(
+      <RefusalPlace>
+        <OptOutForm supporterId={4} choices={choices} record={recording(refused("gone"))} opened />
+      </RefusalPlace>,
+    );
+    await fillIn("Phoned");
+    await page.getByRole("button", { name: words.record }).click();
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toHaveTextContent(words.refused.gone);
+    // Over the page, not in the form.
+    expect(page.getByRole("form", { name: words.open }).element().contains(alert.element())).toBe(false);
   });
 
   it("says which address or number under a way they have more than one by", async () => {

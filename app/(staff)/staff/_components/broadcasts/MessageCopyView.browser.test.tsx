@@ -302,6 +302,14 @@ describe("MessageCopyView's example in the gallery", () => {
     await expect.element(page.getByText("Thank you for marching").first()).toBeVisible();
   });
 
+  it("logs what a reply is recorded as", async () => {
+    await render(<MessageCopyViewExample email replies />);
+    await page.getByRole("button", { name: copy.replies.nothing }).click();
+    await expect
+      .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+      .toHaveTextContent('deal({"replyId":"1","decision":"nothing"})');
+  });
+
   it("puts WhatsApp's failure of our emoji under it in the history", async () => {
     await render(<MessageCopyView one={{ ...exampleMessageCopy, reactions: [exampleUndeliveredReaction] }} />);
     const history = page.getByRole("list", { name: lettersCopy.letters.detail.historyTitle });

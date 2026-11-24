@@ -3,7 +3,7 @@
 // Notes's examples, whose forms are logged (Notes.gallery.tsx).
 import Notes, { NoteEntry, NoteText } from "./Notes";
 import { exampleNoteAdmin, exampleNotes, exampleNotesAt, exampleNoteWriter } from "./Notes.examples";
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 
 /**
  * A supporter's notes, their forms logged, as Jo sees them, who can change
@@ -18,9 +18,9 @@ export function NotesExample({ as = "writer" }: { as?: "writer" | "admin" | "emp
           notes={as === "empty" ? [] : exampleNotes}
           reader={as === "admin" ? exampleNoteAdmin : exampleNoteWriter}
           at={exampleNotesAt}
-          add={log("add")}
-          edit={log("edit")}
-          remove={log("delete")}
+          add={loggedDone(log, "add")}
+          edit={loggedDone(log, "edit")}
+          remove={loggedDone(log, "delete")}
         />
       )}
     </Logged>
@@ -36,8 +36,8 @@ export function NoteEntryExample({ own = true }: { own?: boolean }) {
           note={exampleNotes[own ? 0 : 1]}
           reader={exampleNoteWriter}
           at={exampleNotesAt}
-          edit={log("edit")}
-          remove={log("delete")}
+          edit={loggedDone(log, "edit")}
+          remove={loggedDone(log, "delete")}
           label="Note"
           dated={false}
         />

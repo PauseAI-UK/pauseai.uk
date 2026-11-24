@@ -1,13 +1,15 @@
 "use client";
 
 // PoliticianWriting's examples that log each change (PoliticianWriting.gallery.tsx).
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
-import type { EditResult } from "@/lib/politicians/edits.server";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 import { exampleAliases, examplePolitician } from "./PoliticianTable.examples";
-import { AddressesBubble, SalutationBubble } from "./PoliticianWriting";
+import { AddressesBubble, SalutationBubble, type EditAction } from "./PoliticianWriting";
+
+/** What saving a politician's details answers. */
+type Edited = Awaited<ReturnType<EditAction>>;
 
 /** A politician's salutation in the band, each save logged, answering with `result`; one made from their name, with the two it most likely is. */
-export function SalutationBubbleExample({ result, fromName = false }: { result: EditResult; fromName?: boolean }) {
+export function SalutationBubbleExample({ result, fromName = false }: { result: Edited; fromName?: boolean }) {
   return (
     <Logged>
       {(log) => (
@@ -19,7 +21,7 @@ export function SalutationBubbleExample({ result, fromName = false }: { result: 
           }
           action={(form) => {
             log("editDetails")(form);
-            return result;
+            return Promise.resolve(result);
           }}
         />
       )}
@@ -32,7 +34,7 @@ export function SalutationBubbleExample({ result, fromName = false }: { result: 
  * it and their other addresses, each change logged, answering with `result`;
  * a Lord's with none, to set.
  */
-export function AddressesBubbleExample({ result, lord = false }: { result: EditResult; lord?: boolean }) {
+export function AddressesBubbleExample({ result, lord = false }: { result: Edited; lord?: boolean }) {
   return (
     <Logged>
       {(log) => (
@@ -49,10 +51,10 @@ export function AddressesBubbleExample({ result, lord = false }: { result: EditR
               : examplePolitician
           }
           aliases={lord ? { ...exampleAliases, email: null, emailSource: null } : exampleAliases}
-          actions={{ add: log("addAlias"), remove: log("removeAlias") }}
+          actions={{ add: loggedDone(log, "addAlias"), remove: loggedDone(log, "removeAlias") }}
           setEmail={(form) => {
             log("editDetails")(form);
-            return result;
+            return Promise.resolve(result);
           }}
           open
         />

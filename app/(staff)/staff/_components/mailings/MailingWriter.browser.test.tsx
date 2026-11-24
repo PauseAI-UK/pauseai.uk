@@ -20,15 +20,24 @@ import { politiciansCopy } from "../politicians/copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 // Following a link that saves first leaves the page, which would take the test with it.
-const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
+const { leavePage, toldPage } = vi.hoisted(() => ({ leavePage: vi.fn(), toldPage: vi.fn() }));
 vi.mock("@/lib/leave-page.client", () => ({ leavePage }));
+// What the writer says at the top of the page, which the signed-in layout shows (RefusalPlace).
+vi.mock("../ui/ResultForm", async (original) => ({
+  ...(await original<typeof import("../ui/ResultForm")>()),
+  useTellPage: () => toldPage,
+}));
 afterEach(() => {
   leavePage.mockClear();
+  toldPage.mockClear();
   sessionStorage.clear();
 });
 
 /** What a Server Action throws when a deploy since the page opened has taken it away. */
 const gone = () => new UnrecognizedActionError('Server Action "x" was not found on the server.');
+
+/** What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again. */
+const thrown = () => Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1" });
 
 const copy = mailingsCopy.mailingPages;
 const WAIT = { timeout: 3000 };
@@ -41,13 +50,13 @@ const action = (answer: () => unknown) => vi.fn<(...args: unknown[]) => Promise<
 function fakeActions() {
   let version = 1;
   return {
-    save: action(() => ({ saved: true, version: ++version })),
-    attach: action(() => ({ saved: true, version: ++version, attachments: [FILE] })),
-    detach: action(() => ({ saved: true, version: ++version, attachments: [] })),
-    sendTest: action(() => ({ sent: true, id: "m", to: "jo@pauseai.uk" })),
-    schedule: action(() => ({ scheduled: true })),
-    deleteDraft: vi.fn(async () => {}),
-    leaveOut: vi.fn(async () => {}),
+    save: action(() => ({ ok: true, version: ++version })),
+    attach: action(() => ({ ok: true, version: ++version, attachments: [FILE] })),
+    detach: action(() => ({ ok: true, version: ++version, attachments: [] })),
+    sendTest: action(() => ({ ok: true, to: "jo@pauseai.uk" })),
+    schedule: action(() => ({ ok: true })),
+    deleteDraft: action(() => ({ ok: true })),
+    leaveOut: action(() => ({ ok: true })),
   };
 }
 
@@ -117,7 +126,7 @@ describe("MailingWriter", () => {
 
   it("says when someone else saved it first, and saves nothing more", async () => {
     const { actions } = await renderWriter({ draft: exampleWrittenMailing });
-    actions.save.mockResolvedValueOnce({ saved: false, reason: "conflict" });
+    actions.save.mockResolvedValueOnce({ ok: false, reason: "conflict" });
     await expect.element(status()).toHaveTextContent(copy.savePill.saved);
     await subject().fill("Mine");
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.saveStates.conflict);
@@ -216,25 +225,24 @@ describe("MailingWriter", () => {
     await expect.element(schedule).toBeEnabled();
   });
 
-  it("lets any other error from a test, or scheduling, go on", async () => {
-    const errors: unknown[] = [];
-    const caught = (event: PromiseRejectionEvent) => {
-      errors.push(event.reason);
-      event.preventDefault();
-    };
-    window.addEventListener("unhandledrejection", caught);
-    try {
-      const { actions } = await renderWriter({ draft: ready, data: readyData });
-      actions.sendTest.mockRejectedValueOnce(new Error("test broke"));
-      actions.schedule.mockRejectedValueOnce(new Error("schedule broke"));
-      await preview().getByRole("button", { name: copy.sendTest }).click();
-      await page.getByRole("button", { name: copy.schedule(2) }).click();
-      await expect
-        .poll(() => errors.map((e) => (e as Error).message).sort(), WAIT)
-        .toEqual(["schedule broke", "test broke"]);
-    } finally {
-      window.removeEventListener("unhandledrejection", caught);
-    }
+  it("says a test, or scheduling, didn't work when it throws, with the button back to press again", async () => {
+    const { actions } = await renderWriter({ draft: ready, data: readyData });
+    actions.sendTest.mockRejectedValueOnce(thrown());
+    const test = preview().getByRole("button", { name: copy.sendTest });
+    await test.click();
+    await expect.element(preview().getByText(copy.testFailed)).toBeVisible();
+    await expect.element(test).toBeEnabled();
+    actions.schedule.mockRejectedValueOnce(thrown());
+    const send = region(copy.sections.send);
+    const schedule = send.getByRole("button", { name: copy.schedule(2) });
+    await schedule.click();
+    await expect.element(send.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    await expect.element(schedule).toBeEnabled();
+    // Pressed again, it's scheduled, and no longer says so.
+    await schedule.click();
+    await expect.element(schedule).toHaveAttribute("aria-busy", "true");
+    await expect.element(send.getByRole("alert")).not.toBeInTheDocument();
+    expect(actions.schedule).toHaveBeenCalledTimes(2);
   });
 
   it("says when a save fails, and tries again, with what failed, at the next change", async () => {
@@ -254,7 +262,7 @@ describe("MailingWriter", () => {
     const { actions } = await renderWriter({ draft: exampleWrittenMailing });
     let finish = () => {};
     actions.save.mockImplementationOnce(
-      () => new Promise((resolve) => (finish = () => resolve({ saved: true, version: 4 }))),
+      () => new Promise((resolve) => (finish = () => resolve({ ok: true, version: 4 }))),
     );
     await subject().fill("One");
     await expect.poll(() => actions.save.mock.calls.length, WAIT).toBe(1);
@@ -288,17 +296,17 @@ describe("MailingWriter", () => {
     ]);
     await expect.element(page.getByRole("button", { name: copy.removeFile("a.pdf") })).toBeVisible();
 
-    actions.attach.mockResolvedValueOnce({ saved: false, reason: "too-big", attachments: [FILE] });
+    actions.attach.mockResolvedValueOnce({ ok: false, reason: "too-big" });
     const picker = page.elementLocator(box.querySelector("input")!);
     await picker.upload([new File(["x"], "big.pdf"), new File(["x"], "next.pdf")]);
     await expect.element(page.getByText(copy.tooBig)).toBeVisible();
     expect(actions.attach).toHaveBeenCalledTimes(3);
-    actions.attach.mockResolvedValueOnce(undefined);
-    await picker.upload(new File(["x"], "odd.pdf"));
-    await expect.poll(() => actions.attach.mock.calls.length, WAIT).toBe(4);
-    actions.attach.mockResolvedValueOnce({ saved: false, reason: "conflict", attachments: [FILE] });
+    // What was attached before stays as it was.
+    await expect.element(page.getByRole("button", { name: copy.removeFile("a.pdf") })).toBeVisible();
+    actions.attach.mockResolvedValueOnce({ ok: false, reason: "conflict" });
     await picker.upload(new File(["x"], "late.pdf"));
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.saveStates.conflict);
+    expect(actions.attach).toHaveBeenCalledTimes(4);
   });
 
   it("says a file is too big without sending it, and that one failed to send", async () => {
@@ -315,11 +323,26 @@ describe("MailingWriter", () => {
     expect(actions.attach).toHaveBeenCalledTimes(1);
   });
 
-  it("takes a file off a draft", async () => {
+  it("takes a file off a draft, saying so when it couldn't, or when someone else saved first", async () => {
     const { actions } = await renderWriter({ draft: exampleWrittenMailing });
+    const remove = page.getByRole("button", { name: copy.removeFile("programme.pdf") });
+    // The request never arrives, or the server throws: said under the files, the file still there.
+    actions.detach.mockRejectedValueOnce(thrown());
+    await remove.click();
+    await expect.element(page.getByText(staffVocabulary.notDone)).toBeVisible();
+    await expect.element(remove).toBeEnabled();
+    await remove.click();
+    await expect.poll(() => actions.detach.mock.calls.at(-1), WAIT).toEqual([12, 3, 1]);
+    await expect.element(remove).not.toBeInTheDocument();
+    await expect.element(page.getByText(staffVocabulary.notDone)).not.toBeInTheDocument();
+  });
+
+  it("says the draft changed elsewhere when a file can't be taken off for that", async () => {
+    const { actions } = await renderWriter({ draft: exampleWrittenMailing });
+    actions.detach.mockResolvedValueOnce({ ok: false, reason: "conflict" });
     await page.getByRole("button", { name: copy.removeFile("programme.pdf") }).click();
-    await expect.poll(() => actions.detach.mock.calls[0], WAIT).toEqual([12, 3, 1]);
-    await expect.element(page.getByRole("button", { name: copy.removeFile("programme.pdf") })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.saveStates.conflict);
+    await expect.element(page.getByRole("button", { name: copy.removeFile("programme.pdf") })).toBeVisible();
   });
 
   it("shows who it's to, who's left out and why, and a filter the site no longer knows", async () => {
@@ -382,6 +405,33 @@ describe("MailingWriter", () => {
     const { actions } = await renderWriter({ draft: { ...exampleWrittenMailing, ask: "frontier-ai-letter" } });
     await page.getByRole("button", { name: copy.leaveThemOut }).last().click();
     await expect.poll(() => actions.leaveOut.mock.calls).toEqual([[12, [7]]]);
+  });
+
+  it("says at the page's top that the draft has gone when no one can be left out of it, and stays", async () => {
+    const { actions } = await renderWriter({ draft: exampleWrittenMailing });
+    actions.leaveOut.mockResolvedValueOnce({ ok: false, reason: "gone" });
+    const button = page.getByRole("button", { name: copy.leaveThemOut }).first();
+    await button.click();
+    await expect.poll(() => toldPage.mock.calls).toEqual([[politiciansCopy.choosing.gone]]);
+    await expect.element(button).toBeEnabled();
+    expect(leavePage).not.toHaveBeenCalled();
+  });
+
+  it("says beside Leave them out that it didn't work when it throws, and that the page is outdated when it finds it so", async () => {
+    const { actions } = await renderWriter({ draft: exampleWrittenMailing });
+    actions.leaveOut.mockRejectedValueOnce(thrown());
+    const button = page.getByRole("button", { name: copy.leaveThemOut }).first();
+    await button.click();
+    const who = region(copy.sections.who);
+    await expect.element(who.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    await expect.element(button).toBeEnabled();
+    actions.leaveOut.mockRejectedValueOnce(gone());
+    await button.click();
+    await expect.element(status()).toHaveTextContent(copy.savePill.outdated);
+    await expect.element(who.getByRole("alert")).not.toBeInTheDocument();
+    await expect.element(button).toBeEnabled();
+    expect(leavePage).not.toHaveBeenCalled();
+    expect(toldPage).not.toHaveBeenCalled();
   });
 
   it("chooses who from those yet to answer its ask while no one's ticked, and from everyone with no ask", async () => {
@@ -525,12 +575,19 @@ describe("MailingWriter", () => {
     await to.fill(" sam@example.org ");
     await test.click();
     await expect.poll(() => actions.sendTest.mock.calls.at(-1)).toEqual([12, 7, "sam@example.org"]);
-    actions.sendTest.mockResolvedValueOnce({ sent: false, reason: "failed" });
+    actions.sendTest.mockResolvedValueOnce({ ok: false, reason: "not-sent" });
     await test.click();
     await expect.element(preview().getByText(copy.testFailed)).toBeVisible();
-    actions.sendTest.mockResolvedValueOnce(undefined);
+    // Someone who's no longer a recipient: said in its place.
+    actions.sendTest.mockResolvedValueOnce({ ok: false, reason: "not-recipient" });
     await test.click();
-    await expect.element(preview().getByText(copy.testFailed)).toBeVisible();
+    await expect.element(preview().getByText(mailingsCopy.refusals.test["not-recipient"])).toBeVisible();
+    await expect.element(preview().getByText(copy.testFailed)).not.toBeInTheDocument();
+    expect(toldPage).not.toHaveBeenCalled();
+    // A draft that's gone: said at the page's top, as the page catching up takes the button away.
+    actions.sendTest.mockResolvedValueOnce({ ok: false, reason: "gone" });
+    await test.click();
+    await expect.poll(() => toldPage.mock.calls).toEqual([[mailingsCopy.refusals.test.gone]]);
   });
 
   it("has nothing to preview with no one to send to", async () => {
@@ -620,11 +677,12 @@ describe("MailingWriter", () => {
     const { actions, view } = await renderWriter({ data, draft: ready });
     await expect.element(page.getByText(copy.cantSend)).not.toBeInTheDocument();
     const schedule = page.getByRole("button", { name: copy.schedule(2) });
-    // Refused, it's pressed again.
-    actions.schedule.mockResolvedValueOnce({ scheduled: false, reason: "conflict" });
+    // Refused for something the page checks too, which the page, shown afresh, then says: it's pressed again.
+    actions.schedule.mockResolvedValueOnce({ ok: false, reason: "problems" });
     await schedule.click();
     await expect.poll(() => actions.schedule.mock.calls.length, WAIT).toBe(1);
     await expect.element(schedule).toBeEnabled();
+    expect(page.getByRole("alert").all()).toHaveLength(0);
     await schedule.click();
     await expect.poll(() => actions.schedule.mock.calls.length, WAIT).toBe(2);
     expect(actions.schedule).toHaveBeenLastCalledWith(12, 3);
@@ -637,6 +695,16 @@ describe("MailingWriter", () => {
     expect(window.scrollY).toBe(0);
   });
 
+  it("says the draft changed elsewhere when it can't be scheduled for that, with the button back", async () => {
+    const { actions } = await renderWriter({ data: readyData, draft: ready });
+    actions.schedule.mockResolvedValueOnce({ ok: false, reason: "conflict" });
+    const schedule = page.getByRole("button", { name: copy.schedule(2) });
+    await schedule.click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.saveStates.conflict);
+    await expect.element(status()).toHaveTextContent(copy.savePill.conflict);
+    await expect.element(schedule).toBeEnabled();
+  });
+
   it("schedules after a save under way, with the version it saved", async () => {
     const ready = {
       ...exampleWrittenMailing,
@@ -646,7 +714,7 @@ describe("MailingWriter", () => {
     const { actions } = await renderWriter({ data: { ...exampleWriterData, fields: [] }, draft: ready });
     let finish = () => {};
     actions.save.mockImplementationOnce(
-      () => new Promise((resolve) => (finish = () => resolve({ saved: true, version: 9 }))),
+      () => new Promise((resolve) => (finish = () => resolve({ ok: true, version: 9 }))),
     );
     await subject().fill("Two");
     // Its save under way, not waiting to start.
@@ -779,7 +847,7 @@ describe("MailingWriter", () => {
     let finish = () => {};
     actions.save.mockImplementation(async () => {
       await new Promise<void>((resolve) => (finish = resolve));
-      return { saved: true, version: 2 };
+      return { ok: true, version: 2 };
     });
     await field(copy.subject).fill("Changed at once");
     const link = page.getByRole("link", { name: copy.changeWho });

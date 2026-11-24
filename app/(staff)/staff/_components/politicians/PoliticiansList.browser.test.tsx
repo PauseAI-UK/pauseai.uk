@@ -62,6 +62,12 @@ describe("HouseTabs", () => {
   });
 });
 
+const OK = { ok: true as const };
+/** A form's Server Action's stand-in, which is done. */
+const formAction = () => vi.fn<(form: FormData) => Promise<typeof OK>>(async () => OK);
+/** The stand-in for one a tick calls, which is done. */
+const tickAction = () => vi.fn<(...args: unknown[]) => Promise<typeof OK>>(async () => OK);
+
 describe("ChoosingHead", () => {
   const copy = politiciansCopy.choosing;
 
@@ -75,9 +81,7 @@ describe("ChoosingHead", () => {
   });
 
   it("says what to do for a new mailing, with Cancel, which deletes it", async () => {
-    const cancel = vi.fn(async (form: FormData) => {
-      expect(form.get("id")).toBe("12");
-    });
+    const cancel = formAction();
     await render(
       <ChoosingHead choosing={{ ...exampleChoosing, blank: true }} cancel={cancel}>
         <h1>Politicians</h1>
@@ -93,6 +97,21 @@ describe("ChoosingHead", () => {
     await page.viewport(1280, 800);
     await page.getByRole("button", { name: copy.cancelNew }).click();
     await expect.poll(() => cancel.mock.calls.length).toBe(1);
+    expect(cancel.mock.calls[0][0].get("id")).toBe("12");
+    expect(page.getByRole("alert").all()).toHaveLength(0);
+  });
+
+  it("says under Cancel why the mailing wasn't deleted", async () => {
+    await render(
+      <ChoosingHead
+        choosing={{ ...exampleChoosing, blank: true }}
+        cancel={() => Promise.reject(Object.assign(new Error("The server threw"), { digest: "1" }))}
+      >
+        <h1>Politicians</h1>
+      </ChoosingHead>,
+    );
+    await page.getByRole("button", { name: copy.cancelNew }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
   });
 
   it("names the draft, with no way out at the top, as its ticks are saved and the bar goes back", async () => {
@@ -113,24 +132,15 @@ describe("PoliticiansList", () => {
   const mailingCopy = politiciansCopy.choosing;
   const search = { ...emptyPoliticiansSearch, q: "pol", page: "2" };
   const actions = () => ({
-    pick: vi.fn(async () => {}),
-    pickFound: vi.fn(async () => {}),
-    paste: vi.fn(async () => {}),
-    pickMany: vi.fn(async () => {}),
-    untickAll: vi.fn(async (mailing?: number) => {
-      expect(mailing).toBe(12);
-    }),
+    pick: tickAction(),
+    pickFound: tickAction(),
+    paste: formAction(),
+    pickMany: tickAction(),
+    untickAll: tickAction(),
   });
 
   it("makes a new mailing to who the filters find, with Mail these", async () => {
-    const newMailing = vi.fn(async (form: FormData) => {
-      expect([...form.entries()]).toEqual([
-        ["q", "pol"],
-        ["party", "Green"],
-        ["party", "!Labour"],
-        ["found", "1"],
-      ]);
-    });
+    const newMailing = formAction();
     await render(
       <PoliticiansList
         list={{ ...examplePoliticiansPage, total: 150 }}
@@ -143,12 +153,16 @@ describe("PoliticiansList", () => {
     expect(page.getByRole("checkbox").all()).toHaveLength(0);
     await page.getByRole("button", { name: mailingCopy.mailThese(150) }).click();
     await expect.poll(() => newMailing.mock.calls.length).toBe(1);
+    expect([...newMailing.mock.calls[0][0].entries()]).toEqual([
+      ["q", "pol"],
+      ["party", "Green"],
+      ["party", "!Labour"],
+      ["found", "1"],
+    ]);
   });
 
   it("makes an empty mailing with New mailing, given no filter", async () => {
-    const newMailing = vi.fn(async (form: FormData) => {
-      expect([...form.entries()]).toEqual([]);
-    });
+    const newMailing = formAction();
     await render(
       <PoliticiansList
         list={{ ...examplePoliticiansPage, total: 150 }}
@@ -160,6 +174,7 @@ describe("PoliticiansList", () => {
     );
     await page.getByRole("button", { name: mailingCopy.newTitle }).click();
     await expect.poll(() => newMailing.mock.calls.length).toBe(1);
+    expect([...newMailing.mock.calls[0][0].entries()]).toEqual([]);
   });
 
   it("names one person found as this one, and has no button when the filters find no one", async () => {
@@ -241,6 +256,7 @@ describe("PoliticiansList", () => {
       .toHaveAttribute("href", "/staff/politicians?q=pol&mailing=12&tab=ticked");
     await bar.getByRole("button", { name: mailingCopy.untickAll }).click();
     await expect.poll(() => act.untickAll.mock.calls.length).toBe(1);
+    expect(act.untickAll.mock.calls[0][0]).toBe(12);
     await expect
       .element(bar.getByRole("link", { name: mailingCopy.writeToThese(2) }))
       .toHaveAttribute("href", "/staff/mailings/12");
@@ -299,12 +315,6 @@ describe("PoliticiansList", () => {
 
   it("choosing, pastes names from the bar, then on the paste tab shows a row for each person found, to tick", async () => {
     const act = actions();
-    act.paste.mockImplementation(async (form?: FormData) => {
-      expect([...form!.entries()]).toEqual([
-        ["back", "/staff/politicians?q=pol&page=2&mailing=12"],
-        ["names", "Polly Placeholder"],
-      ]);
-    });
     const { rerender } = await render(
       <PoliticiansList
         list={examplePoliticiansPage}
@@ -320,6 +330,10 @@ describe("PoliticiansList", () => {
     await page.getByRole("textbox", { name: mailingCopy.pasteLabel }).fill("Polly Placeholder");
     await page.getByRole("button", { name: mailingCopy.pasteTick }).click();
     await expect.poll(() => act.paste.mock.calls.length).toBe(1);
+    expect([...act.paste.mock.calls[0][0].entries()]).toEqual([
+      ["back", "/staff/politicians?q=pol&page=2&mailing=12"],
+      ["names", "Polly Placeholder"],
+    ]);
     await rerender(
       <PoliticiansList
         list={examplePoliticiansPage}

@@ -45,7 +45,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
 
   it("a job's button runs it as the staff member, here ControlAI's letter, and keeps a failure rather than crashing the page", async () => {
     const id = await addTestPolitician();
-    await runJobNow("import-controlai");
+    expect(await runJobNow("import-controlai")).toEqual({ ok: true });
     expect((await getPolitician(id))!.statuses["controlai-letter"]).toMatchObject({ updatedBy: "controlai" });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
     // Its own page, the overview, and the home page's actions.
@@ -55,7 +55,8 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get("https://controlai.org/uk-pm-letter", () => new HttpResponse(null, { status: 500 })));
     revalidatePath.mockClear();
-    await runJobNow("import-controlai");
+    // Done all the same: the run's failure is in the job's log, on the page it refreshes.
+    expect(await runJobNow("import-controlai")).toEqual({ ok: true });
     // That nobody could be emailed about the failed run, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith(emailProblems.noInbox().what);
@@ -118,26 +119,51 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });
 
-  it("decideImport applies or discards a held import, and ignores a bad form", async () => {
+  it("decideImport applies or discards a held import, and says one has gone that's held no longer, showing the page as it is", async () => {
     await query(
       `INSERT INTO import_runs (job, started_by, status, result) VALUES ('import-senedd', 'nightly', 'held', $1)`,
       [JSON.stringify({ changes: {}, members: [], endings: [] })],
     );
     const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM import_runs");
-    await decideImport(form({ id: String(id), job: "import-senedd", decision: "maybe" }));
-    await decideImport(form({ id: "x", job: "import-senedd", decision: "apply" }));
-    await decideImport(form({ id: String(id), job: "sync-politicians", decision: "apply" }));
-    await decideImport(form({ id: String(id), decision: "apply" }));
-    expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "held" }]);
-    await decideImport(form({ id: String(id), job: "import-senedd", decision: "discard" }));
+    const discard = form({ id: String(id), job: "import-senedd", decision: "discard" });
+    expect(await decideImport(discard)).toEqual({ ok: true });
     expect(await query("SELECT status, decided_by FROM import_runs")).toEqual([
       { status: "discarded", decided_by: "jo@pauseai.uk" },
     ]);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/senedd");
+    // Decided already, as when someone else got there first, or a newer run replaced it.
+    revalidatePath.mockClear();
+    expect(await decideImport(form({ id: String(id), job: "import-senedd", decision: "apply" }))).toEqual({
+      ok: false,
+      reason: "gone",
+    });
+    expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "discarded" }]);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/senedd");
   });
 
-  it("runs nothing for a name that isn't a job's", async () => {
-    await runJobNow("nothing");
-    await runJobNow("toString");
+  it("decideImport throws on a form without its import, its job or its decision, which the form fills in itself", async () => {
+    await query(
+      `INSERT INTO import_runs (job, started_by, status, result) VALUES ('import-senedd', 'nightly', 'held', $1)`,
+      [JSON.stringify({ changes: {}, members: [], endings: [] })],
+    );
+    const [{ id }] = await query<{ id: number }>("SELECT id::int AS id FROM import_runs");
+    await expect(decideImport(form({ id: String(id), job: "import-senedd", decision: "maybe" }))).rejects.toThrow(
+      "without its decision",
+    );
+    await expect(decideImport(form({ id: "x", job: "import-senedd", decision: "apply" }))).rejects.toThrow(
+      `"id" isn't a row's ID`,
+    );
+    await expect(decideImport(form({ id: String(id), job: "sync-politicians", decision: "apply" }))).rejects.toThrow(
+      "a job that holds none",
+    );
+    await expect(decideImport(form({ id: String(id), decision: "apply" }))).rejects.toThrow("a job that holds none");
+    expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "held" }]);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("throws on a name that isn't a job's, which the page fills in itself, and runs nothing", async () => {
+    await expect(runJobNow("nothing")).rejects.toThrow("a name that isn't a job's");
+    await expect(runJobNow("toString")).rejects.toThrow("a name that isn't a job's");
     expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
     expect(await query("SELECT 1 FROM job_presses")).toEqual([]);
     expect(revalidatePath).not.toHaveBeenCalled();

@@ -245,8 +245,11 @@ async function finishWhatsappUpload(plan: SignupPlan, by: string): Promise<{ upl
   return { uploadId };
 }
 
-/** What finishing a file came to: its upload's ID; or that it can no longer go in as shown, with what it would do now. */
-export type SignupUploadFinished = { uploadId: number } | { changed: SignupPlan } | SignupUploadRefused;
+/** A file gone in, by its upload's ID; or one that can no longer go in as shown, with what it would do now. */
+export type SignupUploadDone = { uploadId: number } | { changed: SignupPlan };
+
+/** What finishing a file came to: that, or why it can't be read or its choices don't fit it. */
+export type SignupUploadFinished = SignupUploadDone | SignupUploadRefused;
 
 /**
  * Does what the preview said, if `signature` says it would still do the same:

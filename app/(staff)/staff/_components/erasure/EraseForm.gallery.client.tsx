@@ -4,11 +4,19 @@
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 import EraseForm from "./EraseForm";
 
-/** The erase page's form, its Erase logged. */
+/** The erase page's form, its Erase logged, and answered as done. */
 export function EraseFormExample() {
   return (
     <Logged>
-      {(log) => <EraseForm supporter={{ id: 7, name: "Jane Example" }} action={log("eraseSupporterNow")} />}
+      {(log) => (
+        <EraseForm
+          supporter={{ id: 7, name: "Jane Example" }}
+          action={(form) => {
+            log("eraseSupporterNow")(form);
+            return Promise.resolve({ ok: true });
+          }}
+        />
+      )}
     </Logged>
   );
 }

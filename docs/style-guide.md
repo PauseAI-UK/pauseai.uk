@@ -260,6 +260,11 @@ with why.
   outside it.
 - **Errors**: a field that's wrong has `aria-invalid`, which gives it a
   danger-coloured border, and a `FieldError` under it.
+- **A staff form that's refused** says why in the same way, under the
+  field it's about, or under the button of a form with no field: its
+  `Refusal` (`ui/ResultForm` in the staff kit). That its thing has gone
+  since the page loaded is said at the top of the page, as a red `Alert`,
+  as the form has often gone too (`docs/code-structure.md`, "Errors").
 
 ## Density
 

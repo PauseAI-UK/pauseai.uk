@@ -1,19 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import { refused } from "@/lib/form-result";
 import type { EmailSource } from "@/lib/politicians/aliases.server";
 import { staffDate } from "@/lib/staff-time";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { RefusalPlace } from "../ui/ResultForm";
 import { exampleAliases, examplePolitician } from "./PoliticianTable.examples";
-import { AddressesBubble } from "./PoliticianWriting";
+import { AddressesBubble, type EditAction } from "./PoliticianWriting";
 import { AddressesBubbleExample, SalutationBubbleExample } from "./PoliticianWriting.gallery.client";
 import { politiciansCopy } from "./copy";
+
+// The page's address, which the place a page says things at its top reads.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/staff/politicians/7",
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 describe("PoliticianWriting's examples in the gallery", () => {
   // Their Server Actions are logged, not sent: pressing each adds its line to the event log.
   const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
 
   it("sets a Lord's email in its bubble, with why, saying why it's theirs to set, and what the server answered", async () => {
-    await render(<AddressesBubbleExample lord result={{ saved: false, why: "shared" }} />);
+    await render(<AddressesBubbleExample lord result={{ ok: false, reason: "shared" }} />);
     const words = politiciansCopy.politician.editDetails;
     await expect.element(page.getByText(words.emailHint)).toBeVisible();
     // With no email, no other addresses to list, nor a way to add one.
@@ -21,7 +30,14 @@ describe("PoliticianWriting's examples in the gallery", () => {
     await page.getByRole("textbox", { name: words.email }).fill("contactholmember@parliament.uk");
     await page.getByRole("textbox", { name: words.note }).fill("Found it");
     await page.getByRole("button", { name: words.save }).click();
-    await expect.element(page.getByRole("status").first()).toHaveTextContent(words.refused.shared);
+    await expect.element(page.getByRole("alert")).toHaveTextContent(words.refused.shared);
+    // Refused for the address, which is marked, with what was typed still in both fields.
+    await expect.element(page.getByRole("textbox", { name: words.email })).toHaveAttribute("aria-invalid", "true");
+    await expect
+      .element(page.getByRole("textbox", { name: words.email }))
+      .toHaveValue("contactholmember@parliament.uk");
+    await expect.element(page.getByRole("textbox", { name: words.note })).toHaveValue("Found it");
+    await expect.element(page.getByRole("textbox", { name: words.note })).not.toHaveAttribute("aria-invalid");
     await expect
       .element(log().nth(0))
       .toHaveTextContent(
@@ -30,7 +46,7 @@ describe("PoliticianWriting's examples in the gallery", () => {
   });
 
   it("changes an MP's email in its bubble, which won't send without why, and lists their other addresses, with Remove and Add", async () => {
-    await render(<AddressesBubbleExample result={{ saved: true }} />);
+    await render(<AddressesBubbleExample result={{ ok: true }} />);
     const words = politiciansCopy.politician.aliases;
     const edit = politiciansCopy.politician.editDetails;
     await expect.element(page.getByRole("button", { name: words.more(7) })).toBeVisible();
@@ -92,7 +108,7 @@ describe("PoliticianWriting's examples in the gallery", () => {
   it("says under their main address where it came from: the staff edit with its note, their body's list, or nothing", async () => {
     const edit = politiciansCopy.politician.editDetails;
     const words = politiciansCopy.politician.aliases;
-    const bubble = (emailSource: EmailSource, setEmail?: () => undefined) => (
+    const bubble = (emailSource: EmailSource, setEmail?: EditAction) => (
       <AddressesBubble
         politician={examplePolitician}
         aliases={{ ...exampleAliases, emailSource }}
@@ -136,7 +152,7 @@ describe("PoliticianWriting's examples in the gallery", () => {
 
   it("changes a salutation in its bubble, with why, closing it once saved, and offers Ms or Mr for one made from the name", async () => {
     const words = politiciansCopy.politician.editDetails;
-    const { rerender } = await render(<SalutationBubbleExample result={{ saved: true }} />);
+    const { rerender } = await render(<SalutationBubbleExample result={{ ok: true }} />);
     await page.getByRole("button", { name: words.edit }).click();
     const field = page.getByRole("textbox", { name: words.salutation });
     await expect.element(field).toBeVisible();
@@ -146,7 +162,7 @@ describe("PoliticianWriting's examples in the gallery", () => {
       .element(log().nth(0))
       .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Ms Placeholder","note":"Her letters"})');
     await expect.element(field).not.toBeInTheDocument();
-    await rerender(<SalutationBubbleExample fromName result={{ saved: false, why: "salutation" }} />);
+    await rerender(<SalutationBubbleExample fromName result={{ ok: false, reason: "salutation" }} />);
     await page.getByRole("button", { name: words.edit }).click();
     await expect.element(page.getByText(words.fromName)).toBeVisible();
     // A choice puts itself in the field and leads on to why, sending nothing yet.
@@ -159,7 +175,52 @@ describe("PoliticianWriting's examples in the gallery", () => {
     await expect
       .element(log().nth(1))
       .toHaveTextContent('editDetails({"politicianId":"7","salutation":"Mr Placeholder","note":"His website"})');
-    // Refused, the bubble stays open.
+    // Refused, the bubble stays open, saying why, the salutation marked.
     await expect.element(page.getByRole("button", { name: "Ms Placeholder" })).toBeVisible();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(words.refused.salutation);
+    await expect.element(field).toHaveAttribute("aria-invalid", "true");
+  });
+});
+
+describe("PoliticianWriting, when the server can't do what's asked", () => {
+  const edit = politiciansCopy.politician.editDetails;
+  const words = politiciansCopy.politician.aliases;
+
+  it("says at the top of the page that the politician can't be edited any more, their email's field still open", async () => {
+    await render(
+      <RefusalPlace>
+        <AddressesBubble
+          politician={{ ...examplePolitician, email: null }}
+          aliases={{ ...exampleAliases, email: null, emailSource: null }}
+          actions={{ add: vi.fn(), remove: vi.fn() }}
+          setEmail={async () => refused("gone")}
+          open
+        />
+      </RefusalPlace>,
+    );
+    await page.getByRole("textbox", { name: edit.email }).fill("polly@example.org");
+    await page.getByRole("textbox", { name: edit.note }).fill("Her office asked");
+    await page.getByRole("button", { name: edit.save }).click();
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toHaveTextContent(edit.refused.gone);
+    // Over the page, not in the bubble.
+    expect(document.querySelector("[popover]")!.contains(alert.element())).toBe(false);
+    await expect.element(page.getByRole("textbox", { name: edit.email })).toBeVisible();
+  });
+
+  it("says by an address's Remove when removing it fails", async () => {
+    // As the server throws: an error with a digest, which the server has kept, so the browser tells no one.
+    const remove = vi.fn().mockRejectedValue(Object.assign(new Error("The server threw"), { digest: "1" }));
+    await render(
+      <AddressesBubble
+        politician={examplePolitician}
+        aliases={exampleAliases}
+        actions={{ add: vi.fn(), remove }}
+        open
+      />,
+    );
+    const form = page.getByRole("form", { name: `${words.remove}: jane.smith@parliament.uk` });
+    await form.getByRole("button", { name: words.remove }).click();
+    await expect.element(form.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
   });
 });

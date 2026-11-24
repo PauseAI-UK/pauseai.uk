@@ -36,7 +36,7 @@ describeWithDatabase("erasing's Server Action", () => {
     );
   });
 
-  it("eraseSupporterNow needs the supporters permission, erases, and goes to the list; a bad form or no such supporter does nothing", async () => {
+  it("eraseSupporterNow needs the supporters permission, erases, and goes to the list", async () => {
     vi.stubEnv("LUMA_API_KEY", "k");
     const erase = () => eraseSupporterNow(form({ id: "1", reference: "ICO-1", confirm: "on" }));
     expect(await expectRedirect(erase)).toBe("/staff");
@@ -45,8 +45,34 @@ describeWithDatabase("erasing's Server Action", () => {
     expect(await expectRedirect(erase)).toBe("/staff/supporters?erased=1");
     expect(await query("SELECT 1 FROM supporters WHERE id = 1")).toEqual([]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
-    await erase();
-    await eraseSupporterNow(form({ id: "2", reference: "" }));
-    expect(await query("SELECT count(*)::int AS n FROM supporters")).toEqual([{ n: 6 }]);
+  });
+
+  it("eraseSupporterNow refuses a reference that's blank, and says a supporter has gone, showing the pages without them", async () => {
+    vi.stubEnv("LUMA_API_KEY", "k");
+    await saveStaffAccount("jo@pauseai.uk", ["supporters"], "a");
+    await runJob("import-luma", "jo@pauseai.uk", undefined);
+    const supporters = async () => (await query<{ n: number }>("SELECT count(*)::int AS n FROM supporters"))[0].n;
+    const before = await supporters();
+    expect(await eraseSupporterNow(form({ id: "2", reference: "  ", confirm: "on" }))).toEqual({
+      ok: false,
+      reason: "blank",
+    });
+    // Someone else erased them since the page loaded.
+    await query("DELETE FROM supporters WHERE id = 1");
+    expect(await eraseSupporterNow(form({ id: "1", reference: "ICO-1", confirm: "on" }))).toEqual({
+      ok: false,
+      reason: "gone",
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
+    expect(await supporters()).toBe(before - 1);
+  });
+
+  it("eraseSupporterNow throws on a form without its supporter or its box ticked, which the form fills in itself", async () => {
+    await saveStaffAccount("jo@pauseai.uk", ["supporters"], "a");
+    await expect(eraseSupporterNow(form({ id: "x", reference: "ICO-1", confirm: "on" }))).rejects.toThrow(
+      `"id" isn't a row's ID`,
+    );
+    await expect(eraseSupporterNow(form({ id: "1", reference: "ICO-1" }))).rejects.toThrow("without its box ticked");
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

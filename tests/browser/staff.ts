@@ -5,11 +5,12 @@ import { page, userEvent } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
 
-/** A stand-in Server Action that keeps what it was sent. */
+/** A stand-in Server Action that keeps what it was sent, and answers that it's done. */
 export function action() {
   const sent: Record<string, FormDataEntryValue>[] = [];
   const fn = vi.fn((data: FormData) => {
     sent.push(Object.fromEntries(data));
+    return Promise.resolve({ ok: true as const });
   });
   return { fn, sent };
 }

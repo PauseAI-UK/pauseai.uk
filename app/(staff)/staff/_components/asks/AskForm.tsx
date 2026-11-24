@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/Button";
 import { Checkbox, Segmented, TextInput } from "@/components/ui/Controls";
 import DatePicker from "@/components/ui/DatePicker";
 import { Field, FieldError, FieldSet, Hint } from "@/components/ui/Field";
-import { FormStack } from "@/components/ui/Form";
 import { ASK_STATUSES, ASKERS, askSlug, type AskKind, type Asker } from "@/lib/asks/asks";
 import type { Ask } from "@/lib/asks/records.server";
+import type { FormResult } from "@/lib/form-result";
 import { AskPreview } from "./AskLine";
 import AskKindIcon from "./AskKindIcon";
 import { DeleteTwice } from "../ui/DeleteTwice";
 import Grid, { Card } from "../ui/Grid";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import Strip from "../ui/Strip";
 import styles from "./AskForm.module.css";
 import forms from "../ui/StaffForms.module.css";
@@ -23,7 +24,12 @@ const copy = asksCopy.asks;
 /** An ask to edit, with whether the code names it, its kind can change, and it can be deleted. */
 export type EditableAsk = Ask & { named: boolean; kindFixed: boolean; deletable: boolean };
 
-type FormAction = (form: FormData) => void | Promise<void>;
+/**
+ * What the form's Save and Delete do (asks/actions.ts): each goes to another
+ * page, or back to this one saying why not (`notice`), so neither answers a
+ * refusal.
+ */
+type FormAction = (form: FormData) => Promise<FormResult<never>>;
 
 /**
  * Adding an ask, or editing `ask`, beside it as it will show on a
@@ -33,7 +39,8 @@ type FormAction = (form: FormData) => void | Promise<void>;
  * which goes back to `back`, and beside it Delete, pressed twice, only
  * while nothing refers to the ask and the code doesn't name it. Its slug is
  * said, not changed; its kind is fixed once politicians have answered it.
- * `notice` says how the last save or delete went.
+ * `notice` says how the last save or delete went. A save that fails says so
+ * at the form's foot, over Save, with what was typed still there.
  */
 export default function AskForm({
   ask,
@@ -55,6 +62,9 @@ export default function AskForm({
   const [askedBy, setAskedBy] = useState<Asker[]>(ask?.askedBy ?? ["pauseai"]);
   // Save, pending while it saves: it's outside the form, so SubmitButton can't tell.
   const [saving, setSaving] = useOptimistic(false);
+  // How many times it's been sent. Once a form's action ends, React puts its tick boxes back as they were first
+  // drawn, whatever they're held as, so who asks is drawn afresh after each send, as it's ticked now.
+  const [sends, setSends] = useState(0);
   const words = copy.byKind[kind];
   // A link that isn't a whole one, which the server would refuse (askFrom).
   const badLink = Boolean(url) && !url.startsWith("https://");
@@ -68,12 +78,14 @@ export default function AskForm({
       <div className={styles.form}>
         <Grid>
           <Card span={3}>
-            <FormStack
+            <ResultForm
+              stack
               id="ask-form"
-              action={async (form) => {
+              action={(form) => {
                 setSaving(true);
-                await save(form);
+                return save(form).finally(() => setSends((n) => n + 1));
               }}
+              says={{}}
             >
               <input type="hidden" name="back" value={back} />
               {ask && <input type="hidden" name="slug" value={ask.slug} />}
@@ -123,7 +135,7 @@ export default function AskForm({
                 />
               </Field>
               {badLink && <FieldError id="ask-link-error">{copy.badLink}</FieldError>}
-              <FieldSet label={copy.fields.askedBy}>
+              <FieldSet key={sends} label={copy.fields.askedBy}>
                 {ASKERS.map((asker) => (
                   <Checkbox
                     key={asker}
@@ -136,7 +148,8 @@ export default function AskForm({
                   </Checkbox>
                 ))}
               </FieldSet>
-            </FormStack>
+              <Refusal />
+            </ResultForm>
             <Actions>
               <Button
                 type="submit"
@@ -148,7 +161,9 @@ export default function AskForm({
               >
                 {copy.save}
               </Button>
-              {ask?.deletable && <DeleteTwice name="slug" value={ask.slug} label={copy.delete} action={remove} />}
+              {ask?.deletable && (
+                <DeleteTwice name="slug" value={ask.slug} label={copy.delete} action={remove} says={{}} />
+              )}
             </Actions>
             {ask && !ask.deletable && <Hint>{ask.named ? copy.named : copy.notDeletable}</Hint>}
           </Card>

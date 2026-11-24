@@ -118,13 +118,35 @@ const SAVE_RULES = [
   },
 ];
 
-// The components still to move to useSave: each handles a failed save in a
-// way of its own. One leaves this list as it moves, and none joins it.
-const UNCONVERTED_SAVES = [
-  "app/(staff)/staff/_components/broadcasts/BroadcastWriter.tsx",
-  "app/(staff)/staff/_components/mailings/DraftWriter.tsx",
-  "app/(staff)/staff/_components/mailings/MailingWriter.tsx",
-  "app/(staff)/staff/_components/supporters/SignupUploadPreview.tsx",
+// A Server Action answers the one result shape (lib/form-result.ts), or
+// always redirects, and says which where it's declared, so none returns
+// nothing, a boolean or a shape of its own for its form to guess at. The
+// selector reads the annotation as written, so the result isn't hidden
+// behind a type alias; the reasons can be.
+const ACTION =
+  "Program:has(> ExpressionStatement[directive='use server']) > ExportNamedDeclaration > FunctionDeclaration";
+const ACTION_ANSWERS = "returnType.typeAnnotation.typeArguments.params.0";
+const ACTION_RULE = {
+  selector: `${ACTION}:not([returnType.typeAnnotation.typeName.name='Promise']:matches([${ACTION_ANSWERS}.typeName.name='FormResult'], [${ACTION_ANSWERS}.type='TSNeverKeyword']))`,
+  message:
+    'A Server Action declares what it answers: Promise<FormResult<…>> (lib/form-result.ts), or Promise<never> for one that always redirects (docs/code-structure.md, "Errors").',
+};
+
+// A staff form that sends a Server Action is the kit's ResultForm, which
+// says a refusal, and an action that threw, where the person is looking. A
+// plain form loses the page to the error page, and has nowhere to say why.
+// One with a `method` posts to an address, as logging in does, and is left.
+const STAFF_FORM_RULES = [
+  {
+    selector:
+      "JSXOpeningElement[name.name=/^(form|FormStack|FilterForm)$/]:not(:has(JSXAttribute[name.name='method'])) > JSXAttribute[name.name='action'] > JSXExpressionContainer",
+    message:
+      'A staff form that sends a Server Action is a ResultForm (ui/ResultForm), which says why it was refused, or that it failed (docs/code-structure.md, "Errors").',
+  },
+  {
+    selector: "JSXElement[openingElement.name.name='ResultForm']:not(:has(JSXOpeningElement[name.name='Refusal']))",
+    message: "A ResultForm has a <Refusal /> in it, where it says why it wasn't done.",
+  },
 ];
 
 // What an outside service's binding throws is an OutsideFailure, or its own
@@ -235,8 +257,8 @@ const NETWORK_IMPORTS = [
  * may use Postmark's binding to send. `describeError` may import it. `fakes` may name every service's API,
  * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `binding` is an
  * outside service's, which throws only an OutsideFailure. `asyncHandlers`
- * may write an async function in place as a handler or a transition. `staff` adds the staff pages' rule for links
- * that look like buttons.
+ * may write an async function in place as a handler or a transition. `staff` adds the staff pages' rules for links
+ * that look like buttons, and for forms that send a Server Action.
  */
 function siteCodeRules({
   service,
@@ -264,8 +286,9 @@ function siteCodeRules({
       ...(console ? [] : [CONSOLE_RULE]),
       ...(asyncHandlers ? [] : SAVE_RULES),
       ...(binding ? [OUTSIDE_THROW_RULE] : []),
+      ACTION_RULE,
       ...EXTERNAL_LINK_RULES,
-      ...(staff ? STAFF_BUTTON_LINK_RULES : []),
+      ...(staff ? [...STAFF_BUTTON_LINK_RULES, ...STAFF_FORM_RULES] : []),
     ],
     "no-restricted-imports": [
       "error",
@@ -646,7 +669,6 @@ const eslintConfig = defineConfig([
     { files: ["app/(staff)/**/*.tsx"], staff: true },
     // The gallery's example of a Server Action the site no longer has, which it asks for by hand.
     { files: ["app/(staff)/staff/_components/shell/SiteUpdated.gallery.client.tsx"], fetch: true, staff: true },
-    { files: UNCONVERTED_SAVES, staff: true, asyncHandlers: true },
     // The hook itself, whose transition is the one the rest go through.
     { files: ["components/ui/useSave.ts"], asyncHandlers: true },
     // The server's code: lib/server/, each feature's logic, and what answers a request.

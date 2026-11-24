@@ -1,9 +1,11 @@
 "use client";
 
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { FormResult } from "@/lib/form-result";
 import { listFor, unsubscribeTopics, type Topic } from "@/lib/supporters/contact-permissions";
 import { UnsubscribeForm } from "../supporters/OptOutForm";
 import { ReplyButton } from "../mailings/AnswerableReply";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import answerStyles from "../mailings/AnswerableReply.module.css";
 import { supportersCopy } from "../supporters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
@@ -11,6 +13,9 @@ import { broadcastsCopy } from "@/lib/broadcasts/copy";
 const copy = broadcastsCopy.broadcastPages;
 /** Each list's name, as the Consent filter says it. */
 const listNames = supportersCopy.supporters.filters.lists;
+
+/** Records what a reply is, by its form's `replyId` and `decision`: refused for one that isn't waiting any more. */
+export type DealAction = (form: FormData) => Promise<FormResult<"gone">>;
 
 /**
  * Under a reply waiting for staff: Reply, while its answer isn't open
@@ -21,8 +26,10 @@ const listNames = supportersCopy.supporters.filters.lists;
  * at the address or number that replied, with no need to say how they told us, as
  * it's the reply; and beside it
  * Nothing to do, which one `answered` already has no need of. Each sends
- * the reply's ID and its decision. The answer is written at the foot of
- * the thread (AnswerableReply).
+ * the reply's ID and its decision (`deal`). One someone else has dealt
+ * with since, or that's gone, is said at the page's top, as the page
+ * catching up takes these buttons away. The answer is written at the foot
+ * of the thread (AnswerableReply).
  */
 export default function ReplyActions({
   replyId,
@@ -39,7 +46,7 @@ export default function ReplyActions({
   text?: boolean;
   write?: () => void;
   followUp?: boolean;
-  deal: (form: FormData) => void | Promise<void>;
+  deal: DealAction;
 }) {
   return (
     <div className={answerStyles.actions}>
@@ -58,17 +65,20 @@ export default function ReplyActions({
         ]}
         howKnown
         record={deal}
+        says={copy.refusals.deal}
+        atTop={["gone"]}
         spaced={false}
         end={text}
         before={write && <ReplyButton write={write} followUp={followUp} />}
         beside={
           !answered && (
-            <form action={deal}>
+            <ResultForm action={deal} says={copy.refusals.deal} atTop={["gone"]}>
               <input type="hidden" name="replyId" value={replyId} />
               <SubmitButton variant="ghost" size="small" fit name="decision" value="nothing">
                 {copy.replies.nothing}
               </SubmitButton>
-            </form>
+              <Refusal />
+            </ResultForm>
           )
         }
       />

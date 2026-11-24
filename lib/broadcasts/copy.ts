@@ -206,6 +206,37 @@ export const broadcastsCopy = {
       "time-passed": "You can't send it into the past!",
       "cannot-send": "Sending isn't built yet.",
     } as Record<string, string>,
+    // What a broadcast's buttons and forms say when the site refuses them (lib/form-result.ts), by the reason it
+    // gives, where the page has no other words for it. Those said at the top of the page are said once the page
+    // has caught up with what changed.
+    refusals: {
+      // At the top of the page, after a draft's Consent is chosen, its test copy is sent or Schedule is pressed, when
+      // the draft was deleted, or scheduled by someone else, since the page loaded.
+      draft: { gone: "Can't do that, because the draft was deleted or scheduled." },
+      // At the top of the page, after Withdraw approval request is pressed when the template was no longer waiting
+      // for WhatsApp, as WhatsApp has decided on it or someone else withdrew it first.
+      withdraw: { gone: "Nothing to withdraw, because the template is no longer waiting for WhatsApp to approve it." },
+      // At the top of the page, after Unschedule, Stop sending or Give up is pressed on a broadcast with nothing
+      // left to stop, as someone else stopped it first or it had all gone.
+      stop: { gone: "This broadcast is no longer scheduled or sending, so there was nothing to stop." },
+      // At the top of the page, after Resume sending is pressed on a broadcast that isn't stopped any more, as
+      // someone else resumed it first.
+      resume: { gone: "This broadcast is no longer stopped, so there was nothing to resume." },
+      // At the top of the page, after Copy broadcast is pressed on a broadcast deleted since the page loaded.
+      copy: { gone: "This broadcast has been deleted, so it can't be copied." },
+      // Change the times' form.
+      reschedule: {
+        // Under its fields, when the time chosen has passed, or it would have stopped trying already, as it can
+        // while the form stays open.
+        "too-soon": "Those times are in the past, choose later ones.",
+        // At the top of the page, when the broadcast was no longer scheduled or sending, as someone else stopped
+        // it or it had all gone.
+        gone: "This broadcast is no longer scheduled or sending, so its times can't be changed.",
+      },
+      // At the top of a Thread's page, after Nothing to do is pressed or an opt-out is recorded on a reply someone
+      // else has dealt with, or that has been deleted, since the page loaded.
+      deal: { gone: "Someone has already dealt with this reply." },
+    },
     // When it goes: when it stops trying to reach those it hasn't, and the button that changes it; once changing
     // it, under its day and time, what to set it to.
     keepsTryingUntil: "Keeps trying until",

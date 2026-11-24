@@ -262,6 +262,13 @@ export const supportersCopy = {
           record: "Record opt-out",
           cancel: "Cancel",
           already: "They were already opted out of that.",
+          // Why an opt-out wasn't recorded.
+          refused: {
+            // Under how they told us, when it's only spaces.
+            blank: "Say how they told us.",
+            // At the top of the page, when the supporter was erased or merged after the page loaded.
+            gone: "This supporter is no longer here, so nothing was recorded.",
+          },
         },
       },
       activityTitle: "History",

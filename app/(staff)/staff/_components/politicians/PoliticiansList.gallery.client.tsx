@@ -1,7 +1,7 @@
 "use client";
 
 // PoliticiansList's examples that log what choosing who a mailing is for does (PoliticiansList.gallery.tsx).
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, type Log } from "@/app/(tools)/gallery/_components/wiring";
 import {
   emptyPoliticiansSearch,
   exampleChoosing,
@@ -11,18 +11,22 @@ import {
 import PoliticiansList, { ChoosingHead, type ChoosingActions } from "./PoliticiansList";
 import { exampleAsks } from "../asks/AsksList.examples";
 
+/** An action that logs what it's sent as `name`, and is done. */
+const logged =
+  (log: Log, name: string) =>
+  (...args: unknown[]) => {
+    log(name)(...args);
+    return Promise.resolve({ ok: true as const });
+  };
+
 /** What choosing who a mailing is for does, each logged. */
-function choosingActions(log: (name: string) => (...args: unknown[]) => void): ChoosingActions {
-  const logged =
-    (name: string) =>
-    async (...args: unknown[]) =>
-      log(name)(...args);
+function choosingActions(log: Log): ChoosingActions {
   return {
-    pick: logged("pickPolitician"),
-    pickFound: logged("pickFound"),
-    paste: logged("pasteNames"),
-    pickMany: logged("pickMany"),
-    untickAll: logged("untickAll"),
+    pick: logged(log, "pickPolitician"),
+    pickFound: logged(log, "pickFound"),
+    paste: logged(log, "pasteNames"),
+    pickMany: logged(log, "pickMany"),
+    untickAll: logged(log, "untickAll"),
   };
 }
 
@@ -30,13 +34,7 @@ function choosingActions(log: (name: string) => (...args: unknown[]) => void): C
 export function PoliticiansListExample(props: Omit<Parameters<typeof PoliticiansList>[0], "newMailing" | "actions">) {
   return (
     <Logged>
-      {(log) => (
-        <PoliticiansList
-          {...props}
-          newMailing={log("newMailing") as (form: FormData) => Promise<void>}
-          actions={choosingActions(log)}
-        />
-      )}
+      {(log) => <PoliticiansList {...props} newMailing={logged(log, "newMailing")} actions={choosingActions(log)} />}
     </Logged>
   );
 }
@@ -65,10 +63,7 @@ export function ChoosingHeadExample({ blank }: { blank: boolean }) {
   return (
     <Logged>
       {(log) => (
-        <ChoosingHead
-          choosing={{ ...exampleChoosing, blank }}
-          cancel={log("deleteMailingDraft") as (form: FormData) => Promise<void>}
-        >
+        <ChoosingHead choosing={{ ...exampleChoosing, blank }} cancel={logged(log, "deleteMailingDraft")}>
           <h1>Politicians</h1>
         </ChoosingHead>
       )}

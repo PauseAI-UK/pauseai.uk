@@ -4,6 +4,11 @@ import { emailCopy as wordsTheServerUses } from "@/lib/email/copy";
 
 export const emailCopy = {
   ...wordsTheServerUses,
+  // Why unblocking an address wasn't done, by the server's reason.
+  unblockRefused: {
+    // Under the field that asks why, when it holds nothing but spaces.
+    blank: "Say why it should be unblocked.",
+  },
   // Connecting a staff member's Gmail, on their own page and in a mailing's Sent from.
   gmail: {
     title: "Let staff send mailings from your Gmail",

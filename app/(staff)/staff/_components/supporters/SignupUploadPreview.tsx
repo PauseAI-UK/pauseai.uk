@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import Table from "@/components/ui/Table";
 import Tag from "@/components/ui/Tag";
-import type { SignupUploadFinished, SignupUploadRefused } from "@/lib/supporters/signup-uploads.server";
+import { useSave } from "@/components/ui/useSave";
+import type { FormResult } from "@/lib/form-result";
+import type { SignupUploadDone } from "@/lib/supporters/signup-uploads.server";
 import {
   SIGNUP_PILES,
   signupPileCounts,
@@ -155,13 +157,17 @@ export function SignupPlanView({ plan }: { plan: SignupPlan }) {
 /** How long to wait after the last change, such as a key typed in the note, before working out the preview again. */
 const PREVIEW_DELAY_MS = 400;
 
-/** The upload's Server Actions (app/(staff)/staff/_components/supporters/actions.ts), which the page hands in. */
+/**
+ * The upload's Server Actions (app/(staff)/staff/_components/supporters/actions.ts), which the page hands in. Each
+ * is refused when what the form chose doesn't fit the file, or can't be used any more.
+ */
 export type SignupUploadActions = {
-  preview: (input: SignupUploadInput) => Promise<SignupPlan | SignupUploadRefused>;
-  finish: (input: SignupUploadInput, signature: string) => Promise<SignupUploadFinished>;
+  preview: (input: SignupUploadInput) => Promise<FormResult<"bad-choice", { plan: SignupPlan }>>;
+  finish: (input: SignupUploadInput, signature: string) => Promise<FormResult<"bad-choice", SignupUploadDone>>;
 };
 
-type Outcome = SignupPlan | SignupUploadRefused | "failed";
+/** What the last step has to show of an input: what it would do, or that it was refused, or that asking failed. */
+type Outcome = SignupPlan | "bad-choice" | "failed";
 
 /** That the preview is being worked out: a spinner, and the words in italics. */
 function Working({ children }: { children: React.ReactNode }) {
@@ -196,7 +202,8 @@ export function LumaReading() {
  * greyed with what stops it listed under it. Until a
  * change is worked out, the last preview stays, and can't be imported. If what's
  * held has moved on by the time it's imported, it shows what would happen now
- * instead, for another look.
+ * instead, for another look. An import that fails says so over the preview,
+ * which stays, to try again.
  */
 export default function SignupUploadPreview({
   step,
@@ -217,7 +224,18 @@ export default function SignupUploadPreview({
   // (as it does when the page is refreshed after the import).
   const [changedFor, setChangedFor] = useState<SignupUploadInput | null>(null);
   const changed = changedFor !== null && changedFor === input;
-  const [pending, start] = useTransition();
+  // The input last sent to be imported: an import that failed is said until something else is chosen.
+  const [triedFor, setTriedFor] = useState<SignupUploadInput | null>(null);
+  const [importIt, pending, failed] = useSave(finish, {
+    done: (finished) => {
+      if (!finished.ok) setOutcome({ of: input!, is: finished.reason });
+      else if ("uploadId" in finished) router.push(signupUploadPath(finished.uploadId));
+      else {
+        setChangedFor(input);
+        setOutcome({ of: input!, is: finished.changed });
+      }
+    },
+  });
 
   useEffect(() => {
     if (!input) return;
@@ -226,7 +244,7 @@ export default function SignupUploadPreview({
       preview(input).then(
         (result) => {
           if (gone) return;
-          setOutcome({ of: input, is: result });
+          setOutcome({ of: input, is: result.ok ? result.plan : result.reason });
         },
         () => !gone && setOutcome({ of: input, is: "failed" }),
       );
@@ -238,23 +256,13 @@ export default function SignupUploadPreview({
   }, [input, preview]);
 
   const stale = outcome?.of !== input;
-  const plan = input && outcome && typeof outcome.is === "object" && !("ok" in outcome.is) ? outcome.is : null;
+  const plan = input && outcome && typeof outcome.is === "object" ? outcome.is : null;
   const fresh = plan ? plan.rows.filter((row) => row.newEntry).length : 0;
   const registering = plan ? signupPileCounts(plan).register : 0;
 
   function importNow() {
-    start(async () => {
-      try {
-        const finished = await finish(plan!.input, plan!.signature);
-        if ("uploadId" in finished) router.push(signupUploadPath(finished.uploadId));
-        else if ("changed" in finished) {
-          setChangedFor(input);
-          setOutcome({ of: input!, is: finished.changed });
-        } else setOutcome({ of: input!, is: finished });
-      } catch {
-        setOutcome({ of: input!, is: "failed" });
-      }
-    });
+    setTriedFor(input);
+    importIt(plan!.input, plan!.signature);
   }
 
   // What's in the last step: why there's nothing yet, what went wrong, or the plan, the last one while a change is worked out.
@@ -264,11 +272,12 @@ export default function SignupUploadPreview({
     <Working>{words.loading}</Working>
   ) : outcome.is === "failed" ? (
     <Strip tone="red">{words.failed}</Strip>
-  ) : "ok" in outcome.is ? (
+  ) : outcome.is === "bad-choice" ? (
     <Strip tone="red">{copy.refused.badChoice}</Strip>
   ) : (
     <div className={styles.page}>
       {changed && <Strip tone="amber">{words.changed}</Strip>}
+      {failed && triedFor === input && <Strip tone="red">{words.failed}</Strip>}
       {stale && <Working>{words.loading}</Working>}
       <SignupPlanView plan={outcome.is} />
     </div>

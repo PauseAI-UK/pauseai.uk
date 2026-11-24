@@ -4,12 +4,15 @@ import type { JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { useEffect, useId, useMemo, useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
+import { useSave, useSavedChoice } from "@/components/ui/useSave";
+import type { FormResult } from "@/lib/form-result";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import MenuSelect, { type MenuOption } from "../ui/MenuSelect";
 import { DeleteTwice } from "../ui/DeleteTwice";
-import { Field, Hint } from "@/components/ui/Field";
+import { Field, FieldError, Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
 import { now } from "@/lib/now";
@@ -26,12 +29,12 @@ import {
   type MailingDoc,
 } from "@/lib/mailings/doc";
 import { named } from "@/lib/email-parsing/addresses";
-import type { ChannelResult } from "@/lib/letters/channels.server";
 import type {
-  BroadcastScheduleResult,
+  BroadcastScheduled,
   WhatsAppTemplate,
   TemplateDeleteResult,
-  TemplateSubmitResult,
+  TemplateRefusal,
+  TemplateTaken,
   TemplateUses,
   WrittenBroadcast,
 } from "@/lib/broadcasts/drafts.server";
@@ -67,8 +70,10 @@ import {
   TestSent,
   useDraftWriter,
   type DraftActions,
+  type SaveRefusal,
 } from "../mailings/DraftWriter";
 import Alert from "../ui/Alert";
+import { useTellPage } from "../ui/ResultForm";
 import { ARMED_FOR } from "../ui/DeleteTwice";
 import { DeleteDraft } from "../mailings/MailingButtons";
 import MailingEditor from "../mailings/MailingEditor";
@@ -113,24 +118,30 @@ type Changes = {
 /** How long WhatsApp can take to approve a template: a text due sooner than this, on one it hasn't, is warned of it. */
 const APPROVAL_MS = 24 * 60 * 60 * 1000;
 
-/** The broadcast pages' Server Actions (app/(staff)/staff/_components/broadcasts/actions.ts), which the page hands in. */
+/**
+ * The broadcast pages' Server Actions (app/(staff)/staff/_components/broadcasts/actions.ts), which the page hands
+ * in. Each answers a result (lib/form-result.ts) or redirects; refused as "gone", the draft was deleted, or is no
+ * longer one, since the page loaded.
+ */
 export type BroadcastWriterActions = DraftActions & {
-  /** Sends `to` a test copy, filled in for a made-up recipient meeting `meets` (fakeRecipient). */
-  sendTest: (id: number, meets: string[], to: string) => Promise<(ChannelResult & { to: string }) | undefined>;
-  schedule: (id: number, version: number) => Promise<BroadcastScheduleResult>;
-  deleteDraft: (form: FormData) => void | Promise<void>;
-  /** Changes the Consent a draft goes under; says the draft's version it made, or false if it didn't. */
-  changeConsent: (id: number, consent: string) => Promise<number | false>;
+  /** Sends `to` a test copy, filled in for a made-up recipient meeting `meets` (fakeRecipient); says where it went. */
+  sendTest: (id: number, meets: string[], to: string) => Promise<FormResult<"gone" | "not-sent", { to: string }>>;
+  /** Schedules it; not scheduled as WhatsApp didn't take the new words scheduling sends it, says what WhatsApp said. */
+  schedule: (id: number, version: number) => Promise<FormResult<SaveRefusal | TemplateRefusal, BroadcastScheduled>>;
+  /** Deletes the draft, and goes to the list of broadcasts. */
+  deleteDraft: (form: FormData) => Promise<FormResult<never>>;
+  /** Changes the Consent a draft goes under; says the draft's version it made. */
+  changeConsent: (id: number, consent: string) => Promise<FormResult<"gone" | "conflict", { version: number }>>;
   /** Makes a draft under a Consent, from New broadcast, and opens it. */
-  create: (consent: string) => Promise<void>;
-  /** Sends a text's new words to WhatsApp for approval, by the name they're given. */
-  submitTemplate: (id: number) => Promise<TemplateSubmitResult>;
-  /** Takes them back, so they can be changed; says whether it did. */
-  withdrawTemplate: (id: number) => Promise<boolean>;
-  /** Deletes an approved template no broadcast has, from WhatsApp too; says how it went. */
-  deleteTemplate: (templateId: number) => Promise<TemplateDeleteResult>;
+  create: (consent: string) => Promise<FormResult<never>>;
+  /** Sends a text's new words to WhatsApp for approval, by the name they're given; says whether it took them. */
+  submitTemplate: (id: number) => Promise<FormResult<TemplateRefusal, TemplateTaken>>;
+  /** Takes them back, so they can be changed. */
+  withdrawTemplate: (id: number) => Promise<FormResult<"gone">>;
+  /** Deletes an approved template no broadcast has, from WhatsApp too. */
+  deleteTemplate: (templateId: number) => Promise<FormResult<Exclude<TemplateDeleteResult, "deleted">>>;
   /** The card WhatsApp would show at the top of a text for its link to `url`, if any. */
-  linkCard: (url: string) => Promise<LinkCard | null>;
+  linkCard: (url: string) => Promise<FormResult<never, { card: LinkCard | null }>>;
 };
 
 /**
@@ -190,12 +201,20 @@ type Words = "email" | "chosen" | "new" | "none";
 /**
  * New words WhatsApp is reviewing: their name and words as they were sent,
  * which can't be changed while it does, and the button that takes them back
- * to change them.
+ * to change them. Pressed a second time, the button is as it was to begin
+ * with once that's done, however it went. If taking them back throws, or
+ * never arrives, it says so under the button, in the kit's words.
  */
 function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; withdraw: () => Promise<void> }) {
   const fields = Object.fromEntries(Object.entries(copy.fieldWords));
-  const [withdrawing, setWithdrawing] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [take, withdrawing, broke] = useSave(async () => {
+    try {
+      await withdraw();
+    } finally {
+      setArmed(false);
+    }
+  });
   useEffect(() => {
     if (!armed) return;
     const timer = setTimeout(() => setArmed(false), ARMED_FOR);
@@ -224,12 +243,7 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
             autoFocus
             pending={withdrawing}
             onBlur={() => setArmed(false)}
-            onClick={async () => {
-              setWithdrawing(true);
-              await withdraw();
-              setWithdrawing(false);
-              setArmed(false);
-            }}
+            onClick={() => take()}
           >
             {copy.withdrawSure}
           </Button>
@@ -238,6 +252,7 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
             {copy.withdrawTemplate}
           </Button>
         )}
+        {broke && <FieldError announce="alert">{staffVocabulary.notDone}</FieldError>}
       </div>
     </>
   );
@@ -264,14 +279,14 @@ function TextPreview({
 }) {
   const link = firstLink(words.content);
   const [cards, setCards] = useState<Record<string, LinkCard | null>>({});
+  // A link whose page couldn't be asked has no card, as one whose page has nothing to show.
+  const [ask] = useSave(linkCard, { done: ({ card }, url) => setCards((known) => ({ ...known, [url]: card })) });
+  const askFor = useEffectEvent(ask);
   useEffect(() => {
     if (!link || link in cards) return;
-    const timer = setTimeout(
-      () => void linkCard(link).then((card) => setCards((known) => ({ ...known, [link]: card }))),
-      CARD_PAUSE_MS,
-    );
+    const timer = setTimeout(() => askFor(link), CARD_PAUSE_MS);
     return () => clearTimeout(timer);
-  }, [link, cards, linkCard]);
+  }, [link, cards]);
   return (
     <>
       <TextBubble words={words} card={link ? cards[link] : null} footer={footer} time={time} />
@@ -317,7 +332,8 @@ function BroadcastPreview({
   /** What it still needs before there's something to test, as the Send section says it. */
   needs: string[];
   dueAt: Date | null;
-  sendTest: (meets: string[], to: string) => ReturnType<BroadcastWriterActions["sendTest"]>;
+  /** Sends `to` a test copy for a recipient meeting `meets`; says where it went, or nothing if it didn't go. */
+  sendTest: (meets: string[], to: string) => Promise<string | undefined>;
   approval?: ReactNode;
   linkCard: BroadcastWriterActions["linkCard"];
 }) {
@@ -328,7 +344,8 @@ function BroadcastPreview({
   // Each button's answer: unpressed, the made-up recipient lacks that field or condition.
   const [lacks, setLacks] = useState<Record<string, boolean>>({});
   const [sent, setSent] = useState<{ to?: string } | undefined>();
-  const [sending, setSending] = useState(false);
+  // `broke`: sending it threw, or never arrived, which reads as the test copy not having gone.
+  const [send, sending, broke] = useSave(sendTest, { done: (to) => setSent({ to }) });
   if (words === "none") return <p className={styles.noEmail}>{copy.chooseTemplate}</p>;
   const used = [
     ...new Set([
@@ -359,6 +376,8 @@ function BroadcastPreview({
       : words === "chosen"
         ? copy.testVia.text(phoneWords(data.textNumber))
         : copy.testVia.textNew;
+  // How the last test copy went: one whose send broke didn't go, whatever the one before it did.
+  const testLine = broke ? copy.testFailed : sent && (sent.to ? copy.testSent(sent.to) : copy.testFailed);
   return (
     <>
       {used.length > 0 && (
@@ -415,23 +434,12 @@ function BroadcastPreview({
               onChange={(event) => setTestTo(event.target.value)}
             />
           </span>
-          <Button
-            variant="primary"
-            fit
-            disabled={!canTest}
-            pending={sending}
-            onClick={async () => {
-              setSending(true);
-              const result = await sendTest(met, testTo.trim());
-              setSending(false);
-              setSent({ to: result?.sent ? result.to : undefined });
-            }}
-          >
+          <Button variant="primary" fit disabled={!canTest} pending={sending} onClick={() => send(met, testTo.trim())}>
             {copy.sendTest}
           </Button>
         </div>
         <Muted>{testNote}</Muted>
-        <TestSent line={sent && (sent.to ? copy.testSent(sent.to) : copy.testFailed)} sent={Boolean(sent?.to)} />
+        <TestSent line={testLine} sent={!broke && Boolean(sent?.to)} />
         <ProblemList problems={needs} />
       </div>
     </>
@@ -474,10 +482,7 @@ export default function BroadcastWriter({
   const email = draft.channel === "email";
   const { id } = draft;
   const start = BROADCAST_START;
-  // Changing the Consent, which brings the page back with its new counts (revalidatePath): under way till they're
-  // here. Till then the one picked shows as chosen, and what goes by the counts waits.
-  const [calculating, startChange] = useTransition();
-  const [picked, setPicked] = useOptimistic<string | undefined>(undefined);
+  const tell = useTellPage();
   // The channel whose Consents show: the draft's, or on New broadcast the one picked, if any.
   const [shown, setShown] = useState<Channel | "">(chosen ?? (email ? "email" : "phone"));
   const show = (channel: Channel) => {
@@ -500,6 +505,7 @@ export default function BroadcastWriter({
     detach,
     fileProblem,
     stale,
+    conflicted,
     restored,
   } = useDraftWriter<Changes>({
     id,
@@ -517,11 +523,68 @@ export default function BroadcastWriter({
     attachments: draft.attachments,
     actions,
   });
+  /**
+   * What one of the writer's actions answers; nothing from one the site no
+   * longer has, which leaves the draft outdated, as the page says over it
+   * (`stale`).
+   */
+  const unlessStale = <Answer,>(answer: Promise<Answer>): Promise<Answer | undefined> =>
+    answer.catch((error: unknown) => {
+      if (stale(error)) return undefined;
+      throw error;
+    });
+  // Choosing a Consent: on New broadcast, makes the draft; on a draft, changes it, what's typed saved either side
+  // of the change (alongside). The change brings the page back with its new counts (revalidatePath): it's under
+  // way (`calculating`) till they're here. Till then the one picked shows as chosen, and what goes by the counts
+  // waits. One that isn't made goes back to the draft's own: for a draft that's gone, or no longer one, the top of
+  // the page says so, as its page takes this one's place; for one with words from elsewhere, the draft says it
+  // changed elsewhere, as a save refused for that does; and if the change broke, it says so under the lists.
+  const [picked, pickConsent, calculating, consentBroke] = useSavedChoice(
+    undefined as string | undefined,
+    async (consent: string) => {
+      if (creating) {
+        await actions.create(consent);
+        return;
+      }
+      await alongside(async () => {
+        const result = await actions.changeConsent(id, consent);
+        if (result.ok) return result.version;
+        if (result.reason === "gone") tell(copy.refusals.draft.gone);
+        else conflicted();
+        return false;
+      });
+    },
+    (consent) => consent,
+  );
   const [choosing, choose] = useLeaving();
-  const [submitting, setSubmitting] = useState(false);
+  // Another choice of what sends it is saved at once, so the page has what the new choice can send.
+  const [saveSendBy] = useSave(async () => {
+    await saveNow();
+    router.refresh();
+  });
+  // New words WhatsApp has taken for approval: the button stays pending till the page is back with them waiting.
+  const [submitted, setSubmitted] = useState(false);
   // Why the words didn't go for approval just now, so they're still here to send again: an alert under the button.
   const [submitError, setSubmitError] = useState<string | null>(null);
-  // Why Schedule, sending new words for approval as it does, didn't just now.
+  const [submit, submitting, submitBroke] = useSave(
+    async () => {
+      await saveNow();
+      return unlessStale(actions.submitTemplate(id));
+    },
+    {
+      done: (result) => {
+        // An outdated page says so over the draft, not here.
+        if (!result) return;
+        if (!result.ok) return setSubmitError(copy.submitRefused[result.reason]);
+        if (!result.taken) return setSubmitError(copy.submitFailed(result.said));
+        // It stays on the draft, brought back as sent, its top in view, where a strip says it's waiting for WhatsApp.
+        setSubmitted(true);
+        router.refresh();
+        window.scrollTo({ top: 0, behavior: "instant" });
+      },
+    },
+  );
+  // Why Schedule didn't just now, where the draft doesn't say it elsewhere: an alert under the button.
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   // New words sent to WhatsApp, waiting for it to approve them.
   const waiting = draft.template?.status === "pending" ? draft.template : undefined;
@@ -591,15 +654,12 @@ export default function BroadcastWriter({
   const fromAddress = email ? draft.sentFrom! : data.textNumber && phoneWords(data.textNumber);
   const title = email ? values.subject.trim() || copy.newTitle.email : values.title.trim() || copy.newTitle.text;
   const whoPath = filtersPath("/staff/supporters", { ...data.filter.params, broadcast: String(id) });
+  // To the list, to change who: what's typed is saved first, so going there loses none of it.
+  const [toList] = useSave(async () => {
+    await saveNow();
+    leavePage(whoPath);
+  });
   const hasOwnWords = hasWords({ subject: values.subject, body, templateId: values.templateId });
-  // Choosing a Consent: on New broadcast, makes the draft; on a draft, changes it, what's typed saved either side
-  // of the change (alongside).
-  const pickConsent = (consent: string) =>
-    startChange(async () => {
-      setPicked(consent);
-      if (creating) return actions.create(consent);
-      await alongside(() => actions.changeConsent(id, consent));
-    });
   // Before a Consent by the channel picked, what's still to come: there, but greyed and out of reach.
   const lockable = (children: ReactNode) =>
     blank ? (
@@ -637,15 +697,37 @@ export default function BroadcastWriter({
     );
     chooseWords("new");
   };
-  // Deleting the template chosen: this draft lets it go first, so nothing has it, and chooses again after.
-  const deleteChosen = async (one: WhatsAppTemplate) => {
+  // Deleting the template chosen: this draft lets it go first, so nothing has it, and chooses again after. Letting
+  // it go takes its line away, and its button with it, so why it wasn't deleted is said under the dropdown.
+  const deleteChosen = async (one: WhatsAppTemplate): Promise<FormResult<never>> => {
     setDeleteError(null);
     change({ templateId: null, body: EMPTY_MAILING_DOC, title: "" });
     await saveNow();
-    // An outdated page says so over the draft, not here.
-    const result = await actions.deleteTemplate(one.id).catch((error: unknown) => (stale(error) ? null : "failed"));
-    if (result && result !== "deleted") setDeleteError(copy.deleteRefused[result]);
-    router.refresh();
+    try {
+      // An outdated page says so over the draft, not here.
+      const result = await unlessStale(actions.deleteTemplate(one.id));
+      if (result && !result.ok) setDeleteError(copy.deleteRefused[result.reason]);
+    } catch (error) {
+      // Thrown on, for the button's form to tell the site of it (useFormResult).
+      setDeleteError(copy.deleteRefused.failed);
+      throw error;
+    } finally {
+      router.refresh();
+    }
+    return { ok: true };
+  };
+  // Schedule: whether it's scheduled. Not scheduled, why: a draft that's gone, or no longer one, at the top of the
+  // page, as its page takes this one's place; one changed elsewhere as a save refused for that says it; and the
+  // rest under the button, as under Send for approval, with what WhatsApp said if it didn't take the new words.
+  const schedule = async () => {
+    setScheduleError(null);
+    const result = await actions.schedule(id, version.current);
+    if (!result.ok) {
+      if (result.reason === "gone" || result.reason === "not-draft") tell(copy.refusals.draft.gone);
+      else if (result.reason === "conflict") conflicted();
+      else setScheduleError(copy.submitRefused[result.reason]);
+    } else if (!result.scheduled) setScheduleError(copy.submitFailed(result.said));
+    return { ok: result.ok && result.scheduled };
   };
   const wordsEditor = (labelledBy: string) => (
     // Made anew with what a reload kept, as it reads its words once.
@@ -689,6 +771,7 @@ export default function BroadcastWriter({
             show={show}
             className={own.consent}
           />
+          {consentBroke && <FieldError announce="alert">{staffVocabulary.notDone}</FieldError>}
           {lockable(
             <>
               <div className={styles.who}>
@@ -699,12 +782,10 @@ export default function BroadcastWriter({
                   fit
                   href={whoPath}
                   pending={choosing}
-                  onClick={async (event) => {
-                    // What's typed is saved first, so going to the list loses none of it.
+                  onClick={(event) => {
                     event.preventDefault();
                     choose();
-                    await saveNow();
-                    leavePage(whoPath);
+                    toList();
                   }}
                 >
                   {othersThanConsent(data.filter.params, data.choices).length > 0
@@ -742,11 +823,9 @@ export default function BroadcastWriter({
                     <Field label={copy.fromAccount} className={own.accountChoice}>
                       <Select
                         value={values.sendBy}
-                        onChange={async (event) => {
+                        onChange={(event) => {
                           change({ sendBy: event.target.value as BroadcastSendBy });
-                          // Saved at once, so the page has what the new choice can send.
-                          await saveNow();
-                          router.refresh();
+                          saveSendBy();
                         }}
                       >
                         {SEND_BY.map((one) => (
@@ -858,6 +937,7 @@ export default function BroadcastWriter({
                             label={copy.deleteTemplate}
                             short
                             action={() => deleteChosen(template)}
+                            says={{}}
                           />
                         )}
                       </div>
@@ -869,10 +949,15 @@ export default function BroadcastWriter({
                       <TemplatePending
                         template={waiting}
                         withdraw={async () => {
-                          if (await actions.withdrawTemplate(id)) {
-                            withdrew.current = true;
-                            router.refresh();
-                          }
+                          const result = await unlessStale(actions.withdrawTemplate(id));
+                          // An outdated page says so over the draft, not here.
+                          if (!result) return;
+                          // They wait for WhatsApp no longer, so Send for approval, once it's back, waits for nothing.
+                          setSubmitted(false);
+                          // With none waiting to take back, the page is back as the template stands, and its top says so.
+                          if (!result.ok) return tell(copy.refusals.withdraw.gone);
+                          withdrew.current = true;
+                          router.refresh();
                         }}
                       />
                     ) : (
@@ -927,30 +1012,10 @@ export default function BroadcastWriter({
                         variant="primary"
                         fit
                         disabled={!written || approvalProblems(problems).length > 0 || !data.sends}
-                        pending={submitting}
-                        onClick={async () => {
-                          setSubmitting(true);
+                        pending={submitting || submitted}
+                        onClick={() => {
                           setSubmitError(null);
-                          const result = await saveNow()
-                            .then(() => actions.submitTemplate(id))
-                            // An outdated page says so over the draft, not here.
-                            .catch((error: unknown) => (stale(error) ? ("outdated" as const) : ("broke" as const)));
-                          // It stays on the draft, brought back as sent, its top in view, where a strip says it's
-                          // waiting for WhatsApp.
-                          if (result === "submitted") {
-                            router.refresh();
-                            window.scrollTo({ top: 0, behavior: "instant" });
-                            return;
-                          }
-                          setSubmitting(false);
-                          if (result === "outdated") return;
-                          setSubmitError(
-                            result === "broke"
-                              ? copy.submitBroke
-                              : typeof result === "object"
-                                ? copy.submitFailed(result.failed)
-                                : copy.submitRefused[result],
-                          );
+                          submit();
                         }}
                       >
                         {copy.submitTemplate}
@@ -958,7 +1023,8 @@ export default function BroadcastWriter({
                       {/* Why it can't go yet, under the button: fields where WhatsApp won't take them, the words
                           a template has already, and the rest. */}
                       <ProblemList problems={approvalProblems(problems).map((problem) => copy.problems[problem])} />
-                      {submitError && <Alert>{submitError}</Alert>}
+                      {/* Why it didn't go: sending it broke, or what the site or WhatsApp said of it. */}
+                      {(submitBroke || submitError) && <Alert>{submitBroke ? copy.submitBroke : submitError}</Alert>}
                     </div>
                   )
                 }
@@ -973,10 +1039,11 @@ export default function BroadcastWriter({
                 sendTest={async (meets, to) => {
                   // The test is of the draft as saved, so what's typed goes first.
                   await saveNow();
-                  return actions.sendTest(id, meets, to).catch((error: unknown) => {
-                    if (stale(error)) return undefined;
-                    throw error;
-                  });
+                  const result = await unlessStale(actions.sendTest(id, meets, to));
+                  if (result?.ok) return result.to;
+                  // A draft that's gone has its page's top say so, as that page takes this one's place.
+                  if (result?.reason === "gone") tell(copy.refusals.draft.gone);
+                  return undefined;
                 }}
               />
             </Card>
@@ -1027,21 +1094,10 @@ export default function BroadcastWriter({
                   label={copy.schedule(data.count, draft.channel)}
                   disabled={problems.length > 0 || !data.sends || calculating}
                   saveNow={saveNow}
-                  schedule={async () => {
-                    setScheduleError(null);
-                    const result = await actions.schedule(id, version.current);
-                    // New words WhatsApp didn't take for approval: why, under the button, as under Send for approval.
-                    if ("submit" in result) {
-                      const why = result.submit;
-                      setScheduleError(
-                        typeof why === "object" ? copy.submitFailed(why.failed) : copy.submitRefused[why],
-                      );
-                    }
-                    return result;
-                  }}
+                  schedule={schedule}
                   stale={stale}
                 />
-                <DeleteDraft id={id} action={actions.deleteDraft} />
+                <DeleteDraft id={id} action={actions.deleteDraft} says={{}} />
               </div>
               {scheduleError && <Alert>{scheduleError}</Alert>}
               {/* Then, a bullet as they are but in the words' own colour, that new words go to WhatsApp for approval as

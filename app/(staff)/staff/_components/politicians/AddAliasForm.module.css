@@ -16,9 +16,13 @@
   min-width: 0;
 }
 
-/* What the server said, under the form. */
+/* Why it wasn't added, on a line of its own under the note and Add: no line till there's something to say. */
 .result {
-  margin: var(--space-2) 0 0;
+  flex-basis: 100%;
+}
+
+.result:empty {
+  display: none;
 }
 
 /* Add stays whole, however narrow the note gets. */

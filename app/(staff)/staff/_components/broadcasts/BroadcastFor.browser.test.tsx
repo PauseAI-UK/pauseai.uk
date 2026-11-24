@@ -20,24 +20,24 @@ vi.mock("@/lib/leave-page.client", () => ({ leavePage }));
 afterEach(() => leavePage.mockClear());
 
 const copy = broadcastsCopy.broadcastPages;
-const nothing = async () => {};
+const nothing = async () => ({ ok: true as const });
 
 function fakeActions() {
   let version = 4;
   const action = (answer: () => unknown) => vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => answer());
   return {
-    save: action(() => ({ saved: true, version: ++version })),
-    attach: action(() => ({ saved: true, version: ++version, attachments: [] })),
-    detach: action(() => ({ saved: true, version: ++version, attachments: [] })),
-    sendTest: action(() => ({ sent: true, id: "m", to: "me@pauseai.uk" })),
-    schedule: action(() => ({ scheduled: true })),
-    deleteDraft: vi.fn(async () => {}),
-    changeConsent: action(() => 5),
-    setAboutEvents: action(() => true),
-    create: vi.fn(async () => {}),
-    submitTemplate: action(() => "submitted"),
-    withdrawTemplate: action(() => true),
-    linkCard: action(() => null),
+    save: action(() => ({ ok: true, version: ++version })),
+    attach: action(() => ({ ok: true, version: ++version, attachments: [] })),
+    detach: action(() => ({ ok: true, version: ++version, attachments: [] })),
+    sendTest: action(() => ({ ok: true, to: "me@pauseai.uk" })),
+    schedule: action(() => ({ ok: true, scheduled: true })),
+    deleteDraft: vi.fn(async () => ({ ok: true })),
+    changeConsent: action(() => ({ ok: true, version: 5 })),
+    create: vi.fn(async () => ({ ok: true })),
+    submitTemplate: action(() => ({ ok: true, taken: true })),
+    withdrawTemplate: action(() => ({ ok: true })),
+    deleteTemplate: action(() => ({ ok: true })),
+    linkCard: action(() => ({ ok: true, card: null })),
   };
 }
 

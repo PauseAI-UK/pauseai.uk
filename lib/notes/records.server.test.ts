@@ -69,8 +69,9 @@ describeWithDatabase("notes", () => {
     const supporterId = await supporter("07700 900001");
     expect(await addNote({ supporterId }, "Keen to flyer", noSupporters)).toBe(false);
     expect(await addNote({ supporterId }, "Keen to flyer", jo)).toBe(true);
-    expect(await editNote(1, "Changed", { ...jo, permissions: [] })).toBeUndefined();
-    expect(await deleteNote(1, { ...admin, permissions: ["admin"] })).toBeUndefined();
+    // To someone who can't see supporters, their notes aren't there.
+    expect(await editNote(1, "Changed", { ...jo, permissions: [] })).toBe("gone");
+    expect(await deleteNote(1, { ...admin, permissions: ["admin"] })).toBe("gone");
     expect((await notesOn({ supporterId })).map((n) => n.body)).toEqual(["Keen to flyer"]);
   });
 
@@ -79,15 +80,16 @@ describeWithDatabase("notes", () => {
     await addNote({ supporterId }, "First", jo);
     await addNote({ supporterId }, "Second", jo);
     at("2026-11-03T09:00:00Z");
-    expect(await editNote(1, "Someone else's", sam)).toBeUndefined();
-    expect(await deleteNote(1, sam)).toBeUndefined();
+    expect(await editNote(1, "Someone else's", sam)).toBe("too-late");
+    expect(await deleteNote(1, sam)).toBe("too-late");
     expect(await editNote(1, "First, fixed", jo)).toEqual({ supporterId });
-    expect(await deleteNote(99, jo)).toBeUndefined();
+    expect(await editNote(99, "No such note", jo)).toBe("gone");
+    expect(await deleteNote(99, jo)).toBe("gone");
     expect(await deleteNote(2, admin)).toEqual({ supporterId });
     at("2026-11-03T09:00:01Z");
-    expect(await editNote(1, "Too late", jo)).toBeUndefined();
-    expect(await deleteNote(1, jo)).toBeUndefined();
-    expect(await deleteNote(1, admin)).toBeUndefined();
+    expect(await editNote(1, "Too late", jo)).toBe("too-late");
+    expect(await deleteNote(1, jo)).toBe("too-late");
+    expect(await deleteNote(1, admin)).toBe("too-late");
     expect(await notesOn({ supporterId })).toEqual([
       expect.objectContaining({ id: 1, body: "First, fixed", editedAt: new Date("2026-11-03T09:00:00Z") }),
     ]);

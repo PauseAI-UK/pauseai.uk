@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { FormResult } from "@/lib/form-result";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { menuItemArmedClass, menuItemDangerClass } from "./Menu";
 import MenuSubmit from "./MenuSubmit";
+import { Refusal, ResultForm } from "./ResultForm";
 
 /** How long a delete waits for its second press. */
 export const ARMED_FOR = 4000;
@@ -74,9 +76,11 @@ function Press({
  * `danger` makes the first red too, among a form's own buttons (a note's
  * Save and Cancel), and `short` asks for the second in fewer words. `fields`
  * are any more values for the form to send. `menuItem` draws it as a menu's
- * item, a line among others (ui/Menu).
+ * item, a line among others (ui/Menu). A delete that's refused says why
+ * under itself, in the feature's words for the reason (`says`), or at the
+ * page's top for a reason in `atTop`, as any ResultForm does.
  */
-export function DeleteTwice({
+export function DeleteTwice<Reason extends string = never>({
   name,
   value,
   label,
@@ -86,6 +90,8 @@ export function DeleteTwice({
   menuItem = false,
   fields = {},
   action,
+  says,
+  atTop,
 }: {
   name: string;
   value: string;
@@ -95,15 +101,18 @@ export function DeleteTwice({
   short?: boolean;
   menuItem?: boolean;
   fields?: Record<string, string>;
-  action: (form: FormData) => void | Promise<void>;
+  action: (form: FormData) => Promise<FormResult<Reason>>;
+  says: Record<Reason, string>;
+  atTop?: readonly Reason[];
 }) {
   return (
-    <form action={action}>
+    <ResultForm action={action} says={says} atTop={atTop}>
       <input type="hidden" name={name} value={value} />
       {Object.entries(fields).map(([field, one]) => (
         <input key={field} type="hidden" name={field} value={one} />
       ))}
       <Press label={label} disabled={disabled} danger={danger} short={short} menuItem={menuItem} />
-    </form>
+      <Refusal />
+    </ResultForm>
   );
 }

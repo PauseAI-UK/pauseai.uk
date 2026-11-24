@@ -1042,7 +1042,8 @@ that drives it or why nothing does.
   - a Gmail that Google disconnects, with the notification inbox emailed;
   - the letters inbox's own page, back from connecting its Gmail;
   - what Joseph's own page says once his mailbox is connected and kept;
-  - the daily email to staff listing mail in policy@ that matched nothing.
+  - the daily email to staff listing mail in policy@ that matched nothing;
+  - a held import a colleague decides meanwhile.
 - `staff-campaigns.spec.ts`: Campaigns, asks and sent emails:
   - campaigns: the list by the month of each one's last letter, a campaign's page with its versions, its counts choosing its letters, and `/staff/letters` redirecting;
   - asks: the list under its months, with each ask's answers, how it was asked and its counts;
@@ -1080,7 +1081,8 @@ that drives it or why nothing does.
   - two asks at once, each with its own answer and column: Any reply ticking every reply with it, one unticked, and the second ask added from + Filter; then one removed with its answer;
   - PauseAI's email to one, from her history, and its Gmail search copied;
   - a one-off thread with one, titled with her name, and its Open in Gmail;
-  - her own Gmail added to her aliases, the next Gmail read finding her email from it, and the list sorted by last activity, which that email dates.
+  - her own Gmail added to her aliases, the next Gmail read finding her email from it, and the list sorted by last activity, which that email dates;
+  - an answer whose note is only spaces, refused under the note.
 - `mailings.spec.ts`: Mailings to politicians, the old ones and those written on the site:
   - the mailings, one mailing's recipients, and a politician's history leading back to it;
   - a mailing's ask leading to its page;
@@ -1101,7 +1103,8 @@ that drives it or why nothing does.
   - one stopped part-way, with every way a letter fails on its failed tab, its stopped tab, pressed again for everyone, and its sent tab;
   - one sent from your Gmail in a From name of its own, by the sending job, and the reply read from it;
   - a politician's reply to check: on the dashboard, its button to the mailing's letters to check, the letter's page with Reply and Nothing to do, and an answer written and sent from there, from your own Gmail;
-  - a reply that came to someone else's Gmail: only they can reply, and Nothing to do pressed, saying who.
+  - a reply that came to someone else's Gmail: only they can reply, and Nothing to do pressed, saying who;
+  - what a colleague did meanwhile, said at the top of the page: a mailing unscheduled, deleted while choosing who it's for, a draft scheduled, a reply dealt with; a new time that has passed, a test copy for someone no longer a recipient, and scheduling a draft a colleague changed.
 - `broadcasts.spec.ts`: Broadcasts to supporters:
   - New broadcast on the Broadcasts page: the writer is greyed till its Consent is chosen, which makes the draft to everyone who said yes, and then its Consent is changed, and what's written after is saved;
   - the list's Broadcast button with a Consent filter;
@@ -1137,7 +1140,8 @@ that drives it or why nothing does.
   - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;
   - our answer to a text that WhatsApp's webhook says failed, why under its bubble, and their reply back to check;
   - Stop pressed in WhatsApp, on the copy and the supporter's page;
-  - a text WhatsApp's webhook says it couldn't deliver, and the next text skipping it: the copy, the number with the blocked addresses, the causes by email and text in the filter, filtered to numbers, its history, and unblocked with a note.
+  - a text WhatsApp's webhook says it couldn't deliver, and the next text skipping it: the copy, the number with the blocked addresses, the causes by email and text in the filter, filtered to numbers, its history, and unblocked with a note;
+  - what a colleague, or WhatsApp, did meanwhile, said at the top of the page: a draft scheduled, changed or deleted, a template approved as it's withdrawn, a stopped broadcast resumed or deleted, a reply dealt with; and new times that have passed.
 - `email-settings.spec.ts`: The contact preferences page:
   - asking for a link past Turnstile, the email with it, and the page it opens;
   - changing what you get, with why behind a “?” on a phone;
@@ -1176,7 +1180,8 @@ that drives it or why nothing does.
   - none saved, and part of one gone;
   - a saved filter on Events;
   - who can see them;
-  - loading one while choosing for a mailing or a broadcast.
+  - loading one while choosing for a mailing or a broadcast;
+  - a name that's only spaces, refused under its field, and a filter a colleague deletes meanwhile, said at the top of the page.
 - `supporters.spec.ts`: The supporter pages:
   - closed without the permission;
   - notes on a supporter: one added with a link, then edited, an admin with no Delete on a colleague's old note, and one from today deleted, in the audit log;
@@ -1193,7 +1198,8 @@ that drives it or why nothing does.
   - erasing a supporter from its own page, who stays gone through the next import, and a member, who stays gone through the next CiviCRM import;
   - subscriptions to more than one topic, in one chip, Except these turning them all round;
   - an opt-out told to staff, recorded under a supporter's consents with how it was given;
-  - in a fixture build, a supporter's contact preferences opened from their page.
+  - in a fixture build, a supporter's contact preferences opened from their page;
+  - a note of only spaces, a note a colleague deletes meanwhile, an erase with no reference given, and a supporter a colleague erases meanwhile, whose page says so over its not being there.
 - `signup-uploads.spec.ts`: Import sign-ups:
   - files written different ways, linked to an event or not;
   - a hundred rows at once;

@@ -48,26 +48,41 @@ describeWithDatabase("the events page's Server Actions", () => {
     const saved = () => query("SELECT o.owner, d.url FROM event_owners o FULL JOIN event_docs d USING (event_id)");
     // Jo chose themselves, and is emailed too.
     expect(await saveEventNow(form({ eventId: "evt-1", owner: "Jo@pauseai.uk", doc }))).toEqual({
+      ok: true,
       emailed: ["jo@pauseai.uk"],
       owner: "jo@pauseai.uk",
     });
     expect(await saved()).toEqual([{ owner: "jo@pauseai.uk", url: doc }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/events");
 
-    // The same again, or a link anywhere else, changes nothing.
+    // The same again changes nothing, and is done all the same.
     revalidatePath.mockClear();
-    await saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc }));
-    expect(await saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc: "https://example.com/" }))).toEqual(
-      {
-        emailed: [],
-        owner: null,
-      },
-    );
+    expect(await saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc }))).toEqual({
+      ok: true,
+      emailed: [],
+      owner: "jo@pauseai.uk",
+    });
     expect(revalidatePath).not.toHaveBeenCalled();
 
     // Only the doc, cleared, with no owner chosen.
-    await saveEventNow(form({ eventId: "evt-1", owner: "", doc: "" }));
+    expect(await saveEventNow(form({ eventId: "evt-1", owner: "", doc: "" }))).toEqual({
+      ok: true,
+      emailed: [],
+      owner: null,
+    });
     expect(await saved()).toEqual([{ owner: "jo@pauseai.uk", url: null }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/events");
+  });
+
+  it("saveEventNow throws on a form without its event, or with a link its doc box's pattern never sends", async () => {
+    await query(
+      "INSERT INTO luma_events (id, name, url, start_at, access) VALUES ('evt-1', 'Event', 'evt-1', now() + interval '1 day', 'manage')",
+    );
+    await expect(saveEventNow(form({ owner: "jo@pauseai.uk", doc: "" }))).rejects.toThrow(`without its "eventId"`);
+    await expect(
+      saveEventNow(form({ eventId: "evt-1", owner: "jo@pauseai.uk", doc: "https://example.com/" })),
+    ).rejects.toThrow("a link that isn't to Google Docs or Drive");
+    expect(await query("SELECT count(*)::int AS n FROM event_owners")).toEqual([{ n: 0 }]);
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

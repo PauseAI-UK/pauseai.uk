@@ -1,8 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import { refused } from "@/lib/form-result";
+import { RefusalPlace } from "../ui/ResultForm";
 import PickBox from "./PickBox";
 import { PickBoxExample } from "./PickBox.gallery.client";
+
+// The page's address, which the place a page says things at its top reads.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/staff/politicians",
+  useSearchParams: () => new URLSearchParams("mailing=12"),
+}));
 
 describe("PickBox's examples in the gallery", () => {
   // Their Server Actions are logged, not sent: pressing each adds its line to the event log.
@@ -25,8 +33,11 @@ describe("PickBox", () => {
   it("undoes a click that didn't save and marks the box as wrong, until the next click", async () => {
     // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
     const thrown = Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1" });
-    const action = vi.fn<(ticked: boolean) => Promise<void>>().mockRejectedValueOnce(thrown).mockResolvedValue();
-    await render(<PickBox ticked={false} label="Jane Example" action={action} />);
+    const action = vi
+      .fn<(ticked: boolean) => Promise<{ ok: true }>>()
+      .mockRejectedValueOnce(thrown)
+      .mockResolvedValue({ ok: true });
+    await render(<PickBox ticked={false} label="Jane Example" action={action} says={{}} />);
     const box = page.getByRole("checkbox", { name: "Jane Example" });
     await box.click();
     await expect.element(box).toHaveAttribute("aria-invalid", "true");
@@ -34,5 +45,23 @@ describe("PickBox", () => {
     await box.click();
     await expect.element(box).not.toHaveAttribute("aria-invalid");
     expect(action.mock.calls).toEqual([[true], [true]]);
+  });
+
+  it("says at the top of the page why a click was refused, and undoes it", async () => {
+    await render(
+      <RefusalPlace>
+        <PickBox
+          ticked={false}
+          label="Jane Example"
+          action={() => Promise.resolve(refused("gone"))}
+          says={{ gone: "The mailing has gone." }}
+        />
+      </RefusalPlace>,
+    );
+    const box = page.getByRole("checkbox", { name: "Jane Example" });
+    await box.click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent("The mailing has gone.");
+    await expect.element(box).not.toBeChecked();
+    await expect.element(box).not.toHaveAttribute("aria-invalid");
   });
 });

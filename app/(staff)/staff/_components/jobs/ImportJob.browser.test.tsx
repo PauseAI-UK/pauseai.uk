@@ -7,6 +7,7 @@ const SCHEDULE_ORDER = ["frequent", "quarter-hour", "hourly", "nightly"];
 import { staffTime } from "@/lib/staff-time";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { ImportJobPage, ImportOverview } from "./ImportJob";
+import { ImportJobPageExample } from "./ImportJob.gallery.client";
 import {
   exampleFailedRun,
   exampleCivicrmResult,
@@ -15,7 +16,9 @@ import {
   exampleLumaResult,
   exampleRun,
 } from "./RunList.examples";
-import { action, press } from "@/tests/browser/staff";
+import type { RunJob } from "./JobActions";
+import type { Decide } from "./Run";
+import { press } from "@/tests/browser/staff";
 import { politiciansCopy } from "../politicians/copy";
 import { jobsCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
@@ -223,8 +226,8 @@ describe("ImportJobPage", () => {
   });
 
   it("names the job with its icon, says how it stands and when it runs, runs it, and lists every run by day", async () => {
-    const run = vi.fn();
-    const { fn, sent } = action();
+    const run = vi.fn<RunJob>(async () => ({ ok: true }));
+    const decide = vi.fn<Decide>(async () => ({ ok: true }));
     const runs: AnyImportRun[] = [
       exampleHeldImport,
       ran("import-parliament", exampleImportResult, {
@@ -234,7 +237,7 @@ describe("ImportJobPage", () => {
       }),
     ];
     const { rerender } = await render(
-      <ImportJobPage job="import-parliament" runs={runs} run={run} decide={fn} now={NOW} />,
+      <ImportJobPage job="import-parliament" runs={runs} run={run} decide={decide} now={NOW} />,
     );
     const band = () => document.querySelector("h1")!.closest("[class*=band]")!;
     // The band's facts, each its label and value.
@@ -268,9 +271,13 @@ describe("ImportJobPage", () => {
         .map((h) => h.element().textContent),
     ).toEqual(["13 Oct 2026", "11 Oct 2026"]);
     await page.getByRole("button", { name: politiciansCopy.politicianImports.apply }).click();
-    await vi.waitFor(() => expect(sent).toEqual([{ id: "4", job: "import-parliament", decision: "apply" }]));
+    await vi.waitFor(() =>
+      expect(decide.mock.calls.map(([form]) => Object.fromEntries(form))).toEqual([
+        { id: "4", job: "import-parliament", decision: "apply" },
+      ]),
+    );
 
-    await rerender(<ImportJobPage job="import-controlai-statement" runs={[]} run={run} decide={fn} now={NOW} />);
+    await rerender(<ImportJobPage job="import-controlai-statement" runs={[]} run={run} decide={decide} now={NOW} />);
     await expect.element(page.getByText(jobsCopy.controlAiStatement.never)).toBeVisible();
     // Never run: nothing to say of how it stands or when it last ran.
     expect(facts()).toEqual([
@@ -281,5 +288,17 @@ describe("ImportJobPage", () => {
     await expect
       .element(page.getByRole("link", { name: jobsCopy.controlAiStatement.intro.link }))
       .toHaveAttribute("target", "_blank");
+  });
+
+  it("logs a press of the job's button, in its examples: with runs, with one going, and never run", async () => {
+    const { rerender } = await render(<ImportJobPageExample />);
+    await page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }).click();
+    await expect
+      .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+      .toHaveTextContent("run({})");
+    await rerender(<ImportJobPageExample running="jo@pauseai.uk" />);
+    await expect.element(page.getByText(/^Running, started by jo@pauseai\.uk/)).toBeVisible();
+    await rerender(<ImportJobPageExample never />);
+    await expect.element(page.getByText(jobsCopy.controlAi.never)).toBeVisible();
   });
 });

@@ -1,6 +1,7 @@
 import { expect, it, describe } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import { refused } from "@/lib/form-result";
 import { mailingsCopy } from "./copy";
 import AnswerableReply from "./AnswerableReply";
 import { AnswerableReplyExample, ReplyButtonExample } from "./AnswerableReply.gallery.client";
@@ -35,6 +36,25 @@ describe("AnswerableReply's example in the gallery", () => {
     await page.getByRole("textbox", { name: copy.answerLabel }).fill("Thanks");
     await page.getByRole("button", { name: copy.send }).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.notSent.failed);
+    await expect.element(page.getByRole("textbox", { name: copy.answerLabel })).toHaveTextContent("Thanks");
+  });
+
+  it("says why the reply was refused, and stays open with its words", async () => {
+    await render(
+      <AnswerableReply
+        replyId={1}
+        from="PauseAI UK <hello@pauseai.uk>"
+        to="jane@example.com"
+        subject="Re: Thank you for marching"
+        answer={() => Promise.resolve(refused("gone"))}
+        opened
+      >
+        {() => <p>Could you take me off this list please?</p>}
+      </AnswerableReply>,
+    );
+    await page.getByRole("textbox", { name: copy.answerLabel }).fill("Thanks");
+    await page.getByRole("button", { name: copy.send }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.notSent.gone);
     await expect.element(page.getByRole("textbox", { name: copy.answerLabel })).toHaveTextContent("Thanks");
   });
 

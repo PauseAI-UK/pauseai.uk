@@ -42,7 +42,18 @@ function describe(arg: unknown): string {
   }
 }
 
-type Log = (name: string) => (...args: unknown[]) => void;
+export type Log = (name: string) => (...args: unknown[]) => void;
+
+/**
+ * A stand-in for a Server Action whose form is a ResultForm: logs what the
+ * form sends as `name`, and answers that it's done.
+ */
+export function loggedDone(log: Log, name: string) {
+  return (form: FormData) => {
+    log(name)(form);
+    return Promise.resolve({ ok: true as const });
+  };
+}
 
 /** A `log` that passes each call to `add` as "name(…)", and gives the same function each time it's asked for a name. */
 function logTo(add: (call: string) => void): Log {

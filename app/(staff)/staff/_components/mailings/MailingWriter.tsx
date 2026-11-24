@@ -4,9 +4,10 @@ import type { JSONContent } from "@tiptap/react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
-import { Field, Hint } from "@/components/ui/Field";
+import { Field, FieldError, Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
+import { useSave } from "@/components/ui/useSave";
 import {
   checkMailingDoc,
   conditionsIn,
@@ -30,8 +31,8 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { filtersPath, pairedValue, type Params } from "@/lib/list-params";
 import { INVITED, NEVER_ASKED } from "@/lib/asks/asks";
 import { londonWhen } from "@/lib/staff-time";
-import type { ChannelResult } from "@/lib/letters/channels.server";
-import type { ScheduleResult, WrittenMailing } from "@/lib/mailings/drafts.server";
+import type { FormResult } from "@/lib/form-result";
+import type { WrittenMailing } from "@/lib/mailings/drafts.server";
 import type { PreviewRecipient, WriterData } from "@/lib/mailings/pages.server";
 import {
   DraftTitle,
@@ -42,6 +43,7 @@ import {
   TestSent,
   useDraftWriter,
   type DraftActions,
+  type SaveRefusal,
 } from "./DraftWriter";
 import { SentToday } from "../email/GmailConnect";
 import { DeleteDraft } from "./MailingButtons";
@@ -55,12 +57,14 @@ import NotIcon from "../ui/NotIcon";
 import Strip from "../ui/Strip";
 import Numbered from "../ui/Numbered";
 import { helpButtonClass } from "../ui/HelpButton";
+import { useTellPage } from "../ui/ResultForm";
 import styles from "./MailingWriter.module.css";
 import { mailingsCopy } from "./copy";
 import { politiciansCopy } from "../politicians/copy";
 
 const copy = mailingsCopy.mailingPages;
 const facts = mailingsCopy.mailingPages.sendFacts;
+const refusals = mailingsCopy.refusals;
 
 /** What a mailing's page can change. */
 type Changes = {
@@ -75,11 +79,18 @@ type Changes = {
 
 /** The mailing pages' Server Actions (app/(staff)/staff/_components/mailings/actions.ts), which the page hands in. */
 export type MailingWriterActions = DraftActions & {
-  sendTest: (id: number, politicianId: number, to: string) => Promise<(ChannelResult & { to: string }) | undefined>;
-  schedule: (id: number, version: number) => Promise<ScheduleResult>;
-  deleteDraft: (form: FormData) => void | Promise<void>;
-  /** Unticks these politicians for the draft: Leave them out, under a warning. */
-  leaveOut: (id: number, politicians: number[]) => Promise<void>;
+  /** Sends a test copy, and says where it went: not for a draft that's gone, a politician no longer a recipient, or an email that couldn't be sent. */
+  sendTest: (
+    id: number,
+    politicianId: number,
+    to: string,
+  ) => Promise<FormResult<"gone" | "not-recipient" | "not-sent", { to: string }>>;
+  /** Schedules it: not as a save isn't, or for "problems", what the page checks too, changed since it loaded. */
+  schedule: (id: number, version: number) => Promise<FormResult<SaveRefusal | "problems">>;
+  /** Deletes it: not once someone has scheduled it. */
+  deleteDraft: (form: FormData) => Promise<FormResult<"not-draft">>;
+  /** Unticks these politicians for the draft: Leave them out, under a warning. Not for a draft that's gone, or no longer one. */
+  leaveOut: (id: number, politicians: number[]) => Promise<FormResult<"gone">>;
 };
 
 /**
@@ -184,52 +195,80 @@ export default function MailingWriter({
         }
       : {},
   );
-  const { values, change, saveNow, saveState, version, attachments, attach, detach, fileProblem, stale, restored } =
-    useDraftWriter<Changes>({
-      id,
-      version: draft.version,
-      initial: {
-        subject: draft.subject,
-        body: draft.body,
-        ask: draft.ask,
-        sentFrom: draft.sentFrom,
-        fromName: draft.fromName || null,
-        dueAt: draft.dueAt,
-      },
-      fresh,
-      attachments: draft.attachments,
-      actions,
-    });
+  const {
+    values,
+    change,
+    saveNow,
+    saveState,
+    version,
+    attachments,
+    attach,
+    detach,
+    fileProblem,
+    stale,
+    conflicted,
+    restored,
+  } = useDraftWriter<Changes>({
+    id,
+    version: draft.version,
+    initial: {
+      subject: draft.subject,
+      body: draft.body,
+      ask: draft.ask,
+      sentFrom: draft.sentFrom,
+      fromName: draft.fromName || null,
+      dueAt: draft.dueAt,
+    },
+    fresh,
+    attachments: draft.attachments,
+    actions,
+  });
   // Change who, from its click while the draft's saved until the list comes.
   const [choosing, choose] = useLeaving();
   // The link to add an ask, likewise, until the ask's page comes.
   const [asking, goToAsk] = useLeaving();
-  // Leave them out, likewise, until the draft comes again.
+  // Goes to another page once what's typed is saved, so going there loses none of it.
+  const [leaveSaved] = useSave(async (href: string) => {
+    await saveNow();
+    leavePage(href);
+  });
+  // What a call to the server that threw answers: nothing on a page too old to ask, which the draft says (stale);
+  // anything else is thrown on.
+  const orOutdated = (error: unknown) => {
+    if (stale(error)) return undefined;
+    throw error;
+  };
+  // The draft's own page, which Connect Gmail and the Asks page come back to.
+  const writerPath = `/staff/mailings/${id}`;
+  const tell = useTellPage();
+  // Leave them out, from when it's done until the draft comes again.
   const [leaving, leave] = useLeaving();
-  // Leave them out, for a warning: unticks `ids`, those it's about. What's typed is saved first; the draft then opens
-  // afresh, ticked for fewer, at its new version.
+  // Unticks those a warning is about. What's typed is saved first; the draft then opens afresh, ticked for fewer, at
+  // its new version. A draft that's gone, or no longer one, is said at the page's top, as the page catches up; a page
+  // too old to ask, by the draft.
+  const [leaveOut, leavingOut, notLeftOut] = useSave(
+    async (ids: number[]) => {
+      await saveNow();
+      return actions.leaveOut(id, ids).catch(orOutdated);
+    },
+    {
+      done: (result) => {
+        if (result?.ok) {
+          leave();
+          leavePage(writerPath);
+        } else if (result) tell(politiciansCopy.choosing.gone);
+      },
+    },
+  );
+  // Leave them out, for a warning about `ids`: both wait while either is done, as either changes who the draft's to.
   const leaveOutButton = (ids: number[]) => (
-    <Button
-      variant="ghost"
-      size="small"
-      fit
-      pending={leaving}
-      onClick={async () => {
-        leave();
-        await saveNow();
-        await actions.leaveOut(id, ids);
-        leavePage(writerPath);
-      }}
-    >
+    <Button variant="ghost" size="small" fit pending={leavingOut || leaving} onClick={() => leaveOut(ids)}>
       {copy.leaveThemOut}
     </Button>
   );
 
   /** Whether a letter has nothing written in it yet: blank, or only the greeting it started with. */
   const unwritten = (letter: MailingDoc) => isBlankMailing(letter) || JSON.stringify(letter) === JSON.stringify(start);
-
-  // The draft's own page, which Connect Gmail and the Asks page come back to.
-  const writerPath = `/staff/mailings/${id}`;
 
   // The politicians list, choosing who it goes to: with no one ticked yet, those yet to answer its ask, if it
   // has one, those not answered and those never asked; then those ticked; or, for a draft from before ticks, its
@@ -306,11 +345,10 @@ export default function MailingWriter({
               <a
                 href={`/staff/asks/new?${new URLSearchParams({ back: writerPath })}`}
                 data-pending={asking || undefined}
-                onClick={async (event) => {
+                onClick={(event) => {
                   event.preventDefault();
                   goToAsk();
-                  await saveNow();
-                  leavePage(`/staff/asks/new?${new URLSearchParams({ back: writerPath })}`);
+                  leaveSaved(`/staff/asks/new?${new URLSearchParams({ back: writerPath })}`);
                 }}
               >
                 {copy.newAsk}
@@ -328,12 +366,10 @@ export default function MailingWriter({
               fit
               href={whoPath}
               pending={choosing}
-              onClick={async (event) => {
-                // What's typed is saved first, so going to the list loses none of it.
+              onClick={(event) => {
                 event.preventDefault();
                 choose();
-                await saveNow();
-                leavePage(whoPath);
+                leaveSaved(whoPath);
               }}
             >
               {data.filter.picked?.ids.length === 0 ? copy.chooseWho : copy.changeWho}
@@ -363,6 +399,8 @@ export default function MailingWriter({
               action={leaveOutButton(answered.who.map((one) => one.id))}
             />
           )}
+          {/* Under the warnings: Leave them out threw, or never arrived. */}
+          {notLeftOut && <FieldError announce="alert">{staffVocabulary.notDone}</FieldError>}
         </Card>
 
         <Card span={6} title={<Numbered n={3}>{copy.sections.from}</Numbered>} id="from-title">
@@ -461,10 +499,7 @@ export default function MailingWriter({
             sendTest={async (recipient, to) => {
               // The test is of the draft as saved, so what's typed goes first.
               await saveNow();
-              return actions.sendTest(id, recipient, to).catch((error: unknown) => {
-                if (stale(error)) return undefined;
-                throw error;
-              });
+              return actions.sendTest(id, recipient, to).catch(orOutdated);
             }}
           />
         </Card>
@@ -490,10 +525,16 @@ export default function MailingWriter({
               label={copy.schedule(data.recipients.length)}
               disabled={problems.length > 0 || !data.sends}
               saveNow={saveNow}
-              schedule={() => actions.schedule(id, version.current)}
+              schedule={async () => {
+                const result = await actions.schedule(id, version.current);
+                // One changed elsewhere since its last save says so, as a save refused does. A problem the page
+                // checks too is under the button once the page, shown afresh, has what changed.
+                if (!result.ok && result.reason !== "problems") conflicted();
+                return result;
+              }}
               stale={stale}
             />
-            <DeleteDraft id={id} action={actions.deleteDraft} />
+            <DeleteDraft id={id} action={actions.deleteDraft} says={refusals.deleteDraft} atTop={["not-draft"]} />
           </div>
           <ProblemList problems={problems.map((problem) => copy.problems[problem])} />
           {!data.sends && <Strip tone="amber">{copy.cantSend}</Strip>}
@@ -528,9 +569,13 @@ function Preview({
   fromName: string | null;
   /** What it still needs before there's something to test, as the Send section says it. */
   needs: string[];
-  /** Sends the test copy of a recipient's email. */
-  sendTest: (recipient: number, to: string) => ReturnType<MailingWriterActions["sendTest"]>;
+  /** Sends the test copy of a recipient's email; answers nothing on a page too old to ask, which the draft says. */
+  sendTest: (
+    recipient: number,
+    to: string,
+  ) => Promise<Awaited<ReturnType<MailingWriterActions["sendTest"]>> | undefined>;
 }) {
+  const tell = useTellPage();
   // Where the test copy goes: you, unless you give another address.
   const [testTo, setTestTo] = useState(data.me);
   const testToId = useId();
@@ -540,8 +585,18 @@ function Preview({
   const [chosen, setChosen] = useState(data.recipients[0]?.id);
   // The answers pressed, since someone was last chosen; else theirs.
   const [wanted, setWanted] = useState<Record<string, boolean>>({});
-  const [sent, setSent] = useState<{ to?: string } | undefined>();
-  const [sending, setSending] = useState(false);
+  // How the last test copy went, as the line under the button says it, and whether it went.
+  const [sent, setSent] = useState<{ line: string; went: boolean }>();
+  const [send, sending, broke] = useSave(sendTest, {
+    done: (result) => {
+      if (result?.ok) setSent({ line: copy.testSent(result.to), went: true });
+      // The draft's gone, and the button with it as the page catches up.
+      else if (result?.reason === "gone") tell(refusals.test.gone);
+      else setSent({ line: result ? refusals.test[result.reason] : copy.testFailed, went: false });
+    },
+  });
+  // A send that threw, or never arrived, reads as one that couldn't be sent.
+  const test = broke ? { line: copy.testFailed, went: false } : sent;
   const first = data.recipients[0];
   if (!first) return <p>{copy.noOne}</p>;
   const shown = data.recipients.find((r) => r.id === chosen) ?? first;
@@ -627,18 +682,13 @@ function Preview({
             fit
             disabled={needs.length > 0 || !recipient || !looksLikeEmail(testTo.trim())}
             pending={sending}
-            onClick={async () => {
-              setSending(true);
-              const result = await sendTest(recipient!.id, testTo.trim());
-              setSending(false);
-              setSent({ to: result?.sent ? result.to : undefined });
-            }}
+            onClick={() => send(recipient!.id, testTo.trim())}
           >
             {copy.sendTest}
           </Button>
         </div>
         <Muted>{copy.testVia(data.senders.some((sender) => sender.email === sentFrom) ? sentFrom : null)}</Muted>
-        <TestSent line={sent && (sent.to ? copy.testSent(sent.to) : copy.testFailed)} sent={Boolean(sent?.to)} />
+        <TestSent line={test?.line} sent={Boolean(test?.went)} />
         <ProblemList problems={needs} />
       </div>
     </>

@@ -6,6 +6,7 @@ import type { BroadcastPageData, BroadcastSummary, MessageRecipient } from "@/li
 import { filtersPath, pageParam, type Params } from "@/lib/list-params";
 import { londonWhen, londonWhenShort, sendsAt, staffClock, staffDate, staffTime } from "@/lib/staff-time";
 import { now } from "@/lib/now";
+import type { FormResult } from "@/lib/form-result";
 import { staffMemberText } from "@/lib/staff-member";
 import {
   FIELD_WORDS,
@@ -47,7 +48,11 @@ import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 const copy = broadcastsCopy.broadcastPages;
 
-type FormAction = (form: FormData) => void | Promise<void>;
+/** A broadcast's Server Action that a form sends, refused for a broadcast that's gone or has moved on. */
+export type BroadcastAction = (form: FormData) => Promise<FormResult<"gone">>;
+
+/** Change the times', refused for times that have passed too. */
+export type RetimeAction = (form: FormData) => Promise<FormResult<"gone" | "too-soon">>;
 
 /**
  * A broadcast's channel as an icon before its title (IconText), for a list
@@ -302,12 +307,12 @@ export default function BroadcastView({
   who: ReactNode;
   /** What they all said yes to (BroadcastContact), under who. */
   contact: ReactNode;
-  stop: FormAction;
-  reschedule: FormAction;
+  stop: BroadcastAction;
+  reschedule: RetimeAction;
   /** Sets one going again that stopped as it hadn't all gone in time. */
-  resume: FormAction;
+  resume: BroadcastAction;
   /** Copy broadcast, at its top right. */
-  copyIt?: FormAction;
+  copyIt?: BroadcastAction;
 }) {
   const { summary, tab } = data;
   // All sent but for delayed emails, it's shown as sending, waiting on them (withPause), with Give up to stop
@@ -337,7 +342,17 @@ export default function BroadcastView({
             <Tag tone={scheduled ? "blue" : undefined}>{mailingsCopy.mailingPages.states[written.state]}</Tag>
           )
         }
-        corner={copyIt && <CopyMailing id={written.id} label={copy.copyBroadcast} action={copyIt} />}
+        corner={
+          copyIt && (
+            <CopyMailing
+              id={written.id}
+              label={copy.copyBroadcast}
+              action={copyIt}
+              says={copy.refusals.copy}
+              atTop={["gone"]}
+            />
+          )
+        }
         aside={!scheduled && <CountGroups groups={groups} />}
       >
         {/* What sends it is said under who it's from, so it takes no fact of its own. */}
@@ -369,9 +384,8 @@ export default function BroadcastView({
       <MailingStanding
         mailing={summary}
         written={written}
-        stop={stop}
+        stop={{ action: stop, says: copy.refusals.stop, atTop: ["gone"] }}
         stopLabel={delayed ? copy.giveUp : undefined}
-        reschedule={reschedule}
         changeTimes={
           // Not for one all sent, whose delayed emails' time has passed for staff to change.
           !delayed && (
@@ -400,7 +414,7 @@ export default function BroadcastView({
       <BroadcastWaiting
         written={written}
         pause={summary.pause}
-        resume={<ResumeBroadcast id={written.id} action={resume} />}
+        resume={<ResumeBroadcast id={written.id} action={resume} says={copy.refusals.resume} atTop={["gone"]} />}
       />
       <Grid>
         <BroadcastWords written={written} parts={data.parts} />

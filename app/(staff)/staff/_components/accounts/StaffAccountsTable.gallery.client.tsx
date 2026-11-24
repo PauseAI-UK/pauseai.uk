@@ -1,7 +1,7 @@
 "use client";
 
 // StaffAccountsTable's examples that log what their forms do (StaffAccountsTable.gallery.tsx).
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 import type { StaffAccount } from "@/lib/accounts/staff-accounts.server";
 import StaffAccountsTable, { AddStaff } from "./StaffAccountsTable";
 
@@ -9,7 +9,9 @@ import StaffAccountsTable, { AddStaff } from "./StaffAccountsTable";
 export function AddStaffExample() {
   return (
     <Logged>
-      {(log) => <AddStaff accounts={[{ email: "jo@pauseai.uk" } as StaffAccount]} add={log("saveStaffAccount")} />}
+      {(log) => (
+        <AddStaff accounts={[{ email: "jo@pauseai.uk" } as StaffAccount]} add={loggedDone(log, "saveStaffAccount")} />
+      )}
     </Logged>
   );
 }
@@ -20,9 +22,9 @@ export function StaffAccountsTableExample() {
     <Logged>
       {(log) => (
         <StaffAccountsTable
-          save={log("saveStaffAccount")}
-          remove={log("removeStaffAccount")}
-          endSessions={log("endStaffSessions")}
+          save={loggedDone(log, "saveStaffAccount")}
+          remove={loggedDone(log, "removeStaffAccount")}
+          endSessions={loggedDone(log, "endStaffSessions")}
           you="jo@pauseai.uk"
           sort={{ key: "email", dir: "asc" }}
           accounts={[

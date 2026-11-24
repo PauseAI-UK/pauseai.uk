@@ -6,7 +6,7 @@ import { asksAgreed, INVITED } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
 import type { Ask } from "@/lib/asks/records.server";
 import { AskTitle } from "../asks/AskLine";
-import { PoliticianAsks } from "./AskRow";
+import { PoliticianAsks, type SetStatus } from "./AskRow";
 import CampaignName from "../CampaignName";
 import { FieldChanges } from "./FieldChanges";
 import type { FieldChange } from "@/lib/field-changes";
@@ -25,7 +25,7 @@ import Strip from "../ui/Strip";
 import Tabs from "../ui/Tabs";
 import Withheld from "../ui/Withheld";
 import { NationShape, Rosette, StatusDot } from "./PoliticianIcons";
-import UnblockForm from "../email/UnblockForm";
+import UnblockForm, { type Unblock } from "../email/UnblockForm";
 import NotesCard from "../notes/NotesCard";
 import { NoteEntry, type NotesProps } from "../notes/Notes";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
@@ -33,10 +33,9 @@ import { statusOf } from "../letters/LetterStatus";
 import { Muted } from "@/components/ui/Text";
 import ExternalLink from "../ui/ExternalLink";
 import type { PoliticianAliases } from "@/lib/politicians/aliases.server";
-import PoliticianMarks from "./PoliticianMarks";
-import { AddressesBubble, SalutationBubble, type AliasActions } from "./PoliticianWriting";
+import PoliticianMarks, { type SetMark } from "./PoliticianMarks";
+import { AddressesBubble, SalutationBubble, type AliasActions, type EditAction } from "./PoliticianWriting";
 import { bodyOf, officialProfile } from "@/lib/politicians/official-profiles";
-import type { EditResult } from "@/lib/politicians/edits.server";
 import { politiciansCopy } from "./copy";
 import { lettersCopy } from "../letters/copy";
 import { notesCopy } from "../notes/copy";
@@ -373,9 +372,9 @@ export default function PoliticianDetails({
   /** Every ask, by the asks table's order. */
   asks: Ask[];
   /** Sets their answer to an ask staff record: politicianId, ask, status (blank to clear), note. */
-  setStatus: (form: FormData) => void | Promise<void>;
+  setStatus: SetStatus;
   block?: EmailBlock;
-  unblock: (form: FormData) => void | Promise<void>;
+  unblock: Unblock;
   /** Their letters, with who sent each only for staff with `supporters`. */
   letters: PoliticianLetters;
   /** PauseAI's letters to them. */
@@ -386,9 +385,9 @@ export default function PoliticianDetails({
   messages?: ThreadMessages;
   history: PoliticianChange[];
   /** Turns one of the marks on or off: politicianId, mark, on. */
-  setMark?: (form: FormData) => void | Promise<void>;
-  /** Saves what staff edit of their details (PoliticianWriting), saying whether it did, or why not. */
-  editDetails?: (form: FormData) => Promise<EditResult | undefined>;
+  setMark?: SetMark;
+  /** Saves what staff edit of their details (PoliticianWriting), or says why not. */
+  editDetails?: EditAction;
   /** Staff's notes on them, and what adding and changing them needs. */
   notes?: NotesProps;
   /** Correspondence shows only the threads they've really replied on, as Emails from them leads to. */

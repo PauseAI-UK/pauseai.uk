@@ -71,9 +71,12 @@ describeWithDatabase("staff accounts' Server Actions", () => {
     expect(await expectRedirect(() => saveStaffAccountNow(form({ email: "sam@example.com" })))).toBe(
       "/staff/accounts?notice=not-pauseai",
     );
-    // A bad form does nothing.
-    await saveStaffAccountNow(form({ email: "nobody" }));
-    await removeStaffAccountNow(form({ email: "nobody" }));
+    // So is what's typed for someone new that's no address at all, or nothing.
+    for (const typed of [form({ email: "nobody" }), new FormData()]) {
+      expect(await expectRedirect(() => saveStaffAccountNow(typed))).toBe("/staff/accounts?notice=not-pauseai");
+    }
+    // A row's own address is the form's to fill in: without one, it's a bug in the form.
+    await expect(removeStaffAccountNow(form({ email: "nobody" }))).rejects.toThrow(`"email" isn't an address`);
     expect(await query("SELECT count(*)::int AS n FROM staff_accounts")).toEqual([{ n: 1 }]);
   });
 
@@ -89,8 +92,8 @@ describeWithDatabase("staff accounts' Server Actions", () => {
     expect(
       await query("SELECT count(*)::int AS n FROM staff_sessions WHERE email = 'samuel.whitlock@pauseai.uk'"),
     ).toEqual([{ n: 0 }]);
-    // A bad form does nothing.
-    await endStaffSessionsNow(form({ email: "nobody" }));
+    // A row's own address is the form's to fill in: without one, it's a bug in the form.
+    await expect(endStaffSessionsNow(new FormData())).rejects.toThrow(`"email" isn't an address`);
     expect(await query("SELECT actor, action FROM audit_log WHERE action = 'end staff sessions'")).toEqual([
       { actor: "jo@pauseai.uk", action: "end staff sessions" },
     ]);

@@ -31,7 +31,16 @@ export function DueTimeFieldsExample() {
 export function ChangeTimeFormExample() {
   return (
     <Logged>
-      {(log) => <ChangeTimeForm id={5} dueAt={new Date("2027-01-15T09:00:00Z")} action={log("rescheduleMailingNow")} />}
+      {(log) => (
+        <ChangeTimeForm
+          id={5}
+          dueAt={new Date("2027-01-15T09:00:00Z")}
+          action={(form) => {
+            log("rescheduleMailingNow")(form);
+            return Promise.resolve({ ok: true });
+          }}
+        />
+      )}
     </Logged>
   );
 }

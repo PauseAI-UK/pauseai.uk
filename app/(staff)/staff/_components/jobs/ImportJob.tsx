@@ -23,7 +23,7 @@ import { dueIn, staffClock, staffTime } from "@/lib/staff-time";
 import styles from "./ImportJob.module.css";
 import ImportCard, { ImportCards } from "./ImportCard";
 import ImportIcon, { type ImportSource } from "./ImportIcon";
-import JobActions from "./JobActions";
+import JobActions, { type RunJob } from "./JobActions";
 import Run, { type Decide } from "./Run";
 import { RunState } from "./RunBox";
 import boxes from "./RunBox.module.css";
@@ -264,7 +264,7 @@ export function ImportJobPage({
   /** Its run going now, which a press won't add to. */
   running?: RunningJob;
   /** The Server Action that runs the job now. */
-  run: (form: FormData) => void | Promise<void>;
+  run: RunJob;
   /** Applies or discards a held import. */
   decide: Decide;
   /** The time the page shows, which its next run is after. */

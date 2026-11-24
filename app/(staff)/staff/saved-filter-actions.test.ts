@@ -59,18 +59,43 @@ describeWithDatabase("the saved filters' Server Actions", () => {
     expect(await filters()).toHaveLength(2);
   });
 
-  it("refuse a list without saved filters, a blank name and a missing ID", async () => {
-    await saveFilter(form({ list: "mailings", name: "New" }));
-    await saveFilter(form({ list: "events", name: "  " }));
-    await renameFilter(form({ list: "events", id: "1", name: "" }));
-    await renameFilter(form({ list: "events", name: "New" }));
-    await renameFilter(form({ name: "New", id: "1" }));
-    await updateFilter(form({ list: "events" }));
-    await updateFilter(form({ id: "1" }));
-    await deleteFilter(form({ list: "events" }));
-    await deleteFilter(form({ id: "1" }));
-    expect(await filters()).toEqual([]);
+  it("throw on a form without its list or its filter's ID, which the form fills in itself", async () => {
+    const id = String(await createSavedFilter("events", "One", {}, JO));
+    await expect(saveFilter(form({ list: "mailings", name: "New" }))).rejects.toThrow("without its list");
+    await expect(renameFilter(form({ name: "New", id }))).rejects.toThrow("without its list");
+    await expect(updateFilter(form({ id }))).rejects.toThrow("without its list");
+    await expect(deleteFilter(form({ id }))).rejects.toThrow("without its list");
+    await expect(renameFilter(form({ list: "events", name: "New" }))).rejects.toThrow(`"id" isn't a row's ID`);
+    await expect(updateFilter(form({ list: "events", id: "one" }))).rejects.toThrow(`"id" isn't a row's ID`);
+    await expect(deleteFilter(form({ list: "events", id: "0" }))).rejects.toThrow(`"id" isn't a row's ID`);
+    expect(await filters()).toMatchObject([{ name: "One" }]);
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("refuse a name that's blank, saying so", async () => {
+    const id = String(await createSavedFilter("events", "One", {}, JO));
+    expect(await saveFilter(form({ list: "events", name: "  " }))).toEqual({ ok: false, reason: "blank" });
+    expect(await renameFilter(form({ list: "events", id, name: " \n " }))).toEqual({ ok: false, reason: "blank" });
+    expect(await filters()).toMatchObject([{ name: "One" }]);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("say a filter has gone, to rename or update, and show the list without it", async () => {
+    const id = String(await createSavedFilter("events", "One", {}, JO));
+    await query("DELETE FROM saved_filters");
+    expect(await renameFilter(form({ list: "events", id, name: "Two" }))).toEqual({ ok: false, reason: "gone" });
+    expect(await updateFilter(form({ list: "events", id, back: "/staff/events?tag=Stall" }))).toEqual({
+      ok: false,
+      reason: "gone",
+    });
+    expect(revalidatePath).toHaveBeenCalledTimes(2);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/events");
+  });
+
+  it("take deleting a filter that's gone already as done", async () => {
+    const id = String(await createSavedFilter("events", "One", {}, JO));
+    await query("DELETE FROM saved_filters");
+    expect(await expectRedirect(() => deleteFilter(form({ list: "events", id })))).toBe("/staff/events");
   });
 
   it("save what the page has on, loaded, keeping who a mailing's for, not its page", async () => {
@@ -108,14 +133,14 @@ describeWithDatabase("the saved filters' Server Actions", () => {
 
   it("update nothing that isn't that list's", async () => {
     const id = await createSavedFilter("supporters", "One", { q: "x" }, JO);
-    await updateFilter(form({ list: "events", id: String(id), back: "/staff/events?tag=Stall" }));
+    const result = await updateFilter(form({ list: "events", id: String(id), back: "/staff/events?tag=Stall" }));
+    expect(result).toEqual({ ok: false, reason: "gone" });
     expect(await filters()).toMatchObject([{ params: { q: "x" } }]);
-    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("rename a filter, staying on the page", async () => {
     const id = await createSavedFilter("events", "One", {}, JO);
-    await renameFilter(form({ list: "events", id: String(id), name: " Two " }));
+    expect(await renameFilter(form({ list: "events", id: String(id), name: " Two " }))).toEqual({ ok: true });
     expect(await filters()).toMatchObject([{ name: "Two" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/events");
   });

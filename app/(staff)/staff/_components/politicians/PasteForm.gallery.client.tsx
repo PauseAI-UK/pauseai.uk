@@ -9,7 +9,13 @@ export function PasteFormExample() {
   return (
     <Logged>
       {(log) => (
-        <PasteForm action={log("pasteNames") as (form: FormData) => void} back="/staff/politicians?mailing=12" />
+        <PasteForm
+          action={(form) => {
+            log("pasteNames")(form);
+            return Promise.resolve({ ok: true });
+          }}
+          back="/staff/politicians?mailing=12"
+        />
       )}
     </Logged>
   );

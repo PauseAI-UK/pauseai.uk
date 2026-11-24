@@ -448,6 +448,34 @@ test("A held rename", async ({ page, request, flowDatabase }) => {
   await frame(page, "The import, held");
 });
 
+test("A held import a colleague decides meanwhile", async ({ page, request, flowDatabase }) => {
+  story("An import is held for a rename. While an admin reads what it would change, a colleague discards it.");
+  await importPoliticians(request, BASE, flowDatabase);
+  runSql(flowDatabase, "UPDATE notable_people SET name = 'Penny Previous' WHERE name = 'Polly Placeholder'");
+  await logIn(page, flowDatabase, ["admin"]);
+  await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
+  const words = politiciansCopy.politicianImports;
+  await page.getByRole("button", { name: words.importNow["import-parliament"] }).click();
+  await expect(page.getByRole("button", { name: words.apply })).toBeVisible();
+  // The colleague's discard, on a page of their own.
+  runSql(
+    flowDatabase,
+    `UPDATE import_runs SET status = 'discarded', decided_by = 'sam.example@pauseai.uk', decided_at = '${FIXTURE_NOW}'
+     WHERE status = 'held'`,
+  );
+
+  story(
+    "Apply can't, and the page says why at its top. The run is shown as the colleague left it, without its buttons.",
+  );
+  await page.getByRole("button", { name: words.apply }).click();
+  await expect(page.getByRole("alert").filter({ hasText: jobsCopy.runs.refused.gone })).toBeVisible();
+  await expect(page.getByRole("button", { name: words.apply })).toHaveCount(0);
+  await expect(page.getByText(jobsCopy.runs.status.discarded).first()).toBeVisible();
+  // From the top, where the page says why; the button left the page scrolled down its list.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await frame(page, "Decided already, said at the top");
+});
+
 test("Keeping Joseph's threads", async ({ page, flowDatabase }) => {
   story(
     "Threads with politicians are kept from policy@ and Joseph's mailboxes. His own page says so, once it's connected.",

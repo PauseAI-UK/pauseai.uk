@@ -5,6 +5,7 @@ import { changesSearch } from "@/lib/staff-search";
 import ChangesFilters from "./ChangesFilters";
 import StaffPage from "../ui/StaffPage";
 import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { loggedActions } from "../ui/SavedFilters.gallery.client";
 
 /** The audit log's filters: several of who chosen, one of what left out, and how recent. */
 export function ChangesFiltersExample() {
@@ -15,7 +16,7 @@ export function ChangesFiltersExample() {
           <ChangesFilters
             search={changesSearch({ actor: ["jo@pauseai.uk", "sync"], action: "!add note", when: "30" })}
             choices={{ actors: ["jo@pauseai.uk", "sync"], actions: ["add note", "edit event"] }}
-            actions={{ save: log("save"), update: log("update"), rename: log("rename"), remove: log("remove") }}
+            actions={loggedActions(log)}
           />
         </StaffPage>
       )}

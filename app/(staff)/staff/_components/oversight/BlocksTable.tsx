@@ -11,7 +11,7 @@ import { phoneWords } from "@/lib/phone";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import Reason, { problemSource, REASON_LENGTH } from "../email/BounceReason";
 import Shortened, { cutAtWord } from "../ui/Shortened";
-import { UnblockBubble } from "../email/UnblockForm";
+import { UnblockBubble, type Unblock } from "../email/UnblockForm";
 import IconText from "../ui/IconText";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";
 import SortHeading from "../ui/SortHeading";
@@ -75,10 +75,7 @@ function reasonWords(block: Block): string {
  * since when; and with `unblock`, the row's buttons: its history and the
  * way to unblock it, which a download leaves out.
  */
-export function blockColumns(
-  letterLinks: boolean,
-  unblock?: (form: FormData) => void | Promise<void>,
-): ListColumn<Block>[] {
+export function blockColumns(letterLinks: boolean, unblock?: Unblock): ListColumn<Block>[] {
   const columns: ListColumn<Block>[] = [
     {
       key: "address",
@@ -179,7 +176,7 @@ export default function BlocksTable({
   of: typeof BLOCKED_ADDRESSES_LIST;
   search: BlocksSearch;
   page: number;
-  unblock: (form: FormData) => void | Promise<void>;
+  unblock: Unblock;
   letterLinks: boolean;
 }) {
   // Its URL from the first page: a link to another page or a sort sets its own.

@@ -52,4 +52,9 @@ export const shellCopy = {
     // The button that loads the page again.
     retry: "Try again",
   },
+  // In place of a page whose record isn't there, beside the navigation (StaffNotFound): its title, and under it why.
+  notFound: {
+    title: "Not found",
+    words: "This record isn't here. It may have been deleted, erased or merged into another.",
+  },
 };

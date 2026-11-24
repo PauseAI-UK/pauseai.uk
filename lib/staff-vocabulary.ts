@@ -31,6 +31,8 @@ export const staffVocabulary = {
   deleteIt: "Press again to delete it",
   // The same, short, where there's little room (a note's buttons).
   deleteItShort: "Confirm?",
+  // Any form (ResultForm), when what it sent never arrived, or the server threw.
+  notDone: "That didn’t work. Try again.",
   houses: {
     commons: "House of Commons",
     lords: "House of Lords",
@@ -143,6 +145,13 @@ export const staffVocabulary = {
       deleteForEveryone: "Delete for all",
       // Over the list, when a saved filter names something that has gone.
       gone: (what: string) => `Part of this saved filter no longer exists: “${what}”. It has been left out.`,
+      // Why a saved filter's form was refused.
+      refused: {
+        // Naming one, with a name of only spaces.
+        blank: "Give the filter a name.",
+        // Renaming or updating one that someone deleted since the page loaded.
+        gone: "Someone has deleted this filter.",
+      },
       // A saved filter's name when erasing a supporter's details leaves none of it.
       erasedName: "Saved filter",
     },

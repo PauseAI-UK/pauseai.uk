@@ -1,7 +1,7 @@
 "use client";
 
 // MyGmail's example that logs Disconnect (MyGmail.gallery.tsx).
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 import { exampleGmailAccount } from "../letters/LetterThread.examples";
 import MyGmail from "./MyGmail";
 
@@ -14,7 +14,7 @@ export function MyGmailExample({ connected, outcome = "" }: { connected: boolean
           me="jo@pauseai.uk"
           account={connected ? exampleGmailAccount : undefined}
           outcome={outcome}
-          disconnect={log("disconnect")}
+          disconnect={loggedDone(log, "disconnect")}
         />
       )}
     </Logged>

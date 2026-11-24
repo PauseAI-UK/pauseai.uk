@@ -22,7 +22,7 @@ export function DraftTitleExample() {
 }
 
 /** Scheduling, refused, as the server says when something stops it. */
-const refused = async () => ({ scheduled: false });
+const refused = async () => ({ ok: false });
 
 /** A draft's foot: Schedule, enabled and refused, what stops it, and when it goes, its choice logged. */
 export function DraftFootExample() {

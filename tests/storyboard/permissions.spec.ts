@@ -16,7 +16,7 @@ import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
-import { emailCopy } from "@/lib/email/copy";
+import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
 import { oversightCopy } from "@/lib/oversight/copy";
 
 export const section: Section = { name: "Permissions", part: "Staff pages", order: 140 };
@@ -257,9 +257,17 @@ test("Unblocking a supporter's address", async ({ page, request, flowDatabase })
   await expect(row).toContainText(emailCopy.emails.kinds.hard);
   await frame(page, "Blocked addresses");
 
-  story("Staff unblock it. Its row's button asks why first, for the audit log.");
+  story("Staff unblock it. Its row's button asks why first, for the audit log, and spaces alone won't do.");
   await openBubble(row.getByRole("button", { name: emailCopy.emails.unblockOpen }));
-  await row.getByLabel(emailCopy.emails.note).fill("She gave us a new one");
+  const why = row.getByLabel(emailCopy.emails.note);
+  await why.fill("   ");
+  await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
+  await expect(row.getByRole("alert")).toHaveText(emailCopy.unblockRefused.blank);
+  await expect(why).toHaveAttribute("aria-invalid", "true");
+  await frame(page, "No reason given", { window: true });
+
+  story("They say why.");
+  await why.fill("She gave us a new one");
   await frame(page, "Why they're unblocking it");
   await row.getByRole("button", { name: emailCopy.emails.unblock, exact: true }).click();
   await expect(page.getByText(emailCopy.emails.noBlocks)).toBeVisible();

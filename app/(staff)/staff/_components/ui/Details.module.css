@@ -148,6 +148,15 @@
   font-weight: 600;
 }
 
+/* Why an answer wasn't saved, on a row of its own under the note: no row till there's something to say. */
+.refused {
+  flex: 1 0 100%;
+}
+
+.refused:empty {
+  display: none;
+}
+
 /* Notes kept as they were written, a line each. */
 /* A row that has to be one element (a list's line, keyed). */
 .pair {

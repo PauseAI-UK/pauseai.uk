@@ -1,13 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { supportersSearch } from "@/lib/staff-search";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { ChoosingBroadcastFrame, BroadcastSupporters } from "./BroadcastSupporters";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { BroadcastSupportersExample, ChoosingBroadcastFrameExample } from "./BroadcastSupporters.gallery.client";
 
 const copy = broadcastsCopy.broadcastPages;
-const nothing = async () => {};
+const nothing = async () => ({ ok: true as const });
 
 const button = (name: string | RegExp) => page.getByRole("button", { name });
 
@@ -20,6 +21,23 @@ describe("the supporters list", () => {
     await expect.element(button(copy.broadcastButton(430))).toBeVisible();
     expect(document.querySelector<HTMLInputElement>('input[name="contact"]')!.value).toBe("email:newsletter:yes");
     expect(document.querySelector<HTMLInputElement>('input[name="near"]')!.value).toBe("LS1");
+  });
+
+  it("sends who they are to its action, and says so under the button if that breaks", async () => {
+    const sent: FormData[] = [];
+    const action = vi.fn(async (form: FormData) => {
+      sent.push(form);
+      return { ok: true as const };
+    });
+    await render(<BroadcastSupporters search={yes} total={430} action={action} />);
+    await button(copy.broadcastButton(430)).click();
+    await expect
+      .poll(() => sent.map((form) => [form.get("contact"), form.get("near")]))
+      .toEqual([["email:newsletter:yes", "LS1"]]);
+    expect(page.getByRole("alert").query()).toBeNull();
+    action.mockRejectedValueOnce(Object.assign(new Error("The server threw."), { digest: "1" }));
+    await button(copy.broadcastButton(430)).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
   });
 
   it("isn't there without a Consent filter answered yes", async () => {
@@ -79,6 +97,25 @@ describe("the supporters list", () => {
         .toHaveAttribute("href", "/staff/broadcasts/3");
       await expect.element(page.getByText(copy.choosingCount(430))).toBeVisible();
       await expect.element(button(copy.useThese(430))).toBeVisible();
+    });
+
+    it("keeps the filters for the draft it's choosing for", async () => {
+      const kept: [number, FormDataEntryValue | null][] = [];
+      await render(
+        <ChoosingBroadcastFrame
+          choosing={choosing}
+          search={yes}
+          total={430}
+          keep={async (id, form) => {
+            kept.push([id, form.get("near")]);
+            return { ok: true };
+          }}
+        >
+          <p>The list</p>
+        </ChoosingBroadcastFrame>,
+      );
+      await button(copy.useThese(430)).click();
+      await expect.poll(() => kept).toEqual([[3, "LS1"]]);
     });
 
     it("says it's choosing for a new one, for a draft with nothing written yet", async () => {

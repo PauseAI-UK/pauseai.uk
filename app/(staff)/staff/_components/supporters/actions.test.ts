@@ -78,9 +78,11 @@ describeWithDatabase("the supporter pages' Server Actions", () => {
     const choice = "email|newsletter|jane.smith@example.com";
     expect(await expectRedirect(() => record({ choice, how: "At the stall" }))).toBe("/staff");
     await saveStaffAccount("jo@pauseai.uk", ["supporters"], "a");
+    const done = { ok: true, already: false };
+    const already = { ok: true, already: true };
     // Recorded since the page was opened: nothing to take off the calendar.
     vi.mocked(recordStaffOptOut).mockResolvedValueOnce(false);
-    expect(await record({ choice: "email|bulk|jane.smith@example.com", how: "At the stall" })).toBe(false);
+    expect(await record({ choice: "email|bulk|jane.smith@example.com", how: "At the stall" })).toEqual(already);
     expect(vi.mocked(recordStaffOptOut)).toHaveBeenCalledOnce();
     // Every bulk email takes them off our Luma calendar too, on the live site; then, for what follows, it never was.
     vi.stubEnv("DEPLOY_CONTEXT", "production");
@@ -92,21 +94,34 @@ describeWithDatabase("the supporter pages' Server Actions", () => {
         return HttpResponse.json({});
       }),
     );
-    expect(await record({ choice: "email|bulk|jane.smith@example.com", how: "At the stall" })).toBe(true);
+    expect(await record({ choice: "email|bulk|jane.smith@example.com", how: "At the stall" })).toEqual(done);
     expect(removed).toEqual([{ email: "jane.smith@example.com" }]);
     vi.unstubAllEnvs();
     await query("DELETE FROM civicrm_updates");
     await query("DELETE FROM opt_outs");
     await query("DELETE FROM audit_log WHERE action = 'record opt-out'");
-    expect(await record({ choice, how: " " })).toBe(false);
-    expect(await record({ choice })).toBe(false);
-    expect(await record({ choice: "email|newsletter|sam@example.com", how: "At the stall" })).toBe(false);
-    expect(await recordOptOutNow(form({ supporterId: "999999", choice, how: "At the stall" }))).toBe(false);
-    expect(await recordOptOutNow(form({ choice, how: "At the stall" }))).toBe(false);
-    expect(await record({ choice, how: " At the stall " })).toBe(true);
+    revalidatePath.mockClear();
+    // How they said so is typed: blank, it's refused, saying so.
+    expect(await record({ choice, how: " " })).toEqual({ ok: false, reason: "blank" });
+    expect(await record({ choice })).toEqual({ ok: false, reason: "blank" });
+    // Whom, and a choice, are the form's own.
+    await expect(recordOptOutNow(form({ choice, how: "At the stall" }))).rejects.toThrow(
+      `"supporterId" isn't a row's ID`,
+    );
+    await expect(record({ how: "At the stall" })).rejects.toThrow(`without its "choice"`);
+    expect(revalidatePath).not.toHaveBeenCalled();
+    // A supporter gone since the page loaded, which the page then shows.
+    expect(await recordOptOutNow(form({ supporterId: "999999", choice, how: "At the stall" }))).toEqual({
+      ok: false,
+      reason: "gone",
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/supporters/999999");
+    // A choice that isn't theirs to make is one recorded since the page loaded.
+    expect(await record({ choice: "email|newsletter|sam@example.com", how: "At the stall" })).toEqual(already);
+    expect(await record({ choice, how: " At the stall " })).toEqual(done);
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/supporters/${id}`);
     // Opted out of it, it's no longer offered.
-    expect(await record({ choice, how: "Again" })).toBe(false);
+    expect(await record({ choice, how: "Again" })).toEqual(already);
     expect(await query("SELECT address, list, source, recorded_by, how FROM opt_outs")).toEqual([
       {
         address: "jane.smith@example.com",
@@ -131,10 +146,25 @@ describeWithDatabase("the supporter pages' Server Actions", () => {
 
   it("the upload's preview a file, and import it as the staff member", async () => {
     await saveStaffAccount("jo@pauseai.uk", ["supporters"], "a");
-    const plan = (await previewSignupUpload(input)) as SignupPlan;
+    const { plan } = (await previewSignupUpload(input)) as { plan: SignupPlan };
     expect(plan.rows.map((row) => row.pile)).toEqual(["none"]);
-    expect(await importSignupUpload(input, plan.signature)).toEqual({ uploadId: expect.any(Number) });
+    // Not what the preview showed: what it would do now, and nothing imported.
+    expect(await importSignupUpload(input, "another")).toEqual({ ok: true, changed: plan });
+    expect(await importSignupUpload(input, plan.signature)).toEqual({ ok: true, uploadId: expect.any(Number) });
     expect(await query("SELECT uploaded_by FROM signup_uploads")).toEqual([{ uploaded_by: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/supporters");
+  });
+
+  it("the upload's refuse a choice that doesn't fit the file, and throw on a file the form can't read", async () => {
+    await saveStaffAccount("jo@pauseai.uk", ["supporters"], "a");
+    const refusedChoice = { ok: false, reason: "bad-choice" };
+    // An event that isn't one of those offered, as one gone since the page loaded.
+    const gone = { ...input, eventId: "evt-gone", eventColumn: "Name" };
+    expect(await previewSignupUpload(gone)).toEqual(refusedChoice);
+    expect(await importSignupUpload(gone, "x")).toEqual(refusedChoice);
+    const empty = { ...input, csv: "" };
+    await expect(previewSignupUpload(empty)).rejects.toThrow("a file its form can't read");
+    await expect(importSignupUpload(empty, "x")).rejects.toThrow("a file its form can't read");
+    expect(await query("SELECT count(*)::int AS n FROM signup_uploads")).toEqual([{ n: 0 }]);
   });
 });

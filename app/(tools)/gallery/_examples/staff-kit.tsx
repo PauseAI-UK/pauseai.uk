@@ -7,6 +7,7 @@ import { staffNavGallery } from "@/app/(staff)/staff/_components/shell/StaffNav.
 import { navIconGallery } from "@/app/(staff)/staff/_components/shell/NavIcon.gallery";
 import { siteUpdatedGallery } from "@/app/(staff)/staff/_components/shell/SiteUpdated.gallery";
 import { staffErrorGallery } from "@/app/(staff)/staff/_components/shell/StaffError.gallery";
+import { staffNotFoundGallery } from "@/app/(staff)/staff/_components/shell/StaffNotFound.gallery";
 import type { Group } from "../_components/types";
 import { staffPageGallery } from "@/app/(staff)/staff/_components/ui/StaffPage.gallery";
 import { gridGallery } from "@/app/(staff)/staff/_components/ui/Grid.gallery";
@@ -55,6 +56,7 @@ import { manyChoicesGallery } from "@/app/(staff)/staff/_components/ui/ManyChoic
 import { menuGallery } from "@/app/(staff)/staff/_components/ui/Menu.gallery";
 import { menuSelectGallery } from "@/app/(staff)/staff/_components/ui/MenuSelect.gallery";
 import { menuSubmitGallery } from "@/app/(staff)/staff/_components/ui/MenuSubmit.gallery";
+import { resultFormGallery } from "@/app/(staff)/staff/_components/ui/ResultForm.gallery";
 import { bubbleGallery } from "@/components/ui/Bubble.gallery";
 
 const [grid, card, column] = gridGallery;
@@ -82,6 +84,7 @@ export const staffKit: Group = {
     ...navIconGallery,
     ...siteUpdatedGallery,
     ...staffErrorGallery,
+    ...staffNotFoundGallery,
     ...withheldGallery,
     ...choiceSearchGallery,
     listTable,
@@ -120,6 +123,7 @@ export const staffKit: Group = {
     ...menuGallery,
     ...menuSelectGallery,
     ...menuSubmitGallery,
+    ...resultFormGallery,
     ...bubbleGallery,
   ],
 };

@@ -34,6 +34,8 @@ function addSaved(database: string, list: string, name: string, params: object, 
 /** Opens the list of saved filters, a menu, as every flow opens one (openBubble). */
 const openList = (page: Page) => openBubble(page.getByRole("button", { name: copy.chip, exact: true }));
 const save = (page: Page) => page.getByRole("button", { name: copy.save, exact: true });
+/** What the page says at its top of a filter that's gone: an alert, as Next's own announcer of the page's title is. */
+const gone = (page: Page) => page.getByRole("alert").filter({ hasText: copy.refused.gone });
 
 test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
   story("Nothing's on the politicians list, so there's nothing to save: the chip is only the way to saved filters.");
@@ -198,6 +200,76 @@ test("Renaming and deleting a saved filter", async ({ page, request, flowDatabas
   await openList(page);
   await expect(page.getByText(copy.count(1))).toBeVisible();
   await frame(page, "Deleted");
+});
+
+test("A saved filter's name that's only spaces", async ({ page, request, flowDatabase }) => {
+  story("Staff choose a party and save it, but clear the name and type only spaces. The form says it needs a name.");
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  await page.goto(POLITICIANS);
+  await addFilter(page, staffVocabulary.fields.party, "Labour");
+  const form = await openBubble(save(page));
+  const name = form.getByRole("textbox", { name: copy.name });
+  await name.fill("   ");
+  const saveIt = form.getByRole("button", { name: copy.save, exact: true });
+  await saveIt.click();
+  await expect(form.getByRole("alert")).toHaveText(copy.refused.blank);
+  await expect(name).toHaveAttribute("aria-invalid", "true");
+  await frame(page, "No name", { window: true });
+
+  story("With a name, it saves and loads as ever.");
+  await name.fill("Labour MPs");
+  await saveIt.click();
+  await expect(page).toHaveURL(/saved=\d+/);
+  await expect(page.getByRole("button", { name: "Labour MPs" })).toBeVisible();
+  await frame(page, "Saved and loaded");
+
+  story("Renaming it to nothing but spaces is refused the same way, and its name stays.");
+  await page.getByRole("button", { name: "Labour MPs" }).click();
+  await page.getByRole("button", { name: copy.rowMenu("Labour MPs") }).click();
+  const rename = await openBubble(page.getByRole("button", { name: copy.rename, exact: true }));
+  await rename.getByRole("textbox", { name: copy.name }).fill("  ");
+  await rename.getByRole("button", { name: copy.save, exact: true }).last().click();
+  await expect(rename.getByRole("alert")).toHaveText(copy.refused.blank);
+  await frame(page, "No new name", { window: true });
+});
+
+test("A saved filter a colleague deletes meanwhile", async ({ page, request, flowDatabase }) => {
+  story("Staff load a colleague's filter, Labour MPs, and add to it. Before they save, the colleague deletes it.");
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  const labour = addSaved(flowDatabase, "politicians", "Labour MPs", { party: "Labour", house: "commons" });
+  addSaved(flowDatabase, "politicians", "Peers", { house: "lords" });
+  await page.goto(POLITICIANS);
+  await openList(page);
+  await page.getByRole("link", { name: /Labour MPs/ }).click();
+  await expect(page.getByRole("button", { name: `${staffVocabulary.fields.party}: Labour` })).toBeVisible();
+  await addFilter(page, politiciansCopy.politician.country, staffVocabulary.countries.scotland);
+  await expect(page.getByRole("button", { name: "Labour MPs" })).toContainText(copy.edited);
+  await save(page).click();
+  await expect(page.getByRole("button", { name: copy.update })).toBeVisible();
+  runSql(flowDatabase, `DELETE FROM saved_filters WHERE id = ${labour}`);
+
+  story("Update for all can't, and the page says why at its top. Their filters are still on, to save as a new one.");
+  await page.getByRole("button", { name: copy.update }).click();
+  await expect(gone(page)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Labour MPs" })).toHaveCount(0);
+  await expect(save(page)).toBeVisible();
+  await frame(page, "Gone, said at the top");
+
+  story("The same happens renaming one that's gone: the colleague deletes Peers while its name's form is open.");
+  await openList(page);
+  await page.getByRole("button", { name: copy.rowMenu("Peers") }).click();
+  const rename = await openBubble(page.getByRole("button", { name: copy.rename, exact: true }));
+  await rename.getByRole("textbox", { name: copy.name }).fill("Everyone in the Lords");
+  runSql(flowDatabase, "DELETE FROM saved_filters");
+  await expect(gone(page)).toBeVisible();
+  await rename.getByRole("button", { name: copy.save, exact: true }).last().click();
+  await expect(page.getByRole("searchbox", { name: copy.find })).toBeHidden();
+  await expect(gone(page)).toBeVisible();
+  await openList(page);
+  await expect(page.getByText(copy.none)).toBeVisible();
+  await frame(page, "Gone, and the list without it");
 });
 
 test("A saved filter naming something that has gone", async ({ page, request, flowDatabase }) => {

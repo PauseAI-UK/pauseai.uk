@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { addAsk, deleteAsk, editAsk } from "@/lib/asks/records.server";
-import { askFrom } from "@/lib/staff-forms";
+import { askFrom, ownText } from "@/lib/staff-forms";
 import { staffBack } from "@/lib/staff-back";
 
 /**
@@ -26,24 +26,22 @@ function afterAsk(slug: string, back: string, result: { saved: boolean; reason?:
   redirect(`${path}?${params}`);
 }
 
-/** An ask's form: adds the ask, or with its slug, saves it; then goes back to where it was opened from. */
-export async function saveAskNow(form: FormData): Promise<void> {
+/**
+ * An ask's form: adds the ask, or with its slug, saves it; then goes back to
+ * where it was opened from. One with no title, or a link that isn't a whole
+ * one, goes back to its form, saying so.
+ */
+export async function saveAskNow(form: FormData): Promise<never> {
   const { email } = await requireStaff();
   const slug = String(form.get("slug") ?? "");
   const back = staffBack(String(form.get("back") ?? ""), "/staff/asks");
-  const parsed = askFrom(form);
-  if (!parsed) afterAsk(slug, back, { saved: false, reason: "invalid" }, "");
-  afterAsk(
-    slug,
-    back,
-    slug ? await editAsk(slug, parsed, email) : await addAsk(parsed, email),
-    slug ? "saved" : "added",
-  );
+  const ask = askFrom(form);
+  afterAsk(slug, back, slug ? await editAsk(slug, ask, email) : await addAsk(ask, email), slug ? "saved" : "added");
 }
 
 /** An ask's Delete: deletes it, while nothing refers to it, then goes to the asks page. */
-export async function deleteAskNow(form: FormData): Promise<void> {
+export async function deleteAskNow(form: FormData): Promise<never> {
   const { email } = await requireStaff();
-  const slug = String(form.get("slug") ?? "");
+  const slug = ownText(form, "slug");
   afterAsk(slug, "/staff/asks", await deleteAsk(slug, email), "deleted");
 }

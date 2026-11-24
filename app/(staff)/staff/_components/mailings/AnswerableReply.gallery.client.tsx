@@ -10,7 +10,7 @@ export const sent =
   (log: (name: string) => (...args: unknown[]) => void): AnswerAction =>
   async (...args) => {
     log("answer")(...args);
-    return { sent: true };
+    return { ok: true };
   };
 
 /** A reply in the thread with its Reply button, and its answer opened, being written. */

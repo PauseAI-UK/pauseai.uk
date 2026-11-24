@@ -68,5 +68,9 @@ export const politiciansCopy = {
     useThese: (n: number) => plural(n, "Use this one", `Use these ${n}`),
     // Who a mailing's for, before anyone's ticked.
     pickedNone: "No one ticked yet",
+    // At the top of the page, after a tick, Clear all ticks, Find these or Cancel on the list, or Leave them out on
+    // the draft, for a mailing that someone has deleted or scheduled since the page loaded. The page has caught up
+    // by then, so the list is no longer choosing for it.
+    gone: "Can't change who this mailing is for, because it was deleted or scheduled.",
   },
 };

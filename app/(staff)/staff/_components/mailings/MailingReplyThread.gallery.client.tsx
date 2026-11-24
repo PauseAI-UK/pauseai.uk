@@ -54,7 +54,10 @@ export function MailingReplyThreadExample({
           thread={dealt ? exampleDealtThread : exampleWaitingThread}
           waiting={dealt ? null : { id: 1, account: "jo@pauseai.uk" }}
           canAnswer={canAnswer}
-          deal={log("deal")}
+          deal={(form) => {
+            log("deal")(form);
+            return Promise.resolve({ ok: true });
+          }}
           answer={sent(log)}
         />
       )}

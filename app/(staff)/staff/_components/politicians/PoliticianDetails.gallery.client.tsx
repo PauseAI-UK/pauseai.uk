@@ -4,7 +4,7 @@
 import { exampleBlock } from "../oversight/BlocksTable.examples";
 import { exampleLetter } from "../letters/LettersTable.examples";
 import { exampleNotes, exampleNotesAt, exampleNoteWriter } from "../notes/Notes.examples";
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 import PoliticianDetails from "./PoliticianDetails";
 import { exampleAliases, examplePolitician, examplePoliticianHistory } from "./PoliticianTable.examples";
 import { exampleAsks } from "../asks/AsksList.examples";
@@ -35,7 +35,7 @@ export function PoliticianDetailsExample({
             fromAirtable ? { ...examplePolitician, emailBlocked: blocked } : { ...examplePolitician, airtableId: null }
           }
           asks={exampleAsks}
-          setStatus={log("setStatus")}
+          setStatus={loggedDone(log, "setStatus")}
           block={blocked ? { ...exampleBlock, address: examplePolitician.email! } : undefined}
           letters={
             senders
@@ -55,12 +55,12 @@ export function PoliticianDetailsExample({
                 }
           }
           history={examplePoliticianHistory}
-          unblock={log("unblock")}
+          unblock={loggedDone(log, "unblock")}
           aliases={aliases ? exampleAliases : undefined}
           aliasesOpen={aliases}
-          aliasActions={{ add: log("addAlias"), remove: log("removeAlias") }}
-          setMark={log("setMark")}
-          editDetails={async (form) => (log("editDetails")(form), { saved: true })}
+          aliasActions={{ add: loggedDone(log, "addAlias"), remove: loggedDone(log, "removeAlias") }}
+          setMark={loggedDone(log, "setMark")}
+          editDetails={loggedDone(log, "editDetails")}
           notes={
             fromAirtable
               ? undefined
@@ -68,9 +68,9 @@ export function PoliticianDetailsExample({
                   notes: exampleNotes,
                   reader: exampleNoteWriter,
                   at: exampleNotesAt,
-                  add: log("addNote"),
-                  edit: log("editNote"),
-                  remove: log("deleteNote"),
+                  add: loggedDone(log, "addNote"),
+                  edit: loggedDone(log, "editNote"),
+                  remove: loggedDone(log, "deleteNote"),
                 }
           }
         />

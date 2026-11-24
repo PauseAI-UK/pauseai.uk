@@ -5,11 +5,17 @@ import { FilterPills } from "./MailingParts";
 import MailingView, { MailingStanding } from "./MailingView";
 import { exampleWriterData, exampleWrittenMailing } from "./MailingWriter.examples";
 import { exampleMailing, exampleMailings, exampleSending } from "./MailingsTable.examples";
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, type Log } from "@/app/(tools)/gallery/_components/wiring";
 import { exampleAsks } from "../asks/AsksList.examples";
 
-/** A Server Action that does nothing. */
-const nothing = async () => {};
+/** A Server Action that does nothing, and is done. */
+const nothing = () => Promise.resolve({ ok: true as const });
+
+/** A form's action that logs the form it's sent as `name`, and is done. */
+const sends = (log: Log, name: string) => (form: FormData) => {
+  log(name)(form);
+  return nothing();
+};
 
 /** A mailing's page in each state but draft, or one imported from Airtable, with none. */
 export function MailingViewExample({ state }: { state: "scheduled" | "sending" | "sent" | "imported" }) {
@@ -21,8 +27,8 @@ export function MailingViewExample({ state }: { state: "scheduled" | "sending" |
           written={state === "imported" ? undefined : { ...exampleWrittenMailing, state }}
           who={<FilterPills data={exampleWriterData} />}
           asks={exampleAsks}
-          stop={log("stopMailingNow")}
-          reschedule={log("rescheduleMailingNow")}
+          stop={sends(log, "stopMailingNow")}
+          reschedule={sends(log, "rescheduleMailingNow")}
         />
       )}
     </Logged>
@@ -35,8 +41,7 @@ export function MailingStandingExample() {
     <MailingStanding
       mailing={exampleSending}
       written={{ ...exampleWrittenMailing, state: "sending" }}
-      stop={nothing}
-      reschedule={nothing}
+      stop={{ action: nothing, says: {} }}
     />
   );
 }

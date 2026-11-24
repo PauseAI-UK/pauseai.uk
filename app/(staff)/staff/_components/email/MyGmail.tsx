@@ -1,9 +1,11 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { GmailAccount } from "@/lib/email/gmail-accounts.server";
+import type { FormResult } from "@/lib/form-result";
 import { staffDate } from "@/lib/staff-time";
 import { GmailConnect, GmailOutcome, SentToday } from "./GmailConnect";
 import styles from "./MyGmail.module.css";
 import { Card } from "../ui/Grid";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import StaffLink from "../ui/StaffLink";
 import { emailCopy } from "./copy";
 import { shellCopy } from "../shell/copy";
@@ -67,7 +69,8 @@ export default function MyGmail({
   account: GmailAccount | undefined;
   /** How connecting ended, if Google has just sent you back. */
   outcome: string;
-  disconnect: (form: FormData) => void | Promise<void>;
+  /** Disconnects it, and comes back to the page, so it's never refused. */
+  disconnect: (form: FormData) => Promise<FormResult<never>>;
   /** Whether threads with politicians are kept from it. */
   keepsThreads?: boolean;
   /** Whether it's the address broadcasts go from, so replies to them are kept from it too. */
@@ -97,11 +100,12 @@ export default function MyGmail({
               {copy.connected(staffDate(account.connectedAt))}{" "}
               <SentToday sent={account.sentToday} lettersInbox={lettersInbox} />
             </p>
-            <form action={disconnect}>
+            <ResultForm action={disconnect} says={{}}>
               <SubmitButton variant="ghost" size="small" fit>
                 {copy.disconnect}
               </SubmitButton>
-            </form>
+              <Refusal />
+            </ResultForm>
           </>
         ) : (
           <GmailConnect back="/staff/me" lettersInbox={lettersInbox} />

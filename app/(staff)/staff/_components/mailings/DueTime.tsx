@@ -5,8 +5,10 @@ import { Select } from "@/components/ui/Controls";
 import DatePicker from "@/components/ui/DatePicker";
 import { Field } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { FormResult } from "@/lib/form-result";
 import styles from "./DueTime.module.css";
 import { earliestRun, londonDayTime, notTooSoon, sendsAt, SENDING, type LondonTime } from "@/lib/staff-time";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import { mailingsCopy } from "./copy";
 
 const copy = mailingsCopy.mailingPages;
@@ -122,7 +124,9 @@ export function DueTimeFields({
 /**
  * Change the time's form: a scheduled mailing's day, hour and minutes,
  * starting at when it goes, or the first time it can go at once that's too
- * soon, as it becomes while the form is open.
+ * soon, as it becomes while the form is open. A time that has passed by the
+ * time it's sent is said under the fields; a mailing no longer scheduled, at
+ * the page's top.
  */
 export function ChangeTimeForm({
   id,
@@ -132,7 +136,7 @@ export function ChangeTimeForm({
 }: {
   id: number;
   dueAt: Date;
-  action: (form: FormData) => void | Promise<void>;
+  action: (form: FormData) => Promise<FormResult<"too-soon" | "gone">>;
   className?: string;
 }) {
   const [picked, setPicked] = useState(() => dueTime(dueAt));
@@ -144,7 +148,7 @@ export function ChangeTimeForm({
   }, []);
   const when = notTooSoon(picked, londonDayTime(earliestRun()));
   return (
-    <form action={action} className={className}>
+    <ResultForm action={action} says={mailingsCopy.refusals.reschedule} atTop={["gone"]} className={className}>
       <input type="hidden" name="id" value={id} />
       <DueTimeFields
         day={when.day}
@@ -153,9 +157,10 @@ export function ChangeTimeForm({
         named
         onChange={(day, time) => setPicked({ day, ...time! })}
       />
+      <Refusal />
       <SubmitButton variant="primary" size="small" fit>
         {copy.saveTime}
       </SubmitButton>
-    </form>
+    </ResultForm>
   );
 }

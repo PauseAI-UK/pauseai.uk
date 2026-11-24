@@ -9,7 +9,8 @@ export const deleteTwiceGallery: Example[] = [
     file: "app/(staff)/staff/_components/ui/DeleteTwice.tsx",
     variants: [
       {
-        label: "Press once to arm it, twice to delete; and one that can't be pressed",
+        label:
+          "Press once to arm it, twice to delete; one that can't be pressed; and one that's refused, saying why under itself",
         render: () => (
           <StaffPage as="div">
             <DeleteTwiceExample />

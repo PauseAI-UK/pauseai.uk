@@ -1,5 +1,5 @@
 import "server-only";
-import { canDeleteNote, canEditNote, type Note, type NoteReader } from "./notes";
+import { canDeleteNote, canEditNote, type Note, type NoteReader, type NoteUnchanged } from "./notes";
 import { now } from "@/lib/now";
 import { logChange } from "@/lib/server/audit.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
@@ -61,17 +61,21 @@ async function lockedNote(id: number, db: Queryable): Promise<(Note & { target: 
   return { ...note, target: supporterId === null ? { politicianId: Number(politicianId) } : { supporterId } };
 }
 
-/** What's done to a note: the new text, or nothing, to delete it. */
-async function change(id: number, body: string | null, reader: NoteReader): Promise<NoteTarget | undefined> {
+/**
+ * What's done to a note: the new text, or nothing, to delete it. Whom it's
+ * about, or why it wasn't done: "gone" for no such note, or one this reader
+ * may not see, and "too-late" for one they may not change.
+ */
+async function change(id: number, body: string | null, reader: NoteReader): Promise<NoteTarget | NoteUnchanged> {
   return transaction(async (db) => {
     const note = await lockedNote(id, db);
-    if (!note || !mayRead(note.target, reader)) return undefined;
+    if (!note || !mayRead(note.target, reader)) return "gone";
     const at = now();
     if (body === null) {
-      if (!canDeleteNote(note, reader, at)) return undefined;
+      if (!canDeleteNote(note, reader, at)) return "too-late";
       await query("DELETE FROM notes WHERE id = $1", [id], db);
     } else {
-      if (!canEditNote(note, reader, at)) return undefined;
+      if (!canEditNote(note, reader, at)) return "too-late";
       await query("UPDATE notes SET body = $2, edited_at = $3 WHERE id = $1", [id, body, at], db);
     }
     await logChange(reader.email, body === null ? "delete note" : "edit note", { noteId: id, ...note.target }, db);
@@ -79,12 +83,12 @@ async function change(id: number, body: string | null, reader: NoteReader): Prom
   });
 }
 
-/** Changes a note's text, as its writer, while they may (canEditNote); whom it's about, or undefined if not. */
-export function editNote(id: number, body: string, reader: NoteReader): Promise<NoteTarget | undefined> {
+/** Changes a note's text, as its writer, while they may (canEditNote); whom it's about, or why not (change). */
+export function editNote(id: number, body: string, reader: NoteReader): Promise<NoteTarget | NoteUnchanged> {
   return change(id, body, reader);
 }
 
-/** Deletes a note, as its writer or an admin (canDeleteNote); whom it was about, or undefined if not. */
-export function deleteNote(id: number, reader: NoteReader): Promise<NoteTarget | undefined> {
+/** Deletes a note, as its writer or an admin (canDeleteNote); whom it was about, or why not (change). */
+export function deleteNote(id: number, reader: NoteReader): Promise<NoteTarget | NoteUnchanged> {
   return change(id, null, reader);
 }

@@ -11,6 +11,13 @@ import { GET } from "./route";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 vi.mock("@/lib/accounts/live-login-key", () => import("@/tests/login-keys"));
+// Google's binding as it is, with asking who logged in stood in for, so one test can have it throw what Google never would.
+const { asksGoogle } = vi.hoisted(() => ({ asksGoogle: vi.fn() }));
+vi.mock("@/lib/server/outside-services/gmail.server", async (original) => {
+  const real = await original<typeof import("@/lib/server/outside-services/gmail.server")>();
+  asksGoogle.mockImplementation(real.googleLoginAccount);
+  return { ...real, googleLoginAccount: asksGoogle };
+});
 
 const PREVIEW = "https://deploy-preview-12--pauseaiuk.netlify.app";
 const STARTED = JSON.stringify({ state: "st", remember: false, next: "/staff/letters" });
@@ -97,6 +104,14 @@ describeWithDatabase("GET /staff/api/google/callback", () => {
         "Google refused the token request: 400",
       );
     });
+  });
+
+  it("throws on anything else going wrong while asking Google, which is a bug of ours, not Google failing", async () => {
+    const thrown = new TypeError("claims is undefined");
+    asksGoogle.mockRejectedValueOnce(thrown);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(callback({ code: "c", state: "st" })).rejects.toBe(thrown);
+    expect(error).not.toHaveBeenCalled();
   });
 
   describe("for a preview", () => {
