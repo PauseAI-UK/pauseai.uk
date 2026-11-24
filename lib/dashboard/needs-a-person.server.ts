@@ -1,8 +1,8 @@
 import "server-only";
-import { IMPORT_JOBS, POLITICIAN_IMPORT_JOBS, type PoliticianImportJob } from "@/lib/import-runs";
+import { POLITICIAN_IMPORT_JOBS, type PoliticianImportJob } from "@/lib/import-runs";
 import { query } from "@/lib/server/db.server";
 import { replyToCheck } from "@/lib/letters/copy-states";
-import { latestRun } from "@/lib/server/import-runs.server";
+import { latestRuns } from "@/lib/server/import-runs.server";
 import type { DashboardAction } from "./dashboard";
 
 // What needs a person, at the top of the dashboard: each import held for a
@@ -60,7 +60,7 @@ export async function needsAPerson(): Promise<DashboardAction[]> {
   const [held, blocked, imports, replies, letterReplies] = await Promise.all([
     heldImports(),
     blockedMps(),
-    Promise.all(IMPORT_JOBS.map((job) => latestRun(job))),
+    latestRuns(),
     broadcastReplies(),
     mailingReplies(),
   ]);

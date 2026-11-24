@@ -1,5 +1,5 @@
 import "server-only";
-import { importPath, type AnyImportRun, type ImportJob, type ImportRunStatus } from "@/lib/import-runs";
+import { IMPORT_JOBS, importPath, type AnyImportRun, type ImportJob, type ImportRunStatus } from "@/lib/import-runs";
 import { query } from "./db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { type Problem, problemKey, problemSaid } from "@/lib/problems";
@@ -179,6 +179,26 @@ export async function latestRun<Run extends AnyImportRun>(job: Run["job"]): Prom
     [job],
   );
   return run;
+}
+
+/** Every job's newest run, in IMPORT_JOBS order, in one query; undefined for one that has never run. */
+export async function latestRuns(): Promise<(AnyImportRun | undefined)[]> {
+  const runs = await query<AnyImportRun>(
+    `SELECT DISTINCT ON (job) ${COLUMNS} FROM import_runs ORDER BY job, at DESC, id DESC`,
+  );
+  return IMPORT_JOBS.map((job) => runs.find((run) => run.job === job));
+}
+
+/** Every job's run going now, in IMPORT_JOBS order, in one query; undefined for one that isn't running. */
+export async function runningJobs(): Promise<(RunningJob | undefined)[]> {
+  const running = await query<RunningJob & { job: ImportJob }>(
+    `SELECT job, started_by AS "startedBy", started_at AS "startedAt" FROM job_presses
+     WHERE started_at > now() - interval '${RUN_LASTS}'`,
+  );
+  return IMPORT_JOBS.map((job) => {
+    const found = running.find((run) => run.job === job);
+    return found && { startedBy: found.startedBy, startedAt: found.startedAt };
+  });
 }
 
 /** Every run of one job, newest first, for its page. */

@@ -13,8 +13,13 @@ import {
   sessionId,
 } from "./auth.server";
 import { saveStaffAccount } from "./staff-accounts.server";
+import { logTiming } from "@/lib/server/request-timing.server";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
+vi.mock("@/lib/server/request-timing.server", async (original) => ({
+  ...(await original<typeof import("@/lib/server/request-timing.server")>()),
+  logTiming: vi.fn(),
+}));
 
 it("lets only staff with the supporters permission see supporters", () => {
   expect(canSeeSupporters({ permissions: ["supporters"] })).toBe(true);
@@ -149,6 +154,20 @@ describeWithDatabase("staff sessions", () => {
       expect(await expectRedirect(requireStaff)).toBe("/staff/login?next=%2Fstaff%2Fletters%3Fpage%3D2");
     } finally {
       requestHeaders.delete("x-staff-path");
+    }
+  });
+
+  it("requireStaff times the request, by its page and whether a button asked", async () => {
+    requestHeaders.set("x-staff-path", "/staff/supporters/1");
+    try {
+      await expectRedirect(requireStaff);
+      expect(vi.mocked(logTiming)).toHaveBeenLastCalledWith("/staff/supporters/1");
+      requestHeaders.set("next-action", "abc123");
+      await expectRedirect(requireStaff);
+      expect(vi.mocked(logTiming)).toHaveBeenLastCalledWith("/staff/supporters/1 (a button)");
+    } finally {
+      requestHeaders.delete("x-staff-path");
+      requestHeaders.delete("next-action");
     }
   });
 });

@@ -7,7 +7,7 @@ import { gmailAccess } from "@/lib/email/gmail-accounts.server";
 import { ONE_OFF_HEADERS, isHeld, keepIfPoliticianThread } from "@/lib/letters/one-off-emails.server";
 import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "@/lib/server/outside-services/gmail.server";
-import { connectedAccounts, readPoliticianBook } from "@/lib/letters/book.server";
+import { connectedAccounts, politicianBook } from "@/lib/letters/book.server";
 import type { AddressSearch } from "@/lib/import-runs";
 import { problem } from "@/lib/server/problems.server";
 import { politicianProblems } from "./copy";
@@ -121,7 +121,7 @@ export async function politicianAliases(politician: {
     query<{ domain: string }>("SELECT domain FROM politician_domains WHERE notable_person_id = $1 ORDER BY domain", [
       politician.id,
     ]),
-    readPoliticianBook(true),
+    politicianBook(),
   ]);
   const email = politician.email?.toLowerCase() ?? null;
   const from = (source: AddressSource) =>

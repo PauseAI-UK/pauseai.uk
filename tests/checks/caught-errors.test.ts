@@ -34,6 +34,8 @@ const EXCEPTIONS = new Map([
     "lib/oversight/errors-seen.server.ts  heldOpen",
     "outside a request there's nothing to hold open, and the work goes on",
   ],
+  // The same for a staff request's timing, logged after its response: outside a request there's none to time.
+  ["lib/server/request-timing.server.ts  logTiming", "outside a request there's no response to time, nor to log"],
   // Gmail's history of a mailbox expires: the read searches instead, and its run says it restarted.
   [
     "lib/server/outside-services/gmail.server.ts  gmailHistory",
@@ -98,6 +100,8 @@ const OWN_CATCHES = [
   "lib/server/fixtures/outbox.ts",
   "lib/server/fixtures/whatsapp-outbox.ts",
   "lib/server/flow-database.server.ts",
+  // Asking Next to log after the response throws outside a request, where there's nothing to log: no helper asks.
+  "lib/server/request-timing.server.ts",
   "lib/server/import-runs.server.ts",
   "lib/server/json.server.ts",
   "lib/server/outside-services/civicrm.server.ts",

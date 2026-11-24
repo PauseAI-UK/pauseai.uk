@@ -3,7 +3,7 @@ import { query } from "@/lib/server/db.server";
 import { registeredFor, wroteIn } from "./broadcasts";
 import { addTestLetter, addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { addFollower } from "@/tests/broadcast-fixtures";
-import { supporterAudience } from "./recipients.server";
+import { audienceSizes, supporterAudience } from "./recipients.server";
 import { refreshSupportersList } from "@/lib/supporters/facts.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
 import { supportersCopy } from "@/lib/supporters/copy";
@@ -124,5 +124,24 @@ describeWithDatabase("who a broadcast to supporters goes to", () => {
     // Pat never said yes, Sam asked us to stop and Bob's address is blocked: only the one with no name goes.
     const email = await supporterAudience(FILTER, EMAIL);
     expect(email.recipients.map((one) => [one.id, one.name])).toEqual([[nobody, null]]);
+  });
+
+  it("counts several broadcasts' recipients at once, as each one's own count does", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith", { phone: "07700 900001" });
+    await addFollower("usr-2", "sam@example.com", "Sam Jones");
+    await addFollower("usr-3", "pat@example.com", "Pat Brown");
+    await query("UPDATE luma_people SET contact_since = NULL WHERE user_id = 'usr-3'");
+    const broadcasts = [
+      { filter: FILTER, terms: EMAIL },
+      { filter: FILTER, terms: { channel: "text" as const, topics: ["events" as const] } },
+      { filter: { list: "supporters" as const, params: { q: "jane" } }, terms: EMAIL },
+      { filter: { list: "supporters" as const, params: { q: "nobody" } }, terms: EMAIL },
+    ];
+    const one = await Promise.all(
+      broadcasts.map(async ({ filter, terms }) => (await supporterAudience(filter, terms)).recipients.length),
+    );
+    expect(one).toEqual([2, 1, 1, 0]);
+    expect(await audienceSizes(broadcasts)).toEqual(one);
+    expect(await audienceSizes([])).toEqual([]);
   });
 });

@@ -4,6 +4,7 @@ import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import { flowDatabase } from "./flow-database.server";
 import { migrationsBehindMessage } from "./migrations-check.server";
 import { note } from "./problems.server";
+import { timed } from "./request-timing.server";
 import { render, Sql } from "./sql.server";
 import { serverCopy } from "./copy";
 
@@ -27,10 +28,13 @@ async function getPool(): Promise<Pool> {
     if (name) return flowPool(connectionString, name);
   }
   if (pool) return pool;
-  // Serverless functions each hold their own pool, so keep it small. A
-  // connection is kept a minute once idle, not pg's ten seconds, as opening
-  // one takes several round trips: a staff member's next click reuses it.
-  pool = new Pool({ connectionString: verifyFullUrl(connectionString), max: 3, idleTimeoutMillis: 60_000 });
+  // A staff page's queries go out at once, and the busiest pages ask a dozen
+  // or more, so each waits for the one before only past twelve. Each function
+  // instance holds its own pool, and the database takes hundreds of
+  // connections. A connection is kept a minute once idle, not pg's ten
+  // seconds, as opening one takes several round trips: a staff member's next
+  // click reuses it.
+  pool = new Pool({ connectionString: verifyFullUrl(connectionString), max: 12, idleTimeoutMillis: 60_000 });
   // A connection the server drops while idle comes here; without a listener
   // it would be an uncaught error. Only a warning, not a problem for a run,
   // as the pool opens another and the next query carries on.
@@ -100,7 +104,8 @@ export async function query<Row extends QueryResultRow>(
   const { text, values } =
     statement instanceof Sql ? render(statement) : { text: statement, values: (valuesOrDb as unknown[]) ?? [] };
   const on = statement instanceof Sql ? (valuesOrDb as Queryable | undefined) : db;
-  return (await (on ?? (await getPool())).query<Row>(text, values)).rows;
+  // Waiting for a connection from the pool counts as waiting on the database.
+  return timed(async () => (await (on ?? (await getPool())).query<Row>(text, values)).rows);
 }
 
 /** Runs `work` in a transaction, rolled back if it throws. */

@@ -292,18 +292,60 @@ function anyOf(filter: Pick<SupporterFilter, NegatableSupporterFilter>): Sql[] {
 const within = (column: string, days: number) =>
   sql`${sql.raw(column)} >= ${windowStart(days)} AND ${sql.raw(column)} <= ${now()}`;
 
+/** Their addresses and numbers: a row of supporters_listed. */
+type Reachable = { emails: string[]; phones: string[] };
+
 /**
- * One page of the list, filtered and sorted; with a `limit` of null, every
- * one, for a download. Read from supporters_listed: as of the list's last
- * refresh, with anyone added since. The Near filter's words are looked up
- * at postcodes.io; a place it can't find finds no one. The page and how
- * many there are in all are two queries, at once: counting alongside the
- * page would read every row to sort them.
+ * What each of `rows` said about being contacted, in one query for them all:
+ * a function from one of them to its answers.
  */
-export async function listSupporters(
+async function permissionsOfRows(rows: Reachable[]): Promise<(row: Reachable) => ContactPermission[]> {
+  const permissions = await permissionsFor(
+    rows.flatMap((row) => row.emails),
+    rows.flatMap((row) => row.phones),
+  );
+  // Each address's answers, looked up rather than searched for: a broadcast's rows are thousands. Every address
+  // has its place, as permissionsFor() writes it, so each answer, which is for one of them, has its own.
+  const keys = (row: Reachable) => [
+    ...new Set([
+      ...row.emails.map((address) => `email ${address.trim().toLowerCase()}`),
+      ...row.phones.map((number) => `phone ${number}`),
+    ]),
+  ];
+  const byAddress = new Map(rows.flatMap(keys).map((key) => [key, [] as ContactPermission[]]));
+  for (const p of permissions) byAddress.get(`${p.channel} ${p.address}`)!.push(p);
+  return (row) => keys(row).flatMap((key) => byAddress.get(key)!);
+}
+
+/**
+ * Everyone each of `filters` finds, with what they said about being
+ * contacted: a list for each filter, in their order. A query for each filter,
+ * all at once, then one for everyone's answers: two rounds of the database,
+ * however many filters. Not one query of them all, as Postgres would run its
+ * parts one after another.
+ */
+export async function supportersFoundBy(filters: SupporterFilter[]): Promise<ContactPermission[][][]> {
+  const found = await Promise.all(
+    filters.map(async (filter) => {
+      const { where } = await supporterConditions(filter);
+      return query<Reachable>(
+        sql`SELECT coalesce(s.emails, '{}') AS emails, s.phones FROM supporters_listed s ${sql.where(where)}`,
+      );
+    }),
+  );
+  const theirs = await permissionsOfRows(found.flat());
+  return found.map((rows) => rows.map(theirs));
+}
+
+/**
+ * What a supporter in supporters_listed (as `s`) must be to match `filter`,
+ * and the place its Near filter's words found: null for none, "failed", or
+ * undefined with no Near filter. The words are looked up at postcodes.io; a
+ * place it can't find finds no one.
+ */
+async function supporterConditions(
   filter: SupporterFilter,
-  limit: number | null = SUPPORTERS_PAGE_SIZE,
-): Promise<SupportersPage> {
+): Promise<{ where: Sql[]; near: Awaited<ReturnType<typeof placeFor>> | undefined }> {
   const where: Sql[] = [];
   if (filter.search) {
     // A word is also found in the tag of their proxy, the address their letters go from: jane.smith.
@@ -358,6 +400,22 @@ export async function listSupporters(
   const near = filter.near ? await placeFor(filter.near.text) : undefined;
   if (near === null || near === "failed") where.push(sql`false`);
   else if (near) where.push(sql`${milesFrom(near.latitude, near.longitude)} <= ${filter.near!.miles}`);
+  return { where, near };
+}
+
+/**
+ * One page of the list, filtered and sorted; with a `limit` of null, every
+ * one, for a download. Read from supporters_listed: as of the list's last
+ * refresh, with anyone added since. The Near filter's words are looked up
+ * at postcodes.io; a place it can't find finds no one. The page and how
+ * many there are in all are two queries, at once: counting alongside the
+ * page would read every row to sort them.
+ */
+export async function listSupporters(
+  filter: SupporterFilter,
+  limit: number | null = SUPPORTERS_PAGE_SIZE,
+): Promise<SupportersPage> {
+  const { where, near } = await supporterConditions(filter);
   const column = {
     active: "s.last_active_at",
     first: "s.first_seen_at",
@@ -379,21 +437,7 @@ export async function listSupporters(
     limit === null ? undefined : query<{ total: number }>(sql`SELECT count(*)::int AS total ${filtered}`),
   ]);
   const total = counted ? counted[0].total : rows.length;
-  const permissions = await permissionsFor(
-    rows.flatMap((row) => row.emails),
-    rows.flatMap((row) => row.phones),
-  );
-  // Each address's answers, looked up rather than searched for: a broadcast's rows are thousands. Every address
-  // has its place, as permissionsFor() writes it, so each answer, which is for one of them, has its own.
-  const keys = (row: SupporterSummary) => [
-    ...new Set([
-      ...row.emails.map((address) => `email ${address.trim().toLowerCase()}`),
-      ...row.phones.map((number) => `phone ${number}`),
-    ]),
-  ];
-  const byAddress = new Map(rows.flatMap(keys).map((key) => [key, [] as ContactPermission[]]));
-  for (const p of permissions) byAddress.get(`${p.channel} ${p.address}`)!.push(p);
-  const theirs = (row: SupporterSummary) => keys(row).flatMap((key) => byAddress.get(key)!);
+  const theirs = await permissionsOfRows(rows);
   const ids = rows.map((row) => row.id);
   // For the columns the Event and Campaign filters add: the page's registrations for the events chosen, and when
   // each first wrote in the campaign.
