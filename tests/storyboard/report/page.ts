@@ -69,7 +69,7 @@ export function renderStoryboardPage(storyboard: Storyboard): string {
 }
 
 const CSS = `
-:root { color-scheme: light; --line: #e2e2e2; --muted: #666; --changed: #c2410c; --failed: #b91c1c; --ok: #15803d; --bg: #f7f7f7; --here: #fff1e6; --bar: 53px; }
+:root { color-scheme: light; --line: #e2e2e2; --muted: #666; --changed: #c2410c; --failed: #b91c1c; --ok: #15803d; --bg: #f7f7f7; --here: #fff1e6; --spot: #3d5a80; --spot-bg: #e7eef8; --bar: 53px; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.4 system-ui, sans-serif; color: #111; background: #fff; }
 h1, h2, h3, h4, p { margin: 0; }
@@ -129,6 +129,8 @@ section, .flow { scroll-margin-top: calc(var(--bar) + 8px); }
 .flow { margin: 12px 0 28px; }
 .flow h4 { font-size: 15px; margin-bottom: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
 .flow h4 .shot { margin-left: 8px; font-size: 12px; font-weight: normal; color: var(--muted); }
+/* A spot check (frames.ts, Flow's spot): beside its title, in the sidebar too. */
+.spot { display: inline-block; margin-left: 8px; padding: 0 7px; border-radius: 9px; font-size: 11px; line-height: 18px; font-weight: normal; white-space: nowrap; color: var(--spot); background: var(--spot-bg); }
 .flow .status { font-weight: normal; color: var(--muted); font-size: 13px; margin-left: 8px; }
 /* The flow's story, told around its frames (story() in frame.ts). */
 .story { max-width: 72ch; margin: 14px 0 2px; font-size: 15px; line-height: 1.5; color: #111; }
@@ -202,6 +204,8 @@ const pct = (n) => (n * 100 < 0.01 && n > 0 ? "<0.01" : (n * 100).toFixed(2)) + 
 const slug = (...parts) => parts.join("-").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 // A flow main has nothing fair to compare with (frames.ts, mainMissing): main's run failed, or main hasn't run it.
 const mainMissing = (flow) => Boolean(flow.mainMissing);
+// A spot check's mark: run only to check it looks as main's does, as the change doesn't reach it (scripts/storyboard.mjs, spotKeys).
+const spotMark = () => el("span", { class: "spot" }, ["spot check"]);
 const framesOf = (flow) => data.frames.filter((f) => f.section === flow.section && f.flow === flow.flow && f.viewport === flow.viewport);
 
 /** The filter's words, each of which must be somewhere in what's searched. */
@@ -256,7 +260,8 @@ function render() {
     const open = (terms.length && !state.closed.has(id)) || state.opened.has(id);
     const group = el("details", { "data-section": id, open: open ? "" : undefined }, [
       el("summary", {}, [
-        el("span", { class: "name" }, [sectionName(section)]),
+        // A section shut until it's in view says so when all it shows is spot checks.
+        el("span", { class: "name" }, [sectionName(section), ...(shown.every(({ flow }) => flow.spot) ? [spotMark()] : [])]),
         el("span", { class: "count" + (changed ? " changed" : "") }, [data.withMain ? changed + "/" + frameCount : String(frameCount)]),
       ]),
     ]);
@@ -274,7 +279,10 @@ function render() {
       const target = flow === shown[0].flow ? id : flowId;
       group.append(
         el("a", { href: "#" + target, "data-flow": flowId, class: flow.status !== "passed" ? "failed" : "" }, [
-          el("span", { class: "name" + (flow.flow.startsWith("/") ? " route" : "") }, marked(flow.flow, terms)),
+          el("span", { class: "name" + (flow.flow.startsWith("/") ? " route" : "") }, [
+            ...marked(flow.flow, terms),
+            ...(flow.spot ? [spotMark()] : []),
+          ]),
           el("span", { class: "count" + (flow.changed ? " changed" : "") }, [
             flow.frames === 0 ? "–" : data.withMain ? flow.changed + "/" + flow.frames : String(flow.frames),
           ]),
@@ -283,8 +291,7 @@ function render() {
       const h4 = el("h4", { class: flow.status !== "passed" ? "failed" : "" }, marked(flow.flow, terms));
       // Carried from an earlier, fuller run by a partial one (scripts/storyboard.mjs).
       if (flow.shotAt && flow.shotAt !== newestShot) h4.append(el("span", { class: "shot" }, ["shot " + shotTime(flow.shotAt)]));
-      // Run only to check it looks as main's does: the change doesn't reach it (scripts/storyboard.mjs, spotKeys).
-      if (flow.spot) h4.append(el("span", { class: "shot" }, ["spot check"]));
+      if (flow.spot) h4.append(spotMark());
       if (flow.status !== "passed") h4.append(el("span", { class: "status" }, [flow.status]));
       else if (mainMissing(flow)) h4.append(el("span", { class: "status" }, ["main: " + (flow.mainMissing === "failed" ? flow.mainStatus : "not run")]));
       const div = el("div", { class: "flow", id: flowId, "data-section": id }, [h4]);
