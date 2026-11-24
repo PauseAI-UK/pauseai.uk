@@ -1652,7 +1652,10 @@ files. Nothing is fetched. Then these run at once:
 - ESLint on the changed scripts;
 - Stylelint on the changed CSS;
 - `scripts/migration-order.mjs` (new migrations after main's, and none
-  sharing an open PR's number).
+  sharing an open PR's number);
+- `scripts/packages-installed.mjs`, which fails when `node_modules` isn't
+  what `package-lock.json` says, as after a pull that brought a new
+  lockfile, and says to run `npm ci`.
 
 If one fails, the gate stops: the slow part would only wait on the same
 mistake. `--fast` stops after them anyway.

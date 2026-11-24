@@ -67,7 +67,7 @@ describe("onlyGroups", () => {
     expect(ids(onlyGroups(plan, ["flows"]))).toEqual([[["storyboard"]]]);
     expect(ids(onlyGroups(plan, ["checks"]))).toEqual([
       [["prettier"]],
-      [["tsc"], ["eslint"], ["stylelint"], ["migration-order"]],
+      [["tsc"], ["eslint"], ["stylelint"], ["migration-order"], ["packages"]],
       [
         ["typecheck"],
         ["lint", "lint-css", "lint-unused", "format-check", "placeholders"],
@@ -125,13 +125,20 @@ describe("fastPlan", () => {
       ["eslint", ["eslint", "--max-warnings", "0", "--no-warn-ignored", "lib/a.ts", "scripts/b.mjs"], undefined],
       ["stylelint", ["stylelint", "--allow-empty-input", "styles/c.css"], undefined],
       ["migration-order", ["scripts/migration-order.mjs", "--open-prs"], undefined],
+      ["packages", ["scripts/packages-installed.mjs"], undefined],
     ]);
   });
 
-  it("skips the checks that have no files to look at, but not the types or the migrations' order", () => {
+  it("skips the checks that have no files to look at, but not the types, the migrations' order or the packages", () => {
     const [[[prettier]], lanes] = fastPlan([]);
     expect(prettier.skip).toBe("no changed files");
-    expect(lanes.map(([step]) => step.skip)).toEqual([undefined, "no changed scripts", "no changed CSS", undefined]);
+    expect(lanes.map(([step]) => step.skip)).toEqual([
+      undefined,
+      "no changed scripts",
+      "no changed CSS",
+      undefined,
+      undefined,
+    ]);
   });
 });
 

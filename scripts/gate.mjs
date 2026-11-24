@@ -167,6 +167,15 @@ export function fastPlan(files) {
           minutes: 1,
         },
       ],
+      [
+        {
+          id: "packages",
+          label: "node scripts/packages-installed.mjs",
+          command: "node",
+          args: ["scripts/packages-installed.mjs"],
+          minutes: 1,
+        },
+      ],
     ],
   ];
 }

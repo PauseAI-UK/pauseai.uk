@@ -34,7 +34,7 @@ Link to a page that shows what the branch changes, such as the staff page of a f
 
 ```bash
 npm run gate                      # the fast checks on the files you changed, then everything CI runs
-npm run gate -- --fast            # the fast checks alone: Prettier, ESLint and Stylelint on the changed files, the types, and the migrations' order
+npm run gate -- --fast            # the fast checks alone: Prettier, ESLint and Stylelint on the changed files, the types, the migrations' order, and whether the installed packages are the lockfile's
 npm run gate -- --no-storyboard   # everything but the storyboard
 npm run gate -- --only test       # one group or more of checks, test and flows, nothing else
 ```
