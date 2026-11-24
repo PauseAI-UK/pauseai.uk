@@ -44,7 +44,7 @@ one around it, as in a whole run.
 While writing tests, `npm run test:changed` is quicker. It:
 
 - runs only the tests for the files changed since `origin/main`, committed
-  or not (Vitest's `--changed`);
+  or not, and the test files among them (`vitest related`);
 - measures coverage of only the changed source files;
 - lists each one's lines not run, functions not called and branches not
   taken.
