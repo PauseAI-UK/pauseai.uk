@@ -64,5 +64,4 @@ export function flowsToRun<R extends CarriedRun>(args: {
   unknown: string[];
   changed: string[];
 };
-export const SPOT_CHECKS: number;
 export function spotCheckKeys(keys: Iterable<string>, seed: string): string[];

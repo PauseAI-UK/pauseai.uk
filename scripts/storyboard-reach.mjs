@@ -59,7 +59,7 @@ const SET_UP = [
 ];
 
 /** How many of the flows a change doesn't reach a review, or CI on a pull request, runs anyway (spotCheckKeys). */
-export const SPOT_CHECKS = 6;
+const SPOT_CHECKS = 6;
 
 /**
  * The spot checks: of `keys`, the flows a change doesn't reach, SPOT_CHECKS
