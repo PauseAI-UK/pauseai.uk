@@ -20,12 +20,21 @@ import type { BroadcastAnswer } from "@/lib/broadcasts/answers.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import MessageCopyView from "./MessageCopyView";
 import AnswerableReply, { ReplyButton, type AnswerAction } from "../mailings/AnswerableReply";
-import ReplyActions from "./ReplyActions";
+import ReplyActions, { type DealAction } from "./ReplyActions";
+import { RefusalPlace } from "../ui/ResultForm";
+import { refused } from "@/lib/form-result";
 import { supportersCopy } from "../supporters/copy";
 import { mailingsCopy } from "../mailings/copy";
 import { lettersCopy } from "../letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+
+// The page's address, which the place a page says things at its top reads (RefusalPlace); and a router, for its links.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/staff/broadcasts/3/7",
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({}),
+}));
 
 const copy = broadcastsCopy.broadcastPages;
 const stateWords = lettersCopy.copyStates;
@@ -44,7 +53,7 @@ const emailCopy = {
 
 describe("replies to broadcasts", () => {
   it("show under the email, each with what to record it as, what was made of it, our answer, or that it's automatic", async () => {
-    const deal = vi.fn();
+    const deal = vi.fn<DealAction>(async () => ({ ok: true }));
     await render(<MessageCopyView one={emailCopy} actions={{ deal, answer: vi.fn(), react: vi.fn() }} />);
     await expect.element(page.getByText("Could you take me off this list please?")).toBeVisible();
     // Their name, as their copy had it.
@@ -69,10 +78,33 @@ describe("replies to broadcasts", () => {
     await expect.element(page.getByRole("button", { name: copy.replies.followUp })).not.toBeInTheDocument();
     await page.getByRole("button", { name: copy.replies.nothing }).click();
     await vi.waitFor(() => expect(deal).toHaveBeenCalledOnce());
-    expect(Object.fromEntries((deal.mock.calls[0][0] as FormData).entries())).toEqual({
+    expect(Object.fromEntries(deal.mock.calls[0][0].entries())).toEqual({
       replyId: "1",
       decision: "nothing",
     });
+    expect(page.getByRole("alert").query()).toBeNull();
+  });
+
+  it("say at the top of the page when a reply someone else has dealt with is recorded, as nothing to do or as an opt-out", async () => {
+    const deal = vi.fn<DealAction>(async () => refused("gone"));
+    await render(
+      <RefusalPlace>
+        <ReplyActions replyId={4} topics={["newsletter", "events"]} deal={deal} />
+      </RefusalPlace>,
+    );
+    const alert = page.getByRole("alert");
+    await page.getByRole("button", { name: copy.replies.nothing }).click();
+    await expect.element(alert).toHaveTextContent(copy.refusals.deal.gone);
+    // Over the page, not by the buttons, which the page catching up takes away.
+    expect(alert.element().closest("form")).toBeNull();
+    const words = supportersCopy.supporters.detail.permissions.recordOptOut;
+    await page.getByRole("button", { name: optOut }).click();
+    await page.getByRole("button", { name: `${words.what}: ${words.choose}` }).click();
+    await page.getByRole("button", { name: copy.replies.bulk }).click();
+    await page.getByRole("button", { name: words.record }).click();
+    await vi.waitFor(() => expect(deal).toHaveBeenCalledTimes(2));
+    await expect.element(alert).toHaveTextContent(copy.refusals.deal.gone);
+    expect(alert.element().closest("form")).toBeNull();
   });
 
   it("show an email's lists, quotes, bold and italics, as the letter pages do", async () => {
@@ -185,7 +217,7 @@ describe("replies to broadcasts", () => {
   });
 
   it("record as an opt-out of what the email went under, or of all bulk email, in the form a supporter's page has", async () => {
-    const deal = vi.fn();
+    const deal = vi.fn<DealAction>(async () => ({ ok: true }));
     await render(<ReplyActions replyId={4} topics={["newsletter", "events"]} deal={deal} />);
     const words = supportersCopy.supporters.detail.permissions.recordOptOut;
     const unsubscribe = async (choice: string) => {
@@ -198,7 +230,7 @@ describe("replies to broadcasts", () => {
     };
     await unsubscribe(copy.replies.topics(lists.updates));
     await vi.waitFor(() => expect(deal).toHaveBeenCalledTimes(1));
-    expect(Object.fromEntries((deal.mock.calls[0][0] as FormData).entries())).toEqual({
+    expect(Object.fromEntries(deal.mock.calls[0][0].entries())).toEqual({
       replyId: "4",
       decision: "topics",
     });
@@ -206,11 +238,11 @@ describe("replies to broadcasts", () => {
     await expect.element(page.getByText(words.already)).not.toBeInTheDocument();
     await unsubscribe(copy.replies.bulk);
     await vi.waitFor(() => expect(deal).toHaveBeenCalledTimes(2));
-    expect((deal.mock.calls[1][0] as FormData).get("decision")).toBe("bulk");
+    expect(deal.mock.calls[1][0].get("decision")).toBe("bulk");
   });
 
   it("write an answer after the reply in the thread, as it will be sent, and send it", async () => {
-    const answer = vi.fn<AnswerAction>(async () => ({ sent: true }));
+    const answer = vi.fn<AnswerAction>(async () => ({ ok: true }));
     await render(
       <AnswerableReply
         replyId={4}
@@ -240,7 +272,7 @@ describe("replies to broadcasts", () => {
     await editor.fill("Thanks, Jane.");
     // While it sends, it says so, and can't be sent again or discarded.
     let went = () => {};
-    answer.mockImplementationOnce(() => new Promise((done) => (went = () => done({ sent: true }))));
+    answer.mockImplementationOnce(() => new Promise((done) => (went = () => done({ ok: true }))));
     await draft.getByRole("button", { name: copy.replies.send }).click();
     await expect.element(draft.getByRole("button", { name: copy.replies.sending })).toBeDisabled();
     await expect.element(draft.getByRole("button", { name: copy.replies.discard })).toBeDisabled();
@@ -277,7 +309,7 @@ describe("replies to broadcasts", () => {
   });
 
   it("start an email's answer with a greeting and a sign-off, the cursor between, and send nothing till more is written", async () => {
-    const answer = vi.fn<AnswerAction>(async () => ({ sent: true }));
+    const answer = vi.fn<AnswerAction>(async () => ({ ok: true }));
     await render(
       <MessageCopyView one={emailCopy} actions={{ deal: vi.fn(), answer, react: vi.fn() }} signer="Francis" />,
     );
@@ -335,7 +367,7 @@ describe("replies to broadcasts", () => {
   });
 
   it("send an answer with Ctrl+Enter or Cmd+Enter, saying why one didn't go, and keep it to send again", async () => {
-    const answer = vi.fn<AnswerAction>(async () => ({ sent: false, reason: "failed" }));
+    const answer = vi.fn<AnswerAction>(async () => refused("failed"));
     await render(
       <AnswerableReply
         replyId={4}
@@ -374,7 +406,7 @@ describe("replies to broadcasts", () => {
   });
 
   it("to a text show as bubbles, with our answer, and no Reply to one more than a day old", async () => {
-    const answer = vi.fn<AnswerAction>(async () => ({ sent: false, reason: "window" }));
+    const answer = vi.fn<AnswerAction>(async () => refused("window"));
     const { rerender } = await render(
       <MessageCopyView
         one={{

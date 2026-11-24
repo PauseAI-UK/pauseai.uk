@@ -15,7 +15,7 @@ import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import { staffTime } from "@/lib/staff-time";
 import AnswerableReply, { ReplyButton, type AnswerAction, type AnswerStart } from "../mailings/AnswerableReply";
 import { MailingLetter } from "../mailings/MailingLetter";
-import ReplyActions from "./ReplyActions";
+import ReplyActions, { type DealAction } from "./ReplyActions";
 import Alert from "../ui/Alert";
 import ReplyReactions, { OurReaction, standingOf, type ReactAction } from "./ReplyReactions";
 import { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
@@ -338,7 +338,7 @@ export default function Reply({
 
 /** What staff can do with a reply: record what it is (`deal`), answer it, and put an emoji on a text's (`react`). */
 export type ReplyHandlers = {
-  deal: (form: FormData) => void | Promise<void>;
+  deal: DealAction;
   answer: AnswerAction;
   react: ReactAction;
 };

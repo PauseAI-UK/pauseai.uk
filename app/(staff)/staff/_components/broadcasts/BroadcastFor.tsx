@@ -5,15 +5,13 @@ import { Muted } from "@/components/ui/Text";
 import { broadcastTerms } from "@/lib/broadcasts/broadcasts";
 import { listFor } from "@/lib/supporters/contact-permissions";
 import { supportersCopy } from "../supporters/copy";
-import BroadcastView from "./BroadcastView";
+import BroadcastView, { type BroadcastAction, type RetimeAction } from "./BroadcastView";
 import ChannelWriter from "./ChannelWriter";
 import type { BroadcastWriterActions } from "./BroadcastWriter";
 import { othersThanConsent } from "../supporters/SupporterFilters";
 import Pills from "../ui/Pills";
 import { mailingsCopy } from "../mailings/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
-
-type FormAction = (form: FormData) => void | Promise<void>;
 
 /**
  * The list everyone a broadcast is to is on, from the supporters list's
@@ -39,7 +37,12 @@ export default function BroadcastFor({
   actions,
 }: {
   data: BroadcastPageData;
-  actions: BroadcastWriterActions & { stop: FormAction; reschedule: FormAction; resume: FormAction; copy?: FormAction };
+  actions: BroadcastWriterActions & {
+    stop: BroadcastAction;
+    reschedule: RetimeAction;
+    resume: BroadcastAction;
+    copy?: BroadcastAction;
+  };
 }) {
   if (data.kind === "draft") {
     const who = <BroadcastWho params={data.filter.params} choices={data.choices} />;

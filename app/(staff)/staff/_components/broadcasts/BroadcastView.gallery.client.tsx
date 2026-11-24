@@ -1,6 +1,7 @@
 "use client";
 
 // BroadcastView's example of a broadcast's page (BroadcastView.gallery.tsx).
+import type { FormResult } from "@/lib/form-result";
 import BroadcastView from "./BroadcastView";
 import { BroadcastContact, BroadcastWho } from "./BroadcastFor";
 import {
@@ -11,8 +12,8 @@ import {
   exampleSupporterChoices,
 } from "./BroadcastWriter.examples";
 
-/** A Server Action that does nothing, which BroadcastFor's and BroadcastSupporters' examples use too. */
-export const nothing = async () => {};
+/** A Server Action that does nothing, and answers that it's done, which BroadcastFor's and BroadcastSupporters' examples use too. */
+export const nothing = async (): Promise<FormResult<never>> => ({ ok: true });
 
 /** A broadcast's page: an email sent, a text sent, or a text scheduled, waiting for approval. */
 export function BroadcastViewExample({ kind }: { kind: "email" | "text" | "scheduled" }) {

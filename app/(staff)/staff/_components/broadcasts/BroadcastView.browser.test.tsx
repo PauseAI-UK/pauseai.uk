@@ -3,7 +3,9 @@ import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { londonWhen, staffDate, staffTime } from "@/lib/staff-time";
-import BroadcastView, { broadcastCounts } from "./BroadcastView";
+import { refused } from "@/lib/form-result";
+import BroadcastView, { broadcastCounts, type BroadcastAction, type RetimeAction } from "./BroadcastView";
+import { RefusalPlace } from "../ui/ResultForm";
 import { CountGroups, NeedsAndFine } from "../mailings/CopyCounts";
 import { CopyStatus, copyStatus } from "../letters/CopyStatus";
 import { countsOpening } from "../ui/Counts";
@@ -26,9 +28,18 @@ import type { WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import { BroadcastWaiting, pauseInBrief } from "./BroadcastView";
 import { BroadcastViewExample } from "./BroadcastView.gallery.client";
 
+// The page's address, which the place a page says things at its top reads (RefusalPlace); and a router, for its links.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/staff/broadcasts/3",
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({}),
+}));
+
 const copy = broadcastsCopy.broadcastPages;
 const stateWords = lettersCopy.copyStates;
-const nothing = async () => {};
+const nothing = async () => ({ ok: true as const });
+/** An action that finds its broadcast gone, or moved on so there's nothing for it to do. */
+const gone = async () => refused("gone");
 
 const button = (name: string | RegExp) => page.getByRole("button", { name });
 
@@ -44,11 +55,58 @@ describe("a broadcast's page", () => {
         who={who}
         contact={null}
         {...actions}
-        copyIt={async (form) => void copied.push(form)}
+        copyIt={async (form) => {
+          copied.push(form);
+          return { ok: true };
+        }}
       />,
     );
     await button(copy.copyBroadcast).click();
     await expect.poll(() => copied.map((form) => form.get("id"))).toEqual([String(exampleBroadcastSent.written.id)]);
+  });
+
+  it("says at the top of the page when a button finds its broadcast gone or moved on, and under the times when they've passed", async () => {
+    const scheduled = {
+      ...exampleBroadcastSent,
+      summary: { ...exampleBroadcastSummary, state: "scheduled" as const },
+      written: {
+        ...exampleBroadcastSent.written,
+        state: "scheduled" as const,
+        dueAt: new Date("2099-01-07T07:18:00Z"),
+        finishMinutes: 720,
+      },
+    };
+    const reschedule = vi.fn<RetimeAction>(async () => refused("too-soon"));
+    await render(
+      <RefusalPlace>
+        <BroadcastView
+          data={scheduled}
+          who={who}
+          contact={null}
+          stop={gone}
+          reschedule={reschedule}
+          resume={nothing}
+          copyIt={gone}
+        />
+      </RefusalPlace>,
+    );
+    const alert = page.getByRole("alert");
+    await button(copy.copyBroadcast).click();
+    await expect.element(alert).toHaveTextContent(copy.refusals.copy.gone);
+    await button(mailingsCopy.mailingPages.unschedule).click();
+    await expect.element(alert).toHaveTextContent(copy.refusals.stop.gone);
+    // Over the page, not by the button, which the page catching up takes away.
+    expect(alert.element().closest("form")).toBeNull();
+    await button(copy.changeTimes).click();
+    await button(copy.saveTimes).click();
+    await expect.element(alert).toHaveTextContent(copy.refusals.reschedule["too-soon"]);
+    // In the form, under its fields, which keep the times chosen.
+    expect(alert.element().closest("form")).toBe(button(copy.saveTimes).element().closest("form"));
+    await expect.element(page.getByRole("combobox", { name: copy.keepsTryingFor })).toHaveValue("720");
+    reschedule.mockResolvedValueOnce(refused("gone"));
+    await button(copy.saveTimes).click();
+    await expect.element(alert).toHaveTextContent(copy.refusals.reschedule.gone);
+    expect(alert.element().closest("form")).toBeNull();
   });
 
   it("gives an email's counts, each leading to those recipients, those sent first, its words and its recipients", async () => {
@@ -284,7 +342,10 @@ describe("a broadcast's page", () => {
       written: { ...exampleBroadcastSent.written, state: "scheduled" as const, dueAt, finishMinutes: 720 },
     };
     const changed: FormData[] = [];
-    const reschedule = async (form: FormData) => void changed.push(form);
+    const reschedule = async (form: FormData) => {
+      changed.push(form);
+      return { ok: true as const };
+    };
     const view = await render(
       <BroadcastView data={scheduled} who={who} contact={null} {...actions} reschedule={reschedule} />,
     );
@@ -408,13 +469,23 @@ describe("a broadcast's page", () => {
         waitReason,
       },
     });
-    const resume = vi.fn(async (form: FormData) => void form);
-    await render(<BroadcastView data={stopped("limit")} who={who} contact={null} {...actions} resume={resume} />);
+    const resume = vi.fn<BroadcastAction>(async () => ({ ok: true }));
+    const view = await render(
+      <RefusalPlace>
+        <BroadcastView data={stopped("limit")} who={who} contact={null} {...actions} resume={resume} />
+      </RefusalPlace>,
+    );
     await expect.element(page.getByText(copy.gaveUpLimit)).toBeVisible();
     // Resume sending sets it going again.
     await button(mailingsCopy.mailingPages.resume).click();
     await vi.waitFor(() => expect(resume).toHaveBeenCalled());
     expect(resume.mock.calls[0][0].get("id")).toBe(String(exampleBroadcastSent.written.id));
+    expect(page.getByRole("alert").query()).toBeNull();
+    // One someone else set going first has the top of the page say so.
+    resume.mockResolvedValueOnce(refused("gone"));
+    await button(mailingsCopy.mailingPages.resume).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.refusals.resume.gone);
+    await view.unmount();
     await render(<BroadcastView data={stopped("pull")} who={who} contact={null} {...actions} />);
     await expect.element(page.getByText(copy.gaveUp)).toBeVisible();
   });

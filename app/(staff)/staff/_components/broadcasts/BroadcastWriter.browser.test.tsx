@@ -28,9 +28,17 @@ import { mailingsCopy } from "../mailings/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { BroadcastWriterExample } from "./BroadcastWriter.gallery.client";
 
-const { leavePage } = vi.hoisted(() => ({ leavePage: vi.fn() }));
+const { leavePage, toldPage } = vi.hoisted(() => ({ leavePage: vi.fn(), toldPage: vi.fn() }));
 vi.mock("@/lib/leave-page.client", () => ({ leavePage }));
-afterEach(() => leavePage.mockClear());
+// What the writer says at the top of the page, which the signed-in layout shows (RefusalPlace).
+vi.mock("../ui/ResultForm", async (original) => ({
+  ...(await original<typeof import("../ui/ResultForm")>()),
+  useTellPage: () => toldPage,
+}));
+afterEach(() => {
+  leavePage.mockClear();
+  toldPage.mockClear();
+});
 
 const copy = broadcastsCopy.broadcastPages;
 const WAIT = { timeout: 3000 };
@@ -39,24 +47,29 @@ function fakeActions() {
   let version = 4;
   const action = (answer: () => unknown) => vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => answer());
   return {
-    save: action(() => ({ saved: true, version: ++version })),
-    attach: action(() => ({ saved: true, version: ++version, attachments: [] })),
-    detach: action(() => ({ saved: true, version: ++version, attachments: [] })),
-    sendTest: action(() => ({ sent: true, id: "m", to: "me@pauseai.uk" })),
-    schedule: action(() => ({ scheduled: true })),
-    deleteDraft: vi.fn(async () => {}),
-    changeConsent: action(() => ++version),
-    setAboutEvents: action(() => true),
-    create: vi.fn(async () => {}),
-    submitTemplate: action(() => "submitted"),
-    withdrawTemplate: action(() => true),
-    deleteTemplate: action(() => "deleted"),
-    linkCard: vi.fn(async (url: string) => (url === "https://pauseai.uk/march" ? exampleLinkCard : null)),
+    save: action(() => ({ ok: true, version: ++version })),
+    attach: action(() => ({ ok: true, version: ++version, attachments: [] })),
+    detach: action(() => ({ ok: true, version: ++version, attachments: [] })),
+    sendTest: action(() => ({ ok: true, to: "me@pauseai.uk" })),
+    schedule: action(() => ({ ok: true, scheduled: true })),
+    deleteDraft: vi.fn(async () => ({ ok: true })),
+    changeConsent: action(() => ({ ok: true, version: ++version })),
+    create: vi.fn(async () => ({ ok: true })),
+    submitTemplate: action(() => ({ ok: true, taken: true })),
+    withdrawTemplate: action(() => ({ ok: true })),
+    deleteTemplate: action(() => ({ ok: true })),
+    linkCard: vi.fn(async (url: string) => ({
+      ok: true,
+      card: url === "https://pauseai.uk/march" ? exampleLinkCard : null,
+    })),
   };
 }
 
 /** What a Server Action throws when a deploy since the page opened has taken it away. */
 const gone = () => new UnrecognizedActionError('Server Action "x" was not found on the server.');
+
+/** What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again. */
+const thrown = () => Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1" });
 
 async function renderWriter(props: Partial<Parameters<typeof BroadcastWriter>[0]> = {}) {
   const actions = fakeActions();
@@ -155,20 +168,48 @@ describe("BroadcastWriter's Consent", () => {
     await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledWith(3, LUMA), WAIT);
     expect(actions.changeConsent).toHaveBeenCalledTimes(1);
-    // Refused, nothing changes either.
-    actions.changeConsent.mockResolvedValue(false);
+    expect(navigation.refreshes).toBe(refreshes);
+    expect(toldPage).not.toHaveBeenCalled();
+  });
+
+  it("says at the page's top that a draft has gone, or is no longer one, when its Consent can't change, and goes back to its own", async () => {
+    const actions = await renderWriter();
+    actions.changeConsent.mockResolvedValue({ ok: false, reason: "gone" });
+    await choose(copy.facts.list, lists.volunteering);
+    await expect.poll(() => toldPage.mock.calls, WAIT).toEqual([[copy.refusals.draft.gone]]);
+    await vi.waitFor(() => expect(radios(copy.facts.list).map(([, on]) => on)).toEqual([true, false, false]), WAIT);
+    expect(page.getByText(mailingsCopy.mailingPages.saveStates.conflict).query()).toBeNull();
+    expect(page.getByText(staffVocabulary.notDone).query()).toBeNull();
+  });
+
+  it("says a draft changed elsewhere when its Consent can't change as it has words now, as a save refused for that does", async () => {
+    const actions = await renderWriter();
+    actions.changeConsent.mockResolvedValue({ ok: false, reason: "conflict" });
+    await choose(copy.facts.list, lists.volunteering);
+    await expect.element(page.getByText(mailingsCopy.mailingPages.saveStates.conflict), WAIT).toBeVisible();
+    await vi.waitFor(() => expect(radios(copy.facts.list).map(([, on]) => on)).toEqual([true, false, false]), WAIT);
+    expect(toldPage).not.toHaveBeenCalled();
+  });
+
+  it("says under the lists when a Consent's change broke, and goes back to the draft's own", async () => {
+    const actions = await renderWriter();
+    actions.changeConsent.mockRejectedValueOnce(thrown());
+    await choose(copy.facts.list, lists.volunteering);
+    await expect.element(page.getByRole("alert").filter({ hasText: staffVocabulary.notDone }), WAIT).toBeVisible();
+    await vi.waitFor(() => expect(radios(copy.facts.list).map(([, on]) => on)).toEqual([true, false, false]), WAIT);
+    // The next one tried takes it away.
     await choose(copy.facts.list, lists.volunteering);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalledTimes(2), WAIT);
-    expect(navigation.refreshes).toBe(refreshes);
+    await expect.element(page.getByText(staffVocabulary.notDone)).not.toBeInTheDocument();
   });
 
   it("saves what's typed after changing the Consent, at the version the change made", async () => {
     const actions = await renderWriter();
     // As the server does: each change makes a new version, and a save at any other is refused.
     let version = 4;
-    actions.changeConsent.mockImplementation(async () => ++version);
+    actions.changeConsent.mockImplementation(async () => ({ ok: true, version: ++version }));
     actions.save.mockImplementation(async (_id, at) =>
-      at === version ? { saved: true, version: ++version } : { saved: false, reason: "conflict" },
+      at === version ? { ok: true, version: ++version } : { ok: false, reason: "conflict" },
     );
     await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalled(), WAIT);
@@ -186,10 +227,10 @@ describe("BroadcastWriter's Consent", () => {
     let before: Promise<unknown> = Promise.resolve();
     const inTurn = (run: () => unknown) => (before = before.then(run));
     actions.changeConsent.mockImplementation(() =>
-      inTurn(() => new Promise((resolve) => (done = () => resolve(++version)))),
+      inTurn(() => new Promise((resolve) => (done = () => resolve({ ok: true, version: ++version })))),
     );
     actions.save.mockImplementation((_id, at) =>
-      inTurn(() => (at === version ? { saved: true, version: ++version } : { saved: false, reason: "conflict" })),
+      inTurn(() => (at === version ? { ok: true, version: ++version } : { ok: false, reason: "conflict" })),
     );
     await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(() => expect(actions.changeConsent).toHaveBeenCalled(), WAIT);
@@ -205,7 +246,7 @@ describe("BroadcastWriter's Consent", () => {
 
   it("shows the list pressed as chosen at once, and Calculating by the title, a spinner in place of the count and Schedule off, till its change is done", async () => {
     let done = () => {};
-    const slow = () => new Promise((resolve) => (done = () => resolve(5)));
+    const slow = () => new Promise((resolve) => (done = () => resolve({ ok: true, version: 5 })));
     const chosen = () =>
       radios(copy.facts.list)
         .filter(([, on]) => on)
@@ -266,7 +307,9 @@ describe("BroadcastWriter's Consent", () => {
     await choose(copy.consentChannel, copy.channels.text);
     // The list picked there is chosen at once, the form still greyed, with Calculating, and no call for a Consent.
     let done = () => {};
-    actions.changeConsent.mockImplementation(() => new Promise((resolve) => (done = () => resolve(5))));
+    actions.changeConsent.mockImplementation(
+      () => new Promise((resolve) => (done = () => resolve({ ok: true, version: 5 }))),
+    );
     await choose(copy.facts.list, lists["updates-luma"]);
     await vi.waitFor(
       () => expect(actions.changeConsent).toHaveBeenCalledWith(3, "text:newsletter:yes text:events:yes"),
@@ -346,9 +389,9 @@ describe("BroadcastWriter, by email", () => {
     await expect.element(button(copy.schedule(412, "email"))).toHaveAttribute("aria-busy", "true");
   });
 
-  it("keeps the button if scheduling is refused", async () => {
+  it("keeps the button if scheduling is refused, as the draft changed elsewhere, and says so as a save refused for that does", async () => {
     const actions = fakeActions();
-    actions.schedule.mockResolvedValue({ scheduled: false, reason: "conflict" });
+    actions.schedule.mockResolvedValue({ ok: false, reason: "conflict" });
     await render(
       <BroadcastWriter
         data={exampleBroadcastData}
@@ -359,6 +402,26 @@ describe("BroadcastWriter, by email", () => {
     );
     await button(copy.schedule(412, "email")).click();
     await expect.element(button(copy.schedule(412, "email"))).toBeEnabled();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.saveStates.conflict)).toBeVisible();
+    expect(toldPage).not.toHaveBeenCalled();
+    // Nothing under the button, as the draft says it.
+    expect(page.getByText(copy.submitRefused["not-ready"]).query()).toBeNull();
+  });
+
+  it("says at the page's top that a draft has gone, or is no longer one, when it can't be scheduled, and under the button what's wrong that the page hadn't caught up with", async () => {
+    const actions = await renderWriter();
+    for (const reason of ["gone", "not-draft"]) {
+      actions.schedule.mockResolvedValueOnce({ ok: false, reason });
+      await button(copy.schedule(412, "email")).click();
+      await expect.poll(() => toldPage.mock.calls, WAIT).toEqual([[copy.refusals.draft.gone]]);
+      await expect.element(button(copy.schedule(412, "email"))).toBeEnabled();
+      toldPage.mockClear();
+    }
+    expect(page.getByRole("alert").query()).toBeNull();
+    actions.schedule.mockResolvedValueOnce({ ok: false, reason: "not-ready" });
+    await button(copy.schedule(412, "email")).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitRefused["not-ready"]);
+    expect(toldPage).not.toHaveBeenCalled();
   });
 
   it("starts an empty email with a greeting, saved with its first change, and says what's missing", async () => {
@@ -420,33 +483,38 @@ describe("BroadcastWriter, by email", () => {
     await button(copy.sendTest).click();
     await expect.element(page.getByText(copy.testSent("me@pauseai.uk"))).toBeVisible();
     expect(actions.sendTest).toHaveBeenCalledWith(3, expect.any(Array), "me@pauseai.uk");
-    actions.sendTest.mockResolvedValue({ sent: false, reason: "failed" });
+    actions.sendTest.mockResolvedValue({ ok: false, reason: "not-sent" });
     await button(copy.sendTest).click();
     await expect.element(page.getByText(copy.testFailed)).toBeVisible();
+    expect(toldPage).not.toHaveBeenCalled();
     await page.getByLabelText(copy.testTo).fill("no address");
     await expect.element(button(copy.sendTest)).toBeDisabled();
   });
 
-  it("stops saving when a test finds the site has changed under the page, and lets any other error go on", async () => {
+  it("says at the page's top that the draft has gone, when a test copy finds it has", async () => {
+    const actions = await renderWriter();
+    actions.sendTest.mockResolvedValue({ ok: false, reason: "gone" });
+    await page.getByLabelText(copy.testTo).fill("me@pauseai.uk");
+    await button(copy.sendTest).click();
+    await expect.poll(() => toldPage.mock.calls, WAIT).toEqual([[copy.refusals.draft.gone]]);
+    await expect.element(page.getByText(copy.testFailed)).toBeVisible();
+  });
+
+  it("stops saving when a test finds the site has changed under the page, and says a test that broke didn't go", async () => {
     const actions = await renderWriter();
     actions.sendTest.mockRejectedValueOnce(gone());
     await page.getByLabelText(copy.testTo).fill("me@pauseai.uk");
     await button(copy.sendTest).click();
     await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
     await expect.element(page.getByText(copy.testFailed)).toBeVisible();
-    const errors: unknown[] = [];
-    const caught = (event: PromiseRejectionEvent) => {
-      errors.push(event.reason);
-      event.preventDefault();
-    };
-    window.addEventListener("unhandledrejection", caught);
-    try {
-      actions.sendTest.mockRejectedValueOnce(new Error("test broke"));
-      await button(copy.sendTest).click();
-      await expect.poll(() => errors.map((e) => (e as Error).message), WAIT).toEqual(["test broke"]);
-    } finally {
-      window.removeEventListener("unhandledrejection", caught);
-    }
+    // One that goes, then one that breaks: it didn't go, whatever the one before it did.
+    await button(copy.sendTest).click();
+    await expect.element(page.getByText(copy.testSent("me@pauseai.uk"))).toBeVisible();
+    actions.sendTest.mockRejectedValueOnce(thrown());
+    await button(copy.sendTest).click();
+    await expect.element(page.getByText(copy.testFailed)).toBeVisible();
+    await expect.element(page.getByText(copy.testSent("me@pauseai.uk"))).not.toBeInTheDocument();
+    await expect.element(button(copy.sendTest)).toBeEnabled();
   });
 
   it("goes from hello@ by Postmark, saying it has no limit", async () => {
@@ -555,7 +623,7 @@ describe("BroadcastWriter, by email", () => {
 
   it("can't be scheduled where nothing sends it, and says someone saved it meanwhile", async () => {
     const actions = fakeActions();
-    actions.save.mockResolvedValue({ saved: false, reason: "conflict" });
+    actions.save.mockResolvedValue({ ok: false, reason: "conflict" });
     await render(
       <BroadcastWriter
         data={{ ...exampleBroadcastData, sends: false }}
@@ -798,14 +866,14 @@ describe("BroadcastWriter, by text", () => {
       ["gone", copy.deleteRefused.gone],
       ["failed", copy.deleteRefused.failed],
     ] as const) {
-      actions.deleteTemplate.mockResolvedValueOnce(answer);
+      actions.deleteTemplate.mockResolvedValueOnce({ ok: false, reason: answer });
       await pick(thanks);
       await button(copy.deleteTemplate).click();
       await button(staffVocabulary.deleteItShort).click();
       await expect.element(page.getByRole("alert")).toHaveTextContent(words);
     }
     // The action itself broke.
-    actions.deleteTemplate.mockRejectedValueOnce(new Error("Server Action failed"));
+    actions.deleteTemplate.mockRejectedValueOnce(thrown());
     await pick(thanks);
     await button(copy.deleteTemplate).click();
     await button(staffVocabulary.deleteItShort).click();
@@ -888,17 +956,17 @@ describe("BroadcastWriter, by text", () => {
     ).toBeTruthy();
     await expect.element(preview.getByRole("button", { name: copy.submitTemplate })).toBeVisible();
     // Refused here: an alert says why, and the button stays, to be pressed again.
-    actions.submitTemplate.mockResolvedValue("already");
+    actions.submitTemplate.mockResolvedValue({ ok: false, reason: "already" });
     await button(copy.submitTemplate).click();
     await vi.waitFor(() => expect(actions.submitTemplate).toHaveBeenCalledWith(4), WAIT);
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitRefused.already);
     await expect.element(button(copy.submitTemplate)).toBeEnabled();
     expect(navigation.pushed).toEqual([]);
     // WhatsApp didn't take them: its reason, or that it gave none.
-    actions.submitTemplate.mockResolvedValue({ failed: "Invalid parameter" });
+    actions.submitTemplate.mockResolvedValue({ ok: true, taken: false, said: "Invalid parameter" });
     await button(copy.submitTemplate).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitFailed("Invalid parameter"));
-    actions.submitTemplate.mockResolvedValue({ failed: null });
+    actions.submitTemplate.mockResolvedValue({ ok: true, taken: false, said: null });
     await button(copy.submitTemplate).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitFailed(null));
     // The site has changed under the page: the page says so (SiteUpdated), not here.
@@ -908,18 +976,21 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(copy.submitBroke)).not.toBeInTheDocument();
     await expect.element(button(copy.submitTemplate)).toBeEnabled();
     // The action itself broke.
-    actions.submitTemplate.mockRejectedValue(new Error("Server Action failed"));
+    actions.submitTemplate.mockRejectedValue(thrown());
     await button(copy.submitTemplate).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitBroke);
     await expect.element(button(copy.submitTemplate)).toBeEnabled();
     // Sent: the draft is brought back as sent, at its top, where a strip says so; it goes nowhere else.
     const refreshes = navigation.refreshes;
     window.scrollTo({ top: 400, behavior: "instant" });
-    actions.submitTemplate.mockResolvedValue("submitted");
+    actions.submitTemplate.mockResolvedValue({ ok: true, taken: true });
     await button(copy.submitTemplate).click();
     await vi.waitFor(() => expect(navigation.refreshes).toBe(refreshes + 1), WAIT);
     expect(window.scrollY).toBe(0);
     expect(navigation.pushed).toEqual([]);
+    // The button stays pending till the page is back with the words waiting.
+    await expect.element(button(copy.submitTemplate)).toHaveAttribute("aria-busy", "true");
+    expect(page.getByRole("alert").query()).toBeNull();
   });
 
   it("warns that WhatsApp may not approve new words before a time less than a day off", async () => {
@@ -932,10 +1003,11 @@ describe("BroadcastWriter, by text", () => {
     const actions = await renderWriter({
       draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords },
     });
-    actions.schedule.mockResolvedValue({ scheduled: false, submit: { failed: "Bad" } });
+    actions.schedule.mockResolvedValue({ ok: true, scheduled: false, said: "Bad" });
     await button(copy.schedule(412, "text")).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitFailed("Bad"));
-    actions.schedule.mockResolvedValue({ scheduled: false, submit: "not-ready" });
+    await expect.element(button(copy.schedule(412, "text"))).toBeEnabled();
+    actions.schedule.mockResolvedValue({ ok: false, reason: "not-ready" });
     await button(copy.schedule(412, "text")).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(copy.submitRefused["not-ready"]!);
   });
@@ -1007,12 +1079,34 @@ describe("BroadcastWriter, by text", () => {
     await button(copy.withdrawSure).click();
     await vi.waitFor(() => expect(actions.withdrawTemplate).toHaveBeenCalledWith(4), WAIT);
     await vi.waitFor(() => expect(navigation.refreshes).toBeGreaterThan(refreshes), WAIT);
-    actions.withdrawTemplate.mockResolvedValue(false);
+    expect(toldPage).not.toHaveBeenCalled();
+    // With none waiting to take back any more, the page's top says so, and the action has brought the page back.
+    actions.withdrawTemplate.mockResolvedValue({ ok: false, reason: "gone" });
     const before = navigation.refreshes;
     await button(copy.withdrawTemplate).click();
     await button(copy.withdrawSure).click();
-    await vi.waitFor(() => expect(actions.withdrawTemplate).toHaveBeenCalledTimes(2), WAIT);
+    await expect.poll(() => toldPage.mock.calls, WAIT).toEqual([[copy.refusals.withdraw.gone]]);
     expect(navigation.refreshes).toBe(before);
+  });
+
+  it("says under the button when taking the words back broke, and over the draft when the site has changed under the page", async () => {
+    const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
+    const actions = await renderWriter({
+      draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords, template },
+    });
+    const refreshes = navigation.refreshes;
+    actions.withdrawTemplate.mockRejectedValueOnce(thrown());
+    await button(copy.withdrawTemplate).click();
+    await button(copy.withdrawSure).click();
+    await expect.element(page.getByRole("alert").filter({ hasText: staffVocabulary.notDone }), WAIT).toBeVisible();
+    actions.withdrawTemplate.mockRejectedValueOnce(gone());
+    // The button's as it was to begin with, to press twice again, which takes what it said away.
+    await button(copy.withdrawTemplate).click();
+    await button(copy.withdrawSure).click();
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
+    await expect.element(page.getByText(staffVocabulary.notDone)).not.toBeInTheDocument();
+    expect(navigation.refreshes).toBe(refreshes);
+    expect(toldPage).not.toHaveBeenCalled();
   });
 
   it("brings Write fully into view once the words are taken back", async () => {
@@ -1037,6 +1131,30 @@ describe("BroadcastWriter, by text", () => {
     await vi.waitFor(() => expect(scrolled).toHaveBeenCalledWith({ block: "start", behavior: "instant" }), WAIT);
     expect(scrolled.mock.contexts[0]).toBe(document.querySelector('[aria-labelledby="write-title"]'));
     scrolled.mockRestore();
+  });
+
+  it("offers to send words for approval again once they're taken back, the button no longer waiting on the page", async () => {
+    const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
+    const actions = fakeActions();
+    const writer = (withTemplate: typeof template | null) => (
+      <BroadcastWriter
+        data={exampleBroadcastData}
+        draft={{ ...exampleBroadcastText, title: "Hi there", body: exampleTextWords, template: withTemplate }}
+        who={<p>Who</p>}
+        actions={actions as unknown as BroadcastWriterActions}
+      />
+    );
+    const screen = await render(writer(null));
+    await button(copy.submitTemplate).click();
+    // Pending till the page is back with them waiting.
+    await expect.element(button(copy.submitTemplate)).toHaveAttribute("aria-busy", "true");
+    await screen.rerender(writer(template));
+    await button(copy.withdrawTemplate).click();
+    await button(copy.withdrawSure).click();
+    await vi.waitFor(() => expect(actions.withdrawTemplate).toHaveBeenCalledWith(4), WAIT);
+    await screen.rerender(writer(null));
+    await expect.element(button(copy.submitTemplate)).toBeEnabled();
+    await expect.element(button(copy.submitTemplate)).not.toHaveAttribute("aria-busy", "true");
   });
 
   it("titles a new text as new until it has words", async () => {

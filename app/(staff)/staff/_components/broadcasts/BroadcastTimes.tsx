@@ -5,9 +5,11 @@ import Bubble from "@/components/ui/Bubble";
 import { helpButtonClass } from "../ui/HelpButton";
 import { Select } from "@/components/ui/Controls";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { FormResult } from "@/lib/form-result";
 import { FINISH_CHOICES, finishKept, MOST_FINISH_MINUTES, sendingStopsAt } from "@/lib/broadcasts/broadcasts";
 import { earliestRun, fromLondon, londonDayTime, londonWhen, notTooSoon } from "@/lib/staff-time";
 import { DueTimeFields, dueTime } from "../mailings/DueTime";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import writer from "../mailings/MailingWriter.module.css";
 import view from "../mailings/MailingView.module.css";
 import own from "./Broadcasts.module.css";
@@ -78,7 +80,9 @@ export function DraftFinish(props: {
  * Change the times' form, in its bubble: one scheduled's time, never too
  * soon, as the form to change a mailing's has it, and how long it keeps
  * trying; one sending, how long it keeps trying alone, as it has gone
- * already. Under them, when that makes it stop trying.
+ * already. Under them, when that makes it stop trying. Times that have
+ * passed by the time they're sent are said under the fields; a broadcast no
+ * longer scheduled or sending, at the page's top.
  */
 export function ChangeTimesForm({
   id,
@@ -91,14 +95,14 @@ export function ChangeTimesForm({
   dueAt: Date;
   finishMinutes: number | null;
   scheduled: boolean;
-  action: (form: FormData) => void | Promise<void>;
+  action: (form: FormData) => Promise<FormResult<"gone" | "too-soon">>;
 }) {
   const [picked, setPicked] = useState(() => dueTime(dueAt));
   const [after, setAfter] = useState(finishMinutes);
   const start = scheduled ? notTooSoon(picked, londonDayTime(earliestRun())) : dueTime(dueAt);
   const due = fromLondon(start.day, start.hour, start.minute);
   return (
-    <form action={action} className={view.changeTime}>
+    <ResultForm action={action} says={copy.refusals.reschedule} atTop={["gone"]} className={view.changeTime}>
       <input type="hidden" name="id" value={id} />
       {scheduled && (
         <div className={writer.when}>
@@ -114,9 +118,10 @@ export function ChangeTimesForm({
         </div>
       )}
       <FinishChoice dueAt={due} finishMinutes={after} onChange={setAfter} named />
+      <Refusal />
       <SubmitButton variant="primary" size="small" fit>
         {copy.saveTimes}
       </SubmitButton>
-    </form>
+    </ResultForm>
   );
 }

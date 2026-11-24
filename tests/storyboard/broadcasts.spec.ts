@@ -1519,3 +1519,202 @@ test("What the lists mean, and a change waiting on the site", async ({ page, req
   await expect(byText).toBeChecked();
   await frame(page, "The draft, now a text to Updates");
 });
+
+/** What the page says at its top: an alert, as Next's own announcer of the page's title is, so found by its words. */
+const saidAtTop = (page: Page, words: string) => page.getByRole("alert").filter({ hasText: words });
+
+test("A draft a colleague schedules meanwhile", async ({ page, request, flowDatabase }) => {
+  story("Staff have a draft email open. A colleague, with the same draft open elsewhere, schedules it.");
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, EMAIL, EMAILABLE);
+  const id = new URL(page.url()).pathname.split("/").at(-1);
+  await savedAfter(page, () => page.getByLabel(copy.subject).fill("Events near you this month"));
+  await frame(page, "The draft, open");
+  runSql(
+    flowDatabase,
+    `UPDATE mailings SET state = 'scheduled', due_at = now() + interval '2 days', version = version + 1 WHERE id = ${id}`,
+  );
+  story(
+    "They choose another list for it. It's no longer a draft, so its list can't change: the page says so at its top, and shows the email as it stands, scheduled.",
+  );
+  await page
+    .getByRole("group", { name: copy.facts.list })
+    .getByRole("radio", { name: supportersCopy.supporters.filters.lists.volunteering, exact: true })
+    .click();
+  await expect(saidAtTop(page, copy.refusals.draft.gone)).toBeVisible();
+  await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
+  await frame(page, "Scheduled by a colleague, said at the top");
+  story(
+    "The colleague unschedules it again. Unschedule, pressed here, finds nothing to stop: the page says so, and shows the draft.",
+  );
+  runSql(flowDatabase, `UPDATE mailings SET state = 'draft', version = version + 1 WHERE id = ${id}`);
+  await page.getByRole("button", { name: mailingCopy.unschedule }).click();
+  await expect(saidAtTop(page, copy.refusals.stop.gone)).toBeVisible();
+  await expect(page.getByLabel(copy.subject)).toHaveValue("Events near you this month");
+  await frame(page, "Unscheduled already, said at the top");
+});
+
+test("A draft a colleague changes, then deletes", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write an email and give it a time. A colleague, with the same draft open elsewhere, changes its subject.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, EMAIL, EMAILABLE);
+  const id = new URL(page.url()).pathname.split("/").at(-1);
+  await page.getByLabel(copy.subject).fill("Events near you this month");
+  const words = page.getByRole("textbox", { name: copy.emailLabel });
+  // On the empty line under the greeting, above the signature.
+  await caretInEmpty(words, 1);
+  await savedAfter(page, () => page.keyboard.type("See you at the march."));
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
+  runSql(flowDatabase, `UPDATE mailings SET subject = 'Events this month', version = version + 1 WHERE id = ${id}`);
+  story(
+    "Schedule would send what's on this page, not what the colleague saved, so it doesn't. The draft says it changed somewhere else, as it does when a save finds that.",
+  );
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.getByRole("button", { name: copy.schedule(EMAILABLE, "email") }).click();
+  await expect(page.getByText(mailingCopy.saveStates.conflict)).toBeVisible();
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await frame(page, "Changed elsewhere, so not scheduled");
+  story(
+    "Then the colleague deletes the draft. Schedule, pressed again, finds it gone, and the page says so at its top.",
+  );
+  runSql(flowDatabase, `DELETE FROM mailings WHERE id = ${id}`);
+  await send.getByRole("button", { name: copy.schedule(EMAILABLE, "email") }).click();
+  await expect(saidAtTop(page, copy.refusals.draft.gone)).toBeVisible();
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await frame(page, "Deleted by a colleague, said at the top");
+});
+
+test("WhatsApp approves a template as it's withdrawn", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff sent a text's new words to WhatsApp for approval, and now want to change them. While the draft is open, WhatsApp approves them.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("Doors open at 09:30 for PauseCon.");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("PauseCon doors"));
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
+  await page.getByRole("button", { name: copy.submitTemplate }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  await postWhatsAppWebhook(request, BASE, templateStatus(name!, "APPROVED"));
+  story(
+    "Withdraw approval request, pressed twice, finds nothing waiting to take back. The page says so at its top, and no longer offers to withdraw.",
+  );
+  await page.getByRole("button", { name: copy.withdrawTemplate }).click();
+  await page.getByRole("button", { name: copy.withdrawSure }).click();
+  await expect(saidAtTop(page, copy.refusals.withdraw.gone)).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await frame(page, "Approved meanwhile, said at the top");
+});
+
+test("A broadcast's times, changed too late", async ({ page, request, flowDatabase }) => {
+  story(
+    "An email began going out 13 hours ago, and hasn't all gone, as hello@'s Gmail has room for only two more today. Staff open Change the times, to have it stop trying sooner than in seven days.",
+  );
+  await importLuma(request, BASE);
+  await importCivicrm(request, BASE);
+  connectGmail(flowDatabase, HELLO);
+  runSql(
+    flowDatabase,
+    `INSERT INTO email_sends (purpose, address, outcome, message_id, backend, sender)
+     SELECT 'broadcast', 'earlier-' || i || '@example.com', 'sent', 'earlier-' || i, 'gmail', '${HELLO}'
+     FROM generate_series(1, ${GMAIL_DAILY_LIMIT - 2}) i`,
+  );
+  const id = addDue(flowDatabase, "Stall on Saturday", staffEmail());
+  await runSending(request);
+  runSql(flowDatabase, `UPDATE mailings SET due_at = now() - interval '13 hours' WHERE id = ${id}`);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  const times = await openBubble(page.getByRole("button", { name: copy.changeTimes }));
+  const length = times.getByRole("combobox", { name: copy.keepsTryingFor });
+  await length.selectOption({ label: copy.finishChoice(720) });
+  await frame(page, "12 hours chosen, which ended an hour ago", { window: true });
+  story("Change them can't: the form says the times have passed, under the choice, which stays as it was left.");
+  await times.getByRole("button", { name: copy.saveTimes }).click();
+  await expect(times.getByText(copy.refusals.reschedule["too-soon"])).toBeVisible();
+  await expect(length).toHaveValue("720");
+  await frame(page, "Times that have passed, said under them", { window: true });
+  story(
+    "They choose a day instead. By then a colleague has stopped the email, so its times can't change: the page says so at its top, and shows it stopped.",
+  );
+  await length.selectOption({ label: copy.finishChoice(24 * 60) });
+  runSql(flowDatabase, `UPDATE mailings SET state = 'cancelled' WHERE id = ${id}`);
+  await times.getByRole("button", { name: copy.saveTimes }).click();
+  await expect(saidAtTop(page, copy.refusals.reschedule.gone)).toBeVisible();
+  await expect(page.getByText(mailingCopy.states.cancelled, { exact: true })).toBeVisible();
+  await frame(page, "Stopped by a colleague, said at the top");
+});
+
+test("A stopped broadcast a colleague resumes, then deletes", async ({ page, request, flowDatabase }) => {
+  story(
+    "An email stopped as it hadn't all gone in time, and its page offers to resume it. A colleague, with the same page open elsewhere, resumes it first.",
+  );
+  await importLuma(request, BASE);
+  const id = addDue(flowDatabase, "Social on Friday", staffEmail());
+  runSql(
+    flowDatabase,
+    `UPDATE mailings SET state = 'cancelled', gave_up = true, waiting_since = now() - interval '1 day', wait_reason = 'limit'
+     WHERE id = ${id}`,
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(page.getByText(copy.gaveUpLimit)).toBeVisible();
+  await frame(page, "Stopped, with Resume sending");
+  runSql(
+    flowDatabase,
+    `UPDATE mailings SET state = 'scheduled', gave_up = false, waiting_since = NULL, wait_reason = NULL,
+       due_at = now() + interval '1 day' WHERE id = ${id}`,
+  );
+  story("Resume sending, pressed here, finds nothing to resume. The page says so at its top, and shows it scheduled.");
+  await page.getByRole("button", { name: mailingCopy.resume }).click();
+  await expect(saidAtTop(page, copy.refusals.resume.gone)).toBeVisible();
+  await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
+  await frame(page, "Resumed by a colleague, said at the top");
+  story("Then the colleague deletes it. Copy broadcast, pressed here, finds nothing to copy, and the page says so.");
+  runSql(flowDatabase, `DELETE FROM mailings WHERE id = ${id}`);
+  await page.getByRole("button", { name: copy.copyBroadcast }).click();
+  await expect(saidAtTop(page, copy.refusals.copy.gone)).toBeVisible();
+  await frame(page, "Deleted by a colleague, said at the top");
+});
+
+test("A reply a colleague deals with first", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter replied to an email, and staff open its thread. Before they decide what to do with it, a colleague records that there's nothing to do.",
+  );
+  await importLuma(request, BASE);
+  const sent = addSent(flowDatabase, "email", "Thank you for marching");
+  runSql(
+    flowDatabase,
+    `INSERT INTO broadcast_replies (message_id, received_at, from_address, subject, account, gmail_message_id,
+       gmail_thread_id, rfc_message_id, blob_key, automatic)
+     VALUES (${sent.copy}, '2026-10-15T10:00:00Z', 'person1@example.com', 'Re: Thank you for marching', 'hello@pauseai.uk',
+       'flow-thanks', 'flow-thanks', 'fixture-broadcast-reply-thanks@example.com',
+       'fixture/broadcast-reply-thanks.eml.gz', false)`,
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText(/See you at the next one/)).toBeVisible();
+  await page.getByRole("button", { name: copy.replies.nothing }).scrollIntoViewIfNeeded();
+  await frame(page, "The reply, waiting", { window: true });
+  runSql(
+    flowDatabase,
+    `UPDATE broadcast_replies SET outcome = 'nothing', dealt_by = 'jo@pauseai.uk', dealt_at = now()
+     WHERE message_id = ${sent.copy}`,
+  );
+  story(
+    "Nothing to do, pressed here, has nothing left to record. The page says so at its top, and shows who dealt with the reply.",
+  );
+  await page.getByRole("button", { name: copy.replies.nothing }).click();
+  await expect(saidAtTop(page, copy.refusals.deal.gone)).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.replies.nothing })).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await frame(page, "Dealt with already, said at the top");
+});

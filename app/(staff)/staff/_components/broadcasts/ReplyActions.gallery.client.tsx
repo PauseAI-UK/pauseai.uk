@@ -12,7 +12,10 @@ export function ReplyActionsExample({ write = false, text = false }: { write?: b
         <ReplyActions
           replyId={1}
           topics={["newsletter", "events"]}
-          deal={log("deal")}
+          deal={(form) => {
+            log("deal")(form);
+            return Promise.resolve({ ok: true });
+          }}
           text={text}
           write={write ? () => log("write")() : undefined}
         />

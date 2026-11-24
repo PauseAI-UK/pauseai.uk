@@ -24,7 +24,10 @@ export function ChangeTimesFormExample({ scheduled }: { scheduled: boolean }) {
           dueAt={DUE}
           finishMinutes={24 * 60}
           scheduled={scheduled}
-          action={log("rescheduleBroadcastNow")}
+          action={(form) => {
+            log("rescheduleBroadcastNow")(form);
+            return Promise.resolve({ ok: true });
+          }}
         />
       )}
     </Logged>

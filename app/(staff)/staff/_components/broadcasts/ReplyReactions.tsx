@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import IconButton from "@/components/ui/IconButton";
 import { useSave } from "@/components/ui/useSave";
 import type { BroadcastReaction, ReactionResult } from "@/lib/broadcasts/answers.server";
+import type { FormResult } from "@/lib/form-result";
 import { REACTIONS } from "@/lib/broadcasts/broadcasts";
 import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
@@ -15,8 +16,11 @@ import answers from "../mailings/AnswerableReply.module.css";
 
 const copy = broadcastsCopy.broadcastPages.replies;
 
-/** Puts an emoji on a reply, or takes ours away (an empty one), saying whether it went. */
-export type ReactAction = (replyId: number, emoji: string) => Promise<ReactionResult>;
+/** Puts an emoji on a reply, or takes ours away (an empty one); refused when it didn't go, as the reply can't take one or WhatsApp failed. */
+export type ReactAction = (
+  replyId: number,
+  emoji: string,
+) => Promise<FormResult<Exclude<ReactionResult, { sent: true }>["reason"]>>;
 
 /** A smiley, as WhatsApp's button for a reaction, in the colour of the words around it. */
 function Smiley() {
@@ -66,8 +70,8 @@ export default function ReplyReactions({
   const [refused, setRefused] = useState(false);
   const [send, pending, broke] = useSave(react!, {
     done: (result) => {
-      setRefused(!result.sent);
-      if (result.sent) setOpen(false);
+      setRefused(!result.ok);
+      if (result.ok) setOpen(false);
     },
   });
   const failed = refused || broke;

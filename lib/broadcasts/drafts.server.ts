@@ -618,6 +618,19 @@ export type TemplateNotTaken = { failed: string | null };
 export type TemplateSubmitResult =
   "submitted" | "no-words" | "not-ready" | "already" | "not-text" | "not-draft" | "gone" | TemplateNotTaken;
 
+/** Why the site didn't send new words to WhatsApp for approval, as its action answers it: a reason each, which the writer has words for. */
+export type TemplateRefusal = Exclude<TemplateSubmitResult, "submitted" | TemplateNotTaken>;
+
+/** Whether WhatsApp took new words sent for approval, as the action answers it; if not, its own reason (TemplateNotTaken). */
+export type TemplateTaken = { taken: true } | { taken: false; said: string | null };
+
+/**
+ * Whether a draft was scheduled, as the action answers it; if not, as
+ * WhatsApp didn't take the new words scheduling sends it, its own reason
+ * (TemplateNotTaken).
+ */
+export type BroadcastScheduled = { scheduled: true } | { scheduled: false; said: string | null };
+
 /**
  * Sends a template's words to WhatsApp for approval, as a marketing
  * template in British English, each field a named parameter with an

@@ -1,10 +1,12 @@
 "use client";
 
 // MessageCopyView's example, which logs what's done with a reply (MessageCopyView.gallery.tsx).
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, type Log } from "@/app/(tools)/gallery/_components/wiring";
 import MessageCopyView from "./MessageCopyView";
+import type { DealAction } from "./ReplyActions";
+import type { ReactAction } from "./ReplyReactions";
 import { sent } from "../mailings/AnswerableReply.gallery.client";
-import type { BroadcastAnswer, ReactionResult } from "@/lib/broadcasts/answers.server";
+import type { BroadcastAnswer } from "@/lib/broadcasts/answers.server";
 import {
   exampleBroadcastAnswers,
   exampleBroadcastReplies,
@@ -83,15 +85,25 @@ export function MessageCopyViewExample({
     : text;
   return (
     <Logged>
-      {(log) => <MessageCopyView one={one} actions={{ deal: log("deal"), answer: sent(log), react: reactedTo(log) }} />}
+      {(log) => (
+        <MessageCopyView one={one} actions={{ deal: dealtWith(log), answer: sent(log), react: reactedTo(log) }} />
+      )}
     </Logged>
   );
 }
 
+/** What a reply was recorded as, logged, which is always done. */
+const dealtWith =
+  (log: Log): DealAction =>
+  (form) => {
+    log("deal")(form);
+    return Promise.resolve({ ok: true });
+  };
+
 /** An emoji put on a reply, logged, which always goes. */
 export const reactedTo =
-  (log: (name: string) => (...args: unknown[]) => void) =>
-  async (replyId: number, emoji: string): Promise<ReactionResult> => {
+  (log: Log): ReactAction =>
+  (replyId, emoji) => {
     log("react")(replyId, emoji);
-    return { sent: true };
+    return Promise.resolve({ ok: true });
   };

@@ -1,18 +1,18 @@
 import type { ReactNode } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { ChoosingBroadcast } from "@/lib/broadcasts/pages.server";
+import type { FormResult } from "@/lib/form-result";
 import { storedFilter, type SupportersSearch } from "@/lib/staff-search";
 import { valuesOf } from "@/lib/list-params";
 import { broadcastTerms } from "@/lib/broadcasts/broadcasts";
 import { supporterFiltersOf } from "../supporters/SupportersTable";
 import list from "../politicians/PoliticiansList.module.css";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import StaffLink from "../ui/StaffLink";
 import Strip from "../ui/Strip";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
 const copy = broadcastsCopy.broadcastPages;
-
-type FormAction = (form: FormData) => void | Promise<void>;
 
 /** The filters that choose who, as a form's hidden fields. */
 function WhoFields({ search }: { search: SupportersSearch }) {
@@ -25,6 +25,8 @@ function WhoFields({ search }: { search: SupportersSearch }) {
  * Broadcast to N supporters, in the list's count row, counting everyone the
  * filters find, with a Consent filter answered yes: it makes a draft to them
  * and opens the writer. Without one, or while choosing for a draft, none.
+ * Its action always goes somewhere else (`action`), so it's refused for
+ * nothing; if it throws, the button says so under itself.
  */
 export function BroadcastSupporters({
   search,
@@ -34,18 +36,19 @@ export function BroadcastSupporters({
 }: {
   search: SupportersSearch;
   total: number;
-  action: FormAction;
+  action: (form: FormData) => Promise<FormResult<never>>;
   /** The draft the list is choosing for, whose way on is the bar at the foot. */
   choosing?: ChoosingBroadcast;
 }) {
   if (choosing || !broadcastTerms(search.contact)) return null;
   return (
-    <form action={action}>
+    <ResultForm action={action} says={{}}>
       <WhoFields search={search} />
       <SubmitButton variant="primary" size="small" fit>
         {copy.broadcastButton(total)}
       </SubmitButton>
-    </form>
+      <Refusal />
+    </ResultForm>
   );
 }
 
@@ -66,8 +69,8 @@ export function ChoosingBroadcastFrame({
   choosing?: ChoosingBroadcast;
   search: SupportersSearch;
   total: number;
-  /** Keeps the form's filter for the draft (actions.ts). */
-  keep: (id: number, form: FormData) => void | Promise<void>;
+  /** Keeps the form's filter for the draft, and goes back to it (actions.ts). */
+  keep: (id: number, form: FormData) => Promise<FormResult<never>>;
   children: ReactNode;
 }) {
   if (!choosing) return children;
@@ -92,12 +95,13 @@ export function ChoosingBroadcastFrame({
         <div className={list.barStart}>
           <span className={list.count}>{copy.choosingCount(total)}</span>
         </div>
-        <form action={keep.bind(null, choosing.id)}>
+        <ResultForm action={keep.bind(null, choosing.id)} says={{}}>
           <WhoFields search={search} />
           <SubmitButton variant="primary" fit>
             {copy.useThese(total)}
           </SubmitButton>
-        </form>
+          <Refusal />
+        </ResultForm>
       </div>
     </div>
   );

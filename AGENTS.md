@@ -80,6 +80,18 @@ A title, then what the change does and why, in plain words, as short paragraphs.
 - A bug found by reading the code, such as in a review, gets a test first: see it fail on the code as it is, then fix the code and see it pass. Say in the PR that each fix has a test that failed without it.
 - When something misbehaves in production, reproduce it before shipping a fix, rather than opening a PR for each guess. Use fake data first: a test, or a script in `tmp/`, running the site's code on fixtures shaped like production's (its sizes, duplicates and slow services). Read-only queries of production can show what shape that needs. A copy of production's database is a last resort: ask first, and delete it, and anything else downloaded, once production is working ("The repo is public", below).
 
+## Errors
+
+`docs/code-structure.md`, "Errors", has the rules in full. The helpers to reach for:
+
+- **A caught error** is rethrown, or reported with `problem()` as one of its feature's declared problems (`defineProblems()` in the feature's copy file), never as a sentence written in place. A problem's values are IDs, counts and fixed codes, never anyone's name or address.
+- **An outside service** fails as an `OutsideFailure`, and a caller asks its `kind`, never reads its words. Code that carries on without the service uses `orFallback()`. Sending something a run has taken goes through `sendWithCare()`. An error kept in a column is kept with `keptError()`.
+- **A form's server code** answers `{ ok: true, … }` or `refused(reason)` (`lib/form-result.ts`). The reason is a code, and its words are in the feature's copy.
+- **A staff Server Action** never returns quietly on input it can't use. It throws on a field its own form fills in, such as an id (`ownId()` and the other readers in `lib/staff-forms.ts`). It answers a reason for what staff typed. It answers `"gone"` for a thing deleted since the page loaded.
+- **A staff form** that sends a Server Action is a `ResultForm` with a `<Refusal />` in it (`app/(staff)/staff/_components/ui/ResultForm.tsx`). Anything else in the browser that calls the server goes through `useSave` (`components/ui/useSave.ts`), or for a route, `lib/ask-server.ts`.
+
+The types, ESLint and `tests/checks/` hold most of this, and each failure says what to use instead. What they can't check is judgement: which `kind` a failure is, whether an error should be caught at all, and whether an action's bad input is the form's own doing (throw) or staff's (a reason).
+
 ## Migrations are fixed once pushed
 
 Pushing a branch with an open PR makes a deploy preview, and Netlify applies its migrations to that preview's database, as it does to production's on deploy. It refuses a migration changed since it was applied, which fails the deploy. So once a migration has been pushed, it can't be edited, even if the branch hasn't merged.

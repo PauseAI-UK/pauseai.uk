@@ -24,18 +24,19 @@ export function broadcastActions(log: (name: string) => (...args: unknown[]) => 
       return answer;
     };
   return {
-    save: logged("saveBroadcast", { saved: true as const, version: 5 }),
-    attach: logged("attachToBroadcast", undefined),
-    detach: logged("detachFromBroadcast", { saved: true as const, version: 5, attachments: [] }),
-    sendTest: logged("sendBroadcastTestNow", { sent: true as const, id: "example", to: "me@example.com" }),
-    schedule: logged("scheduleBroadcastNow", { scheduled: false as const, problems: [] }),
-    deleteDraft: log("deleteBroadcastDraft"),
-    changeConsent: logged("changeBroadcastConsentNow", 5),
-    create: logged("newBroadcastWith", undefined),
-    submitTemplate: logged("submitTemplateNow", "submitted" as const),
-    withdrawTemplate: logged("withdrawTemplateNow", true),
-    deleteTemplate: logged("deleteTemplateNow", "deleted" as const),
-    linkCard: logged("linkCardFor", exampleLinkCard),
+    save: logged("saveBroadcast", { ok: true as const, version: 5 }),
+    attach: logged("attachToBroadcast", { ok: true as const, version: 5, attachments: [] }),
+    detach: logged("detachFromBroadcast", { ok: true as const, version: 5, attachments: [] }),
+    sendTest: logged("sendBroadcastTestNow", { ok: true as const, to: "me@example.com" }),
+    // Not scheduled, so the button comes back: here there's no scheduled page to take the writer's place.
+    schedule: logged("scheduleBroadcastNow", { ok: false as const, reason: "not-ready" as const }),
+    deleteDraft: logged("deleteBroadcastDraft", { ok: true as const }),
+    changeConsent: logged("changeBroadcastConsentNow", { ok: true as const, version: 5 }),
+    create: logged("newBroadcastWith", { ok: true as const }),
+    submitTemplate: logged("submitTemplateNow", { ok: true as const, taken: true as const }),
+    withdrawTemplate: logged("withdrawTemplateNow", { ok: true as const }),
+    deleteTemplate: logged("deleteTemplateNow", { ok: true as const }),
+    linkCard: logged("linkCardFor", { ok: true as const, card: exampleLinkCard }),
   };
 }
 
