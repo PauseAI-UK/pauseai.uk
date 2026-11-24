@@ -207,13 +207,14 @@ describe("stopStaleServer", () => {
     expect(await stopStaleServer({ url: real, dir: CHECKOUT, tree: TREE })).toBe("none");
   });
 
-  it("checks this checkout's own server, by default, against its tree as it is", async () => {
+  // A tree given, as CI's test container doesn't own its checkout, and git won't read it there.
+  it("checks this checkout's own server by default", async () => {
     const asked: string[] = [];
     const fetchHeaders = async (url: string) => {
       asked.push(url);
       return null;
     };
-    expect(await stopStaleServer({ headers: fetchHeaders })).toBe("none");
+    expect(await stopStaleServer({ tree: TREE, headers: fetchHeaders })).toBe("none");
     expect(asked[0]).toMatch(/^http:\/\/localhost:\d+$/);
   });
 });
