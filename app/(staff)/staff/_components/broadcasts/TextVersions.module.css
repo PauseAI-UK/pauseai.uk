@@ -1,0 +1,25 @@
+/* A text's two versions: their tabs, how many templates at the right, then the open one's box. */
+.versions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.templates {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}

@@ -48,6 +48,8 @@ import type { LinkCard } from "@/lib/broadcasts/link-card";
 import { linkCard } from "@/lib/server/outside-services/link-pages.server";
 import { refused, type FormResult } from "@/lib/form-result";
 import { dueAtFrom, ownId } from "@/lib/staff-forms";
+import { findPlaces } from "@/lib/broadcasts/places.server";
+import type { Place } from "@/lib/broadcasts/places";
 import { storedFilter } from "@/lib/staff-search";
 import { filtersPath, type Params } from "@/lib/list-params";
 
@@ -344,6 +346,13 @@ export async function linkCardFor(url: string): Promise<FormResult<never, { card
   await requireStaff("supporters");
   if (typeof url !== "string") throw new Error("A link's card was asked for without its link");
   return { ok: true, card: await linkCard(url) };
+}
+
+/** The places a Google Maps link or words point at, for a text's map. */
+export async function findPlacesFor(input: string): Promise<FormResult<never, { places: Place[] }>> {
+  await requireStaff("supporters");
+  if (typeof input !== "string") throw new Error("Places were asked for without words to find them by");
+  return { ok: true, places: await findPlaces(input) };
 }
 
 /** Deletes the form's draft, then goes to the list of broadcasts. One that's gone already is as deleted as was asked. */

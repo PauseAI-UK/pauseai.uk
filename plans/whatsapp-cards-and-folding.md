@@ -40,12 +40,34 @@ probably not; check with the same send.
 ## The picture
 
 Staff upload it in the writer, as an email broadcast's attachments are
-uploaded and kept, and it shows in the preview at once. Meta takes JPEG or
+uploaded and kept, and it shows in the preview at once. There are three
+ways to add it, all of which must work:
+
+- choosing a file, from "+ Picture";
+- dragging a file onto the writer's Write card, as an email's attachments
+  can be dragged on (`MailingFiles`);
+- pasting a picture, such as a screenshot or one copied from a web page
+  with "Copy image", anywhere in the Write card, the words included. A
+  text's words can't hold a picture, so a picture pasted into them becomes
+  the text's picture rather than going into the words.
+
+Adding a picture to a text that has one already replaces it, and the panel
+says so, with Undo. A text that has a place has no room for a picture, as
+both go at the top, so dropping or pasting one there says so rather than
+replacing the place.
+
+Meta takes JPEG or
 PNG, 5 MB at most
 ([Media](https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/media));
 anything else is turned away with a message saying so. Uploading rather
 than taking a linked page's image means no fetching other sites, and the
-picture approved is the one sent, even if the page changes.
+picture sent is the one staff chose, even if the page changes.
+
+Each text gives its picture when it's sent, so staff can change it after
+the template is approved, without approval again, once a test send shows
+Meta takes a picture different from the approved example
+(`plans/whatsapp-places-replies-and-versions.md`, "Still to find out"), as
+a place can change now.
 
 **Sending for approval.** A media header's example is uploaded with Meta's
 Resumable Upload API, which gives a handle (`4::…`) for

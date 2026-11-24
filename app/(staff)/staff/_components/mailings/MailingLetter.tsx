@@ -4,6 +4,7 @@ import type { MailingBlock, MailingDoc, MailingInline, OnlyForNode } from "@/lib
 import { NOT_CONDITION } from "@/lib/mailings/doc";
 import { partFor } from "@/lib/mailings/fields";
 import styles from "./MailingLetter.module.css";
+import PartBox from "./PartBox";
 
 /** A choice's label, or its ID when there's none, as for a field no longer offered. */
 const labelOf = (labels: Record<string, string>, id: string) => labels[id] ?? id;
@@ -99,11 +100,13 @@ function OnlyFor({
   conditions: Record<string, string>;
 }) {
   return (
-    <div className={styles.onlyFor} data-except={block.attrs.condition.startsWith(NOT_CONDITION) || undefined}>
-      <p className={styles.onlyForLabel}>{partFor(block.attrs.condition, conditions)}</p>
+    <PartBox
+      label={partFor(block.attrs.condition, conditions)}
+      except={block.attrs.condition.startsWith(NOT_CONDITION)}
+    >
       {block.content.map((inner, i) => (
         <Block key={i} block={inner} fields={fields} />
       ))}
-    </div>
+    </PartBox>
   );
 }

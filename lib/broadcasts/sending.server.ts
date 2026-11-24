@@ -41,6 +41,7 @@ import { recordWhatsAppStop } from "./whatsapp-stops.server";
 import { templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 import { markUnreachable, unreachable } from "./unreachable.server";
 import { broadcastProblems, broadcastsCopy } from "./copy";
+import type { TextPlace } from "./text-parts";
 import { emailProblems } from "@/lib/email/copy";
 
 // Sending broadcasts to supporters, in the send-mailings run every 15 minutes, as
@@ -103,13 +104,16 @@ type Due = {
   title: string;
   waitingSince: Date | null;
   waitReason: string | null;
-  /** A text's template's state with WhatsApp: pending till it approves it. */
+  /** A text's templates' state with WhatsApp: pending till it approves them, its own and its second version's. */
   templateStatus: string | null;
 };
 
 const DUE_COLUMNS = `id::int AS id, state, channel, send_by AS "sendBy", ${TOPICS_OF} AS topics, filter, due_at AS "dueAt",
   finish_minutes AS "finishMinutes", coalesce(nullif(subject, ''), title) AS title, waiting_since AS "waitingSince",
-  wait_reason AS "waitReason", (SELECT t.status FROM whatsapp_templates t WHERE t.id = template_id) AS "templateStatus"`;
+  wait_reason AS "waitReason",
+  (SELECT CASE WHEN bool_or(t.status = 'pending') THEN 'pending' ELSE min(t.status) END FROM whatsapp_templates t
+   WHERE t.id = template_id OR t.id = (SELECT v.template_id FROM broadcast_versions v WHERE v.mailing_id = mailings.id))
+    AS "templateStatus"`;
 
 /** Whether a complete CiviCRM pull has finished in the last FRESH_HOURS. */
 async function pullFresh(): Promise<boolean> {
@@ -189,7 +193,8 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
 export async function stopTextsOn(templateId: number): Promise<number> {
   const texts = await query<Due>(
     `SELECT ${DUE_COLUMNS} FROM mailings
-     WHERE audience = 'supporters' AND template_id = $1 AND state IN ('scheduled', 'sending') ORDER BY id`,
+     WHERE audience = 'supporters' AND state IN ('scheduled', 'sending')
+       AND (template_id = $1 OR id IN (SELECT mailing_id FROM broadcast_versions WHERE template_id = $1)) ORDER BY id`,
     [templateId],
   );
   for (const text of texts) await giveUp(text, "template");
@@ -809,23 +814,39 @@ async function emailSender(broadcast: Sending, gapOverride?: number): Promise<Co
   };
 }
 
+/** A version of a text as it's sent: who it's for, none for its own; its template; and its place. */
+type SentVersion = {
+  condition: string | null;
+  name: string | null;
+  status: string | null;
+  body: unknown;
+  place: TextPlace | null;
+};
+
 /**
- * A text's sender: by WhatsApp, its template filled in for each person, up
- * to our number's daily limit. None where WhatsApp doesn't send, or doesn't
- * answer; `template` when the text's template isn't approved now, as
- * WhatsApp paused or disabled it, which stops the text.
+ * A text's sender: by WhatsApp, its template filled in for each person, with
+ * its place, if it has one, up to our number's daily limit; for someone who
+ * meets its second version's condition, that version's. None where
+ * WhatsApp doesn't send, or doesn't answer; `template` when a template of
+ * the text's isn't approved now, as WhatsApp paused or disabled it, which
+ * stops the text.
  */
 async function textSender(broadcast: Sending): Promise<CopySender | "template" | undefined> {
   const backend = await textBackend();
   if (!backend) return undefined;
-  const [template] = await query<{ name: string; status: string; body: unknown }>(
-    `SELECT coalesce(t.meta_name, t.name) AS name, t.status, t.body
-     FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id WHERE m.id = $1`,
+  const versions = await query<SentVersion>(
+    `SELECT NULL AS condition, coalesce(t.meta_name, t.name) AS name, t.status, t.body, m.place
+     FROM mailings m LEFT JOIN whatsapp_templates t ON t.id = m.template_id WHERE m.id = $1
+     UNION ALL
+     SELECT v.condition, coalesce(t.meta_name, t.name), t.status, t.body, v.place
+     FROM broadcast_versions v LEFT JOIN whatsapp_templates t ON t.id = v.template_id WHERE v.mailing_id = $1`,
     [broadcast.id],
   );
-  if (template?.status !== "approved") return "template";
-  // Its fields are the template's, as WhatsApp has them.
-  const body = checkMailingDoc(template.body)!;
+  if (!versions.length || versions.some((version) => version.status !== "approved")) return "template";
+  const [own, other] = versions;
+  // Its fields are each template's, as WhatsApp has them.
+  const bodies = new Map(versions.map((version) => [version, checkMailingDoc(version.body)!]));
+  const versionFor = (copy: Copy) => (other && copy.mergeValues.meets.includes(other.condition!) ? other : own);
   return {
     gap: 0,
     ready: async () => true,
@@ -838,10 +859,15 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
     blocked: blockedNumbers,
     send: async (copy) => {
       // Its words can't be made: thrown, as nothing has gone, so it's put back.
-      const params = templateParams(body, copy.mergeValues);
+      const version = versionFor(copy);
+      const params = templateParams(bodies.get(version)!, copy.mergeValues);
       try {
         return textResult(
-          await sendTemplate(backend.keys, backend.number.id, copy.address, { name: template.name, params }),
+          await sendTemplate(backend.keys, backend.number.id, copy.address, {
+            name: version.name!,
+            params,
+            ...(version.place && { place: version.place }),
+          }),
         );
       } catch (error) {
         // The send broke off, and WhatsApp may have taken it by then: failed, as an email is, never sent twice.
@@ -945,7 +971,7 @@ export async function sendDueBroadcasts(until: number, gap?: number): Promise<Br
     `SELECT ${DUE_COLUMNS}, subject, body, sent_from AS "sentFrom", from_name AS "fromName",
        coalesce(try_failed_at > now() - make_interval(mins => $1), false) AS resting,
        failed_in_a_row AS "failedInARow", held_back_since AS "heldBackSince"
-     FROM mailings m WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
+     FROM mailings WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
     [REST_MINUTES],
   );
   for (const broadcast of sending) {

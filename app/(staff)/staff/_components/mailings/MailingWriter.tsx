@@ -54,6 +54,7 @@ import { BandFact, Facts } from "../ui/Band";
 import Grid, { Card } from "../ui/Grid";
 import Bubble from "@/components/ui/Bubble";
 import NotIcon from "../ui/NotIcon";
+import { partButton, partButtonWords } from "./PartBox";
 import Strip from "../ui/Strip";
 import Numbered from "../ui/Numbered";
 import { helpButtonClass } from "../ui/HelpButton";
@@ -625,9 +626,14 @@ function Preview({
           <ul className={styles.toggles} aria-labelledby={findLabel}>
             {used.map((condition) => (
               <li key={condition}>
-                <button type="button" aria-pressed={meets[condition]} onClick={() => toggle(condition)}>
+                <button
+                  type="button"
+                  aria-pressed={meets[condition]}
+                  className={partButton(!meets[condition])}
+                  onClick={() => toggle(condition)}
+                >
                   {!meets[condition] && <NotIcon />}
-                  {labels[condition] ?? condition}
+                  <span className={partButtonWords}>{labels[condition] ?? condition}</span>
                 </button>
               </li>
             ))}

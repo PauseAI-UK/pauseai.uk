@@ -304,6 +304,13 @@
   gap: var(--space-3);
 }
 
+/* Beside a chosen template's words, which have no editor to have them beside it: a second version for some. */
+.textParts {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
 /* Under the template chosen: its line, then its quiet buttons, close under it. */
 .templateFacts {
   display: grid;
@@ -439,4 +446,65 @@
   .spinner {
     animation-duration: 2.4s;
   }
+}
+
+/* A text's map at its top, set into the bubble's top corners as a link's
+   card is: a drawing of a map with a pin, then the place's name and address. */
+.mapTop {
+  display: grid;
+  margin: calc(var(--space-1) - var(--space-2)) calc(var(--space-1) - var(--space-2)) var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--chat-card);
+  white-space: normal;
+}
+
+.mapDrawing {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mapGround {
+  fill: var(--surface-2);
+}
+
+.mapRoad {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 6;
+}
+
+.mapPin {
+  fill: var(--status-red);
+}
+
+.mapPlace {
+  display: grid;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.mapPlace span {
+  color: var(--text-secondary);
+}
+
+/* A text's reply buttons under its bubble, as WhatsApp draws them: a white
+   bar each, as wide as the bubble, its words in WhatsApp's blue. */
+.replyButtons {
+  display: grid;
+  gap: var(--space-1);
+  max-width: calc(200px + 2 * var(--space-2));
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.replyButtons li {
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--chat-read);
+  font-size: var(--text-sm);
+  text-align: center;
 }

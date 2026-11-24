@@ -1249,6 +1249,18 @@ UPDATE mailings SET gave_up = true, wait_reason = 'limit', waiting_since = due_a
 WHERE audience = 'supporters' AND title = 'Thank you for coming.';
 UPDATE mailings SET send_by = 'postmark' WHERE audience = 'supporters' AND title IN ('Banner drop on Sunday', 'Leafleting last week');
 
+-- The stall's text has a map of where the stall is at its top, and a reply
+-- button; and a second version, for those who went to the London march,
+-- thanking them first, on a template of its own.
+UPDATE mailings SET header = 'location',
+  place = '{"name": "Piccadilly Gardens", "address": "Manchester M1 1RG", "latitude": 53.4808, "longitude": -2.2372}',
+  buttons = '[{"text": "I can help"}]'
+WHERE audience = 'supporters' AND title = 'The stall needs a hand on Saturday.';
+INSERT INTO broadcast_versions (mailing_id, condition, body, header, place, buttons)
+SELECT id, 'event:evt-fixture-past-london-march',
+  pg_temp.seed_words('thank you for marching in London. The stall needs a hand on Saturday.'), header, place, buttons
+FROM mailings WHERE audience = 'supporters' AND title = 'The stall needs a hand on Saturday.';
+
 -- Each copy of those sent, sending or stopped, as sending left it: one for
 -- each supporter the broadcast's Consent found when it went, at their
 -- address or number that said yes. Every way one can go: delivered, a text

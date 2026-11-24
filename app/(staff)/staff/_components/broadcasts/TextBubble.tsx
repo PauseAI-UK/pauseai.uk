@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { FIELD_WORDS } from "@/lib/broadcasts/broadcasts";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { LinkCard } from "@/lib/broadcasts/link-card";
+import type { TextPlace } from "@/lib/broadcasts/text-parts";
 import type { Receipt } from "@/lib/broadcasts/receipts";
 import type { MailingBlock, MailingInline } from "@/lib/mailings/doc";
 import IconText from "../ui/IconText";
@@ -176,20 +177,49 @@ function LinkCardView({ card }: { card: LinkCard }) {
 }
 
 /**
+ * A text's map, as WhatsApp shows one at its top: a map with a pin, then
+ * the place's name and address. A drawing of a map, not the place's own,
+ * as the preview fetches no map; the place's own name and address are
+ * under it.
+ */
+function MapTop({ place }: { place: TextPlace }) {
+  return (
+    <div className={styles.mapTop}>
+      <svg viewBox="0 0 220 90" aria-hidden="true" className={styles.mapDrawing}>
+        <rect width="220" height="90" className={styles.mapGround} />
+        <path d="M-5 34 L225 28 M104 -5 L98 95 M0 66 L220 72" className={styles.mapRoad} />
+        <path d="M110 46 C102 34 102 22 110 22 C118 22 118 34 110 46Z" className={styles.mapPin} />
+      </svg>
+      <span className={styles.mapPlace}>
+        <strong>{place.name}</strong>
+        <span>{place.address}</span>
+      </span>
+    </div>
+  );
+}
+
+/**
  * A text as a messaging app shows it, a phone's width: the words in a bubble
  * from us, on the left as it is on their phone, formatted as WhatsApp does,
- * under the card for their link if there is one, folded at five lines, with
- * its footer, the grey line saying how to stop, and the time. No name on it,
+ * under its map, if it has a place, or the card for their link if there is
+ * one, folded at five lines, with its footer, the grey line saying how to
+ * stop, and the time; under it, its reply buttons. No name on it,
  * as WhatsApp puts none on a bubble in a chat with one business.
  */
 export default function TextBubble({
   words,
   card,
+  place,
+  buttons = [],
   footer,
   time,
 }: {
   words: TextDoc;
   card?: LinkCard | null;
+  /** The place its map shows, at its top in place of a link's card. */
+  place?: TextPlace | null;
+  /** Its reply buttons' words, each a button under it, as WhatsApp shows them. */
+  buttons?: string[];
   footer: string;
   time: string;
 }) {
@@ -197,7 +227,7 @@ export default function TextBubble({
     <div className={styles.phone}>
       <ChatWall>
         <div className={`${styles.bubble} ${styles.phoneBubble}`}>
-          {card && <LinkCardView card={card} />}
+          {place ? <MapTop place={place} /> : card && <LinkCardView card={card} />}
           {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
           <TextFold key={JSON.stringify(words.content)}>
             <Blocks blocks={words.content} />
@@ -205,6 +235,13 @@ export default function TextBubble({
           <span className={styles.footer}>{footer}</span>
           <span className={styles.time}>{time}</span>
         </div>
+        {buttons.length > 0 && (
+          <ul className={styles.replyButtons}>
+            {buttons.map((words, i) => (
+              <li key={i}>{words}</li>
+            ))}
+          </ul>
+        )}
       </ChatWall>
     </div>
   );

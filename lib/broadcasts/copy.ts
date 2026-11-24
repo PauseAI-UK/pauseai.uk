@@ -81,6 +81,44 @@ export const broadcastsCopy = {
     // Under the approved ones, past a rule: new words, to send for approval.
     newTemplate: "New template",
     templateMadeIn: "Made in WhatsApp Manager",
+    // A text's top, over its words: a choice of the card for the words' first link, or a map of a place.
+    textTop: {
+      label: "⁂ Top of the text",
+      linkPreview: "⁂ Link preview",
+      place: "⁂ Place",
+      linkPreviewNote: "⁂ From the first link in the words, if they have one.",
+    },
+    // Choosing a text's place: a box for a Google Maps link or words to search for, its button, the places it
+    // found, the place's name and address under the map, a link to check its pin, and what can change once approved.
+    placeChooser: {
+      find: "⁂ Google Maps link, or search for a place",
+      findButton: "⁂ Find",
+      found: "⁂ Places found",
+      none: "⁂ No place found. Try other words, or a Google Maps link.",
+      name: "⁂ Name",
+      address: "⁂ Address",
+      checkMap: "⁂ Check it on a map",
+      changeable: "⁂ You can change the place after WhatsApp approves the text.",
+    },
+    // A text's reply buttons, under its words: their heading, each button's words and its Remove, adding one, and
+    // what a computer does with many.
+    replyButtons: {
+      heading: "⁂ Buttons",
+      words: "⁂ On the button",
+      remove: "⁂ Remove",
+      add: "⁂ + Reply button",
+      tapNote: "⁂ A tap shows on this page as their reply.",
+      manyNote: "⁂ With 4 or more buttons, WhatsApp on a computer tells people to open the text on their phone.",
+    },
+    // A text's two versions, once it has a condition: how many templates they go to WhatsApp as, and why there's
+    // only one condition.
+    textVersions: {
+      templates: (n: number) => `⁂ Goes to WhatsApp as ${n} template${n === 1 ? "" : "s"}`,
+      oneOnly: "⁂ One per text: each version is a template WhatsApp approves.",
+      submit: (n: number) => (n === 1 ? "⁂ Send for approval" : `⁂ Send ${n} templates for approval`),
+    },
+    // A second version's template, as it's named for its list: the text's name, then who it's for.
+    versionTemplateName: (name: string, who: string) => `⁂ ${name}, for those who ${who}`,
     // A template in the dropdown, and under the one chosen: a tag by its name when nothing has ever had it; on a line,
     // who made it; when it was last sent and to how many, or else when it's first scheduled for, or else when it was
     // approved; and how many other drafts have it, if any do.
@@ -199,6 +237,8 @@ export const broadcastsCopy = {
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
+      "no-place": "⁂ Choose the place its map shows.",
+      "button-words": "⁂ Give each button words, 25 characters at most.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": "That's too many to send before it stops trying. Send it to fewer people, or keep trying for longer.",
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
@@ -347,6 +387,7 @@ export const broadcastsCopy = {
         voice: "Voice note, which can't be shown here",
         sticker: "Sticker, which can't be shown here",
         location: "A location they shared",
+        button: "⁂ Tapped a button",
         contacts: "A contact card they shared",
       } as Record<string, string>,
       // Any other kind, by WhatsApp's name for it.

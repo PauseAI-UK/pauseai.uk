@@ -16,6 +16,7 @@ import { staffDate } from "@/lib/staff-time";
 import { anyAndNone, valuesOf, type ParamValue } from "@/lib/list-params";
 import type { SortColumns } from "@/lib/staff-sort";
 import { broadcastsCopy } from "./copy";
+import { buttonsFit, type ReplyButton, type TextHeader, type TextPlace, type TextTemplateParts } from "./text-parts";
 
 // The rules of broadcasts to supporters, for the server to keep and the pages
 // to say: how the Consent filter fixes a broadcast's channel and topics, its
@@ -482,6 +483,8 @@ export type BroadcastScheduleProblem =
   | "fields-together"
   | "field-twice"
   | "same-words"
+  | "no-place"
+  | "button-words"
   | "not-connected"
   | "too-slow"
   | "no-time"
@@ -517,6 +520,12 @@ export type SchedulingBroadcast = {
   numbered: boolean;
   /** Whether its channel sends yet. */
   sends: boolean;
+  /** A text's top, the place its map shows, and its reply buttons' words (text-parts.ts). */
+  header: TextHeader | null;
+  place: TextPlace | null;
+  buttons: ReplyButton[];
+  /** A text's second version, as far as scheduling it goes; none for one version. */
+  textVersion: Pick<SchedulingBroadcast, "body" | "approved" | "sameWords" | "header" | "place" | "buttons"> | null;
 };
 
 /**
@@ -559,6 +568,16 @@ export function misplacedFields(body: MailingDoc): { atEdge: boolean; together: 
   };
 }
 
+/** Whether two texts would be one template: the same words, top and buttons. */
+export function sameTemplate(one: TextTemplateParts, other: TextTemplateParts): boolean {
+  return (
+    sameWords(one.body, [other.body]) &&
+    one.header === other.header &&
+    JSON.stringify(one.buttons.map((button) => button.text.trim())) ===
+      JSON.stringify(other.buttons.map((button) => button.text.trim()))
+  );
+}
+
 /** What doesn't stop a text's new words going to WhatsApp for approval: its time. */
 const LEFT_TILL_SCHEDULING: BroadcastScheduleProblem[] = ["no-time", "time-passed"];
 
@@ -579,21 +598,26 @@ export function approvalProblems(problems: BroadcastScheduleProblem[]): Broadcas
 export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): BroadcastScheduleProblem[] {
   const blank = isBlankMailing(broadcast.body);
   const email = broadcast.channel === "email";
-  // A text's words not yet approved, which go to WhatsApp as a new template, and where their fields fall.
-  const newWords = !email && !blank && !broadcast.approved;
-  const misplaced = newWords ? misplacedFields(broadcast.body) : undefined;
+  // A text's versions: its own, and its second one, if it has one, each checked alike.
+  const versions = email ? [] : [broadcast, ...(broadcast.textVersion ? [broadcast.textVersion] : [])];
+  // A version's words not yet approved, which go to WhatsApp as a new template, and where their fields fall.
+  const fresh = versions.filter((one) => !isBlankMailing(one.body) && !one.approved);
+  const misplaced = fresh.map((one) => misplacedFields(one.body));
+  const anyFresh = fresh.length > 0;
   // In the order of the page's sections: who it's to, what's written, who it's from, then WhatsApp's approval, then when.
   const checks: [BroadcastScheduleProblem, boolean][] = [
     ["unknown-filter", broadcast.unknown.length > 0],
     ["no-recipients", broadcast.recipients === 0],
     ["no-subject", email && !broadcast.subject.trim()],
     ["no-letter", email && blank],
-    ["no-template", !email && blank],
-    ["no-name", !email && !blank && !broadcast.approved && !broadcast.title.trim()],
-    ["field-edge", newWords && misplaced!.atEdge],
-    ["fields-together", newWords && misplaced!.together],
-    ["field-twice", newWords && misplaced!.twice],
-    ["same-words", newWords && broadcast.sameWords],
+    ["no-template", versions.some((one) => isBlankMailing(one.body))],
+    ["no-name", anyFresh && !broadcast.title.trim()],
+    ["field-edge", misplaced.some((one) => one.atEdge)],
+    ["fields-together", misplaced.some((one) => one.together)],
+    ["field-twice", misplaced.some((one) => one.twice)],
+    ["same-words", fresh.some((one) => one.sameWords)],
+    ["no-place", versions.some((one) => one.header === "location" && !one.place)],
+    ["button-words", versions.some((one) => !buttonsFit(one.buttons))],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
     // At a day's limit of emails or texts, it must all go before it would stop: each day it has, part days whole.
     [

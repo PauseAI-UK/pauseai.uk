@@ -8,6 +8,9 @@ import { broadcastConsentGallery } from "@/app/(staff)/staff/_components/broadca
 import { broadcastSupportersGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastSupporters.gallery";
 import { channelWriterGallery } from "@/app/(staff)/staff/_components/broadcasts/ChannelWriter.gallery";
 import { broadcastWriterGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastWriter.gallery";
+import { textTopGallery } from "@/app/(staff)/staff/_components/broadcasts/TextTop.gallery";
+import { replyButtonsGallery } from "@/app/(staff)/staff/_components/broadcasts/ReplyButtons.gallery";
+import { textVersionsGallery } from "@/app/(staff)/staff/_components/broadcasts/TextVersions.gallery";
 import { broadcastTimesGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastTimes.gallery";
 import { broadcastsOverviewGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastsOverview.gallery";
 import { broadcastViewGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastView.gallery";
@@ -33,6 +36,9 @@ export const staffBroadcasts: Group = {
     ...broadcastSupportersGallery,
     ...channelWriterGallery,
     ...broadcastWriterGallery,
+    ...textTopGallery,
+    ...replyButtonsGallery,
+    ...textVersionsGallery,
     ...broadcastTimesGallery,
     ...draftWriterGallery,
     ...broadcastsOverviewGallery,

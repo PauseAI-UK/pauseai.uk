@@ -10,6 +10,7 @@ import {
   exampleBroadcastEmail,
   exampleBroadcastText,
   exampleLinkCard,
+  examplePlace,
   exampleTemplates,
   exampleTextSender,
   exampleTextWords,
@@ -37,6 +38,7 @@ export function broadcastActions(log: (name: string) => (...args: unknown[]) => 
     withdrawTemplate: logged("withdrawTemplateNow", { ok: true as const }),
     deleteTemplate: logged("deleteTemplateNow", { ok: true as const }),
     linkCard: logged("linkCardFor", { ok: true as const, card: exampleLinkCard }),
+    findPlaces: logged("findPlacesFor", { ok: true as const, places: [examplePlace] }),
   };
 }
 

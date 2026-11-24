@@ -8,6 +8,8 @@ import { eventFiltersGallery } from "@/app/(staff)/staff/_components/events/Even
 import { eventsTableGallery } from "@/app/(staff)/staff/_components/events/EventsTable.gallery";
 import type { Group } from "../_components/types";
 import { mailingEditorGallery } from "@/app/(staff)/staff/_components/mailings/MailingEditor.gallery";
+import { conditionMenuGallery } from "@/app/(staff)/staff/_components/mailings/ConditionMenu.gallery";
+import { partBoxGallery } from "@/app/(staff)/staff/_components/mailings/PartBox.gallery";
 import { mailingFilesGallery } from "@/app/(staff)/staff/_components/mailings/MailingFiles.gallery";
 import { mailingsOverviewGallery } from "@/app/(staff)/staff/_components/mailings/MailingsOverview.gallery";
 import { mailingWriterGallery } from "@/app/(staff)/staff/_components/mailings/MailingWriter.gallery";
@@ -30,6 +32,8 @@ export const staffMailingsEvents: Group = {
   title: "The staff interface: mailings and events",
   examples: [
     ...mailingEditorGallery,
+    ...conditionMenuGallery,
+    ...partBoxGallery,
     ...mailingFilesGallery,
     eventsTable,
     eventTabs,

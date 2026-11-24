@@ -7,10 +7,15 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** A text in the outbox: to whom (+447…), and its template and fields, or its own words. */
+/** The place a text's map shows. */
+export type OutboxPlace = { name: string; address: string; latitude: number; longitude: number };
+
+/** A text in the outbox: to whom (+447…), and its template, its place if it has one, and fields; or its own words. */
 export type OutboxText = { to: string } & (
-  { template: { name: string; params: Record<string, string> } } | { words: string }
+  { template: { name: string; params: Record<string, string>; place?: OutboxPlace } } | { words: string }
 );
+
+const PLACE = /^Place: (.*), (.*) \((-?[\d.]+), (-?[\d.]+)\)$/;
 
 const HEAD = /^WhatsApp text from .+ to (\+\d+)$/;
 
@@ -19,7 +24,9 @@ export function textNote(from: string, text: OutboxText): string {
   const head = `WhatsApp text from ${from} to ${text.to}`;
   if ("words" in text) return `${head}\n\n${text.words}\n`;
   const fields = Object.entries(text.template.params).map(([name, words]) => `  ${name}: ${words}\n`);
-  return `${head}\nTemplate: ${text.template.name}\n${fields.join("")}`;
+  const { place } = text.template;
+  const where = place ? `Place: ${place.name}, ${place.address} (${place.latitude}, ${place.longitude})\n` : "";
+  return `${head}\nTemplate: ${text.template.name}\n${where}${fields.join("")}`;
 }
 
 /** A text's file read back; undefined for another kind of file, such as a template sent for approval. */
@@ -29,9 +36,18 @@ export function readTextNote(note: string): OutboxText | undefined {
   if (!to) return undefined;
   if (second === "") return { to, words: rest.join("\n").trimEnd() };
   const fields = rest.filter((line) => line.startsWith("  ")).map((line) => /^ {2}(\w+): (.*)$/.exec(line)!);
+  const where = rest.map((line) => PLACE.exec(line)).find(Boolean);
+  const params = Object.fromEntries(fields.map((m) => [m[1], m[2]]));
+  const name = second!.replace(/^Template: /, "");
   return {
     to,
-    template: { name: second!.replace(/^Template: /, ""), params: Object.fromEntries(fields.map((m) => [m[1], m[2]])) },
+    template: where
+      ? {
+          name,
+          params,
+          place: { name: where[1], address: where[2], latitude: Number(where[3]), longitude: Number(where[4]) },
+        }
+      : { name, params },
   };
 }
 

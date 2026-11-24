@@ -5,21 +5,18 @@ import { NodeRange } from "@tiptap/pm/model";
 import { Plugin, type EditorState, type Transaction } from "@tiptap/pm/state";
 import { liftTarget } from "@tiptap/pm/transform";
 import type { EditorView } from "@tiptap/pm/view";
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { iconButtonClass } from "@/components/ui/IconButton";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFollowScroll } from "@/components/ui/useFollowScroll";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import LinkBar from "@/components/ui/LinkBar";
 import LinkPeek from "@/components/ui/LinkPeek";
 import { isLinkKey, letterExtensions, unlinkedExtensions, withoutLinks } from "@/lib/letters/extensions";
 import { isQuoted, toggleQuote } from "@/lib/letters/quotes";
-import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { NOT_CONDITION } from "@/lib/mailings/doc";
 import { partFor, type MailingChoice } from "@/lib/mailings/fields";
-import ChoiceSearch from "../ui/ChoiceSearch";
-import NotIcon from "../ui/NotIcon";
-import filterStyles from "../ui/FilterBar.module.css";
+import ConditionMenu from "./ConditionMenu";
 import styles from "./MailingEditor.module.css";
+import { partBox } from "./PartBox";
 import { mailingsCopy } from "./copy";
 
 const copy = mailingsCopy.mailingEditor;
@@ -37,6 +34,11 @@ type Props = {
    * shows as it is.
    */
   whatsApp?: boolean;
+  /**
+   * Under the fields, in place of the parts a template's words can't have: a
+   * text's own (BroadcastWriter), such as a second version for some.
+   */
+  textParts?: ReactNode;
   /** How many recipients there are, to say how many all but some is. */
   recipients?: number;
   /** The ID of the label naming it. */
@@ -173,19 +175,16 @@ const OnlyFor = Node.create<{ labels: Record<string, string> }>({
       "div",
       {
         ...HTMLAttributes,
-        class: styles.onlyFor,
+        class: partBox.box,
         "data-except": node.attrs.condition.startsWith(NOT_CONDITION) ? "" : undefined,
+        "data-closable": "",
       },
-      [
-        "p",
-        { class: styles.onlyForLabel, contenteditable: "false" },
-        partFor(node.attrs.condition, this.options.labels),
-      ],
+      ["div", { class: partBox.label, contenteditable: "false" }, partFor(node.attrs.condition, this.options.labels)],
       [
         "button",
         {
           type: "button",
-          class: iconButtonClass("outline", styles.forEveryoneBox),
+          class: partBox.close,
           contenteditable: "false",
           "data-for-everyone": "",
           "aria-label": copy.forEveryone,
@@ -193,7 +192,7 @@ const OnlyFor = Node.create<{ labels: Record<string, string> }>({
         },
         "×",
       ],
-      ["div", { "data-body": "" }, 0],
+      ["div", { class: partBox.body, "data-body": "" }, 0],
     ];
   },
 });
@@ -386,110 +385,6 @@ function SelectionMenu({ editor }: { editor: Editor }) {
 }
 
 /**
- * "+ Only for those who…", or "Except those who…": a button that opens the
- * asks, as the filter bar's Answer does, then the answers to the one
- * chosen, each with how many recipients it takes in. Choosing one puts the
- * paragraphs at the cursor in a box for them, or changes who the box the
- * cursor is in is for.
- */
-function ConditionMenu({
-  not,
-  conditions,
-  recipients,
-  choose,
-}: {
-  not: boolean;
-  conditions: MailingChoice[];
-  recipients?: number;
-  choose: (condition: string) => void;
-}) {
-  const id = `${useId().replace(/:/g, "")}-${not ? "except" : "only"}`;
-  // The ask chosen, whose answers the menu now offers; none for the list of asks.
-  const [ask, setAsk] = useState<string>();
-  const menu = useRef<HTMLDivElement>(null);
-  const asks = [...new Set(conditions.map((condition) => condition.group!))];
-  const inAsk = conditions.filter((condition) => condition.group === ask);
-  const searchable = inAsk.some((condition) => condition.searchable);
-  // So the letter keeps its cursor while the menu is used.
-  const keep = (event: React.MouseEvent) => event.preventDefault();
-  return (
-    <>
-      <button
-        type="button"
-        className={not ? styles.exceptButton : styles.onlyButton}
-        popoverTarget={id}
-        onMouseDown={keep}
-        style={{ anchorName: `--${id}` } as React.CSSProperties}
-      >
-        {not && <NotIcon />}
-        {not ? copy.except : copy.addOnlyFor}
-      </button>
-      <div
-        ref={menu}
-        id={id}
-        popover="auto"
-        className={styles.partMenu}
-        role="menu"
-        aria-label={not ? copy.except : copy.addOnlyFor}
-        style={{ positionAnchor: `--${id}` } as React.CSSProperties}
-      >
-        {ask === undefined ? (
-          <ul>
-            {asks.map((group) => (
-              <li key={group}>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.toAsk}
-                  onMouseDown={keep}
-                  onClick={() => setAsk(group)}
-                >
-                  {group}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <>
-            <button type="button" className={styles.back} onMouseDown={keep} onClick={() => setAsk(undefined)}>
-              {copy.backToAsks}
-            </button>
-            <p className={styles.askTitle}>{ask}</p>
-            {searchable && <ChoiceSearch label={staffVocabulary.filters.narrow} />}
-            <ul
-              className={searchable ? filterStyles.choices : undefined}
-              data-search={searchable ? "empty" : undefined}
-            >
-              {inAsk.map((condition) => {
-                const n = not && recipients !== undefined ? recipients - condition.covers! : condition.covers!;
-                return (
-                  <li key={condition.id} data-name={condition.option}>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onMouseDown={keep}
-                      onClick={() => {
-                        // Not popoverTargetAction: by then the asks have replaced this button.
-                        menu.current?.hidePopover();
-                        setAsk(undefined);
-                        choose(`${not ? NOT_CONDITION : ""}${condition.id}`);
-                      }}
-                    >
-                      {condition.option}
-                      <span className={styles.covers}>{copy.covers(n)}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
-      </div>
-    </>
-  );
-}
-
-/**
  * Beside the letter: the merge fields as lozenges, to click or drag in,
  * those some recipients lack a value for ghosted, saying how many; then the
  * menus of who a part can be only for, or for all but.
@@ -499,12 +394,14 @@ function Sidebar({
   fields,
   conditions,
   noParts,
+  textParts,
   recipients,
 }: {
   editor: Editor;
   fields: MailingChoice[];
   conditions: MailingChoice[];
   noParts?: boolean;
+  textParts?: ReactNode;
   recipients?: number;
 }) {
   const inBox = useEditorState({ editor, selector: ({ editor }) => editor.isActive("onlyFor") });
@@ -546,8 +443,10 @@ function Sidebar({
           </li>
         ))}
       </ul>
-      {!noParts && <p className={styles.sideHeading}>{copy.partsHeading}</p>}
-      {noParts ? null : conditions.length === 0 ? (
+      {(!noParts || textParts) && <p className={styles.sideHeading}>{copy.partsHeading}</p>}
+      {noParts ? (
+        textParts
+      ) : conditions.length === 0 ? (
         <p className={styles.sideNote}>{copy.noConditions}</p>
       ) : (
         <div className={styles.partMenus}>
@@ -586,6 +485,7 @@ export default function MailingEditor({
   fields,
   conditions,
   whatsApp,
+  textParts,
   recipients,
   labelledBy,
   plain = false,
@@ -702,7 +602,14 @@ export default function MailingEditor({
         )}
       </div>
       {editor && !plain && (
-        <Sidebar editor={editor} fields={fields} conditions={conditions} noParts={whatsApp} recipients={recipients} />
+        <Sidebar
+          editor={editor}
+          fields={fields}
+          conditions={conditions}
+          noParts={whatsApp}
+          textParts={textParts}
+          recipients={recipients}
+        />
       )}
     </div>
   );
