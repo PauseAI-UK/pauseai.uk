@@ -942,8 +942,8 @@ order, alongside the others:
   there. ESLint refuses Ctrl+Home and Ctrl+End pressed anywhere else.
 - `frame()` waits for the page to be at rest, and for a picture of one
   element (`of`), again after scrolling to the top: that scroll can show
-  or hide a draft's sticky bar, whose transition was caught a pixel short
-  of its end. A flow needs nothing for it.
+  or hide what an IntersectionObserver watches. A flow needs nothing for
+  it.
 - Playwright's own output (traces) is in `test-results/playwright`
   (`test-results/playwright-storyboard-*` for a review), and is emptied
   every run. The reviews beside it in `test-results/storyboard` are kept,
