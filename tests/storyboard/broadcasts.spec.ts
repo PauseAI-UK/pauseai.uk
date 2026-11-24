@@ -8,7 +8,7 @@ import { connectGmail } from "./gmail-steps";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
-import { caretInEmpty } from "./editor-steps";
+import { caretAtStart, caretInEmpty } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { holdActions } from "./loading-steps";
 import { hydrated, openBubble, scrollSettled } from "./settle";
@@ -560,8 +560,7 @@ test("A Google Maps link first in a text", async ({ page, request, flowDatabase 
   await warning.scrollIntoViewIfNeeded();
   await frame(page, "The warning under the preview", { window: true });
   story("With the march's page linked before the map, the warning goes.");
-  await page.getByRole("textbox", { name: copy.templateWords }).click();
-  await page.keyboard.press("ControlOrMeta+Home");
+  await caretAtStart(page.getByRole("textbox", { name: copy.templateWords }));
   await savedAfter(page, () => page.keyboard.type("Details: https://pauseai.uk/march "));
   await expect(warning).toBeHidden();
   await expect(page.getByText("March Against AI Extinction & for a pause")).toBeVisible();

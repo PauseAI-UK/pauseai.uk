@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -30,6 +30,33 @@ describe("DraftTitle", () => {
     expect(document.title).toBe(staffVocabulary.tabTitle("Our March"));
     await rerender(<DraftTitle title="Our March in London" />);
     expect(document.title).toBe(staffVocabulary.tabTitle("Our March in London"));
+  });
+
+  it("shows the bar once the title has scrolled off the top, not while it's still below the window", async () => {
+    // The observer, told where the title is, as the browser would tell it.
+    let seen: (entries: Partial<IntersectionObserverEntry>[]) => void = () => {};
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: typeof seen) {
+          seen = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    try {
+      await render(<DraftTitle title="Our March" />);
+      const bar = () => document.querySelector("h1")!.previousElementSibling!;
+      const at = (top: number) => seen([{ intersectionRatio: 0, boundingClientRect: { top } as DOMRectReadOnly }]);
+      // Out of sight above the window, then below it, not yet reached.
+      at(-100);
+      await expect.poll(() => bar().hasAttribute("data-shown")).toBe(true);
+      at(5000);
+      await expect.poll(() => bar().hasAttribute("data-shown")).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

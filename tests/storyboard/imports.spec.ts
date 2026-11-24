@@ -12,6 +12,7 @@ import { newestEmail } from "./outbox-steps";
 import { importPoliticians } from "./politician-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { emailFrame } from "./email-frame";
+import { press } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
@@ -40,7 +41,7 @@ test("The Luma import", async ({ page, flowDatabase }) => {
   );
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
-  await page.getByRole("button", { name: jobsCopy.luma.importNow }).click();
+  await press(page.getByRole("button", { name: jobsCopy.luma.importNow }));
   // The fixture calendar: nine public events and a private one, five guests each over two pages, each event's hosts,
   // one of them no guest, three contacts.
   const first = {
@@ -60,7 +61,7 @@ test("The Luma import", async ({ page, flowDatabase }) => {
 
   story("Run again within the hour, it finds nothing new.");
   // Within the hour, no event is due again: one page of events, unchanged, and the next pass over the contacts' two pages.
-  await page.getByRole("button", { name: jobsCopy.luma.importNow }).click();
+  await press(page.getByRole("button", { name: jobsCopy.luma.importNow }));
   const again = {
     ...first,
     events: 0,
@@ -85,7 +86,7 @@ test("The CiviCRM import", async ({ page, flowDatabase }) => {
   runSql(flowDatabase, "INSERT INTO civicrm_erased (contact_id) VALUES (199)");
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}${importPath("import-civicrm")}`);
-  await page.getByRole("button", { name: jobsCopy.civicrm.importNow }).click();
+  await press(page.getByRole("button", { name: jobsCopy.civicrm.importNow }));
   // The fixture's eleven contacts, one erased; Kit's unsubscribe, and Casey's hold. With nobody here yet, each
   // contact is a new supporter.
   const first = {
@@ -103,7 +104,7 @@ test("The CiviCRM import", async ({ page, flowDatabase }) => {
   await frame(page, "The first run");
 
   story("Run again, it finds nothing new.");
-  await page.getByRole("button", { name: jobsCopy.civicrm.importNow }).click();
+  await press(page.getByRole("button", { name: jobsCopy.civicrm.importNow }));
   await expect(
     page.getByText(jobsCopy.civicrm.result({ ...first, added: 0, optOuts: 0, blocked: 0, linked: 0 })),
   ).toBeVisible();
@@ -284,7 +285,7 @@ test("An import's runs", async ({ page, request, flowDatabase }) => {
   const run = page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] });
   // One a run, and one in the line under the title, saying how it stands.
   const unchanged = page.getByText(jobsCopy.runs.status.unchanged, { exact: true });
-  await run.click();
+  await press(run);
   await expect(unchanged).toHaveCount(2);
   await run.click();
   await expect(unchanged).toHaveCount(3);
@@ -441,7 +442,7 @@ test("A held rename", async ({ page, request, flowDatabase }) => {
   runSql(flowDatabase, "UPDATE notable_people SET name = 'Penny Previous' WHERE name = 'Polly Placeholder'");
   await logIn(page, flowDatabase, ["admin"]);
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  await page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }).click();
+  await press(page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }));
   await expect(page.getByRole("button", { name: politiciansCopy.politicianImports.apply })).toBeVisible();
   await expect(page.getByText("Penny Previous → Polly Placeholder")).toBeVisible();
   await frame(page, "The import, held");

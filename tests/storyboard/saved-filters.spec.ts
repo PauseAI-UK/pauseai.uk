@@ -31,7 +31,8 @@ function addSaved(database: string, list: string, name: string, params: object, 
   return id;
 }
 
-const openList = (page: Page) => page.getByRole("button", { name: copy.chip, exact: true }).click();
+/** Opens the list of saved filters, a menu, as every flow opens one (openBubble). */
+const openList = (page: Page) => openBubble(page.getByRole("button", { name: copy.chip, exact: true }));
 const save = (page: Page) => page.getByRole("button", { name: copy.save, exact: true });
 
 test("Saving a filter", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {

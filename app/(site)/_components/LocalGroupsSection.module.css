@@ -21,7 +21,7 @@
 }
 
 .startCopy h3 {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   font-size: 20px;
   margin: 0 0 6px;

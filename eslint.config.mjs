@@ -34,6 +34,16 @@ const OPEN_BUBBLE_RULES = [
   { selector: "TemplateElement[value.raw=/:popover-open/]", message: OPEN_BUBBLE_MESSAGE },
 ];
 
+// A flow puts the caret at the start or end of an editor with caretAtStart or
+// caretAtEnd (tests/storyboard/editor-steps.ts), which wait until it's there.
+// Ctrl+Home pressed by itself, straight after a click, lost to ProseMirror
+// putting back the click's caret, and the words typed next went at the end.
+const CARET_KEYS_RULE = {
+  selector: "CallExpression[callee.property.name='press'] Literal[value=/^(Control|Meta|ControlOrMeta)\\+(Home|End)$/]",
+  message:
+    "Put the caret at an editor's start or end with caretAtStart or caretAtEnd (tests/storyboard/editor-steps.ts), which wait until it's there.",
+};
+
 // The site's settings are read from the environment only in
 // lib/server/config.server.ts, which gives each one shape for every caller. The
 // database's connection string has its own rule, above.
@@ -593,6 +603,19 @@ const eslintConfig = defineConfig([
   {
     files: ["tests/storyboard/**/*.ts"],
     ignores: ["tests/storyboard/settle.ts", "tests/storyboard/frame.ts", "**/*.test.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        DATABASE_URL_RULE,
+        ...EXTERNAL_LINK_RULES,
+        ...OPEN_BUBBLE_RULES,
+        CARET_KEYS_RULE,
+      ],
+    },
+  },
+  // The editor's steps, which press those keys and wait for the caret.
+  {
+    files: ["tests/storyboard/editor-steps.ts"],
     rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...EXTERNAL_LINK_RULES, ...OPEN_BUBBLE_RULES] },
   },
   // The bindings' tests, which call outsideFetch and Postmark's binding directly.

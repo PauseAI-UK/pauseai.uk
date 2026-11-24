@@ -21,7 +21,7 @@
 .context blockquote cite {
   display: block;
   margin-top: 14px;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-style: normal;
   font-size: 13px;
   letter-spacing: 0.04em;

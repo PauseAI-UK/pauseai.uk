@@ -11,7 +11,7 @@
   margin-top: 28px;
 }
 .group h3 {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;

@@ -16,7 +16,7 @@
 }
 
 .uk {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   font-size: 15px;
   letter-spacing: 0.1em;
@@ -25,7 +25,7 @@
 }
 
 .pretitle {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   font-size: 18px;
   letter-spacing: 0.04em;

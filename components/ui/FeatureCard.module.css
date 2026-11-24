@@ -16,7 +16,7 @@
 }
 
 .card h3 {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   font-size: var(--text-lg);
   margin: 0 0 var(--space-2);

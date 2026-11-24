@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   letter-spacing: 0.02em;
   user-select: none;

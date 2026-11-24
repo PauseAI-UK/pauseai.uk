@@ -82,7 +82,7 @@
 
 .name {
   margin: 0;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 18px;
 }
 

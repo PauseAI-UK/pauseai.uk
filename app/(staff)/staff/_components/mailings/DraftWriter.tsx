@@ -50,10 +50,12 @@ export function DraftTitle({ title, saveState }: { title: string; saveState?: Sa
     document.title = staffVocabulary.tabTitle(title);
   }, [title]);
   useEffect(() => {
-    // Gone once half of it has scrolled off.
-    const watch = new IntersectionObserver(([entry]) => setTitleGone(entry.intersectionRatio < 0.5), {
-      threshold: [0, 0.5, 1],
-    });
+    // Gone once half of it has scrolled off the top; one still below the
+    // window, not yet reached, isn't.
+    const watch = new IntersectionObserver(
+      ([entry]) => setTitleGone(entry.intersectionRatio < 0.5 && entry.boundingClientRect.top < 0),
+      { threshold: [0, 0.5, 1] },
+    );
     watch.observe(heading.current!);
     return () => watch.disconnect();
   }, []);

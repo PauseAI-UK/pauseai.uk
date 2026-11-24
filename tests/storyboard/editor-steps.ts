@@ -16,7 +16,12 @@ type TiptapElement = HTMLElement & {
       doc: { content: { size: number } };
       selection: {
         empty: boolean;
-        $to: { parentOffset: number; parent: { textContent: string; content: { size: number } }; after: () => number };
+        $to: {
+          parentOffset: number;
+          parent: { textContent: string; content: { size: number } };
+          before: () => number;
+          after: () => number;
+        };
       };
     };
   };
@@ -96,15 +101,30 @@ export async function caretInEmpty(box: Locator, index: number) {
  * would replace it.
  */
 export async function caretAtEnd(box: Locator) {
+  await caretAtEdge(box, "end");
+}
+
+/** Puts the caret at the start of the letter in `box`, a Tiptap editor such as a text's, to write before what's there. */
+export async function caretAtStart(box: Locator) {
+  await caretAtEdge(box, "start");
+}
+
+/**
+ * Puts the caret at the start or end of the letter in `box`, and waits until
+ * it's there: a key pressed before then lands where the caret was.
+ */
+async function caretAtEdge(box: Locator, edge: "start" | "end") {
   await focusEditor(box.page(), box);
-  await box.press("Control+End");
+  await box.press(edge === "start" ? "Control+Home" : "Control+End");
   await expect
     .poll(() =>
-      box.evaluate((el) => {
+      box.evaluate((el, edge) => {
         const { doc, selection } = (el as TiptapElement).editor.state;
         const { $to } = selection;
-        return selection.empty && $to.parentOffset === $to.parent.content.size && $to.after() === doc.content.size;
-      }),
+        return edge === "start"
+          ? selection.empty && $to.parentOffset === 0 && $to.before() === 0
+          : selection.empty && $to.parentOffset === $to.parent.content.size && $to.after() === doc.content.size;
+      }, edge),
     )
     .toBe(true);
 }

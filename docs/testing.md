@@ -916,15 +916,34 @@ order, alongside the others:
   - `hydrated`: mounted, fonts in, console quiet;
   - `scrollSettled`: a scroll at rest;
   - `layoutSettled`: images in, nothing moving;
-  - `openBubble`: presses the button that opens a bubble or a menu, waits
-    for the scroll a bubble starts as it opens, and returns what's open.
-    Every flow opens them with it: one that presses the button itself can
-    take its frame, or press inside the bubble, while the page still
-    scrolls. ESLint keeps `:popover-open` out of the flows, so none finds
-    an open one by its selector instead;
+  - `openBubble`: waits for the page to be at rest, presses the button that
+    opens a bubble or a menu, waits for the scroll a bubble starts as it
+    opens, and returns what's open. Every flow opens them with it: one that
+    presses the button itself can take its frame, or press inside the
+    bubble, while the page still scrolls, and a menu opened while the page
+    still moves picks above or below its button by where the button was
+    then, and keeps that place. ESLint keeps `:popover-open` out of the
+    flows, so none finds an open one by its selector instead, but it can't
+    tell which buttons open one: pressing one with `click()` is up to the
+    flow, and its review, to catch;
+  - `press`: presses a button once React has taken it over. Use it for the
+    first press on a page that has just loaded, where the button submits a
+    form (Import now, Save). Pressed before the page has hydrated, the
+    browser posts the form itself, and the page comes back from the server
+    scrolled somewhere else. No lint rule can tell which buttons submit a
+    form, or whether the page has hydrated, so this too is the flow's to
+    get right;
   - `wholePage`: back at the top, and staying there, for a frame after a
     click, typing or going back has left the window somewhere that varies
-    between runs.
+    between runs. After a reload, too: the browser puts the window back to
+    a fraction of a pixel that differs from run to run.
+- The caret goes to an editor's start or end with `caretAtStart` or
+  `caretAtEnd` (`tests/storyboard/editor-steps.ts`), which wait until it's
+  there. ESLint refuses Ctrl+Home and Ctrl+End pressed anywhere else.
+- `frame()` waits for the page to be at rest, and for a picture of one
+  element (`of`), again after scrolling to the top: that scroll can show
+  or hide what an IntersectionObserver watches. A flow needs nothing for
+  it.
 - Playwright's own output (traces) is in `test-results/playwright`
   (`test-results/playwright-storyboard-*` for a review), and is emptied
   every run. The reviews beside it in `test-results/storyboard` are kept,
@@ -1206,7 +1225,7 @@ that drives it or why nothing does.
 - `consent.spec.ts`: Cookie consent remembered across pages, analytics switched off and on, never on the tools.
 - `mobile-nav.spec.ts`: The burger menu on a phone: open, close, dropdowns, navigating, scroll lock released.
 - `onboarding-embed.spec.ts`: The home page's signup iframe: shows after slow hydration, ignores other origins.
-- `scroll.spec.ts`: Anchor links, deep links, the back button, keyboard focus, reduced motion, the footer's cookie link, the embed not scrolling the page.
+- `scroll.spec.ts`: Anchor links, deep links, the back button, keyboard focus, reduced motion, the footer's cookie link, the embed not scrolling the page, the people page in the stand-in font before Inter arrives.
 - `gallery.spec.ts`: The component gallery ("The component gallery", below): its index and a flow per group, a frame of each component's section, each checked for noindex and console errors.
 - `redirects.spec.ts`: Every redirect in `next.config.ts`, over HTTP, and that each destination resolves.
 - `/api/email-your-mp/lookup`: `campaigns`: the postcode form (`lookUpTestMp` in `tests/storyboard/letter-steps.ts`).

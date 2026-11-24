@@ -54,6 +54,16 @@ async function targetOffset(page: Page, id: string): Promise<number> {
   }, id);
 }
 
+/** The page's whole height. */
+async function pageHeight(page: Page): Promise<number> {
+  return page.evaluate(() => document.documentElement.scrollHeight);
+}
+
+/** Whether Inter, the text font, has loaded, rather than failed or not yet been asked for. */
+async function interLoaded(page: Page): Promise<boolean> {
+  return page.evaluate(() => [...document.fonts].some((font) => font.family === "Inter" && font.status === "loaded"));
+}
+
 async function headerHeight(page: Page): Promise<number> {
   return page.evaluate(() => (document.querySelector("header") as HTMLElement).offsetHeight);
 }
@@ -61,13 +71,17 @@ async function headerHeight(page: Page): Promise<number> {
 /**
  * Scroll-padding should land the target below the sticky nav, not under it.
  * It waits for the target to arrive, as a smooth scroll on a loaded runner can
- * pause for longer than scrollSettled() allows; a target that lands elsewhere
- * never arrives, and fails.
+ * pause for longer than scrollSettled() allows; a target that lands elsewhere,
+ * short of it or past it, never arrives, and fails.
  */
 async function expectClearOfNav(page: Page, id: string) {
-  await expect.poll(() => targetOffset(page, id), `#${id} landed too far down the viewport`).toBeLessThan(120);
-  const [top, header] = await Promise.all([targetOffset(page, id), headerHeight(page)]);
-  expect(top, `#${id} sits under the ${header}px sticky nav`).toBeGreaterThanOrEqual(header - 5);
+  const header = await headerHeight(page);
+  // Its top, or "arrived" once it's below the nav and no further than 120px down.
+  const arrived = async () => {
+    const top = await targetOffset(page, id);
+    return top >= header - 5 && top < 120 ? "arrived" : top;
+  };
+  await expect.poll(arrived, `#${id} landed just below the ${header}px sticky nav`).toBe("arrived");
 }
 
 test.describe("in-page scrolling", () => {
@@ -146,6 +160,28 @@ test.describe("in-page scrolling", () => {
     expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
     await expectClearOfNav(page, "share-your-story");
     await frame(page, "Share your story, on the people page");
+  });
+
+  test("The people page before our font arrives", async ({ page }) => {
+    story(
+      "On a slow connection, the people page shows its stories in a stand-in font until ours arrives. The stand-in is sized to take up the same room, so the page is much the same length either way, and a link to part of it lands where that part ends up.",
+    );
+    // Inter refused, so the stand-in stays: a frame waits for every font to finish loading.
+    const inter = "**/fonts/inter-*.woff2";
+    await page.route(inter, (route) => route.abort());
+    await gotoSettled(page, "/people");
+    expect(await interLoaded(page)).toBe(false);
+    const standIn = await pageHeight(page);
+    await frame(page, "The stories in the stand-in font");
+
+    story("Once ours has arrived, the same stories in Inter.");
+    await page.unroute(inter);
+    await gotoSettled(page, "/people");
+    expect(await interLoaded(page)).toBe(true);
+    const ours = await pageHeight(page);
+    // Unsized, the stand-in made the page several per cent longer: on a phone, a thousand pixels.
+    expect(Math.abs(standIn - ours) / ours).toBeLessThan(0.01);
+    await frame(page, "The stories in Inter");
   });
 
   test("A link to part of another page", async ({ page }) => {

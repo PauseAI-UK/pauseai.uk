@@ -5,7 +5,7 @@ import { logIn, staffEmail } from "./login-steps";
 import { importPoliticians, PM_LETTER } from "./politician-steps";
 import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { openBubble } from "./settle";
+import { openBubble, press } from "./settle";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
@@ -204,7 +204,7 @@ test("The politicians agreed tile", async ({ page, request, flowDatabase }) => {
 
   // ControlAI's letter adds several: the tile is everyone who agreed anything, the latest recorded first.
   await page.goto(`${BASE}/staff/scheduled-jobs/controlai`);
-  await page.getByRole("button", { name: jobsCopy.controlAi.importNow }).click();
+  await press(page.getByRole("button", { name: jobsCopy.controlAi.importNow }));
   await expect(page.getByText(/6 names/)).toBeVisible();
   await page.goto(`${BASE}/staff`);
   await page
@@ -328,7 +328,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   await expect(page).toHaveURL(`${BASE}/staff/scheduled-jobs/controlai`);
 
   // The fixture ControlAI letter is signed by Polly Placeholder MP, so the bill's column says so.
-  await page.getByRole("button", { name: jobsCopy.controlAi.importNow }).click();
+  await press(page.getByRole("button", { name: jobsCopy.controlAi.importNow }));
   await expect(page.getByText(/6 names/)).toBeVisible();
   await frame(page, "ControlAI's letter, imported");
   story("The politicians list says she signed ControlAI's letter.");
@@ -340,7 +340,7 @@ test("An MP signs", async ({ page, request, flowDatabase }) => {
   story("Parliament's import runs again, and finds nothing has changed since the politicians were imported.");
 
   await page.goto(`${BASE}/staff/scheduled-jobs/parliament`);
-  await page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }).click();
+  await press(page.getByRole("button", { name: politiciansCopy.politicianImports.importNow["import-parliament"] }));
   await expect(page.getByText(jobsCopy.runs.status.unchanged, { exact: true }).first()).toBeVisible();
   await frame(page, "Parliament's import");
   story("They log out (on a phone, from the menu), and the staff pages ask them to log in again.");
