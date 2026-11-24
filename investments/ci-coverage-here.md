@@ -13,3 +13,4 @@ CI runs the tests in three shards and merges their coverage (`scripts/merge-cove
 ## Hits
 
 - 2026-11-24: `outside-fetch.server.ts` at 83% in CI and 100% here; downloaded the artifacts and compared the shards' statement maps by hand to find a fault in the merge, ~25 min
+- 2026-11-24: a whole run here, the two projects' coverage merged, said `const key = config.lumaApiKey;` in `luma-calendar.server.ts` wasn't covered, though its tests run it and a run of the node project alone says it is; found the statement in the HTML report by hand and rewrote the function around it, ~15 min
