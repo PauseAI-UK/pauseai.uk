@@ -23,7 +23,7 @@
   color: var(--text);
 }
 .page h3 {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   font-size: 18px;
   margin: 24px 0 8px;

@@ -117,6 +117,18 @@ export async function handled(element: Locator): Promise<void> {
     .toBe(true);
 }
 
+/**
+ * Presses `button` once React has taken it over (handled). Pressed before,
+ * a form's button posts the form as the browser does without scripts: the
+ * press works, but the page comes back from the server and lands where the
+ * browser puts it, which differed by hundreds of pixels from where it is
+ * when the page's own code handles the press.
+ */
+export async function press(button: Locator): Promise<void> {
+  await handled(button);
+  await button.click();
+}
+
 /** Polls `ready` on the test side until it's true, or `timeoutMs` has passed (then carries on). */
 async function quiet(page: Page, ready: () => boolean, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -155,6 +167,13 @@ export async function scrollSettled(page: Page): Promise<number> {
  * taken then shows the page wherever the scroll had got to. A menu
  * (Menu.tsx) opens the same way, though it scrolls nothing.
  *
+ * The page is at rest before the press: a menu opens below its button or
+ * above it, by where the button is in the window as it opens, and keeps
+ * that place once the page has moved (the browser's last successful
+ * position-try). Opened while a page that had just come in still moved, a
+ * list of saved filters opened above its button in one run and below it in
+ * the next.
+ *
  * Returns what's open, to find things in, and to check it has closed
  * (`toHaveCount(0)`). It's every open popover, so with a bubble opened from
  * inside a menu it's both, the bubble last. A flow can't find an open popover
@@ -164,6 +183,7 @@ export async function scrollSettled(page: Page): Promise<number> {
 export async function openBubble(trigger: Locator): Promise<Locator> {
   const page = trigger.page();
   const open = page.locator("[popover]:popover-open");
+  await atRest(page);
   await trigger.click();
   await expect(open.first()).toBeVisible();
   // The toggle event's task, and the frame after it.

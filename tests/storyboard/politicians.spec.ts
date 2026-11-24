@@ -6,7 +6,7 @@ import { addFilter, changeFilter } from "./list-steps";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, markInvited, PM_LETTER, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { openBubble } from "./settle";
+import { openBubble, press, wholePage } from "./settle";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
 import { STAND_IN_PHOTO } from "@/lib/politicians/photo-hosts";
@@ -889,6 +889,9 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   await page.reload();
   await expect(page.getByText(words.fromName)).toHaveCount(0);
   await expect(page.getByText(words.dear("Ms Example"))).toBeVisible();
+  // The reload puts the window back where it was, to a fraction of a pixel
+  // that differs between runs, so a picture of it was a pixel up or down.
+  await wholePage(page);
   await frame(page, "Her salutation, set");
 });
 
@@ -899,7 +902,7 @@ test("ControlAI's statement", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}${importPath("import-controlai-statement")}`);
-  await page.getByRole("button", { name: jobsCopy.controlAiStatement.importNow }).click();
+  await press(page.getByRole("button", { name: jobsCopy.controlAiStatement.importNow }));
   await expect(page.getByText(/5 supporters/)).toBeVisible();
   await frame(page, "The import's page");
 
@@ -916,7 +919,7 @@ test("The superintelligence EDM", async ({ page, request, flowDatabase }) => {
   await importPoliticians(request, BASE, flowDatabase);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}${importPath("import-edm")}`);
-  await page.getByRole("button", { name: jobsCopy.edm.importNow }).click();
+  await press(page.getByRole("button", { name: jobsCopy.edm.importNow }));
   await expect(page.getByText(/2 signers/)).toBeVisible();
   await frame(page, "The import's page");
 

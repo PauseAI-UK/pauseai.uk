@@ -146,6 +146,11 @@ async function picture(
     });
   if (of) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    // The scroll can set the page going again: a draft's sticky bar
+    // (DraftTitle) shows or hides as its title comes into view or leaves it,
+    // with a transition, which a picture taken at once caught a pixel short
+    // of its end.
+    await atRest(page);
     const was = await alone(of);
     // After the scroll and the move, so what's painted is where it will be.
     await repaint(page, hovered);

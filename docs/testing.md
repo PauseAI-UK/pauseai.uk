@@ -1206,7 +1206,7 @@ that drives it or why nothing does.
 - `consent.spec.ts`: Cookie consent remembered across pages, analytics switched off and on, never on the tools.
 - `mobile-nav.spec.ts`: The burger menu on a phone: open, close, dropdowns, navigating, scroll lock released.
 - `onboarding-embed.spec.ts`: The home page's signup iframe: shows after slow hydration, ignores other origins.
-- `scroll.spec.ts`: Anchor links, deep links, the back button, keyboard focus, reduced motion, the footer's cookie link, the embed not scrolling the page.
+- `scroll.spec.ts`: Anchor links, deep links, the back button, keyboard focus, reduced motion, the footer's cookie link, the embed not scrolling the page, the people page in the stand-in font before Inter arrives.
 - `gallery.spec.ts`: The component gallery ("The component gallery", below): its index and a flow per group, a frame of each component's section, each checked for noindex and console errors.
 - `redirects.spec.ts`: Every redirect in `next.config.ts`, over HTTP, and that each destination resolves.
 - `/api/email-your-mp/lookup`: `campaigns`: the postcode form (`lookUpTestMp` in `tests/storyboard/letter-steps.ts`).

@@ -22,6 +22,22 @@
     U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* Inter's stand-in while it loads: Arial, or Liberation Sans, which has
+   Arial's measurements, sized to take up Inter's room. So text wraps the
+   same before Inter arrives as after, and a page doesn't change length as
+   it does: a link to part of a page, opened on a slow phone, scrolled to
+   where the part was in the longer page and landed far past it. Worked out
+   from Inter's file as next/font works out its own fonts' stand-ins
+   (getFallbackMetricsFromFontFile, in next/dist/compiled/@next/font). */
+@font-face {
+  font-family: "Inter fallback";
+  src: local("Arial"), local("Liberation Sans");
+  size-adjust: 107.89%;
+  ascent-override: 89.79%;
+  descent-override: 22.36%;
+  line-gap-override: 0%;
+}
+
 /* Anton, PauseFest's programme (app/(site)/pausefest-london-2026/). */
 @font-face {
   font-family: "Anton";
@@ -47,6 +63,9 @@
 }
 
 :root {
+  /* The text font, with its stand-in while it loads. */
+  --font-text: "Inter", "Inter fallback", system-ui, sans-serif;
+
   /* Backgrounds */
   --bg: #fdf8f3;
   --surface: #ffffff;

@@ -24,7 +24,7 @@
 }
 
 .name {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   font-size: 20px;
   margin: 0;
@@ -42,7 +42,7 @@
 
 .readMore {
   align-self: flex-start;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 600;
   font-size: 15px;
   color: var(--accent-strong);

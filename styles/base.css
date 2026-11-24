@@ -14,7 +14,7 @@ body {
   flex-direction: column;
   color: var(--text);
   background: var(--bg);
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 16px;
   line-height: 1.65;
   text-rendering: optimizeLegibility;
