@@ -5,7 +5,7 @@ import { captionFontCss } from "./qrCaption";
 describe("captionFontCss when a font can't be fetched", () => {
   it("fails, and tries again on the next call", async () => {
     const fetchSpy = vi.spyOn(window, "fetch").mockResolvedValue(new Response("nope", { status: 404 }));
-    await expect(captionFontCss()).rejects.toThrow(/Could not load \/fonts\//);
+    await expect(captionFontCss()).rejects.toThrow(/^\/fonts\/.* answered 404$/);
     fetchSpy.mockRestore();
     await expect(captionFontCss()).resolves.toContain("@font-face");
   });

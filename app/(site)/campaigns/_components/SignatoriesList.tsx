@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getJson } from "@/lib/ask-server";
 import styles from "./SignatoriesList.module.css";
 
 type Signatory = {
@@ -26,11 +27,7 @@ export default function SignatoriesList() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch("/api/signatories")
-      .then((res) => {
-        if (!res.ok) throw new Error("bad response");
-        return res.json();
-      })
+    getJson<Signatory[]>("/api/signatories")
       .then(setSignatories)
       .catch(() => setError(true));
   }, []);

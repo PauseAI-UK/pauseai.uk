@@ -1,3 +1,4 @@
+import { getBytes } from "@/lib/ask-server";
 import { normaliseUrl, QR_PANEL_PAD } from "./qr";
 import { fitText } from "./text";
 
@@ -108,9 +109,7 @@ let fontCssPromise: Promise<string> | null = null;
 export function captionFontCss(): Promise<string> {
   fontCssPromise ??= Promise.all(
     Object.values(CAPTION_FONTS).map(async ({ family, file, weightRange }) => {
-      const res = await fetch(file);
-      if (!res.ok) throw new Error(`Could not load ${file}`);
-      const bytes = new Uint8Array(await res.arrayBuffer());
+      const bytes = await getBytes(file);
       let binary = "";
       for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       return `@font-face{font-family:"${family}";font-weight:${weightRange};src:url(data:font/woff2;base64,${btoa(binary)}) format("woff2");}`;

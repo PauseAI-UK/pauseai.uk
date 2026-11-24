@@ -9,6 +9,7 @@ import { feature } from "topojson-client";
 import type { FeatureCollection, Geometry } from "geojson";
 import type { Topology } from "topojson-specification";
 import { localGroups } from "@/lib/content/local-groups";
+import { getJson } from "@/lib/ask-server";
 import { connectorPath } from "@/lib/map-connector";
 import { PhotoCardBody, PhotoCardImage, photoCardClass } from "@/components/ui/PhotoCard";
 import styles from "./LocalGroupsMap.module.css";
@@ -67,9 +68,8 @@ export default function LocalGroupsMap() {
     // A dedicated UK-only topology (Natural Earth 10m, simplified ~12% with
     // mapshaper): the site's world-countries-50m file is coarse enough to
     // turn the coastline into a blocky silhouette at this zoom.
-    fetch("/data/uk-local-groups-map.topo.json")
-      .then((res) => res.json())
-      .then((topology: Topology) => {
+    getJson<Topology>("/data/uk-local-groups-map.topo.json")
+      .then((topology) => {
         if (cancelled) return;
         const objectName = Object.keys(topology.objects)[0];
         setUkFeature(feature(topology, topology.objects[objectName]) as unknown as FeatureCollection<Geometry>);
