@@ -448,6 +448,19 @@ holds it.
     with why in `tests/checks/problem-reporting.test.ts`.
   - An error is said in words with `describeError()`, which keeps its
     cause: `String(error)` and `${error}` drop it.
+  - **An error kept in a column is kept with `keptError()`**, beside
+    `describeError()`: its words, and when an outside service failed,
+    which service, what kind of failure, its status and the service's own
+    code. So what reads the column asks the kind, and never reads the
+    words to tell a rate limit from an outage. The column is JSON:
+    `import_runs.failure`, `luma_events.guests_failure` and
+    `hosts_failure`, `mailings.wait_failure`. Each stands beside the text
+    column that held the words alone (`error`, `guests_error`,
+    `hosts_error`, `wait_said`), which nothing writes, and which is read
+    only for the rows from before. ESLint keeps `describeError()` to the
+    few files that put an error's words somewhere a person reads them
+    (`DESCRIBE_ERROR_IMPORT` in `eslint.config.mjs`); `note()` takes the
+    error itself.
   - `tests/checks/caught-errors.test.ts` (which names its few catches that
     answer a question rather than carry on past a failure) and
     `problem-reporting.test.ts` hold these, in the code where jobs and

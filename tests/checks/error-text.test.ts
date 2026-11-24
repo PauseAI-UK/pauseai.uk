@@ -90,7 +90,7 @@ describe("an error's words", { timeout: 60_000 }, () => {
       .flatMap((source) => wordsRead(source).map((h) => `${source.fileName}:${h.line}  ${h.what}`));
     expect(
       hits,
-      "ask what kind of failure it was (OutsideFailure's kind, status and serviceCode), having its binding set a field if it says so only in words; to say an error in words, describeError()",
+      "ask what kind of failure it was (OutsideFailure's kind, status and serviceCode), having its binding set a field if it says so only in words; to keep an error's words, problem() or keptError()",
     ).toEqual([]);
   });
 });

@@ -3,7 +3,7 @@ import { importPath, type AnyImportRun, type ImportJob, type ImportRunStatus } f
 import { query } from "./db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { type Problem, problemKey, problemSaid } from "@/lib/problems";
-import { describeError } from "./problems.server";
+import { keptError } from "./problems.server";
 import { currentRun, inRun } from "./run-store.server";
 import { importRunsCopy } from "@/lib/import-runs-copy";
 
@@ -16,7 +16,10 @@ import { importRunsCopy } from "@/lib/import-runs-copy";
 // are in lib/import-runs.ts, for the components. What runs each job, one
 // run of it at a time, is lib/jobs/jobs.server.ts.
 
-const COLUMNS = `id::int AS id, at, job, started_by AS "startedBy", status, error, result, problems, decided_by AS "decidedBy"`;
+// A run's `error` is why it failed, in words: those of its failure
+// (keptError), or for a run from before failures were kept, the words kept then.
+const COLUMNS = `id::int AS id, at, job, started_by AS "startedBy", status, coalesce(failure->>'said', error) AS error,
+  result, problems, decided_by AS "decidedBy"`;
 
 /** Keeps a run that ended, with the problems it reported, and returns its ID. */
 export async function recordRun(
@@ -35,8 +38,8 @@ export async function recordRun(
 /** Keeps a run that failed, with why, and the problems it reported before it did. */
 export async function recordFailure(job: ImportJob, startedBy: string, error: unknown): Promise<number> {
   const [{ id }] = await query<{ id: number }>(
-    "INSERT INTO import_runs (job, started_by, status, error, problems) VALUES ($1, $2, 'failed', $3, $4) RETURNING id::int AS id",
-    [job, startedBy, describeError(error), JSON.stringify(currentRun()?.problems ?? [])],
+    "INSERT INTO import_runs (job, started_by, status, failure, problems) VALUES ($1, $2, 'failed', $3, $4) RETURNING id::int AS id",
+    [job, startedBy, JSON.stringify(keptError(error)), JSON.stringify(currentRun()?.problems ?? [])],
   );
   return id;
 }

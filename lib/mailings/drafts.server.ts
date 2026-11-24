@@ -554,7 +554,7 @@ export async function rescheduleMailing(id: number, dueAt: Date, by: string): Pr
   if (sendsAt(dueAt) <= now()) return false;
   return transaction(async (db) => {
     const changed = await query(
-      `UPDATE mailings SET due_at = $2, waiting_since = NULL, wait_reason = NULL, wait_said = NULL, updated_at = now()
+      `UPDATE mailings SET due_at = $2, waiting_since = NULL, wait_reason = NULL, wait_said = NULL, wait_failure = NULL, updated_at = now()
        WHERE id = $1 AND state = 'scheduled' RETURNING id`,
       [id, dueAt],
       db,

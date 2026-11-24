@@ -66,6 +66,18 @@ describe("feature imports", () => {
     expect(result.messages.map((message) => message.ruleId)).toContain("no-restricted-imports");
   });
 
+  it("keeps describeError() to the files named for it, and tests", async () => {
+    const describing = `import { describeError } from "@/lib/server/problems.server";\nexport const d = describeError;`;
+    const refusedIn = async (path: string) =>
+      (await eslint.lintText(describing, { filePath: path }))[0].messages.some(
+        (message) => message.ruleId === "no-restricted-imports" && message.message.includes("keptError()"),
+      );
+    expect(await refusedIn(LIB)).toBe(true);
+    expect(await refusedIn("lib/events/luma-import.server.ts")).toBe(true);
+    expect(await refusedIn("lib/oversight/errors-seen.server.ts")).toBe(false);
+    expect(await refusedIn("lib/events/owners.test.ts")).toBe(false);
+  });
+
   it("lets a feature's logic use its own folder, the features listed and what all share", async () => {
     const allowed = [
       "./tags",

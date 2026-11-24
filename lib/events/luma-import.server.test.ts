@@ -5,6 +5,7 @@ import { allResults, heldAtOnce } from "@/tests/at-once";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { startRunning } from "@/lib/server/import-runs.server";
+import type { KeptError } from "@/lib/server/problems.server";
 import { ANOTHER_RUNNING, runJob } from "@/lib/jobs/jobs.server";
 import { importLuma } from "./luma-import.server";
 import { eventProblems } from "./copy";
@@ -142,15 +143,15 @@ const optOuts = () =>
   );
 const runs = () =>
   query<{ status: string; error: string | null; result: Record<string, unknown> }>(
-    "SELECT status, error, result FROM import_runs ORDER BY id",
+    "SELECT status, failure->>'said' AS error, result FROM import_runs ORDER BY id",
   );
 const guestRows = () =>
   query<{ id: string; event_id: string; user_id: string; removed_at: Date | null; postcode: string | null }>(
     "SELECT id, event_id, user_id, removed_at, postcode FROM luma_guests ORDER BY id",
   );
 const eventRows = () =>
-  query<{ id: string; guests_synced_at: Date | null; guests_error: string | null }>(
-    "SELECT id, guests_synced_at, guests_error FROM luma_events ORDER BY id",
+  query<{ id: string; guests_synced_at: Date | null; guests_failure: KeptError | null }>(
+    "SELECT id, guests_synced_at, guests_failure FROM luma_events ORDER BY id",
   );
 const setSynced = (id: string, interval: string | null) =>
   query(
@@ -359,7 +360,12 @@ describeWithDatabase("importLuma", () => {
     await importLuma("jo@pauseai.uk");
     expect((await eventRows()).find((e) => e.id === "evt-failed")).toMatchObject({
       guests_synced_at: null,
-      guests_error: "Luma answered 500 for /v1/events/guests/list",
+      guests_failure: {
+        said: "Luma answered 500 for /v1/events/guests/list",
+        service: "luma",
+        kind: "refused",
+        status: 500,
+      },
     });
     await setSynced("evt-live", "2 hours");
     await setSynced("evt-new", null);
@@ -380,7 +386,7 @@ describeWithDatabase("importLuma", () => {
       "contacts",
     ]);
     expect(result).toMatchObject({ eventsSynced: 5, eventsLeft: 0 });
-    expect((await eventRows()).find((e) => e.id === "evt-failed")).toMatchObject({ guests_error: null });
+    expect((await eventRows()).find((e) => e.id === "evt-failed")).toMatchObject({ guests_failure: null });
   });
 
   it("marks a guest gone from the list as removed, and back again when seen, and changes a person's details", async () => {
@@ -422,8 +428,10 @@ describeWithDatabase("importLuma", () => {
       failHosts: ["evt-failed"],
     });
     await importLuma("jo@pauseai.uk");
-    expect(await query("SELECT hosts_error FROM luma_events WHERE id = 'evt-failed'")).toEqual([
-      { hosts_error: "Luma answered 500 for /v1/events/get" },
+    expect(await query("SELECT hosts_failure FROM luma_events WHERE id = 'evt-failed'")).toEqual([
+      {
+        hosts_failure: { said: "Luma answered 500 for /v1/events/get", service: "luma", kind: "refused", status: 500 },
+      },
     ]);
     const hostsRead = (interval: string | null, ids: string[]) =>
       query(
@@ -447,7 +455,9 @@ describeWithDatabase("importLuma", () => {
       "hosts:evt-past-old",
       "hosts:evt-failed",
     ]);
-    expect(await query("SELECT hosts_error FROM luma_events WHERE id = 'evt-failed'")).toEqual([{ hosts_error: null }]);
+    expect(await query("SELECT hosts_failure FROM luma_events WHERE id = 'evt-failed'")).toEqual([
+      { hosts_failure: null },
+    ]);
   });
 
   it("adds an event's hosts as people, dated from the second read on, takes off those no longer listed, and never brings back an erased one", async () => {

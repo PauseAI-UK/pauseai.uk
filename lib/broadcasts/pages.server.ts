@@ -178,7 +178,7 @@ const SELECT_BROADCASTS = `
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'pending') AS waiting,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'approved') AS approved,
     EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
-    m.gave_up AS "gaveUp", m.wait_reason AS "waitReason", m.waiting_since AS "waitingSince", m.wait_said AS "waitSaid",
+    m.gave_up AS "gaveUp", m.wait_reason AS "waitReason", m.waiting_since AS "waitingSince", coalesce(m.wait_failure->>'said', m.wait_said) AS "waitSaid",
     m.try_failed_at AS "tryFailedAt", min(c.not_before) FILTER (WHERE ${HELD}) AS "heldTill",
     min(c.sent_at) AS "sentAt",
     count(c.id)::int AS "to",

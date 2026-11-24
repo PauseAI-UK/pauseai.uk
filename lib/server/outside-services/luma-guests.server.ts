@@ -5,7 +5,7 @@ import { LUMA_PAGE_SIZE, lumaList, type LumaPage } from "./luma-api.server";
 import { orFallback } from "./fallback.server";
 import { OutsideFailure, outsideJson, refusal } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { describeError, problem } from "../problems.server";
+import { problem } from "../problems.server";
 import { serverProblems } from "@/lib/server/copy";
 
 // An event's guests, through Luma's official API: the list, for the flyering
@@ -187,7 +187,7 @@ const ADD_GUEST_TIMEOUT_MS = 5000;
  * removed or blocked). "not-configured" is LUMA_API_KEY not being set.
  */
 export type LumaAddGuestResult =
-  { status: "added" } | { status: "skipped" } | { status: "not-configured" } | { status: "failed"; reason: string };
+  { status: "added" } | { status: "skipped" } | { status: "not-configured" } | { status: "failed" };
 
 /**
  * Registers one guest for an event, through Luma's add-guests call
@@ -219,9 +219,7 @@ export async function addLumaGuest(
   } catch (error) {
     // Whatever went wrong, the visitor is told it failed: a bug of ours here is reported like Luma failing.
     problem(serverProblems.lumaRefusedGuest(), error);
-    if (error instanceof OutsideFailure && error.kind === "timeout")
-      return { status: "failed", reason: `Luma did not respond within ${timeoutMs}ms` };
-    return { status: "failed", reason: describeError(error) };
+    return { status: "failed" };
   }
 }
 

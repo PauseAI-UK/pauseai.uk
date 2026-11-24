@@ -19,7 +19,7 @@ import {
 } from "@/lib/server/outside-services/luma-calendar.server";
 import { getEventHosts, type EventHost } from "@/lib/server/outside-services/luma-event.server";
 import { type EventGuest, listEventGuests } from "@/lib/server/outside-services/luma-guests.server";
-import { describeError, problem } from "@/lib/server/problems.server";
+import { keptError, problem } from "@/lib/server/problems.server";
 import { withNumbersRead, type NumbersRead } from "@/lib/phone";
 import { eventProblems } from "./copy";
 import { outsideId } from "@/lib/problems";
@@ -73,7 +73,7 @@ async function refreshDue(db?: Queryable): Promise<boolean> {
 /** A full pass over the contacts failed partway: its cursor is dropped, outside the run's transaction. */
 class ContactsPassFailed extends Error {
   constructor(public readonly cause: unknown) {
-    super(describeError(cause));
+    super("A pass over the contacts failed", { cause });
   }
 }
 
@@ -218,7 +218,7 @@ async function eventsDueGuests(db?: Queryable): Promise<string[]> {
        OR guests_synced_at IS NULL
        OR (start_at <= now() - $1::interval
            AND (guests_synced_at < start_at + $1::interval OR guests_synced_at < now() - $2::interval)))
-     ORDER BY guests_error IS NOT NULL,
+     ORDER BY guests_failure IS NOT NULL,
        CASE WHEN start_at > now() - $1::interval THEN 0 WHEN guests_synced_at IS NULL THEN 1 ELSE 2 END,
        start_at DESC`,
     [`${LIVE_DAYS} days`, `${SETTLED_DAYS} days`, LIVE_REREAD],
@@ -308,7 +308,10 @@ async function importGuests(eventId: string, budget: Budget): Promise<GuestCount
     } while (cursor);
   } catch (error) {
     problem(eventProblems.eventGuests({ event: outsideId(eventId) }), error);
-    await query("UPDATE luma_events SET guests_error = $2 WHERE id = $1", [eventId, describeError(error)]);
+    await query("UPDATE luma_events SET guests_failure = $2 WHERE id = $1", [
+      eventId,
+      JSON.stringify(keptError(error)),
+    ]);
     return counts;
   }
   counts.guests += await transaction(async (db) => {
@@ -318,7 +321,7 @@ async function importGuests(eventId: string, budget: Budget): Promise<GuestCount
       [eventId, seen],
       db,
     );
-    await query("UPDATE luma_events SET guests_synced_at = now(), guests_error = NULL WHERE id = $1", [eventId], db);
+    await query("UPDATE luma_events SET guests_synced_at = now(), guests_failure = NULL WHERE id = $1", [eventId], db);
     return removed.length;
   });
   return counts;
@@ -335,11 +338,11 @@ async function importGuests(eventId: string, budget: Budget): Promise<GuestCount
 async function eventsDueHosts(db?: Queryable): Promise<string[]> {
   const rows = await query<{ id: string }>(
     `SELECT id FROM (
-       SELECT id, start_at, hosts_synced_at, hosts_error,
+       SELECT id, start_at, hosts_synced_at, hosts_failure,
          (start_at AT TIME ZONE 'Europe/London')::date >= (now() AT TIME ZONE 'Europe/London')::date AS live
        FROM luma_events WHERE access = 'manage' AND removed_at IS NULL) e
      WHERE hosts_synced_at IS NULL OR (live AND hosts_synced_at < now() - $1::interval)
-     ORDER BY hosts_error IS NOT NULL, CASE WHEN live THEN 0 WHEN hosts_synced_at IS NULL THEN 1 ELSE 2 END, start_at DESC`,
+     ORDER BY hosts_failure IS NOT NULL, CASE WHEN live THEN 0 WHEN hosts_synced_at IS NULL THEN 1 ELSE 2 END, start_at DESC`,
     [HOSTS_REREAD],
     db,
   );
@@ -362,7 +365,7 @@ async function importHosts(eventId: string, budget: Budget): Promise<HostCounts 
     hosts = [...new Map(page.entries.map((host) => [host.userId, host])).values()];
   } catch (error) {
     problem(eventProblems.eventHosts({ event: outsideId(eventId) }), error);
-    await query("UPDATE luma_events SET hosts_error = $2 WHERE id = $1", [eventId, describeError(error)]);
+    await query("UPDATE luma_events SET hosts_failure = $2 WHERE id = $1", [eventId, JSON.stringify(keptError(error))]);
     return { hosts: 0, people: 0 };
   }
   return transaction(async (db) => {
@@ -384,7 +387,7 @@ async function importHosts(eventId: string, budget: Budget): Promise<HostCounts 
       [eventId, ids],
       db,
     );
-    await query("UPDATE luma_events SET hosts_synced_at = now(), hosts_error = NULL WHERE id = $1", [eventId], db);
+    await query("UPDATE luma_events SET hosts_synced_at = now(), hosts_failure = NULL WHERE id = $1", [eventId], db);
     return { hosts: added.length + removed.length, people };
   });
 }

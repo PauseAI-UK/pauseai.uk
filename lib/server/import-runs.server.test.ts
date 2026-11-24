@@ -3,6 +3,7 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications } from "@/tests/notifications";
 import { query } from "./db.server";
 import { defineProblems } from "@/lib/problems";
+import { OutsideFailure } from "./outside-services/outside-failure.server";
 import { problem } from "./problems.server";
 import {
   asRun,
@@ -247,6 +248,33 @@ describeWithDatabase("the import log", () => {
     await recordRun("import-senedd", "jo@pauseai.uk", "unchanged", { changes: {} });
     await recordFailure("import-senedd", "nightly", new Error("The Senedd answered 422"));
     await recordFailure("import-senedd", "nightly", "not an Error");
+    // A failed run kept before how it failed was: why, in words alone.
+    await query(
+      `INSERT INTO import_runs (job, started_by, status, error, at)
+       VALUES ('import-senedd', 'nightly', 'failed', 'Down', now() - interval '1 day')`,
+    );
+    await recordFailure(
+      "import-ni-assembly",
+      "nightly",
+      new OutsideFailure("ni-assembly", "rate-limited", { status: 429 }),
+    );
+    expect(await query("SELECT error, failure FROM import_runs WHERE status = 'failed' ORDER BY id")).toEqual([
+      { error: null, failure: { said: "The Senedd answered 422" } },
+      { error: null, failure: { said: "not an Error" } },
+      { error: "Down", failure: null },
+      {
+        error: null,
+        failure: {
+          said: "The Northern Ireland Assembly answered 429",
+          service: "ni-assembly",
+          kind: "rate-limited",
+          status: 429,
+        },
+      },
+    ]);
+    expect(await latestRun("import-ni-assembly")).toMatchObject({
+      error: "The Northern Ireland Assembly answered 429",
+    });
 
     expect(await listRuns("import-senedd")).toMatchObject([
       {
@@ -259,6 +287,7 @@ describeWithDatabase("the import log", () => {
       },
       { status: "failed", startedBy: "nightly", error: "The Senedd answered 422", result: {} },
       { status: "unchanged", startedBy: "jo@pauseai.uk", error: null, result: { changes: {} } },
+      { status: "failed", startedBy: "nightly", error: "Down", result: {} },
     ]);
     expect(await listRuns("import-parliament")).toMatchObject([{ id, status: "ok", result: { problems: [] } }]);
     expect(await latestRun("import-parliament")).toMatchObject({ id });
