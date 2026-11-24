@@ -415,6 +415,13 @@ holds it.
     answer a question rather than carry on past a failure) and
     `problem-reporting.test.ts` hold these, in the code where jobs and
     requests run (`tests/checks/server-code.ts`).
+- **Every layout has an error page beside it**, an `error.tsx`, so a page
+  that throws, or whose Server Action does, keeps the header and footer, or
+  the staff navigation, and offers to load again: `ErrorMain`
+  (`components/layout/`) on the public pages, `StaffError` on the signed-in
+  ones. Only an error in the root layout itself reaches
+  `app/global-error.tsx`, which replaces the whole document
+  (`tests/checks/error-pages.test.ts`).
 - **An outside service has a time limit.** `outsideFetch` gives up on one
   that hasn't answered in `OUTSIDE_TIMEOUT_MS`, unless the call sets its
   own, so a run whose service hangs gets to record its failure before
