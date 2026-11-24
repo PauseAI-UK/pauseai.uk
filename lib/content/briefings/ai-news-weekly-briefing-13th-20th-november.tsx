@@ -60,8 +60,8 @@ const briefing = defineBriefing({
       lead: "Wednesday: California regulation?",
       body: (
         <>
-          A report from Governor Newsom’s office calls for California powers to shut down dangerous AI and cap recursive
-          self-improvement (RSI).
+          A report from Governor Newsom’s office calls for California powers to shut down dangerous AI and powers to cap
+          recursive self-improvement (RSI).
         </>
       ),
     },
@@ -119,9 +119,9 @@ const briefing = defineBriefing({
           <Accent>Thurs 19th Nov</Accent> - Commons General Debate on emerging risks of advanced AI
         </h3>
         <p>
-          On Thursday we saw the first Commons debate on regulating advanced AI, hoped to be the first of many. Led by
-          Plaid Cymru MP Ben Lake, MPs from across the political spectrum spoke about the risks of runaway machine
-          intelligence and the case for binding rules on the most powerful AI systems.{cite(2)}
+          On Thursday we saw the first debate in the Commons chamber on regulating advanced AI, hoped to be the first of
+          many. Led by Plaid Cymru MP Ben Lake, MPs from across the political spectrum spoke about the risks of runaway
+          machine intelligence and the case for binding rules on the most powerful AI systems.{cite(2)}
         </p>
         <BriefingQuote who="Ben Lake, MP">
           “Companies appear to be locked in a race to develop systems that are even smarter and more autonomous with the
@@ -182,11 +182,11 @@ const briefing = defineBriefing({
           <li>emergency shutdown authority</li>
           <li>mandatory third-party oversight & inspections</li>
           <li>baseline standards for all developers</li>
-          <li>a cap on recursive self improvement (RSI).{cite(6)}</li>
+          <li>the power to impose a cap on recursive self improvement (RSI).{cite(6)}</li>
         </ColumnList>
 
         <h3>
-          <Accent>Thurs 19th Nov</Accent> - Trump and Xi agree to establish joint guardrails for AI
+          <Accent>Fri 20th Nov</Accent> - Trump says he and Xi agreed to pursue AI guardrails
         </h3>
         <BriefingFlags countries={[US, { code: "cn", name: "China" }]} />
         <BriefingQuote who="Donald Trump, after meeting Xi Jinping in Shenzhen at the Asia-Pacific Economic Cooperation (APEC) summit">
@@ -210,13 +210,15 @@ const briefing = defineBriefing({
         </p>
 
         <h3>
-          <Accent>Tues 17th Nov</Accent> - OpenAI releases GPT-6.2 Astra, first model to rate “High” risk for
+          <Accent>Tues 17th Nov</Accent> - OpenAI releases GPT-6.2 Astra, first released model to rate “High” risk for
           self-improvement.
         </h3>
         <p>
-          OpenAI released new models GPT-6.2 Astra and the smaller GPT-6.2 Sol.{cite(10)} External evaluation reports
-          that for GPT-6.2 Astra, the increased capabilities came with regressed safeguards and increased difficulties
-          monitoring.{cite(9)}
+          OpenAI released new models GPT-6.2 Astra and the smaller GPT-6.2 Sol.{cite(10)} External evaluation by AISI
+          found that pre-release versions of GPT-6.2 Astra were substantially easier to jailbreak than GPT-6 Astra;
+          OpenAI says it believes it has mitigated this, but as of 17 November AISI had not independently tested the
+          changes.
+          {cite(11)}
         </p>
         <BriefingColumns layout="even">
           <BriefingQuote who="Kanishka Narayan MP, UK AI Minister" size="small">
@@ -233,15 +235,15 @@ const briefing = defineBriefing({
         </h3>
         <p>
           Anthropic, one of the big two and maker of the AI “Claude”, went public. Shares were initially priced at $83
-          per share, and it closed its first day of trading at $97.17.{cite(11)} “The misAnthropic Statement” was
-          released on the eve of the listing{cite(12)} and protests occurred outside Anthropic offices in San Francisco
-          & the Nasdaq in New York City.{cite(11)}
+          per share, and it closed its first day of trading at $97.17.{cite(12)} “The misAnthropic Statement” was
+          released on the eve of the listing{cite(13)} and protests occurred outside Anthropic offices in San Francisco
+          & the Nasdaq in New York City.{cite(12)}
         </p>
         <BriefingQuote who="- The MisAnthropic Statement">
           “Anthropic warns that recursively self-improving AI could concentrate power and escape human control, yet
           races to build it first. The company uses safety branding to court investors, employees, and the public—even
           as it has quietly weakened its safety pledges and lobbied for self-serving regulation. Anthropic is not a safe
-          AI company, and we must reject its reckless attempt to amass power in the name of the greater good.”{cite(12)}
+          AI company, and we must reject its reckless attempt to amass power in the name of the greater good.”{cite(13)}
         </BriefingQuote>
       </BriefingBox>
 
@@ -251,13 +253,13 @@ const briefing = defineBriefing({
             <strong>UK company seeking to “solve all disease” is funded:</strong>
             <br />
             London-based Isomorphic Labs, founded by Sir Demis Hassabis, secured £3.8 billion investment, the largest
-            ever for a British AI company.{cite(13)} This advances Britain’s position as a world-leader in AI-powered
+            ever for a British AI company.{cite(14)} This advances Britain’s position as a world-leader in AI-powered
             medicine.
           </p>
           <p>
             <strong>UKRI invests in 20 Turing AI Fellows to strengthen UK capability</strong>: “A new cohort of
             researchers will use artificial intelligence (AI) to tackle some of society’s biggest challenges.” such as
-            cleaner energy and healthcare{cite(14)}
+            cleaner energy and healthcare{cite(15)}
           </p>
         </BriefingBox>
         <BriefingBox title="Next week key dates" tone="diary">
@@ -267,7 +269,7 @@ const briefing = defineBriefing({
               { date: "2026-11-24", events: [] },
               { date: "2026-11-25", events: [] },
               { date: "2026-11-26", events: [{ what: "Lords AI evidence call closes 5pm", tone: "parliament" }] },
-              { date: "2026-11-27", events: [{ what: "ASI Bill & AI Bill listed: 2nd reading", tone: "parliament" }] },
+              { date: "2026-11-27", events: [] },
             ]}
           />
           <ul>
@@ -279,9 +281,6 @@ const briefing = defineBriefing({
             </li>
             <li>
               <strong>Thu 26 Nov:</strong> Lords AI evidence deadline.{cite(16)}
-            </li>
-            <li>
-              <strong>Fri 27 Nov:</strong> ASI Bill and AI (Consent and Misuse) Bill listed for 2nd reading.{cite(15)}
             </li>
           </ul>
         </BriefingBox>
@@ -407,6 +406,14 @@ const briefing = defineBriefing({
           (Accessed: 20 November 2026).
         </li>
         <li id="source-11">
+          OpenAI (2026) <em>GPT-6.2 System Card</em>, section 2.2.6.3: External Evaluations of Cyber Safeguards – UK
+          AISI. OpenAI Deployment Safety Hub, 17 November. Available at:{" "}
+          <a href="https://deploymentsafety.openai.com/gpt-6-2-astra-sol" target="_blank" rel="noreferrer">
+            https://deploymentsafety.openai.com/gpt-6-2-astra-sol
+          </a>{" "}
+          (Accessed: 20 November 2026).
+        </li>
+        <li id="source-12">
           CNBC (2026) [Live updates: Anthropic’s first day of trading on the Nasdaq], 19 November. Available at:{" "}
           <a
             href="https://www.cnbc.com/2026/11/19/anthropic-ipo-ant-live-updates.html"
@@ -417,7 +424,7 @@ const briefing = defineBriefing({
           </a>{" "}
           (Accessed: 20 November 2026).
         </li>
-        <li id="source-12">
+        <li id="source-13">
           Center for AI Safety (2026) <em>Anthropic is not a safe AI company</em> [the misAnthropic Statement]. 18
           November. Available at:{" "}
           <a href="https://safe.ai/news/anthropic-is-not-a-safe-ai-company" target="_blank" rel="noreferrer">
@@ -425,7 +432,7 @@ const briefing = defineBriefing({
           </a>{" "}
           (Accessed: 20 November 2026).
         </li>
-        <li id="source-13">
+        <li id="source-14">
           BioIndustry Association (2026) <em>BIA response to Isomorphic £3.8 billion raise</em>. 17 November. Available
           at:{" "}
           <a
@@ -437,7 +444,7 @@ const briefing = defineBriefing({
           </a>{" "}
           (Accessed: 20 November 2026).
         </li>
-        <li id="source-14">
+        <li id="source-15">
           UK Research and Innovation (2026) <em>UKRI invests in 20 Turing AI Fellows to strengthen UK capability</em>.
           16 November. Available at:{" "}
           <a
@@ -446,13 +453,6 @@ const briefing = defineBriefing({
             rel="noreferrer"
           >
             https://www.ukri.org/news/ukri-invests-in-20-turing-ai-fellows-to-strengthen-uk-capability/
-          </a>{" "}
-          (Accessed: 20 November 2026).
-        </li>
-        <li id="source-15">
-          UK Parliament (2026) <em>What’s on: Friday 27 November 2026</em>. House of Commons. Available at:{" "}
-          <a href="https://whatson.parliament.uk/Commons/2026-11-27" target="_blank" rel="noreferrer">
-            https://whatson.parliament.uk/Commons/2026-11-27
           </a>{" "}
           (Accessed: 20 November 2026).
         </li>
