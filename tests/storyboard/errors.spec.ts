@@ -109,6 +109,7 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
     "Another bug throws from a button's click. The page stays as it was, so nobody is emailed, but the error is kept.",
   );
   await page.goto(`${BASE}/broken`);
+  expectConsole(/Asked to break, from a click/);
   await page.getByRole("button", { name: "Break from a click" }).click();
   await expect.poll(() => kept(flowDatabase, "browser-other")).toEqual({ count: 1, alerted: false });
 
