@@ -40,7 +40,13 @@ function toOutbox(words: string): void {
 type Send = {
   to: string;
   type: "template" | "text" | "reaction";
-  template?: { name: string; components: { parameters: { parameter_name: string; text: string }[] }[] };
+  template?: {
+    name: string;
+    components: {
+      type: string;
+      parameters: { parameter_name?: string; text?: string; location?: Record<string, string> }[];
+    }[];
+  };
   text?: { body: string };
   reaction?: { message_id: string; emoji: string };
 };
@@ -57,23 +63,37 @@ function sendWords(send: Send): string {
     const { emoji, message_id: on } = send.reaction!;
     return `WhatsApp reaction from ${FIXTURE_NUMBER} to ${to}\n\n${emoji ? `${emoji} on ${on}` : `Ours taken away from ${on}`}\n`;
   }
-  const fields = send.template!.components.flatMap((component) => component.parameters);
-  const params = Object.fromEntries(fields.map((field) => [field.parameter_name, field.text]));
-  return textNote(FIXTURE_NUMBER, { to, template: { name: send.template!.name, params } });
+  const of = (type: string) => send.template!.components.find((component) => component.type === type)?.parameters;
+  const params = Object.fromEntries((of("body") ?? []).map((field) => [field.parameter_name, field.text]));
+  const location = of("header")?.[0]?.location;
+  const place = location && {
+    name: location.name,
+    address: location.address,
+    latitude: Number(location.latitude),
+    longitude: Number(location.longitude),
+  };
+  return textNote(FIXTURE_NUMBER, { to, template: { name: send.template!.name, params, ...(place && { place }) } });
 }
 
-type NewTemplate = { name: string; components: { type: string; text: string }[] };
+type NewTemplate = {
+  name: string;
+  components: { type: string; text?: string; format?: string; buttons?: { text: string }[] }[];
+};
 
-/** A template sent for approval, as words: its name, words and footer. */
+/** A template sent for approval, as words: its name, a place at its top if it has one, words, footer and reply buttons. */
 function templateWords(template: NewTemplate): string {
   const part = (type: string) => template.components.find((component) => component.type === type);
+  const buttons = part("BUTTONS")?.buttons ?? [];
   return [
     `WhatsApp template sent for approval: ${template.name}`,
     "",
+    ...(part("HEADER") ? ["[A place, its map given with each send]", ""] : []),
     part("BODY")!.text,
     "",
     part("FOOTER")!.text,
     "",
+    ...buttons.map((button) => `[${button.text}]`),
+    ...(buttons.length ? [""] : []),
   ].join("\n");
 }
 
@@ -96,7 +116,7 @@ export function whatsAppResponse(pathname: string, init?: RequestInit): Response
   if (path.endsWith("/message_templates") && method === "POST") {
     const template = JSON.parse(String(init!.body)) as NewTemplate;
     // Words too long refused, as Meta refuses them, with its words for people.
-    const words = template.components.find((component) => component.type === "BODY")!.text;
+    const words = template.components.find((component) => component.type === "BODY")!.text!;
     if (words.length > FIXTURE_BODY_LIMIT) {
       return json(
         {

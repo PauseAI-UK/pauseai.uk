@@ -14,7 +14,7 @@ const message = (type: string, fields: Partial<WhatsAppMessage> = {}): WhatsAppM
 });
 
 describe("messageWords", () => {
-  it("keeps words typed, or the words on what was pressed, as words alone", () => {
+  it("keeps words typed, or the words on what was pressed, as words alone; a reply button tapped as a button", () => {
     expect(messageWords(message("text", { text: { body: "See you there!" } }))).toEqual({
       kind: null,
       body: "See you there!",
@@ -22,7 +22,7 @@ describe("messageWords", () => {
     // Empty words are still words.
     expect(messageWords(message("text", { text: { body: "" } }))).toEqual({ kind: null, body: "" });
     expect(messageWords(message("button", { button: { text: "Count me in" } }))).toEqual({
-      kind: null,
+      kind: "button",
       body: "Count me in",
     });
     expect(messageWords(message("interactive", { interactive: { button_reply: { title: "Yes" } } }))).toEqual({

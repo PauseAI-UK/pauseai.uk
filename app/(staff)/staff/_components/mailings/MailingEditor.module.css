@@ -115,11 +115,6 @@
   border-color: var(--accent);
 }
 
-.covers {
-  margin-left: var(--space-2);
-  font-weight: 400;
-}
-
 .editor {
   min-height: 14rem;
   padding: var(--space-4);
@@ -175,49 +170,6 @@
 /* A field picked out, as by clicking it or arrowing onto it. */
 .field:global(.ProseMirror-selectednode) {
   outline: 2px solid var(--status-blue);
-}
-
-.onlyFor {
-  position: relative;
-  margin: 0 0 var(--space-3);
-  /* Room at the right for its ×. */
-  padding: var(--space-2) calc(var(--space-3) + 22px) var(--space-2) var(--space-3);
-  border: 1px dashed var(--status-green);
-  border-radius: var(--radius-md);
-  background: var(--status-green-bg);
-}
-
-.onlyFor[data-except] {
-  border-color: var(--text-secondary);
-  background: var(--surface-2);
-}
-
-.onlyFor[data-except] .onlyForLabel {
-  color: var(--text-secondary);
-}
-
-.editor .onlyForLabel {
-  margin: 0 0 var(--space-1);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--status-green);
-  user-select: none;
-}
-
-.onlyFor > div > :last-child {
-  margin-bottom: 0;
-}
-
-/* A part's ×, which makes it for everyone: in its top right corner. */
-.forEveryoneBox {
-  position: absolute;
-  top: var(--space-1);
-  right: var(--space-1);
-}
-
-/* Just the ×, with no ring round it till the mouse is over it. */
-.forEveryoneBox:not(:hover) {
-  border-color: transparent;
 }
 
 /* For everyone, under words selected in a part (ForEveryoneMenu): a menu in
@@ -291,96 +243,4 @@
   display: grid;
   justify-items: start;
   gap: var(--space-2);
-}
-
-.onlyButton,
-.exceptButton {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-1) var(--space-3);
-  border: 1px dashed var(--status-green);
-  border-radius: var(--radius-md);
-  background: var(--status-green-bg);
-  color: var(--status-green);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* Except is grey, as are the parts it makes. */
-.exceptButton {
-  border-color: var(--text-secondary);
-  background: var(--surface-2);
-  color: var(--text-secondary);
-}
-
-.onlyButton:hover,
-.exceptButton:hover {
-  border-style: solid;
-}
-
-/* A menu's answers, hung under its button where the browser can anchor it. */
-.partMenu {
-  max-width: min(22rem, calc(100vw - 2 * var(--space-4)));
-  max-height: calc(100dvh - 2 * var(--space-4));
-  margin: 0;
-  padding: var(--space-1);
-  overflow: auto;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: 0 6px 24px rgb(var(--text-rgb) / 0.15);
-  color: var(--text);
-  font-size: var(--text-sm);
-}
-
-@supports (position-area: bottom) {
-  .partMenu {
-    margin: var(--space-2) 0 0;
-    position-area: bottom span-left;
-    position-try-fallbacks: flip-inline;
-  }
-}
-
-.partMenu ul {
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* An ask, which opens its answers. */
-.toAsk::after {
-  content: " ›" / "";
-  color: var(--text-secondary);
-}
-
-.partMenu .back {
-  width: auto;
-  color: var(--text-secondary);
-}
-
-.askTitle {
-  margin: var(--space-1) var(--space-2) 0;
-  font-weight: 600;
-}
-
-.partMenu button {
-  display: block;
-  width: 100%;
-  padding: var(--space-1) var(--space-2);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.partMenu button:hover,
-.partMenu button:focus-visible {
-  background: var(--table-stripe);
 }

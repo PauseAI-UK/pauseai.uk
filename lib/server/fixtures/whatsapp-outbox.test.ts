@@ -16,6 +16,18 @@ it("writes a text as a person can read it, and reads it back", () => {
   );
   expect(readTextNote(textNote("+44 7700 900000", onTemplate))).toEqual(onTemplate);
   expect(readTextNote(textNote("+44 7700 900000", ownWords))).toEqual(ownWords);
+  const withPlace: OutboxText = {
+    to: "+447700900001",
+    template: {
+      name: "march_day_2",
+      params: { first_name: "Jane" },
+      place: { name: "Parliament Square", address: "London SW1P 3BD", latitude: 51.5005, longitude: -0.1268 },
+    },
+  };
+  expect(textNote("+44 7700 900000", withPlace)).toBe(
+    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_2\nPlace: Parliament Square, London SW1P 3BD (51.5005, -0.1268)\n  first_name: Jane\n",
+  );
+  expect(readTextNote(textNote("+44 7700 900000", withPlace))).toEqual(withPlace);
   // A template sent for approval isn't a text.
   expect(readTextNote("WhatsApp template sent for approval: march_day_1\n\nHi\n")).toBeUndefined();
 });

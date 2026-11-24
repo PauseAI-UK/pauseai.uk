@@ -151,30 +151,59 @@ async function send(keys: WhatsAppKeys, from: string, to: string, message: objec
   }
 }
 
-/** Sends template `name`, in British English, its parameters filled in, from our number `from` (its ID). */
+/** A place a template's map shows: its name and address under the map, and its point. */
+export type TemplatePlace = { name: string; address: string; latitude: number; longitude: number };
+
+/**
+ * Sends template `name`, in British English, its parameters filled in, from
+ * our number `from` (its ID); with `place`, the place its map shows, which a
+ * template with a place takes each time it's sent
+ * (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/components#location-header).
+ */
 export function sendTemplate(
   keys: WhatsAppKeys,
   from: string,
   to: string,
-  template: { name: string; params: TemplateParam[] },
+  template: { name: string; params: TemplateParam[]; place?: TemplatePlace },
 ): Promise<WhatsAppSend> {
+  const { place } = template;
   return send(keys, from, to, {
     type: "template",
     template: {
       name: template.name,
       language: { code: "en_GB" },
-      components: template.params.length
-        ? [
-            {
-              type: "body",
-              parameters: template.params.map((param) => ({
-                type: "text",
-                parameter_name: param.name,
-                text: param.text,
-              })),
-            },
-          ]
-        : [],
+      components: [
+        ...(place
+          ? [
+              {
+                type: "header",
+                parameters: [
+                  {
+                    type: "location",
+                    location: {
+                      latitude: String(place.latitude),
+                      longitude: String(place.longitude),
+                      name: place.name,
+                      address: place.address,
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+        ...(template.params.length
+          ? [
+              {
+                type: "body",
+                parameters: template.params.map((param) => ({
+                  type: "text",
+                  parameter_name: param.name,
+                  text: param.text,
+                })),
+              },
+            ]
+          : []),
+      ],
     },
   });
 }
@@ -200,8 +229,19 @@ export function sendReaction(
   return send(keys, from, to, { type: "reaction", reaction: { message_id: messageId, emoji } });
 }
 
-/** Words to send for approval as a marketing template, with a footer saying how to stop. */
-export type NewTemplate = { name: string; body: string; examples: TemplateParam[]; footer: string };
+/**
+ * Words to send for approval as a marketing template, with a footer saying
+ * how to stop; with `header`, a place at its top, whose map each send gives;
+ * and its reply buttons' words, in order.
+ */
+export type NewTemplate = {
+  name: string;
+  body: string;
+  examples: TemplateParam[];
+  footer: string;
+  header?: "location";
+  buttons?: string[];
+};
 
 /** Sends new words for approval; gives WhatsApp's ID for the template, and its status and category so far. */
 export async function createTemplate(
@@ -216,6 +256,7 @@ export async function createTemplate(
       category: "MARKETING",
       parameter_format: "NAMED",
       components: [
+        ...(template.header === "location" ? [{ type: "HEADER", format: "LOCATION" }] : []),
         {
           type: "BODY",
           text: template.body,
@@ -229,6 +270,9 @@ export async function createTemplate(
           }),
         },
         { type: "FOOTER", text: template.footer },
+        ...(template.buttons?.length
+          ? [{ type: "BUTTONS", buttons: template.buttons.map((text) => ({ type: "QUICK_REPLY", text })) }]
+          : []),
       ],
     },
   });

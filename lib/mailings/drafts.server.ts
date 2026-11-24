@@ -75,6 +75,10 @@ export type MailingChanges = Partial<
     sendBy: string;
     /** When a broadcast to supporters stops, in minutes after its time; null for the most (sendingStopsAt in lib/broadcasts/broadcasts.ts). */
     finishMinutes: number | null;
+    /** A text's top, place and reply buttons, as lib/broadcasts/text-parts.ts has them, checked before they're saved. */
+    header: "location" | null;
+    place: { name: string; address: string; latitude: number; longitude: number } | null;
+    buttons: { text: string }[];
   }
 >;
 
@@ -91,6 +95,9 @@ const COLUMNS: Record<keyof MailingChanges, string> = {
   templateId: "template_id",
   sendBy: "send_by",
   finishMinutes: "finish_minutes",
+  header: "header",
+  place: "place",
+  buttons: "buttons",
 };
 
 /** A save, or why not: someone else saved since, it's no longer a draft, or it's gone. */
@@ -105,7 +112,7 @@ const SELECT_WRITTEN = `
 
 /** The values a save writes, as SQL's parameters: JSON as text, the rest as it is. */
 function columnValue(name: keyof MailingChanges, value: unknown): unknown {
-  return name === "filter" || name === "body" ? JSON.stringify(value) : value;
+  return ["filter", "body", "place", "buttons"].includes(name) ? JSON.stringify(value) : value;
 }
 
 /** The changes that are set, as `column = $n` and their values, from $`first`. */
@@ -321,22 +328,30 @@ export async function openWrittenMailing(
 }
 
 /** Why a save to `id` at a version didn't happen. */
-async function notSaved(id: number): Promise<SaveResult> {
-  const [row] = await query<{ state: MailingState }>("SELECT state FROM mailings WHERE id = $1 AND body IS NOT NULL", [
-    id,
-  ]);
+async function notSaved(id: number, db?: Queryable): Promise<SaveResult> {
+  const [row] = await query<{ state: MailingState }>(
+    "SELECT state FROM mailings WHERE id = $1 AND body IS NOT NULL",
+    [id],
+    db,
+  );
   return { saved: false, reason: !row ? "gone" : row.state === "draft" ? "conflict" : "not-draft" };
 }
 
 /** Saves changes to a draft, if it's still at `version`: no one else has saved it since. */
-export async function saveDraft(id: number, version: number, changes: MailingChanges): Promise<SaveResult> {
+export async function saveDraft(
+  id: number,
+  version: number,
+  changes: MailingChanges,
+  db?: Queryable,
+): Promise<SaveResult> {
   const [sql, values] = assignments(changes, 3);
   const [row] = await query<{ version: number }>(
     `UPDATE mailings SET ${[...sql, "version = version + 1", "updated_at = now()"].join(", ")}
      WHERE id = $1 AND version = $2 AND state = 'draft' AND body IS NOT NULL RETURNING version`,
     [id, version, ...values],
+    db,
   );
-  return row ? { saved: true, version: row.version } : notSaved(id);
+  return row ? { saved: true, version: row.version } : notSaved(id, db);
 }
 
 /** Attaches a file to a draft at `version`, which counts as a save; not one too big to send. */

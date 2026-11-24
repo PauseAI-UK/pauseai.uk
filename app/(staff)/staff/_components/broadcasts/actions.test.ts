@@ -36,6 +36,7 @@ import {
   submitTemplateNow,
   withdrawTemplateNow,
   linkCardFor,
+  findPlacesFor,
 } from "./actions";
 import { broadcastWriterActions } from "./writer-actions";
 
@@ -496,6 +497,12 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
       ok: true,
       card: { title: "March Against AI Extinction & for a pause", site: "pauseai.uk" },
     });
+  });
+
+  it("finds the places some words name, for a text's map, only for staff", async () => {
+    expect(await findPlacesFor("Parliament Square")).toEqual([expect.objectContaining({ name: "Parliament Square" })]);
+    await query("UPDATE staff_accounts SET permissions = '{}' WHERE email = $1", [JO]);
+    await expect(findPlacesFor("Parliament Square")).rejects.toThrow();
   });
 
   it("gives the writer each of its actions", () => {

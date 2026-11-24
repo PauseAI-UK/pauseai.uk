@@ -12,6 +12,7 @@ import {
   textCost,
   broadcastScheduleProblems,
   misplacedFields,
+  sameTemplate,
   sameWords,
   rejectionWords,
   broadcastTerms,
@@ -492,6 +493,10 @@ describe("broadcastScheduleProblems", () => {
     sameWords: false,
     numbered: true,
     sends: true,
+    header: null,
+    place: null,
+    buttons: [],
+    textVersion: null,
   };
 
   it("finds nothing wrong with one ready to go, even with no Gmail connected", () => {
@@ -607,6 +612,56 @@ describe("broadcastScheduleProblems", () => {
     ).toBe(true);
     expect(sameWords(hi, [words(text("Hi "), field("name"), text(", see you there."))])).toBe(false);
     expect(sameWords(hi, [])).toBe(false);
+  });
+
+  it("finds two texts one template (sameTemplate) when their words, top and buttons' words are the same", () => {
+    const one = { body: WORDS, header: "location" as const, buttons: [{ text: "Coming" }, { text: "Not coming" }] };
+    expect(sameTemplate(one, { ...one, buttons: [{ text: " Coming " }, { text: "Not coming" }] })).toBe(true);
+    expect(sameTemplate(one, { ...one, body: EMPTY_MAILING_DOC })).toBe(false);
+    expect(sameTemplate(one, { ...one, header: null })).toBe(false);
+    expect(sameTemplate(one, { ...one, buttons: [{ text: "Coming" }] })).toBe(false);
+    expect(sameTemplate(one, { ...one, buttons: [{ text: "Not coming" }, { text: "Coming" }] })).toBe(false);
+  });
+
+  it("wants a text whose top is a map to have a place, but not one without a top, nor an email", () => {
+    const text = { ...good, channel: "text" as const };
+    const place = { name: "Padella", address: "6 Southwark St", latitude: 51.5, longitude: -0.09 };
+    expect(broadcastScheduleProblems({ ...text, header: "location" })).toEqual(["no-place"]);
+    expect(broadcastScheduleProblems({ ...text, header: "location", place })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...good, header: "location" })).toEqual([]);
+  });
+
+  it("wants each of a text's buttons to have words, 25 characters at most, but an email's are no matter", () => {
+    const text = { ...good, channel: "text" as const };
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }] })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }, { text: " " }] })).toEqual([
+      "button-words",
+    ]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "x".repeat(26) }] })).toEqual(["button-words"]);
+    expect(broadcastScheduleProblems({ ...good, buttons: [{ text: "" }] })).toEqual([]);
+  });
+
+  it("checks a text's second version as it does its first", () => {
+    const field = (name: string): MailingInline => ({ type: "field", attrs: { field: name } });
+    const text = { ...good, channel: "text" as const };
+    type Version = NonNullable<SchedulingBroadcast["textVersion"]>;
+    const version: Version = { body: WORDS, approved: true, sameWords: false, header: null, place: null, buttons: [] };
+    const problems = (textVersion: Partial<Version>, broadcast: Partial<SchedulingBroadcast> = {}) =>
+      broadcastScheduleProblems({ ...text, ...broadcast, textVersion: { ...version, ...textVersion } });
+    expect(problems({})).toEqual([]);
+    expect(problems({ body: EMPTY_MAILING_DOC })).toEqual(["no-template"]);
+    // New words in either version are a template to name.
+    expect(problems({ approved: false }, { title: " " })).toEqual(["no-name"]);
+    expect(problems({}, { title: " " })).toEqual([]);
+    const misplaced: MailingDoc = { type: "doc", content: [{ type: "paragraph", content: [field("firstName")] }] };
+    expect(problems({ approved: false, body: misplaced })).toEqual(["field-edge"]);
+    // An approved second version is WhatsApp's to judge.
+    expect(problems({ body: misplaced, sameWords: true })).toEqual([]);
+    expect(problems({ approved: false, sameWords: true })).toEqual(["same-words"]);
+    expect(problems({ header: "location" })).toEqual(["no-place"]);
+    expect(problems({ buttons: [{ text: "" }] })).toEqual(["button-words"]);
+    // An email has no versions to check.
+    expect(broadcastScheduleProblems({ ...good, textVersion: { ...version, body: EMPTY_MAILING_DOC } })).toEqual([]);
   });
 
   it("wants a WhatsApp number for a text to come from, but not for an email", () => {

@@ -19,6 +19,7 @@ import {
   exampleBroadcastEmail,
   exampleBroadcastText,
   exampleLinkCard,
+  examplePlace,
   exampleTemplates,
   exampleTextSender,
   exampleTextWords,
@@ -62,6 +63,7 @@ function fakeActions() {
       ok: true,
       card: url === "https://pauseai.uk/march" ? exampleLinkCard : null,
     })),
+    findPlaces: vi.fn(async () => ({ ok: true, places: [examplePlace] })),
   };
 }
 
@@ -887,11 +889,13 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(copy.deleteRefused.failed)).not.toBeInTheDocument();
   });
 
-  it("opens the editor for new words, with no parts and WhatsApp's formatting, and keeps them and their name", async () => {
+  it("opens the editor for new words, with a second version for some in place of parts, and WhatsApp's formatting, and keeps them and their name", async () => {
     await renderWriter({ draft: exampleBroadcastText });
     await pick(copy.newTemplate);
     await expect.element(page.getByText(copy.newTemplateHint)).toBeVisible();
-    await expect.element(page.getByText(mailingsCopy.mailingEditor.partsHeading)).not.toBeInTheDocument();
+    await expect.element(page.getByText(mailingsCopy.mailingEditor.partsHeading)).toBeVisible();
+    await expect.element(page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: mailingsCopy.mailingEditor.except })).not.toBeInTheDocument();
     await page.getByLabelText(copy.templateName).fill("March day");
     await page.getByRole("textbox", { name: copy.templateWords }).fill("See you at the march");
     // WhatsApp's formatting: bold, italic, lists and quotes, but no links, by button or by key.
@@ -1208,6 +1212,239 @@ describe("BroadcastWriter, by text", () => {
     await expect.element(page.getByText(mailingsCopy.mailingPages.sendFacts.noTime)).toBeVisible();
     // And it can't be scheduled till there's one.
     await expect.element(page.getByText(copy.problems["no-number"])).toBeVisible();
+  });
+});
+
+describe("BroadcastWriter, a text's top, buttons and second version", () => {
+  const top = copy.textTop;
+  const places = copy.placeChooser;
+  const editing = mailingsCopy.mailingEditor;
+  const newWords = { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords };
+  const onTemplate = {
+    ...exampleBroadcastText,
+    title: exampleTemplates[0].name,
+    body: exampleTemplates[0].body,
+    template: exampleTemplates[0],
+  };
+  const WROTE = "wrote:regulate-ai";
+  const wrote = copy.conditions.wrote("Regulate AI");
+  // A version for those who wrote: its words, and a template WhatsApp has, its status as given.
+  const version = (status: WhatsAppTemplate["status"] | null, condition = WROTE) => ({
+    condition,
+    body: {
+      type: "doc" as const,
+      content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "Thanks for writing." }] }],
+    },
+    templateId: 7,
+    header: "location" as const,
+    place: examplePlace,
+    buttons: [{ text: "Yes" }],
+    template: status && { ...exampleTemplates[0], id: 7, status, footer: null },
+  });
+
+  const words = () => page.getByRole("button", { name: new RegExp(`^${copy.templateLabel}: `) });
+  const pick = async (name: string) => {
+    await words().click();
+    await page.getByRole("button", { name, exact: true }).click();
+  };
+  const preview = () => page.getByLabelText(/^4/);
+  const kind = (name: string) => page.getByRole("radio", { name });
+  const tab = (count: number) => page.getByRole("tab", { name: `${wrote} · ${count}` });
+  const editor = () => page.getByRole("textbox", { name: copy.templateWords });
+  const saved = (actions: ReturnType<typeof fakeActions>, changes: Record<string, unknown>) =>
+    vi.waitFor(
+      () => expect(actions.save).toHaveBeenCalledWith(4, expect.any(Number), expect.objectContaining(changes)),
+      WAIT,
+    );
+  // A second version for those who wrote, from the "+ Only for those who…" menu.
+  const addVersion = async () => {
+    await button(editing.addOnlyFor).click();
+    await page.getByRole("menuitem", { name: copy.conditions.wroteGroup }).click();
+    await page.getByRole("menuitem", { name: /^Regulate AI/ }).click();
+  };
+
+  it("tops new words with a map of the place found, and gives them reply buttons, each in the preview", async () => {
+    const actions = await renderWriter({ draft: newWords });
+    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    await kind(top.place).click();
+    await saved(actions, { header: "location" });
+    await page.getByLabelText(places.find).fill("parliament square");
+    await button(places.findButton).click();
+    await vi.waitFor(() => expect(actions.findPlaces).toHaveBeenCalledWith("parliament square"), WAIT);
+    await expect.element(preview().getByText(examplePlace.address, { exact: true })).toBeVisible();
+    await saved(actions, { place: examplePlace });
+    await button(copy.replyButtons.add).click();
+    await page.getByLabelText(copy.replyButtons.words).fill("I'm coming");
+    await expect.element(preview().getByRole("listitem").filter({ hasText: "I'm coming" })).toBeVisible();
+    await saved(actions, { buttons: [{ text: "I'm coming" }] });
+    // Back to the link's card: no map in the preview, though the place is kept.
+    await kind(top.linkPreview).click();
+    await expect.element(preview().getByText(examplePlace.address, { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("warns of no Google Maps link first in the words when the top is a map", async () => {
+    await renderWriter({
+      draft: {
+        ...newWords,
+        body: {
+          type: "doc",
+          content: [
+            { type: "paragraph", content: [{ type: "text", text: "Meet https://maps.app.goo.gl/AbCdEfGh12345" }] },
+          ],
+        },
+        header: "location",
+        place: examplePlace,
+      },
+    });
+    await expect.element(preview().getByText(examplePlace.address, { exact: true })).toBeVisible();
+    expect(page.getByText(copy.mapsFirst).query()).toBeNull();
+  });
+
+  it("takes a chosen template's top and buttons, unchangeable, but its place can be found", async () => {
+    const templates = exampleTemplates.map((one) =>
+      one.id === 3 ? { ...one, header: "location" as const, buttons: [{ text: "Count me in" }] } : one,
+    );
+    const actions = await renderWriter({ draft: exampleBroadcastText, data: { ...exampleBroadcastData, templates } });
+    await pick(templates[2].name);
+    await expect.element(kind(top.place)).toHaveAttribute("aria-checked", "true");
+    await expect.element(kind(top.place)).toBeDisabled();
+    await expect.element(page.getByLabelText(copy.replyButtons.words)).toBeDisabled();
+    await expect.element(page.getByLabelText(copy.replyButtons.words)).toHaveValue("Count me in");
+    expect(button(copy.replyButtons.add).query()).toBeNull();
+    await expect.element(preview().getByRole("listitem").filter({ hasText: "Count me in" })).toBeVisible();
+    await page.getByLabelText(places.find).fill("parliament square");
+    await button(places.findButton).click();
+    await expect.element(preview().getByText(examplePlace.address, { exact: true })).toBeVisible();
+    await saved(actions, { place: examplePlace });
+    // Another template, with neither, takes them away.
+    await pick(templates[0].name);
+    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    expect(page.getByLabelText(copy.replyButtons.words).query()).toBeNull();
+  });
+
+  it("adds a second version beside new words, a copy of them, its tab open, and one template till it differs", async () => {
+    const actions = await renderWriter({ draft: newWords });
+    await addVersion();
+    await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
+    await expect.element(tab(292)).toHaveAttribute("aria-selected", "false");
+    await expect.element(page.getByText(editing.onlyForLabel(wrote))).toBeVisible();
+    await expect.element(page.getByText(copy.textVersions.templates(1))).toBeVisible();
+    // A text has one at most.
+    await expect.element(page.getByText(copy.textVersions.oneOnly)).toBeVisible();
+    expect(button(editing.addOnlyFor).query()).toBeNull();
+    await saved(actions, { textVersion: expect.objectContaining({ condition: WROTE, templateId: null }) });
+    await expect.element(button(copy.submitTemplate)).toBeVisible();
+    // Its own words: two templates now, both sent for approval.
+    await editor().fill("Thanks for writing to your MP.");
+    await expect.element(page.getByText(copy.textVersions.templates(2))).toBeVisible();
+    await expect.element(button(copy.textVersions.submit(2))).toBeVisible();
+    // Its own top and buttons, each making it new words again.
+    await kind(top.place).click();
+    await page.getByLabelText(places.find).fill("parliament square");
+    await button(places.findButton).click();
+    await button(copy.replyButtons.add).click();
+    await page.getByLabelText(copy.replyButtons.words).fill("Done it");
+    await saved(actions, {
+      textVersion: expect.objectContaining({
+        header: "location",
+        place: examplePlace,
+        buttons: [{ text: "Done it" }],
+        templateId: null,
+      }),
+    });
+    // The preview is theirs, for someone who wrote; the toggle shows everyone else's.
+    await expect.element(preview().getByText("Thanks for writing to your MP.")).toBeVisible();
+    await expect.element(preview().getByText(examplePlace.address, { exact: true })).toBeVisible();
+    await expect.element(preview().getByRole("listitem").filter({ hasText: "Done it" })).toBeVisible();
+    await preview().getByRole("button", { name: wrote }).click();
+    await expect.element(preview().getByText(/Look for the orange flags/)).toBeVisible();
+    await expect.element(preview().getByText(examplePlace.address, { exact: true })).not.toBeInTheDocument();
+    // Everyone else's tab: the text's own words, top and buttons.
+    await tab(292).click();
+    await expect.element(page.getByText(editing.exceptLabel(wrote))).toBeVisible();
+    await expect.element(editor()).toMatchTextContent(/Look for the orange flags/);
+    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("offers a second version under a chosen template's facts, with no editor to have it beside", async () => {
+    await renderWriter({ draft: onTemplate });
+    await addVersion();
+    await expect.element(page.getByText(copy.textVersions.templates(1))).toBeVisible();
+    // The same words as the template: nothing to send for approval.
+    expect(button(copy.submitTemplate).query()).toBeNull();
+    await editor().fill("Thanks for writing.");
+    await expect.element(page.getByText(copy.textVersions.templates(2))).toBeVisible();
+    await expect.element(button(copy.submitTemplate)).toBeVisible();
+    // Everyone else's is the template, whose top is fixed, with no words to write and no buttons.
+    await tab(292).click();
+    await expect.element(kind(top.linkPreview)).toBeDisabled();
+    expect(editor().query()).toBeNull();
+    expect(page.getByText(copy.replyButtons.heading).query()).toBeNull();
+  });
+
+  it("makes the open version the text for everyone with its ×, as new words, the other gone", async () => {
+    const actions = await renderWriter({ draft: onTemplate });
+    await addVersion();
+    await editor().fill("Thanks for writing.");
+    await button(editing.forEveryone).click();
+    await expect.element(tab(120)).not.toBeInTheDocument();
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${copy.newTemplate}`);
+    await expect.element(editor()).toHaveTextContent("Thanks for writing.");
+    await saved(actions, { textVersion: null, templateId: null });
+    await expect.element(button(editing.addOnlyFor)).toBeVisible();
+  });
+
+  it("keeps the text's own words with the × on everyone else's tab", async () => {
+    const actions = await renderWriter({ draft: newWords });
+    await addVersion();
+    await editor().fill("Thanks for writing.");
+    await tab(292).click();
+    await button(editing.forEveryone).click();
+    await expect.element(tab(292)).not.toBeInTheDocument();
+    await expect.element(editor()).toMatchTextContent(/Look for the orange flags/);
+    await saved(actions, { textVersion: null });
+  });
+
+  it("shows a version WhatsApp is reviewing as it was sent, unchangeable, with nothing to send for approval", async () => {
+    await renderWriter({ draft: { ...onTemplate, textVersion: version("pending") } });
+    await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
+    await expect.element(page.getByText("Thanks for writing.").first()).toBeVisible();
+    expect(editor().query()).toBeNull();
+    await expect.element(kind(top.place)).toBeDisabled();
+    await expect.element(page.getByLabelText(copy.replyButtons.words)).toBeDisabled();
+    expect(button(editing.forEveryone).query()).toBeNull();
+    expect(button(copy.submitTemplate).query()).toBeNull();
+    // Its preview, with the footer it'll go with, can't be tested till WhatsApp approves it.
+    await expect.element(preview().getByText(TEMPLATE_FOOTER, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(copy.testVia.textNew)).toBeVisible();
+  });
+
+  it("previews an approved version as a template, to test, and copes with a condition it has no words for", async () => {
+    await renderWriter({ draft: { ...onTemplate, textVersion: version("approved", "gone:yes") } });
+    await expect.element(page.getByRole("tab", { name: "gone:yes · 0" })).toBeVisible();
+    await expect.element(page.getByRole("tab", { name: "gone:yes · 412" })).toBeVisible();
+    await expect.element(preview().getByText(examplePlace.address, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(copy.testVia.text("07700 900000"))).toBeVisible();
+  });
+
+  it("says why WhatsApp rejected a version's words, till they change", async () => {
+    const rejected = {
+      ...version("rejected"),
+      template: { ...version("rejected").template!, rejectedReason: "INVALID_FORMAT" },
+    };
+    await renderWriter({ draft: { ...onTemplate, textVersion: rejected } });
+    const why = page.getByText(copy.rejected(broadcastsCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT!));
+    await expect.element(why).toBeVisible();
+    await editor().fill("Thanks for writing, again.");
+    await expect.element(why).not.toBeInTheDocument();
+  });
+
+  it("previews a version whose template is gone, before the text's own words are chosen", async () => {
+    await renderWriter({ draft: { ...exampleBroadcastText, textVersion: { ...version(null), header: null } } });
+    expect(page.getByText(copy.chooseTemplate).query()).toBeNull();
+    await expect.element(preview().getByText("Thanks for writing.")).toBeVisible();
+    await expect.element(preview().getByText(TEMPLATE_FOOTER, { exact: true })).toBeVisible();
+    await expect.element(preview().getByText(examplePlace.address, { exact: true })).not.toBeInTheDocument();
   });
 });
 

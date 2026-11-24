@@ -674,6 +674,136 @@ async function textSent(request: APIRequestContext, database: string) {
   return { id, copy, number, wamid };
 }
 
+test("A text with a map of where to meet", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write new words for a text, and choose a place for its top: a map of where to meet, which opens their map app when tapped.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("We meet at noon. Look for the orange flags.");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: where to meet"));
+  await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.place }).click());
+  const find = page.getByLabel(copy.placeChooser.find);
+  await find.scrollIntoViewIfNeeded();
+  await frame(page, "A place for its top, to find", { window: true });
+  story(
+    "They paste the short link Google Maps' Share button gives. The site follows it, and finds the place it points at.",
+  );
+  await find.fill("https://maps.app.goo.gl/G5TcwgTuzbJg7i2v5");
+  await savedAfter(page, () => page.getByRole("button", { name: copy.placeChooser.findButton }).click());
+  const name = page.getByLabel(copy.placeChooser.name, { exact: true });
+  await expect(name).toHaveValue("All Souls' Place");
+  await frame(page, "The place the link points at", { window: true });
+  story("Or they search for it by name. WhatsApp shows the name under the map, so they make it say where exactly.");
+  await find.fill("Parliament Square");
+  await savedAfter(page, () => find.press("Enter"));
+  await expect(name).toHaveValue("Parliament Square");
+  await savedAfter(page, () => name.fill("Parliament Square, by the statues"));
+  story("They add a reply button, whose tap comes back as the supporter's reply.");
+  await page.getByRole("button", { name: copy.replyButtons.add }).click();
+  await savedAfter(page, () => page.getByLabel(copy.replyButtons.words).fill("I'm coming"));
+  await page.getByLabel(copy.replyButtons.words).scrollIntoViewIfNeeded();
+  await frame(page, "Found by name and renamed, and a reply button", { window: true });
+  story("The preview shows the map at the top of the text, the place's name and address under it, and the button.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.scrollIntoViewIfNeeded();
+  await expect(preview.getByText("Parliament Square, by the statues")).toBeVisible();
+  await frame(page, "The preview, with its map and button", { window: true });
+  story(
+    "Sent for approval, WhatsApp gets a template with a place at its top and the button. The place itself goes with each text, so it can change later.",
+  );
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  await textFrame(
+    page,
+    OUR_CHAT,
+    templateSent(flowDatabase, template!),
+    "What went to WhatsApp for approval",
+    `Sent to WhatsApp for approval: ${template}`,
+  );
+});
+
+test("A text with a second version for some", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write new words for a text, then give those who registered for an event a version of their own, with the button an email's conditional parts have, beside the words.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("The march is this Saturday at noon. Will you join us?");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March this Saturday"));
+  await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
+  await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
+  await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
+  await frame(page, "Any event, searched", { window: true });
+  story(
+    "Choosing one splits the text in two: a version for those who registered, and one for everyone else, a tab each, worded as the preview's toggle is, with how many each goes to. Both start as copies of what was written.",
+  );
+  await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
+  const who = copy.conditions.registered("PauseAI London: Protest at Parliament");
+  const tabs = page.getByRole("tab");
+  await expect(tabs.first()).toContainText(who);
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "Two versions, a tab each", { window: true });
+  story("They change the words of the version for those who registered, who know about the march already.");
+  const words = page.getByRole("textbox", { name: copy.templateWords });
+  await words.click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await savedAfter(page, () => page.keyboard.type("Thank you for registering. See you at noon on Saturday."));
+  await frame(page, "Their own words", { window: true });
+  story("The preview's toggle chooses whose copy it shows, as it does for an email's parts.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.scrollIntoViewIfNeeded();
+  await expect(preview.getByText(/Thank you for registering/)).toBeVisible();
+  await frame(page, "The preview, for someone who registered", { window: true });
+  await preview.getByRole("button", { name: who }).click();
+  await expect(preview.getByText(/Will you join us/)).toBeVisible();
+  await frame(page, "The preview, for everyone else", { window: true });
+  story("Each version is a template WhatsApp approves, so the button says two go.");
+  await preview.getByRole("button", { name: copy.textVersions.submit(2) }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  story(
+    "WhatsApp rejects the version for those who registered. Its tab says why, and it can be changed and sent again.",
+  );
+  const [rejected] = runSql(
+    flowDatabase,
+    "SELECT t.meta_name FROM whatsapp_templates t JOIN broadcast_versions v ON v.template_id = t.id",
+  );
+  await postWhatsAppWebhook(request, BASE, templateStatus(rejected!, "REJECTED", "INVALID_FORMAT"));
+  await page.reload();
+  const why = page.getByText(broadcastsCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT, { exact: false });
+  await why.scrollIntoViewIfNeeded();
+  await frame(page, "The version WhatsApp rejected, and why", { window: true });
+  await words.click();
+  await page.keyboard.press("End");
+  await savedAfter(page, () => page.keyboard.type(" Bring a friend."));
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
+  await expect(why).not.toBeVisible();
+  await frame(page, "Changed and sent again");
+});
+
+test("A reply button tapped", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter taps a text's reply button. WhatsApp sends the button's words back as their reply, which the site keeps on the page of the copy it answers, marked as a tap.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    messageFrom(sent.number, "wamid.flow-tap", sent.wamid, { button: "I'm coming" }),
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText("I'm coming")).toBeVisible();
+  await frame(page, "Their tap, as a reply");
+});
+
 test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
   story(
     "A text's time has come. The sending checks each number with PauseAI Global's records first, then sends each copy by WhatsApp: the template, its first name filled in.",

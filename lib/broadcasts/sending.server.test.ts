@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { query } from "@/lib/server/db.server";
@@ -10,7 +10,8 @@ import { forgetNumbers } from "./channels.server";
 import { recordGmail } from "@/tests/gmail-sends";
 import { notifications, NOTIFICATIONS, type Notification } from "@/tests/notifications";
 import { createBroadcastDraft, resumeBroadcast } from "./drafts.server";
-import { sendDueBroadcasts, startDueBroadcasts } from "./sending.server";
+import { sendDueBroadcasts, startDueBroadcasts, stopTextsOn } from "./sending.server";
+import { registeredFor } from "./broadcasts";
 import { hashOf } from "@/lib/supporters/email-settings.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { recordProblem } from "@/lib/email/email.server";
@@ -1371,5 +1372,102 @@ describeWithDatabase("sending texts", () => {
       { address: "+447700900123", status: "failed" },
       { address: "+447700900124", status: "sent" },
     ]);
+  });
+
+  describe("with a second version", () => {
+    const PLACE = { name: "Parliament Square", address: "London SW1P 3JX", latitude: 51.5, longitude: -0.127 };
+
+    /** Jane, registered for evt-1, and Sam, registered for evt-2 as well, who meets the second version's condition. */
+    async function janeAndSam(): Promise<void> {
+      await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+      await addFollower("usr-sam", "sam@example.com", "Sam Jones", { phone: "+447700900124" });
+      await query(
+        `INSERT INTO luma_events (id, name, url, start_at, access, city, latitude, longitude)
+         VALUES ('evt-2', 'evt-2', 'evt-2', '2026-10-08T18:00:00Z', 'manage', 'London', 51.5, -0.12)`,
+      );
+      await query(
+        `INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at)
+         VALUES ('gst-sam-2', 'evt-2', 'usr-sam', 'approved', '2026-09-21T10:00:00Z')`,
+      );
+    }
+
+    /**
+     * Text `id`'s second version, for those registered for evt-2, with a place, on a template in `status`, or
+     * on none; its template's ID.
+     */
+    async function versionOf(id: number, status: string | null = "approved"): Promise<number | null> {
+      const template = status ? await addTemplate("March day, for those who came", { status }) : null;
+      await query("UPDATE whatsapp_templates SET meta_name = 'came_' || id WHERE id = $1", [template]);
+      await query(
+        `INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, header, place)
+         VALUES ($1, $2, $3, $4, 'location', $5)`,
+        [id, registeredFor("evt-2"), JSON.stringify(EVENT_WORDS), template, JSON.stringify(PLACE)],
+      );
+      return template;
+    }
+
+    it("sends each person the version whose condition they meet, with its place, and everyone else the text's own", async () => {
+      await janeAndSam();
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      const theirs = await versionOf(id);
+      expect(await startDueBroadcasts()).toEqual([id]);
+      expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 2, failed: 0, left: 0 });
+      const to = (number: string) => sent.find((one) => one.to === number)!.template;
+      // Jane gets the text's own, which has no place.
+      expect(to("447700900123")).toMatchObject({
+        name: expect.stringMatching(/^march_day_\d+$/),
+        components: [{ type: "body" }],
+      });
+      expect(to("447700900124")).toEqual({
+        name: `came_${theirs}`,
+        language: { code: "en_GB" },
+        components: [
+          {
+            type: "header",
+            parameters: [
+              {
+                type: "location",
+                location: { latitude: "51.5", longitude: "-0.127", name: PLACE.name, address: PLACE.address },
+              },
+            ],
+          },
+          { type: "body", parameters: [{ type: "text", parameter_name: "first_name", text: "Sam" }] },
+        ],
+      });
+    });
+
+    it("waits past its time while the second version's template waits for WhatsApp, though the text's own is approved", async () => {
+      await janeAndSam();
+      await pulled();
+      const id = await text();
+      await versionOf(id, "pending");
+      expect(await startDueBroadcasts()).toEqual([]);
+      expect(await stateOf(id)).toEqual({ state: "scheduled", waiting: true, reason: "approval", gaveUp: false });
+    });
+
+    it("stops one whose second version has no approved template when it sends", async () => {
+      await janeAndSam();
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      await versionOf(id, null);
+      expect(await startDueBroadcasts()).toEqual([id]);
+      expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0 });
+      expect(await stateOf(id)).toMatchObject({ state: "cancelled", gaveUp: true, reason: "template" });
+      expect(sent).toEqual([]);
+    });
+
+    it("stops the texts whose second version has a template WhatsApp stopped, and no others", async () => {
+      await janeAndSam();
+      await pulled();
+      const id = await text();
+      const theirs = (await versionOf(id))!;
+      const other = await text();
+      expect(await stopTextsOn(theirs)).toBe(1);
+      expect(await stateOf(id)).toMatchObject({ state: "cancelled", gaveUp: true, reason: "template" });
+      expect(await stateOf(other)).toMatchObject({ state: "scheduled", gaveUp: false });
+    });
   });
 });

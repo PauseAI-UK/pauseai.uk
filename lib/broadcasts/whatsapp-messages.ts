@@ -45,16 +45,19 @@ const mapLink = (latitude: number, longitude: number) =>
   `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
 
 /**
- * What a message says (KeptWords). Words typed, or the words on a button or
- * list row pressed, are words alone. A photo, video or document has its
+ * What a message says (KeptWords). A reply button tapped on one of our
+ * templates is a button, with its words. Words typed, or the words on a
+ * button or list row pressed on a message of ours that offered them, are
+ * words alone. A photo, video or document has its
  * caption, a document its filename first; a place its name, address and a
  * link to a map; contact cards a line each, of the name, numbers and
  * addresses; a reaction its emoji. A kind WhatsApp can't pass on is kept as
  * the kind it says it was, if it does.
  */
 export function messageWords(message: WhatsAppMessage): KeptWords {
+  if (message.button?.text !== undefined) return { kind: "button", body: message.button.text };
   const pressed = message.interactive?.button_reply?.title ?? message.interactive?.list_reply?.title;
-  const words = message.text?.body ?? message.button?.text ?? pressed;
+  const words = message.text?.body ?? pressed;
   if (words !== undefined) return { kind: null, body: words };
   switch (message.type) {
     case "image":

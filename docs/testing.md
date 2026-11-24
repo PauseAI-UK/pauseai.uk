@@ -1151,6 +1151,8 @@ that drives it or why nothing does.
   - a text whose first link is to Google Maps, warned of under the preview, then not once another link comes first;
   - a new template WhatsApp won't take, too long, with its reason in a red alert under the button;
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
+  - a text with a map of where to meet, its place found from a short Google Maps link and by its name, renamed, with a reply button, the preview's map and button, and the template as it goes to WhatsApp;
+  - a text with a second version for those registered for an event, chosen from the email's conditional parts menu by a search, a tab each, its own words, the preview's toggle choosing between them, two templates sent for approval, the version's rejected by WhatsApp's webhook, and sent again;
   - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
   - an email sent copied by Copy broadcast to a new draft;
@@ -1167,6 +1169,7 @@ that drives it or why nothing does.
   - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
   - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
   - a reply to a text left waiting two hours, and the sending job's email to the notification inbox about it;
+  - a reply button tapped, kept as a reply marked as a tap;
   - a reaction to a text by WhatsApp's webhook, as a bubble quoting the text, then taken back, and a photo kept as its caption;
   - our thumbs up on a reply to a text, from the smiley beside it, on its bubble and settling it, then taken away;
   - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;

@@ -1232,6 +1232,21 @@ ALTER TABLE public.broadcast_replies ALTER COLUMN id ADD GENERATED ALWAYS AS IDE
 );
 
 --
+-- Name: broadcast_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.broadcast_versions (
+    mailing_id bigint NOT NULL,
+    condition text NOT NULL,
+    body jsonb NOT NULL,
+    template_id bigint,
+    header text,
+    place jsonb,
+    buttons jsonb DEFAULT '[]'::jsonb NOT NULL,
+    CONSTRAINT broadcast_versions_header_check CHECK ((header = 'location'::text))
+);
+
+--
 -- Name: campaigns; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2234,6 +2249,9 @@ CREATE TABLE public.mailings (
     pasted jsonb,
     finish_minutes integer,
     wait_failure jsonb,
+    header text,
+    place jsonb,
+    buttons jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT mailings_also_topics CHECK (((cardinality(also_topics) = 0) OR ((topic IS NOT NULL) AND (NOT (topic = ANY (also_topics)))))),
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),
@@ -2243,6 +2261,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_failed_in_a_row_check CHECK ((failed_in_a_row >= 0)),
     CONSTRAINT mailings_finish_minutes CHECK (((finish_minutes IS NULL) OR ((audience = 'supporters'::text) AND ((finish_minutes >= 1) AND (finish_minutes <= ((7 * 24) * 60)))))),
     CONSTRAINT mailings_gave_up CHECK (((NOT gave_up) OR ((state = 'cancelled'::text) AND (wait_reason IS NOT NULL)))),
+    CONSTRAINT mailings_header_check CHECK ((header = 'location'::text)),
     CONSTRAINT mailings_imported_or_written CHECK ((((airtable_field IS NOT NULL) OR (airtable_sent_between IS NOT NULL)) = ((body IS NULL) AND (filter IS NULL) AND (created_by IS NULL)))),
     CONSTRAINT mailings_imported_sent CHECK (((body IS NOT NULL) OR (state = 'sent'::text))),
     CONSTRAINT mailings_imported_text CHECK (((imported_text IS NULL) OR (body IS NULL))),
@@ -2763,6 +2782,8 @@ CREATE TABLE public.whatsapp_templates (
     footer text,
     deleted_at timestamp with time zone,
     deleted_by text,
+    header text,
+    buttons jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT whatsapp_templates_category_check CHECK ((category = ANY (ARRAY['MARKETING'::text, 'UTILITY'::text, 'AUTHENTICATION'::text]))),
     CONSTRAINT whatsapp_templates_check CHECK (((status <> 'approved'::text) OR (approved_at IS NOT NULL))),
     CONSTRAINT whatsapp_templates_check1 CHECK (((status = 'rejected'::text) = (rejected_at IS NOT NULL))),
@@ -2770,6 +2791,7 @@ CREATE TABLE public.whatsapp_templates (
     CONSTRAINT whatsapp_templates_created_by_check CHECK ((created_by = lower(created_by))),
     CONSTRAINT whatsapp_templates_deleted CHECK (((status = 'deleted'::text) = ((deleted_at IS NOT NULL) AND (deleted_by IS NOT NULL)))),
     CONSTRAINT whatsapp_templates_deleted_by_check CHECK ((deleted_by = lower(deleted_by))),
+    CONSTRAINT whatsapp_templates_header_check CHECK ((header = 'location'::text)),
     CONSTRAINT whatsapp_templates_meta_name_check CHECK ((meta_name ~ '^[a-z0-9_]+$'::text)),
     CONSTRAINT whatsapp_templates_name_check CHECK ((name <> ''::text)),
     CONSTRAINT whatsapp_templates_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'paused'::text, 'disabled'::text, 'deleted'::text]))),
@@ -2931,6 +2953,13 @@ ALTER TABLE ONLY public.broadcast_replies
 
 ALTER TABLE ONLY public.broadcast_replies
     ADD CONSTRAINT broadcast_replies_provider_message_id_key UNIQUE (provider_message_id);
+
+--
+-- Name: broadcast_versions broadcast_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_versions
+    ADD CONSTRAINT broadcast_versions_pkey PRIMARY KEY (mailing_id);
 
 --
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3625,6 +3654,12 @@ CREATE INDEX broadcast_replies_reaction_to ON public.broadcast_replies USING btr
 CREATE INDEX broadcast_replies_waiting ON public.broadcast_replies USING btree (received_at) WHERE ((outcome IS NULL) AND (NOT automatic));
 
 --
+-- Name: broadcast_versions_template; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX broadcast_versions_template ON public.broadcast_versions USING btree (template_id) WHERE (template_id IS NOT NULL);
+
+--
 -- Name: civicrm_contacts_airtable_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4080,6 +4115,20 @@ ALTER TABLE ONLY public.broadcast_messages
 
 ALTER TABLE ONLY public.broadcast_replies
     ADD CONSTRAINT broadcast_replies_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.broadcast_messages(id) ON DELETE CASCADE;
+
+--
+-- Name: broadcast_versions broadcast_versions_mailing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_versions
+    ADD CONSTRAINT broadcast_versions_mailing_id_fkey FOREIGN KEY (mailing_id) REFERENCES public.mailings(id) ON DELETE CASCADE;
+
+--
+-- Name: broadcast_versions broadcast_versions_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_versions
+    ADD CONSTRAINT broadcast_versions_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.whatsapp_templates(id) ON DELETE SET NULL;
 
 --
 -- Name: campaigns campaigns_ask_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

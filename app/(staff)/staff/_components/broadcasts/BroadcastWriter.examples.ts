@@ -1,3 +1,4 @@
+import type { TextPlace } from "@/lib/broadcasts/text-parts";
 import type { BroadcastAnswer, BroadcastReaction } from "@/lib/broadcasts/answers.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
 import type { LetterDoc } from "@/lib/letters/format";
@@ -83,6 +84,14 @@ export const exampleWhatsAppWords: LetterDoc = {
 };
 
 /** The card WhatsApp shows for a text's link to a page about the march. */
+/** A place a text's map shows: where a march meets, as the place lookup's fake finds it. */
+export const examplePlace: TextPlace = {
+  name: "Parliament Square",
+  address: "Westminster, London SW1P 3BD",
+  latitude: 51.5005,
+  longitude: -0.1268,
+};
+
 export const exampleLinkCard: LinkCard = {
   title: "March Against AI Extinction",
   description: "Join thousands in London to call for a pause on the race to superintelligence.",
@@ -132,6 +141,8 @@ const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}
   rejectedAt: null,
   rejectedReason: null,
   footer: TEMPLATE_FOOTER,
+  header: null,
+  buttons: [],
   lastUsedAt: null,
   lastUsedTo: 0,
   nextScheduledAt: null,
@@ -239,6 +250,10 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   waitReason: null,
   waitSaid: null,
   gaveUp: false,
+  header: null,
+  place: null,
+  buttons: [],
+  textVersion: null,
 };
 
 /** A draft text with nothing chosen. */

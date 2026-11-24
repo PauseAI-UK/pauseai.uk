@@ -603,7 +603,7 @@ holds it.
 
 - **Outside services** (Airtable, Luma, Postmark, Gmail, Netlify Blobs,
   postcodes.io, Stripe, Turnstile, the bodies' lists of members, Wikidata,
-  ControlAI, WhatsApp, CiviCRM) are each called from one binding in
+  ControlAI, WhatsApp, CiviCRM, Photon, Google Maps' short links) are each called from one binding in
   `lib/server/outside-services/`, through `outsideFetch`
   (`outside-fetch.server.ts` there), so tests and fixture builds can answer
   instead (`docs/testing.md`, "Mocking"). The binding hands `outsideFetch`

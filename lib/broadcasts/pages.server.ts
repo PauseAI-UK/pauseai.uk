@@ -312,6 +312,10 @@ export async function newBroadcastPageData(
       waitReason: null,
       waitSaid: null,
       gaveUp: false,
+      header: null,
+      place: null,
+      buttons: [],
+      textVersion: null,
     },
     data: {
       filter,

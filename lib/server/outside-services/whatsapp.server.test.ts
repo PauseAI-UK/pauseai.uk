@@ -128,6 +128,34 @@ describe("sending", () => {
     expect(sent).toMatchObject({ template: { components: [] } });
   });
 
+  it("sends a template with a place, its map's point, name and address first", async () => {
+    let sent: { template: { components: object[] } } | undefined;
+    server.use(
+      http.post(`${GRAPH}/p1/messages`, async ({ request }) => {
+        sent = (await request.json()) as typeof sent;
+        return HttpResponse.json({ messages: [{ id: "wamid.3" }] });
+      }),
+    );
+    const place = { name: "Parliament Square", address: "London SW1P 3BD", latitude: 51.5005, longitude: -0.1268 };
+    await sendTemplate(KEYS, "p1", "+447700900001", { name: "march_3", params: [], place });
+    expect(sent!.template.components).toEqual([
+      {
+        type: "header",
+        parameters: [
+          {
+            type: "location",
+            location: {
+              latitude: "51.5005",
+              longitude: "-0.1268",
+              name: "Parliament Square",
+              address: "London SW1P 3BD",
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it("sends words of our own", async () => {
     let sent: unknown;
     server.use(
@@ -197,6 +225,32 @@ describe("templates", () => {
     // Words with no field need no example.
     await createTemplate(KEYS, { ...NEW, body: "Hello", examples: [] });
     expect((made as { components: object[] }).components[0]).toEqual({ type: "BODY", text: "Hello" });
+  });
+
+  it("sends a place at the top, and reply buttons in order, after the footer", async () => {
+    let made: { components: object[] } | undefined;
+    server.use(
+      http.post(`${GRAPH}/account/message_templates`, async ({ request }) => {
+        made = (await request.json()) as typeof made;
+        return HttpResponse.json({ id: "t2", status: "PENDING", category: "MARKETING" });
+      }),
+    );
+    await createTemplate(KEYS, { ...NEW, examples: [], header: "location", buttons: ["I'm coming", "Can't make it"] });
+    expect(made!.components).toEqual([
+      { type: "HEADER", format: "LOCATION" },
+      { type: "BODY", text: "Hi {{first_name}}" },
+      { type: "FOOTER", text: "Reply STOP to stop event texts" },
+      {
+        type: "BUTTONS",
+        buttons: [
+          { type: "QUICK_REPLY", text: "I'm coming" },
+          { type: "QUICK_REPLY", text: "Can't make it" },
+        ],
+      },
+    ]);
+    // No buttons is none.
+    await createTemplate(KEYS, { ...NEW, examples: [], buttons: [] });
+    expect(made!.components).toHaveLength(2);
   });
 
   it("deletes a template by its name", async () => {

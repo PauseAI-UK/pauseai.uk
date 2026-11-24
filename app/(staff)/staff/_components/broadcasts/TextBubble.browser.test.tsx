@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { exampleLinkCard, exampleWhatsAppWords } from "./BroadcastWriter.examples";
+import { exampleLinkCard, examplePlace, exampleWhatsAppWords } from "./BroadcastWriter.examples";
 import TextBubble, { ChatBubble, LinkedText, type TextDoc } from "./TextBubble";
 import type { LinkCard } from "@/lib/broadcasts/link-card";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
@@ -53,6 +53,34 @@ describe("TextBubble's card and fold", () => {
     await expect.element(page.getByText(exampleLinkCard.title)).toBeVisible();
     await expect.element(page.getByText(exampleLinkCard.description)).toBeVisible();
     await expect.element(page.getByText(exampleLinkCard.site, { exact: true })).toBeVisible();
+  });
+
+  it("shows a place's map in place of its link's card, with the place's name and address", async () => {
+    await render(
+      <TextBubble
+        words={paragraphs("Details: https://pauseai.uk/march")}
+        card={exampleLinkCard}
+        place={examplePlace}
+        footer={TEMPLATE_FOOTER}
+        time="07:18"
+      />,
+    );
+    await expect.element(page.getByText(examplePlace.name, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(examplePlace.address)).toBeVisible();
+    expect(document.querySelector("svg[aria-hidden=true]")).not.toBeNull();
+    expect(page.getByText(exampleLinkCard.title).query()).toBeNull();
+  });
+
+  it("has its reply buttons under it, each a line, and none when it has none", async () => {
+    const { rerender } = await render(
+      <TextBubble words={paragraphs("Coming?")} buttons={["Yes", "No"]} footer={TEMPLATE_FOOTER} time="07:18" />,
+    );
+    const list = page.getByRole("list");
+    expect([...list.element().querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Yes", "No"]);
+    // Under the bubble, not in it.
+    expect(page.getByText("07:18").element().parentElement!.contains(list.element())).toBe(false);
+    await rerender(<TextBubble words={paragraphs("Coming?")} footer={TEMPLATE_FOOTER} time="07:18" />);
+    expect(page.getByRole("list").query()).toBeNull();
   });
 
   it("shows words that fit whole, with no card and no Read more", async () => {

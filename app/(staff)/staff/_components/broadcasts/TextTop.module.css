@@ -1,0 +1,68 @@
+/* A text's top: its choice, then a place's box, what it found, and the place's name and address. */
+.top {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.place {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+/* The box and its Find, level along their bottoms. */
+.findRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.findRow > :first-child {
+  flex: 1 1 18rem;
+}
+
+.found {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.found button {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.found button:hover,
+.found button:focus-visible {
+  border-color: var(--accent);
+}
+
+.found span {
+  color: var(--text-secondary);
+}
+
+.names {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-2);
+}
+
+.check {
+  justify-self: start;
+  font-size: var(--text-sm);
+}
