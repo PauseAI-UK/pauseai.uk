@@ -14,7 +14,7 @@ import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { importLuma } from "@/lib/events/luma-import.server";
 import { importCivicrm } from "@/lib/jobs/civicrm-import.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
-import { erasureCopy } from "./copy";
+import { erasureProblems } from "./copy";
 
 beforeEach(() => {
   vi.stubEnv("LUMA_API_KEY", "k");
@@ -228,10 +228,7 @@ describeWithDatabase("eraseSupporter", () => {
         proxies: 1,
         notCleared: ["mail"],
       });
-      expect(console.error).toHaveBeenCalledWith(
-        `${erasureCopy.erase.partly} ${erasureCopy.erase.notCleared.mail}`,
-        expect.any(String),
-      );
+      expect(console.error).toHaveBeenCalledWith(erasureProblems.notCleared({ what: "mail" }).what, expect.any(String));
     });
   });
 
@@ -282,7 +279,7 @@ describeWithDatabase("eraseSupporter", () => {
       notCleared: ["oneOffs"],
     });
     expect(console.error).toHaveBeenCalledWith(
-      `${erasureCopy.erase.partly} ${erasureCopy.erase.notCleared.oneOffs}`,
+      erasureProblems.notCleared({ what: "oneOffs" }).what,
       expect.any(String),
     );
     vi.restoreAllMocks();

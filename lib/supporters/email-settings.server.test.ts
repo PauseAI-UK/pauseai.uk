@@ -27,7 +27,7 @@ import { phoneNumber } from "@/lib/phone";
 import { recordOptOut } from "./opt-outs.server";
 import { inRun } from "@/lib/server/run-store.server";
 import { LUMA_CHOICE, LUMA_OFFERED, settingsTopics } from "./settings-view";
-import { supportersCopy } from "./copy";
+import { supporterProblems } from "./copy";
 import { emailProblems } from "@/lib/email/copy";
 
 const JANE = "jane.smith@example.com";
@@ -336,7 +336,7 @@ describeWithDatabase("the contact preferences page", () => {
     });
     expect(problems).toEqual([]);
     expect(warned).toHaveBeenCalledWith(
-      supportersCopy.problems.lumaRemoveFailed,
+      supporterProblems.lumaRemoveFailed().what,
       "Luma answered 500 for /v1/calendars/contacts/remove",
     );
     warned.mockRestore();

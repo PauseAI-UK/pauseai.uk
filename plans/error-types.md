@@ -60,13 +60,18 @@ follows:
 - **The type that keeps plain text out** is `SafeValue` there: a value
   typed `string` is `never`, a fixed code is allowed, and text goes
   through `publicText()`, or `outsideId()` for an outside service's ID.
-- **While features are converted**, the old reporter is
-  `problemInWords()`, and `tests/checks/declared-problems.test.ts` lists
-  the files that may still import it (`UNDECLARED`). A check, not ESLint:
-  the per-file lists in `eslint.config.mjs` replace one another, so a
-  list of files across them can't be added. Each feature's commit takes
-  its files off, and the last deletes `problemInWords()` and the list,
-  after which the type of `problem()` is the rule.
+- **`problem()` takes only a declared problem**, which is the rule that
+  nothing reports a sentence written in place: a type, so no ESLint rule
+  or list was needed once every feature was converted.
+- **A staff mailbox is kept by its address**, through `staffAccount()`,
+  as the import log names whoever started a run. A supporter's or a
+  politician's address never is: the two sentences that held one name an
+  ID, or nothing.
+- **What a service said of something** (CiviCRM's reason for refusing an
+  opt-out) is handed to `problem()` as the error, and kept as the error's
+  words, not as a value.
+- **A list** is one of a problem's values, as an array, and its sentence
+  says it with `listed()`. The job's page shows the sentence, as before.
 - **The send helper** is `sendWithCare()`
   (`lib/email/send-with-care.server.ts`), and `sendLetterVia()` is built
   on it. `SentUnrecorded` and `NotSentYet` are gone.

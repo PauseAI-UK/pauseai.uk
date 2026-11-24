@@ -10,7 +10,7 @@ import { browserVersionOf } from "@/lib/user-agent";
 import { config } from "@/lib/server/config.server";
 import { query } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
-import { type Problem, problemSaid } from "@/lib/problems";
+import type { ReportedProblem } from "@/lib/problems";
 import { describeError, problem } from "@/lib/server/problems.server";
 import { serverProblems } from "@/lib/server/copy";
 import { oversightCopy } from "./copy";
@@ -239,20 +239,20 @@ export async function keepCaught(thrown: unknown, route: string): Promise<void> 
 
 /**
  * Keeps a problem reported outside a run, with the error's words if it came
- * with one: one row for each code, whatever its values, or for one reported
- * by a sentence alone, each sentence. Started at once, and where there's a
- * request, the platform waits for it after the response has gone.
+ * with one: one row for each code, whatever its values and so its sentence.
+ * Started at once, and where there's a request, the platform waits for it
+ * after the response has gone.
  */
-export function keepProblem(problem: Problem): void {
+export function keepProblem(problem: ReportedProblem): void {
   if (keeping.getStore()) return;
   const kept = keep({
     kind: "problem",
     route: "",
     name: "",
-    code: problem.code?.slice(0, CODE_KEPT) ?? null,
+    code: problem.code.slice(0, CODE_KEPT),
     words: steadyWords(problem.what),
-    byCode: problem.code !== undefined,
-    latestWords: [problem.what, problemSaid(problem)].filter(Boolean).join(": ").slice(0, LATEST_WORDS_KEPT),
+    byCode: true,
+    latestWords: [problem.what, problem.said].filter(Boolean).join(": ").slice(0, LATEST_WORDS_KEPT),
     stack: null,
     browser: null,
   });

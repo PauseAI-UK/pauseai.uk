@@ -12,7 +12,7 @@ import {
 } from "./civicrm-updates.server";
 import { recordOptOut, STOP_ALL, type OptOut } from "@/lib/supporters/opt-outs.server";
 import { inRun } from "@/lib/server/run-store.server";
-import { supportersCopy } from "./copy";
+import { supporterProblems } from "./copy";
 
 const UPDATE = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";
 const AT = new Date("2026-11-01T09:00:00Z");
@@ -277,10 +277,10 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
     }));
     expect(counts).toEqual({ sent: 0, refused: 0, unanswered: 2 });
     expect(problems).toEqual([
-      { what: supportersCopy.problems.civicrmUpdatesUnanswered(1) },
+      supporterProblems.civicrmUpdatesUnanswered({ count: 1 }),
       {
-        what: supportersCopy.problems.civicrmUpdatesInvalid(1),
-        error: expect.stringMatching(/^opt-out:\d+: unknown list$/),
+        ...supporterProblems.civicrmUpdatesInvalid({ count: 1 }),
+        said: expect.stringMatching(/^opt-out:\d+: unknown list$/) as string,
       },
     ]);
     expect(await updates()).toEqual([
@@ -310,7 +310,7 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
     }));
     expect(counts).toEqual({ sent: 100, refused: 0, unanswered: 50 });
     expect(problems).toEqual([
-      { what: supportersCopy.problems.civicrmUpdatesFailed, error: "CiviCRM request failed with status 503: Down" },
+      { ...supporterProblems.civicrmUpdatesFailed(), said: "CiviCRM request failed with status 503: Down" },
     ]);
     expect(await query("SELECT count(*)::int AS n FROM civicrm_updates WHERE status IS NULL AND tries = 0")).toEqual([
       { n: 50 },

@@ -14,13 +14,15 @@ import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
-import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
-import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
-import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
-import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
-import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
+import { supporterProblems } from "@/lib/supporters/copy";
+import { jobProblems } from "@/lib/jobs/copy";
+import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
+import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
+import { jobsCopy } from "@/app/(staff)/staff/_components/jobs/copy";
+import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
+import { staffAccount } from "@/lib/problems";
 
 export const section: Section = { name: "Imports", part: "Staff pages", order: 130 };
 
@@ -200,7 +202,7 @@ test("The Gmail reading's log", async ({ page, flowDatabase }) => {
   scheduled(flowDatabase, "read-gmail", 1, "0 minutes", replied);
   scheduled(flowDatabase, "read-gmail", 6, "5 minutes", quiet, "unchanged");
   scheduled(flowDatabase, "read-gmail", 1, "35 minutes", refused, "ok", 5, [
-    { what: jobsCopy.problems.couldntRead("joseph@pauseai.uk"), error: refusal },
+    { ...jobProblems.couldntRead({ account: staffAccount("joseph@pauseai.uk") }), said: refusal },
   ]);
   scheduled(flowDatabase, "read-gmail", 8, "40 minutes", quiet, "unchanged");
   scheduled(flowDatabase, "read-gmail", 3, "80 minutes", replied);
@@ -340,7 +342,7 @@ test("An import has problems", async ({ page, request, flowDatabase }) => {
   expect((await luma()).ok()).toBe(true);
   const words = importRunsCopy.notifications.importProblems;
   const email = notified(words.subject(importRunsCopy.jobTitles["import-luma"]))!;
-  expect(email.TextBody).toContain(supportersCopy.problems.placesFailed);
+  expect(email.TextBody).toContain(supporterProblems.placesFailed().what);
   await emailFrame(page, email, "The email to the notification inbox");
 
   story("The next run has the same problem. No second email: there's one until the problem has gone.");
@@ -350,7 +352,7 @@ test("An import has problems", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/scheduled-jobs/luma`);
   // Each run, and the line under the title, saying how it stands.
   await expect(page.getByText(jobsCopy.runs.status.problems, { exact: true })).toHaveCount(3);
-  await expect(page.getByText(supportersCopy.problems.placesFailed, { exact: false }).first()).toBeVisible();
+  await expect(page.getByText(supporterProblems.placesFailed().what, { exact: false }).first()).toBeVisible();
   await frame(page, "The Luma import's runs, with the problem under each");
 });
 

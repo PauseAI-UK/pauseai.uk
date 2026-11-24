@@ -3,6 +3,7 @@
 // owner and about a tag the import couldn't tell, and the problems the Luma
 // import and its webhooks report.
 import { count, plural } from "@/lib/content/plural";
+import { defineProblems, type SafeText } from "@/lib/problems";
 
 export const eventsCopy = {
   // The events page (/staff/events): our events on Luma, as the Luma import has them, and who on staff owns each.
@@ -131,25 +132,26 @@ All events: ${link}`,
           )}\n\nAs the owner, you make sure the event is exceptional:\n- Be chronically early: arrive before anyone else to get everything ready, and leave last\n- Spot early what could go wrong, like an entrance that's hard to find\n- Make sure enough people come\n- Have everyone leave feeling it was better than they expected`,
     },
   },
-  // What went wrong without stopping the work (lib/server/problems.server.ts).
-  problems: {
-    // On the Luma import's run, so on its page and in the email: something it carried on past.
-    // Luma errored on one event's guests. Its other events carry on.
-    eventGuests: (event: string) => `Couldn't read the guests of an event: ${event}`,
-    // Luma errored on one event's hosts. Its other events carry on.
-    eventHosts: (event: string) => `Couldn't read the hosts of an event: ${event}`,
-    // Some guests' phone numbers couldn't be read as numbers, so they came in without them. How many, and on which
-    // event, follows.
-    numbersUnread:
-      "Some guests' phone numbers were badly formatted, so they were imported without them. Fix them in Luma:",
-    // Luma's rate limit stopped the run early. The next run carries on.
-    lumaRefused: "Luma rate limit reached",
-    // The calendar's tags couldn't be read, so nothing was tagged this run.
-    lumaTagsUnread: "Luma wouldn't list its event tags, so no events were tagged",
-    // The tag wouldn't go on one event; the next run tries again.
-    lumaTagRefused: (event: string) => `Luma wouldn't tag ${event}`,
-    // No job reaches this: it's kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and emailed to
-    // staff. Luma gets an error, so it sends the webhook again.
-    webhookNotRecorded: "A Luma webhook couldn't be recorded",
-  },
 };
+
+// What went wrong without stopping the work (lib/problems.ts). All but the last are on the Luma import's run, so
+// on its page and in the email: something it carried on past.
+export const eventProblems = defineProblems("events", {
+  // Luma errored on one event's guests. Its other events carry on.
+  eventGuests: (p: { event: SafeText }) => `Couldn't read the guests of an event: ${p.event}`,
+  // Luma errored on one event's hosts. Its other events carry on.
+  eventHosts: (p: { event: SafeText }) => `Couldn't read the hosts of an event: ${p.event}`,
+  // Some guests' phone numbers couldn't be read as numbers, so they came in without them: how many, and on which
+  // event.
+  numbersUnread: (p: { unread: number; event: SafeText }) =>
+    `Some guests' phone numbers were badly formatted, so they were imported without them. Fix them in Luma: ${p.unread} on event ${p.event}`,
+  // Luma's rate limit stopped the run early. The next run carries on.
+  lumaRefused: "Luma rate limit reached",
+  // The calendar's tags couldn't be read, so nothing was tagged this run.
+  lumaTagsUnread: "Luma wouldn't list its event tags, so no events were tagged",
+  // The tag wouldn't go on one event, named as the public calendar names it; the next run tries again.
+  lumaTagRefused: (p: { event: SafeText }) => `Luma wouldn't tag ${p.event}`,
+  // No job reaches this: it's kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and emailed
+  // to staff. Luma gets an error, so it sends the webhook again.
+  webhookNotRecorded: "A Luma webhook couldn't be recorded",
+});

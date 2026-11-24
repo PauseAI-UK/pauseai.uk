@@ -4,6 +4,7 @@
 // report. The staff pages' own are in app/(staff)/staff/_components/supporters/copy.ts.
 import type { List, Reason, Topic, Way } from "./contact-permissions";
 import { count, plural } from "@/lib/content/plural";
+import { defineProblems } from "@/lib/problems";
 
 export const supportersCopy = {
   // The supporters list (/staff/supporters) and a supporter's page.
@@ -348,22 +349,24 @@ export const supportersCopy = {
       } as Record<string, string>,
     },
   },
-  // What went wrong without stopping the work (lib/server/problems.server.ts).
-  problems: {
-    // On the Luma import's run, so on its page and in the email: someone turned off events by email, or every bulk
-    // email, on the contact preferences page or an email's unsubscribe link, Luma didn't take them off the calendar
-    // then, and the full pass over its contacts, which still lists them, failed to as well. Luma goes on emailing them.
-    lumaRemoveFailed:
-      "Someone opted out of Luma messages but is still on our Luma calendar, so Luma will keep messaging them",
-    // On the Luma import's run, so on its page and in the email: looking up where supporters are failed when
-    // postcodes.io did partway. The next run carries on.
-    placesFailed: "Postcodes.io failed: the next run carries on.",
-    // On the CiviCRM import's run, so on its page and in the email: sending our opt-outs to CiviCRM failed, or it
-    // didn't answer some, or said some were wrong. Each is tried again next hour, but a wrong one needs a developer.
-    civicrmUpdatesFailed: "Couldn't send opt-outs to CiviCRM. They'll go next hour",
-    civicrmUpdatesUnanswered: (n: number) =>
-      `${plural(n, "opt-out", "opt-outs")} got no answer from CiviCRM. They'll go again next hour`,
-    civicrmUpdatesInvalid: (n: number) =>
-      `CiviCRM rejected ${plural(n, "opt-out", "opt-outs")}. A developer needs to look at them:`,
-  },
 };
+
+// What went wrong without stopping the work (lib/problems.ts), each on a job's run, so on its page and in the email.
+export const supporterProblems = defineProblems("supporters", {
+  // On the Luma import's run: someone turned off events by email, or every bulk email, on the contact preferences
+  // page or an email's unsubscribe link, Luma didn't take them off the calendar then, and the full pass over its
+  // contacts, which still lists them, failed to as well. Luma goes on emailing them.
+  lumaRemoveFailed:
+    "Someone opted out of Luma messages but is still on our Luma calendar, so Luma will keep messaging them",
+  // On the Luma import's run: looking up where supporters are failed when postcodes.io did partway. The next run
+  // carries on.
+  placesFailed: "Postcodes.io failed: the next run carries on.",
+  // On the CiviCRM import's run: sending our opt-outs to CiviCRM failed, or it didn't answer some, or said some
+  // were wrong, which follow, as CiviCRM named them. Each is tried again next hour, but a wrong one needs a
+  // developer.
+  civicrmUpdatesFailed: "Couldn't send opt-outs to CiviCRM. They'll go next hour",
+  civicrmUpdatesUnanswered: (p: { count: number }) =>
+    `${plural(p.count, "opt-out", "opt-outs")} got no answer from CiviCRM. They'll go again next hour`,
+  civicrmUpdatesInvalid: (p: { count: number }) =>
+    `CiviCRM rejected ${plural(p.count, "opt-out", "opt-outs")}. A developer needs to look at them:`,
+});

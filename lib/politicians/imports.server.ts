@@ -39,9 +39,10 @@ import {
 import { parliamentEndings, parliamentMembersNow } from "@/lib/server/outside-services/parliament.server";
 import { memberHonours, mspPeople, seneddPeople } from "@/lib/server/outside-services/wikidata.server";
 import { addPolitician } from "./records.server";
-import { problemInWords } from "@/lib/server/problems.server";
-import { politiciansCopy } from "./copy";
+import { problem } from "@/lib/server/problems.server";
+import { politicianProblems, politiciansCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
+import { publicText } from "@/lib/problems";
 
 // Imports each body's members from its own list, nightly
 // (/api/cron/import-<body>) or when staff ask: Parliament's, both Houses;
@@ -133,7 +134,7 @@ async function withSalutations(
   try {
     people = await lookUp(need);
   } catch (error) {
-    problemInWords(politiciansCopy.politicianImports.genderLookupFailed, error);
+    problem(politicianProblems.genderLookupFailed(), error);
     return members;
   }
   return members.map((m) => {
@@ -161,7 +162,7 @@ async function honoursOf(body: Body, members: OfficialMember[]): Promise<Map<num
       members.filter((m) => m.house !== "lords").map((m) => m.officialId),
     );
   } catch (error) {
-    problemInWords(politiciansCopy.politicianImports.honourLookupFailed, error);
+    problem(politicianProblems.honourLookupFailed(), error);
     return new Map();
   }
 }
@@ -339,7 +340,7 @@ async function checkSeats(): Promise<string[]> {
   );
   const held = new Map(rows.map((row) => [row.constituency, row.mps]));
   const doubled = rows.filter((row) => row.mps > 1).map((row) => row.constituency);
-  if (doubled.length > 0) problemInWords(politiciansCopy.politicianImports.twoMps, doubled.join(", "));
+  if (doubled.length > 0) problem(politicianProblems.twoMps({ constituencies: doubled.map(publicText) }));
   return Object.values(constituencies)
     .filter((name) => !held.has(name))
     .sort((a, b) => a.localeCompare(b, "en-GB"));
@@ -370,14 +371,30 @@ export async function importPoliticians(body: Body, startedBy: string): Promise<
       const ours = await bodyPoliticians(body, db);
       const { pairs, ...changes } = compareMembers(ours, members, endings);
       for (const kept of keptSalutations(pairs)) {
-        problemInWords(politiciansCopy.politicianImports.keptSalutation(kept.name, kept.ours, body, kept.theirs));
+        problem(
+          politicianProblems.keptSalutation({
+            name: publicText(kept.name),
+            ours: publicText(kept.ours),
+            body,
+            theirs: publicText(kept.theirs),
+          }),
+        );
       }
       for (const slip of misspeltSalutations(pairs, changes.added)) {
-        problemInWords(politiciansCopy.politicianImports.misspeltSalutation(slip.name, slip.salutation));
+        problem(
+          politicianProblems.misspeltSalutation({
+            name: publicText(slip.name),
+            salutation: publicText(slip.salutation),
+          }),
+        );
       }
       for (const missing of missingHonours(pairs, changes.added, honours)) {
-        problemInWords(
-          politiciansCopy.politicianImports.missingHonour(missing.name, missing.salutation, missing.honour),
+        problem(
+          politicianProblems.missingHonour({
+            name: publicText(missing.name),
+            salutation: publicText(missing.salutation),
+            honour: missing.honour,
+          }),
         );
       }
       // The very first import of a body fills it from nothing, so there's nothing to check it against.

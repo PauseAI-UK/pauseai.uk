@@ -20,9 +20,10 @@ import { noteAutoReply } from "@/lib/letters/replies.server";
 import { listRuns, latestRun, startRunning, stopRunning } from "@/lib/server/import-runs.server";
 import { ANOTHER_RUNNING, runJob } from "./jobs.server";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
-import { jobsCopy } from "./copy";
+import { jobProblems } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
 import { emailCopy } from "@/lib/email/copy";
+import { staffAccount } from "@/lib/problems";
 
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const JO = "jo@pauseai.uk";
@@ -576,7 +577,9 @@ describeWithDatabase("reading Gmail", () => {
     expect(await read()).toEqual([{ account: JO, replies: 0, autoReplies: 0, bounces: 0 }]);
     expect(await latestRun("read-gmail")).toMatchObject({
       status: "unchanged",
-      problems: [{ what: jobsCopy.problems.nameUnknown(JO), error: "Gmail answered 403 for /settings/sendAs" }],
+      problems: [
+        { ...jobProblems.nameUnknown({ account: staffAccount(JO) }), said: "Gmail answered 403 for /settings/sendAs" },
+      ],
     });
   });
 
@@ -603,7 +606,7 @@ describeWithDatabase("reading Gmail", () => {
       { account: JO, replies: 0, autoReplies: 0, bounces: 0 },
     ]);
     expect(error).toHaveBeenCalledWith(
-      jobsCopy.problems.couldntRead("al@pauseai.uk"),
+      jobProblems.couldntRead({ account: staffAccount("al@pauseai.uk") }).what,
       "Gmail answered 500 for /history",
     );
     expect(await query("SELECT email, gmail_history_id AS h FROM staff_accounts ORDER BY email")).toEqual([
@@ -627,7 +630,7 @@ describeWithDatabase("reading Gmail", () => {
     const title = importRunsCopy.jobTitles["read-gmail"];
     const told = words.body(
       title,
-      [`- ${jobsCopy.problems.couldntRead("al@pauseai.uk")} Gmail answered 500 for /history`],
+      [`- ${jobProblems.couldntRead({ account: staffAccount("al@pauseai.uk") }).what} Gmail answered 500 for /history`],
       "https://pauseai.uk/staff/scheduled-jobs/gmail",
     );
     // Its first run, failing: told. Failing again: not.
@@ -636,7 +639,12 @@ describeWithDatabase("reading Gmail", () => {
     expect(sent.map((s) => [s.Subject, s.TextBody])).toEqual([[words.subject(title), told]]);
     expect(await latestRun("read-gmail")).toMatchObject({
       status: "ok",
-      problems: [{ what: jobsCopy.problems.couldntRead("al@pauseai.uk"), error: "Gmail answered 500 for /history" }],
+      problems: [
+        {
+          ...jobProblems.couldntRead({ account: staffAccount("al@pauseai.uk") }),
+          said: "Gmail answered 500 for /history",
+        },
+      ],
     });
     // Read, then failing: told again.
     failing = false;

@@ -195,7 +195,7 @@ describeWithDatabase("errors the server throws", () => {
     const sent = notifications();
     // An error not kept is only reported, so the count below would come up short without saying why.
     const notKept: string[] = [];
-    registerProblemKeeper(({ what, error }) => notKept.push(`${what} ${error}`));
+    registerProblemKeeper(({ what, said }) => notKept.push(`${what} ${said}`));
     await Promise.all([thrown(new Error("At once")), thrown(new Error("At once")), thrown(new Error("At once"))]);
     expect(notKept).toEqual([]);
     expect(sent).toHaveLength(1);
@@ -275,34 +275,9 @@ describeWithDatabase("problems reported outside a run", () => {
     ]);
   });
 
-  it("are kept by their sentence when they have no code, with the error's words, and emailed about", async () => {
-    const sent = notifications();
-    keepProblem({ what: "Letter 12 couldn't be sent, so it's gone back in the queue", error: "Gmail answered 503" });
-    await Promise.all(held.work);
-    keepProblem({ what: "Letter 13 couldn't be sent, so it's gone back in the queue" });
-    await Promise.all(held.work);
-    expect(await rows()).toEqual([
-      {
-        kind: "problem",
-        route: "",
-        name: "",
-        code: null,
-        words: "Letter <n> couldn't be sent, so it's gone back in the queue",
-        latest: "Letter 13 couldn't be sent, so it's gone back in the queue",
-        count: 2,
-        browser: null,
-        alerted: true,
-      },
-    ]);
-    expect(sent.map((email) => email.Subject)).toEqual([
-      copy.email.server.subject("Letter <n> couldn't be sent, so it's gone back in the queue"),
-    ]);
-    expect(sent[0].TextBody).toContain(`\n\n${copy.kinds.problem}\nLetter <n>`);
-  });
-
   it("are kept outside a request too, where nothing holds the work open", async () => {
     held.outside = true;
-    keepProblem({ what: "Turnstile couldn't be reached", error: "fetch failed" });
+    keepProblem({ code: "server.turnstileDown", what: "Turnstile couldn't be reached", said: "fetch failed" });
     await vi.waitFor(async () => expect(await rows()).toHaveLength(1));
     expect(await rows()).toEqual([
       expect.objectContaining({

@@ -1,11 +1,12 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { defineProblems, type Problem } from "@/lib/problems";
-import { describeError, problem, problemInWords, registerProblemKeeper } from "./problems.server";
+import { defineProblems, type ReportedProblem } from "@/lib/problems";
+import { describeError, problem, registerProblemKeeper } from "./problems.server";
 import { currentRun, inRun } from "./run-store.server";
 
 const letters = defineProblems("letters", {
   notSent: (p: { letter: number }) => `Letter ${p.letter} couldn't be sent`,
   noInbox: "The letters inbox isn't set",
+  inRun: (p: { run: "a" | "b" }) => `In run ${p.run}`,
 });
 
 afterEach(() => {
@@ -15,21 +16,15 @@ afterEach(() => {
 
 it("hands a problem outside a run to what keeps errors, but not one staff were told of already", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
-  const kept: Problem[] = [];
+  const kept: ReportedProblem[] = [];
   registerProblemKeeper((reported) => kept.push(reported));
   problem(letters.notSent({ letter: 12 }), new Error("no database"));
   problem(letters.noInbox());
   problem(letters.noInbox(), undefined, { told: true });
-  problemInWords("A letter couldn't be kept", new Error("no database"));
-  problemInWords("A note with no error");
-  problemInWords("Told by an alert of its own", undefined, { told: true });
   await inRun(async () => problem(letters.noInbox()));
-  await inRun(async () => problemInWords("The run keeps this one"));
   expect(kept).toEqual([
     { code: "letters.notSent", values: { letter: 12 }, what: "Letter 12 couldn't be sent", said: "no database" },
     { code: "letters.noInbox", values: {}, what: "The letters inbox isn't set" },
-    { what: "A letter couldn't be kept", error: "no database" },
-    { what: "A note with no error" },
   ]);
 });
 
@@ -73,27 +68,19 @@ it("describes an error with what caused it, a few deep, and anything else as it 
   expect(describeError(nameless)).toBe("Error (Error)");
 });
 
-it("keeps a problem on the run in progress, and only logs one outside a run", async () => {
+it("keeps a problem on the run in progress, across awaits, and only logs one outside a run", async () => {
   const logged = vi.spyOn(console, "error").mockImplementation(() => {});
   expect(currentRun()).toBeUndefined();
-  problemInWords("Nothing to keep it on", new Error("outside"));
-  expect(logged).toHaveBeenCalledWith("Nothing to keep it on", "outside");
+  problem(letters.notSent({ letter: 3 }), new Error("outside"));
+  expect(logged).toHaveBeenCalledWith("Letter 3 couldn't be sent", "outside");
   const kept = await inRun(async (run) => {
-    problemInWords("Luma wouldn't give an event", new Error("Luma answered 503", { cause: new Error("timeout") }));
-    problemInWords("A note with no error");
-    problemInWords("Told by an alert of its own", undefined, { told: true });
+    problem(letters.noInbox());
     expect(currentRun()).toBe(run);
     await Promise.resolve();
-    problemInWords("Still the same run after an await");
+    problem(letters.notSent({ letter: 4 }));
     return run.problems;
   });
-  expect(kept).toEqual([
-    { what: "Luma wouldn't give an event", error: "Luma answered 503 (timeout)" },
-    { what: "A note with no error" },
-    { what: "Told by an alert of its own", told: true },
-    { what: "Still the same run after an await" },
-  ]);
-  expect(logged).toHaveBeenCalledWith("A note with no error");
+  expect(kept.map((p) => p.what)).toEqual(["The letters inbox isn't set", "Letter 4 couldn't be sent"]);
   expect(currentRun()).toBeUndefined();
 });
 
@@ -102,15 +89,15 @@ it("keeps two runs at once apart", async () => {
   const [a, b] = await Promise.all([
     inRun(async (run) => {
       await new Promise((resolve) => setTimeout(resolve, 5));
-      problemInWords("in a");
+      problem(letters.inRun({ run: "a" }));
       return run.problems.map((p) => p.what);
     }),
     inRun(async (run) => {
-      problemInWords("in b");
+      problem(letters.inRun({ run: "b" }));
       await new Promise((resolve) => setTimeout(resolve, 10));
       return run.problems.map((p) => p.what);
     }),
   ]);
-  expect(a).toEqual(["in a"]);
-  expect(b).toEqual(["in b"]);
+  expect(a).toEqual(["In run a"]);
+  expect(b).toEqual(["In run b"]);
 });

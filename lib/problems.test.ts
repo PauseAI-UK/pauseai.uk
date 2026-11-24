@@ -1,11 +1,12 @@
 import { expect, it } from "vitest";
 import {
   defineProblems,
-  outsideId,
+  listed,
   problemKey,
   problemSaid,
-  publicText,
   type SafeText,
+  outsideId,
+  publicText,
   staffAccount,
 } from "./problems";
 
@@ -50,6 +51,12 @@ it("refuses values that could hold plain text, which is what a name or an addres
   defineProblems("posting", { bad: (p: { to: { id: number } }) => String(p.to.id) });
   // @ts-expect-error -- one with no values is a sentence as it stands
   defineProblems("posting", { bad: () => "Nothing varies" });
+});
+
+it("says a list with commas between its items", () => {
+  expect(listed([publicText("Leeds East"), publicText("York Outer")])).toBe("Leeds East, York Outer");
+  expect(listed([4127])).toBe("4127");
+  expect(listed([])).toBe("");
 });
 
 it("knows a kept problem by its code, or by its sentence if it was kept before problems had codes", () => {

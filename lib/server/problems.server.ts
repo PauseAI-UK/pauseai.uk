@@ -1,5 +1,5 @@
 import "server-only";
-import { type Problem, problemSaid, type Reported } from "@/lib/problems";
+import type { Problem, Reported, ReportedProblem } from "@/lib/problems";
 
 // A problem is something that went wrong during a run of a job without
 // stopping it: an event Luma wouldn't give, a mailbox Gmail refused, an
@@ -24,7 +24,7 @@ export function registerRunStore(find: () => Run | undefined): void {
 }
 
 /** What keeps a problem reported outside a run: the problem, with the error's words if it had one. */
-type Keeper = (problem: Problem) => void;
+type Keeper = (problem: ReportedProblem) => void;
 
 /**
  * Where the keeper is held: on the global object, not in this module. Next
@@ -40,41 +40,27 @@ export function registerProblemKeeper(keep: Keeper | undefined): void {
   held[KEEPER] = keep;
 }
 
-/** Logs a problem, and keeps it: on the run in progress, or with no run, as an error, unless staff have been `told`. */
-function keep(kept: Problem): void {
-  const said = problemSaid(kept);
-  console.error(kept.what, ...(said === undefined ? [] : [said]));
-  const run = findRun();
-  if (run) run.problems.push(kept);
-  else if (!kept.told) held[KEEPER]?.(kept);
-}
-
 /**
  * Reports something that went wrong without stopping the work: one of a
  * feature's declared problems (defineProblems in lib/problems.ts), with the
- * error, if there was one. `told` if staff have been emailed about it
+ * error, if there was one. It's logged, and kept: on the run in progress,
+ * or with no run, as an error. `told` if staff have been emailed about it
  * already, by an alert of its own, which a run's email then leaves out;
  * outside a run, it isn't kept.
  */
 export function problem({ code, values, what }: Reported, error?: unknown, { told = false } = {}): void {
-  keep({
+  const said = error === undefined ? undefined : describeError(error);
+  console.error(what, ...(said === undefined ? [] : [said]));
+  const kept: ReportedProblem = {
     code,
     values,
     what,
-    ...(error !== undefined && { said: describeError(error) }),
+    ...(said !== undefined && { said }),
     ...(told && { told: true as const }),
-  });
-}
-
-/**
- * Reports a problem by a sentence written in place, as the features still
- * to declare theirs do (UNDECLARED_PROBLEMS in eslint.config.mjs): it's
- * known by the sentence, so a letter's ID or a count in it makes each one
- * new to the run's alert, and it's kept as one was before problems had
- * codes.
- */
-export function problemInWords(what: string, error?: unknown, { told = false } = {}): void {
-  keep({ what, ...(error !== undefined && { error: describeError(error) }), ...(told && { told: true as const }) });
+  };
+  const run = findRun();
+  if (run) run.problems.push(kept);
+  else if (!told) held[KEEPER]?.(kept);
 }
 
 /**

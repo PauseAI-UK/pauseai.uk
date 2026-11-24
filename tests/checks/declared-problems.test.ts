@@ -6,30 +6,8 @@ import { parse, siteSources } from "./server-code";
 // so it has a code, which a run's alert knows it by, and values that the
 // types keep free of names and addresses. This holds what the types can't:
 // that two features don't declare under one name, so no two problems share a
-// code; that each declared problem is reported somewhere, so the list of
-// what can go wrong stays true; and that only the files still to declare
-// theirs report a sentence written in place.
-
-/**
- * The files that still report with problemInWords(). One leaves this list as
- * its feature declares its problems, and none joins it.
- */
-const UNDECLARED = [
-  "app/api/luma/webhook/route.ts",
-  "lib/erasure/erase.server.ts",
-  "lib/events/luma-import.server.ts",
-  "lib/events/tagging.server.ts",
-  "lib/jobs/civicrm-import.server.ts",
-  "lib/jobs/controlai-statement-import.server.ts",
-  "lib/jobs/edm-import.server.ts",
-  "lib/jobs/gmail-reading.server.ts",
-  "lib/politicians/aliases.server.ts",
-  "lib/politicians/find-mp.server.ts",
-  "lib/politicians/imports.server.ts",
-  "lib/supporters/civicrm-updates.server.ts",
-  "lib/supporters/email-settings.server.ts",
-  "lib/supporters/places.server.ts",
-];
+// code; and that each declared problem is reported somewhere, so the list of
+// what can go wrong stays true.
 
 type Declaration = { feature: string; name: string; problems: string[] };
 
@@ -77,24 +55,12 @@ export function calls(source: ts.SourceFile): Set<string> {
   return found;
 }
 
-/** Whether `source` imports problemInWords. */
-export function reportsInWords(source: ts.SourceFile): boolean {
-  return source.statements.some(
-    (statement) =>
-      ts.isImportDeclaration(statement) &&
-      statement.importClause?.namedBindings !== undefined &&
-      ts.isNamedImports(statement.importClause.namedBindings) &&
-      statement.importClause.namedBindings.elements.some((element) => element.name.text === "problemInWords"),
-  );
-}
-
 // Parsing every file of the site takes a busy CI runner more than the default 5s.
 describe("declared problems", { timeout: 60_000 }, () => {
-  it("reads a feature's declaration, the problems called, and an import of problemInWords", () => {
+  it("reads a feature's declaration and the problems called", () => {
     const source = parse(
       "a.ts",
-      `import { note, problemInWords } from "@/lib/server/problems.server";
-       export const letterProblems = defineProblems("letters", {
+      `export const letterProblems = defineProblems("letters", {
          noInbox: "Nobody was emailed",
          notSent: (p: { letter: number }) => \`Letter \${p.letter}\`,
        });
@@ -107,8 +73,6 @@ describe("declared problems", { timeout: 60_000 }, () => {
       { feature: "letters", name: "letterProblems", problems: ["noInbox", "notSent"] },
     ]);
     expect([...calls(source)]).toEqual(["letterProblems.notSent"]);
-    expect(reportsInWords(source)).toBe(true);
-    expect(reportsInWords(parse("b.ts", `import { problem } from "x"; import y from "y"; import "z";`))).toBe(false);
   });
 
   it("no two features declare under one name, and every declared problem is reported somewhere", () => {
@@ -124,17 +88,5 @@ describe("declared problems", { timeout: 60_000 }, () => {
       problems.map((problem) => `${name}.${problem}`).filter((problem) => !called.has(problem)),
     );
     expect(unused, "a problem nothing reports is one to delete from its feature's defineProblems()").toEqual([]);
-  });
-
-  it("only the files still to declare their problems report a sentence written in place", () => {
-    const inWords = siteSources()
-      .filter((source) => source.fileName !== "lib/server/problems.server.ts" && reportsInWords(source))
-      .map((source) => source.fileName);
-    expect(
-      inWords.filter((file) => !UNDECLARED.includes(file)),
-      "declare the problem in the feature's copy file with defineProblems() (lib/problems.ts) and report it with problem()",
-    ).toEqual([]);
-    // A file that has declared its problems is one to take off the list.
-    expect(UNDECLARED.filter((file) => !inWords.includes(file))).toEqual([]);
   });
 });

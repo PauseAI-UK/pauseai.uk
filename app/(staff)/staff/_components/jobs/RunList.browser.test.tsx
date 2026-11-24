@@ -28,11 +28,13 @@ import {
   exampleTidyingResult,
 } from "./RunList.examples";
 import { action, press } from "@/tests/browser/staff";
-import { politiciansCopy } from "../politicians/copy";
-import { lettersCopy } from "../letters/copy";
-import { supportersCopy } from "../supporters/copy";
-import { jobsCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
+import { supporterProblems } from "@/lib/supporters/copy";
+import { jobProblems } from "@/lib/jobs/copy";
+import { lettersCopy } from "../letters/copy";
+import { jobsCopy } from "./copy";
+import { politiciansCopy } from "../politicians/copy";
+import { staffAccount } from "@/lib/problems";
 
 const ran = exampleRun;
 
@@ -378,7 +380,10 @@ describe("RunList", () => {
 
   it("shows a Gmail read's totals, then each account, with one searched afresh and one that couldn't be read", async () => {
     const accounts = [{ ...exampleGmailResult.accounts[0], restarted: true }, exampleGmailResult.accounts[1]];
-    const couldntRead = { what: jobsCopy.problems.couldntRead(accounts[1].account), error: accounts[1].error! };
+    const couldntRead = {
+      ...jobProblems.couldntRead({ account: staffAccount(accounts[1].account) }),
+      said: accounts[1].error!,
+    };
     await render(
       <RunList
         runs={[
@@ -403,7 +408,10 @@ describe("RunList", () => {
 
   it("says a Gmail read that disconnected an account had problems, and why, in place of its error", async () => {
     const accounts = [exampleGmailResult.accounts[0], exampleDisconnectedGmail];
-    const told = { what: jobsCopy.problems.couldntRead(exampleDisconnectedGmail.account), told: true as const };
+    const told = {
+      ...jobProblems.couldntRead({ account: staffAccount(exampleDisconnectedGmail.account) }),
+      told: true as const,
+    };
     await render(<RunList runs={[ran("read-gmail", { accounts }, { id: 1, problems: [told] })]} none="None" />);
     await expect.element(page.getByText(jobsCopy.runs.status.problems, { exact: true })).toBeVisible();
     await expect.element(page.getByText(jobsCopy.gmailReading.result(accounts), { exact: false })).toBeVisible();
@@ -438,7 +446,7 @@ describe("RunList", () => {
   });
 
   it("says a Gmail read had problems that found mail in the letters inbox it couldn't account for, listing each with a link", async () => {
-    const told = { what: jobsCopy.problems.notUnderstood, error: "2", told: true as const };
+    const told = { ...jobProblems.notUnderstood({ count: 2 }), told: true as const };
     await render(
       <RunList
         runs={[ran("read-gmail", { accounts: [exampleLettersInboxRead] }, { id: 1, problems: [told] })]}
@@ -482,7 +490,8 @@ describe("RunList", () => {
 
   it("says how many postcodes and towns a Luma run looked up, and when postcodes.io failed", async () => {
     const places = { postcodes: 3, towns: 2, failed: false };
-    const postcodesDown = { what: supportersCopy.problems.placesFailed, error: "fetch failed (connect ECONNREFUSED)" };
+    // Kept before problems had codes: its sentence, and the error's words as `error`.
+    const postcodesDown = { what: supporterProblems.placesFailed().what, error: "fetch failed (connect ECONNREFUSED)" };
     await render(
       <RunList
         runs={[
@@ -498,7 +507,7 @@ describe("RunList", () => {
     );
     const [found, failed] = rowsText();
     expect(found).toContain(`${jobsCopy.luma.result(exampleLumaResult)} ${jobsCopy.luma.places(places)}`);
-    expect(found).not.toContain(supportersCopy.problems.placesFailed);
+    expect(found).not.toContain(supporterProblems.placesFailed().what);
     // What went wrong is under the words, in amber, with the error's own words muted after it.
     expect(failed).toMatch(new RegExp(`^03:00${jobsCopy.runs.status.problems}`));
     const problem = page.getByText(`${postcodesDown.what} ${postcodesDown.error}`);

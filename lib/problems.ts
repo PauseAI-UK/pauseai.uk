@@ -48,6 +48,11 @@ export function staffAccount(address: string): SafeText {
   return address as SafeText;
 }
 
+/** A list as a problem's sentence says it: its items, with commas between. */
+export function listed(items: readonly (string | number)[]): string {
+  return items.join(", ");
+}
+
 /**
  * A value as a problem may keep it: a number, a yes or no, one of a fixed
  * set of codes, SafeText, or a list of those. Plain text is `never`, as
@@ -98,6 +103,9 @@ export type Problem = {
   error?: string;
   told?: true;
 };
+
+/** A problem as problem() keeps it: one with a code, as every one reported since problems had them is. */
+export type ReportedProblem = Problem & { code: string };
 
 /** What tells one problem from another: its code, or the sentence of one kept before problems had codes. */
 export function problemKey(problem: Problem): string {

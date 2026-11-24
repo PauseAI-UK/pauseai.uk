@@ -9,8 +9,9 @@ import { query } from "@/lib/server/db.server";
 import { listRuns } from "@/lib/server/import-runs.server";
 import { editPoliticianDetails } from "./edits.server";
 import { decideHeldImport, importPoliticians, isPoliticianImport } from "./imports.server";
-import { politiciansCopy } from "./copy";
+import { politicianProblems, politiciansCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
+import { publicText } from "@/lib/problems";
 
 const JO = "jo@pauseai.uk";
 
@@ -271,10 +272,7 @@ describeWithDatabase("importPoliticians", () => {
     await importPoliticians("parliament", JO);
     const [run] = await runs("import-parliament");
     expect(run.problems).toEqual([
-      expect.objectContaining({
-        what: politiciansCopy.politicianImports.twoMps,
-        error: "Hackney North and Stoke Newington",
-      }),
+      politicianProblems.twoMps({ constituencies: [publicText("Hackney North and Stoke Newington")] }),
     ]);
   });
 
@@ -284,8 +282,8 @@ describeWithDatabase("importPoliticians", () => {
     expect((await people())[0]).toMatchObject({ name: "Gwen Example", salutation: "Gwen Example", toCheck: true });
     const [run] = await runs("import-senedd");
     expect(run.problems).toEqual([
-      expect.objectContaining({ what: politiciansCopy.politicianImports.genderLookupFailed }),
-      expect.objectContaining({ what: politiciansCopy.politicianImports.honourLookupFailed }),
+      expect.objectContaining(politicianProblems.genderLookupFailed()),
+      expect.objectContaining(politicianProblems.honourLookupFailed()),
     ]);
     server.resetHandlers();
     await importPoliticians("senedd", JO);
@@ -388,11 +386,16 @@ describeWithDatabase("importPoliticians", () => {
         ["Mo Example", "Mo"],
       ]),
     );
-    const kept = politiciansCopy.politicianImports.keptSalutation("Mo Example", "Mo", "parliament", "Mx Example");
-    expect(kept).toBe("Mo Example: staff set Mo; Parliament records Mx Example");
+    const kept = politicianProblems.keptSalutation({
+      name: publicText("Mo Example"),
+      ours: publicText("Mo"),
+      body: "parliament",
+      theirs: publicText("Mx Example"),
+    });
+    expect(kept.what).toBe("Mo Example: staff set Mo; Parliament records Mx Example");
     await importPoliticians("parliament", NIGHTLY);
     const [newest, before] = await runs("import-parliament");
-    expect([newest.problems, before.problems]).toEqual([[{ what: kept }], [{ what: kept }]]);
+    expect([newest.problems, before.problems]).toEqual([[kept], [kept]]);
     // Staff are emailed about it once, not each night it stays.
     const title = politiciansCopy.politicianImports.titles["import-parliament"];
     expect(sent.filter((n) => n.Subject === importRunsCopy.notifications.importProblems.subject(title))).toHaveLength(
@@ -423,12 +426,21 @@ describeWithDatabase("importPoliticians", () => {
     // A peer's title outranks a knighthood, so Wikidata isn't asked about Lord Seedling.
     expect(asked).toContain('"90002"');
     expect(asked).not.toContain('"90101"');
-    const words = politiciansCopy.politicianImports;
     const [run] = await runs("import-parliament");
+    const [dummy, dumy] = [publicText("Ms Dora Dummy"), publicText("Ms Dumy")];
     expect(run.problems).toEqual([
-      { what: words.keptSalutation("Ms Dora Dummy", "Ms Dumy", "parliament", "Ms Dummy") },
-      { what: words.misspeltSalutation("Ms Dora Dummy", "Ms Dumy") },
-      { what: words.missingHonour("Polly Placeholder", "Ms Placeholder", "Dame") },
+      politicianProblems.keptSalutation({
+        name: dummy,
+        ours: dumy,
+        body: "parliament",
+        theirs: publicText("Ms Dummy"),
+      }),
+      politicianProblems.misspeltSalutation({ name: dummy, salutation: dumy }),
+      politicianProblems.missingHonour({
+        name: publicText("Polly Placeholder"),
+        salutation: publicText("Ms Placeholder"),
+        honour: "Dame",
+      }),
     ]);
   });
 

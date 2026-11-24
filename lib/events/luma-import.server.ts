@@ -19,9 +19,10 @@ import {
 } from "@/lib/server/outside-services/luma-calendar.server";
 import { getEventHosts, type EventHost } from "@/lib/server/outside-services/luma-event.server";
 import { type EventGuest, listEventGuests } from "@/lib/server/outside-services/luma-guests.server";
-import { describeError, problemInWords } from "@/lib/server/problems.server";
+import { describeError, problem } from "@/lib/server/problems.server";
 import { withNumbersRead, type NumbersRead } from "@/lib/phone";
-import { eventsCopy } from "./copy";
+import { eventProblems } from "./copy";
+import { outsideId } from "@/lib/problems";
 
 // Copies our Luma calendar into luma_events, luma_people, luma_guests and
 // luma_event_hosts: every public event, the guests who registered for each,
@@ -98,7 +99,7 @@ class Budget {
       return page;
     } catch (error) {
       if (!(error instanceof OutsideFailure && error.kind === "rate-limited")) throw error;
-      problemInWords(eventsCopy.problems.lumaRefused, error);
+      problem(eventProblems.lumaRefused(), error);
       this.requests++;
       this.stoppedBy = "rate-limit";
       return undefined;
@@ -299,14 +300,14 @@ async function importGuests(eventId: string, budget: Budget): Promise<GuestCount
           GUEST_STATUSES.includes(guest.approvalStatus) && guest.registeredAt !== null,
       );
       const { rows: unique, unread } = withNumbersRead([...new Map(guests.map((guest) => [guest.id, guest])).values()]);
-      if (unread > 0) problemInWords(eventsCopy.problems.numbersUnread, `${unread} on event ${eventId}`);
+      if (unread > 0) problem(eventProblems.numbersUnread({ unread, event: outsideId(eventId) }));
       counts.people += await upsertPeople(unique);
       counts.guests += await upsertGuests(eventId, unique);
       seen.push(...unique.map((guest) => guest.id));
       cursor = page.nextCursor;
     } while (cursor);
   } catch (error) {
-    problemInWords(eventsCopy.problems.eventGuests(eventId), error);
+    problem(eventProblems.eventGuests({ event: outsideId(eventId) }), error);
     await query("UPDATE luma_events SET guests_error = $2 WHERE id = $1", [eventId, describeError(error)]);
     return counts;
   }
@@ -360,7 +361,7 @@ async function importHosts(eventId: string, budget: Budget): Promise<HostCounts 
     if (!page) return undefined;
     hosts = [...new Map(page.entries.map((host) => [host.userId, host])).values()];
   } catch (error) {
-    problemInWords(eventsCopy.problems.eventHosts(eventId), error);
+    problem(eventProblems.eventHosts({ event: outsideId(eventId) }), error);
     await query("UPDATE luma_events SET hosts_error = $2 WHERE id = $1", [eventId, describeError(error)]);
     return { hosts: 0, people: 0 };
   }

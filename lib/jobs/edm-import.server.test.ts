@@ -9,7 +9,8 @@ import { importEdm } from "./edm-import.server";
 import { query } from "@/lib/server/db.server";
 import { listRuns } from "@/lib/server/import-runs.server";
 import { importPoliticians } from "@/lib/politicians/imports.server";
-import { jobsCopy } from "./copy";
+import { jobProblems } from "./copy";
+import { publicText } from "@/lib/problems";
 
 const signed = () =>
   query<{ name: string; date: string; by: string }>(
@@ -61,9 +62,7 @@ describeWithDatabase("importEdm", () => {
     expect(result.unmatched).toEqual(["Member 99999 (99999)"]);
     expect((await signed()).map((s) => s.name)).toEqual(["Mo Example", "Ms Dora Dummy"]);
     const [run] = (await listRuns("import-edm")) as EdmImport[];
-    expect(run.problems).toEqual([
-      expect.objectContaining({ what: jobsCopy.edm.unmatched, error: "Member 99999 (99999)" }),
-    ]);
+    expect(run.problems).toEqual([jobProblems.edmUnmatched({ signers: [publicText("Member 99999 (99999)")] })]);
   });
 
   it("changes nothing when no one has signed, as the answer's shape must have changed", async () => {
