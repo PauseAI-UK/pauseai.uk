@@ -835,6 +835,9 @@ describe("this repo", { timeout: 120_000 }, () => {
 
   it("has no code handed over without an import that the map doesn't know of", () => {
     expect(handOvers(repo, ["app", "components", "lib"])).toEqual([
+      // The links a local build prints, kept across the dev server's reloads of the module: no code, and never in
+      // the storyboard's build, a fixture build.
+      "lib/accounts/local-login.server.ts: uses globalThis",
       // Checks of the posts' authors as the lists load: no code is handed over.
       "lib/content/blog/index.ts: calls checkPostAuthors() as it loads",
       "lib/content/briefings/index.ts: calls checkPostAuthors() as it loads",
