@@ -196,7 +196,7 @@ describe("staff auth", () => {
         "layout.tsx": "export default function Layout() {}",
       });
       expect(unprotected(root)).toEqual([]);
-      expect(entryPoints(root)).toHaveLength(7);
+      expect(entryPoints(root)).toHaveLength(8);
     });
 
     it("finds each exported function that doesn't", () => {

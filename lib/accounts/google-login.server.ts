@@ -29,7 +29,7 @@ export const LIVE_ORIGIN = "https://pauseai.uk";
 const PREVIEW_ORIGIN = /^https:\/\/[a-z0-9-]+--pauseaiuk\.netlify\.app$/;
 
 /** How long a note the live site signs for a preview lasts. */
-export const NOTE_SECONDS = 60;
+const NOTE_SECONDS = 60;
 
 /** What a login keeps between its steps, in a cookie under GOOGLE_API_PATH, for 15 minutes. */
 export const GOOGLE_LOGIN_COOKIE = "staff_google_login";
