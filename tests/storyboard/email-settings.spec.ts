@@ -142,16 +142,18 @@ test("A change that doesn't save", { tag: "@phone" }, async ({ page, request, fl
   // The page's own address is where a box's change is sent: the request never arrives.
   const lost = "**/contact-preferences/**";
   await page.route(lost, (route) => (route.request().method() === "POST" ? route.abort() : route.continue()));
-  await topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email }).uncheck();
+  const newsletter = topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email });
+  await newsletter.click();
   await expect(topicCard(page, "newsletter").getByText(copy.settings.failed)).toBeVisible();
+  story("The page says it wasn't saved, and the box goes back to ticked, as that's what's saved.");
+  await expect(newsletter).toBeChecked();
   await frame(page, "Told it wasn't saved");
 
-  story(
-    "Her signal comes back. She turns volunteering off as well, and the page saves every box as it now is, the newsletter's too.",
-  );
+  story("Her signal comes back. She unticks it again, and this time it saves.");
   await page.unroute(lost);
-  await topicCard(page, "volunteering").getByRole("checkbox", { name: copy.ways.email }).uncheck();
-  await expect(topicCard(page, "volunteering").getByText(copy.settings.saved)).toBeVisible();
+  await newsletter.click();
+  await expect(topicCard(page, "newsletter").getByText(copy.settings.saved)).toBeVisible();
+  await expect(newsletter).not.toBeChecked();
   await frame(page, "Saved");
 });
 

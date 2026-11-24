@@ -1,11 +1,11 @@
 import { getRedirectError } from "next/dist/client/components/redirect";
 import { UnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
-import { Component, type ReactNode, useOptimistic } from "react";
+import { Component, type ReactNode, useOptimistic, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import type { reportBrowserError } from "@/lib/browser-errors";
-import { useSave } from "./useSave";
+import { useSave, useSavedChoice } from "./useSave";
 
 const reports = () => vi.fn<typeof reportBrowserError>();
 
@@ -122,5 +122,41 @@ describe("useSave", () => {
     expect(caught).toHaveBeenCalledWith(error);
     expect(report).not.toHaveBeenCalled();
     vi.restoreAllMocks();
+  });
+});
+
+/** A switch that saves as it's pressed, and is told what's saved by the save's answer. */
+function Switch({ save }: { save: (on: boolean) => Promise<boolean> }) {
+  const [saved, setSaved] = useState(false);
+  const [shown, choose, saving, failed] = useSavedChoice(saved, save, (on) => on, {
+    done: setSaved,
+    report: () => {},
+  });
+  return (
+    <>
+      <button type="button" onClick={() => choose(!shown)}>
+        Switch
+      </button>
+      <output>{`${shown ? "on" : "off"} ${saving ? "saving" : "still"} ${failed ? "failed" : "fine"}`}</output>
+    </>
+  );
+}
+
+describe("useSavedChoice", () => {
+  it("shows a choice at once, then what's saved, and puts back one whose save failed", async () => {
+    const first = held<boolean>();
+    const save = vi.fn<(on: boolean) => Promise<boolean>>(first.save as never);
+    await render(<Switch save={save} />);
+    await page.getByRole("button").click();
+    await expect.element(page.getByRole("status")).toHaveTextContent("on saving fine");
+    expect(save).toHaveBeenCalledWith(true);
+    first.resolve(true);
+    await expect.element(page.getByRole("status")).toHaveTextContent("on still fine");
+    const second = held<boolean>();
+    save.mockImplementation(second.save as never);
+    await page.getByRole("button").click();
+    await expect.element(page.getByRole("status")).toHaveTextContent("off saving fine");
+    second.reject(new TypeError("Failed to fetch"));
+    await expect.element(page.getByRole("status")).toHaveTextContent("on still failed");
   });
 });

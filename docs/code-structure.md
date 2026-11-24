@@ -427,9 +427,16 @@ holds it.
   the server outside a form's own action. It says when the save has
   failed, for the component to say so where the person is looking, and
   tells the site of what the browser threw. Without it the failure
-  replaces the page, or shows nothing. ESLint refuses an async function
-  written in place as an event's handler or handed to a transition
-  (`SAVE_RULES` in `eslint.config.mjs`, with the components still to move).
+  replaces the page, or shows nothing. What happens to what was changed
+  depends on what it is:
+  - **A choice that saves as it's made**, a tick box or a switch, shows
+    the choice at once and goes back if its save fails, so it always ends
+    up showing what's saved, and trying again is one click. It uses
+    `useSavedChoice`, beside `useSave`, which does that.
+  - **Something typed and then sent**, a note or a reply, keeps what was
+    typed and stays open, saying it wasn't sent. ESLint refuses an async function
+    written in place as an event's handler or handed to a transition
+    (`SAVE_RULES` in `eslint.config.mjs`, with the components still to move).
 - **An outside service has a time limit.** `outsideFetch` gives up on one
   that hasn't answered in `OUTSIDE_TIMEOUT_MS`, unless the call sets its
   own, so a run whose service hangs gets to record its failure before

@@ -458,7 +458,9 @@ This fixed problems 6 and 7. What was built:
   fails on a layout without one.
 - **One hook for saving, `useSave`** (`components/ui/`). It runs a save in
   a transition, says when it failed, and tells the site of what the browser
-  threw. ESLint refuses an async function written in place as an event's
+  threw. `useSavedChoice`, beside it, is for a tick box or a switch: it
+  shows the choice at once and puts it back if the save fails. Something
+  typed keeps what was typed (`docs/code-structure.md`, "Errors"). ESLint refuses an async function written in place as an event's
   handler or handed to a transition (`SAVE_RULES`).
 - **Storyboard flows** for a staff page that breaks, a public page that
   breaks, and a change that doesn't save. A flow makes a save fail by

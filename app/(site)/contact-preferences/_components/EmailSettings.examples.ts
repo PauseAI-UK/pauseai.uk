@@ -1,6 +1,13 @@
 // Made-up contact preferences, as the page gets them, for the gallery and the tests.
 import type { ContactPermission } from "@/lib/supporters/contact-permissions";
-import { hold, type SettingsView } from "@/lib/supporters/settings-view";
+import {
+  choiceKey,
+  hold,
+  LUMA_CHOICE,
+  LUMA_OFFERED,
+  settingsTopics,
+  type SettingsView,
+} from "@/lib/supporters/settings-view";
 
 const AT = new Date("2026-11-02T10:00:00Z");
 const JANE = "jane.smith@example.com";
@@ -108,3 +115,22 @@ export const exampleBlocked = view([answer({ send: "no", reason: "blocked", sour
 
 /** On PauseAI Global's volunteering list, as its join form puts those who say they'd like to volunteer. */
 export const exampleVolunteer = view([answer({ topic: "volunteering", reason: "subscribed", source: "civicrm" })]);
+
+/**
+ * `view` as saving a form of its boxes leaves it, as the page's save
+ * answers: a yes or a no for each box that can be changed, and on our Luma
+ * calendar or off it, where the page drew that box.
+ */
+export function exampleSaved(view: SettingsView, form: FormData): SettingsView {
+  const ticked = new Set(form.getAll("choice").map(String));
+  const answers = [...view.answers];
+  for (const { topic, boxes } of settingsTopics(view)) {
+    for (const { way } of boxes.filter((box) => !box.locked)) {
+      const send = ticked.has(choiceKey(topic, way)) ? "yes" : "no";
+      const at = answers.findIndex((a) => a.topic === topic && a.way === way);
+      if (at >= 0) answers[at] = { ...answers[at], send };
+      else answers.push(answer({ topic, way, send, source: "settings" }));
+    }
+  }
+  return { ...view, answers, onLuma: ticked.has(LUMA_OFFERED) ? ticked.has(LUMA_CHOICE) : view.onLuma };
+}

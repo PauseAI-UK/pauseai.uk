@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useSave } from "@/components/ui/useSave";
+import { useSavedChoice } from "@/components/ui/useSave";
 import { Checkbox } from "@/components/ui/Controls";
 import { FormStack } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -91,12 +91,37 @@ function why(answer: ContactPermission | null): ReactNode {
 /** Where the last change to a topic's boxes is: being saved, saved, or not saved, as saving it failed. */
 type Saving = "saving" | "saved" | "failed";
 
+/** The boxes ticked in what's saved: each topic's ways that are on, and Luma's while they're on our calendar. */
+function tickedIn(view: SettingsView | null): ReadonlySet<string> {
+  if (!view) return new Set();
+  const ways = settingsTopics(view).flatMap((topic) =>
+    topic.boxes.filter((box) => box.on).map((box) => choiceKey(topic.topic, box.way)),
+  );
+  return new Set(view.onLuma ? [...ways, LUMA_CHOICE] : ways);
+}
+
+/** The boxes ticked in the form, as a change of one sends it. */
+function tickedInForm(form: FormData): ReadonlySet<string> {
+  return new Set(form.getAll("choice").map(String));
+}
+
+/** Does nothing: a box's change is heard by the form around it, which saves every box and says which are ticked. */
+const heardByForm = () => {};
+
 /**
  * One topic: its name, whether they get it, what it is, a box for each way,
- * whether its last change is saved, and why.
+ * ticked if it's among those `ticked`, whether its last change is saved, and
+ * why. A box that can't be changed shows what's saved.
  */
-function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | null }) {
-  const [boxes, setBoxes] = useState(topic.boxes);
+function TopicCard({
+  topic,
+  ticked,
+  saving,
+}: {
+  topic: SettingsTopic;
+  ticked: ReadonlySet<string>;
+  saving: Saving | null;
+}) {
   const reason = why(topic.why);
   return (
     <fieldset className={styles.card}>
@@ -117,15 +142,15 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
       </legend>
       <p className={styles.what}>{copy.about[topic.topic]}</p>
       <div className={styles.ways}>
-        {boxes.map((box, i) => (
+        {topic.boxes.map((box) => (
           <Checkbox
             key={box.way}
             name="choice"
             value={choiceKey(topic.topic, box.way)}
-            checked={box.on}
+            checked={box.locked ? box.on : ticked.has(choiceKey(topic.topic, box.way))}
             disabled={box.locked}
             boxed
-            onChange={(on) => setBoxes(boxes.map((b, j) => (j === i ? { ...b, on } : b)))}
+            onChange={heardByForm}
           >
             {copy.ways[box.way]}
           </Checkbox>
@@ -142,24 +167,26 @@ function TopicCard({ topic, saving }: { topic: SettingsTopic; saving: Saving | n
 
 /**
  * Luma's own emails: whether the address stays on our Luma calendar, one
- * box, ticked while it's on (`initial`); unticked, saving takes them off.
- * While it's on, why, as a topic's card says it: they follow our calendar.
+ * box, `ticked` while it's on; unticked, saving takes them off. While
+ * they're on it (`on`), why, as a topic's card says it: they follow our
+ * calendar.
  * Once they're off (`off`), it can't be ticked again, as only Luma can put
  * them back on, and it says so. Not while all its email is held (`held`).
  */
 function LumaCard({
-  initial,
+  on,
+  ticked,
   held,
   off,
   saving,
 }: {
-  initial: boolean;
+  on: boolean;
+  ticked: boolean;
   held: boolean;
   off: boolean;
   saving: Saving | null;
 }) {
-  const [on, setOn] = useState(initial);
-  const reason = initial && (
+  const reason = on && (
     <>
       <strong>{copy.why.yes}</strong> {copy.why.reasons.following!("")}
     </>
@@ -179,7 +206,14 @@ function LumaCard({
       <p className={styles.what}>{copy.about.events}</p>
       <div className={styles.ways}>
         <input type="hidden" name="choice" value={LUMA_OFFERED} />
-        <Checkbox name="choice" value={LUMA_CHOICE} checked={on} disabled={held || off} boxed onChange={setOn}>
+        <Checkbox
+          name="choice"
+          value={LUMA_CHOICE}
+          checked={held || off ? on : ticked}
+          disabled={held || off}
+          boxed
+          onChange={heardByForm}
+        >
           {copy.lumaBox}
         </Checkbox>
         <span className={styles.saving} role="status">
@@ -432,9 +466,13 @@ export default function EmailSettings({
   // Where the focus goes once a button's change is shown: the page's title after a lift, the hold after Stop everything.
   const [focus, setFocus] = useState<"title" | "hold" | null>(null);
   // The topic last changed, and where its change is: saved only once every save still going is, and not saved if
-  // one failed. The boxes stay as they are, so a change made while another was being saved isn't undone.
+  // one failed.
   const [lastChanged, setLastChanged] = useState<Topic | null>(null);
-  const [save, savingNow, notSaved] = useSave(actions.save, { done: setView });
+  // The boxes ticked: as the form had them at the last change, while it's being saved, then as what's saved
+  // has them, so a change that didn't save goes back.
+  const [ticked, save, savingNow, notSaved] = useSavedChoice(tickedIn(view), actions.save, tickedInForm, {
+    done: setView,
+  });
   const saving: { topic: Topic; state: Saving } | null = lastChanged && {
     topic: lastChanged,
     state: savingNow ? "saving" : notSaved ? "failed" : "saved",
@@ -484,9 +522,9 @@ export default function EmailSettings({
           )}
           <NumberHolds view={view} />
           {/*
-            Each box saves as it's changed, with every box as it is then. Not by
-            the form's action, as React resets a form after one, which would put
-            the boxes back as the page first drew them.
+            Each box saves as it's changed, with every box as it is then, and
+            shows the change while it's saved (useSavedChoice). Not by the
+            form's action, as that waits for a submit.
           */}
           <FormStack
             onChange={(event) => {
@@ -501,6 +539,7 @@ export default function EmailSettings({
               <TopicCard
                 key={`${topic.topic}-${round}`}
                 topic={topic}
+                ticked={ticked}
                 saving={saving?.topic === topic.topic ? saving.state : null}
               />
             ))}
@@ -508,7 +547,8 @@ export default function EmailSettings({
             {onLuma && (
               <LumaCard
                 key={`luma-${round}`}
-                initial={view.onLuma}
+                on={view.onLuma}
+                ticked={ticked.has(LUMA_CHOICE)}
                 held={view.hold !== null}
                 off={!view.onLuma && view.hold === null}
                 saving={saving?.topic === "events" ? saving.state : null}

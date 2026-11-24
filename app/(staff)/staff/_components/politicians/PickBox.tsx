@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useOptimistic, useRef } from "react";
-import { useSave } from "@/components/ui/useSave";
+import { useEffect, useRef } from "react";
+import { useSavedChoice } from "@/components/ui/useSave";
 import styles from "./PickBox.module.css";
 
 /**
@@ -22,8 +22,7 @@ export default function PickBox({
   label: string;
   action: (ticked: boolean) => Promise<void>;
 }) {
-  const [shown, show] = useOptimistic(ticked);
-  const [save, pending, failed] = useSave(action, { before: show });
+  const [shown, choose, pending, failed] = useSavedChoice(ticked, action, (now) => now);
   const box = useRef<HTMLInputElement>(null);
   useEffect(() => {
     box.current!.indeterminate = some && !pending;
@@ -36,7 +35,7 @@ export default function PickBox({
       aria-label={label}
       checked={shown}
       aria-invalid={failed || undefined}
-      onChange={(event) => save(event.target.checked)}
+      onChange={(event) => choose(event.target.checked)}
     />
   );
 }

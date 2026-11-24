@@ -2,7 +2,7 @@
 
 import { isNextRouterError } from "next/dist/client/components/is-next-router-error";
 import { unstable_isUnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { reportBrowserError, thrownByServer } from "@/lib/browser-errors";
 
 type Options<Args extends unknown[], Result> = {
@@ -52,4 +52,25 @@ export function useSave<Args extends unknown[], Result>(
     });
   };
   return [run, saving, failed];
+}
+
+/**
+ * For a choice that saves as it's made: a tick box, a switch. Given what's
+ * `saved`, and from a save's arguments what was `chosen`, returns what to
+ * show: the choice at once, while it's being saved, then what's saved, so
+ * a choice whose save failed goes back by itself. Then `choose`, which
+ * saves, and `saving` and `failed`, as useSave gives them.
+ *
+ * Not for something typed and then sent, such as a note: that keeps what
+ * was typed when its save fails, and says so (useSave).
+ */
+export function useSavedChoice<Value, Args extends unknown[], Result>(
+  saved: Value,
+  save: (...args: Args) => Promise<Result>,
+  chosen: (...args: Args) => Value,
+  options: Omit<Options<Args, Result>, "before"> = {},
+): [shown: Value, choose: (...args: Args) => void, saving: boolean, failed: boolean] {
+  const [shown, show] = useOptimistic(saved);
+  const [choose, saving, failed] = useSave(save, { ...options, before: (...args) => show(chosen(...args)) });
+  return [shown, choose, saving, failed];
 }
