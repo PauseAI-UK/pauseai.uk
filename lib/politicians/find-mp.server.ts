@@ -9,7 +9,7 @@ import { politicianProblems } from "./copy";
 
 export type FindMpResult =
   | { ok: true; mp: FoundMp; place?: Place }
-  | { ok: false; reason: "not_found" | "no_constituency" | "no_mp" | "failed" };
+  | { ok: false; reason: "not-found" | "no-constituency" | "no-mp" | "failed" };
 
 /**
  * The MP for a postcode, from the politicians table. A test MP's postcode
@@ -22,12 +22,12 @@ export async function findMp(postcode: string): Promise<FindMpResult> {
     const test = TEST_MPS.find((mp) => mp.postcode === normalisePostcode(postcode));
     if (test) {
       const mp = await findTestMp(test.postcode);
-      return mp ? { ok: true, mp, place: test.place } : { ok: false, reason: "no_mp" };
+      return mp ? { ok: true, mp, place: test.place } : { ok: false, reason: "no-mp" };
     }
     const found = await constituencyForPostcode(postcode.trim());
     if (!found.ok) return found;
     const mp = await findMpInOffice(found.constituency);
-    return mp ? { ok: true, mp, ...(found.place && { place: found.place }) } : { ok: false, reason: "no_mp" };
+    return mp ? { ok: true, mp, ...(found.place && { place: found.place }) } : { ok: false, reason: "no-mp" };
   } catch (error) {
     problem(politicianProblems.mpLookupFailed(), error);
     return { ok: false, reason: "failed" };

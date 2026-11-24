@@ -4,8 +4,16 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { copy } from "@/lib/content/email-your-mp";
-import { campaignBySlug, campaignPath, campaignToMoveTo, isDone, type Mp, type MpStatuses } from "@/lib/email-your-mp";
-import type { Place } from "@/lib/site-events";
+import { postJson } from "@/lib/ask-server";
+import {
+  campaignBySlug,
+  campaignPath,
+  campaignToMoveTo,
+  isDone,
+  type Mp,
+  type MpLookup,
+  type MpStatuses,
+} from "@/lib/email-your-mp";
 import { TEST_MPS, type TestMp } from "@/lib/politicians/test-mps";
 import { readLookup, saveLookup } from "./draft.client";
 import MpCard from "./MpCard";
@@ -16,7 +24,15 @@ import { Column, Notice } from "./FormParts";
 import styles from "./EmailYourMpTool.module.css";
 
 type Found = { mp: Mp; statuses: MpStatuses };
-type LookupResult = Found & { place: Place | null };
+
+/** Why a postcode found no MP, in words. */
+const REFUSED: Record<Extract<MpLookup, { ok: false }>["reason"], string> = {
+  "postcode-required": copy.lookup.postcodeRequired,
+  "not-found": copy.lookup.notFound,
+  "no-constituency": copy.lookup.noConstituency,
+  "no-mp": copy.lookup.noMp,
+  failed: copy.lookup.failed,
+};
 
 /**
  * Name, address and postcode, to find the MP. Then the page for writing this
@@ -79,14 +95,9 @@ export default function EmailYourMpTool({ campaignSlug, showTestMps }: Props) {
     setLooking(true);
     let moving = false;
     try {
-      const res = await fetch("/api/email-your-mp/lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postcode }),
-      });
-      const result = await res.json();
-      if (!result.ok) return setError(result.message);
-      const { mp, statuses, place }: LookupResult = result;
+      const result = await postJson<MpLookup>("/api/email-your-mp/lookup", { postcode });
+      if (!result.ok) return setError(REFUSED[result.reason]);
+      const { mp, statuses, place } = result;
       const target = campaignToMoveTo(campaign, statuses) ?? campaign;
       // The target is never one the MP has done: there's always one to move on to.
       const canWrite = !!mp.email;

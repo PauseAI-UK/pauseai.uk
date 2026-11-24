@@ -3,7 +3,9 @@
 // checks what it's sent against the same campaigns.
 import { IMPORTED_ASKS } from "@/lib/asks/asks";
 import { campaigns, type Campaign, type LetterDetails, type MpStatuses } from "@/lib/content/email-your-mp";
+import type { FormResult } from "@/lib/form-result";
 import { docFromMarkup, type Inline, type LetterDoc } from "@/lib/letters/format";
+import type { Place } from "@/lib/site-events";
 
 /** An MP as the form sees them. */
 export type Mp = {
@@ -18,6 +20,16 @@ export type Mp = {
 };
 
 export type { MpStatuses };
+
+/**
+ * What /api/email-your-mp/lookup answers: the MP for a postcode, what
+ * they've done for each campaign, and where the postcode is, if known; or
+ * why there's none.
+ */
+export type MpLookup = FormResult<
+  "postcode-required" | "not-found" | "no-constituency" | "no-mp" | "failed",
+  { mp: Mp; statuses: MpStatuses; place: Place | null }
+>;
 
 /** Where the campaigns' pages are. */
 const CAMPAIGNS_PATH = "/campaigns";

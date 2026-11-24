@@ -1,4 +1,5 @@
 import type { LocalGroup, LocalGroupName } from "@/lib/content/local-groups";
+import type { FormResult } from "@/lib/form-result";
 
 export type LumaGeoAddressInfo = {
   city?: string;
@@ -21,6 +22,9 @@ export type LumaEvent = {
 
 /** A point on the map, in degrees. */
 export type Place = { latitude: number; longitude: number };
+
+/** What /api/events/place answers: where a postcode is and its district's name, or why not. */
+export type PlaceLookup = FormResult<"postcode-required" | "not-found" | "failed", { place: Place; name: string }>;
 
 /**
  * Lower-cased, punctuation-stripped and space-padded, so a matcher can be

@@ -1,5 +1,6 @@
 import "server-only";
 import { constituencyName } from "@/lib/politicians/constituencies";
+import type { FormResult } from "@/lib/form-result";
 import type { Place } from "@/lib/site-events";
 import { outsideFetch } from "./outside-fetch.server";
 import { orFallback } from "./fallback.server";
@@ -11,8 +12,10 @@ import { serverProblems } from "@/lib/server/copy";
 // the code (lib/politicians/constituencies.ts), since postcodes.io spells some differently.
 // And where the postcode is, for suggesting events nearby.
 
-export type ConstituencyResult =
-  { ok: true; constituency: string; place?: Place } | { ok: false; reason: "not_found" | "no_constituency" | "failed" };
+export type ConstituencyResult = FormResult<
+  "not-found" | "no-constituency" | "failed",
+  { constituency: string; place?: Place }
+>;
 
 /** A postcode's constituency in postcodes.io's result: the official name, from its code, else postcodes.io's (lib/politicians/constituencies.ts); null for none. */
 function constituencyOf(result: Record<string, unknown> | undefined): string | null {
@@ -25,11 +28,11 @@ function constituencyOf(result: Record<string, unknown> | undefined): string | n
 export async function constituencyForPostcode(postcode: string): Promise<ConstituencyResult> {
   return orFallback(serverProblems.postcodesDown(), { ok: false, reason: "failed" }, async () => {
     const res = await outsideFetch("postcodes", `https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
-    if (res.status === 404) return { ok: false, reason: "not_found" };
+    if (res.status === 404) return { ok: false, reason: "not-found" };
     if (!res.ok) return { ok: false, reason: "failed" };
     const data = await outsideJson("postcodes", res);
     const constituency = constituencyOf(data?.result);
-    if (!constituency) return { ok: false, reason: "no_constituency" };
+    if (!constituency) return { ok: false, reason: "no-constituency" };
     const { latitude, longitude } = data.result;
     const place = typeof latitude === "number" && typeof longitude === "number" ? { latitude, longitude } : undefined;
     return {
@@ -40,8 +43,7 @@ export async function constituencyForPostcode(postcode: string): Promise<Constit
   });
 }
 
-export type PostcodePlaceResult =
-  { ok: true; place: Place; name: string } | { ok: false; reason: "not_found" | "failed" };
+export type PostcodePlaceResult = FormResult<"not-found" | "failed", { place: Place; name: string }>;
 
 /**
  * Where a postcode is, and its district's name ("Westminster"), for events
@@ -60,11 +62,11 @@ export async function placeForPostcode(postcode: string): Promise<PostcodePlaceR
 
 async function placeAt(path: string, code: string): Promise<PostcodePlaceResult> {
   const res = await outsideFetch("postcodes", `https://api.postcodes.io/${path}`);
-  if (res.status === 404) return { ok: false, reason: "not_found" };
+  if (res.status === 404) return { ok: false, reason: "not-found" };
   if (!res.ok) return { ok: false, reason: "failed" };
   const result = (await outsideJson("postcodes", res))?.result;
   const { latitude, longitude } = result ?? {};
-  if (typeof latitude !== "number" || typeof longitude !== "number") return { ok: false, reason: "not_found" };
+  if (typeof latitude !== "number" || typeof longitude !== "number") return { ok: false, reason: "not-found" };
   const district = [result.admin_district].flat()[0];
   return {
     ok: true,

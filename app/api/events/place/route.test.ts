@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { homeEventsCopy } from "@/lib/content/home-events";
 import { POST } from "./route";
 
 function place(body: string) {
@@ -25,21 +24,19 @@ describe("POST /api/events/place", () => {
       JSON.stringify({ postcode: 7 }),
       JSON.stringify({ postcode: "  " }),
     ]) {
-      const res = await place(body);
-      expect(res.status).toBe(400);
-      expect(await res.json()).toEqual({ ok: false, message: homeEventsCopy.postcodeRequired });
+      expect(await (await place(body)).json()).toEqual({ ok: false, reason: "postcode-required" });
     }
   });
 
   it("says when the postcode isn't found, or postcodes.io fails", async () => {
     expect(await (await place(JSON.stringify({ postcode: "ZZ1 1ZZ" }))).json()).toEqual({
       ok: false,
-      message: homeEventsCopy.postcodeNotFound,
+      reason: "not-found",
     });
     server.use(http.get("https://api.postcodes.io/postcodes/:postcode", () => new HttpResponse(null, { status: 500 })));
     expect(await (await place(JSON.stringify({ postcode: "SW1A 1AA" }))).json()).toEqual({
       ok: false,
-      message: homeEventsCopy.postcodeFailed,
+      reason: "failed",
     });
   });
 });

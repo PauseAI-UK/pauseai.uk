@@ -1,7 +1,6 @@
 import { expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { copy } from "@/lib/content/email-your-mp";
 import { recordProblem } from "@/lib/email/email.server";
 import { setStatus } from "@/lib/politicians/records.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -61,12 +60,12 @@ describeWithDatabase("POST /api/email-your-mp/lookup", () => {
 
   it("explains a postcode it can't place", async () => {
     const res = await lookup({ postcode: "XX1 1XX" });
-    expect(await res.json()).toEqual({ ok: false, message: copy.lookup.notFound });
+    expect(await res.json()).toEqual({ ok: false, reason: "not-found" });
   });
 
   it("needs a postcode", async () => {
     const res = await POST(new Request("http://localhost/x", { method: "POST", body: "not json" }));
-    expect(res.status).toBe(400);
-    expect((await lookup({ postcode: 5 })).status).toBe(400);
+    expect(await res.json()).toEqual({ ok: false, reason: "postcode-required" });
+    expect(await (await lookup({ postcode: 5 })).json()).toEqual({ ok: false, reason: "postcode-required" });
   });
 });
