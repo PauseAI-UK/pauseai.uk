@@ -25,4 +25,4 @@ export function uncovered(file: FileCoverage): {
   branches: string[];
 };
 export function report(sources: string[], coverage: Record<string, FileCoverage>, root: string): string;
-export function vitestArgs(sources: string[], extra?: string[]): string[];
+export function vitestArgs(changed: string[], sources: string[], extra?: string[]): string[];

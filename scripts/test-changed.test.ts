@@ -142,12 +142,16 @@ describe("report", () => {
 });
 
 describe("vitestArgs", () => {
-  it("runs the changed tests with coverage of the changed sources alone, reported even when a test fails", () => {
-    expect(vitestArgs(["lib/a.ts", "proxy.ts"], ["--project", "node"])).toEqual([
+  it("runs the tests the changed files reach, with coverage of the changed sources alone, reported even when a test fails", () => {
+    expect(
+      vitestArgs(["lib/a.ts", "lib/a.test.ts", "proxy.ts"], ["lib/a.ts", "proxy.ts"], ["--project", "node"]),
+    ).toEqual([
       "vitest",
-      "run",
-      "--changed",
-      "origin/main",
+      "related",
+      "--run",
+      "lib/a.ts",
+      "lib/a.test.ts",
+      "proxy.ts",
       "--coverage",
       "--coverage.reportOnFailure",
       "--coverage.include=lib/a.ts",
@@ -160,6 +164,6 @@ describe("vitestArgs", () => {
   });
 
   it("runs them without coverage when no changed file is in the report", () => {
-    expect(vitestArgs([])).toEqual(["vitest", "run", "--changed", "origin/main"]);
+    expect(vitestArgs(["README.md"], [])).toEqual(["vitest", "related", "--run", "README.md"]);
   });
 });

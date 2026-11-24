@@ -7,10 +7,12 @@
 //   npm run test:changed               both Vitest projects
 //   npm run test:changed -- --project node   anything after -- goes to Vitest
 //
-// Vitest's --changed picks the tests: those that import a changed file, and
-// changed test files. A run with a failing test still gets the coverage
-// report. Exits as Vitest did: non-zero if a test failed or a changed file
-// is under 100%.
+// `vitest related` picks the tests from the changed files, as --changed
+// would: those that import a changed file, and changed test files. The
+// files come from changedFiles, so Vitest never runs git: its git is the one
+// beside Node, which may be too old for this repository's worktrees. A run
+// with a failing test still gets the coverage report. Exits as Vitest did:
+// non-zero if a test failed or a changed file is under 100%.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join, matchesGlob, relative } from "node:path";
@@ -18,7 +20,7 @@ import { basename, join, matchesGlob, relative } from "node:path";
 const BASE = "origin/main";
 const REPORTS = join("tmp", "coverage-changed");
 
-/** The files changed since `base`, as Vitest's --changed finds them: committed, staged, modified and new. */
+/** The files changed since `base`, committed, staged, modified and new, as Vitest's --changed finds them. */
 export function changedFiles(base = BASE, git = (args) => execFileSync("git", args, { encoding: "utf8" })) {
   const lists = [
     ["diff", "--name-only", `${base}...HEAD`],
@@ -108,8 +110,8 @@ export function report(sources, coverage, root) {
     .join("\n");
 }
 
-/** The Vitest arguments: the changed tests, coverage of `sources` alone, kept apart from `npm test`'s report. */
-export function vitestArgs(sources, extra = []) {
+/** The Vitest arguments: the tests `changed` reaches, coverage of `sources` alone, kept apart from `npm test`'s report. */
+export function vitestArgs(changed, sources, extra = []) {
   const coverage =
     sources.length === 0
       ? []
@@ -120,7 +122,7 @@ export function vitestArgs(sources, extra = []) {
           "--coverage.reporter=json",
           `--coverage.reportsDirectory=${REPORTS}`,
         ];
-  return ["vitest", "run", "--changed", BASE, ...coverage, ...extra];
+  return ["vitest", "related", "--run", ...changed, ...coverage, ...extra];
 }
 
 async function main() {
@@ -131,7 +133,7 @@ async function main() {
   }
   const { default: config } = await import("../vitest.config.mts");
   const sources = sourcesToCover(changed, config.test.coverage);
-  const vitest = spawnSync("npx", vitestArgs(sources, process.argv.slice(2)), { stdio: "inherit" });
+  const vitest = spawnSync("npx", vitestArgs(changed, sources, process.argv.slice(2)), { stdio: "inherit" });
   console.log(`\nCoverage of the source files changed since ${BASE}:`);
   const written = join(REPORTS, "coverage-final.json");
   if (sources.length === 0) console.log("none of the changed files is in the coverage report.");

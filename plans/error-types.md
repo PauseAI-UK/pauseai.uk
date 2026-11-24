@@ -68,9 +68,6 @@ its code.
 
 **How the work went, to save finding out again:**
 
-- `npm run test:changed` stops at once in a worktree
-  (`investments/test-changed-in-worktrees.md`). Use
-  `npm run gate -- --only test`.
 - A change to `problems.server.ts` or anything every flow reaches runs
   every flow in the gate: about 20 minutes. Run the affected test files
   by hand while working, and the gate at the end.
