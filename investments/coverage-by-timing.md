@@ -12,4 +12,4 @@ A check, run nightly or from the gate on demand, that runs the node project's te
 
 ## Hits
 
-- 2026-11-14: `lib/server/db.ts`'s flow pool closing after `closeDb()` was reached only if its one-second idle timer hadn't fired first, which failed coverage on #336, ~30 min
+- 2026-11-14: `lib/server/db.server.ts`'s flow pool closing after `closeDb()` was reached only if its one-second idle timer hadn't fired first, which failed coverage on #336, ~30 min

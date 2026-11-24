@@ -4,7 +4,7 @@ Size: M. Kind: operations.
 
 ## Problem
 
-Luma, Airtable, Parliament, Postmark, Gmail and Stripe are faked from canned responses in `lib/server/fixtures/`. Nothing checks those fixtures against the live APIs, so if a service changes its format every test still passes, and production breaks.
+Luma, CiviCRM, Parliament, Postmark, Gmail, Stripe, WhatsApp and the other outside services are faked in fixture builds (`lib/server/fixtures/fakes/`), from canned responses in `lib/server/fixtures/`. Nothing checks those fixtures against the live APIs, so if a service changes its format every test still passes, and production breaks.
 
 ## Fix
 
