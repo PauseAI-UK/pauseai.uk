@@ -14,7 +14,7 @@ const compact = CSS.slice(CSS.indexOf('[data-density="compact"] {'));
 describe("the gallery's tokens", () => {
   it("are every token tokens.css defines, each listed once", () => {
     const listed = [...COLOUR_TOKENS, ...SPACE_TOKENS, ...TEXT_TOKENS, ...RADIUS_TOKENS, ...DENSITY_TOKENS];
-    const others = ["--measure-page", "--measure-wide", "--focus-ring", "--focus-offset"];
+    const others = ["--font-text", "--measure-page", "--measure-wide", "--focus-ring", "--focus-offset"];
     const colourChannels = root.filter((name) => name.endsWith("-rgb"));
     expect([...listed, ...others, ...colourChannels].sort()).toEqual([...root].sort());
   });

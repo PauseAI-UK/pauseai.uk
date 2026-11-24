@@ -105,12 +105,16 @@ Everything is warm-toned, with no blue-greys or cool neutrals.
 
 ```
 Headings (h1, h2): Lato, weight 900 (700 for the page hero's title), via --font-display
-Body and the rest: Inter, weight 400/500, self-hosted (public/fonts)
+Body and the rest: Inter, weight 400/500, self-hosted (public/fonts), via --font-text
 Accent labels:     Inter, weight 600, uppercase, tracked
 ```
 
 Lato is bold and plain, commanding at heavy weights. Inter is clean and
 legible at small sizes, and strong enough for subheadings.
+
+`--font-text` is Inter with a stand-in sized to it (`styles/tokens.css`),
+so a page keeps its length when Inter arrives after the page. A rule that
+sets the text font uses it; Stylelint refuses `Inter` named anywhere else.
 
 ### Type scale
 

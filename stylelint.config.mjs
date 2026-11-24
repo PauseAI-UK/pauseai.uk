@@ -6,8 +6,13 @@ const RAW_COLOURS = { "/.*/": ["/\\b(rgb|hsl)a?\\(\\s*[\\d.]/"] };
 // (--space-*, --text-*, --radius-*, and the density's), so a component
 // can't quietly ignore the density or drift off the scale.
 const RAW_SIZES = { "/^(margin|padding|gap|row-gap|column-gap|font-size|border-radius)/": ["/\\d(px|rem)\\b/"] };
+// The text font is --font-text, which brings Inter's stand-in with it, sized
+// so a page keeps its length when Inter arrives. A rule that names Inter
+// itself leaves the stand-in out.
+const RAW_FONTS = { "font-family": ["/\\bInter\\b/"] };
 const MESSAGE = {
-  message: "Colours, and in components/ui/ spacing, type sizes and corners, are tokens: use one from styles/tokens.css",
+  message:
+    "Colours, the text font (--font-text), and in components/ui/ spacing, type sizes and corners, are tokens: use one from styles/tokens.css",
 };
 
 // The ui kit's stylesheets whose sizes aren't tokens yet. Take a file off
@@ -73,7 +78,7 @@ const config = {
     "selector-pseudo-class-no-unknown": [true, { ignorePseudoClasses: ["global"] }],
     "color-no-hex": true,
     "color-named": "never",
-    "declaration-property-value-disallowed-list": [RAW_COLOURS, MESSAGE],
+    "declaration-property-value-disallowed-list": [{ ...RAW_COLOURS, ...RAW_FONTS }, MESSAGE],
     // Lining something up beside words goes wrong quietly: a nudge of a pixel
     // or two holds at one font size only, and one keyword everywhere is
     // right for some and wrong for others (middle centres on lowercase
@@ -108,11 +113,13 @@ const config = {
     },
     {
       files: ["components/ui/**/*.css"],
-      rules: { "declaration-property-value-disallowed-list": [{ ...RAW_COLOURS, ...RAW_SIZES }, MESSAGE] },
+      rules: {
+        "declaration-property-value-disallowed-list": [{ ...RAW_COLOURS, ...RAW_FONTS, ...RAW_SIZES }, MESSAGE],
+      },
     },
     {
       files: UNCONVERTED_UI_SIZES,
-      rules: { "declaration-property-value-disallowed-list": [RAW_COLOURS, MESSAGE] },
+      rules: { "declaration-property-value-disallowed-list": [{ ...RAW_COLOURS, ...RAW_FONTS }, MESSAGE] },
     },
     {
       files: ["styles/tokens.css"],
