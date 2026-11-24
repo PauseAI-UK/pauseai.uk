@@ -27,6 +27,13 @@ describe("lumaList", () => {
     expect(new URL(request!.url).searchParams.get("a")).toBe("1");
   });
 
+  it("throws an OutsideFailure for an answer that's ok but isn't JSON, as Luma failing", async () => {
+    server.use(http.get(LIST, () => new HttpResponse("<html>Bad gateway</html>", { status: 200 })));
+    const thrown = await lumaList("/v1/things/list", new URLSearchParams()).catch((error: unknown) => error);
+    expect(thrown).toBeInstanceOf(OutsideFailure);
+    expect(thrown).toMatchObject({ service: "luma", kind: "refused", status: 200 });
+  });
+
   it("gives no cursor on the last page, or when has_more comes without one, and no rate limit without the header", async () => {
     server.use(http.get(LIST, () => HttpResponse.json({ has_more: true })));
     expect(await lumaList("/v1/things/list", new URLSearchParams())).toEqual({
@@ -93,6 +100,13 @@ describe("lumaPost", () => {
     await expect(lumaPost("/v1/things/do", { a: 1 })).resolves.toEqual({ done: true });
     expect(sent).toEqual({ a: 1 });
     expect(key).toBeTruthy();
+  });
+
+  it("throws an OutsideFailure for an answer that's ok but isn't JSON, as Luma failing", async () => {
+    server.use(http.post(POST, () => new HttpResponse("<html>Bad gateway</html>", { status: 200 })));
+    const thrown = await lumaPost("/v1/things/do", {}).catch((error: unknown) => error);
+    expect(thrown).toBeInstanceOf(OutsideFailure);
+    expect(thrown).toMatchObject({ service: "luma", kind: "refused", status: 200 });
   });
 
   it("throws on a 429, with Luma's retry-after or a minute, on any other refusal, and without the key", async () => {

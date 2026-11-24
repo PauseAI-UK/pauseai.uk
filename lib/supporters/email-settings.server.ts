@@ -42,6 +42,7 @@ import {
   type CalendarOptOut,
   type OptOutSource,
 } from "./opt-outs.server";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import { removeCalendarContact } from "@/lib/server/outside-services/luma-calendar.server";
 import { randomId } from "@/lib/server/random-id.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
@@ -310,17 +311,13 @@ const mayChangeLuma = (): boolean => config.production || config.fixtures;
 /**
  * Takes the address off our Luma calendar, if this build may, for the full
  * pass over the calendar's contacts, which still lists it (stillOnCalendar).
- * A failure is reported, not thrown: on the pass's run, as the person is still
- * on the calendar, though Luma failed to take them off when they opted out
- * too.
+ * Luma failing is reported, not thrown: on the pass's run, as the person is
+ * still on the calendar, though Luma failed to take them off when they opted
+ * out too.
  */
 export async function offCalendar(address: string): Promise<void> {
   if (!mayChangeLuma()) return;
-  try {
-    await removeCalendarContact(address);
-  } catch (error) {
-    problem(supporterProblems.lumaRemoveFailed(), error);
-  }
+  await orFallback(supporterProblems.lumaRemoveFailed(), undefined, () => removeCalendarContact(address));
 }
 
 /**

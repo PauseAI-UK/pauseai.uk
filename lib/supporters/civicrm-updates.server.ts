@@ -7,6 +7,7 @@ import {
   type SubscriptionEvent,
   type SubscriptionResult,
 } from "@/lib/server/outside-services/civicrm.server";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import { problem } from "@/lib/server/problems.server";
 import { supporterProblems } from "./copy";
 
@@ -185,11 +186,10 @@ export async function sendCivicrmUpdates(key: string): Promise<CivicrmUpdatesRes
   let skipped = 0;
   for (let start = 0; start < waiting.length; start += UPDATE_BATCH) {
     const batch = waiting.slice(start, start + UPDATE_BATCH);
-    let results: Map<string, SubscriptionResult>;
-    try {
-      results = await updateSubscriptions(key, batch.map(eventOf));
-    } catch (error) {
-      problem(supporterProblems.civicrmUpdatesFailed(), error);
+    const results = await orFallback(supporterProblems.civicrmUpdatesFailed(), undefined, () =>
+      updateSubscriptions(key, batch.map(eventOf)),
+    );
+    if (!results) {
       counts.unanswered += waiting.length - start;
       break;
     }

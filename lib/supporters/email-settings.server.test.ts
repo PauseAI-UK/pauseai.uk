@@ -14,6 +14,7 @@ import {
   linkPage,
   newNumberLink,
   newSettingsLink,
+  offCalendar,
   openAddress,
   resendLink,
   saveSettings,
@@ -29,6 +30,14 @@ import { inRun } from "@/lib/server/run-store.server";
 import { LUMA_CHOICE, LUMA_OFFERED, settingsTopics } from "./settings-view";
 import { supporterProblems } from "./copy";
 import { emailProblems } from "@/lib/email/copy";
+
+// Luma's binding as it is, with taking a contact off the calendar stood in for, so one test can have it throw what Luma never would.
+const { removesContact } = vi.hoisted(() => ({ removesContact: vi.fn() }));
+vi.mock("@/lib/server/outside-services/luma-calendar.server", async (original) => {
+  const real = await original<typeof import("@/lib/server/outside-services/luma-calendar.server")>();
+  removesContact.mockImplementation(real.removeCalendarContact);
+  return { ...real, removeCalendarContact: removesContact };
+});
 
 const JANE = "jane.smith@example.com";
 const REMOVE = "https://public-api.luma.com/v1/calendars/contacts/remove";
@@ -345,6 +354,36 @@ describeWithDatabase("the contact preferences page", () => {
       { address: JANE, list: "newsletter", way: "email", source: "preferences", open: true },
       { address: JANE, list: "events", way: "email", source: "preferences", open: true },
     ]);
+  });
+
+  it("reports Luma failing to take someone off the calendar on the pass's run, and carries on", async () => {
+    vi.stubEnv("DEPLOY_CONTEXT", "production");
+    vi.stubEnv("LUMA_API_KEY", "k");
+    server.use(http.post(REMOVE, () => new HttpResponse("Down", { status: 500 })));
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const problems = await inRun(async (run) => {
+      await offCalendar(JANE);
+      return run.problems;
+    });
+    expect(problems).toEqual([
+      { ...supporterProblems.lumaRemoveFailed(), said: "Luma answered 500 for /v1/calendars/contacts/remove" },
+    ]);
+    error.mockRestore();
+  });
+
+  it("throws on anything else going wrong while taking someone off the calendar, which is a bug of ours, not Luma failing", async () => {
+    vi.stubEnv("DEPLOY_CONTEXT", "production");
+    vi.stubEnv("LUMA_API_KEY", "k");
+    const thrown = new TypeError("email is undefined");
+    removesContact.mockRejectedValueOnce(thrown);
+    let problems: unknown[] = [];
+    await expect(
+      inRun((run) => {
+        ({ problems } = run);
+        return offCalendar(JANE);
+      }),
+    ).rejects.toBe(thrown);
+    expect(problems).toEqual([]);
   });
 
   it("takes someone off our Luma calendar by its box, keeping Updates by email where it came only through Luma", async () => {

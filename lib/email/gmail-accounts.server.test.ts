@@ -19,6 +19,14 @@ import { decryptToken } from "./gmail-tokens.server";
 import { emailCopy, emailProblems } from "./copy";
 import { staffAccount } from "@/lib/problems";
 
+// Google's binding as it is, with revoking a token stood in for, so one test can have it throw what Google never would.
+const { revokes } = vi.hoisted(() => ({ revokes: vi.fn() }));
+vi.mock("@/lib/server/outside-services/gmail.server", async (original) => {
+  const real = await original<typeof import("@/lib/server/outside-services/gmail.server")>();
+  revokes.mockImplementation(real.revokeGmail);
+  return { ...real, revokeGmail: revokes };
+});
+
 const JO = "jo@pauseai.uk";
 const TOKEN = "https://oauth2.googleapis.com/token";
 const REVOKE = "https://oauth2.googleapis.com/revoke";
@@ -137,6 +145,16 @@ describeWithDatabase("connected Gmail accounts", () => {
         expect.any(String),
       ),
     );
+    expect(await gmailAccounts()).toEqual([]);
+  });
+
+  it("throws on anything else going wrong while telling Google, which is a bug of ours, not Google failing", async () => {
+    await connectTestGmail(JO);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const thrown = new TypeError("token is undefined");
+    revokes.mockRejectedValueOnce(thrown);
+    await expect(disconnectGmail(JO, JO)).rejects.toBe(thrown);
+    expect(error).not.toHaveBeenCalled();
     expect(await gmailAccounts()).toEqual([]);
   });
 
