@@ -3,11 +3,11 @@ import type { MailingChoice } from "@/lib/mailings/fields";
 import type { MailingRecipientValues } from "@/lib/mailings/doc";
 import { supportersSearch, type StoredFilter } from "@/lib/staff-search";
 import { firstNameOf, hasField, BROADCAST_FIELDS, registeredFor, wroteIn, type BroadcastTerms } from "./broadcasts";
-import type { Topic } from "@/lib/supporters/contact-permissions";
+import type { ContactPermission, Topic } from "@/lib/supporters/contact-permissions";
 import { staffDate } from "@/lib/staff-time";
 import type { SupporterRow } from "@/lib/supporters/supporters";
 import { query } from "@/lib/server/db.server";
-import { listSupporters, supporterChoices } from "@/lib/supporters/records.server";
+import { listSupporters, supporterChoices, supportersFoundBy } from "@/lib/supporters/records.server";
 import { supportersCopy } from "@/lib/supporters/copy";
 import { broadcastsCopy } from "./copy";
 
@@ -114,6 +114,21 @@ function recipientValues(row: SupporterRow, parts: string[]): MailingRecipientVa
   };
 }
 
+/** Which of someone's answers say yes to a broadcast on these terms. A text goes to a number that said yes by text, never by call. */
+function yesesFor(permissions: ContactPermission[], { channel, topics }: BroadcastTerms): ContactPermission[] {
+  return permissions.filter((one) => one.way === channel && topics.includes(one.topic) && one.send === "yes");
+}
+
+/**
+ * How many each broadcast goes to, as supporterAudience() counts them, in its
+ * order: for a list of broadcasts, which would otherwise find each one's
+ * recipients in turn. Two queries, however many broadcasts.
+ */
+export async function audienceSizes(broadcasts: { filter: StoredFilter; terms: BroadcastTerms }[]): Promise<number[]> {
+  const found = await supportersFoundBy(broadcasts.map(({ filter }) => supportersSearch(filter.params).filter));
+  return found.map((people, i) => people.filter((answers) => yesesFor(answers, broadcasts[i].terms).length).length);
+}
+
 /**
  * Who a broadcast with this filter, channel and topics goes to, and what its
  * words can use: those the filter finds with an address or number that said
@@ -128,10 +143,7 @@ export async function supporterAudience(filter: StoredFilter, terms: BroadcastTe
   const { topics } = terms;
   for (const row of supporters) {
     const name = row.name?.trim() || null;
-    // A text goes to a number that said yes by text, never by call.
-    const yeses = row.permissions.filter(
-      (one) => one.way === terms.channel && topics.includes(one.topic) && one.send === "yes",
-    );
+    const yeses = yesesFor(row.permissions, terms);
     if (!yeses.length) continue;
     // One copy each, to the newest of their addresses or numbers that said yes: the list has their numbers newest first.
     const newestFirst = terms.channel === "email" ? emails.get(row.id)! : row.phones;

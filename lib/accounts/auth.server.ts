@@ -7,6 +7,7 @@ import type { Permission } from "./permissions";
 import { KEEP_DAYS, loginPath, SESSION_COOKIE, SESSION_HOURS, STAFF_PATH_HEADER } from "./session";
 import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
+import { logTiming } from "@/lib/server/request-timing.server";
 import { accountOnLogin } from "./staff-accounts.server";
 
 // Staff sessions, kept in the database. Every staff page, Server Action and
@@ -132,10 +133,12 @@ const STAFF_HOME = "/staff";
  * without the permission the page needs, to the staff home.
  */
 export async function requireStaff(needs: StaffNeeds = "account"): Promise<Staff> {
+  const asked = await headers();
+  logTiming(`${asked.get(STAFF_PATH_HEADER)}${asked.has("next-action") ? " (a button)" : ""}`);
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   const session = token ? await sessionOf(token) : undefined;
   const permissions = session?.permissions;
-  if (!token || !session || !permissions) redirect(loginPath((await headers()).get(STAFF_PATH_HEADER) ?? undefined));
+  if (!token || !session || !permissions) redirect(loginPath(asked.get(STAFF_PATH_HEADER) ?? undefined));
   if (needs !== "account" && !permissions.includes(needs)) redirect(STAFF_HOME);
   return { email: session.email, token, permissions, sessions: session.sessions };
 }

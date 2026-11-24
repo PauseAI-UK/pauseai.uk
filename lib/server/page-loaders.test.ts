@@ -7,6 +7,8 @@ import { getCampaignSummary } from "@/lib/mailings/campaigns.server";
 import { query } from "./db.server";
 import { getPauseaiLetter, getSupporterLetter } from "@/lib/letters/records.server";
 import { getPolitician, listParties } from "@/lib/politicians/records.server";
+import { politicianAliases } from "@/lib/politicians/aliases.server";
+import { politicianBook } from "@/lib/letters/book.server";
 import { savedFiltersState } from "./saved-filters.server";
 import { eventsPage } from "@/lib/events/staff-events.server";
 import { getSupporter, supporterChoices } from "@/lib/supporters/records.server";
@@ -56,5 +58,16 @@ describeWithDatabase("the staff pages' loaders", () => {
     newRequest();
     await load();
     expect(queries() - before).toBe(2 * once);
+  });
+
+  it("reads the politician book once a request, for a politician's correspondence and aliases both", async () => {
+    await politicianBook();
+    const before = queries();
+    await politicianAliases({ id: 1, name: "Jane Smith", house: "commons", constituency: null, email: null });
+    const asked = vi
+      .mocked(query)
+      .mock.calls.slice(before)
+      .map(([statement]) => String(statement));
+    expect(asked.filter((sql) => sql.includes("FROM politician_domains") && !sql.includes("WHERE"))).toEqual([]);
   });
 });

@@ -34,7 +34,7 @@ import {
   type WhatsAppTemplate,
   type WrittenBroadcast,
 } from "./drafts.server";
-import { broadcastChoices, broadcastParts, supporterAudience } from "./recipients.server";
+import { audienceSizes, broadcastChoices, broadcastParts, supporterAudience } from "./recipients.server";
 import type { MailingBase } from "@/lib/mailings/records.server";
 import { howOptedOutFrom, optedOutFrom } from "@/lib/supporters/opt-outs.server";
 import { checkStoredFilter, filterProblems } from "@/lib/server/stored-filters.server";
@@ -240,16 +240,16 @@ export async function broadcastsPage(): Promise<{ groups: MailingGroup<Broadcast
        ORDER BY min(c.sent_at) DESC NULLS FIRST, m.id DESC`,
     ),
   ]);
-  const [counted, all] = await Promise.all([
-    Promise.all(
-      unsent.map(async ({ filter, topics, ...broadcast }) => ({
-        ...(await withPause(broadcast)),
-        to: (await supporterAudience(checkStoredFilter(filter)!, { channel: broadcast.channel, topics })).recipients
-          .length,
-      })),
-    ),
+  const drafts = unsent.map(({ filter, topics, ...broadcast }) => ({
+    broadcast,
+    audience: { filter: checkStoredFilter(filter)!, terms: { channel: broadcast.channel, topics } },
+  }));
+  const [sizes, paused, all] = await Promise.all([
+    audienceSizes(drafts.map(({ audience }) => audience)),
+    Promise.all(drafts.map(({ broadcast }) => withPause(broadcast))),
     Promise.all(rows.map(withPause)),
   ]);
+  const counted = paused.map((broadcast, i) => ({ ...broadcast, to: sizes[i] }));
   const at = now();
   return {
     groups: mailingGroups(

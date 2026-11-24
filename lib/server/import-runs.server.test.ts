@@ -3,14 +3,17 @@ import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications } from "@/tests/notifications";
 import { query } from "./db.server";
 import { defineProblems } from "@/lib/problems";
+import { IMPORT_JOBS } from "@/lib/import-runs";
 import { OutsideFailure } from "./outside-services/outside-failure.server";
 import { problem } from "./problems.server";
 import {
   asRun,
   latestRun,
+  latestRuns,
   listRuns,
   recordFailure,
   recordRun,
+  runningJobs,
   runningNow,
   startRunning,
   stopRunning,
@@ -293,6 +296,12 @@ describeWithDatabase("the import log", () => {
     expect(await latestRun("import-parliament")).toMatchObject({ id });
     expect(await latestRun("import-senedd")).toMatchObject({ error: "not an Error" });
     expect(await latestRun("import-controlai")).toBeUndefined();
+
+    const newest = await latestRuns();
+    expect(newest).toHaveLength(IMPORT_JOBS.length);
+    expect(newest[IMPORT_JOBS.indexOf("import-parliament")]).toMatchObject({ id });
+    expect(newest[IMPORT_JOBS.indexOf("import-senedd")]).toMatchObject({ error: "not an Error" });
+    expect(newest[IMPORT_JOBS.indexOf("import-controlai")]).toBeUndefined();
   });
 
   it("throws on, emailing nobody, when a run can't be kept at all", async () => {
@@ -325,5 +334,15 @@ describeWithDatabase("the import log", () => {
     await query("UPDATE job_presses SET started_at = now() - interval '6 minutes' WHERE job = 'tidy-logs'");
     expect(await runningNow("tidy-logs")).toBeUndefined();
     expect(await startRunning("tidy-logs", "jo@pauseai.uk")).toBe(true);
+  });
+
+  it("says every job's run going now in one list, in the jobs' order", async () => {
+    await startRunning("tidy-logs", "nightly");
+    await startRunning("import-parliament", "sam@pauseai.uk");
+    await query("UPDATE job_presses SET started_at = now() - interval '6 minutes' WHERE job = 'import-parliament'");
+    const running = await runningJobs();
+    expect(running).toHaveLength(IMPORT_JOBS.length);
+    expect(running[IMPORT_JOBS.indexOf("tidy-logs")]).toEqual({ startedBy: "nightly", startedAt: expect.any(Date) });
+    expect(running[IMPORT_JOBS.indexOf("import-parliament")]).toBeUndefined();
   });
 });
