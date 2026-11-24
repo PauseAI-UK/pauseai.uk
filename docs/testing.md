@@ -649,7 +649,7 @@ compares any frame with main's: the two should look the same. The six are
 chosen by a hash of main's tree and the flow, so every review of a branch
 checks the same ones, whose frames on main are kept after the first, and
 a branch from another commit of main checks others. They're on the page
-with the rest. A gallery flow the review would picture in part can be one:
+with the rest, each marked "spot check" (`spot` in `storyboard.json`). A gallery flow the review would picture in part can be one:
 it's then run whole, and the frames it would have carried compared with
 what they'd have been carried from. A flow main hasn't passed isn't
 checked. It checks even when the change reaches no flow, unless nothing

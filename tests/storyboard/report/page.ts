@@ -283,6 +283,8 @@ function render() {
       const h4 = el("h4", { class: flow.status !== "passed" ? "failed" : "" }, marked(flow.flow, terms));
       // Carried from an earlier, fuller run by a partial one (scripts/storyboard.mjs).
       if (flow.shotAt && flow.shotAt !== newestShot) h4.append(el("span", { class: "shot" }, ["shot " + shotTime(flow.shotAt)]));
+      // Run only to check it looks as main's does: the change doesn't reach it (scripts/storyboard.mjs, spotKeys).
+      if (flow.spot) h4.append(el("span", { class: "shot" }, ["spot check"]));
       if (flow.status !== "passed") h4.append(el("span", { class: "status" }, [flow.status]));
       else if (mainMissing(flow)) h4.append(el("span", { class: "status" }, ["main: " + (flow.mainMissing === "failed" ? flow.mainStatus : "not run")]));
       const div = el("div", { class: "flow", id: flowId, "data-section": id }, [h4]);

@@ -1037,6 +1037,14 @@ if (reached && fromStore) {
 }
 pruneStore(STORE, TREES_KEEP);
 
+// The spot checks marked for the page, after the store has kept the flows: being one is this review's, not the flow's.
+if (spot.length > 0 && existsSync(branchFrames)) {
+  const spotted = new Set(spot);
+  const manifest = readJson(branchFrames);
+  for (const run of manifest.frames) if (spotted.has(flowKey(run))) run.spot = true;
+  writeJson(branchFrames, manifest);
+}
+
 if (existsSync(branchFrames)) {
   const { summary, withMain } = await writeStoryboard(runDir);
   console.log(
