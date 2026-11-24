@@ -6,6 +6,7 @@
 // app/(staff)/staff/_components/letters/copy.ts.
 import { count, plural } from "@/lib/content/plural";
 import { emailCopy } from "@/lib/email/copy";
+import { defineProblems, type SafeText } from "@/lib/problems";
 
 export const lettersCopy = {
   letters: {
@@ -377,21 +378,6 @@ export const lettersCopy = {
       "not-sent:no-email": "Not sent: no email address",
     } as Record<string, string>,
   },
-  // What went wrong without stopping the work (lib/server/problems.server.ts). Each can happen in a job or not:
-  // in a job, staff see it on the job's page and in the email; not in one, it's kept as an error
-  // (lib/oversight/errors-seen.server.ts), on the errors page and emailed to staff.
-  problems: {
-    // Something went wrong sending a queued letter. It's back in the queue, and the writer is told it's on its way.
-    letterNotSent: (id: number) => `Letter ${id} couldn't be sent, so it's gone back in the queue`,
-    // What a problem names a letter as, a supporter's copy of one, and a relay.
-    letterOf: (id: number) => `Letter ${id}`,
-    letterCopyOf: (id: number) => `The supporter's copy of letter ${id}`,
-    relayOf: (id: number) => `Relay ${id}`,
-    // On a job's run, so on its page and in the email: something the job carried on past. The Gmail read, for a
-    // one-off thread's other messages, where they're tried with each new one: messages Gmail wouldn't give, by ID,
-    // which follow.
-    unreadable: "Messages that Gmail has but refused to give us:",
-  },
   // The email staff get when a letter hard-bounces or is complained about (lib/letters/bounces.server.ts).
   // Postmark's reason sometimes ends in a full stop and sometimes doesn't.
   alert: {
@@ -424,3 +410,23 @@ export const lettersCopy = {
     },
   },
 };
+
+// What went wrong without stopping the work (lib/problems.ts). Each can happen in a job or not: in a job, staff see
+// it on the job's page and in the email; not in one, it's kept as an error (lib/oversight/errors-seen.server.ts), on
+// the errors page and emailed to staff.
+export const letterProblems = defineProblems("letters", {
+  // Something went wrong sending a queued letter. It's back in the queue, and the writer is told it's on its way.
+  letterNotSent: (p: { letter: number }) => `Letter ${p.letter} couldn't be sent, so it's gone back in the queue`,
+  // A letter, a supporter's copy of one, or a relay: it went, but recording that failed; or, for a copy or a relay,
+  // something went wrong before it went.
+  letterSentUnrecorded: (p: { letter: number }) => emailCopy.problems.sentUnrecorded(`Letter ${p.letter}`),
+  copyNotSentYet: (p: { letter: number }) =>
+    emailCopy.problems.notSentYet(`The supporter's copy of letter ${p.letter}`),
+  copySentUnrecorded: (p: { letter: number }) =>
+    emailCopy.problems.sentUnrecorded(`The supporter's copy of letter ${p.letter}`),
+  relayNotSentYet: (p: { relay: number }) => emailCopy.problems.notSentYet(`Relay ${p.relay}`),
+  relaySentUnrecorded: (p: { relay: number }) => emailCopy.problems.sentUnrecorded(`Relay ${p.relay}`),
+  // On a job's run, so on its page and in the email: something the job carried on past. The Gmail read, for a
+  // one-off thread's other messages, where they're tried with each new one: a message Gmail wouldn't give, by ID.
+  unreadable: (p: { message: SafeText }) => `Messages that Gmail has but refused to give us: ${p.message}`,
+});

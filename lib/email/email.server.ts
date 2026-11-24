@@ -13,7 +13,7 @@ import {
 } from "@/lib/server/outside-services/postmark.server";
 import { now } from "@/lib/now";
 import { plainAsHtml } from "./plain-email-html";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { emailCopy } from "./copy";
 
 // Every email the site sends goes through sendWith(), whatever it's for:
@@ -312,7 +312,7 @@ export async function sendWith(
       await log("failed");
       return { sent: false, reason: "failed", detail: error.message };
     }
-    problem(
+    problemInWords(
       emailCopy.problems.sendFailed(error instanceof GmailError ? `${purpose}, by Gmail as ${from}` : purpose),
       error,
     );
@@ -332,7 +332,7 @@ export async function sendWith(
   }
   // It went: a failure to log it is reported, never thrown, so no caller takes it for one that didn't.
   await log("sent", id, threadId).catch((error: unknown) =>
-    problem(emailCopy.problems.sentUnrecorded(`An email of type '${purpose}' to ${address}`), error),
+    problemInWords(emailCopy.problems.sentUnrecorded(`An email of type '${purpose}' to ${address}`), error),
   );
   return { sent: true, id, messageId: rfcId, threadId, backend };
 }

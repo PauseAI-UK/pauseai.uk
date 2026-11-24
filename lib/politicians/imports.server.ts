@@ -39,7 +39,7 @@ import {
 import { parliamentEndings, parliamentMembersNow } from "@/lib/server/outside-services/parliament.server";
 import { memberHonours, mspPeople, seneddPeople } from "@/lib/server/outside-services/wikidata.server";
 import { addPolitician } from "./records.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { politiciansCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
 
@@ -133,7 +133,7 @@ async function withSalutations(
   try {
     people = await lookUp(need);
   } catch (error) {
-    problem(politiciansCopy.politicianImports.genderLookupFailed, error);
+    problemInWords(politiciansCopy.politicianImports.genderLookupFailed, error);
     return members;
   }
   return members.map((m) => {
@@ -161,7 +161,7 @@ async function honoursOf(body: Body, members: OfficialMember[]): Promise<Map<num
       members.filter((m) => m.house !== "lords").map((m) => m.officialId),
     );
   } catch (error) {
-    problem(politiciansCopy.politicianImports.honourLookupFailed, error);
+    problemInWords(politiciansCopy.politicianImports.honourLookupFailed, error);
     return new Map();
   }
 }
@@ -339,7 +339,7 @@ async function checkSeats(): Promise<string[]> {
   );
   const held = new Map(rows.map((row) => [row.constituency, row.mps]));
   const doubled = rows.filter((row) => row.mps > 1).map((row) => row.constituency);
-  if (doubled.length > 0) problem(politiciansCopy.politicianImports.twoMps, doubled.join(", "));
+  if (doubled.length > 0) problemInWords(politiciansCopy.politicianImports.twoMps, doubled.join(", "));
   return Object.values(constituencies)
     .filter((name) => !held.has(name))
     .sort((a, b) => a.localeCompare(b, "en-GB"));
@@ -370,13 +370,15 @@ export async function importPoliticians(body: Body, startedBy: string): Promise<
       const ours = await bodyPoliticians(body, db);
       const { pairs, ...changes } = compareMembers(ours, members, endings);
       for (const kept of keptSalutations(pairs)) {
-        problem(politiciansCopy.politicianImports.keptSalutation(kept.name, kept.ours, body, kept.theirs));
+        problemInWords(politiciansCopy.politicianImports.keptSalutation(kept.name, kept.ours, body, kept.theirs));
       }
       for (const slip of misspeltSalutations(pairs, changes.added)) {
-        problem(politiciansCopy.politicianImports.misspeltSalutation(slip.name, slip.salutation));
+        problemInWords(politiciansCopy.politicianImports.misspeltSalutation(slip.name, slip.salutation));
       }
       for (const missing of missingHonours(pairs, changes.added, honours)) {
-        problem(politiciansCopy.politicianImports.missingHonour(missing.name, missing.salutation, missing.honour));
+        problemInWords(
+          politiciansCopy.politicianImports.missingHonour(missing.name, missing.salutation, missing.honour),
+        );
       }
       // The very first import of a body fills it from nothing, so there's nothing to check it against.
       const held = ours.length > 0 && holdsImport(changes);

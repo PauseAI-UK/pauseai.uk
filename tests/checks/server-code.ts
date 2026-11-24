@@ -12,7 +12,8 @@ import { featureLibFolders } from "../../eslint.config.mjs";
 const ROOT = join(__dirname, "..", "..");
 const DIRS = ["lib/server", ...featureLibFolders(), "netlify/functions"];
 
-function codeFiles(dir: string): string[] {
+/** Every .ts and .tsx file under `dir` that isn't a test. */
+export function codeFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return codeFiles(path);
@@ -35,6 +36,13 @@ export function serverSources(): ts.SourceFile[] {
       .filter(([file, text]) => isAppServerFile(file, text)),
   ];
   return files.map(([file, text]) => parse(file, text));
+}
+
+/** Every file of the site's code, the browser's too, parsed, named by its path from the repo's root. */
+export function siteSources(): ts.SourceFile[] {
+  return ["app", "components", "lib", "netlify/functions"]
+    .flatMap((dir) => codeFiles(join(ROOT, dir)))
+    .map((path) => parse(relative(ROOT, path), readFileSync(path, "utf8")));
 }
 
 export function parse(file: string, text: string): ts.SourceFile {

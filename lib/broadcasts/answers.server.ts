@@ -7,7 +7,7 @@ import { gmailRawMessage, type GmailMessageHeaders } from "@/lib/server/outside-
 import { messageIds } from "@/lib/email-parsing/mime.server";
 import { randomUUID } from "node:crypto";
 import { logChange } from "@/lib/server/audit.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { broadcastsCopy } from "./copy";
 import { now } from "@/lib/now";
 import { textBackend } from "./channels.server";
@@ -340,7 +340,7 @@ export async function answerReply(replyId: number, draftId: string, body: unknow
   } catch (error) {
     // Nothing went (send never throws after it has): gone, so it can be sent again.
     await query("DELETE FROM broadcast_answers WHERE id = $1", [answer.id]);
-    problem(words.notSentYet(broadcastsCopy.problems.answerTo(replyId)), error);
+    problemInWords(words.notSentYet(broadcastsCopy.problems.answerTo(replyId)), error);
     return { sent: false, reason: "failed" };
   }
   if (!result.sent) {
@@ -368,7 +368,7 @@ export async function answerReply(replyId: number, draftId: string, body: unknow
     });
   } catch (error) {
     // It went: left sending, as its page says, never sent twice.
-    problem(words.sentUnrecorded(broadcastsCopy.problems.answerTo(replyId)), error);
+    problemInWords(words.sentUnrecorded(broadcastsCopy.problems.answerTo(replyId)), error);
   }
   return { sent: true };
 }

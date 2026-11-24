@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { type LumaWebhook, recordLumaWebhook, signedByLuma } from "@/lib/events/luma-webhooks.server";
-import { note, problem } from "@/lib/server/problems.server";
+import { note, problemInWords } from "@/lib/server/problems.server";
 import { parseJsonIfAny } from "@/lib/server/json.server";
 import { eventsCopy } from "@/lib/events/copy";
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     note(`Luma webhook ${webhookId}, ${payload.type}: ${recorded ? "recorded" : "nothing to record"}`);
     return NextResponse.json({ recorded });
   } catch (error) {
-    problem(eventsCopy.problems.webhookNotRecorded, error);
+    problemInWords(eventsCopy.problems.webhookNotRecorded, error);
     return NextResponse.json({ error: "Not recorded" }, { status: 500 });
   }
 }

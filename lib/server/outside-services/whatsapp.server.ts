@@ -1,7 +1,7 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { parseJsonIfAny } from "../json.server";
-import { problem } from "../problems.server";
+import { problemInWords } from "../problems.server";
 import { GRAPH_VERSION } from "./graph-api";
 import { outsideFetch } from "./outside-fetch.server";
 import { serverCopy } from "@/lib/server/copy";
@@ -101,7 +101,7 @@ async function messagingLimit(keys: WhatsAppKeys, numberId: string): Promise<str
       ? data.whatsapp_business_manager_messaging_limit
       : "";
   } catch (error) {
-    problem(serverCopy.problems.anywhere.whatsAppLimitUnknown, error);
+    problemInWords(serverCopy.problems.anywhere.whatsAppLimitUnknown, error);
     return "";
   }
 }

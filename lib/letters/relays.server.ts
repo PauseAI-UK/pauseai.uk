@@ -19,11 +19,10 @@ import { letterEvent, transition } from "./lifecycle.server";
 import { isLettersInboxAddress } from "./letters-inbox.server";
 import { relayMime } from "@/lib/server/mime.server";
 import { letterReply } from "@/lib/server/outside-services/blobs.server";
-import { problem } from "@/lib/server/problems.server";
-import { lettersCopy } from "./copy";
+import { letterProblems } from "./copy";
 import { mpName, proxyLine } from "./proxies.server";
 import { nameLine } from "@/lib/server/outside-services/postmark.server";
-import { emailCopy } from "@/lib/email/copy";
+import { sendWithCare } from "@/lib/email/send-with-care.server";
 
 // Relays: each message the MP's office or the supporter sends through a
 // proxy, kept whole (letter_replies), sent on to the other side from the
@@ -95,38 +94,43 @@ export async function sendRelay(relayId: number): Promise<{ sent: boolean; reaso
     [relayId],
   );
   if (!relay) return { sent: false };
-  const words = emailCopy.problems;
-  let sent: Awaited<ReturnType<typeof sendTakenRelay>>;
-  try {
-    sent = await sendTakenRelay(relayId, relay);
-  } catch (error) {
-    // Nothing went (send never throws after it has): back in the queue, to go next run.
-    await setStatus(relayId, "queued", "failed");
-    problem(words.notSentYet(lettersCopy.problems.relayOf(relayId)), error);
-    return { sent: false, reason: "failed" };
-  }
-  if (!("result" in sent)) return sent;
-  const { result, from, to } = sent;
-  try {
-    await query(
-      "UPDATE letter_relays SET status = 'sent', reason = NULL, sent_at = now(), rfc_message_id = $2 WHERE id = $1",
-      [relayId, result.messageId],
-    );
-    await relayEvent(relayId, "relayed", { from, to, messageId: result.messageId, ...sentBy(result.backend) });
-  } catch (error) {
-    // It went: left sending, for uncertainRelays to mark uncertain, never sent twice.
-    problem(words.sentUnrecorded(lettersCopy.problems.relayOf(relayId)), error);
-  }
-  return { sent: true };
+  const result = await sendWithCare<RelayWent, RelayUnsent>({
+    problems: {
+      notSentYet: letterProblems.relayNotSentYet({ relay: relayId }),
+      sentUnrecorded: letterProblems.relaySentUnrecorded({ relay: relayId }),
+    },
+    send: async () => {
+      const sent = await sendTakenRelay(relayId, relay);
+      return "result" in sent ? { went: sent } : { unsent: sent };
+    },
+    // It went: one that can't be marked sent is left sending, for uncertainRelays to mark uncertain.
+    record: async ({ result, from, to }) => {
+      await query(
+        "UPDATE letter_relays SET status = 'sent', reason = NULL, sent_at = now(), rfc_message_id = $2 WHERE id = $1",
+        [relayId, result.messageId],
+      );
+      await relayEvent(relayId, "relayed", { from, to, messageId: result.messageId, ...sentBy(result.backend) });
+    },
+    // Nothing went: back in the queue, to go next run.
+    putBack: async () => {
+      await setStatus(relayId, "queued", "failed");
+      return { sent: false, reason: "failed" };
+    },
+  });
+  return result.sent ? { sent: true } : result;
 }
+
+/** What a relay that didn't go says: why it waits or is held. */
+type RelayUnsent = { sent: false; reason: QueueReason };
+
+/** A relay that went: what Gmail said of it, and whom it was from and to. */
+type RelayWent = { result: Extract<SendResult, { sent: true }>; from: string; to: string };
 
 /** Sends a relay sendRelay has taken, unless held or left queued, saying what it went with, or why not. */
 async function sendTakenRelay(
   relayId: number,
   relay: { letterId: number; toSupporter: boolean; blobKey: string; reason: string | null; autoReply: boolean },
-): Promise<
-  { sent: false; reason: QueueReason } | { result: Extract<SendResult, { sent: true }>; from: string; to: string }
-> {
+): Promise<RelayUnsent | RelayWent> {
   const letter = (await outgoingLetter(relay.letterId))!;
   const [from, to, toName, thread] = relay.toSupporter
     ? [proxyLine(mpName(letter.mpName), letter.mpTag), letter.senderEmail, letter.senderName, "letter-copy" as const]

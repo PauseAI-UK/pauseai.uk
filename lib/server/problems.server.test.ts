@@ -1,6 +1,12 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { describeError, problem, registerProblemKeeper } from "./problems.server";
+import { defineProblems, type Problem } from "@/lib/problems";
+import { describeError, problem, problemInWords, registerProblemKeeper } from "./problems.server";
 import { currentRun, inRun } from "./run-store.server";
+
+const letters = defineProblems("letters", {
+  notSent: (p: { letter: number }) => `Letter ${p.letter} couldn't be sent`,
+  noInbox: "The letters inbox isn't set",
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -9,15 +15,46 @@ afterEach(() => {
 
 it("hands a problem outside a run to what keeps errors, but not one staff were told of already", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
-  const kept: [string, string | undefined][] = [];
-  registerProblemKeeper((what, described) => kept.push([what, described]));
-  problem("A letter couldn't be kept", new Error("no database"));
-  problem("A note with no error");
-  problem("Told by an alert of its own", undefined, { told: true });
-  await inRun(async () => problem("The run keeps this one"));
+  const kept: Problem[] = [];
+  registerProblemKeeper((reported) => kept.push(reported));
+  problem(letters.notSent({ letter: 12 }), new Error("no database"));
+  problem(letters.noInbox());
+  problem(letters.noInbox(), undefined, { told: true });
+  problemInWords("A letter couldn't be kept", new Error("no database"));
+  problemInWords("A note with no error");
+  problemInWords("Told by an alert of its own", undefined, { told: true });
+  await inRun(async () => problem(letters.noInbox()));
+  await inRun(async () => problemInWords("The run keeps this one"));
   expect(kept).toEqual([
-    ["A letter couldn't be kept", "no database"],
-    ["A note with no error", undefined],
+    { code: "letters.notSent", values: { letter: 12 }, what: "Letter 12 couldn't be sent", said: "no database" },
+    { code: "letters.noInbox", values: {}, what: "The letters inbox isn't set" },
+    { what: "A letter couldn't be kept", error: "no database" },
+    { what: "A note with no error" },
+  ]);
+});
+
+it("keeps a declared problem on the run by its code, values and sentence, with the error's words", async () => {
+  const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+  const kept = await inRun(async (run) => {
+    problem(letters.notSent({ letter: 4127 }), new Error("fetch failed", { cause: new Error("timeout") }));
+    problem(letters.noInbox());
+    problem(letters.noInbox(), undefined, { told: true });
+    return run.problems;
+  });
+  expect(kept).toEqual([
+    {
+      code: "letters.notSent",
+      values: { letter: 4127 },
+      what: "Letter 4127 couldn't be sent",
+      said: "fetch failed (timeout)",
+    },
+    { code: "letters.noInbox", values: {}, what: "The letters inbox isn't set" },
+    { code: "letters.noInbox", values: {}, what: "The letters inbox isn't set", told: true },
+  ]);
+  expect(logged.mock.calls).toEqual([
+    ["Letter 4127 couldn't be sent", "fetch failed (timeout)"],
+    ["The letters inbox isn't set"],
+    ["The letters inbox isn't set"],
   ]);
 });
 
@@ -39,15 +76,15 @@ it("describes an error with what caused it, a few deep, and anything else as it 
 it("keeps a problem on the run in progress, and only logs one outside a run", async () => {
   const logged = vi.spyOn(console, "error").mockImplementation(() => {});
   expect(currentRun()).toBeUndefined();
-  problem("Nothing to keep it on", new Error("outside"));
+  problemInWords("Nothing to keep it on", new Error("outside"));
   expect(logged).toHaveBeenCalledWith("Nothing to keep it on", "outside");
   const kept = await inRun(async (run) => {
-    problem("Luma wouldn't give an event", new Error("Luma answered 503", { cause: new Error("timeout") }));
-    problem("A note with no error");
-    problem("Told by an alert of its own", undefined, { told: true });
+    problemInWords("Luma wouldn't give an event", new Error("Luma answered 503", { cause: new Error("timeout") }));
+    problemInWords("A note with no error");
+    problemInWords("Told by an alert of its own", undefined, { told: true });
     expect(currentRun()).toBe(run);
     await Promise.resolve();
-    problem("Still the same run after an await");
+    problemInWords("Still the same run after an await");
     return run.problems;
   });
   expect(kept).toEqual([
@@ -65,11 +102,11 @@ it("keeps two runs at once apart", async () => {
   const [a, b] = await Promise.all([
     inRun(async (run) => {
       await new Promise((resolve) => setTimeout(resolve, 5));
-      problem("in a");
+      problemInWords("in a");
       return run.problems.map((p) => p.what);
     }),
     inRun(async (run) => {
-      problem("in b");
+      problemInWords("in b");
       await new Promise((resolve) => setTimeout(resolve, 10));
       return run.problems.map((p) => p.what);
     }),

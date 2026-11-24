@@ -4,6 +4,7 @@ import { query, type Queryable } from "@/lib/server/db.server";
 import type { Purpose } from "@/lib/email/email.server";
 import type { ChannelMessage, ChannelResult, MailingChannel } from "./channels.server";
 import { sql, type Sql } from "@/lib/server/sql.server";
+import { sendWithCare, type SendProblems, type SentWithCare } from "@/lib/email/send-with-care.server";
 
 // Moving letters from one status to another (lib/letters/status.ts), the only
 // way letters.status changes once a letter is written. Each move is one
@@ -67,12 +68,22 @@ export async function transitionReading<Row extends Record<string, unknown>>(
 }
 
 /**
- * A letter taken to send (status sending), as sendLetterVia sends it: what
- * it says, and what becomes of it when it can't go. `Unsent` is what each
- * kind of letter says of one that didn't.
+ * A letter taken to send (status sending), as sendLetterVia sends it: the
+ * problems it reports, and what becomes of it when it can't go. `Unsent` is
+ * what each kind of letter says of one that didn't.
  */
 export type TakenLetter<Unsent> = {
   id: number;
+  /** What's reported when it never went, and when it went but couldn't be marked sent. */
+  problems: SendProblems;
+  /** Puts it back to try again, when anything went wrong before it went, and what that says. */
+  putBack(): Promise<Unsent>;
+  /** Reads what it needs to go. Its own step, as a read that fails is one more thing going wrong before it went. */
+  read(): Promise<ReadLetter<Unsent>>;
+};
+
+/** What a taken letter says, once read. */
+export type ReadLetter<Unsent> = {
   purpose: Purpose;
   /** Checked just before it goes: if it can't now, what's done with it instead, and what that says. */
   held(): Promise<Unsent | undefined>;
@@ -84,64 +95,31 @@ export type TakenLetter<Unsent> = {
 };
 
 /**
- * What's thrown when a letter went but marking it sent failed: it's left
- * sending, for uncertainLetters to mark uncertain, as sending it again
- * would send it twice.
- */
-export class SentUnrecorded extends Error {
-  constructor(
-    letterId: number,
-    readonly cause: unknown,
-  ) {
-    super(`Letter ${letterId} went, but couldn't be marked sent`);
-  }
-}
-
-/**
- * What's thrown when anything went wrong before a letter went, or dealing
- * with one that didn't: it never went, so the caller puts it back to try
- * again.
- */
-class NotSentYet extends Error {
-  constructor(
-    letterId: number,
-    readonly cause: unknown,
-  ) {
-    super(`Letter ${letterId} couldn't be sent`);
-  }
-}
-
-/**
  * Sends a letter a run has taken, by `channel`: unless it's held, sends it,
  * and marks it sent, logging the event, or else leaves it as `unsent` says.
- * Every kind of letter goes this way, each by its own channel. Throws
- * NotSentYet for anything going wrong before it went, and SentUnrecorded
- * for marking one that went failing, for the caller to tell apart.
+ * Every kind of letter goes this way, each by its own channel, with care
+ * (sendWithCare): one that never went is put back and reported, and one
+ * that went but couldn't be marked sent is reported and left sending, for
+ * uncertainLetters to mark uncertain, as sending it again would send it
+ * twice.
  */
 export async function sendLetterVia<Unsent>(
   channel: MailingChannel,
   letter: TakenLetter<Unsent>,
-): Promise<{ sent: true } | Unsent> {
-  let result: ChannelResult;
-  try {
-    const held = await letter.held();
-    if (held !== undefined) return held;
-    // The channel never throws once it has sent (send in email.server.ts), so whatever's thrown here, nothing went.
-    result = await channel.send(await letter.message(), letter.purpose);
-    if (!result.sent) return await letter.unsent(result);
-  } catch (error) {
-    throw new NotSentYet(letter.id, error);
-  }
-  try {
-    await transition(letter.id, ["sending"], "sent", {
-      event: "sent",
-      details: letter.sentDetails(result),
-      stamp: "sent_at",
-    });
-  } catch (error) {
-    throw new SentUnrecorded(letter.id, error);
-  }
-  return { sent: true };
+): Promise<SentWithCare<Unsent>> {
+  return sendWithCare<object, Unsent>({
+    problems: letter.problems,
+    send: async () => {
+      const read = await letter.read();
+      const held = await read.held();
+      if (held !== undefined) return { unsent: held };
+      // The channel never throws once it has sent (send in email.server.ts), so whatever's thrown here, nothing went.
+      const result = await channel.send(await read.message(), read.purpose);
+      return result.sent ? { went: read.sentDetails(result) } : { unsent: await read.unsent(result) };
+    },
+    record: (details) => transition(letter.id, ["sending"], "sent", { event: "sent", details, stamp: "sent_at" }),
+    putBack: letter.putBack,
+  });
 }
 
 /** Adds an event to a letter's history that doesn't change its status: its copy, a reply, a relay or a notice. */

@@ -4,7 +4,7 @@ import { siteUrlIfKnown } from "@/lib/site-url.server";
 import { query } from "@/lib/server/db.server";
 import { sendWith, type Purpose, type SendHooks } from "./email.server";
 import { nameLine, notifyDomain } from "@/lib/server/outside-services/postmark.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { staffAddressLine } from "./staff-address.server";
 import { emailCopy } from "./copy";
 
@@ -55,7 +55,7 @@ export async function notifyStaff(
 ): Promise<boolean> {
   const inbox = config.notificationInbox;
   if (!inbox) {
-    problem(emailCopy.problems.noInbox);
+    problemInWords(emailCopy.problems.noInbox);
     return false;
   }
   const to = nameLine(emailCopy.inboxNames.notifications, inbox);

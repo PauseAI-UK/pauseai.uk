@@ -1,7 +1,7 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { problem } from "../problems.server";
+import { problemInWords } from "../problems.server";
 import { serverCopy } from "@/lib/server/copy";
 
 /** The key of the question every donate link's checkout asks, "Are you happy to be named on our wall of thanks?". */
@@ -48,7 +48,7 @@ export async function getThankedDonors(): Promise<ThankedDonor[]> {
     const payments = (await list<PaymentIntent>(key, "payment_intents", {})) ?? [];
     return thanked(sessions, monthlyPayments(payments));
   } catch (error) {
-    problem(serverCopy.problems.logs.stripeDown, error);
+    problemInWords(serverCopy.problems.logs.stripeDown, error);
     return [];
   }
 }

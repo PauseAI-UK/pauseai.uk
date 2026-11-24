@@ -1441,7 +1441,9 @@ import("@/tests/next-headers"))` and put the session cookie in
   writes an error to the log by hand, and every job runs as a run of
   the import log (`docs/code-structure.md`, "Rules"). Three checks fail
   otherwise: `tests/checks/caught-errors.test.ts`, which names its few
-  exceptions, `problem-reporting.test.ts` and `cron-runs.test.ts`.
+  exceptions, `problem-reporting.test.ts` and `cron-runs.test.ts`. A
+  fourth, `declared-problems.test.ts`, holds each feature's declared
+  problems to one name a feature and to being reported.
 - **Tests find elements the way a person does**: by role and accessible
   name, label or text (`getByRole`, `getByLabelText`, `getByText`), or by
   the attributes the markup has for its state (`aria-expanded`,

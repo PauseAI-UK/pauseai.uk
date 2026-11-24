@@ -2,7 +2,7 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import { copy } from "@/lib/content/email-your-mp";
 import { outsideFetch } from "./outside-fetch.server";
-import { note, problem } from "../problems.server";
+import { note, problemInWords } from "../problems.server";
 import { serverCopy } from "@/lib/server/copy";
 
 // Cloudflare Turnstile, checked on the server. Ported from pauseai-website's
@@ -29,11 +29,11 @@ async function verifyTurnstile(token: string | undefined): Promise<string | unde
   }
   if (!secret) {
     if (isDev()) return undefined;
-    problem(serverCopy.problems.logs.turnstileUnset);
+    problemInWords(serverCopy.problems.logs.turnstileUnset);
     return copy.errors.spamUnavailable;
   }
   if (!isDev() && TEST_SECRET.test(secret)) {
-    problem(serverCopy.problems.logs.turnstileTestKey);
+    problemInWords(serverCopy.problems.logs.turnstileTestKey);
     return copy.errors.spamMisconfigured;
   }
   if (!token) return copy.errors.spamWait;
@@ -54,7 +54,7 @@ async function verifyTurnstile(token: string | undefined): Promise<string | unde
     // allowed hostnames, set in Cloudflare, say where tokens can be made.
     return undefined;
   } catch (error) {
-    problem(serverCopy.problems.logs.turnstileDown, error);
+    problemInWords(serverCopy.problems.logs.turnstileDown, error);
     return copy.errors.spamUnreachable;
   }
 }

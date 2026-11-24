@@ -9,7 +9,7 @@ import {
   POSTCODES_AT_ONCE,
   type FoundPlace,
 } from "@/lib/server/outside-services/postcodes.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { supportersCopy } from "./copy";
 
 // Where supporters are (the supporter_place view): each postcode and town
@@ -100,7 +100,7 @@ export async function lookUpPlaces(db?: Queryable): Promise<PlacesLookup> {
       result.towns++;
     }
   } catch (error) {
-    problem(supportersCopy.problems.placesFailed, error);
+    problemInWords(supportersCopy.problems.placesFailed, error);
     result.failed = true;
   }
   return result;

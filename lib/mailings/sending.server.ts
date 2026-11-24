@@ -6,15 +6,13 @@ import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
 import { isBlocked, sentBy } from "@/lib/email/email.server";
 import { gmailAccount } from "@/lib/email/gmail-accounts.server";
-import { SentUnrecorded, sendLetterVia, transition, transitionReading } from "@/lib/letters/lifecycle.server";
-import { problem } from "@/lib/server/problems.server";
-import { lettersCopy } from "@/lib/letters/copy";
+import { sendLetterVia, transition, transitionReading } from "@/lib/letters/lifecycle.server";
 import { attachmentsOf, emailFor } from "./drafts.server";
 import { mailingChannel } from "./channels.server";
 import { paced, type MailingChannel } from "@/lib/letters/channels.server";
 import type { SkipReason } from "@/lib/letters/copy-states";
 import { sql } from "@/lib/server/sql.server";
-import { emailCopy } from "@/lib/email/copy";
+import { mailingProblems } from "./copy";
 
 // Sending the mailings that are due: the send-mailings job starts each
 // scheduled one whose time has come, then sends its letters one at a
@@ -94,8 +92,12 @@ async function lettersLeft(): Promise<number> {
   return left;
 }
 
-/** What became of a mailing's letter that didn't go: skipped, with its reason, failed, or `waiting` for the next run. */
-type Unsent = { sent: false; skipped: boolean; waiting?: true };
+/**
+ * What became of a mailing's letter that didn't go: skipped, with its
+ * reason, failed, `waiting` for the next run as Gmail can't send for now,
+ * or `putBack` to go next run as something went wrong before it went.
+ */
+type Unsent = { sent: false; skipped: boolean; waiting?: true; putBack?: true };
 
 /** A letter skipped, with why. */
 async function skipped(letterId: number, reason: SkipReason): Promise<Unsent> {
@@ -142,10 +144,18 @@ export async function sendDueLetters({
       const letter = await nextLetter(mailing.id);
       if (!letter) break;
       const to = letter.email;
-      let result: { sent: true } | Unsent;
-      try {
-        result = await sendLetterVia<Unsent>(pacedChannel, {
-          id: letter.id,
+      const result = await sendLetterVia<Unsent>(pacedChannel, {
+        id: letter.id,
+        problems: {
+          notSentYet: mailingProblems.letterNotSentYet({ letter: letter.id }),
+          sentUnrecorded: mailingProblems.letterSentUnrecorded({ letter: letter.id }),
+        },
+        // It never went: back to go next run, and the rest of this mailing with it.
+        putBack: async () => {
+          await transition(letter.id, ["sending"], "scheduled");
+          return { sent: false, skipped: false, putBack: true };
+        },
+        read: async () => ({
           purpose: "mailing",
           held: async () => {
             if (!letter.inOffice) return skipped(letter.id, "left-office");
@@ -179,22 +189,12 @@ export async function sendDueLetters({
             await transition(letter.id, ["sending"], "not_sent", { event: "failed", details: { detail } });
             return { sent: false, skipped: false };
           },
-        });
-      } catch (error) {
-        const words = emailCopy.problems;
-        if (error instanceof SentUnrecorded) {
-          // It went: it stays sending, for uncertainLetters to mark uncertain, so it isn't sent twice.
-          problem(words.sentUnrecorded(lettersCopy.problems.letterOf(letter.id)), error.cause);
-          run.sent++;
-          continue;
-        }
-        // It never went (NotSentYet): back to go next run, and the rest of this mailing with it.
-        await transition(letter.id, ["sending"], "scheduled");
-        problem(words.notSentYet(lettersCopy.problems.letterOf(letter.id)), error);
-        break;
-      }
+        }),
+      });
+      // One that went counts as sent though it couldn't be marked so: it stays sending, so it isn't sent twice.
       if (result.sent) run.sent++;
       else if (result.skipped) run.skipped++;
+      else if (result.putBack) break;
       else if (result.waiting) {
         run.waiting.push(mailing.sentFrom);
         break;

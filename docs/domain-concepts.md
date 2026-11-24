@@ -1875,14 +1875,17 @@ recorded (`import_runs`):
 - who started it (`nightly` or a staff email);
 - how it ended, and why it failed, if it did;
 - its problems: what went wrong along the way without stopping it
-  (`lib/server/problems.server.ts`). Each is a fixed sentence, with any count or
-  list as its error;
+  (`lib/server/problems.server.ts`). Each is one its feature declared
+  (`lib/problems.ts`), kept as its code, such as `letters.copyNotSentYet`,
+  its values, such as the letter's ID, its sentence, and the error's own
+  words;
 - the job's own account of what it found.
 
 A run with problems is amber, "Problems", and lists them under its line.
 Staff are emailed about a failure, or about a problem the run before didn't
-have. So a job that keeps going wrong the same way says so once, until a run
-goes right (`lib/server/import-runs.server.ts`). A problem with an alert of its
+have, by its code. So a job that keeps going wrong the same way says so
+once, whichever letter or event it's about each time, until a run goes right
+(`lib/server/import-runs.server.ts`). A problem with an alert of its
 own, such as a Gmail account Google disconnected, is marked told, so the
 run's email leaves it out. A run can be held for staff to decide on, as a
 body's import that would change too much is.
@@ -1951,8 +1954,9 @@ are kept:
   job's page still refreshes to show the failed run.
 - **A problem reported outside a run**: code that catches an error and
   carries on calls `problem()` (`lib/server/problems.server.ts`), which in a form
-  or a webhook has no run to keep it on. It's kept by its sentence, with
-  the error's words. One whose own alert has gone (`told`) isn't.
+  or a webhook has no run to keep it on. It's kept by its code, with its
+  sentence and the error's words. One whose own alert has gone (`told`)
+  isn't.
 - **An error in a visitor's browser**, which the server never sees. An
   error page (`app/global-error.tsx`, with `components/layout/useErrorTold.ts`)
   posts what lost the visitor the page, and a listener
@@ -1967,7 +1971,8 @@ page's path with each part that's an ID or a number stood for), the
 error's class, and its words with what varies taken out, so "No politician
 4127" and "No politician 4128" are one (`lib/oversight/error-key.ts`). A Postgres
 error is known by its code and constraint, and nothing of its message,
-which can quote the value it refused. The key is coarse on purpose: two
+which can quote the value it refused. A problem is known by its code
+alone, whatever its sentence says this time. The key is coarse on purpose: two
 bugs sharing a row are found a day apart, but one bug making a row each
 time would fill the list and the inbox. A row counts its happenings, and
 keeps the newest as it was thrown, with its stack trace and, for a

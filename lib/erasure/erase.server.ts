@@ -8,7 +8,7 @@ import { trashGmailMessage } from "@/lib/server/outside-services/gmail.server";
 import { deleteOneOffBlobs, eraseOneOffs, eraseRepliesToFormLetters } from "@/lib/letters/one-off-emails.server";
 import { eraseFromSavedFilters } from "@/lib/server/saved-filters.server";
 import { refreshSupportersList } from "@/lib/supporters/facts.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import type { EraseLeftover } from "@/lib/staff-search";
 import { erasureCopy } from "./copy";
 
@@ -211,7 +211,7 @@ async function leftOver(what: EraseLeftover, clear: () => Promise<void>): Promis
     await clear();
     return [];
   } catch (error) {
-    problem(`${erasureCopy.erase.partly} ${erasureCopy.erase.notCleared[what]}`, error);
+    problemInWords(`${erasureCopy.erase.partly} ${erasureCopy.erase.notCleared[what]}`, error);
     return [what];
   }
 }

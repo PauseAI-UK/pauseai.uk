@@ -37,36 +37,43 @@ Of the problems below, 2, 3, 4, 6, 7 and 8 are DONE. Problems 1, 5, 9, 10,
 For whoever picks this up without having done PR 1.
 
 **Where to work.** The branch `error-handling-server-side`, in
-`tmp/worktrees/error-handling-server-side`, holds these notes and nothing
-else yet.
+`tmp/worktrees/error-handling-server-side`.
 
-**Settle these first, with letters converted, and show the reviewer before
-converting the rest.** The plan decides what to build, not these:
+**What was settled with letters and mailings converted**, which the rest
+follows:
 
-- **Where the sentence for a stored code comes from.** The job's page
-  (`app/(staff)/staff/_components/jobs/RunBox.tsx`), the run's alert
-  (`alertIfNew` in `lib/server/import-runs.server.ts`) and the Errors page
-  each have to turn `{ code, values }` into words, for a code any feature
-  declared. Two ways:
-  - A list of every feature's problems, as `JOBS` lists every job, which
-    the readers look a code up in. A check makes sure each feature's are
-    on it, and `tests/checks/import-cycles.test.ts` must still pass.
-  - Keep the sentence as it was written when the problem was reported,
-    beside its code: compare by the code, show the sentence. Much simpler,
-    and a reworded sentence shows its old words on old rows only. But it
-    stores our sentences, which the plan set out not to. With values that
-    are only IDs and counts, nothing personal is in one. This is the
-    reviewer's call.
-- **Where `defineProblems` lives.** Not in `problems.server.ts`: that's
-  server-only, and a feature's copy file is imported by client components
-  too (`lib/broadcasts/copy.ts` by `ReplyReactions`). So the declaring is
-  in a module anything can import, and the reporting stays on the server.
-- **The type that keeps plain text out of a problem's values.** A value
-  typed `string` is refused and a fixed code allowed:
-  `string extends T ? never : T` tells them apart.
+- **The sentence is kept beside its code.** A problem is stored as
+  `{ code, values, what, said }`: `what` is the sentence, written as the
+  problem is reported, and it's what the job's page, the run's alert and
+  the Errors page show. The code is what's compared. So there's no list of
+  every feature's problems for the readers to look a code up in. A
+  reworded sentence shows its old words on rows already kept. Values are
+  IDs, counts and fixed codes, so nothing personal is in a sentence.
+- **Declaring is apart from reporting.** `defineProblems()` is in
+  `lib/problems.ts`, which anything can import, and makes each problem a
+  function that says it happened: its code, values and sentence. Reporting
+  that is `problem()`'s, on the server:
+  `problem(letterProblems.copyNotSentYet({ letter: id }), error)`. The
+  declared function doesn't report by itself, as the plan's example had
+  it, because the copy file is loaded by the browser too, and what keeps
+  a problem on its run is found by the server's own modules.
+- **The type that keeps plain text out** is `SafeValue` there: a value
+  typed `string` is `never`, a fixed code is allowed, and text goes
+  through `publicText()`, or `outsideId()` for an outside service's ID.
+- **While features are converted**, the old reporter is
+  `problemInWords()`, and `tests/checks/declared-problems.test.ts` lists
+  the files that may still import it (`UNDECLARED`). A check, not ESLint:
+  the per-file lists in `eslint.config.mjs` replace one another, so a
+  list of files across them can't be added. Each feature's commit takes
+  its files off, and the last deletes `problemInWords()` and the list,
+  after which the type of `problem()` is the rule.
+- **The send helper** is `sendWithCare()`
+  (`lib/email/send-with-care.server.ts`), and `sendLetterVia()` is built
+  on it. `SentUnrecorded` and `NotSentYet` are gone.
 
 **What needs no migration.** `import_runs.problems` is JSON already, and a
-reader takes both shapes: an old row has `what`, a new one `code`.
+reader takes both shapes: an old row has `what` and `error`, a new one
+`code`, `values`, `what` and `said`.
 `errors_seen` has a `code` column and keys a row by it alone when it's
 told to (`byCode` in `lib/oversight/errors-seen.server.ts`, as for a
 Postgres error), so a problem's code goes there.

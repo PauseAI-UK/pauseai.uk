@@ -15,7 +15,7 @@ import { parse, serverSources } from "./server-code";
 // than to carry on past a failure.
 
 /** The functions that report a caught error. */
-const REPORTERS = ["problem", "keepCaught"];
+const REPORTERS = ["problem", "problemInWords", "keepCaught"];
 
 /** The catches that aren't losing anything, as "file  function", with why. */
 const EXCEPTIONS = new Map([

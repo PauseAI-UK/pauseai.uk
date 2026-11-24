@@ -3,7 +3,7 @@ import { config } from "@/lib/server/config.server";
 import { tallySources, type GuestEntry, type SourceCounts } from "@/lib/trackers";
 import { LUMA_PAGE_SIZE, lumaList, type LumaPage } from "./luma-api.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { problem } from "../problems.server";
+import { problemInWords } from "../problems.server";
 import { serverCopy } from "@/lib/server/copy";
 
 // An event's guests, through Luma's official API: the list, for the flyering
@@ -76,7 +76,7 @@ export async function getSourceCounts(
       cursor = page.nextCursor;
     } while (cursor);
   } catch (error) {
-    problem(serverCopy.problems.logs.lumaGuestsDown, error);
+    problemInWords(serverCopy.problems.logs.lumaGuestsDown, error);
     return null;
   }
   return tallySources(entries, tags, since, until);
@@ -123,7 +123,7 @@ export async function getEventGuestCount(eventId: string): Promise<number | null
     const going = data.guest_counts?.approved?.guests;
     return typeof going === "number" ? going : null;
   } catch (error) {
-    problem(serverCopy.problems.logs.lumaGuestsDown, error);
+    problemInWords(serverCopy.problems.logs.lumaGuestsDown, error);
     return null;
   }
 }
@@ -218,7 +218,7 @@ export async function addLumaGuest(
       // The start of the body says why: a bad key, an unknown event, a rate limit.
       const body = (await res.text()).slice(0, 300);
       const reason = `Luma responded ${res.status}${body ? `: ${body}` : ""}`;
-      problem(serverCopy.problems.logs.lumaRefusedGuest, reason);
+      problemInWords(serverCopy.problems.logs.lumaRefusedGuest, reason);
       return { status: "failed", reason };
     }
     const data = (await res.json()) as { skipped?: { email?: unknown }[] };
@@ -226,7 +226,7 @@ export async function addLumaGuest(
     const skipped = (data.skipped ?? []).some((s) => typeof s.email === "string" && s.email.toLowerCase() === email);
     return skipped ? { status: "skipped" } : { status: "added" };
   } catch (error) {
-    problem(serverCopy.problems.logs.lumaRefusedGuest, error);
+    problemInWords(serverCopy.problems.logs.lumaRefusedGuest, error);
     const err = error as Error;
     if (err.name === "TimeoutError") return { status: "failed", reason: `Luma did not respond within ${timeoutMs}ms` };
     return { status: "failed", reason: `Request to Luma failed: ${err.message}` };
@@ -274,7 +274,7 @@ async function addBatch(
       signal: AbortSignal.timeout(ADD_GUESTS_TIMEOUT_MS),
     });
     if (!res.ok) {
-      problem(
+      problemInWords(
         serverCopy.problems.logs.lumaRefusedGuest,
         `Luma responded ${res.status}: ${(await res.text()).slice(0, 300)}`,
       );
@@ -283,7 +283,7 @@ async function addBatch(
     const data = (await res.json()) as { skipped?: { email?: unknown }[] };
     return new Set((data.skipped ?? []).flatMap((s) => (typeof s.email === "string" ? [s.email.toLowerCase()] : [])));
   } catch (error) {
-    problem(serverCopy.problems.logs.lumaRefusedGuest, error);
+    problemInWords(serverCopy.problems.logs.lumaRefusedGuest, error);
     return "failed";
   }
 }

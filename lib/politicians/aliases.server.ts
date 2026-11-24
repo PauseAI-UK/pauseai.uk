@@ -9,7 +9,7 @@ import { relinkOneOffs } from "@/lib/letters/one-off-relink.server";
 import { GmailError, gmailMessageHeaders, searchGmail, unlessGone } from "@/lib/server/outside-services/gmail.server";
 import { connectedAccounts, readPoliticianBook } from "@/lib/letters/book.server";
 import type { AddressSearch } from "@/lib/import-runs";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { politiciansCopy } from "./copy";
 
 // A politician's aliases: every address and domain that says a message is
@@ -225,7 +225,7 @@ export async function searchAddedAddresses(until: number): Promise<AddressSearch
         break;
       }
     } catch (error) {
-      problem(politiciansCopy.problems.addressNotSearched(address), error);
+      problemInWords(politiciansCopy.problems.addressNotSearched(address), error);
       if (refusedForNow(error)) break;
     }
     await query(

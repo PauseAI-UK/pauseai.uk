@@ -37,11 +37,12 @@ import {
 } from "@/lib/server/outside-services/gmail.server";
 import { connectedAccounts, politicianBook } from "./book.server";
 import { problem } from "@/lib/server/problems.server";
+import { outsideId } from "@/lib/problems";
 import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "./replies.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
 import { forwardedMessages } from "@/lib/email-parsing/forwards";
 import { replyParts } from "@/lib/email-parsing/reply-text";
-import { lettersCopy } from "./copy";
+import { letterProblems, lettersCopy } from "./copy";
 
 // One-off emails: threads with a politician that aren't a letter of a campaign
 // or mailing, read from a mailbox and kept whole, in Netlify Blobs with a row
@@ -242,7 +243,8 @@ async function keepThreadMate(
     if (!(await isHeld(account, mate)))
       await keepOneOff(account, mate, await gmailRawMessage(token, id), book, connected);
   } catch (error) {
-    if (error instanceof GmailError && error.status === 400) problem(lettersCopy.problems.unreadable, id);
+    if (error instanceof GmailError && error.status === 400)
+      problem(letterProblems.unreadable({ message: outsideId(id) }));
     else unlessGone(error);
   }
 }

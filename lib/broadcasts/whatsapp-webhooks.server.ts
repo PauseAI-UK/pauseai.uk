@@ -12,7 +12,7 @@ import { config } from "@/lib/server/config.server";
 import { newNumberLink } from "@/lib/supporters/email-settings.server";
 import { notifyStaff } from "@/lib/email/notifications.server";
 import { managerLink, sendText } from "@/lib/server/outside-services/whatsapp.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { numberOf, recordWhatsAppResume, recordWhatsAppStop, stoppedTopics } from "./whatsapp-stops.server";
 import { WHATSAPP_ERRORS } from "./whatsapp-texts.server";
 import { markUnreachable } from "./unreachable.server";
@@ -218,7 +218,7 @@ async function answerStop(number: string, topics: Topic[], replyId?: number): Pr
       );
     }
   } catch (error) {
-    problem(broadcastsCopy.problems.stopNotAnswered, error);
+    problemInWords(broadcastsCopy.problems.stopNotAnswered, error);
   }
 }
 

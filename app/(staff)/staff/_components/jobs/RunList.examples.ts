@@ -12,10 +12,10 @@ import {
   type PoliticianImport,
   type PoliticianImportJob,
   type PoliticianImportResult,
-  type Problem,
   type SendingResult,
   type TidyingResult,
 } from "@/lib/import-runs";
+import type { Problem } from "@/lib/problems";
 
 type Results = Record<PoliticianImportJob, PoliticianImportResult> & {
   "import-controlai": ControlAiImportResult;

@@ -5,6 +5,8 @@
 // app/(staff)/staff/_components/mailings/copy.ts.
 import { letterEditorCopy } from "@/lib/content/letter-editor";
 import { count, plural } from "@/lib/content/plural";
+import { emailCopy } from "@/lib/email/copy";
+import { defineProblems } from "@/lib/problems";
 
 export const mailingsCopy = {
   // A mailing's editor: the letter, with merge fields and parts only some recipients get.
@@ -319,7 +321,19 @@ export const mailingsCopy = {
     // Under a politician's reply to a mailing's letter that came to a staff member's own mailbox, to anyone else,
     // in place of Reply: only that staff member can reply to it from here.
     answerElsewhere: (account: string) => `This came to ${account}, so only they can reply to it (here or in Gmail).`,
-    // What a problem names our answer as (lib/server/problems.server.ts).
+    // What a problem names our answer as (lib/problems.ts).
     answerTo: (id: number) => `Our reply to reply ${id}`,
   },
 };
+
+// What went wrong without stopping the work (lib/problems.ts): on the job's page and in its email when a run sends
+// a mailing's letters, and kept as an error (lib/oversight/errors-seen.server.ts) when staff answer a reply.
+export const mailingProblems = defineProblems("mailings", {
+  // A mailing's letter, or our answer to a politician's reply to one: something went wrong before it went, so it's
+  // tried again; or it went, but recording that failed.
+  letterNotSentYet: (p: { letter: number }) => emailCopy.problems.notSentYet(`Letter ${p.letter}`),
+  letterSentUnrecorded: (p: { letter: number }) => emailCopy.problems.sentUnrecorded(`Letter ${p.letter}`),
+  answerNotSentYet: (p: { reply: number }) => emailCopy.problems.notSentYet(mailingsCopy.answers.answerTo(p.reply)),
+  answerSentUnrecorded: (p: { reply: number }) =>
+    emailCopy.problems.sentUnrecorded(mailingsCopy.answers.answerTo(p.reply)),
+});

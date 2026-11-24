@@ -7,7 +7,7 @@ import {
   type SubscriptionEvent,
   type SubscriptionResult,
 } from "@/lib/server/outside-services/civicrm.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { supportersCopy } from "./copy";
 
 // Our opt-outs of email sent to CiviCRM's updateSubscriptions, so Global's
@@ -189,7 +189,7 @@ export async function sendCivicrmUpdates(key: string): Promise<CivicrmUpdatesRes
     try {
       results = await updateSubscriptions(key, batch.map(eventOf));
     } catch (error) {
-      problem(supportersCopy.problems.civicrmUpdatesFailed, error);
+      problemInWords(supportersCopy.problems.civicrmUpdatesFailed, error);
       counts.unanswered += waiting.length - start;
       break;
     }
@@ -203,7 +203,7 @@ export async function sendCivicrmUpdates(key: string): Promise<CivicrmUpdatesRes
     }
   }
   counts.unanswered += skipped + invalid.length;
-  if (skipped) problem(supportersCopy.problems.civicrmUpdatesUnanswered(skipped));
-  if (invalid.length) problem(supportersCopy.problems.civicrmUpdatesInvalid(invalid.length), invalid.join("; "));
+  if (skipped) problemInWords(supportersCopy.problems.civicrmUpdatesUnanswered(skipped));
+  if (invalid.length) problemInWords(supportersCopy.problems.civicrmUpdatesInvalid(invalid.length), invalid.join("; "));
   return counts;
 }

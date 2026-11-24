@@ -10,7 +10,7 @@ import {
 } from "@/lib/server/outside-services/civicrm.server";
 import { sendCivicrmUpdates } from "@/lib/supporters/civicrm-updates.server";
 import { recordCivicrmLists } from "@/lib/supporters/opt-outs.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { withNumbersRead, type NumbersRead } from "@/lib/phone";
 import { resendAfterFix } from "@/lib/letters/relays.server";
 import { refreshSupporterFacts, refreshSupportersList } from "@/lib/supporters/facts.server";
@@ -169,7 +169,7 @@ async function applyContacts(db: Queryable): Promise<{ optOuts: number; blocked:
  */
 async function markGone(pulled: number[], before: number, db: Queryable): Promise<number | null> {
   if (pulled.length < before * (1 - MOST_GONE)) {
-    problem(jobsCopy.problems.civicrmTooFew, `${pulled.length} returned, ${before} before`);
+    problemInWords(jobsCopy.problems.civicrmTooFew, `${pulled.length} returned, ${before} before`);
     return null;
   }
   const rows = await query(
@@ -190,7 +190,7 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
     const updates = await sendCivicrmUpdates(key);
     const sentAny = updates.sent + updates.refused + updates.unanswered > 0;
     const { rows: contacts, unread } = withNumbersRead(await pullContacts(key));
-    if (unread > 0) problem(jobsCopy.problems.civicrmNumbersUnread, String(unread));
+    if (unread > 0) problemInWords(jobsCopy.problems.civicrmNumbersUnread, String(unread));
     return transaction(async (db) => {
       const [{ before }] = await query<{ before: number }>(
         "SELECT count(*)::int AS before FROM civicrm_contacts WHERE gone_at IS NULL",

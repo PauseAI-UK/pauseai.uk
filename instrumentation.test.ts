@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
+import { defineProblems } from "@/lib/problems";
 import { query } from "@/lib/server/db.server";
 import { problem, registerProblemKeeper } from "@/lib/server/problems.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -11,6 +12,8 @@ const CONTEXT = {
   routeType: "route",
   revalidateReason: undefined,
 } as const;
+
+const postcodes = defineProblems("postcodes", { notAsked: "postcodes.io couldn't be asked" });
 
 const kept = () => query<{ kind: string; words: string }>("SELECT kind, words FROM errors_seen ORDER BY id");
 
@@ -28,7 +31,7 @@ describeWithDatabase("the server's hooks", () => {
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
     await onRequestError(new Error("The list couldn't be read"), REQUEST, CONTEXT);
     await register();
-    problem("postcodes.io couldn't be asked");
+    problem(postcodes.notAsked());
     await vi.waitFor(async () => expect(await kept()).toHaveLength(2));
     expect(await kept()).toEqual([
       { kind: "route", words: "The list couldn't be read" },
@@ -41,7 +44,7 @@ describeWithDatabase("the server's hooks", () => {
     vi.stubEnv("NEXT_RUNTIME", "edge");
     await onRequestError(new Error("At the edge"), REQUEST, CONTEXT);
     await register();
-    problem("Nothing keeps this");
+    problem(postcodes.notAsked());
     expect(await kept()).toEqual([]);
   });
 });

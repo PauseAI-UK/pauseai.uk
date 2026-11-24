@@ -1,4 +1,5 @@
 import "server-only";
+import { type Problem, problemSaid, type Reported } from "@/lib/problems";
 
 // A problem is something that went wrong during a run of a job without
 // stopping it: an event Luma wouldn't give, a mailbox Gmail refused, an
@@ -12,13 +13,6 @@ import "server-only";
 // instrumentation.ts, as the server starts; each registers itself here, so
 // this module loads anywhere, the browser included, where neither is.
 
-/**
- * One thing that went wrong during a run: what, and the error's own words,
- * if it came from one. `told` when an alert of its own has gone, so the
- * run's alert leaves it out.
- */
-export type Problem = { what: string; error?: string; told?: true };
-
 /** A run in progress: its problems so far. */
 export type Run = { problems: Problem[] };
 
@@ -29,8 +23,8 @@ export function registerRunStore(find: () => Run | undefined): void {
   findRun = find;
 }
 
-/** What keeps a problem reported outside a run: its sentence, and the error's words if it had one. */
-type Keeper = (what: string, described: string | undefined) => void;
+/** What keeps a problem reported outside a run: the problem, with the error's words if it had one. */
+type Keeper = (problem: Problem) => void;
 
 /**
  * Where the keeper is held: on the global object, not in this module. Next
@@ -46,25 +40,41 @@ export function registerProblemKeeper(keep: Keeper | undefined): void {
   held[KEEPER] = keep;
 }
 
-/**
- * Reports something that went wrong without stopping the work: `what` in our
- * words, and the error, if there was one. `what` is how the run's email tells
- * a new problem from an old one, so a count or a list goes in `error`. `told` if staff have been emailed
- * about it already, by an alert of its own, which a run's email then leaves out; outside a run, it isn't kept.
- */
-export function problem(what: string, error?: unknown, { told = false } = {}): void {
-  const described = error === undefined ? undefined : describeError(error);
-  console.error(what, ...(described === undefined ? [] : [described]));
+/** Logs a problem, and keeps it: on the run in progress, or with no run, as an error, unless staff have been `told`. */
+function keep(kept: Problem): void {
+  const said = problemSaid(kept);
+  console.error(kept.what, ...(said === undefined ? [] : [said]));
   const run = findRun();
-  if (!run) {
-    if (!told) held[KEEPER]?.(what, described);
-    return;
-  }
-  run.problems.push({
+  if (run) run.problems.push(kept);
+  else if (!kept.told) held[KEEPER]?.(kept);
+}
+
+/**
+ * Reports something that went wrong without stopping the work: one of a
+ * feature's declared problems (defineProblems in lib/problems.ts), with the
+ * error, if there was one. `told` if staff have been emailed about it
+ * already, by an alert of its own, which a run's email then leaves out;
+ * outside a run, it isn't kept.
+ */
+export function problem({ code, values, what }: Reported, error?: unknown, { told = false } = {}): void {
+  keep({
+    code,
+    values,
     what,
-    ...(described !== undefined && { error: described }),
+    ...(error !== undefined && { said: describeError(error) }),
     ...(told && { told: true as const }),
   });
+}
+
+/**
+ * Reports a problem by a sentence written in place, as the features still
+ * to declare theirs do (UNDECLARED_PROBLEMS in eslint.config.mjs): it's
+ * known by the sentence, so a letter's ID or a count in it makes each one
+ * new to the run's alert, and it's kept as one was before problems had
+ * codes.
+ */
+export function problemInWords(what: string, error?: unknown, { told = false } = {}): void {
+  keep({ what, ...(error !== undefined && { error: describeError(error) }), ...(told && { told: true as const }) });
 }
 
 /**

@@ -56,7 +56,7 @@ import {
   sendTemplate,
   WhatsAppRequestError,
 } from "@/lib/server/outside-services/whatsapp.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 import { TEMPLATE_FOOTER, templateText } from "./whatsapp-template";
 import { supporterAudience } from "./recipients.server";
@@ -643,7 +643,7 @@ async function sendForApproval(template: {
     ]);
     return null;
   } catch (error) {
-    problem(broadcastsCopy.problems.templateNotSent(template.metaName), error);
+    problemInWords(broadcastsCopy.problems.templateNotSent(template.metaName), error);
     return { failed: error instanceof WhatsAppRequestError ? error.reason : null };
   }
 }
@@ -738,7 +738,7 @@ export async function withdrawTemplate(id: number, by: string): Promise<boolean>
     try {
       await deleteTemplate(backend.keys, withdrawn.metaName!);
     } catch (error) {
-      problem(broadcastsCopy.problems.templateNotDeleted(withdrawn.metaName!), error);
+      problemInWords(broadcastsCopy.problems.templateNotDeleted(withdrawn.metaName!), error);
     }
   }
   return true;
@@ -770,7 +770,7 @@ export async function deleteApprovedTemplate(id: number, by: string): Promise<Te
     try {
       await deleteTemplate(backend.keys, template.name);
     } catch (error) {
-      problem(broadcastsCopy.problems.approvedNotDeleted(template.name), error);
+      problemInWords(broadcastsCopy.problems.approvedNotDeleted(template.name), error);
       return "failed";
     }
     await query(

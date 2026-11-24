@@ -391,12 +391,47 @@ holds it.
 ### Errors
 
 - **A caught error is rethrown or reported** with `problem()`
-  (`lib/server/problems.server.ts`), in our words, with the error. Every
-  way out of a catch reports first: an early `break`, `continue` or
-  `return` for one kind of error loses it however often it happens. A
-  Server Action that catches an error so that its page carries on keeps it
-  with `keepCaught()` (`lib/oversight/errors-seen.server.ts`), as Next
-  would have had it been thrown.
+  (`lib/server/problems.server.ts`), as one of its feature's declared
+  problems, with the error. Every way out of a catch reports first: an
+  early `break`, `continue` or `return` for one kind of error loses it
+  however often it happens. A Server Action that catches an error so that
+  its page carries on keeps it with `keepCaught()`
+  (`lib/oversight/errors-seen.server.ts`), as Next would have had it been
+  thrown.
+  - **A feature declares its problems** in its copy file, with
+    `defineProblems()` (`lib/problems.ts`): each one's name, and its
+    sentence, written from its values.
+
+    ```ts
+    export const letterProblems = defineProblems("letters", {
+      copyNotSentYet: (p: { letter: number }) => `The copy of letter ${p.letter} couldn't be sent`,
+    });
+    problem(letterProblems.copyNotSentYet({ letter: id }), error);
+    ```
+
+    What's kept is the problem's code (`letters.copyNotSentYet`), its
+    values, its sentence and the error's own words. The code is what tells
+    one problem from another, so the same thing going wrong for the next
+    letter isn't new, and rewording a sentence changes nothing. Renaming a
+    problem, or its feature, makes it a new one.
+
+  - **A problem's values are IDs, counts and fixed codes**, never a
+    private person's name or address, so nothing kept with a problem
+    names anyone, and erasing a person leaves nothing behind in one. The
+    types refuse plain text. Text that's public, such as a politician's
+    name, goes through `publicText()`, and an outside service's ID for
+    something through `outsideId()`, so each place that keeps text can be
+    found.
+  - `tests/checks/declared-problems.test.ts` fails on two features
+    declaring under one name, and on a declared problem nothing reports.
+    It lists the files that still report a sentence written in place, with
+    `problemInWords()`, which no other file may.
+  - **Sending something a run has taken** goes through `sendWithCare()`
+    (`lib/email/send-with-care.server.ts`), which handles the two ways it
+    goes wrong: one that never went is put back and reported, and one that
+    went but couldn't be marked sent is reported and left as taken, never
+    sent twice. A letter of any kind goes through `sendLetterVia()`
+    (`lib/letters/lifecycle.server.ts`), which is built on it.
   - During a job's run (`asRun()` in `lib/server/import-runs.server.ts`),
     the problem is kept on the run, shown on the job's page and emailed to
     staff once, until a run goes right.

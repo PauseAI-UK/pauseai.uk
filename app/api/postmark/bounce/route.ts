@@ -3,7 +3,7 @@ import { handleDeliveryProblem } from "@/lib/oversight/delivery-problems.server"
 import { deliveryProblem, isPostmark, recordDelivery } from "@/lib/email/postmark-webhooks.server";
 import { recordAutoResponder } from "@/lib/letters/inbound.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { serverCopy } from "@/lib/server/copy";
 
 /**
@@ -14,7 +14,7 @@ import { serverCopy } from "@/lib/server/copy";
 export async function POST(request: Request) {
   if (!isPostmark(request)) return NextResponse.json({ error: "Not allowed" }, { status: 401 });
   const payload = await readJsonIfAny(request);
-  if (payload === undefined) problem(serverCopy.problems.logs.badBody("Postmark"));
+  if (payload === undefined) problemInWords(serverCopy.problems.logs.badBody("Postmark"));
   if (await recordDelivery(payload ?? {})) return NextResponse.json({ recorded: true });
   if (await recordAutoResponder(payload ?? {})) return NextResponse.json({ recorded: true });
   const found = deliveryProblem(payload ?? {});

@@ -2,7 +2,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { notifications } from "@/tests/notifications";
 import { query } from "./db.server";
-import { problem } from "./problems.server";
+import { defineProblems } from "@/lib/problems";
+import { problem, problemInWords } from "./problems.server";
 import {
   asRun,
   latestRun,
@@ -45,13 +46,13 @@ describeWithDatabase("the import log", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const run = (whats: string[], after: string[] = []) =>
       asRun("import-luma", "nightly", async () => {
-        for (const what of whats) problem(what, new Error("503"));
-        for (const what of after) problem(what);
+        for (const what of whats) problemInWords(what, new Error("503"));
+        for (const what of after) problemInWords(what);
         return { status: "ok", result: { events: 1 } } as const;
       });
     await asRun("import-luma", "nightly", async () => {
       // One with an alert of its own: kept, but not emailed about again.
-      problem("Google disconnected an account", undefined, { told: true });
+      problemInWords("Google disconnected an account", undefined, { told: true });
       return ended();
     });
     await run(["An event wouldn't load"], ["Postcodes.io failed"]);
@@ -84,12 +85,75 @@ describeWithDatabase("the import log", () => {
     ]);
   });
 
+  it("doesn't email again about a problem with the same code, whatever it's about this time", async () => {
+    const sent = notifications();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const letters = defineProblems("letters", {
+      notSent: (p: { letter: number }) => `Letter ${p.letter} couldn't be sent`,
+      copyNotSent: (p: { letter: number }) => `The copy of letter ${p.letter} couldn't be sent`,
+    });
+    const run = (...reported: ReturnType<typeof letters.notSent>[]) =>
+      asRun("send-mailings", "nightly", async () => {
+        for (const one of reported) problem(one, new Error("Gmail answered 503"));
+        return ended();
+      });
+    await run(letters.notSent({ letter: 4127 }));
+    await run(letters.notSent({ letter: 4128 }), letters.notSent({ letter: 4129 }));
+    expect(sent).toHaveLength(1);
+    // Another problem about the same letter is new.
+    await run(letters.notSent({ letter: 4128 }), letters.copyNotSent({ letter: 4128 }));
+    const words = importRunsCopy.notifications.importProblems;
+    const title = importRunsCopy.jobTitles["send-mailings"];
+    expect(sent.map((email) => email.TextBody)).toEqual([
+      words.body(
+        title,
+        ["- Letter 4127 couldn't be sent Gmail answered 503"],
+        "https://pauseai.uk/staff/scheduled-jobs/sending",
+      ),
+      words.body(
+        title,
+        [
+          "- Letter 4128 couldn't be sent Gmail answered 503",
+          "- The copy of letter 4128 couldn't be sent Gmail answered 503",
+        ],
+        "https://pauseai.uk/staff/scheduled-jobs/sending",
+      ),
+    ]);
+    expect(await latestRun("send-mailings")).toMatchObject({
+      problems: [
+        { code: "letters.notSent", values: { letter: 4128 }, said: "Gmail answered 503" },
+        { code: "letters.copyNotSent", values: { letter: 4128 } },
+      ],
+    });
+  });
+
+  it("doesn't email about a problem the run before kept by the same sentence, before problems had codes", async () => {
+    const sent = notifications();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const parliament = defineProblems("politicians", { slow: "Parliament was slow", down: "Parliament was down" });
+    await asRun("import-parliament", "nightly", async () => {
+      problemInWords("Parliament was slow");
+      return ended();
+    });
+    await asRun("import-parliament", "nightly", async () => {
+      problem(parliament.slow());
+      return ended();
+    });
+    expect(sent).toHaveLength(1);
+    await asRun("import-parliament", "nightly", async () => {
+      problem(parliament.slow());
+      problem(parliament.down());
+      return ended();
+    });
+    expect(sent).toHaveLength(2);
+  });
+
   it("doesn't email again about a problem whose error alone has changed", async () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
     for (const count of [2, 3]) {
       await asRun("import-parliament", "nightly", async () => {
-        problem("Messages that matched nothing:", count);
+        problemInWords("Messages that matched nothing:", count);
         return ended();
       });
     }
@@ -100,8 +164,8 @@ describeWithDatabase("the import log", () => {
     const sent = notifications();
     vi.spyOn(console, "error").mockImplementation(() => {});
     await asRun("import-parliament", "nightly", async () => {
-      problem("Google disconnected an account", undefined, { told: true });
-      problem("Parliament was slow");
+      problemInWords("Google disconnected an account", undefined, { told: true });
+      problemInWords("Parliament was slow");
       return ended();
     });
     const title = importRunsCopy.jobTitles["import-parliament"];
@@ -123,12 +187,12 @@ describeWithDatabase("the import log", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const slow = () =>
       asRun("import-parliament", "nightly", async () => {
-        problem("Parliament was slow");
+        problemInWords("Parliament was slow");
         return ended();
       });
     await slow();
     await asRun("import-parliament", "nightly", async () => {
-      problem("Parliament was slow");
+      problemInWords("Parliament was slow");
       throw new Error("then it went away");
     }).catch(() => {});
     await slow();

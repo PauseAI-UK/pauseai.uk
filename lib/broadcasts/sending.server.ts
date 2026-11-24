@@ -36,7 +36,7 @@ import {
 } from "@/lib/server/outside-services/civicrm.server";
 import type { Attachment } from "@/lib/server/outside-services/postmark.server";
 import { sendTemplate } from "@/lib/server/outside-services/whatsapp.server";
-import { describeError, problem } from "@/lib/server/problems.server";
+import { describeError, problemInWords } from "@/lib/server/problems.server";
 import { recordWhatsAppStop } from "./whatsapp-stops.server";
 import { templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 import { markUnreachable, unreachable } from "./unreachable.server";
@@ -537,7 +537,7 @@ async function withCare(taken: Copy[], send: (went: (id: number) => void) => Pro
     await putBack(left);
     const words = emailCopy.problems;
     // Named by the batch's first, which is always there.
-    problem(words.notSentYet(broadcastsCopy.problems.copyOf(taken[0].id)), error);
+    problemInWords(words.notSentYet(broadcastsCopy.problems.copyOf(taken[0].id)), error);
     return false;
   }
 }
@@ -557,7 +557,7 @@ async function keep(copy: Copy, result: ChannelResult, run: BroadcastRun, went: 
   } catch (error) {
     if (!mayHaveGone) throw error;
     const words = emailCopy.problems;
-    problem(words.sentUnrecorded(broadcastsCopy.problems.copyOf(copyId)), error);
+    problemInWords(words.sentUnrecorded(broadcastsCopy.problems.copyOf(copyId)), error);
   }
 }
 
@@ -714,7 +714,7 @@ async function checkCopies(
     suppressed = await sender.ask(going);
   } catch (error) {
     // Nothing is sent unchecked.
-    problem(broadcastsCopy.problems.civicrmCheckFailed, error);
+    problemInWords(broadcastsCopy.problems.civicrmCheckFailed, error);
     await putBack(going);
     await wait(broadcast, "civicrm", describeError(error));
     return undefined;
@@ -844,7 +844,7 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
         );
       } catch (error) {
         // The send broke off, and WhatsApp may have taken it by then: failed, as an email is, never sent twice.
-        problem(emailCopy.problems.sendFailed("broadcast"), error);
+        problemInWords(emailCopy.problems.sendFailed("broadcast"), error);
         return { sent: false, reason: "failed", mayHaveGone: true };
       }
     },

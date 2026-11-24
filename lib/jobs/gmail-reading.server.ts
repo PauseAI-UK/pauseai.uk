@@ -30,7 +30,7 @@ import { keepReply, letterAnswered, noteAutoReply, postmarkMessageId } from "@/l
 import { copyAnswered, copyInThread, keepBroadcastReply } from "@/lib/broadcasts/replies.server";
 import { keepGmailAnswer } from "@/lib/broadcasts/answers.server";
 import { isMachineReply } from "@/lib/email-parsing/subjects";
-import { describeError, problem } from "@/lib/server/problems.server";
+import { describeError, problemInWords } from "@/lib/server/problems.server";
 import { lettersCopy } from "@/lib/letters/copy";
 import { jobsCopy } from "./copy";
 
@@ -277,7 +277,7 @@ async function readAccount(account: string, historyId: string, request: Request 
   try {
     await saveGmailName(account, await gmailSendName(token));
   } catch (error) {
-    problem(jobsCopy.problems.nameUnknown(account), error);
+    problemInWords(jobsCopy.problems.nameUnknown(account), error);
   }
   return read;
 }
@@ -335,7 +335,7 @@ async function readAll(request: Request | undefined): Promise<Ran<GmailReadResul
     } catch (error) {
       const disconnected = error instanceof GmailError && error.revoked;
       // One Google disconnected has an email of its own (gmail-accounts.server.ts).
-      problem(jobsCopy.problems.couldntRead(email), error, { told: disconnected });
+      problemInWords(jobsCopy.problems.couldntRead(email), error, { told: disconnected });
       accounts.push({
         account: email,
         replies: 0,
@@ -360,7 +360,7 @@ async function readAll(request: Request | undefined): Promise<Ran<GmailReadResul
   );
   const notUnderstood = accounts.reduce((n, a) => n + (a.notUnderstood?.length ?? 0), 0);
   if (notUnderstood) {
-    problem(jobsCopy.problems.notUnderstood, notUnderstood, {
+    problemInWords(jobsCopy.problems.notUnderstood, notUnderstood, {
       told: await alertNotUnderstood(accounts, request),
     });
   }

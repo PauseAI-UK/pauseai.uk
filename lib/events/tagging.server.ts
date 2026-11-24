@@ -5,7 +5,7 @@ import { londonStart } from "@/lib/staff-time";
 import { query, type Queryable } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { applyEventTag, listEventTags } from "@/lib/server/outside-services/luma-calendar.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { eventsCopy } from "./copy";
 
 // Tags our upcoming events on Luma, during the Luma import. Each event is
@@ -50,7 +50,7 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
     calendarTags = await listEventTags();
     done.requests++;
   } catch (error) {
-    problem(eventsCopy.problems.lumaTagsUnread, error);
+    problemInWords(eventsCopy.problems.lumaTagsUnread, error);
     return done;
   }
   for (const event of events) {
@@ -64,7 +64,7 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
           await applyEventTag(tag, event.id);
         }
       } catch (error) {
-        problem(eventsCopy.problems.lumaTagRefused(event.name), error);
+        problemInWords(eventsCopy.problems.lumaTagRefused(event.name), error);
         continue;
       }
       done.tagged++;

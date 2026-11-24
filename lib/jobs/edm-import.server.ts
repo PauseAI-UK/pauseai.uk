@@ -6,7 +6,7 @@ import { logChange } from "@/lib/server/audit.server";
 import { query, transaction } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";
 import { edmSignersNow } from "@/lib/server/outside-services/parliament.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { jobsCopy } from "./copy";
 
 // Copies the signers of the superintelligence EDM (lib/asks/edm.ts) into the
@@ -67,7 +67,7 @@ export async function importEdm(startedBy: string): Promise<EdmResult> {
         unmatched: signers.filter((s) => !byOfficialId.has(s.id)).map((s) => `${s.name} (${s.id})`),
       } satisfies EdmResult;
     });
-    if (result.unmatched.length > 0) problem(jobsCopy.edm.unmatched, result.unmatched.join(", "));
+    if (result.unmatched.length > 0) problemInWords(jobsCopy.edm.unmatched, result.unmatched.join(", "));
     return { status: "ok", result } as const;
   });
   return result;

@@ -195,7 +195,7 @@ describeWithDatabase("errors the server throws", () => {
     const sent = notifications();
     // An error not kept is only reported, so the count below would come up short without saying why.
     const notKept: string[] = [];
-    registerProblemKeeper((what, described) => notKept.push(`${what} ${described}`));
+    registerProblemKeeper(({ what, error }) => notKept.push(`${what} ${error}`));
     await Promise.all([thrown(new Error("At once")), thrown(new Error("At once")), thrown(new Error("At once"))]);
     expect(notKept).toEqual([]);
     expect(sent).toHaveLength(1);
@@ -244,12 +244,42 @@ describeWithDatabase("errors the server throws", () => {
 describeWithDatabase("problems reported outside a run", () => {
   useTestDatabase();
 
-  it("are kept by their sentence, with the error's words, and emailed about", async () => {
+  it("are one error for each code, whatever its values and words, and emailed about once", async () => {
     const sent = notifications();
     // One after the other, as the latest words are those counted last, and two started together may be counted in either order.
-    keepProblem("Letter 12 couldn't be sent, so it's gone back in the queue", "Gmail answered 503");
+    keepProblem({ code: "letters.unreadable", values: { message: "abc" }, what: "Gmail wouldn't give message abc" });
     await Promise.all(held.work);
-    keepProblem("Letter 13 couldn't be sent, so it's gone back in the queue", undefined);
+    const [said, what] = ["Gmail answered 400", "Gmail refused the message xyz"];
+    keepProblem({ code: "letters.unreadable", values: { message: "xyz" }, what, said });
+    await Promise.all(held.work);
+    // The same words under another code are another error.
+    keepProblem({ code: "letters.unread", values: {}, what: "Gmail wouldn't give message abc" });
+    await Promise.all(held.work);
+    expect(await rows()).toEqual([
+      {
+        kind: "problem",
+        route: "",
+        name: "",
+        code: "letters.unreadable",
+        words: "Gmail refused the message xyz",
+        latest: "Gmail refused the message xyz: Gmail answered 400",
+        count: 2,
+        browser: null,
+        alerted: true,
+      },
+      expect.objectContaining({ code: "letters.unread", count: 1 }),
+    ]);
+    expect(sent.map((email) => email.Subject)).toEqual([
+      copy.email.server.subject("Gmail wouldn't give message abc"),
+      copy.email.server.subject("Gmail wouldn't give message abc"),
+    ]);
+  });
+
+  it("are kept by their sentence when they have no code, with the error's words, and emailed about", async () => {
+    const sent = notifications();
+    keepProblem({ what: "Letter 12 couldn't be sent, so it's gone back in the queue", error: "Gmail answered 503" });
+    await Promise.all(held.work);
+    keepProblem({ what: "Letter 13 couldn't be sent, so it's gone back in the queue" });
     await Promise.all(held.work);
     expect(await rows()).toEqual([
       {
@@ -272,7 +302,7 @@ describeWithDatabase("problems reported outside a run", () => {
 
   it("are kept outside a request too, where nothing holds the work open", async () => {
     held.outside = true;
-    keepProblem("Turnstile couldn't be reached", "fetch failed");
+    keepProblem({ what: "Turnstile couldn't be reached", error: "fetch failed" });
     await vi.waitFor(async () => expect(await rows()).toHaveLength(1));
     expect(await rows()).toEqual([
       expect.objectContaining({

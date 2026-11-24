@@ -1,6 +1,6 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { siteUrlIfKnown } from "@/lib/site-url.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { serverCopy } from "@/lib/server/copy";
@@ -22,8 +22,8 @@ export async function startLumaImport(): Promise<void> {
       headers: { Authorization: `Bearer ${config.cronSecret}` },
     });
     // A background function answers 202 as it starts.
-    if (res.status !== 202) problem(serverCopy.problems.logs.lumaImportNotStarted, `It answered ${res.status}`);
+    if (res.status !== 202) problemInWords(serverCopy.problems.logs.lumaImportNotStarted, `It answered ${res.status}`);
   } catch (error) {
-    problem(serverCopy.problems.logs.lumaImportNotStarted, error);
+    problemInWords(serverCopy.problems.logs.lumaImportNotStarted, error);
   }
 }

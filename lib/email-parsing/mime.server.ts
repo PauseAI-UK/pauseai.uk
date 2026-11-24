@@ -1,5 +1,5 @@
 import "server-only";
-import { problem } from "@/lib/server/problems.server";
+import { problemInWords } from "@/lib/server/problems.server";
 import { serverCopy } from "@/lib/server/copy";
 import { htmlText } from "./html-text";
 
@@ -95,7 +95,7 @@ export function decodedText(body: Buffer, contentType: string | undefined): stri
   try {
     text = new TextDecoder(charset).decode(body);
   } catch (error) {
-    problem(serverCopy.problems.anywhere.charsetUnknown(charset), error);
+    problemInWords(serverCopy.problems.anywhere.charsetUnknown(charset), error);
     text = body.toString("utf8");
   }
   return text.includes("\uFFFD") ? body.toString("latin1") : text;

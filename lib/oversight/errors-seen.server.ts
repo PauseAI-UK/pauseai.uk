@@ -10,14 +10,15 @@ import { browserVersionOf } from "@/lib/user-agent";
 import { config } from "@/lib/server/config.server";
 import { query } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
-import { describeError, problem } from "@/lib/server/problems.server";
+import { type Problem, problemSaid } from "@/lib/problems";
+import { describeError, problemInWords } from "@/lib/server/problems.server";
 import { serverCopy } from "@/lib/server/copy";
 import { oversightCopy } from "./copy";
 
 // What goes wrong on the site outside a job's run, kept so that it reaches
 // someone: an error the server throws in a page, a route handler, a Server
 // Action or the proxy (instrumentation.ts); a problem reported outside a run
-// (problem(), lib/server/problems.server.ts); and an error in a visitor's browser
+// (problemInWords(), lib/server/problems.server.ts); and an error in a visitor's browser
 // (/api/browser-error). Each is a row of errors_seen, counted each time it
 // happens, two happenings being one error when their key matches
 // (lib/oversight/error-key.ts). Staff are emailed about a new one, and at most once a
@@ -218,7 +219,7 @@ async function keep(happening: Happening): Promise<void> {
       const id = await count(happening);
       if (id !== undefined) await tell(id, happening);
     } catch (error) {
-      problem(serverCopy.problems.logs.errorNotKept, error);
+      problemInWords(serverCopy.problems.logs.errorNotKept, error);
     }
   });
 }
@@ -237,20 +238,21 @@ export async function keepCaught(thrown: unknown, route: string): Promise<void> 
 }
 
 /**
- * Keeps a problem reported outside a run, by its sentence, with the error's
- * words if it came with one. Started at once, and where there's a request,
- * the platform waits for it after the response has gone.
+ * Keeps a problem reported outside a run, with the error's words if it came
+ * with one: one row for each code, whatever its values, or for one reported
+ * by a sentence alone, each sentence. Started at once, and where there's a
+ * request, the platform waits for it after the response has gone.
  */
-export function keepProblem(what: string, described: string | undefined): void {
+export function keepProblem(problem: Problem): void {
   if (keeping.getStore()) return;
   const kept = keep({
     kind: "problem",
     route: "",
     name: "",
-    code: null,
-    words: steadyWords(what),
-    byCode: false,
-    latestWords: [what, described].filter(Boolean).join(": ").slice(0, LATEST_WORDS_KEPT),
+    code: problem.code?.slice(0, CODE_KEPT) ?? null,
+    words: steadyWords(problem.what),
+    byCode: problem.code !== undefined,
+    latestWords: [problem.what, problemSaid(problem)].filter(Boolean).join(": ").slice(0, LATEST_WORDS_KEPT),
     stack: null,
     browser: null,
   });

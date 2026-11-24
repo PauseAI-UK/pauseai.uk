@@ -1,6 +1,6 @@
 import "server-only";
 import { isAllowedEventImage } from "@/lib/event-image-hosts";
-import { problem } from "../problems.server";
+import { problemInWords } from "../problems.server";
 import type { EventGoing } from "@/lib/going";
 import { outsideFetch } from "./outside-fetch.server";
 import { serverCopy } from "@/lib/server/copy";
@@ -68,7 +68,7 @@ export async function getPublicEvent(eventId: string): Promise<PublicEvent | nul
     const data = (await res.json()) as ApiEvent;
     return { startAt: timestamp(data.event?.start_at), endAt: timestamp(data.event?.end_at), going: going(data) };
   } catch (error) {
-    problem(serverCopy.problems.logs.lumaGuestsDown, error);
+    problemInWords(serverCopy.problems.logs.lumaGuestsDown, error);
     return null;
   }
 }

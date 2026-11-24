@@ -14,8 +14,7 @@ import { sendLetterQueue } from "./queue.server";
 import { noticeToSender, sendCopy, sendLetter, threading, uncertainLetters } from "./sending.server";
 import { submitLetter, type LetterForm } from "../../app/api/email-your-mp/letters/mp-letters.server";
 import { relay, resendAfterFix, sendRelay, uncertainRelays } from "./relays.server";
-import { lettersCopy } from "./copy";
-import { emailCopy } from "@/lib/email/copy";
+import { letterProblems, lettersCopy } from "./copy";
 
 const JANE = "jane@example.com";
 /** Jane as every email to her is addressed: her name and her own address. */
@@ -167,7 +166,7 @@ describeWithDatabase("the letters inbox's queue", () => {
     expect(await sendLetter(id)).toEqual({ sent: true });
     expect(sent).toHaveLength(1);
     expect(await statusOf()).toBe("sending");
-    expect(error.mock.calls[0][0]).toBe(emailCopy.problems.sentUnrecorded(lettersCopy.problems.letterOf(id)));
+    expect(error.mock.calls[0][0]).toBe(letterProblems.letterSentUnrecorded({ letter: id }).what);
   });
 
   it("queues a letter when Gmail refuses the MP's address as blocked", async () => {
@@ -246,7 +245,6 @@ describeWithDatabase("the letters inbox's queue", () => {
 
   it("puts a copy back when something goes wrong before it goes, and leaves one that went for a person", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const words = emailCopy.problems;
     await submitLetter(FORM);
     const id = (await query<{ id: number }>("SELECT id::int AS id FROM letters"))[0].id;
     await query("UPDATE letters_from_supporters SET copy_state = 'queued'");
@@ -255,21 +253,18 @@ describeWithDatabase("the letters inbox's queue", () => {
     await refuseWrites("email_sends", "NEW.outcome = 'failed'", "INSERT");
     await sendCopy(id);
     expect(await query("SELECT copy_state FROM letters_from_supporters")).toEqual([{ copy_state: "queued" }]);
-    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(lettersCopy.problems.letterCopyOf(id)));
+    expect(error.mock.calls.map(([what]) => what)).toContain(letterProblems.copyNotSentYet({ letter: id }).what);
     // It goes, but marking it sent fails: left sending, for a person, never sent again.
     const sent = recordGmail();
     await refuseWrites("letters_from_supporters", "NEW.copy_state = 'sent'");
     await sendCopy(id);
     expect(sent).toHaveLength(1);
     expect(await query("SELECT copy_state FROM letters_from_supporters")).toEqual([{ copy_state: "sending" }]);
-    expect(error.mock.calls.map(([what]) => what)).toContain(
-      words.sentUnrecorded(lettersCopy.problems.letterCopyOf(id)),
-    );
+    expect(error.mock.calls.map(([what]) => what)).toContain(letterProblems.copySentUnrecorded({ letter: id }).what);
   });
 
   it("puts a relay back when something goes wrong before it goes, and leaves one that went for a person", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const words = emailCopy.problems;
     await replied();
     await query("UPDATE letter_relays SET status = 'queued'");
     const [{ relayId }] = await query<{ relayId: number }>(
@@ -281,14 +276,14 @@ describeWithDatabase("the letters inbox's queue", () => {
     expect(await query("SELECT status, reason FROM letter_relays WHERE id = $1", [relayId])).toEqual([
       { status: "queued", reason: "failed" },
     ]);
-    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(lettersCopy.problems.relayOf(relayId)));
+    expect(error.mock.calls.map(([what]) => what)).toContain(letterProblems.relayNotSentYet({ relay: relayId }).what);
     const sent = recordGmail();
     await refuseWrites("letter_relays", "NEW.status = 'sent'");
     expect(await sendRelay(relayId)).toEqual({ sent: true });
     expect(sent).toHaveLength(1);
     expect(await query("SELECT status FROM letter_relays WHERE id = $1", [relayId])).toEqual([{ status: "sending" }]);
     expect(error.mock.calls.map(([what]) => what)).toContain(
-      words.sentUnrecorded(lettersCopy.problems.relayOf(relayId)),
+      letterProblems.relaySentUnrecorded({ relay: relayId }).what,
     );
   });
 

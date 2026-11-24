@@ -45,7 +45,7 @@ import {
 import { removeCalendarContact } from "@/lib/server/outside-services/luma-calendar.server";
 import { randomId } from "@/lib/server/random-id.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
-import { describeError, note, problem } from "@/lib/server/problems.server";
+import { describeError, note, problemInWords } from "@/lib/server/problems.server";
 import { supportersCopy } from "./copy";
 import { emailCopy } from "@/lib/email/copy";
 
@@ -319,7 +319,7 @@ export async function offCalendar(address: string): Promise<void> {
   try {
     await removeCalendarContact(address);
   } catch (error) {
-    problem(supportersCopy.problems.lumaRemoveFailed, error);
+    problemInWords(supportersCopy.problems.lumaRemoveFailed, error);
   }
 }
 
@@ -595,7 +595,7 @@ export async function sendBulkNotice(entryId: number, where: string, request?: R
   try {
     return await bulkNotice(entryId, where, request);
   } catch (error) {
-    problem(emailCopy.problems.sendFailed("bulk-notice"), error);
+    problemInWords(emailCopy.problems.sendFailed("bulk-notice"), error);
     return false;
   }
 }
