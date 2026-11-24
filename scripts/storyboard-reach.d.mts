@@ -8,7 +8,7 @@ export type Context = {
   texts?: Map<string, string>;
   roots?: Map<string, Set<string>>;
 };
-type Changed = { files: string[]; addedOrDeleted: string[] };
+export type Changed = { files: string[]; addedOrDeleted: string[] };
 /** A frame as a run records it: in the gallery, with the file of the component it pictures. */
 type Frame = { caption: string; file?: string };
 type Run = { key: string; section: string; flow: string; opened?: string[]; frames?: Frame[] };
@@ -64,3 +64,5 @@ export function flowsToRun<R extends CarriedRun>(args: {
   unknown: string[];
   changed: string[];
 };
+export const SPOT_CHECKS: number;
+export function spotCheckKeys(keys: Iterable<string>, seed: string): string[];

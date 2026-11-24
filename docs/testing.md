@@ -318,9 +318,10 @@ Main is where this branch left origin/main, the merge base a pull request
 compares with. Nothing is fetched.
 
 The review is for looking at what a change does to the pages. It doesn't
-check that every flow still works: CI does, and `npm run test:storyboard`
-is CI's run, every flow without pictures, for a change that might break
-flows it doesn't reach.
+check that every flow still works. Nor does CI on a pull request, which
+runs the flows the change can reach ("Which flows CI runs", below); main's
+CI does, after the merge. `npm run test:storyboard` runs every flow
+without pictures, for a change that might break flows it doesn't reach.
 
 The page shows:
 
@@ -361,8 +362,8 @@ test-results/storyboard-progress.json
 
 It's written when the run starts, after each flow and when the run ends.
 `kind` is which run it is: "review", with pictures on both viewports, or
-"flows", CI's run (`npm run test:storyboard`), which only checks that
-every flow works. `done` counts every flow that has finished, and
+"flows", a run without pictures (`npm run test:storyboard`, as CI's),
+which only checks that the flows work. `done` counts every flow that has finished, and
 `failed` those of them that didn't pass. Anything that shows a run's
 progress, such as a terminal's status line, reads this file, not the run's
 output, which goes wherever whoever started it sent it. A run is going
@@ -683,6 +684,22 @@ machine's fonts and browser. And it takes a page that Next prefetched,
 which a flow never went on to open, to have changed nothing the flow
 shows: true while rendering a page writes nothing. `investments/storyboard-review-speed.md` has
 how it was checked against what runs in each flow.
+
+**Which flows CI runs.** On main, every flow, after each merge. On a pull
+request, the flows its change can reach, by the same map, and the spot
+checks, without pictures (`reachedForCi` in `scripts/ci-parts.mjs`). What
+each flow opened comes from main's last run of every flow: its reporter
+(`tests/storyboard/report/times.ts`) writes it, and the Storyboard job
+keeps it in the Actions cache, by main's commit. A pull request's parts
+restore the newest, take the files changed from main's commit (the pull
+request's base) to the branch merged into main, which is what CI checks
+out, and deal what that reaches, and the flows main has no record of,
+between them by time. The spot checks are the six flows the change
+doesn't reach that main's commit picks, as a review's are, run only to
+see that they still pass. With nothing kept, or kept another way
+(`RECORDING`), every flow runs. So a flow the map misses breaks on main,
+after the merge, not on the pull request: when a change might break
+flows it doesn't reach, run `npm run test:storyboard` before pushing.
 
 **Which files reach the most flows.** `npm run reach` lists the site's
 files that reach the most desktop flows, from what the kept flows opened

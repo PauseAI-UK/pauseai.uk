@@ -1,4 +1,5 @@
 import { BaseSequencer } from "vitest/node";
+import type { Changed, Context, flowsReached } from "./storyboard-reach.mjs";
 
 export interface Item {
   key: string;
@@ -20,3 +21,17 @@ export function flowsForPart(
   part: number,
   count: number,
 ): string[];
+
+export interface CiChoice {
+  run: Set<string>;
+  reached: ReturnType<typeof flowsReached>;
+  spot: string[];
+}
+export function reachedForCi(args: {
+  keys: string[];
+  map: { recording: number; flows: Record<string, string[]> } | undefined;
+  changed: Changed;
+  context: Context;
+  seed: string;
+}): CiChoice | undefined;
+export function reachedLine(chosen: CiChoice, total: number): string;

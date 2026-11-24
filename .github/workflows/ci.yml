@@ -329,7 +329,10 @@ jobs:
   # The flows split between three jobs, each building the site: the flows
   # are most of the time, the setup and the build a minute or so. They're
   # dealt by how long each took when last run, not by count, as the gallery's
-  # and the broadcasts' take far longer than most.
+  # and the broadcasts' take far longer than most. On main, every flow runs.
+  # On a pull request, only those its change can reach, by what each opened
+  # when main last ran it, and a few spot checks (scripts/ci-parts.mjs,
+  # reachedForCi; docs/testing.md, "Which flows CI runs").
   storyboard-shard:
     name: Storyboard (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
@@ -420,21 +423,49 @@ jobs:
           key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: storyboard-times-
 
-      # A third of the flows by time (scripts/ci-parts.mjs): every part deals
-      # the same, from the same times, and runs its own.
-      - name: Choose this part's flows
-        run: node scripts/ci-parts.mjs storyboard ${{ matrix.shard }}/3 storyboard-times.json part-flows.txt
+      # On a pull request: what each flow opened when main's CI last ran
+      # every flow, which the Storyboard job keeps, and main's commit, to
+      # tell what the pull request changes. With no record kept, every flow
+      # runs.
+      - name: Restore what main's flows opened
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@v6
+        with:
+          path: storyboard-opened.json
+          key: storyboard-opened-${{ github.run_id }}
+          restore-keys: storyboard-opened-
 
+      - name: Fetch main's commit
+        if: github.event_name == 'pull_request'
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
+
+      # A third of the flows by time (scripts/ci-parts.mjs): every part deals
+      # the same, from the same times, and runs its own. On a pull request,
+      # of the flows it can reach.
+      - name: Choose this part's flows
+        id: choose
+        run: |
+          node scripts/ci-parts.mjs storyboard ${{ matrix.shard }}/3 storyboard-times.json part-flows.txt \
+            ${{ github.event_name == 'pull_request' && format('storyboard-opened.json {0}', github.event.pull_request.base.sha) || '' }}
+          echo "flows=$(grep -c . part-flows.txt || true)" >> "$GITHUB_OUTPUT"
+
+      # A part with no flows dealt to it runs none: Playwright would take an
+      # empty list as every flow.
       - name: Storyboard
+        if: steps.choose.outputs.flows != '0'
         run: npm run test:storyboard -- --test-list=part-flows.txt
         env:
           STORYBOARD_TIMES: part-times.json
+          STORYBOARD_OPENED: part-opened.json
 
-      - name: Upload the flows' times
+      - name: Upload the flows' times and what they opened
         uses: actions/upload-artifact@v7
         with:
           name: storyboard-times-${{ matrix.shard }}
-          path: part-times.json
+          path: |
+            part-times.json
+            part-opened.json
+          if-no-files-found: ignore
           retention-days: 1
 
       - name: Upload report on failure
@@ -450,7 +481,8 @@ jobs:
   # One result for the three parts, under the storyboard check's own name.
   # It runs whatever they did, so a failed part fails it, rather than
   # leaving it skipped. When they all passed, it keeps their flows' times
-  # for the next run, as one file.
+  # for the next run, as one file, over the times of the flows that didn't
+  # run; and on main, what every flow opened, for pull requests to choose by.
   storyboard:
     name: Storyboard
     needs: storyboard-shard
@@ -465,14 +497,37 @@ jobs:
         with:
           pattern: storyboard-times-*
 
+      - name: Restore the flows' times
+        uses: actions/cache/restore@v6
+        with:
+          path: storyboard-times.json
+          key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: storyboard-times-
+
       - name: Merge the flows' times
-        run: jq -s add storyboard-times-*/part-times.json > storyboard-times.json
+        run: |
+          shopt -s nullglob
+          [ -f storyboard-times.json ] || echo '{}' > storyboard-times.json
+          jq -s add storyboard-times.json storyboard-times-*/part-times.json > merged-times.json
+          mv merged-times.json storyboard-times.json
 
       - name: Keep the flows' times
         uses: actions/cache/save@v6
         with:
           path: storyboard-times.json
           key: storyboard-times-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Merge what the flows opened
+        if: github.event_name == 'push'
+        run: |
+          jq -s '{recording: .[0].recording, flows: (map(.flows) | add)}' storyboard-times-*/part-opened.json > storyboard-opened.json
+
+      - name: Keep what the flows opened
+        if: github.event_name == 'push'
+        uses: actions/cache/save@v6
+        with:
+          path: storyboard-opened.json
+          key: storyboard-opened-${{ github.sha }}
 
   # The database backup's own package (backup/README.md): its tests, with
   # their coverage gate, and its types.

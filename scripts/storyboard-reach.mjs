@@ -16,6 +16,7 @@
 // be taught.
 //
 // Plain JavaScript, as scripts/storyboard.mjs imports it with Node.
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import ts from "typescript";
@@ -56,6 +57,20 @@ const SET_UP = [
   /^tests\/storyboard\/global-(setup|teardown)\.ts$/,
   /^scripts\/(fresh-database|serve-fixture|record-requests)\.mjs$/,
 ];
+
+/** How many of the flows a change doesn't reach a review, or CI on a pull request, runs anyway (spotCheckKeys). */
+export const SPOT_CHECKS = 6;
+
+/**
+ * The spot checks: of `keys`, the flows a change doesn't reach, SPOT_CHECKS
+ * chosen by a hash of `seed` and the flow. With main's tree or commit as the
+ * seed, every run on a branch checks the same ones, and a branch from
+ * another commit of main checks others.
+ */
+export function spotCheckKeys(keys, seed) {
+  const order = (key) => createHash("sha256").update(`${seed} ${key}`).digest("hex");
+  return [...keys].sort((a, b) => order(a).localeCompare(order(b))).slice(0, SPOT_CHECKS);
+}
 
 /** Files no flow runs or reads: a change to only these reruns nothing. */
 const NOTHING = [
