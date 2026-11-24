@@ -364,7 +364,7 @@ export const politicianProblems = defineProblems("politicians", {
   // On the Gmail read's run: searching the mailboxes for an address staff added to a politician failed, so its
   // earlier mail may not be kept. The politician is named by their ID here, as the address may be a person's own.
   addressNotSearched: (p: { politician: number }) =>
-    `⁂ Couldn't search policy@ and Joseph's inbox for an address added to politician ${p.politician}`,
+    `Couldn't search policy@ and Joseph's inbox for an address added to politician ${p.politician}`,
   // No job reaches this: it's kept as an error (lib/oversight/errors-seen.server.ts), on the errors page and emailed
   // to staff. A visitor looking up their MP is told it failed.
   mpLookupFailed: "The MP lookup failed",
