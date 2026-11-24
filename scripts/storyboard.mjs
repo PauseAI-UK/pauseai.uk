@@ -492,8 +492,7 @@ function missedSummary(missed, changed) {
     `Storyboard: ${missed.length} of the flows this branch's change shouldn't reach look different from main's:`,
     ...missed.map((key) => `  ${key}`),
     `  So the map of what a change reaches (scripts/storyboard-reach.mjs) missed something in the ${changed.length} files changed,`,
-    `  or a frame of theirs differs from run to run. So every flow is run. Find which, and fix the map or the frame;`,
-    `  or add a hit to investments/storyboard-review-speed.md naming the flows.`,
+    `  or a frame of theirs differs from run to run. So every flow is run. Find which, and fix the map or the frame.`,
   ].join("\n");
 }
 
@@ -512,8 +511,7 @@ function planSummary(reached, total) {
   return [
     plan,
     `  What ${reached.unknown.slice(0, 3).join(", ")} can change isn't known, so it reaches no flow but the spot checks.`,
-    `  Teach scripts/storyboard-reach.mjs what such a file reaches (EVERYTHING, SET_UP, NOTHING, or how it's read),`,
-    `  or add a hit to investments/storyboard-review-speed.md naming the file.`,
+    `  Teach scripts/storyboard-reach.mjs what such a file reaches (EVERYTHING, SET_UP, NOTHING, or how it's read).`,
   ].join("\n");
 }
 
