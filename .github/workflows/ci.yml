@@ -394,12 +394,16 @@ jobs:
           path: storyboard-opened.json
           key: storyboard-opened-${{ github.event.pull_request.base.sha }}
 
-      # Main's commit, to tell what the pull request changes. The checkout
-      # is the image's root's, not this job's user's, so Git is told it's safe.
+      # The checkout is the image's root's, not this job's user's, so Git is
+      # told it's safe: the fixture server reads the checkout's tree with Git
+      # (scripts/fixture-server.mjs), on main as on a pull request.
+      - name: Let Git read the checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      # Main's commit, to tell what the pull request changes.
       - name: Fetch main's commit
         if: github.event_name == 'pull_request'
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
 
       # A third of the flows (scripts/ci-parts.mjs): every part deals the
