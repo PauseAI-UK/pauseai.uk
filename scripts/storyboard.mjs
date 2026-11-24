@@ -35,7 +35,7 @@
 // (flowsToRun). With nothing to picture, it runs nothing. A changed file the
 // map can't place pictures no flow, and the review says which file.
 // `--full` runs every flow anyway. Checking that every flow still works is
-// CI's run (`npm run test:storyboard`), not the review's.
+// `npm run test:storyboard`'s, and main's CI's, not the review's.
 //
 // A run narrowed by hand (a section, -g, one viewport) starts from the
 // latest run's frames, as hard links, and replaces the flows it runs, each
@@ -97,7 +97,14 @@ import {
   runFolder,
   selectFlows,
 } from "./storyboard-main.mjs";
-import { flowsReached, flowsToRun, reachContext, readByNoFlow, sqlWithoutComments } from "./storyboard-reach.mjs";
+import {
+  flowsReached,
+  flowsToRun,
+  reachContext,
+  readByNoFlow,
+  spotCheckKeys,
+  sqlWithoutComments,
+} from "./storyboard-reach.mjs";
 import {
   fillCarried,
   keepRuns,
@@ -119,8 +126,6 @@ const LATEST = join(DIR, "latest");
 /** How the last full review went, and on which commit. */
 const REVIEW_RECORD = "test-results/storyboard-review.json";
 const RUNS_KEEP = 5;
-/** How many of the flows a change doesn't reach a review runs anyway, to check them against main's (spotChecks). */
-const SPOT_CHECKS = 6;
 /** How many trees' frames the store keeps (scripts/storyboard-store.mjs). */
 const TREES_KEEP = 30;
 
@@ -401,16 +406,14 @@ function chooseRuns(keys) {
 /**
  * A few flows a review runs though this branch's change doesn't reach them,
  * or reaches only some frames of them (a gallery flow): `reached` is
- * flowsReached's. Chosen by a hash of main's tree and the flow, so every
- * review of a branch checks the same ones, whose frames on main are then
- * kept, and a branch from another commit of main checks others.
+ * flowsReached's. Chosen by main's tree (spotCheckKeys), so every review of a
+ * branch checks the same ones, whose frames on main are then kept.
  */
 function spotKeys(reached) {
-  const order = (key) => createHash("sha256").update(`${sinceTree} ${key}`).digest("hex");
-  return [...suite.keys()]
-    .filter((key) => !reached.run.has(key) || reached.carried.has(key))
-    .sort((a, b) => order(a).localeCompare(order(b)))
-    .slice(0, SPOT_CHECKS);
+  return spotCheckKeys(
+    [...suite.keys()].filter((key) => !reached.run.has(key) || reached.carried.has(key)),
+    sinceTree,
+  );
 }
 
 /**

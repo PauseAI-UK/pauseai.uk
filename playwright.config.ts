@@ -44,7 +44,7 @@ export default defineConfig({
     ["html", { open: "never" }],
     ["./tests/storyboard/report/reporter.ts"],
     ["./tests/storyboard/report/progress.ts"],
-    ["./tests/storyboard/report/times.ts"],
+    ["./tests/storyboard/report/opened.ts"],
   ],
   // Playwright empties this before every run. The storyboard's page and
   // pictures are beside it in test-results/storyboard, so a gate run after a

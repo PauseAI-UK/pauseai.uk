@@ -19,7 +19,8 @@
 //
 // The storyboard is the review (`npm run storyboard`), where CI runs the
 // flows without pictures: it runs the flows the branch's change can reach,
-// with pictures, so the gate and the review are one run. CI runs every flow.
+// with pictures, so the gate and the review are one run, as CI on a pull
+// request runs those flows too.
 //
 // Every command has a time limit and a log in tmp/gate/, emptied each run.
 // While they run, a line a minute says which are still going and how long
