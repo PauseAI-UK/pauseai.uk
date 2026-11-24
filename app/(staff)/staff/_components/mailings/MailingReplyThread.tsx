@@ -6,12 +6,14 @@ import type { ReactNode } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { named } from "@/lib/email-parsing/addresses";
+import type { FormResult } from "@/lib/form-result";
 import type { LetterThread as Thread, ThreadMessage } from "@/lib/letters/threads.server";
 import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
 import AnswerableReply, { ReplyButton, type AnswerAction } from "./AnswerableReply";
 import { MailingLetter } from "./MailingLetter";
 import LetterThread from "../letters/LetterThread";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import styles from "./AnswerableReply.module.css";
 import { mailingsCopy } from "./copy";
 
@@ -27,7 +29,8 @@ export type WaitingReply = { id: number; account: string };
  * if any: Reply, which opens an answer at the foot of the thread, from the
  * mailbox it came to, as the letter's From name; or, if the staff member
  * can't answer from that mailbox (`canAnswer`), whose mailbox it came to,
- * as only they can. Beside either, Nothing to do (`deal`).
+ * as only they can. Beside either, Nothing to do (`deal`); a reply someone
+ * else has dealt with since is said at the page's top.
  */
 export default function MailingReplyThread({
   thread,
@@ -41,7 +44,7 @@ export default function MailingReplyThread({
   link?: ReactNode;
   waiting: WaitingReply | null;
   canAnswer: boolean;
-  deal: (form: FormData) => void | Promise<void>;
+  deal: (form: FormData) => Promise<FormResult<"gone">>;
   answer: AnswerAction;
 }) {
   const reply = waiting && thread.messages.find((message) => message.id === waiting.id);
@@ -63,12 +66,13 @@ export default function MailingReplyThread({
               ) : (
                 <Muted>{copy.answerElsewhere(waiting!.account)}</Muted>
               )}
-              <form action={deal}>
+              <ResultForm action={deal} says={mailingsCopy.refusals.nothingToDo} atTop={["gone"]}>
                 <input type="hidden" name="replyId" value={message.id} />
                 <SubmitButton variant="ghost" size="small" fit>
                   {copy.nothing}
                 </SubmitButton>
-              </form>
+                <Refusal />
+              </ResultForm>
             </div>
           )}
         </>

@@ -107,6 +107,12 @@
   gap: var(--space-3);
 }
 
+/* That scheduling didn't work, on a row of its own under Schedule and Delete draft. */
+.notScheduled {
+  order: 1;
+  flex-basis: 100%;
+}
+
 /* The test copy: the address and its button on one row, and under them where it went. */
 .test {
   display: grid;

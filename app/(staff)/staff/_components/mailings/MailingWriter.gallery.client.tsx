@@ -23,20 +23,20 @@ export function mailingActions(log: (name: string) => (...args: unknown[]) => vo
   return {
     save: async (...args: unknown[]) => {
       log("saveMailing")(...args);
-      return { saved: true as const, version: ++version };
+      return { ok: true as const, version: ++version };
     },
     attach: logged("attachToMailing", {
-      saved: true as const,
+      ok: true as const,
       version: 4,
       attachments: exampleWrittenMailing.attachments,
     }),
-    detach: logged("detachFromMailing", { saved: true as const, version: 4, attachments: [] }),
-    sendTest: logged("sendMailingTest", { sent: true as const, id: "example", to: "jo@pauseai.uk" }),
-    schedule: logged("scheduleMailingNow", { scheduled: true as const }),
-    deleteDraft: logged("deleteMailingDraft", undefined),
-    leaveOut: logged("leaveOutOfMailing", undefined),
-    stop: logged("stopMailingNow", undefined),
-    reschedule: logged("rescheduleMailingNow", undefined),
+    detach: logged("detachFromMailing", { ok: true as const, version: 4, attachments: [] }),
+    sendTest: logged("sendMailingTest", { ok: true as const, to: "jo@pauseai.uk" }),
+    schedule: logged("scheduleMailingNow", { ok: true as const }),
+    deleteDraft: logged("deleteMailingDraft", { ok: true as const }),
+    leaveOut: logged("leaveOutOfMailing", { ok: true as const }),
+    stop: logged("stopMailingNow", { ok: true as const }),
+    reschedule: logged("rescheduleMailingNow", { ok: true as const }),
   };
 }
 

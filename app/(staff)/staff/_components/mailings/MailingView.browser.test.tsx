@@ -10,12 +10,12 @@ import { exampleMailing, exampleMailings } from "./MailingsTable.examples";
 import { asksCopy } from "@/lib/asks/copy";
 import { exampleAsks } from "../asks/AsksList.examples";
 import { mailingsCopy } from "./copy";
-import { MailingStandingExample } from "./MailingView.gallery.client";
+import { MailingStandingExample, MailingViewExample } from "./MailingView.gallery.client";
 import { lettersCopy } from "../letters/copy";
 
 const copy = mailingsCopy.mailingPages;
 const states = lettersCopy.copyStates;
-const noAction = async () => {};
+const noAction = async () => ({ ok: true as const });
 /** Whether the page says `text`, whichever element it's in and however its line wraps. */
 const says = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
 
@@ -44,7 +44,12 @@ describe("MailingView", () => {
 
   it("has Copy mailing at its top right, which sends its ID", async () => {
     const copied: FormData[] = [];
-    await view({ copyIt: async (form) => void copied.push(form) });
+    await view({
+      copyIt: async (form) => {
+        copied.push(form);
+        return { ok: true };
+      },
+    });
     await page.getByRole("button", { name: copy.copyMailing }).click();
     await expect.poll(() => copied.map((form) => form.get("id"))).toEqual([String(written.id)]);
   });
@@ -168,7 +173,10 @@ describe("MailingView", () => {
     vi.useFakeTimers({ now: new Date("2026-10-29T12:00:00Z"), toFake: ["Date"] });
     onTestFinished(() => void vi.useRealTimers());
     const forms: FormData[] = [];
-    const action = async (form: FormData) => void forms.push(form);
+    const action = async (form: FormData) => {
+      forms.push(form);
+      return { ok: true as const };
+    };
     await view({ written: { ...written, state: "scheduled" }, stop: action, reschedule: action });
     await expect.element(page.getByText("Tue 1 Dec at 09:03", { exact: true })).toBeVisible();
     await expect.element(page.getByText(copy.sendsIn(staffVocabulary.dueIn.days(33)), { exact: true })).toBeVisible();
@@ -198,7 +206,7 @@ describe("MailingView", () => {
     onTestFinished(() => void vi.useRealTimers());
     await view({
       written: { ...written, state: "scheduled", dueAt: new Date("2026-12-03T03:00:00Z") },
-      reschedule: async () => {},
+      reschedule: noAction,
     });
     await page.getByRole("button", { name: copy.changeTime }).click();
     const hour = page.getByRole("combobox", { name: copy.hour });
@@ -218,7 +226,10 @@ describe("MailingView", () => {
     vi.useFakeTimers({ now: new Date("2026-12-01T08:58:00Z"), toFake: ["Date", "setInterval", "clearInterval"] });
     onTestFinished(() => void vi.useRealTimers());
     const forms: FormData[] = [];
-    const action = async (form: FormData) => void forms.push(form);
+    const action = async (form: FormData) => {
+      forms.push(form);
+      return { ok: true as const };
+    };
     await view({ written: { ...written, state: "scheduled" }, reschedule: action });
     await page.getByRole("button", { name: copy.changeTime }).click();
     const day = page.getByRole("button", { name: copy.day });
@@ -348,7 +359,7 @@ describe("an imported mailing's text", () => {
     content: [{ type: "paragraph", content: [{ type: "field", attrs: { field: "own" } }] }],
   };
   const imported = (props: Partial<Mailing>) => (
-    <MailingView mailing={{ ...exampleMailing, ...props }} asks={[]} stop={() => {}} reschedule={() => {}} />
+    <MailingView mailing={{ ...exampleMailing, ...props }} asks={[]} stop={noAction} reschedule={noAction} />
   );
 
   it("shows its template, with its fields as chips, saying so if it's approximate", async () => {
@@ -372,6 +383,14 @@ describe("an imported mailing's text", () => {
 });
 
 describe("MailingView's examples in the gallery", () => {
+  it("logs what Stop sending sends", async () => {
+    await render(<MailingViewExample state="sending" />);
+    await page.getByRole("button", { name: mailingsCopy.mailingPages.stopSending }).click();
+    await expect
+      .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+      .toHaveTextContent(`stopMailingNow({"id":"${exampleWrittenMailing.id}"})`);
+  });
+
   it("does nothing when an action is pressed", async () => {
     await render(<MailingStandingExample />);
     await page.getByRole("button", { name: mailingsCopy.mailingPages.stopSending }).click();

@@ -32,8 +32,13 @@ export const section: Section = { name: "Mailings", part: "Staff pages", order: 
 // sending, finished by the next with its letter uncertain; letters of one
 // bouncing; and a politician's reply to check, answered from the page, or
 // marked as needing nothing by someone who can't answer from its mailbox.
+// Then what the pages say when a mailing has changed under them: one a
+// colleague unschedules, schedules, deletes or changes meanwhile, a time
+// that has passed, a recipient who's no longer one, and a reply someone
+// else dealt with first.
 
 const copy = mailingsCopy.mailingPages;
+const refusals = mailingsCopy.refusals;
 const choosing = politiciansCopy.choosing;
 const stateWords = lettersCopy.copyStates;
 
@@ -91,6 +96,42 @@ function addMailing(database: string, title: string, state: string, statuses: st
      FROM l JOIN r ON r.id = l.notable_person_id`,
   );
   return id;
+}
+
+/** What the page says at its top, in `words`. */
+const saidAtTop = (page: Page, words: string) => page.getByRole("alert").filter({ hasText: words });
+
+/**
+ * Makes draft `id` scheduled for 30 October, from Jo, with a letter for
+ * every politician with an address, as a colleague's Schedule would from
+ * their own computer.
+ */
+function scheduleElsewhere(database: string, id: string) {
+  runSql(
+    database,
+    `WITH l AS (
+       INSERT INTO letters (kind, notable_person_id, status)
+       SELECT 'pauseai', n.id, 'scheduled' FROM notable_people n JOIN politicians p USING (id)
+       WHERE n.email IS NOT NULL AND NOT p.is_test RETURNING id)
+     INSERT INTO letters_from_pauseai (id, mailing_id) SELECT l.id, ${id} FROM l;
+     UPDATE mailings SET state = 'scheduled', sent_from = 'jo@pauseai.uk', from_name = 'Jo Example',
+       due_at = '2026-10-30T09:00:00Z', version = version + 1 WHERE id = ${id}`,
+  );
+}
+
+/** Makes scheduled mailing `id` a draft again, its letters let go, as a colleague's Unschedule would. */
+function unscheduleElsewhere(database: string, id: string) {
+  runSql(
+    database,
+    `DELETE FROM letters WHERE id IN (SELECT id FROM letters_from_pauseai WHERE mailing_id = ${id});
+     UPDATE mailings SET state = 'draft', version = version + 1 WHERE id = ${id}`,
+  );
+}
+
+/** Puts the window at the page's top, where the page says what it has to, once a draft's title bar has gone. */
+async function toTheTop(page: Page) {
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await expect(page.locator("[data-shown]")).toHaveCount(0);
 }
 
 test("A new mailing", async ({ page, request, flowDatabase }) => {
@@ -929,4 +970,218 @@ test("From a mailing to its ask", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("row").filter({ hasText: "Morag Example" })).toBeVisible();
   await expect(page.getByRole("row")).toHaveCount(2);
   await frame(page, "The politicians going");
+});
+
+test("A scheduled mailing a colleague unschedules meanwhile", async ({ page, request, flowDatabase }) => {
+  story(
+    "Two reminders are scheduled. Staff open the first and choose a new time for it. Before they press Change it, a colleague unschedules the mailing.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  const [first, second] = ["Edinburgh reminder", "Edinburgh last call"].map((title) =>
+    addMailing(flowDatabase, title, "scheduled", ["scheduled", "scheduled", "scheduled"]),
+  );
+  runSql(flowDatabase, `UPDATE mailings SET due_at = '2026-10-30T09:00:00Z' WHERE id IN (${first}, ${second})`);
+  await page.goto(`${BASE}/staff/mailings/${first}`);
+  await openBubble(page.getByRole("button", { name: copy.changeTime }));
+  await page.getByLabel(copy.hour, { exact: false }).selectOption("14");
+  unscheduleElsewhere(flowDatabase, first);
+  story(
+    "Change it can't change the time, and the page says why at its top. Under that is the mailing as it is now, a draft again.",
+  );
+  await page.getByRole("button", { name: copy.saveTime }).click();
+  await expect(saidAtTop(page, refusals.reschedule.gone)).toBeVisible();
+  await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
+  await frame(page, "No longer scheduled, said at the top");
+  story(
+    "They open the second, which the colleague unschedules too before they press Unschedule. There was nothing left to stop, and the page says so.",
+  );
+  await page.goto(`${BASE}/staff/mailings/${second}`);
+  await expect(page.getByRole("button", { name: copy.unschedule })).toBeVisible();
+  unscheduleElsewhere(flowDatabase, second);
+  await page.getByRole("button", { name: copy.unschedule }).click();
+  await expect(saidAtTop(page, refusals.stop.gone)).toBeVisible();
+  await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
+  await frame(page, "Nothing left to stop, said at the top");
+});
+
+test("A new time that has passed", async ({ page, request, flowDatabase }) => {
+  story(
+    "A reminder is scheduled for 17:03 today. Staff open Change the time and choose an earlier one, which has passed by the time they press Change it.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  const id = addMailing(flowDatabase, "Edinburgh reminder", "scheduled", ["scheduled", "scheduled", "scheduled"]);
+  runSql(flowDatabase, `UPDATE mailings SET due_at = '2026-10-16T16:00:00Z' WHERE id = ${id}`);
+  await page.goto(`${BASE}/staff/mailings/${id}`);
+  await openBubble(page.getByRole("button", { name: copy.changeTime }));
+  // The form's clock put three hours behind the site's, at 10:00 in London, so it offers 11:03, which the site has
+  // as gone. Its hours are drawn again for that clock once one is chosen.
+  await page.clock.setFixedTime(new Date("2026-10-16T09:00:00Z"));
+  const hour = page.getByLabel(copy.hour, { exact: false });
+  await hour.selectOption("18");
+  await hour.selectOption("11");
+  await page.getByRole("button", { name: copy.saveTime }).click();
+  await expect(page.getByRole("alert").filter({ hasText: refusals.reschedule["too-soon"] })).toBeVisible();
+  await frame(page, "The time has passed, said under it", { window: true });
+  story("The mailing still goes at 17:03.");
+  expect(runSql(flowDatabase, `SELECT due_at = '2026-10-16T16:00:00Z' FROM mailings WHERE id = ${id}`)).toEqual(["t"]);
+});
+
+test("Choosing who for a mailing a colleague deletes meanwhile", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff press Mail these on the Lords, and the list starts choosing who the new mailing is for. A colleague, on the mailings page, deletes the new draft.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  /** Deletes the draft the list is choosing for, as the colleague's Delete draft does. */
+  const deleteElsewhere = () =>
+    runSql(flowDatabase, `DELETE FROM mailings WHERE id = ${new URL(page.url()).searchParams.get("mailing")}`);
+  await page.goto(`${BASE}/staff/politicians?house=lords`);
+  await page.getByRole("button", { name: choosing.mailThese(1) }).click();
+  await expect(page.getByText(choosing.choosingNew)).toBeVisible();
+  await expect(page).toHaveURL(/mailing=\d+/);
+  deleteElsewhere();
+  story(
+    "They untick the one lord it found. The tick can't be saved, and the page says why at its top. The list is no longer choosing.",
+  );
+  const lord = page.getByRole("checkbox", { name: choosing.tick("Lord Seedling of Example") });
+  await lord.click();
+  await expect(saidAtTop(page, choosing.gone)).toBeVisible();
+  await expect(lord).toHaveCount(0);
+  await expect(page.getByText(choosing.choosingNew)).toHaveCount(0);
+  await frame(page, "Gone, said at the top");
+  story(
+    "They start again from the Commons, and paste a name to find. The colleague deletes that draft too, before they press Find these, and the page says the same.",
+  );
+  await page.goto(`${BASE}/staff/politicians?house=commons`);
+  await page.getByRole("button", { name: choosing.mailThese(3) }).click();
+  await expect(page.getByText(choosing.choosingNew)).toBeVisible();
+  await expect(page).toHaveURL(/mailing=\d+/);
+  await openBubble(page.getByRole("button", { name: choosing.pasteNames }));
+  await page.getByRole("textbox", { name: choosing.pasteLabel }).fill("Polly Placeholder");
+  deleteElsewhere();
+  await page.getByRole("button", { name: choosing.pasteTick }).click();
+  await expect(saidAtTop(page, choosing.gone)).toBeVisible();
+  await expect(page.getByText(choosing.choosingNew)).toHaveCount(0);
+  await frame(page, "Gone again, said at the top");
+});
+
+test("A draft a colleague schedules meanwhile", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff copy the Edinburgh invitation to send a reminder. While they look over the draft, a colleague who has it open too schedules it.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  recordAnswers(flowDatabase);
+  await logIn(page, flowDatabase);
+  const sent = addMailing(flowDatabase, "Edinburgh invitation", "sent", ["sent", "sent", "sent", "sent"]);
+  /** Copies the invitation, and says the draft's ID once its page has come. */
+  const copyIt = async (not: string[]) => {
+    await page.goto(`${BASE}/staff/mailings/${sent}`);
+    await page.getByRole("button", { name: copy.copyMailing }).click();
+    await expect(page).not.toHaveURL(new RegExp(`/staff/mailings/(${not.join("|")})$`));
+    await expect(page).toHaveURL(/\/staff\/mailings\/\d+$/);
+    await expect(page.getByLabel(copy.subject)).toHaveValue("Edinburgh invitation");
+    return page.url().split("/").at(-1)!;
+  };
+  const reminder = await copyIt([sent]);
+  scheduleElsewhere(flowDatabase, reminder);
+  story(
+    "Leave them out, under the warning about those who've already answered, can't change who it's for any more. The page says why at its top, over the mailing as it is now: scheduled.",
+  );
+  await page
+    .locator("[data-strip]")
+    .filter({ hasText: /already given an answer/ })
+    .getByRole("button", { name: copy.leaveThemOut })
+    .click();
+  await expect(saidAtTop(page, choosing.gone)).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.unschedule })).toBeVisible();
+  await frame(page, "Scheduled meanwhile, said at the top");
+  story(
+    "They copy the invitation again, then think better of it. The colleague schedules that copy too before they press Delete draft twice. It isn't deleted, and the page says what to do first.",
+  );
+  scheduleElsewhere(flowDatabase, await copyIt([sent, reminder]));
+  await page.getByRole("button", { name: copy.deleteDraft }).click();
+  await page.getByRole("button", { name: staffVocabulary.deleteIt }).click();
+  await expect(saidAtTop(page, refusals.deleteDraft["not-draft"])).toBeVisible();
+  await expect(page.getByRole("button", { name: copy.unschedule })).toBeVisible();
+  await frame(page, "Not deleted, said at the top");
+});
+
+test("A test copy for someone who's no longer a recipient", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff copy the Edinburgh invitation, and its preview shows the first recipient's email. A colleague takes that politician's email address off their page, so the mailing no longer goes to them.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  const sent = addMailing(flowDatabase, "Edinburgh invitation", "sent", ["sent", "sent", "sent", "sent"]);
+  await page.goto(`${BASE}/staff/mailings/${sent}`);
+  await page.getByRole("button", { name: copy.copyMailing }).click();
+  await expect(page).not.toHaveURL(new RegExp(`/staff/mailings/${sent}$`));
+  await expect(page.getByLabel(copy.subject)).toHaveValue("Edinburgh invitation");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  const whose = preview.getByRole("combobox", { name: copy.chooseRecipient });
+  const shown = await whose.inputValue();
+  runSql(flowDatabase, `UPDATE notable_people SET email = NULL WHERE id = ${shown}`);
+  story(
+    "Send test can't send their email, and says so under the button. The preview moves on to someone the mailing still goes to.",
+  );
+  const sendTest = preview.getByRole("button", { name: copy.sendTest });
+  await sendTest.click();
+  await expect(preview.getByText(refusals.test["not-recipient"])).toBeVisible();
+  await expect(whose).not.toHaveValue(shown);
+  await sendTest.evaluate((button) => button.scrollIntoView({ block: "center", behavior: "instant" }));
+  await scrollSettled(page);
+  await frame(page, "Not sent, said under Send test", { window: true });
+});
+
+test("A reply a colleague deals with meanwhile", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly's reply to a mailing's letter came to Jo's Gmail. Staff open her letter's page. Before they press Nothing to do, Jo says so first.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  const { mailing, letter } = pollyReplied(flowDatabase, "jo@pauseai.uk");
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/mailings/${mailing}/letters/${letter}`);
+  const nothing = page.getByRole("button", { name: mailingsCopy.answers.nothing });
+  await expect(nothing).toBeVisible();
+  runSql(
+    flowDatabase,
+    `UPDATE letter_replies SET dealt_by = 'jo@pauseai.uk', dealt_at = '2026-10-16T11:30:00Z' WHERE letter_id = ${letter}`,
+  );
+  story("There's nothing left to mark. The page says so at its top, and under her reply, who dealt with it.");
+  await nothing.click();
+  await expect(saidAtTop(page, refusals.nothingToDo.gone)).toBeVisible();
+  await expect(nothing).toHaveCount(0);
+  await frame(page, "Already dealt with, said at the top");
+});
+
+test("Scheduling a draft a colleague has changed", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write a mailing to a politician in Scotland, from their Gmail, and choose when it goes. A colleague with the same draft open changes its subject.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  // Their account, with their Gmail connected, as they'd connect it on /staff/me, so the mailing has one to go from.
+  connectGmail(flowDatabase, staffEmail());
+  await logIn(page, flowDatabase);
+  await startFromList(page, "nation=scotland", 1);
+  await page.getByLabel(copy.subject).fill("See you in Edinburgh");
+  await caretAtEnd(page.getByRole("textbox", { name: copy.letter }));
+  await page.keyboard.type("We hope to see you there.");
+  await page.getByLabel(copy.hour, { exact: false }).selectOption("14");
+  await expect(page.getByRole("status").first()).toHaveText(copy.savePill.saved);
+  runSql(
+    flowDatabase,
+    `UPDATE mailings SET subject = 'See you in Glasgow', title = 'See you in Glasgow', version = version + 1
+     WHERE id = ${page.url().split("/").at(-1)}`,
+  );
+  story(
+    "Schedule doesn't schedule it as they see it, which isn't how it is any more. The page says it changed somewhere else, and to reload it.",
+  );
+  const schedule = page.getByRole("button", { name: copy.schedule(1) });
+  await schedule.click();
+  await expect(page.getByRole("alert").filter({ hasText: copy.saveStates.conflict })).toBeVisible();
+  await expect(schedule).toBeEnabled();
+  await toTheTop(page);
+  await frame(page, "Changed somewhere else, said over the draft");
 });

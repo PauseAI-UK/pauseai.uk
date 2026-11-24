@@ -13,8 +13,9 @@ import type { Mailing, MailingRecipient } from "@/lib/mailings/records.server";
 import { filtersPath, pageParam } from "@/lib/list-params";
 import { dueIn, londonWhen, staffDate, staffTime } from "@/lib/staff-time";
 import { now } from "@/lib/now";
+import type { FormResult } from "@/lib/form-result";
 import { ChangeTimeForm } from "./DueTime";
-import { CopyMailing, StopMailing } from "./MailingButtons";
+import { CopyMailing, StopMailing, type Sends } from "./MailingButtons";
 import MailEmail from "./MailEmail";
 import MailingFiles from "./MailingFiles";
 import { MailingLetter } from "./MailingLetter";
@@ -39,7 +40,14 @@ import { lettersCopy } from "../letters/copy";
 
 const copy = mailingsCopy.mailingPages;
 
-type FormAction = (form: FormData) => void | Promise<void>;
+/** A mailing's Server Action that a form sends, refused for a mailing that's gone or has moved on. */
+type MailingAction = (form: FormData) => Promise<FormResult<"gone">>;
+
+/** Change the time's, refused for a time that has passed too. */
+type RescheduleAction = (form: FormData) => Promise<FormResult<"too-soon" | "gone">>;
+
+/** The Server Actions of a mailing's page once it's scheduled, which the page hands in: Unschedule and Stop sending's, Change the time's, and Copy mailing's. */
+export type MailingViewActions = { stop: MailingAction; reschedule: RescheduleAction; copy?: MailingAction };
 
 /** A mailing's state, as its tag says it: blue while it's going out, grey once it has or never will. */
 const STATE_TONES: Record<MailingState, TagTone | undefined> = {
@@ -116,7 +124,7 @@ function recipientColumns(mailing: Mailing): ListColumn<MailingRecipient>[] {
 }
 
 /** Change the time: a button with a small form of the day and hour, in London, in a bubble under it. */
-function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: FormAction }) {
+function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: RescheduleAction }) {
   return (
     <Bubble id="change-time" trigger={buttonClass({ variant: "ghost", fit: true })} label={copy.changeTime}>
       <ChangeTimeForm id={mailing.id} dueAt={mailing.dueAt!} action={action} className={styles.changeTime} />
@@ -127,22 +135,23 @@ function ChangeTime({ mailing, action }: { mailing: WrittenMailing; action: Form
 /**
  * Where a mailing stands, under its band, each in the same white card:
  * how long till one scheduled sends, large and blue, as it's going out,
- * over what goes (when is in the band above), with Change the time and
- * Unschedule; how far one sending has got, with Stop
+ * over what goes (when is in the band above), with what changes its time
+ * (`changeTimes`) and Unschedule; how far one sending has got, with Stop
  * sending; once sent, how many of everyone it went to have answered its ask.
  * Nothing for one with no ask. `due` replaces how long till one scheduled
  * sends, as for a broadcast past its time that waits. `paused` replaces the
  * words over the bar of one sending with nothing going out for now, and its
  * bar is grey; `stopLabel` replaces Stop sending, as for a broadcast with
  * nothing left to send but emails it's waiting to hear arrived.
- * `changeTimes` replaces Change the time, and stands beside Stop sending too,
- * as for a broadcast, which has a time to stop trying as well.
+ * `changeTimes` stands beside Stop sending too, when it's given for one
+ * sending, as for a broadcast, which has a time to stop trying as well.
+ * `stop` is Unschedule's and Stop sending's action, with its feature's words
+ * for why it's refused (Sends).
  */
-export function MailingStanding({
+export function MailingStanding<Reason extends string = never>({
   mailing,
   written,
   stop,
-  reschedule,
   line,
   due,
   paused,
@@ -151,8 +160,7 @@ export function MailingStanding({
 }: {
   mailing: Pick<Mailing, "ask" | "to" | "sent" | "failed" | "answered">;
   written?: WrittenMailing;
-  stop: FormAction;
-  reschedule: FormAction;
+  stop: Sends<Reason>;
   line?: string;
   due?: string;
   paused?: string;
@@ -169,8 +177,8 @@ export function MailingStanding({
               <span>{line ?? copy.scheduledLine(mailing.to, written.fromName || written.sentFrom!)}</span>
             </div>
             <div className={styles.actions}>
-              {changeTimes ?? <ChangeTime mailing={written} action={reschedule} />}
-              <StopMailing id={written.id} label={copy.unschedule} action={stop} full />
+              {changeTimes}
+              <StopMailing id={written.id} label={copy.unschedule} {...stop} full />
             </div>
           </div>
         </Card>
@@ -195,7 +203,7 @@ export function MailingStanding({
             </div>
             <div className={styles.actions}>
               {changeTimes}
-              <StopMailing id={written.id} label={stopLabel} action={stop} full />
+              <StopMailing id={written.id} label={stopLabel} {...stop} full />
             </div>
           </div>
         </Card>
@@ -297,10 +305,10 @@ export default function MailingView({
   /** Who it was for, as pills (FilterPills). */
   who?: ReactNode;
   asks: Ask[];
-  stop: FormAction;
-  reschedule: FormAction;
+  stop: MailingAction;
+  reschedule: RescheduleAction;
   /** Copy mailing, at its top right: one written here only. */
-  copyIt?: FormAction;
+  copyIt?: MailingAction;
 }) {
   const path = `/staff/mailings/${mailing.id}`;
   const groups = wentAndGone(countsFiltering(path, mailingCounts(mailing), mailing.tab, copy.showEveryone));
@@ -318,7 +326,18 @@ export default function MailingView({
             <Tag>{mailingsCopy.mailings.imported}</Tag>
           )
         }
-        corner={written && copyIt && <CopyMailing id={written.id} label={copy.copyMailing} action={copyIt} />}
+        corner={
+          written &&
+          copyIt && (
+            <CopyMailing
+              id={written.id}
+              label={copy.copyMailing}
+              action={copyIt}
+              says={mailingsCopy.refusals.copy}
+              atTop={["gone"]}
+            />
+          )
+        }
         aside={state !== "scheduled" && <CountGroups groups={groups} />}
       >
         {/* One written here went by its account's Gmail, said under who it's from; an imported one's way isn't known. */}
@@ -340,7 +359,12 @@ export default function MailingView({
         </BandFact>
         <MailingWhen mailing={mailing} written={written} />
       </Band>
-      <MailingStanding mailing={mailing} written={written} stop={stop} reschedule={reschedule} />
+      <MailingStanding
+        mailing={mailing}
+        written={written}
+        stop={{ action: stop, says: mailingsCopy.refusals.stop, atTop: ["gone"] }}
+        changeTimes={state === "scheduled" && <ChangeTime mailing={written!} action={reschedule} />}
+      />
       <Grid>
         {written ? (
           <Card span={3} look="aside" title={copy.emailTitle} id="email-title">

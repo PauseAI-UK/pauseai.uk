@@ -9,6 +9,7 @@ import type { Choosing } from "@/lib/politicians/filters";
 import type { Politician, PoliticiansPage } from "@/lib/politicians/records.server";
 import type { PoliticiansSearch } from "@/lib/staff-search";
 import { storedFilter } from "@/lib/staff-search";
+import type { FormResult } from "@/lib/form-result";
 import { filtersPath, pageParam, valuesOf, type Params } from "@/lib/list-params";
 import PasteForm from "./PasteForm";
 import PickBox from "./PickBox";
@@ -22,6 +23,7 @@ import PoliticianTable, {
 import styles from "./PoliticiansList.module.css";
 import Bubble from "@/components/ui/Bubble";
 import ListFrame, { ListTable, type ListColumn } from "../ui/ListFrame";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import Strip from "../ui/Strip";
 import Tabs from "../ui/Tabs";
 import StaffLink from "../ui/StaffLink";
@@ -63,21 +65,24 @@ export function HouseTabs({ search, choosing }: { search: PoliticiansSearch; cho
   return <Tabs label={staffVocabulary.fields.house} tabs={tabs} current={(choosing && search.tab) || house} />;
 }
 
-/** A form's action, as a Server Action takes it. */
-type FormAction = (form: FormData) => Promise<void>;
+/** What a change to who a draft is for answers: refused once the draft's gone, or no longer one. */
+type Picked = Promise<FormResult<"gone">>;
+
+/** What the list says, at the page's top, when a change is refused as its draft has gone. */
+const GONE = { gone: mailingCopy.gone };
 
 /** What choosing who a mailing is for does (app/(staff)/staff/_components/mailings/actions.ts), which the page hands in. */
 export type ChoosingActions = {
   /** Ticks a politician for the draft, or unticks them. */
-  pick: (mailing: number, politician: number, ticked: boolean) => Promise<void>;
+  pick: (mailing: number, politician: number, ticked: boolean) => Picked;
   /** Ticks everyone the list's parameters find, or unticks them. */
-  pickFound: (mailing: number, params: Params, ticked: boolean) => Promise<void>;
+  pickFound: (mailing: number, params: Params, ticked: boolean) => Picked;
   /** Goes to the paste tab, with the names pasted. */
-  paste: FormAction;
+  paste: (form: FormData) => Picked;
   /** Ticks these, everyone a paste found, or unticks them. */
-  pickMany: (mailing: number, politicians: number[], ticked: boolean) => Promise<void>;
+  pickMany: (mailing: number, politicians: number[], ticked: boolean) => Picked;
   /** Unticks everyone, to start again. */
-  untickAll: (mailing: number) => Promise<void>;
+  untickAll: (mailing: number) => Picked;
 };
 
 /**
@@ -89,7 +94,8 @@ export type ChoosingActions = {
  * page scrolls, so what's being done, and how to stop, stay in sight. It's
  * held inside a plain box around the whole page, which is the page's first
  * element: the router scrolls a new page's first element into view, and a
- * held one, at the top, it scrolls the page past.
+ * held one, at the top, it scrolls the page past. Cancel is refused for a
+ * mailing someone has scheduled since, which is said at the page's top.
  */
 export function ChoosingHead({
   choosing,
@@ -97,7 +103,7 @@ export function ChoosingHead({
   children,
 }: {
   choosing?: Choosing;
-  cancel: FormAction;
+  cancel: (form: FormData) => Promise<FormResult<"not-draft">>;
   children: ReactNode;
 }) {
   if (!choosing) return children;
@@ -108,12 +114,13 @@ export function ChoosingHead({
           tone="dark"
           action={
             choosing.blank && (
-              <form action={cancel}>
+              <ResultForm action={cancel} says={{ "not-draft": mailingCopy.gone }} atTop={["not-draft"]}>
                 <input type="hidden" name="id" value={choosing.id} />
                 <button type="submit" className={styles.cancel}>
                   {mailingCopy.cancelNew}
                 </button>
-              </form>
+                <Refusal />
+              </ResultForm>
             )
           }
         >
@@ -158,11 +165,12 @@ function ChoosingBar({
           </StaffLink>
         )}
         {n > 0 && (
-          <form action={actions.untickAll.bind(null, choosing.id)}>
+          <ResultForm action={actions.untickAll.bind(null, choosing.id)} says={GONE} atTop={["gone"]}>
             <SubmitButton variant="ghost" size="small" fit className={styles.onDark}>
               {mailingCopy.untickAll}
             </SubmitButton>
-          </form>
+            <Refusal />
+          </ResultForm>
         )}
         <Bubble
           id="paste-names"
@@ -229,6 +237,7 @@ function PasteTab({
             some={!all && found.some((id) => ticked.has(id))}
             label={mailingCopy.pastedTickAll(found.length)}
             action={actions.pickMany.bind(null, choosing.id, found)}
+            says={GONE}
           />
         </th>
       ),
@@ -238,6 +247,7 @@ function PasteTab({
           ticked={ticked.has(one.id)}
           label={mailingCopy.tick(one.name)}
           action={actions.pick.bind(null, choosing.id, one.id)}
+          says={GONE}
         />
       ),
     },
@@ -301,9 +311,15 @@ function tickColumn(
             some={!all && tickedHere > 0}
             label={mailingCopy.tickAll(total)}
             action={actions.pickFound.bind(null, choosing.id, storedFilter("politicians", search).params)}
+            says={GONE}
           />
         ) : (
-          <PickBox ticked label={mailingCopy.untickAll} action={actions.untickAll.bind(null, choosing.id)} />
+          <PickBox
+            ticked
+            label={mailingCopy.untickAll}
+            action={actions.untickAll.bind(null, choosing.id)}
+            says={GONE}
+          />
         )}
       </th>
     ),
@@ -312,6 +328,7 @@ function tickColumn(
         ticked={ticked.has(p.id)}
         label={mailingCopy.tick(p.name)}
         action={actions.pick.bind(null, choosing.id, p.id)}
+        says={GONE}
       />
     ),
   };
@@ -345,7 +362,7 @@ export default function PoliticiansList({
   search: PoliticiansSearch;
   asks: Ask[];
   /** Makes a new mailing: empty, or with `found`, to everyone the form's filter finds (mailing-actions.ts). */
-  newMailing: FormAction;
+  newMailing: (form: FormData) => Promise<FormResult<never>>;
   /** The draft it's choosing for, how many of those the filters find are ticked, and the lines pasted. */
   choosing?: Choosing;
   tickedHere?: number;
@@ -397,7 +414,7 @@ export default function PoliticiansList({
           actions={
             !choosing &&
             (!filtered || list.total > 0) && (
-              <form action={newMailing}>
+              <ResultForm action={newMailing} says={{}}>
                 {Object.entries(who).flatMap(([name, value]) =>
                   valuesOf(value).map((one) => <input key={`${name}=${one}`} type="hidden" name={name} value={one} />),
                 )}
@@ -405,7 +422,8 @@ export default function PoliticiansList({
                 <SubmitButton variant="primary" size="small" fit>
                   {filtered ? mailingCopy.mailThese(list.total) : mailingCopy.newTitle}
                 </SubmitButton>
-              </form>
+                <Refusal />
+              </ResultForm>
             )
           }
           formats={["csv", "json", "vcf"]}

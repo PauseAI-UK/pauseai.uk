@@ -40,10 +40,22 @@ vi.mock("next/cache", () => ({ revalidatePath }));
 
 const JO = "jo@pauseai.uk";
 const LETTER = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hello" }] }] };
+/** What an action answers for a mailing that's gone, or has moved on so the change can't be made. */
+const GONE = { ok: false, reason: "gone" };
+/** A value that isn't what a component passes, as a request made up could send. */
+const madeUp = <T>(value: unknown) => value as T;
 
 /** A draft by Jo, with no one ticked, and its first changes. */
 const draft = (changes: MailingChanges = {}) =>
   createDraft(JO, { list: "politicians", params: {}, picked: { ids: [] } }, changes);
+
+/** Marks draft `id` scheduled, from Jo, as someone else's Schedule would leave it. */
+const schedule = (id: number) =>
+  query(
+    `UPDATE mailings SET state = 'scheduled', sent_from = $2, from_name = 'Jo', due_at = '2099-01-01T09:00:00Z'
+     WHERE id = $1`,
+    [id, JO],
+  );
 
 function form(fields: Record<string, string | string[]>) {
   const data = new FormData();
@@ -87,15 +99,16 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     expect(await query("SELECT 1 FROM mailings WHERE body IS NOT NULL")).toEqual([]);
   });
 
-  it("copies a mailing to a new draft and opens it, and nothing for a form that names none", async () => {
+  it("copies a mailing to a new draft and opens it; one that's gone is refused, and a form without its ID thrown on", async () => {
     const { id } = await draft({ subject: "Hello", body: LETTER as MailingChanges["body"] });
     const to = await expectRedirect(() => copyMailingNow(form({ id: String(id) })));
     const copy = Number(to.match(/^\/staff\/mailings\/(\d+)$/)![1]);
     expect(copy).not.toBe(id);
     expect(await getWrittenMailing(copy)).toMatchObject({ subject: "Hello", body: LETTER, createdBy: JO });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings");
-    await copyMailingNow(form({ id: "x" }));
-    await copyMailingNow(form({ id: "99999" }));
+    await expect(copyMailingNow(form({ id: "x" }))).rejects.toThrow(/isn't a row's ID/);
+    expect(await copyMailingNow(form({ id: "99999" }))).toEqual(GONE);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings/99999");
     expect(await query("SELECT id FROM mailings WHERE body IS NOT NULL")).toHaveLength(2);
   });
 
@@ -116,26 +129,37 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     });
   });
 
-  it("saves a draft's changes, and refuses what isn't a change", async () => {
+  it("saves a draft's changes; refuses one saved since, scheduled or gone; and throws on what isn't a change, an ID or a version", async () => {
     const { id } = await draft({ subject: "Hi", body: LETTER as MailingChanges["body"] });
     expect(await saveMailing(id, 1, { sentFrom: "Jo@PauseAI.uk", dueAt: new Date("2026-12-01T09:00:00Z") })).toEqual({
-      saved: true,
+      ok: true,
       version: 2,
     });
     expect(await getWrittenMailing(id)).toMatchObject({ sentFrom: JO, dueAt: new Date("2026-12-01T09:00:00Z") });
-    expect(await saveMailing(id, 2, { subject: 3 })).toBeUndefined();
-    expect(await saveMailing(id, 2, { filter: { list: "politicians", params: {} } })).toBeUndefined();
+    await expect(saveMailing(id, 2, { subject: 3 })).rejects.toThrow(/changes that aren't a mailing's/);
+    await expect(saveMailing(id, 2, { filter: { list: "politicians", params: {} } })).rejects.toThrow(/changes/);
+    await expect(saveMailing(0, 2, { subject: "x" })).rejects.toThrow(/without its ID/);
+    await expect(saveMailing(madeUp("7"), 2, { subject: "x" })).rejects.toThrow(/without its ID/);
+    await expect(saveMailing(id, 1.5, { subject: "x" })).rejects.toThrow(/without its version/);
+    expect((await getWrittenMailing(id))!.subject).toBe("Hi");
+    // Someone else has saved it since, it's gone, or it's been scheduled.
+    expect(await saveMailing(id, 1, { subject: "Late" })).toEqual({ ok: false, reason: "conflict" });
+    expect(await saveMailing(99999, 1, { subject: "x" })).toEqual(GONE);
+    await schedule(id);
+    expect(await saveMailing(id, 2, { subject: "Late" })).toEqual({ ok: false, reason: "not-draft" });
+    // A refused save leaves the page as it is, with what was typed.
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("ticks and unticks a politician, and everyone the list's filter finds", async () => {
+  it("ticks and unticks a politician, and everyone the list's filter finds; not for a draft that's gone, or no longer one", async () => {
     const polly = await addTestPolitician();
     const lord = await addTestPolitician({ name: "Lord Sample", airtableId: "rec2", house: "lords" });
     const { id } = await draft();
     const ticked = async () => (await getWrittenMailing(id))!.filter.picked!.ids;
-    await pickPolitician(id, lord, true);
+    expect(await pickPolitician(id, lord, true)).toEqual({ ok: true });
     expect(await ticked()).toEqual([lord]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/politicians");
-    await pickFound(id, { house: "commons" }, true);
+    expect(await pickFound(id, { house: "commons" }, true)).toEqual({ ok: true });
     expect(await ticked()).toEqual([lord, polly]);
     await pickPolitician(id, lord, false);
     expect(await ticked()).toEqual([polly]);
@@ -143,8 +167,22 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     expect(await ticked()).toEqual([]);
     // Everyone unticked, and the group they were ticked from forgotten, to start again.
     await pickFound(id, { house: "commons" }, true);
-    await untickAll(id);
+    expect(await untickAll(id)).toEqual({ ok: true });
     expect((await getWrittenMailing(id))!.filter.picked).toEqual({ ids: [] });
+    // What isn't a politician's ID, or the list's filters, is thrown on.
+    await expect(pickPolitician(id, 0, true)).rejects.toThrow(/without its politician/);
+    await expect(pickFound(id, madeUp(null), true)).rejects.toThrow(/without its filters/);
+    await expect(pickFound(id, madeUp("house=commons"), true)).rejects.toThrow(/without its filters/);
+    await expect(untickAll(madeUp(undefined))).rejects.toThrow(/without its ID/);
+    // Scheduled since the list loaded, or gone: refused, and the list shown afresh.
+    await schedule(id);
+    revalidatePath.mockClear();
+    expect(await pickPolitician(id, lord, true)).toEqual(GONE);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/politicians");
+    expect(await pickFound(id, { house: "commons" }, true)).toEqual(GONE);
+    expect(await pickFound(99999, { house: "commons" }, false)).toEqual(GONE);
+    expect(await untickAll(99999)).toEqual(GONE);
+    expect(await ticked()).toEqual([]);
   });
 
   it("keeps who the names pasted found, a line each, with the draft, ticking no one; and ticks many at once", async () => {
@@ -164,25 +202,26 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
       skipped: 301,
     });
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([]);
-    // Back somewhere that isn't a staff page goes to the list, and with no draft there, there's nothing to keep.
-    expect(await expectRedirect(() => pasteNames(form({ back: "https://example.org", names: "x" })))).toBe(
-      "/staff/politicians",
-    );
-    expect(await expectRedirect(() => pasteNames(form({ back: "/staff/politicians?mailing=0", names: "x" })))).toBe(
-      "/staff/politicians?mailing=0",
-    );
-    expect(
-      await expectRedirect(() => pasteNames(form({ back: "/staff/politicians?mailing=999999", names: "x" }))),
-    ).toBe("/staff/politicians?mailing=999999");
-    // No names, nowhere.
-    await pasteNames(form({}));
-    await pickMany(id, [polly], true);
+    // The form is on a list that's choosing for a draft, so one whose list isn't is thrown on: back somewhere that
+    // isn't a staff page is the list, with no draft; and so is one without its names.
+    for (const back of ["https://example.org", "/staff/politicians?mailing=0", "/staff/politicians?mailing=x"]) {
+      await expect(pasteNames(form({ back, names: "x" }))).rejects.toThrow(/without the draft it's for/);
+    }
+    await expect(pasteNames(form({}))).rejects.toThrow(/without the names/);
+    // A draft that's gone since the list loaded: refused, and the list shown afresh.
+    revalidatePath.mockClear();
+    expect(await pasteNames(form({ back: "/staff/politicians?mailing=999999", names: "x" }))).toEqual(GONE);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/politicians");
+    expect(await pickMany(id, [polly], true)).toEqual({ ok: true });
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([polly]);
     await pickMany(id, [polly], false);
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([]);
+    await expect(pickMany(id, madeUp(polly), true)).rejects.toThrow(/without its politicians/);
+    await expect(pickMany(id, [polly, 0], true)).rejects.toThrow(/without its politician/);
+    expect(await pickMany(999999, [polly], true)).toEqual(GONE);
   });
 
-  it("leaves out of a draft those a warning names, and shows it afresh", async () => {
+  it("leaves out of a draft those a warning names, and shows it afresh; not for a draft that's gone", async () => {
     const [polly, lord] = [
       await addTestPolitician(),
       await addTestPolitician({ name: "Lord Sample", airtableId: "rec2" }),
@@ -190,35 +229,48 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     const { id } = await draft();
     await pickMany(id, [polly, lord], true);
     revalidatePath.mockClear();
-    await leaveOutOfMailing(id, [lord]);
+    expect(await leaveOutOfMailing(id, [lord])).toEqual({ ok: true });
     expect((await getWrittenMailing(id))!.filter.picked!.ids).toEqual([polly]);
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${id}`);
+    await expect(leaveOutOfMailing(id, madeUp("all"))).rejects.toThrow(/without its politicians/);
+    expect(await leaveOutOfMailing(99999, [lord])).toEqual(GONE);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings/99999");
   });
 
-  it("attaches a file and takes it off, saying what's attached", async () => {
+  it("attaches a file and takes it off, saying what's attached; refuses for a draft that's gone, and throws on a form without its file", async () => {
     const { id } = await draft({ subject: "Hi" });
     const file = new File(["%PDF"], "brief.pdf", { type: "application/pdf" });
     const attached = await attachToMailing(withFile(id, 1, file));
-    expect(attached).toMatchObject({ saved: true, version: 2, attachments: [{ filename: "brief.pdf", size: 4 }] });
+    expect(attached).toEqual({
+      ok: true,
+      version: 2,
+      attachments: [expect.objectContaining({ filename: "brief.pdf", size: 4 })],
+    });
     const untyped = await attachToMailing(withFile(id, 2, new File(["x"], "notes")));
-    expect(untyped).toMatchObject({ saved: true, attachments: [{}, { filename: "notes" }] });
+    expect(untyped).toMatchObject({ ok: true, attachments: [{}, { filename: "notes" }] });
     expect(await query("SELECT content_type FROM mailing_attachments ORDER BY id")).toEqual([
       { content_type: "application/pdf" },
       { content_type: "application/octet-stream" },
     ]);
-    // No file, or no draft to say.
-    expect(await attachToMailing(form({ id: String(id), version: "3" }))).toBeUndefined();
-    expect(await attachToMailing(withFile(0, 3, file))).toBeUndefined();
-    expect(await attachToMailing(withFile(999, 3, file))).toMatchObject({ saved: false, attachments: [] });
-    const [first] = attached!.attachments;
-    expect(await detachFromMailing(id, 3, first.id)).toMatchObject({
-      saved: true,
-      attachments: [{ filename: "notes" }],
+    // What the page's own form always has: the draft, its version, and a file with a name.
+    await expect(attachToMailing(form({ id: String(id), version: "3" }))).rejects.toThrow(/without the file/);
+    await expect(attachToMailing(withFile(id, 3, new File(["x"], "")))).rejects.toThrow(/without the file/);
+    await expect(attachToMailing(withFile(0, 3, file))).rejects.toThrow(/"id" isn't a row's ID/);
+    await expect(attachToMailing(withFile(id, 0, file))).rejects.toThrow(/"version" isn't a row's ID/);
+    expect(await attachToMailing(withFile(999, 3, file))).toEqual(GONE);
+    expect(await attachToMailing(withFile(id, 1, file))).toEqual({ ok: false, reason: "conflict" });
+    const [first] = (attached as { attachments: { id: number }[] }).attachments;
+    expect(await detachFromMailing(id, 3, first.id)).toEqual({
+      ok: true,
+      version: 4,
+      attachments: [expect.objectContaining({ filename: "notes" })],
     });
-    expect(await detachFromMailing(999, 1, first.id)).toMatchObject({ saved: false, attachments: [] });
+    expect(await detachFromMailing(999, 1, first.id)).toEqual(GONE);
+    await expect(detachFromMailing(id, 4, 0)).rejects.toThrow(/without its file/);
+    await expect(detachFromMailing(id, 0, first.id)).rejects.toThrow(/without its version/);
   });
 
-  it("sends a test copy of one recipient's email to the staff member, and none to someone it doesn't go to", async () => {
+  it("sends a test copy of one recipient's email to the staff member; refuses for someone it doesn't go to, a draft that's gone, and an email that couldn't be sent", async () => {
     vi.stubEnv("POSTMARK_SERVER_TOKEN", "server-token");
     let to = "";
     server.use(
@@ -233,53 +285,104 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
       { list: "politicians", params: {}, picked: { ids: [polly] } },
       { subject: "Hi", body: LETTER as MailingChanges["body"] },
     );
-    expect(await sendMailingTest(id, polly)).toMatchObject({ sent: true, id: "m", to: JO });
+    expect(await sendMailingTest(id, polly)).toEqual({ ok: true, to: JO });
     // To the recipient's name, at the staff member's address.
     expect(to).toBe(`"Polly Placeholder" <${JO}>`);
-    // To another address given; nothing to one that isn't one.
-    expect(await sendMailingTest(id, polly, " sam@example.org ")).toMatchObject({ sent: true, to: "sam@example.org" });
+    // To another address given.
+    expect(await sendMailingTest(id, polly, " sam@example.org ")).toEqual({ ok: true, to: "sam@example.org" });
     expect(to).toBe('"Polly Placeholder" <sam@example.org>');
-    expect(await sendMailingTest(id, polly, "not an address")).toBeUndefined();
-    expect(await sendMailingTest(id, polly + 1)).toBeUndefined();
-    expect(await sendMailingTest(999, polly)).toBeUndefined();
+    expect(revalidatePath).not.toHaveBeenCalled();
+    // The page sends only an address that looks like one, and a politician's and a draft's IDs.
+    await expect(sendMailingTest(id, polly, "not an address")).rejects.toThrow(/doesn't look like one/);
+    await expect(sendMailingTest(id, 0)).rejects.toThrow(/without its politician/);
+    await expect(sendMailingTest(0, polly)).rejects.toThrow(/without its ID/);
+    // Someone it no longer goes to, or a draft that's gone: refused, and its page shown afresh.
+    expect(await sendMailingTest(id, polly + 1)).toEqual({ ok: false, reason: "not-recipient" });
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${id}`);
+    expect(await sendMailingTest(999, polly)).toEqual(GONE);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings/999");
+    // Postmark refuses it.
+    server.use(
+      http.post("https://api.postmarkapp.com/email", () =>
+        HttpResponse.json({ ErrorCode: 300, Message: "Invalid email request" }, { status: 422 }),
+      ),
+    );
+    expect(await sendMailingTest(id, polly)).toEqual({ ok: false, reason: "not-sent" });
   });
 
-  it("won't schedule while anything stops it, and says why", async () => {
-    const { id } = await draft({ subject: "Hi" });
-    expect(await scheduleMailingNow(id, 1)).toMatchObject({
-      scheduled: false,
-      problems: expect.arrayContaining(["no-sender", "no-letter"]),
+  it("schedules a draft; won't while anything stops it, or once it's changed elsewhere", async () => {
+    const polly = await addTestPolitician();
+    await connectTestGmail(JO);
+    const { id } = await createDraft(JO, { list: "politicians", params: {}, picked: { ids: [polly] } }, {});
+    await saveDraft(id, 1, { subject: "Hi" });
+    // No letter, sender or time yet, which the page checks too.
+    expect(await scheduleMailingNow(id, 2)).toEqual({ ok: false, reason: "problems" });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings");
+    await saveDraft(id, 2, {
+      body: LETTER as MailingChanges["body"],
+      sentFrom: JO,
+      dueAt: new Date("2099-01-01T09:00:00Z"),
     });
+    expect(await scheduleMailingNow(id, 2)).toEqual({ ok: false, reason: "conflict" });
+    await expect(scheduleMailingNow(id, 0)).rejects.toThrow(/without its version/);
+    expect(await scheduleMailingNow(id, 3)).toEqual({ ok: true });
+    expect((await getWrittenMailing(id))!.state).toBe("scheduled");
+    expect(await scheduleMailingNow(id, 4)).toEqual({ ok: false, reason: "not-draft" });
+    expect(await scheduleMailingNow(99999, 1)).toEqual(GONE);
   });
 
-  it("deletes a draft and goes to the list; a bad form only goes to the list", async () => {
+  it("deletes a draft and goes to the list, as for one gone already; refuses one scheduled since; throws on a form without its ID", async () => {
     const { id } = await draft({ subject: "Hi" });
-    expect(await expectRedirect(() => deleteMailingDraft(form({ id: "x" })))).toBe("/staff/mailings");
+    await expect(deleteMailingDraft(form({ id: "x" }))).rejects.toThrow(/isn't a row's ID/);
     expect(await getWrittenMailing(id)).toBeDefined();
     expect(await expectRedirect(() => deleteMailingDraft(form({ id: String(id) })))).toBe("/staff/mailings");
     expect(await getWrittenMailing(id)).toBeUndefined();
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings");
+    // Gone already, it's as deleted as was asked.
+    expect(await expectRedirect(() => deleteMailingDraft(form({ id: String(id) })))).toBe("/staff/mailings");
+    // Scheduled since the page loaded, it isn't deleted, and its page and the list choosing for it are shown afresh.
+    const scheduled = await draft({ subject: "Going" });
+    await schedule(scheduled.id);
+    expect(await deleteMailingDraft(form({ id: String(scheduled.id) }))).toEqual({ ok: false, reason: "not-draft" });
+    expect(await getWrittenMailing(scheduled.id)).toBeDefined();
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${scheduled.id}`);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/politicians");
   });
 
-  it("stops a scheduled mailing and changes its time, in London's hours; a bad form changes nothing", async () => {
+  it("changes a scheduled mailing's time, in London's hours, and stops it; refuses a time that has passed, and a mailing no longer scheduled; throws on a form that isn't its own", async () => {
     const { id } = await draft({ subject: "Hi" });
     await saveDraft(id, 1, { sentFrom: JO, fromName: "Jo", dueAt: new Date("2099-01-01T09:00:00Z") });
     await query("UPDATE mailings SET state = 'scheduled' WHERE id = $1", [id]);
+    const time = { day: "2099-07-01", hour: "10", minute: "3" };
+    await expect(rescheduleMailingNow(form({ id: "x", ...time }))).rejects.toThrow(/isn't a row's ID/);
     for (const bad of [
-      { id: "x" },
-      { id: String(id), day: "soon", hour: "9", minute: "3" },
-      { id: String(id), day: "2099-07-01", hour: "24", minute: "3" },
-    ] as Record<string, string>[]) {
-      await rescheduleMailingNow(form(bad));
+      { day: "soon", hour: "9", minute: "3" },
+      { day: "2099-07-01", hour: "24", minute: "3" },
+    ]) {
+      await expect(rescheduleMailingNow(form({ id: String(id), ...bad }))).rejects.toThrow(/none the form offers/);
     }
+    // A time the form offered, which passed while it was open.
+    expect(await rescheduleMailingNow(form({ id: String(id), ...time, day: "2020-07-01" }))).toEqual({
+      ok: false,
+      reason: "too-soon",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
     expect((await getWrittenMailing(id))!.dueAt).toEqual(new Date("2099-01-01T09:00:00Z"));
-    await rescheduleMailingNow(form({ id: String(id), day: "2099-07-01", hour: "10", minute: "3" }));
+    expect(await rescheduleMailingNow(form({ id: String(id), ...time }))).toEqual({ ok: true });
     expect((await getWrittenMailing(id))!.dueAt).toEqual(new Date("2099-07-01T09:03:00Z"));
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${id}`);
 
-    await stopMailingNow(form({ id: "x" }));
+    await expect(stopMailingNow(form({ id: "x" }))).rejects.toThrow(/isn't a row's ID/);
     expect((await getWrittenMailing(id))!.state).toBe("scheduled");
-    await stopMailingNow(form({ id: String(id) }));
+    expect(await stopMailingNow(form({ id: String(id) }))).toEqual({ ok: true });
     expect((await getWrittenMailing(id))!.state).toBe("draft");
+    // A draft again, as someone else's Unschedule would leave it: there's nothing to stop, or to change the time of.
+    revalidatePath.mockClear();
+    expect(await stopMailingNow(form({ id: String(id) }))).toEqual(GONE);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${id}`);
+    revalidatePath.mockClear();
+    expect(await rescheduleMailingNow(form({ id: String(id), ...time }))).toEqual(GONE);
+    expect(revalidatePath).toHaveBeenCalledWith(`/staff/mailings/${id}`);
   });
 
   it("turns away a message to supporters, whose own actions ask for the permission", async () => {
@@ -312,20 +415,20 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
     return reply;
   }
 
-  it("marks a politician's reply as needing nothing, showing the pages afresh, and nothing for one it can't name", async () => {
+  it("marks a politician's reply as needing nothing, showing the pages afresh; refuses one dealt with already; throws on a form without its reply", async () => {
     const reply = await pollyReplied();
-    await nothingToDoNow(form({}));
+    await expect(nothingToDoNow(form({}))).rejects.toThrow(/"replyId" isn't a row's ID/);
     expect(revalidatePath).not.toHaveBeenCalled();
-    await nothingToDoNow(form({ replyId: String(reply) }));
+    expect(await nothingToDoNow(form({ replyId: String(reply) }))).toEqual({ ok: true });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings", "layout");
     expect(await query("SELECT dealt_by FROM letter_replies")).toEqual([{ dealt_by: JO }]);
-    // Marked already.
+    // Marked already, as by someone else since the page loaded: refused, and the pages shown afresh.
     revalidatePath.mockClear();
-    await nothingToDoNow(form({ replyId: String(reply) }));
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(await nothingToDoNow(form({ replyId: String(reply) }))).toEqual(GONE);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings", "layout");
   });
 
-  it("sends an answer to a politician's reply, showing the pages afresh once it's gone, and nothing for a reply or draft it can't name", async () => {
+  it("sends an answer to a politician's reply, showing the pages afresh once it's gone; says why one didn't go; throws on a reply or draft it can't name", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     await connectTestGmail("policy@pauseai.uk");
     const reply = await pollyReplied();
@@ -339,14 +442,16 @@ describeWithDatabase("the mailing pages' Server Actions", () => {
       ),
     );
     const DRAFT = "6f1c2a0e-5b7d-4c1e-9a3f-2d8e4b6c0a11";
-    expect(await answerLetterReplyNow(reply, "not-a-uuid", LETTER)).toEqual({ sent: false, reason: "gone" });
-    expect(await answerLetterReplyNow(1.5, DRAFT, LETTER)).toEqual({ sent: false, reason: "gone" });
+    await expect(answerLetterReplyNow(reply, "not-a-uuid", LETTER)).rejects.toThrow(/without its draft's ID/);
+    await expect(answerLetterReplyNow(1.5, DRAFT, LETTER)).rejects.toThrow(/without its reply/);
     expect(await answerLetterReplyNow(reply, DRAFT, { type: "doc", content: [] })).toEqual({
-      sent: false,
+      ok: false,
       reason: "blank",
     });
+    // A reply that's gone leaves the page as it is, with what was typed.
+    expect(await answerLetterReplyNow(reply + 1, DRAFT, LETTER)).toEqual(GONE);
     expect(revalidatePath).not.toHaveBeenCalled();
-    expect(await answerLetterReplyNow(reply, DRAFT, LETTER)).toEqual({ sent: true });
+    expect(await answerLetterReplyNow(reply, DRAFT, LETTER)).toEqual({ ok: true });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/mailings", "layout");
     expect(await query("SELECT sent_by FROM letter_answers")).toEqual([{ sent_by: JO }]);
   });

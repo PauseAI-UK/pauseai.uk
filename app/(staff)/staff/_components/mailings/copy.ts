@@ -95,4 +95,35 @@ export const mailingsCopy = {
     } as Record<string, string>,
     noText: "We've lost the text.",
   },
+  // What a mailing's buttons and forms say when the site refuses them (lib/form-result.ts), by the reason it gives.
+  // Those said at the top of the page are said once the page has caught up with what changed.
+  refusals: {
+    // At the top of the page, after Unschedule or Stop sending is pressed on a mailing that was no longer
+    // scheduled or sending when the press arrived, as someone else stopped it first or it had all gone.
+    stop: { gone: "This mailing is no longer scheduled or sending, so there was nothing to stop." },
+    // Change the time's form.
+    reschedule: {
+      // Under its fields, when the time chosen has passed, as it can while the form stays open.
+      "too-soon": "That time is in the past, choose a later one.",
+      // At the top of the page, when the mailing was no longer scheduled, as someone else unscheduled it or it
+      // had started sending.
+      gone: "This mailing is no longer scheduled, so its time can't be changed.",
+    },
+    // At the top of the page, after Copy mailing is pressed on a mailing deleted since the page loaded.
+    copy: { gone: "This mailing has been deleted, so it can't be copied." },
+    // At the top of the page, after Delete draft is pressed on a draft someone has scheduled since the page loaded.
+    deleteDraft: { "not-draft": "Someone has scheduled this mailing, so it can't be deleted. Unschedule it first." },
+    // Send test, on a draft.
+    test: {
+      // Under the button, when the email couldn't be sent.
+      "not-sent": wordsTheServerUses.mailingPages.testFailed,
+      // Under the button, when the recipient chosen has been unticked, or lost their address, since the page loaded.
+      "not-recipient": "Can't send a test copy, because that politician is no longer getting this mailing.",
+      // At the top of the page, when the draft has been deleted since the page loaded.
+      gone: "Can't send a test copy, because the draft was deleted.",
+    },
+    // At the top of a letter's page, after Nothing to do is pressed on a reply someone else has dealt with, or
+    // that has been deleted, since the page loaded.
+    nothingToDo: { gone: "Someone has already dealt with this reply." },
+  },
 };

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { TextArea } from "@/components/ui/Controls";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { FormResult } from "@/lib/form-result";
+import { TextArea } from "@/components/ui/Controls";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import { politiciansCopy } from "./copy";
 
 const copy = politiciansCopy.choosing;
@@ -12,14 +14,15 @@ const copy = politiciansCopy.choosing;
  * them, with `back` the list to show them on. It's typed into at once when
  * the bubble it's in opens (React's autoFocus would focus it as it's made,
  * hidden, not then), and Ctrl+Enter, or Cmd+Enter on a Mac, sends it, as
- * Enter is a new line.
+ * Enter is a new line. A draft that's gone, or no longer one, is said at
+ * the page's top; names that couldn't be sent stay in the box.
  */
 export default function PasteForm({
   action,
   back,
   className,
 }: {
-  action: (form: FormData) => void | Promise<void>;
+  action: (form: FormData) => Promise<FormResult<"gone">>;
   back: string;
   className?: string;
 }) {
@@ -34,7 +37,7 @@ export default function PasteForm({
     return () => bubble.removeEventListener("toggle", opened);
   }, []);
   return (
-    <form ref={form} action={action} className={className}>
+    <ResultForm ref={form} action={action} says={{ gone: copy.gone }} atTop={["gone"]} className={className}>
       <input type="hidden" name="back" value={back} />
       <TextArea
         name="names"
@@ -49,9 +52,10 @@ export default function PasteForm({
           }
         }}
       />
+      <Refusal />
       <SubmitButton variant="primary" size="small" fit>
         {copy.pasteTick}
       </SubmitButton>
-    </form>
+    </ResultForm>
   );
 }

@@ -8,11 +8,10 @@ import { exampleAsks } from "../asks/AsksList.examples";
 import { mailingsCopy } from "./copy";
 
 const copy = mailingsCopy.mailingPages;
-const noAction = async () => {};
+const noAction = () => Promise.resolve({ ok: true as const });
 
 describe("MailingFor", () => {
-  const actions = {
-    start: vi.fn(),
+  const actions: Parameters<typeof MailingFor>[0]["actions"] = {
     save: vi.fn(),
     attach: vi.fn(),
     detach: vi.fn(),
