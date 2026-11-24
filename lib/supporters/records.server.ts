@@ -319,23 +319,22 @@ async function permissionsOfRows(rows: Reachable[]): Promise<(row: Reachable) =>
 
 /**
  * Everyone each of `filters` finds, with what they said about being
- * contacted: a list for each filter, in their order. One query finds them for
- * every filter, and one more their answers, however many filters there are.
+ * contacted: a list for each filter, in their order. A query for each filter,
+ * all at once, then one for everyone's answers: two rounds of the database,
+ * however many filters. Not one query of them all, as Postgres would run its
+ * parts one after another.
  */
 export async function supportersFoundBy(filters: SupporterFilter[]): Promise<ContactPermission[][][]> {
-  if (!filters.length) return [];
-  const conditions = await Promise.all(filters.map(supporterConditions));
-  const rows = await query<Reachable & { at: number }>(
-    sql.join(
-      conditions.map(
-        ({ where }, at) =>
-          sql`SELECT ${at}::int AS at, coalesce(s.emails, '{}') AS emails, s.phones FROM supporters_listed s ${sql.where(where)}`,
-      ),
-      " UNION ALL ",
-    ),
+  const found = await Promise.all(
+    filters.map(async (filter) => {
+      const { where } = await supporterConditions(filter);
+      return query<Reachable>(
+        sql`SELECT coalesce(s.emails, '{}') AS emails, s.phones FROM supporters_listed s ${sql.where(where)}`,
+      );
+    }),
   );
-  const theirs = await permissionsOfRows(rows);
-  return filters.map((_, at) => rows.filter((row) => row.at === at).map(theirs));
+  const theirs = await permissionsOfRows(found.flat());
+  return found.map((rows) => rows.map(theirs));
 }
 
 /**

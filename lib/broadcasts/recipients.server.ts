@@ -122,7 +122,8 @@ function yesesFor(permissions: ContactPermission[], { channel, topics }: Broadca
 /**
  * How many each broadcast goes to, as supporterAudience() counts them, in its
  * order: for a list of broadcasts, which would otherwise find each one's
- * recipients in turn. Two queries, however many broadcasts.
+ * recipients in turn. Two rounds of the database, however many broadcasts
+ * (supportersFoundBy).
  */
 export async function audienceSizes(broadcasts: { filter: StoredFilter; terms: BroadcastTerms }[]): Promise<number[]> {
   const found = await supportersFoundBy(broadcasts.map(({ filter }) => supportersSearch(filter.params).filter));
