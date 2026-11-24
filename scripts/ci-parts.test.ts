@@ -2,8 +2,19 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { flowsForPart, reachedForCi, reachedLine } from "./ci-parts.mjs";
+import { flowsForCi, flowsForPart, reachedForCi, reachedLine } from "./ci-parts.mjs";
 import { RECORDING, reachContext } from "./storyboard-reach.mjs";
+
+describe("flowsForCi", () => {
+  it("leaves out the gallery's flows, on both viewports", () => {
+    const listed = new Map(
+      ["desktop|gallery|gallery: ui", "phone|gallery|gallery: ui", "desktop|audit-log|x", "phone|errors|y"].map(
+        (key) => [key, `line ${key}`],
+      ),
+    );
+    expect([...flowsForCi(listed).keys()]).toEqual(["desktop|audit-log|x", "phone|errors|y"]);
+  });
+});
 
 describe("flowsForPart", () => {
   it("deals a part's lines for --test-list in turn by key, so a section's flows are spread between the parts", () => {

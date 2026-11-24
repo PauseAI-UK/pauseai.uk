@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Deals CI's storyboard flows into parts (.github/workflows/ci.yml), each
 // part working out the same deal and running its own. Dealt in turn by key,
-// not in blocks of a file as Playwright's `--shard` does, which put the
-// gallery's slow flows in one part.
+// not in blocks of a file as Playwright's `--shard` does, which put a
+// section's slow flows in one part. The gallery's are left out (flowsForCi).
 //
 // On a pull request, the parts deal only the flows its change can reach
 // (reachedForCi), by what each flow opened when main's CI last ran it:
@@ -17,9 +17,22 @@ import { listedFlows } from "./storyboard-main.mjs";
 import { flowsReached, reachContext, spotCheckKeys } from "./storyboard-reach.mjs";
 
 /**
+ * The sections CI leaves out, each with its reason. The gallery's flows
+ * picture each component for a review, and check only what every flow
+ * checks of its pages (tests/storyboard/fixtures.ts), on pages the other
+ * flows and the components' own tests cover; CI takes no pictures.
+ */
+const NOT_IN_CI = new Set(["gallery"]);
+
+/** Of `listed` (listedFlows), the flows CI runs: all but NOT_IN_CI's sections'. */
+export function flowsForCi(listed) {
+  return new Map([...listed].filter(([key]) => !NOT_IN_CI.has(key.split("|")[1])));
+}
+
+/**
  * The lines for `playwright test --test-list` of `part` (from 1) of `count`,
  * from `listed` (listedFlows): the flows by key, dealt in turn, so a
- * section's flows, the gallery's slow ones too, are spread between the parts.
+ * section's flows are spread between the parts.
  */
 export function flowsForPart(listed, part, count) {
   return [...listed.keys()]
@@ -101,7 +114,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     maxBuffer: 64 * 1024 * 1024,
   });
   if (listing.status !== 0) throw new Error(`Couldn't list the flows:\n${listing.stderr}`);
-  const listed = listedFlows(JSON.parse(listing.stdout));
+  const listed = flowsForCi(listedFlows(JSON.parse(listing.stdout)));
   const map = openedFile && readJson(openedFile);
   const chosen =
     map &&

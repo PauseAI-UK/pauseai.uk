@@ -12,7 +12,7 @@ import { caretAtStart, caretInEmpty } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { holdActions } from "./loading-steps";
 import { hydrated, openBubble, scrollSettled } from "./settle";
-import { BASE, expect, frame, story, test } from "./fixtures";
+import { BASE, expect, expectConsole, frame, story, test } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import type { Section } from "./report/frames";
@@ -360,6 +360,8 @@ test("The site is updated under an open draft", async ({ page, request, flowData
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
   // A call to a Server Action no build has, as a button on a page opened before the deploy makes.
+  // The server answers it 409.
+  expectConsole(/409 \(Conflict\)/);
   await page.evaluate(() => fetch("/", { method: "POST", headers: { "Next-Action": `40${"0".repeat(40)}` } }));
   const dialog = page.getByRole("dialog", { name: shellCopy.siteUpdated.title });
   await expect(dialog).toBeVisible();
