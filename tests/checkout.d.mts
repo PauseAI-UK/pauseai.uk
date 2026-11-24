@@ -1,4 +1,5 @@
 export const CHECKOUT_DIR: string;
+export function checkoutHash(dir: string): string;
 export const BLOCKED_PORTS: number[];
 export function checkoutPorts(dir: string): { local: number; main: number };
 export const OWN_URL: string;

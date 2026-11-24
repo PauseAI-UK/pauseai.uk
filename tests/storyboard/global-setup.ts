@@ -6,8 +6,17 @@ import {
   dropDatabase,
   freshDatabase,
   runSql,
+  serverSource,
 } from "@/scripts/fresh-database.mjs";
-import { FLOW_DATABASES, foreignServer, LOCAL_URL, OUTBOX_DIR, OWN_URL, TEMPLATE_DATABASE } from "../checkout.mjs";
+import {
+  FLOW_DATABASES,
+  foreignServer,
+  LOCAL_URL,
+  OUTBOX_DIR,
+  OWN_URL,
+  SERVER_DATABASE,
+  TEMPLATE_DATABASE,
+} from "../checkout.mjs";
 import {
   CHECKOUT_HEADER,
   FIXTURE_NOW,
@@ -36,6 +45,13 @@ export default async function globalSetup(): Promise<void> {
     const res = await fetch(OWN_URL, { method: "HEAD", redirect: "manual" });
     const foreign = foreignServer(res.headers.get(CHECKOUT_HEADER));
     if (foreign) throw new Error(foreign);
+    // The build's own database is on the Postgres it was started with. Not
+    // there, the build is on another (one from before this checkout had its
+    // own), and wouldn't find the flows' databases.
+    if (!databaseNames(SERVER_DATABASE).includes(SERVER_DATABASE))
+      throw new Error(
+        `${OWN_URL} was started on another Postgres than ${serverSource()}. Stop that server and run again.`,
+      );
   }
 
   // Left over from this checkout's run that was stopped: nothing can be using them now.

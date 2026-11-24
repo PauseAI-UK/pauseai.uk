@@ -14,8 +14,9 @@
 // CI's jobs are: the types then the storyboard (both write .next), the tests with coverage, the linters and the
 // placeholder check one after another, and the backup Worker's package. Not
 // `next build`: the storyboard builds the site. Nothing is fetched;
-// origin/main is as last fetched. `npm test` and the backup Worker's tests
-// use a Postgres of the gate's own (scripts/gate-postgres.mjs).
+// origin/main is as last fetched. `npm test` and the storyboard use the
+// checkout's own Postgres, and the backup Worker's tests one of the gate's
+// own (scripts/own-postgres.mjs).
 //
 // The storyboard is the review (`npm run storyboard`), where CI runs the
 // flows without pictures: it runs the flows the branch's change can reach,
@@ -47,7 +48,7 @@ import { constants } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { testServerUrl } from "./fresh-database.mjs";
-import { postgresDir, startPostgres, stopPostgres, sweepPostgres } from "./gate-postgres.mjs";
+import { postgresDir, startPostgres, stopPostgres, sweepPostgres } from "./own-postgres.mjs";
 
 export const LOG_DIR = "tmp/gate";
 const MINUTE = 60_000;
@@ -201,7 +202,7 @@ export function slowPlan({ storyboard }, files = []) {
         ...(storyboard ? [npm("storyboard", ["run", "storyboard", "--", "--no-open"], 30)] : []),
         ...(storyboard && picturing ? [npm("determinism", ["run", "storyboard:determinism"], 20)] : []),
       ],
-      [npm("test", ["test"], 15, { postgres: true })],
+      [npm("test", ["test"], 15)],
       [
         npm("lint", ["run", "lint"], 5),
         npm("lint-css", ["run", "lint:css"], 3),
@@ -553,18 +554,20 @@ async function main(args) {
 function withPostgres(phases) {
   if (!phases.flat(2).some((step) => step.postgres)) return phases;
   if (testServerUrl()) {
-    console.log("Gate: the tests use the server TEST_DATABASE_URL names.");
+    console.log("Gate: the backup tests use the server TEST_DATABASE_URL names.");
     return phases;
   }
   for (const dir of sweepPostgres()) console.log(`Gate: stopped the Postgres a killed gate left in ${dir}.`);
   const dir = postgresDir(process.pid);
   const started = startPostgres(dir);
   if ("problem" in started) {
-    console.log(`Gate: the tests use the usual Postgres, as one of the gate's own didn't start: ${started.problem}`);
+    console.log(
+      `Gate: the backup tests use the checkout's Postgres, as one of the gate's own didn't start: ${started.problem}`,
+    );
     return phases;
   }
   process.on("exit", () => stopPostgres(dir));
-  console.log(`Gate: npm test and the backup tests use a Postgres of the gate's own, in ${dir}.`);
+  console.log(`Gate: the backup tests use a Postgres of the gate's own, in ${dir}.`);
   return withEnv(phases, started.env);
 }
 

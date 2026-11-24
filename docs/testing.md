@@ -1400,16 +1400,35 @@ not a mock.
   it touched, delete its test. `netlify/database/migrations.test.ts` still
   applies every migration to an empty database.
 
-- **Where Postgres is.** The tests look for the server in this order:
+- **Where Postgres is.** The tests, and the storyboard, look for the server
+  in this order:
   - `TEST_DATABASE_URL`, from the environment or from that one line of
     `.env.local`: `db-test` in `docker-compose.yml`, say;
   - without it, the usual `PG*` variables;
-  - without `PGHOST`, the local server's socket in `/var/run/postgresql`
-    or `/tmp`, or else localhost.
+  - without `PGHOST`, the checkout's own server (below), started if it
+    isn't running;
+  - where that can't start (no `initdb` on the PATH), the local server's
+    socket in `/var/run/postgresql` or `/tmp`, or else localhost, saying
+    why once.
 
-  So in the dev container, with Postgres started (`pg-start`), nothing
-  needs setting. When no server answers, the tests stop, saying where they
-  looked and what to do (`noServer` in `scripts/fresh-database.mjs`). CI
+  **Each checkout has a server of its own**, with its files in memory
+  (`/dev/shm`, or the temporary folder where there's none), made as CI's
+  service is (`scripts/own-postgres.mjs`). Its tests, the backup Worker's
+  tests, its storyboard and the fixture builds share it; another
+  worktree's are on another. Dropping a database makes Postgres first
+  write every changed page on the server to disk, other databases' too. On
+  a server on disk, beside builds and screenshots, that write could wait
+  on a busy disk for over ten seconds, and every test dropping a database
+  waited with it. In memory, under the same load, the longest drop took
+  under four seconds. The first thing in a checkout that needs a database
+  starts the server, in under a second, and it stays up for the next run,
+  until the machine restarts or the checkout is gone (the next start
+  sweeps those). `npm run db:own` starts it and prints the `PG*` variables
+  that reach it; `npm run db:own -- psql` opens psql on it.
+
+  So in the dev container nothing needs setting or starting. When no
+  server answers, the tests stop, saying where they looked and what to do
+  (`noServer` in `scripts/fresh-database.mjs`). CI
   runs a Postgres service. The jobs that run in Playwright's image reach it
   by its name, `postgres`, which `LOCAL_POSTGRES_HOST` names as on this
   machine, as the migrations refuse a database anywhere else.
@@ -1583,18 +1602,11 @@ mistake. `--fast` stops after them anyway.
 - the four linters, then `npm run placeholders`, one after another;
 - the backup Worker's `npm ci`, tests and types.
 
-`npm test` and the backup Worker's tests run on a Postgres of the gate's
-own (`scripts/gate-postgres.mjs`), started for the run and thrown away
-after it, with its files in memory (`/dev/shm`, or the temporary folder
-where there's none) and made as CI's service is. Dropping a database makes
-Postgres first write every changed page on the server to disk, other
-databases' too. On the usual server, beside the storyboard and its builds,
-that write could wait on a busy disk for over ten seconds, and every test
-dropping a database waited with it. On the gate's own server, under the
-same load, the longest drop took under four seconds. The storyboard keeps
-the usual server, as a fixture server left running from an earlier review
-uses that one. When `TEST_DATABASE_URL` names a server, or the gate's own
-won't start (no `initdb` on the PATH, say), the tests use the usual one,
+`npm test` and the storyboard use the checkout's own Postgres ("Where
+Postgres is", above). The backup Worker's tests run on one of the gate's
+own, made the same way, started for the run and thrown away after it, so
+they make their databases apart from `npm test`'s. When `TEST_DATABASE_URL`
+names a server, or the gate's own won't start, they use the checkout's,
 and the gate says so. A gate that was killed leaves its server running;
 the next gate stops it.
 

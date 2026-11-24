@@ -85,7 +85,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { LOCAL_URL, MAIN_OUTBOX_DIR, MAIN_URL, MAIN_WORKTREE } from "../tests/checkout.mjs";
 import { writeStoryboard } from "../tests/storyboard/report/board.ts";
 import { comparePngs } from "../tests/storyboard/report/frames.ts";
-import { testServerUrl } from "./fresh-database.mjs";
+import { serverEnv } from "./fresh-database.mjs";
 import { checkOutMain, lockMain } from "./main-checkout.mjs";
 import { describeChanged } from "./storyboard-changed.mjs";
 import {
@@ -608,11 +608,10 @@ const sinceTree = since && git("rev-parse", `${since}^{tree}`);
 function mainEnv() {
   const env = { ...process.env };
   for (const name of ["LOCAL_URL", "MAIN_URL", "OUTBOX_DIR", "STORYBOARD_ON_MAIN"]) delete env[name];
-  // The same test Postgres as this branch's (`db-test`, say), which main's
-  // checkout can't find in our .env.local.
-  const testServer = testServerUrl();
-  if (testServer) env.TEST_DATABASE_URL = testServer;
-  return env;
+  // The same Postgres as this branch's, which main's checkout wouldn't find
+  // by itself: this checkout's own (main's has its own), or `db-test`,
+  // say, from our .env.local.
+  return { ...env, ...serverEnv() };
 }
 
 /**

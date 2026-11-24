@@ -6,6 +6,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    globalSetup: ["./vitest.global-setup.mjs"],
     // The container tests dump and restore real databases, which takes a few
     // seconds each. Their hooks make and drop databases, which takes seconds
     // too while other tests share the server (npm run gate runs them beside

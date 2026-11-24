@@ -165,9 +165,9 @@ describe("slowPlan", () => {
     expect(types.map((step) => step.id)).toEqual(["typecheck"]);
   });
 
-  it("marks the tests that make databases, and not the storyboard, to run on the gate's own Postgres", () => {
+  it("marks the backup tests alone to run on the gate's own Postgres, as the rest use the checkout's", () => {
     const steps = slowPlan({ storyboard: true }, ["tests/storyboard/frame.ts"]).flat(2);
-    expect(steps.filter((step) => step.postgres).map((step) => step.id)).toEqual(["test", "backup-test"]);
+    expect(steps.filter((step) => step.postgres).map((step) => step.id)).toEqual(["backup-test"]);
   });
 });
 
@@ -175,8 +175,8 @@ describe("withEnv", () => {
   it("adds the variables to the steps marked postgres alone", () => {
     const env = { PGHOST: "/dev/shm/gate-postgres-1" };
     const steps = withEnv(slowPlan({ storyboard: true }), env).flat(2);
-    expect(steps.filter((step) => step.env).map((step) => step.id)).toEqual(["test", "backup-test"]);
-    expect(steps.find((step) => step.id === "test")?.env).toBe(env);
+    expect(steps.filter((step) => step.env).map((step) => step.id)).toEqual(["backup-test"]);
+    expect(steps.find((step) => step.id === "backup-test")?.env).toBe(env);
   });
 });
 
