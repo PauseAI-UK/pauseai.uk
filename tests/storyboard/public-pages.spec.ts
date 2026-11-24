@@ -60,11 +60,8 @@ const FIXTURE_TEXT: Record<string, string> = {
   "/manchester": "PauseAI Manchester Social",
 };
 
-// Same-site links already checked by an earlier page in this worker.
-const checkedLinks = new Map<string, number>();
-
 for (const route of PUBLIC_ROUTES) {
-  test(route, { tag: route === "/" ? "@phone" : [] }, async ({ page, request }) => {
+  test(route, { tag: route === "/" ? "@phone" : [] }, async ({ page }) => {
     const problems: string[] = [];
 
     page.on("console", (message: ConsoleMessage) => {
@@ -96,24 +93,39 @@ for (const route of PUBLIC_ROUTES) {
 
     await frame(page, route);
 
-    // getAttribute rather than .href: links inside an SVG have an object there.
-    const hrefs = await page.$$eval("a[href]", (links) =>
-      links.map((a) => new URL(a.getAttribute("href")!, location.href).href),
-    );
-    const sameSite = [...new Set(hrefs.filter((href) => href.startsWith(BASE)).map((href) => href.split("#")[0]))];
-    const broken: string[] = [];
-    for (const href of sameSite) {
-      if (!checkedLinks.has(href)) {
-        const res = await request.get(href, { maxRedirects: 5 });
-        checkedLinks.set(href, res.status());
-      }
-      if (checkedLinks.get(href)! >= 400) broken.push(`${href} → ${checkedLinks.get(href)}`);
-    }
-    expect(broken, "broken same-site links").toEqual([]);
-
     expect(problems, "console problems").toEqual([]);
   });
 }
+
+// An <a> tag's href in a page's HTML, as the server sends it.
+const LINK = /<a\b[^>]*?\shref="([^"]*)"/g;
+
+// One flow checks every public page's links, so each page's own flow opens
+// only its page, the same pages on every run (scripts/storyboard-reach.mjs
+// chooses a review's flows by them).
+test("Every public page's links work", async ({ request }) => {
+  story("Each public page's links to the site's own pages open, from the HTML the server sends.");
+  const pages = await Promise.all(
+    PUBLIC_ROUTES.map(async (route) => {
+      const response = await request.get(`${BASE}${route}`);
+      expect(response.status(), route).toBe(200);
+      return { route, html: await response.text() };
+    }),
+  );
+  const linkedFrom = new Map<string, string>();
+  for (const { route, html } of pages)
+    for (const [, href] of html.matchAll(LINK)) {
+      const url = new URL(href.replaceAll("&amp;", "&"), `${BASE}${route}`).href.split("#")[0];
+      if (url.startsWith(BASE) && !linkedFrom.has(url)) linkedFrom.set(url, route);
+    }
+  const broken = await Promise.all(
+    [...linkedFrom].map(async ([url, route]) => {
+      const status = (await request.get(url, { maxRedirects: 5 })).status();
+      return status >= 400 ? `${url} → ${status}, linked from ${route}` : [];
+    }),
+  );
+  expect(broken.flat(), "broken same-site links").toEqual([]);
+});
 
 // Each section's Atom feed, linked from its index and its posts' pages.
 for (const { opening, section, post } of [

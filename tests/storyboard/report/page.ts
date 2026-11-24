@@ -45,8 +45,7 @@ export function renderStoryboardPage(storyboard: Storyboard): string {
         <button type="button" id="filter-clear" aria-label="Clear the filter" hidden>×</button>
       </span>
       <span class="segmented" id="show" role="radiogroup" aria-label="Show">
-        <button type="button" data-show="all" aria-pressed="true">All</button><button type="button" data-show="changed" aria-pressed="false">Changed <span class="count" id="changed-count"></span></button><button type="button" data-show="failed" aria-pressed="false">Failed <span class="count" id="failed-count"></span></button><button type="button" data-show="main-missing" aria-pressed="false">Main missing <span class="count" id="main-missing-count"></span></button>
-      </span>
+        <button type="button" data-show="all" aria-pressed="true">All</button><button type="button" data-show="changed" aria-pressed="false">Changed <span class="count" id="changed-count"></span></button><button type="button" data-show="failed" aria-pressed="false">Failed <span class="count" id="failed-count"></span></button><button type="button" data-show="main-missing" aria-pressed="false">Main missing <span class="count" id="main-missing-count"></span></button>      </span>
     </div>
     <nav id="section-list" aria-label="Sections and flows"></nav>
   </aside>
@@ -69,7 +68,7 @@ export function renderStoryboardPage(storyboard: Storyboard): string {
 }
 
 const CSS = `
-:root { color-scheme: light; --line: #e2e2e2; --muted: #666; --changed: #c2410c; --failed: #b91c1c; --ok: #15803d; --bg: #f7f7f7; --here: #fff1e6; --bar: 53px; }
+:root { color-scheme: light; --line: #e2e2e2; --muted: #666; --changed: #c2410c; --failed: #b91c1c; --ok: #15803d; --bg: #f7f7f7; --here: #fff1e6; --spot: #3d5a80; --spot-bg: #e7eef8; --bar: 53px; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.4 system-ui, sans-serif; color: #111; background: #fff; }
 h1, h2, h3, h4, p { margin: 0; }
@@ -129,6 +128,11 @@ section, .flow { scroll-margin-top: calc(var(--bar) + 8px); }
 .flow { margin: 12px 0 28px; }
 .flow h4 { font-size: 15px; margin-bottom: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
 .flow h4 .shot { margin-left: 8px; font-size: 12px; font-weight: normal; color: var(--muted); }
+/* A spot check (frames.ts, Flow's spot): beside its title, in the sidebar too. */
+/* The summary's spot checks, which show them: a link's look, as a button. */
+.spot-link { font: inherit; padding: 0; border: 0; background: none; color: inherit; text-decoration: underline; cursor: pointer; }
+.spot-link[aria-pressed="true"] { color: #111; font-weight: 600; }
+.spot { display: inline-block; margin-left: 8px; padding: 0 7px; border-radius: 9px; font-size: 11px; line-height: 18px; font-weight: normal; white-space: nowrap; color: var(--spot); background: var(--spot-bg); }
 .flow .status { font-weight: normal; color: var(--muted); font-size: 13px; margin-left: 8px; }
 /* The flow's story, told around its frames (story() in frame.ts). */
 .story { max-width: 72ch; margin: 14px 0 2px; font-size: 15px; line-height: 1.5; color: #111; }
@@ -169,13 +173,13 @@ const JS = `
 const data = JSON.parse(document.getElementById("data").textContent);
 const sectionInfo = new Map(JSON.parse(document.getElementById("sections").textContent).map((s) => [s.id, s]));
 // The browser restores the filter's words on a reload, and the tab keeps
-// which of All, Changed, Failed and Main missing was chosen (\`show\`), so the page starts
+// which of All, Changed, Failed, Main missing and the spot checks was chosen (\`show\`), so the page starts
 // from them. \`opened\` and \`closed\` hold the sections folded open or shut
 // by hand; any other opens while it's in view.
 const SHOWN = "storyboard-show";
 const state = {
   viewport: "desktop",
-  show: ["changed", "failed", "main-missing"].includes(sessionStorage.getItem(SHOWN)) ? sessionStorage.getItem(SHOWN) : "all",
+  show: ["changed", "failed", "main-missing", "spot"].includes(sessionStorage.getItem(SHOWN)) ? sessionStorage.getItem(SHOWN) : "all",
   query: document.getElementById("filter").value,
   opened: new Set(),
   closed: new Set(),
@@ -202,6 +206,8 @@ const pct = (n) => (n * 100 < 0.01 && n > 0 ? "<0.01" : (n * 100).toFixed(2)) + 
 const slug = (...parts) => parts.join("-").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 // A flow main has nothing fair to compare with (frames.ts, mainMissing): main's run failed, or main hasn't run it.
 const mainMissing = (flow) => Boolean(flow.mainMissing);
+// A spot check's mark: run only to check it looks as main's does, as the change doesn't reach it (scripts/storyboard.mjs, spotKeys).
+const spotMark = () => el("span", { class: "spot" }, ["spot check"]);
 const framesOf = (flow) => data.frames.filter((f) => f.section === flow.section && f.flow === flow.flow && f.viewport === flow.viewport);
 
 /** The filter's words, each of which must be somewhere in what's searched. */
@@ -231,7 +237,8 @@ function render() {
   for (const section of sections) {
     const shown = flows
       .filter((f) => f.section === section)
-      .filter((f) => (state.show === "changed" ? f.changed > 0 : state.show === "failed" ? f.status !== "passed" : state.show === "main-missing" ? mainMissing(f) : true))
+      // All leaves out the spot checks, which aren't what the change did: one that changed or failed is under those.
+      .filter((f) => (state.show === "changed" ? f.changed > 0 : state.show === "failed" ? f.status !== "passed" : state.show === "main-missing" ? mainMissing(f) : state.show === "spot" ? f.spot : !f.spot))
       .map((flow) => {
         // A flow matches by its section or title, and then shows every frame;
         // or by some captions, and then shows those.
@@ -256,7 +263,8 @@ function render() {
     const open = (terms.length && !state.closed.has(id)) || state.opened.has(id);
     const group = el("details", { "data-section": id, open: open ? "" : undefined }, [
       el("summary", {}, [
-        el("span", { class: "name" }, [sectionName(section)]),
+        // A section shut until it's in view says so when all it shows is spot checks.
+        el("span", { class: "name" }, [sectionName(section), ...(shown.every(({ flow }) => flow.spot) ? [spotMark()] : [])]),
         el("span", { class: "count" + (changed ? " changed" : "") }, [data.withMain ? changed + "/" + frameCount : String(frameCount)]),
       ]),
     ]);
@@ -274,7 +282,10 @@ function render() {
       const target = flow === shown[0].flow ? id : flowId;
       group.append(
         el("a", { href: "#" + target, "data-flow": flowId, class: flow.status !== "passed" ? "failed" : "" }, [
-          el("span", { class: "name" + (flow.flow.startsWith("/") ? " route" : "") }, marked(flow.flow, terms)),
+          el("span", { class: "name" + (flow.flow.startsWith("/") ? " route" : "") }, [
+            ...marked(flow.flow, terms),
+            ...(flow.spot ? [spotMark()] : []),
+          ]),
           el("span", { class: "count" + (flow.changed ? " changed" : "") }, [
             flow.frames === 0 ? "–" : data.withMain ? flow.changed + "/" + flow.frames : String(flow.frames),
           ]),
@@ -283,6 +294,7 @@ function render() {
       const h4 = el("h4", { class: flow.status !== "passed" ? "failed" : "" }, marked(flow.flow, terms));
       // Carried from an earlier, fuller run by a partial one (scripts/storyboard.mjs).
       if (flow.shotAt && flow.shotAt !== newestShot) h4.append(el("span", { class: "shot" }, ["shot " + shotTime(flow.shotAt)]));
+      if (flow.spot) h4.append(spotMark());
       if (flow.status !== "passed") h4.append(el("span", { class: "status" }, [flow.status]));
       else if (mainMissing(flow)) h4.append(el("span", { class: "status" }, ["main: " + (flow.mainMissing === "failed" ? flow.mainStatus : "not run")]));
       const div = el("div", { class: "flow", id: flowId, "data-section": id }, [h4]);
@@ -296,10 +308,14 @@ function render() {
     partBlock.append(sec);
   }
   if (!shownFlows)
-    board.append(el("p", { class: "empty-note" }, [terms.length ? "No flow or frame matches “" + state.query.trim() + "”." : state.show === "failed" ? "Nothing failed on this viewport." : state.show === "changed" ? "Nothing changed on this viewport." : state.show === "main-missing" ? "Main has every flow on this viewport." : "No flows ran on this viewport."]));
+    board.append(el("p", { class: "empty-note" }, [terms.length ? "No flow or frame matches “" + state.query.trim() + "”." : state.show === "failed" ? "Nothing failed on this viewport." : state.show === "changed" ? "Nothing changed on this viewport." : state.show === "main-missing" ? "Main has every flow on this viewport." : state.show === "spot" ? "No spot checks on this viewport." : "No flows ran on this viewport."]));
   here = { section: null, flow: null };
   trackPlace();
-  const frames = data.frames.filter((f) => f.viewport === state.viewport);
+  // The change's own flows and frames are counted; the spot checks are counted apart.
+  const spots = flows.filter((f) => f.spot);
+  const own = flows.filter((f) => !f.spot);
+  const spotFlows = new Set(spots.map((f) => f.section + "\\u0000" + f.flow));
+  const frames = data.frames.filter((f) => f.viewport === state.viewport && !spotFlows.has(f.section + "\\u0000" + f.flow));
   const changed = flows.reduce((n, f) => n + f.changed, 0);
   const failed = flows.filter((f) => f.status !== "passed").length;
   const missingOnMain = flows.filter(mainMissing).length;
@@ -307,14 +323,19 @@ function render() {
   document.getElementById("changed-count").textContent = "(" + changed + ")";
   document.getElementById("failed-count").textContent = "(" + failed + ")";
   document.getElementById("main-missing-count").textContent = "(" + missingOnMain + ")";
-  const carried = flows.filter((f) => f.shotAt && f.shotAt !== newestShot).length;
-  document.getElementById("summary").textContent =
+  const carried = own.filter((f) => f.shotAt && f.shotAt !== newestShot).length;
+  // The spot checks are shown from here, as All leaves them out: All shows the rest again.
+  const spotLink = el("button", { type: "button", class: "spot-link", "aria-pressed": String(state.show === "spot"), onclick: () => show(state.show === "spot" ? "all" : "spot") }, [plural(spots.length, "spot check")]);
+  document.getElementById("summary").replaceChildren(
     (terms.length ? shownFlows + " of " + plural(flows.length, "flow") + " match. " : "") +
-    frames.length + " frames in " + flows.length + " flows" +
-    (data.withMain ? ", " + changed + " changed against main" : ", no run of main to compare with") +
-    (failed ? ", " + failed + " failed" : "") +
-    (missingOnMain ? ", " + missingOnMain + " with main missing" : "") + "." +
-    (carried ? " " + plural(flows.length - carried, "flow") + " shot now, " + carried + " carried from earlier runs." : "");
+      frames.length + " frames in " + own.length + " flows" +
+      (data.withMain ? ", " + changed + " changed against main" : ", no run of main to compare with") +
+      (failed ? ", " + failed + " failed" : "") +
+      (missingOnMain ? ", " + missingOnMain + " with main missing" : "") +
+      (spots.length ? ", and " : ""),
+    ...(spots.length ? [spotLink] : []),
+    "." + (carried ? " " + plural(own.length - carried, "flow") + " shot now, " + carried + " carried from earlier runs." : ""),
+  );
 }
 
 /** The lines of a flow's story, each a paragraph. */
@@ -450,14 +471,14 @@ for (const button of document.querySelectorAll(".bar [data-viewport]")) {
 const showButtons = document.querySelectorAll("#show button");
 const markShown = () => { for (const b of showButtons) b.setAttribute("aria-pressed", String(b.dataset.show === state.show)); };
 markShown();
-for (const button of showButtons) {
-  button.addEventListener("click", () => {
-    state.show = button.dataset.show;
-    sessionStorage.setItem(SHOWN, state.show);
-    markShown();
-    render();
-  });
+/** Shows one of All, Changed, Failed, Main missing and the spot checks. */
+function show(which) {
+  state.show = which;
+  sessionStorage.setItem(SHOWN, state.show);
+  markShown();
+  render();
 }
+for (const button of showButtons) button.addEventListener("click", () => show(button.dataset.show));
 // Filtering as you type, a moment after the last key; / to start, Escape to clear.
 const filter = document.getElementById("filter");
 const clearFilter = document.getElementById("filter-clear");

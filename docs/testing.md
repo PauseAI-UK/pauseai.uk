@@ -613,8 +613,8 @@ of the staff kit. A frame with its examples in the group's own file (most
 of the site's kit, in `_examples/ui.tsx`) is pictured whenever the group
 is reached at all. A frame the run carried from has no frame for, a
 component new to the group, is pictured. `--plan` says how much of each
-such flow it pictures (`gallery: staff-kit, 1 of 50 sections`). Main's side
-does the same when it carries from a kept tree. `tests/checks/gallery.test.ts`
+such flow it pictures (`gallery: staff-kit, 1 of 50 sections`). Main runs
+a gallery flow whole. `tests/checks/gallery.test.ts`
 keeps what this depends on true: a file of examples beside a component
 holds that component's examples alone, and a group takes nothing but them
 from it.
@@ -648,8 +648,11 @@ change doesn't reach, and compares each with main's frames of it, as it
 compares any frame with main's: the two should look the same. The six are
 chosen by a hash of main's tree and the flow, so every review of a branch
 checks the same ones, whose frames on main are kept after the first, and
-a branch from another commit of main checks others. They're on the page
-with the rest. A gallery flow the review would picture in part can be one:
+a branch from another commit of main checks others. On the page, each
+is marked "spot check" (`spot` in `storyboard.json`). All leaves them out,
+as they aren't what the change did, and the spot checks named in the
+summary at the top show them; one that changed, failed or has main
+missing is under that filter too. A gallery flow the review would picture in part can be one:
 it's then run whole, and the frames it would have carried compared with
 what they'd have been carried from. A flow main hasn't passed isn't
 checked. It checks even when the change reaches no flow, unless nothing
@@ -714,20 +717,16 @@ recently. These put frames there:
   known to be that tree's. A run narrowed by hand (a section, `-g`, one
   viewport) keeps nothing, as the flows it didn't run weren't chosen as
   unchanged.
-- **Another kept tree.** Before running main for the flows not kept, the
-  review looks for the kept tree nearest main's: of each, the flows that
-  recorded their tree and what they opened, less those the change from
-  the tree each ran on to main's can reach ("Which flows a review runs").
-  From the one that leaves fewest to run, it carries the rest into main's
-  tree, and runs main for what's left. After a rebase, that's the flows
-  the branch's change reaches that main's merges since reach too.
 
-A flow kept under a tree it didn't run on keeps the tree it did run on
-(`tree`), so the next review asks what changed since then. One that ran on
-the tree itself is never replaced by one carried there. `--fresh-main`
-runs main whole, replacing what was carried, and lists any carried flow
-that looks different run afresh, past the review's noise: a change the map
-missed.
+Nothing else puts frames under main's tree: a commit of main nobody has
+pictured runs main for the flows a review needs, even when an older commit
+of main has them kept.
+
+A flow a review carried keeps the tree it did run on (`tree`), so the next
+review asks what changed since then. One that ran on the tree itself is
+never replaced by one carried there. `--fresh-main` runs main whole,
+replacing what was carried, and lists any carried flow that looks
+different run afresh, past the review's noise: a change the map missed.
 
 A review needs main's frames of the flows it pictures and checks, and of
 any flow of main's that this branch's suite no longer has, shown as gone.
@@ -903,7 +902,7 @@ if a spec file or a route handler (`route.ts`) is missing from this list.
 So a new one is placed here on purpose, on a line of its own, with the flow
 that drives it or why nothing does.
 
-- `public-pages.spec.ts`: Every public route: 200, one `<h1>`, no console errors or hydration warnings, no broken same-site links, fixture text where a page shows data. The header's Groups menu, opened on a desktop.
+- `public-pages.spec.ts`: Every public route: 200, one `<h1>`, no console errors or hydration warnings, fixture text where a page shows data. One flow checks every public page's same-site links, read from the HTML the server sends. The header's Groups menu, opened on a desktop.
 - `campaigns.spec.ts`: Email your MP, end to end:
   - the postcode, the letter, the preview and the sent page, and the letter the MP gets;
   - the editor's toolbar and a paste, where a link goes shown under it, and the letter as sent;

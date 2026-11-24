@@ -13,7 +13,6 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  carryKept,
   fillCarried,
   flowFolder,
   keepRuns,
@@ -138,19 +137,18 @@ describe("missingFlows", () => {
   });
 });
 
-describe("carryKept and ranElsewhere", () => {
+describe("flows that ran elsewhere", () => {
   it("says a flow ran elsewhere when its tree isn't the one it's kept under, and not when it has none", () => {
     expect(ranElsewhere({ tree: "t1" }, "t2")).toBe(true);
     expect(ranElsewhere({ tree: "t2" }, "t2")).toBe(false);
     expect(ranElsewhere({}, "t2")).toBe(false);
   });
 
-  it("adds another tree's kept flows to a tree, and a run on the tree itself replaces one", () => {
-    const from = keepRuns(store, "t1", runDir, [
+  it("keeps a flow carried from another tree under a tree, and a run on the tree itself replaces it", () => {
+    const carried = keepRuns(store, "t2", runDir, [
       { ...run("log in", "one"), tree: "t1" },
       { ...run("letters", "two"), tree: "t1" },
     ]);
-    const carried = carryKept(store, "t2", from.frames);
     expect(carried.frames.map((r) => [r.flow, r.tree])).toEqual([
       ["log in", "t1"],
       ["letters", "t1"],

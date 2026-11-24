@@ -99,7 +99,6 @@ import {
 } from "./storyboard-main.mjs";
 import { flowsReached, flowsToRun, reachContext, readByNoFlow, sqlWithoutComments } from "./storyboard-reach.mjs";
 import {
-  carryKept,
   fillCarried,
   keepRuns,
   keptTrees,
@@ -316,14 +315,6 @@ function keptSource(tree) {
   return { tree, kept, runs };
 }
 
-/** Each tree the store keeps, but `except`, as flows to carry from (keptSource): those with any. */
-function keptSources(except) {
-  return keptTrees(STORE)
-    .filter((tree) => tree !== except)
-    .map(keptSource)
-    .filter((source) => source.runs.length > 0);
-}
-
 /** The latest run here, as flows to carry from, if there is one. */
 function latestSources() {
   const latest = join(LATEST, "branch", "frames.json");
@@ -405,36 +396,6 @@ function chooseRuns(keys) {
   const main = options.thisSuite ? [] : [keptSource(sinceTree)].filter((source) => source.runs.length > 0);
   const best = nearest([...latestSources(), ...main], keys, treeBefore, context, phoneTagged);
   return best ?? { run: new Set(keys), carried: new Map() };
-}
-
-/**
- * Carries into main's `tree` the flows of `missing` (keys) that the nearest
- * kept tree can give (nearest, worked out on main's checkout). Returns the
- * flows main still has to run, the tree carried from, if any was, and the
- * gallery's flows main pictures in part, each with the frames it carries
- * from that tree (flowsToRun's `carried`).
- */
-function carryFromNearest(tree, missing) {
-  const phoneTagged = whenAsked(() => listFlows(["--project=phone"], MAIN_WORKTREE, mainEnv(), "0"));
-  const best = nearest(keptSources(tree), new Set(missing), tree, reachContext(MAIN_WORKTREE), phoneTagged);
-  if (!best || best.run.size >= missing.length) return { run: missing, carried: new Map() };
-  const wanted = new Set(missing);
-  carryKept(
-    STORE,
-    tree,
-    best.source.runs
-      .filter((run) => wanted.has(run.key) && !best.run.has(run.key))
-      // Known to look as it does at main's tree, so what's asked next is what changed since.
-      .map((run) => ({ ...withoutKey(run), seen: tree })),
-  );
-  return { run: [...best.run], from: best.source.tree, carried: best.carried };
-}
-
-/** A flow without the key it was given to be chosen by. */
-function withoutKey(run) {
-  const { key, ...rest } = run;
-  void key;
-  return rest;
 }
 
 /**
@@ -649,11 +610,10 @@ function mainEnv() {
 
 /**
  * Runs main's own suite, in its checkout, for the flows on `lines`
- * (listedFlows), its frames going to `workDir`/main-run, but those of
- * `carried` (carryEnv). Playwright builds main and serves it there, on the
- * port of that checkout's own path.
+ * (listedFlows), its frames going to `workDir`/main-run. Playwright builds
+ * main and serves it there, on the port of that checkout's own path.
  */
-async function runMainSuite(workDir, lines, carried) {
+async function runMainSuite(workDir, lines) {
   // Playwright would take whatever serves there for the build it has just been asked for.
   const url = execFileSync(
     "node",
@@ -678,7 +638,6 @@ async function runMainSuite(workDir, lines, carried) {
       STORYBOARD_RUN_AT: runAt,
       STORYBOARD_TREE: git("rev-parse", `${base}^{tree}`),
       STORYBOARD_SETUP: setupOf(MAIN_WORKTREE),
-      ...carryEnv(workDir, carried),
       // This checkout's file, so how far main's run is shows where the review was started
       // (tests/storyboard/report/progress.ts).
       STORYBOARD_PROGRESS: resolve("test-results", "storyboard-progress.json"),
@@ -718,21 +677,6 @@ async function mainFromStore(workDir, wants) {
         keepRuns(STORE, tree, workDir, [], Object.fromEntries(listFlows([], MAIN_WORKTREE, mainEnv())));
         lookAgain();
       }
-      // The gallery's flows main pictures in part, each with the frames it carries from the nearest kept tree.
-      let inPart = new Map();
-      if (missing.length > 0 && !options.freshMain) {
-        const near = carryFromNearest(tree, missing);
-        if (near.from) {
-          const part = near.carried.size > 0 ? `, and ${near.carried.size} of the gallery's in part` : "";
-          console.log(
-            `\n▶ Storyboard: main's frames of ${missing.length - near.run.length} flows${part} carried from the kept tree ${near.from.slice(0, 12)}, as the change from it can't reach them.\n`,
-          );
-          missing = near.run;
-          inPart = near.carried;
-          // With the flows just carried into it, as nothing else reads it again when none is left to run.
-          kept = readTree(STORE, tree);
-        }
-      }
       if (missing.length > 0) {
         const why = options.freshMain ? "afresh, as asked" : "whose frames aren't kept";
         console.log(`\n▶ Storyboard: running main for ${missing.length} flows, ${why}.\n`);
@@ -745,16 +689,16 @@ async function mainFromStore(workDir, wants) {
         await runMainSuite(
           workDir,
           missing.map((key) => kept.flows[key]),
-          inPart,
         );
         const ran = join(workDir, "main-run");
         // Main may not have got as far as a flow: its build failing, say.
-        if (existsSync(join(ran, "frames.json"))) {
-          const filled = fillCarried(readJson(join(ran, "frames.json")), inPart, workDir, "main-run", (frame) =>
-            picturePath(STORE, frame.picture),
+        if (existsSync(join(ran, "frames.json")))
+          await reportMisses(
+            carriedBefore,
+            keepRuns(STORE, tree, workDir, readJson(join(ran, "frames.json")).frames),
+            tree,
+            workDir,
           );
-          await reportMisses(carriedBefore, keepRuns(STORE, tree, workDir, filled.frames), tree, workDir);
-        }
         rmSync(ran, { recursive: true, force: true });
         kept = readTree(STORE, tree);
       }
@@ -1092,6 +1036,14 @@ if (reached && fromStore) {
   }
 }
 pruneStore(STORE, TREES_KEEP);
+
+// The spot checks marked for the page, after the store has kept the flows: being one is this review's, not the flow's.
+if (spot.length > 0 && existsSync(branchFrames)) {
+  const spotted = new Set(spot);
+  const manifest = readJson(branchFrames);
+  for (const run of manifest.frames) if (spotted.has(flowKey(run))) run.spot = true;
+  writeJson(branchFrames, manifest);
+}
 
 if (existsSync(branchFrames)) {
   const { summary, withMain } = await writeStoryboard(runDir);

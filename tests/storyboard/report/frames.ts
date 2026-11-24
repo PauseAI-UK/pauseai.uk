@@ -123,6 +123,8 @@ export type FlowRun = {
   setup?: string;
   /** What it opened, by path (fixtures.ts), for working out which flows a change reaches (scripts/storyboard-reach.mjs). */
   opened?: string[];
+  /** Run only as one of the review's spot checks: the change doesn't reach it (scripts/storyboard.mjs, spotKeys). */
+  spot?: boolean;
 };
 
 /** What one run of the suite wrote: `frames.json` in its output directory. */
@@ -172,6 +174,8 @@ export type Flow = {
   end?: string[];
   /** When the run that shot it started (FlowRun's). */
   shotAt?: string;
+  /** One of the review's spot checks (FlowRun's). */
+  spot?: true;
 };
 
 export type Storyboard = {
@@ -293,6 +297,7 @@ export async function pairRuns(
         changed: 0,
         ...(run.end ? { end: run.end } : {}),
         shotAt: run.shotAt,
+        ...(run.spot ? { spot: true as const } : {}),
       },
       frames: flowFrames,
     });

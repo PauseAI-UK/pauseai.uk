@@ -226,6 +226,15 @@ describe("pairRuns and when flows were shot", () => {
     );
     expect(board.flows[0].shotAt).toBe("2026-10-17T08:00:00.000Z");
   });
+
+  it("marks a spot check, and no other flow", async () => {
+    const board = await pairRuns(
+      { frames: [{ ...run("login", ["form"]), spot: true }, run("letters", ["list"])] },
+      undefined,
+      same,
+    );
+    expect(Object.fromEntries(board.flows.map((f) => [f.flow, f.spot]))).toEqual({ login: true, letters: undefined });
+  });
 });
 
 describe("comparePngs", () => {
