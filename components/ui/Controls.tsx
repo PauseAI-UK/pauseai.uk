@@ -6,7 +6,6 @@ import {
   type TextareaHTMLAttributes,
 } from "react";
 import { ButtonInside } from "./Button";
-import DatePicker from "./DatePicker";
 import styles from "./Controls.module.css";
 
 // Every form control on the site: a text box, a select, a text area, a file
@@ -20,23 +19,6 @@ type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "className">;
 export function TextInput(props: InputProps) {
   return <input {...props} className={styles.control} />;
 }
-
-/**
- * Two days side by side, a dash between: from and to, each a DatePicker
- * with its own name and label, either of which can be left empty. Goes in
- * a FieldSet, which names the pair.
- */
-export function DateRange({ from, to }: { from: DateProps; to: DateProps }) {
-  return (
-    <span className={styles.dateRange}>
-      <DatePicker {...from} clearable />
-      <span aria-hidden="true">–</span>
-      <DatePicker {...to} clearable />
-    </span>
-  );
-}
-
-type DateProps = { name?: string; defaultValue?: string; "aria-label": string };
 
 export function Select(props: Omit<SelectHTMLAttributes<HTMLSelectElement>, "className">) {
   return <select {...props} className={styles.control} />;

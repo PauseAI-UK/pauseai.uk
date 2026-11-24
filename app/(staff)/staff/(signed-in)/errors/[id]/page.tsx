@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { found } from "@/lib/found";
-import { errorSeen } from "@/lib/oversight/errors-seen.server";
+import { errorSeen } from "@/lib/oversight/errors-list.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { setErrorDoneNow } from "../../../_components/oversight/actions";
 import ErrorSeenView from "../../../_components/oversight/ErrorSeenView";

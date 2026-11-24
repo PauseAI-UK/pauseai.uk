@@ -1,5 +1,5 @@
 import { filtersPath, pageParam } from "@/lib/list-params";
-import type { ErrorSeen } from "@/lib/oversight/errors-seen.server";
+import type { ErrorSeen } from "@/lib/oversight/errors-list.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { staffTime } from "@/lib/staff-time";
 import ListFrame, { type ListColumn } from "../ui/ListFrame";

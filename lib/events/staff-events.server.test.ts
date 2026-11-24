@@ -7,7 +7,8 @@ import { query, transaction } from "@/lib/server/db.server";
 import { recordProblem } from "@/lib/email/email.server";
 import { EVENTS_PAGE_SIZE } from "./list";
 import { eventsSearch } from "@/lib/staff-search";
-import { assignRuleOwners, eventsPage, ownerEmails, setEventDoc, setEventOwner } from "./staff-events.server";
+import { assignRuleOwners, ownerEmails, setEventDoc, setEventOwner } from "./staff-events.server";
+import { eventsPage } from "./staff-events-list.server";
 import { eventsCopy } from "./copy";
 
 type Sent = { From: string; To: string; Cc?: string; ReplyTo?: string; Subject: string; TextBody: string; Tag: string };

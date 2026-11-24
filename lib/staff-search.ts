@@ -8,7 +8,7 @@ import type { ChangesFilter } from "@/lib/oversight/audit-log.server";
 import { BACKENDS, BLOCK_KINDS, FOUND_BY, type BlocksFilter } from "@/lib/email/block-filters";
 import type { AskStanding, PoliticianFilter } from "@/lib/politicians/records.server";
 import type { SentEmailsFilter } from "@/lib/oversight/sent-emails.server";
-import { campaignBySlug } from "@/lib/email-your-mp";
+import { campaignNamed } from "@/lib/content/campaigns";
 import { LETTER_STATES } from "@/lib/letters/copy-states";
 import {
   among,
@@ -326,7 +326,7 @@ export function supportersSearch(params: Partial<Record<string, ParamValue>>): S
   );
   const [mps, notMps] = anyAndNone(search.mp, (values) => values.flatMap((value) => politicianId(value) ?? []));
   const miles = NEAR_MILES.find((n) => String(n) === search.within) ?? NEAR_MILES[1];
-  const campaign = campaignBySlug(search.campaign);
+  const campaign = campaignNamed(search.campaign);
   const filter: SupporterFilter = {
     search: search.q.trim() || undefined,
     activity: badges,

@@ -1,7 +1,7 @@
 import { ButtonLink } from "@/components/ui/Button";
 import Section, { Lede, SectionHeader } from "@/components/ui/Section";
 import { campaigns } from "@/lib/content/email-your-mp";
-import { campaignPath } from "@/lib/email-your-mp";
+import { campaignPath } from "@/lib/content/campaigns";
 import styles from "./DemisLetterHelp.module.css";
 
 /**

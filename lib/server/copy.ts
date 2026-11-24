@@ -51,11 +51,3 @@ export const serverProblems = defineProblems("server", {
   // An error, or a problem above, that couldn't be kept or emailed about, as the database or the email failed.
   errorNotKept: "An error couldn't be kept or emailed about",
 });
-
-export const serverCopy = {
-  // What the log is told that isn't a problem (note() in lib/server/problems.server.ts).
-  notes: {
-    // Nobody sees anything: the next query carries on.
-    connectionDropped: "A database connection was dropped while idle",
-  },
-};

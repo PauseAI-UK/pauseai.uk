@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SearchedEvent } from "./staff-events.server";
+import type { SearchedEvent } from "./staff-events-list.server";
 import {
   eventListColumns,
   eventsByOwner,

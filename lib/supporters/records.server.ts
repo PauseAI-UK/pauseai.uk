@@ -1,5 +1,6 @@
 import "server-only";
 import { OPT_OUT_RECORDED } from "./opt-outs.server";
+import { MP_CHOICES } from "./mp-choices.server";
 import { cache } from "react";
 import { windowStart } from "@/lib/time-windows";
 import { now } from "@/lib/now";
@@ -495,11 +496,6 @@ export type MpChoice = { id: number; name: string; constituency: string };
 
 /** What the Event and MP filters offer. */
 export type SupporterChoices = { events: EventChoice[]; mps: MpChoice[] };
-
-/** The MPs a supporter's postcode can find, as getSupporter() gives theirs: each in office, but the test ones. */
-export const MP_CHOICES = `SELECT n.id::int AS id, n.name, p.constituency FROM politicians p
-  JOIN notable_people n ON n.id = p.id AND n.status = 'in_office'
-  WHERE p.house = 'commons' AND NOT p.is_test`;
 
 /**
  * The Event filter's choices, newest first: our Luma events that we

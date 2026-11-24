@@ -6,7 +6,7 @@ import { notifications } from "@/tests/notifications";
 import { NEWER_RUN, NIGHTLY, type PoliticianImport } from "@/lib/import-runs";
 import { PARLIAMENT_MEMBERS, SENEDD_MEMBERS } from "@/lib/server/fixtures/politician-lists";
 import { query } from "@/lib/server/db.server";
-import { listRuns } from "@/lib/server/import-runs.server";
+import { listRuns } from "@/lib/server/import-run-lists.server";
 import { editPoliticianDetails } from "./edits.server";
 import { decideHeldImport, importPoliticians, isPoliticianImport } from "./imports.server";
 import { politicianProblems, politiciansCopy } from "./copy";

@@ -1,12 +1,12 @@
 // Pure helpers for the Email your MP tool: picking a campaign and writing
 // the letter. Used by the form in the browser and by the server, which
 // checks what it's sent against the same campaigns.
-import { IMPORTED_ASKS } from "@/lib/asks/asks";
 import { campaigns, type Campaign, type LetterDetails, type MpStatuses } from "@/lib/content/email-your-mp";
 import type { SpamReason } from "@/lib/content/spam-check";
 import type { FormResult } from "@/lib/form-result";
 import type { QueueReason } from "@/lib/letters/sending.server";
 import { docFromMarkup, type Inline, type LetterDoc } from "@/lib/letters/format";
+import { normalisePostcode } from "@/lib/postcodes";
 import type { Place } from "@/lib/site-events";
 
 /** An MP as the form sees them. */
@@ -50,24 +50,6 @@ export type LetterSubmitted = FormResult<
   { queued?: QueueReason }
 >;
 
-/** Where the campaigns' pages are. */
-const CAMPAIGNS_PATH = "/campaigns";
-
-export function campaignPath(campaign: Campaign): string {
-  return `${CAMPAIGNS_PATH}/${campaign.slug}`;
-}
-
-/** "sw1a 1aa " → "SW1A1AA", for comparing postcodes. */
-export function normalisePostcode(postcode: string): string {
-  return postcode.replace(/\s+/g, "").toUpperCase();
-}
-
-/** "sw1a1aa" → "SW1A 1AA", the way postcodes are written: the inward part is the last three characters. */
-export function displayPostcode(postcode: string): string {
-  const bare = normalisePostcode(postcode);
-  return bare.length > 3 ? `${bare.slice(0, -3)} ${bare.slice(-3)}` : bare;
-}
-
 export function campaignBySlug(slug: string): Campaign | undefined {
   return campaigns.find((campaign) => campaign.slug === slug);
 }
@@ -82,11 +64,6 @@ export const trackedCampaigns = campaigns.filter((campaign) => campaign.done !==
 
 /** The asks staff record a status for by hand: those of the campaigns an MP can have done. */
 export const trackedAsks: string[] = trackedCampaigns.map((campaign) => campaign.ask!);
-
-/** Whether staff record answers to an ask by hand: any no import fills. */
-export function answeredByHand(ask: string): boolean {
-  return !IMPORTED_ASKS.includes(ask);
-}
 
 /** Whether the MP has met the campaign's ask. Nobody has done a campaign without `done`. */
 export function isDone(campaign: Campaign, statuses: MpStatuses): boolean {
@@ -139,9 +116,4 @@ export function addressLines(address: string): string[] {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-}
-
-/** A loose check that catches some typos. */
-export function looksLikeEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }

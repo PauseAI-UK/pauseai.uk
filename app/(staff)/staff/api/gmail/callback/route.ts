@@ -7,7 +7,7 @@ import {
   type GmailConnectOutcome,
 } from "@/lib/email/gmail-connect";
 import { emailProblems } from "@/lib/email/copy";
-import { connectGmail } from "@/lib/email/gmail-accounts.server";
+import { connectGmail } from "@/lib/email/gmail-access.server";
 import { parseJsonIfAny } from "@/lib/server/json.server";
 import { problem } from "@/lib/server/problems.server";
 import { requireStaff } from "@/lib/accounts/auth.server";

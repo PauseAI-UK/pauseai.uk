@@ -2,8 +2,8 @@ import "server-only";
 import { ASK_STATUSES, INVITED, NEVER_ASKED, REPLIED } from "@/lib/asks/asks";
 import { contactState } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { campaignBySlug } from "@/lib/email-your-mp";
-import { COUNTRIES, EMAIL_STATES } from "@/lib/politicians/filters";
+import { campaignNamed } from "@/lib/content/campaigns";
+import { COUNTRIES, EMAIL_STATES, HOUSES, PERSON_STATUSES } from "@/lib/politicians/filters";
 import { POLITICIAN_FLAGS } from "@/lib/politician-flags";
 import type { SavedList } from "@/lib/saved-filters";
 import { DASHBOARD_WINDOWS } from "@/lib/time-windows";
@@ -20,9 +20,8 @@ import { notValue, pairedValue, valuesOf, type Params } from "@/lib/list-params"
 import { NEAR_MILES, SUPPORTER_BADGES } from "@/lib/supporters/supporters";
 import { changeChoices } from "@/lib/oversight/audit-log.server";
 import { query } from "./db.server";
-import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/records.server";
-import { eventChoices } from "@/lib/events/staff-events.server";
-import { MP_CHOICES } from "@/lib/supporters/records.server";
+import { eventChoices } from "@/lib/events/staff-events-list.server";
+import { MP_CHOICES } from "@/lib/supporters/mp-choices.server";
 import { eventsCopy } from "@/lib/events/copy";
 
 // A mailing's stored filter (StoredFilter, lib/staff-search.ts), or a saved
@@ -114,7 +113,7 @@ async function supporterValues(params: Params): Promise<Known> {
     activity: SUPPORTER_BADGES,
     contact: plain("contact").filter((value) => value.split(" ").every((part) => contactState(part))),
     event: found.map((row) => row.id),
-    campaign: valuesOf(params.campaign).filter((slug) => campaignBySlug(slug)),
+    campaign: valuesOf(params.campaign).filter((slug) => campaignNamed(slug)),
     wrote: ["no"],
     nation: Object.keys(staffVocabulary.countries),
     mp: mps.map((row) => row.id),

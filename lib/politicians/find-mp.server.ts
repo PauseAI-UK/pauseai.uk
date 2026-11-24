@@ -1,5 +1,5 @@
 import "server-only";
-import { normalisePostcode } from "@/lib/email-your-mp";
+import { normalisePostcode } from "@/lib/postcodes";
 import type { Place } from "@/lib/site-events";
 import { TEST_MPS } from "./test-mps";
 import { findMpInOffice, findTestMp, type FoundMp } from "./records.server";

@@ -34,7 +34,7 @@ import {
 import { politicianAudience } from "@/lib/mailings/recipients.server";
 import { mailingAudience } from "@/lib/mailings/records.server";
 import { answerLetterReply, markNothingToDo } from "@/lib/mailings/replies.server";
-import { looksLikeEmail } from "@/lib/email-your-mp";
+import { looksLikeEmail } from "@/lib/email-address";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { now } from "@/lib/now";
 import { staffBack } from "@/lib/staff-back";

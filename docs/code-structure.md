@@ -215,7 +215,7 @@ folder, or on the list with its reason.
 | server-only code                         | a `.server.ts` module ("Where code runs", below), in its feature's `lib/` folder, or in `lib/server/` if it's infrastructure                                                                               |
 | a Server Action                          | its feature's `actions.ts` (`"use server"`), beside the forms that send it; it calls `requireStaff()` first                                                                                                |
 | a staff feature's words                  | `lib/<feature>/copy.ts` if anything in `lib/` reads them, else the components' `copy.ts` ("Where the words go", below)                                                                                     |
-| a problem message                        | the `problems` of the feature's `lib/<feature>/copy.ts`; the server's own, `serverCopy` (`lib/server/copy.ts`)                                                                                             |
+| a problem message                        | the `problems` of the feature's `lib/<feature>/copy.ts`; the server's own, `serverProblems` (`lib/server/copy.ts`)                                                                                         |
 | a public tool's words                    | one copy object in `lib/content/<tool>.ts`, such as `copy` in `lib/content/email-your-mp.ts`                                                                                                               |
 | content the site shows                   | `lib/content/`: a blog post is `lib/content/blog/<slug>.tsx`, a briefing `lib/content/briefings/<slug>.tsx`, each listed newest first in its folder's `index.ts`                                           |
 | a call to an outside service             | its binding in `lib/server/outside-services/`, and its canned answers in `lib/server/fixtures/outside-services.ts` ("Outside services", below)                                                             |
@@ -261,7 +261,8 @@ text may be written in the page.
   page names are `shellCopy` (`_components/shell/copy.ts`).
 - **Words below every feature** are with the code below every feature: the
   import log's `importRunsCopy` (`lib/import-runs-copy.ts`), and the
-  server's own problems, `serverCopy` (`lib/server/copy.ts`).
+  server's own problems, `serverProblems` (`lib/server/copy.ts`), and what
+  the database's code tells the log, `dbCopy` (`lib/server/db-copy.ts`).
 - **A number in words** goes through `plural()` or `count()`
   (`lib/content/plural.ts`).
 - **Words not written yet** are placeholders, starting with the asterism

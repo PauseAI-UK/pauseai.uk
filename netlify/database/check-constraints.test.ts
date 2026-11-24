@@ -26,7 +26,7 @@ import {
   type SubscriptionResult,
 } from "@/lib/server/outside-services/civicrm.server";
 import type { CalendarEvent } from "@/lib/server/outside-services/luma-calendar.server";
-import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/records.server";
+import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/filters";
 import type { SignupUploadPerson } from "@/lib/supporters/signup-uploads.server";
 import { SIGNUP_KINDS } from "@/lib/supporters/signup-csv";
 import { PERMISSIONS } from "@/lib/accounts/permissions";

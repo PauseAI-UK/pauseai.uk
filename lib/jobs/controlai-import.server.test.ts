@@ -7,7 +7,7 @@ import { CONTROLAI_LETTER_ASK } from "@/lib/asks/asks";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
 import { NIGHTLY } from "@/lib/import-runs";
 import { importControlAiLetter } from "./controlai-import.server";
-import { listRuns } from "@/lib/server/import-runs.server";
+import { listRuns } from "@/lib/server/import-run-lists.server";
 
 const recentControlAiImports = () => listRuns("import-controlai");
 import { query } from "@/lib/server/db.server";

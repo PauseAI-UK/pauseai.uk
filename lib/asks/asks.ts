@@ -118,6 +118,11 @@ export const NAMED_ASKS: readonly string[] = [
  */
 export const IMPORTED_ASKS: readonly string[] = [CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK];
 
+/** Whether staff record answers to an ask by hand: any no import fills. */
+export function answeredByHand(ask: string): boolean {
+  return !IMPORTED_ASKS.includes(ask);
+}
+
 export const ASKERS: readonly Asker[] = ["supporters", "pauseai", "controlai"];
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];

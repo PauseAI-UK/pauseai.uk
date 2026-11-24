@@ -1,12 +1,7 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import {
-  campaignBySlug,
-  draftLetter,
-  looksLikeEmail,
-  signatureAddress,
-  type LetterSubmitted,
-} from "@/lib/email-your-mp";
+import { campaignBySlug, draftLetter, signatureAddress, type LetterSubmitted } from "@/lib/email-your-mp";
+import { looksLikeEmail } from "@/lib/email-address";
 import { refused } from "@/lib/form-result";
 import { draftHash, ownWords } from "@/lib/letters/changes";
 import { checkDoc, isBlank, toText, type LetterDoc } from "@/lib/letters/format";

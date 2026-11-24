@@ -69,6 +69,17 @@ export function normaliseUrl(input: string): string {
   return `https://${trimmed}`;
 }
 
+/** How a link reads in print: "pauseai.uk/join", not "https://pauseai.uk/join/", and an email link as its address. */
+export function displayLink(input: string): string {
+  const url = normaliseUrl(input);
+  if (!url) return "";
+  if (/^mailto:/i.test(url)) return url.slice("mailto:".length).split("?")[0];
+  return url
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\/$/, "");
+}
+
 /** Whether `input` is an email link a phone can open (see emailLink). */
 export function isEmailLink(input: string): boolean {
   return emailLink(input) !== null;

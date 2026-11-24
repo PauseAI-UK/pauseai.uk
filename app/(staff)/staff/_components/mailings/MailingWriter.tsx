@@ -22,7 +22,7 @@ import {
 import { answerLabels } from "@/lib/mailings/fields";
 import StaffLink from "../ui/StaffLink";
 import { DEFAULT_SENDER } from "@/lib/email/gmail-connect";
-import { looksLikeEmail } from "@/lib/email-your-mp";
+import { looksLikeEmail } from "@/lib/email-address";
 import { named } from "@/lib/email-parsing/addresses";
 import { leavePage } from "@/lib/leave-page.client";
 import { scheduleProblems } from "@/lib/mailings/schedule";

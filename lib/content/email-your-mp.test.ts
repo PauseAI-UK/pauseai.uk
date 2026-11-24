@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { campaigns, copy } from "./email-your-mp";
-import { FIRST_CAMPAIGN_SLUG } from "./redirect-addresses";
+import { CAMPAIGN_NAMES, FIRST_CAMPAIGN_SLUG } from "./campaigns";
 
 describe("Email your MP campaigns", () => {
   it("have unique slugs that work in a URL", () => {
@@ -13,6 +13,10 @@ describe("Email your MP campaigns", () => {
 
   it("start with the one plain /campaigns redirects to", () => {
     expect(campaigns[0].slug).toBe(FIRST_CAMPAIGN_SLUG);
+  });
+
+  it("are each named in campaigns.ts, in the same order", () => {
+    expect(campaigns.map(({ slug, title }) => ({ slug, title }))).toEqual(CAMPAIGN_NAMES);
   });
 
   it("attach PDFs that exist, with thumbnails", () => {

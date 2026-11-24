@@ -11,7 +11,7 @@ import {
   type ContactState,
 } from "@/lib/supporters/contact-permissions";
 import type { SupportersPage } from "@/lib/supporters/records.server";
-import { campaignBySlug } from "@/lib/email-your-mp";
+import { campaignNamed } from "@/lib/content/campaigns";
 import { type SupportersSearch } from "@/lib/staff-search";
 import { anyAndNone, filtersPath, pageParam, valuesOf, type Params } from "@/lib/list-params";
 import { phoneWords } from "@/lib/phone";
@@ -133,7 +133,7 @@ export function supporterColumns(search: SupportersSearch): ListColumn<Supporter
   const [nations, notNations] = anyAndNone(valuesOf(search.nation), (values) => values);
   const states = contactStates(search);
   const named = (events?.length ?? 0) > 1;
-  const wrote = Boolean(campaignBySlug(search.campaign)) && search.wrote !== "no";
+  const wrote = Boolean(campaignNamed(search.campaign)) && search.wrote !== "no";
   const sort = SUPPORTERS_LIST.sort(search);
   const heading = (key: SupporterSort, label: string) => (
     <SortHeading

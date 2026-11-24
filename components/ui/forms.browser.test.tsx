@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "./Button";
-import { Checkbox, DateRange, FileInput, Radio, Segmented, Select, TextArea, TextInput } from "./Controls";
+import { Checkbox, FileInput, Radio, Segmented, Select, TextArea, TextInput } from "./Controls";
+import { DateRange } from "./DatePicker";
 import { Field, FieldError, FieldGroup, FieldSet, Hint, Label } from "./Field";
 import { FilterForm, FormStack } from "./Form";
 

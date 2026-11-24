@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
-import { BRAND_ORANGE, contrastRatio, getTheme, THEMES } from "./themes";
+import { BRAND_ORANGE } from "./colours";
+import { contrastRatio, getTheme, THEMES } from "./themes";
 
 describe("contrastRatio", () => {
   it("is 21 for black on white and 1 for identical colours", () => {

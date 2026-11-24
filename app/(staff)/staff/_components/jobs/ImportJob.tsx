@@ -4,7 +4,7 @@ import { site } from "@/lib/content/site";
 import { askHref, CONTROLAI_LETTER_ASK, CONTROLAI_STATEMENT_ASK, EDM_ASK } from "@/lib/asks/asks";
 import { EDM_PAGE } from "@/lib/asks/edm";
 import { CONTROLAI_LETTER_PAGE } from "@/lib/controlai-letter";
-import type { RunningJob } from "@/lib/server/import-runs.server";
+import type { RunningJob } from "@/lib/server/import-run-lists.server";
 import {
   type AnyImportRun,
   IMPORT_JOBS,

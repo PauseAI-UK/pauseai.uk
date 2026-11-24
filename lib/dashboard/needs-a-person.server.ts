@@ -2,7 +2,7 @@ import "server-only";
 import { POLITICIAN_IMPORT_JOBS, type PoliticianImportJob } from "@/lib/import-runs";
 import { query } from "@/lib/server/db.server";
 import { replyToCheck } from "@/lib/letters/copy-states";
-import { latestRuns } from "@/lib/server/import-runs.server";
+import { latestRuns } from "@/lib/server/import-run-lists.server";
 import type { DashboardAction } from "./dashboard";
 
 // What needs a person, at the top of the dashboard: each import held for a

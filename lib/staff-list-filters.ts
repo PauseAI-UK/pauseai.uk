@@ -10,7 +10,7 @@ import { ANSWER_CHOICES, INVITED, NEVER_ASKED, REPLIED } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
 import { WAYS, listsBy, listValue, type List, type Way } from "@/lib/supporters/contact-permissions";
 import { staffVocabulary } from "./staff-vocabulary";
-import { campaigns } from "./content/email-your-mp";
+import { CAMPAIGN_NAMES } from "./content/campaigns";
 import { firstOf, notValue, pairedValue, pairedValues, unpaired, valuesOf, type Params } from "./list-params";
 import { COUNTRIES, EMAIL_STATES } from "@/lib/politicians/filters";
 import { POLITICIAN_FLAGS } from "@/lib/politician-flags";
@@ -426,7 +426,7 @@ export const SUPPORTER_FILTERS = listFilters(
       },
       campaign: {
         label: copy.campaign,
-        options: campaigns.map((campaign) => ({ value: campaign.slug, label: campaign.title })),
+        options: CAMPAIGN_NAMES.map((campaign) => ({ value: campaign.slug, label: campaign.title })),
       },
       wrote: { label: copy.campaign, after: "campaign", options: choicesOf(copy.wrote) },
       first: { label: copy.first, options: WINDOW_OPTIONS },

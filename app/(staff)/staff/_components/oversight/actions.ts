@@ -8,7 +8,7 @@ import type { FormResult } from "@/lib/form-result";
 import { ownId, unblockFrom } from "@/lib/staff-forms";
 import { unblock } from "@/lib/oversight/delivery-problems.server";
 import { isPoliticianAddress } from "@/lib/email/email.server";
-import { setErrorDone } from "@/lib/oversight/errors-seen.server";
+import { setErrorDone } from "@/lib/oversight/errors-list.server";
 import { ERRORS_LIST } from "@/lib/staff-lists";
 import { canSeeSupporters, requireStaff } from "@/lib/accounts/auth.server";
 

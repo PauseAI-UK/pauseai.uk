@@ -3,19 +3,12 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { declareCanvasFonts } from "@/lib/collateral/canvasFonts.client";
 import { canvasToPngBlob, downloadCanvasPng, downloadText } from "@/lib/collateral/export.client";
-import { isQrLink, qrFilenameStem, qrMinPrintMm, qrTarget } from "@/lib/collateral/qr";
-import {
-  CAPTION_FONTS,
-  captionFont,
-  captionFontCss,
-  captionLayout,
-  displayLink,
-  type CaptionMeasure,
-  type QrCaption,
-} from "@/lib/collateral/qrCaption";
+import { CAPTION_FONTS, captionFont } from "@/lib/collateral/captionFonts";
+import { INK } from "@/lib/collateral/colours";
+import { displayLink, isQrLink, qrFilenameStem, qrMinPrintMm, qrTarget } from "@/lib/collateral/qr";
+import { captionFontCss, captionLayout, type CaptionMeasure, type QrCaption } from "@/lib/collateral/qrCaption";
 import { qrShape, qrSvg } from "@/lib/collateral/qrShape";
 import { loadDataUrl } from "@/lib/collateral/render.client";
-import { INK } from "@/lib/collateral/themes";
 import QrScanner from "./QrScanner";
 import { Button } from "@/components/ui/Button";
 import { Checkbox, TextInput } from "@/components/ui/Controls";

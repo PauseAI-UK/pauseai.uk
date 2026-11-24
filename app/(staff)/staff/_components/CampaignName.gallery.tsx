@@ -2,9 +2,9 @@
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import CampaignName from "./CampaignName";
 import StaffPage from "./ui/StaffPage";
-import { campaigns } from "@/lib/content/email-your-mp";
+import { CAMPAIGN_NAMES } from "@/lib/content/campaigns";
 
-const [pm] = campaigns;
+const [pm] = CAMPAIGN_NAMES;
 
 export const campaignNameGallery: Example[] = [
   {

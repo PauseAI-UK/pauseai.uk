@@ -7,7 +7,7 @@ import { EDM_API } from "@/lib/asks/edm";
 import { type EdmImport, NIGHTLY } from "@/lib/import-runs";
 import { importEdm } from "./edm-import.server";
 import { query } from "@/lib/server/db.server";
-import { listRuns } from "@/lib/server/import-runs.server";
+import { listRuns } from "@/lib/server/import-run-lists.server";
 import { importPoliticians } from "@/lib/politicians/imports.server";
 import { jobProblems } from "./copy";
 import { publicText } from "@/lib/problems";

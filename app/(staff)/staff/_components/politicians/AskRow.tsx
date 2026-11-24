@@ -9,7 +9,7 @@ import { ANSWER_CHOICES, INVITED, standing } from "@/lib/asks/asks";
 import { standingWord } from "@/lib/asks/copy";
 import type { FormResult } from "@/lib/form-result";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { answeredByHand } from "@/lib/email-your-mp";
+import { answeredByHand } from "@/lib/asks/asks";
 import type { Ask } from "@/lib/asks/records.server";
 import type { Politician } from "@/lib/politicians/records.server";
 import { staffDate } from "@/lib/staff-time";

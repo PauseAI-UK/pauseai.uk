@@ -16,7 +16,7 @@ import { Field, FieldError, Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { useLeaving } from "@/components/ui/useLeaving";
 import { now } from "@/lib/now";
-import { looksLikeEmail } from "@/lib/email-your-mp";
+import { looksLikeEmail } from "@/lib/email-address";
 import { leavePage } from "@/lib/leave-page.client";
 import {
   checkMailingDoc,

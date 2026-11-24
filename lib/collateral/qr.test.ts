@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  displayLink,
   isEmailLink,
   isQrLink,
   isWebAddress,
@@ -264,5 +265,17 @@ describe("qrPlan size preference", () => {
 
   it("never goes below the scannable minimum", () => {
     expect(plan("m").size).toBeGreaterThanOrEqual(qrMinScreenPx(qrMatrix("https://pauseai.uk").length));
+  });
+});
+
+describe("displayLink", () => {
+  it.each([
+    ["https://pauseai.uk/join", "pauseai.uk/join"],
+    ["pauseai.uk/", "pauseai.uk"],
+    ["https://www.example.com/a?b=1", "example.com/a?b=1"],
+    ["mailto:hello@pauseai.uk?subject=Hi", "hello@pauseai.uk"],
+    ["", ""],
+  ])("shows %s as %s", (input, expected) => {
+    expect(displayLink(input)).toBe(expected);
   });
 });

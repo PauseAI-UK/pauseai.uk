@@ -2,7 +2,7 @@
 // as lib/events/staff-events.server.ts lists them. There are few enough events
 // to filter and sort them all here, rather than in SQL.
 import { BIG_EVENTS_TAG, ONLINE_TAG } from "./tags";
-import type { SearchedEvent, StaffEvent } from "./staff-events.server";
+import type { SearchedEvent, StaffEvent } from "./staff-events-list.server";
 import { windowStart } from "@/lib/time-windows";
 import type { SortColumns, SortSpec } from "@/lib/staff-sort";
 import { londonDayTime } from "@/lib/staff-time";

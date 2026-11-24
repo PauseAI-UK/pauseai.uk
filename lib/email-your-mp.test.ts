@@ -4,17 +4,12 @@ import {
   addressLines,
   campaignBySlug,
   campaignForAsk,
-  campaignPath,
   campaignToMoveTo,
   chooseCampaign,
   trackedAsks,
-  answeredByHand,
   trackedCampaigns,
   draftLetter,
   isDone,
-  looksLikeEmail,
-  displayPostcode,
-  normalisePostcode,
   signatureAddress,
 } from "./email-your-mp";
 import { docFromMarkup, toHtml, toText } from "@/lib/letters/format";
@@ -27,15 +22,6 @@ const details = {
   senderName: "Jane Smith",
   statuses: {},
 };
-
-describe("postcodes", () => {
-  it("compares postcodes without spaces or case", () => {
-    expect(normalisePostcode(" sw1a  1aa ")).toBe("SW1A1AA");
-    expect(displayPostcode(" sw1a  1aa ")).toBe("SW1A 1AA");
-    expect(displayPostcode("M11AE")).toBe("M1 1AE");
-    expect(displayPostcode("ab1")).toBe("AB1");
-  });
-});
 
 describe("campaigns", () => {
   it("finds a campaign by slug", () => {
@@ -61,12 +47,6 @@ describe("campaigns", () => {
     expect(trackedAsks).toEqual(["frontier-ai-letter"]);
   });
 
-  it("has staff answer by hand a tracked campaign's ask or one they added, not one an import fills", () => {
-    expect(answeredByHand("frontier-ai-letter")).toBe(true);
-    expect(answeredByHand("giant-pause-button-oct-2026")).toBe(true);
-    expect(answeredByHand("controlai-letter")).toBe(false);
-  });
-
   it("finds the campaign that makes an ask", () => {
     expect(campaignForAsk("frontier-ai-letter")).toBe(letterToPm);
     expect(campaignForAsk("controlai-letter")).toBeUndefined();
@@ -86,10 +66,6 @@ describe("campaigns", () => {
     expect(campaignToMoveTo(letterToPm, {})).toBeUndefined();
     expect(campaignToMoveTo(letterToPm, { [letterToPm.ask!]: "signed" })).toBe(bill);
     expect(campaignToMoveTo(bill, { [letterToPm.ask!]: "signed", "controlai-letter": "signed" })).toBeUndefined();
-  });
-
-  it("has a page for each campaign", () => {
-    expect(campaignPath(bill)).toBe("/campaigns/support-sobel-bill");
   });
 });
 
@@ -126,11 +102,5 @@ describe("letters", () => {
 
   it("turns a typed address into lines", () => {
     expect(addressLines(" 1 High St \n\n London\nSW1A 1AA\n")).toEqual(["1 High St", "London", "SW1A 1AA"]);
-  });
-
-  it("catches emails that are obviously wrong", () => {
-    expect(looksLikeEmail("jane@example.com")).toBe(true);
-    expect(looksLikeEmail("jane@example")).toBe(false);
-    expect(looksLikeEmail("jane example.com")).toBe(false);
   });
 });

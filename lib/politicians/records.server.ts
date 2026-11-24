@@ -27,7 +27,6 @@ import { sql, type Sql } from "@/lib/server/sql.server";
 // (politician-import.ts); staff set what no list has
 // (politician-edits.ts), and statuses, in the staff interface.
 
-export { COUNTRIES, HOUSES, PERSON_STATUSES } from "./filters";
 export type { Country, EmailState, House, PersonStatus } from "./filters";
 
 export type StatusRecord = {

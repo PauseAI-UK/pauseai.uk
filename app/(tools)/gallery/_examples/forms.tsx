@@ -4,8 +4,8 @@
 import { SaveState } from "@/components/ui/SaveState";
 import { Button } from "@/components/ui/Button";
 import Actions from "@/components/ui/Actions";
-import { DateRange, FileInput, Select, TextArea, TextInput } from "@/components/ui/Controls";
-import DatePicker from "@/components/ui/DatePicker";
+import { FileInput, Select, TextArea, TextInput } from "@/components/ui/Controls";
+import DatePicker, { DateRange } from "@/components/ui/DatePicker";
 import { LinkIcon, QuoteIcon } from "@/components/ui/EditorIcons";
 import { Field, FieldError, FieldGroup, FieldSet, Hint, Label } from "@/components/ui/Field";
 import { FilterForm, FormStack } from "@/components/ui/Form";

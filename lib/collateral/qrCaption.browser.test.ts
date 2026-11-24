@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CAPTION_FONTS, captionFontCss } from "./qrCaption";
+import { CAPTION_FONTS } from "./captionFonts";
+import { captionFontCss } from "./qrCaption";
 
 // The SVG download embeds the caption fonts, fetched from the site.
 afterEach(() => vi.restoreAllMocks());
