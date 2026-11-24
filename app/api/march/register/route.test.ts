@@ -27,9 +27,8 @@ const entries = () =>
 
 beforeEach(() => {
   vi.stubEnv("LUMA_API_KEY", "key");
-  vi.spyOn(console, "log").mockImplementation(() => {});
+  vi.spyOn(console, "info").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
-  vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -75,7 +74,7 @@ describeWithDatabase("POST /api/march/register", () => {
         status: "added",
       },
     ]);
-    expect(console.log).toHaveBeenCalledWith(expect.stringMatching(/^\[march\] Kept sign-up \d+: Luma added\.$/));
+    expect(console.info).toHaveBeenCalledWith(expect.stringMatching(/^\[march\] Kept sign-up \d+: Luma added\.$/));
     // And they're a supporter.
     expect(await query("SELECT matched_value FROM supporter_links WHERE form_entry_id IS NOT NULL")).toEqual([
       { matched_value: "testy@example.org" },
@@ -123,7 +122,7 @@ describeWithDatabase("POST /api/march/register", () => {
     expect(await registerForMarch({ ...person, website: "https://spam.example.org" })).toEqual({ ok: true });
     expect(called).toBe(false);
     expect(await entries()).toEqual([]);
-    expect(console.warn).toHaveBeenCalledWith("[march] Honeypot filled in; ignoring the sign-up.");
+    expect(console.info).toHaveBeenCalledWith("[march] Honeypot filled in; ignoring the sign-up.");
   });
 
   it("takes a blank honeypot as a person", async () => {

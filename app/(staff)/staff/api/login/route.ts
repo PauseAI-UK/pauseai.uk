@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { loginBrowser, loginBrowserCookie, sendLoginLink } from "@/lib/accounts/login.server";
 import { afterLogin, LOGIN_BROWSER_COOKIE, LOGIN_PATH, NEXT_PARAM } from "@/lib/accounts/session";
 import { siteUrl } from "@/lib/site-url.server";
+import { readFormIfAny } from "@/lib/server/json.server";
 
 // Step one of logging in: the login page's form posts an email address, and
 // a link is sent if it's a pauseai.uk one. It only works in this browser, so
@@ -9,7 +10,7 @@ import { siteUrl } from "@/lib/site-url.server";
 // staff get a session), so it doesn't call requireStaff(). The page says the
 // same whatever was typed. The link keeps the page to go to once logged in.
 export async function POST(request: NextRequest) {
-  const form = await request.formData().catch(() => undefined);
+  const form = await readFormIfAny(request);
   const email = form?.get("email");
   const browser = loginBrowser(request.cookies.get(LOGIN_BROWSER_COOKIE)?.value);
   await sendLoginLink(typeof email === "string" ? email : "", request, browser, {

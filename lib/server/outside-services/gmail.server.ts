@@ -5,7 +5,7 @@ import { toMime, type MimeEmail } from "../mime.server";
 import { decodedText, messageIds } from "@/lib/email-parsing/mime.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { problem } from "../problems.server";
-import { readJsonIfAny } from "../json.server";
+import { fieldText, readJsonIfAny } from "../json.server";
 import { serverCopy } from "@/lib/server/copy";
 
 // The only file that talks to Google: the OAuth consent that connects a
@@ -94,7 +94,7 @@ async function tokenRequest(params: Record<string, string>): Promise<Record<stri
   const data = ((await readJsonIfAny(res)) ?? {}) as Record<string, unknown>;
   if (!res.ok) {
     throw new GmailError(
-      `Google refused the token request: ${res.status} ${data.error ?? ""}`.trim(),
+      `Google refused the token request: ${res.status} ${fieldText(data.error)}`.trim(),
       res.status,
       data.error === "invalid_grant",
     );

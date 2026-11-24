@@ -1,22 +1,21 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { featureLibFolders } from "../../eslint.config.mjs";
+import { parse, serverSources } from "./server-code";
 
-// An error that's caught is rethrown or reported with problem()
-// (lib/server/problems.server.ts), so that carrying on past it leaves a record on
-// the run, or at least in the log. This fails on any catch block, or
-// function passed to .catch(), that does neither, or has a way out (break,
-// continue, return) ahead of its report, as an early exit for one kind of
-// error skips it; in the code where jobs and requests run: lib/server, each
-// feature's folder of logic, app/api and netlify/functions. A named handler
-// passed to .catch() is read too, so one that rethrows all but one error
-// passes. The exceptions below are the few places that catch to answer a
-// question ("is there a request?") rather than to carry on past a failure.
+// An error that's caught is rethrown or reported, so that carrying on past
+// it leaves a record: with problem() (lib/server/problems.server.ts), on the
+// run or as an error, or with keepCaught() (lib/oversight/errors-seen.server.ts),
+// as the error Next would have kept had it been thrown. This fails on any
+// catch block, or function passed to .catch(), that does neither, or has a
+// way out (break, continue, return) ahead of its report, as an early exit
+// for one kind of error skips it; in the code where jobs and requests run
+// (server-code.ts). A named handler passed to .catch() is read too, so one
+// that rethrows all but one error passes. The exceptions below are the few
+// places that catch to answer a question ("is there a request?") rather
+// than to carry on past a failure.
 
-const ROOT = join(__dirname, "..", "..");
-const DIRS = ["lib/server", ...featureLibFolders(), "app/api", "netlify/functions"];
+/** The functions that report a caught error. */
+const REPORTERS = ["problem", "keepCaught"];
 
 /** The catches that aren't losing anything, as "file  function", with why. */
 const EXCEPTIONS = new Map([
@@ -24,8 +23,9 @@ const EXCEPTIONS = new Map([
   ["lib/server/flow-database.server.ts  flowDatabase", "outside a request there's no cookie, and nothing to report"],
   // A development-only warning about migrations: the query after it reports the database being down.
   ["lib/server/db.server.ts  warnIfBehind", "the query that follows reports the database being unreachable"],
-  // "Not JSON" is an answer, not a failure: the one place that swallows the parse error.
+  // "Not JSON" and "not a form" are answers, not failures: the one place that swallows the parse error.
   ["lib/server/json.server.ts  parseJsonIfAny", "a body that isn't JSON is an answer the caller asked for"],
+  ["lib/server/json.server.ts  readFormIfAny", "a body that isn't a form is an answer the caller asked for"],
   // The tests' reader of a fixture build's outbox: one not made yet holds no emails.
   ["lib/server/fixtures/outbox.ts  readOutbox", "an outbox that isn't there yet has no emails in it"],
   ["lib/server/fixtures/whatsapp-outbox.ts  readTexts", "an outbox that isn't there yet has no texts in it"],
@@ -68,25 +68,18 @@ const EXCEPTIONS = new Map([
  */
 const ANSWERING_HANDLERS = new Map([["unlessGone", "a message deleted since is gone, not a failure"]]);
 
-function codeFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) return codeFiles(path);
-    return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [path] : [];
-  });
-}
-
-/** Whether `node` is, or has in it, a throw or a call to problem(). */
+/** Whether `node` is, or has in it, a throw or a call to a reporter. */
 function reports(node: ts.Node): boolean {
   if (ts.isThrowStatement(node)) return true;
-  if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "problem") return true;
+  if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && REPORTERS.includes(node.expression.text))
+    return true;
   return ts.forEachChild(node, reports) ?? false;
 }
 
 /**
  * The ways out of a catch's block, or a handler's, that come before any report
  * in it: a break, continue or return that doesn't report, ahead of the first
- * throw or problem(). Those skip the report, as an early exit for one kind of
+ * throw or reporter. Those skip the report, as an early exit for one kind of
  * error would. Nested functions are their own.
  */
 function exitsBeforeReport(body: ts.Node): ts.Node[] {
@@ -171,10 +164,6 @@ export function unhandledCatches(sources: ts.SourceFile[]): Hit[] {
   return hits;
 }
 
-function parse(file: string, text: string): ts.SourceFile {
-  return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-}
-
 describe("caught errors", () => {
   it("finds a catch that swallows, and lets through one that rethrows, reports, or hands to a handler that does", () => {
     const code = `
@@ -188,6 +177,7 @@ describe("caught errors", () => {
         for (;;) { try { x(); } catch (e) { if (e.soon) break; problem("It broke", e); } }
         try { x(); } catch (e) { problem("It broke", e); if (e.soon) return 2; }
         try { x(); } catch (e) { if (e.gone) return problem("Gone", e); throw e; }
+        try { x(); } catch (e) { await keepCaught(e, "/staff"); }
         await y().catch(unlessGone);
         await y().catch(swallows);
         await y().catch(() => null);
@@ -199,8 +189,8 @@ describe("caught errors", () => {
       "catch@5 in a",
       "catch@8 in a",
       "catch@9 in a",
-      ".catch(swallows)@13 in a",
-      ".catch(…)@14 in a",
+      ".catch(swallows)@14 in a",
+      ".catch(…)@15 in a",
     ]);
   });
 
@@ -217,12 +207,12 @@ describe("caught errors", () => {
     "every catch where jobs and requests run rethrows or reports, but for the few that answer a question",
     { timeout: 60_000 },
     () => {
-      const sources = DIRS.flatMap((dir) => codeFiles(join(ROOT, dir))).map((path) =>
-        parse(relative(ROOT, path), readFileSync(path, "utf8")),
-      );
-      const hits = unhandledCatches(sources).map((h) => `${h.file}  ${h.fn}`);
+      const hits = unhandledCatches(serverSources()).map((h) => `${h.file}  ${h.fn}`);
       const unexplained = hits.filter((hit) => !EXCEPTIONS.has(hit));
-      expect(unexplained, "rethrow the error, or report it with problem()").toEqual([]);
+      expect(
+        unexplained,
+        "rethrow the error, or report it with problem() (lib/server/problems.server.ts); in a Server Action whose page carries on, keepCaught() (lib/oversight/errors-seen.server.ts)",
+      ).toEqual([]);
       // An exception that no longer catches anything is one to delete.
       expect([...EXCEPTIONS.keys()].filter((key) => !hits.includes(key))).toEqual([]);
     },

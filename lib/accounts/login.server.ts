@@ -5,6 +5,7 @@ import { LOGIN_BROWSER_COOKIE, LOGIN_LINK_PATH } from "./session";
 import { query, transaction } from "@/lib/server/db.server";
 import { send } from "@/lib/email/sending.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
+import { note } from "@/lib/server/problems.server";
 import { randomId } from "@/lib/server/random-id.server";
 import { staffAddressLine } from "@/lib/email/staff-address.server";
 import { isStaffEmail } from "./permissions";
@@ -57,7 +58,7 @@ export async function sendLoginLink(
 ): Promise<void> {
   const email = typed.trim().toLowerCase();
   if (!isStaffEmail(email)) {
-    console.info("No staff login link sent: the address typed isn't at pauseai.uk");
+    note("No staff login link sent: the address typed isn't at pauseai.uk");
     return;
   }
   const link = siteUrl(LOGIN_LINK_PATH, request);
@@ -82,7 +83,7 @@ export async function sendLoginLink(
     return token;
   });
   if (!token) {
-    console.info(`No staff login link sent: ${HOURLY_LINKS} have already been sent to that address in the last hour`);
+    note(`No staff login link sent: ${HOURLY_LINKS} have already been sent to that address in the last hour`);
     return;
   }
   const result = await send(

@@ -68,6 +68,15 @@ const OUTSIDE_FETCH_IMPORT = {
   importNames: ["outsideFetch"],
   message: `Outside services are called only from their bindings in ${OUTSIDE}/. Use one, or add one there.`,
 };
+// console reaches only Netlify's logs, where nobody looks, so a failure
+// written there is lost. Both of the ways to the log are in
+// lib/server/problems.server.ts.
+const CONSOLE_RULE = {
+  selector: "MemberExpression[object.name='console']",
+  message:
+    "Report a failure with problem(), which keeps it, and write anything else to the log with note() (lib/server/problems.server.ts). In the browser, report an error with reportBrowserError (lib/browser-errors.ts).",
+};
+
 const OUTSIDE_FETCH_RULE = {
   selector: "CallExpression[callee.name='fetch']",
   message: `Call outside services from a binding in ${OUTSIDE}/, through outsideFetch, so fixture builds can answer instead.`,
@@ -161,8 +170,8 @@ const NETWORK_IMPORTS = [
  * its own API; `fetch` may call fetch() (code that runs in the browser
  * fetches the site's own API); `outsideFetch` may import it; `sendEmail`
  * may use Postmark's binding to send. `fakes` may name every service's API,
- * as the fixtures answer for each. `env` may read process.env. `staff` adds the staff pages' rule for
- * links that look like buttons.
+ * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `staff` adds the
+ * staff pages' rule for links that look like buttons.
  */
 function siteCodeRules({
   service,
@@ -173,6 +182,7 @@ function siteCodeRules({
   fetch = false,
   outsideFetch = false,
   sendEmail = false,
+  console = false,
   staff = false,
 }) {
   return {
@@ -183,6 +193,7 @@ function siteCodeRules({
       ...(siteUrl ? [] : [SITE_URL_RULE]),
       ...(fakes ? [] : SERVICES.filter((other) => other !== service).map(hostRule)),
       ...(fetch ? [] : [OUTSIDE_FETCH_RULE]),
+      ...(console ? [] : [CONSOLE_RULE]),
       ...EXTERNAL_LINK_RULES,
       ...(staff ? STAFF_BUTTON_LINK_RULES : []),
     ],
@@ -447,6 +458,42 @@ const LAYERS = [
   ...featureLayers(FEATURES),
 ];
 
+// The rules for what goes wrong that need the types, which typed linting
+// gives from tsconfig (docs/code-structure.md, "Errors").
+const TYPED_RULES = {
+  // A promise nobody waits for fails silently: its rejection reaches only
+  // the console, where nobody looks. One that's meant to run on its own says
+  // so with `void`.
+  "@typescript-eslint/no-floating-promises": "error",
+};
+
+// The backup is a package of its own (backup/README.md), with its own way of
+// saying what went wrong, so these leave it out.
+const TYPED_SITE_RULES = {
+  // A promise handed to something that takes none, such as a timer, fails
+  // as silently as one nobody waits for. Not event handlers and other
+  // props, most of which are functions that catch what they throw.
+  "@typescript-eslint/no-misused-promises": ["error", { checksVoidReturn: { attributes: false } }],
+  // A switch over a set of codes handles every one, or says with a default
+  // that the rest are alike, so a new code fails here at each place that
+  // must decide what to do about it.
+  "@typescript-eslint/switch-exhaustiveness-check": ["error", { considerDefaultExhaustiveForUnions: true }],
+  // What's thrown, or rejected with, is an Error, so whatever catches it has
+  // a message, a stack and a cause; and what a .catch() is handed is unknown
+  // until it's checked, as a catch block's is.
+  "@typescript-eslint/only-throw-error": "error",
+  "@typescript-eslint/prefer-promise-reject-errors": "error",
+  "@typescript-eslint/use-unknown-in-catch-callback-variable": "error",
+  // An error put into a sentence as it is loses its cause, and an object
+  // becomes "[object Object]": describeError() says an error in words.
+  "@typescript-eslint/restrict-template-expressions": "error",
+};
+
+/** Every rule that needs the types, off: for linting made-up files, which have none. */
+export const TYPED_RULES_OFF = Object.fromEntries(
+  Object.keys({ ...TYPED_RULES, ...TYPED_SITE_RULES }).map((rule) => [rule, "off"]),
+);
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -529,6 +576,7 @@ const eslintConfig = defineConfig([
     { files: ["lib/email/email.server.ts"], sendEmail: true },
     { files: ["lib/site-url.server.ts"], siteUrl: true },
     { files: ["lib/server/db.server.ts"], database: true },
+    { files: ["lib/server/problems.server.ts"], console: true },
   ].map(({ files, ...allowed }) => ({ files, ignores: ["**/*.test.{ts,tsx}"], rules: siteCodeRules(allowed) })),
   {
     files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
@@ -536,13 +584,19 @@ const eslintConfig = defineConfig([
     rules: { "no-restricted-properties": ["error", ...DIRECT_DOM_EDITS] },
   },
   ...importRules(LAYERS),
-  // A promise nobody waits for fails silently: its rejection reaches only the
-  // console, where nobody looks. One that's meant to run on its own says so
-  // with `void`. Needs the types, which typed linting gives from tsconfig.
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
-    rules: { "@typescript-eslint/no-floating-promises": "error" },
+    rules: TYPED_RULES,
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    ignores: ["backup/**"],
+    rules: {
+      ...TYPED_SITE_RULES,
+      // An error thrown in place of one caught names it as its cause.
+      "preserve-caught-error": "error",
+    },
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([

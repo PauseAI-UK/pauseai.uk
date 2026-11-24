@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { config } from "@/lib/server/config.server";
 import { parseJsonIfAny } from "@/lib/server/json.server";
 import { signedByMeta } from "@/lib/server/outside-services/whatsapp.server";
-import { problem } from "@/lib/server/problems.server";
+import { note, problem } from "@/lib/server/problems.server";
 import { recordWhatsAppWebhook, type WhatsAppWebhook } from "@/lib/broadcasts/whatsapp-webhooks.server";
 import { verifyToken } from "@/lib/broadcasts/whatsapp-verify-token.mjs";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   if (payload === undefined) return NextResponse.json({ error: "Not JSON" }, { status: 400 });
   try {
     const applied = await recordWhatsAppWebhook(payload);
-    console.info(`WhatsApp webhook: ${applied} applied`);
+    note(`WhatsApp webhook: ${applied} applied`);
     return NextResponse.json({ applied });
   } catch (error) {
     problem(broadcastsCopy.problems.whatsAppWebhookNotRecorded, error);

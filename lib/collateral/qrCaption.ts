@@ -117,7 +117,7 @@ export function captionFontCss(): Promise<string> {
     }),
   )
     .then((rules) => rules.join(""))
-    .catch((e) => {
+    .catch((e: unknown) => {
       // Let a later call try again.
       fontCssPromise = null;
       throw e;

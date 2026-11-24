@@ -3,7 +3,7 @@ import { config } from "./config.server";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import { flowDatabase } from "./flow-database.server";
 import { migrationsBehindMessage } from "./migrations-check.server";
-import { describeError } from "./problems.server";
+import { describeError, note } from "./problems.server";
 import { render, Sql } from "./sql.server";
 import { serverCopy } from "./copy";
 
@@ -34,7 +34,7 @@ async function getPool(): Promise<Pool> {
   // A connection the server drops while idle comes here; without a listener
   // it would be an uncaught error. Only a warning, not a problem for a run,
   // as the pool opens another and the next query carries on.
-  pool.on("error", (error) => console.warn(serverCopy.problems.logs.connectionDropped, describeError(error)));
+  pool.on("error", (error) => note(serverCopy.problems.logs.connectionDropped, describeError(error)));
   // The dev server says in its terminal when the database needs
   // npm run db:migrate, rather than a page failing on a missing table.
   // Netlify's own databases are migrated on deploy, so only in development.
@@ -76,7 +76,7 @@ export function verifyFullUrl(connectionString: string): string {
 async function warnIfBehind(db: Queryable): Promise<void> {
   try {
     const message = await migrationsBehindMessage(db);
-    if (message) console.warn(`\n⚠ ${message}\n`);
+    if (message) note(`\n⚠ ${message}\n`);
   } catch {
     // The database isn't reachable, or similar: the query that follows reports it.
   }

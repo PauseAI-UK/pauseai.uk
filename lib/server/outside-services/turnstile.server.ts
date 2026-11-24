@@ -2,7 +2,7 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import { copy } from "@/lib/content/email-your-mp";
 import { outsideFetch } from "./outside-fetch.server";
-import { problem } from "../problems.server";
+import { note, problem } from "../problems.server";
 import { serverCopy } from "@/lib/server/copy";
 
 // Cloudflare Turnstile, checked on the server. Ported from pauseai-website's
@@ -24,7 +24,7 @@ function isDev(): boolean {
 async function verifyTurnstile(token: string | undefined): Promise<string | undefined> {
   const secret = config.turnstileSecretKey;
   if (!secret && !config.turnstileSiteKey) {
-    if (!isDev()) console.warn("Turnstile keys are not set, so the spam check was skipped");
+    if (!isDev()) note("Turnstile keys are not set, so the spam check was skipped");
     return undefined;
   }
   if (!secret) {
@@ -46,7 +46,7 @@ async function verifyTurnstile(token: string | undefined): Promise<string | unde
     });
     const result = await res.json();
     if (result?.success !== true) {
-      console.warn("Turnstile rejected a submission:", result?.["error-codes"]);
+      note("Turnstile rejected a submission:", result?.["error-codes"]);
       return copy.errors.spamFailed;
     }
     // No check of the host Turnstile names: on Netlify, the request's own

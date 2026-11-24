@@ -326,7 +326,7 @@ describeWithDatabase("the contact preferences page", () => {
     vi.stubEnv("DEPLOY_CONTEXT", "production");
     vi.stubEnv("LUMA_API_KEY", "k");
     server.use(http.post(REMOVE, () => new HttpResponse("Down", { status: 500 })));
-    const warned = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warned = vi.spyOn(console, "info").mockImplementation(() => {});
     await query("INSERT INTO luma_people (user_id, email, name, contact_since) VALUES ('usr-1', $1, 'Jane', now())", [
       JANE,
     ]);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseJsonIfAny } from "@/lib/server/json.server";
+import { note } from "@/lib/server/problems.server";
 
 // Receives Content-Security-Policy violation reports. Without this the
 // report-only policy in next.config.ts reports to nobody: violations reach the
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
     const entry = normalise(report);
     if (isExtensionNoise(entry.blockedUri)) continue;
     if (!entry.directive && !entry.blockedUri) continue;
-    console.warn("[csp]", JSON.stringify(entry));
+    note("[csp]", JSON.stringify(entry));
   }
 
   // Always 204: the browser has nothing useful to do with any other answer.

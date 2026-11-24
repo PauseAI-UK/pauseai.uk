@@ -34,6 +34,7 @@ export function officialProfile(politician: {
       return `https://business.senedd.wales/mgUserInfo.aspx?UID=${officialId}`;
     case "ni-assembly":
       return mlaProfile(officialId);
+    default:
+      return undefined;
   }
-  return undefined;
 }

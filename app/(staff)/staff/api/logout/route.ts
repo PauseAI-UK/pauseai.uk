@@ -3,6 +3,7 @@ import { deleteSession, endSession, requireStaff, sessionId } from "@/lib/accoun
 import { endStaffSessions } from "@/lib/accounts/staff-accounts.server";
 import { KEEP_COOKIE, LOGIN_PATH, SESSION_COOKIE } from "@/lib/accounts/session";
 import { siteUrl } from "@/lib/site-url.server";
+import { readFormIfAny } from "@/lib/server/json.server";
 
 /** Where ending one of your other sessions goes: back to them, on your own page. */
 const SESSIONS_PATH = "/staff/me#sessions";
@@ -17,7 +18,7 @@ const SESSIONS_PATH = "/staff/me#sessions";
  */
 export async function POST(request: Request) {
   const { email, token } = await requireStaff();
-  const form = await request.formData().catch(() => undefined);
+  const form = await readFormIfAny(request);
   const session = form?.get("session");
   const one = typeof session === "string" ? session : undefined;
   if (one && one !== sessionId(token)) {

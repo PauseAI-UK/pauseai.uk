@@ -208,7 +208,7 @@ export function useDraftWriter<Changes extends { dueAt: Date | null }>({
 
   function later() {
     clearTimeout(timer.current);
-    timer.current = setTimeout(flush, SAVE_DELAY);
+    timer.current = setTimeout(() => void flush(), SAVE_DELAY);
   }
 
   function change(changes: Partial<Changes>) {

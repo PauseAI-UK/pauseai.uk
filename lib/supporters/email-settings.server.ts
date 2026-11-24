@@ -45,7 +45,7 @@ import {
 import { removeCalendarContact } from "@/lib/server/outside-services/luma-calendar.server";
 import { randomId } from "@/lib/server/random-id.server";
 import { notifyDomain } from "@/lib/server/outside-services/postmark.server";
-import { describeError, problem } from "@/lib/server/problems.server";
+import { describeError, note, problem } from "@/lib/server/problems.server";
 import { supportersCopy } from "./copy";
 import { emailCopy } from "@/lib/email/copy";
 
@@ -334,7 +334,7 @@ async function offCalendarNow(address: string): Promise<void> {
   try {
     await removeCalendarContact(address);
   } catch (error) {
-    console.warn(supportersCopy.problems.lumaRemoveFailed, describeError(error));
+    note(supportersCopy.problems.lumaRemoveFailed, describeError(error));
   }
 }
 

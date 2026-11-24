@@ -411,7 +411,11 @@ export default function SupporterDetails({
         <Column span={4}>
           <Card title={copy.detail.eventsTitle} id="events">
             {events.length ? (
-              <ListTable columns={eventColumns} rows={events} rowKey={(a) => `${a.kind}${a.at}${a.title}`} />
+              <ListTable
+                columns={eventColumns}
+                rows={events}
+                rowKey={(a) => `${a.kind}${a.at.toISOString()}${a.title}`}
+              />
             ) : (
               <Empty>{copy.detail.noEvents}</Empty>
             )}

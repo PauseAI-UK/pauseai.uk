@@ -52,9 +52,9 @@ describe("lumaList", () => {
     server.use(http.get(LIST, () => new HttpResponse(null, { status: 429, headers: { "retry-after": "30" } })));
     await expect(lumaList("/v1/things/list", new URLSearchParams())).rejects.toMatchObject({ retryAfter: 30 });
     server.use(http.get(LIST, () => new HttpResponse(null, { status: 429 })));
-    const error = await lumaList("/v1/things/list", new URLSearchParams()).catch((e) => e);
+    const error = await lumaList("/v1/things/list", new URLSearchParams()).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(LumaRateLimited);
-    expect(error.retryAfter).toBe(60);
+    expect(error).toMatchObject({ retryAfter: 60 });
   });
 
   it("throws on any other answer that isn't ok, and without the key, without calling Luma", async () => {
@@ -106,12 +106,12 @@ describe("lumaPost", () => {
 
   it("gives a refusal's status, and Luma's message when its answer has one", async () => {
     server.use(http.post(POST, () => HttpResponse.json({ message: "No such thing." }, { status: 404 })));
-    const error = await lumaPost("/v1/things/do", {}).catch((e: Error) => e);
+    const error = await lumaPost("/v1/things/do", {}).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(LumaRefused);
     expect(error).toMatchObject({ status: 404, lumaMessage: "No such thing." });
     expect((error as Error).message).toBe("Luma answered 404 for /v1/things/do: No such thing.");
     server.use(http.post(POST, () => HttpResponse.json({ message: { text: "odd" } }, { status: 400 })));
-    expect(await lumaPost("/v1/things/do", {}).catch((e) => e)).toMatchObject({
+    expect(await lumaPost("/v1/things/do", {}).catch((e: unknown) => e)).toMatchObject({
       status: 400,
       lumaMessage: undefined,
       message: "Luma answered 400 for /v1/things/do",
