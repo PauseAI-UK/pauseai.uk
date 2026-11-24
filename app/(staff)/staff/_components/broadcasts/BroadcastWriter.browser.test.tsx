@@ -645,7 +645,10 @@ describe("BroadcastWriter, by text", () => {
   const pick = async (name: string) => {
     await words().click();
     await page.getByRole("button", { name, exact: true }).click();
-    await expect.element(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+    // A template titles the page; new words open their editor, with its hint.
+    const chosen =
+      name === copy.newTemplate ? page.getByText(copy.newTemplateHint) : page.getByRole("heading", { name, level: 1 });
+    await expect.element(chosen).toBeVisible();
   };
   const [march, manager, , , , thanks] = exampleTemplates.map((one) => one.name);
 
