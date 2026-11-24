@@ -25,3 +25,4 @@ shown.
 - 2026-11-17: "PostCard" and "PostList" (phone) differed in the gate's determinism check, inside the thumbnail alone, ~15 min
 - 2026-11-20: "PostCard" and "PostList" (phone) differed from main in a review of a branch that touches neither, inside the thumbnail alone, ~5 min
 - 2026-11-24: the November march's page (desktop) differed between runs of one build, in a small patch of its film's poster, a 1280px JPEG drawn about 550px wide and turned 1.2°; decoding the poster before the frame, and a baseline JPEG in place of the progressive one, didn't steady it, ~25 min
+- 2026-11-24: the November march's film poster (`HeroFilm`, a large image drawn small in a tilted frame) differed from main in a few pixels, on its page and in the track record, in a review of a branch that touches neither, ~5 min
