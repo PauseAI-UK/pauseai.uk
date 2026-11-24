@@ -1,5 +1,6 @@
 import type { Changed, Context, flowsReached } from "./storyboard-reach.mjs";
 
+export function flowsForCi(listed: Map<string, string>): Map<string, string>;
 export function flowsForPart(listed: Map<string, string>, part: number, count: number): string[];
 export interface CiChoice {
   run: Set<string>;

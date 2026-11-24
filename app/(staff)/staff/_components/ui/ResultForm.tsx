@@ -3,6 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   createContext,
+  startTransition,
   Suspense,
   use,
   useEffect,
@@ -179,8 +180,11 @@ export function RefusalPlace({ children }: { children: ReactNode }) {
   // What's said, and the address it was said at.
   const [told, setTold] = useState<{ said: string; at: string }>();
   const here = useRef("");
+  // Told in a transition, so what's said during an action shows with the page the action brings back, in one
+  // render. Told at once instead, it renders between that page's renders: when the page is a 404, such as for a
+  // draft someone has deleted, React renders it again to recover, and Next reports its 404 as an uncaught error.
   return (
-    <Page value={(said) => setTold(said === undefined ? undefined : { said, at: here.current })}>
+    <Page value={(said) => startTransition(() => setTold(said === undefined ? undefined : { said, at: here.current }))}>
       {/* A page built ahead of time, as the gallery's are, has no query to read till it's in the browser. */}
       <Suspense fallback={null}>
         <SaidHere

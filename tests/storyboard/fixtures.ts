@@ -6,6 +6,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   test as base,
+  expect,
   type APIRequestContext,
   type APIResponse,
   type BrowserContext,
@@ -137,6 +138,65 @@ async function scrollAtOnce(context: BrowserContext) {
   });
 }
 
+/**
+ * Console messages that say nothing about the site's own code, each with
+ * its reason. Kept short: every entry is something no flow looks at.
+ */
+const NOT_OURS = [
+  // next/image complains when CSS sizes one dimension; cosmetic, and a
+  // warning rather than an error in any case.
+  /has either width or height modified/,
+  // Analytics is blocked for every flow (`context` below), and third-party
+  // embeds fail in a sandboxed browser with nothing to report to.
+  /googletagmanager|google-analytics|gtag/i,
+  /ERR_BLOCKED_BY_CLIENT|ERR_INTERNET_DISCONNECTED/,
+];
+
+/** React's hydration messages, which arrive as warnings, not errors. */
+const HYDRATION = /hydrat|did not match|server rendered HTML/i;
+
+/** The contexts watchConsole is already watching. */
+const watched = new WeakSet<BrowserContext>();
+
+/**
+ * Adds to `problems` what every page of `context` logs that a flow fails
+ * on: an uncaught error, a console error from our own code (an embedded
+ * site's isn't), and React's hydration messages. A page that doesn't
+ * hydrate as it rendered on the server, such as one whose text depends on
+ * the browser, shows nothing wrong in a picture, only here.
+ */
+function watchConsole(context: BrowserContext, problems: string[]) {
+  if (watched.has(context)) return;
+  watched.add(context);
+  const watch = (page: Page) => {
+    page.on("console", (message) => {
+      const origin = message.location().url;
+      if (origin && !origin.startsWith(BASE)) return;
+      const text = message.text();
+      if (NOT_OURS.some((pattern) => pattern.test(text))) return;
+      if (message.type() === "error" || HYDRATION.test(text)) {
+        problems.push(`[${message.type()}] ${text.slice(0, 300)}`);
+      }
+    });
+    page.on("pageerror", (error) => problems.push(`[pageerror] ${String(error).slice(0, 300)}`));
+  };
+  context.pages().forEach(watch);
+  context.on("page", watch);
+}
+
+/** What each running flow expects its pages to log, by the flow's id (expectConsole). */
+const expectedConsole = new Map<string, RegExp[]>();
+
+/**
+ * Tells the flow running that its pages will log something matching
+ * `pattern`, which it brings about on purpose, such as a request it aborts
+ * or an error it plants: the console check passes it over.
+ */
+export function expectConsole(pattern: RegExp) {
+  const id = test.info().testId;
+  expectedConsole.set(id, [...(expectedConsole.get(id) ?? []), pattern]);
+}
+
 /** Adds the path of each call `api` makes to `opened`. */
 function recordCalls(api: APIRequestContext, opened: Set<string>) {
   for (const method of API_METHODS) {
@@ -149,10 +209,30 @@ function recordCalls(api: APIRequestContext, opened: Set<string>) {
   }
 }
 
-export const test = base.extend<{ flowDatabase: string; opened: Set<string>; smoothScroll: boolean }>({
+export const test = base.extend<{
+  consoleProblems: string[];
+  flowDatabase: string;
+  opened: Set<string>;
+  smoothScroll: boolean;
+}>({
   // Whether the flow's pages scroll smoothly, as the site does for visitors,
   // or at once (scrollAtOnce), which every flow but scroll.spec.ts's does.
   smoothScroll: [false, { option: true }],
+  // What the flow's pages logged that it fails on (watchConsole), in every
+  // context it makes. Checked once the flow has passed, so a flow that
+  // failed fails on its own step, not on what that step logged.
+  consoleProblems: [
+    async ({}, provide, testInfo) => {
+      const problems: string[] = [];
+      await provide(problems);
+      const expected = expectedConsole.get(testInfo.testId) ?? [];
+      expectedConsole.delete(testInfo.testId);
+      if (testInfo.status !== "passed") return;
+      const unexpected = problems.filter((problem) => !expected.some((pattern) => pattern.test(problem)));
+      expect(unexpected, "console problems").toEqual([]);
+    },
+    { auto: true },
+  ],
   // What the flow opened: each page, action, API route and public file, by its path, attached to the
   // test for the review to keep with the flow (report/reporter.ts). A change reruns the flows whose
   // pages it can reach (scripts/storyboard-reach.mjs). Next's prefetches of the pages a link
@@ -165,7 +245,7 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string>; smo
   // or seen again), the flow ran what instrumentation.ts hands errors to, which no page imports: it's
   // recorded as having opened that file.
   opened: [
-    async ({ flowDatabase, browser, smoothScroll }, provide, testInfo) => {
+    async ({ flowDatabase, browser, smoothScroll, consoleProblems }, provide, testInfo) => {
       const opened = new Set<string>();
       const [errorsBefore] = runSql(flowDatabase, ERRORS_KEPT);
       // What the build's server keeps of the flow's requests (scripts/record-requests.mjs): a run before
@@ -177,6 +257,7 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string>; smo
       browser.newContext = async (...options) => {
         const context = await newContext.apply(browser, options);
         recordContext(context, opened);
+        watchConsole(context, consoleProblems);
         if (!smoothScroll) await scrollAtOnce(context);
         return context;
       };
@@ -227,8 +308,9 @@ export const test = base.extend<{ flowDatabase: string; opened: Set<string>; smo
   // routes the same URLs on its page, which takes precedence, to record what
   // the page tried to load.
   // Recorded here too, in case it was made before `opened` began recording every context the flow makes.
-  context: async ({ context, opened, smoothScroll }, provide) => {
+  context: async ({ context, opened, smoothScroll, consoleProblems }, provide) => {
     recordContext(context, opened);
+    watchConsole(context, consoleProblems);
     if (!smoothScroll) await scrollAtOnce(context);
     await context.route(ANALYTICS_URL, (route) => route.abort());
     await provide(context);

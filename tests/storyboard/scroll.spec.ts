@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { BASE, expect, frame, story, test } from "./fixtures";
+import { BASE, expect, expectConsole, frame, story, test } from "./fixtures";
 import { hydrated, layoutSettled, scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
 
@@ -169,6 +169,7 @@ test.describe("in-page scrolling", () => {
     // Inter refused, so the stand-in stays: a frame waits for every font to finish loading.
     const inter = "**/fonts/inter-*.woff2";
     await page.route(inter, (route) => route.abort());
+    expectConsole(/net::ERR_FAILED/);
     await gotoSettled(page, "/people");
     expect(await interLoaded(page)).toBe(false);
     const standIn = await pageHeight(page);

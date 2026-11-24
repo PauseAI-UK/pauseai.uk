@@ -12,7 +12,7 @@ import { caretAtStart, caretInEmpty } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { holdActions } from "./loading-steps";
 import { hydrated, openBubble, scrollSettled } from "./settle";
-import { BASE, expect, frame, story, test } from "./fixtures";
+import { BASE, expect, expectConsole, frame, story, test } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import type { Section } from "./report/frames";
@@ -360,6 +360,8 @@ test("The site is updated under an open draft", async ({ page, request, flowData
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
   // A call to a Server Action no build has, as a button on a page opened before the deploy makes.
+  // The server answers it 409.
+  expectConsole(/409 \(Conflict\)/);
   await page.evaluate(() => fetch("/", { method: "POST", headers: { "Next-Action": `40${"0".repeat(40)}` } }));
   const dialog = page.getByRole("dialog", { name: shellCopy.siteUpdated.title });
   await expect(dialog).toBeVisible();
@@ -1552,6 +1554,7 @@ test("A draft a colleague schedules meanwhile", async ({ page, request, flowData
   await page.getByRole("button", { name: mailingCopy.unschedule }).click();
   await expect(saidAtTop(page, copy.refusals.stop.gone)).toBeVisible();
   await expect(page.getByLabel(copy.subject)).toHaveValue("Events near you this month");
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await frame(page, "Unscheduled already, said at the top");
 });
 
@@ -1579,11 +1582,12 @@ test("A draft a colleague changes, then deletes", async ({ page, request, flowDa
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await frame(page, "Changed elsewhere, so not scheduled");
   story(
-    "Then the colleague deletes the draft. Schedule, pressed again, finds it gone, and the page says so at its top.",
+    "Then the colleague deletes the draft. Schedule, pressed again, finds it gone. The page says so at its top, above what staff see for a draft that isn't there.",
   );
   runSql(flowDatabase, `DELETE FROM mailings WHERE id = ${id}`);
   await send.getByRole("button", { name: copy.schedule(EMAILABLE, "email") }).click();
   await expect(saidAtTop(page, copy.refusals.draft.gone)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: shellCopy.notFound.title })).toBeVisible();
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await frame(page, "Deleted by a colleague, said at the top");
 });

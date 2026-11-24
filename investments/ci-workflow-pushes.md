@@ -13,6 +13,5 @@ Either give the token the `workflow` scope, or say in AGENTS.md that a change to
 ## Hits
 
 - 2026-11-12: a new CI step was refused at the push; the check went into an npm script CI already runs, then back into the workflow for a maintainer to push, ~30 min
-- 2026-11-23: the weekly Dependabot PR needed CI's Playwright image bumped in the workflow; the push with its fixes was refused and left for a maintainer
 - 2026-11-24: CI choosing a pull request's flows from main's record needed a workflow change, so the branch was left for a maintainer to push
 - 2026-11-24: main's Storyboard parts failed on Git's "dubious ownership" for five merges; the one-step fix was left for a maintainer to push

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { startTransition, useState, useTransition } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
@@ -7,7 +7,7 @@ import { Field } from "@/components/ui/Field";
 import { refused, type FormResult } from "@/lib/form-result";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { MenuSubmitExample } from "./MenuSubmit.gallery.client";
-import { Refusal, RefusalPlace, RefusedTextArea, RefusedTextInput, ResultForm } from "./ResultForm";
+import { Refusal, RefusalPlace, RefusedTextArea, RefusedTextInput, ResultForm, useTellPage } from "./ResultForm";
 import { FailedExample, GoneExample, TypedWrongExample } from "./ResultForm.gallery.client";
 
 const at = vi.hoisted(() => ({ path: "/staff/politicians", search: "party=Labour" }));
@@ -192,6 +192,56 @@ describe("RefusalPlace", () => {
     await rerender(place());
     await expect.element(save()).toBeVisible();
     await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * A draft whose Schedule finds it gone, as an action answers: the page tells
+ * its top so, and the page the action brings back, which says it isn't
+ * there, comes in a transition, as Next's do, once `ends` does.
+ */
+function Deleted({ ends, told }: { ends: Promise<void>; told: () => void }) {
+  const tell = useTellPage();
+  const [there, setThere] = useState(true);
+  const [, start] = useTransition();
+  return (
+    <>
+      <h1>{there ? "The draft" : "Not found"}</h1>
+      <button
+        onClick={() =>
+          start(async () => {
+            await Promise.resolve();
+            tell(SAYS.gone);
+            told();
+            startTransition(() => setThere(false));
+            await ends;
+          })
+        }
+      >
+        Schedule
+      </button>
+    </>
+  );
+}
+
+describe("RefusalPlace, told during an action", () => {
+  it("says it along with the page the action brings back, not over the page before", async () => {
+    const { promise: ends, resolve } = Promise.withResolvers<void>();
+    const told = vi.fn();
+    await render(
+      <RefusalPlace>
+        <Deleted ends={ends} told={told} />
+      </RefusalPlace>,
+    );
+    await page.getByRole("button", { name: "Schedule" }).click();
+    await expect.poll(() => told.mock.calls.length).toBe(1);
+    // Time for a render after the telling, while the action goes on.
+    await new Promise((settle) => setTimeout(settle, 50));
+    const before = { alert: page.getByRole("alert").query(), heading: page.getByRole("heading").element().textContent };
+    resolve();
+    expect(before).toEqual({ alert: null, heading: "The draft" });
+    await expect.element(page.getByRole("alert")).toHaveTextContent(SAYS.gone);
+    await expect.element(page.getByRole("heading")).toHaveTextContent("Not found");
   });
 });
 

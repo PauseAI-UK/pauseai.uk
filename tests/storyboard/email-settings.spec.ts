@@ -6,7 +6,7 @@ import { newestEmail } from "./outbox-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
-import { BASE, expect, frame, story, test } from "./fixtures";
+import { BASE, expect, expectConsole, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";
 
@@ -141,6 +141,7 @@ test("A change that doesn't save", { tag: "@phone" }, async ({ page, request, fl
   await open(page, link(flowDatabase, JANE));
   // The page's own address is where a box's change is sent: the request never arrives.
   const lost = "**/contact-preferences/**";
+  expectConsole(/net::ERR_FAILED/);
   await page.route(lost, (route) => (route.request().method() === "POST" ? route.abort() : route.continue()));
   const newsletter = topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email });
   await newsletter.click();

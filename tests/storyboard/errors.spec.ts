@@ -11,7 +11,7 @@ import { newestEmail } from "./outbox-steps";
 import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
-import { BASE, expect, frame, madeUpAddress, story, test } from "./fixtures";
+import { BASE, expect, expectConsole, frame, madeUpAddress, story, test } from "./fixtures";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { serverProblems } from "@/lib/server/copy";
@@ -51,6 +51,8 @@ test("A staff page breaks", async ({ page, flowDatabase }) => {
   );
   await logIn(page, flowDatabase, ["admin"]);
   runSql(flowDatabase, "ALTER TABLE notes RENAME TO notes_gone");
+  // The page's 500, and React saying a Server Component threw (#441).
+  expectConsole(/500 \(Internal Server Error\)|Minified React error #441/);
   await page.goto(`${BASE}/staff/politicians/1`);
   await expect(page.getByRole("heading", { level: 1, name: shellCopy.error.title })).toBeVisible();
   await settled(page);
@@ -90,6 +92,7 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
     "A bug in a page's own script loses a visitor the page, after it has loaded. They see a page saying so in its place, between the site's header and footer, and their browser tells the site.",
   );
   await page.goto(`${BASE}/broken`);
+  expectConsole(/Asked to break, while rendering/);
   await page.getByRole("button", { name: "Break while rendering" }).click();
   await expect(page.getByRole("heading", { level: 1, name: errorPageCopy.title })).toBeVisible();
   await frame(page, "The page in place of the one that broke");
@@ -106,6 +109,7 @@ test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
     "Another bug throws from a button's click. The page stays as it was, so nobody is emailed, but the error is kept.",
   );
   await page.goto(`${BASE}/broken`);
+  expectConsole(/Asked to break, from a click/);
   await page.getByRole("button", { name: "Break from a click" }).click();
   await expect.poll(() => kept(flowDatabase, "browser-other")).toEqual({ count: 1, alerted: false });
 
@@ -168,6 +172,7 @@ test("An error marked done", async ({ page, flowDatabase }) => {
 test("An error done happens again", async ({ page, flowDatabase }) => {
   story("A button on a page throws when it's clicked. The page carries on, and the error is kept.");
   await page.goto(`${BASE}/broken`);
+  expectConsole(/Asked to break, from a click/);
   await page.getByRole("button", { name: "Break from a click" }).click();
   await expect.poll(() => kept(flowDatabase, "browser-other")).toEqual({ count: 1, alerted: false });
 

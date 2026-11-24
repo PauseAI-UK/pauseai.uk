@@ -687,8 +687,10 @@ shows: true while rendering a page writes nothing. On 12 November 2026,
 each desktop flow run alone with the server's coverage on ran no source
 file outside what the map says it reaches.
 
-**Which flows CI runs.** On main, every flow, after each merge. On a pull
-request, the flows its change can reach, by the same map, and the spot
+**Which flows CI runs.** On main, every flow but the gallery's, after each
+merge: they picture each component for a review, and check nothing of its
+pages that every flow doesn't (`flowsForCi` in `scripts/ci-parts.mjs`). On
+a pull request, the flows its change can reach, by the same map, and the spot
 checks, without pictures (`reachedForCi` in `scripts/ci-parts.mjs`). What
 each flow opened comes from main's last run of every flow: its reporter
 (`tests/storyboard/report/opened.ts`) writes it, and the Storyboard job
@@ -918,6 +920,12 @@ order, alongside the others:
   (`tests/storyboard/fixtures.ts`, `scrollAtOnce`): where a smooth scroll
   comes to rest depends on timing, so a frame after one differed from run
   to run. A scroll the site's own code asks to be smooth still is.
+- Every flow fails on an uncaught error, a console error from our own code,
+  or a hydration message from React, on any page it opens
+  (`tests/storyboard/fixtures.ts`, `watchConsole`): a page that hydrates
+  differently from how the server rendered it looks fine in a picture. A
+  flow that brings one about on purpose, such as a request it aborts or
+  an error it plants, says so with `expectConsole()`.
 - No fixed waits. A flow waits for the thing it's waiting for.
   `tests/storyboard/settle.ts` has:
   - `hydrated`: mounted, fonts in, console quiet;
@@ -1242,7 +1250,7 @@ that drives it or why nothing does.
 - `mobile-nav.spec.ts`: The burger menu on a phone: open, close, dropdowns, navigating, scroll lock released.
 - `onboarding-embed.spec.ts`: The home page's signup iframe: shows after slow hydration, ignores other origins.
 - `scroll.spec.ts`: Anchor links, deep links, the back button, keyboard focus, reduced motion, the footer's cookie link, the embed not scrolling the page, the people page in the stand-in font before Inter arrives.
-- `gallery.spec.ts`: The component gallery ("The component gallery", below): its index and a flow per group, a frame of each component's section, each checked for noindex and console errors.
+- `gallery.spec.ts`: The component gallery ("The component gallery", below): its index and a flow per group, a frame of each component's section, each checked for noindex. CI leaves it out ("Which flows CI runs", above).
 - `redirects.spec.ts`: Every redirect in `next.config.ts`, over HTTP, and that each destination resolves.
 - `/api/email-your-mp/lookup`: `campaigns`: the postcode form (`lookUpTestMp` in `tests/storyboard/letter-steps.ts`).
 - `/api/email-your-mp/letters`: `campaigns`: sending the letter (`sendLetter`).
