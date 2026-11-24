@@ -301,7 +301,7 @@ jobs:
 
   # The flows split between four jobs, each building the site: the flows
   # are most of the time, the setup and the build a minute or so. They're
-  # dealt in turn, so the gallery's slow flows don't all land in one part.
+  # dealt in turn, so a section's slow flows don't all land in one part.
   # On main, every flow runs.
   # On a pull request, only those its change can reach, by what each opened
   # when main last ran it, and a few spot checks (scripts/ci-parts.mjs,
