@@ -23,8 +23,12 @@ export type RefusedFields<Reason extends string, Fields extends Record<string, s
   fields: { [Field in keyof Fields]?: Code<Fields[Field]> };
 };
 
-/** What a form's server code answers: done, with `More` for the form, or refused for one of `Reason`. */
-export type FormResult<Reason extends string, More extends object = object> = ({ ok: true } & More) | Refused<Reason>;
+/**
+ * What a form's server code answers: done, with `More` for the form, or
+ * refused for one of `Reason`. With no reason (`never`), it's only ever done.
+ */
+export type FormResult<Reason extends string, More extends object = object> =
+  ({ ok: true } & More) | ([Reason] extends [never] ? never : Refused<Reason>);
 
 /** Refuses a form, for `reason`. */
 export function refused<const Reason extends string>(reason: Code<Reason>): Refused<Reason> {

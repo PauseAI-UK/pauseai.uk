@@ -260,6 +260,37 @@ test("Recording a no, then clearing it", async ({ page, request, flowDatabase })
   await frame(page, "The answer, cleared", { of: history });
 });
 
+test("An answer whose note is only spaces", async ({ page, request, flowDatabase }) => {
+  story(
+    "Polly's office says no to the letter to the Prime Minister. Staff add the letter and choose Declined, but type only spaces for the note of how they know.",
+  );
+  await importPoliticians(request, BASE, flowDatabase);
+  await logIn(page, flowDatabase);
+  await openPolitician(page, "Polly Placeholder");
+  const asks = page.getByRole("region", { name: copy.statusesTitle });
+  await openBubble(asks.getByRole("button", { name: copy.otherAsk }));
+  await openBubble(page.getByRole("list", { name: copy.otherAsk }).getByRole("button", { name: PM_LETTER }));
+  const row = asks.getByRole("group", { name: PM_LETTER });
+  await row.getByRole("radio", { name: staffVocabulary.statuses.declined }).click();
+  const note = row.getByLabel(copy.note);
+  await note.fill("   ");
+
+  story("Save records nothing. The form says it needs a note, with Declined still chosen.");
+  await row.getByRole("button", { name: copy.save }).click();
+  await expect(row.getByRole("alert")).toHaveText(copy.answerRefused.blank);
+  await expect(note).toHaveAttribute("aria-invalid", "true");
+  await expect(row.getByRole("radio", { name: staffVocabulary.statuses.declined })).toBeChecked();
+  await expect(row.locator("[class*=answer]")).toContainText(staffVocabulary.neverAsked.letter);
+  await frame(page, "No note", { window: true });
+
+  story("With a note, it saves as ever.");
+  await note.fill("Their office said no");
+  await row.getByRole("button", { name: copy.save }).click();
+  await expect(row.locator("[class*=answer]")).toHaveText(new RegExp(`^${staffVocabulary.statuses.declined}`));
+  await expect(row.getByText(/Their office said no/)).toBeVisible();
+  await frame(page, "The letter, declined");
+});
+
 test("Invited, with no answer yet", async ({ page, request, flowDatabase }) => {
   story(
     "PauseAI's mailing invited Morag to the Edinburgh conference, and she hasn't answered. Nobody recorded anything, but the conference is among her asks, as invited on the day the email went.",

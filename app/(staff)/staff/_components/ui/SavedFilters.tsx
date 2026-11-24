@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/Button";
-import { TextArea } from "@/components/ui/Controls";
-import { Field } from "@/components/ui/Field";
+import { Field, FieldGroup } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { carriedParams, savedFilterHref, type SavedList } from "@/lib/saved-filters";
+import { carriedParams, savedFilterHref, type SavedFilterRefusal, type SavedList } from "@/lib/saved-filters";
+import type { FormResult } from "@/lib/form-result";
 import type { SavedFiltersState } from "@/lib/server/saved-filters.server";
 import { filtersPath, type Params } from "@/lib/list-params";
 import { staffDate } from "@/lib/staff-time";
@@ -14,6 +14,7 @@ import ChoiceSearch from "./ChoiceSearch";
 import Empty from "./Empty";
 import Menu, { menuItemClass, menuItemsClass } from "./Menu";
 import MenuSubmit from "./MenuSubmit";
+import { Refusal, RefusedTextArea, ResultForm } from "./ResultForm";
 import StaffLink from "./StaffLink";
 import StaffMember from "./StaffMember";
 import styles from "./SavedFilters.module.css";
@@ -33,10 +34,16 @@ function MoreDots() {
 }
 
 /** What the saved filters' forms do (app/(staff)/staff/saved-filter-actions.ts), which the page hands in. */
-export type SavedFilterActions = Record<
-  "save" | "update" | "rename" | "remove",
-  (form: FormData) => void | Promise<void>
->;
+export type SavedFilterActions = {
+  save: NameAction;
+  update: (form: FormData) => Promise<FormResult<"gone">>;
+  rename: NameAction;
+  /** Always goes back to the list, so is never refused. */
+  remove: (form: FormData) => Promise<FormResult<never>>;
+};
+
+/** What a form that names a filter does: saving a new one, which can't have gone, or renaming one. */
+type NameAction = (form: FormData) => Promise<FormResult<SavedFilterRefusal>>;
 
 type Row = {
   id: number;
@@ -155,15 +162,18 @@ function NameForm({
   list: SavedList;
   id?: number;
   back?: string;
-  action: (form: FormData) => void | Promise<void>;
+  action: NameAction;
 }) {
   return (
-    <form action={action} className={styles.nameForm}>
+    <ResultForm action={action} says={copy.refused} atTop={["gone"]} className={styles.nameForm}>
       <FormFields list={list} id={id} back={back} />
       <p className={styles.heading}>{title}</p>
-      <Field label={copy.name}>
-        <TextArea name="name" defaultValue={name} rows={3} required />
-      </Field>
+      <FieldGroup>
+        <Field label={copy.name}>
+          <RefusedTextArea name="name" defaultValue={name} rows={3} required wrong={["blank"]} />
+        </Field>
+        <Refusal />
+      </FieldGroup>
       <p className={styles.hint}>{copy.shared}</p>
       <div className={styles.buttons}>
         <Button variant="ghost" size="small" fit type="button" popoverTarget={bubble} popoverTargetAction="hide">
@@ -173,7 +183,7 @@ function NameForm({
           {copy.save}
         </SubmitButton>
       </div>
-    </form>
+    </ResultForm>
   );
 }
 
@@ -227,6 +237,7 @@ function SavedRow({
             label={copy.deleteForEveryone}
             menuItem
             action={actions.remove}
+            says={{}}
           />
         </div>
       </Menu>
@@ -240,10 +251,11 @@ function EditedChoices({ props }: { props: SavedFiltersProps & { loaded: { id: n
   const bubble = "saved-filter-save-as-new";
   return (
     <div className={menuItemsClass}>
-      <form action={actions.update}>
+      <ResultForm action={actions.update} says={copy.refused} atTop={["gone"]}>
         <FormFields list={list} id={loaded.id} back={back} />
         <MenuSubmit>{copy.update}</MenuSubmit>
-      </form>
+        <Refusal />
+      </ResultForm>
       <Bubble id={bubble} trigger={menuItemClass} label={copy.saveAsNew} className={styles.wide}>
         <NameForm bubble={bubble} title={copy.saveTitle} name={name} list={list} back={back} action={actions.save} />
       </Bubble>

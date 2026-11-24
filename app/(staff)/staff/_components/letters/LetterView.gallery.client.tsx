@@ -8,7 +8,7 @@ import LetterView from "./LetterView";
 import FindInGmail from "./FindInGmail";
 import LetterThread, { SupporterLetterThread } from "./LetterThread";
 import { MailingLetter } from "../mailings/MailingLetter";
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 import { exampleAsks } from "../asks/AsksList.examples";
 import AskRow, { AskRows } from "../politicians/AskRow";
 
@@ -24,7 +24,7 @@ export function MailingLetterViewExample() {
           asks={exampleAsks}
           answer={(ask) => (
             <AskRows>
-              <AskRow politician={politician} ask={ask} setStatus={log("setStatus")} />
+              <AskRow politician={politician} ask={ask} setStatus={loggedDone(log, "setStatus")} />
             </AskRows>
           )}
         >
@@ -55,7 +55,7 @@ export function SupporterLetterViewExample({ ask }: { ask: boolean }) {
           asks={exampleAsks}
           answer={(one) => (
             <AskRows>
-              <AskRow politician={politician} ask={one} setStatus={log("setStatus")} />
+              <AskRow politician={politician} ask={one} setStatus={loggedDone(log, "setStatus")} />
             </AskRows>
           )}
         >

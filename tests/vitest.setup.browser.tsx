@@ -5,12 +5,13 @@ import "../styles/base.css";
 import { navigation } from "./browser/navigation";
 
 // next/navigation needs Next's app router, which isn't there in a component
-// test. usePathname and useRouter use tests/browser/navigation.ts instead.
+// test. usePathname, useSearchParams and useRouter use tests/browser/navigation.ts instead.
 // Telling a Server Action the site no longer has is Next's own.
 vi.mock("next/navigation", async () => ({
   unstable_isUnrecognizedActionError: (await import("next/dist/client/components/unrecognized-action-error"))
     .unstable_isUnrecognizedActionError,
   usePathname: () => navigation.pathname,
+  useSearchParams: () => new URLSearchParams(navigation.search),
   useRouter: () => ({
     push: (url: string) => navigation.pushed.push(url),
     replace: (url: string) => navigation.replaced.push(url),
@@ -28,6 +29,7 @@ document.body.dataset.staffNav = "open";
 afterEach(() => {
   document.body.dataset.staffNav = "open";
   navigation.pathname = "/";
+  navigation.search = "";
   navigation.pushed = [];
   navigation.replaced = [];
   navigation.refreshes = 0;

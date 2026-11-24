@@ -23,9 +23,9 @@ export function OptOutFormExample({ opened = false }: { opened?: boolean }) {
         <OptOutForm
           supporterId={1}
           choices={choices}
-          record={async (form) => {
+          record={(form) => {
             log("record")(form);
-            return true;
+            return Promise.resolve({ ok: true, already: false });
           }}
           opened={opened}
         />

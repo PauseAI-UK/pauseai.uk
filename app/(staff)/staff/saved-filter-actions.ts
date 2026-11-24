@@ -6,7 +6,7 @@
 // ever found through that list.
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { SAVED, savedParams, urlParams, type SavedList } from "@/lib/saved-filters";
+import { SAVED, savedParams, urlParams, type SavedFilterRefusal, type SavedList } from "@/lib/saved-filters";
 import {
   createSavedFilter,
   deleteSavedFilter,
@@ -14,7 +14,8 @@ import {
   updateSavedFilter,
 } from "@/lib/server/saved-filters.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
-import { idFrom, savedFilterNeeds, savedListFrom, savedNameFrom } from "@/lib/staff-forms";
+import { ownId, savedFilterNeeds, savedListFrom, savedNameFrom } from "@/lib/staff-forms";
+import { refused, type FormResult } from "@/lib/form-result";
 import { staffBack } from "@/lib/staff-back";
 import { filtersPath } from "@/lib/list-params";
 
@@ -32,46 +33,49 @@ function loaded(form: FormData, list: SavedList, id: number): string {
 }
 
 /** Saves what the form's page has on as a new filter, with the name it gives, and loads it. */
-export async function saveFilter(form: FormData): Promise<void> {
+export async function saveFilter(form: FormData): Promise<FormResult<"blank">> {
   const { email } = await requireStaff(savedFilterNeeds(form));
   const list = savedListFrom(form);
   const name = savedNameFrom(form);
-  if (!list || !name) return;
+  if (!name) return refused("blank");
   const id = await createSavedFilter(list, name, savedParams(list, urlParams(backTo(form, list))), email);
   revalidatePath(SAVED[list].path);
   redirect(loaded(form, list, id));
 }
 
 /** Gives a saved filter, for everyone, what the form's page has on, and stays loaded on it. */
-export async function updateFilter(form: FormData): Promise<void> {
+export async function updateFilter(form: FormData): Promise<FormResult<"gone">> {
   const { email } = await requireStaff(savedFilterNeeds(form));
   const list = savedListFrom(form);
-  const id = idFrom(form);
-  if (!list || !id) return;
+  const id = ownId(form);
   const params = savedParams(list, urlParams(backTo(form, list)));
-  if (!(await updateSavedFilter(list, id, params, email))) return;
+  const found = await updateSavedFilter(list, id, params, email);
   revalidatePath(SAVED[list].path);
+  if (!found) return refused("gone");
   redirect(loaded(form, list, id));
 }
 
 /** Gives a saved filter the name the form gives it, staying on the page. */
-export async function renameFilter(form: FormData): Promise<void> {
+export async function renameFilter(form: FormData): Promise<FormResult<SavedFilterRefusal>> {
   const { email } = await requireStaff(savedFilterNeeds(form));
   const list = savedListFrom(form);
-  const id = idFrom(form);
+  const id = ownId(form);
   const name = savedNameFrom(form);
-  if (!list || !id || !name) return;
-  await renameSavedFilter(list, id, name, email);
+  if (!name) return refused("blank");
+  const found = await renameSavedFilter(list, id, name, email);
   revalidatePath(SAVED[list].path);
+  return found ? { ok: true } : refused("gone");
 }
 
-/** Deletes a saved filter for everyone, and goes back to the page, with any filter it had loaded still there. */
-export async function deleteFilter(form: FormData): Promise<void> {
+/**
+ * Deletes a saved filter for everyone, and goes back to the page, with any
+ * filter it had loaded still there. One that's gone already is as deleted
+ * as was asked.
+ */
+export async function deleteFilter(form: FormData): Promise<never> {
   const { email } = await requireStaff(savedFilterNeeds(form));
   const list = savedListFrom(form);
-  const id = idFrom(form);
-  if (!list || !id) return;
-  await deleteSavedFilter(list, id, email);
+  await deleteSavedFilter(list, ownId(form), email);
   revalidatePath(SAVED[list].path);
   redirect(backTo(form, list));
 }

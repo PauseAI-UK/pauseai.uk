@@ -53,13 +53,13 @@ describeWithDatabase("oversight's Server Actions", () => {
     // Without admin, nothing changes.
     expect(await expectRedirect(() => setErrorDoneNow(form({ id: "1", done: "yes" })))).toBe("/staff");
     await saveStaffAccount("jo@pauseai.uk", ["admin"], "test");
-    // A bad form does nothing.
-    await setErrorDoneNow(form({ id: "x", done: "yes" }));
+    // Which error is the form's own, so one that isn't an error's is thrown.
+    await expect(setErrorDoneNow(form({ id: "x", done: "yes" }))).rejects.toThrow(`"id" isn't a row's ID`);
     expect(revalidatePath).not.toHaveBeenCalled();
     expect(await expectRedirect(() => setErrorDoneNow(form({ id: "1", done: "yes" })))).toBe("/staff/errors");
     expect(await done()).toEqual([{ doneBy: "jo@pauseai.uk", done: true }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/errors", "layout");
-    await setErrorDoneNow(form({ id: "1", done: "" }));
+    expect(await setErrorDoneNow(form({ id: "1", done: "" }))).toEqual({ ok: true });
     expect(await done()).toEqual([{ doneBy: null, done: false }]);
   });
 
@@ -68,25 +68,38 @@ describeWithDatabase("oversight's Server Actions", () => {
     await saveStaffAccount("jo@pauseai.uk", ["supporters"], "test");
     const bounce = { address: "a@example.org", messageId: null, kind: "hard" as const, reason: "", canReset: true };
     await recordProblem(bounce);
-    await unblockAddress(form({ address: "nobody", note: "Fixed" }));
-    await unblockAddress(form({ address: "A@example.org", note: " " }));
+    // The address is the form's own, so one that isn't an address is thrown; the note is typed, so a blank one is refused.
+    await expect(unblockAddress(form({ address: "nobody", note: "Fixed" }))).rejects.toThrow(
+      `"address" isn't an address or a number`,
+    );
+    expect(await unblockAddress(form({ address: "A@example.org", note: " " }))).toEqual({
+      ok: false,
+      reason: "blank",
+    });
     expect(revalidatePath).not.toHaveBeenCalled();
     expect(await isBlocked("a@example.org")).toBe(true);
-    await unblockAddress(form({ address: "A@example.org", note: "Fixed" }));
+    expect(await unblockAddress(form({ address: "A@example.org", note: "Fixed" }))).toEqual({ ok: true });
     expect(await isBlocked("a@example.org")).toBe(false);
     expect(await query("SELECT actor, action, details FROM audit_log WHERE action = 'unblock address'")).toEqual([
       { actor: "jo@pauseai.uk", action: "unblock address", details: { address: "a@example.org", note: "Fixed" } },
     ]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
+    // Unblocked already, as when someone else got there first: done, with the pages shown as they are.
+    revalidatePath.mockClear();
+    expect(await unblockAddress(form({ address: "a@example.org", note: "Fixed again" }))).toEqual({ ok: true });
+    expect(revalidatePath).toHaveBeenCalledWith("/staff", "layout");
   });
 
-  it("unblockAddress unblocks only a politician's address without supporters", async () => {
+  it("unblockAddress unblocks only a politician's address without supporters, and throws on any other", async () => {
     vi.stubEnv("POSTMARK_SERVER_TOKEN", "server-token");
     await addTestPolitician({ email: "Polly@example.org" });
     for (const address of ["polly@example.org", "jane@example.com"]) {
       await recordProblem({ address, messageId: null, kind: "hard", reason: "", canReset: true });
-      await unblockAddress(form({ address, note: "Fixed" }));
     }
+    expect(await unblockAddress(form({ address: "polly@example.org", note: "Fixed" }))).toEqual({ ok: true });
+    await expect(unblockAddress(form({ address: "jane@example.com", note: "Fixed" }))).rejects.toThrow(
+      "by someone who can't see supporters",
+    );
     expect(await isBlocked("polly@example.org")).toBe(false);
     expect(await isBlocked("jane@example.com")).toBe(true);
   });

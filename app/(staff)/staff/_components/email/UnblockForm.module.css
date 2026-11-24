@@ -5,10 +5,12 @@
   --button-font-size: 14px;
 }
 
-/* The note's field and Unblock always on one line, over the kit's form,
-   which wraps (the class twice, so it wins whichever loads last). */
-.form.form {
-  flex-wrap: nowrap;
+/* The note's field and Unblock always on one line, with why the form was
+   refused under the two. */
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: end;
 }
 
 /* The field is short, as a note of why is a few words, but never less

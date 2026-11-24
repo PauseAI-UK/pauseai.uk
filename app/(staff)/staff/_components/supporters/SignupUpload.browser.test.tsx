@@ -8,6 +8,7 @@ import {
   type SignupPlan,
   type SignupUploadInput,
 } from "@/lib/supporters/signup-csv";
+import { refused } from "@/lib/form-result";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import {
   exampleSignupPlan,
@@ -50,12 +51,15 @@ async function choose(file: File) {
 
 const csvFile = (text: string, name = "f.csv") => new File([text], name, { type: "text/csv" });
 
+/** What the preview's Server Action answers for a plan. */
+const planned = (plan: SignupPlan) => ({ ok: true as const, plan });
+
 const kindButton = (kind: SignupKind) => page.getByRole("radio", { name: copy.kind[kind] });
 
 /** The form with paper sign-ups picked, its actions answering with the example plan, and what they were asked. */
 async function showForm() {
-  const preview = vi.fn(async (input: SignupUploadInput) => ({ ...exampleSignupPlan, input }));
-  const finish = vi.fn(async () => ({ uploadId: 9 }));
+  const preview = vi.fn(async (input: SignupUploadInput) => planned({ ...exampleSignupPlan, input }));
+  const finish = vi.fn(async () => ({ ok: true as const, uploadId: 9 }));
   const view = await render(<SignupUploadForm events={EVENTS} today="2026-10-31" actions={{ preview, finish }} />);
   await kindButton("paper").click();
   return { view, preview, finish };
@@ -277,7 +281,7 @@ describe("SignupUploadPreview", () => {
         step={5}
         input={of}
         blockers={blockers}
-        preview={actions.preview ?? (async () => exampleSignupPlan)}
+        preview={actions.preview ?? (async () => planned(exampleSignupPlan))}
         finish={actions.finish ?? vi.fn()}
       />,
     );
@@ -293,15 +297,17 @@ describe("SignupUploadPreview", () => {
 
   it("shows nothing to import, with no button, when a file has nothing new", async () => {
     const done = { ...exampleSignupPlan, rows: exampleSignupPlan.rows.filter((row) => row.pile === "done") };
-    await show({ preview: async () => done });
+    await show({ preview: async () => planned(done) });
     await expect.element(page.getByText(words.nothing)).toBeVisible();
     expect(page.getByRole("button", { name: /^Import \d+ people/ }).elements()).toEqual([]);
   });
 
   it("says it's working, then shows what the server says, and imports it", async () => {
     let answer!: (plan: SignupPlan) => void;
-    const preview = vi.fn(() => new Promise<SignupPlan>((resolve) => (answer = resolve)));
-    const finish = vi.fn(async () => ({ uploadId: 7 }));
+    const preview = vi.fn(
+      () => new Promise<ReturnType<typeof planned>>((resolve) => (answer = (plan) => resolve(planned(plan)))),
+    );
+    const finish = vi.fn(async () => ({ ok: true as const, uploadId: 7 }));
     await show({ preview, finish });
     await expect.element(page.getByRole("status")).toHaveTextContent(words.loading);
     await expect.poll(() => preview.mock.calls.length).toBe(1);
@@ -319,7 +325,7 @@ describe("SignupUploadPreview", () => {
         step={5}
         input={{ ...input, note: "Changed" }}
         blockers={[]}
-        preview={async () => exampleSignupPlan}
+        preview={async () => planned(exampleSignupPlan)}
         finish={vi.fn()}
       />,
     );
@@ -330,7 +336,7 @@ describe("SignupUploadPreview", () => {
 
   it("shows what would happen now, if things changed", async () => {
     const changed = { ...exampleSignupPlan, rows: exampleSignupPlan.rows.slice(1) };
-    await show({ finish: async () => ({ changed }) });
+    await show({ finish: async () => ({ ok: true, changed }) });
     await button().click();
     await expect.element(page.getByText(words.changed)).toBeVisible();
     await expect.element(page.getByRole("button", { name: words.importNow(2, 0) })).toBeVisible();
@@ -338,12 +344,12 @@ describe("SignupUploadPreview", () => {
 
   it("keeps saying things changed when the preview runs again, until something else is chosen", async () => {
     const changed = { ...exampleSignupPlan, rows: exampleSignupPlan.rows.slice(1) };
-    const finish = async () => ({ changed });
+    const finish = async () => ({ ok: true as const, changed });
     const view = await show({ finish });
     await button().click();
     await expect.element(page.getByText(words.changed)).toBeVisible();
     // The page refreshed after the import: new actions, the same file.
-    const again = vi.fn(async () => changed);
+    const again = vi.fn(async () => planned(changed));
     await view.rerender(<SignupUploadPreview step={4} input={input} blockers={[]} preview={again} finish={finish} />);
     await expect.poll(() => again.mock.calls.length).toBe(1);
     await expect.element(page.getByText(words.changed)).toBeVisible();
@@ -355,11 +361,10 @@ describe("SignupUploadPreview", () => {
   });
 
   it("says when the file can't go in, on previewing or importing", async () => {
-    const refused = { ok: false, reason: "bad-choice" } as const;
-    const view = await show({ preview: async () => refused });
+    const view = await show({ preview: async () => refused("bad-choice") });
     await expect.element(page.getByText(copy.refused.badChoice)).toBeVisible();
     await view.unmount();
-    await show({ finish: async () => refused });
+    await show({ finish: async () => refused("bad-choice") });
     await button().click();
     await expect.element(page.getByText(copy.refused.badChoice)).toBeVisible();
   });
@@ -371,15 +376,31 @@ describe("SignupUploadPreview", () => {
     const view = await show({ preview: down });
     await expect.element(page.getByText(words.failed)).toBeVisible();
     await view.unmount();
-    await show({ finish: down });
+    const failing = await show({ finish: down });
     await button().click();
     await expect.element(page.getByText(words.failed)).toBeVisible();
+    // The preview stays under it, to try again; something else chosen, it's no longer said.
+    await expect.element(button()).toBeEnabled();
+    await failing.rerender(
+      <SignupUploadPreview
+        step={5}
+        input={{ ...input, note: "Changed" }}
+        blockers={[]}
+        preview={async () => planned(exampleSignupPlan)}
+        finish={down}
+      />,
+    );
+    await expect.element(page.getByText(words.failed)).not.toBeInTheDocument();
+    await expect.element(button()).toBeEnabled();
   });
 
   it("doesn't take an answer that comes after it's gone", async () => {
     for (const preview of [
-      () => new Promise<SignupPlan>((resolve) => setTimeout(() => resolve(exampleSignupPlan), 500)),
-      () => new Promise<SignupPlan>((_, reject) => setTimeout(() => reject(new Error("down")), 500)),
+      () =>
+        new Promise<ReturnType<typeof planned>>((resolve) =>
+          setTimeout(() => resolve(planned(exampleSignupPlan)), 500),
+        ),
+      () => new Promise<ReturnType<typeof planned>>((_, reject) => setTimeout(() => reject(new Error("down")), 500)),
     ]) {
       const view = await show({ preview });
       await new Promise((resolve) => setTimeout(resolve, 450));

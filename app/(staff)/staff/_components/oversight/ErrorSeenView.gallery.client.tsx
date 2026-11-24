@@ -8,5 +8,17 @@ import { Logged } from "@/app/(tools)/gallery/_components/wiring";
 /** An error's page, its button logged: the examples' errors by their place in the list, or the one marked done. */
 export function ErrorSeenViewExample({ which }: { which: 0 | 1 | 2 | "done" }) {
   const error = which === "done" ? exampleErrorDone : exampleErrorsSeen[which];
-  return <Logged>{(log) => <ErrorSeenView error={error} setDone={log("setDone")} />}</Logged>;
+  return (
+    <Logged>
+      {(log) => (
+        <ErrorSeenView
+          error={error}
+          setDone={(form) => {
+            log("setDone")(form);
+            return Promise.resolve({ ok: true });
+          }}
+        />
+      )}
+    </Logged>
+  );
 }

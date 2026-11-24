@@ -1,12 +1,20 @@
 "use client";
 
 // UnblockForm's examples, whose forms are logged (UnblockForm.gallery.tsx).
-import UnblockForm, { UnblockBubble } from "./UnblockForm";
+import UnblockForm, { UnblockBubble, type Unblock } from "./UnblockForm";
 import { exampleBlock, exampleComplaint } from "../oversight/BlocksTable.examples";
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, type Log } from "@/app/(tools)/gallery/_components/wiring";
 
 /** A bounce Postmark won't send to again, which staff can't unblock. */
 const stuck = { ...exampleBlock, canReset: false };
+
+/** A stand-in for the Server Action: logs what its form sends, and answers that it's done. */
+function logged(log: Log): Unblock {
+  return (form) => {
+    log("unblock")(form);
+    return Promise.resolve({ ok: true });
+  };
+}
 
 /** The unblock form for a bounce, logged, and what shows instead for a complaint and for a bounce Postmark won't resend. */
 export function UnblockFormExample() {
@@ -14,9 +22,9 @@ export function UnblockFormExample() {
     <Logged>
       {(log) => (
         <>
-          <UnblockForm block={exampleBlock} action={log("unblock")} />
-          <UnblockForm block={exampleComplaint} action={log("unblock")} />
-          <UnblockForm block={stuck} action={log("unblock")} />
+          <UnblockForm block={exampleBlock} action={logged(log)} />
+          <UnblockForm block={exampleComplaint} action={logged(log)} />
+          <UnblockForm block={stuck} action={logged(log)} />
         </>
       )}
     </Logged>
@@ -36,10 +44,10 @@ export function UnblockBubbleExample() {
         <>
           <UnblockBubble
             block={{ address: "bounced@parliament.example", canReset: true, kind: "hard" }}
-            action={log("unblock")}
+            action={logged(log)}
           />
-          <UnblockBubble block={exampleComplaint} action={log("unblock")} />
-          <UnblockBubble block={stuck} action={log("unblock")} />
+          <UnblockBubble block={exampleComplaint} action={logged(log)} />
+          <UnblockBubble block={stuck} action={logged(log)} />
         </>
       )}
     </Logged>

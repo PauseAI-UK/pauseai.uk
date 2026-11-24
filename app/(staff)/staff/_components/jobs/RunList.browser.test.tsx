@@ -10,7 +10,9 @@ import {
   type EdmImport,
   type PoliticianImport,
 } from "@/lib/import-runs";
+import type { Decide } from "./Run";
 import RunList from "./RunList";
+import { RefusalPlace } from "../ui/ResultForm";
 import {
   exampleControlAiResult,
   exampleControlAiStatementResult,
@@ -27,7 +29,8 @@ import {
   exampleSendingResult,
   exampleTidyingResult,
 } from "./RunList.examples";
-import { action, press } from "@/tests/browser/staff";
+import { press } from "@/tests/browser/staff";
+import { refused } from "@/lib/form-result";
 import { importRunsCopy } from "@/lib/import-runs-copy";
 import { supporterProblems } from "@/lib/supporters/copy";
 import { jobProblems } from "@/lib/jobs/copy";
@@ -35,6 +38,13 @@ import { lettersCopy } from "../letters/copy";
 import { jobsCopy } from "./copy";
 import { politiciansCopy } from "../politicians/copy";
 import { staffAccount } from "@/lib/problems";
+
+// The page's address, which the place a page says things at its top reads; and the router its links use.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/staff/scheduled-jobs/parliament",
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+}));
 
 const ran = exampleRun;
 
@@ -66,9 +76,9 @@ describe("RunList", () => {
   const controlAi = exampleControlAiResult;
 
   it("lists each import's changes, and lets a held one be applied or discarded", async () => {
-    const { fn, sent } = action();
+    const decide = vi.fn<Decide>(async () => ({ ok: true }));
     const words = politiciansCopy.politicianImports;
-    await render(<RunList runs={[heldImport, applied]} none="None" decide={fn} />);
+    await render(<RunList runs={[heldImport, applied]} none="None" decide={decide} />);
     await expect.element(page.getByText(jobsCopy.runs.status.held)).toBeVisible();
     await expect
       .element(page.getByText(words.result({ added: 2, changed: 1, left: 1 }), { exact: false }))
@@ -87,8 +97,28 @@ describe("RunList", () => {
     await expect.element(page.getByText(jobsCopy.runs.decidedBy("jo@pauseai.uk"), { exact: false })).toBeVisible();
     expect(page.getByRole("button", { name: words.apply }).all()).toHaveLength(1);
     await page.getByRole("button", { name: words.discard }).click();
-    await vi.waitFor(() => expect(sent).toHaveLength(1));
-    expect(sent[0]).toEqual({ id: "4", job: "import-parliament", decision: "discard" });
+    await vi.waitFor(() => expect(decide).toHaveBeenCalledOnce());
+    expect(Object.fromEntries(decide.mock.calls[0][0])).toEqual({
+      id: "4",
+      job: "import-parliament",
+      decision: "discard",
+    });
+    await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("says at the top of the page that a held import is held no longer", async () => {
+    const decide = vi.fn<Decide>(async () => refused("gone"));
+    await render(
+      <RefusalPlace>
+        <RunList runs={[heldImport]} none="None" decide={decide} />
+      </RefusalPlace>,
+    );
+    const apply = page.getByRole("button", { name: politiciansCopy.politicianImports.apply });
+    await apply.click();
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toHaveTextContent(jobsCopy.runs.refused.gone);
+    // Over the page, not under the button.
+    expect(apply.element().closest("form")!.contains(alert.element())).toBe(false);
   });
 
   it("starts an import with many changes folded to its status line, with the buttons still there", async () => {
@@ -107,7 +137,7 @@ describe("RunList", () => {
       { id: 9, status: "held" },
     );
     // The newest run starts unfolded, however long; the same run further down starts folded.
-    await render(<RunList runs={[applied, big]} none="None" decide={() => {}} />);
+    await render(<RunList runs={[applied, big]} none="None" decide={async () => ({ ok: true })} />);
     const folds = page.getByRole("group").all();
     expect(folds.map((fold) => (fold.element() as HTMLDetailsElement).open)).toEqual([true, false]);
     await expect.element(page.getByText("Seat 1: MP 1", { exact: true })).not.toBeVisible();

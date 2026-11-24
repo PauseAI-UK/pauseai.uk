@@ -4,14 +4,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BubbleBox } from "@/components/ui/Bubble";
 import { Button } from "@/components/ui/Button";
 import { bubbleTrigger } from "@/components/ui/bubble-trigger";
-import { TextInput } from "@/components/ui/Controls";
-import { FilterForm } from "@/components/ui/Form";
+// A row of fields along their bottoms, as a FilterForm lays them out.
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { ErrorText } from "@/components/ui/Text";
+import type { FormResult } from "@/lib/form-result";
 import { surnameOf } from "@/lib/politicians/salutation";
 import type { EmailSource, PoliticianAliases } from "@/lib/politicians/aliases.server";
-import type { EditResult } from "@/lib/politicians/edits.server";
+import type { EditRefusal } from "@/lib/politicians/edits.server";
 import { staffDate } from "@/lib/staff-time";
+import { Refusal, RefusedTextInput, ResultForm } from "../ui/ResultForm";
 import AddAliasForm, { type AddAliasAction } from "./AddAliasForm";
 import styles from "./PoliticianWriting.module.css";
 import { staffMemberText } from "@/lib/staff-member";
@@ -20,8 +20,8 @@ import { politiciansCopy } from "./copy";
 const copy = politiciansCopy.politician.editDetails;
 const words = politiciansCopy.politician.aliases;
 
-/** Saves a salutation or an email, saying how it went. */
-export type EditAction = (form: FormData) => Promise<EditResult | undefined> | EditResult | undefined | void;
+/** Saves a salutation or an email (the politicians' editPoliticianNow), or says why not. */
+export type EditAction = (form: FormData) => Promise<FormResult<EditRefusal>>;
 
 type Politician = {
   id: number;
@@ -40,9 +40,10 @@ type Choices = { hint: string; values: string[] };
 
 /**
  * A field, sent with `hidden`; any `choices` for it; then a field for the
- * note of why it changed, which must be filled, and Save; and, once the
- * server has it, that it's saved, calling `onSaved` or else closing the
- * bubble, or why not.
+ * note of why it changed, which must be filled, and Save. Saved, it calls
+ * `onSaved`, or else closes the bubble. Refused, it says why under Save,
+ * its fields keeping what was typed, or at the page's top that the
+ * politician has gone.
  */
 function SaveField({
   label,
@@ -64,15 +65,6 @@ function SaveField({
   onSaved?: () => void;
 }) {
   const form = useRef<HTMLFormElement>(null);
-  const [result, setResult] = useState<EditResult | undefined>();
-  const send = async (data: FormData) => {
-    const answer = (await action(data)) ?? undefined;
-    setResult(answer);
-    if (answer?.saved) {
-      if (onSaved) onSaved();
-      else closeBubble(form.current);
-    }
-  };
   // A choice fills the field, and leads on to the note.
   const choose = (choice: string) => {
     const fields = form.current!.elements;
@@ -80,12 +72,30 @@ function SaveField({
     (fields.namedItem("note") as HTMLInputElement).focus();
   };
   return (
-    <form ref={form} action={send} aria-label={label} className={styles.form}>
+    <ResultForm
+      ref={form}
+      action={action}
+      says={copy.refused}
+      atTop={["gone"]}
+      done={() => {
+        if (onSaved) onSaved();
+        else closeBubble(form.current);
+      }}
+      aria-label={label}
+      className={styles.form}
+    >
       {Object.entries(hidden).map(([key, v]) => (
         <input key={key} type="hidden" name={key} value={v} />
       ))}
       <span className={styles.wholeField}>
-        <TextInput name={name} type={type} required={name === "salutation"} defaultValue={value} aria-label={label} />
+        <RefusedTextInput
+          name={name}
+          type={type}
+          required={name === "salutation"}
+          defaultValue={value}
+          aria-label={label}
+          wrong={name === "salutation" ? ["salutation"] : ["email", "shared"]}
+        />
       </span>
       {choices && (
         <span className={styles.wholeField}>
@@ -100,15 +110,21 @@ function SaveField({
         </span>
       )}
       <span className={styles.field}>
-        <TextInput name="note" required placeholder={copy.notePlaceholder} aria-label={copy.note} />
+        <RefusedTextInput
+          name="note"
+          required
+          placeholder={copy.notePlaceholder}
+          aria-label={copy.note}
+          wrong={["note"]}
+        />
       </span>
       <SubmitButton variant="primary" size="small" fit>
         {copy.save}
       </SubmitButton>
-      <span role="status" className={styles.status}>
-        {result && !result.saved && <ErrorText>{copy.refused[result.why]}</ErrorText>}
+      <span className={styles.status}>
+        <Refusal />
       </span>
-    </form>
+    </ResultForm>
   );
 }
 
@@ -163,8 +179,8 @@ function sourceLine(source: NonNullable<EmailSource>, house?: string): string {
   return source.by === "body" ? words.sources.parliament(house) : copy.fromAirtable;
 }
 
-/** The changes a politician's addresses can take: adding one, and removing one staff added or guessed. */
-export type AliasActions = { add: AddAliasAction; remove: (form: FormData) => void | Promise<void> };
+/** The changes a politician's addresses can take: adding one, and removing one staff added or guessed, which is never refused. */
+export type AliasActions = { add: AddAliasAction; remove: (form: FormData) => Promise<FormResult<never>> };
 
 /** An address that links their emails, with where it came from, and a Remove for one staff can take off. */
 type Line = { key: string; address: string; from: ReactNode; removable?: boolean };
@@ -303,11 +319,13 @@ export function AddressesBubble({
                     <span className={styles.from}>{line.from}</span>
                   </span>
                   {line.removable && (
-                    <FilterForm
-                      action={async (form) => {
+                    <ResultForm
+                      action={(form) => {
                         freshStart();
-                        await actions.remove(form);
+                        return actions.remove(form);
                       }}
+                      says={{}}
+                      filters
                       aria-label={`${words.remove}: ${line.address}`}
                     >
                       <input type="hidden" name="politicianId" value={politician.id} />
@@ -315,7 +333,8 @@ export function AddressesBubble({
                       <SubmitButton variant="ghost" size="small" fit>
                         {words.remove}
                       </SubmitButton>
-                    </FilterForm>
+                      <Refusal />
+                    </ResultForm>
                   )}
                 </li>
               ))}

@@ -28,6 +28,12 @@ export const jobsCopy = {
     decidedBy: (who: string) => `decided by ${who}`,
     // A held run discarded as a newer run of its job came after it, as only the newest list can be applied.
     replaced: "replaced by a newer run",
+    // Why a held import's Apply or Discard wasn't done, by the server's reason.
+    refused: {
+      // At the top of the page, when it's held no longer: since the page loaded, someone else applied or
+      // discarded it, or a newer run replaced it.
+      gone: "This import has already been applied or discarded.",
+    },
     // A job's runs that found nothing, gathered into a row, and its routine runs further down, folded into one:
     // the time of the first and the last, and what they were.
     range: (from: string, to: string) => (from === to ? from : `${from}–${to}`),

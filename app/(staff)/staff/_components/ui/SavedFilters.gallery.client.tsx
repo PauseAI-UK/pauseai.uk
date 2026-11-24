@@ -2,9 +2,19 @@
 
 // SavedFilters' examples that keep state or log what's pressed (SavedFilters.gallery.tsx).
 import FilterBar from "./FilterBar";
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone, type Log } from "@/app/(tools)/gallery/_components/wiring";
 import StaffPage from "./StaffPage";
-import { savedFiltersProps } from "./SavedFilters";
+import { savedFiltersProps, type SavedFilterActions } from "./SavedFilters";
+
+/** The saved filters' actions, each logging what its form sends and answering that it's done. */
+export function loggedActions(log: Log): SavedFilterActions {
+  return {
+    save: loggedDone(log, "save"),
+    update: loggedDone(log, "update"),
+    rename: loggedDone(log, "rename"),
+    remove: loggedDone(log, "remove"),
+  };
+}
 
 const SAVED_ROWS = [
   {
@@ -55,7 +65,7 @@ export function SavedFilterExample({ state }: { state: keyof typeof SAVED_STATES
               path: "/staff/politicians",
               name: "Party: Labour",
               summary: (params) => [`Party ${[params.party].flat().join(", ")}`],
-              actions: { save: log("save"), update: log("update"), rename: log("rename"), remove: log("remove") },
+              actions: loggedActions(log),
             })}
           />
         </StaffPage>

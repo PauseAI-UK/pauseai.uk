@@ -14,6 +14,9 @@ export const SAVED = {
 export type SavedList = keyof typeof SAVED;
 export const SAVED_LISTS = Object.keys(SAVED) as SavedList[];
 
+/** Why a saved filter's form is refused: its name is blank, or someone deleted the filter since the page loaded. */
+export type SavedFilterRefusal = "blank" | "gone";
+
 /** What goes with a list's URL but isn't part of a filter, kept when one is loaded: who a mailing or a broadcast is being chosen for. */
 const CARRIED_PARAMS = ["mailing", "broadcast"];
 

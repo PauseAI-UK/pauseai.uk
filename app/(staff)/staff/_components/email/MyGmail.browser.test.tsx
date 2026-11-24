@@ -1,16 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
+import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { exampleGmailAccount } from "../letters/LetterThread.examples";
 import { emailCopy } from "./copy";
 import MyGmail from "./MyGmail";
+import { MyGmailExample } from "./MyGmail.gallery.client";
 import { shellCopy } from "../shell/copy";
 
 const gmail = emailCopy.gmail;
 
 describe("MyGmail", () => {
   it("connected: saying so in its heading, since when, today's sends, and Disconnect", async () => {
-    const disconnect = vi.fn();
+    const disconnect = vi.fn(async () => ({ ok: true as const }));
     await render(<MyGmail me="jo@pauseai.uk" account={exampleGmailAccount} outcome="" disconnect={disconnect} />);
     await expect.element(page.getByRole("heading", { level: 2, name: gmail.connectedTitle })).toBeVisible();
     await expect
@@ -18,6 +20,15 @@ describe("MyGmail", () => {
       .toHaveTextContent(`${gmail.connected("1 Oct 2026")} ${gmail.sentToday(120, "1,800")}`);
     await page.getByRole("button", { name: gmail.disconnect }).click();
     await expect.poll(() => disconnect.mock.calls.length).toBe(1);
+    await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("says under Disconnect when it fails", async () => {
+    // As the server throws: an error with a digest, which the server has kept, so the browser tells no one.
+    const disconnect = vi.fn().mockRejectedValue(Object.assign(new Error("The server threw"), { digest: "1" }));
+    await render(<MyGmail me="jo@pauseai.uk" account={exampleGmailAccount} outcome="" disconnect={disconnect} />);
+    await page.getByRole("button", { name: gmail.disconnect }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
   });
 
   it("not connected: what connecting means, and the button, coming back here", async () => {
@@ -56,7 +67,7 @@ const NOW = "2026-11-05T09:00:00Z";
 describe("MyGmail, on what's kept from your Gmail", () => {
   it("says when threads with politicians are kept from your Gmail", async () => {
     const account = { email: "jo@pauseai.uk", name: "Jo", connectedAt: new Date(NOW), sentToday: 0, remaining: 1800 };
-    const props = { me: "jo@pauseai.uk", account, outcome: "", disconnect: () => {} };
+    const props = { me: "jo@pauseai.uk", account, outcome: "", disconnect: vi.fn() };
     const { rerender } = await render(<MyGmail {...props} keepsThreads />);
     await says(emailCopy.gmail.kept.before);
     await expect.element(link(emailCopy.gmail.oneOffEmails)).toHaveAttribute("href", "/staff/emails?type=one-off");
@@ -70,5 +81,15 @@ describe("MyGmail, on what's kept from your Gmail", () => {
     await expect.element(link(shellCopy.nav.broadcasts)).toHaveAttribute("href", "/staff/broadcasts");
     await rerender(<MyGmail {...props} lettersInbox />);
     expect(link(shellCopy.nav.mailings).query()).toBeNull();
+  });
+});
+
+describe("MyGmail's example in the gallery", () => {
+  it("logs Disconnect", async () => {
+    await render(<MyGmailExample connected />);
+    await page.getByRole("button", { name: gmail.disconnect }).click();
+    await expect
+      .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+      .toHaveTextContent("disconnect({})");
   });
 });

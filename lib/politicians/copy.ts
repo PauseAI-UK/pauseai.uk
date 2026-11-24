@@ -140,6 +140,11 @@ export const politiciansCopy = {
     setStatus: "Set status",
     note: "Note",
     notePlaceholder: "What did they say?",
+    // Why an answer wasn't saved, under its form.
+    answerRefused: {
+      // Its note is only spaces.
+      blank: "Add a note.",
+    },
     // Under the answer to an ask staff record: opens the form to change it.
     edit: "Edit",
     save: "Save",
@@ -239,6 +244,8 @@ export const politiciansCopy = {
         note: "Say why this address is theirs.",
         // The House of Lords' shared inbox, which forwards to the Lord a message names: no one's own.
         shared: "That's the House of Lords' shared inbox, which would be confusing to link to.",
+        // At the top of the page, when the politician was removed after the page loaded.
+        gone: "This politician has been removed, so the address couldn't be added.",
       },
     },
     // On an ask that isn't set by hand: where its statuses come from.

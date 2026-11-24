@@ -13,7 +13,7 @@ import {
   removeStaffAccount,
   saveStaffAccount,
 } from "@/lib/accounts/staff-accounts.server";
-import { permissionsFrom } from "@/lib/staff-forms";
+import { ownEmail, permissionsFrom } from "@/lib/staff-forms";
 
 /** Where the accounts page goes after a change: back to itself, saying why if the change was refused. */
 function accountsPage(change: AccountChange | "removed"): never {
@@ -24,36 +24,31 @@ function accountsPage(change: AccountChange | "removed"): never {
 /**
  * The accounts page: gives an address an account with exactly the
  * permissions in the form, adding it if it has none, as the admin. A
- * change refused (the last admin, an address not at pauseai.uk) is said on
- * the page.
+ * change refused (the last admin, an address not at pauseai.uk, which
+ * what's typed for someone new may not be) is said on the page.
  */
-export async function saveStaffAccountNow(form: FormData): Promise<void> {
+export async function saveStaffAccountNow(form: FormData): Promise<never> {
   const { email } = await requireStaff("admin");
-  const parsed = permissionsFrom(form);
-  if (!parsed) return;
-  accountsPage(await saveStaffAccount(parsed.email, parsed.permissions, email));
+  const account = permissionsFrom(form);
+  accountsPage(await saveStaffAccount(account.email, account.permissions, email));
 }
 
-/** The accounts page: removes an account, ending its sessions, and says what that leaves them. */
-export async function removeStaffAccountNow(form: FormData): Promise<void> {
+/** The accounts page: removes a row's account, ending its sessions, and says what that leaves them. One gone already is as removed as was asked. */
+export async function removeStaffAccountNow(form: FormData): Promise<never> {
   const { email } = await requireStaff("admin");
-  const parsed = permissionsFrom(form);
-  if (!parsed) return;
-  const change = await removeStaffAccount(parsed.email, email);
+  const change = await removeStaffAccount(ownEmail(form), email);
   accountsPage(change === "changed" ? "removed" : change);
 }
 
-/** The accounts page: ends every session of an account, as the admin; their own included, which logs them out. */
-export async function endStaffSessionsNow(form: FormData): Promise<void> {
+/** The accounts page: ends every session of a row's account, as the admin; their own included, which logs them out. */
+export async function endStaffSessionsNow(form: FormData): Promise<never> {
   const { email } = await requireStaff("admin");
-  const parsed = permissionsFrom(form);
-  if (!parsed) return;
-  await endStaffSessions(parsed.email, email);
+  await endStaffSessions(ownEmail(form), email);
   accountsPage("changed");
 }
 
 /** Disconnects your own Gmail, from your page, going back to it saying so, in place of how connecting went. */
-export async function disconnectMyGmail(): Promise<void> {
+export async function disconnectMyGmail(): Promise<never> {
   const { email } = await requireStaff();
   await disconnectGmail(email, email);
   revalidatePath("/staff/me");

@@ -11,7 +11,7 @@ import { lettersCopy } from "./copy";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 
 const states = lettersCopy.copyStates;
-const noAction = async () => {};
+const noAction = async () => ({ ok: true as const });
 
 /** The box to set the answer in, as a politician's page has it. */
 function answerBox(politician: Parameters<typeof AskRow>[0]["politician"]) {

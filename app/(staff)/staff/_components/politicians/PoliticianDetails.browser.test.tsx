@@ -4,6 +4,8 @@ import { page, userEvent } from "vitest/browser";
 import { campaigns } from "@/lib/content/email-your-mp";
 import { staffDate, staffTime } from "@/lib/staff-time";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
+import { refused } from "@/lib/form-result";
+import type { AddNote } from "@/lib/notes/notes";
 import { exampleBlock } from "../oversight/BlocksTable.examples";
 import { exampleLetter } from "../letters/LettersTable.examples";
 import PoliticianCorrespondence from "./PoliticianCorrespondence";
@@ -190,15 +192,7 @@ describe("PoliticianDetails", () => {
     const { fn, sent } = action();
     const politician = { ...MP, salutation: MP.name, salutationToCheck: true, importantTarget: false };
     const { rerender } = await render(
-      <PoliticianDetails
-        politician={politician}
-        unblock={vi.fn()}
-        editDetails={async (form) => {
-          fn(form);
-          return { saved: true };
-        }}
-        {...none}
-      />,
+      <PoliticianDetails politician={politician} unblock={vi.fn()} editDetails={fn} {...none} />,
     );
     const words = politiciansCopy.politician.editDetails;
     await page.getByRole("button", { name: words.edit }).click();
@@ -217,8 +211,8 @@ describe("PoliticianDetails", () => {
     await expect.element(page.getByRole("button", { name: words.edit })).not.toBeInTheDocument();
   });
 
-  it("saves a salutation from its bubble, which stays open when the server gives no answer", async () => {
-    const editDetails = vi.fn(async () => undefined);
+  it("saves a salutation from its bubble, which stays open when the server refuses it", async () => {
+    const editDetails = vi.fn(async () => refused("note"));
     await render(<PoliticianDetails politician={MP} unblock={vi.fn()} editDetails={editDetails} {...none} />);
     const words = politiciansCopy.politician.editDetails;
     await page.getByRole("button", { name: words.edit }).click();
@@ -292,7 +286,7 @@ describe("PoliticianDetails", () => {
   });
 
   it("puts staff's notes in their card, to change there, and in the history as plain lines", async () => {
-    const add = vi.fn();
+    const add = vi.fn<AddNote>(async () => ({ ok: true }));
     await render(
       <PoliticianDetails
         politician={MP}
@@ -1508,7 +1502,7 @@ describe("PoliticianDetails", () => {
 
   it("opens their other addresses from their email in the band, with a Remove by those staff can take off, the newest added last", async () => {
     const remove = action();
-    const add = vi.fn(async () => ({ added: true as const }));
+    const add = vi.fn(async () => ({ ok: true as const }));
     const aliases = { add, remove: remove.fn };
     const words = politiciansCopy.politician.aliases;
     const details = (props: Partial<Parameters<typeof PoliticianDetails>[0]> = {}) => (
@@ -1598,9 +1592,9 @@ describe("PoliticianDetails", () => {
       <PoliticianDetails
         politician={examplePolitician}
         asks={[]}
-        setStatus={() => {}}
+        setStatus={vi.fn()}
         block={undefined}
-        unblock={() => {}}
+        unblock={vi.fn()}
         letters={{ senders: false, letters: [] }}
         oneOffs={[exampleOneOffs[0], exampleHiddenOneOff, { ...exampleOneOffs[0], id: 3, subject: "" }]}
         history={[]}

@@ -8,6 +8,7 @@ import MarchError from "./(march)/demonstrations/march-against-ai-extinction-nov
 import SiteError from "./(site)/error";
 import StaffOuterError from "./(staff)/error";
 import SignedInError from "./(staff)/staff/(signed-in)/error";
+import SignedInNotFound from "./(staff)/staff/(signed-in)/not-found";
 import StaffError from "./(staff)/staff/_components/shell/StaffError";
 import { shellCopy } from "./(staff)/staff/_components/shell/copy";
 import ToolsError from "./(tools)/error";
@@ -71,5 +72,11 @@ describe("the staff error page", () => {
   it("is the signed-in pages' error page", async () => {
     await render(<SignedInError error={fromServer()} retry={() => {}} />);
     await expect.element(page.getByRole("heading", { name: shellCopy.error.title })).toBeVisible();
+  });
+
+  it("has a page of its own for a record that isn't there, which the signed-in pages show beside the navigation", async () => {
+    await render(<SignedInNotFound />);
+    await expect.element(page.getByRole("heading", { name: shellCopy.notFound.title })).toBeVisible();
+    await expect.element(page.getByText(shellCopy.notFound.words)).toBeVisible();
   });
 });

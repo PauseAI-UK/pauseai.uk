@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import BlocksTable, { blockColumns } from "./BlocksTable";
+import { BlocksTableExample } from "./BlocksTable.gallery.client";
 import {
   exampleBlock,
   exampleBroadcastBlock,
@@ -14,17 +15,28 @@ import {
 } from "./BlocksTable.examples";
 import type { Block } from "@/lib/oversight/blocks.server";
 import { BLOCKS_PAGE_SIZE } from "@/lib/email/block-filters";
-import { action } from "@/tests/browser/staff";
+import { refused } from "@/lib/form-result";
+import type { Unblock } from "../email/UnblockForm";
 import { supportersCopy } from "../supporters/copy";
-import { emailCopy } from "@/lib/email/copy";
+import { emailCopy } from "../email/copy";
 import { type DownloadColumn } from "@/lib/staff-list";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { BLOCKED_ADDRESSES_LIST } from "@/lib/staff-lists";
 
 const copy = emailCopy.emails;
 
+/** A stand-in for the Server Action that unblocks, answering each form with `answer`, and keeping what each sent. */
+function action(answer: Awaited<ReturnType<Unblock>> = { ok: true }) {
+  const sent: Record<string, FormDataEntryValue>[] = [];
+  const fn = vi.fn<Unblock>(async (data) => {
+    sent.push(Object.fromEntries(data));
+    return answer;
+  });
+  return { fn, sent };
+}
+
 /** The table of `blocks`, on its first page, unblocking by `unblock`. */
-function table(blocks: Block[], unblock: (form: FormData) => void = vi.fn(), letterLinks = true) {
+function table(blocks: Block[], unblock: Unblock = action().fn, letterLinks = true) {
   return render(
     <BlocksTable
       list={{ total: blocks.length, blocks }}
@@ -114,6 +126,32 @@ describe("BlocksTable", () => {
     await vi.waitFor(() => expect(sent).toEqual([{ address: exampleBlock.address, note: "Fixed in Airtable" }]));
   });
 
+  it("says under the field that a note of nothing but spaces won't do, the bubble still open with it", async () => {
+    const { fn, sent } = action(refused("blank"));
+    await table([listed(exampleBlock)], fn);
+    const bounced = rowOf(exampleBlock.address);
+    const note = bounced.getByLabelText(copy.note);
+    await bounced.getByRole("button", { name: copy.unblockOpen }).click();
+    await note.fill("   ");
+    await bounced.getByRole("button", { name: copy.unblock, exact: true }).click();
+    await expect.element(bounced.getByRole("alert")).toHaveTextContent(emailCopy.unblockRefused.blank);
+    await expect.element(note).toBeVisible();
+    await expect.element(note).toHaveAttribute("aria-invalid", "true");
+    await expect.element(note).toHaveValue("   ");
+    expect(sent).toEqual([{ address: exampleBlock.address, note: "   " }]);
+  });
+
+  it("logs an unblock, in its example", async () => {
+    await render(<BlocksTableExample />);
+    const bounced = rowOf(exampleBlock.address);
+    await bounced.getByRole("button", { name: copy.unblockOpen }).click();
+    await bounced.getByLabelText(copy.note).fill("Fixed in Airtable");
+    await bounced.getByRole("button", { name: copy.unblock, exact: true }).click();
+    await expect
+      .element(page.getByRole("list", { name: "Event log" }).getByRole("listitem"))
+      .toHaveTextContent(`unblock({"address":"${exampleBlock.address}","note":"Fixed in Airtable"})`);
+  });
+
   it("lists a number WhatsApp couldn't reach: as written in the UK, by text, when texts try it again, and the broadcast", async () => {
     const { fn, sent } = action();
     await table([{ ...exampleNumber, triesFrom: new Date("2099-01-02T10:00:00Z") }], fn);
@@ -178,7 +216,7 @@ describe("BlocksTable", () => {
   });
 
   it("names the letter without linking to it, without letter links", async () => {
-    await table([listed(exampleBlock)], vi.fn(), false);
+    await table([listed(exampleBlock)], action().fn, false);
     // Cut, with … to unfold it.
     const letter = page.getByRole("group").filter({ hasText: `${copy.letterTo} Bouncy` });
     await expect.element(letter).toBeVisible();
@@ -194,7 +232,7 @@ describe("BlocksTable", () => {
         page={2}
         of={BLOCKED_ADDRESSES_LIST}
         search={BLOCKED_ADDRESSES_LIST.read({})}
-        unblock={vi.fn()}
+        unblock={action().fn}
         letterLinks
       />,
     );

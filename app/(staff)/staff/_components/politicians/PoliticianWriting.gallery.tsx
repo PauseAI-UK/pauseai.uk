@@ -9,10 +9,10 @@ export const politicianWritingGallery: Example[] = [
     name: "SalutationBubble",
     file: "app/(staff)/staff/_components/politicians/PoliticianWriting.tsx",
     variants: [
-      { label: "A salutation, with its Change", render: () => <SalutationBubbleExample result={{ saved: true }} /> },
+      { label: "A salutation, with its Change", render: () => <SalutationBubbleExample result={{ ok: true }} /> },
       {
         label: "One made from their name, which says so",
-        render: () => <SalutationBubbleExample fromName result={{ saved: true }} />,
+        render: () => <SalutationBubbleExample fromName result={{ ok: true }} />,
       },
     ],
   },
@@ -24,7 +24,7 @@ export const politicianWritingGallery: Example[] = [
         label: "An MP's email, its bubble open to change it, with their other addresses",
         render: () => (
           <StaffPage as="div">
-            <AddressesBubbleExample result={{ saved: true }} />
+            <AddressesBubbleExample result={{ ok: true }} />
           </StaffPage>
         ),
       },
@@ -32,7 +32,7 @@ export const politicianWritingGallery: Example[] = [
         label: "A Lord with no email, to set one",
         render: () => (
           <StaffPage as="div">
-            <AddressesBubbleExample lord result={{ saved: false, why: "shared" }} />
+            <AddressesBubbleExample lord result={{ ok: false, reason: "shared" }} />
           </StaffPage>
         ),
       },

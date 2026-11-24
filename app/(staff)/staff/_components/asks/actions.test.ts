@@ -69,9 +69,17 @@ describeWithDatabase("the asks pages' Server Actions", () => {
     expect(
       await expectRedirect(() => saveAskNow(reception({ slug: "winter-reception-dec-2026", kind: "letter" }))),
     ).toBe("/staff/asks/winter-reception-dec-2026/edit?notice=kind-in-use&back=%2Fstaff%2Fasks");
-    expect(await expectRedirect(() => saveAskNow(form({ title: "", kind: "event" })))).toBe(
-      "/staff/asks/new?notice=invalid&back=%2Fstaff%2Fasks",
+  });
+
+  it("throws on a form without its kind, or a delete without its slug, which the form fills in itself", async () => {
+    await expect(saveAskNow(form({ title: "Winter reception" }))).rejects.toThrow("without its kind");
+    // No title, or a link that isn't a whole one: the form's Save is off for both.
+    await expect(saveAskNow(form({ title: "", kind: "event" }))).rejects.toThrow("without its title");
+    await expect(saveAskNow(reception({ slug: "winter-reception-dec-2026", url: "luma.com/winter" }))).rejects.toThrow(
+      "isn't a whole one",
     );
+    await expect(deleteAskNow(new FormData())).rejects.toThrow(`without its "slug"`);
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("deletes an ask, or goes back to its form saying why not, or to the asks if it's gone", async () => {
@@ -83,7 +91,9 @@ describeWithDatabase("the asks pages' Server Actions", () => {
       "/staff/asks?notice=deleted",
     );
     // One already gone, by another tab, has no form to go back to: the asks page says so.
-    expect(await expectRedirect(() => deleteAskNow(new FormData()))).toBe("/staff/asks?notice=gone");
+    expect(await expectRedirect(() => deleteAskNow(form({ slug: "winter-reception-dec-2026" })))).toBe(
+      "/staff/asks?notice=gone",
+    );
     expect(
       await expectRedirect(() =>
         saveAskNow(form({ slug: "winter-reception-dec-2026", title: "Winter", kind: "event" })),

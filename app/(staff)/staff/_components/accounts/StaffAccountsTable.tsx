@@ -7,11 +7,13 @@ import { FieldError } from "@/components/ui/Field";
 import Table from "@/components/ui/Table";
 import { ACCOUNTS_LIST, type AccountSort } from "@/lib/staff-lists";
 import { ADDED_BY_LOGIN, isStaffEmail, PERMISSIONS, type Permission } from "@/lib/accounts/permissions";
+import type { FormResult } from "@/lib/form-result";
 import { sortHref, type SortSpec } from "@/lib/staff-sort";
 import type { StaffAccount } from "@/lib/accounts/staff-accounts.server";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Muted } from "@/components/ui/Text";
 import { DeleteTwice } from "../ui/DeleteTwice";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import SortHeading from "../ui/SortHeading";
 import StaffMember from "../ui/StaffMember";
 import { staffMemberText } from "@/lib/staff-member";
@@ -22,7 +24,11 @@ import frame from "../ui/ListFrame.module.css";
 import styles from "./StaffAccountsTable.module.css";
 import { accountsCopy } from "./copy";
 
-type Action = (form: FormData) => void | Promise<void>;
+/**
+ * What the accounts page's forms do (accounts/actions.ts): each goes back to
+ * the page, which says a change that was refused, so none answers a refusal.
+ */
+type Action = (form: FormData) => Promise<FormResult<never>>;
 
 /** The form an account's permissions are saved with: whose, and "permission:<name>" for each ticked (lib/staff-forms.ts). */
 function accountForm(email: string, permissions: readonly Permission[]): FormData {
@@ -37,11 +43,14 @@ function accountForm(email: string, permissions: readonly Permission[]): FormDat
  * bubble under it, over the table, so the row doesn't move: a box for
  * each, ticked for those it has; Save, off till they differ from what's
  * saved, saves them and closes it, and Cancel closes it as it was. One refused (the last admin) stays as it was saved,
- * and the page says why.
+ * and the page says why. A save that fails says so under the buttons, the bubble still open.
  */
 function Permissions({ account, save }: { account: StaffAccount; save: Action }) {
   const copy = accountsCopy.accounts;
   const [ticked, setTicked] = useState<readonly Permission[]>(account.permissions);
+  // How many times it's been sent. Once a form's action ends, React puts its tick boxes back as they were first
+  // drawn, whatever they're held as, so the boxes are drawn afresh after each send, as they're ticked now.
+  const [sends, setSends] = useState(0);
   const form = useRef<HTMLFormElement>(null);
   const close = () => form.current!.closest<HTMLElement>("[popover]")!.hidePopover();
   return (
@@ -52,16 +61,15 @@ function Permissions({ account, save }: { account: StaffAccount; save: Action })
         trigger={buttonClass({ variant: "ghost", size: "small", fit: true })}
         label={copy.edit}
       >
-        <form
+        <ResultForm
           ref={form}
           className={styles.editor}
           aria-label={copy.editLabel(staffMemberText(account.email))}
-          action={async () => {
-            await save(accountForm(account.email, ticked));
-            close();
-          }}
+          action={() => save(accountForm(account.email, ticked)).finally(() => setSends((n) => n + 1))}
+          says={{}}
+          done={close}
         >
-          <div className={styles.boxes}>
+          <div className={styles.boxes} key={sends}>
             {PERMISSIONS.map((permission) => (
               <Checkbox
                 key={permission}
@@ -94,7 +102,8 @@ function Permissions({ account, save }: { account: StaffAccount; save: Action })
               {copy.cancel}
             </Button>
           </span>
-        </form>
+          <Refusal />
+        </ResultForm>
       </Bubble>
     </span>
   );
@@ -108,12 +117,13 @@ function EndSessionsForm({ account, yours, end }: { account: StaffAccount; yours
   const copy = accountsCopy.accounts;
   if (account.sessions === 0) return null;
   return (
-    <form action={end} aria-label={`${copy.endSessions}: ${staffMemberText(account.email)}`}>
+    <ResultForm action={end} says={{}} aria-label={`${copy.endSessions}: ${staffMemberText(account.email)}`}>
       <input type="hidden" name="email" value={account.email} />
       <SubmitButton variant="ghost" size="small" fit>
         {yours ? copy.endMySessions : copy.endSessions}
       </SubmitButton>
-    </form>
+      <Refusal />
+    </ResultForm>
   );
 }
 
@@ -149,7 +159,7 @@ export function AddStaff({ accounts, add }: { accounts: StaffAccount[]; add: Act
       label={copy.addStaff}
       className={styles.addBubble}
     >
-      <form action={submit} onSubmit={check} aria-label={copy.addTitle} className={styles.add}>
+      <ResultForm action={submit} says={{}} onSubmit={check} aria-label={copy.addTitle} className={styles.add}>
         <label htmlFor="add-staff-email" className={styles.addLabel}>
           {copy.addLabel}
         </label>
@@ -169,7 +179,8 @@ export function AddStaff({ accounts, add }: { accounts: StaffAccount[]; add: Act
         {problem && (
           <FieldError announce="alert">{problem === "exists" ? copy.alreadyThere : copy.notPauseai}</FieldError>
         )}
-      </form>
+        <Refusal />
+      </ResultForm>
     </Bubble>
   );
 }
@@ -260,7 +271,7 @@ export default function StaffAccountsTable({
                 )}
               </td>
               <td className={frame.end}>
-                <DeleteTwice name="email" value={account.email} label={copy.remove} short action={remove} />
+                <DeleteTwice name="email" value={account.email} label={copy.remove} short action={remove} says={{}} />
               </td>
             </tr>
           ))}

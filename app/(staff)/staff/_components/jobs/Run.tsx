@@ -1,6 +1,7 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { gmailMessageLink } from "@/lib/email/gmail-links";
+import type { FormResult } from "@/lib/form-result";
 import {
   type AnyImportRun,
   type ControlAiImport,
@@ -19,12 +20,13 @@ import RunBox from "./RunBox";
 import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
 import OpenInGmail from "../ui/OpenInGmail";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import { politiciansCopy } from "../politicians/copy";
 import { lettersCopy } from "../letters/copy";
 import { jobsCopy } from "./copy";
 
-/** The Server Action that applies or discards a held import. */
-export type Decide = (formData: FormData) => void | Promise<void>;
+/** The Server Action that applies or discards a held import: refused for one that's held no longer. */
+export type Decide = (form: FormData) => Promise<FormResult<"gone">>;
 
 /** A run as a row of its job's page, or on one line, as its card has it (RunBox). */
 type Variant = "row" | "line";
@@ -76,17 +78,22 @@ function Lines({ heading, lines }: { heading: string; lines: string[] }) {
   );
 }
 
-/** One button, in a form of its own, so the decision travels as a field. */
+/**
+ * One button, in a form of its own, so the decision travels as a field. An
+ * import that's held no longer is said at the page's top, as the page then
+ * shows it without its buttons.
+ */
 function Decision({ run, decision, decide }: { run: PoliticianImport; decision: "apply" | "discard"; decide: Decide }) {
   return (
-    <form action={decide}>
+    <ResultForm action={decide} says={jobsCopy.runs.refused} atTop={["gone"]}>
       <input type="hidden" name="id" value={run.id} />
       <input type="hidden" name="job" value={run.job} />
       <input type="hidden" name="decision" value={decision} />
       <SubmitButton variant={decision === "apply" ? "primary" : "ghost"} size="small">
         {politiciansCopy.politicianImports[decision]}
       </SubmitButton>
-    </form>
+      <Refusal />
+    </ResultForm>
   );
 }
 

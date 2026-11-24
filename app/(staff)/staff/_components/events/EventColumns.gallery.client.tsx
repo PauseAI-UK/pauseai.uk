@@ -18,7 +18,7 @@ export function EventColumnsExample({ grouping, none = false }: { grouping: Even
           now={exampleEventsNow}
           save={async (form) => {
             log("save")(form);
-            return { emailed: [], owner: null };
+            return { ok: true, emailed: [], owner: null };
           }}
         />
       )}
@@ -40,7 +40,7 @@ export function EventsListExample({ params = {} }: { params?: Parameters<typeof 
           hosts
           save={async (form) => {
             log("save")(form);
-            return { emailed: [], owner: null };
+            return { ok: true, emailed: [], owner: null };
           }}
         />
       )}

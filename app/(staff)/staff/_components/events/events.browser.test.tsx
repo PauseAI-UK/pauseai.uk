@@ -19,7 +19,7 @@ import { EventsTableExample } from "./EventsTable.gallery.client";
 import { eventsCopy } from "@/lib/events/copy";
 
 const copy = eventsCopy.events;
-const noAction: SaveEvent = async () => ({ emailed: [], owner: null });
+const noAction: SaveEvent = async () => ({ ok: true, emailed: [], owner: null });
 
 /** The events table on a tab, with filters as typed (`params`), saving with `save`, its hosts shown only with `hosts`. */
 function renderTable(params: Parameters<typeof exampleEventsTab>[0] = {}, save: SaveEvent = noAction, hosts = false) {
@@ -249,7 +249,7 @@ describe("EventsTable", () => {
   });
 
   it("saves the owner and doc together, only a link to Google, then closes", async () => {
-    const save = vi.fn(async (form: FormData) => ({ emailed: [], owner: form.get("owner") as string }));
+    const save = vi.fn<SaveEvent>(async (form) => ({ ok: true, emailed: [], owner: form.get("owner") as string }));
     await renderTable({}, save);
     await row("AI risk talk").getByRole("button", { name: copy.edit }).click();
     const fields = bubble("AI risk talk");
@@ -274,7 +274,11 @@ describe("EventsTable", () => {
   });
 
   it("says whom a save emailed, over the table, till its × closes it", async () => {
-    const save = async () => ({ emailed: ["sean@pauseai.uk", "joseph@pauseai.uk"], owner: "sean@pauseai.uk" });
+    const save: SaveEvent = async () => ({
+      ok: true,
+      emailed: ["sean@pauseai.uk", "joseph@pauseai.uk"],
+      owner: "sean@pauseai.uk",
+    });
     await renderTable({}, save);
     await row("AI risk talk").getByRole("button", { name: copy.edit }).click();
     const fields = bubble("AI risk talk");
@@ -285,6 +289,21 @@ describe("EventsTable", () => {
     );
     await page.getByRole("button", { name: copy.closeEmailed }).click();
     await expect.element(page.getByRole("button", { name: copy.closeEmailed })).not.toBeInTheDocument();
+    expect(status().textContent).toBe("");
+  });
+
+  it("says under the buttons that a save failed, the bubble still open with the link as typed", async () => {
+    // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
+    const save = vi.fn<SaveEvent>().mockRejectedValue(Object.assign(new Error("Server"), { digest: "1" }));
+    await renderTable({}, save);
+    await row("AI risk talk").getByRole("button", { name: copy.edit }).click();
+    const fields = bubble("AI risk talk");
+    const doc = "https://docs.google.com/document/d/abc/edit";
+    await fields.doc.fill(doc);
+    await fields.save.click();
+    await expect.element(fields.form.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    expect(open(copy.editLabel("AI risk talk"))).toBe(true);
+    await expect.element(fields.doc).toHaveValue(doc);
     expect(status().textContent).toBe("");
   });
 });

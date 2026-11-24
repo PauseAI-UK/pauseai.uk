@@ -1,14 +1,19 @@
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { FormResult } from "@/lib/form-result";
 import type { ErrorSeen } from "@/lib/oversight/errors-seen.server";
 import { staffMemberText } from "@/lib/staff-member";
 import { staffTime } from "@/lib/staff-time";
 import Band, { BandFact } from "../ui/Band";
 import Empty from "../ui/Empty";
 import Grid, { Card } from "../ui/Grid";
+import { Refusal, ResultForm } from "../ui/ResultForm";
 import styles from "./ErrorSeenView.module.css";
 import { oversightCopy } from "@/lib/oversight/copy";
 
 const copy = oversightCopy.errorsSeen;
+
+/** The Server Action that marks an error done, or to do again. It's never refused. */
+export type SetErrorDone = (form: FormData) => Promise<FormResult<never>>;
 
 /**
  * One error's page: its words with what varies taken out, where and what it
@@ -21,25 +26,20 @@ const copy = oversightCopy.errorsSeen;
  * browser, if it came from one; and its stack trace, or that it came with
  * none.
  */
-export default function ErrorSeenView({
-  error,
-  setDone,
-}: {
-  error: ErrorSeen;
-  setDone: (form: FormData) => void | Promise<void>;
-}) {
+export default function ErrorSeenView({ error, setDone }: { error: ErrorSeen; setDone: SetErrorDone }) {
   return (
     <>
       <Band
         title={error.words}
         corner={
-          <form action={setDone}>
+          <ResultForm action={setDone} says={{}}>
             <input type="hidden" name="id" value={error.id} />
             <input type="hidden" name="done" value={error.doneAt ? "" : "yes"} />
             <SubmitButton variant={error.doneAt ? "ghost" : "primary"} size="small">
               {error.doneAt ? copy.one.undo : copy.one.markDone}
             </SubmitButton>
-          </form>
+            <Refusal />
+          </ResultForm>
         }
       >
         <BandFact label={copy.one.kind}>{copy.kinds[error.kind]}</BandFact>

@@ -1,7 +1,7 @@
 "use client";
 
 // AskForm's examples, which log a save or a delete (AskForm.gallery.tsx).
-import { Logged } from "@/app/(tools)/gallery/_components/wiring";
+import { Logged, loggedDone } from "@/app/(tools)/gallery/_components/wiring";
 import AskForm from "./AskForm";
 import { exampleEditableAsk } from "./AsksList.examples";
 
@@ -23,7 +23,13 @@ export function AskFormExample({ ask, notice = "" }: { ask: "new" | "added" | "a
   return (
     <Logged>
       {(log) => (
-        <AskForm ask={asks[ask]} back="/staff/asks" notice={notice} save={log("save")} remove={log("delete")} />
+        <AskForm
+          ask={asks[ask]}
+          back="/staff/asks"
+          notice={notice}
+          save={loggedDone(log, "save")}
+          remove={loggedDone(log, "delete")}
+        />
       )}
     </Logged>
   );

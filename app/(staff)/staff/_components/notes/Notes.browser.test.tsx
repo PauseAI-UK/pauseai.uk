@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { buttonClass } from "@/components/ui/Button";
+import { refused } from "@/lib/form-result";
+import type { AddNote, DeleteNote, EditNote } from "@/lib/notes/notes";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { staffTime } from "@/lib/staff-time";
+import { RefusalPlace } from "../ui/ResultForm";
 import NotesCard from "./NotesCard";
 import Notes, { NoteEntry, NoteText } from "./Notes";
 import { exampleNoteAdmin, exampleNotes, exampleNotesAt, exampleNoteWriter } from "./Notes.examples";
@@ -12,13 +15,28 @@ import { NoteEntryExample, NotesExample, NoteTextExample } from "./Notes.gallery
 import { NoteChangesExample } from "./NoteChanges.gallery.client";
 import { NotesCardExample } from "./NotesCard.gallery.client";
 
+// The page's address, which the place a page says things at its top reads.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/staff/supporters/4",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 const copy = notesCopy.notes;
 const notes = () => page.getByRole("list", { name: copy.title }).getByRole("listitem");
 const fields = (form: FormData) => Object.fromEntries(form.entries());
 
+/** A supporter's notes, under the place a page says things at its top, their actions answering that they're done. */
 async function renderNotes(reader = exampleNoteWriter, list = exampleNotes) {
-  const actions = { add: vi.fn(), edit: vi.fn(), remove: vi.fn() };
-  await render(<Notes supporterId={4} notes={list} reader={reader} at={exampleNotesAt} {...actions} />);
+  const actions = {
+    add: vi.fn<AddNote>(async () => ({ ok: true })),
+    edit: vi.fn<EditNote>(async () => ({ ok: true })),
+    remove: vi.fn<DeleteNote>(async () => ({ ok: true })),
+  };
+  await render(
+    <RefusalPlace>
+      <Notes supporterId={4} notes={list} reader={reader} at={exampleNotesAt} {...actions} />
+    </RefusalPlace>,
+  );
   return actions;
 }
 
@@ -80,16 +98,19 @@ describe("Notes", () => {
 
   it("says so, and stays open, when the server won't change it, its day up on a page left open", async () => {
     const { edit, remove } = await renderNotes();
-    edit.mockResolvedValue(false);
-    remove.mockResolvedValue(false);
+    edit.mockResolvedValue(refused("too-late"));
+    remove.mockResolvedValue(refused("too-late"));
     const first = notes().nth(0);
     await first.getByRole("button", { name: copy.edit }).click();
     await first.getByRole("button", { name: copy.save }).click();
-    await expect.element(first.getByRole("alert")).toHaveTextContent(copy.tooLate.edit);
-    await expect.element(first.getByRole("textbox", { name: copy.note })).toBeVisible();
+    // Under the field, in its form.
+    const field = first.getByRole("textbox", { name: copy.note });
+    await expect.element(first.getByRole("form").getByRole("alert")).toHaveTextContent(copy.tooLate.edit);
+    await expect.element(field).toBeVisible();
+    await expect.element(field).not.toHaveAttribute("aria-invalid");
     await first.getByRole("button", { name: copy.delete }).click();
     await page.getByRole("button", { name: staffVocabulary.deleteItShort }).click();
-    await expect.element(first.getByRole("alert")).toHaveTextContent(copy.tooLate.delete);
+    await expect.element(first.getByRole("alert").filter({ hasText: copy.tooLate.delete })).toBeVisible();
     // Cancel closes it, and what it said with it.
     await first.getByRole("button", { name: copy.cancel }).click();
     await first.getByRole("button", { name: copy.edit }).click();
@@ -99,28 +120,59 @@ describe("Notes", () => {
   it("says so, and stays open with what was written, when saving an edit fails", async () => {
     const { edit } = await renderNotes();
     // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
-    edit.mockRejectedValue(
+    edit.mockRejectedValueOnce(
       Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1" }),
     );
     const first = notes().nth(0);
     await first.getByRole("button", { name: copy.edit }).click();
+    await first.getByRole("textbox", { name: copy.note }).fill("Half written");
     await first.getByRole("button", { name: copy.save }).click();
-    await expect.element(first.getByRole("alert")).toHaveTextContent(copy.notSaved);
-    await expect.element(first.getByRole("textbox", { name: copy.note })).toBeVisible();
+    await expect.element(first.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    await expect.element(first.getByRole("textbox", { name: copy.note })).toHaveValue("Half written");
     // The next try starts afresh.
-    edit.mockResolvedValue(undefined);
     await first.getByRole("button", { name: copy.save }).click();
     await expect.element(first.getByRole("alert")).not.toBeInTheDocument();
     await expect.element(first.getByRole("textbox", { name: copy.note })).not.toBeInTheDocument();
+    expect(fields(edit.mock.calls[1][0])).toEqual({ id: "3", body: "Half written" });
   });
 
-  it("lets an admin delete any note still young enough, but edit none of them", async () => {
-    await renderNotes(exampleNoteAdmin);
+  it("says under the field that an edit of nothing but spaces won't do, keeping it", async () => {
+    const { edit } = await renderNotes();
+    edit.mockResolvedValue(refused("blank"));
+    const first = notes().nth(0);
+    await first.getByRole("button", { name: copy.edit }).click();
+    const field = first.getByRole("textbox", { name: copy.note });
+    await field.fill("   ");
+    await first.getByRole("button", { name: copy.save }).click();
+    await expect.element(first.getByRole("alert")).toHaveTextContent(copy.blank);
+    await expect.element(field).toHaveAttribute("aria-invalid", "true");
+    await expect.element(field).toHaveValue("   ");
+  });
+
+  it("says at the top of the page that someone has deleted the note being edited", async () => {
+    const { edit } = await renderNotes();
+    edit.mockResolvedValue(refused("gone"));
+    const first = notes().nth(0);
+    await first.getByRole("button", { name: copy.edit }).click();
+    await first.getByRole("button", { name: copy.save }).click();
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toHaveTextContent(copy.gone.note);
+    // Over the page, not in the note.
+    expect(page.getByRole("region", { name: copy.title }).element().contains(alert.element())).toBe(false);
+  });
+
+  it("lets an admin delete any note still young enough, but edit none of them, saying under Delete when its day is up", async () => {
+    const { remove } = await renderNotes(exampleNoteAdmin);
     for (const i of [0, 1]) {
       await expect.element(notes().nth(i).getByRole("button", { name: copy.delete })).toBeVisible();
     }
     await expect.element(notes().nth(2).getByRole("button", { name: copy.delete })).not.toBeInTheDocument();
     await expect.element(page.getByText(copy.edit, { exact: true })).not.toBeInTheDocument();
+    remove.mockResolvedValue(refused("too-late"));
+    await notes().nth(1).getByRole("button", { name: copy.delete }).click();
+    await page.getByRole("button", { name: staffVocabulary.deleteItShort }).click();
+    await expect.element(notes().nth(1).getByRole("alert")).toHaveTextContent(copy.tooLate.delete);
+    expect((remove.mock.calls[0][0] as FormData).get("id")).toBe("2");
   });
 
   it("says when there are none, and adds one on the supporter, with what a note should be under the field", async () => {
@@ -136,6 +188,41 @@ describe("Notes", () => {
     expect(fields(add.mock.calls[0][0])).toEqual({ supporterId: "4", body: "Keen\nto help" });
     // Added, it closes, for the page to show the note.
     await expect.element(page.getByRole("button", { name: copy.write })).toBeVisible();
+  });
+
+  it("says under the draft's field that a note of nothing but spaces won't do, keeping it open", async () => {
+    const { add } = await renderNotes(exampleNoteWriter, []);
+    add.mockResolvedValue(refused("blank"));
+    await page.getByRole("button", { name: copy.write }).click();
+    const field = page.getByRole("textbox", { name: copy.note });
+    await field.fill("   ");
+    await page.getByRole("button", { name: copy.add }).click();
+    await expect.element(page.getByRole("form", { name: copy.add }).getByRole("alert")).toHaveTextContent(copy.blank);
+    await expect.element(field).toHaveAttribute("aria-invalid", "true");
+    await expect.element(field).toHaveValue("   ");
+  });
+
+  it("says at the top of the page that whoever a new note is about has gone", async () => {
+    const { add } = await renderNotes(exampleNoteWriter, []);
+    add.mockResolvedValue(refused("gone"));
+    await page.getByRole("button", { name: copy.write }).click();
+    await page.getByRole("textbox", { name: copy.note }).fill("Keen to help");
+    await page.getByRole("button", { name: copy.add }).click();
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toHaveTextContent(copy.gone.supporter);
+    // Over the page, not in the card.
+    expect(page.getByRole("region", { name: copy.title }).element().contains(alert.element())).toBe(false);
+  });
+
+  it("says under the draft's buttons that adding it failed, keeping what was written", async () => {
+    const { add } = await renderNotes(exampleNoteWriter, []);
+    // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
+    add.mockRejectedValue(Object.assign(new Error("Server"), { digest: "1" }));
+    await page.getByRole("button", { name: copy.write }).click();
+    await page.getByRole("textbox", { name: copy.note }).fill("Keen to help");
+    await page.getByRole("button", { name: copy.add }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    await expect.element(page.getByRole("textbox", { name: copy.note })).toHaveValue("Keen to help");
   });
 });
 
@@ -159,7 +246,7 @@ describe("NoteEntry", () => {
 
 describe("NotesCard", () => {
   it("opens a draft from Write a note, closes it unsent on Cancel, and on a politician has no reminder under the field", async () => {
-    const add = vi.fn();
+    const add = vi.fn<AddNote>(async () => ({ ok: true }));
     await render(
       <NotesCard target={{ name: "politicianId", value: 7 }} writer="jo@pauseai.uk" add={add}>
         {[]}
@@ -185,6 +272,20 @@ describe("NotesCard", () => {
     await page.getByRole("textbox", { name: copy.note }).fill("Met them again");
     await userEvent.keyboard("{Meta>}{Enter}{/Meta}");
     expect(fields(add.mock.calls[1][0])).toEqual({ politicianId: "7", body: "Met them again" });
+  });
+
+  it("says at the top of the page that a politician a new note is about has been removed", async () => {
+    await render(
+      <RefusalPlace>
+        <NotesCard target={{ name: "politicianId", value: 7 }} writer="jo@pauseai.uk" add={async () => refused("gone")}>
+          {[]}
+        </NotesCard>
+      </RefusalPlace>,
+    );
+    await page.getByRole("button", { name: copy.write }).click();
+    await page.getByRole("textbox", { name: copy.note }).fill("Met them");
+    await page.getByRole("button", { name: copy.add }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(copy.gone.politician);
   });
 });
 

@@ -1,5 +1,14 @@
 import { Muted } from "@/components/ui/Text";
-import { canDeleteNote, canEditNote, noteParts, type Note, type NoteReader } from "@/lib/notes/notes";
+import {
+  canDeleteNote,
+  canEditNote,
+  noteParts,
+  type AddNote,
+  type DeleteNote,
+  type EditNote,
+  type Note,
+  type NoteReader,
+} from "@/lib/notes/notes";
 import { staffTime } from "@/lib/staff-time";
 import { staffMemberText } from "@/lib/staff-member";
 import NoteChanges from "./NoteChanges";
@@ -10,19 +19,15 @@ import { notesCopy } from "./copy";
 
 const copy = notesCopy.notes;
 
-type Action = (form: FormData) => void | Promise<void>;
-/** Changing a note: false when the server refuses, as after a day. */
-type Change = (form: FormData) => boolean | void | Promise<boolean | void>;
-
 /** What a page's notes need: the notes, who's reading, the server's time, and the forms' actions. */
 export type NotesProps = {
   notes: Note[];
   reader: NoteReader;
   /** The server's time, which says whose notes can still be changed. */
   at: string;
-  add: Action;
-  edit: Change;
-  remove: Change;
+  add: AddNote;
+  edit: EditNote;
+  remove: DeleteNote;
 };
 
 /** A note's text, its line breaks kept and each address in it a link, opening in a new tab. */

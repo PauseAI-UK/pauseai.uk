@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
-import { action } from "@/tests/browser/staff";
-import ErrorSeenView from "./ErrorSeenView";
+import ErrorSeenView, { type SetErrorDone } from "./ErrorSeenView";
+import { ErrorSeenViewExample } from "./ErrorSeenView.gallery.client";
 import ErrorsSeen from "./ErrorsSeen";
 import { exampleErrorDone, exampleErrorsSeen } from "./ErrorsSeen.examples";
 import { shellCopy } from "../shell/copy";
@@ -130,20 +130,39 @@ describe("ErrorSeenView", () => {
   });
 
   it("marks an error done, and once it's done, says who and when, and makes it to do again", async () => {
-    const { fn, sent } = action();
+    const fn = vi.fn<SetErrorDone>(async () => ({ ok: true }));
+    const sent = () => fn.mock.calls.map(([form]) => Object.fromEntries(form));
     const { rerender } = await render(<ErrorSeenView error={problem} setDone={fn} />);
     await page.getByRole("button", { name: copy.one.markDone }).click();
-    await expect.poll(() => sent).toEqual([{ id: String(problem.id), done: "yes" }]);
+    await expect.poll(sent).toEqual([{ id: String(problem.id), done: "yes" }]);
 
     await rerender(<ErrorSeenView error={exampleErrorDone} setDone={fn} />);
     await expect.element(page.getByText(copy.one.doneBy("jane.smith@pauseai.uk", "9 Nov 2026, 12:00"))).toBeVisible();
     expect(page.getByRole("button", { name: copy.one.markDone }).elements()).toEqual([]);
     await page.getByRole("button", { name: copy.one.undo }).click();
-    await expect
-      .poll(() => sent)
-      .toEqual([
-        { id: String(problem.id), done: "yes" },
-        { id: String(problem.id), done: "" },
-      ]);
+    await expect.poll(sent).toEqual([
+      { id: String(problem.id), done: "yes" },
+      { id: String(problem.id), done: "" },
+    ]);
+    await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("says under the button that marking it done failed", async () => {
+    // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
+    const fn = vi.fn<SetErrorDone>().mockRejectedValue(Object.assign(new Error("Server"), { digest: "1" }));
+    await render(<ErrorSeenView error={problem} setDone={fn} />);
+    await page.getByRole("button", { name: copy.one.markDone }).click();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+  });
+
+  it("logs marking an error done, and to do again, in its examples", async () => {
+    const log = () => page.getByRole("list", { name: "Event log" }).getByRole("listitem");
+    const { unmount } = await render(<ErrorSeenViewExample which={1} />);
+    await page.getByRole("button", { name: copy.one.markDone }).click();
+    await expect.element(log()).toHaveTextContent(`setDone({"id":"${problem.id}","done":"yes"})`);
+    await unmount();
+    await render(<ErrorSeenViewExample which="done" />);
+    await page.getByRole("button", { name: copy.one.undo }).click();
+    await expect.element(log()).toHaveTextContent(`setDone({"id":"${exampleErrorDone.id}","done":""})`);
   });
 });

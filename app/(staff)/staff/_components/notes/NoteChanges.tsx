@@ -2,18 +2,17 @@
 
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
-import { TextArea } from "@/components/ui/Controls";
-import { ErrorText } from "@/components/ui/Text";
-import { useSave } from "@/components/ui/useSave";
-import { isSaveKey } from "@/lib/notes/notes";
+import { isSaveKey, type DeleteNote, type EditNote } from "@/lib/notes/notes";
 import { DeleteTwice } from "../ui/DeleteTwice";
+import { Refusal, RefusedTextArea, ResultForm } from "../ui/ResultForm";
 import styles from "./Notes.module.css";
 import { notesCopy } from "./copy";
 
 const copy = notesCopy.notes;
 
-/** Changing a note: false when the server refuses, as after a day. */
-type Change = (form: FormData) => boolean | void | Promise<boolean | void>;
+/** What the edit form says for each reason its action refuses it for, and Delete for its one. */
+const EDIT_SAYS = { blank: copy.blank, gone: copy.gone.note, "too-late": copy.tooLate.edit };
+const DELETE_SAYS = { "too-late": copy.tooLate.delete };
 
 /**
  * A note that someone may change: `text`, and under it `meta`, who wrote
@@ -23,8 +22,11 @@ type Change = (form: FormData) => boolean | void | Promise<boolean | void>;
  * Save, Cancel and Delete, red, pressed twice, in
  * place of Edit; saving or cancelling puts the text back. Anyone else who
  * may delete it, an admin in that same day, has Delete alone. If the server
- * refuses, as it does once the day is up on a page left open, it stays open
- * and says why; and if saving fails, it stays open and says so.
+ * refuses, as it does once the day is up on a page left open, or for text
+ * of nothing but spaces, it stays open and says why, under the field for an
+ * edit and under Delete for that; and if saving fails, it stays open, with
+ * what was typed, and says so. A note someone deleted meanwhile is said at
+ * the page's top.
  */
 export default function NoteChanges({
   note,
@@ -38,24 +40,16 @@ export default function NoteChanges({
   editable: boolean;
   text: ReactNode;
   meta: ReactNode;
-  edit: Change;
-  remove: Change;
+  edit: EditNote;
+  remove: DeleteNote;
 }) {
   const [editing, setEditing] = useState(false);
-  const [refused, setRefused] = useState<"edit" | "delete" | null>(null);
-  const removing = async (form: FormData) => {
-    if ((await remove(form)) === false) setRefused("delete");
-  };
-  const [save, pending, notSaved] = useSave(async (form: FormData) => edit(form), {
-    done: (changed) => {
-      if (changed === false) setRefused("edit");
-      else setEditing(false);
-    },
-  });
   const id = `note-${note.id}-edit`;
   let buttons: ReactNode;
   if (!editable) {
-    buttons = <DeleteTwice name="id" value={String(note.id)} label={copy.delete} action={removing} short />;
+    buttons = (
+      <DeleteTwice name="id" value={String(note.id)} label={copy.delete} action={remove} says={DELETE_SAYS} short />
+    );
   } else if (!editing) {
     // Keyed, as is Save, so the button clicked isn't reused as Save, a submit button, which the click would then send.
     buttons = (
@@ -66,44 +60,52 @@ export default function NoteChanges({
   } else {
     buttons = (
       <>
-        <Button key="save" variant="primary" size="small" fit type="submit" form={id} pending={pending}>
+        <Button key="save" variant="primary" size="small" fit type="submit" form={id}>
           {copy.save}
         </Button>
-        <Button
-          variant="ghost"
-          size="small"
-          fit
-          type="button"
-          onClick={() => {
-            setEditing(false);
-            setRefused(null);
-          }}
-        >
+        <Button variant="ghost" size="small" fit type="button" onClick={() => setEditing(false)}>
           {copy.cancel}
         </Button>
-        <DeleteTwice name="id" value={String(note.id)} label={copy.delete} action={removing} danger short />
+        <DeleteTwice
+          name="id"
+          value={String(note.id)}
+          label={copy.delete}
+          action={remove}
+          says={DELETE_SAYS}
+          danger
+          short
+        />
       </>
     );
   }
   return (
     <div className={styles.note}>
       {editing ? (
-        <form id={id} aria-label={copy.edit} action={save}>
+        <ResultForm
+          id={id}
+          aria-label={copy.edit}
+          action={edit}
+          says={EDIT_SAYS}
+          atTop={["gone"]}
+          done={() => setEditing(false)}
+        >
           <input type="hidden" name="id" value={note.id} />
-          <TextArea
+          <RefusedTextArea
             name="body"
             defaultValue={note.body}
             required
             autoFocus
             aria-label={copy.note}
             rows={4}
+            wrong={["blank"]}
             onKeyDown={(event) => {
               if (!isSaveKey(event)) return;
               event.preventDefault();
               event.currentTarget.form!.requestSubmit();
             }}
           />
-        </form>
+          <Refusal />
+        </ResultForm>
       ) : (
         text
       )}
@@ -111,16 +113,6 @@ export default function NoteChanges({
         {meta}
         <div className={styles.buttons}>{buttons}</div>
       </div>
-      {refused && (
-        <p role="alert" className={styles.refused}>
-          <ErrorText>{copy.tooLate[refused]}</ErrorText>
-        </p>
-      )}
-      {notSaved && (
-        <p role="alert" className={styles.refused}>
-          <ErrorText>{copy.notSaved}</ErrorText>
-        </p>
-      )}
     </div>
   );
 }
