@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { CalendarDay } from "@/components/briefings/WeekCalendar";
 import { checkPostAuthors, type BlogPost, type PostSection } from "../posts";
 import aiNewsWeeklyBriefing23rd30thOctober from "./ai-news-weekly-briefing-23rd-30th-october";
+import aiNewsWeeklyBriefing13th20thNovember from "./ai-news-weekly-briefing-13th-20th-november";
 import aiNewsWeeklyBriefing6th13thNovember from "./ai-news-weekly-briefing-6th-13th-november";
 
 // The campaigns' briefings: a week's news each, laid out as their designer
@@ -26,7 +27,11 @@ export type KeyStory = { lead: string; body: ReactNode };
  */
 export type Briefing = BlogPost & { week: CalendarDay[]; keyStories: KeyStory[] };
 
-export const briefings: Briefing[] = [aiNewsWeeklyBriefing6th13thNovember, aiNewsWeeklyBriefing23rd30thOctober];
+export const briefings: Briefing[] = [
+  aiNewsWeeklyBriefing13th20thNovember,
+  aiNewsWeeklyBriefing6th13thNovember,
+  aiNewsWeeklyBriefing23rd30thOctober,
+];
 
 checkPostAuthors(briefings);
 

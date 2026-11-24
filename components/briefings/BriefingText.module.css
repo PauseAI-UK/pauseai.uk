@@ -23,6 +23,22 @@
   vertical-align: middle;
 }
 
+.columnList {
+  column-gap: var(--space-5);
+  columns: 2;
+}
+/* Spaced below, not above, so the second column's top lines up with the first's. */
+.columnList li {
+  margin: 0 0 6px;
+  break-inside: avoid;
+}
+
+@media (max-width: 820px) {
+  .columnList {
+    columns: 1;
+  }
+}
+
 .aside {
   margin: 0;
   padding-top: 6px;

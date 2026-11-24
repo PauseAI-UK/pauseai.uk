@@ -12,10 +12,12 @@ const config: KnipConfig = {
   workspaces: {
     ".": {
       // scripts/storyboard.mjs starts the first with spawn(), and scripts/serve-fixture.mjs loads the second
-      // into the server with Node's --import, neither of which Knip can follow.
+      // into the server with Node's --import, neither of which Knip can follow. The third is run by
+      // hand with node (docs/code-structure.md, "Adding a week's briefing").
       entry: [
         "scripts/serve-main.mjs",
         "scripts/record-requests.mjs",
+        "scripts/briefing-images.mjs",
         "!app/[(]tools[)]/gallery/**",
         "!**/*.gallery{,.client}.tsx",
       ],

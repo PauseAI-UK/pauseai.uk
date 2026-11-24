@@ -8,6 +8,7 @@ export const section: Section = { name: "Briefings", part: "Public site", order:
 // page has its charts, diagrams and numbered sources.
 const briefing = findBriefing("ai-news-weekly-briefing-23rd-30th-october")!;
 const november = findBriefing("ai-news-weekly-briefing-6th-13th-november")!;
+const thirteenth = findBriefing("ai-news-weekly-briefing-13th-20th-november")!;
 
 test("The menu to briefings", { tag: "@desktop-only" }, async ({ page }) => {
   await page.goto(`${BASE}/`);
@@ -82,4 +83,27 @@ test("A briefing's diagrams and table", async ({ page }) => {
   const pace = page.getByRole("region", { name: /METR figure/ });
   await pace.scrollIntoViewIfNeeded();
   await frame(page, "the pace of AI research at Anthropic");
+});
+
+test("A briefing's diagram beside its story", async ({ page }) => {
+  story("A briefing with a narrow diagram beside a story, a march's route and a list in two columns.");
+  await page.goto(`${BASE}/campaigns/briefings/${thirteenth.slug}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(thirteenth.title);
+  await frame(page, "the 13th–20th November briefing");
+
+  const regulator = page.getByRole("img", { name: /regulator that can act/ });
+  await regulator.scrollIntoViewIfNeeded();
+  await frame(page, "the diagram of the regulator MPs want, beside the story");
+
+  const route = page.getByRole("img", { name: /London march/ });
+  await route.scrollIntoViewIfNeeded();
+  await frame(page, "the march's route");
+
+  const calls = page.getByText("The report calls for:");
+  await calls.scrollIntoViewIfNeeded();
+  await frame(page, "what California's report calls for, in two columns");
+
+  const flags = page.getByRole("img", { name: "China" });
+  await flags.scrollIntoViewIfNeeded();
+  await frame(page, "the US and China flags");
 });

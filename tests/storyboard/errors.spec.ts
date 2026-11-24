@@ -176,6 +176,8 @@ test("An error done happens again", async ({ page, flowDatabase }) => {
   const words = "Asked to break, from a click, on try <n>";
   await page.getByRole("link", { name: words }).click();
   await page.getByRole("button", { name: errors.one.markDone }).click();
+  // Marking it done saves it, then goes back to the errors to do, so the error that follows comes after.
+  await expect(page).toHaveURL(`${BASE}/staff/errors`);
   await expect(page.getByRole("link", { name: words })).toHaveCount(0);
 
   story("Someone clicks the button again, and it throws again. The error is back with those to do, counted twice.");
