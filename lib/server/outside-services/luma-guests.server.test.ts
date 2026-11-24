@@ -274,12 +274,12 @@ describe("addLumaGuest", () => {
     vi.stubEnv("LUMA_API_KEY", "key");
     expect(await addLumaGuest("evt-test", guest("luma-fails@example.org"))).toEqual({
       status: "failed",
-      reason: 'Luma responded 500: {"message":"Fixture failure"}',
+      reason: 'Luma answered 500: {"message":"Fixture failure"}',
     });
     server.use(http.post(ADD, () => new HttpResponse(null, { status: 401 })));
     expect(await addLumaGuest("evt-test", guest("testy@example.org"))).toEqual({
       status: "failed",
-      reason: "Luma responded 401",
+      reason: "Luma answered 401",
     });
   });
 
@@ -288,7 +288,7 @@ describe("addLumaGuest", () => {
     server.use(http.post(ADD, () => HttpResponse.error()));
     expect(await addLumaGuest("evt-test", guest("testy@example.org"))).toEqual({
       status: "failed",
-      reason: expect.stringContaining("Request to Luma failed: Luma couldn't be reached (fetch failed)") as string,
+      reason: expect.stringContaining("Luma couldn't be reached (fetch failed)") as string,
     });
   });
 

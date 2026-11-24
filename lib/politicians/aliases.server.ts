@@ -163,8 +163,7 @@ export async function politicianAliases(politician: {
 const SEARCH_AT_MOST = 50;
 
 /** Whether Gmail refused for now, as it does past its limit a minute: the search carries on next time. */
-const refusedForNow = (error: unknown) =>
-  error instanceof GmailError && (error.status === 429 || (error.status === 403 && /quota|rate/i.test(error.message)));
+const refusedForNow = (error: unknown) => error instanceof GmailError && error.kind === "rate-limited";
 
 /**
  * Keeps what the mailboxes we keep hold with an address in it, anywhere:

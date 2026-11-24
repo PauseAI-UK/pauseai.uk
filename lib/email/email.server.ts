@@ -148,15 +148,6 @@ export type DeliveryProblem = {
 /** Who the audit log says blocked an address. */
 const PROVIDER = "postmark";
 
-/** The addresses Postmark's refusal names as inactive ("Found inactive addresses: a@x.org, b@y.org."), bare. */
-function inactiveAddresses(message: string): string[] {
-  const list = /Found inactive addresses: (.*?)\.(?:\s|$)/.exec(message)?.[1] ?? "";
-  return list
-    .split(",")
-    .map((each) => bareAddress(each))
-    .filter(Boolean);
-}
-
 /**
  * The emails that go even to an address with "Do not email": what the
  * person just asked for, or that is about something they did, such as a
@@ -293,7 +284,7 @@ export async function sendWith(
     if (error instanceof PostmarkError && error.inactive) {
       // Postmark names the suppressed addresses, which may be a Cc rather
       // than the To; failing that, it's the To.
-      const named = inactiveAddresses(error.message);
+      const named = error.inactiveAddresses;
       const inactive = named.length ? named : [address];
       for (const each of inactive) {
         const problem = {

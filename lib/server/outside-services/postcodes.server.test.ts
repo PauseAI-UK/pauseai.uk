@@ -189,7 +189,7 @@ describe("placesForPostcodes", () => {
 
   it("throws when postcodes.io fails", async () => {
     server.use(http.post(BULK, () => new HttpResponse(null, { status: 500 })));
-    await expect(placesForPostcodes(["M1 1AE"])).rejects.toThrow("postcodes.io returned 500");
+    await expect(placesForPostcodes(["M1 1AE"])).rejects.toThrow("postcodes.io answered 500");
   });
 });
 
@@ -221,7 +221,7 @@ describe("placeNamed", () => {
     server.use(http.get(PLACES, () => HttpResponse.json({ result: null })));
     expect(await placeNamed("Nowhere")).toBeNull();
     server.use(http.get(PLACES, () => new HttpResponse(null, { status: 503 })));
-    await expect(placeNamed("Leeds")).rejects.toThrow("postcodes.io returned 503");
+    await expect(placeNamed("Leeds")).rejects.toThrow("postcodes.io answered 503");
   });
 });
 
@@ -289,6 +289,6 @@ describe("placeForOutcode", () => {
 
   it("throws if the request fails", async () => {
     server.use(http.get(OUTCODES, () => new HttpResponse(null, { status: 500 })));
-    await expect(placeForOutcode("SE15")).rejects.toThrow("postcodes.io returned 500");
+    await expect(placeForOutcode("SE15")).rejects.toThrow("postcodes.io answered 500");
   });
 });

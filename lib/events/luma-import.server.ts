@@ -9,7 +9,8 @@ import { lookUpPlaces } from "@/lib/supporters/places.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
 import { assignRuleOwners, ownerEmails } from "./staff-events.server";
 import { tagUpcomingEvents, unclearEventEmails, type UnclearEvent } from "./tagging.server";
-import { LumaRateLimited, type LumaPage } from "@/lib/server/outside-services/luma-api.server";
+import type { LumaPage } from "@/lib/server/outside-services/luma-api.server";
+import { OutsideFailure } from "@/lib/server/outside-services/outside-failure.server";
 import {
   type CalendarEvent,
   listCalendarContacts,
@@ -96,7 +97,7 @@ class Budget {
       this.remaining = page.remaining;
       return page;
     } catch (error) {
-      if (!(error instanceof LumaRateLimited)) throw error;
+      if (!(error instanceof OutsideFailure && error.kind === "rate-limited")) throw error;
       problemInWords(eventsCopy.problems.lumaRefused, error);
       this.requests++;
       this.stoppedBy = "rate-limit";

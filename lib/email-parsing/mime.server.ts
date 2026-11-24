@@ -1,6 +1,7 @@
 import "server-only";
-import { problemInWords } from "@/lib/server/problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { publicText } from "@/lib/problems";
+import { problem } from "@/lib/server/problems.server";
+import { serverProblems } from "@/lib/server/copy";
 import { htmlText } from "./html-text";
 
 // Reading a message from a mailbox, a reply or a bounce: its MIME parts and
@@ -95,7 +96,7 @@ export function decodedText(body: Buffer, contentType: string | undefined): stri
   try {
     text = new TextDecoder(charset).decode(body);
   } catch (error) {
-    problemInWords(serverCopy.problems.anywhere.charsetUnknown(charset), error);
+    problem(serverProblems.charsetUnknown({ charset: publicText(charset) }), error);
     text = body.toString("utf8");
   }
   return text.includes("\uFFFD") ? body.toString("latin1") : text;

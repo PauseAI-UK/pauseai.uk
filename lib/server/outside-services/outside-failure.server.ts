@@ -128,3 +128,22 @@ export function refusal(service: OutsideService, res: Response, details: Failure
 export function notSet(service: OutsideService, setting: string): OutsideFailure {
   return new OutsideFailure(service, "unauthorised", { message: `${setting} is not set` });
 }
+
+/**
+ * A response's body as JSON, or an OutsideFailure for one that isn't: a
+ * service answering with a page of HTML where its JSON should be has
+ * failed, as surely as one that answers 500. Typed as Response.json() is.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- as Response.json() gives it, for the binding to read.
+export async function outsideJson(service: OutsideService, res: Response): Promise<any> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new OutsideFailure(service, "refused", {
+      status: res.status,
+      message: `${OUTSIDE_SERVICES[service]} answered ${res.status} with a body that isn't JSON`,
+      cause: error,
+    });
+  }
+}

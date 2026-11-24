@@ -13,7 +13,7 @@ import {
   signedByMeta,
   WhatsAppRequestError,
 } from "./whatsapp.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 const KEYS = { token: "token", accountId: "account" };
 const GRAPH = "https://graph.facebook.com/v23.0";
@@ -56,7 +56,7 @@ describe("our number", () => {
     // Refused, as by an API version without the field: the lowest, reported.
     server.use(http.get(`${GRAPH}/p1`, () => HttpResponse.json({ error: { code: 100 } }, { status: 400 })));
     expect((await businessNumber(KEYS)).dailyLimit).toBe(250);
-    expect(error.mock.calls[0][0]).toBe(serverCopy.problems.anywhere.whatsAppLimitUnknown);
+    expect(error.mock.calls[0][0]).toBe(serverProblems.whatsAppLimitUnknown().what);
   });
 
   it("refuses an account with no number, or a refusal, with Meta's code", async () => {

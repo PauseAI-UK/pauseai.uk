@@ -1,8 +1,8 @@
 import { expect, it } from "vitest";
-import { serverCopy } from "./copy";
+import { publicText } from "@/lib/problems";
+import { serverProblems } from "./copy";
 
 it("words the problems", () => {
-  const { anywhere, logs } = serverCopy.problems;
-  expect(logs.badBody("Postmark")).toContain("Postmark");
-  expect(anywhere.charsetUnknown("x-mac")).toContain("x-mac");
+  expect(serverProblems.badBody({ from: "Postmark" }).what).toContain("Postmark");
+  expect(serverProblems.charsetUnknown({ charset: publicText("x-mac") }).what).toContain("x-mac");
 });

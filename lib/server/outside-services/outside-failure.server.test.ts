@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { describeError } from "@/lib/server/problems.server";
-import { kindOfStatus, notSet, OutsideFailure, refusal, retryAfterOf } from "./outside-failure.server";
+import { kindOfStatus, notSet, OutsideFailure, outsideJson, refusal, retryAfterOf } from "./outside-failure.server";
 
 it("says what kind of failure a status is, by itself", () => {
   expect([429, 401, 403, 404, 400, 500, 503].map(kindOfStatus)).toEqual([
@@ -86,5 +86,19 @@ it("makes the failure for an answer that isn't ok, and for a key that isn't set"
     kind: "unauthorised",
     status: 0,
     message: "LUMA_API_KEY is not set",
+  });
+});
+
+it("reads a body as JSON, and says a service whose body isn't has failed", async () => {
+  expect(await outsideJson("stripe", Response.json({ data: [] }))).toEqual({ data: [] });
+  const failed = await outsideJson("stripe", new Response("<html>Bad gateway</html>", { status: 200 })).catch(
+    (error: unknown) => error,
+  );
+  expect(failed).toBeInstanceOf(OutsideFailure);
+  expect(failed).toMatchObject({
+    service: "stripe",
+    kind: "refused",
+    status: 200,
+    message: "Stripe answered 200 with a body that isn't JSON",
   });
 });

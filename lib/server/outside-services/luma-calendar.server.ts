@@ -2,10 +2,11 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import type { LumaEvent } from "@/lib/site-events";
 import { now } from "@/lib/now";
-import { LUMA_PAGE_SIZE, LumaRefused, lumaList, lumaPost, type LumaPage } from "./luma-api.server";
+import { LUMA_NOT_A_CONTACT, LUMA_PAGE_SIZE, lumaList, lumaPost, type LumaPage } from "./luma-api.server";
+import { orFallback } from "./fallback.server";
+import { OutsideFailure, outsideJson } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { problemInWords } from "../problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 /** The two halves of the calendar: from today on, and before today. */
 export type EventPeriod = "future" | "past";
@@ -48,7 +49,8 @@ function startOfDay(date: Date): Date {
  * all day.
  */
 export async function getEvents(period: EventPeriod = "future"): Promise<LumaEvent[]> {
-  if (!config.lumaApiKey) return [];
+  const key = config.lumaApiKey;
+  if (!key) return [];
 
   const today = startOfDay(now());
   const params = new URLSearchParams({
@@ -62,14 +64,14 @@ export async function getEvents(period: EventPeriod = "future"): Promise<LumaEve
   params.append("access", "manage");
   params.append("access", "view");
 
-  try {
+  return orFallback(serverProblems.lumaEventsDown(), [], async () => {
     const res = await outsideFetch("luma", `https://public-api.luma.com/v1/calendars/events/list?${params}`, {
-      headers: { "x-luma-api-key": config.lumaApiKey, accept: "application/json" },
+      headers: { "x-luma-api-key": key, accept: "application/json" },
       next: { revalidate: 3600 },
     });
     if (!res.ok) return [];
-    const data = await res.json();
-    const events: (ApiEvent | null)[] = data.entries ?? [];
+    const data = await outsideJson("luma", res);
+    const events: (ApiEvent | null)[] = data?.entries ?? [];
     return events.flatMap((event) => {
       // The API key can see members-only and private events too; the site
       // lists only public ones. Rendering also assumes a url and start time
@@ -77,10 +79,7 @@ export async function getEvents(period: EventPeriod = "future"): Promise<LumaEve
       if (event?.visibility !== "public" || !event.url || !event.start_at) return [];
       return [toLumaEvent(event, event.url, event.start_at)];
     });
-  } catch (error) {
-    problemInWords(serverCopy.problems.logs.lumaEventsDown, error);
-    return [];
-  }
+  });
 }
 
 /**
@@ -177,7 +176,11 @@ export async function applyEventTag(tag: string, eventId: string): Promise<void>
     tag,
     event_ids: [eventId],
   });
-  if (skipped_count) throw new Error(`Luma skipped event ${eventId}: it isn't on the calendar`);
+  if (skipped_count) {
+    throw new OutsideFailure("luma", "not-found", {
+      message: `Luma skipped event ${eventId}: it isn't on the calendar`,
+    });
+  }
 }
 
 /** A contact of the calendar, and since when. */
@@ -210,18 +213,13 @@ export async function listCalendarContacts(cursor?: string): Promise<LumaPage<Ca
  * (https://docs.luma.com/reference/post_v1-calendars-contacts-remove). They
  * can still register for events, and follow again themselves. An address
  * that isn't a contact is off the calendar already, so Luma's 404 for it is
- * done; Luma's docs don't list that answer, but its message, unlike the plain
- * "Not found." of a 404 for a path it doesn't know, says so. Otherwise throws
- * as lumaPost does.
+ * done; Luma's docs don't list that answer, but its message says so
+ * (LUMA_NOT_A_CONTACT). Otherwise throws as lumaPost does.
  */
 export async function removeCalendarContact(email: string): Promise<void> {
   try {
     await lumaPost("/v1/calendars/contacts/remove", { email });
   } catch (error) {
-    const notAContact =
-      error instanceof LumaRefused &&
-      error.status === 404 &&
-      /couldn.t find that contact/i.test(error.lumaMessage ?? "");
-    if (!notAContact) throw error;
+    if (!(error instanceof OutsideFailure && error.serviceCode === LUMA_NOT_A_CONTACT)) throw error;
   }
 }

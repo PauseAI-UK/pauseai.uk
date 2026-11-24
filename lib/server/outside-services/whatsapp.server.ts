@@ -1,10 +1,11 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { parseJsonIfAny } from "../json.server";
-import { problemInWords } from "../problems.server";
+import { orFallback } from "./fallback.server";
+import { kindOfStatus, OutsideFailure } from "./outside-failure.server";
 import { GRAPH_VERSION } from "./graph-api";
 import { outsideFetch } from "./outside-fetch.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 // The only file that talks to WhatsApp, through Meta's Cloud API, with our
 // WhatsApp account's permanent token (WHATSAPP_TOKEN) and its ID
@@ -27,14 +28,19 @@ export type WhatsAppKeys = { token: string; accountId: string };
  * reason: the words Meta writes for people, which say what to change
  * (`error_user_title`, `error_user_msg`), else its bare message.
  */
-export class WhatsAppRequestError extends Error {
+export class WhatsAppRequestError extends OutsideFailure {
   constructor(
     message: string,
     readonly code: number | null = null,
     readonly reason: string | null = null,
+    status = 0,
   ) {
-    super(message);
-    this.name = "WhatsAppRequestError";
+    super("whatsapp", status ? kindOfStatus(status) : "refused", {
+      status,
+      message,
+      ...(code !== null && { serviceCode: code }),
+      ...(reason !== null && { said: reason }),
+    });
   }
 }
 
@@ -67,6 +73,7 @@ async function graph(
       `WhatsApp request failed with status ${res.status}: ${error.message ?? "no message"}${forPeople ? ` (${forPeople})` : ""}`,
       typeof error.code === "number" ? error.code : null,
       forPeople || error.message || null,
+      res.status,
     );
   }
   return data;
@@ -95,15 +102,12 @@ export type BusinessNumber = { id: string; number: string; dailyLimit: number | 
  * which is reported.
  */
 async function messagingLimit(keys: WhatsAppKeys, numberId: string): Promise<string> {
-  try {
+  return orFallback(serverProblems.whatsAppLimitUnknown(), "", async () => {
     const data = await graph(keys, `${numberId}?fields=whatsapp_business_manager_messaging_limit`);
     return typeof data.whatsapp_business_manager_messaging_limit === "string"
       ? data.whatsapp_business_manager_messaging_limit
       : "";
-  } catch (error) {
-    problemInWords(serverCopy.problems.anywhere.whatsAppLimitUnknown, error);
-    return "";
-  }
+  });
 }
 
 /**

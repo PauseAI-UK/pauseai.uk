@@ -14,8 +14,8 @@ import { sendBulkNotice } from "@/lib/supporters/email-settings.server";
 import { statusesOf } from "@/lib/politicians/records.server";
 import { politicianProxy, supporterProxy } from "@/lib/letters/proxies.server";
 import { linkSupporters } from "@/lib/supporters/records.server";
-import { problemInWords } from "@/lib/server/problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { problem } from "@/lib/server/problems.server";
+import { serverProblems } from "@/lib/server/copy";
 
 // A letter from the form: checked, kept, then sent from the letters inbox
 // at once if it can be (lib/letters/sending.server.ts), else queued.
@@ -176,7 +176,7 @@ export async function submitLetter(form: LetterForm): Promise<SubmitResult> {
       return id;
     });
   } catch (error) {
-    problemInWords(serverCopy.problems.logs.letterNotKept, error);
+    problem(serverProblems.letterNotKept(), error);
     return fail(500, copy.errors.failed);
   }
   if (id === undefined) return fail(409, copy.errors.alreadySent);

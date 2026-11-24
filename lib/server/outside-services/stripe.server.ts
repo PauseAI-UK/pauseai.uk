@@ -1,8 +1,9 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { problemInWords } from "../problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { orFallback } from "./fallback.server";
+import { outsideJson } from "./outside-failure.server";
+import { serverProblems } from "@/lib/server/copy";
 
 /** The key of the question every donate link's checkout asks, "Are you happy to be named on our wall of thanks?". */
 export const WALL_OF_THANKS_FIELD = "areyouhappytobenamedonourwallofthanks";
@@ -42,15 +43,12 @@ export async function getThankedDonors(): Promise<ThankedDonor[]> {
   const key = config.stripeWallOfThanksKey;
   if (!key) return [];
 
-  try {
+  return orFallback(serverProblems.stripeDown(), [], async () => {
     const sessions = await list<CheckoutSession>(key, "checkout/sessions", { status: "complete" });
     if (!sessions) return [];
     const payments = (await list<PaymentIntent>(key, "payment_intents", {})) ?? [];
     return thanked(sessions, monthlyPayments(payments));
-  } catch (error) {
-    problemInWords(serverCopy.problems.logs.stripeDown, error);
-    return [];
-  }
+  });
 }
 
 /** Every page of one of Stripe's lists, or null if Stripe refuses. */
@@ -69,7 +67,7 @@ async function list<T extends { id: string }>(
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;
-    const page: { data: T[]; has_more: boolean } = await res.json();
+    const page: { data: T[]; has_more: boolean } = await outsideJson("stripe", res);
     items.push(...page.data);
     after = page.has_more ? page.data.at(-1)?.id : undefined;
   } while (after);

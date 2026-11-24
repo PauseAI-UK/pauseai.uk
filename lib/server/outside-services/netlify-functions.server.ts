@@ -1,9 +1,10 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
-import { problemInWords } from "@/lib/server/problems.server";
 import { siteUrlIfKnown } from "@/lib/site-url.server";
+import { orFallback } from "./fallback.server";
+import { refusal } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 
 /**
  * Starts the Luma import in its background function on Netlify
@@ -16,14 +17,12 @@ import { serverCopy } from "@/lib/server/copy";
 export async function startLumaImport(): Promise<void> {
   const url = siteUrlIfKnown("/.netlify/functions/import-luma-background", undefined);
   if (config.localBuild || !config.cronSecret || !url) return;
-  try {
+  await orFallback(serverProblems.lumaImportNotStarted(), undefined, async () => {
     const res = await outsideFetch("netlify", url.toString(), {
       method: "POST",
       headers: { Authorization: `Bearer ${config.cronSecret}` },
     });
     // A background function answers 202 as it starts.
-    if (res.status !== 202) problemInWords(serverCopy.problems.logs.lumaImportNotStarted, `It answered ${res.status}`);
-  } catch (error) {
-    problemInWords(serverCopy.problems.logs.lumaImportNotStarted, error);
-  }
+    if (res.status !== 202) throw refusal("netlify", res);
+  });
 }

@@ -11,14 +11,14 @@ import { config } from "@/lib/server/config.server";
 import { query } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { type Problem, problemSaid } from "@/lib/problems";
-import { describeError, problemInWords } from "@/lib/server/problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { describeError, problem } from "@/lib/server/problems.server";
+import { serverProblems } from "@/lib/server/copy";
 import { oversightCopy } from "./copy";
 
 // What goes wrong on the site outside a job's run, kept so that it reaches
 // someone: an error the server throws in a page, a route handler, a Server
 // Action or the proxy (instrumentation.ts); a problem reported outside a run
-// (problemInWords(), lib/server/problems.server.ts); and an error in a visitor's browser
+// (problem(), lib/server/problems.server.ts); and an error in a visitor's browser
 // (/api/browser-error). Each is a row of errors_seen, counted each time it
 // happens, two happenings being one error when their key matches
 // (lib/oversight/error-key.ts). Staff are emailed about a new one, and at most once a
@@ -219,7 +219,7 @@ async function keep(happening: Happening): Promise<void> {
       const id = await count(happening);
       if (id !== undefined) await tell(id, happening);
     } catch (error) {
-      problemInWords(serverCopy.problems.logs.errorNotKept, error);
+      problem(serverProblems.errorNotKept(), error);
     }
   });
 }

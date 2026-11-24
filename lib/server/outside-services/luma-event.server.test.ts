@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { LumaRateLimited } from "./luma-api.server";
 import { getEventHosts } from "./luma-event.server";
 
 const GET = "https://public-api.luma.com/v1/events/get";
@@ -43,6 +42,6 @@ describe("getEventHosts", () => {
     server.use(http.get(GET, () => HttpResponse.json({})));
     expect(await getEventHosts("evt-1")).toEqual({ entries: [], remaining: undefined });
     server.use(http.get(GET, () => new HttpResponse(null, { status: 429 })));
-    await expect(getEventHosts("evt-1")).rejects.toBeInstanceOf(LumaRateLimited);
+    await expect(getEventHosts("evt-1")).rejects.toMatchObject({ kind: "rate-limited" });
   });
 });

@@ -15,7 +15,7 @@ import {
   tidyErrorsSeen,
 } from "./errors-seen.server";
 import { registerProblemKeeper } from "@/lib/server/problems.server";
-import { serverCopy } from "@/lib/server/copy";
+import { serverProblems } from "@/lib/server/copy";
 import { oversightCopy } from "./copy";
 
 // Next's after() only works inside a request. Here it runs what it's given, or throws as it does outside one.
@@ -235,7 +235,7 @@ describeWithDatabase("errors the server throws", () => {
     vi.stubEnv("NETLIFY_DB_URL", "");
     await thrown(new Error("With no database"));
     vi.unstubAllEnvs();
-    expect(logged.mock.calls).toEqual([[serverCopy.problems.logs.errorNotKept, "NETLIFY_DB_URL is not set"]]);
+    expect(logged.mock.calls).toEqual([[serverProblems.errorNotKept().what, "NETLIFY_DB_URL is not set"]]);
     expect(held.work).toEqual([]);
     expect(await rows()).toEqual([]);
   });
