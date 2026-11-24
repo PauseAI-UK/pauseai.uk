@@ -24,5 +24,5 @@ it("asks the Senedd with a User-Agent of our own, as it refuses curl's", async (
 
 it("fails when a body refuses", async () => {
   server.use(http.get(SENEDD_MEMBERS_URL, () => new HttpResponse("Forbidden", { status: 403 })));
-  await expect(seneddMembersNow()).rejects.toThrow("returned 403");
+  await expect(seneddMembersNow()).rejects.toThrow("The Senedd answered 403 for https://business.senedd.wales");
 });

@@ -39,7 +39,7 @@ async function verifyTurnstile(token: string | undefined): Promise<string | unde
   if (!token) return copy.errors.spamWait;
 
   try {
-    const res = await outsideFetch(VERIFY_URL, {
+    const res = await outsideFetch("turnstile", VERIFY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ secret, response: token }),

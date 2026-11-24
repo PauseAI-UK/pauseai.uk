@@ -62,7 +62,7 @@ export async function lumaGet<T>(
   params: URLSearchParams,
   revalidate?: number,
 ): Promise<{ data: T; remaining?: number }> {
-  const res = await outsideFetch(`https://public-api.luma.com${path}?${params}`, {
+  const res = await outsideFetch("luma", `https://public-api.luma.com${path}?${params}`, {
     headers: { "x-luma-api-key": lumaKey(), accept: "application/json" },
     ...(revalidate === undefined ? { cache: "no-store" } : { next: { revalidate } }),
   });
@@ -90,7 +90,7 @@ export async function lumaList<T>(path: string, params: URLSearchParams, revalid
  * missing key, a 429 or any other answer that isn't ok.
  */
 export async function lumaPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await outsideFetch(`https://public-api.luma.com${path}`, {
+  const res = await outsideFetch("luma", `https://public-api.luma.com${path}`, {
     method: "POST",
     headers: { "x-luma-api-key": lumaKey(), "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify(body),

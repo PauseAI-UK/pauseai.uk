@@ -2,8 +2,9 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import { tallySources, type GuestEntry, type SourceCounts } from "@/lib/trackers";
 import { LUMA_PAGE_SIZE, lumaList, type LumaPage } from "./luma-api.server";
+import { OutsideFailure } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
-import { problemInWords } from "../problems.server";
+import { describeError, problemInWords } from "../problems.server";
 import { serverCopy } from "@/lib/server/copy";
 
 // An event's guests, through Luma's official API: the list, for the flyering
@@ -112,6 +113,7 @@ export async function getEventGuestCount(eventId: string): Promise<number | null
   if (!key) return null;
   try {
     const res = await outsideFetch(
+      "luma",
       `https://public-api.luma.com/v1/events/get?${new URLSearchParams({ event_id: eventId })}`,
       {
         headers: { "x-luma-api-key": key, accept: "application/json" },
@@ -208,7 +210,7 @@ export async function addLumaGuest(
   if (!key) return { status: "not-configured" };
 
   try {
-    const res = await outsideFetch("https://public-api.luma.com/v1/events/guests/add", {
+    const res = await outsideFetch("luma", "https://public-api.luma.com/v1/events/guests/add", {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
       body: JSON.stringify({ event_id: eventId, guests: [{ email: guest.email, name: guest.name }] }),
@@ -227,9 +229,9 @@ export async function addLumaGuest(
     return skipped ? { status: "skipped" } : { status: "added" };
   } catch (error) {
     problemInWords(serverCopy.problems.logs.lumaRefusedGuest, error);
-    const err = error as Error;
-    if (err.name === "TimeoutError") return { status: "failed", reason: `Luma did not respond within ${timeoutMs}ms` };
-    return { status: "failed", reason: `Request to Luma failed: ${err.message}` };
+    if (error instanceof OutsideFailure && error.kind === "timeout")
+      return { status: "failed", reason: `Luma did not respond within ${timeoutMs}ms` };
+    return { status: "failed", reason: `Request to Luma failed: ${describeError(error)}` };
   }
 }
 
@@ -267,7 +269,7 @@ async function addBatch(
   key: string,
 ): Promise<Set<string> | "failed"> {
   try {
-    const res = await outsideFetch("https://public-api.luma.com/v1/events/guests/add", {
+    const res = await outsideFetch("luma", "https://public-api.luma.com/v1/events/guests/add", {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-luma-api-key": key },
       body: JSON.stringify({ event_id: eventId, guests: guests.map(({ email, name }) => ({ email, name })) }),

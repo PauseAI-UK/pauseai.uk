@@ -42,9 +42,9 @@ it("asks nothing for no one", async () => {
   );
   expect(await seneddPeople([])).toEqual(new Map());
   expect(await mspPeople([])).toEqual(new Map());
-  await expect(mspPeople([2])).rejects.toThrow("returned 500");
+  await expect(mspPeople([2])).rejects.toThrow("Wikidata answered 500");
   server.use(http.get(THEYWORKFORYOU_PEOPLE, () => HttpResponse.json({ persons: [] })));
   // An MSP TheyWorkForYou doesn't know can't be found in Wikidata, so it isn't asked.
   expect(await mspPeople([2])).toEqual(new Map());
-  await expect(seneddPeople([1])).rejects.toThrow("returned 500");
+  await expect(seneddPeople([1])).rejects.toThrow("Wikidata answered 500");
 });

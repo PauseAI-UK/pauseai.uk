@@ -122,7 +122,7 @@ export async function sendEmail(email: Email, stream: PostmarkStream = "transact
     return randomUUID();
   }
   if (!token && !fixtures) throw new PostmarkError("POSTMARK_SERVER_TOKEN is not set");
-  const res = await outsideFetch(SEND_URL, {
+  const res = await outsideFetch("postmark", SEND_URL, {
     method: "POST",
     // The fixture Postmark (DATA_FIXTURES=1) doesn't check the token.
     headers: {
@@ -167,7 +167,7 @@ export async function unsuppress(address: string): Promise<void> {
   }
   if (!token && !fixtures) throw new PostmarkError("POSTMARK_SERVER_TOKEN is not set");
   for (const stream of Object.values(STREAMS)) {
-    const res = await outsideFetch(unsuppressUrl(stream), {
+    const res = await outsideFetch("postmark", unsuppressUrl(stream), {
       method: "POST",
       headers: {
         Accept: "application/json",

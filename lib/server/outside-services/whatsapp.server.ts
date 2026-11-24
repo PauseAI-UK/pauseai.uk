@@ -44,7 +44,7 @@ async function graph(
   path: string,
   init: { method?: "GET" | "POST" | "DELETE"; body?: object } = {},
 ): Promise<Record<string, unknown>> {
-  const res = await outsideFetch(`${GRAPH}/${path}`, {
+  const res = await outsideFetch("whatsapp", `${GRAPH}/${path}`, {
     method: init.method ?? "GET",
     headers: {
       Authorization: `Bearer ${keys.token}`,

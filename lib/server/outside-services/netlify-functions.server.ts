@@ -17,7 +17,7 @@ export async function startLumaImport(): Promise<void> {
   const url = siteUrlIfKnown("/.netlify/functions/import-luma-background", undefined);
   if (config.localBuild || !config.cronSecret || !url) return;
   try {
-    const res = await outsideFetch(url.toString(), {
+    const res = await outsideFetch("netlify", url.toString(), {
       method: "POST",
       headers: { Authorization: `Bearer ${config.cronSecret}` },
     });

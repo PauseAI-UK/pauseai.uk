@@ -288,7 +288,7 @@ describe("addLumaGuest", () => {
     server.use(http.post(ADD, () => HttpResponse.error()));
     expect(await addLumaGuest("evt-test", guest("testy@example.org"))).toEqual({
       status: "failed",
-      reason: "Request to Luma failed: fetch failed",
+      reason: expect.stringContaining("Request to Luma failed: Luma couldn't be reached (fetch failed)") as string,
     });
   });
 

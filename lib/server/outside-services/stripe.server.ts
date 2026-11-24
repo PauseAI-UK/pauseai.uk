@@ -64,7 +64,7 @@ async function list<T extends { id: string }>(
   do {
     const params = new URLSearchParams({ ...query, limit: "100" });
     if (after) params.set("starting_after", after);
-    const res = await outsideFetch(`https://api.stripe.com/v1/${path}?${params}`, {
+    const res = await outsideFetch("stripe", `https://api.stripe.com/v1/${path}?${params}`, {
       headers: { authorization: `Bearer ${key}` },
       next: { revalidate: 3600 },
     });

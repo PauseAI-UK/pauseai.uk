@@ -86,7 +86,7 @@ export function gmailConsentUrl(account: string, redirectUri: string, state: str
 
 async function tokenRequest(params: Record<string, string>): Promise<Record<string, unknown>> {
   const { id, secret } = client();
-  const res = await outsideFetch(TOKEN_URL, {
+  const res = await outsideFetch("gmail", TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ ...params, client_id: id, client_secret: secret }).toString(),
@@ -117,13 +117,15 @@ export async function gmailAccessToken(refreshToken: string): Promise<{ token: s
 
 /** Tells Google the site no longer wants the token. A token Google had already dropped is no matter. */
 export async function revokeGmail(refreshToken: string): Promise<void> {
-  const res = await outsideFetch(`${REVOKE_URL}?${new URLSearchParams({ token: refreshToken })}`, { method: "POST" });
+  const res = await outsideFetch("gmail", `${REVOKE_URL}?${new URLSearchParams({ token: refreshToken })}`, {
+    method: "POST",
+  });
   if (!res.ok && res.status !== 400)
     throw new GmailError(`Google refused to revoke the token: ${res.status}`, res.status);
 }
 
 async function api<T>(accessToken: string, path: string, init: RequestInit = {}): Promise<T> {
-  const res = await outsideFetch(`${API}${path}`, {
+  const res = await outsideFetch("gmail", `${API}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json", ...init.headers },
     cache: "no-store",
@@ -155,7 +157,7 @@ export async function gmailSendName(accessToken: string): Promise<string> {
   );
   const own = sendAs.find((address) => address.isPrimary)?.displayName;
   if (own) return own;
-  const res = await outsideFetch(USERINFO, {
+  const res = await outsideFetch("gmail", USERINFO, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
     cache: "no-store",
   });

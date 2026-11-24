@@ -8,6 +8,7 @@ import {
   type ScottishParliamentLists,
 } from "@/lib/politicians/scottish-parliament";
 import { SENEDD_MEMBERS_URL, seneddMembers } from "@/lib/politicians/senedd";
+import { refusal } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // The Scottish Parliament's, the Senedd's and the Northern Ireland Assembly's
@@ -21,18 +22,23 @@ import { outsideFetch } from "./outside-fetch.server";
  */
 const USER_AGENT = "PauseAI UK (https://pauseai.uk)";
 
-async function fetchOk(url: string, accept: string): Promise<Response> {
-  const res = await outsideFetch(url, { headers: { Accept: accept, "User-Agent": USER_AGENT }, cache: "no-store" });
-  if (!res.ok) throw new Error(`${url} returned ${res.status}`);
+type Body = "scottish-parliament" | "senedd" | "ni-assembly";
+
+async function fetchOk(body: Body, url: string, accept: string): Promise<Response> {
+  const res = await outsideFetch(body, url, {
+    headers: { Accept: accept, "User-Agent": USER_AGENT },
+    cache: "no-store",
+  });
+  if (!res.ok) throw refusal(body, res, { asked: url });
   return res;
 }
 
-const getJson = async (url: string) => (await fetchOk(url, "application/json")).json();
+const getJson = async (body: Body, url: string) => (await fetchOk(body, url, "application/json")).json();
 
 /** The Scottish Parliament's sitting members, its lists read at once. */
 export async function scottishParliamentMembersNow(now: Date): Promise<OfficialMember[]> {
   const lists = await Promise.all(
-    SCOTTISH_PARLIAMENT_LISTS.map((list) => getJson(`${SCOTTISH_PARLIAMENT_API}/${list}`)),
+    SCOTTISH_PARLIAMENT_LISTS.map((list) => getJson("scottish-parliament", `${SCOTTISH_PARLIAMENT_API}/${list}`)),
   );
   return scottishParliamentMembers(
     Object.fromEntries(SCOTTISH_PARLIAMENT_LISTS.map((list, i) => [list, lists[i]])) as ScottishParliamentLists,
@@ -42,11 +48,14 @@ export async function scottishParliamentMembersNow(now: Date): Promise<OfficialM
 
 /** The Senedd's sitting members. */
 export async function seneddMembersNow(): Promise<OfficialMember[]> {
-  return seneddMembers(await (await fetchOk(SENEDD_MEMBERS_URL, "text/xml")).text());
+  return seneddMembers(await (await fetchOk("senedd", SENEDD_MEMBERS_URL, "text/xml")).text());
 }
 
 /** The Northern Ireland Assembly's sitting members. */
 export async function niAssemblyMembersNow(): Promise<OfficialMember[]> {
-  const [members, contacts] = await Promise.all([getJson(NI_MEMBERS_URL), getJson(NI_CONTACTS_URL)]);
+  const [members, contacts] = await Promise.all([
+    getJson("ni-assembly", NI_MEMBERS_URL),
+    getJson("ni-assembly", NI_CONTACTS_URL),
+  ]);
   return niAssemblyMembers(members, contacts);
 }

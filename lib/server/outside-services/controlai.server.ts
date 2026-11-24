@@ -2,6 +2,7 @@ import "server-only";
 import { extractText } from "unpdf";
 import { CONTROLAI_LETTER_PAGE, pdfUrlIn } from "@/lib/controlai-letter";
 import { CONTROLAI_STATEMENT_PAGE } from "@/lib/controlai-statement";
+import { OutsideFailure, refusal } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // ControlAI's letter to the PM, read from its page on their site and the
@@ -10,8 +11,8 @@ import { outsideFetch } from "./outside-fetch.server";
 // the statement.
 
 async function fetchOk(url: string): Promise<Response> {
-  const res = await outsideFetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`${url} returned ${res.status}`);
+  const res = await outsideFetch("controlai", url, { cache: "no-store" });
+  if (!res.ok) throw refusal("controlai", res, { asked: url });
   return res;
 }
 
@@ -24,7 +25,8 @@ export async function fetchStatement(): Promise<string> {
 export async function fetchLetter(): Promise<{ pdfUrl: string; text: string }> {
   const html = await (await fetchOk(CONTROLAI_LETTER_PAGE)).text();
   const pdfUrl = pdfUrlIn(html);
-  if (!pdfUrl) throw new Error(`No PDF linked from ${CONTROLAI_LETTER_PAGE}`);
+  if (!pdfUrl)
+    throw new OutsideFailure("controlai", "not-found", { message: `No PDF linked from ${CONTROLAI_LETTER_PAGE}` });
   const pdf = new Uint8Array(await (await fetchOk(pdfUrl)).arrayBuffer());
   const { text } = await extractText(pdf, { mergePages: true });
   return { pdfUrl, text };

@@ -60,10 +60,14 @@ function going(data: ApiEvent): EventGoing | null {
  */
 export async function getPublicEvent(eventId: string): Promise<PublicEvent | null> {
   try {
-    const res = await outsideFetch(`https://api.lu.ma/event/get?${new URLSearchParams({ event_api_id: eventId })}`, {
-      headers: { accept: "application/json" },
-      next: { revalidate: EVENT_REVALIDATE },
-    });
+    const res = await outsideFetch(
+      "luma",
+      `https://api.lu.ma/event/get?${new URLSearchParams({ event_api_id: eventId })}`,
+      {
+        headers: { accept: "application/json" },
+        next: { revalidate: EVENT_REVALIDATE },
+      },
+    );
     if (!res.ok) return null;
     const data = (await res.json()) as ApiEvent;
     return { startAt: timestamp(data.event?.start_at), endAt: timestamp(data.event?.end_at), going: going(data) };

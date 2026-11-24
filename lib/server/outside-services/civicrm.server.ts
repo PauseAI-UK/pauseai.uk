@@ -159,7 +159,7 @@ async function call(
   method: "GET" | "POST",
 ): Promise<Record<string, unknown>[]> {
   const encoded = new URLSearchParams({ params: JSON.stringify(params) });
-  const res = await outsideFetch(method === "GET" ? `${API}/${action}?${encoded}` : `${API}/${action}`, {
+  const res = await outsideFetch("civicrm", method === "GET" ? `${API}/${action}?${encoded}` : `${API}/${action}`, {
     method,
     headers: {
       "X-Civi-Auth": `Bearer ${key}`,

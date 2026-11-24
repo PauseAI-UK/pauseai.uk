@@ -58,7 +58,7 @@ export async function linkCard(address: string): Promise<LinkCard | null> {
   const url = new URL(address);
   if (url.protocol !== "https:" && url.protocol !== "http:") return null;
   try {
-    const res = await outsideFetch(url.href, {
+    const res = await outsideFetch("link-page", url.href, {
       headers: { "User-Agent": WHATSAPP_AGENT },
       signal: AbortSignal.timeout(WAIT_MS),
       cache: "no-store",

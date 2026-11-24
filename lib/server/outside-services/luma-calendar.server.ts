@@ -63,7 +63,7 @@ export async function getEvents(period: EventPeriod = "future"): Promise<LumaEve
   params.append("access", "view");
 
   try {
-    const res = await outsideFetch(`https://public-api.luma.com/v1/calendars/events/list?${params}`, {
+    const res = await outsideFetch("luma", `https://public-api.luma.com/v1/calendars/events/list?${params}`, {
       headers: { "x-luma-api-key": config.lumaApiKey, accept: "application/json" },
       next: { revalidate: 3600 },
     });

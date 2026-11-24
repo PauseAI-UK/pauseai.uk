@@ -23,7 +23,7 @@ function constituencyOf(result: Record<string, unknown> | undefined): string | n
 
 export async function constituencyForPostcode(postcode: string): Promise<ConstituencyResult> {
   try {
-    const res = await outsideFetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
+    const res = await outsideFetch("postcodes", `https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
     if (res.status === 404) return { ok: false, reason: "not_found" };
     if (!res.ok) return { ok: false, reason: "failed" };
     const data = await res.json();
@@ -64,7 +64,7 @@ export async function placeForPostcode(postcode: string): Promise<PostcodePlaceR
 }
 
 async function placeAt(path: string, code: string): Promise<PostcodePlaceResult> {
-  const res = await outsideFetch(`https://api.postcodes.io/${path}`);
+  const res = await outsideFetch("postcodes", `https://api.postcodes.io/${path}`);
   if (res.status === 404) return { ok: false, reason: "not_found" };
   if (!res.ok) return { ok: false, reason: "failed" };
   const result = (await res.json())?.result;
@@ -108,7 +108,7 @@ export const POSTCODES_AT_ONCE = 100;
  * fails, so nothing is recorded as unknown that wasn't.
  */
 export async function placesForPostcodes(postcodes: string[]): Promise<Map<string, FoundPlace | null>> {
-  const res = await outsideFetch("https://api.postcodes.io/postcodes", {
+  const res = await outsideFetch("postcodes", "https://api.postcodes.io/postcodes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ postcodes }),
@@ -137,7 +137,7 @@ export async function placesForPostcodes(postcodes: string[]): Promise<Map<strin
  * know. It spans constituencies, so it has none. Throws if the request fails.
  */
 export async function placeForOutcode(outcode: string): Promise<FoundPlace | null> {
-  const res = await outsideFetch(`https://api.postcodes.io/outcodes/${encodeURIComponent(outcode)}`);
+  const res = await outsideFetch("postcodes", `https://api.postcodes.io/outcodes/${encodeURIComponent(outcode)}`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`postcodes.io returned ${res.status}`);
   const result = (await res.json())?.result;
@@ -158,7 +158,7 @@ export async function placeForOutcode(outcode: string): Promise<FoundPlace | nul
  * fails.
  */
 export async function placeNamed(name: string): Promise<FoundPlace | null> {
-  const res = await outsideFetch(`https://api.postcodes.io/places?q=${encodeURIComponent(name)}&limit=10`);
+  const res = await outsideFetch("postcodes", `https://api.postcodes.io/places?q=${encodeURIComponent(name)}&limit=10`);
   if (!res.ok) throw new Error(`postcodes.io returned ${res.status}`);
   const places: Record<string, unknown>[] = (await res.json()).result ?? [];
   const best = places.find((p) => p.local_type === "City" || p.local_type === "Town") ?? places[0];

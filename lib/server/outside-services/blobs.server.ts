@@ -20,7 +20,7 @@ function store() {
   return getStore({
     name: LETTER_REPLIES,
     // The client always asks with the URL as a string.
-    fetch: (url, init) => outsideFetch(String(url), init),
+    fetch: (url, init) => outsideFetch("blobs", String(url), init),
     ...(fixtures && { siteID: "fixture", token: "fixture", edgeURL: FIXTURE_BLOBS_URL }),
   });
 }

@@ -11,6 +11,7 @@ import {
   WIKIDATA_QUERY,
   type WikidataPerson,
 } from "@/lib/politicians/wikidata";
+import { refusal } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // Wikidata's query service, and TheyWorkForYou's people data on GitHub, no
@@ -21,12 +22,12 @@ import { outsideFetch } from "./outside-fetch.server";
 const USER_AGENT = "PauseAI UK (https://pauseai.uk)";
 
 async function getJson(url: string, init: RequestInit = {}): Promise<unknown> {
-  const res = await outsideFetch(url, {
+  const res = await outsideFetch("wikidata", url, {
     ...init,
     headers: { Accept: "application/sparql-results+json, application/json", "User-Agent": USER_AGENT, ...init.headers },
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`${url} returned ${res.status}`);
+  if (!res.ok) throw refusal("wikidata", res, { asked: url });
   return res.json();
 }
 
