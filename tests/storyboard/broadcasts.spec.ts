@@ -1554,6 +1554,7 @@ test("A draft a colleague schedules meanwhile", async ({ page, request, flowData
   await page.getByRole("button", { name: mailingCopy.unschedule }).click();
   await expect(saidAtTop(page, copy.refusals.stop.gone)).toBeVisible();
   await expect(page.getByLabel(copy.subject)).toHaveValue("Events near you this month");
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await frame(page, "Unscheduled already, said at the top");
 });
 
