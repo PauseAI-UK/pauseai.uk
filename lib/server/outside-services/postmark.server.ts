@@ -90,10 +90,10 @@ export class PostmarkError extends OutsideFailure {
   readonly inactive: boolean;
   /** The suppressed addresses its refusal names, which may be a Cc rather than the To; none if it names none. */
   readonly inactiveAddresses: string[];
-  constructor(message: string, code?: number, status = 0, said?: string) {
+  constructor(message: string, code?: number, status = 0, said = "") {
     super("postmark", status ? kindOfStatus(status) : "unauthorised", { status, serviceCode: code, said, message });
     this.inactive = code === INACTIVE_RECIPIENT;
-    this.inactiveAddresses = this.inactive ? inactiveIn(said ?? "") : [];
+    this.inactiveAddresses = this.inactive ? inactiveIn(said) : [];
   }
 }
 

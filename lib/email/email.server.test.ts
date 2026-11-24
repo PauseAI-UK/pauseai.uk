@@ -397,7 +397,9 @@ describeWithDatabase("send by Gmail", () => {
       retry: true,
       detail: "No way to reach jo@pauseai.uk's Gmail",
     });
-    expect(error.mock.calls[0][0]).toBe(emailProblems.sendFailed({ purpose: "mailing" }).what);
+    expect(error.mock.calls[0][0]).toBe(
+      emailProblems.sendFailedByGmail({ purpose: "mailing", account: staffAccount("jo@pauseai.uk") }).what,
+    );
     expect(await query("SELECT outcome FROM email_sends")).toEqual([{ outcome: "failed" }]);
   });
 });

@@ -105,6 +105,15 @@ const UNCONVERTED_SAVES = [
   "app/(staff)/staff/_components/supporters/SignupUploadPreview.tsx",
 ];
 
+// What an outside service's binding throws is an OutsideFailure, or its own
+// subclass of it, so a caller can ask what kind of failure it was the same
+// way for every service, and orFallback() can tell a service failing from a
+// bug of ours.
+const OUTSIDE_THROW_RULE = {
+  selector: "ThrowStatement > NewExpression[callee.name='Error']",
+  message: `An outside service's binding throws an OutsideFailure (${OUTSIDE}/outside-failure.server.ts): refusal() for an answer that isn't ok, notSet() for a key of ours that's missing, or new OutsideFailure() with its kind.`,
+};
+
 const OUTSIDE_FETCH_RULE = {
   selector: "CallExpression[callee.name='fetch']",
   message: `Call outside services from a binding in ${OUTSIDE}/, through outsideFetch, so fixture builds can answer instead.`,
@@ -198,7 +207,8 @@ const NETWORK_IMPORTS = [
  * its own API; `fetch` may call fetch() (code that runs in the browser
  * fetches the site's own API); `outsideFetch` may import it; `sendEmail`
  * may use Postmark's binding to send. `fakes` may name every service's API,
- * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `asyncHandlers`
+ * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `binding` is an
+ * outside service's, which throws only an OutsideFailure. `asyncHandlers`
  * may write an async function in place as a handler or a transition. `staff` adds the staff pages' rule for links
  * that look like buttons.
  */
@@ -214,6 +224,7 @@ function siteCodeRules({
   console = false,
   asyncHandlers = false,
   staff = false,
+  binding = false,
 }) {
   return {
     "no-restricted-syntax": [
@@ -225,6 +236,7 @@ function siteCodeRules({
       ...(fetch ? [] : [OUTSIDE_FETCH_RULE]),
       ...(console ? [] : [CONSOLE_RULE]),
       ...(asyncHandlers ? [] : SAVE_RULES),
+      ...(binding ? [OUTSIDE_THROW_RULE] : []),
       ...EXTERNAL_LINK_RULES,
       ...(staff ? STAFF_BUTTON_LINK_RULES : []),
     ],
@@ -604,9 +616,9 @@ const eslintConfig = defineConfig([
     // The fakes read the fixture build's own settings, as the storyboard loads them outside the site.
     { files: ["lib/server/fixtures/*.ts"], fakes: true, env: true },
     { files: ["lib/server/config.server.ts"], env: true, siteUrl: true },
-    { files: [`${OUTSIDE}/*.ts`], outsideFetch: true },
-    ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true })),
-    { files: [`${OUTSIDE}/outside-fetch.server.ts`], fetch: true },
+    { files: [`${OUTSIDE}/*.ts`], outsideFetch: true, binding: true },
+    ...SERVICES.map((service) => ({ files: service.files, service, outsideFetch: true, binding: true })),
+    { files: [`${OUTSIDE}/outside-fetch.server.ts`], fetch: true, binding: true },
     { files: ["lib/email/email.server.ts"], sendEmail: true },
     { files: ["lib/site-url.server.ts"], siteUrl: true },
     { files: ["lib/server/db.server.ts"], database: true },

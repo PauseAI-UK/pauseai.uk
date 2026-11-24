@@ -11,7 +11,7 @@ import {
   WIKIDATA_QUERY,
   type WikidataPerson,
 } from "@/lib/politicians/wikidata";
-import { refusal } from "./outside-failure.server";
+import { outsideJson, refusal } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // Wikidata's query service, and TheyWorkForYou's people data on GitHub, no
@@ -28,7 +28,7 @@ async function getJson(url: string, init: RequestInit = {}): Promise<unknown> {
     cache: "no-store",
   });
   if (!res.ok) throw refusal("wikidata", res, { asked: url });
-  return res.json();
+  return outsideJson("wikidata", res);
 }
 
 /** The answer to a query Wikidata's query service is sent. */

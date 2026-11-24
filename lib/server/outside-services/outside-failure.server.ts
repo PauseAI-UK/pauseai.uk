@@ -106,7 +106,7 @@ export class OutsideFailure extends Error {
     this.kind = kind;
     this.status = details.status ?? 0;
     this.serviceCode = details.serviceCode;
-    this.said = details.said?.slice(0, SAID_KEPT);
+    this.said = details.said?.slice(0, SAID_KEPT) || undefined;
     this.retryAfter = details.retryAfter;
   }
 }

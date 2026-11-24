@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { readOutbox } from "@/lib/server/fixtures/outbox";
 import { server } from "@/tests/fixtures/msw";
+import { OutsideFailure } from "./outside-failure.server";
 import { headerName, PostmarkError, sendEmail, unsuppress } from "./postmark.server";
 
 const POSTMARK = "https://api.postmarkapp.com/email";
@@ -119,6 +120,36 @@ describe("sendEmail", () => {
       "Email to an address at example.org: not sent, as POSTMARK_SERVER_TOKEN is Postmark's test token.",
       "Email to an address at example.org: not sent, as DATA_FIXTURES=1. There's no outbox, so it isn't saved anywhere either.",
     ]);
+  });
+
+  it("names the addresses a refusal says are inactive, from Postmark's message, which is all that has them", async () => {
+    // Postmark's own words for its error 406 (https://postmarkapp.com/developer/api/email-api).
+    const Message =
+      'You tried to send to recipient(s) that have been marked as inactive. Found inactive addresses: jane.smith@example.com, "Sam Jones" <sam.jones@example.com>. Inactive recipients are ones that have generated a hard bounce, a spam complaint, or a manual suppression.';
+    server.use(http.post(POSTMARK, () => HttpResponse.json({ ErrorCode: 406, Message }, { status: 422 })));
+    const refused = await sendEmail(EMAIL).catch((error: unknown) => error);
+    expect(refused).toBeInstanceOf(OutsideFailure);
+    expect(refused).toMatchObject({
+      service: "postmark",
+      kind: "refused",
+      status: 422,
+      serviceCode: 406,
+      inactive: true,
+      inactiveAddresses: ["jane.smith@example.com", "sam.jones@example.com"],
+      said: Message,
+    });
+    // One that names none, or isn't about inactive addresses, has none.
+    expect(new PostmarkError("Refused", 406, 422, "Inactive recipient").inactiveAddresses).toEqual([]);
+    expect(new PostmarkError("Refused", 300, 422, `Found inactive addresses: a@example.com.`)).toMatchObject({
+      inactive: false,
+      inactiveAddresses: [],
+    });
+    // With no status, nothing was asked: the token isn't set.
+    expect(new PostmarkError("POSTMARK_SERVER_TOKEN is not set")).toMatchObject({
+      kind: "unauthorised",
+      status: 0,
+      said: undefined,
+    });
   });
 
   it("throws when Postmark refuses, answers oddly, or there's no token", async () => {

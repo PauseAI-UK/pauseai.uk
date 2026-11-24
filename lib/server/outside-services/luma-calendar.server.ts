@@ -49,8 +49,8 @@ function startOfDay(date: Date): Date {
  * all day.
  */
 export async function getEvents(period: EventPeriod = "future"): Promise<LumaEvent[]> {
+  if (!config.lumaApiKey) return [];
   const key = config.lumaApiKey;
-  if (!key) return [];
 
   const today = startOfDay(now());
   const params = new URLSearchParams({

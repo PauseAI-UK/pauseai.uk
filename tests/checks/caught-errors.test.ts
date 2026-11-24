@@ -63,6 +63,59 @@ const EXCEPTIONS = new Map([
 ]);
 
 /**
+ * The files with a catch of their own. Most code needs none: what carries
+ * on without an outside service uses orFallback()
+ * (lib/server/outside-services/fallback.server.ts), sending something uses
+ * sendWithCare() (lib/email/send-with-care.server.ts), and anything else is
+ * thrown, and kept as an error. A file leaves this list when its last catch
+ * goes. One joins it only with a comment here saying why no helper fits.
+ */
+const OWN_CATCHES = [
+  "app/(staff)/staff/_components/jobs/actions.ts",
+  "app/(staff)/staff/api/gmail/callback/route.ts",
+  "app/api/email-your-mp/letters/mp-letters.server.ts",
+  "app/api/luma/webhook/route.ts",
+  "app/api/signatories/route.ts",
+  "app/api/whatsapp/route.ts",
+  "lib/broadcasts/channels.server.ts",
+  "lib/broadcasts/drafts.server.ts",
+  "lib/broadcasts/sending.server.ts",
+  "lib/broadcasts/whatsapp-webhooks.server.ts",
+  "lib/email/email.server.ts",
+  "lib/email/gmail-accounts.server.ts",
+  "lib/email/send-with-care.server.ts",
+  "lib/erasure/erase.server.ts",
+  "lib/events/luma-import.server.ts",
+  "lib/events/tagging.server.ts",
+  "lib/jobs/gmail-reading.server.ts",
+  "lib/letters/format.ts",
+  "lib/letters/letters-inbox-reading.server.ts",
+  "lib/letters/one-off-emails.server.ts",
+  "lib/oversight/errors-seen.server.ts",
+  "lib/politicians/aliases.server.ts",
+  "lib/politicians/find-mp.server.ts",
+  "lib/server/db.server.ts",
+  "lib/server/fixtures/outbox.ts",
+  "lib/server/fixtures/whatsapp-outbox.ts",
+  "lib/server/flow-database.server.ts",
+  "lib/server/import-runs.server.ts",
+  "lib/server/json.server.ts",
+  "lib/server/outside-services/civicrm.server.ts",
+  "lib/server/outside-services/fallback.server.ts",
+  "lib/server/outside-services/gmail.server.ts",
+  "lib/server/outside-services/link-pages.server.ts",
+  "lib/server/outside-services/luma-calendar.server.ts",
+  "lib/server/outside-services/luma-guests.server.ts",
+  "lib/server/outside-services/outside-failure.server.ts",
+  "lib/server/outside-services/outside-fetch.server.ts",
+  "lib/server/outside-services/whatsapp.server.ts",
+  "lib/supporters/civicrm-updates.server.ts",
+  "lib/supporters/email-settings.server.ts",
+  "lib/supporters/places.server.ts",
+  "lib/supporters/signup-csv.ts",
+];
+
+/**
  * Handlers passed to .catch() whose way out ahead of their throw is an
  * answer, not a failure, with why: they rethrow all else.
  */
@@ -164,6 +217,17 @@ export function unhandledCatches(sources: ts.SourceFile[]): Hit[] {
   return hits;
 }
 
+/** Whether `source` has a catch of its own: a catch clause, or a function handed to .catch(). */
+export function hasCatch(source: ts.SourceFile): boolean {
+  const visit = (node: ts.Node): boolean =>
+    ts.isCatchClause(node) ||
+    (ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === "catch") ||
+    (ts.forEachChild(node, visit) ?? false);
+  return visit(source);
+}
+
 describe("caught errors", () => {
   it("finds a catch that swallows, and lets through one that rethrows, reports, or hands to a handler that does", () => {
     const code = `
@@ -193,6 +257,28 @@ describe("caught errors", () => {
       ".catch(…)@15 in a",
     ]);
   });
+
+  it("knows a file with a catch of its own from one without", () => {
+    expect(hasCatch(parse("a.ts", "try { x(); } catch (e) { throw e; }"))).toBe(true);
+    expect(hasCatch(parse("b.ts", "await y().catch(unlessGone);"))).toBe(true);
+    expect(hasCatch(parse("c.ts", "const all = await orFallback(said(), [], () => list());"))).toBe(false);
+  });
+
+  it(
+    "a new catch where jobs and requests run goes through a helper, or its file is listed with why",
+    { timeout: 60_000 },
+    () => {
+      const files = serverSources()
+        .filter(hasCatch)
+        .map((source) => source.fileName);
+      expect(
+        files.filter((file) => !OWN_CATCHES.includes(file)),
+        "carry on without an outside service with orFallback() (lib/server/outside-services/fallback.server.ts), send with sendWithCare() (lib/email/send-with-care.server.ts), or let the error be thrown; if none fits, list the file in OWN_CATCHES with why",
+      ).toEqual([]);
+      // A file whose last catch has gone is one to take off the list.
+      expect(OWN_CATCHES.filter((file) => !files.includes(file))).toEqual([]);
+    },
+  );
 
   it("names the method or arrow function a catch is in, or the top level", () => {
     const code = `

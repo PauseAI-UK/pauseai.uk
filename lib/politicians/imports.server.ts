@@ -43,6 +43,7 @@ import { problem } from "@/lib/server/problems.server";
 import { politicianProblems, politiciansCopy } from "./copy";
 import { importRunsCopy } from "@/lib/import-runs-copy";
 import { publicText } from "@/lib/problems";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 
 // Imports each body's members from its own list, nightly
 // (/api/cron/import-<body>) or when staff ask: Parliament's, both Houses;
@@ -130,13 +131,8 @@ async function withSalutations(
   const pairs = matchMembers(ours, members);
   const need = members.filter((m) => !pairs.has(m) || pairs.get(m)!.salutationToCheck).map((m) => m.officialId);
   if (need.length === 0) return members;
-  let people: Map<number, WikidataPerson>;
-  try {
-    people = await lookUp(need);
-  } catch (error) {
-    problem(politicianProblems.genderLookupFailed(), error);
-    return members;
-  }
+  const people = await orFallback(politicianProblems.genderLookupFailed(), undefined, () => lookUp(need));
+  if (!people) return members;
   return members.map((m) => {
     const person = people.get(m.officialId);
     if (!person) return m;
@@ -156,15 +152,12 @@ async function withSalutations(
  * asked, no one, and the run says so.
  */
 async function honoursOf(body: Body, members: OfficialMember[]): Promise<Map<number, Honour>> {
-  try {
-    return await memberHonours(
+  return orFallback(politicianProblems.honourLookupFailed(), new Map<number, Honour>(), () =>
+    memberHonours(
       body,
       members.filter((m) => m.house !== "lords").map((m) => m.officialId),
-    );
-  } catch (error) {
-    problem(politicianProblems.honourLookupFailed(), error);
-    return new Map();
-  }
+    ),
+  );
 }
 
 /**

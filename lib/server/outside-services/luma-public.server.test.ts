@@ -71,6 +71,8 @@ describe("getPublicEvent", () => {
   it("gives no times when Luma gives no event", async () => {
     server.use(http.get(EVENT, () => HttpResponse.json({ guest_count: 1 })));
     expect(await getPublicEvent("evt-x")).toEqual({ startAt: null, endAt: null, going: { count: 1, guests: [] } });
+    server.use(http.get(EVENT, () => HttpResponse.json(null)));
+    expect(await getPublicEvent("evt-x")).toEqual({ startAt: null, endAt: null, going: null });
   });
 
   it("returns null when Luma errs", async () => {

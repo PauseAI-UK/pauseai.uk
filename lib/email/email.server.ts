@@ -283,6 +283,8 @@ export async function sendWith(
     }
   } catch (error) {
     if (error instanceof PostmarkError && error.inactive) {
+      // What Postmark said, for the address's page.
+      const reason = describeError(error);
       // Postmark names the suppressed addresses, which may be a Cc rather
       // than the To; failing that, it's the To.
       const named = error.inactiveAddresses;
@@ -292,21 +294,21 @@ export async function sendWith(
           address: each,
           messageId: null,
           kind: "hard",
-          reason: error.message,
+          reason,
           canReset: true,
         } as const;
-        if (await recordProblem(problem)) await hooks.blocked(each, error.message);
+        if (await recordProblem(problem)) await hooks.blocked(each, reason);
       }
       if (inactive.includes(address)) {
         await log("refused");
         return { sent: false, reason: "blocked" };
       }
       await log("failed");
-      return { sent: false, reason: "failed", detail: error.message };
+      return { sent: false, reason: "failed", detail: reason };
     }
     problem(
-      error instanceof GmailError
-        ? emailProblems.sendFailedByGmail({ purpose, account: staffAccount(from ?? "") })
+      backend.name === "gmail"
+        ? emailProblems.sendFailedByGmail({ purpose, account: staffAccount(backend.account) })
         : emailProblems.sendFailed({ purpose }),
       error,
     );

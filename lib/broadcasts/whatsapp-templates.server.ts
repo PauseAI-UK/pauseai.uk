@@ -4,9 +4,9 @@ import { textBackend } from "./channels.server";
 import { stopTextsOn } from "./sending.server";
 import { query } from "@/lib/server/db.server";
 import { notifyStaff } from "@/lib/email/notifications.server";
-import { listTemplates, type MetaTemplate } from "@/lib/server/outside-services/whatsapp.server";
-import { problem } from "@/lib/server/problems.server";
+import { listTemplates } from "@/lib/server/outside-services/whatsapp.server";
 import { broadcastProblems, broadcastsCopy } from "./copy";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 
 // What WhatsApp decides of our templates, told by its webhook
 // (whatsapp-webhooks.server.ts), or found by asking it each run of the sending
@@ -69,13 +69,10 @@ export async function checkTemplates(): Promise<void> {
   if (!needed) return;
   const backend = await textBackend();
   if (!backend) return;
-  let templates: MetaTemplate[];
-  try {
-    templates = await listTemplates(backend.keys);
-  } catch (error) {
-    problem(broadcastProblems.whatsAppUnanswered(), error);
-    return;
-  }
+  const templates = await orFallback(broadcastProblems.whatsAppUnanswered(), undefined, () =>
+    listTemplates(backend.keys),
+  );
+  if (!templates) return;
   for (const template of templates) {
     await applyTemplateStatus(template.name, template.status, template.rejectedReason, template.category);
   }

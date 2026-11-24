@@ -26,75 +26,47 @@ makes sense: don't do it again.
 | PR                                                      | Steps      | Status             |
 | ------------------------------------------------------- | ---------- | ------------------ |
 | PR 1: the bugs, the general rules, error pages, saving  | 1 and 2    | **DONE** in #462   |
-| PR 2: the server side                                   | 3 and 4    | **TO DO**          |
+| PR 2: the server side                                   | 3 and 4    | **DONE** in #464   |
 | PR 3: stored errors and forms                           | 5, 6 and 7 | **TO DO**          |
 
-Of the problems below, 2, 3, 4, 6, 7 and 8 are DONE. Problems 1, 5, 9, 10,
-11, 12 and 13 are TO DO.
+Of the problems below, 1 to 10 and 13 are DONE, but for what's noted under
+7 and 13. Problems 11 and 12 are TO DO.
 
-## Before starting PR 2
+## Before starting PR 3
 
-For whoever picks this up without having done PR 1.
+For whoever picks this up without having done PR 1 and PR 2.
 
-**Where to work.** The branch `error-handling-server-side`, in
-`tmp/worktrees/error-handling-server-side`.
+**What PR 2 built, which PR 3 stands on** (`docs/code-structure.md`,
+"Errors", says each in full):
 
-**What was settled with letters and mailings converted**, which the rest
-follows:
-
-- **The sentence is kept beside its code.** A problem is stored as
-  `{ code, values, what, said }`: `what` is the sentence, written as the
-  problem is reported, and it's what the job's page, the run's alert and
-  the Errors page show. The code is what's compared. So there's no list of
-  every feature's problems for the readers to look a code up in. A
-  reworded sentence shows its old words on rows already kept. Values are
-  IDs, counts and fixed codes, so nothing personal is in a sentence.
-- **Declaring is apart from reporting.** `defineProblems()` is in
-  `lib/problems.ts`, which anything can import, and makes each problem a
-  function that says it happened: its code, values and sentence. Reporting
-  that is `problem()`'s, on the server:
-  `problem(letterProblems.copyNotSentYet({ letter: id }), error)`. The
-  declared function doesn't report by itself, as the plan's example had
-  it, because the copy file is loaded by the browser too, and what keeps
-  a problem on its run is found by the server's own modules.
-- **The type that keeps plain text out** is `SafeValue` there: a value
-  typed `string` is `never`, a fixed code is allowed, and text goes
-  through `publicText()`, or `outsideId()` for an outside service's ID.
-- **`problem()` takes only a declared problem**, which is the rule that
-  nothing reports a sentence written in place: a type, so no ESLint rule
-  or list was needed once every feature was converted.
-- **A staff mailbox is kept by its address**, through `staffAccount()`,
-  as the import log names whoever started a run. A supporter's or a
-  politician's address never is: the two sentences that held one name an
-  ID, or nothing.
-- **What a service said of something** (CiviCRM's reason for refusing an
-  opt-out) is handed to `problem()` as the error, and kept as the error's
-  words, not as a value.
-- **A list** is one of a problem's values, as an array, and its sentence
-  says it with `listed()`. The job's page shows the sentence, as before.
-- **The send helper** is `sendWithCare()`
-  (`lib/email/send-with-care.server.ts`), and `sendLetterVia()` is built
-  on it. `SentUnrecorded` and `NotSentYet` are gone.
+- **A problem is declared and has a code.** A feature's copy file declares
+  its problems with `defineProblems()` (`lib/problems.ts`), and `problem()`
+  (`lib/server/problems.server.ts`) takes only one of those. What's kept
+  is `{ code, values, what, said }`: `what` is the sentence, written as
+  the problem is reported and kept beside its code, and `said` the
+  error's own words. The code is what's compared. Step 5's JSON columns
+  hold this shape.
+- **Values are IDs, counts and fixed codes**, which the types hold
+  (`SafeValue`). Text goes through `publicText()`, `outsideId()` or
+  `staffAccount()`. What a service said of something is handed to
+  `problem()` as the error.
+- **`OutsideFailure`** (`lib/server/outside-services/outside-failure.server.ts`)
+  is what every binding throws, with a `kind`. `orFallback()` carries on
+  without a service, and `sendWithCare()`
+  (`lib/email/send-with-care.server.ts`) sends something a run has taken.
+- **Three places still write `describeError()` to a text column**, which
+  step 5 moves: two in `lib/events/luma-import.server.ts` and one in
+  `lib/broadcasts/sending.server.ts`.
+- **`OWN_CATCHES`** in `tests/checks/caught-errors.test.ts` lists the files
+  with a `catch` of their own. Step 6 takes the Server Actions' off as
+  they change shape.
 
 **What needs no migration.** `import_runs.problems` is JSON already, and a
 reader takes both shapes: an old row has `what` and `error`, a new one
-`code`, `values`, `what` and `said`.
-`errors_seen` has a `code` column and keys a row by it alone when it's
-told to (`byCode` in `lib/oversight/errors-seen.server.ts`, as for a
-Postgres error), so a problem's code goes there.
+`code`, `values`, `what` and `said`. `errors_seen` keys a problem's row by
+its code.
 
-**What PR 1 left that PR 2 meets:**
-
-- `keepCaught()` and `note()` are reporters beside `problem()`. The checks
-  know them (`REPORTERS` in `caught-errors.test.ts`, `ONLY_NOTED` in
-  `problem-reporting.test.ts`).
-- `outsideFetch`'s time limit throws the browser's `TimeoutError`, which
-  step 4 turns into an `OutsideFailure`. `luma-guests.server.ts` tells one
-  by its name today.
-- `fieldText()` (`lib/server/json.server.ts`) says a field of an API's
-  answer as text, for a refusal's words.
-
-**How the work went in PR 1, to save finding out again:**
+**How the work went, to save finding out again:**
 
 - `npm run test:changed` stops at once in a worktree
   (`investments/test-changed-in-worktrees.md`). Use
@@ -109,9 +81,13 @@ Postgres error), so a problem's code goes there.
   (`investments/trying-a-lint-rule.md`).
 - If CI's coverage fails on a file that passes here, see
   `investments/ci-coverage-here.md`.
+- A list of files can't be given its own ESLint rule
+  (`investments/eslint-file-lists-replace-each-other.md`), so a list of
+  files still to convert goes in a check in `tests/checks/`.
 
 The survey of the code this plan was written from is at the end ("What the
-survey found").
+survey found"). It was made before PR 1, so its counts are of the code as
+it was then.
 
 ## How errors are handled today
 
@@ -148,7 +124,9 @@ recorded, and in a few places the rules don't reach.
 Each was found by reading the code. None has been reproduced yet, so each
 gets a failing test before its fix.
 
-### 1. Staff are emailed again about a problem they already know about: TO DO
+### 1. Staff are emailed again about a problem they already know about: DONE in #464
+
+**DONE in #464.** `alertIfNew` compares problems by their code. What follows is the problem as it was found.
 
 To decide whether a job's problem is new, `alertIfNew`
 (`lib/server/import-runs.server.ts`) compares its sentence with the
@@ -219,7 +197,9 @@ comment saying why, and stay as they are:
 
 The gap is that nothing stops a new one, written without that thought.
 
-### 5. Personal data ends up in the stored problems: TO DO
+### 5. Personal data ends up in the stored problems: DONE in #464
+
+**DONE in #464.** A problem's values can't hold plain text, and `docs/data-protection.md` says what a run keeps. The error's own words are still kept, and can hold something of a person by accident, as that doc says. What follows is the problem as it was found.
 
 Sentences can contain an email address. One does for certain: when an email
 is sent but the record of it can't be saved, the sentence names the
@@ -260,7 +240,9 @@ job waits until Netlify stops the function at 30 seconds. The job never
 reaches the code that records the run, so nothing is stored and nobody is
 told.
 
-### 9. Four places decide what to do by reading an error's text: TO DO
+### 9. Four places decide what to do by reading an error's text: DONE in #464
+
+**DONE in #464.** Each reads a field its binding sets. Postmark's answer has the addresses only in its message, so the pattern is in Postmark's binding. What follows is the problem as it was found.
 
 - `inactiveAddresses()` (`email.server.ts`) pulls addresses out of
   Postmark's error message with a regular expression.
@@ -272,7 +254,9 @@ told.
 
 If a service rewords a message, the code silently takes the wrong path.
 
-### 10. Every outside service reports failure differently: TO DO
+### 10. Every outside service reports failure differently: DONE in #464
+
+**DONE in #464**, with `OutsideFailure`. What follows is the problem as it was found.
 
 Six services have their own error class, each with different fields.
 `GmailError` has a status and a `revoked` flag, `PostmarkError` has an
@@ -306,7 +290,9 @@ Postmark. Only Parliament's code retries.
 and `mailings.wait_said` each hold the text of an error. Nothing can tell
 "Luma rate-limited us" from "Luma was down" without reading that text.
 
-### 13. The same error handling is written out many times: TO DO
+### 13. The same error handling is written out many times: DONE in #464, but for the catches left
+
+**DONE in #464**, with `orFallback()`, `sendWithCare()` and `listed()`. **TO DO:** the files in `OWN_CATCHES` (`tests/checks/caught-errors.test.ts`) still have a `catch` of their own. Some catch more than an outside service failing, such as the database, and stay; the rest move to a helper as they're next changed. What follows is the problem as it was found.
 
 - About 27 places do the same thing: try a call to an outside service, and
   on any error report it and return an empty value.
@@ -325,7 +311,7 @@ Errors page already identifies a Postgres error by its code.
 
 ## The changes
 
-### A. Give every problem a code: TO DO
+### A. Give every problem a code: DONE in #464
 
 This fixes problems 1 and 5, and most later changes build on it.
 
@@ -397,7 +383,7 @@ time it happens, so a run would still need its own copy to show what went
 wrong on that run. It would also change how often staff are emailed about
 a job that stays broken, from once to once a day.
 
-### C. One error type for outside services: TO DO, but for the time limit
+### C. One error type for outside services: DONE in #464
 
 This fixes problems 9 and 10. Problem 8 is DONE: `outsideFetch` has one
 default time limit for every service (#462).
@@ -445,7 +431,7 @@ documented at https://postmarkapp.com/developer/api/overview#error-codes.
 If the message is the only source, the regular expression stays, inside
 Postmark's code, with a test using a message as Postmark really sends it.
 
-### D. Shared helpers for the repeated code: TO DO
+### D. Shared helpers for the repeated code: DONE in #464
 
 This fixes problem 13. **Decided: all three helpers.** Each can be its own
 PR.
@@ -649,11 +635,18 @@ Enforced by:
   the hook: a component is handed its actions as props, so nothing can
   tell which calls are Server Actions.
 
-## PR 2: the server side: TO DO
+## PR 2: the server side: DONE in #464
 
-Steps 3 and 4. It has no migration and no new wording, so nothing holds it
-up. It's pushed as a draft once letters is converted, for the design to be
-checked before the rest is.
+Steps 3 and 4. Don't do these again. "Before starting PR 3", above, says
+what was built. Three things differ from what's planned below:
+
+- **The call is `problem(letterProblems.x({ … }), error)`**, not
+  `letterProblems.x({ … }, error)`. A copy file is loaded by the browser
+  too, so declaring a problem is kept apart from reporting it.
+- **The sentence is kept beside the code**, so no reader looks a code up
+  in a list of every feature's problems.
+- **That nothing reports a sentence written in place is a type**, the
+  argument `problem()` takes, not an ESLint rule on importing it.
 
 ### Step 3. Problems by code (A)
 

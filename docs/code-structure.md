@@ -500,6 +500,14 @@ holds it.
     gives a fallback, an empty list or `null`. It catches only an
     `OutsideFailure`. Anything else thrown is a bug of ours, and is thrown
     on to the Errors page, never reported as the service being down.
+  - Three rules hold these. ESLint refuses `throw new Error(…)` in a
+    binding (`OUTSIDE_THROW_RULE` in `eslint.config.mjs`).
+    `tests/checks/error-text.test.ts` fails on a caught error's `.message`
+    or `.name` being read, and on `as Error`, outside the bindings. And
+    `tests/checks/caught-errors.test.ts` lists the files with a `catch` of
+    their own (`OWN_CATCHES`): a new one uses `orFallback()` or
+    `sendWithCare()`, or lets the error be thrown, or its file joins the
+    list with why.
 - **ESLint holds the rest**, with the types (`TYPED_RULES` and
   `TYPED_SITE_RULES` in `eslint.config.mjs`):
   - A promise nobody waits for says so with `void`, and one isn't handed

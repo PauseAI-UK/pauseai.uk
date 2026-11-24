@@ -159,7 +159,7 @@ export const emailProblems = defineProblems("email", {
   // site couldn't save the connection. Their own page tells them to try again; this is for whoever reads the
   // errors. Not in a job, so it's always kept as an error.
   gmailNotConnected: "Connecting a staff member's Gmail failed at the last step",
-  // An email didn't go, as Postmark errored, or Gmail did, for the account it was going by.
+  // An email didn't go, as Postmark errored, or, for one going by Gmail, as it couldn't go by that account.
   sendFailed: (p: { purpose: Purpose }) => `An email of type '${p.purpose}' couldn't be sent`,
   sendFailedByGmail: (p: { purpose: Purpose; account: SafeText }) =>
     `An email of type '${p.purpose}, by Gmail as ${p.account}' couldn't be sent`,
