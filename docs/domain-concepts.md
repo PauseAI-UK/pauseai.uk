@@ -1742,12 +1742,12 @@ its own font, wrapped to its window, where it would show a text-only one in
 a fixed-width font or in lines broken at a set width. A letter, its copy and
 a mailing, and an answer to a reply, have HTML of their own, from the
 editor's document. For any other,
-written only as text (a notice, a login link, an alert), `send()` makes it
+written only as text (a notice, an alert), `send()` makes it
 from the text (`lib/email/plain-email-html.ts`): a paragraph for each block of
 lines, a bulleted list of lines that start "- ", each web address a link.
 The text itself goes unchanged beside it. Postmark is told to leave those links as
-written (`TrackLinks`), so a login link never goes through Postmark's
-address. A relay is its sender's message, as it came.
+written (`TrackLinks`), so a link to a page of someone's own never goes through
+Postmark's address. A relay is its sender's message, as it came.
 
 Admins read the log at `/staff/sent-emails` (`lib/oversight/sent-emails.server.ts`), a
 page with no visible heading, as the menu names it. A row shows:
@@ -1767,7 +1767,7 @@ person's own name on their own address, `"Jane Smith"
 <jane.smith@example.com>`, and their name with "(via PauseAI)" on a proxy
 (`nameLine` and `proxyLine` in `lib/letters/proxies.server.ts`). The exception is
 staff: we don't know a staff account's name, nor a shared inbox's, so a
-login link, an alert or an event owner's email goes to the address alone.
+alert or an event owner's email goes to the address alone.
 
 When something needs a person, the site emails the notification inbox,
 `NOTIFICATION_INBOX` (`notifyStaff` in `lib/email/notifications.server.ts`), once
@@ -1845,7 +1845,7 @@ anything. If the email is about one record, as a letter is, `email_sends`
 needs a column pointing at that kind of record, as `letter_id` does.
 
 An address with "Do not email", in CiviCRM or as an opt-out of all email,
-gets only what the person just asked for or did: a login link, a link to
+gets only what the person just asked for or did: a link to
 the contact preferences page, a letter's copy and their MP's replies to it, which
 to them is mail from their MP that we pass on, and the like (`TRANSACTIONAL`
 in `lib/email/email.server.ts`); `send()` refuses any other. A broadcast's copies
@@ -2141,14 +2141,18 @@ finds it. If it blocks or frees an address, it names `address`.
 
 ## Staff
 
-Anyone with a pauseai.uk email address can log in, with a link sent to
-that address (`lib/accounts/auth.server.ts`, `staff-login.ts`). A session
-lasts a day. With "Keep me signed in" it lasts 30 days, renewed on use.
-Anyone at pauseai.uk can be staff, paid or volunteer. The mailbox decides
-who can log in: a leaver's Google account is suspended or deleted, so no
-login link reaches them. That relies on a suspended or deleted Google
-account not receiving mail, and on a leaver's mail not being forwarded or
-aliased to someone else, who could then log in as them.
+Anyone with a pauseai.uk Google account can log in with it
+(`lib/accounts/google-login.server.ts`, `lib/accounts/auth.server.ts`). A
+session lasts a day. With "Keep me signed in" it lasts 30 days, renewed on
+use. Anyone at pauseai.uk can be staff, paid or volunteer. The Google
+account decides who can log in: a leaver's is suspended or deleted, so
+Google won't sign them in. A session they already have lasts until it ends,
+or an admin ends it on `/staff/accounts`.
+
+Google sends people back only to the live site, so a deploy preview's login
+goes through it: the live site passes the login on to the preview, signed
+with a key only it holds, and the preview logs them in to its own database
+(`docs/development.md`, "Gmail and logging in").
 
 The first login gives an address a staff account (`staff_accounts`) with
 no permissions, added by `login`. Admins give permissions on

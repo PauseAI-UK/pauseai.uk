@@ -416,6 +416,15 @@ function linkedPage(): Response {
 const SENT_GMAIL = ((globalThis as { fixtureSentGmail?: Map<string, { raw: string; at: number }> }).fixtureSentGmail ??=
   new Map());
 
+/** An account's name: its address's words, capitalised, as a person would set it. */
+function fixtureName(account: string): string {
+  return account
+    .split("@")[0]
+    .split(/[.\-_]/)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 // Google's OAuth and Gmail, for any account. A token names its account
 // (lib/server/outside-services/gmail.server.ts makes the code "fixture:<account>"),
 // so the profile says whose it is. A mailbox has no messages, but joseph@'s
@@ -430,10 +439,14 @@ function googleResponse(
   if (hostname === "oauth2.googleapis.com" && pathname === "/token") {
     const form = new URLSearchParams(String(init!.body));
     const account = (form.get("code") ?? form.get("refresh_token")!).replace(/^fixture(-refresh)?:/, "");
+    // An ID token as Google's: header, claims and signature, each base64url, its claims the account's address and name.
+    const claims = Buffer.from(
+      JSON.stringify({ email: account, email_verified: true, name: fixtureName(account) }),
+    ).toString("base64url");
     return json({
       access_token: `fixture-access:${account}`,
       expires_in: 3599,
-      ...(form.get("code") && { refresh_token: `fixture-refresh:${account}` }),
+      ...(form.get("code") && { refresh_token: `fixture-refresh:${account}`, id_token: `e30.${claims}.fixture` }),
     });
   }
   if (hostname === "oauth2.googleapis.com" && pathname === "/revoke") return json({});
@@ -448,13 +461,8 @@ function googleResponse(
   if (pathname.endsWith("/profile")) {
     return json({ emailAddress: account, historyId: String(letters ? historyIdOf(lettersMailbox(scope)) : 1000) });
   }
-  // The account's name: its address's words, capitalised, as a person would set it.
   if (pathname.endsWith("/settings/sendAs")) {
-    const name = account
-      .split("@")[0]
-      .split(/[.\-_]/)
-      .map((word) => word[0].toUpperCase() + word.slice(1));
-    return json({ sendAs: [{ sendAsEmail: account, displayName: name.join(" "), isPrimary: true }] });
+    return json({ sendAs: [{ sendAsEmail: account, displayName: fixtureName(account), isPrimary: true }] });
   }
   // The same email gets the same IDs every run, as Postmark's MessageID: from what it says, not the UUIDs
   // each run makes afresh, its MIME boundaries and Message-IDs, and those it answers (lib/server/mime.server.ts).

@@ -80,6 +80,14 @@ export async function listStaffAccounts(
   );
 }
 
+/** Each staff member's name, by address, for those who've logged in with Google since it gave one. */
+export async function staffNames(): Promise<Record<string, string>> {
+  const rows = await query<{ email: string; name: string }>(
+    "SELECT email, name FROM staff_accounts WHERE name IS NOT NULL",
+  );
+  return Object.fromEntries(rows.map((row) => [row.email, row.name]));
+}
+
 /** Ends every session `email` has, as `by`, logging it when there were any. Returns how many. */
 export async function endStaffSessions(email: string, by: string): Promise<number> {
   const [address] = normalise(email, []);
@@ -162,7 +170,6 @@ export async function removeStaffAccount(email: string, by: string): Promise<Acc
     if (row.permissions.includes("admin") && (await wouldLeaveNoAdmin(address, db))) return "last-admin";
     await query("DELETE FROM staff_accounts WHERE email = $1", [address], db);
     await query("DELETE FROM staff_sessions WHERE lower(email) = $1", [address], db);
-    await query("DELETE FROM staff_login_links WHERE lower(email) = $1", [address], db);
     await logChange(by, "remove staff account", { email: address, permissions: row.permissions }, db);
     return "changed";
   });

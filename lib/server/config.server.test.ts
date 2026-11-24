@@ -68,6 +68,7 @@ describe("config", () => {
       POSTMARK_WEBHOOK_PASSWORD: () => config.postmarkWebhookPassword,
       GOOGLE_CLIENT_ID: () => config.googleClientId,
       GOOGLE_CLIENT_SECRET: () => config.googleClientSecret,
+      GOOGLE_LOGIN_SIGNING_KEY: () => config.googleLoginSigningKey,
       GMAIL_TOKEN_KEY: () => config.gmailTokenKey,
       STRIPE_WALL_OF_THANKS_KEY: () => config.stripeWallOfThanksKey,
       TURNSTILE_SECRET_KEY: () => config.turnstileSecretKey,

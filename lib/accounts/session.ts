@@ -33,20 +33,46 @@ export function keepCookie() {
 
 export const LOGIN_PATH = "/staff/login";
 
-/** Where a login email's link goes. Opened in the browser that asked for it, it logs in. */
-export const LOGIN_LINK_PATH = "/staff/api/callback";
+/** Logging in with Google: its three steps' routes are under here (lib/accounts/google-login.server.ts). */
+export const GOOGLE_API_PATH = "/staff/api/google";
+
+/** The login page's button: goes to Google, by way of the live site from a preview. */
+export const GOOGLE_START_PATH = `${GOOGLE_API_PATH}/start`;
+
+/** Where Google sends people back to, on the live site. */
+export const GOOGLE_CALLBACK_PATH = `${GOOGLE_API_PATH}/callback`;
+
+/** Where the live site passes a login on to, on a preview. */
+export const GOOGLE_HANDOFF_PATH = `${GOOGLE_API_PATH}/handoff`;
 
 /**
- * Set on the browser that asks for a login link. The link only works in a
- * browser with it. Its value is a random token; the link's row holds its hash.
+ * In a fixture build, the Google account the browser is signed in to, which
+ * the fake Google page chooses (googleLoginUrl in
+ * lib/server/outside-services/gmail.server.ts). The storyboard sets it.
  */
-export const LOGIN_BROWSER_COOKIE = "staff_login";
+export const FIXTURE_GOOGLE_ACCOUNT_COOKIE = "fixture_google_account";
 
 /** The dev login's route (DevLogin): a session at once, in a fixture build only. */
 export const DEV_LOGIN_PATH = "/staff/api/dev-login";
 
-/** Staff paths that work without a session: the login page, the two steps of logging in, and the dev login. */
-export const OPEN_STAFF_PATHS = [LOGIN_PATH, "/staff/api/login", LOGIN_LINK_PATH, DEV_LOGIN_PATH];
+/**
+ * Logging in on a local build without fixtures, which Google can't send
+ * back to: a link printed in the dev server's terminal (lib/accounts/local-login.server.ts).
+ */
+export const LOCAL_LOGIN_PATH = "/staff/api/local-login";
+
+/**
+ * Staff paths that work without a session: the login page, the steps of
+ * logging in with Google, the local build's printed link, and the dev login.
+ */
+export const OPEN_STAFF_PATHS = [
+  LOGIN_PATH,
+  GOOGLE_START_PATH,
+  GOOGLE_CALLBACK_PATH,
+  GOOGLE_HANDOFF_PATH,
+  LOCAL_LOGIN_PATH,
+  DEV_LOGIN_PATH,
+];
 
 /** Where the login page's `next` is: the staff page to return to once logged in. */
 export const NEXT_PARAM = "next";

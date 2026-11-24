@@ -2617,25 +2617,11 @@ CREATE TABLE public.staff_accounts (
     gmail_connected_at timestamp with time zone,
     gmail_history_id text,
     gmail_name text,
+    name text,
     CONSTRAINT staff_accounts_email_check CHECK ((email = lower(email))),
     CONSTRAINT staff_accounts_email_pauseai CHECK ((email ~ '^[^@[:space:]]+@pauseai\.uk$'::text)),
     CONSTRAINT staff_accounts_gmail_check CHECK ((((gmail_token IS NULL) = (gmail_connected_at IS NULL)) AND ((gmail_token IS NOT NULL) OR (gmail_history_id IS NULL)))),
     CONSTRAINT staff_accounts_permissions_check CHECK ((permissions <@ ARRAY['admin'::text, 'supporters'::text]))
-);
-
---
--- Name: staff_login_links; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.staff_login_links (
-    token_hash text NOT NULL,
-    email text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    expires_at timestamp with time zone NOT NULL,
-    used_at timestamp with time zone,
-    browser_hash text,
-    remember boolean DEFAULT false NOT NULL,
-    next text DEFAULT '/staff'::text NOT NULL
 );
 
 --
@@ -3480,13 +3466,6 @@ ALTER TABLE ONLY public.staff_accounts
     ADD CONSTRAINT staff_accounts_pkey PRIMARY KEY (email);
 
 --
--- Name: staff_login_links staff_login_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.staff_login_links
-    ADD CONSTRAINT staff_login_links_pkey PRIMARY KEY (token_hash);
-
---
 -- Name: staff_nav_seen staff_nav_seen_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4019,12 +3998,6 @@ CREATE INDEX preference_links_address ON public.preference_links USING btree (ad
 --
 
 CREATE INDEX signup_upload_entries_upload ON public.signup_upload_entries USING btree (upload_id);
-
---
--- Name: staff_login_links_email_created_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX staff_login_links_email_created_at ON public.staff_login_links USING btree (lower(email), created_at);
 
 --
 -- Name: staff_sessions_expires_at; Type: INDEX; Schema: public; Owner: -

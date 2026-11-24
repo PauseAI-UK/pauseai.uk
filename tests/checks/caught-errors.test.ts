@@ -75,6 +75,11 @@ const EXCEPTIONS = new Map([
 const OWN_CATCHES = [
   "app/(staff)/staff/_components/jobs/actions.ts",
   "app/(staff)/staff/api/gmail/callback/route.ts",
+  // Logging in with Google: when Google refuses the code, or the live site
+  // can't sign a preview's login, the person is sent back to the login page
+  // to try again, which is no fallback's value and no send, and the failure
+  // is reported as a problem.
+  "app/(staff)/staff/api/google/callback/route.ts",
   "app/api/email-your-mp/letters/mp-letters.server.ts",
   "app/api/luma/webhook/route.ts",
   "app/api/signatories/route.ts",

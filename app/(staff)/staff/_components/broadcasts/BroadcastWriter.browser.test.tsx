@@ -638,11 +638,17 @@ describe("BroadcastWriter, by text", () => {
     template: exampleTemplates[0],
   };
 
-  // The dropdown, named with the choice made, and choosing in it by a choice's name.
+  // The dropdown, named with the choice made, and choosing in it by a choice's name. Each choice is waited for, as
+  // it changes the page beneath: a dropdown opened again before then has its list move under the press, which can
+  // land outside it and close it.
   const words = () => page.getByRole("button", { name: new RegExp(`^${copy.templateLabel}: `) });
   const pick = async (name: string) => {
     await words().click();
     await page.getByRole("button", { name, exact: true }).click();
+    // A template titles the page; new words open their editor, with its hint.
+    const chosen =
+      name === copy.newTemplate ? page.getByText(copy.newTemplateHint) : page.getByRole("heading", { name, level: 1 });
+    await expect.element(chosen).toBeVisible();
   };
   const [march, manager, , , , thanks] = exampleTemplates.map((one) => one.name);
 

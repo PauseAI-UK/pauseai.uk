@@ -2,9 +2,8 @@ import type { Page } from "@playwright/test";
 import { ROUTES } from "../routes";
 import { stayOnPage } from "./loading-steps";
 import { addStaffAccount, logIn, staffEmail } from "./login-steps";
-import { newestEmailTo } from "./outbox-steps";
-import { emailFrame } from "./email-frame";
-import { BASE, expect, flowStorageState, frame, story, test } from "./fixtures";
+import { BASE, expect, frame, story, test } from "./fixtures";
+import { FIXTURE_GOOGLE_ACCOUNT_COOKIE } from "@/lib/accounts/session";
 import { openBubble } from "./settle";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Section } from "./report/frames";
@@ -15,43 +14,26 @@ import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
 
 export const section: Section = { name: "Logging in, and your account", part: "Staff pages", order: 10 };
 
-// Logging in to the staff pages, and your own account: the dev login, a
-// login link, a first login and an admin's accounts, being logged out, your
-// Gmail, and the pages kept out of search. Each flow on its own database.
-// Here staff log in with the link emailed to them (logInWithLink); the
-// other sections use the dev login (logInAsStaff, ./login-steps.ts).
+// Logging in to the staff pages, and your own account: the dev login,
+// logging in with Google, a first login and an admin's accounts, being
+// logged out, your Gmail, and the pages kept out of search. Each flow on its
+// own database. Here staff log in with Google (logInWithGoogle); the other
+// sections use the dev login (logInAsStaff, ./login-steps.ts).
 
 /** Every staff page but the login page. */
 const STAFF_PAGES = ROUTES.filter((route) => route.startsWith("/staff") && !route.startsWith("/staff/login"));
 
-/** The login link in the newest email to `email`, if it got one. */
-function loginLinkFor(email: string): string | undefined {
-  return newestEmailTo(email)?.TextBody.match(/https?:\/\/\S+\/staff\/api\/callback\?token=[\w-]+/)?.[0];
-}
-
-/** Asks for a login link for `email`, ticking "Keep me signed in" if `keep`, and waits for "check your inbox". */
-async function askForLoginLink(page: Page, base: string, email: string, keep = false) {
+/**
+ * Logs in on `base` as `email`, as staff do: the fixture build's Google is
+ * signed in to `email` (FIXTURE_GOOGLE_ACCOUNT_COOKIE), so the button comes
+ * straight back from it as them. Ticks "Keep me signed in" if `keep`.
+ */
+async function logInWithGoogle(page: Page, base: string, email: string, keep = false) {
+  await page.context().addCookies([{ name: FIXTURE_GOOGLE_ACCOUNT_COOKIE, value: email, url: base }]);
   const login = await page.goto(`${base}/staff/login`);
   if (!login?.ok()) throw new Error(`${base}/staff/login returned ${login?.status()}: is the staff interface there?`);
-  await page.getByLabel(accountsCopy.login.emailLabel).fill(email);
   if (keep) await page.getByRole("checkbox", { name: accountsCopy.login.keep }).check();
   await page.getByRole("button", { name: accountsCopy.login.button }).click();
-  await expect(page.getByRole("status")).toHaveText(accountsCopy.login.sent);
-}
-
-/**
- * Logs in on `base` as `email`, as staff do: asks for a link, takes it from
- * the build's outbox (lib/server/fixtures/outbox.ts), and opens it in the same
- * browser. For an address that gets no link, stops at "check your inbox"
- * and returns false.
- */
-async function logInWithLink(page: Page, base: string, email = "staff@pauseai.uk"): Promise<boolean> {
-  await askForLoginLink(page, base, email);
-  const link = loginLinkFor(email);
-  if (!link) return false;
-  // In the same browser that asked for it, so it logs in.
-  await page.goto(link);
-  return true;
 }
 
 test("The dev login", async ({ page, flowDatabase }) => {
@@ -101,58 +83,37 @@ test("Logged out, nothing changes", async ({ request }) => {
   expect(forged.status()).toBe(307);
 });
 
-test("An address outside pauseai.uk", { tag: "@phone" }, async ({ page }) => {
-  story("Someone asks for a login link for an address outside pauseai.uk.");
+test("A Google account outside pauseai.uk", { tag: "@phone" }, async ({ page }) => {
+  story("Someone signs in with Google, choosing an account outside pauseai.uk.");
   await page.goto(`${BASE}/staff/login`);
   await frame(page, "The login page");
-  expect(await logInWithLink(page, BASE, "someone@gmail.com")).toBe(false);
-  await frame(page, "Check your email");
-  story(
-    "The page says to check their email, but no link is sent. An address that only looks like pauseai.uk gets none either.",
-  );
-  expect(await logInWithLink(page, BASE, "someone@pauseai.uk.evil.example")).toBe(false);
+  await logInWithGoogle(page, BASE, "someone@gmail.com");
+  await expect(page).toHaveURL(`${BASE}/staff/login?other=1`);
+  await expect(page.getByText(accountsCopy.login.other)).toBeVisible();
+  await frame(page, "Back from Google, not let in");
+  story("They're back on the login page, which says only pauseai.uk accounts can sign in.");
 });
 
-test("A login link", async ({ page, browser, request, flowDatabase }) => {
-  story("Staff ask for a login link, ticking Keep me signed in. It's emailed to them.");
+test("Logging in with Google", async ({ page, flowDatabase }) => {
+  story("Staff tick Keep me signed in, and sign in with their pauseai.uk Google account.");
   const email = staffEmail();
   addStaffAccount(flowDatabase, email);
-  await askForLoginLink(page, BASE, email, true);
-  const link = loginLinkFor(email)!;
-  await emailFrame(page, newestEmailTo(email)!, "The email with the login link");
-  story(
-    "Opened in another browser, or by a mail scanner, the link logs nobody in, and the page says why. The link still works.",
-  );
-
-  // Opened by a mail scanner, or in another browser, the link logs nobody in
-  // and says why, and isn't used up.
-  const scanned = await request.get(link);
-  expect(scanned.url()).toBe(`${BASE}/staff/login?elsewhere=1`);
-  const other = await browser.newContext({ storageState: flowStorageState(flowDatabase) });
-  const otherPage = await other.newPage();
-  await otherPage.goto(link);
-  await expect(otherPage).toHaveURL(/\/staff\/login\?elsewhere=1$/);
-  await expect(otherPage.getByText(accountsCopy.login.elsewhere)).toBeVisible();
-  await frame(otherPage, "The link, in another browser");
-  story(
-    "In the browser that asked for it, the link logs them in, for 30 days as they ticked the box. Opened again, it has been used, and logs nobody in.",
-  );
-  await other.close();
-
-  // Opened in the browser that asked, it logs in straight away, kept for 30 days as the box was ticked.
-  await page.goto(link);
+  await logInWithGoogle(page, BASE, email, true);
+  story("Back from Google, they're logged in, for 30 days as they ticked the box.");
   await expect(page).toHaveURL(`${BASE}/staff`);
   // Who's logged in is in the header (behind the menu on a phone).
   await expect(page.getByText(email).first()).toBeAttached();
   const session = (await page.context().cookies()).find((c) => c.name === "staff_session")!;
   expect(session.expires).toBeGreaterThan(Date.now() / 1000 + 29 * 86_400);
-
-  // And it only works once.
+  await frame(page, "Logged in");
+  story(
+    "Coming back from Google to a browser that didn't start the login logs nobody in, and the page says it didn't work.",
+  );
   await page.context().clearCookies({ name: "staff_session" });
-  await page.goto(link);
-  await expect(page).toHaveURL(/\/staff\/login\?failed=1$/);
+  await page.goto(`${BASE}/staff/api/google/callback?code=fixture:${email}&state=made-up`);
+  await expect(page).toHaveURL(`${BASE}/staff/login?failed=1`);
   await expect(page.getByText(accountsCopy.login.failed)).toBeVisible();
-  await frame(page, "The link, opened again");
+  await frame(page, "Signing in didn't work");
 });
 
 test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
@@ -161,7 +122,7 @@ test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
   );
   const colleague = `colleague-${testInfo.testId.replace(/\W/g, "").slice(-8)}@pauseai.uk`;
   // Logged in for the first time, with no account: one is made, with no permissions, so the dashboard and the pages any account opens.
-  await logInWithLink(page, BASE, staffEmail());
+  await logInWithGoogle(page, BASE, staffEmail());
   // The sidebar has a heading of the same name, before the dashboard's.
   await expect(page.getByRole("heading", { level: 2, name: shellCopy.nav.sections.politicians }).last()).toBeVisible();
   // The sidebar (hidden behind the bar's menu on a phone, so read from the DOM) offers the ordinary pages and not the admin's.
@@ -184,6 +145,13 @@ test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
   await page.goto(`${BASE}/staff/accounts`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(accountsCopy.accounts.title);
   await frame(page, "The staff accounts page");
+  story(
+    "Their address is underlined with dots, as Google gave their name when they logged in. Pressing it shows the name.",
+  );
+  await openBubble(page.getByRole("row").filter({ hasText: staffEmail() }).getByRole("button", { name: staffEmail() }));
+  await expect(page.getByText(`Staff ${staffEmail().split("@")[0].slice(6)}`)).toBeVisible();
+  await frame(page, "Their name, from Google");
+  await page.keyboard.press("Escape");
   story("Add staff asks for a colleague's address.");
   // Added from Add staff, at the top right, at once: an account with no permissions.
   await openBubble(page.getByRole("button", { name: accountsCopy.accounts.addStaff }));

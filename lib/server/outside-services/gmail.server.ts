@@ -6,11 +6,12 @@ import { decodedText, messageIds } from "@/lib/email-parsing/mime.server";
 import { outsideFetch } from "./outside-fetch.server";
 import { orFallback } from "./fallback.server";
 import { type FailureKind, kindOfStatus, OutsideFailure } from "./outside-failure.server";
-import { fieldText, readJsonIfAny } from "../json.server";
+import { fieldText, parseJsonIfAny, readJsonIfAny } from "../json.server";
 import { serverProblems } from "@/lib/server/copy";
 
-// The only file that talks to Google: the OAuth consent that connects a
-// staff member's Gmail, and the Gmail API, over HTTP through outsideFetch,
+// The only file that talks to Google: logging staff in with their Google
+// account, the OAuth consent that connects a staff member's Gmail, and the
+// Gmail API, over HTTP through outsideFetch,
 // not Google's SDK, which makes its own requests. The consent screen is the
 // Google Cloud project's, Internal, so only pauseai.uk accounts can grant
 // it. GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are its OAuth client's.
@@ -85,6 +86,50 @@ export function gmailConsentUrl(account: string, redirectUri: string, state: str
     login_hint: account,
     state,
   })}`;
+}
+
+/** What logging in asks Google for: the account's address, and its name, kept on the staff account. */
+const LOGIN_SCOPES = ["openid", "email", "profile"];
+
+/**
+ * Where to send someone logging in: Google's page to choose their account,
+ * which comes back to `redirectUri` with a code and `state`. With fixtures,
+ * straight back, with a code naming `fixtureAccount`, the account the
+ * fixture's browser is signed in to.
+ */
+export function googleLoginUrl(redirectUri: string, state: string, fixtureAccount = "staff@pauseai.uk"): string {
+  if (config.fixtures) {
+    return `${redirectUri}?${new URLSearchParams({ code: `fixture:${fixtureAccount}`, state })}`;
+  }
+  return `${CONSENT_URL}?${new URLSearchParams({
+    client_id: client().id,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: LOGIN_SCOPES.join(" "),
+    // Google lists only the Workspace's pauseai.uk accounts (https://developers.google.com/identity/openid-connect/openid-connect#hd-param).
+    hd: "pauseai.uk",
+    prompt: "select_account",
+    state,
+  })}`;
+}
+
+/**
+ * The account someone chose on Google's page, from the code it came back
+ * with: its address, if Google says it's verified, in lower case, and its
+ * name, empty if Google gave none. Google's
+ * ID token comes straight from Google over HTTPS, so its claims are trusted
+ * without checking its signature
+ * (https://developers.google.com/identity/openid-connect/openid-connect#obtainuserinfo).
+ */
+export async function googleLoginAccount(
+  code: string,
+  redirectUri: string,
+): Promise<{ email: string; name: string } | undefined> {
+  const data = await tokenRequest({ code, redirect_uri: redirectUri, grant_type: "authorization_code" });
+  const payload = Buffer.from(String(data.id_token).split(".")[1] ?? "", "base64url").toString();
+  const claims = (parseJsonIfAny(payload) ?? {}) as { email?: unknown; email_verified?: unknown; name?: unknown };
+  if (claims.email_verified !== true || typeof claims.email !== "string") return undefined;
+  return { email: claims.email.toLowerCase(), name: typeof claims.name === "string" ? claims.name.trim() : "" };
 }
 
 async function tokenRequest(params: Record<string, string>): Promise<Record<string, unknown>> {

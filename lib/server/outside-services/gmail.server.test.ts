@@ -11,6 +11,8 @@ import {
   gmailAccessToken,
   gmailConsentUrl,
   GmailError,
+  googleLoginAccount,
+  googleLoginUrl,
   gmailFullMessage,
   gmailThreadMessageIds,
   gmailHistory,
@@ -89,6 +91,82 @@ describe("consent", () => {
     expect(await gmailAccessToken("fixture-refresh:jo@pauseai.uk")).toMatchObject({
       token: "fixture-access:jo@pauseai.uk",
     });
+  });
+});
+
+describe("logging in", () => {
+  it("asks Google for the address and name, offering pauseai.uk accounts to choose from", () => {
+    const url = new URL(googleLoginUrl("https://pauseai.uk/staff/api/google/callback", "st"));
+    expect(url.origin + url.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      client_id: "client-id",
+      redirect_uri: "https://pauseai.uk/staff/api/google/callback",
+      response_type: "code",
+      scope: "openid email profile",
+      hd: "pauseai.uk",
+      prompt: "select_account",
+      state: "st",
+    });
+  });
+
+  it("with fixtures, comes straight back with a code naming the browser's account, or staff@ if it has none", () => {
+    vi.stubEnv("DATA_FIXTURES", "1");
+    expect(googleLoginUrl("https://pauseai.uk/cb", "st", "jo@pauseai.uk")).toBe(
+      "https://pauseai.uk/cb?code=fixture%3Ajo%40pauseai.uk&state=st",
+    );
+    expect(googleLoginUrl("https://pauseai.uk/cb", "st")).toBe(
+      "https://pauseai.uk/cb?code=fixture%3Astaff%40pauseai.uk&state=st",
+    );
+  });
+
+  /** Google answering the code with an ID token of `claims`, or with `body` as it is. */
+  function idToken(claims: unknown, body?: unknown) {
+    const token = `e30.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.sig`;
+    server.use(http.post(TOKEN, () => HttpResponse.json(body ?? { access_token: "a", id_token: token })));
+  }
+
+  it("takes the verified address from Google's ID token, in lower case, and the name, with the same redirect", async () => {
+    let form: URLSearchParams | undefined;
+    server.use(
+      http.post(TOKEN, async ({ request }) => {
+        form = new URLSearchParams(await request.text());
+        const claims = Buffer.from(
+          JSON.stringify({ email: "Jo@PauseAI.uk", email_verified: true, name: " Jo Bloggs " }),
+        );
+        return HttpResponse.json({ id_token: `e30.${claims.toString("base64url")}.sig` });
+      }),
+    );
+    expect(await googleLoginAccount("code-1", "https://pauseai.uk/cb")).toEqual({
+      email: "jo@pauseai.uk",
+      name: "Jo Bloggs",
+    });
+    expect(Object.fromEntries(form!)).toMatchObject({
+      code: "code-1",
+      redirect_uri: "https://pauseai.uk/cb",
+      grant_type: "authorization_code",
+      client_secret: "client-secret",
+    });
+  });
+
+  it("gives an empty name when Google gives none", async () => {
+    idToken({ email: "jo@pauseai.uk", email_verified: true });
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toEqual({ email: "jo@pauseai.uk", name: "" });
+  });
+
+  it("gives no address Google hasn't verified, or for a token without one", async () => {
+    idToken({ email: "jo@pauseai.uk", email_verified: false });
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toBeUndefined();
+    idToken({ email_verified: true });
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toBeUndefined();
+    idToken(null, { id_token: "not-a-token" });
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toBeUndefined();
+    idToken(null, { access_token: "a" });
+    expect(await googleLoginAccount("c", "https://pauseai.uk/cb")).toBeUndefined();
+  });
+
+  it("fails when Google refuses the code", async () => {
+    server.use(http.post(TOKEN, () => HttpResponse.json({ error: "invalid_grant" }, { status: 400 })));
+    await expect(googleLoginAccount("c", "https://pauseai.uk/cb")).rejects.toThrow(GmailError);
   });
 });
 

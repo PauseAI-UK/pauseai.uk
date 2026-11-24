@@ -1,6 +1,6 @@
 // Logging staff in, for the flows of the staff pages: each flow's own staff
 // address, its account, and the fixture build's dev login. The staff-login
-// section logs in with the emailed link itself.
+// section logs in with Google itself.
 import type { Page } from "@playwright/test";
 import { DEV_LOGIN_PATH, NEXT_PARAM } from "@/lib/accounts/session";
 import { runSql } from "@/scripts/fresh-database.mjs";
@@ -25,8 +25,8 @@ export function addStaffAccount(database: string, email: string, permissions: st
 
 /**
  * Logs in on `base` as `email` with the fixture build's dev login
- * (app/(staff)/staff/api/dev-login): a session at once, which the callback
- * of a login link would have given. Given `to`, a staff page, the page lands
+ * (app/(staff)/staff/api/dev-login): a session at once, which logging in
+ * with Google would have given. Given `to`, a staff page, the page lands
  * there, as a login asked for from it does; without, it stays where it was,
  * for the flow to open the page it's going to. So only the flows about the
  * staff home open it, and a change to the home reruns only them.

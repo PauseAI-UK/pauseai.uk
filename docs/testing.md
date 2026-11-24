@@ -150,7 +150,7 @@ through `outsideFetch` like any other outside service.
   email from the outbox as a frame, in a plain mail app's layout
   (`tests/fixtures/email-view.ts`): its headers, its body (the HTML if it
   has one) and its attachments. Every email the site sends has one, such as
-  the letter, a relayed reply and the staff login link. It's what was sent,
+  the letter, a relayed reply and a staff alert. It's what was sent,
   not how Gmail or Outlook draw it.
 - **And the WhatsApp texts.** The fake WhatsApp writes each text to the
   outbox as a text file (`.txt`): its template's name and fields, or words
@@ -164,7 +164,7 @@ through `outsideFetch` like any other outside service.
   and fills in the fields from the file.
 
   So that the frames compare, the fixture build fills in what would be
-  random: the `Date` header is the fixed clock's, and a login link's token
+  random: the `Date` header is the fixed clock's, and a token in a link
   comes from a seed (`randomId` in `lib/server/random-id.server.ts`).
 
   A fixture build knows the address it's served at (`FIXTURE_ORIGIN`, from
@@ -849,7 +849,7 @@ order, alongside the others:
 
 - **A seeded hero.** `lib/shuffle.server.ts` shuffles the same way every time in a
   fixture build, so the home page's hero is compared too.
-- **Seeded emails.** In a fixture build, a login link's token is made from
+- **Seeded emails.** In a fixture build, a link's token is made from
   a seed, and an email's `Date` is the fixed clock's, so the pictures of the
   emails are compared too ("Email", above).
 - **Unique identifiers.** A flow's staff login address includes its test ID
@@ -1011,11 +1011,11 @@ that drives it or why nothing does.
   - a heading highlighted as it comes into view;
   - the share card, saying they're registered, its apps all showing on a desktop and a row to swipe on a phone, and registering someone new, with the events sent to GA.
 - `staff-login.spec.ts`: Logging in to the staff pages, and your own account:
-  - login by emailed link, with the email pictured: it works once, in the browser that asked for it;
-  - an address outside pauseai.uk getting no link;
+  - logging in with Google, with Keep me signed in, and coming back from Google to a browser that didn't start the login;
+  - a Google account outside pauseai.uk, not let in;
   - the dev login;
-  - a link with Keep me signed in;
   - the staff home after a first login, which makes an account with no permissions, and its dashboard over 30 days;
+  - a staff member's name, from Google, in a bubble from their address;
   - as an admin, adding an account from Add staff, editing its permissions in a bubble, and removing it with a second press, with the note of what that leaves them;
   - every staff page turning a visitor without a session away, and the API changing nothing for them;
   - your own page with your Gmail connected and disconnected, and a wrong Google account;
@@ -1259,7 +1259,9 @@ that drives it or why nothing does.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
 - `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, a reaction made and taken back, a photo, our answer delivered, read and failed, and Stop pressed. Its check of the callback URL is Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `supporters.spec.ts`), and the redelivery that changes nothing.
-- `/staff/api/login`, `/staff/api/callback`: `staff-login`: asking for a login link and opening it (`logInWithLink` in `staff-login.spec.ts`).
+- `/staff/api/google/start`, `/staff/api/google/callback`: `staff-login`: logging in with the fixture build's Google (`logInWithGoogle` in `staff-login.spec.ts`).
+- `/staff/api/google/handoff`: Not driven: only a deploy preview uses it, with a login the live site signed. Vitest-tested.
+- `/staff/api/local-login`: Not driven: only a local build without fixtures has it, and the storyboard's is a fixture build. Vitest-tested.
 - `/staff/api/logout`: `staff-login`: logging out, and the request without a session.
 - `/staff/api/gmail/connect`, `/staff/api/gmail/callback`:
   - `staff-login`: your Gmail connected from your own page.
@@ -1471,12 +1473,12 @@ not a mock.
   fixture.
 - **Staff screens** are reached through the fixture build's dev login
   (`logInAsStaff` in `tests/storyboard/login-steps.ts`): one request for a
-  session, as a login link's callback gives. Given a staff page, it lands
+  session, as logging in with Google gives. Given a staff page, it lands
   there, as a login asked for from that page does; without one, the flow
   opens the page it's going to itself. So only the flows about the staff
   home open it. The `staff-login`
-  section logs in as staff do, asking for a link, taking it from the
-  build's outbox and opening it in the same browser (`logInWithLink`).
+  section logs in as staff do, with the fixture build's Google, which
+  comes straight back as the account its cookie names (`logInWithGoogle`).
 - **`next/headers`** can't run outside a request, so Node tests of code
   that calls `requireStaff()` use `vi.mock("next/headers", () =>
 import("@/tests/next-headers"))` and put the session cookie in
@@ -1593,7 +1595,7 @@ npm run test:report       # open the last Playwright report
   tell a stale build of this checkout from a fresh one, though: after
   changing code, stop a server you left running.
 - Run one section with `npm run test:storyboard -- staff-login`, one flow with
-  `-g "login link"`, or point at another fixture build with `LOCAL_URL`.
+  `-g "Logging in with Google"`, or point at another fixture build with `LOCAL_URL`.
 - Browser tests need Chromium: `npx playwright install chromium`.
 
 ### `npm run gate`

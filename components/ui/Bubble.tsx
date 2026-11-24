@@ -27,22 +27,25 @@ const BUTTON_ROOM = 56;
  * short list, on a phone) is made longer by what's missing for as long as
  * the bubble is open, as a bubble is over the page and adds nothing to its
  * length. `ref` is the
- * bubble, to open it from a script.
+ * bubble, to open it from a script. `inline` makes it a span, for a bubble
+ * of a few words opened from within a sentence, where a div can't go.
  */
 export function BubbleBox({
   id,
   className,
   ref,
   keep,
+  inline = false,
   children,
 }: {
   id: string;
   className?: string;
-  ref?: RefObject<HTMLDivElement | null>;
+  ref?: RefObject<HTMLElement | null>;
   keep?: RefObject<HTMLElement | null>;
+  inline?: boolean;
   children: ReactNode;
 }) {
-  const own = useRef<HTMLDivElement>(null);
+  const own = useRef<HTMLElement>(null);
   const box = ref ?? own;
   useEffect(() => {
     const bubble = box.current!;
@@ -75,9 +78,10 @@ export function BubbleBox({
       shorten();
     };
   }, [box, keep]);
+  const Box = inline ? "span" : "div";
   return (
-    <div
-      ref={box}
+    <Box
+      ref={box as RefObject<HTMLDivElement & HTMLSpanElement>}
       id={id}
       popover="auto"
       className={[styles.bubble, className].filter(Boolean).join(" ")}
@@ -85,7 +89,7 @@ export function BubbleBox({
     >
       <span className={styles.pointer} aria-hidden="true" />
       {children}
-    </div>
+    </Box>
   );
 }
 
@@ -93,7 +97,8 @@ export function BubbleBox({
  * A button that opens a bubble (BubbleBox) under it, holding `children`;
  * `above` it, for a button at the foot of the window, such as in a bar
  * held there. `trigger` is the button's class, for how it looks, and
- * `name` its accessible name, where its label is only a glyph.
+ * `name` its accessible name, where its label is only a glyph. `inline`
+ * for one within a sentence (BubbleBox).
  */
 export default function Bubble({
   id,
@@ -102,6 +107,7 @@ export default function Bubble({
   name,
   className,
   above = false,
+  inline = false,
   children,
 }: {
   id: string;
@@ -110,6 +116,7 @@ export default function Bubble({
   name?: string;
   className?: string;
   above?: boolean;
+  inline?: boolean;
   children: ReactNode;
 }) {
   const button = useRef<HTMLButtonElement>(null);
@@ -118,7 +125,12 @@ export default function Bubble({
       <button ref={button} type="button" className={trigger} aria-label={name} {...bubbleTrigger(id)}>
         {label}
       </button>
-      <BubbleBox id={id} className={[className, above && styles.above].filter(Boolean).join(" ")} keep={button}>
+      <BubbleBox
+        id={id}
+        className={[className, above && styles.above].filter(Boolean).join(" ")}
+        keep={button}
+        inline={inline}
+      >
         {children}
       </BubbleBox>
     </>

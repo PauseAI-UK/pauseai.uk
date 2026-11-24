@@ -30,6 +30,19 @@ describeWithDatabase("staff sessions", () => {
   useTestDatabase();
   beforeEach(() => requestCookies.clear());
 
+  it("keeps the name Google gives at each login, and the last one when a login gives none", async () => {
+    const name = async () =>
+      (await query<{ name: string | null }>("SELECT name FROM staff_accounts WHERE email = 'jo@pauseai.uk'"))[0].name;
+    await createSession("jo@pauseai.uk");
+    expect(await name()).toBeNull();
+    await createSession("Jo@pauseai.uk", false, null, "Jo Bloggs");
+    expect(await name()).toBe("Jo Bloggs");
+    await createSession("jo@pauseai.uk", false, null, "");
+    expect(await name()).toBe("Jo Bloggs");
+    await createSession("jo@pauseai.uk", false, null, "Jo Smith");
+    expect(await name()).toBe("Jo Smith");
+  });
+
   it("stores only a hash of the token, finds the session by it, and lasts a day, or 30 days renewed on use when kept", async () => {
     const token = await createSession("jo@pauseai.uk");
     const hours = async (t: string) =>

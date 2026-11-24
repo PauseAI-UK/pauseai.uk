@@ -125,6 +125,14 @@ export const config = {
   get googleClientSecret(): string | undefined {
     return value(process.env.GOOGLE_CLIENT_SECRET);
   },
+  /**
+   * The live site's Ed25519 private key, PKCS #8 in base64, that signs a
+   * login it passes on to a deploy preview (lib/accounts/google-login.server.ts).
+   * Set only on the live site, so a preview can't sign one.
+   */
+  get googleLoginSigningKey(): string | undefined {
+    return value(process.env.GOOGLE_LOGIN_SIGNING_KEY);
+  },
   /** 32 random bytes, in base64, that encrypt the Gmail tokens (lib/email/gmail-tokens.server.ts). */
   get gmailTokenKey(): string | undefined {
     return value(process.env.GMAIL_TOKEN_KEY);
