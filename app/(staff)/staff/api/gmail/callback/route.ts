@@ -6,10 +6,10 @@ import {
   GMAIL_STATE_COOKIE,
   type GmailConnectOutcome,
 } from "@/lib/email/gmail-connect";
-import { emailCopy } from "@/lib/email/copy";
+import { emailProblems } from "@/lib/email/copy";
 import { connectGmail } from "@/lib/email/gmail-accounts.server";
 import { parseJsonIfAny } from "@/lib/server/json.server";
-import { problemInWords } from "@/lib/server/problems.server";
+import { problem } from "@/lib/server/problems.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { siteUrl } from "@/lib/site-url.server";
 
@@ -25,7 +25,7 @@ async function connect(email: string, code: string, request: NextRequest): Promi
     const result = await connectGmail(email, code, siteUrl(GMAIL_CALLBACK_PATH, request).href);
     return result.connected ? "connected" : result.reason;
   } catch (error) {
-    problemInWords(emailCopy.problems.gmailNotConnected, error);
+    problem(emailProblems.gmailNotConnected(), error);
     return "failed";
   }
 }

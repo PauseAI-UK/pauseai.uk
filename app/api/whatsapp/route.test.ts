@@ -5,7 +5,7 @@ import { query } from "@/lib/server/db.server";
 import { verifyToken } from "@/lib/broadcasts/whatsapp-verify-token.mjs";
 import { describeWithDatabase, useTestDatabase, withDatabaseDown } from "@/tests/database";
 import { GET, POST } from "./route";
-import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { broadcastProblems } from "@/lib/broadcasts/copy";
 
 const SECRET = "test-app-secret";
 const URL = "https://pauseai.uk/api/whatsapp";
@@ -83,6 +83,6 @@ describeWithDatabase("POST /api/whatsapp", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const res = await withDatabaseDown(() => post(stopped));
     expect(res.status).toBe(500);
-    expect(console.error).toHaveBeenCalledWith(broadcastsCopy.problems.whatsAppWebhookNotRecorded, expect.anything());
+    expect(console.error).toHaveBeenCalledWith(broadcastProblems.whatsAppWebhookNotRecorded().what, expect.anything());
   });
 });

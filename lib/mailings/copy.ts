@@ -331,9 +331,9 @@ export const mailingsCopy = {
 export const mailingProblems = defineProblems("mailings", {
   // A mailing's letter, or our answer to a politician's reply to one: something went wrong before it went, so it's
   // tried again; or it went, but recording that failed.
-  letterNotSentYet: (p: { letter: number }) => emailCopy.problems.notSentYet(`Letter ${p.letter}`),
-  letterSentUnrecorded: (p: { letter: number }) => emailCopy.problems.sentUnrecorded(`Letter ${p.letter}`),
-  answerNotSentYet: (p: { reply: number }) => emailCopy.problems.notSentYet(mailingsCopy.answers.answerTo(p.reply)),
+  letterNotSentYet: (p: { letter: number }) => emailCopy.sends.notSentYet(`Letter ${p.letter}`),
+  letterSentUnrecorded: (p: { letter: number }) => emailCopy.sends.sentUnrecorded(`Letter ${p.letter}`),
+  answerNotSentYet: (p: { reply: number }) => emailCopy.sends.notSentYet(mailingsCopy.answers.answerTo(p.reply)),
   answerSentUnrecorded: (p: { reply: number }) =>
-    emailCopy.problems.sentUnrecorded(mailingsCopy.answers.answerTo(p.reply)),
+    emailCopy.sends.sentUnrecorded(mailingsCopy.answers.answerTo(p.reply)),
 });

@@ -7,7 +7,7 @@ import { server } from "@/tests/fixtures/msw";
 import { notifications } from "@/tests/notifications";
 import { createBroadcastDraft } from "./drafts.server";
 import { applyTemplateStatus, checkTemplates } from "./whatsapp-templates.server";
-import { broadcastsCopy } from "./copy";
+import { broadcastProblems, broadcastsCopy } from "./copy";
 
 const words = broadcastsCopy.notifications.templateRejectedWhy;
 const TEMPLATES = /graph\.facebook\.com\/.*\/message_templates/;
@@ -161,6 +161,6 @@ describeWithDatabase("what WhatsApp decides of our templates", () => {
     const id = await template("march");
     await checkTemplates();
     expect((await stateOf(id)).status).toBe("pending");
-    expect(console.error).toHaveBeenCalledWith(broadcastsCopy.problems.whatsAppUnanswered, expect.anything());
+    expect(console.error).toHaveBeenCalledWith(broadcastProblems.whatsAppUnanswered().what, expect.anything());
   });
 });

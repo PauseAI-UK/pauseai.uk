@@ -15,18 +15,7 @@ import { parse, siteSources } from "./server-code";
  * its feature declares its problems, and none joins it.
  */
 const UNDECLARED = [
-  "app/(staff)/staff/api/gmail/callback/route.ts",
   "app/api/luma/webhook/route.ts",
-  "app/api/whatsapp/route.ts",
-  "lib/broadcasts/answers.server.ts",
-  "lib/broadcasts/channels.server.ts",
-  "lib/broadcasts/drafts.server.ts",
-  "lib/broadcasts/sending.server.ts",
-  "lib/broadcasts/whatsapp-templates.server.ts",
-  "lib/broadcasts/whatsapp-webhooks.server.ts",
-  "lib/email/email.server.ts",
-  "lib/email/gmail-accounts.server.ts",
-  "lib/email/notifications.server.ts",
   "lib/erasure/erase.server.ts",
   "lib/events/luma-import.server.ts",
   "lib/events/tagging.server.ts",

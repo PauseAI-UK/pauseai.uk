@@ -5,8 +5,8 @@ import { FIXTURE_KEYS } from "@/lib/server/fixtures/whatsapp";
 import { gmailEmail, postmarkBroadcast } from "@/lib/mailings/channels.server";
 import type { MailingChannel } from "@/lib/letters/channels.server";
 import { businessNumber, type BusinessNumber, type WhatsAppKeys } from "@/lib/server/outside-services/whatsapp.server";
-import { problemInWords } from "@/lib/server/problems.server";
-import { broadcastsCopy } from "./copy";
+import { problem } from "@/lib/server/problems.server";
+import { broadcastProblems } from "./copy";
 
 // What sends a message to a supporter once it's written. An email goes by
 // one of the channels mailings go by (mailing-channels.ts), as the broadcast
@@ -86,7 +86,7 @@ export async function textBackend(): Promise<TextBackend | undefined> {
     return { keys, number: await numberFor(keys) };
   } catch (error) {
     numbers.delete(numberKey(keys));
-    problemInWords(broadcastsCopy.problems.whatsAppUnanswered, error);
+    problem(broadcastProblems.whatsAppUnanswered(), error);
     return undefined;
   }
 }

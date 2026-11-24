@@ -7,7 +7,7 @@ import { createSession } from "@/lib/accounts/auth.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { expectRedirect, requestCookies } from "@/tests/next-headers";
 import { decideImport, runJobNow } from "./actions";
-import { emailCopy } from "@/lib/email/copy";
+import { emailProblems } from "@/lib/email/copy";
 
 vi.mock("next/headers", () => import("@/tests/next-headers"));
 // revalidatePath needs a Next request; here it only needs to have been asked.
@@ -58,7 +58,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     await runJobNow("import-controlai");
     // That nobody could be emailed about the failed run, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(1);
-    expect(error).toHaveBeenCalledWith(emailCopy.problems.noInbox);
+    expect(error).toHaveBeenCalledWith(emailProblems.noInbox().what);
     expect(await runs()).toEqual([
       { job: "import-controlai", status: "ok", startedBy: "jo@pauseai.uk" },
       { job: "import-controlai", status: "failed", startedBy: "jo@pauseai.uk" },
@@ -68,8 +68,8 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
       {
         kind: "action",
         route: "/staff/scheduled-jobs/controlai",
-        name: "Error",
-        words: "<url> returned <n>",
+        name: "OutsideFailure",
+        words: "ControlAI answered <n> for <url>",
       },
     ]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/controlai");
@@ -113,7 +113,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     await runJobNow("import-senedd");
     // That nobody could be emailed about the failed run, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(1);
-    expect(error).toHaveBeenCalledWith(emailCopy.problems.noInbox);
+    expect(error).toHaveBeenCalledWith(emailProblems.noInbox().what);
     expect(await runs()).toEqual([{ job: "import-senedd", status: "failed", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });

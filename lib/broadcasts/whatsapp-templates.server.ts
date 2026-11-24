@@ -5,8 +5,8 @@ import { stopTextsOn } from "./sending.server";
 import { query } from "@/lib/server/db.server";
 import { notifyStaff } from "@/lib/email/notifications.server";
 import { listTemplates, type MetaTemplate } from "@/lib/server/outside-services/whatsapp.server";
-import { problemInWords } from "@/lib/server/problems.server";
-import { broadcastsCopy } from "./copy";
+import { problem } from "@/lib/server/problems.server";
+import { broadcastProblems, broadcastsCopy } from "./copy";
 
 // What WhatsApp decides of our templates, told by its webhook
 // (whatsapp-webhooks.server.ts), or found by asking it each run of the sending
@@ -73,7 +73,7 @@ export async function checkTemplates(): Promise<void> {
   try {
     templates = await listTemplates(backend.keys);
   } catch (error) {
-    problemInWords(broadcastsCopy.problems.whatsAppUnanswered, error);
+    problem(broadcastProblems.whatsAppUnanswered(), error);
     return;
   }
   for (const template of templates) {

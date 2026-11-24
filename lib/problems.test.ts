@@ -1,5 +1,13 @@
 import { expect, it } from "vitest";
-import { defineProblems, outsideId, problemKey, problemSaid, publicText, type SafeText } from "./problems";
+import {
+  defineProblems,
+  outsideId,
+  problemKey,
+  problemSaid,
+  publicText,
+  type SafeText,
+  staffAccount,
+} from "./problems";
 
 const problems = defineProblems("posting", {
   noInbox: "Nobody was emailed",
@@ -17,6 +25,9 @@ it("makes each declared problem a function that says it happened, by its code, v
     what: "Letter 4127 couldn't be sent",
   });
   expect(problems.refused({ purpose: "relay", again: true }).what).toBe("A relay was refused (true)");
+  expect(problems.misspelt({ mp: staffAccount("sam@pauseai.uk"), events: [], rows: [] }).values.mp).toBe(
+    "sam@pauseai.uk",
+  );
   expect(problems.misspelt({ mp: publicText("Jane Smith MP"), events: [outsideId("evt-1")], rows: [2, 3] })).toEqual({
     code: "posting.misspelt",
     values: { mp: "Jane Smith MP", events: ["evt-1"], rows: [2, 3] },

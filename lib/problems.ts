@@ -13,8 +13,9 @@ declare const SAFE: unique symbol;
 
 /**
  * Text that may be kept in a problem's values, as it names no private
- * person: made only by publicText() and outsideId(), so every place that
- * keeps text with a problem can be found by searching for them.
+ * person outside the staff: made only by publicText(), outsideId() and
+ * staffAccount(), so every place that keeps text with a problem can be
+ * found by searching for them.
  */
 export type SafeText = string & { readonly [SAFE]: true };
 
@@ -35,6 +36,16 @@ export function publicText(text: string): SafeText {
  */
 export function outsideId(id: string): SafeText {
   return id as SafeText;
+}
+
+/**
+ * Marks a staff member's account, by its address, as one of a problem's
+ * values: the mailbox a problem is about. The import log and the audit log
+ * name staff by it already (who started a run, who made a change). Never
+ * the address of anyone who isn't staff.
+ */
+export function staffAccount(address: string): SafeText {
+  return address as SafeText;
 }
 
 /**
@@ -102,7 +113,8 @@ export function problemSaid(problem: Problem): string | undefined {
 type Sentence = string | ((values: any) => string);
 
 /** What stands in place of a sentence whose values could hold plain text, so the type error says what to do. */
-type Unsafe = "A problem's values are numbers, fixed codes, publicText() and outsideId(): never plain text.";
+type Unsafe =
+  "A problem's values are numbers, fixed codes, publicText(), outsideId() and staffAccount(): never plain text.";
 
 /** Each sentence as it was declared, or Unsafe in place of one whose values could hold plain text. */
 type Checked<Sentences> = {

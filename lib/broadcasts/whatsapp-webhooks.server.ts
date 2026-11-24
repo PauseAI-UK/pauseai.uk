@@ -12,13 +12,13 @@ import { config } from "@/lib/server/config.server";
 import { newNumberLink } from "@/lib/supporters/email-settings.server";
 import { notifyStaff } from "@/lib/email/notifications.server";
 import { managerLink, sendText } from "@/lib/server/outside-services/whatsapp.server";
-import { problemInWords } from "@/lib/server/problems.server";
+import { problem } from "@/lib/server/problems.server";
 import { numberOf, recordWhatsAppResume, recordWhatsAppStop, stoppedTopics } from "./whatsapp-stops.server";
 import { WHATSAPP_ERRORS } from "./whatsapp-texts.server";
 import { markUnreachable } from "./unreachable.server";
 import { applyTemplateStatus } from "./whatsapp-templates.server";
 import { keptInWords, messageWords, type WhatsAppMessage } from "./whatsapp-messages";
-import { broadcastsCopy } from "./copy";
+import { broadcastProblems, broadcastsCopy } from "./copy";
 
 // What WhatsApp's webhook tells us (app/api/whatsapp/route.ts), each change
 // by its field: what became of each text sent (delivered, read, failed),
@@ -218,7 +218,7 @@ async function answerStop(number: string, topics: Topic[], replyId?: number): Pr
       );
     }
   } catch (error) {
-    problemInWords(broadcastsCopy.problems.stopNotAnswered, error);
+    problem(broadcastProblems.stopNotAnswered(), error);
   }
 }
 

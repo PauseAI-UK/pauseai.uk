@@ -56,15 +56,16 @@ import {
   sendTemplate,
   WhatsAppRequestError,
 } from "@/lib/server/outside-services/whatsapp.server";
-import { problemInWords } from "@/lib/server/problems.server";
+import { problem } from "@/lib/server/problems.server";
 import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 import { TEMPLATE_FOOTER, templateText } from "./whatsapp-template";
 import { supporterAudience } from "./recipients.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { filterProblems } from "@/lib/server/stored-filters.server";
 import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
-import { broadcastsCopy } from "./copy";
+import { broadcastProblems, broadcastsCopy } from "./copy";
 import { DELAYED } from "./delayed";
+import { publicText } from "@/lib/problems";
 
 // A broadcast to supporters written on the site: a mailing to the supporters
 // list's filter, with one channel and its topics, fixed when it's made from
@@ -643,7 +644,7 @@ async function sendForApproval(template: {
     ]);
     return null;
   } catch (error) {
-    problemInWords(broadcastsCopy.problems.templateNotSent(template.metaName), error);
+    problem(broadcastProblems.templateNotSent({ template: publicText(template.metaName) }), error);
     return { failed: error instanceof WhatsAppRequestError ? error.reason : null };
   }
 }
@@ -738,7 +739,7 @@ export async function withdrawTemplate(id: number, by: string): Promise<boolean>
     try {
       await deleteTemplate(backend.keys, withdrawn.metaName!);
     } catch (error) {
-      problemInWords(broadcastsCopy.problems.templateNotDeleted(withdrawn.metaName!), error);
+      problem(broadcastProblems.templateNotDeleted({ template: publicText(withdrawn.metaName!) }), error);
     }
   }
   return true;
@@ -770,7 +771,7 @@ export async function deleteApprovedTemplate(id: number, by: string): Promise<Te
     try {
       await deleteTemplate(backend.keys, template.name);
     } catch (error) {
-      problemInWords(broadcastsCopy.problems.approvedNotDeleted(template.name), error);
+      problem(broadcastProblems.approvedNotDeleted({ template: publicText(template.name) }), error);
       return "failed";
     }
     await query(

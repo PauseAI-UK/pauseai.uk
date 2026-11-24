@@ -1,4 +1,5 @@
 import "server-only";
+import { sendWithCare } from "@/lib/email/send-with-care.server";
 import { named } from "@/lib/email-parsing/addresses";
 import { answerSubject } from "@/lib/email-parsing/subjects";
 import { checkDoc, docFromText, isBlank, toHtml, toText, type LetterDoc } from "@/lib/letters/format";
@@ -7,15 +8,13 @@ import { gmailRawMessage, type GmailMessageHeaders } from "@/lib/server/outside-
 import { messageIds } from "@/lib/email-parsing/mime.server";
 import { randomUUID } from "node:crypto";
 import { logChange } from "@/lib/server/audit.server";
-import { problemInWords } from "@/lib/server/problems.server";
-import { broadcastsCopy } from "./copy";
+import { broadcastProblems } from "./copy";
 import { now } from "@/lib/now";
 import { textBackend } from "./channels.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { send } from "@/lib/email/sending.server";
 import { sendReaction, sendText } from "@/lib/server/outside-services/whatsapp.server";
 import { REACTION_DAYS, REACTIONS } from "./broadcasts";
-import { emailCopy } from "@/lib/email/copy";
 import type { AnswerResult } from "@/lib/mailings/answers";
 
 // Staff's answers to replies to broadcasts, written on the copy's Thread
@@ -333,42 +332,42 @@ export async function answerReply(replyId: number, draftId: string, body: unknow
     [replyId, draftId, by.toLowerCase(), JSON.stringify(doc)],
   );
   if (!answer) return { sent: true };
-  const words = emailCopy.problems;
-  let result: AnswerSend;
-  try {
-    result = await (reply.text ? textAnswer : emailAnswer)(reply, doc);
-  } catch (error) {
-    // Nothing went (send never throws after it has): gone, so it can be sent again.
-    await query("DELETE FROM broadcast_answers WHERE id = $1", [answer.id]);
-    problemInWords(words.notSentYet(broadcastsCopy.problems.answerTo(replyId)), error);
-    return { sent: false, reason: "failed" };
-  }
-  if (!result.sent) {
-    await query("DELETE FROM broadcast_answers WHERE id = $1", [answer.id]);
-    return { sent: false, reason: result.reason };
-  }
-  const { gmailId, rfcMessageId, providerId } = result;
-  try {
-    await transaction(async (db) => {
-      await query(
-        `UPDATE broadcast_answers SET status = 'sent', sent_at = now(), gmail_message_id = $2, rfc_message_id = $3,
-           provider_message_id = $4
-         WHERE id = $1`,
-        [answer.id, gmailId, rfcMessageId, providerId],
-        db,
-      );
-      await query(
-        `UPDATE broadcast_replies SET outcome = 'answered', dealt_by = $2, dealt_at = now()
-         WHERE id = $1 AND outcome IS DISTINCT FROM 'opted-out'`,
-        [replyId, by.toLowerCase()],
-        db,
-      );
-      await settleEarlier(replyId, "answered", by, db);
-      await logChange(by, "answer reply", { replyId, answerId: answer.id }, db);
-    });
-  } catch (error) {
-    // It went: left sending, as its page says, never sent twice.
-    problemInWords(words.sentUnrecorded(broadcastsCopy.problems.answerTo(replyId)), error);
-  }
-  return { sent: true };
+  const gone = () => query("DELETE FROM broadcast_answers WHERE id = $1", [answer.id]);
+  const result = await sendWithCare<Extract<AnswerSend, { sent: true }>, Extract<AnswerResult, { sent: false }>>({
+    problems: {
+      notSentYet: broadcastProblems.answerNotSentYet({ reply: replyId }),
+      sentUnrecorded: broadcastProblems.answerSentUnrecorded({ reply: replyId }),
+    },
+    send: async () => {
+      const sent = await (reply.text ? textAnswer : emailAnswer)(reply, doc);
+      if (sent.sent) return { went: sent };
+      await gone();
+      return { unsent: { sent: false, reason: sent.reason } };
+    },
+    // It went: one that can't be marked sent is left sending, as its page says, never sent twice.
+    record: ({ gmailId, rfcMessageId, providerId }) =>
+      transaction(async (db) => {
+        await query(
+          `UPDATE broadcast_answers SET status = 'sent', sent_at = now(), gmail_message_id = $2, rfc_message_id = $3,
+             provider_message_id = $4
+           WHERE id = $1`,
+          [answer.id, gmailId, rfcMessageId, providerId],
+          db,
+        );
+        await query(
+          `UPDATE broadcast_replies SET outcome = 'answered', dealt_by = $2, dealt_at = now()
+           WHERE id = $1 AND outcome IS DISTINCT FROM 'opted-out'`,
+          [replyId, by.toLowerCase()],
+          db,
+        );
+        await settleEarlier(replyId, "answered", by, db);
+        await logChange(by, "answer reply", { replyId, answerId: answer.id }, db);
+      }),
+    // Nothing went: gone, so it can be sent again.
+    putBack: async () => {
+      await gone();
+      return { sent: false, reason: "failed" };
+    },
+  });
+  return result.sent ? { sent: true } : result;
 }

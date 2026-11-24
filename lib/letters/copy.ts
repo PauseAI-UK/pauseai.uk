@@ -419,13 +419,12 @@ export const letterProblems = defineProblems("letters", {
   letterNotSent: (p: { letter: number }) => `Letter ${p.letter} couldn't be sent, so it's gone back in the queue`,
   // A letter, a supporter's copy of one, or a relay: it went, but recording that failed; or, for a copy or a relay,
   // something went wrong before it went.
-  letterSentUnrecorded: (p: { letter: number }) => emailCopy.problems.sentUnrecorded(`Letter ${p.letter}`),
-  copyNotSentYet: (p: { letter: number }) =>
-    emailCopy.problems.notSentYet(`The supporter's copy of letter ${p.letter}`),
+  letterSentUnrecorded: (p: { letter: number }) => emailCopy.sends.sentUnrecorded(`Letter ${p.letter}`),
+  copyNotSentYet: (p: { letter: number }) => emailCopy.sends.notSentYet(`The supporter's copy of letter ${p.letter}`),
   copySentUnrecorded: (p: { letter: number }) =>
-    emailCopy.problems.sentUnrecorded(`The supporter's copy of letter ${p.letter}`),
-  relayNotSentYet: (p: { relay: number }) => emailCopy.problems.notSentYet(`Relay ${p.relay}`),
-  relaySentUnrecorded: (p: { relay: number }) => emailCopy.problems.sentUnrecorded(`Relay ${p.relay}`),
+    emailCopy.sends.sentUnrecorded(`The supporter's copy of letter ${p.letter}`),
+  relayNotSentYet: (p: { relay: number }) => emailCopy.sends.notSentYet(`Relay ${p.relay}`),
+  relaySentUnrecorded: (p: { relay: number }) => emailCopy.sends.sentUnrecorded(`Relay ${p.relay}`),
   // On a job's run, so on its page and in the email: something the job carried on past. The Gmail read, for a
   // one-off thread's other messages, where they're tried with each new one: a message Gmail wouldn't give, by ID.
   unreadable: (p: { message: SafeText }) => `Messages that Gmail has but refused to give us: ${p.message}`,

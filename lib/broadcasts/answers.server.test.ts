@@ -1,12 +1,11 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { broadcastsCopy } from "./copy";
+import { broadcastProblems } from "./copy";
 import { http, HttpResponse } from "msw";
 import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
 import { answerReply, answersTo, keepGmailAnswer, reactionsTo, reactToReply } from "./answers.server";
 import { recordProblem } from "@/lib/email/email.server";
-import { emailCopy } from "@/lib/email/copy";
 
 const HELLO = "hello@pauseai.uk";
 const JO = "jo@pauseai.uk";
@@ -161,7 +160,6 @@ describeWithDatabase("answers to replies", () => {
 
   it("are forgotten when something goes wrong before they go, and kept as they are once they went", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const words = emailCopy.problems;
     await connectTestGmail(HELLO);
     const { reply } = await replied();
     // Gmail refusing it, then logging that failing: nothing went, so it can be sent again.
@@ -172,15 +170,13 @@ describeWithDatabase("answers to replies", () => {
       reason: "failed",
     });
     expect(await query("SELECT * FROM broadcast_answers")).toEqual([]);
-    expect(error.mock.calls.map(([what]) => what)).toContain(words.notSentYet(broadcastsCopy.problems.answerTo(reply)));
+    expect(error.mock.calls.map(([what]) => what)).toContain(broadcastProblems.answerNotSentYet({ reply }).what);
     // It goes, but recording that fails: left sending, as its page says, never sent twice.
     gmailTakes();
     await refuseWrites("broadcast_answers", "NEW.status = 'sent'");
     expect(await answerReply(reply, DRAFT, textOf("Hi"), JO)).toEqual({ sent: true });
     expect(await query("SELECT status FROM broadcast_answers")).toEqual([{ status: "sending" }]);
-    expect(error.mock.calls.map(([what]) => what)).toContain(
-      words.sentUnrecorded(broadcastsCopy.problems.answerTo(reply)),
-    );
+    expect(error.mock.calls.map(([what]) => what)).toContain(broadcastProblems.answerSentUnrecorded({ reply }).what);
   });
 
   it("aren't sent without words, to a reply that's gone or automatic, or kept when they don't go", async () => {

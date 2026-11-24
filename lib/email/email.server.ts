@@ -13,8 +13,9 @@ import {
 } from "@/lib/server/outside-services/postmark.server";
 import { now } from "@/lib/now";
 import { plainAsHtml } from "./plain-email-html";
-import { problemInWords } from "@/lib/server/problems.server";
-import { emailCopy } from "./copy";
+import { describeError, problem } from "@/lib/server/problems.server";
+import { emailProblems } from "./copy";
+import { staffAccount } from "@/lib/problems";
 
 // Every email the site sends goes through sendWith(), whatever it's for:
 // most by send() (sending.server.ts), staff's notifications by notifyStaff()
@@ -303,13 +304,15 @@ export async function sendWith(
       await log("failed");
       return { sent: false, reason: "failed", detail: error.message };
     }
-    problemInWords(
-      emailCopy.problems.sendFailed(error instanceof GmailError ? `${purpose}, by Gmail as ${from}` : purpose),
+    problem(
+      error instanceof GmailError
+        ? emailProblems.sendFailedByGmail({ purpose, account: staffAccount(from ?? "") })
+        : emailProblems.sendFailed({ purpose }),
       error,
     );
     await log("failed");
     // What the provider said, for whoever looks at the copy that failed.
-    const detail = (error as Error).message;
+    const detail = describeError(error);
     // The account's or provider's fault, or something before the email was handed over, as getting a token: try later.
     const providers = error instanceof GmailError || error instanceof PostmarkError;
     const fault = accountsFault(error);
@@ -322,9 +325,7 @@ export async function sendWith(
       : { sent: false, reason: "failed", mayHaveGone: true, detail };
   }
   // It went: a failure to log it is reported, never thrown, so no caller takes it for one that didn't.
-  await log("sent", id, threadId).catch((error: unknown) =>
-    problemInWords(emailCopy.problems.sentUnrecorded(`An email of type '${purpose}' to ${address}`), error),
-  );
+  await log("sent", id, threadId).catch((error: unknown) => problem(emailProblems.sentUnrecorded({ purpose }), error));
   return { sent: true, id, messageId: rfcId, threadId, backend };
 }
 

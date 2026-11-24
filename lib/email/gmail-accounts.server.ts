@@ -5,7 +5,7 @@ import { query } from "@/lib/server/db.server";
 import { config } from "@/lib/server/config.server";
 import { notifyStaff, staffLink } from "./notifications.server";
 import { decryptToken, encryptToken } from "./gmail-tokens.server";
-import { problemInWords } from "@/lib/server/problems.server";
+import { problem } from "@/lib/server/problems.server";
 import {
   exchangeGmailCode,
   gmailAccessToken,
@@ -14,7 +14,8 @@ import {
   GmailError,
   revokeGmail,
 } from "@/lib/server/outside-services/gmail.server";
-import { emailCopy } from "./copy";
+import { emailCopy, emailProblems } from "./copy";
+import { staffAccount } from "@/lib/problems";
 
 // Staff members' Gmail, connected so mailings to politicians can be sent
 // from it and replies read from it. Each staff member connects their own,
@@ -108,7 +109,7 @@ export async function disconnectGmail(account: string, by: string): Promise<bool
   const token = await forget(account, by, "disconnected");
   if (token === undefined) return false;
   await revokeGmail(token).catch((error: unknown) =>
-    problemInWords(emailCopy.problems.tokenNotRevoked(account), error),
+    problem(emailProblems.tokenNotRevoked({ account: staffAccount(account) }), error),
   );
   return true;
 }
