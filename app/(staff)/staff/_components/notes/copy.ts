@@ -14,6 +14,8 @@ export const notesCopy = {
       edit: "Notes can only be edited for 24 hours.",
       delete: "Notes can only be deleted for 24 hours.",
     },
+    // Under a note's buttons, when saving an edit failed: the request never arrived, or the server threw.
+    notSaved: "The note didn't save. Try again.",
     // The button that opens the field to write one, and the one that closes it unsent.
     write: "Write a note",
     cancel: "Cancel",

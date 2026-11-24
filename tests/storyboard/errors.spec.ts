@@ -1,4 +1,5 @@
 import { copy } from "@/lib/content/email-your-mp";
+import { errorPageCopy } from "@/lib/content/error-page";
 import { failService } from "@/lib/server/fixtures/failing-services";
 import { runSql } from "@/scripts/fresh-database.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
@@ -43,21 +44,16 @@ function kept(database: string, kind: string): { count: number; alerted: boolean
   return { count: Number(count), alerted: alerted === "true" };
 }
 
-/** The heading of Next's own error page, which the site shows in place of any page that threw (app/global-error.tsx). */
-const COULDNT_LOAD = "This page couldn’t load";
-
 test("A staff page breaks", async ({ page, flowDatabase }) => {
   story(
-    "A bug stops a politician's page from loading: here, a table it reads has gone. Staff see Next's own error page in its place.",
+    "A bug stops a politician's page from loading: here, a table it reads has gone. Staff see a page saying so in its place, beside the menu, which still works.",
   );
   await logIn(page, flowDatabase, ["admin"]);
   runSql(flowDatabase, "ALTER TABLE notes RENAME TO notes_gone");
   await page.goto(`${BASE}/staff/politicians/1`);
-  const heading = page.getByRole("heading", { level: 1, name: COULDNT_LOAD });
-  await expect(heading).toBeVisible();
-  // Just the message: the error number under it is Next's digest of the
-  // error, whose stack names the build's files, so it differs every build.
-  await frame(page, "The page in place of the politician's", { of: heading.locator("..") });
+  await expect(page.getByRole("heading", { level: 1, name: shellCopy.error.title })).toBeVisible();
+  await settled(page);
+  await frame(page, "The page in place of the politician's");
 
   story(
     "The notification inbox is emailed, as it's an error that hasn't been seen before. The email gives the error without its numbers and names, and a link to it.",
@@ -67,8 +63,8 @@ test("A staff page breaks", async ({ page, flowDatabase }) => {
   expect(email.TextBody).toContain(`${errors.kinds.render} /staff/politicians/[id]`);
   await emailFrame(page, email, "The email to the notification inbox");
 
-  story("They press Reload, and it fails again. That's counted, and no second email goes.");
-  await page.getByRole("button", { name: "Reload" }).click();
+  story("They press Try again, and it fails again. That's counted, and no second email goes.");
+  await page.getByRole("button", { name: shellCopy.error.retry }).click();
   await expect.poll(() => kept(flowDatabase, "render")).toEqual({ count: 2, alerted: true });
   expect((await notified(errors.email.server.subject(words))).MessageId).toBe(email.MessageId);
 
@@ -90,11 +86,11 @@ test("A staff page breaks", async ({ page, flowDatabase }) => {
 
 test("A page breaks in someone's browser", async ({ page, flowDatabase }) => {
   story(
-    "A bug in a page's own script loses a visitor the page, after it has loaded. They see Next's own error page in its place, and their browser tells the site.",
+    "A bug in a page's own script loses a visitor the page, after it has loaded. They see a page saying so in its place, between the site's header and footer, and their browser tells the site.",
   );
   await page.goto(`${BASE}/broken`);
   await page.getByRole("button", { name: "Break while rendering" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: COULDNT_LOAD })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: errorPageCopy.title })).toBeVisible();
   await frame(page, "The page in place of the one that broke");
 
   story(

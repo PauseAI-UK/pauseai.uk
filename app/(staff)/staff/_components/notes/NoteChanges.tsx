@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextArea } from "@/components/ui/Controls";
 import { ErrorText } from "@/components/ui/Text";
+import { useSave } from "@/components/ui/useSave";
 import { isSaveKey } from "@/lib/notes/notes";
 import { DeleteTwice } from "../ui/DeleteTwice";
 import styles from "./Notes.module.css";
@@ -23,7 +24,7 @@ type Change = (form: FormData) => boolean | void | Promise<boolean | void>;
  * place of Edit; saving or cancelling puts the text back. Anyone else who
  * may delete it, an admin in that same day, has Delete alone. If the server
  * refuses, as it does once the day is up on a page left open, it stays open
- * and says why.
+ * and says why; and if saving fails, it stays open and says so.
  */
 export default function NoteChanges({
   note,
@@ -45,7 +46,12 @@ export default function NoteChanges({
   const removing = async (form: FormData) => {
     if ((await remove(form)) === false) setRefused("delete");
   };
-  const [pending, startTransition] = useTransition();
+  const [save, pending, notSaved] = useSave(async (form: FormData) => edit(form), {
+    done: (changed) => {
+      if (changed === false) setRefused("edit");
+      else setEditing(false);
+    },
+  });
   const id = `note-${note.id}-edit`;
   let buttons: ReactNode;
   if (!editable) {
@@ -82,16 +88,7 @@ export default function NoteChanges({
   return (
     <div className={styles.note}>
       {editing ? (
-        <form
-          id={id}
-          aria-label={copy.edit}
-          action={(form) =>
-            startTransition(async () => {
-              if ((await edit(form)) === false) setRefused("edit");
-              else setEditing(false);
-            })
-          }
-        >
+        <form id={id} aria-label={copy.edit} action={save}>
           <input type="hidden" name="id" value={note.id} />
           <TextArea
             name="body"
@@ -117,6 +114,11 @@ export default function NoteChanges({
       {refused && (
         <p role="alert" className={styles.refused}>
           <ErrorText>{copy.tooLate[refused]}</ErrorText>
+        </p>
+      )}
+      {notSaved && (
+        <p role="alert" className={styles.refused}>
+          <ErrorText>{copy.notSaved}</ErrorText>
         </p>
       )}
     </div>

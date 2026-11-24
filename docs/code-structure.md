@@ -422,6 +422,14 @@ holds it.
   ones. Only an error in the root layout itself reaches
   `app/global-error.tsx`, which replaces the whole document
   (`tests/checks/error-pages.test.ts`).
+- **A save from an event goes through `useSave`** (`components/ui/`): a
+  box that saves as it's ticked, a button that sends, anything that calls
+  the server outside a form's own action. It says when the save has
+  failed, for the component to say so where the person is looking, and
+  tells the site of what the browser threw. Without it the failure
+  replaces the page, or shows nothing. ESLint refuses an async function
+  written in place as an event's handler or handed to a transition
+  (`SAVE_RULES` in `eslint.config.mjs`, with the components still to move).
 - **An outside service has a time limit.** `outsideFetch` gives up on one
   that hasn't answered in `OUTSIDE_TIMEOUT_MS`, unless the call sets its
   own, so a run whose service hangs gets to record its failure before

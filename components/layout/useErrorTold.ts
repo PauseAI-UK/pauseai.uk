@@ -2,14 +2,13 @@
 
 import { unstable_isUnrecognizedActionError } from "next/dist/client/components/unrecognized-action-error";
 import { useEffect } from "react";
-import { reportBrowserError } from "@/lib/browser-errors";
+import { reportBrowserError, thrownByServer } from "@/lib/browser-errors";
 import { reloadPage } from "@/lib/leave-page.client";
 
 /**
- * Tells the site of the error that lost the page (app/global-error.tsx), if
- * the browser threw it. One the server threw arrives with a `digest` in
- * place of its words, and the server has kept it already
- * (instrumentation.ts).
+ * Tells the site of the error that lost the page (app/global-error.tsx and
+ * each layout's error.tsx), if the browser threw it, not the server
+ * (thrownByServer).
  *
  * A page loaded before the site's last deploy calls its Server Actions by
  * the old build's IDs, which the new build doesn't know
@@ -27,8 +26,7 @@ export function useErrorTold(error: unknown, report = reportBrowserError, reload
   useEffect(() => {
     if (unstable_isUnrecognizedActionError(error)) return reload();
     if (error instanceof Error && error.name === "ChunkLoadError" && firstTimeFailing(error.message)) return reload();
-    const fromServer = typeof error === "object" && error !== null && "digest" in error;
-    if (!fromServer) report("browser-page", error);
+    if (!thrownByServer(error)) report("browser-page", error);
   }, [error, report, reload]);
 }
 

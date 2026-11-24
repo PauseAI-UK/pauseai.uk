@@ -30,6 +30,15 @@ function bodyOf(kind: BrowserKind, thrown: unknown, path: string): BrowserErrorB
   };
 }
 
+/**
+ * Whether the server threw what the browser has caught: it arrives with a
+ * `digest` in place of its words, and the server has kept it already
+ * (instrumentation.ts), so the browser doesn't tell the site of it again.
+ */
+export function thrownByServer(thrown: unknown): boolean {
+  return typeof thrown === "object" && thrown !== null && "digest" in thrown;
+}
+
 /** Whether a stack has a frame from one of the site's own scripts, as against an extension's or another site's. */
 export function fromOurScripts(stack: string | undefined, origin: string): boolean {
   return Boolean(stack?.includes(`${origin}/_next/`));

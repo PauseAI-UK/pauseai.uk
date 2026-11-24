@@ -3,6 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import { staffTime } from "@/lib/staff-time";
+import ReplyReactions from "./ReplyReactions";
 import { ReplyReactionsExample } from "./ReplyReactions.gallery.client";
 import { exampleTextReactions } from "./BroadcastWriter.examples";
 
@@ -50,6 +51,27 @@ describe("ReplyReactions", () => {
     await expect.element(page.getByText(copy.undelivered("Parameter value is not valid"))).toBeVisible();
     await unmount();
     await render(<ReplyReactionsExample refused />);
+    await smiley().click();
+    await emoji("👍").click();
+    await expect.element(page.getByText(copy.reactionNotSent)).toBeVisible();
+    await expect.element(page.getByRole("group", { name: copy.react })).toBeVisible();
+  });
+
+  it("says one didn't go when sending it threw, leaving the emoji open", async () => {
+    // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
+    const thrown = Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1" });
+    await render(
+      <ReplyReactions
+        replyId={12}
+        who="Jane Example"
+        when="7 Nov"
+        reactions={[]}
+        reactable
+        react={() => Promise.reject(thrown)}
+      >
+        <p>Great, thanks!</p>
+      </ReplyReactions>,
+    );
     await smiley().click();
     await emoji("👍").click();
     await expect.element(page.getByText(copy.reactionNotSent)).toBeVisible();

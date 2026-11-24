@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { useSave } from "@/components/ui/useSave";
 import { Checkbox } from "@/components/ui/Controls";
 import { FormStack } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -87,8 +88,8 @@ function why(answer: ContactPermission | null): ReactNode {
   );
 }
 
-/** Where the last change to a topic's boxes is: being saved, or saved. */
-type Saving = "saving" | "saved";
+/** Where the last change to a topic's boxes is: being saved, saved, or not saved, as saving it failed. */
+type Saving = "saving" | "saved" | "failed";
 
 /**
  * One topic: its name, whether they get it, what it is, a box for each way,
@@ -430,9 +431,14 @@ export default function EmailSettings({
   const [round, setRound] = useState(0);
   // Where the focus goes once a button's change is shown: the page's title after a lift, the hold after Stop everything.
   const [focus, setFocus] = useState<"title" | "hold" | null>(null);
-  // The topic last changed, and whether its change is saved yet; saves still going, so it's saved only once all are.
-  const [saving, setSaving] = useState<{ topic: Topic; state: Saving } | null>(null);
-  const going = useRef(0);
+  // The topic last changed, and where its change is: saved only once every save still going is, and not saved if
+  // one failed. The boxes stay as they are, so a change made while another was being saved isn't undone.
+  const [lastChanged, setLastChanged] = useState<Topic | null>(null);
+  const [save, savingNow, notSaved] = useSave(actions.save, { done: setView });
+  const saving: { topic: Topic; state: Saving } | null = lastChanged && {
+    topic: lastChanged,
+    state: savingNow ? "saving" : notSaved ? "failed" : "saved",
+  };
   // Whether anything below the email's box has changed, which may make what the box says untrue, so it goes.
   const [changed, setChanged] = useState(false);
   const update = (next: SettingsView | null, then: typeof focus = null) => {
@@ -483,18 +489,11 @@ export default function EmailSettings({
             the boxes back as the page first drew them.
           */}
           <FormStack
-            onChange={async (event) => {
+            onChange={(event) => {
               const value = (event.target as unknown as HTMLInputElement).value;
-              const topic = (value === LUMA_CHOICE ? "events" : value.split(":")[0]) as Topic;
-              const form = new FormData(event.currentTarget);
-              setSaving({ topic, state: "saving" });
+              setLastChanged((value === LUMA_CHOICE ? "events" : value.split(":")[0]) as Topic);
               setChanged(true);
-              going.current++;
-              const next = await actions.save(form);
-              going.current--;
-              // The boxes stay as they are, so a change made while this one was saved isn't undone.
-              setView(next);
-              if (!going.current) setSaving((was) => was && { ...was, state: "saved" });
+              save(new FormData(event.currentTarget));
             }}
           >
             <OpenedBy opened={opened} />

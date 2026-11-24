@@ -47,9 +47,9 @@ export const shellCopy = {
   },
   // In place of a page that threw, beside the navigation (StaffError).
   error: {
-    title: "⁂ This page hit an error",
-    words: "⁂ The error has been recorded. Try again, and tell an admin if it keeps happening.",
+    title: "This page hit an error",
+    words: "The error has been recorded. Try again, and tell an admin if it keeps happening.",
     // The button that loads the page again.
-    retry: "⁂ Try again",
+    retry: "Try again",
   },
 };

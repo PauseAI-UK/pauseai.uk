@@ -17,7 +17,7 @@ export const section: Section = { name: "Contact preferences", part: "Public sit
 // database: asking for a link; changing what you get; Stop everything and
 // Restart; an email's unsubscribe link, fresh and old; "No bulk emails",
 // lifted; "Do not email", "Do not SMS" and "Do not phone"; a blocked
-// address; and the email
+// address; a change that doesn't save; and the email
 // to someone with "No bulk emails" who just ticked a box. A link is made in the
 // flow's database with a token the flow knows, as an email would carry it.
 
@@ -133,6 +133,24 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
     });
   });
   await frame(page, "PauseAI Global's emails, and Stop everything", { window: true });
+});
+
+test("A change that doesn't save", { tag: "@phone" }, async ({ page, request, flowDatabase }) => {
+  story("Jane opens her settings on a train, and loses her signal as she turns the newsletter off.");
+  await importCivicrm(request, BASE);
+  await open(page, link(flowDatabase, JANE));
+  // The page's own address is where a box's change is sent: the request never arrives.
+  const lost = "**/contact-preferences/**";
+  await page.route(lost, (route) => (route.request().method() === "POST" ? route.abort() : route.continue()));
+  await topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.email }).uncheck();
+  await expect(topicCard(page, "newsletter").getByText(copy.settings.failed)).toBeVisible();
+  await frame(page, "Told it wasn't saved");
+
+  story("Her signal comes back. She turns texts on, and the page saves every box as it now is.");
+  await page.unroute(lost);
+  await topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.text }).check();
+  await expect(topicCard(page, "newsletter").getByText(copy.settings.saved)).toBeVisible();
+  await frame(page, "Saved");
 });
 
 test("Coming off our Luma calendar", async ({ page, request, flowDatabase }) => {

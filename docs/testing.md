@@ -1079,6 +1079,7 @@ that drives it or why nothing does.
   - a link that's run out;
   - “No bulk emails” lifted, and “Do not email”, “Do not SMS” and “Do not phone”, which only PauseAI Global can lift;
   - an address we can't email, as its emails bounced;
+  - a change that doesn't save, its request lost, and the next one that does;
   - the email to someone with “No bulk emails” who ticked the march's box.
 - `events.spec.ts`: Events and their owners:
   - the Luma import giving events their owners by the rules, and the email to the owner;
@@ -1139,8 +1140,8 @@ that drives it or why nothing does.
   - a hundred WhatsApp members at once, with no town;
   - a file chosen for paper, cleared on choosing WhatsApp instead.
 - `errors.spec.ts`: What goes wrong outside an import:
-  - a staff page that throws: Next's error page in its place and Reload, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
-  - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`): the email that quotes none of it, and a click that throws, kept without an email;
+  - a staff page that throws: the staff error page in its place, beside the navigation, and Try again, the email to the notification inbox, once though it fails twice, the errors list and the error's own page;
+  - a page breaking in someone's browser, on the fixture build's page that breaks (`/broken`): the site's error page in its place, the email that quotes none of it, and a click that throws, kept without an email;
   - the spam check down for someone sending a letter, with Cloudflare down for the flow: what they're told, the email and the error's page;
   - an error marked done: its page's button, then the list's To do and Done tabs;
   - an error done happening again: back with those to do;

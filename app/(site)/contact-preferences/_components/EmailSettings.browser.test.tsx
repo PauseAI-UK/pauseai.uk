@@ -100,6 +100,18 @@ describe("EmailSettings", () => {
     await expect.element(page.getByText(copy.global.body, { exact: false })).toBeVisible();
   });
 
+  it("says a change wasn't saved when saving it fails, and saves the next one", async () => {
+    const done = await show(exampleSettings);
+    // What a Server Action rejects with when the server threw: a digest, so the site isn't told of it again.
+    done.save.mockRejectedValueOnce(
+      Object.assign(new Error("An error occurred in the Server Components render."), { digest: "1" }),
+    );
+    await card("volunteering").getByRole("checkbox", { name: copy.ways.email }).click();
+    await expect.element(card("volunteering").getByRole("status")).toHaveTextContent(copy.settings.failed);
+    await card("volunteering").getByRole("checkbox", { name: copy.ways.text }).click();
+    await expect.element(card("volunteering").getByRole("status")).toHaveTextContent(copy.settings.saved);
+  });
+
   it("saves each box as it's changed, with whose page it is, and says so under its topic", async () => {
     const done = await show(exampleSettings);
     // Slow to answer, so it says it's saving meanwhile.

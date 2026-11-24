@@ -77,6 +77,34 @@ const CONSOLE_RULE = {
     "Report a failure with problem(), which keeps it, and write anything else to the log with note() (lib/server/problems.server.ts). In the browser, report an error with reportBrowserError (lib/browser-errors.ts).",
 };
 
+// A save that calls the server from an event, not a form's own action, goes
+// through useSave, which says when it has failed. An async function written
+// in place as an event's handler, or handed to a transition, is how one
+// that doesn't gets written: what it throws is lost, or replaces the page.
+const SAVE_MESSAGE =
+  "Call the server from an event with useSave (components/ui/useSave.ts), which says when a save has failed; what an async function here throws is lost, or replaces the whole page.";
+const SAVE_RULES = [
+  {
+    selector:
+      "JSXAttribute[name.name=/^on[A-Z]/] > JSXExpressionContainer > :matches(ArrowFunctionExpression, FunctionExpression)[async=true]",
+    message: SAVE_MESSAGE,
+  },
+  {
+    selector:
+      "CallExpression[callee.name=/^start/] > :matches(ArrowFunctionExpression, FunctionExpression)[async=true]",
+    message: SAVE_MESSAGE,
+  },
+];
+
+// The components still to move to useSave: each handles a failed save in a
+// way of its own. One leaves this list as it moves, and none joins it.
+const UNCONVERTED_SAVES = [
+  "app/(staff)/staff/_components/broadcasts/BroadcastWriter.tsx",
+  "app/(staff)/staff/_components/mailings/DraftWriter.tsx",
+  "app/(staff)/staff/_components/mailings/MailingWriter.tsx",
+  "app/(staff)/staff/_components/supporters/SignupUploadPreview.tsx",
+];
+
 const OUTSIDE_FETCH_RULE = {
   selector: "CallExpression[callee.name='fetch']",
   message: `Call outside services from a binding in ${OUTSIDE}/, through outsideFetch, so fixture builds can answer instead.`,
@@ -170,8 +198,9 @@ const NETWORK_IMPORTS = [
  * its own API; `fetch` may call fetch() (code that runs in the browser
  * fetches the site's own API); `outsideFetch` may import it; `sendEmail`
  * may use Postmark's binding to send. `fakes` may name every service's API,
- * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `staff` adds the
- * staff pages' rule for links that look like buttons.
+ * as the fixtures answer for each. `env` may read process.env. `console` may write to the log. `asyncHandlers`
+ * may write an async function in place as a handler or a transition. `staff` adds the staff pages' rule for links
+ * that look like buttons.
  */
 function siteCodeRules({
   service,
@@ -183,6 +212,7 @@ function siteCodeRules({
   outsideFetch = false,
   sendEmail = false,
   console = false,
+  asyncHandlers = false,
   staff = false,
 }) {
   return {
@@ -194,6 +224,7 @@ function siteCodeRules({
       ...(fakes ? [] : SERVICES.filter((other) => other !== service).map(hostRule)),
       ...(fetch ? [] : [OUTSIDE_FETCH_RULE]),
       ...(console ? [] : [CONSOLE_RULE]),
+      ...(asyncHandlers ? [] : SAVE_RULES),
       ...EXTERNAL_LINK_RULES,
       ...(staff ? STAFF_BUTTON_LINK_RULES : []),
     ],
@@ -558,6 +589,9 @@ const eslintConfig = defineConfig([
     // The server's clock runs in the browser too, where config can't go.
     { files: ["lib/now.ts"], fetch: true, env: true },
     { files: ["app/(staff)/**/*.tsx"], fetch: true, staff: true },
+    { files: UNCONVERTED_SAVES, fetch: true, staff: true, asyncHandlers: true },
+    // The hook itself, whose transition is the one the rest go through.
+    { files: ["components/ui/useSave.ts"], fetch: true, asyncHandlers: true },
     // The server's code: lib/server/, each feature's logic, and what answers a request.
     {
       files: [
