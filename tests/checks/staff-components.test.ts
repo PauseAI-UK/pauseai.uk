@@ -48,6 +48,10 @@ const STAYS: Record<string, string[]> = {
     "staff-nav",
     "staff-page-kinds",
     "staff-sections",
+    // What a form's server code answers, and how the browser asks the site's own routes, for every form on the
+    // site, the public ones and staff's.
+    "ask-server",
+    "form-result",
     // Small helpers any page may use.
     "browser-errors",
     "dated-groups",

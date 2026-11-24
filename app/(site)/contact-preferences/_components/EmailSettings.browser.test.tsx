@@ -190,6 +190,13 @@ describe("EmailSettings", () => {
     await expect.element(why("volunteering", copy.why.reasons.volunteered!(""))).toBeVisible();
   });
 
+  it("offers a fresh link when a change finds the page's link has run out", async () => {
+    await show(exampleSettings, null, actions(null));
+    await page.getByRole("button", { name: copy.stopAll.button }).click();
+    await expect.element(page.getByRole("heading", { name: copy.expired.title })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: copy.expired.button })).toBeVisible();
+  });
+
   it("stops everything", async () => {
     const done = await show(exampleSettings, null, actions(exampleStopped));
     await page.getByRole("button", { name: copy.stopAll.button }).click();
