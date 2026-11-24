@@ -1,0 +1,45 @@
+name: CI image
+
+# Builds CI's image (.github/ci-image/Dockerfile) and pushes it to GitHub's
+# registry, tagged with its Dockerfile's hash, when the Dockerfile changes:
+# on a pull request, so its own CI can run in the new image, and on main.
+# CI's jobs start at once, so on a pull request that changes the image they
+# may look for it before it's pushed: rerun them once this has passed.
+on:
+  push:
+    branches: [main]
+    paths: [.github/ci-image/**]
+  pull_request:
+    paths: [.github/ci-image/**]
+  workflow_dispatch:
+
+jobs:
+  image:
+    name: Build CI's image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The tag tests/checks/ci-image.test.ts expects in ci.yml.
+      - name: Name the image
+        id: name
+        run: echo "image=ghcr.io/pauseai-uk/ci:$(sha256sum .github/ci-image/Dockerfile | cut -c1-12)" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub's registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      # A tag is pushed once: the same Dockerfile makes the same tag.
+      - name: Build and push it, unless it's there
+        env:
+          IMAGE: ${{ steps.name.outputs.image }}
+        run: |
+          if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "$IMAGE is already there"
+            exit 0
+          fi
+          docker build --tag "$IMAGE" .github/ci-image
+          docker push "$IMAGE"

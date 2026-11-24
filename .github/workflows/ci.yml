@@ -129,13 +129,14 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
-    # Playwright's image, with Chromium and the system packages it needs, so
-    # the job installs neither (https://playwright.dev/docs/ci#via-containers).
-    # Its version is @playwright/test's, which Dependabot bumps and the image
-    # not: tests/checks/playwright-image.test.ts fails when they differ. It
-    # runs as root, so apt needs no sudo.
+    # CI's own image (.github/ci-image/Dockerfile): Chromium's system
+    # packages, Git and the Postgres 18 client, so the job installs none of
+    # them. Its tag is its Dockerfile's hash (tests/checks/ci-image.test.ts).
     container:
-      image: mcr.microsoft.com/playwright:v1.65.1-noble
+      image: ghcr.io/pauseai-uk/ci:6575a26391c3
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     # Tests that need a database make their own in this Postgres
     # (tests/database.ts, scripts/fresh-database.mjs). From inside the
     # container it's reached by its name, which LOCAL_POSTGRES_HOST names as
@@ -157,20 +158,8 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: postgres
       LOCAL_POSTGRES_HOST: postgres
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     steps:
-      # Git, for the checkout and the tests that read history, and pg_dump 18,
-      # to match the server, for the test that checks
-      # netlify/database/schema.sql is up to date. apt gives up on a download
-      # that sends nothing for 20 seconds and tries it again, up to three times.
-      - name: Install Git and the Postgres 18 client
-        timeout-minutes: 4
-        run: |
-          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' > /etc/apt/apt.conf.d/80-retries
-          apt-get update
-          apt-get install -y --no-install-recommends git postgresql-common
-          /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-          apt-get install -y --no-install-recommends postgresql-client-18
-
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -193,8 +182,25 @@ jobs:
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
+      # Chromium, at @playwright/test's version, kept for each version: the
+      # image has its system packages but not the browser.
+      - name: Read Playwright's version
+        id: playwright
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Chromium
+        id: chromium
+        uses: actions/cache@v6
+        with:
+          path: /ms-playwright
+          key: chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+
       # Both Vitest projects (node and browser), a third of their files. The
-      # browser project renders components in the image's Chromium.
+      # browser project renders components in Chromium.
       - name: Test
         run: >-
           npx vitest run --coverage --shard=${{ matrix.shard }}/3
@@ -293,7 +299,7 @@ jobs:
       - name: Build
         run: npx next build
 
-  # The flows split between three jobs, each building the site: the flows
+  # The flows split between four jobs, each building the site: the flows
   # are most of the time, the setup and the build a minute or so. They're
   # dealt in turn, so the gallery's slow flows don't all land in one part.
   # On main, every flow runs.
@@ -301,15 +307,18 @@ jobs:
   # when main last ran it, and a few spot checks (scripts/ci-parts.mjs,
   # reachedForCi; docs/testing.md, "Which flows CI runs").
   storyboard-shard:
-    name: Storyboard (${{ matrix.shard }} of 3)
+    name: Storyboard (${{ matrix.shard }} of 4)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    # In Playwright's image, as the Test job is.
+        shard: [1, 2, 3, 4]
+    # In CI's own image, as the Test job is.
     container:
-      image: mcr.microsoft.com/playwright:v1.65.1-noble
+      image: ghcr.io/pauseai-uk/ci:6575a26391c3
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     # Tests that need a database make their own in this Postgres
     # (tests/database.ts, scripts/fresh-database.mjs), reached by its name
     # as in the Test job.
@@ -332,19 +341,8 @@ jobs:
       LOCAL_POSTGRES_HOST: postgres
       # The Types job checks them, beside this one (next.config.ts).
       SKIP_BUILD_TYPES: "1"
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     steps:
-      # Git, for the checkout, and psql 18, to match the server: each flow's
-      # database is made with it (scripts/fresh-database.mjs). Retried as in
-      # the Test job.
-      - name: Install Git and the Postgres 18 client
-        timeout-minutes: 4
-        run: |
-          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20";' > /etc/apt/apt.conf.d/80-retries
-          apt-get update
-          apt-get install -y --no-install-recommends git postgresql-common
-          /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-          apt-get install -y --no-install-recommends postgresql-client-18
-
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -366,6 +364,22 @@ jobs:
       - name: Install dependencies
         if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci
+
+      # As the Test job does: Chromium, kept for each Playwright version.
+      - name: Read Playwright's version
+        id: playwright
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Chromium
+        id: chromium
+        uses: actions/cache@v6
+        with:
+          path: /ms-playwright
+          key: chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
 
       # As the Build job does, for the fixture build: kept apart, as its
       # settings differ.
@@ -394,24 +408,18 @@ jobs:
           path: storyboard-opened.json
           key: storyboard-opened-${{ github.event.pull_request.base.sha }}
 
-      # The checkout is the image's root's, not this job's user's, so Git is
-      # told it's safe: the fixture server reads the checkout's tree with Git
-      # (scripts/fixture-server.mjs), on main as on a pull request.
-      - name: Let Git read the checkout
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
       # Main's commit, to tell what the pull request changes.
       - name: Fetch main's commit
         if: github.event_name == 'pull_request'
         run: |
           git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
 
-      # A third of the flows (scripts/ci-parts.mjs): every part deals the
+      # A quarter of the flows (scripts/ci-parts.mjs): every part deals the
       # same, and runs its own. On a pull request, of the flows it can reach.
       - name: Choose this part's flows
         id: choose
         run: |
-          node scripts/ci-parts.mjs storyboard ${{ matrix.shard }}/3 part-flows.txt \
+          node scripts/ci-parts.mjs storyboard ${{ matrix.shard }}/4 part-flows.txt \
             ${{ github.event_name == 'pull_request' && format('storyboard-opened.json {0}', github.event.pull_request.base.sha) || '' }}
           echo "flows=$(grep -c . part-flows.txt || true)" >> "$GITHUB_OUTPUT"
 
@@ -441,7 +449,7 @@ jobs:
             test-results/
           retention-days: 7
 
-  # One result for the three parts, under the storyboard check's own name.
+  # One result for the four parts, under the storyboard check's own name.
   # It runs whatever they did, so a failed part fails it, rather than
   # leaving it skipped. On main, when they all passed, it keeps what every
   # flow opened, by main's commit, for pull requests to choose by.
