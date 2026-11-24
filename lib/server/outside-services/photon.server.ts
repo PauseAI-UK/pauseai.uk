@@ -1,11 +1,14 @@
 import "server-only";
 import { outsideJson, refusal } from "./outside-failure.server";
-import { outsideFetch } from "./outside-fetch.server";
+import { outsideFetch, type Outside } from "./outside-fetch.server";
+import { photonFake } from "@/lib/server/fixtures/fakes/places";
 
 // Photon (https://photon.komoot.io), komoot's free geocoder built on
 // OpenStreetMap, which needs no key and copes with typos: the places that
 // match some words, and the address at a point. Its public server makes no
 // promises, so a caller carries on without it (lib/broadcasts/places.server.ts).
+
+const PHOTON: Outside = { service: "photon", fake: photonFake };
 
 /** A place Photon knows: its OpenStreetMap name, its address written as a UK one is, and its point. */
 export type PhotonPlace = { name: string; address: string; latitude: number; longitude: number };
@@ -52,7 +55,7 @@ function addressOf(p: Properties): string {
 
 /** Photon's features, from its answer, or a failure for one that isn't ok. */
 async function features(url: string): Promise<Feature[]> {
-  const res = await outsideFetch("photon", url, { headers: { accept: "application/json" } });
+  const res = await outsideFetch(PHOTON, url, { headers: { accept: "application/json" } });
   if (!res.ok) throw refusal("photon", res, { asked: new URL(url).pathname });
   return ((await outsideJson("photon", res))?.features ?? []) as Feature[];
 }
