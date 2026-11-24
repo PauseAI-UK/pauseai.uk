@@ -295,7 +295,7 @@ test("Signing up with “No bulk emails”", { tag: "@phone" }, async ({ page, r
     "Rhea, who has “No bulk emails”, signs up for the march and ticks the box to hear from us. That box can't get past “No bulk emails”, so we email her once, saying what happened and how to settle it.",
   );
   await importCivicrm(request, BASE);
-  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-nov-26`);
+  await page.goto(`${BASE}/demonstrations/march-against-ai-extinction-apr-27`);
   await hydrated(page);
   await page.getByRole("link", { name: "Register now" }).click();
   await page.getByLabel(marchSignupCopy.form.name).fill("Rhea Member");

@@ -70,7 +70,6 @@ export const REASONS = [
   "not-volunteer",
   "not-following",
   "left",
-  "ended",
 ] as const;
 export type Reason = (typeof REASONS)[number];
 

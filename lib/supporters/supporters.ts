@@ -6,17 +6,26 @@ import type { ContactPermission, ContactState } from "./contact-permissions";
 import type { SortDirection } from "@/lib/staff-sort";
 import { supportersCopy } from "./copy";
 
-/** Where a supporter came from: Luma, CiviCRM's UK chapter contacts (the members), or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, the march sign-up, a paper sign-up, or an upload of our WhatsApp community. */
+/** Where a supporter came from: Luma, CiviCRM's UK chapter contacts (the members), or one of our forms (form_entries.form): Email your MP, pauseai.info's old letter form, a march's sign-up, a paper sign-up, or an upload of our WhatsApp community. */
 export const SUPPORTER_SOURCES = [
   "luma",
   "civicrm",
   "email-your-mp",
   "web-form",
   "march-2026-11",
+  "march-2027-04",
   "paper-signup",
   "whatsapp-community",
 ] as const;
 export type SupporterSource = (typeof SUPPORTER_SOURCES)[number];
+
+/** The marches' sign-ups, one form a march. */
+export const MARCH_SOURCES: readonly SupporterSource[] = ["march-2026-11", "march-2027-04"];
+
+/** Whether they signed up for a march, whichever one. */
+export function signedUpForMarch(sources: readonly SupporterSource[]): boolean {
+  return MARCH_SOURCES.some((source) => sources.includes(source));
+}
 
 /** What a supporter_links row points at (lib/supporters/sources.server.ts): a Luma user, a form entry or a CiviCRM contact. */
 export type SupporterLinkSource = "luma" | "form" | "civicrm";
@@ -24,7 +33,7 @@ export type SupporterLinkSource = "luma" | "form" | "civicrm";
 /**
  * The lozenges in the list's Activities column, in its order: a member, a
  * contact of the Luma calendar, registered for events, wrote to their MP,
- * signed up for the march, on a paper sign-up form, in our WhatsApp community.
+ * signed up for a march, on a paper sign-up form, in our WhatsApp community.
  */
 export const SUPPORTER_BADGES = [
   "member",

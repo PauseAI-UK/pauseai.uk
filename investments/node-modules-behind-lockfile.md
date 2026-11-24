@@ -14,6 +14,7 @@ Have the gate's fast checks fail when the installed packages aren't the lockfile
 
 ## Hits
 
+- 2026-11-23: after a rebase brought the weekly dependency bump, four tests of `scripts/merge-coverage.test.ts` failed in the gate, though CI passed them, until `npm ci`, ~10 min and a full storyboard run on the old packages
 - 2026-11-11: the scheduled functions test failed only under `npm test` after a new function folder was added, ~20 min
 - 2026-11-11: the same, after a rebase brought in `import-civicrm`, ~10 min
 - 2026-11-12: took the two failures above for a bug in Vitest's cache still to fix, until the installed version was compared with the lockfile's, ~15 min

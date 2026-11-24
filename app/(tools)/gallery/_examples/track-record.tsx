@@ -1,10 +1,11 @@
 // The track record (app/(site)/track-record/_components).
 import type { ReactNode } from "react";
 import { Gallery as PhotoGallery, ShotLink } from "@/app/(site)/track-record/_components/Gallery";
-import { Photos, Shot } from "@/app/(site)/track-record/_components/Photos";
+import { Film, Photos, Shot } from "@/app/(site)/track-record/_components/Photos";
 import Timeline from "@/app/(site)/track-record/_components/Timeline";
 import { EntryList, EntryText, TimelineEntry } from "@/app/(site)/track-record/_components/TimelineEntry";
 import { EntryItem, TimelineList } from "@/app/(site)/track-record/_components/TimelineList";
+import { novemberMarchFilm } from "@/lib/content/march";
 import type { Group } from "../_components/types";
 
 const DIR = "/images/fundraising";
@@ -205,6 +206,18 @@ export const trackRecord: Group = {
         label: COUNTS[count].label,
         render: () => <InGallery>{COUNTS[count].render()}</InGallery>,
       })),
+    },
+    {
+      name: "Film",
+      file: "app/(site)/track-record/_components/Photos.tsx",
+      variants: [
+        {
+          label: "An entry's film, showing its still until it's played",
+          render: () => (
+            <Film src={novemberMarchFilm.src} poster={novemberMarchFilm.poster} label={novemberMarchFilm.label} />
+          ),
+        },
+      ],
     },
     {
       name: "Shot",

@@ -43,22 +43,22 @@ const REDIRECTS = [
     to: "/scotland",
   },
   {
-    name: "the march's page under its old /protests path",
+    name: "the November 2026 march's page under its old /protests path",
     from: "/protests/march-against-ai-extinction-nov-26",
     to: "/demonstrations/march-against-ai-extinction-nov-26",
   },
   {
-    // Temporary: there's no list of demonstrations yet, so it goes to the current one.
-    name: "the demonstrations section, to the current march",
+    // Temporary: there's no list of demonstrations yet, so it goes to the track record, which tells of them.
+    name: "the demonstrations section, to the track record",
     from: "/demonstrations",
-    to: "/demonstrations/march-against-ai-extinction-nov-26",
+    to: "/track-record",
     permanent: false,
   },
   {
     // Temporary, as /demonstrations is.
-    name: "the old protests section, to the current march",
+    name: "the old protests section, to the track record",
     from: "/protests",
-    to: "/demonstrations/march-against-ai-extinction-nov-26",
+    to: "/track-record",
     permanent: false,
   },
   {
@@ -71,13 +71,13 @@ const REDIRECTS = [
   {
     name: "the march's short link, to its page",
     from: "/march",
-    to: "/demonstrations/march-against-ai-extinction-nov-26",
+    to: "/demonstrations/march-against-ai-extinction-apr-27",
     permanent: false,
   },
   {
     name: "the march's name as a link, to its page",
     from: "/march-against-ai-extinction",
-    to: "/demonstrations/march-against-ai-extinction-nov-26",
+    to: "/demonstrations/march-against-ai-extinction-apr-27",
     permanent: false,
   },
 ];
@@ -96,11 +96,13 @@ for (const { name, from, to, permanent = true } of REDIRECTS) {
 test("The march's short link, with a source", async ({ request }) => {
   story("A /march link that says where it was shared still says so when it reaches the march page.");
   const res = await request.get(`${BASE}/march?utm_source=in`, { maxRedirects: 0 });
-  expect(res.headers()["location"]).toBe("/demonstrations/march-against-ai-extinction-nov-26?utm_source=in");
+  expect(res.headers()["location"]).toBe("/demonstrations/march-against-ai-extinction-apr-27?utm_source=in");
 });
 
 test("The march's old link, with a source", async ({ request }) => {
-  story("A link to the march under /protests that says where it was shared still says so under /demonstrations.");
+  story(
+    "A link to the November 2026 march under /protests that says where it was shared still says so under /demonstrations.",
+  );
   const res = await request.get(`${BASE}/protests/march-against-ai-extinction-nov-26?utm_source=in`, {
     maxRedirects: 0,
   });

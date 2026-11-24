@@ -4,11 +4,14 @@ import type { FeaturedGuest } from "@/lib/going";
 import { getEventGuestCount } from "@/lib/server/outside-services/luma-guests.server";
 import { getEventGoing } from "@/lib/server/outside-services/luma-public.server";
 
-// The march's Luma event: the one the sign-up registers people for, and
-// whose guests it counts.
+// The next march's Luma event: the one the sign-up registers people for,
+// and whose guests it counts.
 
-/** The march's Luma event (https://luma.com/pauseai-nov26), which production registers people for and every deploy counts. */
-const MARCH_EVENT_ID = "evt-1HKCXSHaJqGO3Bg";
+/** The march's Luma event (https://luma.com/pauseai-april-27), which production registers people for and every deploy counts. */
+const MARCH_EVENT_ID = "evt-KUmBRhl5Kha9DKj";
+
+/** The form its sign-ups are kept as (form_entries.form). */
+export const MARCH_FORM = "march-2027-04";
 
 /**
  * "Luma API Testing" (https://luma.com/qry332td), a test event on the PauseAI
@@ -31,7 +34,25 @@ export function getMarchSignupCount(): Promise<number | null> {
   return getEventGuestCount(MARCH_EVENT_ID);
 }
 
-/** The guests Luma features for the march, as its page on luma.com shows them: none when Luma can't say. */
-export async function getMarchGuests(): Promise<FeaturedGuest[]> {
-  return (await getEventGoing(MARCH_EVENT_ID))?.guests ?? [];
+/** The guests Luma features for an event, as its page on luma.com shows them: none when Luma can't say. */
+async function featuredGuests(event: string): Promise<FeaturedGuest[]> {
+  return (await getEventGoing(event))?.guests ?? [];
+}
+
+/** The guests Luma features for the march. */
+export function getMarchGuests(): Promise<FeaturedGuest[]> {
+  return featuredGuests(MARCH_EVENT_ID);
+}
+
+/** The Luma event of the march of 21 November 2026 (https://luma.com/pauseai-nov26), for its page, a record of it. */
+const NOVEMBER_MARCH_EVENT_ID = "evt-1HKCXSHaJqGO3Bg";
+
+/** How many registered for the November 2026 march, as getEventGuestCount counts them. */
+export function getNovemberMarchSignupCount(): Promise<number | null> {
+  return getEventGuestCount(NOVEMBER_MARCH_EVENT_ID);
+}
+
+/** The guests Luma features for the November 2026 march. */
+export function getNovemberMarchGuests(): Promise<FeaturedGuest[]> {
+  return featuredGuests(NOVEMBER_MARCH_EVENT_ID);
 }

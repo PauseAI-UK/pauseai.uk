@@ -62,7 +62,7 @@ describeWithDatabase("POST /api/march/register", () => {
     });
     expect(await entries()).toEqual([
       {
-        form: "march-2026-11",
+        form: "march-2027-04",
         name: "Testy McTestface",
         email: "testy@example.org",
         phone: "+447700900000",
@@ -91,8 +91,8 @@ describeWithDatabase("POST /api/march/register", () => {
       }),
     );
     expect(await registerForMarch(person)).toEqual({ ok: true });
-    expect(body).toMatchObject({ event_id: "evt-1HKCXSHaJqGO3Bg" });
-    expect(await entries()).toMatchObject([{ eventId: "evt-1HKCXSHaJqGO3Bg", status: "added" }]);
+    expect(body).toMatchObject({ event_id: "evt-KUmBRhl5Kha9DKj" });
+    expect(await entries()).toMatchObject([{ eventId: "evt-KUmBRhl5Kha9DKj", status: "added" }]);
   });
 
   it("still says it worked when the sign-up can't be kept, as Luma has them", async () => {

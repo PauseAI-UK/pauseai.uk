@@ -4,11 +4,11 @@
 // log, and the form and the register band, whose register is a stand-in
 // that logs what it's sent and says Luma failed, so the form stays put.
 import type { MarchRegisterResult } from "@/lib/march-registration";
-import MarchSignupFrame from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/MarchSignupFrame";
-import MarchSignups from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/MarchSignups";
-import ShareCard from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/ShareCard";
-import SignupForm from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupForm";
-import SignupRegister from "@/app/(march)/demonstrations/march-against-ai-extinction-nov-26/_components/SignupRegister";
+import MarchSignupFrame from "@/app/(march)/demonstrations/_components/MarchSignupFrame";
+import MarchSignups from "@/app/(march)/demonstrations/_components/MarchSignups";
+import ShareCard from "@/app/(march)/demonstrations/_components/ShareCard";
+import SignupForm from "@/app/(march)/demonstrations/_components/SignupForm";
+import SignupRegister from "@/app/(march)/demonstrations/_components/SignupRegister";
 import type { ReactNode } from "react";
 import { Logged } from "../_components/wiring";
 

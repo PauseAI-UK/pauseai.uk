@@ -1,10 +1,11 @@
 // Every word the march sign-up's cards show (app/(march)/): the form, the
 // share card. The page's own text is in its components.
 import { march } from "./march";
+import { MARCH_SHORT_PATH } from "./redirect-addresses";
 import { site } from "./site";
 
-/** The sign-up's short link, which redirects to the march's page. */
-const signupUrl = `${site.url}${march.shortPath}`;
+/** The sign-up's short link, which redirects to the march's page: the link to give out, short enough for a post or a poster. */
+const signupUrl = `${site.url}${MARCH_SHORT_PATH}`;
 
 /**
  * Where the share card sends the message: each app in its row, the copied
@@ -35,10 +36,8 @@ const emailSubject = `The biggest ever demonstration for AI safety - ${march.cit
 
 /** The end of the share message, and the whole of it where posts are short. */
 const shortMessage =
-  `PauseAI UK is organising a march through Central London, expected to be the biggest ever demonstration for AI safety.\n\n` +
-  `Saturday 21 November 2026, 12–3pm\n` +
-  `Start: All Souls’ Place, London W1B 3DA\n` +
-  `End: Downing Street, London SW1A 2AA\n\n` +
+  `PauseAI UK is organising a march through London, expected to be the biggest ever demonstration for AI safety.\n\n` +
+  `Saturday 10 April 2027, 12–3pm\n\n` +
   `Register now: ${shareUrl}`;
 
 /**
@@ -60,7 +59,7 @@ export const marchSignupCopy = {
     city: "City",
     postcode: "Postcode",
     optional: "Optional",
-    phoneHint: "For text updates on the day",
+    phoneHint: "For text updates about events",
     cityHint: "For local group updates",
     postcodeHint: "For constituency-based campaigns",
     consent: "Keep me in the loop about future campaigns by email, text and phone. (You can unsubscribe at any time.)",

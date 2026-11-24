@@ -24,4 +24,5 @@ A change to `.github/workflows/` is pushed by a maintainer (`ci-workflow-pushes.
 ## Hits
 
 - 2026-11-19: Ubuntu's mirror timed out in "Install Git and the Postgres 18 client", failing four Test and Storyboard parts before anything ran, ~15 min and a push to run CI again
+- 2026-11-23: the same step timed out after its four minutes in two Test parts of one run, and the PR's token couldn't rerun them
 - 2026-11-19: the same step timed out again on `security.ubuntu.com`, failing a Storyboard part of a PR that changed only a unit test, ~5 min
