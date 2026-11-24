@@ -4,8 +4,8 @@ import { tagsForEvent, type EventToTag } from "./tags";
 import { londonStart } from "@/lib/staff-time";
 import { query, type Queryable } from "@/lib/server/db.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import { applyEventTag, listEventTags } from "@/lib/server/outside-services/luma-calendar.server";
-import { problem } from "@/lib/server/problems.server";
 import { eventProblems, eventsCopy } from "./copy";
 import { publicText } from "@/lib/problems";
 
@@ -46,28 +46,26 @@ export async function tagUpcomingEvents(db?: Queryable): Promise<EventTagging> {
     db,
   );
   if (!events.length) return done;
-  let calendarTags: string[];
-  try {
-    calendarTags = await listEventTags();
-    done.requests++;
-  } catch (error) {
-    problem(eventProblems.lumaTagsUnread(), error);
-    return done;
-  }
+  const calendarTags = await orFallback(eventProblems.lumaTagsUnread(), undefined, () => listEventTags());
+  if (!calendarTags) return done;
+  done.requests++;
   for (const event of events) {
     const tags = tagsForEvent(event, calendarTags);
     if (tags === null) {
       done.unclear.push({ name: event.name, startAt: event.startAt, city: event.city, url: event.url });
     } else {
-      try {
-        for (const tag of tags) {
-          done.requests++;
-          await applyEventTag(tag, event.id);
-        }
-      } catch (error) {
-        problem(eventProblems.lumaTagRefused({ event: publicText(event.name) }), error);
-        continue;
-      }
+      const applied = await orFallback(
+        eventProblems.lumaTagRefused({ event: publicText(event.name) }),
+        false,
+        async () => {
+          for (const tag of tags) {
+            done.requests++;
+            await applyEventTag(tag, event.id);
+          }
+          return true;
+        },
+      );
+      if (!applied) continue;
       done.tagged++;
     }
     await query("UPDATE luma_events SET tags = $2, tags_checked_at = now() WHERE id = $1", [event.id, tags ?? []], db);

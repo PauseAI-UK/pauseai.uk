@@ -38,6 +38,14 @@ import { join } from "node:path";
 import { readOutbox } from "@/lib/server/fixtures/outbox";
 import { broadcastsCopy } from "./copy";
 
+// WhatsApp's binding as it is, with deleting a template stood in for, so a test can have it throw what WhatsApp never would.
+const { deletesTemplate } = vi.hoisted(() => ({ deletesTemplate: vi.fn() }));
+vi.mock("@/lib/server/outside-services/whatsapp.server", async (original) => {
+  const real = await original<typeof import("@/lib/server/outside-services/whatsapp.server")>();
+  deletesTemplate.mockImplementation(real.deleteTemplate);
+  return { ...real, deleteTemplate: deletesTemplate };
+});
+
 const NOTIFICATIONS = "notifications@example.org";
 
 /** Sends the fixture Postmark's emails to an outbox of their own, and gives what's in it, oldest first. */
@@ -601,6 +609,26 @@ describeWithDatabase("broadcasts to supporters", () => {
       // With no keys, as on a deploy preview, WhatsApp can't be reached.
       vi.stubEnv("WHATSAPP_TOKEN", "");
       expect(await deleteApprovedTemplate(await addTemplate("No keys"), JO)).toBe("failed");
+    });
+
+    it("throws on anything else going wrong while deleting words taken back, which is a bug of ours, not WhatsApp failing", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      const id = await written();
+      await submitTemplate(id, JO);
+      const thrown = new TypeError("name is undefined");
+      deletesTemplate.mockRejectedValueOnce(thrown);
+      vi.mocked(console.error).mockClear();
+      await expect(withdrawTemplate(id, JO)).rejects.toBe(thrown);
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
+    it("throws on anything else going wrong while deleting an approved template, which is a bug of ours, changing nothing here", async () => {
+      const old = await addTemplate("Old words");
+      const thrown = new TypeError("name is undefined");
+      deletesTemplate.mockRejectedValueOnce(thrown);
+      await expect(deleteApprovedTemplate(old, JO)).rejects.toBe(thrown);
+      expect(console.error).not.toHaveBeenCalled();
+      expect((await approvedTemplates()).map((t) => t.id)).toEqual([old]);
     });
 
     it("tests a text on a template by the name WhatsApp has it by, but not while WhatsApp doesn't answer", async () => {

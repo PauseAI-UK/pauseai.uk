@@ -1,7 +1,7 @@
 import "server-only";
 import { config } from "@/lib/server/config.server";
 import { readJsonIfAny } from "@/lib/server/json.server";
-import { notSet, type OutsideFailure, refusal, retryAfterOf } from "./outside-failure.server";
+import { notSet, type OutsideFailure, outsideJson, refusal, retryAfterOf } from "./outside-failure.server";
 import { outsideFetch } from "./outside-fetch.server";
 
 // One page of a list from Luma's official API (LUMA_API_KEY, scoped to our
@@ -54,8 +54,8 @@ function lumaKey(): string {
  * Fetches `path` with `params`: its JSON, and the requests left in this
  * minute when Luma says. Uncached, unless `revalidate` says how many seconds
  * Next may keep the answer. Throws an OutsideFailure: rate-limited on a
- * 429, by its status on any other answer that isn't ok, and unauthorised
- * for a missing key.
+ * 429, by its status on any other answer that isn't ok, refused for one
+ * that's ok but isn't JSON, and unauthorised for a missing key.
  */
 export async function lumaGet<T>(
   path: string,
@@ -68,7 +68,7 @@ export async function lumaGet<T>(
   });
   if (!res.ok) throw await lumaRefusal(res, path);
   const remaining = res.headers.get("x-ratelimit-remaining");
-  return { data: (await res.json()) as T, remaining: remaining === null ? undefined : Number(remaining) };
+  return { data: (await outsideJson("luma", res)) as T, remaining: remaining === null ? undefined : Number(remaining) };
 }
 
 /** Fetches one page of `path` with `params`, as lumaGet does, as raw entries. */
@@ -97,5 +97,5 @@ export async function lumaPost<T>(path: string, body: unknown): Promise<T> {
     cache: "no-store",
   });
   if (!res.ok) throw await lumaRefusal(res, path);
-  return (await res.json()) as T;
+  return (await outsideJson("luma", res)) as T;
 }

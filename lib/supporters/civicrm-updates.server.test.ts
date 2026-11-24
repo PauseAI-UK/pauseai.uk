@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -13,6 +13,14 @@ import {
 import { recordOptOut, STOP_ALL, type OptOut } from "@/lib/supporters/opt-outs.server";
 import { inRun } from "@/lib/server/run-store.server";
 import { supporterProblems } from "./copy";
+
+// CiviCRM's binding as it is, with sending updates stood in for, so one test can have it throw what CiviCRM never would.
+const { sendsUpdates } = vi.hoisted(() => ({ sendsUpdates: vi.fn() }));
+vi.mock("@/lib/server/outside-services/civicrm.server", async (original) => {
+  const real = await original<typeof import("@/lib/server/outside-services/civicrm.server")>();
+  sendsUpdates.mockImplementation(real.updateSubscriptions);
+  return { ...real, updateSubscriptions: sendsUpdates };
+});
 
 const UPDATE = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";
 const AT = new Date("2026-11-01T09:00:00Z");
@@ -315,6 +323,22 @@ describeWithDatabase("our opt-outs sent to CiviCRM", () => {
     expect(await query("SELECT count(*)::int AS n FROM civicrm_updates WHERE status IS NULL AND tries = 0")).toEqual([
       { n: 50 },
     ]);
+  });
+
+  it("throws on anything else going wrong while sending, which is a bug of ours, not CiviCRM failing", async () => {
+    await onLists("jane@example.com");
+    await recordOptOut(optOut());
+    const thrown = new TypeError("events is undefined");
+    sendsUpdates.mockRejectedValueOnce(thrown);
+    let problems: unknown[] = [];
+    await expect(
+      inRun((run) => {
+        ({ problems } = run);
+        return sendCivicrmUpdates("key");
+      }),
+    ).rejects.toBe(thrown);
+    expect(problems).toEqual([]);
+    expect(await updates()).toEqual([expect.objectContaining({ tries: 0, status: null })]);
   });
 });
 

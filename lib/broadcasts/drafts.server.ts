@@ -50,6 +50,7 @@ import {
 } from "@/lib/mailings/drafts.server";
 import { broadcastEmailChannel, channelSends, textBackend, textSenderNumber } from "./channels.server";
 import { broadcastEmail, testLinks } from "./email-message.server";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import {
   createTemplate,
   deleteTemplate,
@@ -753,11 +754,11 @@ export async function withdrawTemplate(id: number, by: string): Promise<boolean>
   if (!withdrawn) return false;
   const backend = withdrawn.metaName ? await textBackend() : undefined;
   if (backend) {
-    try {
-      await deleteTemplate(backend.keys, withdrawn.metaName!);
-    } catch (error) {
-      problem(broadcastProblems.templateNotDeleted({ template: publicText(withdrawn.metaName!) }), error);
-    }
+    await orFallback(
+      broadcastProblems.templateNotDeleted({ template: publicText(withdrawn.metaName!) }),
+      undefined,
+      () => deleteTemplate(backend.keys, withdrawn.metaName!),
+    );
   }
   return true;
 }
@@ -785,12 +786,12 @@ export async function deleteApprovedTemplate(id: number, by: string): Promise<Te
     // With no keys, as on a deploy preview, nothing can reach WhatsApp.
     const backend = await textBackend();
     if (!backend) return "failed";
-    try {
-      await deleteTemplate(backend.keys, template.name);
-    } catch (error) {
-      problem(broadcastProblems.approvedNotDeleted({ template: publicText(template.name) }), error);
-      return "failed";
-    }
+    const deleted = await orFallback(
+      broadcastProblems.approvedNotDeleted({ template: publicText(template.name) }),
+      "failed" as const,
+      () => deleteTemplate(backend.keys, template.name),
+    );
+    if (deleted === "failed") return "failed";
     await query(
       "UPDATE whatsapp_templates SET status = 'deleted', deleted_at = now(), deleted_by = $2 WHERE id = $1",
       [id, by],

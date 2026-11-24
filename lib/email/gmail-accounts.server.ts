@@ -5,7 +5,7 @@ import { query } from "@/lib/server/db.server";
 import { config } from "@/lib/server/config.server";
 import { notifyStaff, staffLink } from "./notifications.server";
 import { decryptToken, encryptToken } from "./gmail-tokens.server";
-import { problem } from "@/lib/server/problems.server";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import {
   exchangeGmailCode,
   gmailAccessToken,
@@ -108,8 +108,8 @@ async function forget(account: string, by: string, why: string): Promise<string 
 export async function disconnectGmail(account: string, by: string): Promise<boolean> {
   const token = await forget(account, by, "disconnected");
   if (token === undefined) return false;
-  await revokeGmail(token).catch((error: unknown) =>
-    problem(emailProblems.tokenNotRevoked({ account: staffAccount(account) }), error),
+  await orFallback(emailProblems.tokenNotRevoked({ account: staffAccount(account) }), undefined, () =>
+    revokeGmail(token),
   );
   return true;
 }

@@ -8,6 +8,15 @@ import { LUMA_CALENDAR_MANAGE_URL, tagUpcomingEvents, unclearEventEmails } from 
 import { eventProblems, eventsCopy } from "./copy";
 import { publicText } from "@/lib/problems";
 
+// Luma's binding as it is, with listing and applying tags stood in for, so a test can have each throw what Luma never would.
+const { listsTags, appliesTag } = vi.hoisted(() => ({ listsTags: vi.fn(), appliesTag: vi.fn() }));
+vi.mock("@/lib/server/outside-services/luma-calendar.server", async (original) => {
+  const real = await original<typeof import("@/lib/server/outside-services/luma-calendar.server")>();
+  listsTags.mockImplementation(real.listEventTags);
+  appliesTag.mockImplementation(real.applyEventTag);
+  return { ...real, listEventTags: listsTags, applyEventTag: appliesTag };
+});
+
 const API = "https://public-api.luma.com/v1/calendars/event-tags";
 const CALENDAR_TAGS = ["Big events", "London", "Online", "Oxford"];
 
@@ -170,6 +179,29 @@ describeWithDatabase("tagging upcoming events", () => {
     await addEvent("oxford");
     expect(await tagUpcomingEvents()).toEqual({ tagged: 0, requests: 0, unclear: [] });
     expect(errors.mock.calls.flat().join(" ")).toContain(eventProblems.lumaTagsUnread().what);
+    expect(await kept("oxford")).toEqual({ tags: [], checked: false });
+    errors.mockRestore();
+  });
+
+  it("throws on anything else going wrong while listing Luma's tags, which is a bug of ours, not Luma failing", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const thrown = new TypeError("entries is undefined");
+    listsTags.mockRejectedValueOnce(thrown);
+    fakeLuma();
+    await addEvent("oxford");
+    await expect(tagUpcomingEvents()).rejects.toBe(thrown);
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+  });
+
+  it("throws on anything else going wrong while applying a tag, which is a bug of ours, not Luma refusing the event", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const thrown = new TypeError("skipped_count is undefined");
+    appliesTag.mockRejectedValueOnce(thrown);
+    fakeLuma();
+    await addEvent("oxford");
+    await expect(tagUpcomingEvents()).rejects.toBe(thrown);
+    expect(errors).not.toHaveBeenCalled();
     expect(await kept("oxford")).toEqual({ tags: [], checked: false });
     errors.mockRestore();
   });

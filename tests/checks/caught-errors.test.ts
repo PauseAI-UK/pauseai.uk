@@ -73,54 +73,90 @@ const EXCEPTIONS = new Map([
  * goes. One joins it only with a comment here saying why no helper fits.
  */
 const OWN_CATCHES = [
+  // A job's button keeps whatever its run throws with keepCaught(), so the job's page carries on.
   "app/(staff)/staff/_components/jobs/actions.ts",
+  // Sends the staff member back to their page saying it failed, whether Google or keeping the token here failed.
   "app/(staff)/staff/api/gmail/callback/route.ts",
-  // Logging in with Google: when Google refuses the code, or the live site
-  // can't sign a preview's login, the person is sent back to the login page
-  // to try again, which is no fallback's value and no send, and the failure
-  // is reported as a problem.
+  // Logging in with Google: when the live site can't sign a preview's login, for want of its key or for a key
+  // that isn't one, the person is sent back to the login page to try again, and the failure is reported.
   "app/(staff)/staff/api/google/callback/route.ts",
+  // Answers the visitor that their letter wasn't kept when our database fails: no outside service is asked.
   "app/api/email-your-mp/letters/mp-letters.server.ts",
+  // Answers Luma 500 whatever fails in recording its webhook, so Luma sends it again.
   "app/api/luma/webhook/route.ts",
+  // Answers the page 500 when our database can't give the signatories: no outside service is asked.
   "app/api/signatories/route.ts",
+  // Answers Meta 500 whatever fails in recording its webhook, so Meta sends it again.
   "app/api/whatsapp/route.ts",
+  // Forgets the number it kept as well as reporting, so the next to need it asks WhatsApp again.
   "lib/broadcasts/channels.server.ts",
+  // Sending words for approval reads WhatsApp's reason from the error, and covers keeping the template's ID here.
   "lib/broadcasts/drafts.server.ts",
+  // Whatever is thrown, a copy that didn't go is put back, and one that may have gone is failed, never sent twice.
   "lib/broadcasts/sending.server.ts",
+  // Answering a stop covers our database and a text WhatsApp didn't take: the stop is kept whatever fails.
   "lib/broadcasts/whatsapp-webhooks.server.ts",
+  // Reads the error to say what became of an email: blocked, to try later, failed, or possibly gone.
   "lib/email/email.server.ts",
+  // Disconnects an account whose token Google revoked, by the error, and throws it on.
   "lib/email/gmail-accounts.server.ts",
+  // The helper for sending something a run has taken: sendWithCare() itself.
   "lib/email/send-with-care.server.ts",
+  // Names each clean-up that failed for whoever erased, whatever failed in it: the erasure itself is done.
   "lib/erasure/erase.server.ts",
+  // Keeps a failed read on its event, ends the run on Luma's rate limit, and drops a failed pass's cursor.
   "lib/events/luma-import.server.ts",
-  "lib/events/tagging.server.ts",
+  // Reads the next mailbox after any failure in one, and reports a mailbox's name that can't be read or kept.
   "lib/jobs/gmail-reading.server.ts",
+  // Text the URL parser refuses is no link: the catch is the question.
   "lib/letters/format.ts",
+  // Passes over a message deleted since it was listed (unlessGone), and throws any other failure on.
   "lib/letters/letters-inbox-reading.server.ts",
+  // By the error's status, passes over a message deleted since, and reports one Gmail can't serve.
   "lib/letters/one-off-emails.server.ts",
+  // Keeps errors, keepCaught() among them: a failure to keep one is reported, never kept in turn.
   "lib/oversight/errors-seen.server.ts",
+  // Marks an address searched after any failure but Gmail's rate limit, which stops the search till next time.
   "lib/politicians/aliases.server.ts",
+  // Answers the visitor politely whether postcodes.io or our database failed.
   "lib/politicians/find-mp.server.ts",
+  // The database's connection: a transaction rolls back and throws on, and a warning in development fails no query.
   "lib/server/db.server.ts",
+  // A fixture build's outbox that isn't there yet holds no emails: the catch is the question.
   "lib/server/fixtures/outbox.ts",
+  // A fixture build's outbox that isn't there yet holds no texts: the catch is the question.
   "lib/server/fixtures/whatsapp-outbox.ts",
+  // Asking Next for the request's cookies throws outside a request: the catch is the question.
   "lib/server/flow-database.server.ts",
   // Asking Next to log after the response throws outside a request, where there's nothing to log: no helper asks.
   "lib/server/request-timing.server.ts",
+  // Keeps a run that failed, with its error, and throws it on.
   "lib/server/import-runs.server.ts",
+  // A body that isn't JSON, or isn't a form, is an answer the caller asked for.
   "lib/server/json.server.ts",
+  // CiviCRM's binding: a refusal that isn't JSON is said as it came.
   "lib/server/outside-services/civicrm.server.ts",
+  // The helper for carrying on without an outside service: orFallback() itself.
   "lib/server/outside-services/fallback.server.ts",
+  // Gmail's binding: a message or history that's gone is an answer, and any other failure is thrown on.
   "lib/server/outside-services/gmail.server.ts",
+  // A linked page that can't be reached has no card: the catch is the question.
   "lib/server/outside-services/link-pages.server.ts",
+  // Luma's binding: an address that isn't a contact is off the calendar already, and any other failure is thrown on.
   "lib/server/outside-services/luma-calendar.server.ts",
+  // Luma's binding: adding a guest never throws, so a visitor signing up is told it failed whatever went wrong.
   "lib/server/outside-services/luma-guests.server.ts",
+  // Turns a body that isn't JSON into an OutsideFailure.
   "lib/server/outside-services/outside-failure.server.ts",
+  // Turns a service that can't be reached, or doesn't answer in time, into an OutsideFailure.
   "lib/server/outside-services/outside-fetch.server.ts",
+  // WhatsApp's binding: a send WhatsApp refuses is an answer, with its code and reason; any other failure is thrown on.
   "lib/server/outside-services/whatsapp.server.ts",
-  "lib/supporters/civicrm-updates.server.ts",
+  // Only notes Luma failing as someone opts out; and a bulk notice failing, in our database too, never stops a sign-up.
   "lib/supporters/email-settings.server.ts",
+  // Stops at the first failure, of postcodes.io or of storing what it said, keeping what's stored for the next run.
   "lib/supporters/places.server.ts",
+  // A file that isn't UTF-8 is read as Windows-1252: the catch is the question.
   "lib/supporters/signup-csv.ts",
 ];
 
