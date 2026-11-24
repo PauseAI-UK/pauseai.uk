@@ -103,6 +103,8 @@ const STAYS: Record<string, string[]> = {
     "page-loaders",
     "problems",
     "random-id",
+    // Each staff request's time and its queries', which db.server.ts counts.
+    "request-timing",
     "run-store",
     "sql",
     // The audit log, which every feature writes to, the sending layer and accounts included; its page reads it
