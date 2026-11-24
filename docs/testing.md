@@ -825,6 +825,21 @@ order, alongside the others:
   in `tests/storyboard/fixtures.ts`), so two flows never share a letter or a
   link.
 
+- **Something failing, on purpose.** Fixture data never fails by itself,
+  so a flow that shows what happens when something does makes it fail:
+  - an outside service down: `failService(flowDatabase, host, FAILING_DIR)`
+    (`lib/server/fixtures/failing-services.ts`), from then on in that flow;
+  - a page that throws: a table it reads renamed in the flow's own
+    database, with `runSql`;
+  - a save whose request never arrives: `page.route()` aborting the POST
+    to the page's own address, where a Server Action is sent, and
+    `page.unroute()` when the connection is back;
+  - an error in the browser's own scripts: the fixture build's page that
+    breaks (`/broken`).
+
+  A step that ticks a box checks it wasn't ticked already: Playwright's
+  `check()` does nothing to one that is, and sends nothing.
+
 **Rules:**
 
 - Every new interactive behaviour goes in a flow, existing or new, with a

@@ -32,6 +32,75 @@ makes sense: don't do it again.
 Of the problems below, 2, 3, 4, 6, 7 and 8 are DONE. Problems 1, 5, 9, 10,
 11, 12 and 13 are TO DO.
 
+## Before starting PR 2
+
+For whoever picks this up without having done PR 1.
+
+**Where to work.** The branch `error-handling-server-side`, in
+`tmp/worktrees/error-handling-server-side`, holds these notes and nothing
+else yet.
+
+**Settle these first, with letters converted, and show the reviewer before
+converting the rest.** The plan decides what to build, not these:
+
+- **Where the sentence for a stored code comes from.** The job's page
+  (`app/(staff)/staff/_components/jobs/RunBox.tsx`), the run's alert
+  (`alertIfNew` in `lib/server/import-runs.server.ts`) and the Errors page
+  each have to turn `{ code, values }` into words, for a code any feature
+  declared. Two ways:
+  - A list of every feature's problems, as `JOBS` lists every job, which
+    the readers look a code up in. A check makes sure each feature's are
+    on it, and `tests/checks/import-cycles.test.ts` must still pass.
+  - Keep the sentence as it was written when the problem was reported,
+    beside its code: compare by the code, show the sentence. Much simpler,
+    and a reworded sentence shows its old words on old rows only. But it
+    stores our sentences, which the plan set out not to. With values that
+    are only IDs and counts, nothing personal is in one. This is the
+    reviewer's call.
+- **Where `defineProblems` lives.** Not in `problems.server.ts`: that's
+  server-only, and a feature's copy file is imported by client components
+  too (`lib/broadcasts/copy.ts` by `ReplyReactions`). So the declaring is
+  in a module anything can import, and the reporting stays on the server.
+- **The type that keeps plain text out of a problem's values.** A value
+  typed `string` is refused and a fixed code allowed:
+  `string extends T ? never : T` tells them apart.
+
+**What needs no migration.** `import_runs.problems` is JSON already, and a
+reader takes both shapes: an old row has `what`, a new one `code`.
+`errors_seen` has a `code` column and keys a row by it alone when it's
+told to (`byCode` in `lib/oversight/errors-seen.server.ts`, as for a
+Postgres error), so a problem's code goes there.
+
+**What PR 1 left that PR 2 meets:**
+
+- `keepCaught()` and `note()` are reporters beside `problem()`. The checks
+  know them (`REPORTERS` in `caught-errors.test.ts`, `ONLY_NOTED` in
+  `problem-reporting.test.ts`).
+- `outsideFetch`'s time limit throws the browser's `TimeoutError`, which
+  step 4 turns into an `OutsideFailure`. `luma-guests.server.ts` tells one
+  by its name today.
+- `fieldText()` (`lib/server/json.server.ts`) says a field of an API's
+  answer as text, for a refusal's words.
+
+**How the work went in PR 1, to save finding out again:**
+
+- `npm run test:changed` stops at once in a worktree
+  (`investments/test-changed-in-worktrees.md`). Use
+  `npm run gate -- --only test`.
+- A change to `problems.server.ts` or anything every flow reaches runs
+  every flow in the gate: about 20 minutes. Run the affected test files
+  by hand while working, and the gate at the end.
+- To see a test fail on the code as it was, put the old file back for one
+  run (`git show HEAD:<path> > <path>`), then restore the new one.
+- To see what a lint rule flags before adopting it, add it to the typed
+  block of `eslint.config.mjs` and lint to a JSON file
+  (`investments/trying-a-lint-rule.md`).
+- If CI's coverage fails on a file that passes here, see
+  `investments/ci-coverage-here.md`.
+
+The survey of the code this plan was written from is at the end ("What the
+survey found").
+
 ## How errors are handled today
 
 There are two rules, in `docs/code-structure.md` ("Errors").
@@ -650,3 +719,98 @@ Every list of files not yet converted is empty and deleted. `AGENTS.md`
 has its "Errors" section.
 
 Delete this plan when step 7 is done.
+
+## What the survey found
+
+From reading the code on 23 Nov 2026, before PR 1. Line numbers will have
+moved, so each is given by its file and what it does. Search again before
+relying on a count.
+
+### The calls to `problem()`
+
+About 84, in these copy files' `problems` blocks: `lib/server/copy.ts`
+(`problems.anywhere` and `problems.logs`), and the `copy.ts` of
+`lib/letters`, `lib/broadcasts`, `lib/email`, `lib/supporters`,
+`lib/events`, `lib/jobs` and `lib/politicians` (which also has six under
+`politicianImports`), with `lib/erasure/copy.ts` for an erasure's
+leftovers.
+
+**The ones with something that varies in the sentence**, which step 3 turns
+into values:
+
+- A letter's, relay's, answer's or broadcast copy's ID, through a namer
+  (`letterOf`, `letterCopyOf`, `relayOf`, `answerTo`, `copyOf`), inside
+  `emailCopy.problems.notSentYet()` and `sentUnrecorded()`: in
+  `lib/mailings/sending.server.ts`, `lib/letters/sending.server.ts`,
+  `lib/letters/relays.server.ts`, `lib/broadcasts/answers.server.ts` and
+  `lib/broadcasts/sending.server.ts`. These are the 11 that D's send
+  helper replaces.
+- An event's ID: `eventGuests()` and `eventHosts()` in
+  `lib/events/luma-import.server.ts`, and an event's name in
+  `lumaTagRefused()` (`lib/events/tagging.server.ts`).
+- A count: `civicrmUpdatesUnanswered()` and `civicrmUpdatesInvalid()` in
+  `lib/supporters/civicrm-updates.server.ts`.
+- A politician's name: `keptSalutation()`, `misspeltSalutation()` and
+  `missingHonour()` in `lib/politicians/imports.server.ts`, once for each
+  politician in a loop. These are public, so they go through the wrapper
+  for public text.
+- An address, which is personal and must become an ID or go:
+  `sentUnrecorded()` with the recipient in `lib/email/email.server.ts`,
+  `addressNotSearched()` in `lib/politicians/aliases.server.ts`.
+- A staff member's Gmail account: `tokenNotRevoked()` in
+  `lib/email/gmail-accounts.server.ts`, `nameUnknown()` and `couldntRead()`
+  in `lib/jobs/gmail-reading.server.ts`, and `sendFailed()` with the
+  account in `lib/email/email.server.ts`.
+- A template's name: three in `lib/broadcasts/drafts.server.ts`. A
+  character set: `charsetUnknown()` in `lib/email-parsing/mime.server.ts`.
+
+**The ones whose second argument isn't a caught error**, about 14: a list
+joined with commas after a heading (`twoMps`, the two `unmatched`,
+`civicrmUpdatesInvalid`), a count or a comparison as text
+(`civicrmTooFew`, `civicrmNumbersUnread`, `numbersUnread`,
+`notUnderstood`), a status as a sentence (`"It answered 503"` in
+`netlify-functions.server.ts`, Luma's status and body in
+`luma-guests.server.ts`), and a message's ID (`unreadable` in
+`lib/letters/one-off-emails.server.ts`). Two pass `error.cause`, in
+`lib/mailings/sending.server.ts` and `lib/letters/sending.server.ts`.
+
+**`told`** is passed in two calls only, both in
+`lib/jobs/gmail-reading.server.ts`.
+
+**The repeated shapes:** catch, report and return a fallback (about 27,
+most in `lib/server/outside-services/`); the two failures around a send
+(11); a heading then a list (7); report, then also store `describeError()`
+(3: two in `luma-import.server.ts`, one in `broadcasts/sending.server.ts`).
+
+### How each outside service fails
+
+| Service                                                 | On a refusal                                                              | Notes                                                                  |
+| ------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Luma's API (`luma-api.server.ts`)                        | Throws `LumaRateLimited { retryAfter }` on a 429, else `LumaRefused { status, lumaMessage }` | Reads `retry-after`. No retry                                          |
+| Luma's calendar, guests, public page                    | Returns `[]` or `null` after `problem()`; `addLumaGuest` returns `{ status: "failed", reason }` | `removeCalendarContact` matches Luma's words for a contact not found   |
+| Gmail (`gmail.server.ts`)                               | Throws `GmailError { status, revoked }`                                    | A 404 is an answer in three places                                     |
+| Postmark (`postmark.server.ts`)                         | Throws `PostmarkError { inactive, status }`                                | Its `ErrorCode` is in the message; `email.server.ts` parses the addresses out |
+| WhatsApp (`whatsapp.server.ts`)                         | `graph()` throws `WhatsAppRequestError { code, reason }`; a send returns `{ sent: false, code, reason }` | `WHATSAPP_ERRORS` sorts the codes                                      |
+| CiviCRM (`civicrm.server.ts`)                           | Throws `CivicrmRequestError`, with no fields                               | A per-event result comes back as `{ status, reason }`                  |
+| Parliament (`parliament.server.ts`)                     | Throws a plain `Error("<url> returned <status>")`                          | The only one that retries: five tries on a 429 or 503                  |
+| Wikidata, the devolved bodies, ControlAI                | Throws a plain `Error("<url> returned <status>")`                          |                                                                        |
+| postcodes.io (`postcodes.server.ts`)                    | A lookup returns `{ ok: false, reason }`; the bulk ones throw a plain `Error` |                                                                        |
+| Stripe, Turnstile, link pages, Netlify's functions      | Return a fallback after `problem()`                                        | Turnstile returns finished copy (E)                                    |
+
+Only `lib/email/email.server.ts` (`accountsFault`) sorts a failure into
+"try later", "fix the account" and "may have gone", for Gmail and Postmark.
+
+Other error classes: `SentUnrecorded` and `NotSentYet`
+(`lib/letters/lifecycle.server.ts`), which D's send helper is built on, and
+`ContactsPassFailed` (`lib/events/luma-import.server.ts`).
+
+### How forms report failure
+
+Thirteen files of Server Actions, about 70 actions, 12 of them staff's. The
+shapes sent to the browser: `{ ok: false, message }` with finished copy
+(the events place lookup, the MP lookup, the letters route); `{ ok: false,
+reason, errors }` (the march's sign-up); typed results with a reason code
+(`SaveResult`, `ScheduleResult`, `AnswerResult` and others); a boolean;
+`undefined`; a redirect with `?notice=`; and a silent return on input that
+doesn't parse, in about 19 places.
+
