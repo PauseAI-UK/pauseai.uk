@@ -76,7 +76,56 @@ reader takes both shapes: an old row has `what` and `error`, a new one
 `code`, `values`, `what` and `said`. `errors_seen` keys a problem's row by
 its code.
 
+**The staff side, as it stands.** Twelve files of Server Actions under
+`app/(staff)/staff/`, which the check for step 6 starts by listing:
+
+| File                                 | Actions |
+| ------------------------------------ | ------- |
+| `_components/erasure/actions.ts`     | 1       |
+| `_components/events/actions.ts`      | 1       |
+| `_components/asks/actions.ts`        | 2       |
+| `_components/jobs/actions.ts`        | 2       |
+| `_components/oversight/actions.ts`   | 2       |
+| `_components/notes/actions.ts`       | 3       |
+| `_components/supporters/actions.ts`  | 3       |
+| `_components/accounts/actions.ts`    | 4       |
+| `saved-filter-actions.ts`            | 4       |
+| `_components/politicians/actions.ts` | 5       |
+| `_components/mailings/actions.ts`    | 18      |
+| `_components/broadcasts/actions.ts`  | 21      |
+
+Smallest first is a good order. The last two come with the four
+components in `UNCONVERTED_SAVES`. It's more than one PR's worth: ask
+whoever reviews how to split it, such as the ten small files, then
+mailings, then broadcasts.
+
+`saved-filter-actions.ts` shows all three kinds of input E sorts, and is a
+good one to convert first and show: a list or an ID our form fills in
+(throw), a name that's only spaces (a reason, and the form says so), and a
+filter someone else deleted (a reason, and the form says so). None of its
+forms has anywhere to say anything yet, and no staff form uses
+`useActionState`, which the `staff-actions-one-pattern` investment
+proposes a hook over. So the first conversion also settles how a staff
+form shows a refusal: build that once, in the kit, look at it in the
+gallery, and show it before converting the rest.
+
 **How the work went, to save finding out again:**
+
+- A file the footer or a layout imports reaches every flow, so a change to
+  it pictures all of them: `lib/ask-server.ts` does, through the footer's
+  QR code (`investments/storyboard-reach-imports.md`, whose first refactor
+  would end that). `npm run reach` names the files that reach most, and
+  `npm run storyboard -- --plan` says how many flows a review would run.
+  Look before adding an import to a shared file.
+- A new file at the top of `lib/` is listed, with why, in `STAYS`
+  (`tests/checks/staff-components.test.ts`).
+- An action's answer is also made up in its component's tests, its
+  `*.examples.ts` and the gallery's examples
+  (`app/(tools)/gallery/_examples/`). The types find each one.
+- A table from each reason to its words has no branch to cover. Words
+  chosen with `&&` or `? :` need a test for each way.
+- The storyboard and `npm run serve` can't run in one checkout at once
+  (`investments/serve-beside-storyboard.md`).
 
 - A change to `problems.server.ts` or anything every flow reaches runs
   every flow in the gate: about 20 minutes. Run the affected test files
