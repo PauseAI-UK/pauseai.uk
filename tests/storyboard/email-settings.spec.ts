@@ -146,10 +146,12 @@ test("A change that doesn't save", { tag: "@phone" }, async ({ page, request, fl
   await expect(topicCard(page, "newsletter").getByText(copy.settings.failed)).toBeVisible();
   await frame(page, "Told it wasn't saved");
 
-  story("Her signal comes back. She turns texts on, and the page saves every box as it now is.");
+  story(
+    "Her signal comes back. She turns volunteering on, and the page saves every box as it now is, the newsletter's too.",
+  );
   await page.unroute(lost);
-  await topicCard(page, "newsletter").getByRole("checkbox", { name: copy.ways.text }).check();
-  await expect(topicCard(page, "newsletter").getByText(copy.settings.saved)).toBeVisible();
+  await topicCard(page, "volunteering").getByRole("checkbox", { name: copy.ways.email }).check();
+  await expect(topicCard(page, "volunteering").getByText(copy.settings.saved)).toBeVisible();
   await frame(page, "Saved");
 });
 

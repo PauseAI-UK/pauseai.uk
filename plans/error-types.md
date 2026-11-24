@@ -17,6 +17,21 @@ Each part says what was decided and, where another way was turned down,
 why. Rules that hold each change in place are added at every step. The plan
 ends with an order of work. Nothing is left to decide.
 
+## Status
+
+Each part of this plan is marked **DONE** or **TO DO**. A part marked DONE
+is in the code, with the PR that did it, and is kept here only so the rest
+makes sense: don't do it again.
+
+| PR                                                      | Steps      | Status             |
+| ------------------------------------------------------- | ---------- | ------------------ |
+| PR 1: the bugs, the general rules, error pages, saving  | 1 and 2    | **DONE** in #462   |
+| PR 2: the server side                                   | 3 and 4    | **TO DO**          |
+| PR 3: stored errors and forms                           | 5, 6 and 7 | **TO DO**          |
+
+Of the problems below, 2, 3, 4, 6, 7 and 8 are DONE. Problems 1, 5, 9, 10,
+11, 12 and 13 are TO DO.
+
 ## How errors are handled today
 
 There are two rules, in `docs/code-structure.md` ("Errors").
@@ -37,9 +52,12 @@ next depends on where the code is running:
 - Anywhere else, such as a form or a webhook, it's stored in `errors_seen`,
   as a thrown error is.
 
-Two tests enforce the second rule. `tests/checks/caught-errors.test.ts`
-fails on a `catch` that neither rethrows nor calls `problem()`.
-`tests/checks/problem-reporting.test.ts` fails on `console.error`.
+Two tests enforce the second rule, in all the server's code
+(`tests/checks/server-code.ts`). `tests/checks/caught-errors.test.ts` fails
+on a `catch` that neither rethrows nor reports. `problem-reporting.test.ts`
+fails on a failure that's only written to the log. ESLint keeps `console`
+out of the site's code altogether: what isn't a failure is logged with
+`note()`, beside `problem()`.
 
 This design is sound, and the plan keeps it. The weakness is in what gets
 recorded, and in a few places the rules don't reach.
@@ -49,7 +67,7 @@ recorded, and in a few places the rules don't reach.
 Each was found by reading the code. None has been reproduced yet, so each
 gets a failing test before its fix.
 
-### 1. Staff are emailed again about a problem they already know about
+### 1. Staff are emailed again about a problem they already know about: TO DO
 
 To decide whether a job's problem is new, `alertIfNew`
 (`lib/server/import-runs.server.ts`) compares its sentence with the
@@ -65,7 +83,9 @@ counts as new, and staff are emailed again, every run, until Gmail is back.
 Changing the wording of a sentence has the same effect, once, for every
 job that's currently reporting it.
 
-### 2. A job that crashes is reported in two places (decided: keep it)
+### 2. A job that crashes is reported in two places: DONE in #462
+
+**DONE in #462.** It stays in both places, as decided. A run staff started now keeps its crash too, with `keepCaught()`, and `docs/domain-concepts.md` says so. What follows is the problem as it was found.
 
 When a job fails, `asRun` records the failed run, emails staff, and then
 throws the error again. The route that scheduled jobs come through
@@ -86,7 +106,9 @@ Two things don't match that decision, and both get fixed:
   writes it to `console.error`. So a crash in a run that staff started
   never reaches the Errors page.
 
-### 3. The tests that enforce the rules skip the staff pages
+### 3. The tests that enforce the rules skip the staff pages: DONE in #462
+
+**DONE in #462.** Both tests read every route handler, page, layout and file of Server Actions under `app/`. The three places below are fixed. What follows is the problem as it was found.
 
 Both tests read `lib/`, `app/api` and `netlify/functions`. They don't read
 `app/(staff)/`, which holds every staff Server Action. Three caught errors
@@ -99,7 +121,9 @@ there are written to `console.error`, which only reaches Netlify's logs:
 - `runJobNow` (`jobs/actions.ts`). This one does no harm, because the run
   has already recorded the failure.
 
-### 4. A warning gets past the check
+### 4. A warning gets past the check: DONE in #462
+
+**DONE in #462.** `console` is banned by ESLint, and a failure handed to `note()` fails a test unless it's listed with its reason. The two below are listed. What follows is the problem as it was found.
 
 The test bans `console.error` but allows `console.warn`, so a failure
 logged as a warning reaches only Netlify's logs, and the test doesn't
@@ -114,7 +138,7 @@ comment saying why, and stay as they are:
 
 The gap is that nothing stops a new one, written without that thought.
 
-### 5. Personal data ends up in the stored problems
+### 5. Personal data ends up in the stored problems: TO DO
 
 Sentences can contain an email address. One does for certain: when an email
 is sent but the record of it can't be saved, the sentence names the
@@ -126,14 +150,18 @@ These are stored in `import_runs.problems` for a month, and in
 says `errors_seen` may hold personal data by accident, but doesn't mention
 `import_runs.problems` at all.
 
-### 6. One broken panel takes down the whole page
+### 6. One broken panel takes down the whole page: DONE in #462
+
+**DONE in #462.** Every layout has an `error.tsx` beside it, and a test fails on one without. What follows is the problem as it was found.
 
 The app has a single error page, `app/global-error.tsx`, and no `error.tsx`
 in any folder below it. So if one part of a staff page throws while it
 renders, the whole page is replaced, including the menu. The same happens
 to a form when its Server Action throws.
 
-### 7. A save that fails looks like a save still in progress
+### 7. A save that fails looks like a save still in progress: DONE in #462, but for four components
+
+**DONE in #462**, with the `useSave` hook, for the contact preferences form, a reply's answer and reactions, a note's edit and the politicians list's tick boxes. **TO DO:** the four components in `UNCONVERTED_SAVES` (`eslint.config.mjs`), which move in step 6. What follows is the problem as it was found.
 
 Several components call a Server Action and wait for it without catching a
 failure. In `EmailSettings.tsx:493`, if the request fails, the form shows
@@ -141,7 +169,9 @@ failure. In `EmailSettings.tsx:493`, if the request fails, the form shows
 `NoteChanges.tsx`, `MailingWriter.tsx` and `BroadcastWriter.tsx`. Only the
 first has been read closely, so check each of the others as it's fixed.
 
-### 8. Calls to outside services have no time limit
+### 8. Calls to outside services have no time limit: DONE in #462
+
+**DONE in #462.** `outsideFetch` gives up after `OUTSIDE_TIMEOUT_MS` (20 seconds) unless the call sets its own limit. What follows is the problem as it was found.
 
 `outsideFetch` sets no timeout. Only two callers set their own (the Luma
 guest list and link previews). If any other service stops answering, the
@@ -149,7 +179,7 @@ job waits until Netlify stops the function at 30 seconds. The job never
 reaches the code that records the run, so nothing is stored and nobody is
 told.
 
-### 9. Four places decide what to do by reading an error's text
+### 9. Four places decide what to do by reading an error's text: TO DO
 
 - `inactiveAddresses()` (`email.server.ts`) pulls addresses out of
   Postmark's error message with a regular expression.
@@ -161,7 +191,7 @@ told.
 
 If a service rewords a message, the code silently takes the wrong path.
 
-### 10. Every outside service reports failure differently
+### 10. Every outside service reports failure differently: TO DO
 
 Six services have their own error class, each with different fields.
 `GmailError` has a status and a `revoked` flag, `PostmarkError` has an
@@ -176,7 +206,7 @@ or "is it worth trying again?" in the same way for two services. Only
 `email.server.ts` works this out (`accountsFault`), and only for Gmail and
 Postmark. Only Parliament's code retries.
 
-### 11. Forms are told about failure in many different ways
+### 11. Forms are told about failure in many different ways: TO DO
 
 - Three server functions return the finished English for the visitor, so
   the wording is chosen deep in server code: `turnstile.server.ts`,
@@ -189,13 +219,13 @@ Postmark. Only Parliament's code retries.
 - In about 19 places a staff action returns without doing anything when
   its input doesn't parse. Nothing is shown and nothing is recorded.
 
-### 12. Errors are stored as text
+### 12. Errors are stored as text: TO DO
 
 `import_runs.error`, `luma_events.guests_error`, `luma_events.hosts_error`
 and `mailings.wait_said` each hold the text of an error. Nothing can tell
 "Luma rate-limited us" from "Luma was down" without reading that text.
 
-### 13. The same error handling is written out many times
+### 13. The same error handling is written out many times: TO DO
 
 - About 27 places do the same thing: try a call to an outside service, and
   on any error report it and return an empty value.
@@ -214,7 +244,7 @@ Errors page already identifies a Postgres error by its code.
 
 ## The changes
 
-### A. Give every problem a code
+### A. Give every problem a code: TO DO
 
 This fixes problems 1 and 5, and most later changes build on it.
 
@@ -266,14 +296,16 @@ may be a detail. So may a few things that can't be looked up later, such
 as the name of a character set. Each goes through a named wrapper that
 marks it as public, so a reviewer can see every place it's used.
 
-### B. Where a job's failures are recorded
+### B. Where a job's failures are recorded: DONE in #462
 
 **Decided: a job that crashes stays in both places**, on its run and on
-the Errors page (problem 2). Two small fixes make the code and the docs
+the Errors page (problem 2). Two small fixes made the code and the docs
 agree with that:
 
-- `runJobNow` throws the crash on, or reports it, so a run staff started
-  reaches the Errors page as a scheduled one does.
+- `runJobNow` keeps the crash with `keepCaught()`
+  (`lib/oversight/errors-seen.server.ts`), so a run staff started reaches
+  the Errors page as a scheduled one does, and its page still refreshes to
+  show the failed run.
 - `docs/domain-concepts.md` says a crash is recorded in both places, and
   why.
 
@@ -284,9 +316,10 @@ time it happens, so a run would still need its own copy to show what went
 wrong on that run. It would also change how often staff are emailed about
 a job that stays broken, from once to once a day.
 
-### C. One error type for outside services
+### C. One error type for outside services: TO DO, but for the time limit
 
-This fixes problems 8, 9 and 10.
+This fixes problems 9 and 10. Problem 8 is DONE: `outsideFetch` has one
+default time limit for every service (#462).
 
 **Decided: a shared error class, `OutsideFailure`.** Every outside
 service's code throws this class, or its own subclass of it. It has the
@@ -309,8 +342,10 @@ working while callers are moved over one at a time.
 
 Three more things come with it:
 
-- `outsideFetch` gets a default time limit for each service. A call that
-  runs out of time throws an `OutsideFailure` with kind `timeout`.
+- `outsideFetch` has a default time limit already (`OUTSIDE_TIMEOUT_MS`).
+  **TO DO:** a call that runs out of time throws an `OutsideFailure` with
+  kind `timeout`, where now it's the browser's `TimeoutError`. A limit of
+  its own for a service that needs one goes in with its conversion.
 - `outsideFetch` gets an optional retry for requests that are safe to
   repeat. This is the loop Parliament's code already has, moved to where
   every service can use it.
@@ -329,7 +364,7 @@ documented at https://postmarkapp.com/developer/api/overview#error-codes.
 If the message is the only source, the regular expression stays, inside
 Postmark's code, with a test using a message as Postmark really sends it.
 
-### D. Shared helpers for the repeated code
+### D. Shared helpers for the repeated code: TO DO
 
 This fixes problem 13. **Decided: all three helpers.** Each can be its own
 PR.
@@ -346,7 +381,7 @@ PR.
 - **A problem whose detail is a list.** It replaces the 7 places that join
   a list with commas. The job's page can then show the list as a list.
 
-### E. One way for forms to report failure
+### E. One way for forms to report failure: TO DO
 
 This fixes problem 11.
 
@@ -392,7 +427,7 @@ as now, and isn't recorded as an error.
 The routes that only machines call, such as webhooks, can stay as they
 are. Nobody reads their error text.
 
-### F. Store errors as a code and details
+### F. Store errors as a code and details: TO DO
 
 This fixes problem 12, and follows from A and C.
 
@@ -412,37 +447,37 @@ rows already stored can still be shown.
 `import_runs.problems` is already JSON, so it needs no migration. Its
 contents change shape under A, and old rows keep the old shape.
 
-### G. Error pages, and saves that fail
+### G. Error pages, and saves that fail: DONE in #462
 
-This fixes problems 6 and 7.
+This fixed problems 6 and 7. What was built:
 
-**Decided: all three parts.**
+- **An `error.tsx` beside every layout.** `ErrorMain`
+  (`components/layout/`) on the public pages, the tools and the march
+  sign-up, and `StaffError` beside the staff navigation. Each says the page
+  went wrong and offers to load it again. `tests/checks/error-pages.test.ts`
+  fails on a layout without one.
+- **One hook for saving, `useSave`** (`components/ui/`). It runs a save in
+  a transition, says when it failed, and tells the site of what the browser
+  threw. ESLint refuses an async function written in place as an event's
+  handler or handed to a transition (`SAVE_RULES`).
+- **Storyboard flows** for a staff page that breaks, a public page that
+  breaks, and a change that doesn't save. A flow makes a save fail by
+  dropping its request in the browser (`page.route`), so no route that
+  fails on purpose was needed.
 
-- **An `error.tsx` for each section of the site**: `(site)`, `(staff)`,
-  `(march)` and `(tools)`, sharing one component. When something throws,
-  the layout and menu stay and only the content is replaced, with a button
-  to try again. The staff one links admins to the Errors page. Next
-  documents this in
-  `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/error.md`.
-- **Protection for individual panels on staff pages.** Next's `catchError`
-  function
+Two things differ from what was planned:
+
+- **No protection for single panels.** No staff panel calls an outside
+  service while its page renders and can throw: they all fall back
+  already. When one does, Next's `catchError`
   (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/catchError.md`)
-  puts the same protection around one component. It's for the few panels
-  that call an outside service while the page renders, so one of those can
-  fail by itself and leave the rest of the page working.
-- **One hook for saving.** A `useSave` hook wraps a call to a Server
-  Action. It tracks whether the save is in progress, has finished or has
-  failed, and reports anything thrown. The components in problem 7 use it
-  in place of their own state, so a failed save says it failed. It's the
-  browser half of E, and the same hook the `staff-actions-one-pattern`
-  investment asks for.
+  is the tool.
+- **Four components aren't on the hook yet**: the mailing and broadcast
+  writers, the draft writer and the sign-up import
+  (`UNCONVERTED_SAVES`). Each handles a failed save in its own way. They
+  move in step 6, when their actions change shape. **TO DO.**
 
-The storyboard needs a way to fail on purpose, since fixture data never
-fails. A route that throws and an action that fails, both only in fixture
-builds, let a flow show an error page and a failed save. They're built once,
-with the first of these, and every later flow about an error reuses them.
-
-### H. Enforcement, added at every step
+### H. Enforcement, added at every step: step 1's and step 2's DONE in #462
 
 **Decided: every step turns on its own rules, in the same PRs as the
 change.** The aim is that code written later can't drift back, even when
@@ -479,68 +514,59 @@ been reviewed are moved as they are and checked with the reviewer. Any new
 wording is a placeholder. Each step lists what it does, then the rules that
 hold it in place (H).
 
-## PR 1: the bugs, the general rules, error pages and saving
+## PR 1: the bugs, the general rules, error pages and saving: DONE in #462
 
-Steps 1 and 2. Neither depends on the rest. They go together because step
-1 makes some failures throw where they were hidden before, and step 2's
-error pages mean a throw keeps the page's menu. This PR needs new wording
-for the error pages and for a save that failed, so it merges once that's
-written.
+Steps 1 and 2. Don't do these again. What follows says what was built, and
+where it differs from what was planned, for whoever does PR 2 and PR 3.
 
-### Step 1. The bugs that can be fixed straight away
+### Step 1. The bugs that could be fixed straight away: DONE
 
-- `runJobNow` hiding a crash from the Errors page, and the sentence in
-  `docs/domain-concepts.md` that says a crash isn't recorded there (B).
-- `unblockAddress` hiding its failure.
-- A default time limit in `outsideFetch` (part of C).
+- A run staff started keeps its crash as an error (`keepCaught()`), and
+  `docs/domain-concepts.md` says a crash is recorded in both places (B).
+- `unblockAddress` throws when the provider can't be reached.
+- A Gmail connection Google won't complete is reported as a problem.
+- `outsideFetch` has a default time limit (part of C).
 
 Enforced by:
 
-- **Both existing checks read all the server code under `app/`**, not only
-  `app/api`. They fail on the three places in problem 3 until those are
-  fixed.
-- **No `console` at all in server code** (ESLint's `no-console`). This
-  replaces the check for `console.error`, and can't be got round with
-  `console.warn`. Information that isn't a failure goes through one small
-  logging function, in the only file allowed to use `console`. So do the
-  two deliberate warnings in problem 4.
-- **An error can't be dropped into a sentence.**
-  [`restrict-template-expressions`](https://typescript-eslint.io/rules/restrict-template-expressions/)
-  and [`no-base-to-string`](https://typescript-eslint.io/rules/no-base-to-string/)
-  fail on `${error}`. They go by type. The check they replace goes by the
-  variable's name, so it misses an error called anything but `e`, `err` or
-  `error`.
-- **A rethrown error keeps its cause**
-  ([`preserve-caught-error`](https://eslint.org/docs/latest/rules/preserve-caught-error)).
-- **Every `switch` handles every case**
-  ([`switch-exhaustiveness-check`](https://typescript-eslint.io/rules/switch-exhaustiveness-check/)).
-  When a later step adds a new code, lint fails at each place that must
-  handle it.
-- **Four more rules that need type information**
-  (https://typescript-eslint.io/rules/): `only-throw-error`,
+- **Both checks read all the server's code**
+  (`tests/checks/server-code.ts`): every route handler, page, layout and
+  file of Server Actions under `app/`, as well as `lib/`.
+- **No `console` in the site's code** (`CONSOLE_RULE` in
+  `eslint.config.mjs`). What isn't a failure is logged with `note()`, and a
+  failure handed to `note()` fails `problem-reporting.test.ts` unless it's
+  listed there with its reason.
+- **ESLint rules that need the types** (`TYPED_RULES` and
+  `TYPED_SITE_RULES`): `no-floating-promises`, `no-misused-promises`,
+  `switch-exhaustiveness-check`, `only-throw-error`,
   `prefer-promise-reject-errors`, `use-unknown-in-catch-callback-variable`
-  and `no-misused-promises`. The last is what the `promises-as-values`
-  investment asks for.
+  and `restrict-template-expressions`, with `preserve-caught-error`.
 
-How many existing lines these ESLint rules flag isn't known yet. If a rule
-flags many, it starts with a list of files not yet converted.
+Three things differ from what was planned:
 
-### Step 2. Error pages and the saving hook (G)
+- **`no-base-to-string` was left out.** All 43 lines it flagged were form
+  fields and request bodies, none an error. The check for `String(error)`
+  by the variable's name stays.
+- **`no-misused-promises` leaves out event handlers and props.** It flagged
+  39, most of them functions that catch what they throw. `SAVE_RULES`
+  covers the case that matters, a save with nothing to catch its failure.
+- **A `switch` with a `default` counts as handling every case.**
 
-These don't depend on anything else. They change what people see, so they
-need storyboard flows showing a page that fails, a panel that fails and a
-save that fails.
+### Step 2. Error pages and the saving hook (G): DONE
+
+See G, above, for what was built and what differs.
 
 Enforced by:
 
-- **Every section of the site has an `error.tsx`** (a check), so a new
-  section can't be added without one.
-- **A Server Action is only called through `useSave`, `useActionState` or
-  a form's `action`** (a check). That stops a bare `await save()` with no
-  handling of failure. It starts with a list of the components not yet
-  moved onto the hook.
+- **Every layout has an `error.tsx` beside it**
+  (`tests/checks/error-pages.test.ts`).
+- **A save from an event goes through `useSave`** (`SAVE_RULES`, with
+  `UNCONVERTED_SAVES` for the four components still to move). This is in
+  place of the planned check that a Server Action is only called through
+  the hook: a component is handed its actions as props, so nothing can
+  tell which calls are Server Actions.
 
-## PR 2: the server side
+## PR 2: the server side: TO DO
 
 Steps 3 and 4. It has no migration and no new wording, so nothing holds it
 up. It's pushed as a draft once letters is converted, for the design to be
@@ -581,7 +607,7 @@ Enforced by:
   helper. A new `catch` anywhere else fails until it's added with a
   reason, which shows up in review.
 
-## PR 3: stored errors and forms
+## PR 3: stored errors and forms: TO DO
 
 Steps 5, 6 and 7. The migration is here on purpose. A pushed migration
 can't be edited, and by now PR 2 has settled the shape that's stored.
@@ -599,7 +625,9 @@ Enforced by:
 
 ### Step 6. Form results (E)
 
-One form per commit, visitors' forms first.
+One form per commit, visitors' forms first. The four components in
+`UNCONVERTED_SAVES` move to `useSave` here, as their actions change shape,
+and the list is deleted.
 
 Enforced by:
 
