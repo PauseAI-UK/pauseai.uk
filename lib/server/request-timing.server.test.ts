@@ -60,6 +60,18 @@ it("logs a request's timing once, after its response, however often it's asked",
   info.mockRestore();
 });
 
+it("logs nothing where cache() keeps nothing, as for a button's own work before its page renders", async () => {
+  vi.resetModules();
+  vi.doMock("react", async (original) => ({
+    ...(await original<typeof import("react")>()),
+    cache: <Args extends unknown[], Result>(fn: (...args: Args) => Result) => fn,
+  }));
+  const fresh = await import("./request-timing.server");
+  fresh.logTiming("/staff (a button)");
+  expect(held.work).toEqual([]);
+  vi.doUnmock("react");
+});
+
 it("logs nothing outside a request", () => {
   held.outside = true;
   expect(() => logTiming("/staff")).not.toThrow();

@@ -53,9 +53,16 @@ export function timingLine(path: string, timing: Timing, end: number): string {
   return `Staff request ${path}: ${ms(end - timing.start)}, ${timing.queries} queries, ${ms(timing.waited)} waiting on the database, at most ${timing.most} at once`;
 }
 
-/** Logs this request's timing once its response has gone: once a request, however often it's asked. */
+/**
+ * Logs this request's timing once its response has gone: once a request,
+ * however often it's asked. Only while React renders, which is when cache()
+ * keeps one timing a request: a button's own work runs before its page
+ * renders again, with none, so its line is the render's, which is most of
+ * its wait, and its own queries aren't counted.
+ */
 export const logTiming = cache((path: string): void => {
   const timing = thisRequest();
+  if (thisRequest() !== timing) return;
   try {
     after(() => note(timingLine(path, timing, performance.now())));
   } catch {
