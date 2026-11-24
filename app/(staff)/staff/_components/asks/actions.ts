@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { addAsk, deleteAsk, editAsk } from "@/lib/asks/records.server";
 import { askFrom } from "@/lib/staff-forms";
-import { staffBack } from "@/lib/staff-search";
+import { staffBack } from "@/lib/staff-back";
 
 /**
  * Where an ask's form goes after a save: `back`, or the asks page; or the

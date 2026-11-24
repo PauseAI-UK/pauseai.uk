@@ -257,11 +257,9 @@ describe("handOvers", () => {
 
   it("joins what's handed over to the module it's handed to, so a flow that reaches the one reaches the other", () => {
     const graph = importGraph(root);
-    expect(graph.get("lib/server/problems.server.ts")).toEqual([
-      "lib/server/run-store.server.ts",
-      "instrumentation.ts",
-    ]);
-    expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).toContain("lib/server/errors.ts");
+    expect(graph.get("lib/server/problems.server.ts")).toEqual(["lib/server/run-store.server.ts"]);
+    expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).toContain("lib/server/run-store.server.ts");
+    expect(closure(graph, ["app/(site)/blog/[slug]/page.tsx"])).not.toContain("lib/server/errors.ts");
     expect(importGraph(join(root, "components")).has("lib/server/problems.server.ts")).toBe(false);
   });
 
@@ -437,8 +435,8 @@ describe("reachedFlows", () => {
     expect(reached(["lib/redirects.ts"])).toEqual(nothingReached);
   });
 
-  it("reruns, for what handles an error, the flows that kept one and those that reach where problems are reported", () => {
-    expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(post, broken));
+  it("reruns, for what keeps an error, the flows that kept one, and for the run store, those that reach where problems are reported", () => {
+    expect(reached(["lib/server/errors.ts"]).keys).toEqual(keysOf(broken));
     expect(reached(["lib/server/run-store.server.ts"]).keys).toEqual(keysOf(post));
   });
 
@@ -536,6 +534,9 @@ describe("reachedFlows", () => {
     expect(added(["app/(site)/new/page.tsx"], ["app/(site)/new/page.tsx"])).toEqual(keysOf(sitemap));
     expect(added(["app/(site)/new/page.tsx"], [])).toEqual(new Set());
     expect(added(["lib/new.ts"], ["lib/new.ts"])).toEqual(new Set());
+    // Under app/, what lists it finds the routes: a file that's no route's adds none.
+    expect(added([], ["app/(site)/_components/New.tsx"])).toEqual(new Set());
+    expect(added([], ["app/(site)/new/layout.tsx"])).toEqual(keysOf(sitemap));
     // A file that reaches every flow by rule isn't followed to what lists its folder.
     writeFileSync(join(root, "app/sitemap.ts"), `readdirSync(join(process.cwd(), "netlify", "database"));`);
     try {
@@ -545,6 +546,29 @@ describe("reachedFlows", () => {
       expect(listing("netlify/database-notes/new.ts")).toEqual(keysOf(sitemap));
     } finally {
       writeFileSync(join(root, "app/sitemap.ts"), FILES["app/sitemap.ts"]);
+    }
+  });
+
+  it("follows no set-up file to what it lists, though every flow reaches it and it names the folder", () => {
+    const setUp = "scripts/fresh-database.mjs";
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    writeFileSync(
+      join(root, setUp),
+      `readdirSync(join(process.cwd(), "netlify", "database"));\nreadFileSync(join(process.cwd(), "lib", "mps.json"));`,
+    );
+    writeFileSync(
+      join(root, "tests/storyboard/fixtures.ts"),
+      `import "../../${setUp}";\n${FILES["tests/storyboard/fixtures.ts"]}`,
+    );
+    try {
+      const context = reachContext(root);
+      expect(flowReach(home, context)).toContain(setUp);
+      expect(reachedFlows({ files: ["lib/new.ts"], addedOrDeleted: ["lib/new.ts"], runs, context }).keys).toEqual(
+        new Set(),
+      );
+    } finally {
+      rmSync(join(root, setUp));
+      writeFileSync(join(root, "tests/storyboard/fixtures.ts"), FILES["tests/storyboard/fixtures.ts"]);
     }
   });
 
@@ -817,7 +841,8 @@ describe("this repo", { timeout: 120_000 }, () => {
       // The fakes' mail and answers, kept for each flow's database across the build's copies of a module: no code.
       "lib/server/fixtures/letters-inbox.ts: uses globalThis",
       "lib/server/fixtures/outside-services.ts: uses globalThis",
-      // Handed the keeper of errors by instrumentation.ts, and the run in progress by run-store.server.ts (HANDED_OVER).
+      // Handed the run in progress by run-store.server.ts (HANDED_OVER), and the keeper of errors by
+      // instrumentation.ts, which a flow that kept an error records as opened (ERRORS_KEPT).
       "lib/server/problems.server.ts: uses globalThis",
       "lib/server/run-store.server.ts: calls registerRunStore() as it loads",
     ]);

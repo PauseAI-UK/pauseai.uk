@@ -15,7 +15,7 @@ import {
 } from "@/lib/server/saved-filters.server";
 import { requireStaff } from "@/lib/accounts/auth.server";
 import { idFrom, savedFilterNeeds, savedListFrom, savedNameFrom } from "@/lib/staff-forms";
-import { staffBack } from "@/lib/staff-search";
+import { staffBack } from "@/lib/staff-back";
 import { filtersPath } from "@/lib/list-params";
 
 /** The list page the form came from, or the list's own page if it's another. */

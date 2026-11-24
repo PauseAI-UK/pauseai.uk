@@ -164,12 +164,17 @@ export function importsOf(path, text) {
 /**
  * Code handed to a module as another loads, which the first then calls
  * without importing it: lib/server/problems.server.ts is told how to find the run
- * in progress by run-store.server.ts, and what keeps an error by instrumentation.ts.
- * A flow that reaches the module reaches what's handed to it, as if it were
- * imported. handOvers finds the places in the site's code that could be
- * another, and the tests check each is here or known not to be one.
+ * in progress by run-store.server.ts. A flow that reaches the module reaches
+ * what's handed to it, as if it were imported. handOvers finds the places in
+ * the site's code that could be another, and the tests check each is here or
+ * known not to be one.
+ *
+ * problems.server.ts is also handed what keeps an error, by
+ * instrumentation.ts, which isn't joined here: what that keeper runs is
+ * reached only by a flow that kept an error, and such a flow records
+ * instrumentation.ts as opened (ERRORS_KEPT).
  */
-const HANDED_OVER = { "lib/server/problems.server.ts": ["lib/server/run-store.server.ts", "instrumentation.ts"] };
+const HANDED_OVER = { "lib/server/problems.server.ts": ["lib/server/run-store.server.ts"] };
 
 /**
  * Where the site's code (`dirs` under `root`) could hand code over without
@@ -275,6 +280,12 @@ const ROUTE_FILES = [
 /** Files Next serves from `app/` that this map doesn't match to an address: a change to one can't be placed. */
 const UNMATCHED_ROUTE_FILES = /^app\/(.*\/)?(opengraph-image|twitter-image|icon|apple-icon|favicon)\.[a-z]+$/;
 const LEAVES = ["page", "route"];
+
+/** A file of `app/` that Next routes by: a page, a route handler, or one of ROUTE_FILES. */
+function isRouteFile(path) {
+  const name = /^app\/(?:.*\/)?([\w-]+)\.[jt]sx?$/.exec(path)?.[1];
+  return name !== undefined && [...ROUTE_FILES, ...LEAVES].includes(name);
+}
 const EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 
 /** A folder's name as it matches a URL's segment: a group or a slot matches none. */
@@ -578,12 +589,15 @@ function readers(context, path) {
 /**
  * The files that list a folder `path` is in or under (the sitemap and the
  * tests' list of routes walk `app/`): what they find changes when a file
- * there is added or deleted.
+ * there is added or deleted. Not a set-up file (SET_UP), as what it lists
+ * is set-up too, such as the migrations.
  */
 function listers(context, path) {
   const folders = path.split("/").slice(0, -1);
   // The files that list any folder at all, found once for the context.
-  context.listing ??= [...context.graph.keys()].filter((file) => /\breaddir(Sync)?\(/.test(textOf(context, file)));
+  context.listing ??= [...context.graph.keys()].filter(
+    (file) => !SET_UP.some((re) => re.test(file)) && /\breaddir(Sync)?\(/.test(textOf(context, file)),
+  );
   return context.listing.filter((file) => folders.some((folder) => namesFolder(textOf(context, file), folder)));
 }
 
@@ -650,9 +664,13 @@ export function reachedFlows({ files, addedOrDeleted = [], runs, context }) {
     }
   }
   // What lists a folder finds something else when a file in it comes or goes. Not for a file that reaches every
-  // flow anyway, as a new migration does: how far that goes is flowsToRun's to say.
-  for (const path of addedOrDeleted)
-    if (![...EVERYTHING, ...SET_UP].some((re) => re.test(path))) reachThrough(listers(context, path));
+  // flow anyway, nor for set-up. Under app/, what lists it (the sitemap, the tests' routes) finds the routes, so
+  // only a route's own file counts there.
+  for (const path of addedOrDeleted) {
+    if ([...EVERYTHING, ...SET_UP].some((re) => re.test(path))) continue;
+    if (path.startsWith("app/") && !isRouteFile(path)) continue;
+    reachThrough(listers(context, path));
+  }
   const paths = [...reaching];
   const carried = new Map();
   for (const run of runs) {
