@@ -1015,6 +1015,7 @@ that drives it or why nothing does.
   - a Google account outside pauseai.uk, not let in;
   - the dev login;
   - the staff home after a first login, which makes an account with no permissions, and its dashboard over 30 days;
+  - a staff member's name, from Google, in a bubble from their address;
   - as an admin, adding an account from Add staff, editing its permissions in a bubble, and removing it with a second press, with the note of what that leaves them;
   - every staff page turning a visitor without a session away, and the API changing nothing for them;
   - your own page with your Gmail connected and disconnected, and a wrong Google account;

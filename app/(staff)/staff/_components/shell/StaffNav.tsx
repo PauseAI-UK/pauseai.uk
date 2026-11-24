@@ -125,7 +125,7 @@ export default function StaffNav({ email, permissions = [], current: shown, fres
           >
             <NavIcon id="me" />
             <span className={styles.label}>
-              <StaffMember email={email} />
+              <StaffMember email={email} plain />
             </span>
           </StaffLink>
         </li>

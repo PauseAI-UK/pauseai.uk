@@ -1,0 +1,13 @@
+/* A staff member's address that opens a bubble with their name: the words
+   around it, as they are, underlined with dots to say there's more. */
+.member {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}

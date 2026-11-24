@@ -30,7 +30,7 @@ export default function DevLogin({ accounts, next }: { accounts: DevLoginChoice[
               <input type="hidden" name="email" value={email} />
               {next && <input type="hidden" name={NEXT_PARAM} value={next} />}
               <SubmitButton variant="ghost" size="small">
-                <StaffMember email={email} />
+                <StaffMember email={email} plain />
               </SubmitButton>
             </form>
             <Muted>{description}</Muted>

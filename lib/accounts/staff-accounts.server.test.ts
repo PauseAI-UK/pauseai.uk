@@ -9,6 +9,7 @@ import {
   admins,
   endStaffSessions,
   listStaffAccounts,
+  staffNames,
   removeStaffAccount,
   saveStaffAccount,
 } from "./staff-accounts.server";
@@ -20,6 +21,12 @@ const log = () =>
 
 describeWithDatabase("staff accounts", () => {
   useTestDatabase();
+
+  it("names each staff member who has logged in with a name, by address", async () => {
+    await createSession("jo@pauseai.uk", false, null, "Jo Bloggs");
+    await createSession("sam@pauseai.uk");
+    expect(await staffNames()).toEqual({ "jo@pauseai.uk": "Jo Bloggs" });
+  });
 
   it("sorts by a column, those with nothing in it last either way, then by address", async () => {
     await query(

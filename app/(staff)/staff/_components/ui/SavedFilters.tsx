@@ -198,7 +198,7 @@ function SavedRow({
         <span className={styles.rowTop}>
           <span className={styles.rowName}>{row.name}</span>
           <span className={styles.rowBy}>
-            <StaffMember email={row.by} /> · {row.date}
+            <StaffMember email={row.by} plain /> · {row.date}
           </span>
         </span>
         <span className={styles.summary}>{row.summary}</span>

@@ -145,6 +145,13 @@ test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
   await page.goto(`${BASE}/staff/accounts`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(accountsCopy.accounts.title);
   await frame(page, "The staff accounts page");
+  story(
+    "Their address is underlined with dots, as Google gave their name when they logged in. Pressing it shows the name.",
+  );
+  await openBubble(page.getByRole("row").filter({ hasText: staffEmail() }).getByRole("button", { name: staffEmail() }));
+  await expect(page.getByText(`Staff ${staffEmail().split("@")[0].slice(6)}`)).toBeVisible();
+  await frame(page, "Their name, from Google");
+  await page.keyboard.press("Escape");
   story("Add staff asks for a colleague's address.");
   // Added from Add staff, at the top right, at once: an account with no permissions.
   await openBubble(page.getByRole("button", { name: accountsCopy.accounts.addStaff }));
