@@ -6,7 +6,7 @@ Size: M. Kind: tools.
 
 On main, CI takes about 5½ minutes, and the storyboard is the slow path: its slowest part took 314 to 324 seconds on 24 November 2026, against 190 to 194 for the tests'. Each storyboard part spends about a minute before its flows run: 30 to 45 seconds starting its containers, about 11 installing Git and the Postgres client, about 15 on Node and the caches, and about 12 building the site from its cache.
 
-A pull request runs only the flows its change can reach and the spot checks (`docs/testing.md`, "Which flows CI runs"). A PR that reaches no flow ends when the tests do, but a feature PR still runs most of the flows, as it touches files most flows reach (`storyboard-review-speed.md`).
+A pull request runs only the flows its change can reach and the spot checks (`docs/testing.md`, "Which flows CI runs"). A PR that reaches no flow ends when the tests do, but a feature PR still runs most of the flows, as it touches files most flows reach (`npm run reach` lists them).
 
 The machines differ: within one job nearly every test file or flow runs at the same fraction of its usual time, from ×0.61 to ×1.17 between jobs (17 and 18 November 2026), so a part's time varies by more than a better deal of its work would save.
 

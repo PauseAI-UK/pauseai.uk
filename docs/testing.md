@@ -644,8 +644,7 @@ from it.
 the review says which file, at its start and its end: a file at the top of the repo that nothing
 imports (a build tool's settings), data that no file names, or a file Next
 serves at an address of its own (`opengraph-image`, `icon`). Teach
-`scripts/storyboard-reach.mjs` what such a file reaches, or log a hit on
-`investments/storyboard-review-speed.md` naming it. Its tests check, on
+`scripts/storyboard-reach.mjs` what such a file reaches. Its tests check, on
 the repo as it is:
 
 - that every import in what the site and its flows run can be followed
@@ -673,14 +672,14 @@ check against (`--no-main`, `--this-suite-on-main`). If one looks
 different, the map missed something in the files changed (or a frame
 differs from run to run): the review says which flows, at once and at its
 end, and runs every flow, on main too. Find what the map missed and fix
-it, or log a hit on `investments/storyboard-review-speed.md` naming the
-flows.
+it.
 
 The map can't see what isn't in the tree: an environment file, or the
 machine's fonts and browser. And it takes a page that Next prefetched,
 which a flow never went on to open, to have changed nothing the flow
-shows: true while rendering a page writes nothing. `investments/storyboard-review-speed.md` has
-how it was checked against what runs in each flow.
+shows: true while rendering a page writes nothing. On 12 November 2026,
+each desktop flow run alone with the server's coverage on ran no source
+file outside what the map says it reaches.
 
 **Which flows CI runs.** On main, every flow, after each merge. On a pull
 request, the flows its change can reach, by the same map, and the spot
