@@ -2,7 +2,6 @@ import "server-only";
 import { config } from "@/lib/server/config.server";
 import type { Fake } from "@/lib/server/fixtures/fake";
 import { OutsideFailure, type OutsideService, retryAfterOf } from "./outside-failure.server";
-import { isPublicHost } from "./public-address.server";
 
 /**
  * How long a service has to answer, unless the call sets its own limit: well
@@ -64,6 +63,8 @@ export async function outsideFetch({ service, fake }: Outside, url: string, init
       new Response("No fixture for this URL", { status: 404 })
     );
   }
+  // Imported here, as it reads Node's DNS, so a component that renders on fixture data in the browser doesn't load it.
+  const { isPublicHost } = await import("./public-address.server");
   if (publicOnly && !(await isPublicHost(new URL(url).hostname))) {
     throw new OutsideFailure(service, "unreachable", { asked: url, message: `${url} isn't on the public internet` });
   }
