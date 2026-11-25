@@ -650,7 +650,7 @@ describeWithDatabase("broadcasts to supporters", () => {
       });
     });
 
-    it("sends a second version's words for approval as a template of its own, named for who it's for", async () => {
+    it("sends a second version's words for approval as a template of its own, each named for who it's for", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const id = await draftOf(TEXT_FILTER);
       await readied(id, {
@@ -663,7 +663,12 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await submitTemplate(id, JO)).toBe("submitted");
       const { template, textVersion } = (await getWrittenBroadcast(id))!;
       const who = broadcastsCopy.broadcastPages.conditions.registered("evt-1");
-      expect(template).toMatchObject({ name: "March day", status: "pending", header: "location", buttons: [] });
+      expect(template).toMatchObject({
+        name: broadcastsCopy.broadcastPages.othersTemplateName("March day", who),
+        status: "pending",
+        header: "location",
+        buttons: [],
+      });
       expect(textVersion!.template).toMatchObject({
         name: broadcastsCopy.broadcastPages.versionTemplateName("March day", who),
         status: "pending",
@@ -1019,7 +1024,7 @@ describeWithDatabase("broadcasts to supporters", () => {
       ]);
     });
 
-    it("uploads each version's picture as its template's example through the Meta app, and sends link buttons after reply buttons", async () => {
+    it("uploads each version's picture as its template's example through the Meta app, and sends link buttons' addresses trimmed", async () => {
       vi.stubEnv("WHATSAPP_APP_ID", "app-1");
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const uploads: string[] = [];
@@ -1043,7 +1048,10 @@ describeWithDatabase("broadcasts to supporters", () => {
         title: "See you there.",
         header: "image",
         pictureId: await aPicture(),
-        buttons: [{ text: "Read", url: " https://pauseai.uk/news " }, { text: " Coming " }],
+        buttons: [
+          { text: "Read", url: " https://pauseai.uk/news " },
+          { text: " Sign up ", url: "https://luma.com/march" },
+        ],
         textVersion: versionOf({ header: "image", place: null, pictureId: await aPicture("image/jpeg"), buttons: [] }),
       });
       expect(await submitTemplate(id, JO)).toBe("submitted");
@@ -1059,8 +1067,8 @@ describeWithDatabase("broadcasts to supporters", () => {
           {
             type: "BUTTONS",
             buttons: [
-              { type: "QUICK_REPLY", text: "Coming" },
               { type: "URL", text: "Read", url: "https://pauseai.uk/news" },
+              { type: "URL", text: "Sign up", url: "https://luma.com/march" },
             ],
           },
         ],
@@ -1069,7 +1077,10 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await getWrittenBroadcast(id)).toMatchObject({
         template: {
           header: "image",
-          buttons: [{ text: "Read", url: " https://pauseai.uk/news " }, { text: " Coming " }],
+          buttons: [
+            { text: "Read", url: " https://pauseai.uk/news " },
+            { text: " Sign up ", url: "https://luma.com/march" },
+          ],
         },
       });
     });
@@ -1134,7 +1145,8 @@ describeWithDatabase("broadcasts to supporters", () => {
       await readied(id, { body: EVENT_WORDS, title: "See you there.", textVersion: versionOf() });
       await query("UPDATE broadcast_versions SET template_id = $2 WHERE mailing_id = $1", [id, rejected]);
       expect(await submitTemplate(id, JO)).toEqual({ failed: "Bad" });
-      expect(deleted).toEqual([expect.stringMatching(/^see_you_there_\d+$/)]);
+      // The one it took, everyone else's, named for who it's for.
+      expect(deleted).toEqual([expect.stringMatching(/^see_you_there_for_all_but_those_who_.*_\d+$/)]);
       expect(await getWrittenBroadcast(id)).toMatchObject({ template: null, textVersion: { templateId: rejected } });
       expect(await query("SELECT id::int AS id FROM whatsapp_templates")).toEqual([{ id: rejected }]);
       expect(console.error).toHaveBeenCalled();

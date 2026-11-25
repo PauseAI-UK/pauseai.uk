@@ -98,7 +98,7 @@ export const broadcastsCopy = {
       name: "Name",
       address: "Address",
       checkMap: "Check it on a map",
-      needsWords: "⁂ WhatsApp needs a name and an address for the place.",
+      needsWords: "WhatsApp needs a name and an address for the place.",
       remove: "Remove place",
     },
     // Choosing a text's picture: the picture chosen, the box to drop or paste one on, its button, why a file won't
@@ -133,6 +133,7 @@ export const broadcastsCopy = {
     },
     // A second version's template, as it's named for its list: the text's name, then who it's for.
     versionTemplateName: (name: string, who: string) => `${name}, for those who ${who}`,
+    othersTemplateName: (name: string, who: string) => `${name}, for all but those who ${who}`,
     // A template in the dropdown, and under the one chosen: a tag by its name when nothing has ever had it; on a line,
     // who made it; when it was last sent and to how many, or else when it's first scheduled for, or else when it was
     // approved; and how many other drafts have it, if any do.
@@ -162,7 +163,7 @@ export const broadcastsCopy = {
     findRecipient: "Show a fake recipient who…",
     // Under the text, when its first link is to Google Maps, whose card WhatsApp gets wrong in a template's text.
     mapsFirst:
-      "⁂ WhatsApp shows a broken preview for a Google Maps link. To show a map, choose Place in the Header and paste the link there.",
+      "WhatsApp shows a broken preview for a Google Maps link. To show a map, choose Place in the Header and paste the link there.",
     testTo: "Send a test copy to",
     sendTest: "Send test",
     testVia: {
@@ -252,7 +253,7 @@ export const broadcastsCopy = {
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
       "no-place": "Choose where the map header shows.",
-      "place-words": "⁂ Give the map header's place a name and an address.",
+      "place-words": "Give the map header's place a name and an address.",
       "button-no-words": "Each button must have text.",
       "button-too-long": "Shorten the words on each button to 25 characters or fewer.",
       "link-no-address": "Set the address for each link button.",
