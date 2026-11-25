@@ -49,7 +49,9 @@
 }
 
 /* A button in a part's look: green dashed, or grey for all but some, solid
-   under the mouse. As a tab, the one open is solid, the other paler. */
+   under the mouse. As a tab, the one open is solid, the other paler. The same
+   look on words that do nothing, a text's version's heading, is still under
+   the mouse, with no pointer. */
 .button,
 .exceptButton {
   display: inline-flex;
@@ -62,7 +64,6 @@
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
-  cursor: pointer;
   max-width: 100%;
   min-width: 0;
 }
@@ -73,8 +74,13 @@
   color: var(--text-secondary);
 }
 
-.button:hover,
-.exceptButton:hover,
+button.button,
+button.exceptButton {
+  cursor: pointer;
+}
+
+button.button:hover,
+button.exceptButton:hover,
 .button[aria-selected="true"],
 .exceptButton[aria-selected="true"] {
   border-style: solid;
