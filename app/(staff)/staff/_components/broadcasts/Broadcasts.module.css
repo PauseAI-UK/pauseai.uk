@@ -503,8 +503,13 @@
   text-align: center;
 }
 
-/* A written text: its version's toggle, then the text. */
+/* A written text with a second version: each, one under the other, headed by who it's for. */
 .writtenText {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.writtenVersion {
   display: grid;
   gap: var(--space-2);
   justify-items: start;

@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { exampleLinkCard, examplePlace, exampleWhatsAppWords } from "./BroadcastWriter.examples";
+import { exampleLinkCard, examplePictureId, examplePlace, exampleWhatsAppWords } from "./BroadcastWriter.examples";
+import { textBubbleGallery } from "./TextBubble.gallery";
 import TextBubble, { ChatBubble, LinkedText, type TextDoc } from "./TextBubble";
 import type { LinkCard } from "@/lib/broadcasts/link-card";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
@@ -181,5 +182,27 @@ describe("ChatBubble", () => {
       .toBeVisible();
     await rerender(bubble({ kind: "failed", why: null }));
     await expect.element(page.getByText(broadcastsCopy.broadcastPages.replies.undelivered(null))).toBeVisible();
+  });
+});
+
+describe("BubbleTop's and BubbleButtons' examples in the gallery", () => {
+  it("draws a map and a picture at a bubble's top, and buttons under one", async () => {
+    const variants = textBubbleGallery
+      .filter((example) => ["BubbleTop", "BubbleButtons"].includes(example.name))
+      .flatMap((example) => example.variants);
+    await render(
+      <>
+        {variants.map((variant) => (
+          <div key={variant.label}>{variant.render()}</div>
+        ))}
+      </>,
+    );
+    await expect.element(page.getByText(examplePlace.address)).toBeVisible();
+    expect(document.querySelector("img")!.getAttribute("src")).toBe(examplePictureId);
+    expect(
+      [...page.getByRole("list").filter({ hasText: "I'm coming" }).element().querySelectorAll("li")].map(
+        (li) => li.textContent,
+      ),
+    ).toEqual(["I'm coming", "Can't make it"]);
   });
 });

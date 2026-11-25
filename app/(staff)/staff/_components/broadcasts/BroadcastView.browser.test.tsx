@@ -15,6 +15,7 @@ import {
   exampleBroadcastSent,
   exampleBroadcastSummary,
   exampleBroadcastText,
+  examplePlace,
   exampleTemplates,
   exampleTextWords,
 } from "./BroadcastWriter.examples";
@@ -252,6 +253,34 @@ describe("a broadcast's page", () => {
     expect(words.querySelector("[class*=field]")!.textContent).toBe(copy.fieldWords.firstName);
     await expect.element(page.getByText(TEMPLATE_FOOTER, { exact: true })).toBeVisible();
     await expect.element(page.getByText(stateWords.tags["not-sent:unsubscribed"]!)).toBeVisible();
+  });
+
+  it("shows a text as written, its map and buttons, and its second version above it, headed by its condition", async () => {
+    const written = {
+      ...text.written,
+      header: "location" as const,
+      place: examplePlace,
+      buttons: [{ text: "I'm coming" }],
+      textVersion: {
+        condition: "wrote:regulate-ai",
+        body: exampleTextWords,
+        templateId: null,
+        header: null,
+        place: null,
+        pictureId: null,
+        buttons: [{ text: "Thanks" }],
+        template: null,
+      },
+    };
+    await render(<BroadcastView data={{ ...text, written }} who={who} contact={null} {...actions} />);
+    const words = page.getByRole("region", { name: copy.textTitle });
+    await expect.element(words.getByText(examplePlace.name, { exact: true })).toBeVisible();
+    await expect.element(words.getByText("I'm coming")).toBeVisible();
+    await expect.element(words.getByText("Thanks", { exact: true })).toBeVisible();
+    await expect.element(words.getByText(copy.conditions.wrote("Regulate AI"), { exact: true }).first()).toBeVisible();
+    await expect
+      .element(words.getByRole("button", { name: copy.conditions.wrote("Regulate AI") }))
+      .not.toBeInTheDocument();
   });
 
   it("says one scheduled goes as it is, with no counts", async () => {

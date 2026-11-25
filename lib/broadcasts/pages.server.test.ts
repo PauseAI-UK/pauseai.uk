@@ -663,6 +663,8 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       address: "+447700900001",
       merge: { values: { firstName: "Jane" } },
       events: [],
+      // Its broadcast as written, for the version they got, its top and buttons.
+      written: { id, channel: "text", textVersion: null },
     });
     await query(
       "INSERT INTO broadcast_message_events (message_id, kind, at) VALUES ($1, 'delivered', '2026-10-20T08:01:00Z'), ($1, 'read', '2026-10-20T08:02:00Z')",
@@ -681,6 +683,17 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       merge: null,
       supporterId: null,
     });
+  });
+
+  it("gives an email's copy no text as written, nor a text's whose broadcast has no words kept", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith", { phone: "07700 900001" });
+    const email = await scheduled(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
+    const [emailCopy] = await sent(email, [["delivered", null]]);
+    expect(await messageCopy(email, emailCopy)).toMatchObject({ channel: "email", written: null });
+    const text = await scheduled(TEXT_FILTER, { templateId: await addTemplate("March day") });
+    const [textCopy] = await sent(text, [["delivered", null]]);
+    await query("UPDATE mailings SET body = NULL, state = 'sent' WHERE id = $1", [text]);
+    expect(await messageCopy(text, textCopy)).toMatchObject({ channel: "text", written: null });
   });
 
   it("lists the broadcasts a supporter was sent, newest first", async () => {

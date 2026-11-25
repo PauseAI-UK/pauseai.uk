@@ -753,10 +753,8 @@ export default function BroadcastWriter({
     kept.current = null;
     // Now, and every 25ms for half a second after, as the open tab's editor fills in after it's drawn.
     // Instantly, as the site's pages scroll smoothly, which would make each a slow slide.
-    const hold = () => {
-      const moved = place.element.getBoundingClientRect().top - place.top;
-      if (moved) window.scrollBy({ top: moved, behavior: "instant" });
-    };
+    const hold = () =>
+      window.scrollBy({ top: place.element.getBoundingClientRect().top - place.top, behavior: "instant" });
     hold();
     const timers = Array.from({ length: 20 }, (_, i) => setTimeout(hold, (i + 1) * 25));
     return () => timers.forEach(clearTimeout);

@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import { textShown, type WrittenText as Written } from "@/lib/broadcasts/text-shown";
 import NotIcon from "../ui/NotIcon";
 import { partButton, partButtonWords } from "../mailings/PartBox";
@@ -8,10 +5,10 @@ import TextBubble from "./TextBubble";
 import styles from "./Broadcasts.module.css";
 
 /**
- * A text as it was written, as a supporter sees it: everyone else's, and
- * with a second version, a toggle for those who meet its condition, worded
- * as `labels` say it (a condition's words by its ID), as the writer's
- * preview has it.
+ * A text as it was written, as supporters see it: with a second version,
+ * both, one under the other, each headed by who it's for in the look of an
+ * email's parts, worded as `labels` say it (a condition's words by its ID):
+ * the version for those who meet its condition, then everyone else's.
  */
 export default function WrittenText({
   written,
@@ -22,17 +19,10 @@ export default function WrittenText({
   labels: Record<string, string>;
   time: string;
 }) {
-  const [met, setMet] = useState(false);
-  const shown = textShown(written, met);
   const condition = written.textVersion?.condition;
-  return (
-    <div className={styles.writtenText}>
-      {condition && (
-        <button type="button" aria-pressed={met} className={partButton(!met)} onClick={() => setMet(!met)}>
-          {!met && <NotIcon />}
-          <span className={partButtonWords}>{labels[condition] ?? condition}</span>
-        </button>
-      )}
+  const bubble = (met: boolean) => {
+    const shown = textShown(written, met);
+    return (
       <TextBubble
         words={{ content: shown.blocks }}
         footer={shown.footer}
@@ -41,6 +31,21 @@ export default function WrittenText({
         picture={shown.picture}
         buttons={shown.buttons}
       />
+    );
+  };
+  if (!condition) return bubble(false);
+  const who = labels[condition] ?? condition;
+  return (
+    <div className={styles.writtenText}>
+      {[true, false].map((met) => (
+        <div key={String(met)} className={styles.writtenVersion}>
+          <span className={partButton(!met)}>
+            {!met && <NotIcon />}
+            <span className={partButtonWords}>{who}</span>
+          </span>
+          {bubble(met)}
+        </div>
+      ))}
     </div>
   );
 }
