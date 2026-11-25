@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page, userEvent } from "vitest/browser";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -1613,6 +1613,11 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
   });
 
   it("keeps the preview's toggle where it was on the screen as it switches the tabs above it", async () => {
+    // Room under the writer, as a page has, so it can scroll however tall Write becomes, whatever the window's size.
+    document.body.style.paddingBottom = "300vh";
+    onTestFinished(() => {
+      document.body.style.paddingBottom = "";
+    });
     await renderWriter({ draft: newWords });
     await addVersion();
     await editor().fill("Thanks.");
@@ -1621,11 +1626,12 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     const before = toggle().element().getBoundingClientRect().top;
     // Within a few pixels: the page scrolls by whole ones, so a move of a fraction is left over now and then.
     const moved = () => Math.abs(toggle().element().getBoundingClientRect().top - before);
-    await toggle().click();
+    // Clicked without the focus, as a busy machine can leave it, so nothing hangs on what has it.
+    toggle().element().click();
     await expect.element(tab(292)).toHaveAttribute("aria-selected", "true");
     await expect.poll(moved).toBeLessThan(4);
     // Back again, before the first has stopped holding it, and held still after both have stopped.
-    await toggle().click();
+    toggle().element().click();
     await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
     await new Promise((resolve) => setTimeout(resolve, 2100));
     expect(moved()).toBeLessThan(4);

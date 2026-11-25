@@ -742,10 +742,12 @@ export default function BroadcastWriter({
   const [side, setSide] = useState<VersionSide>("only");
   // The preview's toggle, which switches the tabs above it too, changing how tall Write is: kept where it was on the
   // screen, so the page doesn't jump under the pointer.
+  // The Preview card, which the toggle is in: held, it holds the toggle, whatever has the focus.
+  const previewCard = useRef<HTMLElement | null>(null);
   const kept = useRef<{ element: Element; top: number } | null>(null);
   const keepInPlace = () => {
-    const pressed = document.activeElement!;
-    kept.current = { element: pressed, top: pressed.getBoundingClientRect().top };
+    const card = previewCard.current!;
+    kept.current = { element: card, top: card.getBoundingClientRect().top };
   };
   useLayoutEffect(() => {
     const place = kept.current;
@@ -1390,6 +1392,9 @@ export default function BroadcastWriter({
               span={6}
               title={<Numbered n={4}>{words === "new" && !waiting ? copy.previewNew : copy.sections.preview}</Numbered>}
               id="preview-title"
+              ref={(element) => {
+                previewCard.current = element;
+              }}
             >
               <BroadcastPreview
                 data={data}
