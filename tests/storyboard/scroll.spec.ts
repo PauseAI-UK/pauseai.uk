@@ -200,21 +200,21 @@ test.describe("in-page scrolling", () => {
 
   test("A link far down the home page", async ({ page }) => {
     story(
-      "A link to Join the conversation, far down the home page, lands there. It stays put while the map, the photos and the sign-up form above it finish loading.",
+      "A link to Join PauseAI UK, far down the home page, lands there. It stays put while the map and the photos above it finish loading.",
     );
-    // #get-involved sits below the local groups map, the people carousel and
-    // the onboarding embed, each of which could change height after load.
-    // Nothing re-scrolls afterwards, so any late shift shows up as drift.
-    await gotoSettled(page, "/#get-involved");
-    await expectClearOfNav(page, "get-involved");
+    // #join sits below the local groups map and the people carousel, each of
+    // which could change height after load. Nothing re-scrolls afterwards, so
+    // any late shift shows up as drift.
+    await gotoSettled(page, "/#join");
+    await expectClearOfNav(page, "join");
 
-    // Everything the page loads is in (the embed's height, the images), then
-    // the target must not have moved.
-    const settled = await targetOffset(page, "get-involved");
+    // Everything the page loads is in (the images, the embed), then the
+    // target must not have moved.
+    const settled = await targetOffset(page, "join");
     await page.waitForLoadState("networkidle");
-    await layoutSettled(page, "#get-involved");
-    expect(Math.abs((await targetOffset(page, "get-involved")) - settled)).toBeLessThan(2);
-    await frame(page, "Join the conversation, on the home page");
+    await layoutSettled(page, "#join");
+    expect(Math.abs((await targetOffset(page, "join")) - settled)).toBeLessThan(2);
+    await frame(page, "Join PauseAI UK, on the home page");
   });
 
   test("Jumping to part of another page", async ({ page }) => {
