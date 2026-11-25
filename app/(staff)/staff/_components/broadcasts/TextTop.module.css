@@ -30,16 +30,6 @@
   flex: 1 1 16rem;
 }
 
-/* A place found, in the menu: its name, and its address under it in grey, each wrapping. */
-.foundPlace {
-  display: grid;
-  white-space: normal;
-}
-
-.foundPlace span {
-  color: var(--text-secondary);
-}
-
 /* A place chosen, as WhatsApp shows it: its map, then its name and address, which are boxes that look like words. */
 .placeCard {
   display: grid;

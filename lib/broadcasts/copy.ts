@@ -94,8 +94,7 @@ export const broadcastsCopy = {
     placeChooser: {
       find: "Search for a place",
       findButton: "Find",
-      found: "⁂ Places found",
-      none: "No place found. Try different terms, or use a Google Maps link.",
+      none: "No place found. Try different terms, or paste a Google Maps link.",
       name: "⁂ Name",
       address: "⁂ Address",
       checkMap: "⁂ Check it on a map",
