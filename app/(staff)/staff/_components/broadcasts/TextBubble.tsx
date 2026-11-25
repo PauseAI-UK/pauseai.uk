@@ -231,6 +231,7 @@ export default function TextBubble({
       <ChatWall>
         <div className={`${styles.bubble} ${styles.phoneBubble}`}>
           {picture ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent
             <img className={styles.pictureTop} src={picture} alt="" />
           ) : place ? (
             <MapTop place={place} />
