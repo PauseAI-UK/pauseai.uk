@@ -850,6 +850,13 @@ test("A text with a second version for some", async ({ page, request, flowDataba
   await expect(tabs.first()).toContainText(who);
   await tabs.first().scrollIntoViewIfNeeded();
   await frame(page, "Two versions, a tab each", { window: true });
+  story(
+    "They give those who registered a reply button. Its words are still everyone else's, and WhatsApp rejects a second template with the same words, so the draft says to change one's before anything is sent.",
+  );
+  await page.getByRole("button", { name: copy.replyButtons.addReply }).click();
+  await savedAfter(page, () => page.getByLabel(copy.replyButtons.words).fill("I'm coming"));
+  await page.getByText(copy.problems["versions-same-words"]).scrollIntoViewIfNeeded();
+  await frame(page, "The same words with a button of its own: stopped", { window: true });
   story("They change the words of the version for those who registered, who know about the march already.");
   const words = page.getByRole("textbox", { name: copy.templateWords });
   // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.

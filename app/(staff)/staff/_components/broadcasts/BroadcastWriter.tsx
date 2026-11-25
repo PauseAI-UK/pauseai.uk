@@ -228,6 +228,7 @@ const NEW_WORDS_PROBLEMS: BroadcastScheduleProblem[] = [
   "fields-together",
   "field-twice",
   "same-words",
+  "versions-same-words",
 ];
 
 /**

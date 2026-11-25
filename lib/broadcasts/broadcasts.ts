@@ -493,6 +493,7 @@ export type BroadcastScheduleProblem =
   | "fields-together"
   | "field-twice"
   | "same-words"
+  | "versions-same-words"
   | "no-place"
   | "place-words"
   | "no-picture"
@@ -632,6 +633,13 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["fields-together", misplaced.some((one) => one.together)],
     ["field-twice", misplaced.some((one) => one.twice)],
     ["same-words", fresh.some((one) => one.sameWords)],
+    // Two versions' new words that are the same, with another top or buttons, would be two templates of the same
+    // words, which WhatsApp rejects as a duplicate (template review, "Duplication"); with the same top and buttons
+    // they're one template.
+    [
+      "versions-same-words",
+      fresh.length === 2 && sameWords(fresh[0].body, [fresh[1].body]) && !sameTemplate(fresh[0], fresh[1]),
+    ],
     ["no-place", versions.some((one) => one.header === "location" && !one.place)],
     // A place with no name or address, which WhatsApp may not take, as its docs don't say (placeWords).
     ["place-words", versions.some((one) => one.header === "location" && one.place && !placeWords(one.place))],

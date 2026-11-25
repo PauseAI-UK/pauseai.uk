@@ -1507,6 +1507,14 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     expect(page.getByText(editing.partsHeading).query()).toBeNull();
     await saved(actions, { textVersion: expect.objectContaining({ condition: WROTE }), versionTemplateId: null });
     await expect.element(button(copy.submitTemplate)).toBeVisible();
+    // The same words with a button of its own would be a second template of them, which WhatsApp rejects: said
+    // under Send for approval, which waits, till its words are its own.
+    await button(copy.replyButtons.addReply).click();
+    await page.getByLabelText(copy.replyButtons.words).fill("Coming");
+    await expect.element(page.getByText(copy.problems["versions-same-words"])).toBeVisible();
+    await expect.element(button(copy.textVersions.submit(2))).toBeDisabled();
+    await button(copy.replyButtons.remove).click();
+    await expect.element(page.getByText(copy.problems["versions-same-words"])).not.toBeInTheDocument();
     // Its own words: two templates now, both sent for approval.
     await editor().fill("Thanks for writing to your MP.");
     await expect.element(page.getByText(copy.textVersions.templates(2))).toBeVisible();

@@ -875,6 +875,22 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(again.textVersion!.template!.id).not.toBe(rejected);
     });
 
+    it("schedules and sends for approval no text whose versions have the same new words but other buttons", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      const id = await draftOf(TEXT_FILTER);
+      const version = await readied(id, {
+        body: SATURDAY,
+        title: "March day",
+        textVersion: versionOf({ header: null, place: null }),
+      });
+      expect(await scheduleBroadcast(id, version, JO)).toEqual({
+        scheduled: false,
+        problems: ["versions-same-words"],
+      });
+      expect(await submitTemplate(id, JO)).toBe("not-ready");
+      expect(await query("SELECT id FROM whatsapp_templates")).toEqual([]);
+    });
+
     it("counts a template only a second version has as used: by drafts, and not deleted", async () => {
       const template = await addTemplate("Came before");
       const id = await draftOf(TEXT_FILTER);

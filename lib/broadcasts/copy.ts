@@ -256,6 +256,8 @@ export const broadcastsCopy = {
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
+      "versions-same-words":
+        "⁂ Both versions have the same words, which WhatsApp won't approve twice. Change the words of one.",
       "no-place": "Choose where the map header shows.",
       "place-words": "Give the map header's place a name and an address.",
       "button-no-words": "Each button must have text.",

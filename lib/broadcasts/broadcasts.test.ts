@@ -731,6 +731,39 @@ describe("broadcastScheduleProblems", () => {
     expect(broadcastScheduleProblems({ ...good, textVersion: { ...version, body: EMPTY_MAILING_DOC } })).toEqual([]);
   });
 
+  it("stops two versions with the same new words but another top or buttons, which WhatsApp would reject as a duplicate", () => {
+    const text = { ...good, channel: "text" as const, approved: false };
+    type Version = NonNullable<SchedulingBroadcast["textVersion"]>;
+    const version: Version = {
+      body: WORDS,
+      approved: false,
+      sameWords: false,
+      header: null,
+      place: null,
+      pictureId: null,
+      buttons: [{ text: "Coming" }],
+    };
+    const problems = (textVersion: Partial<Version>, broadcast: Partial<SchedulingBroadcast> = {}) =>
+      broadcastScheduleProblems({ ...text, ...broadcast, textVersion: { ...version, ...textVersion } });
+    expect(problems({})).toEqual(["versions-same-words"]);
+    const place = { name: "Parliament Square", address: "London SW1P 3BD", latitude: 51.5, longitude: -0.127 };
+    expect(problems({ buttons: [], header: "location", place })).toEqual(["versions-same-words"]);
+    // The same top and buttons too are one template for both, whatever each one's place.
+    expect(problems({ buttons: [] })).toEqual([]);
+    expect(
+      problems({ header: "location", place }, { header: "location", place, buttons: [{ text: "Coming" }] }),
+    ).toEqual([]);
+    // Other words are another template.
+    const other: MailingDoc = {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Hi" }] }],
+    };
+    expect(problems({ body: other })).toEqual([]);
+    // Either WhatsApp has approved already is its to judge.
+    expect(problems({ approved: true })).toEqual([]);
+    expect(problems({}, { approved: true })).toEqual([]);
+  });
+
   it("wants a WhatsApp number for a text to come from, but not for an email", () => {
     expect(broadcastScheduleProblems({ ...good, channel: "text", numbered: false })).toEqual(["no-number"]);
     expect(broadcastScheduleProblems({ ...good, numbered: false })).toEqual([]);
