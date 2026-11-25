@@ -27,7 +27,7 @@
 }
 
 .findRow > :first-child {
-  flex: 1 1 16rem;
+  flex: 0 1 20rem;
 }
 
 /* A place chosen, as WhatsApp shows it: its map, then its name and address, which are boxes that look like words. */

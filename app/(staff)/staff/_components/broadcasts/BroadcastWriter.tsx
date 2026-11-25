@@ -80,6 +80,7 @@ import { DeleteDraft } from "../mailings/MailingButtons";
 import MailingEditor from "../mailings/MailingEditor";
 import ConditionMenu from "../mailings/ConditionMenu";
 import {
+  BUTTON_PROBLEMS,
   inOrder,
   type TextButton,
   type TextHeader,
@@ -217,6 +218,18 @@ const NEW_WORDS_PROBLEMS: BroadcastScheduleProblem[] = [
   "fields-together",
   "field-twice",
   "same-words",
+];
+
+/**
+ * What's wrong with a text's header or buttons: said under Send for approval
+ * while that's offered, and only by Schedule otherwise, as for a chosen
+ * template whose place or picture is missing.
+ */
+const TEMPLATE_PARTS_PROBLEMS: BroadcastScheduleProblem[] = [
+  "no-place",
+  "place-words",
+  "no-picture",
+  ...BUTTON_PROBLEMS,
 ];
 
 /** How a draft's words stand: an email's own, or a text's template chosen, new words, or none yet. */
@@ -815,9 +828,12 @@ export default function BroadcastWriter({
     },
   }).filter((problem) => problem !== "cannot-send");
   // Greyed, before a Consent by the channel picked: that comes first, till one's picked. What only new words have
-  // wrong is said under Send for approval, not again by Schedule.
+  // wrong is said under Send for approval, not again by Schedule, and so is what's wrong with the header or
+  // buttons while Send for approval is there.
+  const approving = toSubmit > 0 && !versionLocked;
+  const saidUnderApproval: string[] = [...NEW_WORDS_PROBLEMS, ...(approving ? TEMPLATE_PARTS_PROBLEMS : [])];
   const shownProblems = [...(blank && !picked ? ["no-consent"] : []), ...problems].filter(
-    (problem) => !(NEW_WORDS_PROBLEMS as string[]).includes(problem),
+    (problem) => !saidUnderApproval.includes(problem),
   );
   const fromName = email ? draft.fromName || BROADCAST_SENDER.name : TEXT_SENDER_NAME;
   const fromLine = email ? named(fromName, draft.sentFrom!) : TEXT_SENDER_NAME;

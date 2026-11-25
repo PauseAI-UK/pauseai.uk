@@ -1567,6 +1567,23 @@ describe("BroadcastWriter, a text's picture", () => {
     await page.getByRole("menuitem", { name: /^Regulate AI/ }).click();
   };
 
+  it("says a missing picture for new words once, under Send for approval, not again by Schedule", async () => {
+    const missing = () => page.getByText(copy.problems["no-picture"]);
+    await renderWriter({ draft: { ...newWords, header: "image" } });
+    await expect.element(preview().getByText(copy.problems["no-picture"])).toBeVisible();
+    expect(missing().all()).toHaveLength(1);
+  });
+
+  it("says a missing picture for a chosen template by Schedule, as there's nothing to send for approval", async () => {
+    const missing = () => page.getByText(copy.problems["no-picture"]);
+    await renderWriter({
+      draft: { ...onTemplate, header: "image", template: { ...exampleTemplates[0], header: "image" } },
+    });
+    await expect.element(missing()).toBeVisible();
+    expect(missing().all()).toHaveLength(1);
+    expect(preview().getByText(copy.problems["no-picture"]).query()).toBeNull();
+  });
+
   it("tops new words with a picture chosen, in the preview once it's kept", async () => {
     const actions = await renderWriter({ draft: newWords });
     await kind(top.picture).click();
