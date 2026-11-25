@@ -83,7 +83,6 @@ export const exampleWhatsAppWords: LetterDoc = {
   ],
 };
 
-/** The card WhatsApp shows for a text's link to a page about the march. */
 /** A picture kept for a text's top, by its ID, as the fake data has one (tests/fixtures/staff-data.sql). */
 export const examplePictureId = "00000000-0000-4000-8000-000000000001";
 
@@ -95,6 +94,7 @@ export const examplePlace: TextPlace = {
   longitude: -0.1268,
 };
 
+/** The card WhatsApp shows for a text's link to a page about the march. */
 export const exampleLinkCard: LinkCard = {
   title: "March Against AI Extinction",
   description: "Join thousands in London to call for a pause on the race to superintelligence.",

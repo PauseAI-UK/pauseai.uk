@@ -1300,6 +1300,7 @@ that drives it or why nothing does.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
 - `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, a reaction made and taken back, a photo, our answer delivered, read and failed, and Stop pressed. Its check of the callback URL is Vitest-tested.
+- `/api/text-pictures/[id]`: `broadcasts`: a text's picture, which the writer's preview shows and WhatsApp fetches as each text goes. Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `supporters.spec.ts`), and the redelivery that changes nothing.
 - `/staff/api/google/start`, `/staff/api/google/callback`: `staff-login`: logging in with the fixture build's Google (`logInWithGoogle` in `staff-login.spec.ts`).
 - `/staff/api/google/handoff`: Not driven: only a deploy preview uses it, with a login the live site signed. Vitest-tested.

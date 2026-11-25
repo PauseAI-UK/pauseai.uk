@@ -19,6 +19,7 @@ import {
   exampleBroadcastEmail,
   exampleBroadcastText,
   exampleLinkCard,
+  examplePictureId,
   examplePlace,
   exampleTemplates,
   exampleTextSender,
@@ -64,6 +65,7 @@ function fakeActions() {
       card: url === "https://pauseai.uk/march" ? exampleLinkCard : null,
     })),
     findPlaces: vi.fn(async () => ({ ok: true, places: [examplePlace] })),
+    uploadPicture: action(() => ({ ok: true, pictureId: examplePictureId })),
   };
 }
 
@@ -1238,6 +1240,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     templateId: 7,
     header: "location" as const,
     place: examplePlace,
+    pictureId: null,
     buttons: [{ text: "Yes" }],
     template: status && { ...exampleTemplates[0], id: 7, status, footer: null },
   });
@@ -1273,7 +1276,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await vi.waitFor(() => expect(actions.findPlaces).toHaveBeenCalledWith("parliament square"), WAIT);
     await expect.element(preview().getByText(examplePlace.address, { exact: true })).toBeVisible();
     await saved(actions, { place: examplePlace });
-    await button(copy.replyButtons.add).click();
+    await button(copy.replyButtons.addReply).click();
     await page.getByLabelText(copy.replyButtons.words).fill("I'm coming");
     await expect.element(preview().getByRole("listitem").filter({ hasText: "I'm coming" })).toBeVisible();
     await saved(actions, { buttons: [{ text: "I'm coming" }] });
@@ -1320,7 +1323,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await expect.element(kind(top.place)).toBeDisabled();
     await expect.element(page.getByLabelText(copy.replyButtons.words)).toBeDisabled();
     await expect.element(page.getByLabelText(copy.replyButtons.words)).toHaveValue("Count me in");
-    expect(button(copy.replyButtons.add).query()).toBeNull();
+    expect(button(copy.replyButtons.addReply).query()).toBeNull();
     await expect.element(preview().getByRole("listitem").filter({ hasText: "Count me in" })).toBeVisible();
     await page.getByLabelText(places.find).fill("parliament square");
     await button(places.findButton).click();
@@ -1352,7 +1355,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await kind(top.place).click();
     await page.getByLabelText(places.find).fill("parliament square");
     await button(places.findButton).click();
-    await button(copy.replyButtons.add).click();
+    await button(copy.replyButtons.addReply).click();
     await page.getByLabelText(copy.replyButtons.words).fill("Done it");
     await saved(actions, {
       textVersion: expect.objectContaining({
@@ -1455,6 +1458,232 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await expect.element(preview().getByText("Thanks for writing.")).toBeVisible();
     await expect.element(preview().getByText(TEMPLATE_FOOTER, { exact: true })).toBeVisible();
     await expect.element(preview().getByText(examplePlace.address, { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("switches the preview with the version's tabs, and the tabs with the preview's toggle", async () => {
+    await renderWriter({ draft: newWords });
+    await addVersion();
+    await editor().fill("Thanks for writing to your MP.");
+    const toggle = () => preview().getByRole("button", { name: wrote });
+    await expect.element(toggle()).toHaveAttribute("aria-pressed", "true");
+    await expect.element(preview().getByText("Thanks for writing to your MP.")).toBeVisible();
+    await tab(292).click();
+    await expect.element(toggle()).toHaveAttribute("aria-pressed", "false");
+    await expect.element(preview().getByText(/Look for the orange flags/)).toBeVisible();
+    await toggle().click();
+    await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
+    await expect.element(editor()).toHaveTextContent("Thanks for writing to your MP.");
+    await expect.element(preview().getByText("Thanks for writing to your MP.")).toBeVisible();
+    await toggle().click();
+    await expect.element(tab(292)).toHaveAttribute("aria-selected", "true");
+    await expect.element(editor()).toMatchTextContent(/Look for the orange flags/);
+  });
+
+  // The bubble's buttons, in the list under it that has the link button.
+  const details = () => preview().getByRole("listitem").filter({ hasText: "Details" });
+  const underBubble = () => [...details().element().parentElement!.children].map((item) => item.textContent);
+
+  it("shows a text's link buttons in the preview after its reply buttons, as WhatsApp sends them", async () => {
+    const buttons = [{ text: "Details", url: "https://pauseai.uk/march" }, { text: "Yes" }, { text: "No" }];
+    await renderWriter({ draft: { ...newWords, buttons } });
+    await expect.element(details()).toBeVisible();
+    expect(underBubble()).toEqual(["Yes", "No", "Details"]);
+  });
+
+  it("shows a version's link buttons in the preview after its reply buttons too", async () => {
+    const buttons = [{ text: "Details", url: "https://pauseai.uk/march" }, { text: "Yes" }];
+    await renderWriter({ draft: { ...onTemplate, textVersion: { ...version("pending"), buttons } } });
+    await expect.element(details()).toBeVisible();
+    expect(underBubble()).toEqual(["Yes", "Details"]);
+  });
+});
+
+describe("BroadcastWriter, a text's picture", () => {
+  const top = copy.textTop;
+  const pictures = copy.pictureChooser;
+  const newWords = { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords };
+  const onTemplate = {
+    ...exampleBroadcastText,
+    title: exampleTemplates[0].name,
+    body: exampleTemplates[0].body,
+    template: exampleTemplates[0],
+  };
+  const WROTE = "wrote:regulate-ai";
+  const wrote = copy.conditions.wrote("Regulate AI");
+  const shown = `/api/text-pictures/${examplePictureId}`;
+
+  const preview = () => page.getByLabelText(/^4/);
+  const kind = (name: string) => page.getByRole("radio", { name });
+  const tab = (count: number) => page.getByRole("tab", { name: `${wrote} · ${count}` });
+  const saved = (actions: ReturnType<typeof fakeActions>, changes: Record<string, unknown>) =>
+    vi.waitFor(
+      () => expect(actions.save).toHaveBeenCalledWith(4, expect.any(Number), expect.objectContaining(changes)),
+      WAIT,
+    );
+  /** The picture at the top of the preview's bubble, if it has one. */
+  const previewPicture = () => preview().element().querySelector<HTMLImageElement>('img[src^="/api/text-pictures/"]');
+  const png = (name = "march.png") => new File(["x"], name, { type: "image/png" });
+  /** Chooses `file` in the picture box's file picker. */
+  const choose = (file: File) => {
+    const picker = document.querySelector<HTMLInputElement>('input[type=file][accept="image/jpeg,image/png"]')!;
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    picker.files = transfer.files;
+    picker.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  /** Pastes `files`, or words if there are none, on `on`; says whether the page took the paste as its own. */
+  const paste = (on: Element, ...files: File[]) => {
+    const data = new DataTransfer();
+    if (files.length) for (const file of files) data.items.add(file);
+    else data.setData("text/plain", "Some words");
+    const event = new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true });
+    on.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  /** The file each upload sent. */
+  const uploaded = (actions: ReturnType<typeof fakeActions>) =>
+    actions.uploadPicture.mock.calls.map(([form]) => ((form as FormData).get("file") as File).name);
+  const pause = () => new Promise((resolve) => setTimeout(resolve, 100));
+  const addVersion = async () => {
+    await button(mailingsCopy.mailingEditor.addOnlyFor).click();
+    await page.getByRole("menuitem", { name: copy.conditions.wroteGroup }).click();
+    await page.getByRole("menuitem", { name: /^Regulate AI/ }).click();
+  };
+
+  it("tops new words with a picture chosen, in the preview once it's kept", async () => {
+    const actions = await renderWriter({ draft: newWords });
+    await kind(top.picture).click();
+    await saved(actions, { header: "image" });
+    // No picture yet, so none in the preview.
+    await expect.element(page.getByText(pictures.drop)).toBeVisible();
+    expect(previewPicture()).toBeNull();
+    choose(png());
+    await saved(actions, { pictureId: examplePictureId });
+    expect(uploaded(actions)).toEqual(["march.png"]);
+    await expect.poll(() => previewPicture()?.getAttribute("src")).toBe(shown);
+    await expect.element(page.getByRole("img", { name: pictures.shown })).toHaveAttribute("src", shown);
+  });
+
+  it("says why a picture chosen won't do, and takes none on a page the site has changed under", async () => {
+    const actions = await renderWriter({ draft: { ...newWords, header: "image" } });
+    actions.uploadPicture.mockResolvedValueOnce({ ok: false, reason: "too-big" });
+    choose(png("huge.png"));
+    await expect.element(page.getByText(pictures.refusals["too-big"])).toBeVisible();
+    actions.uploadPicture.mockRejectedValueOnce(gone());
+    choose(png());
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
+    expect(previewPicture()).toBeNull();
+    expect(page.getByText(pictures.refusals["too-big"]).query()).toBeNull();
+  });
+
+  it("makes a picture pasted anywhere in Write the text's top, but leaves words and other files pasted alone", async () => {
+    const actions = await renderWriter({ draft: newWords });
+    const name = page.getByLabelText(copy.templateName).element();
+    expect(paste(name)).toBe(false);
+    expect(paste(name, new File(["x"], "notes.txt", { type: "text/plain" }))).toBe(false);
+    await pause();
+    expect(actions.uploadPicture).not.toHaveBeenCalled();
+    expect(paste(name, new File(["x"], "notes.txt", { type: "text/plain" }), png())).toBe(true);
+    await saved(actions, { header: "image", pictureId: examplePictureId });
+    expect(uploaded(actions)).toEqual(["march.png"]);
+    await expect.element(kind(top.picture)).toHaveAttribute("aria-checked", "true");
+    await expect.poll(() => previewPicture()?.getAttribute("src")).toBe(shown);
+  });
+
+  it("keeps no picture pasted that WhatsApp won't take, or on a page the site has changed under", async () => {
+    const actions = await renderWriter({ draft: newWords });
+    const name = page.getByLabelText(copy.templateName).element();
+    actions.uploadPicture.mockResolvedValueOnce({ ok: false, reason: "not-picture" });
+    paste(name, png());
+    await vi.waitFor(() => expect(actions.uploadPicture).toHaveBeenCalledTimes(1), WAIT);
+    actions.uploadPicture.mockRejectedValueOnce(gone());
+    paste(name, png());
+    await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
+    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    expect(previewPicture()).toBeNull();
+  });
+
+  it("pastes no picture where a chosen template's top is another kind", async () => {
+    const actions = await renderWriter({ draft: onTemplate });
+    expect(paste(kind(top.linkPreview).element(), png())).toBe(true);
+    await pause();
+    expect(actions.uploadPicture).not.toHaveBeenCalled();
+  });
+
+  it("pastes a picture where a chosen template's top is one, as each send gives it", async () => {
+    const templates = exampleTemplates.map((one, i) => (i === 0 ? { ...one, header: "image" as const } : one));
+    const actions = await renderWriter({
+      draft: { ...onTemplate, template: templates[0], header: "image" },
+      data: { ...exampleBroadcastData, templates },
+    });
+    await expect.element(kind(top.picture)).toBeDisabled();
+    paste(kind(top.picture).element(), png());
+    await saved(actions, { header: "image", pictureId: examplePictureId });
+    await expect.poll(() => previewPicture()?.getAttribute("src")).toBe(shown);
+  });
+
+  it("pastes no picture where WhatsApp is reviewing new words", async () => {
+    const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
+    const actions = await renderWriter({ draft: { ...newWords, template } });
+    paste(kind(top.linkPreview).element(), png());
+    await pause();
+    expect(actions.uploadPicture).not.toHaveBeenCalled();
+  });
+
+  it("pastes a picture as the open version's top, making it new words, and on everyone else's tab as theirs", async () => {
+    const actions = await renderWriter({ draft: newWords });
+    await addVersion();
+    await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
+    paste(kind(top.linkPreview).element(), png());
+    await saved(actions, {
+      textVersion: expect.objectContaining({
+        condition: WROTE,
+        header: "image",
+        pictureId: examplePictureId,
+        templateId: null,
+      }),
+    });
+    await expect.poll(() => previewPicture()?.getAttribute("src")).toBe(shown);
+    await tab(292).click();
+    await expect.poll(() => previewPicture()).toBeNull();
+    paste(kind(top.linkPreview).element(), png("theirs.png"));
+    await saved(actions, { header: "image", pictureId: examplePictureId });
+    await expect.element(kind(top.picture)).toHaveAttribute("aria-checked", "true");
+    expect(uploaded(actions)).toEqual(["march.png", "theirs.png"]);
+  });
+
+  it("pastes no picture on a version WhatsApp is reviewing", async () => {
+    const version = {
+      condition: WROTE,
+      body: exampleTextWords,
+      templateId: 7,
+      header: "image" as const,
+      place: null,
+      pictureId: examplePictureId,
+      buttons: [],
+      template: { ...exampleTemplates[0], id: 7, status: "pending" as const, footer: null },
+    };
+    const actions = await renderWriter({ draft: { ...onTemplate, textVersion: version } });
+    await expect.poll(() => previewPicture()?.getAttribute("src")).toBe(shown);
+    paste(kind(top.picture).element(), png());
+    await pause();
+    expect(actions.uploadPicture).not.toHaveBeenCalled();
+  });
+
+  it("previews a version's picture top only once it has a picture", async () => {
+    const version = {
+      condition: WROTE,
+      body: exampleTextWords,
+      templateId: null,
+      header: "image" as const,
+      place: null,
+      pictureId: null,
+      buttons: [],
+      template: null,
+    };
+    await renderWriter({ draft: { ...newWords, textVersion: version } });
+    await expect.element(page.getByText(pictures.drop)).toBeVisible();
+    expect(previewPicture()).toBeNull();
   });
 });
 

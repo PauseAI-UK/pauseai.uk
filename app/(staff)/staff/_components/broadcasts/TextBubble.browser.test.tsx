@@ -71,6 +71,27 @@ describe("TextBubble's card and fold", () => {
     expect(page.getByText(exampleLinkCard.title).query()).toBeNull();
   });
 
+  it("shows a picture at its top, above its words, in place of a place's map or its link's card", async () => {
+    await render(
+      <TextBubble
+        words={paragraphs("Details: https://pauseai.uk/march")}
+        card={exampleLinkCard}
+        place={examplePlace}
+        picture="/public/images/logos/Pause-Symbol.svg"
+        footer={TEMPLATE_FOOTER}
+        time="07:18"
+      />,
+    );
+    const bubble = page.getByText("07:18").element().parentElement!;
+    const picture = bubble.querySelector("img")!;
+    expect(picture.getAttribute("src")).toBe("/public/images/logos/Pause-Symbol.svg");
+    expect(picture.alt).toBe("");
+    expect(bubble.firstElementChild).toBe(picture);
+    expect(page.getByText(examplePlace.name, { exact: true }).query()).toBeNull();
+    expect(page.getByText(exampleLinkCard.title).query()).toBeNull();
+    await expect.element(page.getByText(/^Details:/)).toBeVisible();
+  });
+
   it("has its reply buttons under it, each a line, and none when it has none", async () => {
     const { rerender } = await render(
       <TextBubble words={paragraphs("Coming?")} buttons={["Yes", "No"]} footer={TEMPLATE_FOOTER} time="07:18" />,

@@ -61,7 +61,7 @@ function PlaceChooser({
     } else setFound(places);
   };
   return (
-    <div className={styles.place}>
+    <div className={styles.form}>
       <div className={styles.findRow}>
         <Field label={words.find}>
           <TextInput
@@ -150,15 +150,14 @@ function PictureChooser({
     if (!file || disabled) return;
     setUploading(true);
     setRefusal(null);
-    const kept = await uploadPicture(file);
-    setUploading(false);
+    const kept = await uploadPicture(file).finally(() => setUploading(false));
     // None from a page gone out of date, which says so over the draft.
     if (!kept) return;
     if ("refused" in kept) return setRefusal(kept.refused);
     onChange(kept.pictureId);
   };
   return (
-    <div className={styles.picture}>
+    <div className={styles.form}>
       {pictureId && <img className={styles.shown} src={pictureSource(pictureId)} alt={words.shown} />}
       <DropArea
         hint={pictureId ? words.dropAnother : words.drop}

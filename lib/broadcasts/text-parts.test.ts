@@ -4,21 +4,41 @@ import {
   buttonsFit,
   buttonsFrom,
   headerFrom,
+  inOrder,
+  isLinkAddress,
   MOST_BUTTON_CHARACTERS,
   MOST_BUTTONS,
+  MOST_LINK_BUTTONS,
+  pictureFrom,
   placeFrom,
   versionFrom,
 } from "./text-parts";
 
 const WORDS: MailingDoc = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hello" }] }] };
+const PICTURE = "00000000-0000-4000-8000-000000000001";
 const PLACE = { name: "Padella", address: "6 Southwark St, London SE1 1TQ", latitude: 51.5053, longitude: -0.0903 };
 
 describe("headerFrom", () => {
-  it("takes a place or none, and nothing else", () => {
+  it("takes a place, a picture or none, and nothing else", () => {
     expect(headerFrom("location")).toBe("location");
+    expect(headerFrom("image")).toBe("image");
     expect(headerFrom(null)).toBeNull();
-    expect(headerFrom("image")).toBeUndefined();
+    expect(headerFrom("video")).toBeUndefined();
     expect(headerFrom(undefined)).toBeUndefined();
+  });
+});
+
+describe("pictureFrom", () => {
+  it("takes a picture's ID or none", () => {
+    expect(pictureFrom(PICTURE)).toBe(PICTURE);
+    expect(pictureFrom(null)).toBeNull();
+  });
+
+  it("takes nothing that isn't an ID", () => {
+    expect(pictureFrom(undefined)).toBeUndefined();
+    expect(pictureFrom(1)).toBeUndefined();
+    expect(pictureFrom("../etc/passwd")).toBeUndefined();
+    expect(pictureFrom(`${PICTURE}0`)).toBeUndefined();
   });
 });
 
@@ -50,12 +70,24 @@ describe("buttonsFrom", () => {
       { text: "" },
       { text: "x".repeat(40) },
     ]);
-    expect(buttonsFrom(Array.from({ length: MOST_BUTTONS }, () => ({ text: "Yes" })))).toHaveLength(
-      MOST_BUTTONS,
-    );
+    expect(buttonsFrom(Array.from({ length: MOST_BUTTONS }, () => ({ text: "Yes" })))).toHaveLength(MOST_BUTTONS);
+  });
+
+  it("takes a link button's address, and keeps one that isn't a web page's for the writer to say so", () => {
+    expect(
+      buttonsFrom([
+        { text: "Read", url: "https://pauseai.uk", extra: 1 },
+        { text: "Go", url: "" },
+      ]),
+    ).toEqual([
+      { text: "Read", url: "https://pauseai.uk" },
+      { text: "Go", url: "" },
+    ]);
   });
 
   it("takes nothing that isn't a list of buttons, or more than WhatsApp allows", () => {
+    expect(buttonsFrom([{ text: "Read", url: 1 }])).toBeUndefined();
+    expect(buttonsFrom([{ text: "Read", url: null }])).toBeUndefined();
     expect(buttonsFrom(null)).toBeUndefined();
     expect(buttonsFrom({ text: "Yes" })).toBeUndefined();
     expect(buttonsFrom([{ text: "Yes" }, "No"])).toBeUndefined();
@@ -70,9 +102,48 @@ describe("buttonsFit", () => {
     expect(buttonsFit([{ text: "Yes" }, { text: ` ${"x".repeat(MOST_BUTTON_CHARACTERS)} ` }])).toBe(true);
   });
 
+  it("is so with link buttons that open web pages, as many as WhatsApp takes", () => {
+    const links = Array.from({ length: MOST_LINK_BUTTONS }, () => ({ text: "Read", url: " https://pauseai.uk/news " }));
+    expect(buttonsFit([{ text: "Yes" }, ...links])).toBe(true);
+  });
+
   it("isn't so with a button with no words, or too many", () => {
     expect(buttonsFit([{ text: "Yes" }, { text: "  " }])).toBe(false);
     expect(buttonsFit([{ text: "x".repeat(MOST_BUTTON_CHARACTERS + 1) }])).toBe(false);
+    expect(buttonsFit([{ text: "  ", url: "https://pauseai.uk" }])).toBe(false);
+  });
+
+  it("isn't so with a link button without a web page's address, or more link buttons than WhatsApp takes", () => {
+    expect(buttonsFit([{ text: "Read", url: "" }])).toBe(false);
+    expect(buttonsFit([{ text: "Read", url: "pauseai.uk" }])).toBe(false);
+    const links = Array.from({ length: MOST_LINK_BUTTONS + 1 }, () => ({ text: "Read", url: "https://pauseai.uk" }));
+    expect(buttonsFit(links)).toBe(false);
+  });
+});
+
+describe("isLinkAddress", () => {
+  it("is so for a web page's address, with space at its ends", () => {
+    expect(isLinkAddress("https://pauseai.uk/join")).toBe(true);
+    expect(isLinkAddress(" http://example.com ")).toBe(true);
+  });
+
+  it("isn't so for an address with no host, another scheme, or spaces in it", () => {
+    expect(isLinkAddress("https://localhost")).toBe(false);
+    expect(isLinkAddress("mailto:jane.smith@example.com")).toBe(false);
+    expect(isLinkAddress("https://pauseai.uk/a page")).toBe(false);
+    expect(isLinkAddress("")).toBe(false);
+  });
+});
+
+describe("inOrder", () => {
+  it("puts reply buttons first, then link buttons, each kind in its own order", () => {
+    const buttons = [
+      { text: "Read", url: "https://pauseai.uk" },
+      { text: "Yes" },
+      { text: "Join", url: "https://pauseai.uk/join" },
+      { text: "No" },
+    ];
+    expect(inOrder(buttons)).toEqual([buttons[1], buttons[3], buttons[0], buttons[2]]);
   });
 });
 
@@ -83,10 +154,11 @@ describe("versionFrom", () => {
     templateId: null,
     header: "location",
     place: PLACE,
+    pictureId: null,
     buttons: [{ text: "Coming" }],
   };
 
-  it("takes a second version with a condition, words, a template or none, a top, a place and buttons", () => {
+  it("takes a second version with a condition, words, a template or none, a top, a place, a picture and buttons", () => {
     expect(versionFrom(version)).toEqual(version);
     expect(versionFrom({ ...version, templateId: 7, header: null, place: null, buttons: [] })).toEqual({
       ...version,
@@ -94,6 +166,12 @@ describe("versionFrom", () => {
       header: null,
       place: null,
       buttons: [],
+    });
+    expect(versionFrom({ ...version, header: "image", place: null, pictureId: PICTURE })).toEqual({
+      ...version,
+      header: "image",
+      place: null,
+      pictureId: PICTURE,
     });
     expect(versionFrom(null)).toBeNull();
   });
@@ -103,7 +181,9 @@ describe("versionFrom", () => {
     expect(versionFrom({ ...version, condition: 42 })).toBeUndefined();
     expect(versionFrom({ ...version, condition: "" })).toBeUndefined();
     expect(versionFrom({ ...version, body: "Hello" })).toBeUndefined();
-    expect(versionFrom({ ...version, header: "image" })).toBeUndefined();
+    expect(versionFrom({ ...version, header: "video" })).toBeUndefined();
+    expect(versionFrom({ ...version, pictureId: "picture" })).toBeUndefined();
+    expect(versionFrom({ ...version, pictureId: undefined })).toBeUndefined();
     expect(versionFrom({ ...version, place: "Padella" })).toBeUndefined();
     expect(versionFrom({ ...version, buttons: "Coming" })).toBeUndefined();
     expect(versionFrom({ ...version, templateId: 1.5 })).toBeUndefined();

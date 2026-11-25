@@ -39,6 +39,13 @@ const DATABASE_HOOK = 60_000;
 const SEEDED = ["ask_kind_statuses", "asks", "campaigns", "mailings", "whatsapp_templates"];
 
 /**
+ * Tables emptied by DELETE once the mailings a test wrote are gone, as the
+ * mailings refer to them: truncating them would take the imported mailings
+ * too, by CASCADE.
+ */
+const MAILINGS_REFER_TO = ["text_pictures"];
+
+/**
  * Gives this test file its own database, empty before each test: a copy of
  * the migrated template made once for the run (tests/vitest.global-setup.node.ts).
  * Call at the top of a describeWithDatabase block.
@@ -53,7 +60,7 @@ export function useTestDatabase() {
     process.env.NETLIFY_DB_URL = databaseUrl(name);
     const rows = await query<{ name: string }>(
       "SELECT quote_ident(tablename) AS name FROM pg_tables WHERE schemaname = 'public' AND NOT tablename = ANY($1) ORDER BY 1",
-      [SEEDED],
+      [[...SEEDED, ...MAILINGS_REFER_TO]],
     );
     tables = rows.map((row) => row.name).join(", ");
   }, DATABASE_HOOK);
@@ -62,6 +69,7 @@ export function useTestDatabase() {
     // The mailings written here; the imported ones come with the migrations.
     await query("DELETE FROM mailings WHERE body IS NOT NULL");
     await query("DELETE FROM whatsapp_templates");
+    for (const table of MAILINGS_REFER_TO) await query(`DELETE FROM ${table}`);
     // The kept supporters list, emptied with the tables it's made from.
     await query("REFRESH MATERIALIZED VIEW supporters_list");
   });

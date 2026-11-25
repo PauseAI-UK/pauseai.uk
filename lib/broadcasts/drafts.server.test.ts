@@ -33,6 +33,7 @@ import {
 } from "./drafts.server";
 import { fakeRecipient, FIELDS_AS_WORDS, registeredFor, TEXT_SENDER_NAME } from "./broadcasts";
 import type { TextVersion } from "./text-parts";
+import { keepPicture } from "./text-pictures.server";
 import { toText } from "@/lib/letters/format";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -78,9 +79,17 @@ const versionOf = (more: Partial<TextVersion> = {}): TextVersion => ({
   templateId: null,
   header: "location",
   place: PLACE,
+  pictureId: null,
   buttons: [{ text: "Coming" }],
   ...more,
 });
+
+/** A PNG's first bytes, kept as a text's picture; its ID. */
+async function aPicture(type = "image/png"): Promise<string> {
+  const kept = await keepPicture({ type, content: Buffer.from([137, 80, 78, 71]) }, JO);
+  if (!("id" in kept)) throw new Error("not kept");
+  return kept.id;
+}
 
 beforeEach(() => {
   vi.stubEnv("DATA_FIXTURES", "1");
@@ -147,19 +156,23 @@ it("takes only what a broadcast may change, by its channel", () => {
   expect(broadcastChangesFrom({ title: "March day" }, "email")).toBeUndefined();
 });
 
-it("takes a text's top, place, reply buttons and second version, each a proper one, and none of them for an email", () => {
+it("takes a text's top, place, picture, buttons and second version, each a proper one, and none of them for an email", () => {
   const parts = { header: "location", place: PLACE, buttons: [{ text: "Coming" }], textVersion: versionOf() };
   expect(broadcastChangesFrom(parts, "text")).toEqual(parts);
-  // None of each: no top, no place, no buttons, one version.
-  const none = { header: null, place: null, buttons: [], textVersion: null };
+  const picture = { header: "image", pictureId: "00000000-0000-4000-8000-000000000001" };
+  expect(broadcastChangesFrom(picture, "text")).toEqual(picture);
+  // None of each: no top, no place, no picture, no buttons, one version.
+  const none = { header: null, place: null, pictureId: null, buttons: [], textVersion: null };
   expect(broadcastChangesFrom(none, "text")).toEqual(none);
   expect(broadcastChangesFrom({ header: "video" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ place: { ...PLACE, latitude: 91 } }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ buttons: [{ words: "Coming" }] }, "text")).toBeUndefined();
+  expect(broadcastChangesFrom({ pictureId: "banner.png" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ textVersion: versionOf({ condition: "" }) }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ header: "location" }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ place: PLACE }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ buttons: [] }, "email")).toBeUndefined();
+  expect(broadcastChangesFrom({ pictureId: null }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ textVersion: null }, "email")).toBeUndefined();
 });
 
@@ -503,6 +516,34 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await query("SELECT mailing_id FROM broadcast_versions")).toEqual([]);
     });
 
+    it("saves a picture at a text's top, and at its second version's, and takes them away", async () => {
+      const id = await draftOf(TEXT_FILTER);
+      const broadcast = (await getWrittenBroadcast(id))!;
+      expect(broadcast.pictureId).toBeNull();
+      const [mine, theirs] = [await aPicture(), await aPicture("image/jpeg")];
+      const pictured = versionOf({ header: "image", place: null, pictureId: theirs });
+      expect(
+        await saveBroadcastDraft(broadcast, 1, { header: "image", pictureId: mine, textVersion: pictured }),
+      ).toEqual({ saved: true, version: 2 });
+      expect(await getWrittenBroadcast(id)).toMatchObject({
+        header: "image",
+        pictureId: mine,
+        textVersion: { header: "image", pictureId: theirs },
+      });
+      expect(
+        await saveBroadcastDraft(broadcast, 2, {
+          header: null,
+          pictureId: null,
+          textVersion: { ...pictured, pictureId: null },
+        }),
+      ).toEqual({ saved: true, version: 3 });
+      expect(await getWrittenBroadcast(id)).toMatchObject({
+        header: null,
+        pictureId: null,
+        textVersion: { pictureId: null },
+      });
+    });
+
     it("gives a text and its second version the words, top and buttons of the approved templates chosen, and none other", async () => {
       const id = await draftOf(TEXT_FILTER);
       const template = await addTemplate("March day");
@@ -564,35 +605,46 @@ describeWithDatabase("broadcasts to supporters", () => {
       });
     });
 
-    it("copies a text's top, place, buttons and second version", async () => {
+    it("copies a text's top, place, picture, buttons and second version", async () => {
       const id = await draftOf(TEXT_FILTER);
       await readied(id, {
         body: EVENT_WORDS,
         header: "location",
         place: PLACE,
+        pictureId: await aPicture(),
         buttons: [{ text: "Coming" }],
-        textVersion: versionOf({ templateId: await addTemplate("March day") }),
+        textVersion: versionOf({ templateId: await addTemplate("March day"), pictureId: await aPicture() }),
       });
-      const { header, place, buttons, textVersion } = (await getWrittenBroadcast(id))!;
+      const { header, place, pictureId, buttons, textVersion } = (await getWrittenBroadcast(id))!;
+      expect(pictureId).toEqual(expect.any(String));
+      expect(textVersion!.pictureId).toEqual(expect.any(String));
       const { template, ...version } = textVersion!;
       expect(template).toMatchObject({ name: "March day" });
       const copy = (await copyBroadcast(id, JO))!;
       expect(await getWrittenBroadcast(copy)).toMatchObject({
         header,
         place,
+        pictureId,
         buttons,
         textVersion: { ...version, template: { id: template!.id } },
       });
     });
 
-    it("clears a text's top, place, buttons and second version when its Consent moves it to email", async () => {
+    it("clears a text's top, place, picture, buttons and second version when its Consent moves it to email", async () => {
       const id = await draftOf(TEXT_FILTER);
-      await readied(id, { header: "location", place: PLACE, buttons: [{ text: "Coming" }], textVersion: versionOf() });
+      await readied(id, {
+        header: "location",
+        place: PLACE,
+        pictureId: await aPicture(),
+        buttons: [{ text: "Coming" }],
+        textVersion: versionOf(),
+      });
       expect(await changeBroadcastConsent(id, EMAIL_FILTER.contact, JO)).toEqual(expect.any(Number));
       expect(await getWrittenBroadcast(id)).toMatchObject({
         channel: "email",
         header: null,
         place: null,
+        pictureId: null,
         buttons: [],
         textVersion: null,
       });
@@ -964,6 +1016,101 @@ describeWithDatabase("broadcasts to supporters", () => {
           footer,
           { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "Coming" }] },
         ],
+      ]);
+    });
+
+    it("uploads each version's picture as its template's example through the Meta app, and sends link buttons after reply buttons", async () => {
+      vi.stubEnv("WHATSAPP_APP_ID", "app-1");
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      const uploads: string[] = [];
+      const made: { name: string; components: unknown[] }[] = [];
+      server.use(
+        http.post(/\/app-1\/uploads/, ({ request }) => {
+          uploads.push(new URL(request.url).searchParams.get("file_name")!);
+          return HttpResponse.json({ id: `upload:session-${uploads.length}` });
+        }),
+        http.post(/\/upload:session-\d$/, ({ request }) =>
+          HttpResponse.json({ h: `4::${new URL(request.url).pathname.split("-").pop()}` }),
+        ),
+        http.post(TEMPLATES, async ({ request }) => {
+          made.push((await request.json()) as (typeof made)[number]);
+          return HttpResponse.json({ id: `meta-${made.length}`, status: "PENDING", category: "MARKETING" });
+        }),
+      );
+      const id = await draftOf(TEXT_FILTER);
+      await readied(id, {
+        body: EVENT_WORDS,
+        title: "See you there.",
+        header: "image",
+        pictureId: await aPicture(),
+        buttons: [{ text: "Read", url: " https://pauseai.uk/news " }, { text: " Coming " }],
+        textVersion: versionOf({ header: "image", place: null, pictureId: await aPicture("image/jpeg"), buttons: [] }),
+      });
+      expect(await submitTemplate(id, JO)).toBe("submitted");
+      const names = made.map((one) => one.name);
+      expect(uploads).toEqual([`${names[0]}.png`, `${names[1]}.jpg`]);
+      const footer = { type: "FOOTER", text: TEMPLATE_FOOTER };
+      const body = expect.objectContaining({ type: "BODY" });
+      expect(made.map((one) => one.components)).toEqual([
+        [
+          { type: "HEADER", format: "IMAGE", example: { header_handle: ["4::1"] } },
+          body,
+          footer,
+          {
+            type: "BUTTONS",
+            buttons: [
+              { type: "QUICK_REPLY", text: "Coming" },
+              { type: "URL", text: "Read", url: "https://pauseai.uk/news" },
+            ],
+          },
+        ],
+        [{ type: "HEADER", format: "IMAGE", example: { header_handle: ["4::2"] } }, body, footer],
+      ]);
+      expect(await getWrittenBroadcast(id)).toMatchObject({
+        template: {
+          header: "image",
+          buttons: [{ text: "Read", url: " https://pauseai.uk/news " }, { text: " Coming " }],
+        },
+      });
+    });
+
+    it("sends no text with a picture for approval without the Meta app to upload its example through", async () => {
+      vi.stubEnv("WHATSAPP_APP_ID", "");
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      let asked = 0;
+      server.use(
+        http.post(TEMPLATES, () => {
+          asked++;
+          return HttpResponse.json({ id: "meta-1", status: "PENDING", category: "MARKETING" });
+        }),
+      );
+      const id = await draftOf(TEXT_FILTER);
+      await readied(id, { body: EVENT_WORDS, title: "See you there.", header: "image", pictureId: await aPicture() });
+      expect(await submitTemplate(id, JO)).toEqual({ failed: null });
+      expect(asked).toBe(0);
+      expect(await getWrittenBroadcast(id)).toMatchObject({ template: null, header: "image" });
+      expect(await query("SELECT id FROM whatsapp_templates")).toEqual([]);
+    });
+
+    it("tests a text with a picture at its top by the picture's address on the site", async () => {
+      vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
+      const sent: { template: { components: { type: string; parameters: unknown[] }[] } }[] = [];
+      server.use(
+        http.post(/messages$/, async ({ request }) => {
+          sent.push((await request.json()) as (typeof sent)[number]);
+          return HttpResponse.json({ messages: [{ id: "wamid.test" }] });
+        }),
+      );
+      const template = await addTemplate("March day");
+      await query("UPDATE whatsapp_templates SET header = 'image' WHERE id = $1", [template]);
+      const picture = await aPicture();
+      const id = await draftOf(TEXT_FILTER);
+      await readied(id, { templateId: template, pictureId: picture, place: PLACE });
+      await sendBroadcastTest((await getWrittenBroadcast(id))!, fakeRecipient([], "text"), "+447700900002");
+      // A place it kept from before is no part of a picture's text.
+      expect(sent[0].template.components.map((part) => part.type)).toEqual(["header", "body"]);
+      expect(sent[0].template.components[0].parameters).toEqual([
+        { type: "image", image: { link: `https://pauseai.uk/api/text-pictures/${picture}` } },
       ]);
     });
 

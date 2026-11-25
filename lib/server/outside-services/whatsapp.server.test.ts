@@ -11,6 +11,7 @@ import {
   sendTemplate,
   sendText,
   signedByMeta,
+  uploadExample,
   WhatsAppRequestError,
 } from "./whatsapp.server";
 import { serverProblems } from "@/lib/server/copy";
@@ -156,6 +157,26 @@ describe("sending", () => {
     ]);
   });
 
+  it("sends a template with a picture at its top, by the address WhatsApp fetches it from", async () => {
+    let sent: { template: { components: object[] } } | undefined;
+    server.use(
+      http.post(`${GRAPH}/p1/messages`, async ({ request }) => {
+        sent = (await request.json()) as typeof sent;
+        return HttpResponse.json({ messages: [{ id: "wamid.4" }] });
+      }),
+    );
+    const picture = "https://pauseai.uk/api/text-pictures/00000000-0000-4000-8000-000000000001";
+    await sendTemplate(KEYS, "p1", "+447700900001", {
+      name: "march_4",
+      params: [{ name: "first_name", text: "Jane" }],
+      picture,
+    });
+    expect(sent!.template.components).toEqual([
+      { type: "header", parameters: [{ type: "image", image: { link: picture } }] },
+      { type: "body", parameters: [{ type: "text", parameter_name: "first_name", text: "Jane" }] },
+    ]);
+  });
+
   it("sends words of our own", async () => {
     let sent: unknown;
     server.use(
@@ -235,7 +256,12 @@ describe("templates", () => {
         return HttpResponse.json({ id: "t2", status: "PENDING", category: "MARKETING" });
       }),
     );
-    await createTemplate(KEYS, { ...NEW, examples: [], header: "location", buttons: ["I'm coming", "Can't make it"] });
+    await createTemplate(KEYS, {
+      ...NEW,
+      examples: [],
+      header: { kind: "location" },
+      buttons: [{ text: "I'm coming" }, { text: "Can't make it" }],
+    });
     expect(made!.components).toEqual([
       { type: "HEADER", format: "LOCATION" },
       { type: "BODY", text: "Hi {{first_name}}" },
@@ -251,6 +277,78 @@ describe("templates", () => {
     // No buttons is none.
     await createTemplate(KEYS, { ...NEW, examples: [], buttons: [] });
     expect(made!.components).toHaveLength(2);
+  });
+
+  it("sends a picture at the top, by its uploaded example's handle, and link buttons with their addresses", async () => {
+    let made: { components: object[] } | undefined;
+    server.use(
+      http.post(`${GRAPH}/account/message_templates`, async ({ request }) => {
+        made = (await request.json()) as typeof made;
+        return HttpResponse.json({ id: "t3", status: "PENDING", category: "MARKETING" });
+      }),
+    );
+    await createTemplate(KEYS, {
+      ...NEW,
+      examples: [],
+      header: { kind: "image", example: "4::handle" },
+      buttons: [{ text: "I'm coming" }, { text: "Read more", url: "https://pauseai.uk/march" }],
+    });
+    expect(made!.components).toEqual([
+      { type: "HEADER", format: "IMAGE", example: { header_handle: ["4::handle"] } },
+      { type: "BODY", text: "Hi {{first_name}}" },
+      { type: "FOOTER", text: "Reply STOP to stop event texts" },
+      {
+        type: "BUTTONS",
+        buttons: [
+          { type: "QUICK_REPLY", text: "I'm coming" },
+          { type: "URL", text: "Read more", url: "https://pauseai.uk/march" },
+        ],
+      },
+    ]);
+  });
+
+  it("uploads a picture for a template's approval through the Meta app: a session for it, then the file, giving its handle", async () => {
+    let session: URLSearchParams | undefined;
+    let sessionAuth: string | null = null;
+    let file: { bytes: number[]; auth: string | null; offset: string | null } | undefined;
+    server.use(
+      http.post(`${GRAPH}/app-1/uploads`, ({ request }) => {
+        session = new URL(request.url).searchParams;
+        sessionAuth = request.headers.get("authorization");
+        return HttpResponse.json({ id: "upload:session-1" });
+      }),
+      http.post(`${GRAPH}/upload:session-1`, async ({ request }) => {
+        file = {
+          bytes: [...new Uint8Array(await request.arrayBuffer())],
+          auth: request.headers.get("authorization"),
+          offset: request.headers.get("file_offset"),
+        };
+        return HttpResponse.json({ h: "4::handle" });
+      }),
+    );
+    const content = new Uint8Array([137, 80, 78, 71]);
+    expect(await uploadExample(KEYS, "app-1", { name: "march_1.png", type: "image/png", content })).toBe("4::handle");
+    expect(Object.fromEntries(session!)).toEqual({
+      file_name: "march_1.png",
+      file_length: "4",
+      file_type: "image/png",
+    });
+    expect(sessionAuth).toBe("Bearer token");
+    // The file goes by OAuth, as the Resumable Upload API asks, from its start.
+    expect(file).toEqual({ bytes: [137, 80, 78, 71], auth: "OAuth token", offset: "0" });
+  });
+
+  it("refuses an upload Meta refuses", async () => {
+    server.use(
+      http.post(`${GRAPH}/app-1/uploads`, () =>
+        HttpResponse.json({ error: { message: "Bad app", code: 100 } }, { status: 400 }),
+      ),
+    );
+    const content = new Uint8Array([1]);
+    await expect(uploadExample(KEYS, "app-1", { name: "a.jpg", type: "image/jpeg", content })).rejects.toMatchObject({
+      name: "WhatsAppRequestError",
+      reason: "Bad app",
+    });
   });
 
   it("deletes a template by its name", async () => {

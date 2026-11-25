@@ -30,6 +30,8 @@ const ALLOWED: Record<string, string> = {
   "Broadcasts.module.css .phoneBubble": "a phone's line of words",
   // A text's reply buttons under its bubble, as wide as it.
   "Broadcasts.module.css .replyButtons": "a phone's line of words",
+  // A text's place or picture, under the choice of its top.
+  "TextTop.module.css .form": "a field",
   // The login page: one card in the middle of the window, with no grid.
   "LoginCard.module.css .login": "the login page",
   "DevLogin.module.css .dev": "the login page",

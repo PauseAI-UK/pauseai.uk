@@ -27,6 +27,14 @@ export const textButtonsGallery: Example[] = [
         ),
       },
       {
+        label: "A reply button and a link button, and what a computer does with both",
+        render: () => (
+          <StaffPage as="div">
+            <TextButtonsExample initial={[four[0], { text: "Details", url: "https://pauseai.uk/march" }]} />
+          </StaffPage>
+        ),
+      },
+      {
         label: "A chosen template's, fixed",
         render: () => (
           <StaffPage as="div">
