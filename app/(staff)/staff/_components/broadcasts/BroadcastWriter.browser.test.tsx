@@ -1627,11 +1627,15 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     // Within a few pixels: the page scrolls by whole ones, so a move of a fraction is left over now and then.
     const moved = () => Math.abs(toggle().element().getBoundingClientRect().top - before);
     // Clicked without the focus, as a busy machine can leave it, so nothing hangs on what has it.
-    toggle().element().click();
+    toggle()
+      .element()
+      .dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await expect.element(tab(292)).toHaveAttribute("aria-selected", "true");
     await expect.poll(moved).toBeLessThan(4);
     // Back again, before the first has stopped holding it, and held still after both have stopped.
-    toggle().element().click();
+    toggle()
+      .element()
+      .dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
     await new Promise((resolve) => setTimeout(resolve, 2100));
     expect(moved()).toBeLessThan(4);
