@@ -18,11 +18,11 @@
   max-width: 36rem;
 }
 
-/* The box and its Find, level along their bottoms. */
+/* The box and its Find, side by side. */
 .findRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--space-2);
 }
 
@@ -64,8 +64,12 @@
   gap: var(--space-2);
 }
 
-.check {
-  justify-self: start;
+/* Check it on a map, and Find another, on a line. */
+.placeLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
   font-size: var(--text-sm);
 }
 

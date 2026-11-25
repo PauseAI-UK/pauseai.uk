@@ -90,17 +90,16 @@ export const broadcastsCopy = {
       place: "Place",
     },
     // Choosing a text's place: a box for a Google Maps link or words to search for, its button, the places it
-    // found, the place's name and address under the map, a link to check its pin, and what can change once approved.
+    // found; then the place's name and address under the map, a link to check its pin, and finding another.
     placeChooser: {
-      find: "⁂ Paste a Google Maps link, or search for a place by name",
+      find: "⁂ Search for a place, or paste a Google Maps link",
       findButton: "⁂ Find",
       found: "⁂ Places found",
       none: "⁂ No place found. Try other words, or a Google Maps link.",
-      underMap: "⁂ WhatsApp shows these under the map. Change them to say where exactly.",
       name: "⁂ Name",
       address: "⁂ Address",
       checkMap: "⁂ Check it on a map",
-      changeable: "⁂ You can change the place after WhatsApp approves the text.",
+      findAnother: "⁂ Find another",
     },
     // Choosing a text's picture: the picture chosen, the box to drop or paste one on, its button, why a file won't
     // do, and what can change once approved.

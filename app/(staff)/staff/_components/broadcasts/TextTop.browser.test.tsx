@@ -185,7 +185,7 @@ describe("TextTop", () => {
     const { onChange } = await renderTop({ place: examplePlace });
     await expect
       .element(page.getByRole("link", { name: words.checkMap }))
-      .toHaveAttribute("href", "https://www.openstreetmap.org/?mlat=51.5005&mlon=-0.1268#map=17/51.5005/-0.1268");
+      .toHaveAttribute("href", "https://www.google.com/maps?q=51.5005,-0.1268");
     await page.getByLabelText(words.name).fill("The square");
     expect(onChange).toHaveBeenLastCalledWith({ place: { ...examplePlace, name: "The square" } });
     await page.getByLabelText(words.address).fill("SW1");
