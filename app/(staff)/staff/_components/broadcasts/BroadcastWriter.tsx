@@ -1381,7 +1381,7 @@ export default function BroadcastWriter({
                   it's scheduled, unless they're with it already. */}
               <ProblemList
                 problems={shownProblems.map((problem) => copy.problems[problem])}
-                notes={words === "new" && !waiting ? [copy.schedulesForApproval] : []}
+                notes={words === "new" && !waiting ? [copy.schedulesForApproval(templateCount)] : []}
               />
             </Card>
           </>,

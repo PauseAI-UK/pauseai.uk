@@ -948,7 +948,7 @@ describe("BroadcastWriter, by text", () => {
       draft: { ...exampleBroadcastText, title: "Hi there", body: exampleTextWords },
     });
     await expect.element(page.getByRole("heading", { name: "Hi there", level: 1 })).toBeVisible();
-    await expect.element(page.getByText(copy.schedulesForApproval)).toBeVisible();
+    await expect.element(page.getByText(copy.schedulesForApproval(1))).toBeVisible();
     await expect.element(page.getByText(copy.testVia.textNew)).toBeVisible();
     await expect.element(button(copy.sendTest)).toBeDisabled();
     // Scheduling sends them for approval as it schedules; days off, there's time for that.
@@ -1070,7 +1070,7 @@ describe("BroadcastWriter, by text", () => {
     expect(button(copy.submitTemplate).query()).toBeNull();
     // It can be scheduled, and isn't said to send them for approval, as WhatsApp has them.
     await expect.element(button(copy.schedule(412, "text"))).toBeEnabled();
-    expect(page.getByText(copy.schedulesForApproval).query()).toBeNull();
+    expect(page.getByText(copy.schedulesForApproval(1)).query()).toBeNull();
     const refreshes = navigation.refreshes;
     // Pressed once, it asks for a second press, and goes back if focus leaves it.
     await button(copy.withdrawTemplate).click();
@@ -1367,6 +1367,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await editor().fill("Thanks for writing to your MP.");
     await expect.element(page.getByText(copy.textVersions.templates(2))).toBeVisible();
     await expect.element(button(copy.textVersions.submit(2))).toBeVisible();
+    await expect.element(page.getByText(copy.schedulesForApproval(2))).toBeVisible();
     // Its own top and buttons, each making it new words again.
     await kind(top.place).click();
     await page.getByLabelText(places.find).fill("parliament square");
