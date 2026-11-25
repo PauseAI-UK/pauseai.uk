@@ -105,7 +105,7 @@ export const broadcastsCopy = {
     // do, and what can change once approved.
     pictureChooser: {
       shown: "⁂ The picture at the top of the text",
-      drop: "Drop or paste a picture here, or",
+      drop: "Drop or paste a picture here",
       remove: "⁂ Take the picture off",
       choose: "Add picture",
       refusals: {
