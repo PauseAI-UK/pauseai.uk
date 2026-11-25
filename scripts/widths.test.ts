@@ -35,7 +35,9 @@ describe("pictureName and widthsPage", () => {
     const html = widthsPage(["/a"], [390, 1440], { "a-1440.png": ['table 1: "<Name>" wraps'] });
     expect(html).toContain("<h2>/a</h2>");
     expect(html).toContain('<img src="a-390.png" alt="/a at 390px"');
-    expect(html).toContain('<li>table 1: "&lt;Name&gt;" wraps</li>');
+    expect(html).toContain("<li>table 1: &quot;&lt;Name&gt;&quot; wraps</li>");
     expect(html.match(/<ul>/g)).toHaveLength(1);
+    // A quote in a path stays inside the attribute it's put in.
+    expect(widthsPage(['/a"b'], [390])).toContain('alt="/a&quot;b at 390px"');
   });
 });

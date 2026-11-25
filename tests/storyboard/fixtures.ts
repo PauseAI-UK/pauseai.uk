@@ -186,7 +186,10 @@ async function logRejections(context: BrowserContext) {
 const PLAIN_BUBBLE = "[bubble opened outside openBubble]";
 
 /** What a page logs of the bubble `id` opening outside openBubble, for a flow where that's meant (expectConsole). */
-export const bubbleOpenedOutside = (id: string) => new RegExp(`${PLAIN_BUBBLE.replace(/[[\]]/g, "\\$&")} #${id}$`);
+export const bubbleOpenedOutside = (id: string) => new RegExp(`${literally(PLAIN_BUBBLE)} #${literally(id)}$`);
+
+/** `text` in a regular expression as itself, every character that means something there escaped. */
+const literally = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * Logs, in every page of `context`, each bubble (BubbleBox, which names its

@@ -55,7 +55,8 @@ export const pictureName = (path, width) =>
 
 /** The page that sets each page's pictures side by side, a row a page, with what `--tables` found under each. */
 export function widthsPage(paths, widths, found = {}) {
-  const escape = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escape = (text) =>
+    text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const rows = paths
     .map((path) => {
       const cells = widths
