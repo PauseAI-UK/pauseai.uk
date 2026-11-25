@@ -21,8 +21,11 @@ export type UploadPicture = (
   file: File,
 ) => Promise<{ pictureId: string } | { refused: "not-picture" | "too-big" } | undefined>;
 
-/** Where a picture kept for a text is served, for the writer to show it. */
-export const pictureSource = (id: string) => `/api/text-pictures/${id}`;
+/**
+ * Where a picture kept for a text is served, for the writer to show it; an
+ * example's, given whole as a data: address, is its own (BroadcastWriter.examples.ts).
+ */
+export const pictureSource = (id: string) => (id.startsWith("data:") ? id : `/api/text-pictures/${id}`);
 
 /** Where a place is on OpenStreetMap's map, its pin on it, to check it's the right spot. */
 const mapOf = (place: TextPlace) =>
