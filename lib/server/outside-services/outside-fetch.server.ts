@@ -26,6 +26,14 @@ export type OutsideInit = RequestInit & {
    * takes once however often it's sent.
    */
   retries?: number;
+  /**
+   * For a URL someone typed: one whose host is or resolves to an internal
+   * address, such as a loopback, private or link-local one, throws an
+   * OutsideFailure of kind `unreachable`, and nothing is sent
+   * (public-address.server.ts). It checks this URL only, so a caller that
+   * sets it also asks for `redirect: "manual"` and checks each redirect's.
+   */
+  publicOnly?: boolean;
 };
 
 /**
@@ -40,7 +48,7 @@ export type OutsideInit = RequestInit & {
  * refusal it is.
  */
 export async function outsideFetch({ service, fake }: Outside, url: string, init: OutsideInit = {}): Promise<Response> {
-  const { retries = 0, ...request } = init;
+  const { retries = 0, publicOnly = false, ...request } = init;
   if (config.fixtures) {
     // The storyboard flow's database, for the fakes that keep what they're sent, one set each flow, and the
     // services it has made fail. Imported here, as they read Node's files, so a component that renders on
@@ -54,6 +62,11 @@ export async function outsideFetch({ service, fake }: Outside, url: string, init
       fake(parsed, request, scope) ??
       new Response("No fixture for this URL", { status: 404 })
     );
+  }
+  // Imported here, as it reads Node's DNS, so a component that renders on fixture data in the browser doesn't load it.
+  const { isPublicHost } = await import("./public-address.server");
+  if (publicOnly && !(await isPublicHost(new URL(url).hostname))) {
+    throw new OutsideFailure(service, "unreachable", { asked: url, message: `${url} isn't on the public internet` });
   }
   for (let attempt = 0; ; attempt++) {
     const res = await answer(service, url, request);

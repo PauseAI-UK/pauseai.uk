@@ -248,10 +248,11 @@ export function isRecognisedMail(from: string, labels: readonly string[]): boole
  */
 export function lordFor(subject: string): string | null {
   const match =
-    /^(?:\s*(?:re|fwd?|fw)\s*:)*\s*for\s+((?:the\s+)?(?:lord|baroness|lady|viscount|viscountess|earl|countess|duke|bishop)\b[^:]*?)\s*:/i.exec(
+    /^(?:\s*(?:re|fwd?)\s*:)*\s*for\s+((?:the\s+)?(?:lord|baroness|lady|viscount|viscountess|earl|countess|duke|bishop)\b[^:]*):/i.exec(
       subject,
     );
-  return match ? match[1] : null;
+  // The spaces before the colon are trimmed after the match: a lazy name then `\s*` would backtrack over them.
+  return match ? match[1].trimEnd() : null;
 }
 
 /** A Lord's name for comparing: no accents, case, extra spaces or "The" in front. */

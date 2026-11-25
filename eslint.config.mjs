@@ -238,6 +238,8 @@ const GMAIL_IMPORT = {
 // Packages that make their own requests, which a fixture build can't
 // answer: Node's network modules, HTTP clients, and services' own SDKs.
 // Postmark and Airtable are called over their HTTP APIs, not their SDKs.
+// From Node's net, what only reads addresses, and asks nothing, is allowed.
+const NET_ADDRESSES = ["BlockList", "isIP", "isIPv4", "isIPv6"];
 const NETWORK_IMPORTS = [
   "http",
   "https",
@@ -256,6 +258,7 @@ const NETWORK_IMPORTS = [
   "airtable",
 ].map((name) => ({
   name,
+  ...(name === "net" || name === "node:net" ? { allowImportNames: NET_ADDRESSES } : {}),
   message: `Call outside services from a binding in ${OUTSIDE}/, through outsideFetch, so fixture builds can answer instead.`,
 }));
 

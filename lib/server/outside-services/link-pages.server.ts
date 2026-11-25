@@ -22,6 +22,9 @@ const WHATSAPP_AGENT = "WhatsApp/2.24.1.1 A";
 /** How long a page has to answer before there's no card. */
 const WAIT_MS = 5000;
 
+/** How many redirects a link may take to reach its page. */
+const MAX_REDIRECTS = 5;
+
 const NAMED: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
 
 /** An attribute's value with its character references as the characters: &amp; as &, &#39; as '. */
@@ -55,20 +58,36 @@ export function cardFrom(html: string, url: URL): LinkCard | null {
   return title && description ? { title, description, site: url.hostname } : null;
 }
 
-/** The card WhatsApp would show for a link to `address`; none if it isn't a web address, or its page doesn't answer or has no card's tags. */
+/**
+ * The card WhatsApp would show for a link to `address`; none if it isn't a
+ * web address, if it or a redirect from it is on an internal address, or if
+ * its page doesn't answer or has no card's tags.
+ */
 export async function linkCard(address: string): Promise<LinkCard | null> {
   if (!URL.canParse(address)) return null;
-  const url = new URL(address);
-  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  const link = new URL(address);
+  const signal = AbortSignal.timeout(WAIT_MS);
+  let url = link;
   try {
-    const res = await outsideFetch(LINK_PAGE, url.href, {
-      headers: { "User-Agent": WHATSAPP_AGENT },
-      signal: AbortSignal.timeout(WAIT_MS),
-      cache: "no-store",
-    });
-    return res.ok ? cardFrom(await res.text(), url) : null;
+    // Each redirect is followed here, so that where it leads is checked as the link is: a web page, on the public internet.
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+      const res = await outsideFetch(LINK_PAGE, url.href, {
+        headers: { "User-Agent": WHATSAPP_AGENT },
+        signal,
+        cache: "no-store",
+        redirect: "manual",
+        publicOnly: true,
+      });
+      const location = res.headers.get("location");
+      if (res.status < 300 || res.status > 399 || location === null) {
+        return res.ok ? cardFrom(await res.text(), link) : null;
+      }
+      url = new URL(location, url);
+    }
+    return null;
   } catch {
-    // A page that can't be reached gets no card, in WhatsApp as here.
+    // A page that can't be reached, or is on an internal address, gets no card.
     return null;
   }
 }

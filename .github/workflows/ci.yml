@@ -13,6 +13,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Each job's token reads the code and nothing more. A job in CI's own image
+# reads packages too, to pull it; a job's own `permissions` replaces these.
+# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
+permissions:
+  contents: read
+
 jobs:
   # Separate jobs, so each result arrives as soon as it's known: a formatting
   # slip shows up in a minute, not after the tests.
@@ -132,6 +138,9 @@ jobs:
     # CI's own image (.github/ci-image/Dockerfile): Chromium's system
     # packages, Git and the Postgres 18 client, so the job installs none of
     # them. Its tag is its Dockerfile's hash (tests/checks/ci-image.test.ts).
+    permissions:
+      contents: read
+      packages: read
     container:
       image: ghcr.io/pauseai-uk/ci:4a78405e3585
       credentials:
@@ -314,6 +323,9 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     # In CI's own image, as the Test job is.
+    permissions:
+      contents: read
+      packages: read
     container:
       image: ghcr.io/pauseai-uk/ci:4a78405e3585
       credentials:
