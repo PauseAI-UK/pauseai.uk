@@ -58,19 +58,49 @@
   color: var(--text-secondary);
 }
 
-.names {
+/* A place chosen, as WhatsApp shows it: its map, then its name and address, which are boxes that look like words. */
+.placeCard {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: var(--space-2);
+  width: 14rem;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
-/* Check it on a map, and Find another, on a line. */
-.placeLinks {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
+.placeCard a {
+  display: block;
+}
+
+.placeName,
+.placeAddress {
+  margin: 0 var(--space-2);
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-size: var(--text-sm);
+}
+
+.placeName {
+  margin-top: var(--space-1);
+  font-weight: 600;
+}
+
+.placeAddress {
+  margin-bottom: var(--space-2);
+  color: var(--text-secondary);
+}
+
+.placeName:hover,
+.placeName:focus,
+.placeAddress:hover,
+.placeAddress:focus {
+  border-bottom-color: var(--border);
+  outline: none;
 }
 
 /* The picture chosen, with its × beside its top corner, as a notice's is. */

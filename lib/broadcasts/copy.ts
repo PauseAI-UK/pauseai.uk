@@ -90,7 +90,7 @@ export const broadcastsCopy = {
       place: "Place",
     },
     // Choosing a text's place: a box for a Google Maps link or words to search for, its button, the places it
-    // found; then the place's name and address under the map, a link to check its pin, and finding another.
+    // found; then the place's name and address under the map, its map's link to check its pin, and taking it off.
     placeChooser: {
       find: "⁂ Search for a place, or paste a Google Maps link",
       findButton: "⁂ Find",
@@ -99,7 +99,7 @@ export const broadcastsCopy = {
       name: "⁂ Name",
       address: "⁂ Address",
       checkMap: "⁂ Check it on a map",
-      findAnother: "⁂ Find another",
+      remove: "⁂ Take the place off",
     },
     // Choosing a text's picture: the picture chosen, the box to drop or paste one on, its button, why a file won't
     // do, and what can change once approved.

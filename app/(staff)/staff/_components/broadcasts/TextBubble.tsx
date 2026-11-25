@@ -185,16 +185,23 @@ function LinkCardView({ card }: { card: LinkCard }) {
 function MapTop({ place }: { place: TextPlace }) {
   return (
     <div className={styles.mapTop}>
-      <svg viewBox="0 0 220 90" aria-hidden="true" className={styles.mapDrawing}>
-        <rect width="220" height="90" className={styles.mapGround} />
-        <path d="M-5 34 L225 28 M104 -5 L98 95 M0 66 L220 72" className={styles.mapRoad} />
-        <path d="M110 46 C102 34 102 22 110 22 C118 22 118 34 110 46Z" className={styles.mapPin} />
-      </svg>
+      <MapDrawing />
       <span className={styles.mapPlace}>
         <strong>{place.name}</strong>
         <span>{place.address}</span>
       </span>
     </div>
+  );
+}
+
+/** A drawing of a map with a pin in its middle, for a text's place, here and in the writer (TextTop). */
+export function MapDrawing() {
+  return (
+    <svg viewBox="0 0 220 90" aria-hidden="true" className={styles.mapDrawing}>
+      <rect width="220" height="90" className={styles.mapGround} />
+      <path d="M-5 34 L225 28 M104 -5 L98 95 M0 66 L220 72" className={styles.mapRoad} />
+      <path d="M110 46 C102 34 102 22 110 22 C118 22 118 34 110 46Z" className={styles.mapPin} />
+    </svg>
   );
 }
 

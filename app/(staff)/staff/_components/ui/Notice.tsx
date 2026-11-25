@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import IconButton from "@/components/ui/IconButton";
+import IconButton, { CrossIcon } from "@/components/ui/IconButton";
 import styles from "./Notice.module.css";
 
 /**
@@ -22,7 +22,7 @@ export default function Notice({
     <span className={styles.notice}>
       {children}
       <IconButton look="outline" size={22} className={styles.close} aria-label={close} onClick={onClose}>
-        ×
+        <CrossIcon size={12} />
       </IconButton>
     </span>
   );
