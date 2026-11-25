@@ -13,6 +13,7 @@ import { linkPagesFake } from "./fakes/link-pages";
 import { lumaFake } from "./fakes/luma";
 import { parliamentFake } from "./fakes/parliament";
 import { googleMapsFake, photonFake } from "./fakes/places";
+import { mapTilesFake } from "./fakes/map-tiles";
 import { postcodesFake } from "./fakes/postcodes";
 import { postmarkFake } from "./fakes/postmark";
 import { stripeFake } from "./fakes/stripe";
@@ -36,6 +37,7 @@ const FAKES: Fake[] = [
   linkPagesFake,
   turnstileFake,
   photonFake,
+  mapTilesFake,
   googleMapsFake,
 ];
 

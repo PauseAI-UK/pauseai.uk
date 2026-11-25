@@ -225,16 +225,16 @@ export type BroadcastWriterData = {
   templates: WhatsAppTemplate[];
   /** The WhatsApp business account's number, if one is set. */
   textNumber: string | null;
-  /** Whether a place's map is Google's, or a drawing, as a fixture build asks no one (realMaps). */
+  /** Whether a place's map is OpenStreetMap's, or a drawing, as a fixture build asks no one (realMaps). */
   realMaps: boolean;
 };
 
 /**
- * Whether the writer shows Google's map of a place: always on the live
- * site, and in a fixture build only when it asks Google Maps for real
+ * Whether the writer shows OpenStreetMap's map of a place: always on the
+ * live site, and in a fixture build only when it asks for its map for real
  * (config.realServices), as the storyboard can't reach it.
  */
-export const realMaps = () => !config.fixtures || config.realServices.includes("google-maps");
+export const realMaps = () => !config.fixtures || config.realServices.includes("map-tiles");
 
 export type BroadcastPageData =
   | ({ kind: "draft"; draft: WrittenBroadcast } & BroadcastWriterData)

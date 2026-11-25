@@ -58,9 +58,8 @@ const contentSecurityPolicy = [
   `connect-src 'self' ${[...GA_COLLECT, ...GOOGLE_ADS, TURNSTILE].join(" ")}`,
   // The MP-email and onboarding embeds, the Tally story form, and Turnstile's
   // widget. GTM's <noscript> iframe is in app/layout.tsx; td.doubleclick.net
-  // is used by Ads tags in the container. Google's maps show a text's place in
-  // the broadcast writer (PlaceMap).
-  `frame-src https://maps.google.com https://www.google.com https://pauseai.info https://tally.so https://www.googletagmanager.com https://td.doubleclick.net ${TURNSTILE}`,
+  // is used by Ads tags in the container.
+  `frame-src https://pauseai.info https://tally.so https://www.googletagmanager.com https://td.doubleclick.net ${TURNSTILE}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

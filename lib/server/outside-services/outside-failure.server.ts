@@ -17,6 +17,7 @@ export const OUTSIDE_SERVICES = {
   "google-maps": "Google Maps",
   "link-page": "A linked page",
   luma: "Luma",
+  "map-tiles": "OpenStreetMap's map",
   netlify: "Netlify",
   "ni-assembly": "The Northern Ireland Assembly",
   parliament: "Parliament",
