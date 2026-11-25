@@ -296,7 +296,7 @@ test.describe("onboarding embed", () => {
     // toolbar resizing the viewport) also shrinks it, and mustn't yank the
     // page down to the form unprompted.
     await gotoSettled(page);
-    await page.evaluate(() => window.scrollTo(0, document.getElementById("staff")!.offsetTop));
+    await page.evaluate(() => window.scrollTo(0, document.getElementById("get-involved")!.offsetTop));
     const before = await scrollSettled(page);
 
     // Stand in for the embed's own height reports. The origin check means a
