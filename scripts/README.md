@@ -63,6 +63,10 @@ Each command has a time limit and a log in `tmp/gate/`, and the gate ends with a
 
 `placeholders.mjs`, run with `npm run placeholders`, fails while any file has placeholder copy, and lists each line that does. CI and the gate run it, and Netlify's build doesn't, so a branch with placeholders still gets a deploy preview (AGENTS.md, "Never write final copy").
 
+## Lint rules
+
+`lint-try.mjs`, run with `npm run lint:try -- <rule> [<rule>…] [-- <files>]`, tries ESLint rules before they're adopted. It adds them, for that run only, beside the typed rules, so a rule that needs the types works, and prints how many lines each flags in the site's code and in its tests, then each line. A rule's options follow an `=` as JSON (`'eqeqeq=["always"]'`). With no files named it lints the whole repo, which takes a minute or two.
+
 ## Worktrees
 
 `worktree.mjs`, run with `npm run worktree -- <branch>`, fetches, adds `tmp/worktrees/<branch>` as a new branch from `origin/main`, runs `npm ci` in it and prints the ports its storyboard will serve on. It leaves the storyboard keeping main's frames in the background, for the branch's first review. With `--ports` it only prints this checkout's ports. `docs/development.md`, "Worktrees", covers it.

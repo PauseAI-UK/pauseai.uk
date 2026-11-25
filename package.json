@@ -19,6 +19,7 @@
     "lint": "eslint --max-warnings 0",
     "lint:css": "stylelint \"**/*.css\"",
     "lint:unused": "knip",
+    "lint:try": "node scripts/lint-try.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "hooks:install": "prek install",
