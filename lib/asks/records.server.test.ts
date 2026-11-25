@@ -1,4 +1,4 @@
-import { beforeEach, expect, it } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import { campaigns, copy } from "@/lib/content/email-your-mp";
 import { migrate } from "@/scripts/db-migrate.mjs";
 import {
@@ -22,6 +22,19 @@ import {
   listCampaigns,
 } from "./records.server";
 import { query } from "@/lib/server/db.server";
+
+/** Every query the code under test runs, as it ran them, to price one. */
+const ran = vi.hoisted(() => ({ queries: [] as string[] }));
+vi.mock("@/lib/server/db.server", async (original) => {
+  const db = await original<typeof import("@/lib/server/db.server")>();
+  return {
+    ...db,
+    query: (async (text: string, ...rest: unknown[]) => {
+      ran.queries.push(text);
+      return (db.query as (...args: unknown[]) => unknown)(text, ...rest);
+    }) as typeof db.query,
+  };
+});
 import { setStatus } from "@/lib/politicians/records.server";
 import { INVITED } from "./asks";
 
@@ -368,5 +381,20 @@ describeWithDatabase("migration 0061_ask_links_whole", MAKES_DATABASES, () => {
       { slug: "deepmind-letter", url: "https://pauseai.uk/campaigns/dear-sir-demis-2025" },
       { slug: "frontier-ai-letter", url: "https://pauseai.uk/pdfs/Frontier-AI-Open-Letter.pdf" },
     ]);
+  });
+});
+
+// A database of its own, as fresh as a flow's: the tests above change the asks, and with them what the
+// planner knows of the table.
+describeWithDatabase("the asks list's price", () => {
+  useTestDatabase();
+
+  it("prices the asks list under JIT's threshold on a fresh database, as CI's Postgres would compile it first", async () => {
+    ran.queries = [];
+    await asksWithCounts();
+    const [list] = ran.queries;
+    const [plan] = await query<{ "QUERY PLAN": [{ Plan: { "Total Cost": number } }] }>(`EXPLAIN (FORMAT JSON) ${list}`);
+    // jit_above_cost's default (docs/code-structure.md, "How fast a query has to be").
+    expect(plan["QUERY PLAN"][0].Plan["Total Cost"]).toBeLessThan(100_000);
   });
 });

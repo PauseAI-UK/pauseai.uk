@@ -31,7 +31,12 @@ async function views() {
       `SELECT id::int AS id, name, emails, phone, postcode, sources, luma_contact, first_seen_at, last_active_at,
          events, letters, member FROM supporters_summary ORDER BY 1`,
     ),
-    firstSeen: await query("SELECT supporter_id::int AS id, first_seen_at FROM supporter_first_seen ORDER BY 1"),
+    // Every supporter's, through their IDs as an array: the planner takes the table itself, never analysed, for
+    // hundreds of rows, and prices the view's lookup for each over JIT's threshold.
+    firstSeen: await query(
+      `SELECT supporter_id::int AS id, first_seen_at FROM supporter_first_seen
+       WHERE supporter_id = ANY(ARRAY(SELECT id FROM supporters)) ORDER BY 1`,
+    ),
     place: await query(
       "SELECT supporter_id::int AS id, place, country, basis, given, at FROM supporter_place ORDER BY 1",
     ),

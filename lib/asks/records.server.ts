@@ -64,11 +64,19 @@ export const listAsks = cache(async function listAsks(): Promise<Ask[]> {
   return query<Ask>(`SELECT ${ASK_COLUMNS} FROM asks a ORDER BY a.date DESC NULLS LAST, a.title`);
 });
 
-/** Every ask, as listAsks() orders them, with how many gave each answer. */
+/**
+ * Every ask, as listAsks() orders them, with how many gave each answer.
+ *
+ * The asks come through their slugs as an array, which the planner takes
+ * for a few rows, as there are: on a never-analysed database it takes the
+ * table itself for hundreds, and prices a dozen subqueries for each over
+ * JIT's threshold (docs/code-structure.md, "How fast a query has to be").
+ */
 export async function asksWithCounts(): Promise<AskWithCounts[]> {
   return query<AskWithCounts>(
     `SELECT ${ASK_COLUMNS}, ${ANSWER_COUNTS}, ${HOW_ASKED}
-     FROM asks a ORDER BY a.date DESC NULLS LAST, a.title`,
+     FROM unnest(ARRAY(SELECT slug FROM asks)) k (slug) JOIN asks a ON a.slug = k.slug
+     ORDER BY a.date DESC NULLS LAST, a.title`,
   );
 }
 
