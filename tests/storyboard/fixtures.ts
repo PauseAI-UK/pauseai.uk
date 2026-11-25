@@ -158,16 +158,41 @@ const HYDRATION = /hydrat|did not match|server rendered HTML/i;
 /** The contexts watchConsole is already watching. */
 const watched = new WeakSet<BrowserContext>();
 
+/** What a page logs of a promise that failed with nothing waiting on it, which it otherwise may not log at all. */
+const REJECTION = "[unhandledrejection]";
+
+/**
+ * Logs, in every page of `context`, each promise that fails with nothing
+ * waiting on it, as ErrorReporter would tell the site of it: an error thrown
+ * from our own scripts, and not Next's redirect or not-found. Next marks
+ * some such failures handled, so the browser logs nothing of them and
+ * Playwright's pageerror never hears them. The listener is the page's
+ * first, so it hears each before anything can mark it.
+ */
+async function logRejections(context: BrowserContext) {
+  await context.addInitScript((marker: string) => {
+    window.addEventListener("unhandledrejection", (event) => {
+      const reason: unknown = event.reason;
+      const digest = (reason as { digest?: unknown } | null)?.digest;
+      if (typeof digest === "string" && /^NEXT_(REDIRECT|HTTP_ERROR_FALLBACK|NOT_FOUND)/.test(digest)) return;
+      if (!(reason instanceof Error) || !reason.stack?.includes(`${window.location.origin}/_next/`)) return;
+      console.error(`${marker} ${String(reason)}\n${reason.stack}`);
+    });
+  }, REJECTION);
+}
+
 /**
  * Adds to `problems` what every page of `context` logs that a flow fails
- * on: an uncaught error, a console error from our own code (an embedded
- * site's isn't), and React's hydration messages. A page that doesn't
- * hydrate as it rendered on the server, such as one whose text depends on
- * the browser, shows nothing wrong in a picture, only here.
+ * on: an uncaught error, a promise failing with nothing waiting on it
+ * (logRejections), a console error from our own code (an embedded site's
+ * isn't), and React's hydration messages. A page that doesn't hydrate as it
+ * rendered on the server, such as one whose text depends on the browser,
+ * shows nothing wrong in a picture, only here.
  */
-function watchConsole(context: BrowserContext, problems: string[]) {
+async function watchConsole(context: BrowserContext, problems: string[]) {
   if (watched.has(context)) return;
   watched.add(context);
+  await logRejections(context);
   const watch = (page: Page) => {
     page.on("console", (message) => {
       const origin = message.location().url;
@@ -257,7 +282,7 @@ export const test = base.extend<{
       browser.newContext = async (...options) => {
         const context = await newContext.apply(browser, options);
         recordContext(context, opened);
-        watchConsole(context, consoleProblems);
+        await watchConsole(context, consoleProblems);
         if (!smoothScroll) await scrollAtOnce(context);
         return context;
       };
@@ -310,7 +335,7 @@ export const test = base.extend<{
   // Recorded here too, in case it was made before `opened` began recording every context the flow makes.
   context: async ({ context, opened, smoothScroll, consoleProblems }, provide) => {
     recordContext(context, opened);
-    watchConsole(context, consoleProblems);
+    await watchConsole(context, consoleProblems);
     if (!smoothScroll) await scrollAtOnce(context);
     await context.route(ANALYTICS_URL, (route) => route.abort());
     await provide(context);
