@@ -4,7 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { useEffect, useEffectEvent, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Select, TextInput } from "@/components/ui/Controls";
 import { useSave, useSavedChoice } from "@/components/ui/useSave";
@@ -31,6 +31,7 @@ import {
 import { named } from "@/lib/email-parsing/addresses";
 import type {
   BroadcastScheduled,
+  TemplatePair,
   WhatsAppTemplate,
   TemplateDeleteResult,
   TemplateRefusal,
@@ -203,6 +204,9 @@ export function templateOption(template: WhatsAppTemplate, uses: TemplateUses): 
     ],
   };
 }
+
+/** A pair of templates as the dropdown has it: both, and who the second version is for. */
+const pairValue = (pair: TemplatePair) => `pair:${pair.own}:${pair.version}:${pair.condition}`;
 
 /** A copy of template `name`'s name, numbered after any of `names` that copy it already. */
 function copyName(name: string, names: string[]): string {
@@ -717,6 +721,10 @@ export default function BroadcastWriter({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const body = useMemo(() => checkMailingDoc(values.body) ?? EMPTY_MAILING_DOC, [values.body]);
   const template = data.templates.find((one) => one.id === values.templateId);
+  const byId = (id: number) => data.templates.find((one) => one.id === id);
+  // The pairs whose templates the page has, each chosen as one; their templates aren't offered alone.
+  const pairs = data.pairs.filter((pair) => byId(pair.own) && byId(pair.version));
+  const paired = new Set(pairs.flatMap((pair) => [pair.own, pair.version]));
   const words: Words = email ? "email" : writingNew ? "new" : template ? "chosen" : "none";
   const written = email
     ? !isBlankMailing(body) && JSON.stringify(body) !== JSON.stringify(start)
@@ -732,11 +740,35 @@ export default function BroadcastWriter({
   // A text's second version, and which of its two is open.
   const textVersion = email ? null : values.textVersion;
   const [side, setSide] = useState<VersionSide>("only");
+  // The preview's toggle, which switches the tabs above it too, changing how tall Write is: kept where it was on the
+  // screen, so the page doesn't jump under the pointer.
+  const kept = useRef<{ element: Element; top: number } | null>(null);
+  const keepInPlace = () => {
+    const pressed = document.activeElement!;
+    kept.current = { element: pressed, top: pressed.getBoundingClientRect().top };
+  };
+  useLayoutEffect(() => {
+    const place = kept.current;
+    if (!place) return;
+    kept.current = null;
+    // Now, and each frame for a moment after, as the open tab's editor fills in after it's drawn.
+    const hold = () => window.scrollBy(0, place.element.getBoundingClientRect().top - place.top);
+    hold();
+    let frames = 30;
+    const next = () => {
+      hold();
+      if (--frames > 0) frame = requestAnimationFrame(next);
+    };
+    let frame = requestAnimationFrame(next);
+    return () => cancelAnimationFrame(frame);
+  }, [side]);
   // Made anew when its words are put in from the second version, as an editor reads its words once.
   const [ownKey, setOwnKey] = useState(0);
   const versionLabel = useId();
   const condition = textVersion && data.conditions.find((one) => one.id === textVersion.condition);
   const versionWho = condition?.label ?? textVersion?.condition ?? "";
+  // Who a pair's second version is for, as its tab says it, or its condition where the parts don't have it.
+  const conditionWords = (id: string) => data.conditions.find((one) => one.id === id)?.label ?? id;
   const versionCovers = condition?.covers ?? 0;
   // The second version's words are WhatsApp's to review: they can't change till it decides. Once it approves them,
   // or they're an approved template's, they're that template's, as a chosen template's are, till edited as new.
@@ -744,8 +776,14 @@ export default function BroadcastWriter({
   const versionTemplate =
     textVersion?.templateId != null ? data.templates.find((one) => one.id === textVersion.templateId) : undefined;
   const versionFixed = versionLocked || Boolean(versionTemplate);
+  // The pair the text and its second version are, if they're one, which the dropdown shows as chosen.
+  const chosenPair = pairs.find(
+    (pair) =>
+      pair.own === values.templateId &&
+      pair.version === textVersion?.templateId &&
+      pair.condition === textVersion.condition,
+  );
   const ownParts = { body, header: values.header, buttons: values.buttons };
-  const templateCount = textVersion && !sameTemplate(textVersion, ownParts) ? 2 : 1;
   // How many templates Send for approval sends: new words of its own, and a second version that's neither the same
   // template nor one WhatsApp has (submitTemplate).
   const versionHas =
@@ -764,7 +802,7 @@ export default function BroadcastWriter({
   // again. Only as they're changed, so Edit as a new template, which starts from its words, stays new.
   const changeOwn = (patch: Partial<Pick<Changes, "body" | "header" | "place" | "pictureId" | "buttons">>) => {
     const same = !email && writingNew && !waiting ? approvedLike({ ...ownParts, ...patch }) : undefined;
-    if (same) chooseWords(String(same.id));
+    if (same) takeTemplate(same);
     else change(patch);
   };
   // The same for the second version's, which takes the template's ID, as its words, top and buttons are already its.
@@ -884,35 +922,58 @@ export default function BroadcastWriter({
     ) : (
       children
     );
-  // Choosing a template takes its words, name, top and buttons; new words, and their name, are kept while one is
-  // chosen.
+  // Taking a template: its words, name, top and buttons, and `more`; new words, and their name, are kept while one is.
+  const takeTemplate = (one: WhatsAppTemplate, more: Partial<Changes> = {}) => {
+    if (writingNew) {
+      newWords.current = body;
+      newName.current = values.title;
+    }
+    change({ templateId: one.id, body: one.body, title: one.name, header: one.header, buttons: one.buttons, ...more });
+    setWritingNew(false);
+  };
+  // Choosing in the dropdown: new words; a pair, both its templates, as the text and its second version for those
+  // its condition is; or one template, as the whole text, so no second version is left from another choice.
   const chooseWords = (value: string) => {
     if (value === "new") {
       change({ templateId: null, body: newWords.current, title: newName.current });
       setWritingNew(true);
       return;
     }
-    const one = data.templates.find((t) => t.id === Number(value))!;
-    if (writingNew) {
-      newWords.current = body;
-      newName.current = values.title;
+    const pair = pairs.find((one) => pairValue(one) === value);
+    if (pair) {
+      const version = byId(pair.version)!;
+      takeTemplate(byId(pair.own)!, {
+        title: pair.title,
+        textVersion: {
+          condition: pair.condition,
+          body: version.body,
+          templateId: version.id,
+          header: version.header,
+          place: null,
+          pictureId: null,
+          buttons: version.buttons,
+        },
+      });
+      setSide("only");
+      return;
     }
-    change({ templateId: one.id, body: one.body, title: one.name, header: one.header, buttons: one.buttons });
-    setWritingNew(false);
+    takeTemplate(byId(Number(value))!, { textVersion: null });
   };
   // The new words sent for approval: once WhatsApp approves them, with the page still open, they're that template,
   // chosen, their words fixed, as on a page loaded after.
   const sent = useRef<number | null>(null);
+  // Taken once the page's list of approved templates has it, which may come after the draft says it's approved.
   const takeApproved = useEffectEvent((id: number) => {
-    if (writingNew && data.templates.some((one) => one.id === id)) chooseWords(String(id));
+    const approved = byId(id);
+    if (!approved) return;
+    sent.current = null;
+    takeTemplate(approved);
   });
   useEffect(() => {
     if (waiting) sent.current = waiting.id;
-    else if (draft.template?.status === "approved" && draft.template.id === sent.current) {
-      sent.current = null;
+    else if (draft.template?.status === "approved" && draft.template.id === sent.current)
       takeApproved(draft.template.id);
-    }
-  }, [waiting, draft.template]);
+  }, [waiting, draft.template, data.templates]);
   // As the page has them, this draft has its template saved: how many others have each.
   const others = (one: WhatsAppTemplate): TemplateUses =>
     draft.template?.id === one.id ? { ...one.uses, drafts: one.uses.drafts - 1 } : one.uses;
@@ -1020,9 +1081,11 @@ export default function BroadcastWriter({
             fixed={versionFixed}
           />
           {versionTemplate && (
-            <Button variant="ghost" size="small" fit onClick={() => setVersion({ templateId: null })}>
-              {copy.editTemplate}
-            </Button>
+            <div className={own.templateActions}>
+              <Button variant="ghost" size="small" fit onClick={() => setVersion({ templateId: null })}>
+                {copy.editTemplate}
+              </Button>
+            </div>
           )}
         </div>
       );
@@ -1221,13 +1284,25 @@ export default function BroadcastWriter({
                       id={picker}
                       label={copy.templateLabel}
                       placeholder={copy.pickTemplate}
-                      value={writingNew ? "new" : template ? String(template.id) : ""}
+                      value={
+                        writingNew ? "new" : chosenPair ? pairValue(chosenPair) : template ? String(template.id) : ""
+                      }
                       disabled={Boolean(waiting)}
-                      options={data.templates.map((one) => ({
-                        value: String(one.id),
-                        label: one.name,
-                        ...templateOption(one, others(one)),
-                      }))}
+                      options={[
+                        ...pairs.map((pair) => ({
+                          value: pairValue(pair),
+                          label: pair.title,
+                          ...templateOption(byId(pair.own)!, others(byId(pair.own)!)),
+                          tag: conditionWords(pair.condition),
+                        })),
+                        ...data.templates
+                          .filter((one) => !paired.has(one.id))
+                          .map((one) => ({
+                            value: String(one.id),
+                            label: one.name,
+                            ...templateOption(one, others(one)),
+                          })),
+                      ]}
                       last={{ value: "new", label: copy.newTemplate }}
                       onChange={chooseWords}
                     />
@@ -1241,7 +1316,7 @@ export default function BroadcastWriter({
                         <Button variant="ghost" size="small" fit onClick={() => editTemplate(template)}>
                           {copy.editTemplate}
                         </Button>
-                        {unused(template) && (
+                        {unused(template) && !textVersion && (
                           <DeleteTwice
                             name="template"
                             value={String(template.id)}
@@ -1285,7 +1360,7 @@ export default function BroadcastWriter({
                       counts={{ only: versionCovers, except: data.count - versionCovers }}
                       open={side}
                       onOpen={setSide}
-                      templates={templateCount}
+                      templates={toSubmit}
                       onForEveryone={versionLocked ? undefined : keepOpen}
                     >
                       {versionParts(side)}
@@ -1338,7 +1413,10 @@ export default function BroadcastWriter({
                         : null,
                     buttons: inOrder(textVersion.buttons).map((button) => button.text),
                     met: side === "only",
-                    onMet: (met) => setSide(met ? "only" : "except"),
+                    onMet: (met) => {
+                      keepInPlace();
+                      setSide(met ? "only" : "except");
+                    },
                   }
                 }
                 approval={
@@ -1443,7 +1521,7 @@ export default function BroadcastWriter({
                   it's scheduled, unless they're with it already. */}
               <ProblemList
                 problems={shownProblems.map((problem) => copy.problems[problem])}
-                notes={words === "new" && !waiting ? [copy.schedulesForApproval(templateCount)] : []}
+                notes={words === "new" && !waiting ? [copy.schedulesForApproval(toSubmit)] : []}
               />
             </Card>
           </>,

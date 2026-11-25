@@ -1500,6 +1500,18 @@ describeWithDatabase("sending texts", () => {
       expect(await stateOf(id)).toEqual({ state: "scheduled", waiting: true, reason: "approval", gaveUp: false });
     });
 
+    it("sends nothing of one whose second version WhatsApp rejected, though the text's own is approved", async () => {
+      await janeAndSam();
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      await versionOf(id, "rejected");
+      await startDueBroadcasts();
+      await sendDueBroadcasts(LATER);
+      expect(sent).toEqual([]);
+      expect(await stateOf(id)).toMatchObject({ state: "cancelled", gaveUp: true, reason: "template" });
+    });
+
     it("stops one whose second version has no approved template when it sends", async () => {
       await janeAndSam();
       const sent = whatsApp();

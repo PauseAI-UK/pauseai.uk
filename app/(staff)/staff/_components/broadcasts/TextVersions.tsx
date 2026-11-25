@@ -17,8 +17,8 @@ export type VersionSide = "only" | "except";
  * A text's two versions, once it has a condition: a tab each, in the look
  * of an email's parts, worded as the preview's toggle (`who`), with how
  * many each goes to, on one line, cut short where it's too long, as the
- * box under them says it whole; beside them, how many templates they go to WhatsApp
- * as. The open one's words, top and buttons (`children`) are in its part's
+ * box under them says it whole; beside them, how many templates go to WhatsApp
+ * for approval, while any do. The open one's words, top and buttons (`children`) are in its part's
  * box, whose × makes it the text for everyone, the other version gone.
  */
 export default function TextVersions({
@@ -34,7 +34,7 @@ export default function TextVersions({
   counts: Record<VersionSide, number>;
   open: VersionSide;
   onOpen: (side: VersionSide) => void;
-  /** How many templates the two go to WhatsApp as: two, or one when they'd be the same. */
+  /** How many templates go to WhatsApp for approval: two, one, or none once it has them all. */
   templates: number;
   onForEveryone?: () => void;
   children: ReactNode;
@@ -59,7 +59,7 @@ export default function TextVersions({
             </button>
           ))}
         </div>
-        <span className={styles.templates}>{copy.templates(templates)}</span>
+        {templates > 0 && <span className={styles.templates}>{copy.templates(templates)}</span>}
       </div>
       <PartBox
         label={open === "only" ? parts.onlyForLabel(who) : parts.exceptLabel(who)}

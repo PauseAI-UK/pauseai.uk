@@ -12,6 +12,7 @@ import { toNotifications } from "@/tests/notifications";
 import { getWrittenMailing, saveDraft } from "@/lib/mailings/drafts.server";
 import {
   approvedTemplates,
+  templatePairs,
   deleteApprovedTemplate,
   changeBroadcastConsent,
   changeBroadcastFilter,
@@ -650,12 +651,36 @@ describeWithDatabase("broadcasts to supporters", () => {
       });
     });
 
-    it("sends a second version's words for approval as a template of its own, each named for who it's for", async () => {
+    it("lists each pair of approved templates a text has had, by the newest text's title, newest first", async () => {
+      const own = await addTemplate("Own");
+      const version = await addTemplate("Theirs");
+      const pending = await addTemplate("Waiting", { status: "pending" });
+      const had = async (title: string, ownId: number, versionId: number, condition = registeredFor("evt-1")) => {
+        const id = await draftOf(TEXT_FILTER);
+        await query("UPDATE mailings SET template_id = $2, title = $3 WHERE id = $1", [id, ownId, title]);
+        await query(
+          "INSERT INTO broadcast_versions (mailing_id, condition, body, template_id) VALUES ($1, $2, $3, $4)",
+          [id, condition, JSON.stringify(SATURDAY), versionId],
+        );
+      };
+      await had("Older", own, version);
+      await had("Newer", own, version);
+      await had("For writers", own, version, "wrote:regulate-ai");
+      // Not a pair: one not approved, and one template for both.
+      await had("Waiting", own, pending);
+      await had("One for both", own, own);
+      expect(await templatePairs()).toEqual([
+        { own, version, condition: "wrote:regulate-ai", title: "For writers" },
+        { own, version, condition: registeredFor("evt-1"), title: "Newer" },
+      ]);
+    });
+
+    it("sends a second version's words for approval as a template of its own, each named for who it's for, without the title's full stop", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const id = await draftOf(TEXT_FILTER);
       await readied(id, {
         body: EVENT_WORDS,
-        title: "March day",
+        title: "March day.",
         header: "location",
         place: PLACE,
         textVersion: versionOf(),

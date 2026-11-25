@@ -22,6 +22,7 @@ import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy"
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { registeredFor } from "@/lib/broadcasts/broadcasts";
 import { emailCopy } from "@/lib/email/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
@@ -769,6 +770,59 @@ test("A text with a picture at its top", async ({ page, request, flowDatabase })
     "What went to WhatsApp for approval",
     `Sent to WhatsApp for approval: ${template}`,
   );
+});
+
+/**
+ * A text that went out on a pair of approved templates, as `database` keeps it: draft `id` made the text, on its own
+ * template, with a second version for those who registered for the past London march, on a template of its own.
+ */
+function addPair(database: string, id: number) {
+  const words = (text: string) =>
+    `jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', '${text}')))))`;
+  runSql(
+    database,
+    `WITH own AS (
+       INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, footer)
+       VALUES ('We are flyering on Saturday, for all but those who registered', ${words("We are flyering on Saturday. Could you spare an hour?")},
+         'approved', 'jo@pauseai.uk', '2026-10-01T10:00:00Z', '${TEMPLATE_FOOTER}') RETURNING id
+     ), theirs AS (
+       INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, footer)
+       VALUES ('We are flyering on Saturday, for those who registered', ${words("Thank you for marching. We are flyering on Saturday.")},
+         'approved', 'jo@pauseai.uk', '2026-10-01T10:00:00Z', '${TEMPLATE_FOOTER}') RETURNING id, body
+     ), made AS (
+       UPDATE mailings SET template_id = (SELECT id FROM own), title = 'We are flyering on Saturday.'
+       WHERE id = ${id}
+     )
+     INSERT INTO broadcast_versions (mailing_id, condition, body, template_id)
+     SELECT ${id}, '${registeredFor("evt-fixture-past-london-march")}', body, id FROM theirs`,
+  );
+}
+
+test("A pair of templates chosen again", async ({ page, request, flowDatabase }) => {
+  story(
+    "A text went out before as a pair of templates WhatsApp approved: its own, and a second version for those who went to the London march. Staff choose the pair again, as one.",
+  );
+  await importLuma(request, BASE);
+  addTemplates(flowDatabase);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  addPair(flowDatabase, Number(new URL(page.url()).pathname.split("/").pop()));
+  await startFromList(page, TEXT, TEXTABLE);
+  await templateBox(page).click();
+  const pair = page.getByRole("button", { name: "We are flyering on Saturday.", exact: true });
+  await expect(pair).toBeVisible();
+  await frame(page, "The pair in the list, marked with who its version is for", { window: true });
+  story(
+    "Choosing it brings both: the text's own words, and a tab for the version, with its words, as WhatsApp approved them.",
+  );
+  await savedAfter(page, () => pair.click());
+  await expect(page.getByRole("tab").first()).toBeVisible();
+  await page.getByRole("tab").first().scrollIntoViewIfNeeded();
+  await frame(page, "Both chosen: the version's tab open", { window: true });
+  story("Choosing one template alone makes it the whole text again, the version gone.");
+  await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  await frame(page, "One template alone, no version", { window: true });
 });
 
 test("A text with a second version for some", async ({ page, request, flowDatabase }) => {

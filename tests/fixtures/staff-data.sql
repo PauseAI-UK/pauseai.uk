@@ -1267,6 +1267,20 @@ SELECT id, 'event:evt-fixture-past-london-march',
   '00000000-0000-4000-8000-000000000001', buttons
 FROM mailings WHERE audience = 'supporters' AND title = 'The stall needs a hand on Saturday.';
 
+-- The flyering text went out as a pair of approved templates: its own, and a
+-- second version thanking those who went to the London march, on a template of
+-- its own; so the two can be chosen again as one.
+WITH version AS (
+  INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, created_at, footer)
+  VALUES ('We are flyering on Saturday, for those who registered for “PauseAI London March”',
+    pg_temp.seed_words('thank you for marching. We are flyering on Saturday. Could you spare an hour?'), 'approved',
+    'jo@pauseai.uk', now() - interval '50 days', now() - interval '51 days', 'Reply STOP to stop these texts')
+  RETURNING id, body
+)
+INSERT INTO broadcast_versions (mailing_id, condition, body, template_id)
+SELECT m.id, 'event:evt-fixture-past-london-march', version.body, version.id
+FROM mailings m, version WHERE m.audience = 'supporters' AND m.title = 'We are flyering on Saturday.';
+
 -- Each copy of those sent, sending or stopped, as sending left it: one for
 -- each supporter the broadcast's Consent found when it went, at their
 -- address or number that said yes. Every way one can go: delivered, a text

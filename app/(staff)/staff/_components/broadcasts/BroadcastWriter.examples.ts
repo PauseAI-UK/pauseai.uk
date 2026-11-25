@@ -224,6 +224,7 @@ export const exampleBroadcastData: BroadcastWriterData = {
   textsSend: true,
   templates: exampleTemplates,
   textNumber: "+447700900000",
+  pairs: [],
   realMaps: false,
 };
 

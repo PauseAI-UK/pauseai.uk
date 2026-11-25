@@ -195,6 +195,28 @@ export async function approvedTemplates(): Promise<WhatsAppTemplate[]> {
   );
 }
 
+/**
+ * Two approved templates a text has gone out on together, its own and its
+ * second version's, for those who meet `condition`: chosen again as one, as
+ * neither is the whole text alone. `title` is the newest such text's.
+ */
+export type TemplatePair = { own: number; version: number; condition: string; title: string };
+
+/** Each pair of approved templates a text has had, with the newest text's title, newest first. */
+export async function templatePairs(): Promise<TemplatePair[]> {
+  return query<TemplatePair>(
+    `SELECT own, version, condition, title FROM (
+       SELECT DISTINCT ON (m.template_id, v.template_id, v.condition)
+         m.template_id::int AS own, v.template_id::int AS version, v.condition, m.title, m.id
+       FROM broadcast_versions v JOIN mailings m ON m.id = v.mailing_id
+       JOIN whatsapp_templates o ON o.id = m.template_id AND o.status = 'approved'
+       JOIN whatsapp_templates t ON t.id = v.template_id AND t.status = 'approved'
+       WHERE m.template_id <> v.template_id
+       ORDER BY m.template_id, v.template_id, v.condition, m.id DESC
+     ) p ORDER BY id DESC`,
+  );
+}
+
 /** A broadcast's topics, in a query of `mailings`: its first (`topic`), then the others (`also_topics`). */
 export const TOPICS_OF = "array_prepend(topic, also_topics)";
 
@@ -895,8 +917,11 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     const who = version ? (labels[version.condition] ?? version.condition) : "";
     const split = Boolean(version) && !sameTemplate(version!, broadcast);
     const pages = broadcastsCopy.broadcastPages;
+    // A name followed by who it's for, without the full stop a title can end with.
+    let base = name;
+    while (/[\s.!?,;:]$/.test(base)) base = base.slice(0, -1);
     const ownId = mine
-      ? await add(broadcast, split ? pages.othersTemplateName(name, who) : name)
+      ? await add(broadcast, split ? pages.othersTemplateName(base, who) : name)
       : broadcast.template!.id;
     await query(
       "UPDATE mailings SET template_id = $2, title = $3, updated_at = now() WHERE id = $1",
@@ -904,7 +929,7 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
       db,
     );
     if (theirs) {
-      const versionId = split ? await add(version!, pages.versionTemplateName(name, who)) : ownId;
+      const versionId = split ? await add(version!, pages.versionTemplateName(base, who)) : ownId;
       await query("UPDATE broadcast_versions SET template_id = $2 WHERE mailing_id = $1", [id, versionId], db);
     }
     return {

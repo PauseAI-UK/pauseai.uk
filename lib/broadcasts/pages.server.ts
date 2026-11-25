@@ -30,6 +30,8 @@ import {
   broadcastSender,
   TOPICS_OF,
   getWrittenBroadcast,
+  templatePairs,
+  type TemplatePair,
   type WhatsAppTemplate,
   type WrittenBroadcast,
 } from "./drafts.server";
@@ -225,6 +227,8 @@ export type BroadcastWriterData = {
   templates: WhatsAppTemplate[];
   /** The WhatsApp business account's number, if one is set. */
   textNumber: string | null;
+  /** The pairs of approved templates texts have gone out on, to choose again as one (templatePairs). */
+  pairs: TemplatePair[];
   /** Whether a place's map is OpenStreetMap's, or a drawing, as a fixture build asks no one (realMaps). */
   realMaps: boolean;
 };
@@ -257,13 +261,14 @@ export type BroadcastPageData =
 
 /** What a draft's writer shows, each part asked for at once, as changing its Consent waits for it all. */
 async function writerData(draft: WrittenBroadcast, me: string): Promise<BroadcastWriterData> {
-  const [audience, unknown, choices, sender, templates, textNumber] = await Promise.all([
+  const [audience, unknown, choices, sender, templates, textNumber, pairs] = await Promise.all([
     supporterAudience(draft.filter, draft),
     filterProblems(draft.filter),
     supporterChoices(),
     broadcastSender(draft),
     approvedTemplates(),
     textSenderNumber(),
+    templatePairs(),
   ]);
   return {
     filter: draft.filter,
@@ -278,6 +283,7 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
     textsSend: channelSends("text"),
     templates,
     textNumber,
+    pairs,
     realMaps: realMaps(),
   };
 }
@@ -291,12 +297,13 @@ export async function newBroadcastPageData(
   me: string,
 ): Promise<{ draft: WrittenBroadcast; data: BroadcastWriterData }> {
   const start = { channel: "email", sendBy: DEFAULT_SEND_BY, sentFrom: BROADCAST_SENDER.email } as const;
-  const [choices, sender, templates, parts, textNumber] = await Promise.all([
+  const [choices, sender, templates, parts, textNumber, pairs] = await Promise.all([
     supporterChoices(),
     broadcastSender(start),
     approvedTemplates(),
     broadcastParts(),
     textSenderNumber(),
+    templatePairs(),
   ]);
   const filter = storedFilter("supporters", {});
   return {
@@ -341,6 +348,7 @@ export async function newBroadcastPageData(
       textsSend: channelSends("text"),
       templates,
       textNumber,
+      pairs,
       realMaps: realMaps(),
     },
   };
