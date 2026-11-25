@@ -38,16 +38,41 @@ function footerOf(database: string, name: string): string | undefined {
   return footer;
 }
 
-/** What a text shows: its template's words filled in, with its footer; or words of our own. */
+/** A template's header and buttons, by the name WhatsApp has it by. */
+function partsOf(database: string, name: string): { header: string; buttons: TextShown["buttons"] } {
+  const [row] = runSql(
+    database,
+    `SELECT coalesce(header, '') || '|' || buttons::text FROM whatsapp_templates WHERE coalesce(meta_name, name) = '${name}'`,
+  );
+  const [header, buttons] = [row!.slice(0, row!.indexOf("|")), row!.slice(row!.indexOf("|") + 1)];
+  return { header, buttons: JSON.parse(buttons) as TextShown["buttons"] };
+}
+
+/** What a text shows: its template's words filled in, with its footer, header and buttons; or words of our own. */
 export function shownText(database: string, text: OutboxText): TextShown {
   if ("words" in text) return { words: text.words };
-  const { name, params } = text.template;
-  return { words: filledTemplate(templateWords(database, name), params), footer: footerOf(database, name) };
+  const { name, params, place, picture } = text.template;
+  const { buttons } = partsOf(database, name);
+  const top = place ? { map: place } : picture ? { picture: "Picture" } : undefined;
+  return {
+    words: filledTemplate(templateWords(database, name), params),
+    footer: footerOf(database, name),
+    top,
+    buttons,
+  };
 }
 
 /** A template as it went to WhatsApp for approval: its words, each field as {{first_name}}, with its footer. */
 export function templateSent(database: string, name: string): TextShown {
-  return { words: templateWords(database, name), footer: footerOf(database, name) };
+  const { header, buttons } = partsOf(database, name);
+  // The place and the picture aren't the template's: each text gives its own.
+  const top =
+    header === "location"
+      ? { map: { name: "A place", address: "given with each text" } }
+      : header === "image"
+        ? { picture: "A picture, given with each text" }
+        : undefined;
+  return { words: templateWords(database, name), footer: footerOf(database, name), top, buttons };
 }
 
 /**
