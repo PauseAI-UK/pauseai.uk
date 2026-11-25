@@ -54,9 +54,13 @@ function addressOf(p: Properties): string {
   return [street, p.locality ?? p.district, town, country].filter(Boolean).join(", ");
 }
 
-/** Photon's features, from its answer, or a failure for one that isn't ok. */
+/**
+ * Photon's features, from its answer, or a failure for one that isn't ok.
+ * Its public server is often busy for a moment, so a 503 is asked again,
+ * twice, a little later each time.
+ */
 async function features(url: string): Promise<Feature[]> {
-  const res = await outsideFetch(PHOTON, url, { headers: { accept: "application/json" } });
+  const res = await outsideFetch(PHOTON, url, { headers: { accept: "application/json" }, retries: 2 });
   if (!res.ok) throw refusal("photon", res, { asked: new URL(url).pathname });
   return ((await outsideJson("photon", res))?.features ?? []) as Feature[];
 }
