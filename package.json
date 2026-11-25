@@ -30,6 +30,7 @@
     "coverage:ci": "node scripts/coverage-ci.mjs",
     "coverage:timing": "node scripts/coverage-timing.mjs",
     "query-costs": "node scripts/query-costs.mjs",
+    "widths": "node scripts/widths.mjs",
     "test:watch": "vitest",
     "test:storyboard": "node scripts/fixture-server.mjs && playwright test",
     "storyboard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/storyboard.mjs",
