@@ -169,6 +169,7 @@ function PictureChooser({
   return (
     <div className={styles.form}>
       <div className={styles.pictureRow}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent */}
         {pictureId && <img className={styles.shown} src={pictureSource(pictureId)} alt={words.shown} />}
         <DropArea
           hint={pictureId ? words.dropAnother : words.drop}
