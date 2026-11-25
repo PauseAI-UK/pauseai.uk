@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import IconButton, { CrossIcon } from "@/components/ui/IconButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
@@ -29,13 +29,54 @@ export type UploadPicture = (
 export const pictureSource = (id: string) => (id.startsWith("data:") ? id : `/api/text-pictures/${id}`);
 
 /**
+ * A place's name or address under its map: words on one line that wrap, as
+ * WhatsApp's do, in a box that grows a line at a time to show them all,
+ * with no new line of their own (Enter makes none, and a pasted one is a
+ * space).
+ */
+function PlaceWords({
+  className,
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  className: string;
+  label: string;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const box = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const words = box.current!;
+    words.style.height = "auto";
+    words.style.height = `${words.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={box}
+      className={className}
+      aria-label={label}
+      rows={1}
+      value={value}
+      disabled={disabled}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.preventDefault();
+      }}
+      onChange={(event) => onChange(event.target.value.replace(/\s*\n\s*/g, " "))}
+    />
+  );
+}
+
+/**
  * The place a text's map shows: till one is chosen, a box for a Google Maps
  * link or words to search for, then the places found, to choose one. Once
  * one is chosen, the place as WhatsApp shows it, a map with its name and
  * address under it, and a × beside it, as a picture has, that takes it off
  * for the box again. The map opens Google Maps at its pin, to check it's the
- * right spot; the name and address are boxes that look like words, to
- * change so they say where exactly. A place can change after approval, as
+ * right spot; the name and address are boxes that look like words, and wrap
+ * as they do (PlaceWords), to change so they say where exactly. A place can change after approval, as
  * each send gives it.
  */
 function PlaceChooser({
@@ -71,19 +112,19 @@ function PlaceChooser({
       <div className={styles.shownBox}>
         <div className={styles.placeCard}>
           <PlaceMap place={place} />
-          <input
+          <PlaceWords
             className={styles.placeName}
-            aria-label={words.name}
+            label={words.name}
             value={place.name}
             disabled={disabled}
-            onChange={(event) => onChange({ ...place, name: event.target.value })}
+            onChange={(name) => onChange({ ...place, name })}
           />
-          <input
+          <PlaceWords
             className={styles.placeAddress}
-            aria-label={words.address}
+            label={words.address}
             value={place.address}
             disabled={disabled}
-            onChange={(event) => onChange({ ...place, address: event.target.value })}
+            onChange={(address) => onChange({ ...place, address })}
           />
         </div>
         {!disabled && (
