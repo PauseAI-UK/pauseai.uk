@@ -30,12 +30,13 @@ describe("TextButtons", () => {
     expect(onChange).toHaveBeenLastCalledWith([{ text: "", url: "" }]);
   });
 
-  it("puts each button in a row of a table under its heading: its kind, its words, a link's address, and Remove", async () => {
+  it("puts each button in a row of a table under its heading, with no column headings: its kind, its words, a link's address, and Remove", async () => {
     await render(<TextButtons buttons={[...replies("Yes"), link("Details")]} onChange={() => {}} />);
     await expect.element(page.getByRole("table", { name: copy.heading })).toBeVisible();
-    for (const heading of [copy.kind, copy.words, copy.address]) {
-      await expect.element(page.getByRole("columnheader", { name: heading })).toBeVisible();
-    }
+    // No column headings: each box says what goes in it.
+    expect(page.getByRole("columnheader").all()).toHaveLength(0);
+    await expect.element(boxes().first()).toHaveAttribute("placeholder", copy.words);
+    await expect.element(addresses()).toHaveAttribute("placeholder", copy.address);
     expect(kinds()).toEqual([copy.reply, copy.link]);
     expect(boxes().all()).toHaveLength(2);
     expect(addresses().all()).toHaveLength(1);
@@ -100,7 +101,6 @@ describe("TextButtons", () => {
     await expect.element(boxes().first()).toBeDisabled();
     await expect.element(boxes().first()).toHaveValue("Yes");
     await expect.element(addresses()).toBeDisabled();
-    expect(page.getByRole("columnheader").all()).toHaveLength(3);
     expect(addReply().query()).toBeNull();
     expect(addLink().query()).toBeNull();
     expect(page.getByRole("button", { name: copy.remove }).query()).toBeNull();

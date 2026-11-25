@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import IconButton from "@/components/ui/IconButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
 import { Field, Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
@@ -137,9 +138,10 @@ function PlaceChooser({
 }
 
 /**
- * The picture at a text's top: once there is one, the picture, small, and
- * beside it a box to drop one on, or choose one, in its place. One pasted anywhere in
- * the writer's Write card comes here too (BroadcastWriter). A picture can
+ * The picture at a text's top: a box to drop one on, or choose one; once
+ * there is one, the picture, small, with a × in its corner that takes it
+ * off, for the box again. One pasted anywhere in the writer's Write card
+ * comes here too, in place of any there (BroadcastWriter). A picture can
  * change after approval, as each send gives it.
  */
 function PictureChooser({
@@ -149,7 +151,7 @@ function PictureChooser({
   disabled,
 }: {
   pictureId: string | null;
-  onChange: (pictureId: string) => void;
+  onChange: (pictureId: string | null) => void;
   uploadPicture: UploadPicture;
   disabled: boolean;
 }) {
@@ -168,17 +170,32 @@ function PictureChooser({
   };
   return (
     <div className={styles.form}>
-      <div className={styles.pictureRow}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent */}
-        {pictureId && <img className={styles.shown} src={pictureSource(pictureId)} alt={words.shown} />}
+      {pictureId ? (
+        <div className={styles.shownBox}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent */}
+          <img className={styles.shown} src={pictureSource(pictureId)} alt={words.shown} />
+          {!disabled && (
+            <IconButton
+              look="outline"
+              size={22}
+              className={styles.remove}
+              aria-label={words.remove}
+              title={words.remove}
+              onClick={() => onChange(null)}
+            >
+              ×
+            </IconButton>
+          )}
+        </div>
+      ) : (
         <DropArea
-          hint={pictureId ? words.dropAnother : words.drop}
+          hint={words.drop}
           choose={words.choose}
           accept="image/jpeg,image/png"
           pending={uploading}
           onFiles={(files) => void upload(files)}
         />
-      </div>
+      )}
       {refusal && <p className={styles.refusal}>{words.refusals[refusal]}</p>}
       {pictureId && <Hint>{words.changeable}</Hint>}
     </div>

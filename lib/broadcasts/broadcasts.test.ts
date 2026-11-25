@@ -657,9 +657,9 @@ describe("broadcastScheduleProblems", () => {
     const text = { ...good, channel: "text" as const };
     expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }] })).toEqual([]);
     expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }, { text: " " }] })).toEqual([
-      "button-words",
+      "button-no-words",
     ]);
-    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "x".repeat(26) }] })).toEqual(["button-words"]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "x".repeat(26) }] })).toEqual(["button-too-long"]);
     expect(broadcastScheduleProblems({ ...good, buttons: [{ text: "" }] })).toEqual([]);
   });
 
@@ -667,8 +667,11 @@ describe("broadcastScheduleProblems", () => {
     const text = { ...good, channel: "text" as const };
     const link = { text: "Read", url: "https://pauseai.uk/news" };
     expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }, link, link] })).toEqual([]);
-    expect(broadcastScheduleProblems({ ...text, buttons: [{ ...link, url: "pauseai.uk" }] })).toEqual(["button-words"]);
-    expect(broadcastScheduleProblems({ ...text, buttons: [link, link, link] })).toEqual(["button-words"]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ ...link, url: "" }] })).toEqual(["link-no-address"]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ ...link, url: "pauseai.uk" }] })).toEqual([
+      "link-not-address",
+    ]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [link, link, link] })).toEqual(["too-many-links"]);
   });
 
   it("checks a text's second version as it does its first", () => {
@@ -698,7 +701,7 @@ describe("broadcastScheduleProblems", () => {
     expect(problems({ approved: false, sameWords: true })).toEqual(["same-words"]);
     expect(problems({ header: "location" })).toEqual(["no-place"]);
     expect(problems({ header: "image" })).toEqual(["no-picture"]);
-    expect(problems({ buttons: [{ text: "" }] })).toEqual(["button-words"]);
+    expect(problems({ buttons: [{ text: "" }] })).toEqual(["button-no-words"]);
     // An email has no versions to check.
     expect(broadcastScheduleProblems({ ...good, textVersion: { ...version, body: EMPTY_MAILING_DOC } })).toEqual([]);
   });

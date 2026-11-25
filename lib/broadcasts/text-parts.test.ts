@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { type MailingDoc } from "@/lib/mailings/doc";
 import {
-  buttonsFit,
+  BUTTON_PROBLEMS,
+  buttonProblems,
   buttonsFrom,
   headerFrom,
   inOrder,
@@ -96,28 +97,39 @@ describe("buttonsFrom", () => {
   });
 });
 
-describe("buttonsFit", () => {
-  it("is so when each button has words, none too many, ignoring space at the ends", () => {
-    expect(buttonsFit([])).toBe(true);
-    expect(buttonsFit([{ text: "Yes" }, { text: ` ${"x".repeat(MOST_BUTTON_CHARACTERS)} ` }])).toBe(true);
+describe("buttonProblems", () => {
+  const link = { text: "Read", url: " https://pauseai.uk/news " };
+
+  it("has none when each button has words, none too many, ignoring space at the ends", () => {
+    expect(buttonProblems([])).toEqual([]);
+    expect(buttonProblems([{ text: "Yes" }, { text: ` ${"x".repeat(MOST_BUTTON_CHARACTERS)} ` }])).toEqual([]);
   });
 
-  it("is so with link buttons that open web pages, as many as WhatsApp takes", () => {
-    const links = Array.from({ length: MOST_LINK_BUTTONS }, () => ({ text: "Read", url: " https://pauseai.uk/news " }));
-    expect(buttonsFit([{ text: "Yes" }, ...links])).toBe(true);
+  it("has none with link buttons that open web pages, as many as WhatsApp takes", () => {
+    expect(buttonProblems([{ text: "Yes" }, ...Array.from({ length: MOST_LINK_BUTTONS }, () => link)])).toEqual([]);
   });
 
-  it("isn't so with a button with no words, or too many", () => {
-    expect(buttonsFit([{ text: "Yes" }, { text: "  " }])).toBe(false);
-    expect(buttonsFit([{ text: "x".repeat(MOST_BUTTON_CHARACTERS + 1) }])).toBe(false);
-    expect(buttonsFit([{ text: "  ", url: "https://pauseai.uk" }])).toBe(false);
+  it("says a button has no words, or too many", () => {
+    expect(buttonProblems([{ text: "Yes" }, { text: "  " }])).toEqual(["button-no-words"]);
+    expect(buttonProblems([{ text: "x".repeat(MOST_BUTTON_CHARACTERS + 1) }])).toEqual(["button-too-long"]);
+    expect(buttonProblems([{ ...link, text: "  " }])).toEqual(["button-no-words"]);
   });
 
-  it("isn't so with a link button without a web page's address, or more link buttons than WhatsApp takes", () => {
-    expect(buttonsFit([{ text: "Read", url: "" }])).toBe(false);
-    expect(buttonsFit([{ text: "Read", url: "pauseai.uk" }])).toBe(false);
-    const links = Array.from({ length: MOST_LINK_BUTTONS + 1 }, () => ({ text: "Read", url: "https://pauseai.uk" }));
-    expect(buttonsFit(links)).toBe(false);
+  it("says a link button has no address, or one that isn't a web page's", () => {
+    expect(buttonProblems([{ ...link, url: " " }])).toEqual(["link-no-address"]);
+    expect(buttonProblems([{ ...link, url: "pauseai.uk" }])).toEqual(["link-not-address"]);
+  });
+
+  it("says there are more link buttons, or buttons, than WhatsApp takes", () => {
+    expect(buttonProblems(Array.from({ length: MOST_LINK_BUTTONS + 1 }, () => link))).toEqual(["too-many-links"]);
+    expect(buttonProblems(Array.from({ length: MOST_BUTTONS + 1 }, () => ({ text: "Yes" })))).toEqual([
+      "too-many-buttons",
+    ]);
+  });
+
+  it("says every problem there is, in the order of BUTTON_PROBLEMS", () => {
+    const all = [{ text: "" }, { text: "x".repeat(26) }, { ...link, url: "" }, { ...link, url: "nope" }, link];
+    expect(buttonProblems([...all, ...Array.from({ length: 6 }, () => ({ text: "Yes" }))])).toEqual(BUTTON_PROBLEMS);
   });
 });
 

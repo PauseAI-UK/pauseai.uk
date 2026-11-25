@@ -15,14 +15,6 @@
   text-align: left;
 }
 
-.table th {
-  padding: 0 var(--space-2) var(--space-1) 0;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-align: left;
-}
-
 .table td {
   padding: 0 var(--space-2) var(--space-2) 0;
 }
@@ -40,24 +32,13 @@
   gap: var(--space-2);
 }
 
-/* On a phone, each button a block of its own: its kind over its words and address, with Remove beside its kind.
-   Its column's heading goes, so its box says what goes in it. */
+/* On a phone, each button a block of its own: its kind over its words and address, with Remove beside its kind. */
 @media (max-width: 30rem) {
   .table,
   .table tbody {
     display: grid;
     gap: var(--space-3);
     width: 100%;
-  }
-
-  /* Out of sight, but still each box's column for a screen reader. */
-  .table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 
   .table tr {

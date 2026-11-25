@@ -27,7 +27,7 @@ export const textTopGallery: Example[] = [
         ),
       },
       {
-        label: "A picture chosen, and the box to drop or paste another on",
+        label: "A picture chosen, with its × to take it off",
         render: () => (
           <StaffPage as="div">
             <TextTopExample initial={{ header: "image", place: null, pictureId: examplePictureId }} />
