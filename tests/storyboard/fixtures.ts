@@ -185,6 +185,9 @@ async function logRejections(context: BrowserContext) {
 /** What a page logs of a bubble that opened outside openBubble. */
 export const PLAIN_BUBBLE = "[bubble opened outside openBubble]";
 
+/** What a page logs of the bubble `id` opening outside openBubble, for a flow where that's meant (expectConsole). */
+export const bubbleOpenedOutside = (id: string) => new RegExp(`${PLAIN_BUBBLE.replace(/[[\]]/g, "\\$&")} #${id}$`);
+
 /**
  * Logs, in every page of `context`, each bubble (BubbleBox, which names its
  * anchor in --bubble-anchor) that opens while openBubble isn't opening one
