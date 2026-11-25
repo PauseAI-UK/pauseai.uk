@@ -39,7 +39,8 @@ function Ticks({ receipt }: { receipt: "sent" | "delivered" | "read" }) {
  * right in green, each with who and when; ours with its ticks, or, under its
  * words, that WhatsApp couldn't deliver it. Theirs can have something
  * `beside` it, in the space to its right, and our emoji on it (`badge`), at
- * its foot, as WhatsApp shows a reaction.
+ * its foot, as WhatsApp shows a reaction. Ours can have its text's buttons
+ * (`buttons`), under it and as wide, as WhatsApp shows them.
  */
 export function ChatBubble({
   who,
@@ -48,6 +49,7 @@ export function ChatBubble({
   receipt,
   beside,
   badge,
+  buttons = [],
   children,
 }: {
   who: string;
@@ -56,10 +58,11 @@ export function ChatBubble({
   receipt?: Receipt;
   beside?: ReactNode;
   badge?: string;
+  buttons?: string[];
   children: ReactNode;
 }) {
   const classes = [styles.bubble, ours && styles.ours, badge && styles.badged].filter(Boolean).join(" ");
-  return (
+  const bubble = (
     <div className={classes}>
       {beside && <span className={styles.beside}>{beside}</span>}
       {badge && (
@@ -79,6 +82,13 @@ export function ChatBubble({
           when
         )}
       </span>
+    </div>
+  );
+  if (!buttons.length) return bubble;
+  return (
+    <div className={styles.withButtons}>
+      {bubble}
+      <BubbleButtons buttons={buttons} />
     </div>
   );
 }

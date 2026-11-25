@@ -11,7 +11,7 @@ import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { CopyStatus } from "../letters/CopyStatus";
-import { BubbleButtons, BubbleTop, ChatBubble, ChatWall, TextWords } from "./TextBubble";
+import { BubbleTop, ChatBubble, ChatWall, TextWords } from "./TextBubble";
 import { textShown } from "@/lib/broadcasts/text-shown";
 import { LetterHistory, type HistoryEntry } from "../letters/LetterHistory";
 import { Thread } from "../letters/LetterThread";
@@ -76,13 +76,13 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
           ours
           receipt={one.sentAt ? receiptOf(one.events) : undefined}
           badge={theirReaction(one, null)}
+          buttons={shown?.buttons}
         >
           <BubbleTop place={shown?.place} picture={shown?.picture} realMap={one.realMaps} />
           <TextWords words={letterFor(shown ? { type: "doc", content: shown.blocks } : one.body, merge)} />
           {/* Its footer, as they got it, where we know it. */}
           {one.footer && <span className={bubble.footer}>{one.footer}</span>}
         </ChatBubble>
-        <BubbleButtons buttons={shown?.buttons ?? []} />
       </ChatWall>
     );
   }
