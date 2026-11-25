@@ -250,15 +250,15 @@ export const broadcastsCopy = {
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
-      "no-place": "⁂ Choose the place its map shows.",
-      "button-no-words": "Each button needs text.",
-      "button-too-long": "⁂ Shorten the words on a button to 25 characters or fewer.",
-      "link-no-address": "Each link button needs the address it opens.",
-      "link-not-address": "⁂ A link button's address must be a web page's, starting https://.",
-      "too-many-links": "⁂ A text can have two link buttons at most.",
-      "too-many-buttons": "⁂ A text can have three buttons at most.",
-      "buttons-mixed": "⁂ A text's buttons must all be reply buttons, or all link buttons.",
-      "no-picture": "⁂ Add the picture for its top.",
+      "no-place": "Choose where the map header shows.",
+      "button-no-words": "Each button must have text.",
+      "button-too-long": "Shorten the words on each button to 25 characters or fewer.",
+      "link-no-address": "Set the address for each link button.",
+      "link-not-address": "A link button's address must be a web page, starting https://.",
+      "too-many-links": "A text can have two link buttons at most.",
+      "too-many-buttons": "A text can have three buttons at most.",
+      "buttons-mixed": "A text's buttons must all be reply buttons, or all link buttons.",
+      "no-picture": "Choose the picture the header shows.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": "That's too many to send before it stops trying. Send it to fewer people, or keep trying for longer.",
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
@@ -319,7 +319,7 @@ export const broadcastsCopy = {
     schedulesForApproval: (templates: number) =>
       templates === 1
         ? "Scheduling also sends the template to WhatsApp for approval."
-        : `⁂ Scheduling also sends the ${templates} templates to WhatsApp for approval.`,
+        : `Scheduling also sends the ${templates} templates to WhatsApp for approval.`,
     // Under its time, for a text whose template WhatsApp hasn't approved, due in less than a day.
     approvalSoon:
       "WhatsApp can take 24 hours to approve a template, but you've scheduled the broadcast to start sooner than that. It will still be sent, but late, if approval is slow.",
@@ -410,7 +410,7 @@ export const broadcastsCopy = {
         voice: "Voice note, which can't be shown here",
         sticker: "Sticker, which can't be shown here",
         location: "A location they shared",
-        button: "⁂ Tapped a button",
+        button: "Tapped a button",
         contacts: "A contact card they shared",
       } as Record<string, string>,
       // Any other kind, by WhatsApp's name for it.
