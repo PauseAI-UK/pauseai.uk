@@ -5,7 +5,7 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { NOT_CONDITION } from "@/lib/mailings/doc";
 import type { MailingChoice } from "@/lib/mailings/fields";
 import Choices from "../ui/Choices";
-import { menuItemClass, menuItemsClass, menuWiderClass } from "../ui/Menu";
+import { menuClass, menuItemClass, menuItemsClass } from "../ui/Menu";
 import { menuRow } from "../ui/MenuSelect";
 import NotIcon from "../ui/NotIcon";
 import styles from "./ConditionMenu.module.css";
@@ -20,7 +20,7 @@ const copy = mailingsCopy.mailingEditor;
  * bar's Answer does, then the answers to the one chosen, each with how many
  * recipients it takes in, searchable where there are many, such as events:
  * a menu's box and choices (Menu), and its answers as the template menu's
- * (MenuSelect).
+ * (MenuSelect), each with its count at the far end of its line.
  * Choosing one calls `choose` with its condition, marked NOT_CONDITION for
  * except. Pressing it keeps the focus where it was, so a letter being
  * written keeps its cursor.
@@ -61,7 +61,7 @@ export default function ConditionMenu({
         ref={menu}
         id={id}
         popover="auto"
-        className={menuWiderClass}
+        className={menuClass}
         role="menu"
         aria-label={not ? copy.except : copy.addOnlyFor}
         style={{ positionAnchor: `--${id}` } as React.CSSProperties}
@@ -115,8 +115,8 @@ export default function ConditionMenu({
                   >
                     <span className={menuRow.head}>
                       <span className={menuRow.name}>{option.label}</span>
+                      <span className={menuRow.facts}>{copy.covers(n)}</span>
                     </span>
-                    <span className={menuRow.facts}>{copy.covers(n)}</span>
                   </button>
                 );
               }}
