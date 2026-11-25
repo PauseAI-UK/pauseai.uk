@@ -1510,7 +1510,7 @@ describe("BroadcastWriter, a text's picture", () => {
   };
   const WROTE = "wrote:regulate-ai";
   const wrote = copy.conditions.wrote("Regulate AI");
-  const shown = `/api/text-pictures/${examplePictureId}`;
+  const shown = examplePictureId;
 
   const preview = () => page.getByLabelText(/^4/);
   const kind = (name: string) => page.getByRole("radio", { name });
@@ -1521,7 +1521,7 @@ describe("BroadcastWriter, a text's picture", () => {
       WAIT,
     );
   /** The picture at the top of the preview's bubble, if it has one. */
-  const previewPicture = () => preview().element().querySelector<HTMLImageElement>('img[src^="/api/text-pictures/"]');
+  const previewPicture = () => preview().element().querySelector<HTMLImageElement>('img[src^="data:image/png"]');
   const png = (name = "march.png") => new File(["x"], name, { type: "image/png" });
   /** Chooses `file` in the picture box's file picker. */
   const choose = (file: File) => {

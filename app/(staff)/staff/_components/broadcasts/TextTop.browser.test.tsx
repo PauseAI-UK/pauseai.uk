@@ -213,8 +213,12 @@ describe("TextTop's picture", () => {
     await renderTop({ header: "image", pictureId: examplePictureId });
     await expect
       .element(page.getByRole("img", { name: pictures.shown }))
-      .toHaveAttribute("src", `/api/text-pictures/${examplePictureId}`);
-    expect(pictureSource(examplePictureId)).toBe(`/api/text-pictures/${examplePictureId}`);
+      .toHaveAttribute("src", examplePictureId);
+    // A kept picture is served by the site; an example's, given whole, is its own.
+    expect(pictureSource("00000000-0000-4000-8000-000000000001")).toBe(
+      "/api/text-pictures/00000000-0000-4000-8000-000000000001",
+    );
+    expect(pictureSource(examplePictureId)).toBe(examplePictureId);
     await expect.element(page.getByText(pictures.dropAnother)).toBeVisible();
     await expect.element(page.getByText(pictures.changeable)).toBeVisible();
   });
