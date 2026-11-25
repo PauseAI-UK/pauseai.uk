@@ -829,12 +829,15 @@ export default function BroadcastWriter({
   }).filter((problem) => problem !== "cannot-send");
   // Greyed, before a Consent by the channel picked: that comes first, till one's picked. What only new words have
   // wrong is said under Send for approval, not again by Schedule, and so is what's wrong with the header or
-  // buttons while Send for approval is there.
+  // buttons while Send for approval is there: Schedule says once to fix what's said there.
   const approving = toSubmit > 0 && !versionLocked;
   const saidUnderApproval: string[] = [...NEW_WORDS_PROBLEMS, ...(approving ? TEMPLATE_PARTS_PROBLEMS : [])];
-  const shownProblems = [...(blank && !picked ? ["no-consent"] : []), ...problems].filter(
-    (problem) => !saidUnderApproval.includes(problem),
-  );
+  const saidAbove = problems.some((problem) => saidUnderApproval.includes(problem));
+  const shownProblems = [
+    ...(blank && !picked ? ["no-consent" as const] : []),
+    ...(saidAbove ? ["fix-preview" as const] : []),
+    ...problems.filter((problem) => !saidUnderApproval.includes(problem)),
+  ];
   const fromName = email ? draft.fromName || BROADCAST_SENDER.name : TEXT_SENDER_NAME;
   const fromLine = email ? named(fromName, draft.sentFrom!) : TEXT_SENDER_NAME;
   // In Send, as the broadcast's page has it: the address, or a text's WhatsApp number once there is one, the

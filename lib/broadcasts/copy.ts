@@ -242,6 +242,8 @@ export const broadcastsCopy = {
     problems: {
       // Before a Consent by the channel picked is chosen, first of what stops it.
       "no-consent": "Choose a Consent first.",
+      // Under Schedule, once, when the Preview section says what's wrong under Send for approval.
+      "fix-preview": "Fix errors in Preview section above first.",
       "unknown-filter": "The filter has values that have changed or are no longer supported.",
       "no-recipients": "There's nobody to send to.",
       "no-subject": "Fill in the subject.",

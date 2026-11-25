@@ -1572,6 +1572,8 @@ describe("BroadcastWriter, a text's picture", () => {
     await renderWriter({ draft: { ...newWords, header: "image" } });
     await expect.element(preview().getByText(copy.problems["no-picture"])).toBeVisible();
     expect(missing().all()).toHaveLength(1);
+    // Schedule says once to fix it there.
+    await expect.element(page.getByText(copy.problems["fix-preview"])).toBeVisible();
   });
 
   it("says a missing picture for a chosen template by Schedule, as there's nothing to send for approval", async () => {
@@ -1582,6 +1584,7 @@ describe("BroadcastWriter, a text's picture", () => {
     await expect.element(missing()).toBeVisible();
     expect(missing().all()).toHaveLength(1);
     expect(preview().getByText(copy.problems["no-picture"]).query()).toBeNull();
+    expect(page.getByText(copy.problems["fix-preview"]).query()).toBeNull();
   });
 
   it("tops new words with a picture chosen, in the preview once it's kept", async () => {
