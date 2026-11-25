@@ -731,8 +731,9 @@ test("A text with a map of where to meet", async ({ page, request, flowDatabase 
   );
 });
 
-test("A text with a picture at its top", async ({ page, flowDatabase }) => {
+test("A text with a picture at its top", async ({ page, request, flowDatabase }) => {
   story("Staff write new words for a text, and add a picture for its top, which WhatsApp shows over the words.");
+  await importLuma(request, BASE);
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
   await chooseTemplate(page, copy.newTemplate);
