@@ -107,7 +107,7 @@ export const broadcastsCopy = {
       shown: "⁂ The picture at the top of the text",
       drop: "Drop or paste picture here",
       remove: "⁂ Take the picture off",
-      choose: "⁂ Choose a picture",
+      choose: "Add picture",
       refusals: {
         "not-picture": "⁂ WhatsApp takes a JPEG or PNG picture. Choose one of those.",
         "too-big": "⁂ That picture is too big. Choose one of 4 MB or less.",
