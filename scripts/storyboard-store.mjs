@@ -181,22 +181,27 @@ export function missingFlows(store, kept, needed) {
 /**
  * The flows of `wanted` (keys) that `kept` has, as a run's manifest
  * (frames.json), their pictures linked into `runDir` under `side`. A flow
- * with a picture gone from the store is left out.
+ * with a picture gone from the store is left out, whether it was gone
+ * before or another checkout's review pruned it while this one linked it.
+ * `missingFlows` then finds it, so it can be run again.
  */
 export function linkFlows(store, kept, wanted, runDir, side = "main") {
   const frames = [];
   for (const run of kept.frames) {
     if (!wanted.has(flowKey(run))) continue;
-    if (run.frames.some((frame) => frame.picture && !existsSync(pictureFile(store, frame.picture)))) continue;
-    frames.push({
-      ...run,
-      frames: run.frames.map(({ picture, ...frame }, at) => {
-        if (!picture) return frame;
-        const png = join(side, "frames", flowFolder(run), `frame-${at + 1}.png`);
-        place(pictureFile(store, picture), join(runDir, png));
-        return { ...frame, png };
-      }),
-    });
+    try {
+      frames.push({
+        ...run,
+        frames: run.frames.map(({ picture, ...frame }, at) => {
+          if (!picture) return frame;
+          const png = join(side, "frames", flowFolder(run), `frame-${at + 1}.png`);
+          place(pictureFile(store, picture), join(runDir, png));
+          return { ...frame, png };
+        }),
+      });
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
   }
   return { frames };
 }

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -73,6 +73,30 @@ describe("workingTree", () => {
     expect(workingTree(repo)).toBe(committed);
     // The checkout's own index is left as it was.
     expect(git("status", "--porcelain")).toBe("");
+  });
+
+  it("sees a same-size edit in the second the index was written, where Git compares only whole seconds", () => {
+    const repo = tempDir();
+    const git = (...args: string[]) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
+    git("init", "-q");
+    // As a Git that keeps no nanoseconds, or a filesystem that has none: a file's stat matches its entry's
+    // when its size and its time to the second do.
+    git("config", "core.checkStat", "minimal");
+    git("config", "core.trustctime", "false");
+    const page = join(repo, "page.ts");
+    const then = new Date("2020-01-01T00:00:00Z");
+    writeFileSync(page, "one\n");
+    utimesSync(page, then, then);
+    git("add", "page.ts");
+    git("-c", "user.name=Jane Smith", "-c", "user.email=jane.smith@example.com", "commit", "-qm", "First");
+    const committed = git("rev-parse", "HEAD^{tree}").trim();
+    // Edited in the second the index was written: Git can't trust the entry's stat, and reads the file.
+    writeFileSync(page, "two\n");
+    utimesSync(page, then, then);
+    utimesSync(join(repo, ".git", "index"), then, then);
+    // Git sees it, reading the index without writing it back.
+    expect(git("--no-optional-locks", "status", "--porcelain")).toBe(" M page.ts\n");
+    expect(workingTree(repo)).not.toBe(committed);
   });
 });
 

@@ -5,7 +5,7 @@ import { logIn, staffEmail } from "./login-steps";
 import { importPoliticians, PM_LETTER } from "./politician-steps";
 import { importLuma } from "./supporter-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { openBubble, press } from "./settle";
+import { openBubble, press, reload } from "./settle";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
@@ -381,7 +381,7 @@ test("The new tag", { tag: "@desktop-only" }, async ({ page, flowDatabase }) => 
 
   story("Three days later, it's gone.");
   runSql(flowDatabase, `UPDATE staff_nav_seen SET first_seen_at = now() - interval '4 days' WHERE email = '${email}'`);
-  await page.reload();
+  await reload(page);
   await expect(nav.getByRole("link", { name: shellCopy.nav.campaigns }).first()).not.toContainText(
     shellCopy.nav.newTag,
   );

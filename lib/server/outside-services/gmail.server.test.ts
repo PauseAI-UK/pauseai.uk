@@ -344,6 +344,17 @@ describe("the Gmail API", () => {
     expect(await gmailSendName("tok")).toBe("");
   });
 
+  it("fails as Gmail's, refused, on an answer that's ok but isn't JSON", async () => {
+    const page = () => new HttpResponse("<html>Sorry</html>", { status: 200 });
+    server.use(http.get(`${API}/profile`, page));
+    await expect(gmailProfile("tok")).rejects.toMatchObject({ service: "gmail", kind: "refused", status: 200 });
+    server.use(
+      http.get(`${API}/settings/sendAs`, () => HttpResponse.json({ sendAs: [] })),
+      http.get("https://openidconnect.googleapis.com/v1/userinfo", page),
+    );
+    await expect(gmailSendName("tok")).rejects.toMatchObject({ service: "gmail", kind: "refused", status: 200 });
+  });
+
   it("says what Gmail refused", async () => {
     server.use(http.get(`${API}/profile`, () => new HttpResponse(null, { status: 401 })));
     await expect(gmailProfile("tok")).rejects.toMatchObject({

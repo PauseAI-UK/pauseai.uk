@@ -14,8 +14,12 @@ the short version, and `.env.example` lists the environment variables.
   can use a Postgres 18 installed natively instead (below).
 - **`psql`**, Postgres's command-line tool, on your path. The scripts use it
   to make databases and apply migrations.
-- **Chromium for Playwright**, for the browser tests:
-  `npx playwright install chromium`.
+- **Chromium and Firefox for Playwright**, for the browser tests and serving
+  a branch: `npm run browsers`. It leaves alone the browsers already in
+  Playwright's cache (`~/.cache/ms-playwright`), which every checkout and
+  container shares: a plain `npx playwright install` deletes those that no
+  installation it can see needs, so a checkout at another path, in another
+  container, loses its browsers.
 
 You don't need the Netlify CLI. The site runs with plain `npm run dev`.
 
@@ -425,17 +429,20 @@ To click around a branch from another machine (the Mac a container runs
 on, say), on fake data:
 
 ```bash
-npm run serve -- fix-footer   # or a PR's number; with neither, the worktree it's run in
+npm run serve -- fix-footer   # or a PR's number; with neither, the checkout it's run in
 npm run serve -- fix-footer --stop
 ```
 
 It serves the branch's worktree, and makes one under `tmp/worktrees/` if
-the branch has none. It never serves the main checkout, whose dev server is
-yours.
+the branch has none. With no branch, it serves the checkout it's run in,
+the main one too.
 
-It runs `next dev` in the worktree with the fixture settings, so edits show
-as they're saved. The database is a fresh one, with the test MPs and the
-fake data, where admin@pauseai.uk has every permission.
+It runs `next dev` in the checkout with the fixture settings, so edits show
+as they're saved, and the clock running. The database is a fresh one, with
+the test MPs and the fake data, where admin@pauseai.uk has every
+permission. Its `next dev` builds into `.next-serve`, a folder of its own
+(`NEXT_DIST_DIR`, `next.config.ts`), so it runs beside your own dev server
+and beside a storyboard review in the same checkout.
 
 In front of `next dev` is a proxy on this machine's network address. It's
 there because the session cookie is `Secure`, and a browser drops such a
@@ -443,12 +450,10 @@ cookie over plain http from anywhere but localhost. The proxy strips
 `Secure`, and tells `next dev` each request came to localhost.
 
 Once the site is up, the script opens the link in Playwright's Firefox
-(`npx playwright install firefox`), logs in with the dev login, then prints
+(`npm run browsers`), logs in with the dev login, then prints
 the link. It keeps running until stopped.
 
 Each checkout has its own ports, so branches can be served side by side.
-The script's `next dev` shares `.next` with the checkout, so don't run a
-storyboard review in the same checkout meanwhile.
 
 Nor run two `next dev`s in one checkout, such as a second beside the one
 you're using: both write `.next/dev`, each overwriting the other's Server
@@ -765,7 +770,7 @@ What they need from your machine:
 | Sending says it failed                                    | Without `DATA_FIXTURES`, check `POSTMARK_SERVER_TOKEN`.                                                                                                                                                                                                                            |
 | An email didn't arrive                                    | The server log says what happened to each email: sent through Postmark, with its MessageID, or written to which outbox file. The dev server doesn't send without a real token: with none, or Postmark's test token `POSTMARK_API_TEST`, it writes the email to the outbox instead. |
 | Letters to a real MP are refused                          | Expected: outside production, letters go only to the test MP.                                                                                                                                                                                                                      |
-| `Executable doesn't exist` from Playwright                | `npx playwright install chromium`.                                                                                                                                                                                                                                                 |
+| `Executable doesn't exist` from Playwright                | `npm run browsers`.                                                                                                                                                                                                                                                                |
 
 ## 8. Deploying
 

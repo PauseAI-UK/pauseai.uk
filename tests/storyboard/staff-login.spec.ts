@@ -4,7 +4,7 @@ import { stayOnPage } from "./loading-steps";
 import { addStaffAccount, logIn, staffEmail } from "./login-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
 import { FIXTURE_GOOGLE_ACCOUNT_COOKIE } from "@/lib/accounts/session";
-import { openBubble } from "./settle";
+import { openBubble, reload } from "./settle";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
@@ -172,7 +172,7 @@ test("Staff accounts", async ({ page, flowDatabase }, testInfo) => {
   story("After a reload, the colleague has the Supporters permission.");
   await permissions.getByRole("button", { name: accountsCopy.accounts.save }).click();
   await expect(permissions).not.toBeVisible();
-  await page.reload();
+  await reload(page);
   await expect(row.getByRole("cell").nth(1)).toContainText(accountsCopy.accounts.names.supporters);
   await frame(page, "The colleague, with Supporters");
   story("Remove asks to be confirmed.");

@@ -10,7 +10,7 @@ import { WEBHOOK_AUTH } from "./postmark-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, flowStorageState, madeUpAddress, frame, story, test } from "./fixtures";
-import { openBubble } from "./settle";
+import { openBubble, reload } from "./settle";
 import type { Section } from "./report/frames";
 import { accountsCopy } from "@/app/(staff)/staff/_components/accounts/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
@@ -228,7 +228,7 @@ test("Blocked addresses without Supporters", async ({ page, request, flowDatabas
   story("Given the Supporters permission, they can follow it to the letter.");
   // With supporters, the same page links to the letter.
   addStaffAccount(flowDatabase, staffEmail(), ["supporters"]);
-  await page.reload();
+  await reload(page);
   // The link is cut too, its whole name on hover.
   await blocked.getByTitle(`${emailCopy.emails.letterTo} ${bouncy.name}`).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(

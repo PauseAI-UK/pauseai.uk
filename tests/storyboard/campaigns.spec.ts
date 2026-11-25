@@ -8,7 +8,7 @@ import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
 import { caretAt, caretInLink, editor, newParagraphAboveSignOff, paste, toolbar } from "./editor-steps";
-import { wholePage } from "./settle";
+import { reload, wholePage } from "./settle";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Write to your MP", part: "Public site", order: 20 };
@@ -76,7 +76,7 @@ test("Jane writes to her MP (ZZ99ZZ)", { tag: "@phone" }, async ({ page, flowDat
   await frame(page, "The thank-you page");
   story("The MP gets her letter from a proxy address of hers on the letters inbox, with the campaign's attachments.");
   // A reload still thanks them, and doesn't count the letter again.
-  await page.reload();
+  await reload(page);
   await expect(page.getByRole("status")).toHaveText(copy.sent.body("Testy McTestface MP"));
   expect(await adsEvents(page)).toBe(0);
 
@@ -238,7 +238,7 @@ test("The letter is kept", async ({ page }) => {
   await page.goBack();
   await expect(page).toHaveURL(`${PAGE}/write`);
   await expect(letter).toContainText("My own words.");
-  await page.reload();
+  await reload(page);
   await expect(letter).toContainText("My own words.");
   // The browser puts the window back about where it was, a few pixels either way.
   await wholePage(page);

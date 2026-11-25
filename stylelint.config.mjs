@@ -64,6 +64,7 @@ const config = {
     "test-results/**",
     "blob-report/**",
     ".next/**",
+    ".next-serve/**",
     "public/**",
     // Netlify's build folder, with its plugins' own code. npm run build
     // runs this during a Netlify build.

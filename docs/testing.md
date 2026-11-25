@@ -76,7 +76,14 @@ copy waits for approval still has its coverage checked.
   banned (`tests/checks/coverage-ignores.test.ts` fails on one). If code is hard to
   reach, test it in the browser project, or restructure it so it can be
   tested.
-- **The one scope rule:** `page.tsx` and `layout.tsx` are outside the
+- **Only code that runs on the live site is in the report.** The fakes
+  that answer for outside services in a fixture build
+  (`lib/server/fixtures/`), the tests' own helpers (`tests/`) and the
+  gallery's examples (`app/(tools)/gallery/`, and each
+  `*.gallery.tsx` beside its component) are left out. The gallery's guard,
+  which keeps it out of the live site, stays in. A fake that flows rely on
+  still has tests of how it behaves, but none just to reach its lines.
+- **The one rule for pages:** `page.tsx` and `layout.tsx` are outside the
   report. Async server components can't render in Vitest, and `layout.tsx`
   needs `next/font`. That's safe only because they have no branches:
   `tests/checks/thin-pages.test.ts` parses every one and fails on `if`,
@@ -289,6 +296,14 @@ npm run storyboard        # the review, and the gate's storyboard: the flows thi
 npm run storyboard -- --plan   # which flows the review would run, and why, running none
 npm run test:report       # Playwright's own report, with the trace of a failed flow
 ```
+
+A trace has a flow's steps, but not where an error its page logged came
+from. With `STORYBOARD_NETWORK_LOG=1`, every flow writes a log to
+`test-results/storyboard-network/`: each page and fetch request, with the
+Server Action it calls and that action's answer whole, the console, and
+each uncaught exception with the stack where it was thrown, its async
+callers too (`logNetwork`, `tests/storyboard/fixtures.ts`). Run the one
+flow with it: `STORYBOARD_NETWORK_LOG=1 npm run test:storyboard -- -g "Our answer to a text fails"`.
 
 **CI's run** fails only on a flow's checks, never on how a page looks. CI
 runs its flows ("Which flows CI runs", below) in four parts at once, each
@@ -1637,7 +1652,7 @@ npm run test:report       # open the last Playwright report
   changing code, stop a server you left running.
 - Run one section with `npm run test:storyboard -- staff-login`, one flow with
   `-g "Logging in with Google"`, or point at another fixture build with `LOCAL_URL`.
-- Browser tests need Chromium: `npx playwright install chromium`.
+- Browser tests need Chromium: `npm run browsers` (`docs/development.md`, "What you need").
 
 ### `npm run gate`
 
@@ -1652,7 +1667,10 @@ files. Nothing is fetched. Then these run at once:
 - ESLint on the changed scripts;
 - Stylelint on the changed CSS;
 - `scripts/migration-order.mjs` (new migrations after main's, and none
-  sharing an open PR's number).
+  sharing an open PR's number);
+- `scripts/packages-installed.mjs`, which fails when `node_modules` isn't
+  what `package-lock.json` says, as after a pull that brought a new
+  lockfile, and says to run `npm ci`.
 
 If one fails, the gate stops: the slow part would only wait on the same
 mistake. `--fast` stops after them anyway.

@@ -36,6 +36,8 @@ _site/
 
 # Next.js
 .next/
+# npm run serve's next dev (scripts/serve.mjs).
+.next-serve/
 out/
 next-env.d.ts
 *.tsbuildinfo

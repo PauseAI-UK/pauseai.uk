@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { http, HttpResponse } from "msw";
+import { http, HttpResponse, passthrough } from "msw";
+import { createServer } from "node:http";
+import type { AddressInfo, Socket } from "node:net";
 import { server } from "@/tests/fixtures/msw";
 import { describeError } from "@/lib/server/problems.server";
 import { OutsideFailure } from "./outside-failure.server";
@@ -61,6 +63,50 @@ describe("outsideFetch", () => {
     expect(failed).toBeInstanceOf(OutsideFailure);
     expect(failed).toMatchObject({ service: "luma", kind: "unreachable", status: 0 });
     expect(describeError(failed)).toMatch(/^Luma couldn't be reached \(.+\)/);
+  });
+
+  describe("an answer whose body is cut short", () => {
+    /** A real server on this machine, which sends its headers and part of a body, then does what `then` says. */
+    async function partway(then: (socket: Socket) => void): Promise<{ url: string; close: () => void }> {
+      const site = createServer((_, res) => {
+        res.writeHead(200, { "content-type": "application/json", "content-length": "1000" });
+        res.write('{"entries": [');
+        then(res.socket!);
+      });
+      await new Promise<void>((resolve) => site.listen(0, "127.0.0.1", resolve));
+      const { port } = site.address() as AddressInfo;
+      server.use(http.all(`http://127.0.0.1:${port}/*`, () => passthrough()));
+      return { url: `http://127.0.0.1:${port}/list`, close: () => site.close() };
+    }
+
+    it("says a service whose answer breaks off is unreachable, rather than leaving the binding to read it", async () => {
+      const site = await partway((socket) => setTimeout(() => socket.destroy(), 20));
+      const failed = await outsideFetch(LUMA, site.url).catch((error: unknown) => error);
+      site.close();
+      expect(failed).toBeInstanceOf(OutsideFailure);
+      expect(failed).toMatchObject({ service: "luma", kind: "unreachable", status: 0 });
+    });
+
+    it("gives up on one that doesn't finish in time", async () => {
+      const open: Socket[] = [];
+      const site = await partway((socket) => open.push(socket));
+      const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(AbortSignal.timeout(100));
+      const failed = await outsideFetch(LUMA, site.url).catch((error: unknown) => error);
+      timeout.mockRestore();
+      for (const socket of open) socket.destroy();
+      site.close();
+      expect(failed).toBeInstanceOf(OutsideFailure);
+      expect(failed).toMatchObject({ service: "luma", kind: "timeout" });
+    });
+  });
+
+  it("hands back an answer with no body, such as a 204, as it came", async () => {
+    server.use(
+      http.get("https://public-api.luma.com/v1/calendars/events/list", () => new HttpResponse(null, { status: 204 })),
+    );
+    const res = await outsideFetch(LUMA, CALENDAR);
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe("");
   });
 
   it("hands back an answer that isn't ok, for the binding to say what kind of refusal it is", async () => {

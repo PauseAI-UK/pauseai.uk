@@ -9,11 +9,12 @@ import { expect, type Locator, type Page } from "@playwright/test";
 const POLL = { polling: 50, timeout: 20_000 };
 
 /**
- * The page has loaded and hydrated: Nav's effect has set --site-header-h on
- * the root (a page without it, like the staff login, has nothing to wait
- * for), the fonts are in, and the console has been quiet
- * for a moment, so a hydration warning, which React logs just after mount,
- * has had its chance.
+ * The page has loaded and hydrated: React has taken over the body, so a link
+ * pressed next is Next's and not the browser's; Nav's effect has set
+ * --site-header-h on the root (a page without the site's header, like a
+ * staff page, has nothing more to wait for); the fonts are in; and the
+ * console has been quiet for a moment, so a hydration warning, which React
+ * logs just after mount, has had its chance.
  */
 export async function hydrated(page: Page): Promise<void> {
   let lastMessage = Date.now();
@@ -23,6 +24,10 @@ export async function hydrated(page: Page): Promise<void> {
     await page.waitForFunction(
       () =>
         document.readyState === "complete" &&
+        // React has taken over the page (handled), on any page of the site's own, staff pages too. A page
+        // with none of Next's scripts, such as a file or an API's answer, has nothing to take over.
+        (Object.keys(document.body).some((key) => key.startsWith("__reactProps$")) ||
+          !document.querySelector('script[src*="/_next/"]')) &&
         (getComputedStyle(document.documentElement).getPropertyValue("--site-header-h").trim() !== "" ||
           !document.querySelector('header button[aria-label="Menu"], header a[aria-label="PauseAI UK"]')),
       undefined,
@@ -34,6 +39,17 @@ export async function hydrated(page: Page): Promise<void> {
   } finally {
     page.off("console", onMessage);
   }
+}
+
+/**
+ * Reloads the page from the top. The browser puts a reloaded page back where
+ * it was scrolled, at a moment that depends on how far the page has loaded,
+ * so a frame after a reload of a scrolled page lands a few dozen pixels
+ * apart between runs. ESLint keeps page.reload() out of the flows.
+ */
+export async function reload(page: Page): Promise<void> {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.reload();
 }
 
 /** How many polls in a row (50ms apart) the page must hold still to be at rest. */
@@ -184,6 +200,8 @@ export async function openBubble(trigger: Locator): Promise<Locator> {
   const page = trigger.page();
   const open = page.locator("[popover]:popover-open");
   await atRest(page);
+  // Says a bubble that opens now is opened here, for the check of those that aren't (tests/storyboard/fixtures.ts).
+  await page.evaluate((flag) => ((window as unknown as Record<string, unknown>)[flag] = true), OPENING_BUBBLE);
   await trigger.click();
   await expect(open.first()).toBeVisible();
   // The toggle event's task, and the frame after it.
@@ -191,8 +209,12 @@ export async function openBubble(trigger: Locator): Promise<Locator> {
     () => new Promise<void>((done) => setTimeout(() => requestAnimationFrame(() => setTimeout(done)))),
   );
   await scrollSettled(page);
+  await page.evaluate((flag) => delete (window as unknown as Record<string, unknown>)[flag], OPENING_BUBBLE);
   return open;
 }
+
+/** The window's property that says openBubble is opening a bubble. */
+export const OPENING_BUBBLE = "__openingBubble";
 
 /**
  * The layout around `selector` has stopped moving: every image is in, and

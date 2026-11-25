@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { BASE, expect, frame, story, test } from "./fixtures";
+import { BASE, bubbleOpenedOutside, expect, expectConsole, frame, story, test } from "./fixtures";
 import { hydrated } from "./settle";
 import type { Section } from "./report/frames";
 
@@ -66,6 +66,8 @@ test("gallery: index", async ({ page }) => {
 
 for (const group of GROUPS) {
   test(`gallery: ${group}`, async ({ page }) => {
+    // The example of an MP's email with its bubble open opens it as the page loads, with nothing to press.
+    if (group === "staff-politicians") expectConsole(bubbleOpenedOutside("addresses-7"));
     await open(page, `/gallery/${group}`);
     await expect(page.locator(`[data-gallery-group="${group}"]`)).toBeVisible();
     // STORYBOARD_SPACER, a height in pixels, put above the first component: npm run storyboard:determinism

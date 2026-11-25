@@ -7,7 +7,7 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, expectConsole, frame, story, test } from "./fixtures";
-import { hydrated } from "./settle";
+import { hydrated, openBubble, reload } from "./settle";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Contact preferences", part: "Public site", order: 55 };
@@ -111,7 +111,7 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
   await frame(page, "Jane's settings");
   if (onPhone()) {
     story("Each topic says why she gets it. On a phone, that's behind the “?” beside its name.");
-    await topicCard(page, "newsletter").getByRole("button", { name: copy.why.ask }).click();
+    await openBubble(topicCard(page, "newsletter").getByRole("button", { name: copy.why.ask }));
     await expect(topicCard(page, "newsletter").getByText(copy.why.reasons.member!("")).first()).toBeVisible();
     await frame(page, "Why she gets the newsletter");
     await page.keyboard.press("Escape");
@@ -231,7 +231,7 @@ test("An email's unsubscribe link", { tag: "@phone" }, async ({ page, request, f
   story(
     "Later she opens the email's link again. She no longer gets the newsletter, so the page says that, with no button.",
   );
-  await page.reload();
+  await reload(page);
   await hydrated(page);
   const off = page.getByRole("heading", { name: copy.unsubscribe.off(copy.inSentence.newsletter) });
   await expect(off).toBeVisible();

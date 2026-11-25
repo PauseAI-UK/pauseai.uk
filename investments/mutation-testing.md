@@ -4,7 +4,7 @@ Size: M. Kind: tools.
 
 ## Problem
 
-Coverage shows a line ran, not that a test checked what it did. Some tests exist only to reach a branch, such as `lib/content/staff-interface.test.ts`'s `expect(say(2), key).not.toBe("")`.
+Coverage shows a line ran, not that a test checked what it did. Some tests exist only to reach a branch, such as `lib/oversight/copy.test.ts`'s `expect(say(2), key).not.toBe("")`.
 
 ## Fix
 

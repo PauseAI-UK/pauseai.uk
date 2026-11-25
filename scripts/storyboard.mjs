@@ -872,11 +872,18 @@ let mainError;
 async function mainSide(wants, shown, carriedMain) {
   console.log(`\n▶ Storyboard: main is ${git("log", "-1", "--format=%h %s", base)}\n`);
   try {
-    const { tree, kept } = await mainFromStore(runDir, wants);
+    const { tree, kept: keptFirst } = await mainFromStore(runDir, wants);
+    let kept = keptFirst;
     touchTree(STORE, tree);
     // The pictures are linked into the run, so every path stays inside its folder: latest/ works, and
     // pruning the store never breaks a run.
-    const selected = linkFlows(STORE, kept, { has: shown }, runDir);
+    let selected = linkFlows(STORE, kept, { has: shown }, runDir);
+    // Another checkout's review can prune a picture after mainFromStore found it kept. Its flow is left out of
+    // what was linked, so main runs it again, once.
+    if (selected.frames.length < kept.frames.filter((run) => shown(flowKey(run))).length) {
+      ({ kept } = await mainFromStore(runDir, wants));
+      selected = linkFlows(STORE, kept, { has: shown }, runDir);
+    }
     // Carried, for what isn't kept: only flows main still has, and none shot by this branch's suite.
     const stillMains = { has: (key) => key in kept.flows && shown(key) };
     writeJson(

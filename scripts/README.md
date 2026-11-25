@@ -63,11 +63,17 @@ Each command has a time limit and a log in `tmp/gate/`, and the gate ends with a
 
 `placeholders.mjs`, run with `npm run placeholders`, fails while any file has placeholder copy, and lists each line that does. CI and the gate run it, and Netlify's build doesn't, so a branch with placeholders still gets a deploy preview (AGENTS.md, "Never write final copy").
 
+## Lint rules
+
+`lint-try.mjs`, run with `npm run lint:try -- <rule> [<rule>…] [-- <files>]`, tries ESLint rules before they're adopted. It adds them, for that run only, beside the typed rules, so a rule that needs the types works, and prints how many lines each flags in the site's code and in its tests, then each line. A rule's options follow an `=` as JSON (`'eqeqeq=["always"]'`). With no files named it lints the whole repo, which takes a minute or two.
+
 ## Worktrees
 
 `worktree.mjs`, run with `npm run worktree -- <branch>`, fetches, adds `tmp/worktrees/<branch>` as a new branch from `origin/main`, runs `npm ci` in it and prints the ports its storyboard will serve on. It leaves the storyboard keeping main's frames in the background, for the branch's first review. With `--ports` it only prints this checkout's ports. `docs/development.md`, "Worktrees", covers it.
 
 `serve.mjs`, run with `npm run serve -- [<branch> | <PR number>]`, serves a branch's worktree on fixture data with `next dev`, making the worktree if need be. In front of `next dev` it puts a proxy on this machine's network address, which strips `Secure` from cookies. It checks the link in Firefox, then prints it. `--stop` stops it. `docs/development.md`, "Serving a branch", covers it.
+
+`widths.mjs`, run with `npm run widths -- <path>...`, pictures pages of the checkout `npm run serve` is serving at widths the storyboard doesn't, from a phone's to a big monitor's, in Firefox, logged in with the dev login. It writes the pictures and a page that sets them side by side to `tmp/widths/`. `--tables` also lists each table that runs past its box (and whether the box scrolls sideways), each date on two lines and each column whose words wrap to three lines or more. `--widths 1024,1440` picks the widths, and `--link` another site.
 
 ## Page speed
 
@@ -76,6 +82,12 @@ Each command has a time limit and a log in `tmp/gate/`, and the gate ends with a
 ## Coverage
 
 `test-changed.mjs`, run with `npm run test:changed`, runs the Vitest tests for the files changed since origin/main, committed or not, and lists each changed source file's uncovered lines, functions and branches, even while a test fails. Anything after `--` goes to Vitest. `npm test` is still the gate (`docs/testing.md`, "Coverage").
+
+`coverage-ci.mjs`, run with `npm run coverage:ci -- <run id>`, shows what CI's merged coverage leaves uncovered, when a file passes `npm test` here and fails CI's merge of its three shards. It downloads the run's coverage with `gh` to `tmp/coverage-ci/<run id>/`, merges it as `merge-coverage.mjs` does, and prints each statement, branch and function left uncovered in each file under 100%, by line, with each shard's count. `--file <path>` shows one file, covered or not.
+
+`coverage-timing.mjs`, run with `npm run coverage:timing`, finds coverage that depends on timing: a branch reached only when a timer happens to go one way, which passes here and fails CI's gate on a loaded machine. It runs every test several times (`--runs`, five by default), some at once to load the machine (`--at-once`), and lists each count that's none in one run and some in another, or a few that differ. Each one it finds wants a test that reaches it on purpose. Its reports and list are in `tmp/coverage-timing/`.
+
+`query-costs.mjs`, run with `npm run query-costs -- [<test files>]`, lists each query the node tests run that the planner prices over JIT's threshold, which CI's Postgres compiles first, sometimes for seconds (`docs/code-structure.md`, "How fast a query has to be"). It runs the tests on a Postgres of its own with `auto_explain` in their connections, reading the plans from its log as they come.
 
 ## Investments
 

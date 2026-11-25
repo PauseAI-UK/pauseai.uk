@@ -2,7 +2,7 @@
 // clock, and the cookie that tells the build which database it's on. Specs
 // import `test` and `expect` from here, never from @playwright/test.
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   test as base,
@@ -19,6 +19,7 @@ import { FLOW_DATABASES, LETTERS_INBOX_DIR, LOCAL_URL, REQUESTS_DIR, TEMPLATE_DA
 import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
 import { historyIdNow } from "@/lib/server/fixtures/inbox-clock";
 import { emptyLettersInbox } from "@/lib/server/fixtures/letters-inbox";
+import { OPENING_BUBBLE } from "./settle";
 
 export { expect } from "@playwright/test";
 export { frame, story } from "./frame";
@@ -158,16 +159,78 @@ const HYDRATION = /hydrat|did not match|server rendered HTML/i;
 /** The contexts watchConsole is already watching. */
 const watched = new WeakSet<BrowserContext>();
 
+/** What a page logs of a promise that failed with nothing waiting on it, which it otherwise may not log at all. */
+const REJECTION = "[unhandledrejection]";
+
+/**
+ * Logs, in every page of `context`, each promise that fails with nothing
+ * waiting on it, as ErrorReporter would tell the site of it: an error thrown
+ * from our own scripts, and not Next's redirect or not-found. Next marks
+ * some such failures handled, so the browser logs nothing of them and
+ * Playwright's pageerror never hears them. The listener is the page's
+ * first, so it hears each before anything can mark it.
+ */
+async function logRejections(context: BrowserContext) {
+  await context.addInitScript((marker: string) => {
+    window.addEventListener("unhandledrejection", (event) => {
+      const reason: unknown = event.reason;
+      const digest = (reason as { digest?: unknown } | null)?.digest;
+      if (typeof digest === "string" && /^NEXT_(REDIRECT|HTTP_ERROR_FALLBACK|NOT_FOUND)/.test(digest)) return;
+      if (!(reason instanceof Error) || !reason.stack?.includes(`${window.location.origin}/_next/`)) return;
+      console.error(`${marker} ${String(reason)}\n${reason.stack}`);
+    });
+  }, REJECTION);
+}
+
+/** What a page logs of a bubble that opened outside openBubble. */
+const PLAIN_BUBBLE = "[bubble opened outside openBubble]";
+
+/** What a page logs of the bubble `id` opening outside openBubble, for a flow where that's meant (expectConsole). */
+export const bubbleOpenedOutside = (id: string) => new RegExp(`${literally(PLAIN_BUBBLE)} #${literally(id)}$`);
+
+/** `text` in a regular expression as itself, every character that means something there escaped. */
+const literally = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Logs, in every page of `context`, each bubble (BubbleBox, which names its
+ * anchor in --bubble-anchor) that opens while openBubble isn't opening one
+ * (OPENING_BUBBLE, tests/storyboard/settle.ts). A bubble scrolls the page to
+ * show itself a moment after it opens, and openBubble waits for that; a flow
+ * that presses the button itself can take its frame, or press inside the
+ * bubble, mid-scroll.
+ */
+async function logPlainBubbles(context: BrowserContext) {
+  await context.addInitScript(
+    ([marker, flag]: [string, string]) => {
+      document.addEventListener(
+        "toggle",
+        (event) => {
+          const target = event.target;
+          if ((event as ToggleEvent).newState !== "open" || !(target instanceof HTMLElement)) return;
+          if (!target.style.getPropertyValue("--bubble-anchor")) return;
+          if ((window as unknown as Record<string, unknown>)[flag]) return;
+          console.error(`${marker} #${target.id}`);
+        },
+        true,
+      );
+    },
+    [PLAIN_BUBBLE, OPENING_BUBBLE] as [string, string],
+  );
+}
+
 /**
  * Adds to `problems` what every page of `context` logs that a flow fails
- * on: an uncaught error, a console error from our own code (an embedded
- * site's isn't), and React's hydration messages. A page that doesn't
- * hydrate as it rendered on the server, such as one whose text depends on
- * the browser, shows nothing wrong in a picture, only here.
+ * on: a bubble opened without openBubble (logPlainBubbles), an uncaught error, a promise failing with nothing waiting on it
+ * (logRejections), a console error from our own code (an embedded site's
+ * isn't), and React's hydration messages. A page that doesn't hydrate as it
+ * rendered on the server, such as one whose text depends on the browser,
+ * shows nothing wrong in a picture, only here.
  */
-function watchConsole(context: BrowserContext, problems: string[]) {
+async function watchConsole(context: BrowserContext, problems: string[]) {
   if (watched.has(context)) return;
   watched.add(context);
+  await logRejections(context);
+  await logPlainBubbles(context);
   const watch = (page: Page) => {
     page.on("console", (message) => {
       const origin = message.location().url;
@@ -182,6 +245,65 @@ function watchConsole(context: BrowserContext, problems: string[]) {
   };
   context.pages().forEach(watch);
   context.on("page", watch);
+}
+
+/** The contexts logNetwork is already logging. */
+const networkLogged = new WeakSet<BrowserContext>();
+
+/** Whether a run asked for each flow's log of its pages' requests and errors (logNetwork). */
+const NETWORK_LOG = process.env.STORYBOARD_NETWORK_LOG === "1";
+
+/** Where each flow's log goes, a file a flow and viewport. */
+const NETWORK_LOG_DIR = join("test-results", "storyboard-network");
+
+/** The log's file for a flow, named by its title and viewport. */
+const networkLogFile = (title: string, project: string) =>
+  join(NETWORK_LOG_DIR, `${`${title}-${project}`.replace(/[^\w.-]+/g, "-")}.txt`);
+
+/**
+ * With STORYBOARD_NETWORK_LOG=1, adds to `lines` what every page of `context`
+ * does, for finding where an error a flow failed on came from: each
+ * document and fetch request (with the Server Action it calls) and its
+ * answer, a Server Action's answer whole, the console, and each uncaught
+ * exception with the stack where it was thrown, its async callers too, from
+ * Chrome DevTools Protocol's Runtime.exceptionThrown. A trace has the test's
+ * steps, and a minified error's own stack is one line.
+ */
+async function logNetwork(context: BrowserContext, lines: string[]) {
+  if (networkLogged.has(context)) return;
+  networkLogged.add(context);
+  const at = () => new Date().toISOString().slice(11, 23);
+  const logged = (request: { resourceType(): string }) => ["document", "fetch"].includes(request.resourceType());
+  context.on("request", (request) => {
+    if (!logged(request)) return;
+    const action = request.headers()["next-action"];
+    lines.push(`${at()} → ${request.method()} ${request.url()}${action ? ` (Server Action ${action})` : ""}`);
+  });
+  context.on("response", async (response) => {
+    const request = response.request();
+    if (!logged(request)) return;
+    const body = request.headers()["next-action"] ? await response.text().catch(() => "") : "";
+    lines.push(`${at()} ← ${response.status()} ${request.url()}${body ? `\n${body.slice(0, 4000)}` : ""}`);
+  });
+  const watch = async (page: Page) => {
+    page.on("console", (message) => lines.push(`${at()} [console.${message.type()}] ${message.text()}`));
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Runtime.enable");
+    await cdp.send("Debugger.enable");
+    await cdp.send("Debugger.setAsyncCallStackDepth", { maxDepth: 32 });
+    cdp.on("Runtime.exceptionThrown", ({ exceptionDetails }) => {
+      const frames: string[] = [];
+      for (let trace = exceptionDetails.stackTrace; trace; trace = trace.parent) {
+        if (trace.description) frames.push(`  -- ${trace.description} --`);
+        for (const f of trace.callFrames)
+          frames.push(`  at ${f.functionName || "(anonymous)"} (${f.url}:${f.lineNumber + 1}:${f.columnNumber + 1})`);
+      }
+      const what = exceptionDetails.exception?.description ?? exceptionDetails.text;
+      lines.push(`${at()} [exception] ${what}\n${frames.join("\n")}`);
+    });
+  };
+  for (const page of context.pages()) await watch(page);
+  context.on("page", (page) => void watch(page));
 }
 
 /** What each running flow expects its pages to log, by the flow's id (expectConsole). */
@@ -211,6 +333,7 @@ function recordCalls(api: APIRequestContext, opened: Set<string>) {
 
 export const test = base.extend<{
   consoleProblems: string[];
+  networkLog: string[];
   flowDatabase: string;
   opened: Set<string>;
   smoothScroll: boolean;
@@ -218,6 +341,17 @@ export const test = base.extend<{
   // Whether the flow's pages scroll smoothly, as the site does for visitors,
   // or at once (scrollAtOnce), which every flow but scroll.spec.ts's does.
   smoothScroll: [false, { option: true }],
+  // What the flow's pages did, with STORYBOARD_NETWORK_LOG=1 (logNetwork), written to its file once it's done.
+  networkLog: [
+    async ({}, provide, testInfo) => {
+      const lines: string[] = [];
+      await provide(lines);
+      if (!NETWORK_LOG) return;
+      mkdirSync(NETWORK_LOG_DIR, { recursive: true });
+      writeFileSync(networkLogFile(testInfo.title, testInfo.project.name), `${lines.join("\n")}\n`);
+    },
+    { auto: true },
+  ],
   // What the flow's pages logged that it fails on (watchConsole), in every
   // context it makes. Checked once the flow has passed, so a flow that
   // failed fails on its own step, not on what that step logged.
@@ -245,7 +379,7 @@ export const test = base.extend<{
   // or seen again), the flow ran what instrumentation.ts hands errors to, which no page imports: it's
   // recorded as having opened that file.
   opened: [
-    async ({ flowDatabase, browser, smoothScroll, consoleProblems }, provide, testInfo) => {
+    async ({ flowDatabase, browser, smoothScroll, consoleProblems, networkLog }, provide, testInfo) => {
       const opened = new Set<string>();
       const [errorsBefore] = runSql(flowDatabase, ERRORS_KEPT);
       // What the build's server keeps of the flow's requests (scripts/record-requests.mjs): a run before
@@ -257,7 +391,8 @@ export const test = base.extend<{
       browser.newContext = async (...options) => {
         const context = await newContext.apply(browser, options);
         recordContext(context, opened);
-        watchConsole(context, consoleProblems);
+        await watchConsole(context, consoleProblems);
+        if (NETWORK_LOG) await logNetwork(context, networkLog);
         if (!smoothScroll) await scrollAtOnce(context);
         return context;
       };
@@ -308,9 +443,10 @@ export const test = base.extend<{
   // routes the same URLs on its page, which takes precedence, to record what
   // the page tried to load.
   // Recorded here too, in case it was made before `opened` began recording every context the flow makes.
-  context: async ({ context, opened, smoothScroll, consoleProblems }, provide) => {
+  context: async ({ context, opened, smoothScroll, consoleProblems, networkLog }, provide) => {
     recordContext(context, opened);
-    watchConsole(context, consoleProblems);
+    await watchConsole(context, consoleProblems);
+    if (NETWORK_LOG) await logNetwork(context, networkLog);
     if (!smoothScroll) await scrollAtOnce(context);
     await context.route(ANALYTICS_URL, (route) => route.abort());
     await provide(context);

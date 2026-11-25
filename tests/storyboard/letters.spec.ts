@@ -9,7 +9,7 @@ import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
-import { openBubble } from "./settle";
+import { openBubble, reload } from "./settle";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { TEST_MPS } from "@/lib/politicians/test-mps";
 import type { Section } from "./report/frames";
@@ -39,7 +39,7 @@ test("Letters by count", async ({ page, request, flowDatabase }) => {
   );
 
   story("The campaign's page shows Jane's letter sent, and that Sam's didn't reach his MP, as it bounced.");
-  await page.reload();
+  await reload(page);
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
   await expect(janes).toContainText(lettersCopy.copyStates.tags.sent!);
@@ -129,7 +129,7 @@ test("Replies to letters", async ({ page, request, flowDatabase }) => {
   story(
     "Sam's letter now says Replied. Jane's is still sent, as an automatic reply isn't a reply, and its tag says one came.",
   );
-  await page.reload();
+  await reload(page);
   const janes = page.getByRole("row").filter({ hasText: "Jane Smith" });
   const sams = page.getByRole("row").filter({ hasText: "Sam Smith" });
   await expect(janes).toContainText(lettersCopy.copyStates.tags["sent:auto-reply"]!);

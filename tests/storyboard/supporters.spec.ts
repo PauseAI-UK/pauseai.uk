@@ -16,7 +16,7 @@ import { importPoliticians } from "./politician-steps";
 import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { BASE, expect, madeUpAddress, frame, story, test } from "./fixtures";
-import { openBubble } from "./settle";
+import { openBubble, reload } from "./settle";
 import type { Section } from "./report/frames";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy";
@@ -275,7 +275,7 @@ test("A supporter's page", async ({ page, request, flowDatabase }) => {
   ).toEqual({
     recorded: true,
   });
-  await page.reload();
+  await reload(page);
   // A contact again, since before Luma's webhook, her email and number alike, and her email under Luma's own messages.
   await expect(
     page.getByText(reasons.following("20 Sept 2026", copy.detail.permissions.sources.luma), { exact: false }),
@@ -356,7 +356,7 @@ test("Notes on a supporter", async ({ page, request, flowDatabase }) => {
     `INSERT INTO notes (supporter_id, body, written_by, created_at)
      VALUES (${jane}, 'Wrong supporter, sorry.', 'sam.example@pauseai.uk', '${FIXTURE_NOW}'::timestamptz - interval '1 hour')`,
   );
-  await page.reload();
+  await reload(page);
   const oldNote = notes.filter({ hasText: "Asked about the Manchester group." });
   const newNote = notes.filter({ hasText: "Wrong supporter, sorry." });
   await expect(oldNote.getByRole("button", { name: notesCopy.notes.delete })).toHaveCount(0);
@@ -784,7 +784,7 @@ test("Erasing a supporter", async ({ page, request, flowDatabase }) => {
   // The next import, reading every guest list and host again, leaves Sam out.
   runSql(flowDatabase, "UPDATE luma_events SET guests_synced_at = NULL, hosts_synced_at = NULL");
   await importLuma(request, BASE);
-  await page.reload();
+  await reload(page);
   await expect(page.getByRole("link", { name: "Sam Fixture" })).toHaveCount(0);
 
   addStaffAccount(flowDatabase, staffEmail(), ["admin", "supporters"]);
@@ -810,7 +810,7 @@ test("Erasing a member", async ({ page, request, flowDatabase }) => {
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
 
   await importCivicrm(request, BASE);
-  await page.reload();
+  await reload(page);
   await expect(page.getByText(copy.total(10), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Mara Member" })).toHaveCount(0);
   await frame(page, "The supporters list, after the CiviCRM import");

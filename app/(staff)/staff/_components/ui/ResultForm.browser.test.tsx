@@ -9,6 +9,7 @@ import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { MenuSubmitExample } from "./MenuSubmit.gallery.client";
 import { Refusal, RefusalPlace, RefusedTextArea, RefusedTextInput, ResultForm, useTellPage } from "./ResultForm";
 import { FailedExample, GoneExample, TypedWrongExample } from "./ResultForm.gallery.client";
+import { takeReported } from "@/tests/browser/reported";
 
 const at = vi.hoisted(() => ({ path: "/staff/politicians", search: "party=Labour" }));
 vi.mock("next/navigation", () => ({
@@ -259,6 +260,7 @@ describe("the kit form's examples in the gallery", () => {
     await render(<FailedExample />);
     await page.getByRole("button", { name: "Update for all" }).click();
     await expect.element(page.getByRole("alert")).toHaveTextContent(staffVocabulary.notDone);
+    expect(takeReported()).toHaveLength(1);
     vi.restoreAllMocks();
   });
 

@@ -9,7 +9,16 @@
 //
 // scripts/storyboard.mjs does the same before a review, and tells from it whether the build is the code's.
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  statSync,
+  utimesSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,12 +33,16 @@ export function workingTree(cwd = process.cwd()) {
   const dir = mkdtempSync(join(tmpdir(), "pauseai-storyboard-index-"));
   try {
     const env = { ...process.env, GIT_INDEX_FILE: join(dir, "index") };
-    // From the checkout's own index, so git reads only the files that have changed.
+    // From the checkout's own index, so git reads only the files that have changed. The copy keeps the index's
+    // time: Git doesn't trust an entry whose file changed in the second the index was written, and with the
+    // copy's own time, later, it would, missing a same-size edit where it compares only whole seconds.
     const index = execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-path", "index"], {
       cwd,
       encoding: "utf8",
     }).trim();
     copyFileSync(index, env.GIT_INDEX_FILE);
+    const { atime, mtime } = statSync(index);
+    utimesSync(env.GIT_INDEX_FILE, atime, mtime);
     execFileSync("git", ["add", "--all"], { cwd, env });
     return execFileSync("git", ["write-tree"], { cwd, env, encoding: "utf8" }).trim();
   } finally {
