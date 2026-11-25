@@ -85,7 +85,7 @@ export const broadcastsCopy = {
     textTop: {
       label: "Header",
       none: "None",
-      linkPreview: "⁂ Link preview",
+      linkPreview: "Link preview",
       picture: "Picture",
       place: "Place",
     },
