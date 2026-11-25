@@ -10,7 +10,7 @@ const escape = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** An attachment's size as a mail app gives it: bytes, KB or MB. */
-export function attachmentSize(base64: string): string {
+function attachmentSize(base64: string): string {
   const bytes = Buffer.from(base64, "base64").length;
   if (bytes < 1024) return `${bytes} bytes`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;

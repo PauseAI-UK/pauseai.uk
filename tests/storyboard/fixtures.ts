@@ -183,7 +183,7 @@ async function logRejections(context: BrowserContext) {
 }
 
 /** What a page logs of a bubble that opened outside openBubble. */
-export const PLAIN_BUBBLE = "[bubble opened outside openBubble]";
+const PLAIN_BUBBLE = "[bubble opened outside openBubble]";
 
 /** What a page logs of the bubble `id` opening outside openBubble, for a flow where that's meant (expectConsole). */
 export const bubbleOpenedOutside = (id: string) => new RegExp(`${PLAIN_BUBBLE.replace(/[[\]]/g, "\\$&")} #${id}$`);
@@ -251,10 +251,10 @@ const networkLogged = new WeakSet<BrowserContext>();
 const NETWORK_LOG = process.env.STORYBOARD_NETWORK_LOG === "1";
 
 /** Where each flow's log goes, a file a flow and viewport. */
-export const NETWORK_LOG_DIR = join("test-results", "storyboard-network");
+const NETWORK_LOG_DIR = join("test-results", "storyboard-network");
 
 /** The log's file for a flow, named by its title and viewport. */
-export const networkLogFile = (title: string, project: string) =>
+const networkLogFile = (title: string, project: string) =>
   join(NETWORK_LOG_DIR, `${`${title}-${project}`.replace(/[^\w.-]+/g, "-")}.txt`);
 
 /**

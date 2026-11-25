@@ -7,7 +7,7 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, expectConsole, frame, story, test } from "./fixtures";
-import { hydrated, reload } from "./settle";
+import { hydrated, openBubble, reload } from "./settle";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Contact preferences", part: "Public site", order: 55 };
@@ -111,7 +111,7 @@ test("Changing what you get", async ({ page, request, flowDatabase }) => {
   await frame(page, "Jane's settings");
   if (onPhone()) {
     story("Each topic says why she gets it. On a phone, that's behind the “?” beside its name.");
-    await topicCard(page, "newsletter").getByRole("button", { name: copy.why.ask }).click();
+    await openBubble(topicCard(page, "newsletter").getByRole("button", { name: copy.why.ask }));
     await expect(topicCard(page, "newsletter").getByText(copy.why.reasons.member!("")).first()).toBeVisible();
     await frame(page, "Why she gets the newsletter");
     await page.keyboard.press("Escape");
