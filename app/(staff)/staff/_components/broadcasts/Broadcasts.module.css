@@ -473,10 +473,6 @@
   white-space: normal;
 }
 
-
-
-
-
 .mapPlace {
   display: grid;
   padding: var(--space-1) var(--space-2);

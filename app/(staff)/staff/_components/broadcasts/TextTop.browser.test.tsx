@@ -101,21 +101,26 @@ describe("TextTop", () => {
     expect(onChange).toHaveBeenCalledWith({ header: null });
   });
 
-  it("keeps a chosen template's kind of top, but not its place, which can still be found and changed", async () => {
+  it("keeps a chosen template's kind of top, but not its place, which can still be changed or taken off", async () => {
     await renderTop({ place: examplePlace, fixed: true });
     await expect.element(kind(copy.textTop.none)).toBeDisabled();
     await expect.element(kind(copy.textTop.place)).toBeDisabled();
-    await expect.element(box()).toBeEnabled();
     await expect.element(page.getByLabelText(words.name)).toBeEnabled();
+    await expect.element(page.getByRole("button", { name: words.remove })).toBeVisible();
   });
 
-  it("changes nothing while it's disabled", async () => {
+  it("changes nothing while it's disabled, with no × on its place", async () => {
     await renderTop({ place: examplePlace, disabled: true });
     await expect.element(kind(copy.textTop.place)).toBeDisabled();
-    await expect.element(box()).toBeDisabled();
-    await expect.element(find()).toBeDisabled();
     await expect.element(page.getByLabelText(words.name)).toBeDisabled();
     await expect.element(page.getByLabelText(words.address)).toBeDisabled();
+    expect(page.getByRole("button", { name: words.remove }).query()).toBeNull();
+  });
+
+  it("can't search while it's disabled", async () => {
+    await renderTop({ disabled: true });
+    await expect.element(box()).toBeDisabled();
+    await expect.element(find()).toBeDisabled();
   });
 
   it("finds nothing till something's typed, then chooses the one place found at once", async () => {
@@ -129,20 +134,29 @@ describe("TextTop", () => {
     await find().click();
     await vi.waitFor(() => expect(onChange).toHaveBeenCalledWith({ place: examplePlace }));
     expect(findPlaces).toHaveBeenCalledWith("https://maps.app.goo.gl/AbCdEfGh12345");
-    expect(page.getByRole("list", { name: words.found }).query()).toBeNull();
+    expect(page.getByRole("button", { name: new RegExp(examplePlace.address) }).query()).toBeNull();
   });
 
-  it("finds with Enter, and offers the places found to choose one", async () => {
+  it("finds with Enter, and offers the places found in a menu to choose one", async () => {
     const { onChange, findPlaces } = await renderTop({ found: [examplePlace, other] });
     await box().fill("square");
     await userEvent.keyboard("{Enter}");
     await vi.waitFor(() => expect(findPlaces).toHaveBeenCalledWith("square"));
-    const found = page.getByRole("list", { name: words.found });
-    await expect.element(found.getByRole("button", { name: /Trafalgar Square/ })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: /Trafalgar Square/ })).toBeVisible();
     expect(onChange).not.toHaveBeenCalled();
-    await found.getByRole("button", { name: new RegExp(examplePlace.address) }).click();
+    await page.getByRole("button", { name: new RegExp(examplePlace.address) }).click();
     expect(onChange).toHaveBeenCalledWith({ place: examplePlace });
-    await expect.element(found).not.toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: /Trafalgar Square/ })).not.toBeInTheDocument();
+  });
+
+  it("closes the menu of places found with Escape, choosing none", async () => {
+    const { onChange } = await renderTop({ found: [examplePlace, other] });
+    await box().fill("square");
+    await find().click();
+    await expect.element(page.getByRole("button", { name: /Trafalgar Square/ })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("button", { name: /Trafalgar Square/ })).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("types other keys into the box without finding", async () => {
@@ -158,15 +172,12 @@ describe("TextTop", () => {
     await box().fill("nowhere at all");
     await find().click();
     await expect.element(page.getByText(words.none)).toBeVisible();
-    expect(page.getByRole("list", { name: words.found }).query()).toBeNull();
   });
 
-  it("says what to do with a place's name and address only once one is chosen", async () => {
+  it("shows the search till a place is chosen, then the place as WhatsApp shows it, in its place", async () => {
     const { screen } = await renderTop();
     await expect.element(box()).toBeVisible();
-    expect(page.getByText(words.underMap).query()).toBeNull();
     expect(page.getByLabelText(words.name).query()).toBeNull();
-    expect(page.getByRole("link", { name: words.checkMap }).query()).toBeNull();
     await screen.rerender(
       <TextTop
         header="location"
@@ -178,19 +189,34 @@ describe("TextTop", () => {
         uploadPicture={async () => undefined}
       />,
     );
-    await expect.element(page.getByText(words.underMap)).toBeVisible();
+    await expect.element(page.getByLabelText(words.name)).toHaveValue(examplePlace.name);
+    expect(box().query()).toBeNull();
+    expect(page.getByText(words.needsWords).query()).toBeNull();
   });
 
-  it("changes a chosen place's name and address, and links to its pin on a map", async () => {
+  it("changes a chosen place's name and address, on one line each, and links its map to its pin", async () => {
     const { onChange } = await renderTop({ place: examplePlace });
     await expect
       .element(page.getByRole("link", { name: words.checkMap }))
       .toHaveAttribute("href", "https://www.google.com/maps?q=51.5005,-0.1268");
     await page.getByLabelText(words.name).fill("The square");
     expect(onChange).toHaveBeenLastCalledWith({ place: { ...examplePlace, name: "The square" } });
-    await page.getByLabelText(words.address).fill("SW1");
-    expect(onChange).toHaveBeenLastCalledWith({ place: { ...examplePlace, address: "SW1" } });
-    await expect.element(page.getByText(words.changeable)).toBeVisible();
+    await page.getByLabelText(words.address).fill("SW1\nLondon");
+    expect(onChange).toHaveBeenLastCalledWith({ place: { ...examplePlace, address: "SW1 London" } });
+    await page.getByLabelText(words.address).click();
+    await userEvent.keyboard("{Enter}");
+    expect(onChange).toHaveBeenLastCalledWith({ place: { ...examplePlace, address: "SW1 London" } });
+  });
+
+  it("says a place needs a name and an address while either is empty", async () => {
+    await renderTop({ place: { ...examplePlace, address: " " } });
+    await expect.element(page.getByText(words.needsWords)).toBeVisible();
+  });
+
+  it("takes the place off with its ×, for the search again", async () => {
+    const { onChange } = await renderTop({ place: examplePlace });
+    await page.getByRole("button", { name: words.remove }).click();
+    expect(onChange).toHaveBeenCalledWith({ place: null });
   });
 });
 
@@ -215,11 +241,10 @@ describe("TextTop's picture", () => {
     await expect.element(choosePicture()).toBeVisible();
     expect(document.querySelector<HTMLInputElement>("input[type=file]")!.accept).toBe("image/jpeg,image/png");
     expect(page.getByRole("img", { name: pictures.shown }).query()).toBeNull();
-    expect(page.getByText(pictures.changeable).query()).toBeNull();
     expect(box().query()).toBeNull();
   });
 
-  it("shows the picture chosen, small, with a × to take it off and no box, and says it can change after approval", async () => {
+  it("shows the picture chosen, small, with a × to take it off and no box", async () => {
     await renderTop({ header: "image", pictureId: examplePictureId });
     await expect.element(page.getByRole("img", { name: pictures.shown })).toHaveAttribute("src", examplePictureId);
     // A kept picture is served by the site; an example's, given whole, is its own.
@@ -229,7 +254,6 @@ describe("TextTop's picture", () => {
     expect(pictureSource(examplePictureId)).toBe(examplePictureId);
     await expect.element(page.getByRole("button", { name: pictures.remove })).toBeVisible();
     expect(choosePicture().query()).toBeNull();
-    await expect.element(page.getByText(pictures.changeable)).toBeVisible();
   });
 
   it("takes the picture off with its ×", async () => {
