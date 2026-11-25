@@ -625,11 +625,29 @@ function namesFolder(text, name) {
  */
 function readers(context, path) {
   const name = path.split("/").at(-1);
-  const folder = path.split("/").at(-2);
+  const folders = path.split("/").slice(0, -1);
   return [...context.graph.keys()].filter((file) => {
     const text = textOf(context, file);
-    return text.includes(name) || (folder !== undefined && namesFolder(text, folder));
+    return text.includes(name) || (folders.length > 0 && namesPathFolder(text, folders));
   });
+}
+
+/**
+ * Whether `text` names the folder whose path is `folders` (its parts, from
+ * the root) as somewhere to read from. Under public/, a folder's name after
+ * a slash is an address, such as a link to /people/, which reads nothing
+ * there, and in quotes it can be any word ("person", "people"). Only its
+ * served path (`/images/people/`) counts, or its name as a part of a path
+ * joined from parts that names "public" too.
+ */
+function namesPathFolder(text, folders) {
+  const name = folders.at(-1);
+  if (folders[0] !== "public") return namesFolder(text, name);
+  const quoted = (folder) => folder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const part = (folder) => new RegExp(`["'\`]${quoted(folder)}["'\`]`).test(text);
+  if (part("public") && part(name)) return true;
+  if (folders.length === 1) return false;
+  return new RegExp(`/${quoted(folders.slice(1).join("/"))}/?(["'\`]|\\$\\{)`).test(text);
 }
 
 /**
@@ -644,7 +662,9 @@ function listers(context, path) {
   context.listing ??= [...context.graph.keys()].filter(
     (file) => !SET_UP.some((re) => re.test(file)) && /\breaddir(Sync)?\(/.test(textOf(context, file)),
   );
-  return context.listing.filter((file) => folders.some((folder) => namesFolder(textOf(context, file), folder)));
+  return context.listing.filter((file) =>
+    folders.some((_, i) => namesPathFolder(textOf(context, file), folders.slice(0, i + 1))),
+  );
 }
 
 /** Whether a file of `graph` imports `path`. */

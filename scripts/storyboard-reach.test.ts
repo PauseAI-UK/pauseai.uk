@@ -461,6 +461,27 @@ describe("reachedFlows", () => {
     expect(reached(["public/pdfs/briefing.pdf"]).keys).toEqual(keysOf(letters, broken, upload));
   });
 
+  it("takes a link to a page for no reader of a public folder of the same name, nor lister of it", () => {
+    const photo = "public/images/people/jo.jpg";
+    const write = (text: string) => writeFileSync(join(root, "app/sitemap.ts"), text);
+    const reach = () => reachedFlows({ files: [photo], addedOrDeleted: [photo], runs, context: reachContext(root) });
+    try {
+      write(
+        `readdirSync(join(process.cwd(), "app"));\nconst links = ["/people/", \`/people/\${slug}\`];\ncount(n, "person", "people");`,
+      );
+      expect(reach()).toEqual(nothingReached);
+      // Its served path, or its name as a part of a path, is a reader's.
+      write(`readdirSync(join(process.cwd(), "app"));\nconst src = \`/images/people/\${slug}\`;`);
+      expect(reach().keys).toEqual(keysOf(sitemap));
+      write(`readdirSync(join(process.cwd(), "public", "images", "people"));`);
+      expect(reach().keys).toEqual(keysOf(sitemap));
+      write(`readdirSync(join(process.cwd(), "public"));`);
+      expect(reach().keys).toEqual(keysOf(sitemap));
+    } finally {
+      write(FILES["app/sitemap.ts"]);
+    }
+  });
+
   it("reruns the flows reaching a file that names a font, a picture or other data beside the code", () => {
     expect(reached(["lib/fonts/inter.woff2"]).keys).toEqual(everyRun);
   });
