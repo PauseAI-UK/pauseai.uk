@@ -237,6 +237,14 @@ describe("threads through the House of Lords' shared inbox", () => {
     expect(performance.now() - started).toBeLessThan(500);
   });
 
+  it("reads a subject of many Fw:s in time linear in their number", () => {
+    // A pattern that can read "fw" two ways tries both at every one, doubling the time with each.
+    const started = performance.now();
+    expect(lordFor(`${"fw:".repeat(30)}x`)).toBeNull();
+    expect(lordFor("Fw: FW: For Baroness Verma: A letter")).toBe("Baroness Verma");
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
   it("matches a name to one sitting Lord, with or without their territorial part, or to none", () => {
     const lords = [
       { id: 1, name: "Baroness Verma" },

@@ -248,7 +248,7 @@ export function isRecognisedMail(from: string, labels: readonly string[]): boole
  */
 export function lordFor(subject: string): string | null {
   const match =
-    /^(?:\s*(?:re|fwd?|fw)\s*:)*\s*for\s+((?:the\s+)?(?:lord|baroness|lady|viscount|viscountess|earl|countess|duke|bishop)\b[^:]*):/i.exec(
+    /^(?:\s*(?:re|fwd?)\s*:)*\s*for\s+((?:the\s+)?(?:lord|baroness|lady|viscount|viscountess|earl|countess|duke|bishop)\b[^:]*):/i.exec(
       subject,
     );
   // The spaces before the colon are trimmed after the match: a lazy name then `\s*` would backtrack over them.
