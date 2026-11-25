@@ -1619,9 +1619,16 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     const toggle = () => preview().getByRole("button", { name: wrote });
     toggle().element().scrollIntoView({ block: "center" });
     const before = toggle().element().getBoundingClientRect().top;
+    // Within a few pixels: the page scrolls by whole ones, so a move of a fraction is left over now and then.
+    const moved = () => Math.abs(toggle().element().getBoundingClientRect().top - before);
     await toggle().click();
     await expect.element(tab(292)).toHaveAttribute("aria-selected", "true");
-    await expect.poll(() => Math.abs(toggle().element().getBoundingClientRect().top - before)).toBeLessThan(2);
+    await expect.poll(moved).toBeLessThan(4);
+    // Back again, before the first has stopped holding it, and held still after both have stopped.
+    await toggle().click();
+    await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
+    await new Promise((resolve) => setTimeout(resolve, 2100));
+    expect(moved()).toBeLessThan(4);
   });
 
   // The bubble's buttons, in the list under it that has the link button.

@@ -751,13 +751,18 @@ export default function BroadcastWriter({
     const place = kept.current;
     if (!place) return;
     kept.current = null;
-    // Now, and every 25ms for half a second after, as the open tab's editor fills in after it's drawn.
-    // Instantly, as the site's pages scroll smoothly, which would make each a slow slide.
+    // Now, and each time the page's height changes for two seconds after, as the open tab's editor fills in once
+    // it's drawn, however slowly. Instantly, as the site's pages scroll smoothly, which would make each a slow slide.
     const hold = () =>
       window.scrollBy({ top: place.element.getBoundingClientRect().top - place.top, behavior: "instant" });
     hold();
-    const timers = Array.from({ length: 20 }, (_, i) => setTimeout(hold, (i + 1) * 25));
-    return () => timers.forEach(clearTimeout);
+    const resized = new ResizeObserver(hold);
+    resized.observe(document.body);
+    const done = setTimeout(() => resized.disconnect(), 2000);
+    return () => {
+      resized.disconnect();
+      clearTimeout(done);
+    };
   }, [side]);
   // Made anew when its words are put in from the second version, as an editor reads its words once.
   const [ownKey, setOwnKey] = useState(0);
