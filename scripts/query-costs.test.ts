@@ -56,7 +56,7 @@ describe("drain", () => {
     const file = join(dir, "log");
     writeFileSync(file, "one\ntw");
     const taken: string[] = [];
-    const stop = drain(file, (text) => taken.push(text), 10);
+    const stop = drain(file, (text: string) => taken.push(text), 10);
     await new Promise((resolve) => setTimeout(resolve, 50));
     appendFileSync(file, "o\nthree");
     await new Promise((resolve) => setTimeout(resolve, 50));
