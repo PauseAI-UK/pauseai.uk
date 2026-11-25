@@ -751,16 +751,15 @@ export default function BroadcastWriter({
     const place = kept.current;
     if (!place) return;
     kept.current = null;
-    // Now, and each frame for a moment after, as the open tab's editor fills in after it's drawn.
-    const hold = () => window.scrollBy(0, place.element.getBoundingClientRect().top - place.top);
-    hold();
-    let frames = 30;
-    const next = () => {
-      hold();
-      if (--frames > 0) frame = requestAnimationFrame(next);
+    // Now, and every 25ms for half a second after, as the open tab's editor fills in after it's drawn.
+    // Instantly, as the site's pages scroll smoothly, which would make each a slow slide.
+    const hold = () => {
+      const moved = place.element.getBoundingClientRect().top - place.top;
+      if (moved) window.scrollBy({ top: moved, behavior: "instant" });
     };
-    let frame = requestAnimationFrame(next);
-    return () => cancelAnimationFrame(frame);
+    hold();
+    const timers = Array.from({ length: 20 }, (_, i) => setTimeout(hold, (i + 1) * 25));
+    return () => timers.forEach(clearTimeout);
   }, [side]);
   // Made anew when its words are put in from the second version, as an editor reads its words once.
   const [ownKey, setOwnKey] = useState(0);
