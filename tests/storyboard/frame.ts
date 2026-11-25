@@ -111,6 +111,26 @@ async function picture(
       // Loaded isn't decoded: an image painted before it is can be drawn a
       // shade differently, a few pixels off between runs.
       await Promise.all([...document.images].map((img) => img.decode().catch(() => {})));
+      // An image shown small and also, elsewhere, large (the gallery's post
+      // cards) can show either file: Chromium takes a larger candidate of a
+      // srcset in place of the one it would pick if it has loaded it
+      // already, so which it shows turns on which loaded first. Chosen
+      // again now, with every image loaded, it takes the larger every time.
+      const chosen = [...document.images].filter((img) => img.hasAttribute("srcset"));
+      for (const img of chosen) img.setAttribute("srcset", img.getAttribute("srcset")!);
+      // The choice is made a moment after the attribute is set.
+      await new Promise((done) => setTimeout(done, 0));
+      await Promise.all(
+        chosen.map((img) =>
+          img.complete
+            ? undefined
+            : new Promise<void>((done) => {
+                img.addEventListener("load", () => done(), { once: true });
+                img.addEventListener("error", () => done(), { once: true });
+              }),
+        ),
+      );
+      await Promise.all(chosen.map((img) => img.decode().catch(() => {})));
       // So too a CSS background image (the photo library's thumbnails), which
       // isn't one of the page's images: one of each, loaded and decoded.
       const backgrounds = new Set<string>();
@@ -144,6 +164,7 @@ async function picture(
       // An image that never loads, or a page that navigated away: take the picture anyway.
       return false;
     });
+  await videoControlsStill(page, Boolean(of) || !(inWindow || windowOnly));
   if (of) {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     // The scroll can set the page going again, as anything an
@@ -210,6 +231,48 @@ async function repaint(page: Page, hovered: boolean): Promise<void> {
     }, hovered)
     // A page that navigated away: take the picture anyway.
     .catch(() => {});
+}
+
+/** How long a video's controls are given to come to rest before the picture is taken anyway. */
+const VIDEO_STILL_TIME = 5_000;
+
+/**
+ * Waits for the controls of each video on the page to stop moving. For a
+ * second or two after a page loads, Chromium turns a loading spinner in the
+ * middle of a video with controls (the march page's film), inside the
+ * video, where the page's styles can't reach it, so a picture taken then
+ * catches it partway round. Two pictures of a video a moment apart that are
+ * the same say it's stopped.
+ *
+ * A page pictured whole (`whole`) is pictured here whole too, as the video
+ * may be below the window. Otherwise only the part of each video in the
+ * window is, as a full-page picture resizes the window, which moves a menu
+ * or a dialog placed against it.
+ */
+async function videoControlsStill(page: Page, whole: boolean): Promise<void> {
+  const boxes = await page
+    .evaluate((whole) => {
+      const shown = [];
+      for (const video of document.querySelectorAll("video[controls]")) {
+        const box = video.getBoundingClientRect();
+        const top = whole ? box.top + window.scrollY : Math.max(box.top, 0);
+        const bottom = whole ? box.bottom + window.scrollY : Math.min(box.bottom, window.innerHeight);
+        if (box.width > 0 && bottom > top) shown.push({ x: box.left, y: top, width: box.width, height: bottom - top });
+      }
+      return shown;
+    }, whole)
+    // A page that navigated away: take the picture anyway.
+    .catch(() => []);
+  for (const clip of boxes) {
+    const until = Date.now() + VIDEO_STILL_TIME;
+    let last = await page.screenshot({ ...SHOT, fullPage: whole, clip });
+    while (Date.now() < until) {
+      await page.waitForTimeout(250);
+      const next = await page.screenshot({ ...SHOT, fullPage: whole, clip });
+      if (next.equals(last)) break;
+      last = next;
+    }
+  }
 }
 
 /** The inline styles `alone` changes, as they were, for `putBack`. */
