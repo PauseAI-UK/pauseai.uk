@@ -31,6 +31,8 @@ import { HOUSES, PERSON_STATUSES } from "@/lib/politicians/filters";
 import type { SignupUploadPerson } from "@/lib/supporters/signup-uploads.server";
 import { SIGNUP_KINDS } from "@/lib/supporters/signup-csv";
 import { PERMISSIONS } from "@/lib/accounts/permissions";
+import type { TextHeader } from "@/lib/broadcasts/text-parts";
+import { PICTURE_TYPES } from "@/lib/broadcasts/text-pictures.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 
 // A column whose CHECK lists the values it allows lists them in TypeScript
@@ -148,6 +150,10 @@ const LISTED: Record<string, readonly string[]> = {
   ]),
   "signup_uploads.kind": SIGNUP_KINDS,
   "staff_accounts.permissions": PERMISSIONS,
+  "mailings.header": every<TextHeader>()(["location", "image"]),
+  "broadcast_versions.header": every<TextHeader>()(["location", "image"]),
+  "whatsapp_templates.header": every<TextHeader>()(["location", "image"]),
+  "text_pictures.content_type": PICTURE_TYPES,
 };
 
 /** The columns whose values TypeScript lists nowhere it can be read from, written only as SQL or as a function's own literals. */

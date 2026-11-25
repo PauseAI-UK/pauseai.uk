@@ -495,6 +495,7 @@ describe("broadcastScheduleProblems", () => {
     sends: true,
     header: null,
     place: null,
+    pictureId: null,
     buttons: [],
     textVersion: null,
   };
@@ -614,7 +615,7 @@ describe("broadcastScheduleProblems", () => {
     expect(sameWords(hi, [])).toBe(false);
   });
 
-  it("finds two texts one template (sameTemplate) when their words, top and buttons' words are the same", () => {
+  it("finds two texts one template (sameTemplate) when their words, top, and buttons' words and addresses are the same", () => {
     const one = { body: WORDS, header: "location" as const, buttons: [{ text: "Coming" }, { text: "Not coming" }] };
     expect(sameTemplate(one, { ...one, buttons: [{ text: " Coming " }, { text: "Not coming" }] })).toBe(true);
     expect(sameTemplate(one, { ...one, body: EMPTY_MAILING_DOC })).toBe(false);
@@ -623,12 +624,33 @@ describe("broadcastScheduleProblems", () => {
     expect(sameTemplate(one, { ...one, buttons: [{ text: "Not coming" }, { text: "Coming" }] })).toBe(false);
   });
 
+  it("finds two texts one template whose link buttons open the same addresses, as WhatsApp orders them", () => {
+    const link = { text: "Read", url: "https://pauseai.uk/news" };
+    const one = { body: WORDS, header: null, buttons: [link, { text: "Coming" }] };
+    expect(
+      sameTemplate(one, { ...one, buttons: [{ text: "Coming" }, { ...link, url: " https://pauseai.uk/news " }] }),
+    ).toBe(true);
+    expect(sameTemplate(one, { ...one, buttons: [{ ...link, url: "https://pauseai.uk" }, { text: "Coming" }] })).toBe(
+      false,
+    );
+    expect(sameTemplate(one, { ...one, buttons: [{ text: "Read" }, { text: "Coming" }] })).toBe(false);
+  });
+
   it("wants a text whose top is a map to have a place, but not one without a top, nor an email", () => {
     const text = { ...good, channel: "text" as const };
     const place = { name: "Padella", address: "6 Southwark St", latitude: 51.5, longitude: -0.09 };
     expect(broadcastScheduleProblems({ ...text, header: "location" })).toEqual(["no-place"]);
     expect(broadcastScheduleProblems({ ...text, header: "location", place })).toEqual([]);
     expect(broadcastScheduleProblems({ ...good, header: "location" })).toEqual([]);
+  });
+
+  it("wants a text whose top is a picture to have one, but not an email", () => {
+    const text = { ...good, channel: "text" as const };
+    expect(broadcastScheduleProblems({ ...text, header: "image" })).toEqual(["no-picture"]);
+    expect(
+      broadcastScheduleProblems({ ...text, header: "image", pictureId: "00000000-0000-4000-8000-000000000001" }),
+    ).toEqual([]);
+    expect(broadcastScheduleProblems({ ...good, header: "image" })).toEqual([]);
   });
 
   it("wants each of a text's buttons to have words, 25 characters at most, but an email's are no matter", () => {
@@ -641,11 +663,27 @@ describe("broadcastScheduleProblems", () => {
     expect(broadcastScheduleProblems({ ...good, buttons: [{ text: "" }] })).toEqual([]);
   });
 
+  it("wants each of a text's link buttons to open a web page, two at most", () => {
+    const text = { ...good, channel: "text" as const };
+    const link = { text: "Read", url: "https://pauseai.uk/news" };
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }, link, link] })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ ...link, url: "pauseai.uk" }] })).toEqual(["button-words"]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [link, link, link] })).toEqual(["button-words"]);
+  });
+
   it("checks a text's second version as it does its first", () => {
     const field = (name: string): MailingInline => ({ type: "field", attrs: { field: name } });
     const text = { ...good, channel: "text" as const };
     type Version = NonNullable<SchedulingBroadcast["textVersion"]>;
-    const version: Version = { body: WORDS, approved: true, sameWords: false, header: null, place: null, buttons: [] };
+    const version: Version = {
+      body: WORDS,
+      approved: true,
+      sameWords: false,
+      header: null,
+      place: null,
+      pictureId: null,
+      buttons: [],
+    };
     const problems = (textVersion: Partial<Version>, broadcast: Partial<SchedulingBroadcast> = {}) =>
       broadcastScheduleProblems({ ...text, ...broadcast, textVersion: { ...version, ...textVersion } });
     expect(problems({})).toEqual([]);
@@ -659,6 +697,7 @@ describe("broadcastScheduleProblems", () => {
     expect(problems({ body: misplaced, sameWords: true })).toEqual([]);
     expect(problems({ approved: false, sameWords: true })).toEqual(["same-words"]);
     expect(problems({ header: "location" })).toEqual(["no-place"]);
+    expect(problems({ header: "image" })).toEqual(["no-picture"]);
     expect(problems({ buttons: [{ text: "" }] })).toEqual(["button-words"]);
     // An email has no versions to check.
     expect(broadcastScheduleProblems({ ...good, textVersion: { ...version, body: EMPTY_MAILING_DOC } })).toEqual([]);

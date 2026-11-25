@@ -12,6 +12,7 @@ import { notifications, NOTIFICATIONS, type Notification } from "@/tests/notific
 import { createBroadcastDraft, resumeBroadcast } from "./drafts.server";
 import { sendDueBroadcasts, startDueBroadcasts, stopTextsOn } from "./sending.server";
 import { registeredFor } from "./broadcasts";
+import { keepPicture } from "./text-pictures.server";
 import { hashOf } from "@/lib/supporters/email-settings.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { recordProblem } from "@/lib/email/email.server";
@@ -1392,18 +1393,41 @@ describeWithDatabase("sending texts", () => {
     }
 
     /**
-     * Text `id`'s second version, for those registered for evt-2, with a place, on a template in `status`, or
-     * on none; its template's ID.
+     * Text `id`'s second version, for those registered for evt-2, with a place, or with the picture `picture`,
+     * on a template in `status` with that top, or on none; its template's ID.
      */
-    async function versionOf(id: number, status: string | null = "approved"): Promise<number | null> {
+    async function versionOf(
+      id: number,
+      status: string | null = "approved",
+      picture: string | null = null,
+    ): Promise<number | null> {
+      const header = picture ? "image" : "location";
       const template = status ? await addTemplate("March day, for those who came", { status }) : null;
-      await query("UPDATE whatsapp_templates SET meta_name = 'came_' || id WHERE id = $1", [template]);
+      await query("UPDATE whatsapp_templates SET meta_name = 'came_' || id, header = $2 WHERE id = $1", [
+        template,
+        header,
+      ]);
       await query(
-        `INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, header, place)
-         VALUES ($1, $2, $3, $4, 'location', $5)`,
-        [id, registeredFor("evt-2"), JSON.stringify(EVENT_WORDS), template, JSON.stringify(PLACE)],
+        `INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, header, place, picture_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          id,
+          registeredFor("evt-2"),
+          JSON.stringify(EVENT_WORDS),
+          template,
+          header,
+          picture ? null : JSON.stringify(PLACE),
+          picture,
+        ],
       );
       return template;
+    }
+
+    /** A picture kept for a text's top; its ID. */
+    async function aPicture(): Promise<string> {
+      const kept = await keepPicture({ type: "image/png", content: Buffer.from([137, 80, 78, 71]) }, "jo@pauseai.uk");
+      if (!("id" in kept)) throw new Error("not kept");
+      return kept.id;
     }
 
     it("sends each person the version whose condition they meet, with its place, and everyone else the text's own", async () => {
@@ -1436,6 +1460,35 @@ describeWithDatabase("sending texts", () => {
           { type: "body", parameters: [{ type: "text", parameter_name: "first_name", text: "Sam" }] },
         ],
       });
+    });
+
+    it("sends each version's picture by its address on the site, the text's own and the second version's", async () => {
+      await janeAndSam();
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      const [mine, theirs] = [await aPicture(), await aPicture()];
+      await query(
+        `UPDATE whatsapp_templates SET header = 'image' WHERE id = (SELECT template_id FROM mailings WHERE id = $1)`,
+        [id],
+      );
+      // A place kept from before the text's top was a picture is no part of it.
+      await query("UPDATE mailings SET header = 'image', picture_id = $2, place = $3 WHERE id = $1", [
+        id,
+        mine,
+        JSON.stringify(PLACE),
+      ]);
+      await versionOf(id, "approved", theirs);
+      expect(await startDueBroadcasts()).toEqual([id]);
+      expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 2, failed: 0, left: 0 });
+      const header = (number: string) => sent.find((one) => one.to === number)!.template.components[0];
+      const shows = (picture: string) => ({
+        type: "header",
+        parameters: [{ type: "image", image: { link: `https://pauseai.uk/api/text-pictures/${picture}` } }],
+      });
+      expect(header("447700900123")).toEqual(shows(mine));
+      expect(header("447700900124")).toEqual(shows(theirs));
+      expect(sent[0].template.components).toHaveLength(2);
     });
 
     it("waits past its time while the second version's template waits for WhatsApp, though the text's own is approved", async () => {

@@ -10,8 +10,8 @@
   font-weight: 600;
 }
 
-.place,
-.picture {
+/* A place's or a picture's form: a field's width, not the card's. */
+.form {
   display: grid;
   gap: var(--space-2);
   width: 100%;
