@@ -1,4 +1,4 @@
-/* A text's top: its choice, then a place's box, what it found, and the place's name and address. */
+/* A text's top: its choice, then a place's or a picture's own form under it, a field's width, not the card's. */
 .top {
   display: grid;
   gap: var(--space-2);
@@ -10,10 +10,12 @@
   font-weight: 600;
 }
 
-.place {
+.place,
+.picture {
   display: grid;
   gap: var(--space-2);
   width: 100%;
+  max-width: 36rem;
 }
 
 /* The box and its Find, level along their bottoms. */
@@ -25,7 +27,7 @@
 }
 
 .findRow > :first-child {
-  flex: 1 1 18rem;
+  flex: 1 1 16rem;
 }
 
 .found {
@@ -58,11 +60,26 @@
 
 .names {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: var(--space-2);
 }
 
 .check {
   justify-self: start;
+  font-size: var(--text-sm);
+}
+
+/* A picture chosen, small, as a check it's the right one. */
+.shown {
+  display: block;
+  width: 14rem;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.refusal {
+  margin: 0;
+  color: var(--status-red);
   font-size: var(--text-sm);
 }

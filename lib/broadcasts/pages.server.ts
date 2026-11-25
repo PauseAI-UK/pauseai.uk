@@ -314,6 +314,7 @@ export async function newBroadcastPageData(
       gaveUp: false,
       header: null,
       place: null,
+      pictureId: null,
       buttons: [],
       textVersion: null,
     },

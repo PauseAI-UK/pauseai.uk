@@ -16,7 +16,7 @@ import { staffDate } from "@/lib/staff-time";
 import { anyAndNone, valuesOf, type ParamValue } from "@/lib/list-params";
 import type { SortColumns } from "@/lib/staff-sort";
 import { broadcastsCopy } from "./copy";
-import { buttonsFit, type ReplyButton, type TextHeader, type TextPlace, type TextTemplateParts } from "./text-parts";
+import { buttonsFit, inOrder, type TextButton, type TextHeader, type TextPlace, type TextTemplateParts } from "./text-parts";
 
 // The rules of broadcasts to supporters, for the server to keep and the pages
 // to say: how the Consent filter fixes a broadcast's channel and topics, its
@@ -484,6 +484,7 @@ export type BroadcastScheduleProblem =
   | "field-twice"
   | "same-words"
   | "no-place"
+  | "no-picture"
   | "button-words"
   | "not-connected"
   | "too-slow"
@@ -520,12 +521,13 @@ export type SchedulingBroadcast = {
   numbered: boolean;
   /** Whether its channel sends yet. */
   sends: boolean;
-  /** A text's top, the place its map shows, and its reply buttons' words (text-parts.ts). */
+  /** A text's top, the place its map shows or its picture, and its buttons (text-parts.ts). */
   header: TextHeader | null;
   place: TextPlace | null;
-  buttons: ReplyButton[];
+  pictureId: string | null;
+  buttons: TextButton[];
   /** A text's second version, as far as scheduling it goes; none for one version. */
-  textVersion: Pick<SchedulingBroadcast, "body" | "approved" | "sameWords" | "header" | "place" | "buttons"> | null;
+  textVersion: Pick<SchedulingBroadcast, "body" | "approved" | "sameWords" | "header" | "place" | "pictureId" | "buttons"> | null;
 };
 
 /**
@@ -573,8 +575,8 @@ export function sameTemplate(one: TextTemplateParts, other: TextTemplateParts): 
   return (
     sameWords(one.body, [other.body]) &&
     one.header === other.header &&
-    JSON.stringify(one.buttons.map((button) => button.text.trim())) ===
-      JSON.stringify(other.buttons.map((button) => button.text.trim()))
+    JSON.stringify(inOrder(one.buttons).map((button) => [button.text.trim(), button.url?.trim()])) ===
+      JSON.stringify(inOrder(other.buttons).map((button) => [button.text.trim(), button.url?.trim()]))
   );
 }
 
@@ -617,6 +619,7 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["field-twice", misplaced.some((one) => one.twice)],
     ["same-words", fresh.some((one) => one.sameWords)],
     ["no-place", versions.some((one) => one.header === "location" && !one.place)],
+    ["no-picture", versions.some((one) => one.header === "image" && !one.pictureId)],
     ["button-words", versions.some((one) => !buttonsFit(one.buttons))],
     ["not-connected", broadcast.byGmail && !broadcast.connected],
     // At a day's limit of emails or texts, it must all go before it would stop: each day it has, part days whole.

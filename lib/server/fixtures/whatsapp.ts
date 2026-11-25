@@ -44,7 +44,12 @@ type Send = {
     name: string;
     components: {
       type: string;
-      parameters: { parameter_name?: string; text?: string; location?: Record<string, string> }[];
+      parameters: {
+        parameter_name?: string;
+        text?: string;
+        location?: Record<string, string>;
+        image?: { link: string };
+      }[];
     }[];
   };
   text?: { body: string };
@@ -72,27 +77,42 @@ function sendWords(send: Send): string {
     latitude: Number(location.latitude),
     longitude: Number(location.longitude),
   };
-  return textNote(FIXTURE_NUMBER, { to, template: { name: send.template!.name, params, ...(place && { place }) } });
+  const picture = of("header")?.[0]?.image?.link;
+  return textNote(FIXTURE_NUMBER, {
+    to,
+    template: { name: send.template!.name, params, ...(place && { place }), ...(picture && { picture }) },
+  });
 }
 
 type NewTemplate = {
   name: string;
-  components: { type: string; text?: string; format?: string; buttons?: { text: string }[] }[];
+  components: { type: string; text?: string; format?: string; buttons?: { text: string; url?: string }[] }[];
 };
 
-/** A template sent for approval, as words: its name, a place at its top if it has one, words, footer and reply buttons. */
+/**
+ * A template sent for approval, as words: its name, a place or picture at
+ * its top if it has one, words, footer, and buttons, a link button's with
+ * where it goes.
+ */
 function templateWords(template: NewTemplate): string {
   const part = (type: string) => template.components.find((component) => component.type === type);
   const buttons = part("BUTTONS")?.buttons ?? [];
   return [
     `WhatsApp template sent for approval: ${template.name}`,
     "",
-    ...(part("HEADER") ? ["[A place, its map given with each send]", ""] : []),
+    ...(part("HEADER")
+      ? [
+          part("HEADER")!.format === "IMAGE"
+            ? "[A picture, given with each send]"
+            : "[A place, its map given with each send]",
+          "",
+        ]
+      : []),
     part("BODY")!.text,
     "",
     part("FOOTER")!.text,
     "",
-    ...buttons.map((button) => `[${button.text}]`),
+    ...buttons.map((button) => (button.url ? `[${button.text} → ${button.url}]` : `[${button.text}]`)),
     ...(buttons.length ? [""] : []),
   ].join("\n");
 }
@@ -133,6 +153,9 @@ export function whatsAppResponse(pathname: string, init?: RequestInit): Response
     toOutbox(templateWords(template));
     return json({ id: `fixture-template-${idOf(template.name)}`, status: "PENDING", category: "MARKETING" });
   }
+  // A picture uploaded for a template's approval: a session, then the file into it, which gives its handle.
+  if (path.endsWith("/uploads") && method === "POST") return json({ id: "upload:fixture-session" });
+  if (path === "upload:fixture-session" && method === "POST") return json({ h: "4::fixture-handle" });
   if (path.endsWith("/message_templates") && method === "DELETE") return json({ success: true });
   if (path.endsWith("/message_templates")) return json({ data: [] });
   return undefined;

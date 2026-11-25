@@ -10,9 +10,9 @@ import { join } from "node:path";
 /** The place a text's map shows. */
 export type OutboxPlace = { name: string; address: string; latitude: number; longitude: number };
 
-/** A text in the outbox: to whom (+447…), and its template, its place if it has one, and fields; or its own words. */
+/** A text in the outbox: to whom (+447…), and its template, its place or picture if it has one, and fields; or its own words. */
 export type OutboxText = { to: string } & (
-  { template: { name: string; params: Record<string, string>; place?: OutboxPlace } } | { words: string }
+  { template: { name: string; params: Record<string, string>; place?: OutboxPlace; picture?: string } } | { words: string }
 );
 
 const PLACE = /^Place: (.*), (.*) \((-?[\d.]+), (-?[\d.]+)\)$/;
@@ -26,7 +26,8 @@ export function textNote(from: string, text: OutboxText): string {
   const fields = Object.entries(text.template.params).map(([name, words]) => `  ${name}: ${words}\n`);
   const { place } = text.template;
   const where = place ? `Place: ${place.name}, ${place.address} (${place.latitude}, ${place.longitude})\n` : "";
-  return `${head}\nTemplate: ${text.template.name}\n${where}${fields.join("")}`;
+  const picture = text.template.picture ? `Picture: ${text.template.picture}\n` : "";
+  return `${head}\nTemplate: ${text.template.name}\n${where}${picture}${fields.join("")}`;
 }
 
 /** A text's file read back; undefined for another kind of file, such as a template sent for approval. */
@@ -37,8 +38,10 @@ export function readTextNote(note: string): OutboxText | undefined {
   if (second === "") return { to, words: rest.join("\n").trimEnd() };
   const fields = rest.filter((line) => line.startsWith("  ")).map((line) => /^ {2}(\w+): (.*)$/.exec(line)!);
   const where = rest.map((line) => PLACE.exec(line)).find(Boolean);
+  const picture = rest.find((line) => line.startsWith("Picture: "))?.slice("Picture: ".length);
   const params = Object.fromEntries(fields.map((m) => [m[1], m[2]]));
   const name = second!.replace(/^Template: /, "");
+  const shown = picture ? { picture } : {};
   return {
     to,
     template: where
@@ -47,7 +50,7 @@ export function readTextNote(note: string): OutboxText | undefined {
           params,
           place: { name: where[1], address: where[2], latitude: Number(where[3]), longitude: Number(where[4]) },
         }
-      : { name, params },
+      : { name, params, ...shown },
   };
 }
 

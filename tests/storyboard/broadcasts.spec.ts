@@ -703,7 +703,7 @@ test("A text with a map of where to meet", async ({ page, request, flowDatabase 
   await expect(name).toHaveValue("Parliament Square");
   await savedAfter(page, () => name.fill("Parliament Square, by the statues"));
   story("They add a reply button, whose tap comes back as the supporter's reply.");
-  await page.getByRole("button", { name: copy.replyButtons.add }).click();
+  await page.getByRole("button", { name: copy.replyButtons.addReply }).click();
   await savedAfter(page, () => page.getByLabel(copy.replyButtons.words).fill("I'm coming"));
   await page.getByLabel(copy.replyButtons.words).scrollIntoViewIfNeeded();
   await frame(page, "Found by name and renamed, and a reply button", { window: true });

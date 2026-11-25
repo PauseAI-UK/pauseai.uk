@@ -201,7 +201,7 @@ function MapTop({ place }: { place: TextPlace }) {
 /**
  * A text as a messaging app shows it, a phone's width: the words in a bubble
  * from us, on the left as it is on their phone, formatted as WhatsApp does,
- * under its map, if it has a place, or the card for their link if there is
+ * under its picture or map, if it has one, or the card for their link if there is
  * one, folded at five lines, with its footer, the grey line saying how to
  * stop, and the time; under it, its reply buttons. No name on it,
  * as WhatsApp puts none on a bubble in a chat with one business.
@@ -210,6 +210,7 @@ export default function TextBubble({
   words,
   card,
   place,
+  picture,
   buttons = [],
   footer,
   time,
@@ -218,6 +219,8 @@ export default function TextBubble({
   card?: LinkCard | null;
   /** The place its map shows, at its top in place of a link's card. */
   place?: TextPlace | null;
+  /** Where the picture at its top is, in place of a link's card. */
+  picture?: string | null;
   /** Its reply buttons' words, each a button under it, as WhatsApp shows them. */
   buttons?: string[];
   footer: string;
@@ -227,7 +230,13 @@ export default function TextBubble({
     <div className={styles.phone}>
       <ChatWall>
         <div className={`${styles.bubble} ${styles.phoneBubble}`}>
-          {place ? <MapTop place={place} /> : card && <LinkCardView card={card} />}
+          {picture ? (
+            <img className={styles.pictureTop} src={picture} alt="" />
+          ) : place ? (
+            <MapTop place={place} />
+          ) : (
+            card && <LinkCardView card={card} />
+          )}
           {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
           <TextFold key={JSON.stringify(words.content)}>
             <Blocks blocks={words.content} />

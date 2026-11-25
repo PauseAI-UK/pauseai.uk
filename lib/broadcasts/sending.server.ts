@@ -42,6 +42,7 @@ import { templateParams, textResult, textsLeftToday } from "./whatsapp-texts.ser
 import { markUnreachable, unreachable } from "./unreachable.server";
 import { broadcastProblems, broadcastsCopy } from "./copy";
 import type { TextPlace } from "./text-parts";
+import { pictureAddress } from "./text-pictures.server";
 import { emailProblems } from "@/lib/email/copy";
 
 // Sending broadcasts to supporters, in the send-mailings run every 15 minutes, as
@@ -821,11 +822,13 @@ type SentVersion = {
   status: string | null;
   body: unknown;
   place: TextPlace | null;
+  header: string | null;
+  pictureId: string | null;
 };
 
 /**
  * A text's sender: by WhatsApp, its template filled in for each person, with
- * its place, if it has one, up to our number's daily limit; for someone who
+ * its place or picture, if its top has one, up to our number's daily limit; for someone who
  * meets its second version's condition, that version's. None where
  * WhatsApp doesn't send, or doesn't answer; `template` when a template of
  * the text's isn't approved now, as WhatsApp paused or disabled it, which
@@ -835,10 +838,11 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
   const backend = await textBackend();
   if (!backend) return undefined;
   const versions = await query<SentVersion>(
-    `SELECT NULL AS condition, coalesce(t.meta_name, t.name) AS name, t.status, t.body, m.place
+    `SELECT NULL AS condition, coalesce(t.meta_name, t.name) AS name, t.status, t.body, m.place, t.header,
+       m.picture_id AS "pictureId"
      FROM mailings m LEFT JOIN whatsapp_templates t ON t.id = m.template_id WHERE m.id = $1
      UNION ALL
-     SELECT v.condition, coalesce(t.meta_name, t.name), t.status, t.body, v.place
+     SELECT v.condition, coalesce(t.meta_name, t.name), t.status, t.body, v.place, t.header, v.picture_id
      FROM broadcast_versions v LEFT JOIN whatsapp_templates t ON t.id = v.template_id WHERE v.mailing_id = $1`,
     [broadcast.id],
   );
@@ -866,7 +870,8 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
           await sendTemplate(backend.keys, backend.number.id, copy.address, {
             name: version.name!,
             params,
-            ...(version.place && { place: version.place }),
+            ...(version.header === "location" && version.place && { place: version.place }),
+            ...(version.header === "image" && version.pictureId && { picture: pictureAddress(version.pictureId) }),
           }),
         );
       } catch (error) {

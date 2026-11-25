@@ -79,9 +79,9 @@ import { ARMED_FOR } from "../ui/DeleteTwice";
 import { DeleteDraft } from "../mailings/MailingButtons";
 import MailingEditor from "../mailings/MailingEditor";
 import ConditionMenu from "../mailings/ConditionMenu";
-import type { ReplyButton, TextHeader, TextPlace, TextVersion } from "@/lib/broadcasts/text-parts";
-import TextTop, { type FindPlaces } from "./TextTop";
-import ReplyButtons from "./ReplyButtons";
+import { inOrder, type TextButton, type TextHeader, type TextPlace, type TextVersion } from "@/lib/broadcasts/text-parts";
+import TextTop, { pictureSource } from "./TextTop";
+import TextButtons from "./TextButtons";
 import TextVersions, { type VersionSide } from "./TextVersions";
 import MailingFiles from "../mailings/MailingFiles";
 import BroadcastConsent from "./BroadcastConsent";
@@ -123,7 +123,8 @@ type Changes = {
   /** A text's top, the place its map shows, its reply buttons, and its second version (text-parts.ts). */
   header: TextHeader | null;
   place: TextPlace | null;
-  buttons: ReplyButton[];
+  pictureId: string | null;
+  buttons: TextButton[];
   textVersion: TextVersion | null;
 };
 
@@ -156,6 +157,8 @@ export type BroadcastWriterActions = DraftActions & {
   linkCard: (url: string) => Promise<FormResult<never, { card: LinkCard | null }>>;
   /** The places a Google Maps link or words point at, for a text's map. */
   findPlaces: (input: string) => Promise<FormResult<never, { places: TextPlace[] }>>;
+  /** Keeps a picture for a text's top, from a form with its file. */
+  uploadPicture: (form: FormData) => Promise<FormResult<"not-picture" | "too-big", { pictureId: string }>>;
 };
 
 /**
@@ -286,14 +289,16 @@ function TextPreview({
   time,
   linkCard,
   place,
+  picture,
   buttons,
 }: {
   words: TextDoc;
   footer: string;
   time: string;
   linkCard: BroadcastWriterActions["linkCard"];
-  /** The place its map shows, in place of its link's card. */
+  /** The place its map shows, or where its picture is, in place of its link's card. */
   place: TextPlace | null;
+  picture: string | null;
   buttons: string[];
 }) {
   const link = firstLink(words.content);
@@ -312,6 +317,7 @@ function TextPreview({
         words={words}
         card={link ? cards[link] : null}
         place={place}
+        picture={picture}
         buttons={buttons}
         footer={footer}
         time={time}
@@ -351,16 +357,23 @@ function BroadcastPreview({
   draft: WrittenBroadcast;
   body: MailingDoc;
   words: Words;
-  /** A text's place, if its top is a map, and its reply buttons' words. */
-  top: { place: TextPlace | null; buttons: string[] };
-  /** A text's second version, with the same, for those who meet its condition. */
+  /** A text's place, if its top is a map, or where its picture is, if it's a picture; and its buttons' words. */
+  top: { place: TextPlace | null; picture: string | null; buttons: string[] };
+  /**
+   * A text's second version, with the same, for those who meet its
+   * condition; and whether the made-up recipient does (`met`), as the
+   * writer's open tab says, which the toggle for it changes (`onMet`).
+   */
   textVersion?: {
     condition: string;
     body: MailingDoc;
     words: Words;
     footer: string;
     place: TextPlace | null;
+    picture: string | null;
     buttons: string[];
+    met: boolean;
+    onMet: (met: boolean) => void;
   } | null;
   /** A text's footer: its chosen template's, as it went to WhatsApp, or for new words, the one they'd go with. */
   footer: string;
@@ -393,12 +406,12 @@ function BroadcastPreview({
       ...conditionsIn(body).map((c) => (c.startsWith(NOT_CONDITION) ? c.slice(NOT_CONDITION.length) : c)),
     ]),
   ];
-  const meets = Object.fromEntries(used.map((c) => [c, !lacks[c]]));
+  // The second version's condition is met as the writer's open tab says.
+  const meets = Object.fromEntries(
+    used.map((c) => [c, c === textVersion?.condition ? textVersion.met : !lacks[c]]),
+  );
   // The version the made-up recipient gets: the second one, if they meet its condition.
-  const theirs =
-    textVersion && meets[textVersion.condition]
-      ? textVersion
-      : { body, words, footer, place: top.place, buttons: top.buttons };
+  const theirs = textVersion?.met ? textVersion : { body, words, footer, ...top };
   const met = used.filter((c) => meets[c]);
   const recipient = fakeRecipient(met, draft.channel);
   // Of the one made-up recipient, so "have a first name"; a part's own words where a condition has none here.
@@ -407,7 +420,8 @@ function BroadcastPreview({
     ...copy.previewCases,
   };
   const toggle = (condition: string) => {
-    setLacks({ ...lacks, [condition]: meets[condition] });
+    if (condition === textVersion?.condition) textVersion.onMet(!textVersion.met);
+    else setLacks({ ...lacks, [condition]: meets[condition] });
     setSent(undefined);
   };
   const canTest =
@@ -469,6 +483,7 @@ function BroadcastPreview({
           time={staffClock(sendsAt(dueAt ?? earliestRun()))}
           linkCard={linkCard}
           place={theirs.place}
+          picture={theirs.picture}
           buttons={theirs.buttons}
         />
       )}
@@ -573,6 +588,7 @@ export default function BroadcastWriter({
       title: draft.title,
       header: draft.header,
       place: draft.place,
+      pictureId: draft.pictureId,
       buttons: draft.buttons,
       textVersion: draft.textVersion && {
         condition: draft.textVersion.condition,
@@ -580,6 +596,7 @@ export default function BroadcastWriter({
         templateId: draft.textVersion.templateId,
         header: draft.textVersion.header,
         place: draft.textVersion.place,
+        pictureId: draft.textVersion.pictureId,
         buttons: draft.textVersion.buttons,
       },
     },
@@ -599,6 +616,13 @@ export default function BroadcastWriter({
     });
   // The places a link or words point at, for a text's map: none on a page gone out of date, which says so over the draft.
   const findPlaces = async (input: string) => (await unlessStale(actions.findPlaces(input)))?.places ?? [];
+  // A picture kept for a text's top: its ID, or why it can't be one; nothing on a page gone out of date.
+  const uploadPicture = async (file: File) => {
+    const form = new FormData();
+    form.set("file", file);
+    const kept = await unlessStale(actions.uploadPicture(form));
+    return kept && (kept.ok ? { pictureId: kept.pictureId } : { refused: kept.reason });
+  };
   // Choosing a Consent: on New broadcast, makes the draft; on a draft, changes it, what's typed saved either side
   // of the change (alongside). The change brings the page back with its new counts (revalidatePath): it's under
   // way (`calculating`) till they're here. Till then the one picked shows as chosen, and what goes by the counts
@@ -719,6 +743,7 @@ export default function BroadcastWriter({
         templateId: null,
         header: values.header,
         place: values.place,
+        pictureId: values.pictureId,
         buttons: values.buttons,
       },
     });
@@ -727,10 +752,24 @@ export default function BroadcastWriter({
   // The open version's ×: it's the text for everyone, the other gone.
   const keepOpen = () => {
     if (side === "except") return change({ textVersion: null });
-    const { body: kept, header, place, buttons } = textVersion!;
-    change({ templateId: null, body: kept, header, place, buttons, textVersion: null });
+    const { body: kept, header, place, pictureId, buttons } = textVersion!;
+    change({ templateId: null, body: kept, header, place, pictureId, buttons, textVersion: null });
     setWritingNew(true);
     setOwnKey((n) => n + 1);
+  };
+  // A picture pasted anywhere in Write, words and all, is the open version's top, as words can't hold one; but not
+  // where its top is a chosen template's other kind, or WhatsApp is reviewing it.
+  const pastePicture = (event: React.ClipboardEvent) => {
+    const file = [...event.clipboardData.files].find((one) => one.type.startsWith("image/"));
+    if (!file) return;
+    event.preventDefault();
+    const version = textVersion && side === "only";
+    if (version ? versionLocked : (!writingNew || waiting) && values.header !== "image") return;
+    void uploadPicture(file).then((kept) => {
+      if (!kept || "refused" in kept) return;
+      if (version) setVersion({ header: "image", pictureId: kept.pictureId, templateId: null });
+      else change({ header: "image", pictureId: kept.pictureId });
+    });
   };
   // Beside the words, where an email has its parts: a second version for some, or that a text has one at most.
   const textParts = textVersion ? (
@@ -760,6 +799,7 @@ export default function BroadcastWriter({
     sends: data.sends,
     header: values.header,
     place: values.place,
+    pictureId: values.pictureId,
     buttons: values.buttons,
     textVersion: textVersion && {
       ...textVersion,
@@ -887,8 +927,10 @@ export default function BroadcastWriter({
           <TextTop
             header={version.header}
             place={version.place}
+            pictureId={version.pictureId}
             onChange={(top) => setVersion({ ...top, ...("header" in top && { templateId: null }) })}
             findPlaces={findPlaces}
+            uploadPicture={uploadPicture}
             fixed={versionLocked}
           />
           <div className={styles.letter}>
@@ -911,7 +953,7 @@ export default function BroadcastWriter({
               />
             )}
           </div>
-          <ReplyButtons
+          <TextButtons
             buttons={version.buttons}
             onChange={(buttons) => setVersion({ buttons, templateId: null })}
             fixed={versionLocked}
@@ -925,8 +967,10 @@ export default function BroadcastWriter({
         <TextTop
           header={values.header}
           place={values.place}
+          pictureId={values.pictureId}
           onChange={(top) => change(top)}
           findPlaces={findPlaces}
+          uploadPicture={uploadPicture}
           fixed={fixed}
         />
         {writingNew && !waiting && (
@@ -938,7 +982,7 @@ export default function BroadcastWriter({
             <Hint>{copy.newTemplateHint}</Hint>
           </div>
         )}
-        <ReplyButtons buttons={values.buttons} onChange={(buttons) => change({ buttons })} fixed={fixed} />
+        <TextButtons buttons={values.buttons} onChange={(buttons) => change({ buttons })} fixed={fixed} />
       </div>
     );
   };
@@ -1102,7 +1146,7 @@ export default function BroadcastWriter({
                 </div>
               )}
               {!email && (
-                <div className={own.textWords}>
+                <div className={own.textWords} onPasteCapture={pastePicture}>
                   {/* An approved template, or new words, the last choice; while WhatsApp reviews new words, they stay chosen. */}
                   {/* Each approved template with who made it, when, and how much it's used, then new words. */}
                   <div className={styles.sender}>
@@ -1211,7 +1255,8 @@ export default function BroadcastWriter({
                 footer={template?.footer ?? TEMPLATE_FOOTER}
                 top={{
                   place: values.header === "location" ? values.place : null,
-                  buttons: values.buttons.map((button) => button.text),
+                  picture: values.header === "image" && values.pictureId ? pictureSource(values.pictureId) : null,
+                  buttons: inOrder(values.buttons).map((button) => button.text),
                 }}
                 textVersion={
                   textVersion && {
@@ -1220,7 +1265,13 @@ export default function BroadcastWriter({
                     words: versionHas && draft.textVersion!.template!.status === "approved" ? "chosen" : "new",
                     footer: draft.textVersion?.template?.footer ?? TEMPLATE_FOOTER,
                     place: textVersion.header === "location" ? textVersion.place : null,
-                    buttons: textVersion.buttons.map((button) => button.text),
+                    picture:
+                      textVersion.header === "image" && textVersion.pictureId
+                        ? pictureSource(textVersion.pictureId)
+                        : null,
+                    buttons: inOrder(textVersion.buttons).map((button) => button.text),
+                    met: side === "only",
+                    onMet: (met) => setSide(met ? "only" : "except"),
                   }
                 }
                 approval={

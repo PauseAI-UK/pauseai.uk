@@ -49,6 +49,7 @@ import { linkCard } from "@/lib/server/outside-services/link-pages.server";
 import { refused, type FormResult } from "@/lib/form-result";
 import { dueAtFrom, ownId } from "@/lib/staff-forms";
 import { findPlaces } from "@/lib/broadcasts/places.server";
+import { keepPicture, type PictureRefusal } from "@/lib/broadcasts/text-pictures.server";
 import type { Place } from "@/lib/broadcasts/places";
 import { storedFilter } from "@/lib/staff-search";
 import { filtersPath, type Params } from "@/lib/list-params";
@@ -238,6 +239,19 @@ export async function attachToBroadcast(form: FormData): Promise<FormResult<Save
   });
   if (!added.saved) return refused(added.reason);
   return { ok: true, version: added.version, attachments: (await getWrittenBroadcast(id))!.attachments };
+}
+
+/**
+ * Keeps a picture for the top of a text, uploaded by the writer, dragged
+ * on or pasted: its ID, for the draft to save; or why not, for a file
+ * WhatsApp won't take.
+ */
+export async function uploadTextPicture(form: FormData): Promise<FormResult<PictureRefusal, { pictureId: string }>> {
+  const { email } = await requireStaff("supporters");
+  const file = form.get("file");
+  if (!(file instanceof File)) throw new Error("A text's picture came without the file");
+  const kept = await keepPicture({ type: file.type, content: Buffer.from(await file.arrayBuffer()) }, email);
+  return "refused" in kept ? refused(kept.refused) : { ok: true, pictureId: kept.id };
 }
 
 /** Takes a file off a draft email at its version. */

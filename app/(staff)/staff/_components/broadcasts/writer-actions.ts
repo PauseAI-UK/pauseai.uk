@@ -16,6 +16,7 @@ import {
   withdrawTemplateNow,
   linkCardFor,
   findPlacesFor,
+  uploadTextPicture,
 } from "./actions";
 
 /** The Server Actions a broadcast's pages give its writer and its view. */
@@ -33,6 +34,7 @@ export const broadcastWriterActions = {
   deleteTemplate: deleteTemplateNow,
   linkCard: linkCardFor,
   findPlaces: findPlacesFor,
+  uploadPicture: uploadTextPicture,
   stop: stopBroadcastNow,
   reschedule: rescheduleBroadcastNow,
   resume: resumeBroadcastNow,

@@ -5,7 +5,7 @@ import {
   buttonsFrom,
   headerFrom,
   MOST_BUTTON_CHARACTERS,
-  MOST_REPLY_BUTTONS,
+  MOST_BUTTONS,
   placeFrom,
   versionFrom,
 } from "./text-parts";
@@ -50,8 +50,8 @@ describe("buttonsFrom", () => {
       { text: "" },
       { text: "x".repeat(40) },
     ]);
-    expect(buttonsFrom(Array.from({ length: MOST_REPLY_BUTTONS }, () => ({ text: "Yes" })))).toHaveLength(
-      MOST_REPLY_BUTTONS,
+    expect(buttonsFrom(Array.from({ length: MOST_BUTTONS }, () => ({ text: "Yes" })))).toHaveLength(
+      MOST_BUTTONS,
     );
   });
 
@@ -60,7 +60,7 @@ describe("buttonsFrom", () => {
     expect(buttonsFrom({ text: "Yes" })).toBeUndefined();
     expect(buttonsFrom([{ text: "Yes" }, "No"])).toBeUndefined();
     expect(buttonsFrom([{ text: 1 }])).toBeUndefined();
-    expect(buttonsFrom(Array.from({ length: MOST_REPLY_BUTTONS + 1 }, () => ({ text: "Yes" })))).toBeUndefined();
+    expect(buttonsFrom(Array.from({ length: MOST_BUTTONS + 1 }, () => ({ text: "Yes" })))).toBeUndefined();
   });
 });
 

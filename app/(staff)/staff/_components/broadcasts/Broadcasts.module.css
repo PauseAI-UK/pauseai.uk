@@ -448,6 +448,15 @@
   }
 }
 
+/* A text's picture at its top, set into the bubble's top corners as a link's card is. */
+.pictureTop {
+  display: block;
+  width: calc(100% + 2 * (var(--space-2) - var(--space-1)));
+  height: auto;
+  margin: calc(var(--space-1) - var(--space-2)) calc(var(--space-1) - var(--space-2)) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
 /* A text's map at its top, set into the bubble's top corners as a link's
    card is: a drawing of a map with a pin, then the place's name and address. */
 .mapTop {
