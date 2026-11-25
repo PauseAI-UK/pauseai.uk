@@ -14,6 +14,9 @@ import styles from "./MenuSelect.module.css";
  */
 export type MenuOption = FilterOption & { tag?: string; words?: string; facts?: string[] };
 
+/** A row's parts, as MenuSelect draws a choice with facts, for a list of Choices drawn elsewhere (TextTop's places found). */
+export const menuRow = { row: styles.rich, head: styles.head, name: styles.name, facts: styles.facts };
+
 /** A choice in words, with its group's name, as the icon beside it doesn't say it aloud. */
 const named = (option: FilterOption): string =>
   option.group ? `${option.label}, ${option.group.label}` : option.label;

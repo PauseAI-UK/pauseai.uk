@@ -9,7 +9,9 @@ import { Muted } from "@/components/ui/Text";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { TextHeader, TextPlace } from "@/lib/broadcasts/text-parts";
 import DropArea from "../ui/DropArea";
-import { menuItemClass, menuItemsClass, menuWideClass } from "../ui/Menu";
+import Choices from "../ui/Choices";
+import { menuWiderClass } from "../ui/Menu";
+import { menuRow } from "../ui/MenuSelect";
 import PlaceMap from "./PlaceMap";
 import styles from "./TextTop.module.css";
 
@@ -73,7 +75,8 @@ function PlaceWords({
 /**
  * The place a text's map shows: till one is chosen, a box for a Google Maps
  * link or words to search for, then the places found, to choose one, in a
- * menu's box that hangs under it, as a Menu's does, and closes as one does. Once
+ * menu's box that hangs under it, each its name and address, as the
+ * template menu's choices are (MenuSelect), and closes as a menu does. Once
  * one is chosen, the place as WhatsApp shows it, a map with its name and
  * address under it, and a × beside it, as a picture has, that takes it off
  * for the box again. The map opens Google Maps at its pin, to check it's the
@@ -175,22 +178,27 @@ function PlaceChooser({
         <div
           ref={menu}
           popover="auto"
-          className={menuWideClass}
+          className={menuWiderClass}
           style={{ positionAnchor: anchor } as CSSProperties}
           onToggle={(event) => {
             if (event.newState === "closed") setFound(null);
           }}
         >
-          <ul className={menuItemsClass} aria-label={words.found}>
-            {found.map((one) => (
-              <li key={`${one.latitude},${one.longitude},${one.name}`}>
-                <button type="button" className={`${menuItemClass} ${styles.foundPlace}`} onClick={() => choose(one)}>
-                  <strong>{one.name}</strong>
-                  <span>{one.address}</span>
+          <Choices
+            options={found.map((one, i) => ({ value: String(i), label: one.name }))}
+            current={[]}
+            row={(option) => {
+              const one = found[Number(option.value)];
+              return (
+                <button type="button" className={menuRow.row} onClick={() => choose(one)}>
+                  <span className={menuRow.head}>
+                    <span className={menuRow.name}>{one.name}</span>
+                  </span>
+                  <span className={menuRow.facts}>{one.address}</span>
                 </button>
-              </li>
-            ))}
-          </ul>
+              );
+            }}
+          />
         </div>
       )}
     </div>
