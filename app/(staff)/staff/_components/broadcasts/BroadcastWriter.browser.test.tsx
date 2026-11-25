@@ -1266,6 +1266,60 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await page.getByRole("menuitem", { name: /^Regulate AI/ }).click();
   };
 
+  // An approved template whose words aren't the examples' own, for new words to come to.
+  const seeYou: WhatsAppTemplate = {
+    ...exampleTemplates[0],
+    id: 50,
+    name: "See you there",
+    body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "See you at the march" }] }] },
+  };
+  const withSeeYou = { ...exampleBroadcastData, templates: [...exampleBroadcastData.templates, seeYou] };
+
+  it("takes new words changed to an approved template's, its top and buttons too, as that template, not to approve again", async () => {
+    const actions = await renderWriter({ draft: newWords, data: withSeeYou });
+    await editor().fill("See you at the march");
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${seeYou.name}`);
+    await saved(actions, { templateId: seeYou.id, title: seeYou.name });
+    expect(button(copy.submitTemplate).query()).toBeNull();
+    expect(page.getByText(copy.problems["same-words"]).query()).toBeNull();
+  });
+
+  it("takes new words WhatsApp approves while the page is open as its template, its words fixed", async () => {
+    const actions = fakeActions() as unknown as BroadcastWriterActions;
+    const writer = (template: WhatsAppTemplate, templates: WhatsAppTemplate[]) => (
+      <BroadcastWriter
+        data={{ ...withSeeYou, templates }}
+        draft={{ ...newWords, body: seeYou.body, template }}
+        who={<p>Who</p>}
+        actions={actions}
+      />
+    );
+    const sentFor = { ...seeYou, id: 51, status: "pending" as const };
+    const screen = await render(writer(sentFor, exampleBroadcastData.templates));
+    await expect.element(button(copy.withdrawTemplate)).toBeVisible();
+    // WhatsApp approves them, and the page has it.
+    const approved = { ...sentFor, status: "approved" as const };
+    await screen.rerender(writer(approved, [...exampleBroadcastData.templates, approved]));
+    await expect.element(words()).toHaveAccessibleName(`${copy.templateLabel}: ${approved.name}`);
+    expect(editor().query()).toBeNull();
+    await expect.element(button(copy.editTemplate)).toBeVisible();
+  });
+
+  it("takes a second version changed to an approved template's as that template, fixed, till it's edited as new", async () => {
+    const actions = await renderWriter({ draft: newWords, data: withSeeYou });
+    await addVersion();
+    await editor().fill("See you at the march");
+    await saved(actions, { textVersion: expect.objectContaining({ templateId: seeYou.id }) });
+    await expect.element(page.getByText("See you at the march").first()).toBeVisible();
+    expect(editor().query()).toBeNull();
+    await expect.element(kind(top.none)).toBeDisabled();
+    // A version on an approved template sends nothing more for approval than the text's own words.
+    await expect.element(button(copy.submitTemplate)).toBeVisible();
+    await button(copy.editTemplate).click();
+    await expect.element(editor()).toBeVisible();
+    await saved(actions, { textVersion: expect.objectContaining({ templateId: null }) });
+  });
+
   it("tops new words with a map of the place found, and gives them reply buttons, each in the preview", async () => {
     const actions = await renderWriter({ draft: newWords });
     await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");

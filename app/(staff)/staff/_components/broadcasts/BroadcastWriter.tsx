@@ -738,8 +738,12 @@ export default function BroadcastWriter({
   const condition = textVersion && data.conditions.find((one) => one.id === textVersion.condition);
   const versionWho = condition?.label ?? textVersion?.condition ?? "";
   const versionCovers = condition?.covers ?? 0;
-  // The second version's words are WhatsApp's to review: they can't change till it decides.
+  // The second version's words are WhatsApp's to review: they can't change till it decides. Once it approves them,
+  // or they're an approved template's, they're that template's, as a chosen template's are, till edited as new.
   const versionLocked = draft.textVersion?.template?.status === "pending";
+  const versionTemplate =
+    textVersion?.templateId != null ? data.templates.find((one) => one.id === textVersion.templateId) : undefined;
+  const versionFixed = versionLocked || Boolean(versionTemplate);
   const ownParts = { body, header: values.header, buttons: values.buttons };
   const templateCount = textVersion && !sameTemplate(textVersion, ownParts) ? 2 : 1;
   // How many templates Send for approval sends: new words of its own, and a second version that's neither the same
@@ -750,8 +754,24 @@ export default function BroadcastWriter({
     textVersion.templateId === draft.textVersion?.templateId &&
     ["pending", "approved"].includes(draft.textVersion.template?.status ?? "");
   const toSubmit =
-    (writingNew && !waiting ? 1 : 0) + (textVersion && !versionHas && !sameTemplate(textVersion, ownParts) ? 1 : 0);
+    (writingNew && !waiting ? 1 : 0) +
+    (textVersion && !versionHas && !versionTemplate && !sameTemplate(textVersion, ownParts) ? 1 : 0);
   const setVersion = (patch: Partial<TextVersion>) => change({ textVersion: { ...textVersion!, ...patch } });
+  // An approved template with the same words, top and buttons as `parts`, which are then that template's.
+  const approvedLike = (parts: Pick<TextVersion, "body" | "header" | "buttons">) =>
+    data.templates.find((one) => sameTemplate(parts, one));
+  // New words changed to be an approved template's, its top and buttons too, are that template: chosen, not sent
+  // again. Only as they're changed, so Edit as a new template, which starts from its words, stays new.
+  const changeOwn = (patch: Partial<Pick<Changes, "body" | "header" | "place" | "pictureId" | "buttons">>) => {
+    const same = !email && writingNew && !waiting ? approvedLike({ ...ownParts, ...patch }) : undefined;
+    if (same) chooseWords(String(same.id));
+    else change(patch);
+  };
+  // The same for the second version's, which takes the template's ID, as its words, top and buttons are already its.
+  const changeVersion = (patch: Partial<TextVersion>) => {
+    const same = approvedLike({ ...textVersion!, ...patch });
+    setVersion({ ...patch, templateId: same ? same.id : null });
+  };
   // A second version for those who meet `chosen`: a copy of the text as it is, open to change.
   const addVersion = (chosen: string) => {
     change({
@@ -782,11 +802,15 @@ export default function BroadcastWriter({
     if (!file) return;
     event.preventDefault();
     const version = textVersion && side === "only";
-    if (version ? versionLocked : (!writingNew || waiting) && values.header !== "image") return;
+    const fixedTop = version ? versionFixed : !writingNew || waiting;
+    const topHeader = version ? textVersion.header : values.header;
+    if ((version && versionLocked) || (fixedTop && topHeader !== "image")) return;
     void uploadPicture(file).then((kept) => {
       if (!kept || "refused" in kept) return;
-      if (version) setVersion({ header: "image", pictureId: kept.pictureId, templateId: null });
-      else change({ header: "image", pictureId: kept.pictureId });
+      const top = { header: "image" as const, pictureId: kept.pictureId };
+      if (!version) changeOwn(top);
+      else if (versionTemplate) setVersion({ pictureId: kept.pictureId });
+      else changeVersion(top);
     });
   };
   // Beside the words, where an email has its parts: a second version for some, and nothing once it has one, as a
@@ -820,7 +844,7 @@ export default function BroadcastWriter({
     buttons: values.buttons,
     textVersion: textVersion && {
       ...textVersion,
-      approved: versionHas && draft.textVersion!.template!.status === "approved",
+      approved: Boolean(versionTemplate),
       sameWords: sameWords(
         textVersion.body,
         data.templates.map((one) => one.body),
@@ -876,6 +900,19 @@ export default function BroadcastWriter({
     change({ templateId: one.id, body: one.body, title: one.name, header: one.header, buttons: one.buttons });
     setWritingNew(false);
   };
+  // The new words sent for approval: once WhatsApp approves them, with the page still open, they're that template,
+  // chosen, their words fixed, as on a page loaded after.
+  const sent = useRef<number | null>(null);
+  const takeApproved = useEffectEvent((id: number) => {
+    if (writingNew && data.templates.some((one) => one.id === id)) chooseWords(String(id));
+  });
+  useEffect(() => {
+    if (waiting) sent.current = waiting.id;
+    else if (draft.template?.status === "approved" && draft.template.id === sent.current) {
+      sent.current = null;
+      takeApproved(draft.template.id);
+    }
+  }, [waiting, draft.template]);
   // As the page has them, this draft has its template saved: how many others have each.
   const others = (one: WhatsAppTemplate): TemplateUses =>
     draft.template?.id === one.id ? { ...one.uses, drafts: one.uses.drafts - 1 } : one.uses;
@@ -926,7 +963,7 @@ export default function BroadcastWriter({
     <MailingEditor
       key={`${restored}-${ownKey}`}
       initial={values.body as JSONContent}
-      onChange={(doc) => change({ body: doc as MailingDoc })}
+      onChange={(doc) => changeOwn({ body: doc as MailingDoc })}
       fields={data.fields}
       conditions={data.conditions}
       whatsApp={!email}
@@ -952,22 +989,22 @@ export default function BroadcastWriter({
             place={version.place}
             pictureId={version.pictureId}
             link={firstLink(version.body.content)}
-            onChange={(top) => setVersion({ ...top, ...("header" in top && { templateId: null }) })}
+            onChange={(top) => ("header" in top ? changeVersion(top) : setVersion(top))}
             findPlaces={findPlaces}
             uploadPicture={uploadPicture}
-            fixed={versionLocked}
+            fixed={versionFixed}
           />
           <div className={styles.letter}>
             <p id={versionLabel} className={styles.label}>
               {copy.templateWords}
             </p>
-            {versionLocked ? (
+            {versionFixed ? (
               <MailingLetter doc={version.body} />
             ) : (
               <MailingEditor
                 key={`${restored}-${version.condition}`}
                 initial={version.body as JSONContent}
-                onChange={(doc) => setVersion({ body: doc as MailingDoc, templateId: null })}
+                onChange={(doc) => changeVersion({ body: doc as MailingDoc })}
                 fields={data.fields}
                 conditions={data.conditions}
                 whatsApp
@@ -979,9 +1016,14 @@ export default function BroadcastWriter({
           </div>
           <TextButtons
             buttons={version.buttons}
-            onChange={(buttons) => setVersion({ buttons, templateId: null })}
-            fixed={versionLocked}
+            onChange={(buttons) => changeVersion({ buttons })}
+            fixed={versionFixed}
           />
+          {versionTemplate && (
+            <Button variant="ghost" size="small" fit onClick={() => setVersion({ templateId: null })}>
+              {copy.editTemplate}
+            </Button>
+          )}
         </div>
       );
     }
@@ -993,7 +1035,7 @@ export default function BroadcastWriter({
           place={values.place}
           pictureId={values.pictureId}
           link={firstLink(body.content)}
-          onChange={(top) => change(top)}
+          onChange={(top) => changeOwn(top)}
           findPlaces={findPlaces}
           uploadPicture={uploadPicture}
           fixed={fixed}
@@ -1007,7 +1049,7 @@ export default function BroadcastWriter({
             <Hint>{copy.newTemplateHint}</Hint>
           </div>
         )}
-        <TextButtons buttons={values.buttons} onChange={(buttons) => change({ buttons })} fixed={fixed} />
+        <TextButtons buttons={values.buttons} onChange={(buttons) => changeOwn({ buttons })} fixed={fixed} />
       </div>
     );
   };
