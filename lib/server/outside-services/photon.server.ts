@@ -35,11 +35,12 @@ type Feature = { geometry: { coordinates: [number, number] }; properties: Proper
 const MATCHES = 8;
 
 /**
- * Where searches lean towards: the middle of Great Britain, at the scale of
- * a country, so "Victoria Park" finds ours before Hong Kong's, though a
- * place abroad is still found by name.
+ * Where searches look: a box round the UK, Northern Ireland and the
+ * islands with it, west, south, east, north, so "Victoria Park" finds only
+ * ours, as a text's place is somewhere its supporters can go. Within it,
+ * they lean towards the middle of Great Britain.
  */
-const UK_BIAS = { lat: "54", lon: "-2.5", zoom: "6" };
+const UK = { bbox: "-8.7,49.8,1.8,60.9", lat: "54", lon: "-2.5", zoom: "6" };
 
 /**
  * A feature's address as a UK one is written: its street, with its number,
@@ -66,7 +67,7 @@ async function features(url: string): Promise<Feature[]> {
  * as OpenStreetMap can have one place as several features.
  */
 export async function searchPhoton(words: string): Promise<PhotonPlace[]> {
-  const query = new URLSearchParams({ q: words, limit: String(MATCHES), lang: "en", ...UK_BIAS });
+  const query = new URLSearchParams({ q: words, limit: String(MATCHES), lang: "en", ...UK });
   const found = await features(`https://photon.komoot.io/api/?${query}`);
   const places = found.flatMap(({ geometry, properties }) =>
     properties.name

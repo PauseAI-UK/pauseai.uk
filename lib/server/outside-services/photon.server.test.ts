@@ -30,6 +30,7 @@ describe("searchPhoton", () => {
       q: "All Souls",
       limit: "8",
       lang: "en",
+      bbox: "-8.7,49.8,1.8,60.9",
       lat: "54",
       lon: "-2.5",
       zoom: "6",
