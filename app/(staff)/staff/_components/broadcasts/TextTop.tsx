@@ -6,7 +6,7 @@ import IconButton, { CrossIcon } from "@/components/ui/IconButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
 import { Muted } from "@/components/ui/Text";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
-import type { TextHeader, TextPlace } from "@/lib/broadcasts/text-parts";
+import { placeWords, type TextHeader, type TextPlace } from "@/lib/broadcasts/text-parts";
 import DropArea from "../ui/DropArea";
 import Choices from "../ui/Choices";
 import { menuWiderClass } from "../ui/Menu";
@@ -119,36 +119,39 @@ function PlaceChooser({
   };
   if (place) {
     return (
-      <div className={styles.shownBox}>
-        <div className={styles.placeCard}>
-          <PlaceMap place={place} />
-          <PlaceWords
-            className={styles.placeName}
-            label={words.name}
-            value={place.name}
-            disabled={disabled}
-            onChange={(name) => onChange({ ...place, name })}
-          />
-          <PlaceWords
-            className={styles.placeAddress}
-            label={words.address}
-            value={place.address}
-            disabled={disabled}
-            onChange={(address) => onChange({ ...place, address })}
-          />
+      <div className={styles.form}>
+        <div className={styles.shownBox}>
+          <div className={styles.placeCard}>
+            <PlaceMap place={place} />
+            <PlaceWords
+              className={styles.placeName}
+              label={words.name}
+              value={place.name}
+              disabled={disabled}
+              onChange={(name) => onChange({ ...place, name })}
+            />
+            <PlaceWords
+              className={styles.placeAddress}
+              label={words.address}
+              value={place.address}
+              disabled={disabled}
+              onChange={(address) => onChange({ ...place, address })}
+            />
+          </div>
+          {!disabled && (
+            <IconButton
+              look="outline"
+              size={22}
+              className={styles.remove}
+              aria-label={words.remove}
+              title={words.remove}
+              onClick={() => onChange(null)}
+            >
+              <CrossIcon size={12} />
+            </IconButton>
+          )}
         </div>
-        {!disabled && (
-          <IconButton
-            look="outline"
-            size={22}
-            className={styles.remove}
-            aria-label={words.remove}
-            title={words.remove}
-            onClick={() => onChange(null)}
-          >
-            <CrossIcon size={12} />
-          </IconButton>
-        )}
+        {!placeWords(place) && <p className={styles.refusal}>{words.needsWords}</p>}
       </div>
     );
   }
@@ -168,7 +171,14 @@ function PlaceChooser({
             void find();
           }}
         />
-        <Button variant="primary" size="small" fit disabled={disabled || !input.trim()} pending={finding} onClick={find}>
+        <Button
+          variant="primary"
+          size="small"
+          fit
+          disabled={disabled || !input.trim()}
+          pending={finding}
+          onClick={find}
+        >
           {words.findButton}
         </Button>
       </div>
