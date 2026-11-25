@@ -16,7 +16,9 @@ export type OutboxText = { to: string } & (
   | { words: string }
 );
 
-const PLACE = /^Place: (.*), (.*) \((-?[\d.]+), (-?[\d.]+)\)$/;
+/** A place's name with its point, then its address on the next line, so a comma in either is its own. */
+const PLACE = /^Place: (.*) \((-?[\d.]+), (-?[\d.]+)\)$/;
+const ADDRESS = "Address: ";
 
 const HEAD = /^WhatsApp text from .+ to (\+\d+)$/;
 
@@ -26,7 +28,9 @@ export function textNote(from: string, text: OutboxText): string {
   if ("words" in text) return `${head}\n\n${text.words}\n`;
   const fields = Object.entries(text.template.params).map(([name, words]) => `  ${name}: ${words}\n`);
   const { place } = text.template;
-  const where = place ? `Place: ${place.name}, ${place.address} (${place.latitude}, ${place.longitude})\n` : "";
+  const where = place
+    ? `Place: ${place.name} (${place.latitude}, ${place.longitude})\n${ADDRESS}${place.address}\n`
+    : "";
   const picture = text.template.picture ? `Picture: ${text.template.picture}\n` : "";
   return `${head}\nTemplate: ${text.template.name}\n${where}${picture}${fields.join("")}`;
 }
@@ -39,6 +43,7 @@ export function readTextNote(note: string): OutboxText | undefined {
   if (second === "") return { to, words: rest.join("\n").trimEnd() };
   const fields = rest.filter((line) => line.startsWith("  ")).map((line) => /^ {2}(\w+): (.*)$/.exec(line)!);
   const where = rest.map((line) => PLACE.exec(line)).find(Boolean);
+  const address = rest.find((line) => line.startsWith(ADDRESS))?.slice(ADDRESS.length);
   const picture = rest.find((line) => line.startsWith("Picture: "))?.slice("Picture: ".length);
   const params = Object.fromEntries(fields.map((m) => [m[1], m[2]]));
   const name = second!.replace(/^Template: /, "");
@@ -49,7 +54,7 @@ export function readTextNote(note: string): OutboxText | undefined {
       ? {
           name,
           params,
-          place: { name: where[1], address: where[2], latitude: Number(where[3]), longitude: Number(where[4]) },
+          place: { name: where[1], address: address!, latitude: Number(where[2]), longitude: Number(where[3]) },
         }
       : { name, params, ...shown },
   };

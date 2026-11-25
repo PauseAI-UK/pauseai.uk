@@ -111,7 +111,7 @@ it("writes each send to the outbox: a template with its fields, words of our own
   expect(written()).toEqual([
     "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_1\n  first_name: Jane\n",
     "WhatsApp text from +44 7700 900000 to +447700900001\n\nThanks, see you there\n",
-    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_2\nPlace: Parliament Square, London (51.5005, -0.1268)\n",
+    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_2\nPlace: Parliament Square (51.5005, -0.1268)\nAddress: London\n",
     "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_3\nPicture: https://pauseai.uk/api/text-pictures/1\n",
     "WhatsApp reaction from +44 7700 900000 to +447700900001\n\n👍 on wamid.theirs\n",
     "WhatsApp reaction from +44 7700 900000 to +447700900001\n\nOurs taken away from wamid.theirs\n",

@@ -25,9 +25,24 @@ it("writes a text as a person can read it, and reads it back", () => {
     },
   };
   expect(textNote("+44 7700 900000", withPlace)).toBe(
-    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_2\nPlace: Parliament Square, London SW1P 3BD (51.5005, -0.1268)\n  first_name: Jane\n",
+    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_2\nPlace: Parliament Square (51.5005, -0.1268)\nAddress: London SW1P 3BD\n  first_name: Jane\n",
   );
   expect(readTextNote(textNote("+44 7700 900000", withPlace))).toEqual(withPlace);
+  // A name and an address with commas of their own are each read back whole.
+  const commas: OutboxText = {
+    to: "+447700900001",
+    template: {
+      name: "march_day_2",
+      params: {},
+      place: {
+        name: "Parliament Square, by the statues",
+        address: "Westminster, London SW1P 3BD",
+        latitude: 51.5005,
+        longitude: -0.1268,
+      },
+    },
+  };
+  expect(readTextNote(textNote("+44 7700 900000", commas))).toEqual(commas);
   const withPicture: OutboxText = {
     to: "+447700900001",
     template: {

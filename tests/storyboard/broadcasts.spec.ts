@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -48,6 +47,8 @@ const EMAILABLE = 3;
 /** Where an email to supporters is from, whose connected Gmail sends it. */
 const HELLO = "hello@pauseai.uk";
 const TEXTABLE = 1;
+/** And how many it finds once CiviCRM's members are imported too. */
+const TEXTABLE_MEMBERS = 4;
 const WORDS =
   '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ", the march meets at 11:00 at Parliament Square."}]}]}';
 
@@ -863,20 +864,12 @@ test("A text with a second version for some", async ({ page, request, flowDataba
   await words.selectText();
   await savedAfter(page, () => page.keyboard.type("Thank you for registering. See you at noon on Saturday."));
   await frame(page, "Their own words", { window: true });
-  story("The preview's toggle chooses whose copy it shows, as it does for an email's parts.");
+  story(
+    "Each version is a template WhatsApp approves, so two go. WhatsApp rejects the version for those who registered. Its tab says why, and it can be changed and sent again.",
+  );
   const preview = page.getByRole("region", { name: copy.sections.preview });
-  await preview.scrollIntoViewIfNeeded();
-  await expect(preview.getByText(/Thank you for registering/)).toBeVisible();
-  await frame(page, "The preview, for someone who registered", { window: true });
-  await preview.getByRole("button", { name: who }).click();
-  await expect(preview.getByText(/Will you join us/)).toBeVisible();
-  await frame(page, "The preview, for everyone else", { window: true });
-  story("Each version is a template WhatsApp approves, so the button says two go.");
   await preview.getByRole("button", { name: copy.textVersions.submit(2) }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
-  story(
-    "WhatsApp rejects the version for those who registered. Its tab says why, and it can be changed and sent again.",
-  );
   const [rejected] = runSql(
     flowDatabase,
     "SELECT t.meta_name FROM whatsapp_templates t JOIN broadcast_versions v ON v.template_id = t.id",
@@ -960,70 +953,106 @@ test("A reply button tapped", async ({ page, request, flowDatabase }) => {
   await frame(page, "Their tap, as a reply");
 });
 
-/**
- * Gives due text `id` what a text can have: the march's picture at its top and a link button, as its template went
- * to WhatsApp; and a second version for those who registered for the London march, on an approved template of its
- * own, with a reply button.
- */
-function dressText(database: string, id: string) {
-  const picture = readFileSync(join(__dirname, "..", "fixtures", "pictures", "march-banner.png")).toString("hex");
-  const link = `'[{"text": "The new room", "url": "https://pauseai.uk/pausecon"}]'`;
-  const theirWords = `jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph',
-    'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Thank you for marching. PauseCon has moved to the Main Hall.')))))`;
-  runSql(
-    database,
-    `WITH picture AS (
-       INSERT INTO text_pictures (content, content_type, created_by) VALUES (decode('${picture}', 'hex'), 'image/png', 'jo@pauseai.uk')
-       RETURNING id
-     ), theirs AS (
-       INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category, footer, buttons)
-       VALUES ('PauseCon doors, for those who registered', ${theirWords}, 'approved', 'jo@pauseai.uk', now() - interval '1 day',
-         'flow_text_2', 'MARKETING', '${TEMPLATE_FOOTER}', '[{"text": "I''ll be there"}]')
-       RETURNING id
-     ), own AS (
-       UPDATE whatsapp_templates SET header = 'image', buttons = ${link}
-       WHERE id = (SELECT template_id FROM mailings WHERE id = ${id})
-     ), text AS (
-       UPDATE mailings SET header = 'image', picture_id = (SELECT id FROM picture), buttons = ${link} WHERE id = ${id}
-     )
-     INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, buttons)
-     SELECT ${id}, '${registeredFor("evt-fixture-past-london-march")}', ${theirWords}, id, '[{"text": "I''ll be there"}]'
-     FROM theirs`,
-  );
-}
-
-test("A text with a picture, a link button and a second version, scheduled then sent", async ({
-  page,
-  request,
-  flowDatabase,
-}) => {
+test("A text with two versions, written, approved and sent", async ({ page, request, flowDatabase }) => {
   story(
-    "A text with the march's picture at its top and a link button, and a second version for those who went to the London march, both on approved templates, is scheduled.",
+    "Jane registered for the protest at Parliament. Mara, a member, didn't. Staff write one text for everyone who can be texted: a map of where it meets, and a link to sign up.",
   );
   await importLuma(request, BASE);
   await importCivicrm(request, BASE);
-  const id = addDueText(flowDatabase, "PauseCon doors", staffEmail());
-  dressText(flowDatabase, id);
-  runSql(flowDatabase, `UPDATE mailings SET due_at = now() + interval '1 day' WHERE id = ${id}`);
   await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE_MEMBERS);
+  const id = new URL(page.url()).pathname.split("/").at(-1);
+  await chooseTemplate(page, copy.newTemplate);
+  const words = page.getByRole("textbox", { name: copy.templateWords });
+  await words.click();
+  await page.keyboard.type("We protest at Parliament on Saturday at noon. Will you join us?");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("Protest this Saturday"));
+  await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.place }).click());
+  const find = page.getByLabel(copy.placeChooser.find);
+  await find.fill("Parliament Square");
+  await savedAfter(page, () => find.press("Enter"));
+  await page.getByRole("button", { name: copy.replyButtons.addLink }).click();
+  await page.getByLabel(copy.replyButtons.words).fill("Sign up");
+  await savedAfter(page, () =>
+    page.getByLabel(copy.replyButtons.address).fill("https://luma.com/fixture-london-protest"),
+  );
+  story(
+    "Then a version for those who registered, which starts as a copy. They give it the march's picture in place of the map, words of its own, and a reply button in place of the link.",
+  );
+  await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
+  await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
+  await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
+  await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
+  const who = copy.conditions.registered("PauseAI London: Protest at Parliament");
+  const tabs = page.getByRole("tab");
+  await expect(tabs.first()).toContainText(who);
+  await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.picture }).click());
+  await savedAfter(page, () =>
+    page
+      .locator('input[type=file][accept="image/jpeg,image/png"]')
+      .setInputFiles(join(__dirname, "..", "fixtures", "pictures", "march-banner.png")),
+  );
+  await expect(page.getByRole("img", { name: copy.pictureChooser.shown })).toBeVisible();
+  // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.
+  await words.selectText();
+  await savedAfter(page, () => page.keyboard.type("Thank you for registering. See you at noon on Saturday."));
+  await savedAfter(page, () => page.getByRole("button", { name: copy.replyButtons.remove, exact: true }).click());
+  await page.getByRole("button", { name: copy.replyButtons.addReply }).click();
+  await savedAfter(page, () => page.getByLabel(copy.replyButtons.words).fill("I'm coming"));
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "For those who registered: a picture, their own words, a reply button", { window: true });
+  await tabs.last().click();
+  await expect(find).toBeHidden();
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "For everyone else: the map, and a link to sign up", { window: true });
+  story("The preview's toggle chooses whose copy it shows, as it does for an email's parts.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.getByRole("button", { name: who }).click();
+  await preview.scrollIntoViewIfNeeded();
+  await expect(preview.getByText(/Thank you for registering/)).toBeVisible();
+  await frame(page, "The preview, for someone who registered", { window: true });
+  await preview.getByRole("button", { name: who }).click();
+  await expect(preview.getByText(/Will you join us/)).toBeVisible();
+  await frame(page, "The preview, for everyone else", { window: true });
+  story(
+    "Each version is a template of its own, so two go to WhatsApp for approval. It approves both, and its webhook tells the site.",
+  );
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).first().selectOption("14"));
+  await preview.getByRole("button", { name: copy.textVersions.submit(2) }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  const sent = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending' ORDER BY id");
+  expect(sent).toHaveLength(2);
+  for (const name of sent) await postWhatsAppWebhook(request, BASE, templateStatus(name, "APPROVED"));
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(templateBox(page)).toBeVisible();
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "Both approved, the pair chosen, its words fixed", { window: true });
+  story("Scheduled, its page shows both versions, each under who it's for.");
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.getByRole("button", { name: copy.schedule(TEXTABLE_MEMBERS, "text") }).click();
+  await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
   const text = page.getByRole("region", { name: copy.textTitle });
   await text.scrollIntoViewIfNeeded();
-  await frame(page, "Scheduled: the version for London marchers, then everyone else's", { window: true });
-  story(
-    "Its time comes, and it goes. Jane registered for the London march, so she gets that version, with its button.",
-  );
+  await frame(page, "Scheduled: the version for those who registered, then everyone else's", { window: true });
+  story("Its time comes, and it goes. Jane registered, so she gets the picture, her words and the reply button.");
   runSql(flowDatabase, `UPDATE mailings SET due_at = now() - interval '1 hour' WHERE id = ${id}`);
   await runSending(request);
-  const [copyId, number] = runSql(
+  const got = (number: string) =>
+    shownText(
+      flowDatabase,
+      newestText(number, (one) => "template" in one)!,
+    );
+  await textFrame(page, OUR_CHAT, got("+447700900001"), "Jane's text: she registered");
+  story("Mara didn't, so she gets the map of where it meets, everyone else's words, and the link to sign up.");
+  await textFrame(page, OUR_CHAT, got("+447700900123"), "Mara's text: she didn't register");
+  story("Each one's copy has its own page, which shows the version they got.");
+  const [copyId] = runSql(
     flowDatabase,
-    `SELECT id || '|' || substr(address, 2) FROM broadcast_messages WHERE mailing_id = ${id}`,
-  )[0].split("|");
-  const sent = newestText(`+${number}`, (one) => "template" in one)!;
-  await textFrame(page, OUR_CHAT, shownText(flowDatabase, sent), "The text, as they get it");
+    `SELECT id FROM broadcast_messages WHERE mailing_id = ${id} AND address = '+447700900123'`,
+  );
   await page.goto(`${BASE}/staff/broadcasts/${id}/${copyId}`);
-  await expect(page.getByText(/Thank you for marching/)).toBeVisible();
-  await frame(page, "Her copy: the version for London marchers, its button under it");
+  await expect(page.getByText(/Will you join us/)).toBeVisible();
+  await frame(page, "Mara's copy: everyone else's version, its link under it");
 });
 
 test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
