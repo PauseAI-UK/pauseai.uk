@@ -104,7 +104,6 @@ A real send to an iPhone, an Android phone and WhatsApp Web answers each:
   ([Template review, "Duplication"](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review)),
   and every text has the same footer. Till a try shows otherwise, the site
   takes it that another top or buttons doesn't make a template different,
-  so the writer won't send new words an approved template has. A text whose
-  two versions have the same words but a different top or buttons does go
-  as two templates, the second of which Meta may then reject;
+  so the writer won't send new words an approved template has, nor two
+  versions whose new words are the same with another top or buttons;
 - where Read more falls with a picture or a map (above).
