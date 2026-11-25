@@ -23,6 +23,15 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    ".next-serve/types/**/*.ts",
+    ".next-serve/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
   "exclude": ["node_modules", "tmp", "backup"]
 }

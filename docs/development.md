@@ -429,17 +429,20 @@ To click around a branch from another machine (the Mac a container runs
 on, say), on fake data:
 
 ```bash
-npm run serve -- fix-footer   # or a PR's number; with neither, the worktree it's run in
+npm run serve -- fix-footer   # or a PR's number; with neither, the checkout it's run in
 npm run serve -- fix-footer --stop
 ```
 
 It serves the branch's worktree, and makes one under `tmp/worktrees/` if
-the branch has none. It never serves the main checkout, whose dev server is
-yours.
+the branch has none. With no branch, it serves the checkout it's run in,
+the main one too.
 
-It runs `next dev` in the worktree with the fixture settings, so edits show
-as they're saved. The database is a fresh one, with the test MPs and the
-fake data, where admin@pauseai.uk has every permission.
+It runs `next dev` in the checkout with the fixture settings, so edits show
+as they're saved, and the clock running. The database is a fresh one, with
+the test MPs and the fake data, where admin@pauseai.uk has every
+permission. Its `next dev` builds into `.next-serve`, a folder of its own
+(`NEXT_DIST_DIR`, `next.config.ts`), so it runs beside your own dev server
+and beside a storyboard review in the same checkout.
 
 In front of `next dev` is a proxy on this machine's network address. It's
 there because the session cookie is `Secure`, and a browser drops such a
@@ -451,8 +454,6 @@ Once the site is up, the script opens the link in Playwright's Firefox
 the link. It keeps running until stopped.
 
 Each checkout has its own ports, so branches can be served side by side.
-The script's `next dev` shares `.next` with the checkout, so don't run a
-storyboard review in the same checkout meanwhile.
 
 Nor run two `next dev`s in one checkout, such as a second beside the one
 you're using: both write `.next/dev`, each overwriting the other's Server

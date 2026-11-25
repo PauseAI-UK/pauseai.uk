@@ -107,6 +107,7 @@ const NOT_SOURCE = new Set([
   "node_modules",
   ".git",
   ".next",
+  ".next-serve",
   ".netlify",
   "tmp",
   "test-results",

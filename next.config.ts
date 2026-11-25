@@ -94,6 +94,9 @@ function securityHeaders() {
 }
 
 const nextConfig: NextConfig = {
+  // Where the build goes. `npm run serve` gives its next dev a folder of its own, NEXT_DIST_DIR, so it
+  // clashes with neither the checkout's own next dev nor a storyboard's build (scripts/serve.mjs).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // CI's storyboard builds skip the types, which its own job checks beside
   // them (.github/workflows/ci.yml); every other build checks them.
   typescript: { ignoreBuildErrors: process.env.SKIP_BUILD_TYPES === "1" },

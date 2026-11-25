@@ -49,6 +49,7 @@ export default defineConfig({
             "tmp/**",
             "backup/**",
             ".next/**",
+            ".next-serve/**",
             ".netlify/**",
             "**/*.browser.test.*",
           ],
@@ -113,7 +114,16 @@ export default defineConfig({
         test: {
           name: "browser",
           include: ["**/*.browser.test.{ts,tsx}"],
-          exclude: ["**/node_modules/**", ".claude/**", "tests/**", "plans/**", "tmp/**", ".next/**", ".netlify/**"],
+          exclude: [
+            "**/node_modules/**",
+            ".claude/**",
+            "tests/**",
+            "plans/**",
+            "tmp/**",
+            ".next/**",
+            ".next-serve/**",
+            ".netlify/**",
+          ],
           setupFiles: ["./tests/vitest.setup.browser.tsx"],
           // Drawing and exporting images is slow when every file runs at once, so waits get longer than the default second.
           expect: { poll: { timeout: 5000 } },

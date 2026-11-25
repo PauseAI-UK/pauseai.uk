@@ -7,10 +7,12 @@
 //   npm run serve -- [<branch> | <PR number>]   serves it until stopped (Ctrl-C)
 //   npm run serve -- [<branch> | <PR number>] --stop
 //
-// With no branch, the worktree it's run in. A branch without a worktree gets
-// one under tmp/worktrees/, as `npm run worktree` makes, from the local
-// branch or else origin's. Never the main checkout: its `next dev` is the
-// person's own (docs/development.md, "Serving a branch").
+// With no branch, the checkout it's run in, the main one too. A branch
+// without a worktree gets one under tmp/worktrees/, as `npm run worktree`
+// makes, from the local branch or else origin's. Its `next dev` builds into
+// a folder of its own, .next-serve (NEXT_DIST_DIR, next.config.ts), so it
+// runs beside the checkout's own `next dev`, the person's, and beside a
+// storyboard's build (docs/development.md, "Serving a branch").
 //
 // The proxy is there for the session cookie, which is Secure, so a browser
 // drops it over plain http from anywhere but localhost: the proxy strips
@@ -26,7 +28,7 @@ import { networkInterfaces, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkoutPorts } from "../tests/checkout.mjs";
-import { worktreePath, worktreePaths } from "./worktree.mjs";
+import { worktreePath } from "./worktree.mjs";
 
 /**
  * The ports above 5000 that fetch and browsers refuse to connect to, from the
@@ -159,9 +161,6 @@ function worktreeFor({ branch, pr, stop }) {
       execFileSync("npm", ["ci", "--prefer-offline", "--no-audit", "--no-fund"], { cwd: dir, stdio: "inherit" });
     }
   }
-  if (dir === worktreePaths(git(["worktree", "list", "--porcelain"]))[0]) {
-    throw new Error("That's the main checkout, whose next dev is the person's own: serve a worktree.");
-  }
   return dir;
 }
 
@@ -227,6 +226,9 @@ async function checkInFirefox(link) {
   }
 }
 
+/** Where its next dev builds, apart from the checkout's own next dev and builds (NEXT_DIST_DIR, next.config.ts). */
+export const SERVE_DIST_DIR = ".next-serve";
+
 /** The migrations' admin account, which the database gives every permission (giveAdminSupporters). */
 const ADMIN = "admin@pauseai.uk";
 
@@ -249,6 +251,7 @@ async function main(args) {
   // The clock runs, and no analytics: it's to use, not to picture.
   delete env.FIXTURE_NOW;
   delete env.ANALYTICS;
+  env.NEXT_DIST_DIR = SERVE_DIST_DIR;
   env.NETLIFY_DB_URL = freshDatabase(dir, `pauseai_serve_${hash}`, TEST_MP_EMAIL, env.GMAIL_TOKEN_KEY);
 
   // In its own process group, so stopping it stops what it starts.
