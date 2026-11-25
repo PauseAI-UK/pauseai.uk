@@ -75,10 +75,11 @@ export type MailingChanges = Partial<
     sendBy: string;
     /** When a broadcast to supporters stops, in minutes after its time; null for the most (sendingStopsAt in lib/broadcasts/broadcasts.ts). */
     finishMinutes: number | null;
-    /** A text's top, place and reply buttons, as lib/broadcasts/text-parts.ts has them, checked before they're saved. */
-    header: "location" | null;
+    /** A text's top, place, picture and buttons, as lib/broadcasts/text-parts.ts has them, checked before they're saved. */
+    header: "location" | "image" | null;
     place: { name: string; address: string; latitude: number; longitude: number } | null;
-    buttons: { text: string }[];
+    pictureId: string | null;
+    buttons: { text: string; url?: string }[];
   }
 >;
 
@@ -97,6 +98,7 @@ const COLUMNS: Record<keyof MailingChanges, string> = {
   finishMinutes: "finish_minutes",
   header: "header",
   place: "place",
+  pictureId: "picture_id",
   buttons: "buttons",
 };
 

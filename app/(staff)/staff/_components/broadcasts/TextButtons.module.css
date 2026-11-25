@@ -1,0 +1,42 @@
+/* A text's buttons: a table of them, a row each, then the buttons that add one, then its notes. */
+.buttons {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.table {
+  border-collapse: collapse;
+}
+
+.heading {
+  margin-bottom: var(--space-1);
+  font-weight: 600;
+  text-align: left;
+}
+
+.table th {
+  padding: 0 var(--space-2) var(--space-1) 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: left;
+}
+
+.table td {
+  padding: 0 var(--space-2) var(--space-2) 0;
+  vertical-align: middle;
+}
+
+/* Reply or Link, in grey, as the row's kind. */
+.kind {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

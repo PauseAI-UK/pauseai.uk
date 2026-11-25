@@ -588,12 +588,14 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   Without the key, fixture builds answer from
   `lib/server/fixtures/civicrm-contacts.json`.
 - **WhatsApp.** Texts to supporters go by Meta's WhatsApp Cloud API
-  (`lib/server/outside-services/whatsapp.server.ts`), with three settings, set in
+  (`lib/server/outside-services/whatsapp.server.ts`), with four settings, set in
   Netlify for production alone, so a deploy preview can't send from the real
   number: `WHATSAPP_TOKEN`, the permanent access token; `WHATSAPP_ACCOUNT_ID`,
   the WhatsApp account's ID, from the App Dashboard's API Setup panel, which
   our number is read from; and `WHATSAPP_APP_SECRET`, the Meta app's secret,
-  from its basic settings, which signs the webhook. Without them, nothing
+  from its basic settings, which signs the webhook; and `WHATSAPP_APP_ID`,
+  the Meta app's ID, from its basic settings too, which a text's picture is
+  uploaded through for WhatsApp's approval of its template. Without them, nothing
   sends a text, but for a fixture build, the dev server's too, which uses
   the fake's keys and needs none. The webhook is `/api/whatsapp`: in the App Dashboard, the
   use case's "Configure Webhooks" takes its callback URL and the verify

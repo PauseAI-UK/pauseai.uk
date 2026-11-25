@@ -10,6 +10,7 @@ import {
   exampleBroadcastEmail,
   exampleBroadcastText,
   exampleLinkCard,
+  examplePictureId,
   examplePlace,
   exampleTemplates,
   exampleTextSender,
@@ -39,6 +40,7 @@ export function broadcastActions(log: (name: string) => (...args: unknown[]) => 
     deleteTemplate: logged("deleteTemplateNow", { ok: true as const }),
     linkCard: logged("linkCardFor", { ok: true as const, card: exampleLinkCard }),
     findPlaces: logged("findPlacesFor", { ok: true as const, places: [examplePlace] }),
+    uploadPicture: logged("uploadTextPicture", { ok: true as const, pictureId: examplePictureId }),
   };
 }
 

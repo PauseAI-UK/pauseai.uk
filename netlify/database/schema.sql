@@ -1242,8 +1242,9 @@ CREATE TABLE public.broadcast_versions (
     template_id bigint,
     header text,
     place jsonb,
+    picture_id uuid,
     buttons jsonb DEFAULT '[]'::jsonb NOT NULL,
-    CONSTRAINT broadcast_versions_header_check CHECK ((header = 'location'::text))
+    CONSTRAINT broadcast_versions_header_check CHECK ((header = ANY (ARRAY['location'::text, 'image'::text])))
 );
 
 --
@@ -2251,6 +2252,7 @@ CREATE TABLE public.mailings (
     wait_failure jsonb,
     header text,
     place jsonb,
+    picture_id uuid,
     buttons jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT mailings_also_topics CHECK (((cardinality(also_topics) = 0) OR ((topic IS NOT NULL) AND (NOT (topic = ANY (also_topics)))))),
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
@@ -2261,7 +2263,7 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_failed_in_a_row_check CHECK ((failed_in_a_row >= 0)),
     CONSTRAINT mailings_finish_minutes CHECK (((finish_minutes IS NULL) OR ((audience = 'supporters'::text) AND ((finish_minutes >= 1) AND (finish_minutes <= ((7 * 24) * 60)))))),
     CONSTRAINT mailings_gave_up CHECK (((NOT gave_up) OR ((state = 'cancelled'::text) AND (wait_reason IS NOT NULL)))),
-    CONSTRAINT mailings_header_check CHECK ((header = 'location'::text)),
+    CONSTRAINT mailings_header_check CHECK ((header = ANY (ARRAY['location'::text, 'image'::text]))),
     CONSTRAINT mailings_imported_or_written CHECK ((((airtable_field IS NOT NULL) OR (airtable_sent_between IS NOT NULL)) = ((body IS NULL) AND (filter IS NULL) AND (created_by IS NULL)))),
     CONSTRAINT mailings_imported_sent CHECK (((body IS NOT NULL) OR (state = 'sent'::text))),
     CONSTRAINT mailings_imported_text CHECK (((imported_text IS NULL) OR (body IS NULL))),
@@ -2741,6 +2743,19 @@ UNION ALL
    FROM public.supporters_added() supporters_added(id, name, emails, email, phone, postcode, sources, luma_follows, first_seen_at, last_active_at, events, letters, member, place, basis, given, country, latitude, longitude, phones);
 
 --
+-- Name: text_pictures; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.text_pictures (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    content bytea NOT NULL,
+    content_type text NOT NULL,
+    created_by text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT text_pictures_content_type_check CHECK ((content_type = ANY (ARRAY['image/jpeg'::text, 'image/png'::text])))
+);
+
+--
 -- Name: unmatched_mail; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2791,7 +2806,7 @@ CREATE TABLE public.whatsapp_templates (
     CONSTRAINT whatsapp_templates_created_by_check CHECK ((created_by = lower(created_by))),
     CONSTRAINT whatsapp_templates_deleted CHECK (((status = 'deleted'::text) = ((deleted_at IS NOT NULL) AND (deleted_by IS NOT NULL)))),
     CONSTRAINT whatsapp_templates_deleted_by_check CHECK ((deleted_by = lower(deleted_by))),
-    CONSTRAINT whatsapp_templates_header_check CHECK ((header = 'location'::text)),
+    CONSTRAINT whatsapp_templates_header_check CHECK ((header = ANY (ARRAY['location'::text, 'image'::text]))),
     CONSTRAINT whatsapp_templates_meta_name_check CHECK ((meta_name ~ '^[a-z0-9_]+$'::text)),
     CONSTRAINT whatsapp_templates_name_check CHECK ((name <> ''::text)),
     CONSTRAINT whatsapp_templates_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'paused'::text, 'disabled'::text, 'deleted'::text]))),
@@ -3522,6 +3537,13 @@ ALTER TABLE ONLY public.supporters
     ADD CONSTRAINT supporters_pkey PRIMARY KEY (id);
 
 --
+-- Name: text_pictures text_pictures_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.text_pictures
+    ADD CONSTRAINT text_pictures_pkey PRIMARY KEY (id);
+
+--
 -- Name: unmatched_mail unmatched_mail_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4124,6 +4146,13 @@ ALTER TABLE ONLY public.broadcast_versions
     ADD CONSTRAINT broadcast_versions_mailing_id_fkey FOREIGN KEY (mailing_id) REFERENCES public.mailings(id) ON DELETE CASCADE;
 
 --
+-- Name: broadcast_versions broadcast_versions_picture_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_versions
+    ADD CONSTRAINT broadcast_versions_picture_id_fkey FOREIGN KEY (picture_id) REFERENCES public.text_pictures(id) ON DELETE SET NULL;
+
+--
 -- Name: broadcast_versions broadcast_versions_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4332,6 +4361,13 @@ ALTER TABLE ONLY public.mailing_attachments
 
 ALTER TABLE ONLY public.mailings
     ADD CONSTRAINT mailings_ask_fkey FOREIGN KEY (ask) REFERENCES public.asks(slug);
+
+--
+-- Name: mailings mailings_picture_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mailings
+    ADD CONSTRAINT mailings_picture_id_fkey FOREIGN KEY (picture_id) REFERENCES public.text_pictures(id) ON DELETE SET NULL;
 
 --
 -- Name: mailings mailings_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

@@ -104,6 +104,10 @@ export const config = {
   get whatsappAppSecret(): string | undefined {
     return value(process.env.WHATSAPP_APP_SECRET);
   },
+  /** The Meta app's ID, which a template's picture is uploaded through for its approval (uploadExample). */
+  get whatsappAppId(): string | undefined {
+    return value(process.env.WHATSAPP_APP_ID);
+  },
   get lumaApiKey(): string | undefined {
     return value(process.env.LUMA_API_KEY?.trim());
   },

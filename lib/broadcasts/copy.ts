@@ -83,32 +83,53 @@ export const broadcastsCopy = {
     templateMadeIn: "Made in WhatsApp Manager",
     // A text's top, over its words: a choice of the card for the words' first link, or a map of a place.
     textTop: {
-      label: "⁂ Top of the text",
+      label: "Above the text",
       linkPreview: "⁂ Link preview",
+      picture: "⁂ Picture",
       place: "⁂ Place",
       linkPreviewNote: "⁂ From the first link in the words, if they have one.",
     },
     // Choosing a text's place: a box for a Google Maps link or words to search for, its button, the places it
     // found, the place's name and address under the map, a link to check its pin, and what can change once approved.
     placeChooser: {
-      find: "⁂ Google Maps link, or search for a place",
+      find: "⁂ Paste a Google Maps link, or search for a place by name",
       findButton: "⁂ Find",
       found: "⁂ Places found",
       none: "⁂ No place found. Try other words, or a Google Maps link.",
+      underMap: "⁂ WhatsApp shows these under the map. Change them to say where exactly.",
       name: "⁂ Name",
       address: "⁂ Address",
       checkMap: "⁂ Check it on a map",
       changeable: "⁂ You can change the place after WhatsApp approves the text.",
     },
-    // A text's reply buttons, under its words: their heading, each button's words and its Remove, adding one, and
-    // what a computer does with many.
+    // Choosing a text's picture: the picture chosen, the box to drop or paste one on, its button, why a file won't
+    // do, and what can change once approved.
+    pictureChooser: {
+      shown: "⁂ The picture at the top of the text",
+      drop: "⁂ Drag a picture here, or paste one",
+      dropAnother: "⁂ Drag another picture here, or paste one, to change it",
+      choose: "⁂ Choose a picture",
+      refusals: {
+        "not-picture": "⁂ WhatsApp takes a JPEG or PNG picture. Choose one of those.",
+        "too-big": "⁂ That picture is too big. Choose one of 4 MB or less.",
+      },
+      changeable: "⁂ You can change the picture after WhatsApp approves the text.",
+    },
+    // A text's buttons, under its words: their heading; each button's kind, a reply or a link, its words, a link's
+    // address, and its Remove; adding one; what a reply does; and what a computer does with many, or both kinds.
     replyButtons: {
       heading: "⁂ Buttons",
+      kind: "⁂ Kind",
+      reply: "⁂ Reply",
+      link: "⁂ Link",
       words: "⁂ On the button",
+      address: "⁂ Opens",
       remove: "⁂ Remove",
-      add: "⁂ + Reply button",
-      tapNote: "⁂ A tap shows on this page as their reply.",
-      manyNote: "⁂ With 4 or more buttons, WhatsApp on a computer tells people to open the text on their phone.",
+      addReply: "⁂ + Reply button",
+      addLink: "⁂ + Link button",
+      tapNote: "⁂ A reply button's tap shows on the copy's page as their reply.",
+      manyNote:
+        "⁂ With 4 or more buttons, or reply and link buttons together, WhatsApp on a computer tells people to open the text on their phone.",
     },
     // A text's two versions, once it has a condition: how many templates they go to WhatsApp as, and why there's
     // only one condition.
@@ -238,7 +259,8 @@ export const broadcastsCopy = {
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
       "no-place": "⁂ Choose the place its map shows.",
-      "button-words": "⁂ Give each button words, 25 characters at most.",
+      "button-words": "⁂ Give each button words, 25 characters at most, and each link button an address. A text can have two link buttons.",
+      "no-picture": "⁂ Add the picture for its top.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": "That's too many to send before it stops trying. Send it to fewer people, or keep trying for longer.",
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",

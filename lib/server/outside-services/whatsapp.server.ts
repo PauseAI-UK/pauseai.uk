@@ -51,15 +51,17 @@ export class WhatsAppRequestError extends OutsideFailure {
 async function graph(
   keys: WhatsAppKeys,
   path: string,
-  init: { method?: "GET" | "POST" | "DELETE"; body?: object } = {},
+  init: { method?: "GET" | "POST" | "DELETE"; body?: object; bytes?: Uint8Array; headers?: Record<string, string> } = {},
 ): Promise<Record<string, unknown>> {
   const res = await outsideFetch(WHATSAPP, `${GRAPH}/${path}`, {
     method: init.method ?? "GET",
     headers: {
       Authorization: `Bearer ${keys.token}`,
       ...(init.body && { "Content-Type": "application/json" }),
+      ...init.headers,
     },
     ...(init.body && { body: JSON.stringify(init.body) }),
+    ...(init.bytes && { body: init.bytes as BodyInit }),
     cache: "no-store",
   });
   const data = (parseJsonIfAny(await res.text()) ?? {}) as Record<string, unknown>;
@@ -158,15 +160,18 @@ export type TemplatePlace = { name: string; address: string; latitude: number; l
  * Sends template `name`, in British English, its parameters filled in, from
  * our number `from` (its ID); with `place`, the place its map shows, which a
  * template with a place takes each time it's sent
- * (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/components#location-header).
+ * (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/components#location-header);
+ * or with `picture`, the address of the picture at its top, which WhatsApp
+ * fetches
+ * (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-media).
  */
 export function sendTemplate(
   keys: WhatsAppKeys,
   from: string,
   to: string,
-  template: { name: string; params: TemplateParam[]; place?: TemplatePlace },
+  template: { name: string; params: TemplateParam[]; place?: TemplatePlace; picture?: string },
 ): Promise<WhatsAppSend> {
-  const { place } = template;
+  const { place, picture } = template;
   return send(keys, from, to, {
     type: "template",
     template: {
@@ -191,6 +196,7 @@ export function sendTemplate(
               },
             ]
           : []),
+        ...(picture ? [{ type: "header", parameters: [{ type: "image", image: { link: picture } }] }] : []),
         ...(template.params.length
           ? [
               {
@@ -229,19 +235,49 @@ export function sendReaction(
   return send(keys, from, to, { type: "reaction", reaction: { message_id: messageId, emoji } });
 }
 
+/** A template's button: its words, and for a link button, the address it opens. */
+export type TemplateButton = { text: string; url?: string };
+
 /**
  * Words to send for approval as a marketing template, with a footer saying
- * how to stop; with `header`, a place at its top, whose map each send gives;
- * and its reply buttons' words, in order.
+ * how to stop; with `header`, a place at its top, whose map each send
+ * gives, or a picture, approved by the example whose upload `example` is
+ * (uploadExample), each send giving its own; and its buttons, reply buttons
+ * before link buttons, as WhatsApp takes them.
  */
 export type NewTemplate = {
   name: string;
   body: string;
   examples: TemplateParam[];
   footer: string;
-  header?: "location";
-  buttons?: string[];
+  header?: { kind: "location" } | { kind: "image"; example: string };
+  buttons?: TemplateButton[];
 };
+
+/**
+ * Uploads a picture for a template's approval, by Meta's Resumable Upload
+ * API, through the Meta app `appId`: a session for the file, then the file
+ * itself into it. Gives the handle a template's example names it by
+ * (https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-media).
+ */
+export async function uploadExample(
+  keys: WhatsAppKeys,
+  appId: string,
+  file: { name: string; type: string; content: Uint8Array },
+): Promise<string> {
+  const query = new URLSearchParams({
+    file_name: file.name,
+    file_length: String(file.content.length),
+    file_type: file.type,
+  });
+  const session = await graph(keys, `${appId}/uploads?${query}`, { method: "POST" });
+  const uploaded = await graph(keys, String(session.id), {
+    method: "POST",
+    bytes: file.content,
+    headers: { Authorization: `OAuth ${keys.token}`, file_offset: "0" },
+  });
+  return String(uploaded.h);
+}
 
 /** Sends new words for approval; gives WhatsApp's ID for the template, and its status and category so far. */
 export async function createTemplate(
@@ -256,7 +292,10 @@ export async function createTemplate(
       category: "MARKETING",
       parameter_format: "NAMED",
       components: [
-        ...(template.header === "location" ? [{ type: "HEADER", format: "LOCATION" }] : []),
+        ...(template.header?.kind === "location" ? [{ type: "HEADER", format: "LOCATION" }] : []),
+        ...(template.header?.kind === "image"
+          ? [{ type: "HEADER", format: "IMAGE", example: { header_handle: [template.header.example] } }]
+          : []),
         {
           type: "BODY",
           text: template.body,
@@ -271,7 +310,16 @@ export async function createTemplate(
         },
         { type: "FOOTER", text: template.footer },
         ...(template.buttons?.length
-          ? [{ type: "BUTTONS", buttons: template.buttons.map((text) => ({ type: "QUICK_REPLY", text })) }]
+          ? [
+              {
+                type: "BUTTONS",
+                buttons: template.buttons.map((button) =>
+                  button.url === undefined
+                    ? { type: "QUICK_REPLY", text: button.text }
+                    : { type: "URL", text: button.text, url: button.url },
+                ),
+              },
+            ]
           : []),
       ],
     },

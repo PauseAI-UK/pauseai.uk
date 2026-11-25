@@ -54,6 +54,7 @@ import { broadcastEmail, testLinks } from "./email-message.server";
 import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import {
   createTemplate,
+  uploadExample,
   deleteTemplate,
   sendTemplate,
   WhatsAppRequestError,
@@ -63,9 +64,11 @@ import { metaName, templateParams, textResult, textsLeftToday } from "./whatsapp
 import {
   buttonsFrom,
   headerFrom,
+  inOrder,
+  pictureFrom,
   placeFrom,
   versionFrom,
-  type ReplyButton,
+  type TextButton,
   type TextHeader,
   type TextPlace,
   type TextTemplateParts,
@@ -73,6 +76,8 @@ import {
 } from "./text-parts";
 import { TEMPLATE_FOOTER, templateText } from "./whatsapp-template";
 import { broadcastParts, supporterAudience } from "./recipients.server";
+import { pictureAddress, pictureOf } from "./text-pictures.server";
+import { config } from "@/lib/server/config.server";
 import { notifyStaff, staffLink } from "@/lib/email/notifications.server";
 import { filterProblems } from "@/lib/server/stored-filters.server";
 import { consentLeftOut, type Topic } from "@/lib/supporters/contact-permissions";
@@ -112,7 +117,7 @@ export type WhatsAppTemplate = {
   footer: string | null;
   /** Its top, a place, or none (text-parts.ts); and its reply buttons. */
   header: TextHeader | null;
-  buttons: ReplyButton[];
+  buttons: TextButton[];
   /** When it last went, and to how many; none if it never has. */
   lastUsedAt: Date | null;
   lastUsedTo: number;
@@ -132,10 +137,11 @@ export type WrittenBroadcast = WrittenMailing & {
   /** The topics whose yes it goes under, in TOPICS' order (BroadcastTerms). */
   topics: Topic[];
   template: WhatsAppTemplate | null;
-  /** A text's top, the place its map shows, and its reply buttons (text-parts.ts). */
+  /** A text's top, the place its map shows or its picture, and its buttons (text-parts.ts). */
   header: TextHeader | null;
   place: TextPlace | null;
-  buttons: ReplyButton[];
+  pictureId: string | null;
+  buttons: TextButton[];
   /** A text's second version, for those who meet its condition, with its template; none for one version. */
   textVersion: (TextVersion & { template: WhatsAppTemplate | null }) | null;
   /** What sends it, for an email (lib/broadcasts/broadcasts.ts, BROADCAST_SEND_BY). */
@@ -213,13 +219,14 @@ export async function getWrittenBroadcast(id: number, opening = false): Promise<
       | "gaveUp"
       | "header"
       | "place"
+      | "pictureId"
       | "buttons"
     > & {
       templateId: number | null;
     }
   >(
     `SELECT title, channel, ${TOPICS_OF} AS topics, template_id::int AS "templateId", send_by AS "sendBy",
-       header, place, buttons,
+       header, place, picture_id AS "pictureId", buttons,
        finish_minutes AS "finishMinutes", waiting_since AS "waitingSince",
        wait_reason AS "waitReason", coalesce(wait_failure->>'said', wait_said) AS "waitSaid", gave_up AS "gaveUp"
      FROM mailings WHERE id = $1`,
@@ -230,7 +237,7 @@ export async function getWrittenBroadcast(id: number, opening = false): Promise<
     return template;
   };
   const [version] = await query<TextVersion>(
-    `SELECT condition, body, template_id::int AS "templateId", header, place, buttons
+    `SELECT condition, body, template_id::int AS "templateId", header, place, picture_id AS "pictureId", buttons
      FROM broadcast_versions WHERE mailing_id = $1`,
     [id],
   );
@@ -298,13 +305,14 @@ export async function copyBroadcast(id: number, by: string): Promise<number | un
   const copy = (await createBroadcastDraft(by, from.filter.params))!;
   await query(
     `UPDATE mailings m SET subject = s.subject, title = s.title, body = s.body, template_id = s.template_id,
-       send_by = s.send_by, header = s.header, place = s.place, buttons = s.buttons
+       send_by = s.send_by, header = s.header, place = s.place, picture_id = s.picture_id, buttons = s.buttons
      FROM mailings s WHERE m.id = $1 AND s.id = $2`,
     [copy, id],
   );
   await query(
-    `INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, header, place, buttons)
-     SELECT $1, condition, body, template_id, header, place, buttons FROM broadcast_versions WHERE mailing_id = $2`,
+    `INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, header, place, picture_id, buttons)
+     SELECT $1, condition, body, template_id, header, place, picture_id, buttons
+     FROM broadcast_versions WHERE mailing_id = $2`,
     [copy, id],
   );
   return copy;
@@ -352,6 +360,7 @@ export async function changeBroadcastConsent(id: number, value: string, by: stri
        template_id = CASE WHEN $5 THEN NULL ELSE template_id END,
        header = CASE WHEN $5 THEN NULL ELSE header END,
        place = CASE WHEN $5 THEN NULL ELSE place END,
+       picture_id = CASE WHEN $5 THEN NULL ELSE picture_id END,
        buttons = CASE WHEN $5 THEN '[]'::jsonb ELSE buttons END,
        sent_from = CASE WHEN $5 THEN $6 ELSE sent_from END,
        from_name = CASE WHEN $5 THEN $7 ELSE from_name END,
@@ -393,7 +402,8 @@ export type BroadcastChanges = MailingChanges & { textVersion?: TextVersion | nu
  */
 export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel): BroadcastChanges | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  const { templateId, title, sendBy, finishMinutes, header, place, buttons, textVersion, ...rest } = value as Record<
+  const { templateId, title, sendBy, finishMinutes, header, place, pictureId, buttons, textVersion, ...rest } =
+    value as Record<
     string,
     unknown
   >;
@@ -407,7 +417,7 @@ export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel):
   }
   const changes: BroadcastChanges =
     finishMinutes === undefined ? parsed : { ...parsed, finishMinutes: finishMinutes as number | null };
-  const textOnly = [templateId, title, header, place, buttons, textVersion];
+  const textOnly = [templateId, title, header, place, pictureId, buttons, textVersion];
   if (channel === "email") {
     if (textOnly.some((one) => one !== undefined)) return undefined;
     if (sendBy === undefined) return changes;
@@ -419,10 +429,11 @@ export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel):
   const parts = {
     header: header === undefined ? undefined : headerFrom(header),
     place: place === undefined ? undefined : placeFrom(place),
+    pictureId: pictureId === undefined ? undefined : pictureFrom(pictureId),
     buttons: buttons === undefined ? undefined : buttonsFrom(buttons),
     textVersion: textVersion === undefined ? undefined : versionFrom(textVersion),
   };
-  const given = { title, templateId, header, place, buttons, textVersion };
+  const given = { title, templateId, header, place, pictureId, buttons, textVersion };
   // Each given, and each a proper one: a part that's given but undefined once checked isn't.
   if (Object.entries(parts).some(([name, one]) => one === undefined && given[name as keyof typeof given] !== undefined))
     return undefined;
@@ -495,10 +506,10 @@ export async function saveBroadcastDraft(
     if (next === null) await query("DELETE FROM broadcast_versions WHERE mailing_id = $1", [broadcast.id], db);
     else {
       await query(
-        `INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, header, place, buttons)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, header, place, buttons, picture_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (mailing_id) DO UPDATE SET condition = $2, body = $3, template_id = $4, header = $5, place = $6,
-           buttons = $7`,
+           buttons = $7, picture_id = $8`,
         [
           broadcast.id,
           next.condition,
@@ -507,6 +518,7 @@ export async function saveBroadcastDraft(
           next.header,
           next.place && JSON.stringify(next.place),
           JSON.stringify(next.buttons),
+          next.pictureId,
         ],
         db,
       );
@@ -765,27 +777,49 @@ export type TemplateTaken = { taken: true } | { taken: false; said: string | nul
 export type BroadcastScheduled = { scheduled: true } | { scheduled: false; said: string | null };
 
 /** A template going to WhatsApp for approval: its ID here, the name WhatsApp has it by, and what it says. */
-type ForApproval = TextTemplateParts & { id: number; metaName: string };
+type ForApproval = TextTemplateParts & { id: number; metaName: string; pictureId: string | null };
+
+/** What a template is made from: a version's words, top and buttons, and its picture for an example. */
+type Parts = TextTemplateParts & { pictureId: string | null };
 
 /**
  * Sends a template's words to WhatsApp for approval, as a marketing
  * template in British English, each field a named parameter with an
  * example, the footer every text has, saying a reply of stop stops it, and
- * its top and reply buttons; keeps WhatsApp's ID for it. Gives null if
- * WhatsApp took them, else why not, reporting it.
+ * its top and buttons, reply buttons first; a picture's top with the
+ * text's picture uploaded as its example, through the Meta app
+ * (uploadExample). Keeps WhatsApp's ID for it. Gives null if WhatsApp took
+ * them, else why not, reporting it; none can go with no Meta app set.
  */
 async function sendForApproval(template: ForApproval): Promise<TemplateNotTaken | null> {
   const backend = await textBackend();
   if (!backend) return { failed: null };
   const footer = TEMPLATE_FOOTER;
+  const appId = config.whatsappAppId;
+  if (template.header === "image" && !appId) return { failed: null };
   try {
+    const picture = template.header === "image" ? (await pictureOf(template.pictureId!))! : undefined;
+    const header = picture
+      ? {
+          kind: "image" as const,
+          example: await uploadExample(backend.keys, appId!, {
+            name: `${template.metaName}.${picture.type === "image/png" ? "png" : "jpg"}`,
+            type: picture.type,
+            content: picture.content,
+          }),
+        }
+      : template.header === "location"
+        ? { kind: "location" as const }
+        : undefined;
     const made = await createTemplate(backend.keys, {
       name: template.metaName,
       body: templateText(template.body),
       examples: templateParams(template.body, fakeRecipient(BROADCAST_FIELDS.map(hasField), "text")),
       footer,
-      ...(template.header && { header: template.header }),
-      buttons: template.buttons.map((button) => button.text.trim()),
+      ...(header && { header }),
+      buttons: inOrder(template.buttons).map((button) =>
+        button.url === undefined ? { text: button.text.trim() } : { text: button.text.trim(), url: button.url.trim() },
+      ),
     });
     // Its footer kept as it went, so every page shows what people got.
     await query("UPDATE whatsapp_templates SET meta_id = $2, footer = $3 WHERE id = $1", [
@@ -835,7 +869,7 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     if (approvalProblems((await scheduleProblems(broadcast)).problems).length) return "not-ready" as const;
     // As staff named it: a text with no name isn't ready (approvalProblems).
     const name = broadcast.title.trim();
-    const make = async (parts: TextTemplateParts, called: string): Promise<ForApproval> => {
+    const make = async (parts: Parts, called: string): Promise<ForApproval> => {
       const [{ templateId }] = await query<{ templateId: number }>(
         `INSERT INTO whatsapp_templates (name, body, status, created_by, header, buttons)
          VALUES ($1, $2, 'pending', $3, $4, $5) RETURNING id::int AS "templateId"`,
@@ -844,10 +878,10 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
       );
       const meta = metaName(called, templateId);
       await query("UPDATE whatsapp_templates SET meta_name = $2 WHERE id = $1", [templateId, meta], db);
-      return { ...parts, id: templateId, metaName: meta };
+      return { body: parts.body, header: parts.header, buttons: parts.buttons, pictureId: parts.pictureId, id: templateId, metaName: meta };
     };
     const made: ForApproval[] = [];
-    const add = async (parts: TextTemplateParts, called: string): Promise<number> => {
+    const add = async (parts: Parts, called: string): Promise<number> => {
       const one = await make(parts, called);
       made.push(one);
       return one.id;
@@ -1087,7 +1121,8 @@ export async function sendBroadcastTest(
     await sendTemplate(backend.keys, backend.number.id, to, {
       name: template.metaName ?? template.name,
       params: templateParams(template.body, recipient),
-      ...(theirs.place && { place: theirs.place }),
+      ...(theirs.header === "location" && theirs.place && { place: theirs.place }),
+      ...(theirs.header === "image" && theirs.pictureId && { picture: pictureAddress(theirs.pictureId) }),
     }),
   );
 }
