@@ -27,6 +27,7 @@
     "test:node": "vitest run --project node",
     "test:browser": "vitest run --project browser",
     "test:changed": "node scripts/test-changed.mjs",
+    "coverage:ci": "node scripts/coverage-ci.mjs",
     "test:watch": "vitest",
     "test:storyboard": "node scripts/fixture-server.mjs && playwright test",
     "storyboard": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/storyboard.mjs",

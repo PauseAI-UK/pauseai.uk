@@ -81,6 +81,8 @@ Each command has a time limit and a log in `tmp/gate/`, and the gate ends with a
 
 `test-changed.mjs`, run with `npm run test:changed`, runs the Vitest tests for the files changed since origin/main, committed or not, and lists each changed source file's uncovered lines, functions and branches, even while a test fails. Anything after `--` goes to Vitest. `npm test` is still the gate (`docs/testing.md`, "Coverage").
 
+`coverage-ci.mjs`, run with `npm run coverage:ci -- <run id>`, shows what CI's merged coverage leaves uncovered, when a file passes `npm test` here and fails CI's merge of its three shards. It downloads the run's coverage with `gh` to `tmp/coverage-ci/<run id>/`, merges it as `merge-coverage.mjs` does, and prints each statement, branch and function left uncovered in each file under 100%, by line, with each shard's count. `--file <path>` shows one file, covered or not.
+
 ## Investments
 
 `investments.mjs`, run with `npm run investments`, lists the items in `investments/`, most hits first, with each one's size and kind, and writes the same list to `investments/ranked.txt` (`investments/README.md`).
