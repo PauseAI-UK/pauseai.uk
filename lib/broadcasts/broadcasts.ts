@@ -20,6 +20,7 @@ import {
   BUTTON_PROBLEMS,
   buttonProblems,
   inOrder,
+  placeWords,
   type ButtonProblem,
   type TextButton,
   type TextHeader,
@@ -493,6 +494,7 @@ export type BroadcastScheduleProblem =
   | "field-twice"
   | "same-words"
   | "no-place"
+  | "place-words"
   | "no-picture"
   | ButtonProblem
   | "not-connected"
@@ -631,6 +633,8 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["field-twice", misplaced.some((one) => one.twice)],
     ["same-words", fresh.some((one) => one.sameWords)],
     ["no-place", versions.some((one) => one.header === "location" && !one.place)],
+    // A place with no name or address, which WhatsApp may not take, as its docs don't say (placeWords).
+    ["place-words", versions.some((one) => one.header === "location" && one.place && !placeWords(one.place))],
     ["no-picture", versions.some((one) => one.header === "image" && !one.pictureId)],
     ...BUTTON_PROBLEMS.map((problem): [BroadcastScheduleProblem, boolean] => [
       problem,

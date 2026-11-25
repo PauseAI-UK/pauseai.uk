@@ -68,6 +68,14 @@ export function placeFrom(value: unknown): TextPlace | null | undefined {
   return { name, address, latitude, longitude };
 }
 
+/**
+ * Whether a place has the words WhatsApp shows under its map, a name and an
+ * address: its docs don't say a send can leave either out, so neither may.
+ */
+export function placeWords(place: TextPlace): boolean {
+  return Boolean(place.name.trim() && place.address.trim());
+}
+
 /** A picture as saved, by its ID (text_pictures), or none (null); undefined for anything else. */
 export function pictureFrom(value: unknown): string | null | undefined {
   return value === null || (typeof value === "string" && /^[0-9a-f-]{36}$/.test(value)) ? value : undefined;

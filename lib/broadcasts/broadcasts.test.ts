@@ -644,6 +644,28 @@ describe("broadcastScheduleProblems", () => {
     expect(broadcastScheduleProblems({ ...good, header: "location" })).toEqual([]);
   });
 
+  it("wants a text's place to have a name and an address, and its version's", () => {
+    const text = { ...good, channel: "text" as const };
+    const place = { name: "Padella", address: "6 Southwark St", latitude: 51.5, longitude: -0.09 };
+    expect(broadcastScheduleProblems({ ...text, header: "location", place: { ...place, name: " " } })).toEqual([
+      "place-words",
+    ]);
+    expect(broadcastScheduleProblems({ ...text, header: "location", place: { ...place, address: "" } })).toEqual([
+      "place-words",
+    ]);
+    const version = {
+      body: WORDS,
+      approved: true,
+      sameWords: false,
+      header: "location" as const,
+      pictureId: null,
+      buttons: [],
+    };
+    expect(
+      broadcastScheduleProblems({ ...text, textVersion: { ...version, place: { ...place, address: "" } } }),
+    ).toEqual(["place-words"]);
+  });
+
   it("wants a text whose top is a picture to have one, but not an email", () => {
     const text = { ...good, channel: "text" as const };
     expect(broadcastScheduleProblems({ ...text, header: "image" })).toEqual(["no-picture"]);
