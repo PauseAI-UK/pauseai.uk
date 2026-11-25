@@ -1154,6 +1154,7 @@ that drives it or why nothing does.
   - a text with a map of where to meet, its place found from a short Google Maps link, taken off with its ×, and found by its name, renamed, with a reply button, the preview's map and button, and the template as it goes to WhatsApp;
   - a text with a picture at its top, added from a file, the preview's picture, and the template as it goes to WhatsApp, its example uploaded;
   - a pair of approved templates chosen again, marked in the list with who its version is for, both brought as the text and its version's tab, and one template alone after, the version gone;
+  - a text with a picture, a link button and a second version, scheduled, its page showing both versions under their headings, then sent, as its supporter gets it and on their copy's page;
   - a text with a second version for those registered for an event, chosen from the email's conditional parts menu by a search, a tab each, its own words, the preview's toggle choosing between them, two templates sent for approval, the version's rejected by WhatsApp's webhook, and sent again;
   - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;

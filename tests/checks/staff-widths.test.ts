@@ -30,6 +30,8 @@ const ALLOWED: Record<string, string> = {
   "Broadcasts.module.css .phoneBubble": "a phone's line of words",
   // A text's reply buttons under its bubble, as wide as it.
   "Broadcasts.module.css .replyButtons": "a phone's line of words",
+  // Under our bubble on a copy's page, as wide as the bubble.
+  "Broadcasts.module.css .withButtons > .replyButtons": "its bubble's width",
   // A text's place or picture, under the choice of its top.
   "TextTop.module.css .form": "a field",
   // A square of OpenStreetMap's map, its own size, as the map is drawn in pixels.

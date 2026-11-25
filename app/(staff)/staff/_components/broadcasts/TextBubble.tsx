@@ -224,7 +224,7 @@ export function BubbleTop({
 }
 
 /** A text's buttons, each its words, under its bubble, as WhatsApp shows them. */
-export function BubbleButtons({ buttons }: { buttons: string[] }) {
+function BubbleButtons({ buttons }: { buttons: string[] }) {
   if (!buttons.length) return null;
   return (
     <ul className={styles.replyButtons}>

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
@@ -900,6 +901,71 @@ test("A reply button tapped", async ({ page, request, flowDatabase }) => {
   await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
   await expect(page.getByText("I'm coming")).toBeVisible();
   await frame(page, "Their tap, as a reply");
+});
+
+/**
+ * Gives due text `id` what a text can have: the march's picture at its top and a link button, as its template went
+ * to WhatsApp; and a second version for those who registered for the London march, on an approved template of its
+ * own, with a reply button.
+ */
+function dressText(database: string, id: string) {
+  const picture = readFileSync(join(__dirname, "..", "fixtures", "pictures", "march-banner.png")).toString("hex");
+  const link = `'[{"text": "The new room", "url": "https://pauseai.uk/pausecon"}]'`;
+  runSql(
+    database,
+    `WITH picture AS (
+       INSERT INTO text_pictures (content, content_type, created_by) VALUES (decode('${picture}', 'hex'), 'image/png', 'jo@pauseai.uk')
+       RETURNING id
+     ), theirs AS (
+       INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category, footer, buttons)
+       VALUES ('PauseCon doors, for those who registered', '${WORDS}', 'approved', 'jo@pauseai.uk', now() - interval '1 day',
+         'flow_text_2', 'MARKETING', '${TEMPLATE_FOOTER}', '[{"text": "I''ll be there"}]')
+       RETURNING id
+     ), own AS (
+       UPDATE whatsapp_templates SET header = 'image', buttons = ${link}
+       WHERE id = (SELECT template_id FROM mailings WHERE id = ${id})
+     ), text AS (
+       UPDATE mailings SET header = 'image', picture_id = (SELECT id FROM picture), buttons = ${link} WHERE id = ${id}
+     )
+     INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, buttons)
+     SELECT ${id}, '${registeredFor("evt-fixture-past-london-march")}', jsonb_build_object('type', 'doc', 'content',
+         jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content',
+           jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Thank you for marching. PauseCon has moved to the Main Hall.'))))),
+       id, '[{"text": "I''ll be there"}]'
+     FROM theirs`,
+  );
+}
+
+test("A text with a picture, a link button and a second version, scheduled then sent", async ({
+  page,
+  request,
+  flowDatabase,
+}) => {
+  story(
+    "A text with the march's picture at its top and a link button, and a second version for those who went to the London march, both on approved templates, is scheduled.",
+  );
+  await importLuma(request, BASE);
+  await importCivicrm(request, BASE);
+  const id = addDueText(flowDatabase, "PauseCon doors", staffEmail());
+  dressText(flowDatabase, id);
+  runSql(flowDatabase, `UPDATE mailings SET due_at = now() + interval '1 day' WHERE id = ${id}`);
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  const text = page.getByRole("region", { name: copy.textTitle });
+  await text.scrollIntoViewIfNeeded();
+  await frame(page, "Scheduled: the version for London marchers, then everyone else's", { window: true });
+  story("Its time comes, and it goes: each supporter gets the version they meet, with its picture and button.");
+  runSql(flowDatabase, `UPDATE mailings SET due_at = now() - interval '1 hour' WHERE id = ${id}`);
+  await runSending(request);
+  const [copyId, number] = runSql(
+    flowDatabase,
+    `SELECT id || '|' || substr(address, 2) FROM broadcast_messages WHERE mailing_id = ${id}`,
+  )[0].split("|");
+  const sent = newestText(`+${number}`, (one) => "template" in one)!;
+  await textFrame(page, OUR_CHAT, shownText(flowDatabase, sent), "The text, as they get it");
+  await page.goto(`${BASE}/staff/broadcasts/${id}/${copyId}`);
+  await expect(page.getByRole("img").first()).toBeVisible();
+  await frame(page, "Their copy, with its picture and button");
 });
 
 test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {

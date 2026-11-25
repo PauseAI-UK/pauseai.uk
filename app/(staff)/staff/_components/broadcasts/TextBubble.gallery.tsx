@@ -1,7 +1,7 @@
 // TextBubble in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
 import { exampleLinkCard, examplePictureId, examplePlace, exampleWhatsAppWords } from "./BroadcastWriter.examples";
-import TextBubble, { BubbleButtons, BubbleTop, ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
+import TextBubble, { BubbleTop, ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 
 export const textBubbleGallery: Example[] = [
@@ -43,23 +43,6 @@ export const textBubbleGallery: Example[] = [
     ],
   },
   {
-    name: "BubbleButtons",
-    file: "app/(staff)/staff/_components/broadcasts/TextBubble.tsx",
-    variants: [
-      {
-        label: "A text's buttons, under a bubble of our own",
-        render: () => (
-          <ChatWall>
-            <ChatBubble who="PauseAI UK" when="07:18" ours>
-              <TextWords words={exampleWhatsAppWords} />
-            </ChatBubble>
-            <BubbleButtons buttons={["I'm coming", "Can't make it"]} />
-          </ChatWall>
-        ),
-      },
-    ],
-  },
-  {
     name: "TextWords",
     file: "app/(staff)/staff/_components/broadcasts/TextBubble.tsx",
     variants: [
@@ -68,6 +51,16 @@ export const textBubbleGallery: Example[] = [
         render: () => (
           <ChatWall>
             <ChatBubble who="PauseAI UK" when="07:18" ours>
+              <TextWords words={exampleWhatsAppWords} />
+            </ChatBubble>
+          </ChatWall>
+        ),
+      },
+      {
+        label: "With its buttons under it, as wide",
+        render: () => (
+          <ChatWall>
+            <ChatBubble who="PauseAI UK" when="07:18" ours buttons={["I'm coming", "Can't make it"]}>
               <TextWords words={exampleWhatsAppWords} />
             </ChatBubble>
           </ChatWall>

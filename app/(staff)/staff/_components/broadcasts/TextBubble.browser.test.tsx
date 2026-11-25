@@ -185,10 +185,10 @@ describe("ChatBubble", () => {
   });
 });
 
-describe("BubbleTop's and BubbleButtons' examples in the gallery", () => {
+describe("BubbleTop's examples, and a bubble's with buttons, in the gallery", () => {
   it("draws a map and a picture at a bubble's top, and buttons under one", async () => {
     const variants = textBubbleGallery
-      .filter((example) => ["BubbleTop", "BubbleButtons"].includes(example.name))
+      .filter((example) => ["BubbleTop", "TextWords"].includes(example.name))
       .flatMap((example) => example.variants);
     await render(
       <>
