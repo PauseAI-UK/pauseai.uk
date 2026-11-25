@@ -10,6 +10,7 @@ import { channelWriterGallery } from "@/app/(staff)/staff/_components/broadcasts
 import { broadcastWriterGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastWriter.gallery";
 import { textTopGallery } from "@/app/(staff)/staff/_components/broadcasts/TextTop.gallery";
 import { textButtonsGallery } from "@/app/(staff)/staff/_components/broadcasts/TextButtons.gallery";
+import { placeMapGallery } from "@/app/(staff)/staff/_components/broadcasts/PlaceMap.gallery";
 import { textVersionsGallery } from "@/app/(staff)/staff/_components/broadcasts/TextVersions.gallery";
 import { broadcastTimesGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastTimes.gallery";
 import { broadcastsOverviewGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastsOverview.gallery";
@@ -38,6 +39,7 @@ export const staffBroadcasts: Group = {
     ...broadcastWriterGallery,
     ...textTopGallery,
     ...textButtonsGallery,
+    ...placeMapGallery,
     ...textVersionsGallery,
     ...broadcastTimesGallery,
     ...draftWriterGallery,

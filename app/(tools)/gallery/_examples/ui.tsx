@@ -14,7 +14,7 @@ import Closing from "@/components/ui/Closing";
 import CopyLinkButton from "@/components/ui/CopyLinkButton";
 import FeatureCard from "@/components/ui/FeatureCard";
 import Foreword from "@/components/ui/Foreword";
-import IconButton, { type IconButtonLook } from "@/components/ui/IconButton";
+import IconButton, { CrossIcon, type IconButtonLook } from "@/components/ui/IconButton";
 import PageHero from "@/components/ui/PageHero";
 import { PhotoCardBody, PhotoCardImage, photoCardClass } from "@/components/ui/PhotoCard";
 import ProsePage, { ProseMeta } from "@/components/ui/ProsePage";
@@ -190,6 +190,27 @@ export const ui: Group = {
           </div>
         ),
       })),
+    },
+    {
+      name: "CrossIcon",
+      file: "components/ui/IconButton.tsx",
+      variants: [
+        {
+          label: "A drawn ×, centred in a round button whatever the font, small and large",
+          render: () => (
+            <div className="container">
+              <div style={{ display: "flex", gap: 12, padding: 12 }}>
+                <IconButton look="outline" size={22} aria-label="Close">
+                  <CrossIcon size={12} />
+                </IconButton>
+                <IconButton look="raised" size={44} aria-label="Close">
+                  <CrossIcon size={20} />
+                </IconButton>
+              </div>
+            </div>
+          ),
+        },
+      ],
     },
     {
       name: "CopyLinkButton",

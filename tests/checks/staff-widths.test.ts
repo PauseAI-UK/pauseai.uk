@@ -32,6 +32,8 @@ const ALLOWED: Record<string, string> = {
   "Broadcasts.module.css .replyButtons": "a phone's line of words",
   // A text's place or picture, under the choice of its top.
   "TextTop.module.css .form": "a field",
+  // A square of OpenStreetMap's map, its own size, as the map is drawn in pixels.
+  "PlaceMap.module.css .tile": "a map tile",
   // The login page: one card in the middle of the window, with no grid.
   "LoginCard.module.css .login": "the login page",
   "DevLogin.module.css .dev": "the login page",

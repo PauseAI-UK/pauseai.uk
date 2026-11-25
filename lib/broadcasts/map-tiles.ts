@@ -5,13 +5,13 @@
 // middle of whatever shows them.
 
 /** A tile's width and height, in pixels. */
-export const TILE_PIXELS = 256;
+const TILE_PIXELS = 256;
 
 /** The zoom a place's map is at: its streets and their names. */
-export const PLACE_ZOOM = 16;
+const PLACE_ZOOM = 16;
 
 /** The point on the map at `zoom`, in tiles from its top left, of a latitude and longitude. */
-export function tilePoint(latitude: number, longitude: number, zoom: number): { x: number; y: number } {
+function tilePoint(latitude: number, longitude: number, zoom: number): { x: number; y: number } {
   const tiles = 2 ** zoom;
   const radians = (latitude * Math.PI) / 180;
   return {

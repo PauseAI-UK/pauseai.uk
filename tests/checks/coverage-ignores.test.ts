@@ -13,6 +13,8 @@ const SKIP_DIRS = new Set([
   ".claude",
   ".git",
   ".next",
+  // A served branch's build (npm run serve).
+  ".next-serve",
   ".vitest",
   "node_modules",
   "coverage",

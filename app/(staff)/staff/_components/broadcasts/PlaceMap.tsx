@@ -10,7 +10,7 @@ import styles from "./PlaceMap.module.css";
 export const RealMaps = createContext(false);
 
 /** Where a place is on Google Maps, its pin on it, to check it's the right spot, as most phones open it there. */
-export const mapOf = (place: TextPlace) => `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
+const mapOf = (place: TextPlace) => `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
 
 /** OpenStreetMap's map of the streets round a place, still, as WhatsApp's is, with its credit, which its licence asks. */
 function StreetMap({ place }: { place: TextPlace }) {

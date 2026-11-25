@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { emailSettingsCopy as settingsCopy } from "@/lib/content/email-settings";
@@ -697,7 +698,10 @@ test("A text with a map of where to meet", async ({ page, request, flowDatabase 
   const name = page.getByLabel(copy.placeChooser.name, { exact: true });
   await expect(name).toHaveValue("All Souls' Place");
   await frame(page, "The place the link points at", { window: true });
-  story("Or they search for it by name. WhatsApp shows the name under the map, so they make it say where exactly.");
+  story(
+    "Or they search for it by name: they take that place off with its ×, and search. WhatsApp shows the name under the map, so they make it say where exactly.",
+  );
+  await page.getByRole("button", { name: copy.placeChooser.remove }).click();
   await find.fill("Parliament Square");
   await savedAfter(page, () => find.press("Enter"));
   await expect(name).toHaveValue("Parliament Square");
@@ -715,6 +719,45 @@ test("A text with a map of where to meet", async ({ page, request, flowDatabase 
   story(
     "Sent for approval, WhatsApp gets a template with a place at its top and the button. The place itself goes with each text, so it can change later.",
   );
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  await textFrame(
+    page,
+    OUR_CHAT,
+    templateSent(flowDatabase, template!),
+    "What went to WhatsApp for approval",
+    `Sent to WhatsApp for approval: ${template}`,
+  );
+});
+
+test("A text with a picture at its top", async ({ page, flowDatabase }) => {
+  story("Staff write new words for a text, and add a picture for its top, which WhatsApp shows over the words.");
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("The march is on Saturday. See you there!");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March banner"));
+  await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.picture }).click());
+  const add = page.getByRole("button", { name: copy.pictureChooser.choose });
+  await add.scrollIntoViewIfNeeded();
+  await frame(page, "A box to drop, paste or add a picture", { window: true });
+  story("They add the march's banner. The site keeps it, and it can change after approval, as each text sends it.");
+  await savedAfter(page, () =>
+    page
+      .locator('input[type=file][accept="image/jpeg,image/png"]')
+      .setInputFiles(join(__dirname, "..", "fixtures", "pictures", "march-banner.png")),
+  );
+  const shown = page.getByRole("img", { name: copy.pictureChooser.shown });
+  await expect(shown).toBeVisible();
+  await frame(page, "The picture chosen, with its × to take it off", { window: true });
+  story("The preview shows the picture over the words.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.scrollIntoViewIfNeeded();
+  await expect(preview.locator('img[src^="/api/text-pictures/"]')).toBeVisible();
+  await frame(page, "The preview, with the picture at its top", { window: true });
+  story("Sent for approval, WhatsApp gets the picture as the template's example, uploaded to the site's Meta app.");
   await preview.getByRole("button", { name: copy.submitTemplate }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
   const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");

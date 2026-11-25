@@ -1151,7 +1151,8 @@ that drives it or why nothing does.
   - a text whose first link is to Google Maps, warned of under the preview, then not once another link comes first;
   - a new template WhatsApp won't take, too long, with its reason in a red alert under the button;
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
-  - a text with a map of where to meet, its place found from a short Google Maps link and by its name, renamed, with a reply button, the preview's map and button, and the template as it goes to WhatsApp;
+  - a text with a map of where to meet, its place found from a short Google Maps link, taken off with its ×, and found by its name, renamed, with a reply button, the preview's map and button, and the template as it goes to WhatsApp;
+  - a text with a picture at its top, added from a file, the preview's picture, and the template as it goes to WhatsApp, its example uploaded;
   - a text with a second version for those registered for an event, chosen from the email's conditional parts menu by a search, a tab each, its own words, the preview's toggle choosing between them, two templates sent for approval, the version's rejected by WhatsApp's webhook, and sent again;
   - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
@@ -1302,6 +1303,7 @@ that drives it or why nothing does.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
 - `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, a reaction made and taken back, a photo, our answer delivered, read and failed, and Stop pressed. Its check of the callback URL is Vitest-tested.
 - `/api/text-pictures/[id]`: `broadcasts`: a text's picture, which the writer's preview shows and WhatsApp fetches as each text goes. Vitest-tested.
+- `/staff/map-tiles/[zoom]/[x]/[y]`: `broadcasts`: a square of OpenStreetMap's map for a text's place, fetched for staff. The storyboard draws a map instead, as it can't reach OpenStreetMap; the route is Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `supporters.spec.ts`), and the redelivery that changes nothing.
 - `/staff/api/google/start`, `/staff/api/google/callback`: `staff-login`: logging in with the fixture build's Google (`logInWithGoogle` in `staff-login.spec.ts`).
 - `/staff/api/google/handoff`: Not driven: only a deploy preview uses it, with a login the live site signed. Vitest-tested.

@@ -234,7 +234,7 @@ export type BroadcastWriterData = {
  * live site, and in a fixture build only when it asks for its map for real
  * (config.realServices), as the storyboard can't reach it.
  */
-export const realMaps = () => !config.fixtures || config.realServices.includes("map-tiles");
+const realMaps = () => !config.fixtures || config.realServices.includes("map-tiles");
 
 export type BroadcastPageData =
   | ({ kind: "draft"; draft: WrittenBroadcast } & BroadcastWriterData)
