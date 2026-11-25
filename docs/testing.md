@@ -297,6 +297,14 @@ npm run storyboard -- --plan   # which flows the review would run, and why, runn
 npm run test:report       # Playwright's own report, with the trace of a failed flow
 ```
 
+A trace has a flow's steps, but not where an error its page logged came
+from. With `STORYBOARD_NETWORK_LOG=1`, every flow writes a log to
+`test-results/storyboard-network/`: each page and fetch request, with the
+Server Action it calls and that action's answer whole, the console, and
+each uncaught exception with the stack where it was thrown, its async
+callers too (`logNetwork`, `tests/storyboard/fixtures.ts`). Run the one
+flow with it: `STORYBOARD_NETWORK_LOG=1 npm run test:storyboard -- -g "Our answer to a text fails"`.
+
 **CI's run** fails only on a flow's checks, never on how a page looks. CI
 runs its flows ("Which flows CI runs", below) in four parts at once, each
 a job of its own ("Storyboard (1 of 4)" and so on), and the Storyboard
