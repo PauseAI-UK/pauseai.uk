@@ -852,8 +852,8 @@ test("A text with a second version for some", async ({ page, request, flowDataba
   await frame(page, "Two versions, a tab each", { window: true });
   story("They change the words of the version for those who registered, who know about the march already.");
   const words = page.getByRole("textbox", { name: copy.templateWords });
-  await words.click();
-  await page.keyboard.press("ControlOrMeta+a");
+  // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.
+  await words.selectText();
   await savedAfter(page, () => page.keyboard.type("Thank you for registering. See you at noon on Saturday."));
   await frame(page, "Their own words", { window: true });
   story("The preview's toggle chooses whose copy it shows, as it does for an email's parts.");
@@ -908,8 +908,8 @@ test("A second version on an approved template", async ({ page, request, flowDat
   );
   await savedAfter(page, () => page.getByRole("button", { name: copy.editTemplate }).nth(1).click());
   const words = page.getByRole("textbox", { name: copy.templateWords });
-  await words.click();
-  await page.keyboard.press("ControlOrMeta+a");
+  // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.
+  await words.selectText();
   await savedAfter(page, () => page.keyboard.type("PauseCon has moved to the Main Hall. Your seat is saved."));
   await frame(page, "Its own words, one template to approve", { window: true });
   story("They choose the time. Schedule says it sends the version's words for approval too.");
