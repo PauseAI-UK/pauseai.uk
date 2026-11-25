@@ -20,7 +20,8 @@ const MANY = 4;
 /**
  * A text's buttons, under its words, a row each in a table: what kind it
  * is, a reply button, whose tap comes back as the person's reply, or a link
- * button, which opens a page; its words; a link's address; and Remove.
+ * button, which opens a page; its words; a link's address, a column only
+ * while there's a link; and Remove.
  * Under them, + Reply button and + Link button, till there are as many as
  * WhatsApp takes, and no more links than it takes; then what a reply does,
  * and what a computer does with many, or with both kinds. Their words and
@@ -50,7 +51,7 @@ export default function TextButtons({
             <tr>
               <th scope="col">{copy.kind}</th>
               <th scope="col">{copy.words}</th>
-              <th scope="col">{copy.address}</th>
+              {links > 0 && <th scope="col">{copy.address}</th>}
               {!fixed && <th scope="col" aria-label={copy.remove} />}
             </tr>
           </thead>
@@ -63,24 +64,27 @@ export default function TextButtons({
                   <td>
                     <TextInput
                       aria-label={copy.words}
+                      placeholder={copy.words}
                       value={button.text}
                       maxLength={MOST_BUTTON_CHARACTERS}
                       disabled={fixed}
                       onChange={(event) => set(i, { ...button, text: event.target.value })}
                     />
                   </td>
-                  <td>
-                    {link && (
-                      <TextInput
-                        aria-label={copy.address}
-                        type="url"
-                        placeholder="https://"
-                        value={button.url}
-                        disabled={fixed}
-                        onChange={(event) => set(i, { ...button, url: event.target.value })}
-                      />
-                    )}
-                  </td>
+                  {links > 0 && (
+                    <td>
+                      {link && (
+                        <TextInput
+                          aria-label={copy.address}
+                          type="url"
+                          placeholder="https://"
+                          value={button.url}
+                          disabled={fixed}
+                          onChange={(event) => set(i, { ...button, url: event.target.value })}
+                        />
+                      )}
+                    </td>
+                  )}
                   {!fixed && (
                     <td>
                       <Button

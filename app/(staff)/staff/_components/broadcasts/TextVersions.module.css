@@ -1,6 +1,7 @@
 /* A text's two versions: their tabs, how many templates at the right, then the open one's box. */
 .versions {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
@@ -16,6 +17,7 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   min-width: 0;
+  max-width: 100%;
 }
 
 .templates {

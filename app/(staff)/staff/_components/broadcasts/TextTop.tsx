@@ -130,8 +130,8 @@ function PlaceChooser({
 }
 
 /**
- * The picture at a text's top: once there is one, the picture, small; and
- * a box to drop one on, or choose one, in its place. One pasted anywhere in
+ * The picture at a text's top: once there is one, the picture, small, and
+ * beside it a box to drop one on, or choose one, in its place. One pasted anywhere in
  * the writer's Write card comes here too (BroadcastWriter). A picture can
  * change after approval, as each send gives it.
  */
@@ -161,14 +161,16 @@ function PictureChooser({
   };
   return (
     <div className={styles.form}>
-      {pictureId && <img className={styles.shown} src={pictureSource(pictureId)} alt={words.shown} />}
-      <DropArea
-        hint={pictureId ? words.dropAnother : words.drop}
-        choose={words.choose}
-        accept="image/jpeg,image/png"
-        pending={uploading}
-        onFiles={(files) => void upload(files)}
-      />
+      <div className={styles.pictureRow}>
+        {pictureId && <img className={styles.shown} src={pictureSource(pictureId)} alt={words.shown} />}
+        <DropArea
+          hint={pictureId ? words.dropAnother : words.drop}
+          choose={words.choose}
+          accept="image/jpeg,image/png"
+          pending={uploading}
+          onFiles={(files) => void upload(files)}
+        />
+      </div>
       {refusal && <p className={styles.refusal}>{words.refusals[refusal]}</p>}
       {pictureId && <Hint>{words.changeable}</Hint>}
     </div>
