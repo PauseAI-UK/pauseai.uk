@@ -46,12 +46,14 @@ function Pin() {
 
 /**
  * A place's map, as a text's header shows it: OpenStreetMap's streets round
- * it, where realMapsContext says, or else a drawing of some, with a pin at its
+ * it, where `real` says, or a page drawn on the server can't say by context,
+ * else where realMapsContext says, or else a drawing of some, with a pin at its
  * middle. Over it, a link to Google Maps at its pin, as most phones open a
  * place there.
  */
-export default function PlaceMap({ place }: { place: TextPlace }) {
-  const real = useContext(realMapsContext);
+export default function PlaceMap({ place, real: given }: { place: TextPlace; real?: boolean }) {
+  const inContext = useContext(realMapsContext);
+  const real = given ?? inContext;
   const words = broadcastsCopy.broadcastPages.placeChooser;
   return (
     <div className={styles.map}>

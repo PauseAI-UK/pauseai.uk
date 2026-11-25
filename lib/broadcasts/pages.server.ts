@@ -246,6 +246,8 @@ export type BroadcastPageData =
   | {
       kind: "written";
       written: WrittenBroadcast;
+      /** Whether a text's map is OpenStreetMap's, or a drawing (realMaps). */
+      realMaps: boolean;
       summary: BroadcastSummary;
       choices: SupporterChoices;
       /** What each part its words can be only for says, as its box shows it. */
@@ -400,6 +402,7 @@ export async function broadcastPageData(
   return {
     kind: "written",
     written,
+    realMaps: realMaps(),
     summary: { ...summary, to: found?.total ?? summary.to },
     choices,
     parts: Object.fromEntries(parts.map((part) => [part.id, part.label])),
@@ -496,6 +499,8 @@ export type MessageCopy = {
   topics: Topic[];
   /** A text's broadcast as written, for the version they got, its top and buttons; none for an email. */
   written: WrittenText | null;
+  /** Whether its map is OpenStreetMap's, or a drawing (realMaps). */
+  realMaps: boolean;
   /** The replies to it, oldest first. */
   replies: BroadcastReply[];
   /** Staff's answers to those replies, oldest first. */
@@ -509,7 +514,7 @@ export type BroadcastEvent = { at: Date; kind: string; details: Record<string, u
 
 /** One copy of a broadcast, by its broadcast's ID and its own; or undefined. */
 export async function messageCopy(broadcastId: number, copyId: number): Promise<MessageCopy | undefined> {
-  const [row] = await query<Omit<MessageCopy, "events" | "replies" | "answers" | "reactions" | "written">>(
+  const [row] = await query<Omit<MessageCopy, "events" | "replies" | "answers" | "reactions" | "written" | "realMaps">>(
     `SELECT c.id::int AS id, m.id::int AS "messageId", m.title, m.channel, m.subject, m.body,
        m.from_name AS "fromName", m.sent_from AS "sentFrom", m.send_by AS "sendBy", c.supporter_id::int AS "supporterId",
        c.merge_values ->> 'name' AS name, c.merge_values ->> 'place' AS place, c.address,
@@ -532,5 +537,14 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
     reactionsTo(copyId),
     row.channel === "text" ? getWrittenBroadcast(broadcastId).then((one) => one ?? null) : null,
   ]);
-  return { ...row, body: checkMailingDoc(row.body)!, events, replies, answers, reactions, written };
+  return {
+    ...row,
+    body: checkMailingDoc(row.body)!,
+    events,
+    replies,
+    answers,
+    reactions,
+    written,
+    realMaps: realMaps(),
+  };
 }

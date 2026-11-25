@@ -14,10 +14,13 @@ export default function WrittenText({
   written,
   labels,
   time,
+  realMaps,
 }: {
   written: Written;
   labels: Record<string, string>;
   time: string;
+  /** Whether a map is OpenStreetMap's, or a drawing. */
+  realMaps?: boolean;
 }) {
   const condition = written.textVersion?.condition;
   const bubble = (met: boolean) => {
@@ -30,6 +33,7 @@ export default function WrittenText({
         place={shown.place}
         picture={shown.picture}
         buttons={shown.buttons}
+        realMap={realMaps}
       />
     );
   };

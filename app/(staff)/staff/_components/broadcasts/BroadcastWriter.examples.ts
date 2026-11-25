@@ -332,6 +332,7 @@ export const exampleBroadcastSummary = summary;
 export const exampleBroadcastSent: Extract<BroadcastPageData, { kind: "written" }> = {
   kind: "written",
   written: { ...exampleBroadcastEmail, id: 5, title: summary.title, subject: summary.title, state: "sent" },
+  realMaps: false,
   summary,
   choices: exampleSupporterChoices,
   parts: Object.fromEntries(exampleParts.map((part) => [part.id, part.label])),
@@ -442,6 +443,7 @@ export const exampleMessageCopy: MessageCopy = {
   replies: [],
   answers: [],
   reactions: [],
+  realMaps: false,
   // Its broadcast as written: a map of where to meet, and a reply button.
   written: {
     ...exampleBroadcastText,

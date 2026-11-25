@@ -183,10 +183,10 @@ function LinkCardView({ card }: { card: LinkCard }) {
  * as the preview fetches no map; the place's own name and address are
  * under it.
  */
-function MapTop({ place }: { place: TextPlace }) {
+function MapTop({ place, realMap }: { place: TextPlace; realMap?: boolean }) {
   return (
     <div className={styles.mapTop}>
-      <PlaceMap place={place} />
+      <PlaceMap place={place} real={realMap} />
       <span className={styles.mapPlace}>
         <strong>{place.name}</strong>
         <span>{place.address}</span>
@@ -195,19 +195,21 @@ function MapTop({ place }: { place: TextPlace }) {
   );
 }
 
-/** A text's top: its picture, or its map, or else the card for its link, if it has one. */
+/** A text's top: its picture, or its map, OpenStreetMap's where `realMap` says (PlaceMap), or else its link's card. */
 export function BubbleTop({
   place,
   picture,
   card,
+  realMap,
 }: {
   place?: TextPlace | null;
   picture?: string | null;
   card?: LinkCard | null;
+  realMap?: boolean;
 }) {
   // eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent
   if (picture) return <img className={styles.pictureTop} src={picture} alt="" />;
-  if (place) return <MapTop place={place} />;
+  if (place) return <MapTop place={place} realMap={realMap} />;
   return card ? <LinkCardView card={card} /> : null;
 }
 
@@ -239,6 +241,7 @@ export default function TextBubble({
   buttons = [],
   footer,
   time,
+  realMap,
 }: {
   words: TextDoc;
   card?: LinkCard | null;
@@ -250,12 +253,14 @@ export default function TextBubble({
   buttons?: string[];
   footer: string;
   time: string;
+  /** Whether its map is OpenStreetMap's, for a page drawn on the server (PlaceMap); else as the writer says. */
+  realMap?: boolean;
 }) {
   return (
     <div className={styles.phone}>
       <ChatWall>
         <div className={`${styles.bubble} ${styles.phoneBubble}`}>
-          <BubbleTop place={place} picture={picture} card={card} />
+          <BubbleTop place={place} picture={picture} card={card} realMap={realMap} />
           {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
           <TextFold key={JSON.stringify(words.content)}>
             <Blocks blocks={words.content} />

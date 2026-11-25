@@ -77,7 +77,7 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
           receipt={one.sentAt ? receiptOf(one.events) : undefined}
           badge={theirReaction(one, null)}
         >
-          <BubbleTop place={shown?.place} picture={shown?.picture} />
+          <BubbleTop place={shown?.place} picture={shown?.picture} realMap={one.realMaps} />
           <TextWords words={letterFor(shown ? { type: "doc", content: shown.blocks } : one.body, merge)} />
           {/* Its footer, as they got it, where we know it. */}
           {one.footer && <span className={bubble.footer}>{one.footer}</span>}
