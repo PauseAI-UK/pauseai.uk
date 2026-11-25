@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import IconButton from "@/components/ui/IconButton";
+import IconButton, { CrossIcon } from "@/components/ui/IconButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
-import { Field, Hint } from "@/components/ui/Field";
+import { Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { TextHeader, TextPlace } from "@/lib/broadcasts/text-parts";
 import DropArea from "../ui/DropArea";
-import ExternalLink from "../ui/ExternalLink";
+import { MapDrawing } from "./TextBubble";
 import styles from "./TextTop.module.css";
 
 const copy = broadcastsCopy.broadcastPages;
@@ -34,10 +34,12 @@ const mapOf = (place: TextPlace) => `https://www.google.com/maps?q=${place.latit
 /**
  * The place a text's map shows: till one is chosen, a box for a Google Maps
  * link or words to search for, then the places found, to choose one. Once
- * one is chosen, its name and address, which WhatsApp shows under the map,
- * to change so they say where exactly; a link to check its pin on a map;
- * and Find another, for the box again. A place can change after approval,
- * as each send gives it.
+ * one is chosen, the place as WhatsApp shows it, a map with its name and
+ * address under it, and a × beside it, as a picture has, that takes it off
+ * for the box again. The map opens Google Maps at its pin, to check it's the
+ * right spot; the name and address are boxes that look like words, to
+ * change so they say where exactly. A place can change after approval, as
+ * each send gives it.
  */
 function PlaceChooser({
   place,
@@ -46,12 +48,11 @@ function PlaceChooser({
   disabled,
 }: {
   place: TextPlace | null;
-  onChange: (place: TextPlace) => void;
+  onChange: (place: TextPlace | null) => void;
   findPlaces: FindPlaces;
   disabled: boolean;
 }) {
   const words = copy.placeChooser;
-  const [searching, setSearching] = useState(!place);
   const [input, setInput] = useState("");
   const [found, setFound] = useState<TextPlace[] | null>(null);
   const [finding, setFinding] = useState(false);
@@ -59,7 +60,6 @@ function PlaceChooser({
     onChange(chosen);
     setFound(null);
     setInput("");
-    setSearching(false);
   };
   const find = async () => {
     setFinding(true);
@@ -69,27 +69,62 @@ function PlaceChooser({
     if (places.length === 1) choose(places[0]);
     else setFound(places);
   };
+  if (place) {
+    return (
+      <div className={styles.shownBox}>
+        <div className={styles.placeCard}>
+          <a href={mapOf(place)} target="_blank" rel="noreferrer" aria-label={words.checkMap} title={words.checkMap}>
+            <MapDrawing />
+          </a>
+          <input
+            className={styles.placeName}
+            aria-label={words.name}
+            value={place.name}
+            disabled={disabled}
+            onChange={(event) => onChange({ ...place, name: event.target.value })}
+          />
+          <input
+            className={styles.placeAddress}
+            aria-label={words.address}
+            value={place.address}
+            disabled={disabled}
+            onChange={(event) => onChange({ ...place, address: event.target.value })}
+          />
+        </div>
+        {!disabled && (
+          <IconButton
+            look="outline"
+            size={22}
+            className={styles.remove}
+            aria-label={words.remove}
+            title={words.remove}
+            onClick={() => onChange(null)}
+          >
+            <CrossIcon size={12} />
+          </IconButton>
+        )}
+      </div>
+    );
+  }
   return (
     <div className={styles.form}>
-      {searching && (
-        <div className={styles.findRow}>
-          <TextInput
-            aria-label={words.find}
-            placeholder={words.find}
-            value={input}
-            disabled={disabled}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" || !input.trim()) return;
-              event.preventDefault();
-              void find();
-            }}
-          />
-          <Button variant="primary" size="small" fit disabled={disabled || !input.trim()} pending={finding} onClick={find}>
-            {words.findButton}
-          </Button>
-        </div>
-      )}
+      <div className={styles.findRow}>
+        <TextInput
+          aria-label={words.find}
+          placeholder={words.find}
+          value={input}
+          disabled={disabled}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || !input.trim()) return;
+            event.preventDefault();
+            void find();
+          }}
+        />
+        <Button variant="primary" size="small" fit disabled={disabled || !input.trim()} pending={finding} onClick={find}>
+          {words.findButton}
+        </Button>
+      </div>
       {found && found.length === 0 && <Muted>{words.none}</Muted>}
       {found && found.length > 0 && (
         <ul className={styles.found} aria-label={words.found}>
@@ -101,34 +136,6 @@ function PlaceChooser({
             </li>
           ))}
         </ul>
-      )}
-      {place && (
-        <>
-          <div className={styles.names}>
-            <Field label={words.name}>
-              <TextInput
-                value={place.name}
-                disabled={disabled}
-                onChange={(event) => onChange({ ...place, name: event.target.value })}
-              />
-            </Field>
-            <Field label={words.address}>
-              <TextInput
-                value={place.address}
-                disabled={disabled}
-                onChange={(event) => onChange({ ...place, address: event.target.value })}
-              />
-            </Field>
-          </div>
-          <div className={styles.placeLinks}>
-            <ExternalLink href={mapOf(place)}>{words.checkMap}</ExternalLink>
-            {!searching && !disabled && (
-              <Button variant="ghost" size="small" fit onClick={() => setSearching(true)}>
-                {words.findAnother}
-              </Button>
-            )}
-          </div>
-        </>
       )}
     </div>
   );
@@ -180,7 +187,7 @@ function PictureChooser({
               title={words.remove}
               onClick={() => onChange(null)}
             >
-              ×
+              <CrossIcon size={12} />
             </IconButton>
           )}
         </div>

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import IconButton, { iconButtonClass } from "@/components/ui/IconButton";
+import IconButton, { CrossIcon, iconButtonClass } from "@/components/ui/IconButton";
 import { mailingsCopy } from "./copy";
 import styles from "./PartBox.module.css";
 
@@ -50,7 +50,7 @@ export default function PartBox({
           title={copy.forEveryone}
           onClick={onForEveryone}
         >
-          ×
+          <CrossIcon size={12} />
         </IconButton>
       )}
       <div className={styles.body}>{children}</div>
