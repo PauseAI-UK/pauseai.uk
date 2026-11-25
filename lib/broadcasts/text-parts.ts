@@ -70,7 +70,7 @@ export function pictureFrom(value: unknown): string | null | undefined {
  * Buttons as saved: each with words, and a link button its address, up to
  * WhatsApp's most; undefined for anything else. Words too long, or none,
  * and an address that isn't one, are kept, for the writer to say so
- * (buttonsFit).
+ * (buttonProblems).
  */
 export function buttonsFrom(value: unknown): TextButton[] | undefined {
   if (!Array.isArray(value) || value.length > MOST_BUTTONS) return undefined;
@@ -87,14 +87,34 @@ export function isLinkAddress(url: string): boolean {
   return /^https?:\/\/[^\s/]+\.[^\s]+$/.test(url.trim());
 }
 
+/** What can be wrong with a text's buttons, each its own problem for the writer to say. */
+export const BUTTON_PROBLEMS = [
+  "button-no-words",
+  "button-too-long",
+  "link-no-address",
+  "link-not-address",
+  "too-many-links",
+  "too-many-buttons",
+] as const;
+export type ButtonProblem = (typeof BUTTON_PROBLEMS)[number];
+
 /**
- * Whether a text's buttons can go to WhatsApp: each has words, none too
- * many; each link button an address; and no more link buttons than it takes.
+ * What stops a text's buttons going to WhatsApp, none if nothing does: a
+ * button with no words, or too many; a link button with no address, or one
+ * that isn't a web page's; more link buttons, or buttons, than it takes.
  */
-export function buttonsFit(buttons: TextButton[]): boolean {
-  const worded = buttons.every((button) => button.text.trim() && button.text.trim().length <= MOST_BUTTON_CHARACTERS);
-  const links = buttons.filter((button) => button.url !== undefined);
-  return worded && links.every((button) => isLinkAddress(button.url!)) && links.length <= MOST_LINK_BUTTONS;
+export function buttonProblems(buttons: TextButton[]): ButtonProblem[] {
+  const words = buttons.map((button) => button.text.trim());
+  const addresses = buttons.flatMap((button) => (button.url === undefined ? [] : [button.url.trim()]));
+  const checks: [ButtonProblem, boolean][] = [
+    ["button-no-words", words.some((one) => !one)],
+    ["button-too-long", words.some((one) => one.length > MOST_BUTTON_CHARACTERS)],
+    ["link-no-address", addresses.some((one) => !one)],
+    ["link-not-address", addresses.some((one) => one && !isLinkAddress(one))],
+    ["too-many-links", addresses.length > MOST_LINK_BUTTONS],
+    ["too-many-buttons", buttons.length > MOST_BUTTONS],
+  ];
+  return checks.filter(([, wrong]) => wrong).map(([problem]) => problem);
 }
 
 /**

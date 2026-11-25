@@ -17,8 +17,10 @@ import { anyAndNone, valuesOf, type ParamValue } from "@/lib/list-params";
 import type { SortColumns } from "@/lib/staff-sort";
 import { broadcastsCopy } from "./copy";
 import {
-  buttonsFit,
+  BUTTON_PROBLEMS,
+  buttonProblems,
   inOrder,
+  type ButtonProblem,
   type TextButton,
   type TextHeader,
   type TextPlace,
@@ -492,7 +494,7 @@ export type BroadcastScheduleProblem =
   | "same-words"
   | "no-place"
   | "no-picture"
-  | "button-words"
+  | ButtonProblem
   | "not-connected"
   | "too-slow"
   | "no-time"
@@ -630,7 +632,10 @@ export function broadcastScheduleProblems(broadcast: SchedulingBroadcast): Broad
     ["same-words", fresh.some((one) => one.sameWords)],
     ["no-place", versions.some((one) => one.header === "location" && !one.place)],
     ["no-picture", versions.some((one) => one.header === "image" && !one.pictureId)],
-    ["button-words", versions.some((one) => !buttonsFit(one.buttons))],
+    ...BUTTON_PROBLEMS.map((problem): [BroadcastScheduleProblem, boolean] => [
+      problem,
+      versions.some((one) => buttonProblems(one.buttons).includes(problem)),
+    ]),
     ["not-connected", broadcast.byGmail && !broadcast.connected],
     // At a day's limit of emails or texts, it must all go before it would stop: each day it has, part days whole.
     [

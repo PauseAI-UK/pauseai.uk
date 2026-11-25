@@ -304,6 +304,11 @@
   gap: var(--space-3);
 }
 
+/* A version's, in its box, which has no padding under it of its own. */
+.versionWords {
+  padding-bottom: var(--space-3);
+}
+
 /* Beside a chosen template's words, which have no editor to have them beside it: a second version for some. */
 .textParts {
   display: grid;

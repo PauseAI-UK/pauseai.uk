@@ -775,10 +775,9 @@ export default function BroadcastWriter({
       else change({ header: "image", pictureId: kept.pictureId });
     });
   };
-  // Beside the words, where an email has its parts: a second version for some, or that a text has one at most.
-  const textParts = textVersion ? (
-    <Muted>{copy.textVersions.oneOnly}</Muted>
-  ) : (
+  // Beside the words, where an email has its parts: a second version for some, and nothing once it has one, as a
+  // text has one at most.
+  const textParts = !textVersion && (
     <ConditionMenu not={false} conditions={data.conditions} recipients={data.count} choose={addVersion} />
   );
   const problems = broadcastScheduleProblems({
@@ -923,7 +922,7 @@ export default function BroadcastWriter({
       const version = textVersion!;
       const rejected = draft.textVersion?.template?.status === "rejected" ? draft.textVersion.template : null;
       return (
-        <div className={own.textWords}>
+        <div className={`${own.textWords} ${own.versionWords}`}>
           {/* WhatsApp rejected its words: why, till they're sent again. */}
           {rejected && version.templateId === rejected.id && (
             <Strip tone="red">{copy.rejected(rejectionWords(rejected.rejectedReason))}</Strip>

@@ -1342,9 +1342,9 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await expect.element(tab(292)).toHaveAttribute("aria-selected", "false");
     await expect.element(page.getByText(editing.onlyForLabel(wrote))).toBeVisible();
     await expect.element(page.getByText(copy.textVersions.templates(1))).toBeVisible();
-    // A text has one at most.
-    await expect.element(page.getByText(copy.textVersions.oneOnly)).toBeVisible();
+    // A text has one at most, so nothing offers another, nor heads the side.
     expect(button(editing.addOnlyFor).query()).toBeNull();
+    expect(page.getByText(editing.partsHeading).query()).toBeNull();
     await saved(actions, { textVersion: expect.objectContaining({ condition: WROTE, templateId: null }) });
     await expect.element(button(copy.submitTemplate)).toBeVisible();
     // Its own words: two templates now, both sent for approval.

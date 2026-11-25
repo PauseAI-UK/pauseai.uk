@@ -209,7 +209,7 @@ describe("TextTop's picture", () => {
     expect(page.getByText(copy.textTop.linkPreviewNote).query()).toBeNull();
   });
 
-  it("shows the picture chosen, small, over a box to drop another on, which can change after approval", async () => {
+  it("shows the picture chosen, small, with a × to take it off and no box, and says it can change after approval", async () => {
     await renderTop({ header: "image", pictureId: examplePictureId });
     await expect.element(page.getByRole("img", { name: pictures.shown })).toHaveAttribute("src", examplePictureId);
     // A kept picture is served by the site; an example's, given whole, is its own.
@@ -217,8 +217,21 @@ describe("TextTop's picture", () => {
       "/api/text-pictures/00000000-0000-4000-8000-000000000001",
     );
     expect(pictureSource(examplePictureId)).toBe(examplePictureId);
-    await expect.element(page.getByText(pictures.dropAnother)).toBeVisible();
+    await expect.element(page.getByRole("button", { name: pictures.remove })).toBeVisible();
+    expect(choosePicture().query()).toBeNull();
     await expect.element(page.getByText(pictures.changeable)).toBeVisible();
+  });
+
+  it("takes the picture off with its ×", async () => {
+    const { onChange } = await renderTop({ header: "image", pictureId: examplePictureId });
+    await page.getByRole("button", { name: pictures.remove }).click();
+    expect(onChange).toHaveBeenCalledWith({ pictureId: null });
+  });
+
+  it("has no × while it's disabled", async () => {
+    await renderTop({ header: "image", pictureId: examplePictureId, disabled: true });
+    await expect.element(page.getByRole("img", { name: pictures.shown })).toBeVisible();
+    expect(page.getByRole("button", { name: pictures.remove }).query()).toBeNull();
   });
 
   it("uploads a picture chosen, pending till it's kept, and takes it", async () => {
@@ -285,10 +298,16 @@ describe("TextTop's picture", () => {
   });
 
   it("keeps a chosen template's picture top, but not its picture, which can still change", async () => {
-    const { onChange } = await renderTop({ header: "image", pictureId: examplePictureId, fixed: true });
+    const { onChange } = await renderTop({ header: "image", pictureId: null, fixed: true });
     await expect.element(kind(copy.textTop.picture)).toBeDisabled();
     chooseFiles(pictureFile());
     await vi.waitFor(() => expect(onChange).toHaveBeenCalledWith({ pictureId: examplePictureId }));
+  });
+
+  it("lets a chosen template's picture come off", async () => {
+    const { onChange } = await renderTop({ header: "image", pictureId: examplePictureId, fixed: true });
+    await page.getByRole("button", { name: pictures.remove }).click();
+    expect(onChange).toHaveBeenCalledWith({ pictureId: null });
   });
 });
 

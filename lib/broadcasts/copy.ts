@@ -85,8 +85,8 @@ export const broadcastsCopy = {
     textTop: {
       label: "Above the text",
       linkPreview: "⁂ Link preview",
-      picture: "⁂ Picture",
-      place: "⁂ Place",
+      picture: "Picture",
+      place: "Place",
       linkPreviewNote: "⁂ From the first link in the words, if they have one.",
     },
     // Choosing a text's place: a box for a Google Maps link or words to search for, its button, the places it
@@ -107,7 +107,7 @@ export const broadcastsCopy = {
     pictureChooser: {
       shown: "⁂ The picture at the top of the text",
       drop: "⁂ Drag a picture here, or paste one",
-      dropAnother: "⁂ Drag another picture here, or paste one, to change it",
+      remove: "⁂ Take the picture off",
       choose: "⁂ Choose a picture",
       refusals: {
         "not-picture": "⁂ WhatsApp takes a JPEG or PNG picture. Choose one of those.",
@@ -118,16 +118,15 @@ export const broadcastsCopy = {
     // A text's buttons, under its words: their heading; each button's kind, a reply or a link, its words, a link's
     // address, and its Remove; adding one; what a reply does; and what a computer does with many, or both kinds.
     replyButtons: {
-      heading: "⁂ Buttons",
-      kind: "⁂ Kind",
-      reply: "⁂ Reply",
-      link: "⁂ Link",
-      words: "⁂ On the button",
-      address: "⁂ Opens",
-      remove: "⁂ Remove",
-      addReply: "⁂ + Reply button",
-      addLink: "⁂ + Link button",
-      tapNote: "⁂ A reply button's tap shows on the copy's page as their reply.",
+      heading: "Buttons",
+      reply: "Reply",
+      link: "Link",
+      words: "On the button",
+      address: "https://...",
+      remove: "Remove",
+      addReply: "+ Reply button",
+      addLink: "+ Link button",
+      tapNote: "A reply button's tap shows on the copy's page as their reply.",
       manyNote:
         "⁂ With 4 or more buttons, or reply and link buttons together, WhatsApp on a computer tells people to open the text on their phone.",
     },
@@ -135,7 +134,6 @@ export const broadcastsCopy = {
     // only one condition.
     textVersions: {
       templates: (n: number) => `⁂ Goes to WhatsApp as ${n} template${n === 1 ? "" : "s"}`,
-      oneOnly: "⁂ One per text: each version is a template WhatsApp approves.",
       submit: (n: number) => (n === 1 ? "⁂ Send for approval" : `⁂ Send ${n} templates for approval`),
     },
     // A second version's template, as it's named for its list: the text's name, then who it's for.
@@ -259,8 +257,12 @@ export const broadcastsCopy = {
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
       "no-place": "⁂ Choose the place its map shows.",
-      "button-words":
-        "⁂ Give each button words, 25 characters at most, and each link button an address. A text can have two link buttons.",
+      "button-no-words": "⁂ Give each button its words.",
+      "button-too-long": "⁂ Shorten the words on a button to 25 characters or fewer.",
+      "link-no-address": "⁂ Give each link button the address it opens.",
+      "link-not-address": "⁂ A link button's address must be a web page's, starting https://.",
+      "too-many-links": "⁂ A text can have two link buttons at most.",
+      "too-many-buttons": "⁂ A text can have ten buttons at most.",
       "no-picture": "⁂ Add the picture for its top.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": "That's too many to send before it stops trying. Send it to fewer people, or keep trying for longer.",

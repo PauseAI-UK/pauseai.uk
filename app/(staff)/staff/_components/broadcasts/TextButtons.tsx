@@ -13,10 +13,11 @@ const copy = broadcastsCopy.broadcastPages.replyButtons;
 const MANY = 4;
 
 /**
- * A text's buttons, under its words, a row each in a table: what kind it
- * is, a reply button, whose tap comes back as the person's reply, or a link
- * button, which opens a page; its words; a link's address, a column only
- * while there's a link; and Remove.
+ * A text's buttons, under its words, a row each in a table with no column
+ * headings, each box saying what goes in it: what kind it is, a reply
+ * button, whose tap comes back as the person's reply, or a link button,
+ * which opens a page; its words; a link's address, a column only while
+ * there's a link; and Remove.
  * Under them, + Reply button and + Link button, till there are as many as
  * WhatsApp takes, and no more links than it takes; then what a reply does,
  * and what a computer does with many, or with both kinds. Their words and
@@ -42,14 +43,6 @@ export default function TextButtons({
       {buttons.length > 0 && (
         <table className={styles.table}>
           <caption className={styles.heading}>{copy.heading}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{copy.kind}</th>
-              <th scope="col">{copy.words}</th>
-              {links > 0 && <th scope="col">{copy.address}</th>}
-              {!fixed && <th scope="col" aria-label={copy.remove} />}
-            </tr>
-          </thead>
           <tbody>
             {buttons.map((button, i) => {
               const link = button.url !== undefined;
@@ -72,7 +65,7 @@ export default function TextButtons({
                         <TextInput
                           aria-label={copy.address}
                           type="url"
-                          placeholder="https://"
+                          placeholder={copy.address}
                           value={button.url}
                           disabled={fixed}
                           onChange={(event) => set(i, { ...button, url: event.target.value })}
