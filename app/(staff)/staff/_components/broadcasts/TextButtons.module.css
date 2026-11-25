@@ -71,11 +71,12 @@
     padding: 0;
   }
 
-  .table td:not(:first-child, :last-child) {
+  .table td:not(:first-child) {
     grid-column: 1 / -1;
   }
 
-  .table td:last-child {
+  /* Remove, beside the kind. */
+  .table td:has(button) {
     grid-row: 1;
     grid-column: 2;
   }
