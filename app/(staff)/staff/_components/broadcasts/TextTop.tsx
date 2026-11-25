@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/Button";
 import IconButton, { CrossIcon } from "@/components/ui/IconButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
@@ -9,6 +9,7 @@ import { Muted } from "@/components/ui/Text";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { TextHeader, TextPlace } from "@/lib/broadcasts/text-parts";
 import DropArea from "../ui/DropArea";
+import { menuItemClass, menuItemsClass, menuWideClass } from "../ui/Menu";
 import PlaceMap from "./PlaceMap";
 import styles from "./TextTop.module.css";
 
@@ -71,7 +72,8 @@ function PlaceWords({
 
 /**
  * The place a text's map shows: till one is chosen, a box for a Google Maps
- * link or words to search for, then the places found, to choose one. Once
+ * link or words to search for, then the places found, to choose one, in a
+ * menu's box that hangs under it, as a Menu's does, and closes as one does. Once
  * one is chosen, the place as WhatsApp shows it, a map with its name and
  * address under it, and a × beside it, as a picture has, that takes it off
  * for the box again. The map opens Google Maps at its pin, to check it's the
@@ -91,6 +93,8 @@ function PlaceChooser({
   disabled: boolean;
 }) {
   const words = copy.placeChooser;
+  const anchor = `--places-${useId().replace(/:/g, "")}`;
+  const menu = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [found, setFound] = useState<TextPlace[] | null>(null);
   const [finding, setFinding] = useState(false);
@@ -99,6 +103,10 @@ function PlaceChooser({
     setFound(null);
     setInput("");
   };
+  // The places found open their menu once they're on the page.
+  useLayoutEffect(() => {
+    if (found?.length) menu.current!.showPopover();
+  }, [found]);
   const find = async () => {
     setFinding(true);
     const places = await findPlaces(input.trim());
@@ -148,6 +156,7 @@ function PlaceChooser({
         <TextInput
           aria-label={words.find}
           placeholder={words.find}
+          style={{ anchorName: anchor } as CSSProperties}
           value={input}
           disabled={disabled}
           onChange={(event) => setInput(event.target.value)}
@@ -163,15 +172,26 @@ function PlaceChooser({
       </div>
       {found && found.length === 0 && <Muted>{words.none}</Muted>}
       {found && found.length > 0 && (
-        <ul className={styles.found} aria-label={words.found}>
-          {found.map((one) => (
-            <li key={`${one.latitude},${one.longitude},${one.name}`}>
-              <button type="button" onClick={() => choose(one)}>
-                <strong>{one.name}</strong> <span>{one.address}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div
+          ref={menu}
+          popover="auto"
+          className={menuWideClass}
+          style={{ positionAnchor: anchor } as CSSProperties}
+          onToggle={(event) => {
+            if (event.newState === "closed") setFound(null);
+          }}
+        >
+          <ul className={menuItemsClass} aria-label={words.found}>
+            {found.map((one) => (
+              <li key={`${one.latitude},${one.longitude},${one.name}`}>
+                <button type="button" className={`${menuItemClass} ${styles.foundPlace}`} onClick={() => choose(one)}>
+                  <strong>{one.name}</strong>
+                  <span>{one.address}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

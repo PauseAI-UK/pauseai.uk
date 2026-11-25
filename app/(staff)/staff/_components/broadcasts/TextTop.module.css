@@ -30,31 +30,13 @@
   flex: 1 1 16rem;
 }
 
-.found {
+/* A place found, in the menu: its name, and its address under it in grey, each wrapping. */
+.foundPlace {
   display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  white-space: normal;
 }
 
-.found button {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.found button:hover,
-.found button:focus-visible {
-  border-color: var(--accent);
-}
-
-.found span {
+.foundPlace span {
   color: var(--text-secondary);
 }
 
