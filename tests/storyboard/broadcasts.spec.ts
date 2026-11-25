@@ -911,6 +911,8 @@ test("A reply button tapped", async ({ page, request, flowDatabase }) => {
 function dressText(database: string, id: string) {
   const picture = readFileSync(join(__dirname, "..", "fixtures", "pictures", "march-banner.png")).toString("hex");
   const link = `'[{"text": "The new room", "url": "https://pauseai.uk/pausecon"}]'`;
+  const theirWords = `jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph',
+    'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Thank you for marching. PauseCon has moved to the Main Hall.')))))`;
   runSql(
     database,
     `WITH picture AS (
@@ -918,7 +920,7 @@ function dressText(database: string, id: string) {
        RETURNING id
      ), theirs AS (
        INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category, footer, buttons)
-       VALUES ('PauseCon doors, for those who registered', '${WORDS}', 'approved', 'jo@pauseai.uk', now() - interval '1 day',
+       VALUES ('PauseCon doors, for those who registered', ${theirWords}, 'approved', 'jo@pauseai.uk', now() - interval '1 day',
          'flow_text_2', 'MARKETING', '${TEMPLATE_FOOTER}', '[{"text": "I''ll be there"}]')
        RETURNING id
      ), own AS (
@@ -928,10 +930,7 @@ function dressText(database: string, id: string) {
        UPDATE mailings SET header = 'image', picture_id = (SELECT id FROM picture), buttons = ${link} WHERE id = ${id}
      )
      INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, buttons)
-     SELECT ${id}, '${registeredFor("evt-fixture-past-london-march")}', jsonb_build_object('type', 'doc', 'content',
-         jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content',
-           jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Thank you for marching. PauseCon has moved to the Main Hall.'))))),
-       id, '[{"text": "I''ll be there"}]'
+     SELECT ${id}, '${registeredFor("evt-fixture-past-london-march")}', ${theirWords}, id, '[{"text": "I''ll be there"}]'
      FROM theirs`,
   );
 }
@@ -954,7 +953,9 @@ test("A text with a picture, a link button and a second version, scheduled then 
   const text = page.getByRole("region", { name: copy.textTitle });
   await text.scrollIntoViewIfNeeded();
   await frame(page, "Scheduled: the version for London marchers, then everyone else's", { window: true });
-  story("Its time comes, and it goes: each supporter gets the version they meet, with its picture and button.");
+  story(
+    "Its time comes, and it goes. Jane registered for the London march, so she gets that version, with its button.",
+  );
   runSql(flowDatabase, `UPDATE mailings SET due_at = now() - interval '1 hour' WHERE id = ${id}`);
   await runSending(request);
   const [copyId, number] = runSql(
@@ -964,8 +965,8 @@ test("A text with a picture, a link button and a second version, scheduled then 
   const sent = newestText(`+${number}`, (one) => "template" in one)!;
   await textFrame(page, OUR_CHAT, shownText(flowDatabase, sent), "The text, as they get it");
   await page.goto(`${BASE}/staff/broadcasts/${id}/${copyId}`);
-  await expect(page.getByRole("img").first()).toBeVisible();
-  await frame(page, "Their copy, with its picture and button");
+  await expect(page.getByText(/Thank you for marching/)).toBeVisible();
+  await frame(page, "Her copy: the version for London marchers, its button under it");
 });
 
 test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
