@@ -221,8 +221,7 @@ export const broadcastsCopy = {
     submitRefused: {
       "no-words": "The template is empty, so it wasn't sent for approval.",
       "not-ready": "Something has changed under my feet. Reload the page to see what needs fixing.",
-      "no-app":
-        "⁂ The site isn't set up to send a picture to WhatsApp for approval, so this wasn't sent. Tell a developer.",
+      "no-app": "The site isn't set up to send a picture to WhatsApp, so the template wasn't sent for approval.",
       already: "This template is already with WhatsApp. Reload the page to see it.",
       "not-text": "This broadcast is an email, so it has no template to approve.",
       "not-draft": "This text isn't a draft any more. Reload the page to see what it is now.",
@@ -257,7 +256,7 @@ export const broadcastsCopy = {
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
       "versions-same-words":
-        "⁂ Both versions have the same words, which WhatsApp won't approve twice. Change the words of one.",
+        "Both template variants have the same text, which WhatsApp won't approve twice. Change the copy in one of them.",
       "no-place": "Choose where the map header shows.",
       "place-words": "Give the map header's place a name and an address.",
       "button-no-words": "Each button must have text.",
@@ -708,7 +707,7 @@ export const broadcastProblems = defineProblems("broadcasts", {
   // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
   templateNotSent: (p: { template: SafeText }) => `WhatsApp didn't take template ${p.template} for approval`,
   // A text with a picture couldn't go for approval, as the Meta app's ID, which its picture is uploaded through, isn't set.
-  noMetaApp: "⁂ A text with a picture couldn't be sent to WhatsApp for approval, as WHATSAPP_APP_ID isn't set",
+  noMetaApp: "A template with a picture couldn't be sent to WhatsApp for approval, as WHATSAPP_APP_ID isn't set",
   templateNotDeleted: (p: { template: SafeText }) =>
     `WhatsApp didn't delete template ${p.template}, which was withdrawn here`,
   // An approved template staff deleted, which WhatsApp then wouldn't: it's kept, as it was.

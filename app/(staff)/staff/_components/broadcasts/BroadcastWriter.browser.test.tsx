@@ -1662,6 +1662,16 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     expect(page.getByRole("button", { name: copy.withdrawTemplate }).elements()).toHaveLength(1);
   });
 
+  it("offers no × on either tab while WhatsApp is reviewing the text's own words, though the version's are approved", async () => {
+    const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
+    await renderWriter({ draft: { ...newWords, template, textVersion: version("approved") } });
+    await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
+    expect(button(editing.forEveryone).query()).toBeNull();
+    await tab(292).click();
+    await expect.element(tab(292)).toHaveAttribute("aria-selected", "true");
+    expect(button(editing.forEveryone).query()).toBeNull();
+  });
+
   it("previews an approved version as a template, to test, and copes with a condition it has no words for", async () => {
     await renderWriter({ draft: { ...onTemplate, textVersion: version("approved", "gone:yes") } });
     await expect.element(page.getByRole("tab", { name: "gone:yes · 0" })).toBeVisible();

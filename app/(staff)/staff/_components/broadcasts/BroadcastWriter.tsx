@@ -1411,7 +1411,9 @@ export default function BroadcastWriter({
                       open={side}
                       onOpen={setSide}
                       templates={toSubmit}
-                      onForEveryone={stands.only.waiting ? undefined : keepOpen}
+                      // Not while WhatsApp is reviewing either version's words, which making one the whole text
+                      // would change.
+                      onForEveryone={reviewing ? undefined : keepOpen}
                     >
                       {versionParts(side)}
                     </TextVersions>
