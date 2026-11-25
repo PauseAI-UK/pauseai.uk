@@ -11,7 +11,7 @@ const EMBED_URL = `${EMBED_ORIGIN}/embed/onboarding-form/?country=United+Kingdom
 // The form's first step at desktop width, as the embed reports it (checked
 // October 2026). Narrower screens need more; .pristine in
 // OnboardingFormEmbed.module.css reserves each width's height until the reader uses the form,
-// so the page doesn't grow under a deep link like /#staff mid-scroll. If the
+// so what's below it doesn't move as it loads. If the
 // form's first step changes height, update both.
 const DEFAULT_HEIGHT = 1483;
 const SETTLE_DELAY_MS = 400;

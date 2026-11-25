@@ -11,7 +11,6 @@ import PeopleCarousel from "@/app/(site)/_components/PeopleCarousel";
 import PeopleSection from "@/app/(site)/_components/PeopleSection";
 import PressMarquee, { NewsRow } from "@/app/(site)/_components/PressMarquee";
 import ShopBanner from "@/app/(site)/_components/ShopBanner";
-import StaffSection from "@/app/(site)/_components/StaffSection";
 import { people } from "@/lib/content/people";
 import { newsRow1, newsRow2 } from "@/lib/content/press-coverage";
 import type { LumaEvent } from "@/lib/site-events";
@@ -157,11 +156,6 @@ export const home: Group = {
       name: "GetInvolved",
       file: "app/(site)/_components/GetInvolved.tsx",
       variants: [{ label: "Ways to get involved", render: () => <GetInvolved /> }],
-    },
-    {
-      name: "StaffSection",
-      file: "app/(site)/_components/StaffSection.tsx",
-      variants: [{ label: "The staff, and a link to the jobs", render: () => <StaffSection /> }],
     },
   ],
 };

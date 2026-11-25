@@ -30,7 +30,7 @@ function sourceFiles(dir: string): string[] {
  * the url('/pdfs/y.pdf') inside a style value.
  *
  * Quote-delimited rather than whitespace-delimited, which matters three ways:
- * several real filenames contain spaces ("Joseph-Miller (UK Director).jpg"),
+ * several real filenames contain spaces ("PauseAI Oxford.png"),
  * prose in comments mentioning a path is not a reference, and `@/data/x.json`
  * is a build-time import from the repo root, not something served from public/.
  */

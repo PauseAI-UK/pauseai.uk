@@ -200,21 +200,21 @@ test.describe("in-page scrolling", () => {
 
   test("A link far down the home page", async ({ page }) => {
     story(
-      "A link to Meet the organisers, far down the home page, lands there. It stays put while the map, the photos and the sign-up form above it finish loading.",
+      "A link to Join PauseAI UK, far down the home page, lands there. It stays put while the map and the photos above it finish loading.",
     );
-    // #staff sits below the local groups map, the people carousel and the
-    // onboarding embed, each of which could change height after load.
-    // Nothing re-scrolls afterwards, so any late shift shows up as drift.
-    await gotoSettled(page, "/#staff");
-    await expectClearOfNav(page, "staff");
+    // #join sits below the local groups map and the people carousel, each of
+    // which could change height after load. Nothing re-scrolls afterwards, so
+    // any late shift shows up as drift.
+    await gotoSettled(page, "/#join");
+    await expectClearOfNav(page, "join");
 
-    // Everything the page loads is in (the embed's height, the images), then
-    // the target must not have moved.
-    const settled = await targetOffset(page, "staff");
+    // Everything the page loads is in (the images, the embed), then the
+    // target must not have moved.
+    const settled = await targetOffset(page, "join");
     await page.waitForLoadState("networkidle");
-    await layoutSettled(page, "#staff");
-    expect(Math.abs((await targetOffset(page, "staff")) - settled)).toBeLessThan(2);
-    await frame(page, "Meet the organisers, on the home page");
+    await layoutSettled(page, "#join");
+    expect(Math.abs((await targetOffset(page, "join")) - settled)).toBeLessThan(2);
+    await frame(page, "Join PauseAI UK, on the home page");
   });
 
   test("Jumping to part of another page", async ({ page }) => {
@@ -296,7 +296,7 @@ test.describe("onboarding embed", () => {
     // toolbar resizing the viewport) also shrinks it, and mustn't yank the
     // page down to the form unprompted.
     await gotoSettled(page);
-    await page.evaluate(() => window.scrollTo(0, document.getElementById("staff")!.offsetTop));
+    await page.evaluate(() => window.scrollTo(0, document.getElementById("get-involved")!.offsetTop));
     const before = await scrollSettled(page);
 
     // Stand in for the embed's own height reports. The origin check means a

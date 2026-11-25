@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { board } from "./board";
 import { HERO_PHOTOS } from "./hero-photos";
 import { localGroups } from "./local-groups";
-import { staff } from "./staff";
 
 // The image files themselves are checked in tests/checks/public-assets.test.ts.
 describe("small content lists", () => {
@@ -12,13 +11,6 @@ describe("small content lists", () => {
       expect(member.role, member.name).not.toBe("");
       expect(member.website, member.name).toMatch(/^https:\/\//);
       expect(member.x, member.name).toMatch(/^https:\/\/x\.com\//);
-    }
-  });
-
-  it("gives every staff member a role and bio", () => {
-    for (const member of staff) {
-      expect(member.role, member.name).not.toBe("");
-      expect(member.bio, member.name).not.toBe("");
     }
   });
 

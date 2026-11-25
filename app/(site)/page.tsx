@@ -9,7 +9,6 @@ import LocalGroupsSection from "./_components/LocalGroupsSection";
 import PeopleSection from "./_components/PeopleSection";
 import PressMarquee from "./_components/PressMarquee";
 import ShopBanner from "./_components/ShopBanner";
-import StaffSection from "./_components/StaffSection";
 
 export const metadata = pageMetadata({
   title: "PauseAI UK | Civic action on AI",
@@ -36,7 +35,6 @@ export default async function HomePage() {
         <ShopBanner />
         <JoinSection />
         <GetInvolved />
-        <StaffSection />
       </main>
       <HeroMarqueeEffects />
     </>
