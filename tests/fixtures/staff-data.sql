@@ -1575,3 +1575,9 @@ OVERRIDING SYSTEM VALUE VALUES
    'Safari 18', now() - interval '20 days', now() - interval '4 days', 31, NULL, 0,
    now() - interval '3 days', 'jane.smith@pauseai.uk');
 SELECT setval(pg_get_serial_sequence('errors_seen', 'id'), (SELECT max(id) FROM errors_seen));
+
+-- Every draft broadcast is to a list, as the writer makes one: Updates +
+-- Luma, a yes to the newsletter or events (LIST_TOPICS), by its channel.
+UPDATE mailings SET topic = 'newsletter', also_topics = '{events}',
+  filter = jsonb_set(filter, '{params,contact}', to_jsonb(channel || ':newsletter:yes ' || channel || ':events:yes'))
+WHERE audience = 'supporters' AND state = 'draft' AND topic = 'events' AND also_topics = '{}';
