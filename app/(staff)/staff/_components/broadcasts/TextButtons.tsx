@@ -2,15 +2,16 @@
 
 import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/Controls";
-import { Hint } from "@/components/ui/Field";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
-import { MOST_BUTTON_CHARACTERS, MOST_BUTTONS, MOST_LINK_BUTTONS, type TextButton } from "@/lib/broadcasts/text-parts";
+import {
+  MOST_BUTTON_CHARACTERS,
+  MOST_LINK_BUTTONS,
+  MOST_TEXT_BUTTONS,
+  type TextButton,
+} from "@/lib/broadcasts/text-parts";
 import styles from "./TextButtons.module.css";
 
 const copy = broadcastsCopy.broadcastPages.replyButtons;
-
-/** With this many buttons or more, WhatsApp on a computer says to open the text on a phone. */
-const MANY = 4;
 
 /**
  * A text's buttons, under its words, a row each in a table with no column
@@ -18,11 +19,11 @@ const MANY = 4;
  * button, whose tap comes back as the person's reply, or a link button,
  * which opens a page; its words; a link's address, a column only while
  * there's a link; and Remove.
- * Under them, + Reply button and + Link button, till there are as many as
- * WhatsApp takes, and no more links than it takes; then what a reply does,
- * and what a computer does with many, or with both kinds. Their words and
- * addresses are the template's, so only new words can change them (`fixed`
- * shows them as they are, and nothing for none).
+ * Under them, + Link button and + Reply button: a text's buttons are all
+ * one kind, three at most, and no more than two links (MOST_TEXT_BUTTONS),
+ * so once there's one, only its kind's. Their words and addresses are the
+ * template's, so only new words can change them (`fixed` shows them as they
+ * are, and nothing for none).
  */
 export default function TextButtons({
   buttons,
@@ -37,7 +38,7 @@ export default function TextButtons({
   const set = (i: number, button: TextButton) => onChange(buttons.map((one, j) => (j === i ? button : one)));
   const links = buttons.filter((button) => button.url !== undefined).length;
   const replies = buttons.length - links;
-  const full = buttons.length >= MOST_BUTTONS;
+  const full = buttons.length >= MOST_TEXT_BUTTONS;
   return (
     <div className={styles.buttons}>
       {buttons.length > 0 && (
@@ -93,22 +94,30 @@ export default function TextButtons({
       )}
       {!fixed && (
         <div className={styles.add}>
-          <Button variant="ghost" size="small" fit disabled={full} onClick={() => onChange([...buttons, { text: "" }])}>
-            {copy.addReply}
-          </Button>
-          <Button
-            variant="ghost"
-            size="small"
-            fit
-            disabled={full || links >= MOST_LINK_BUTTONS}
-            onClick={() => onChange([...buttons, { text: "", url: "" }])}
-          >
-            {copy.addLink}
-          </Button>
+          {replies === 0 && (
+            <Button
+              variant="ghost"
+              size="small"
+              fit
+              disabled={links >= MOST_LINK_BUTTONS}
+              onClick={() => onChange([...buttons, { text: "", url: "" }])}
+            >
+              {copy.addLink}
+            </Button>
+          )}
+          {links === 0 && (
+            <Button
+              variant="ghost"
+              size="small"
+              fit
+              disabled={full}
+              onClick={() => onChange([...buttons, { text: "" }])}
+            >
+              {copy.addReply}
+            </Button>
+          )}
         </div>
       )}
-      {replies > 0 && <Hint>{copy.tapNote}</Hint>}
-      {(buttons.length >= MANY || (replies > 0 && links > 0)) && <Hint>{copy.manyNote}</Hint>}
     </div>
   );
 }

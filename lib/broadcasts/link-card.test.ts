@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MailingBlock } from "@/lib/mailings/doc";
+import type { MailingBlock, OnlyForNode } from "@/lib/mailings/doc";
 import { firstLink, mapsLink } from "./link-card";
 
 const paragraph = (text: string): MailingBlock => ({ type: "paragraph", content: [{ type: "text", text }] });
@@ -19,6 +19,15 @@ describe("firstLink", () => {
       paragraph("https://pauseai.uk/later"),
     ];
     expect(firstLink(words)).toBe("http://example.org/list");
+  });
+
+  it("looks in a conditional part, in order", () => {
+    const words: (MailingBlock | OnlyForNode)[] = [
+      paragraph("Pause AI now."),
+      { type: "onlyFor", attrs: { condition: "member" }, content: [paragraph("https://pauseai.uk/members")] },
+      paragraph("https://pauseai.uk/later"),
+    ];
+    expect(firstLink(words)).toBe("https://pauseai.uk/members");
   });
 
   it("ends an address at a field or a line break", () => {

@@ -17,6 +17,7 @@ async function renderTop({
   header = "location",
   place = null,
   pictureId = null,
+  link,
   found = [],
   kept = { pictureId: examplePictureId },
   fixed,
@@ -25,6 +26,7 @@ async function renderTop({
   header?: TextHeader | null;
   place?: TextPlace | null;
   pictureId?: string | null;
+  link?: string;
   found?: TextPlace[];
   kept?: { pictureId: string } | { refused: "not-picture" | "too-big" };
   fixed?: boolean;
@@ -38,6 +40,7 @@ async function renderTop({
       header={header}
       place={place}
       pictureId={pictureId}
+      link={link}
       onChange={onChange}
       findPlaces={findPlaces}
       uploadPicture={uploadPicture}
@@ -76,17 +79,23 @@ const box = () => page.getByLabelText(words.find);
 const find = () => page.getByRole("button", { name: words.findButton });
 
 describe("TextTop", () => {
-  it("shows the link's card by default, saying where it comes from, and choosing Place makes the top a map", async () => {
+  it("has None by default while the words have no link, saying to put one in, and choosing Place makes the top a map", async () => {
     const { onChange } = await renderTop({ header: null });
-    await expect.element(kind(copy.textTop.linkPreview)).toHaveAttribute("aria-checked", "true");
-    await expect.element(page.getByText(copy.textTop.linkPreviewNote)).toBeVisible();
+    await expect.element(kind(copy.textTop.none)).toHaveAttribute("aria-checked", "true");
+    expect(kind(copy.textTop.linkPreview).query()).toBeNull();
     expect(box().query()).toBeNull();
     await kind(copy.textTop.place).click();
     expect(onChange).toHaveBeenCalledWith({ header: "location" });
   });
 
-  it("goes back to the link's card from a map", async () => {
-    const { onChange } = await renderTop();
+  it("has the link's preview by default once the words have a link, with no note under it", async () => {
+    await renderTop({ header: null, link: "https://pauseai.uk/march" });
+    await expect.element(kind(copy.textTop.linkPreview)).toHaveAttribute("aria-checked", "true");
+    expect(kind(copy.textTop.none).query()).toBeNull();
+  });
+
+  it("goes back to the link's preview from a map", async () => {
+    const { onChange } = await renderTop({ link: "https://pauseai.uk/march" });
     await expect.element(kind(copy.textTop.place)).toHaveAttribute("aria-checked", "true");
     await kind(copy.textTop.linkPreview).click();
     expect(onChange).toHaveBeenCalledWith({ header: null });
@@ -94,7 +103,7 @@ describe("TextTop", () => {
 
   it("keeps a chosen template's kind of top, but not its place, which can still be found and changed", async () => {
     await renderTop({ place: examplePlace, fixed: true });
-    await expect.element(kind(copy.textTop.linkPreview)).toBeDisabled();
+    await expect.element(kind(copy.textTop.none)).toBeDisabled();
     await expect.element(kind(copy.textTop.place)).toBeDisabled();
     await expect.element(box()).toBeEnabled();
     await expect.element(page.getByLabelText(words.name)).toBeEnabled();
@@ -163,6 +172,7 @@ describe("TextTop", () => {
         header="location"
         place={examplePlace}
         pictureId={null}
+        link={undefined}
         onChange={() => {}}
         findPlaces={async () => []}
         uploadPicture={async () => undefined}
@@ -194,6 +204,7 @@ describe("TextTop's picture", () => {
         header="image"
         place={null}
         pictureId={null}
+        link={undefined}
         onChange={onChange}
         findPlaces={async () => []}
         uploadPicture={async () => undefined}
@@ -206,7 +217,6 @@ describe("TextTop's picture", () => {
     expect(page.getByRole("img", { name: pictures.shown }).query()).toBeNull();
     expect(page.getByText(pictures.changeable).query()).toBeNull();
     expect(box().query()).toBeNull();
-    expect(page.getByText(copy.textTop.linkPreviewNote).query()).toBeNull();
   });
 
   it("shows the picture chosen, small, with a × to take it off and no box, and says it can change after approval", async () => {

@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
-import { MOST_BUTTON_CHARACTERS, MOST_BUTTONS, MOST_LINK_BUTTONS, type TextButton } from "@/lib/broadcasts/text-parts";
+import {
+  MOST_BUTTON_CHARACTERS,
+  MOST_LINK_BUTTONS,
+  MOST_TEXT_BUTTONS,
+  type TextButton,
+} from "@/lib/broadcasts/text-parts";
 import TextButtons from "./TextButtons";
 import { TextButtonsExample } from "./TextButtons.gallery.client";
 
@@ -17,13 +22,11 @@ const addresses = () => page.getByLabelText(copy.address);
 const kinds = () => [...document.querySelectorAll("tbody tr")].map((row) => row.firstElementChild!.textContent);
 
 describe("TextButtons", () => {
-  it("has none at first, no table, only + Reply button and + Link button, and no notes", async () => {
+  it("has none at first, no table, only + Reply button and + Link button", async () => {
     const onChange = vi.fn();
     await render(<TextButtons buttons={[]} onChange={onChange} />);
     expect(page.getByRole("table").query()).toBeNull();
     expect(page.getByText(copy.heading).query()).toBeNull();
-    expect(page.getByText(copy.tapNote).query()).toBeNull();
-    expect(page.getByText(copy.manyNote).query()).toBeNull();
     await addReply().click();
     expect(onChange).toHaveBeenLastCalledWith([{ text: "" }]);
     await addLink().click();
@@ -53,9 +56,6 @@ describe("TextButtons", () => {
     expect(onChange).toHaveBeenLastCalledWith(replies("Yes", "Maybe"));
     await page.getByRole("button", { name: copy.remove }).first().click();
     expect(onChange).toHaveBeenLastCalledWith(replies("No"));
-    // Says a tap is a reply, but not yet that a computer can't show them.
-    await expect.element(page.getByText(copy.tapNote)).toBeVisible();
-    expect(page.getByText(copy.manyNote).query()).toBeNull();
   });
 
   it("changes a link button's words and address, keeping each", async () => {
@@ -65,33 +65,36 @@ describe("TextButtons", () => {
     expect(onChange).toHaveBeenLastCalledWith([link("Details", "https://pauseai.uk/join")]);
     await boxes().fill("Join");
     expect(onChange).toHaveBeenLastCalledWith([link("Join")]);
-    // Links alone: nothing to say of replies, nor of a computer.
-    expect(page.getByText(copy.tapNote).query()).toBeNull();
-    expect(page.getByText(copy.manyNote).query()).toBeNull();
   });
 
-  it("says a computer sends people to their phone for reply and link buttons together", async () => {
-    await render(<TextButtons buttons={[...replies("Yes"), link("Details")]} onChange={() => {}} />);
-    await expect.element(page.getByText(copy.tapNote)).toBeVisible();
-    await expect.element(page.getByText(copy.manyNote)).toBeVisible();
-  });
-
-  it("takes no more link buttons than WhatsApp does, but still replies", async () => {
-    const links = Array.from({ length: MOST_LINK_BUTTONS }, (_, i) => link(`Link ${i + 1}`));
-    await render(<TextButtons buttons={links} onChange={() => {}} />);
-    await expect.element(addLink()).toBeDisabled();
-    await expect.element(addReply()).toBeEnabled();
-  });
-
-  it("says a computer sends people to their phone for four or more, and takes no more than WhatsApp does", async () => {
-    const { rerender } = await render(<TextButtons buttons={replies("A", "B", "C", "D")} onChange={() => {}} />);
-    await expect.element(page.getByText(copy.manyNote)).toBeVisible();
-    await expect.element(addReply()).toBeEnabled();
-    await expect.element(addLink()).toBeEnabled();
-    const most = Array.from({ length: MOST_BUTTONS }, (_, i) => `Button ${i + 1}`);
-    await rerender(<TextButtons buttons={replies(...most)} onChange={() => {}} />);
+  it("adds only reply buttons once there's a reply, three at most", async () => {
+    const onChange = vi.fn();
+    const { rerender } = await render(<TextButtons buttons={replies("Yes")} onChange={onChange} />);
+    expect(addLink().query()).toBeNull();
+    await addReply().click();
+    expect(onChange).toHaveBeenLastCalledWith([...replies("Yes"), { text: "" }]);
+    const most = Array.from({ length: MOST_TEXT_BUTTONS }, (_, i) => `Button ${i + 1}`);
+    await rerender(<TextButtons buttons={replies(...most)} onChange={onChange} />);
     await expect.element(addReply()).toBeDisabled();
+    expect(addLink().query()).toBeNull();
+  });
+
+  it("adds only link buttons once there's a link, two at most", async () => {
+    const onChange = vi.fn();
+    const { rerender } = await render(<TextButtons buttons={[link("Details")]} onChange={onChange} />);
+    expect(addReply().query()).toBeNull();
+    await addLink().click();
+    expect(onChange).toHaveBeenLastCalledWith([link("Details"), { text: "", url: "" }]);
+    const links = Array.from({ length: MOST_LINK_BUTTONS }, (_, i) => link(`Link ${i + 1}`));
+    await rerender(<TextButtons buttons={links} onChange={onChange} />);
     await expect.element(addLink()).toBeDisabled();
+    expect(addReply().query()).toBeNull();
+  });
+
+  it("adds neither kind to reply and link buttons together, which WhatsApp won't send", async () => {
+    await render(<TextButtons buttons={[...replies("Yes"), link("Details")]} onChange={() => {}} />);
+    expect(addReply().query()).toBeNull();
+    expect(addLink().query()).toBeNull();
   });
 
   it("shows a chosen template's buttons as they are, and nothing at all for none", async () => {
@@ -110,16 +113,16 @@ describe("TextButtons", () => {
 });
 
 describe("TextButtons' examples in the gallery", () => {
-  it("adds a reply button and a link button, and shows their words and address", async () => {
-    await render(<TextButtonsExample initial={[]} />);
+  it("adds a reply button, or a link button, and shows their words and address", async () => {
+    const { unmount } = await render(<TextButtonsExample initial={[]} />);
     await addReply().click();
     await boxes().fill("I'm coming");
     await expect.element(page.getByText('Value: [{"text":"I\'m coming"}]')).toBeVisible();
+    await unmount();
+    await render(<TextButtonsExample initial={[]} />);
     await addLink().click();
-    await boxes().nth(1).fill("Details");
+    await boxes().fill("Details");
     await addresses().fill("https://pauseai.uk/march");
-    await expect
-      .element(page.getByText('Value: [{"text":"I\'m coming"},{"text":"Details","url":"https://pauseai.uk/march"}]'))
-      .toBeVisible();
+    await expect.element(page.getByText('Value: [{"text":"Details","url":"https://pauseai.uk/march"}]')).toBeVisible();
   });
 });

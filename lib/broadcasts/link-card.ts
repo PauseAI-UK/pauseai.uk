@@ -1,4 +1,4 @@
-import type { MailingBlock } from "@/lib/mailings/doc";
+import type { MailingBlock, OnlyForNode } from "@/lib/mailings/doc";
 
 // The small card WhatsApp shows at the top of a text for the first web
 // address in its words: the page's title, a line of its description, and
@@ -13,8 +13,11 @@ export type LinkCard = { title: string; description: string; site: string };
 /** A web address WhatsApp makes a card for: http(s)://, up to a space, less any punctuation ending a sentence after it. */
 const CARD_URL = /\bhttps?:\/\/[^\s]*[^\s.,!?;:)'"]/;
 
-/** Each paragraph's words, lists' and quotes' too, in order; a field or a line break apart from what's beside it. */
-function lines(blocks: MailingBlock[]): string[] {
+/**
+ * Each paragraph's words, lists', quotes' and conditional parts' too, in
+ * order; a field or a line break apart from what's beside it.
+ */
+function lines(blocks: (MailingBlock | OnlyForNode)[]): string[] {
   return blocks.flatMap((block) =>
     block.type === "paragraph"
       ? [(block.content ?? []).map((node) => (node.type === "text" ? node.text : "\n")).join("")]
@@ -25,7 +28,7 @@ function lines(blocks: MailingBlock[]): string[] {
 }
 
 /** The first web address in a text's words that WhatsApp would make a card for, if there is one. */
-export function firstLink(blocks: MailingBlock[]): string | undefined {
+export function firstLink(blocks: (MailingBlock | OnlyForNode)[]): string | undefined {
   return lines(blocks).join("\n").match(CARD_URL)?.[0];
 }
 

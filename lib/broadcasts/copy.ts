@@ -83,11 +83,11 @@ export const broadcastsCopy = {
     templateMadeIn: "Made in WhatsApp Manager",
     // A text's top, over its words: a choice of the card for the words' first link, or a map of a place.
     textTop: {
-      label: "Above the text",
+      label: "Header",
+      none: "None",
       linkPreview: "⁂ Link preview",
       picture: "Picture",
       place: "Place",
-      linkPreviewNote: "⁂ From the first link in the words, if they have one.",
     },
     // Choosing a text's place: a box for a Google Maps link or words to search for, its button, the places it
     // found, the place's name and address under the map, a link to check its pin, and what can change once approved.
@@ -116,7 +116,7 @@ export const broadcastsCopy = {
       changeable: "⁂ You can change the picture after WhatsApp approves the text.",
     },
     // A text's buttons, under its words: their heading; each button's kind, a reply or a link, its words, a link's
-    // address, and its Remove; adding one; what a reply does; and what a computer does with many, or both kinds.
+    // address, and its Remove; and adding one.
     replyButtons: {
       heading: "Buttons",
       reply: "Reply",
@@ -126,9 +126,6 @@ export const broadcastsCopy = {
       remove: "Remove",
       addReply: "+ Reply button",
       addLink: "+ Link button",
-      tapNote: "A reply button's tap shows on the copy's page as their reply.",
-      manyNote:
-        "⁂ With 4 or more buttons, or reply and link buttons together, WhatsApp on a computer tells people to open the text on their phone.",
     },
     // A text's two versions, once it has a condition: how many templates they go to WhatsApp as, and why there's
     // only one condition.
@@ -262,7 +259,8 @@ export const broadcastsCopy = {
       "link-no-address": "⁂ Give each link button the address it opens.",
       "link-not-address": "⁂ A link button's address must be a web page's, starting https://.",
       "too-many-links": "⁂ A text can have two link buttons at most.",
-      "too-many-buttons": "⁂ A text can have ten buttons at most.",
+      "too-many-buttons": "⁂ A text can have three buttons at most.",
+      "buttons-mixed": "⁂ A text's buttons must all be reply buttons, or all link buttons.",
       "no-picture": "⁂ Add the picture for its top.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": "That's too many to send before it stops trying. Send it to fewer people, or keep trying for longer.",

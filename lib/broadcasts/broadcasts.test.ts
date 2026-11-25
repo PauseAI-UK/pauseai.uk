@@ -663,10 +663,13 @@ describe("broadcastScheduleProblems", () => {
     expect(broadcastScheduleProblems({ ...good, buttons: [{ text: "" }] })).toEqual([]);
   });
 
-  it("wants each of a text's link buttons to open a web page, two at most", () => {
+  it("wants each of a text's link buttons to open a web page, two at most, and no reply buttons with them", () => {
     const text = { ...good, channel: "text" as const };
     const link = { text: "Read", url: "https://pauseai.uk/news" };
-    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }, link, link] })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [link, link] })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }, link, link] })).toEqual([
+      "buttons-mixed",
+    ]);
     expect(broadcastScheduleProblems({ ...text, buttons: [{ ...link, url: "" }] })).toEqual(["link-no-address"]);
     expect(broadcastScheduleProblems({ ...text, buttons: [{ ...link, url: "pauseai.uk" }] })).toEqual([
       "link-not-address",

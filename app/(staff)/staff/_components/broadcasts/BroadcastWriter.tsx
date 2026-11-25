@@ -931,6 +931,7 @@ export default function BroadcastWriter({
             header={version.header}
             place={version.place}
             pictureId={version.pictureId}
+            link={firstLink(version.body.content)}
             onChange={(top) => setVersion({ ...top, ...("header" in top && { templateId: null }) })}
             findPlaces={findPlaces}
             uploadPicture={uploadPicture}
@@ -971,6 +972,7 @@ export default function BroadcastWriter({
           header={values.header}
           place={values.place}
           pictureId={values.pictureId}
+          link={firstLink(body.content)}
           onChange={(top) => change(top)}
           findPlaces={findPlaces}
           uploadPicture={uploadPicture}

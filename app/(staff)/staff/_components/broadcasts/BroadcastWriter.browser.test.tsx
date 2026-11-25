@@ -1268,7 +1268,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
 
   it("tops new words with a map of the place found, and gives them reply buttons, each in the preview", async () => {
     const actions = await renderWriter({ draft: newWords });
-    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");
     await kind(top.place).click();
     await saved(actions, { header: "location" });
     await page.getByLabelText(places.find).fill("parliament square");
@@ -1280,8 +1280,8 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await page.getByLabelText(copy.replyButtons.words).fill("I'm coming");
     await expect.element(preview().getByRole("listitem").filter({ hasText: "I'm coming" })).toBeVisible();
     await saved(actions, { buttons: [{ text: "I'm coming" }] });
-    // Back to the link's card: no map in the preview, though the place is kept.
-    await kind(top.linkPreview).click();
+    // Back to no top: no map in the preview, though the place is kept.
+    await kind(top.none).click();
     await expect.element(preview().getByText(examplePlace.address, { exact: true })).not.toBeInTheDocument();
   });
 
@@ -1331,8 +1331,24 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await saved(actions, { place: examplePlace });
     // Another template, with neither, takes them away.
     await pick(templates[0].name);
-    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");
     expect(page.getByLabelText(copy.replyButtons.words).query()).toBeNull();
+  });
+
+  it("offers the link's preview once the words have a link, for the text and its version, each by its own words", async () => {
+    await renderWriter({ draft: newWords });
+    await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");
+    await editor().fill("The march: https://pauseai.uk/march");
+    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    // The version starts as a copy of the words, link and all; its own words without one have none.
+    await addVersion();
+    await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
+    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    await editor().fill("Thanks for writing to your MP.");
+    await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");
+    // Everyone else's still has the text's own link.
+    await tab(292).click();
+    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
   });
 
   it("adds a second version beside new words, a copy of them, its tab open, and one template till it differs", async () => {
@@ -1376,7 +1392,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await tab(292).click();
     await expect.element(page.getByText(editing.exceptLabel(wrote))).toBeVisible();
     await expect.element(editor()).toMatchTextContent(/Look for the orange flags/);
-    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");
   });
 
   it("offers a second version under a chosen template's facts, with no editor to have it beside", async () => {
@@ -1390,7 +1406,7 @@ describe("BroadcastWriter, a text's top, buttons and second version", () => {
     await expect.element(button(copy.submitTemplate)).toBeVisible();
     // Everyone else's is the template, whose top is fixed, with no words to write and no buttons.
     await tab(292).click();
-    await expect.element(kind(top.linkPreview)).toBeDisabled();
+    await expect.element(kind(top.none)).toBeDisabled();
     expect(editor().query()).toBeNull();
     expect(page.getByText(copy.replyButtons.heading).query()).toBeNull();
   });
@@ -1599,13 +1615,13 @@ describe("BroadcastWriter, a text's picture", () => {
     actions.uploadPicture.mockRejectedValueOnce(gone());
     paste(name, png());
     await expect.element(page.getByText(mailingsCopy.mailingPages.savePill.outdated)).toBeInTheDocument();
-    await expect.element(kind(top.linkPreview)).toHaveAttribute("aria-checked", "true");
+    await expect.element(kind(top.none)).toHaveAttribute("aria-checked", "true");
     expect(previewPicture()).toBeNull();
   });
 
   it("pastes no picture where a chosen template's top is another kind", async () => {
     const actions = await renderWriter({ draft: onTemplate });
-    expect(paste(kind(top.linkPreview).element(), png())).toBe(true);
+    expect(paste(kind(top.none).element(), png())).toBe(true);
     await pause();
     expect(actions.uploadPicture).not.toHaveBeenCalled();
   });
@@ -1625,7 +1641,7 @@ describe("BroadcastWriter, a text's picture", () => {
   it("pastes no picture where WhatsApp is reviewing new words", async () => {
     const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null, name: "Hi there" };
     const actions = await renderWriter({ draft: { ...newWords, template } });
-    paste(kind(top.linkPreview).element(), png());
+    paste(kind(top.none).element(), png());
     await pause();
     expect(actions.uploadPicture).not.toHaveBeenCalled();
   });
@@ -1634,7 +1650,7 @@ describe("BroadcastWriter, a text's picture", () => {
     const actions = await renderWriter({ draft: newWords });
     await addVersion();
     await expect.element(tab(120)).toHaveAttribute("aria-selected", "true");
-    paste(kind(top.linkPreview).element(), png());
+    paste(kind(top.none).element(), png());
     await saved(actions, {
       textVersion: expect.objectContaining({
         condition: WROTE,
@@ -1646,7 +1662,7 @@ describe("BroadcastWriter, a text's picture", () => {
     await expect.poll(() => previewPicture()?.getAttribute("src")).toBe(shown);
     await tab(292).click();
     await expect.poll(() => previewPicture()).toBeNull();
-    paste(kind(top.linkPreview).element(), png("theirs.png"));
+    paste(kind(top.none).element(), png("theirs.png"));
     await saved(actions, { header: "image", pictureId: examplePictureId });
     await expect.element(kind(top.picture)).toHaveAttribute("aria-checked", "true");
     expect(uploaded(actions)).toEqual(["march.png", "theirs.png"]);
