@@ -111,7 +111,6 @@ export const broadcastsCopy = {
         "not-picture": "WhatsApp needs a JPEG or PNG picture. Choose one of those.",
         "too-big": "That picture is too big. Choose one of 4 MB or less.",
       },
-      changeable: "⁂ You can change the picture after WhatsApp approves the text.",
     },
     // A text's buttons, under its words: their heading; each button's kind, a reply or a link, its words, a link's
     // address, and its Remove; and adding one.

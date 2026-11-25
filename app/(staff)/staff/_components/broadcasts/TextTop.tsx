@@ -4,7 +4,6 @@ import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "re
 import { Button } from "@/components/ui/Button";
 import IconButton, { CrossIcon } from "@/components/ui/IconButton";
 import { Segmented, TextInput } from "@/components/ui/Controls";
-import { Hint } from "@/components/ui/Field";
 import { Muted } from "@/components/ui/Text";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { TextHeader, TextPlace } from "@/lib/broadcasts/text-parts";
@@ -210,7 +209,7 @@ function PlaceChooser({
  * there is one, the picture, small, with a × in its corner that takes it
  * off, for the box again. One pasted anywhere in the writer's Write card
  * comes here too, in place of any there (BroadcastWriter). A picture can
- * change after approval, as each send gives it.
+ * change after approval, as each send gives it, so its × stays.
  */
 function PictureChooser({
   pictureId,
@@ -265,7 +264,6 @@ function PictureChooser({
         />
       )}
       {refusal && <p className={styles.refusal}>{words.refusals[refusal]}</p>}
-      {pictureId && <Hint>{words.changeable}</Hint>}
     </div>
   );
 }
