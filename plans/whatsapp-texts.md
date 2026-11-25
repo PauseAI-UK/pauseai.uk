@@ -7,7 +7,7 @@ a template of its own. What's left is below.
 ## Built more simply than it could be
 
 - **The place's map.** The writer shows a drawing of a map with the
-  place's name and address, and a link to check its pin on OpenStreetMap,
+  place's name and address, and a link to check its pin on Google Maps,
   not a map of the place itself. A real map needs a map library and tiles
   from a server the site's Content Security Policy lets in, such as
   OpenFreeMap's.

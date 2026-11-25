@@ -28,16 +28,16 @@ export type UploadPicture = (
  */
 export const pictureSource = (id: string) => (id.startsWith("data:") ? id : `/api/text-pictures/${id}`);
 
-/** Where a place is on OpenStreetMap's map, its pin on it, to check it's the right spot. */
-const mapOf = (place: TextPlace) =>
-  `https://www.openstreetmap.org/?mlat=${place.latitude}&mlon=${place.longitude}#map=17/${place.latitude}/${place.longitude}`;
+/** Where a place is on Google Maps, its pin on it, to check it's the right spot, as most phones open it there. */
+const mapOf = (place: TextPlace) => `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
 
 /**
- * The place a text's map shows: first, a box for a Google Maps link or
- * words to search for, then the places found, to choose one. Once one is
- * chosen, its name and address, which WhatsApp shows under the map, to
- * change so they say where exactly, and a link to check its pin on a map.
- * A place can change after approval, as each send gives it.
+ * The place a text's map shows: till one is chosen, a box for a Google Maps
+ * link or words to search for, then the places found, to choose one. Once
+ * one is chosen, its name and address, which WhatsApp shows under the map,
+ * to change so they say where exactly; a link to check its pin on a map;
+ * and Find another, for the box again. A place can change after approval,
+ * as each send gives it.
  */
 function PlaceChooser({
   place,
@@ -51,24 +51,31 @@ function PlaceChooser({
   disabled: boolean;
 }) {
   const words = copy.placeChooser;
+  const [searching, setSearching] = useState(!place);
   const [input, setInput] = useState("");
   const [found, setFound] = useState<TextPlace[] | null>(null);
   const [finding, setFinding] = useState(false);
+  const choose = (chosen: TextPlace) => {
+    onChange(chosen);
+    setFound(null);
+    setInput("");
+    setSearching(false);
+  };
   const find = async () => {
     setFinding(true);
     const places = await findPlaces(input.trim());
     setFinding(false);
     // One place, as a link gives, is chosen at once; more are offered.
-    if (places.length === 1) {
-      onChange(places[0]);
-      setFound(null);
-    } else setFound(places);
+    if (places.length === 1) choose(places[0]);
+    else setFound(places);
   };
   return (
     <div className={styles.form}>
-      <div className={styles.findRow}>
-        <Field label={words.find}>
+      {searching && (
+        <div className={styles.findRow}>
           <TextInput
+            aria-label={words.find}
+            placeholder={words.find}
             value={input}
             disabled={disabled}
             onChange={(event) => setInput(event.target.value)}
@@ -78,30 +85,17 @@ function PlaceChooser({
               void find();
             }}
           />
-        </Field>
-        <Button
-          variant="primary"
-          size="small"
-          fit
-          disabled={disabled || !input.trim()}
-          pending={finding}
-          onClick={find}
-        >
-          {words.findButton}
-        </Button>
-      </div>
+          <Button variant="primary" size="small" fit disabled={disabled || !input.trim()} pending={finding} onClick={find}>
+            {words.findButton}
+          </Button>
+        </div>
+      )}
       {found && found.length === 0 && <Muted>{words.none}</Muted>}
       {found && found.length > 0 && (
         <ul className={styles.found} aria-label={words.found}>
           {found.map((one) => (
             <li key={`${one.latitude},${one.longitude},${one.name}`}>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(one);
-                  setFound(null);
-                }}
-              >
+              <button type="button" onClick={() => choose(one)}>
                 <strong>{one.name}</strong> <span>{one.address}</span>
               </button>
             </li>
@@ -110,7 +104,6 @@ function PlaceChooser({
       )}
       {place && (
         <>
-          <Hint>{words.underMap}</Hint>
           <div className={styles.names}>
             <Field label={words.name}>
               <TextInput
@@ -127,10 +120,14 @@ function PlaceChooser({
               />
             </Field>
           </div>
-          <span className={styles.check}>
+          <div className={styles.placeLinks}>
             <ExternalLink href={mapOf(place)}>{words.checkMap}</ExternalLink>
-          </span>
-          <Hint>{words.changeable}</Hint>
+            {!searching && !disabled && (
+              <Button variant="ghost" size="small" fit onClick={() => setSearching(true)}>
+                {words.findAnother}
+              </Button>
+            )}
+          </div>
         </>
       )}
     </div>
