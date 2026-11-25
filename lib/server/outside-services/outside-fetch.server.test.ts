@@ -109,6 +109,22 @@ describe("outsideFetch", () => {
     expect(await res.text()).toBe("");
   });
 
+  it("asked for public addresses only, sends nothing to an internal one, and asks a public one", async () => {
+    let asked = 0;
+    server.use(
+      http.get("http://127.0.0.1/", () => {
+        asked++;
+        return HttpResponse.text("inside");
+      }),
+      http.get("http://93.184.215.14/", () => HttpResponse.text("outside")),
+    );
+    const failed = await outsideFetch(LUMA, "http://127.0.0.1/", { publicOnly: true }).catch((error: unknown) => error);
+    expect(failed).toBeInstanceOf(OutsideFailure);
+    expect(failed).toMatchObject({ service: "luma", kind: "unreachable" });
+    expect(asked).toBe(0);
+    expect(await (await outsideFetch(LUMA, "http://93.184.215.14/", { publicOnly: true })).text()).toBe("outside");
+  });
+
   it("hands back an answer that isn't ok, for the binding to say what kind of refusal it is", async () => {
     server.use(
       http.get("https://public-api.luma.com/v1/calendars/events/list", () => new HttpResponse(null, { status: 503 })),

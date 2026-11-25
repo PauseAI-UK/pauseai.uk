@@ -1,9 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { cardFrom, linkCard } from "./link-pages.server";
 
+// Every name resolves to a public address but intranet.example.org, which is on a private network.
+vi.mock("node:dns/promises", () => ({
+  lookup: async (name: string) => [
+    { address: name === "intranet.example.org" ? "10.0.0.5" : "93.184.215.14", family: 4 },
+  ],
+}));
+
 const PAGE = "https://www.example.org/march";
+
+/** A redirect to a path on the same site. */
+const moved = (path: string) => new HttpResponse(null, { status: 301, headers: { location: path } });
 const at = new URL(PAGE);
 
 /** A page's head with these tags. */
@@ -80,5 +90,62 @@ describe("linkCard", () => {
     expect(await linkCard(PAGE)).toBeNull();
     server.use(http.get(PAGE, () => HttpResponse.error()));
     expect(await linkCard(PAGE)).toBeNull();
+  });
+
+  it("asks nothing of an internal address, named or by number", async () => {
+    let asked = 0;
+    server.use(
+      http.get("http://intranet.example.org/", () => {
+        asked++;
+        return HttpResponse.html(
+          head(`<meta property="og:title" content="T"><meta property="og:description" content="D">`),
+        );
+      }),
+    );
+    expect(await linkCard("http://intranet.example.org/")).toBeNull();
+    expect(await linkCard("http://169.254.169.254/latest/meta-data/")).toBeNull();
+    expect(await linkCard("http://[::1]/")).toBeNull();
+    expect(asked).toBe(0);
+  });
+
+  it("follows a redirect to its page, with the card for the link's own site", async () => {
+    server.use(
+      http.get("https://short.example.org/m", () => moved("/march-page")),
+      http.get("https://short.example.org/march-page", () => HttpResponse.redirect(PAGE, 302)),
+      http.get(PAGE, () =>
+        HttpResponse.html(head(`<meta property="og:title" content="T"><meta property="og:description" content="D">`)),
+      ),
+    );
+    expect(await linkCard("https://short.example.org/m")).toEqual({
+      title: "T",
+      description: "D",
+      site: "short.example.org",
+    });
+  });
+
+  it("follows no redirect to an internal address, or to one that isn't a web page's", async () => {
+    let asked = 0;
+    server.use(
+      http.get("https://www.example.org/inside", () => HttpResponse.redirect("http://intranet.example.org/", 302)),
+      http.get("https://www.example.org/mail", () => HttpResponse.redirect("mailto:jane.smith@example.com", 302)),
+      http.get("http://intranet.example.org/", () => {
+        asked++;
+        return HttpResponse.html(
+          head(`<meta property="og:title" content="T"><meta property="og:description" content="D">`),
+        );
+      }),
+    );
+    expect(await linkCard("https://www.example.org/inside")).toBeNull();
+    expect(await linkCard("https://www.example.org/mail")).toBeNull();
+    expect(asked).toBe(0);
+  });
+
+  it("gives up on a link that redirects too many times, and makes no card of a redirect with nowhere to go", async () => {
+    server.use(
+      http.get("https://www.example.org/loop", () => moved("/loop")),
+      http.get("https://www.example.org/nowhere", () => new HttpResponse(null, { status: 302 })),
+    );
+    expect(await linkCard("https://www.example.org/loop")).toBeNull();
+    expect(await linkCard("https://www.example.org/nowhere")).toBeNull();
   });
 });
