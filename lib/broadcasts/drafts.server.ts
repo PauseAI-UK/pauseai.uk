@@ -258,16 +258,20 @@ export async function getWrittenBroadcast(id: number, opening = false): Promise<
     const [template = null] = id ? await query<WhatsAppTemplate>(`${SELECT_TEMPLATES} WHERE t.id = $1`, [id]) : [];
     return template;
   };
-  const [version] = await query<TextVersion>(
+  const [version] = await query<TextVersion & { templateId: number | null }>(
     `SELECT condition, body, template_id::int AS "templateId", header, place, picture_id AS "pictureId", buttons
      FROM broadcast_versions WHERE mailing_id = $1`,
     [id],
   );
+  const second = async ({ templateId: its, ...parts }: TextVersion & { templateId: number | null }) => ({
+    ...parts,
+    template: await templateOf(its),
+  });
   return {
     ...written,
     ...own,
     template: await templateOf(templateId),
-    textVersion: version ? { ...version, template: await templateOf(version.templateId) } : null,
+    textVersion: version ? await second(version) : null,
   };
 }
 
@@ -409,8 +413,16 @@ export function sameTerms(terms: BroadcastTerms | undefined, broadcast: Broadcas
   return terms?.channel === broadcast.channel && terms.topics.join() === broadcast.topics.join();
 }
 
-/** What a save of a broadcast can change: a mailing's, and a text's second version, or none (null) to take it away. */
-export type BroadcastChanges = MailingChanges & { textVersion?: TextVersion | null };
+/**
+ * What a save of a broadcast can change: a mailing's; a text's second
+ * version, whole, or none (null) to take it away; and that version's
+ * template, said as the text's own is (`templateId`): an approved one
+ * chosen, or none (null) for new words.
+ */
+export type BroadcastChanges = MailingChanges & {
+  textVersion?: TextVersion | null;
+  versionTemplateId?: number | null;
+};
 
 /**
  * A save's changes as the writer sends them, if each is what it should be
@@ -419,13 +431,25 @@ export type BroadcastChanges = MailingChanges & { textVersion?: TextVersion | nu
  * (isAvailableSendBy). A text has no subject, may name a
  * template, or null for none, and may have a title of its own, as it has no
  * subject to be one; and its top, place, reply buttons and second version
- * (text-parts.ts). Either may say when it finishes, in whole minutes
+ * (text-parts.ts), with a template for that version as for itself. Either
+ * may say when it finishes, in whole minutes
  * after its time, one it can have (finishFits), or null for the most.
  */
 export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel): BroadcastChanges | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  const { templateId, title, sendBy, finishMinutes, header, place, pictureId, buttons, textVersion, ...rest } =
-    value as Record<string, unknown>;
+  const {
+    templateId,
+    versionTemplateId,
+    title,
+    sendBy,
+    finishMinutes,
+    header,
+    place,
+    pictureId,
+    buttons,
+    textVersion,
+    ...rest
+  } = value as Record<string, unknown>;
   const parsed = mailingChangesFrom(rest);
   if (!parsed || "ask" in parsed || "sentFrom" in parsed || "fromName" in parsed) return undefined;
   if (
@@ -436,7 +460,7 @@ export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel):
   }
   const changes: BroadcastChanges =
     finishMinutes === undefined ? parsed : { ...parsed, finishMinutes: finishMinutes as number | null };
-  const textOnly = [templateId, title, header, place, pictureId, buttons, textVersion];
+  const textOnly = [templateId, versionTemplateId, title, header, place, pictureId, buttons, textVersion];
   if (channel === "email") {
     if (textOnly.some((one) => one !== undefined)) return undefined;
     if (sendBy === undefined) return changes;
@@ -444,7 +468,10 @@ export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel):
   }
   if (sendBy !== undefined || "subject" in changes) return undefined;
   if (title !== undefined && typeof title !== "string") return undefined;
-  if (templateId !== undefined && !(typeof templateId === "number" || templateId === null)) return undefined;
+  const templates = { templateId, versionTemplateId };
+  if (Object.values(templates).some((one) => one !== undefined && !(typeof one === "number" || one === null))) {
+    return undefined;
+  }
   const parts = {
     header: header === undefined ? undefined : headerFrom(header),
     place: place === undefined ? undefined : placeFrom(place),
@@ -457,87 +484,123 @@ export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel):
   if (Object.entries(parts).some(([name, one]) => one === undefined && given[name as keyof typeof given] !== undefined))
     return undefined;
   const text: BroadcastChanges = { ...changes };
-  for (const [name, one] of Object.entries({ title, templateId, ...parts })) {
+  for (const [name, one] of Object.entries({ title, ...templates, ...parts })) {
     if (one !== undefined) Object.assign(text, { [name]: one });
   }
   return text;
 }
 
-/** Whether changes would change what a template WhatsApp is reviewing says: its words, top or buttons. */
-const changesTemplate = (changes: BroadcastChanges): boolean =>
-  ["body", "templateId", "header", "buttons"].some((name) => name in changes);
+/** One version of a text as stored, the text's own or its second: its words, top and buttons, and its template, if it has one. */
+type StoredVersion = TextTemplateParts & { template: WhatsAppTemplate | null };
+
+/**
+ * What a save makes of one version's template, the text's own version or
+ * its second alike. `before` is the version as stored, none for one the
+ * save adds; `after`, its words, top and buttons as the save leaves them;
+ * `asked`, the template the save names: one chosen, none (null) for new
+ * words, or nothing. Gives the template it's then on, "kept" for the one it
+ * has, or "conflict" for a save that can't be:
+ *
+ * - What WhatsApp is reviewing stays as it was sent: nothing changes its
+ *   words, top or buttons, or names it a template.
+ * - A template chosen must be an approved one.
+ * - New words are on no template: those said to be new, and an approved
+ *   template's once they're not the template's own.
+ * - Otherwise its template is kept. So a save from a page that doesn't know
+ *   of it, as it never names it, doesn't lose it; and one WhatsApp rejected
+ *   stays, to say why, till its words are sent again.
+ */
+function templateAfter(
+  before: StoredVersion | null,
+  after: TextTemplateParts,
+  asked: number | null | undefined,
+  approved: WhatsAppTemplate[],
+): WhatsAppTemplate | null | "kept" | "conflict" {
+  const status = before?.template?.status;
+  const changed = Boolean(before) && !sameTemplate(after, before!);
+  if (status === "pending") return asked !== undefined || changed ? "conflict" : "kept";
+  if (typeof asked === "number") return approved.find((one) => one.id === asked) ?? "conflict";
+  if (asked === null || (status === "approved" && changed)) return null;
+  return "kept";
+}
+
+/** A template's words, top and buttons, for a version that takes them. */
+const partsOf = (template: WhatsAppTemplate): TextTemplateParts => ({
+  body: checkMailingDoc(template.body)!,
+  header: template.header,
+  buttons: template.buttons,
+});
 
 /**
  * Saves changes to a draft broadcast at `version`. Choosing a template takes
  * its words, top, buttons and name, unless a title is given too; a text's
  * new words are named as staff name them. A text's second version is saved
- * whole, or taken away, with the rest; choosing a template for it takes its
- * words, top and buttons. Nothing WhatsApp is reviewing can change, but a
- * place, which isn't the template's.
+ * whole, or taken away, with the rest; choosing a template for it
+ * (`versionTemplateId`) takes its words, top and buttons. Each version's
+ * template follows one rule (templateAfter). Nothing WhatsApp is reviewing
+ * can change, nor who its version is for, but a place or picture, which
+ * isn't the template's.
  */
 export async function saveBroadcastDraft(
   broadcast: WrittenBroadcast,
   version: number,
   changes: BroadcastChanges,
 ): Promise<SaveResult> {
-  const { textVersion, ...own } = changes;
+  const { textVersion, versionTemplateId, ...own } = changes;
   if (broadcast.channel === "email") return saveDraft(broadcast.id, version, own);
+  const conflict: SaveResult = { saved: false, reason: "conflict" };
   const before = broadcast.textVersion;
-  // Words WhatsApp is reviewing stay as they were sent.
-  if (broadcast.template?.status === "pending" && changesTemplate(own)) return { saved: false, reason: "conflict" };
+  // The second version as the save leaves it: the one given, or the one it has.
+  const second = textVersion === undefined ? before : textVersion;
+  // A template chosen for a second version the text doesn't have, as one taken away elsewhere.
+  if (typeof versionTemplateId === "number" && !second) return conflict;
+  // Who a version WhatsApp is reviewing is for names its template, so it stays, as the version does.
   if (
     before?.template?.status === "pending" &&
-    textVersion !== undefined &&
-    (textVersion === null ||
-      textVersion.condition !== before.condition ||
-      textVersion.templateId !== before.templateId ||
-      !sameTemplate(textVersion, before))
+    textVersion?.condition !== before.condition &&
+    textVersion !== undefined
   ) {
-    return { saved: false, reason: "conflict" };
+    return conflict;
   }
   const approved = await approvedTemplates();
-  const chosen = (id: number | null | undefined) => (id ? approved.find((one) => one.id === id) : undefined);
-  // The version is saved whole, so it names its template whether or not it's chosen now: one it has already, in
-  // whatever state, stays.
-  const versionChose = textVersion?.templateId !== before?.templateId && textVersion?.templateId;
-  if ((own.templateId && !chosen(own.templateId)) || (versionChose && !chosen(versionChose))) {
-    return { saved: false, reason: "conflict" };
-  }
-  const template = chosen(own.templateId);
-  const mine: MailingChanges = template
-    ? {
-        ...own,
-        body: checkMailingDoc(template.body)!,
-        header: template.header,
-        buttons: template.buttons,
-        title: own.title ?? template.name,
-      }
-    : own;
-  const theirs = chosen(textVersion?.templateId);
-  const next =
-    textVersion && theirs
-      ? { ...textVersion, body: checkMailingDoc(theirs.body)!, header: theirs.header, buttons: theirs.buttons }
-      : textVersion;
-  if (next === undefined) return saveDraft(broadcast.id, version, mine);
+  const ownAfter = {
+    body: own.body ?? broadcast.body,
+    header: own.header === undefined ? broadcast.header : own.header,
+    buttons: own.buttons ?? broadcast.buttons,
+  };
+  const ownTemplate = templateAfter(broadcast, ownAfter, own.templateId, approved);
+  const versionTemplate = second ? templateAfter(before, second, versionTemplateId, approved) : "kept";
+  if (ownTemplate === "conflict" || versionTemplate === "conflict") return conflict;
+  const mine: MailingChanges =
+    ownTemplate === "kept"
+      ? own
+      : ownTemplate
+        ? { ...own, ...partsOf(ownTemplate), templateId: ownTemplate.id, title: own.title ?? ownTemplate.name }
+        : { ...own, templateId: null };
+  if (textVersion === undefined && versionTemplate === "kept") return saveDraft(broadcast.id, version, mine);
   return transaction(async (db) => {
     const saved = await saveDraft(broadcast.id, version, mine, db);
     if (!saved.saved) return saved;
-    if (next === null) await query("DELETE FROM broadcast_versions WHERE mailing_id = $1", [broadcast.id], db);
+    if (!second) await query("DELETE FROM broadcast_versions WHERE mailing_id = $1", [broadcast.id], db);
     else {
+      const kept = versionTemplate === "kept";
+      const next = !kept && versionTemplate ? { ...second, ...partsOf(versionTemplate) } : second;
+      // A template that's kept is left as the row has it, not written from what was read before the save.
       await query(
         `INSERT INTO broadcast_versions (mailing_id, condition, body, template_id, header, place, buttons, picture_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (mailing_id) DO UPDATE SET condition = $2, body = $3, template_id = $4, header = $5, place = $6,
-           buttons = $7, picture_id = $8`,
+         ON CONFLICT (mailing_id) DO UPDATE SET condition = $2, body = $3, header = $5, place = $6, buttons = $7,
+           picture_id = $8, template_id = CASE WHEN $9 THEN broadcast_versions.template_id ELSE $4 END`,
         [
           broadcast.id,
           next.condition,
           JSON.stringify(next.body),
-          next.templateId,
+          kept || !versionTemplate ? null : versionTemplate.id,
           next.header,
           next.place && JSON.stringify(next.place),
           JSON.stringify(next.buttons),
           next.pictureId,
+          kept,
         ],
         db,
       );
@@ -625,8 +688,13 @@ export async function scheduleBroadcast(id: number, version: number, by: string)
     const broadcast = (await getWrittenBroadcast(id))!;
     const { problems, recipients } = await scheduleProblems(broadcast);
     if (problems.length) return { scheduled: false, problems };
-    // New words, never sent or rejected: with no problems, it has words (no-template).
-    if (broadcast.channel === "text" && !["approved", "pending"].includes(broadcast.template?.status ?? "")) {
+    // New words, never sent or rejected, the text's own or its second version's: with no problems, each has
+    // words (no-template).
+    const versions = [broadcast, ...(broadcast.textVersion ? [broadcast.textVersion] : [])];
+    if (
+      broadcast.channel === "text" &&
+      versions.some((one) => !["approved", "pending"].includes(one.template?.status ?? ""))
+    ) {
       return "submit";
     }
     await markScheduled(id, db);
@@ -780,7 +848,7 @@ const draftLink = (id: number): string => staffLink(`/staff/broadcasts/${id}`, u
 export type TemplateNotTaken = { failed: string | null };
 
 export type TemplateSubmitResult =
-  "submitted" | "no-words" | "not-ready" | "already" | "not-text" | "not-draft" | "gone" | TemplateNotTaken;
+  "submitted" | "no-words" | "not-ready" | "no-app" | "already" | "not-text" | "not-draft" | "gone" | TemplateNotTaken;
 
 /** Why the site didn't send new words to WhatsApp for approval, as its action answers it: a reason each, which the writer has words for. */
 export type TemplateRefusal = Exclude<TemplateSubmitResult, "submitted" | TemplateNotTaken>;
@@ -807,21 +875,19 @@ type Parts = TextTemplateParts & { pictureId: string | null };
  * example, the footer every text has, saying a reply of stop stops it, and
  * its top and buttons, reply buttons first; a picture's top with the
  * text's picture uploaded as its example, through the Meta app
- * (uploadExample). Keeps WhatsApp's ID for it. Gives null if WhatsApp took
- * them, else why not, reporting it; none can go with no Meta app set.
+ * (uploadExample), which submitTemplate has checked is set. Keeps WhatsApp's
+ * ID for it. Gives null if WhatsApp took them, else why not, reporting it.
  */
 async function sendForApproval(template: ForApproval): Promise<TemplateNotTaken | null> {
   const backend = await textBackend();
   if (!backend) return { failed: null };
   const footer = TEMPLATE_FOOTER;
-  const appId = config.whatsappAppId;
-  if (template.header === "image" && !appId) return { failed: null };
   try {
     const picture = template.header === "image" ? (await pictureOf(template.pictureId!))! : undefined;
     const header = picture
       ? {
           kind: "image" as const,
-          example: await uploadExample(backend.keys, appId!, {
+          example: await uploadExample(backend.keys, config.whatsappAppId!, {
             name: `${template.metaName}.${picture.type === "image/png" ? "png" : "jpg"}`,
             type: picture.type,
             content: picture.content,
@@ -865,8 +931,10 @@ const needsTemplate = (template: WhatsAppTemplate | null): boolean => !template 
  * version's with who it's for after. Emails who sent them and the
  * notification inbox the words. Not for words that are an approved
  * template, or waiting already, nor a text that anything but its time
- * would stop being scheduled. If WhatsApp doesn't take them all, they're
- * as they were, to send again, and it says why (`failed`).
+ * would stop being scheduled, nor one with a picture while the site has no
+ * Meta app to upload its example through ("no-app"), which is reported. If
+ * WhatsApp doesn't take them all, they're as they were, to send again, and
+ * it says why (`failed`).
  */
 export async function submitTemplate(id: number, by: string): Promise<TemplateSubmitResult> {
   const result = await transaction(async (db) => {
@@ -916,6 +984,12 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     const labels = version ? Object.fromEntries((await broadcastParts()).map((part) => [part.id, part.label])) : {};
     const who = version ? (labels[version.condition] ?? version.condition) : "";
     const split = Boolean(version) && !sameTemplate(version!, broadcast);
+    // A picture goes to WhatsApp through the Meta app: without one, no new template with a picture can be sent.
+    const pictured = (mine && broadcast.header === "image") || (theirs && split && version!.header === "image");
+    if (pictured && !config.whatsappAppId) {
+      problem(broadcastProblems.noMetaApp());
+      return "no-app" as const;
+    }
     const pages = broadcastsCopy.broadcastPages;
     // A name followed by who it's for, without the full stop a title can end with.
     let base = name;
@@ -934,7 +1008,7 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
     }
     return {
       made,
-      before: { own: broadcast.template?.id ?? null, version: version?.templateId ?? null },
+      before: { own: broadcast.template?.id ?? null, version: version?.template?.id ?? null },
     };
   });
   if (typeof result === "string") return result;

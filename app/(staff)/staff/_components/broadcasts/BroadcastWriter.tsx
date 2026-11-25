@@ -86,8 +86,10 @@ import {
   type TextButton,
   type TextHeader,
   type TextPlace,
+  type TextTemplateParts,
   type TextVersion,
 } from "@/lib/broadcasts/text-parts";
+import { versionStanding, type VersionStanding } from "@/lib/broadcasts/version-standing";
 import TextTop, { pictureSource } from "./TextTop";
 import { realMapsContext } from "./PlaceMap";
 import TextButtons from "./TextButtons";
@@ -129,12 +131,16 @@ type Changes = {
   templateId: number | null;
   /** A text's, which has no subject to be one. */
   title: string;
-  /** A text's top, the place its map shows, its reply buttons, and its second version (text-parts.ts). */
+  /**
+   * A text's top, the place its map shows, its reply buttons, and its second version (text-parts.ts), with the
+   * approved template chosen for that version, as `templateId` is the one chosen for the text's own.
+   */
   header: TextHeader | null;
   place: TextPlace | null;
   pictureId: string | null;
   buttons: TextButton[];
   textVersion: TextVersion | null;
+  versionTemplateId: number | null;
 };
 
 /** How long WhatsApp can take to approve a template: a text due sooner than this, on one it hasn't, is warned of it. */
@@ -240,14 +246,13 @@ const TEMPLATE_PARTS_PROBLEMS: BroadcastScheduleProblem[] = [
 type Words = "email" | "chosen" | "new" | "none";
 
 /**
- * New words WhatsApp is reviewing: their name and words as they were sent,
- * which can't be changed while it does, and the button that takes them back
- * to change them. Pressed a second time, the button is as it was to begin
- * with once that's done, however it went. If taking them back throws, or
- * never arrives, it says so under the button, in the kit's words.
+ * Under words WhatsApp is reviewing: who sent them, and when, and the button
+ * that takes them back to change them. Pressed a second time, the button is
+ * as it was to begin with once that's done, however it went. If taking them
+ * back throws, or never arrives, it says so under the button, in the kit's
+ * words.
  */
-function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; withdraw: () => Promise<void> }) {
-  const fields = Object.fromEntries(Object.entries(copy.fieldWords));
+function TemplateWithdraw({ template, withdraw }: { template: WhatsAppTemplate; withdraw: () => Promise<void> }) {
   const [armed, setArmed] = useState(false);
   const [take, withdrawing, broke] = useSave(async () => {
     try {
@@ -263,15 +268,6 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
   }, [armed]);
   return (
     <>
-      {/* As sent: its name and its words, each under its label, as when they were written. */}
-      <div className={styles.letter}>
-        <p className={styles.label}>{copy.templateName}</p>
-        <p className={own.sentValue}>{template.name}</p>
-      </div>
-      <div className={styles.letter}>
-        <p className={styles.label}>{copy.templateWords}</p>
-        <MailingLetter doc={template.body} fields={fields} />
-      </div>
       {/* Who asked, and when, as an approved template's line says who made it; always someone, as they're sent from here. */}
       <Muted>{copy.templatePending(staffMemberText(template.createdBy!), staffDate(template.requestedAt))}</Muted>
       <div>
@@ -298,6 +294,57 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
     </>
   );
 }
+
+/**
+ * The text's own new words that WhatsApp is reviewing: their name and words
+ * as they were sent, which can't be changed while it does, then taking them
+ * back (TemplateWithdraw).
+ */
+function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; withdraw: () => Promise<void> }) {
+  const fields = Object.fromEntries(Object.entries(copy.fieldWords));
+  return (
+    <>
+      {/* As sent: its name and its words, each under its label, as when they were written. */}
+      <div className={styles.letter}>
+        <p className={styles.label}>{copy.templateName}</p>
+        <p className={own.sentValue}>{template.name}</p>
+      </div>
+      <div className={styles.letter}>
+        <p className={styles.label}>{copy.templateWords}</p>
+        <MailingLetter doc={template.body} fields={fields} />
+      </div>
+      <TemplateWithdraw template={template} withdraw={withdraw} />
+    </>
+  );
+}
+
+/**
+ * New words WhatsApp approves while the page is open are then that template
+ * (`take`), as on a page loaded after: those `stored` was seen waiting on,
+ * once the page's list of approved templates has it, which may come after
+ * the draft says it's approved.
+ */
+function useApprovedWhileOpen(
+  stored: WhatsAppTemplate | null | undefined,
+  templates: WhatsAppTemplate[],
+  take: (approved: WhatsAppTemplate) => void,
+) {
+  const sent = useRef<number | null>(null);
+  const taken = useEffectEvent((id: number) => {
+    const approved = templates.find((one) => one.id === id);
+    if (!approved) return;
+    sent.current = null;
+    take(approved);
+  });
+  useEffect(() => {
+    if (stored?.status === "pending") sent.current = stored.id;
+    else if (stored?.status === "approved" && stored.id === sent.current) taken(stored.id);
+  }, [stored, templates]);
+}
+
+/** A version's footer in the preview: its template's, as it went to WhatsApp, or for new words, the one they'd go with. */
+const footerOf = (stand: VersionStanding<WhatsAppTemplate>): string =>
+  (stand.chosen ?? stand.waiting)?.footer ?? TEMPLATE_FOOTER;
 
 /** How long the words' link must stay the same before its page is asked for its card, so typing it doesn't ask for each letter. */
 const CARD_PAUSE_MS = 600;
@@ -615,12 +662,12 @@ export default function BroadcastWriter({
       textVersion: draft.textVersion && {
         condition: draft.textVersion.condition,
         body: draft.textVersion.body,
-        templateId: draft.textVersion.templateId,
         header: draft.textVersion.header,
         place: draft.textVersion.place,
         pictureId: draft.textVersion.pictureId,
         buttons: draft.textVersion.buttons,
       },
+      versionTemplateId: draft.textVersion?.template?.status === "approved" ? draft.textVersion.template.id : null,
     },
     fresh,
     attachments: draft.attachments,
@@ -698,8 +745,20 @@ export default function BroadcastWriter({
   );
   // Why Schedule didn't just now, where the draft doesn't say it elsewhere: an alert under the button.
   const [scheduleError, setScheduleError] = useState<string | null>(null);
-  // New words sent to WhatsApp, waiting for it to approve them.
-  const waiting = draft.template?.status === "pending" ? draft.template : undefined;
+  // A text's second version, and which of its two is open.
+  const textVersion = email ? null : values.textVersion;
+  const [side, setSide] = useState<VersionSide>("only");
+  // How each version stands with WhatsApp, by one rule (versionStanding): the text's own, which is everyone else's
+  // once it has a second (`except`), and its second (`only`). Each from the approved template this page has chosen
+  // for it, and the template the draft has its words on.
+  const stands: Record<VersionSide, VersionStanding<WhatsAppTemplate>> = {
+    except: versionStanding(values.templateId, draft.template, data.templates),
+    only: versionStanding(values.versionTemplateId, draft.textVersion?.template, data.templates),
+  };
+  // The text's own: the template chosen for it, or its new words sent to WhatsApp, waiting for it to approve them.
+  const { chosen: template, waiting } = stands.except;
+  // Words WhatsApp is reviewing, the text's own or its second version's, which taking back takes back together.
+  const reviewing = waiting ?? (textVersion ? stands.only.waiting : undefined);
   // Once taken back, the words can be changed again: Write is brought fully into view once the page has them.
   const withdrew = useRef(false);
   const writeCard = useRef<HTMLElement>(null);
@@ -707,7 +766,7 @@ export default function BroadcastWriter({
     if (!withdrew.current) return;
     withdrew.current = false;
     writeCard.current!.scrollIntoView({ block: "start", behavior: "instant" });
-  }, [waiting]);
+  }, [reviewing]);
   // A text's words: an approved template's, or new ones, a tab each. New words
   // are kept while the other tab is open, so going back finds them.
   const [writingNew, setWritingNew] = useState(
@@ -720,7 +779,6 @@ export default function BroadcastWriter({
   // Why the template chosen wasn't deleted just now: an alert under it.
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const body = useMemo(() => checkMailingDoc(values.body) ?? EMPTY_MAILING_DOC, [values.body]);
-  const template = data.templates.find((one) => one.id === values.templateId);
   const byId = (id: number) => data.templates.find((one) => one.id === id);
   // The pairs whose templates the page has, each chosen as one; their templates aren't offered alone.
   const pairs = data.pairs.filter((pair) => byId(pair.own) && byId(pair.version));
@@ -737,9 +795,6 @@ export default function BroadcastWriter({
   // How many more emails or texts can go today, and each day after, and so how many days this takes.
   const { remaining, daily } = data.sender;
   const days = sendingDays(data.count, remaining, daily);
-  // A text's second version, and which of its two is open.
-  const textVersion = email ? null : values.textVersion;
-  const [side, setSide] = useState<VersionSide>("only");
   // The preview's toggle, which switches the tabs above it too, changing how tall Write is: kept where it was on the
   // screen, so the page doesn't jump under the pointer.
   // The Preview card, which the toggle is in: held, it holds the toggle, whatever has the focus.
@@ -774,67 +829,71 @@ export default function BroadcastWriter({
   // Who a pair's second version is for, as its tab says it, or its condition where the parts don't have it.
   const conditionWords = (id: string) => data.conditions.find((one) => one.id === id)?.label ?? id;
   const versionCovers = condition?.covers ?? 0;
-  // The second version's words are WhatsApp's to review: they can't change till it decides. Once it approves them,
-  // or they're an approved template's, they're that template's, as a chosen template's are, till edited as new.
-  const versionLocked = draft.textVersion?.template?.status === "pending";
-  const versionTemplate =
-    textVersion?.templateId != null ? data.templates.find((one) => one.id === textVersion.templateId) : undefined;
-  const versionFixed = versionLocked || Boolean(versionTemplate);
   // The pair the text and its second version are, if they're one, which the dropdown shows as chosen.
   const chosenPair = pairs.find(
     (pair) =>
       pair.own === values.templateId &&
-      pair.version === textVersion?.templateId &&
-      pair.condition === textVersion.condition,
+      pair.version === values.versionTemplateId &&
+      pair.condition === textVersion?.condition,
   );
   const ownParts = { body, header: values.header, buttons: values.buttons };
-  // How many templates Send for approval sends: new words of its own, and a second version that's neither the same
-  // template nor one WhatsApp has (submitTemplate).
-  const versionHas =
-    textVersion !== null &&
-    textVersion.templateId !== null &&
-    textVersion.templateId === draft.textVersion?.templateId &&
-    ["pending", "approved"].includes(draft.textVersion.template?.status ?? "");
-  const toSubmit =
-    (writingNew && !waiting ? 1 : 0) +
-    (textVersion && !versionHas && !versionTemplate && !sameTemplate(textVersion, ownParts) ? 1 : 0);
-  const setVersion = (patch: Partial<TextVersion>) => change({ textVersion: { ...textVersion!, ...patch } });
-  // An approved template with the same words, top and buttons as `parts`, which are then that template's.
-  const approvedLike = (parts: Pick<TextVersion, "body" | "header" | "buttons">) =>
-    data.templates.find((one) => sameTemplate(parts, one));
-  // New words changed to be an approved template's, its top and buttons too, are that template: chosen, not sent
-  // again. Only as they're changed, so Edit as a new template, which starts from its words, stays new.
+  // Whose words are new, to go to WhatsApp for approval: neither a chosen template's nor with it already.
+  const toApprove = { except: writingNew && !waiting, only: Boolean(textVersion) && !stands.only.fixed };
+  // How many templates Send for approval sends: one for each version with new words, but one for both when they'd
+  // be the same template (submitTemplate).
+  const toSubmit = (toApprove.except ? 1 : 0) + (toApprove.only && !sameTemplate(textVersion!, ownParts) ? 1 : 0);
+  // What a change to a version's words, top or buttons makes them: an approved template's, if they're now the same
+  // as one, so that template, chosen, not sent again. Only as they change, so Edit as a new template, which starts
+  // from a template's words, stays new whatever its place or picture, as does what WhatsApp is reviewing.
+  const likeAfter = (before: TextTemplateParts, patch: Partial<TextTemplateParts>) => {
+    const after = { ...before, ...patch };
+    return sameTemplate(after, before) ? undefined : data.templates.find((one) => sameTemplate(after, one));
+  };
+  // A change to the text's own words, top, place, picture or buttons.
   const changeOwn = (patch: Partial<Pick<Changes, "body" | "header" | "place" | "pictureId" | "buttons">>) => {
-    const same = !email && writingNew && !waiting ? approvedLike({ ...ownParts, ...patch }) : undefined;
-    if (same) takeTemplate(same);
+    const same = !email && writingNew ? likeAfter(ownParts, patch) : undefined;
+    if (same) takeTemplate(same, { ...patch, body: same.body, header: same.header, buttons: same.buttons });
     else change(patch);
   };
-  // The same for the second version's, which takes the template's ID, as its words, top and buttons are already its.
+  // The same to the second version's, which is saved whole, with the template its words now are, if any, beside it.
   const changeVersion = (patch: Partial<TextVersion>) => {
-    const same = approvedLike({ ...textVersion!, ...patch });
-    setVersion({ ...patch, templateId: same ? same.id : null });
+    const same = likeAfter(textVersion!, patch);
+    change({
+      textVersion: {
+        ...textVersion!,
+        ...patch,
+        ...(same && { body: same.body, header: same.header, buttons: same.buttons }),
+      },
+      ...(same && { versionTemplateId: same.id }),
+    });
   };
-  // A second version for those who meet `chosen`: a copy of the text as it is, open to change.
+  // A second version for those who meet `chosen`: a copy of the text as it is, so of its chosen template too, which
+  // its words stay till they're edited as new.
   const addVersion = (chosen: string) => {
     change({
       textVersion: {
         condition: chosen,
         body,
-        templateId: null,
         header: values.header,
         place: values.place,
         pictureId: values.pictureId,
         buttons: values.buttons,
       },
+      versionTemplateId: values.templateId,
     });
     setSide("only");
   };
-  // The open version's ×: it's the text for everyone, the other gone.
+  // The open version's ×: it's the text for everyone, the other gone. The second version's as it stands: a chosen
+  // template's, or new words.
   const keepOpen = () => {
-    if (side === "except") return change({ textVersion: null });
+    const alone = { textVersion: null, versionTemplateId: null };
+    if (side === "except") return change(alone);
     const { body: kept, header, place, pictureId, buttons } = textVersion!;
-    change({ templateId: null, body: kept, header, place, pictureId, buttons, textVersion: null });
-    setWritingNew(true);
+    if (stands.only.chosen) takeTemplate(stands.only.chosen, { place, pictureId, ...alone });
+    else {
+      change({ templateId: null, body: kept, header, place, pictureId, buttons, ...alone });
+      setWritingNew(true);
+    }
     setOwnKey((n) => n + 1);
   };
   // A picture pasted anywhere in Write, words and all, is the open version's top, as words can't hold one; but not
@@ -843,16 +902,15 @@ export default function BroadcastWriter({
     const file = [...event.clipboardData.files].find((one) => one.type.startsWith("image/"));
     if (!file) return;
     event.preventDefault();
-    const version = textVersion && side === "only";
-    const fixedTop = version ? versionFixed : !writingNew || waiting;
-    const topHeader = version ? textVersion.header : values.header;
-    if ((version && versionLocked) || (fixedTop && topHeader !== "image")) return;
+    const open: VersionSide = textVersion && side === "only" ? "only" : "except";
+    const fixedTop = open === "only" ? stands.only.fixed : !writingNew;
+    const topHeader = open === "only" ? textVersion!.header : values.header;
+    if (stands[open].waiting || (fixedTop && topHeader !== "image")) return;
     void uploadPicture(file).then((kept) => {
       if (!kept || "refused" in kept) return;
       const top = { header: "image" as const, pictureId: kept.pictureId };
-      if (!version) changeOwn(top);
-      else if (versionTemplate) setVersion({ pictureId: kept.pictureId });
-      else changeVersion(top);
+      if (open === "only") changeVersion(top);
+      else changeOwn(top);
     });
   };
   // Beside the words, where an email has its parts: a second version for some, and nothing once it has one, as a
@@ -886,24 +944,26 @@ export default function BroadcastWriter({
     buttons: values.buttons,
     textVersion: textVersion && {
       ...textVersion,
-      approved: Boolean(versionTemplate),
+      approved: Boolean(stands.only.chosen),
       sameWords: sameWords(
         textVersion.body,
         data.templates.map((one) => one.body),
       ),
     },
   }).filter((problem) => problem !== "cannot-send");
-  // Greyed, before a Consent by the channel picked: that comes first, till one's picked. What only new words have
-  // wrong is said under Send for approval, not again by Schedule, and so is what's wrong with the header or
-  // buttons while Send for approval is there: Schedule says once to fix what's said there.
-  const approving = toSubmit > 0 && !versionLocked;
-  const saidUnderApproval: string[] = [...NEW_WORDS_PROBLEMS, ...(approving ? TEMPLATE_PARTS_PROBLEMS : [])];
+  // Greyed, before a Consent by the channel picked: that comes first, till one's picked. While Send for approval is
+  // there, what new words have wrong is said under it, not again by Schedule, and so is what's wrong with the
+  // header or buttons: Schedule says once to fix what's said there. With nothing to send, Schedule says it all.
+  const approving = toSubmit > 0;
+  const saidUnderApproval: string[] = approving ? [...NEW_WORDS_PROBLEMS, ...TEMPLATE_PARTS_PROBLEMS] : [];
   const saidAbove = problems.some((problem) => saidUnderApproval.includes(problem));
   const shownProblems = [
     ...(blank && !picked ? ["no-consent" as const] : []),
     ...(saidAbove ? ["fix-preview" as const] : []),
     ...problems.filter((problem) => !saidUnderApproval.includes(problem)),
   ];
+  // A text with a version WhatsApp hasn't approved yet: new words, or ones it's reviewing.
+  const unapproved = !email && (words === "new" || Boolean(textVersion && !stands.only.chosen));
   const fromName = email ? draft.fromName || BROADCAST_SENDER.name : TEXT_SENDER_NAME;
   const fromLine = email ? named(fromName, draft.sentFrom!) : TEXT_SENDER_NAME;
   // In Send, as the broadcast's page has it: the address, or a text's WhatsApp number once there is one, the
@@ -951,33 +1011,36 @@ export default function BroadcastWriter({
         textVersion: {
           condition: pair.condition,
           body: version.body,
-          templateId: version.id,
           header: version.header,
           place: null,
           pictureId: null,
           buttons: version.buttons,
         },
+        versionTemplateId: version.id,
       });
       setSide("only");
       return;
     }
-    takeTemplate(byId(Number(value))!, { textVersion: null });
+    takeTemplate(byId(Number(value))!, { textVersion: null, versionTemplateId: null });
   };
-  // The new words sent for approval: once WhatsApp approves them, with the page still open, they're that template,
-  // chosen, their words fixed, as on a page loaded after.
-  const sent = useRef<number | null>(null);
-  // Taken once the page's list of approved templates has it, which may come after the draft says it's approved.
-  const takeApproved = useEffectEvent((id: number) => {
-    const approved = byId(id);
-    if (!approved) return;
-    sent.current = null;
-    takeTemplate(approved);
-  });
-  useEffect(() => {
-    if (waiting) sent.current = waiting.id;
-    else if (draft.template?.status === "approved" && draft.template.id === sent.current)
-      takeApproved(draft.template.id);
-  }, [waiting, draft.template, data.templates]);
+  // New words WhatsApp approves with the page still open are then that template, chosen, their words fixed, as on a
+  // page loaded after: the text's own, and its second version's.
+  useApprovedWhileOpen(draft.template, data.templates, (approved) => takeTemplate(approved));
+  useApprovedWhileOpen(draft.textVersion?.template, data.templates, (approved) =>
+    change({ versionTemplateId: approved.id }),
+  );
+  // Takes the words WhatsApp is reviewing back from it, the text's own and its second version's, to change them.
+  const withdraw = async () => {
+    const result = await unlessStale(actions.withdrawTemplate(id));
+    // An outdated page says so over the draft, not here.
+    if (!result) return;
+    // They wait for WhatsApp no longer, so Send for approval, once it's back, waits for nothing.
+    setSubmitted(false);
+    // With none waiting to take back, the page is back as the template stands, and its top says so.
+    if (!result.ok) return tell(copy.refusals.withdraw.gone);
+    withdrew.current = true;
+    router.refresh();
+  };
   // As the page has them, this draft has its template saved: how many others have each.
   const others = (one: WhatsAppTemplate): TemplateUses =>
     draft.template?.id === one.id ? { ...one.uses, drafts: one.uses.drafts - 1 } : one.uses;
@@ -1042,28 +1105,26 @@ export default function BroadcastWriter({
   const versionParts = (open: VersionSide) => {
     if (open === "only") {
       const version = textVersion!;
-      const rejected = draft.textVersion?.template?.status === "rejected" ? draft.textVersion.template : null;
+      const { chosen, waiting: sent, rejected, fixed } = stands.only;
       return (
         <div className={`${own.textWords} ${own.versionWords}`}>
           {/* WhatsApp rejected its words: why, till they're sent again. */}
-          {rejected && version.templateId === rejected.id && (
-            <Strip tone="red">{copy.rejected(rejectionWords(rejected.rejectedReason))}</Strip>
-          )}
+          {rejected && <Strip tone="red">{copy.rejected(rejectionWords(rejected.rejectedReason))}</Strip>}
           <TextTop
             header={version.header}
             place={version.place}
             pictureId={version.pictureId}
             link={firstLink(version.body.content)}
-            onChange={(top) => ("header" in top ? changeVersion(top) : setVersion(top))}
+            onChange={(top) => changeVersion(top)}
             findPlaces={findPlaces}
             uploadPicture={uploadPicture}
-            fixed={versionFixed}
+            fixed={fixed}
           />
           <div className={styles.letter}>
             <p id={versionLabel} className={styles.label}>
               {copy.templateWords}
             </p>
-            {versionFixed ? (
+            {fixed ? (
               <MailingLetter doc={version.body} />
             ) : (
               <MailingEditor
@@ -1079,18 +1140,17 @@ export default function BroadcastWriter({
               />
             )}
           </div>
-          <TextButtons
-            buttons={version.buttons}
-            onChange={(buttons) => changeVersion({ buttons })}
-            fixed={versionFixed}
-          />
-          {versionTemplate && (
+          <TextButtons buttons={version.buttons} onChange={(buttons) => changeVersion({ buttons })} fixed={fixed} />
+          {/* A chosen template's words, as new words to change: said once, so no later save takes them off a template. */}
+          {chosen && (
             <div className={own.templateActions}>
-              <Button variant="ghost" size="small" fit onClick={() => setVersion({ templateId: null })}>
+              <Button variant="ghost" size="small" fit onClick={() => change({ versionTemplateId: null })}>
                 {copy.editTemplate}
               </Button>
             </div>
           )}
+          {/* With the text's own words WhatsApp's too, they're taken back there, together. */}
+          {sent && !waiting && <TemplateWithdraw template={sent} withdraw={withdraw} />}
         </div>
       );
     }
@@ -1129,13 +1189,13 @@ export default function BroadcastWriter({
           {mailingsCopy.mailingPages.saveStates.conflict}
         </Strip>
       )}
-      {draft.template?.status === "pending" && (
+      {reviewing && (
         <Strip tone="blue" waiting>
-          {copy.awaitingApproval(staffMemberText(draft.template.createdBy!), staffTime(draft.template.requestedAt))}
+          {copy.awaitingApproval(staffMemberText(reviewing.createdBy!), staffTime(reviewing.requestedAt))}
         </Strip>
       )}
-      {draft.template?.status === "rejected" && (
-        <Strip tone="red">{copy.rejected(rejectionWords(draft.template.rejectedReason))}</Strip>
+      {stands.except.rejected && (
+        <Strip tone="red">{copy.rejected(rejectionWords(stands.except.rejected.rejectedReason))}</Strip>
       )}
       <Grid>
         <Card span={6} title={<Numbered n={1}>{copy.sections.who}</Numbered>} id="who-title">
@@ -1334,22 +1394,7 @@ export default function BroadcastWriter({
                     </div>
                   )}
                   {deleteError && <Alert>{deleteError}</Alert>}
-                  {writingNew && waiting && (
-                    <TemplatePending
-                      template={waiting}
-                      withdraw={async () => {
-                        const result = await unlessStale(actions.withdrawTemplate(id));
-                        // An outdated page says so over the draft, not here.
-                        if (!result) return;
-                        // They wait for WhatsApp no longer, so Send for approval, once it's back, waits for nothing.
-                        setSubmitted(false);
-                        // With none waiting to take back, the page is back as the template stands, and its top says so.
-                        if (!result.ok) return tell(copy.refusals.withdraw.gone);
-                        withdrew.current = true;
-                        router.refresh();
-                      }}
-                    />
-                  )}
+                  {writingNew && waiting && <TemplatePending template={waiting} withdraw={withdraw} />}
                   {/* What they're called in the list of templates, once approved, and what the broadcast is. */}
                   {writingNew && !waiting && (
                     <Field label={copy.templateName} className={styles.sender}>
@@ -1365,7 +1410,7 @@ export default function BroadcastWriter({
                       open={side}
                       onOpen={setSide}
                       templates={toSubmit}
-                      onForEveryone={versionLocked ? undefined : keepOpen}
+                      onForEveryone={stands.only.waiting ? undefined : keepOpen}
                     >
                       {versionParts(side)}
                     </TextVersions>
@@ -1390,7 +1435,7 @@ export default function BroadcastWriter({
 
             <Card
               span={6}
-              title={<Numbered n={4}>{words === "new" && !waiting ? copy.previewNew : copy.sections.preview}</Numbered>}
+              title={<Numbered n={4}>{approving ? copy.previewNew : copy.sections.preview}</Numbered>}
               id="preview-title"
               ref={(element) => {
                 previewCard.current = element;
@@ -1401,7 +1446,7 @@ export default function BroadcastWriter({
                 draft={draft}
                 body={body}
                 words={words}
-                footer={template?.footer ?? TEMPLATE_FOOTER}
+                footer={footerOf(stands.except)}
                 top={{
                   place: values.header === "location" ? values.place : null,
                   picture: values.header === "image" && values.pictureId ? pictureSource(values.pictureId) : null,
@@ -1411,8 +1456,8 @@ export default function BroadcastWriter({
                   textVersion && {
                     condition: textVersion.condition,
                     body: textVersion.body,
-                    words: versionHas && draft.textVersion!.template!.status === "approved" ? "chosen" : "new",
-                    footer: draft.textVersion?.template?.footer ?? TEMPLATE_FOOTER,
+                    words: stands.only.chosen ? "chosen" : "new",
+                    footer: footerOf(stands.only),
                     place: textVersion.header === "location" ? textVersion.place : null,
                     picture:
                       textVersion.header === "image" && textVersion.pictureId
@@ -1429,8 +1474,7 @@ export default function BroadcastWriter({
                 approval={
                   // New words go to WhatsApp from here, under how they'll look, once they're written, before a test,
                   // which can only go once WhatsApp approves them.
-                  toSubmit > 0 &&
-                  !versionLocked && (
+                  approving && (
                     <div className={own.approval}>
                       <Button
                         variant="primary"
@@ -1482,13 +1526,10 @@ export default function BroadcastWriter({
                   onChange={(finishMinutes) => change({ finishMinutes })}
                 />
               )}
-              {/* A text WhatsApp hasn't approved, due sooner than it may take to. */}
-              {!email &&
-                words === "new" &&
-                values.dueAt &&
-                new Date(values.dueAt).getTime() - now().getTime() < APPROVAL_MS && (
-                  <Strip tone="amber">{copy.approvalSoon}</Strip>
-                )}
+              {/* A text WhatsApp hasn't approved, either version of it, due sooner than it may take to. */}
+              {unapproved && values.dueAt && new Date(values.dueAt).getTime() - now().getTime() < APPROVAL_MS && (
+                <Strip tone="amber">{copy.approvalSoon}</Strip>
+              )}
             </Card>
 
             <Card span={6} title={<Numbered n={6}>{copy.sections.send}</Numbered>} id="send-title">
@@ -1525,10 +1566,10 @@ export default function BroadcastWriter({
               </div>
               {scheduleError && <Alert>{scheduleError}</Alert>}
               {/* Then, a bullet as they are but in the words' own colour, that new words go to WhatsApp for approval as
-                  it's scheduled, unless they're with it already. */}
+                  it's scheduled, the text's own or its second version's, unless they're with it already. */}
               <ProblemList
                 problems={shownProblems.map((problem) => copy.problems[problem])}
-                notes={words === "new" && !waiting ? [copy.schedulesForApproval(toSubmit)] : []}
+                notes={toSubmit > 0 ? [copy.schedulesForApproval(toSubmit)] : []}
               />
             </Card>
           </>,

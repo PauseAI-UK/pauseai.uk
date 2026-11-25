@@ -83,7 +83,6 @@ describe("textShown", () => {
       textVersion: {
         condition: "wrote:regulate-ai",
         body: words("You wrote"),
-        templateId: 3,
         header: "image",
         place: null,
         pictureId: PICTURE,

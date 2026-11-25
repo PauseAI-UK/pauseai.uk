@@ -13,7 +13,6 @@ const withVersion = {
   textVersion: {
     condition: "wrote:regulate-ai",
     body: exampleTextWords,
-    templateId: null,
     header: "image" as const,
     place: null,
     pictureId: examplePictureId,

@@ -23,7 +23,6 @@ const written: Written = {
   textVersion: {
     condition: "wrote:regulate-ai",
     body: words("Thanks for writing"),
-    templateId: null,
     header: "image",
     place: null,
     pictureId: examplePictureId,

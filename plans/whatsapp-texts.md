@@ -4,17 +4,6 @@ A text can have a picture or a map of a place at its top, reply and link
 buttons, and a second version for those who meet a condition, each version
 a template of its own. What's left is below.
 
-## Built more simply than it could be
-
-- **The place's map.** The writer shows a drawing of a map with the
-  place's name and address, and a link to check its pin on Google Maps,
-  not a map of the place itself. A real map needs a map library and tiles
-  from a server the site's Content Security Policy lets in, such as
-  OpenFreeMap's.
-- **The second version's words.** It starts as a copy of the first's
-  words, top and buttons, and stays new words, sent for approval. It
-  can't be one of the approved templates from the dropdown.
-
 ## Where Read more falls
 
 What a text has changes where WhatsApp folds its words under Read more
@@ -109,6 +98,12 @@ A real send to an iPhone, an Android phone and WhatsApp Web answers each:
   approved example, with no mark against the account's quality;
 - what WhatsApp Web does when the map is clicked, and whether the name we
   send shows in the map app;
-- whether WhatsApp's `button` message always carries the context ID of
-  the text it answers;
+- whether Meta takes a template with an approved one's words but another
+  top or buttons. Its review page says one "with the same wording in the
+  body and footer of an existing template" is rejected as a duplicate
+  ([Template review, "Duplication"](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review)),
+  and every text has the same footer. So the writer won't send new words
+  an approved template has, whatever their top or buttons. A text whose
+  two versions have the same words but a different top or buttons does go
+  as two templates, the second of which Meta may then reject;
 - where Read more falls with a picture or a map (above).

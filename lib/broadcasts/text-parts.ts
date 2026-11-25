@@ -39,10 +39,14 @@ export const MOST_BUTTON_CHARACTERS = 25;
 /** What makes a text one template: its words, its top and its buttons. Its place and picture aren't, as each send gives them. */
 export type TextTemplateParts = { body: MailingDoc; header: TextHeader | null; buttons: TextButton[] };
 
-/** A text's second version, for those who meet `condition`: its own words, template, top, place, picture and buttons. */
+/**
+ * A text's second version, for those who meet `condition`: its own words,
+ * top, place, picture and buttons. Its template isn't part of it: a save
+ * says one chosen apart from it, as it does the text's own
+ * (saveBroadcastDraft).
+ */
 export type TextVersion = TextTemplateParts & {
   condition: string;
-  templateId: number | null;
   place: TextPlace | null;
   pictureId: string | null;
 };
@@ -148,25 +152,19 @@ export function inOrder(buttons: TextButton[]): TextButton[] {
   ];
 }
 
-/** A second version as saved, or none (null); undefined for anything else. */
+/** What a second version is saved with, and nothing else. */
+const VERSION_PARTS = ["condition", "body", "header", "place", "pictureId", "buttons"];
+
+/** A second version as saved, or none (null); undefined for anything else, or one with more than its parts. */
 export function versionFrom(value: unknown): TextVersion | null | undefined {
   if (value === null) return null;
   if (!isObject(value) || typeof value.condition !== "string" || !value.condition) return undefined;
+  if (Object.keys(value).some((name) => !VERSION_PARTS.includes(name))) return undefined;
   const body = checkMailingDoc(value.body);
   const header = headerFrom(value.header);
   const place = placeFrom(value.place);
   const pictureId = pictureFrom(value.pictureId);
   const buttons = buttonsFrom(value.buttons);
-  const templateId = value.templateId;
   if (!body || header === undefined || place === undefined || pictureId === undefined || !buttons) return undefined;
-  if (!(templateId === null || Number.isInteger(templateId))) return undefined;
-  return {
-    condition: value.condition,
-    body,
-    templateId: templateId as number | null,
-    header,
-    place,
-    pictureId,
-    buttons,
-  };
+  return { condition: value.condition, body, header, place, pictureId, buttons };
 }

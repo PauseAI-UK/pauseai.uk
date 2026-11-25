@@ -173,18 +173,16 @@ describe("versionFrom", () => {
   const version = {
     condition: "event:42",
     body: WORDS,
-    templateId: null,
     header: "location",
     place: PLACE,
     pictureId: null,
     buttons: [{ text: "Coming" }],
   };
 
-  it("takes a second version with a condition, words, a template or none, a top, a place, a picture and buttons", () => {
+  it("takes a second version with a condition, words, a top, a place, a picture and buttons", () => {
     expect(versionFrom(version)).toEqual(version);
-    expect(versionFrom({ ...version, templateId: 7, header: null, place: null, buttons: [] })).toEqual({
+    expect(versionFrom({ ...version, header: null, place: null, buttons: [] })).toEqual({
       ...version,
-      templateId: 7,
       header: null,
       place: null,
       buttons: [],
@@ -208,7 +206,8 @@ describe("versionFrom", () => {
     expect(versionFrom({ ...version, pictureId: undefined })).toBeUndefined();
     expect(versionFrom({ ...version, place: "Padella" })).toBeUndefined();
     expect(versionFrom({ ...version, buttons: "Coming" })).toBeUndefined();
-    expect(versionFrom({ ...version, templateId: 1.5 })).toBeUndefined();
+    // Nor one that says more than its parts, such as a template, which a save says apart from it.
+    expect(versionFrom({ ...version, templateId: 7 })).toBeUndefined();
     expect(versionFrom({ ...version, templateId: "7" })).toBeUndefined();
   });
 });
