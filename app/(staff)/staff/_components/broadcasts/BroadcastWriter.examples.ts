@@ -442,6 +442,14 @@ export const exampleMessageCopy: MessageCopy = {
   replies: [],
   answers: [],
   reactions: [],
+  // Its broadcast as written: a map of where to meet, and a reply button.
+  written: {
+    ...exampleBroadcastText,
+    body: exampleTextWords,
+    header: "location",
+    place: examplePlace,
+    buttons: [{ text: "I'm coming" }],
+  },
 };
 
 /** Replies to an email, oldest first, as a thread shows them: an automatic reply; Jane's thanks, which Jo said needed nothing; her question, which Jo answered; and her asking to stop, waiting for staff. */

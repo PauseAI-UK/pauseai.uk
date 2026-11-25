@@ -23,6 +23,7 @@ import type { Topic } from "@/lib/supporters/contact-permissions";
 import { answersTo, reactionsTo, type BroadcastAnswer, type BroadcastReaction } from "./answers.server";
 import { repliesTo, type BroadcastReply } from "./replies.server";
 import { config } from "@/lib/server/config.server";
+import type { WrittenText } from "./text-shown";
 import { query } from "@/lib/server/db.server";
 import { channelSends, textSenderNumber } from "./channels.server";
 import {
@@ -493,6 +494,8 @@ export type MessageCopy = {
   events: BroadcastEvent[];
   /** The topics it went under, which a reply recorded as an opt-out stops. */
   topics: Topic[];
+  /** A text's broadcast as written, for the version they got, its top and buttons; none for an email. */
+  written: WrittenText | null;
   /** The replies to it, oldest first. */
   replies: BroadcastReply[];
   /** Staff's answers to those replies, oldest first. */
@@ -506,7 +509,7 @@ export type BroadcastEvent = { at: Date; kind: string; details: Record<string, u
 
 /** One copy of a broadcast, by its broadcast's ID and its own; or undefined. */
 export async function messageCopy(broadcastId: number, copyId: number): Promise<MessageCopy | undefined> {
-  const [row] = await query<Omit<MessageCopy, "events" | "replies" | "answers" | "reactions">>(
+  const [row] = await query<Omit<MessageCopy, "events" | "replies" | "answers" | "reactions" | "written">>(
     `SELECT c.id::int AS id, m.id::int AS "messageId", m.title, m.channel, m.subject, m.body,
        m.from_name AS "fromName", m.sent_from AS "sentFrom", m.send_by AS "sendBy", c.supporter_id::int AS "supporterId",
        c.merge_values ->> 'name' AS name, c.merge_values ->> 'place' AS place, c.address,
@@ -519,7 +522,7 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
     [broadcastId, copyId],
   );
   if (!row) return undefined;
-  const [events, replies, answers, reactions] = await Promise.all([
+  const [events, replies, answers, reactions, written] = await Promise.all([
     query<BroadcastEvent>(
       "SELECT at, kind, details FROM broadcast_message_events WHERE message_id = $1 ORDER BY at DESC, id DESC",
       [copyId],
@@ -527,6 +530,7 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
     repliesTo(copyId),
     answersTo(copyId),
     reactionsTo(copyId),
+    row.channel === "text" ? getWrittenBroadcast(broadcastId).then((one) => one ?? null) : null,
   ]);
-  return { ...row, body: checkMailingDoc(row.body)!, events, replies, answers, reactions };
+  return { ...row, body: checkMailingDoc(row.body)!, events, replies, answers, reactions, written };
 }

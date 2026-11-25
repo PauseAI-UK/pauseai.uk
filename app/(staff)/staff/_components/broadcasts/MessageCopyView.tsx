@@ -12,7 +12,7 @@ import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/
 import { MailingLetter } from "../mailings/MailingLetter";
 import { CopyStatus } from "../letters/CopyStatus";
 import { BubbleButtons, BubbleTop, ChatBubble, ChatWall, TextWords } from "./TextBubble";
-import { textShown, type WrittenText } from "@/lib/broadcasts/text-shown";
+import { textShown } from "@/lib/broadcasts/text-shown";
 import { LetterHistory, type HistoryEntry } from "../letters/LetterHistory";
 import { Thread } from "../letters/LetterThread";
 import ThreadEmail from "../letters/ThreadEmail";
@@ -59,10 +59,11 @@ function NotReached({ one }: { one: MessageCopy }) {
 
 /**
  * The message as they got it: a text as a conversation, its own or its second
- * version as they meet its condition, with its top and buttons (`written`,
- * the broadcast's text); an email as a mail app shows it.
+ * version as they meet its condition, with its top and buttons (from the
+ * broadcast as written); an email as a mail app shows it.
  */
-function Message({ one, name, written }: { one: MessageCopy; name: string; written?: WrittenText }) {
+function Message({ one, name }: { one: MessageCopy; name: string }) {
+  const written = one.written;
   const merge = one.merge ?? FIELDS_AS_WORDS;
   if (one.channel === "text") {
     const condition = written?.textVersion?.condition;
@@ -282,13 +283,10 @@ function OpenInGmail({ one }: { one: MessageCopy }) {
  */
 export default function MessageCopyView({
   one,
-  written,
   actions,
   signer,
 }: {
   one: MessageCopy;
-  /** A text's broadcast as it was written, for the version they got, its top and buttons. */
-  written?: WrittenText;
   actions?: ReplyHandlers;
   /** The staff member's first name, which an email's answer is signed with. */
   signer?: string;
@@ -311,7 +309,7 @@ export default function MessageCopyView({
           <Thread title={copy.threadTitle} link={<OpenInGmail one={one} />}>
             {/* A text's thread is one conversation, its parts touching; an email's, a mail each, apart. */}
             <div className={one.channel === "text" ? own.chat : own.mails}>
-              <Message one={one} name={name} written={written} />
+              <Message one={one} name={name} />
               {one.replies.map((reply) => (
                 <Reply key={reply.id} reply={reply} one={one} actions={actions} signer={signer} />
               ))}
