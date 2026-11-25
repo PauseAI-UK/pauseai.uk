@@ -83,6 +83,10 @@ Each command has a time limit and a log in `tmp/gate/`, and the gate ends with a
 
 `coverage-ci.mjs`, run with `npm run coverage:ci -- <run id>`, shows what CI's merged coverage leaves uncovered, when a file passes `npm test` here and fails CI's merge of its three shards. It downloads the run's coverage with `gh` to `tmp/coverage-ci/<run id>/`, merges it as `merge-coverage.mjs` does, and prints each statement, branch and function left uncovered in each file under 100%, by line, with each shard's count. `--file <path>` shows one file, covered or not.
 
+`coverage-timing.mjs`, run with `npm run coverage:timing`, finds coverage that depends on timing: a branch reached only when a timer happens to go one way, which passes here and fails CI's gate on a loaded machine. It runs every test several times (`--runs`, five by default), some at once to load the machine (`--at-once`), and lists each count that's none in one run and some in another, or a few that differ. Each one it finds wants a test that reaches it on purpose. Its reports and list are in `tmp/coverage-timing/`.
+
+`query-costs.mjs`, run with `npm run query-costs -- [<test files>]`, lists each query the node tests run that the planner prices over JIT's threshold, which CI's Postgres compiles first, sometimes for seconds (`docs/code-structure.md`, "How fast a query has to be"). It runs the tests on a Postgres of its own with `auto_explain` in their connections, reading the plans from its log as they come.
+
 ## Investments
 
 `investments.mjs`, run with `npm run investments`, lists the items in `investments/`, most hits first, with each one's size and kind, and writes the same list to `investments/ranked.txt` (`investments/README.md`).

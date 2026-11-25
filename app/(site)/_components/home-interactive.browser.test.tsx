@@ -387,6 +387,24 @@ describe("LocalGroupsMap", () => {
     window.dispatchEvent(new Event("resize"));
   });
 
+  it("draws nothing from a map that arrives after it's gone", async () => {
+    await page.viewport(1280, 900);
+    let arrive: (() => void) | undefined;
+    const real = window.fetch.bind(window);
+    vi.spyOn(window, "fetch").mockImplementation(
+      (input, init) => new Promise((resolve) => (arrive = () => resolve(real(input, init)))),
+    );
+    const { container, unmount } = await render(<LocalGroupsMap />);
+    await expect.poll(() => arrive).toBeDefined();
+    await unmount();
+    const drawn = vi.spyOn(console, "error");
+    arrive!();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(container.querySelector(PIN)).toBeNull();
+    expect(drawn).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
   it("stacks each side's cards in their own column, none overlapping, with the map as tall as the longer one", async () => {
     await page.viewport(1280, 900);
     const { container } = await render(<LocalGroupsMap />);
