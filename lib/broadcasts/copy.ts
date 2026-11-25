@@ -99,14 +99,14 @@ export const broadcastsCopy = {
       name: "⁂ Name",
       address: "⁂ Address",
       checkMap: "⁂ Check it on a map",
-      remove: "⁂ Take the place off",
+      remove: "⁂ Remove place",
     },
     // Choosing a text's picture: the picture chosen, the box to drop or paste one on, its button, why a file won't
     // do, and what can change once approved.
     pictureChooser: {
-      shown: "⁂ The picture at the top of the text",
+      shown: "⁂ Header picture",
       drop: "Drop or paste a picture here",
-      remove: "⁂ Take the picture off",
+      remove: "⁂ Remove picture",
       choose: "Add picture",
       refusals: {
         "not-picture": "⁂ WhatsApp takes a JPEG or PNG picture. Choose one of those.",
