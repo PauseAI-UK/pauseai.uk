@@ -55,8 +55,8 @@
     grid-column: 1 / -1;
   }
 
-  /* Remove, beside the kind. */
-  .table td:has(button) {
+  /* Remove, beside the kind: said as one of the cells after the first, so this is the rule that places it. */
+  .table td:not(:first-child):has(button) {
     grid-row: 1;
     grid-column: 2;
   }
