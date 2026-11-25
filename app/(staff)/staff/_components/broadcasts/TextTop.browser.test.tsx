@@ -206,6 +206,8 @@ describe("TextTop", () => {
     await page.getByLabelText(words.address).click();
     await userEvent.keyboard("{Enter}");
     expect(onChange).toHaveBeenLastCalledWith({ place: { ...examplePlace, address: "SW1 London" } });
+    await userEvent.keyboard("{End}!");
+    expect(onChange).toHaveBeenLastCalledWith({ place: { ...examplePlace, address: `${examplePlace.address}!` } });
   });
 
   it("says a place needs a name and an address while either is empty", async () => {

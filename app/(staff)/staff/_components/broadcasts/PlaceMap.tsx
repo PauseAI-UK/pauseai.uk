@@ -7,7 +7,7 @@ import { tilesAround } from "@/lib/broadcasts/map-tiles";
 import styles from "./PlaceMap.module.css";
 
 /** Whether a place's map is OpenStreetMap's, or a drawing (BroadcastWriterData.realMaps); a drawing unless a writer says. */
-export const RealMaps = createContext(false);
+export const realMapsContext = createContext(false);
 
 /** Where a place is on Google Maps, its pin on it, to check it's the right spot, as most phones open it there. */
 const mapOf = (place: TextPlace) => `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
@@ -46,12 +46,12 @@ function Pin() {
 
 /**
  * A place's map, as a text's header shows it: OpenStreetMap's streets round
- * it, where RealMaps says, or else a drawing of some, with a pin at its
+ * it, where realMapsContext says, or else a drawing of some, with a pin at its
  * middle. Over it, a link to Google Maps at its pin, as most phones open a
  * place there.
  */
 export default function PlaceMap({ place }: { place: TextPlace }) {
-  const real = useContext(RealMaps);
+  const real = useContext(realMapsContext);
   const words = broadcastsCopy.broadcastPages.placeChooser;
   return (
     <div className={styles.map}>
