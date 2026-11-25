@@ -890,18 +890,21 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
       made.push(one);
       return one.id;
     };
-    const ownId = mine ? await add(broadcast, name) : broadcast.template!.id;
+    // Each version's template says who it's for, but one for both, or for a text with one version, is just its name.
+    const labels = version ? Object.fromEntries((await broadcastParts()).map((part) => [part.id, part.label])) : {};
+    const who = version ? (labels[version.condition] ?? version.condition) : "";
+    const split = Boolean(version) && !sameTemplate(version!, broadcast);
+    const pages = broadcastsCopy.broadcastPages;
+    const ownId = mine
+      ? await add(broadcast, split ? pages.othersTemplateName(name, who) : name)
+      : broadcast.template!.id;
     await query(
       "UPDATE mailings SET template_id = $2, title = $3, updated_at = now() WHERE id = $1",
       [id, ownId, name],
       db,
     );
     if (theirs) {
-      const labels = Object.fromEntries((await broadcastParts()).map((part) => [part.id, part.label]));
-      const who = labels[version!.condition] ?? version!.condition;
-      const versionId = sameTemplate(version!, broadcast)
-        ? ownId
-        : await add(version!, broadcastsCopy.broadcastPages.versionTemplateName(name, who));
+      const versionId = split ? await add(version!, pages.versionTemplateName(name, who)) : ownId;
       await query("UPDATE broadcast_versions SET template_id = $2 WHERE mailing_id = $1", [id, versionId], db);
     }
     return {
