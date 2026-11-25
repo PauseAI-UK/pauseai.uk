@@ -4,12 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/Controls";
 import { Hint } from "@/components/ui/Field";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
-import {
-  MOST_BUTTON_CHARACTERS,
-  MOST_BUTTONS,
-  MOST_LINK_BUTTONS,
-  type TextButton,
-} from "@/lib/broadcasts/text-parts";
+import { MOST_BUTTON_CHARACTERS, MOST_BUTTONS, MOST_LINK_BUTTONS, type TextButton } from "@/lib/broadcasts/text-parts";
 import styles from "./TextButtons.module.css";
 
 const copy = broadcastsCopy.broadcastPages.replyButtons;

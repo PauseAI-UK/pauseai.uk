@@ -776,7 +776,7 @@ test("A text with a second version for some", async ({ page, request, flowDataba
     "SELECT t.meta_name FROM whatsapp_templates t JOIN broadcast_versions v ON v.template_id = t.id",
   );
   await postWhatsAppWebhook(request, BASE, templateStatus(rejected!, "REJECTED", "INVALID_FORMAT"));
-  await page.reload();
+  await reload(page);
   const why = page.getByText(broadcastsCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT, { exact: false });
   await why.scrollIntoViewIfNeeded();
   await frame(page, "The version WhatsApp rejected, and why", { window: true });

@@ -25,7 +25,6 @@
 
 .table td {
   padding: 0 var(--space-2) var(--space-2) 0;
-  vertical-align: middle;
 }
 
 /* Reply or Link, in grey, as the row's kind. */

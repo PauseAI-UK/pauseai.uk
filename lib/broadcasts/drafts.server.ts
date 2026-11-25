@@ -403,10 +403,7 @@ export type BroadcastChanges = MailingChanges & { textVersion?: TextVersion | nu
 export function broadcastChangesFrom(value: unknown, channel: BroadcastChannel): BroadcastChanges | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const { templateId, title, sendBy, finishMinutes, header, place, pictureId, buttons, textVersion, ...rest } =
-    value as Record<
-    string,
-    unknown
-  >;
+    value as Record<string, unknown>;
   const parsed = mailingChangesFrom(rest);
   if (!parsed || "ask" in parsed || "sentFrom" in parsed || "fromName" in parsed) return undefined;
   if (
@@ -878,7 +875,14 @@ export async function submitTemplate(id: number, by: string): Promise<TemplateSu
       );
       const meta = metaName(called, templateId);
       await query("UPDATE whatsapp_templates SET meta_name = $2 WHERE id = $1", [templateId, meta], db);
-      return { body: parts.body, header: parts.header, buttons: parts.buttons, pictureId: parts.pictureId, id: templateId, metaName: meta };
+      return {
+        body: parts.body,
+        header: parts.header,
+        buttons: parts.buttons,
+        pictureId: parts.pictureId,
+        id: templateId,
+        metaName: meta,
+      };
     };
     const made: ForApproval[] = [];
     const add = async (parts: Parts, called: string): Promise<number> => {

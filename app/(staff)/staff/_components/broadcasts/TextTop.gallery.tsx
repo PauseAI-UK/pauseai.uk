@@ -10,7 +10,8 @@ export const textTopGallery: Example[] = [
     file: "app/(staff)/staff/_components/broadcasts/TextTop.tsx",
     variants: [
       {
-        label: "Its link's card, which choosing Place makes a map, or Picture a picture; find a place, and choose from two",
+        label:
+          "Its link's card, which choosing Place makes a map, or Picture a picture; find a place, and choose from two",
         render: () => (
           <StaffPage as="div">
             <TextTopExample initial={{ header: null, place: null, pictureId: null }} />

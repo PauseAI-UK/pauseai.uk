@@ -51,7 +51,12 @@ export class WhatsAppRequestError extends OutsideFailure {
 async function graph(
   keys: WhatsAppKeys,
   path: string,
-  init: { method?: "GET" | "POST" | "DELETE"; body?: object; bytes?: Uint8Array; headers?: Record<string, string> } = {},
+  init: {
+    method?: "GET" | "POST" | "DELETE";
+    body?: object;
+    bytes?: Uint8Array;
+    headers?: Record<string, string>;
+  } = {},
 ): Promise<Record<string, unknown>> {
   const res = await outsideFetch(WHATSAPP, `${GRAPH}/${path}`, {
     method: init.method ?? "GET",
