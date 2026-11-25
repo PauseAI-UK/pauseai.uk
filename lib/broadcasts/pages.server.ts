@@ -22,6 +22,7 @@ import { parseSort, type SortSpec } from "@/lib/staff-sort";
 import type { Topic } from "@/lib/supporters/contact-permissions";
 import { answersTo, reactionsTo, type BroadcastAnswer, type BroadcastReaction } from "./answers.server";
 import { repliesTo, type BroadcastReply } from "./replies.server";
+import { config } from "@/lib/server/config.server";
 import { query } from "@/lib/server/db.server";
 import { channelSends, textSenderNumber } from "./channels.server";
 import {
@@ -224,7 +225,16 @@ export type BroadcastWriterData = {
   templates: WhatsAppTemplate[];
   /** The WhatsApp business account's number, if one is set. */
   textNumber: string | null;
+  /** Whether a place's map is Google's, or a drawing, as a fixture build asks no one (realMaps). */
+  realMaps: boolean;
 };
+
+/**
+ * Whether the writer shows Google's map of a place: always on the live
+ * site, and in a fixture build only when it asks Google Maps for real
+ * (config.realServices), as the storyboard can't reach it.
+ */
+export const realMaps = () => !config.fixtures || config.realServices.includes("google-maps");
 
 export type BroadcastPageData =
   | ({ kind: "draft"; draft: WrittenBroadcast } & BroadcastWriterData)
@@ -268,6 +278,7 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
     textsSend: channelSends("text"),
     templates,
     textNumber,
+    realMaps: realMaps(),
   };
 }
 
@@ -330,6 +341,7 @@ export async function newBroadcastPageData(
       textsSend: channelSends("text"),
       templates,
       textNumber,
+      realMaps: realMaps(),
     },
   };
 }

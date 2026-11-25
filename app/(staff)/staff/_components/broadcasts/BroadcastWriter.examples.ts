@@ -224,6 +224,7 @@ export const exampleBroadcastData: BroadcastWriterData = {
   textsSend: true,
   templates: exampleTemplates,
   textNumber: "+447700900000",
+  realMaps: false,
 };
 
 /** What sends a text: our WhatsApp number, at Meta's lowest daily limit, with a few texted today. */

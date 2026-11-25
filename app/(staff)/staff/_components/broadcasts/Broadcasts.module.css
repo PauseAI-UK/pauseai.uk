@@ -473,25 +473,9 @@
   white-space: normal;
 }
 
-.mapDrawing {
-  display: block;
-  width: 100%;
-  height: auto;
-}
 
-.mapGround {
-  fill: var(--surface-2);
-}
 
-.mapRoad {
-  fill: none;
-  stroke: var(--surface);
-  stroke-width: 6;
-}
 
-.mapPin {
-  fill: var(--status-red);
-}
 
 .mapPlace {
   display: grid;

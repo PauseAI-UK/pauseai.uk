@@ -87,6 +87,7 @@ import {
   type TextVersion,
 } from "@/lib/broadcasts/text-parts";
 import TextTop, { pictureSource } from "./TextTop";
+import { RealMaps } from "./PlaceMap";
 import TextButtons from "./TextButtons";
 import TextVersions, { type VersionSide } from "./TextVersions";
 import MailingFiles from "../mailings/MailingFiles";
@@ -992,7 +993,7 @@ export default function BroadcastWriter({
     );
   };
   return (
-    <>
+    <RealMaps value={data.realMaps}>
       {/* While a Consent's change is under way, that in place of whether it's saved; what's not a draft yet has neither. */}
       <DraftTitle title={title} saveState={calculating ? "calculating" : blank ? undefined : saveState} />
       {saveState === "conflict" && (
@@ -1387,6 +1388,6 @@ export default function BroadcastWriter({
           </>,
         )}
       </Grid>
-    </>
+    </RealMaps>
   );
 }

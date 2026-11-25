@@ -9,7 +9,7 @@ import { Muted } from "@/components/ui/Text";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { TextHeader, TextPlace } from "@/lib/broadcasts/text-parts";
 import DropArea from "../ui/DropArea";
-import { MapDrawing } from "./TextBubble";
+import PlaceMap from "./PlaceMap";
 import styles from "./TextTop.module.css";
 
 const copy = broadcastsCopy.broadcastPages;
@@ -27,9 +27,6 @@ export type UploadPicture = (
  * example's, given whole as a data: address, is its own (BroadcastWriter.examples.ts).
  */
 export const pictureSource = (id: string) => (id.startsWith("data:") ? id : `/api/text-pictures/${id}`);
-
-/** Where a place is on Google Maps, its pin on it, to check it's the right spot, as most phones open it there. */
-const mapOf = (place: TextPlace) => `https://www.google.com/maps?q=${place.latitude},${place.longitude}`;
 
 /**
  * The place a text's map shows: till one is chosen, a box for a Google Maps
@@ -73,9 +70,7 @@ function PlaceChooser({
     return (
       <div className={styles.shownBox}>
         <div className={styles.placeCard}>
-          <a href={mapOf(place)} target="_blank" rel="noreferrer" aria-label={words.checkMap} title={words.checkMap}>
-            <MapDrawing />
-          </a>
+          <PlaceMap place={place} />
           <input
             className={styles.placeName}
             aria-label={words.name}
