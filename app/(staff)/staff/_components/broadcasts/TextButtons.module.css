@@ -40,3 +40,47 @@
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+
+/* On a phone, each button a block of its own: its kind over its words and address, with Remove beside its kind.
+   Its column's heading goes, so its box says what goes in it. */
+@media (max-width: 30rem) {
+  .table,
+  .table tbody {
+    display: grid;
+    gap: var(--space-3);
+    width: 100%;
+  }
+
+  /* Out of sight, but still each box's column for a screen reader. */
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .table tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-1) var(--space-2);
+  }
+
+  .table td {
+    padding: 0;
+  }
+
+  .table td:not(:first-child, :last-child) {
+    grid-column: 1 / -1;
+  }
+
+  .table td:last-child {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .table td:empty {
+    display: none;
+  }
+}

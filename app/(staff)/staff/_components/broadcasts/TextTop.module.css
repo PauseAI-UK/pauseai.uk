@@ -69,6 +69,14 @@
   font-size: var(--text-sm);
 }
 
+/* The picture chosen, and the box for another beside it, under it where there's no room. */
+.pictureRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 /* A picture chosen, small, as a check it's the right one. */
 .shown {
   display: block;
