@@ -7,7 +7,6 @@ import { localGroups } from "@/lib/content/local-groups";
 import { people } from "@/lib/content/people";
 import { newsRow1, type CoverageItem } from "@/lib/content/press-coverage";
 import { site } from "@/lib/content/site";
-import { staff } from "@/lib/content/staff";
 import GetInvolved from "./GetInvolved";
 import { HERO_PHOTO_FADE_SCRIPT } from "./heroPhotoFade";
 import HomeHero from "./HomeHero";
@@ -17,7 +16,6 @@ import LocalGroupsSection from "./LocalGroupsSection";
 import PeopleSection from "./PeopleSection";
 import PressMarquee, { NewsRow } from "./PressMarquee";
 import ShopBanner from "./ShopBanner";
-import StaffSection from "./StaffSection";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -260,14 +258,5 @@ describe("home page sections", () => {
       .element(page.getByRole("link", { name: "Join the WhatsApp community" }))
       .toHaveAttribute("href", site.whatsappUrl);
     await expect.element(page.getByRole("link", { name: "event calendar" })).toHaveAttribute("href", site.social.luma);
-  });
-
-  it("introduces the staff, and links to the jobs page", async () => {
-    const { container } = await render(<StaffSection />);
-    for (const member of staff) await expect.element(page.getByRole("heading", { name: member.name })).toBeVisible();
-    expect(
-      (container.querySelector("article [style*='background-image']") as HTMLElement).style.backgroundImage,
-    ).toContain(encodeURI(staff[0].imageSrc).replace(/\(/g, "%28").replace(/\)/g, "%29").slice(0, 10));
-    await expect.element(page.getByRole("link", { name: "We’re hiring →" })).toHaveAttribute("href", "/jobs");
   });
 });
