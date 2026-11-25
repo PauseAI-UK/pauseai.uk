@@ -204,7 +204,8 @@ function PictureChooser({
 
 /**
  * A text's top, over its words: the card WhatsApp makes of the words' first
- * link, a picture (PictureChooser), or a map of a place (PlaceChooser). The
+ * link, `link`, which is None till they have one; a picture
+ * (PictureChooser); or a map of a place (PlaceChooser). The
  * kind is the template's, so only new words can change it (`fixed`
  * otherwise); its picture or place can change whenever.
  */
@@ -212,6 +213,7 @@ export default function TextTop({
   header,
   place,
   pictureId,
+  link,
   onChange,
   findPlaces,
   uploadPicture,
@@ -221,6 +223,7 @@ export default function TextTop({
   header: TextHeader | null;
   place: TextPlace | null;
   pictureId: string | null;
+  link: string | undefined;
   onChange: (top: { header?: TextHeader | null; place?: TextPlace | null; pictureId?: string | null }) => void;
   findPlaces: FindPlaces;
   uploadPicture: UploadPicture;
@@ -234,7 +237,7 @@ export default function TextTop({
       <Segmented<"link" | TextHeader>
         label={words.label}
         options={[
-          { value: "link", label: words.linkPreview },
+          { value: "link", label: link ? words.linkPreview : words.none },
           { value: "image", label: words.picture },
           { value: "location", label: words.place },
         ]}
@@ -258,7 +261,6 @@ export default function TextTop({
           disabled={disabled}
         />
       )}
-      {header === null && <Hint>{words.linkPreviewNote}</Hint>}
     </div>
   );
 }

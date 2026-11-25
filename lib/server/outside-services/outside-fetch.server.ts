@@ -38,8 +38,8 @@ export type OutsideInit = RequestInit & {
 
 /**
  * fetch() for calls to outside services (Luma, Airtable, postcodes.io, ...). With
- * DATA_FIXTURES=1 the service's fake answers instead, unless the storyboard
- * flow has made the service fail (lib/server/fixtures/failing-services.ts), so a test build
+ * DATA_FIXTURES=1 the service's fake answers instead, unless it's one of
+ * config.realServices, or the storyboard flow has made the service fail (lib/server/fixtures/failing-services.ts), so a test build
  * renders the same data every time and works offline (docs/testing.md).
  * The calling code still parses the response, so it is exercised either way.
  * A service that can't be reached, or doesn't answer in time, throws an
@@ -49,7 +49,7 @@ export type OutsideInit = RequestInit & {
  */
 export async function outsideFetch({ service, fake }: Outside, url: string, init: OutsideInit = {}): Promise<Response> {
   const { retries = 0, publicOnly = false, ...request } = init;
-  if (config.fixtures) {
+  if (config.fixtures && !config.realServices.includes(service)) {
     // The storyboard flow's database, for the fakes that keep what they're sent, one set each flow, and the
     // services it has made fail. Imported here, as they read Node's files, so a component that renders on
     // fixture data in the browser doesn't load them.

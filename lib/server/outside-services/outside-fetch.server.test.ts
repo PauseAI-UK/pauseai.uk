@@ -196,6 +196,16 @@ describe("outsideFetch", () => {
       expect(data.entries.length).toBeGreaterThan(0);
     });
 
+    it("asks a service named in REAL_SERVICES for real", async () => {
+      vi.stubEnv("DATA_FIXTURES", "1");
+      vi.stubEnv("REAL_SERVICES", "photon,luma");
+      server.use(
+        http.get("https://public-api.luma.com/v1/calendars/events/list", () => HttpResponse.json({ live: true })),
+      );
+
+      expect(await (await outsideFetch(LUMA, CALENDAR)).json()).toEqual({ live: true });
+    });
+
     it("returns a 404 for a URL with no fixture", async () => {
       vi.stubEnv("DATA_FIXTURES", "1");
 

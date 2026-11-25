@@ -3,7 +3,7 @@ import type { Example } from "@/app/(tools)/gallery/_components/types";
 import StaffPage from "../ui/StaffPage";
 import { TextButtonsExample } from "./TextButtons.gallery.client";
 
-const four = ["I'm coming", "Can't make it", "Maybe", "Tell me more"].map((text) => ({ text }));
+const three = ["I'm coming", "Can't make it", "Maybe"].map((text) => ({ text }));
 
 export const textButtonsGallery: Example[] = [
   {
@@ -19,18 +19,23 @@ export const textButtonsGallery: Example[] = [
         ),
       },
       {
-        label: "Four, and what a computer does with that many",
+        label: "Three replies, as many as a text has",
         render: () => (
           <StaffPage as="div">
-            <TextButtonsExample initial={four} />
+            <TextButtonsExample initial={three} />
           </StaffPage>
         ),
       },
       {
-        label: "A reply button and a link button, and what a computer does with both",
+        label: "Two link buttons, as many as a text has",
         render: () => (
           <StaffPage as="div">
-            <TextButtonsExample initial={[four[0], { text: "Details", url: "https://pauseai.uk/march" }]} />
+            <TextButtonsExample
+              initial={[
+                { text: "Details", url: "https://pauseai.uk/march" },
+                { text: "Sign up", url: "https://luma.com/pauseai" },
+              ]}
+            />
           </StaffPage>
         ),
       },
@@ -38,7 +43,7 @@ export const textButtonsGallery: Example[] = [
         label: "A chosen template's, fixed",
         render: () => (
           <StaffPage as="div">
-            <TextButtonsExample initial={four.slice(0, 2)} fixed />
+            <TextButtonsExample initial={three.slice(0, 2)} fixed />
           </StaffPage>
         ),
       },

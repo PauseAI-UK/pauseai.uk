@@ -26,6 +26,13 @@ export type TextButton = { text: string; url?: string };
 export const MOST_BUTTONS = 10;
 export const MOST_LINK_BUTTONS = 2;
 
+/**
+ * The most buttons a text has, all replies or all links, as WhatsApp on a
+ * computer shows no more, nor the two kinds together: it tells people to
+ * open the text on their phone instead.
+ */
+export const MOST_TEXT_BUTTONS = 3;
+
 /** The most characters a button's words can have. */
 export const MOST_BUTTON_CHARACTERS = 25;
 
@@ -95,13 +102,15 @@ export const BUTTON_PROBLEMS = [
   "link-not-address",
   "too-many-links",
   "too-many-buttons",
+  "buttons-mixed",
 ] as const;
 export type ButtonProblem = (typeof BUTTON_PROBLEMS)[number];
 
 /**
  * What stops a text's buttons going to WhatsApp, none if nothing does: a
  * button with no words, or too many; a link button with no address, or one
- * that isn't a web page's; more link buttons, or buttons, than it takes.
+ * that isn't a web page's; more link buttons, or buttons, than a text has;
+ * and reply and link buttons together.
  */
 export function buttonProblems(buttons: TextButton[]): ButtonProblem[] {
   const words = buttons.map((button) => button.text.trim());
@@ -112,7 +121,8 @@ export function buttonProblems(buttons: TextButton[]): ButtonProblem[] {
     ["link-no-address", addresses.some((one) => !one)],
     ["link-not-address", addresses.some((one) => one && !isLinkAddress(one))],
     ["too-many-links", addresses.length > MOST_LINK_BUTTONS],
-    ["too-many-buttons", buttons.length > MOST_BUTTONS],
+    ["too-many-buttons", buttons.length > MOST_TEXT_BUTTONS],
+    ["buttons-mixed", addresses.length > 0 && addresses.length < buttons.length],
   ];
   return checks.filter(([, wrong]) => wrong).map(([problem]) => problem);
 }

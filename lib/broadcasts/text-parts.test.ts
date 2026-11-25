@@ -10,6 +10,7 @@ import {
   MOST_BUTTON_CHARACTERS,
   MOST_BUTTONS,
   MOST_LINK_BUTTONS,
+  MOST_TEXT_BUTTONS,
   pictureFrom,
   placeFrom,
   versionFrom,
@@ -105,8 +106,12 @@ describe("buttonProblems", () => {
     expect(buttonProblems([{ text: "Yes" }, { text: ` ${"x".repeat(MOST_BUTTON_CHARACTERS)} ` }])).toEqual([]);
   });
 
-  it("has none with link buttons that open web pages, as many as WhatsApp takes", () => {
-    expect(buttonProblems([{ text: "Yes" }, ...Array.from({ length: MOST_LINK_BUTTONS }, () => link)])).toEqual([]);
+  it("has none with link buttons that open web pages, as many as a text has", () => {
+    expect(buttonProblems(Array.from({ length: MOST_LINK_BUTTONS }, () => link))).toEqual([]);
+  });
+
+  it("has none with as many reply buttons as a text has", () => {
+    expect(buttonProblems(Array.from({ length: MOST_TEXT_BUTTONS }, () => ({ text: "Yes" })))).toEqual([]);
   });
 
   it("says a button has no words, or too many", () => {
@@ -120,16 +125,21 @@ describe("buttonProblems", () => {
     expect(buttonProblems([{ ...link, url: "pauseai.uk" }])).toEqual(["link-not-address"]);
   });
 
-  it("says there are more link buttons, or buttons, than WhatsApp takes", () => {
+  it("says there are more link buttons, or buttons, than a text has", () => {
     expect(buttonProblems(Array.from({ length: MOST_LINK_BUTTONS + 1 }, () => link))).toEqual(["too-many-links"]);
-    expect(buttonProblems(Array.from({ length: MOST_BUTTONS + 1 }, () => ({ text: "Yes" })))).toEqual([
+    expect(buttonProblems(Array.from({ length: MOST_TEXT_BUTTONS + 1 }, () => ({ text: "Yes" })))).toEqual([
       "too-many-buttons",
     ]);
   });
 
+  it("says reply and link buttons are together", () => {
+    expect(buttonProblems([{ text: "Yes" }, link])).toEqual(["buttons-mixed"]);
+    expect(buttonProblems([link, { text: "Yes" }])).toEqual(["buttons-mixed"]);
+  });
+
   it("says every problem there is, in the order of BUTTON_PROBLEMS", () => {
     const all = [{ text: "" }, { text: "x".repeat(26) }, { ...link, url: "" }, { ...link, url: "nope" }, link];
-    expect(buttonProblems([...all, ...Array.from({ length: 6 }, () => ({ text: "Yes" }))])).toEqual(BUTTON_PROBLEMS);
+    expect(buttonProblems(all)).toEqual(BUTTON_PROBLEMS);
   });
 });
 

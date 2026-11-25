@@ -8,7 +8,7 @@ import { examplePictureId, examplePlace } from "./BroadcastWriter.examples";
 
 type Top = { header: TextHeader | null; place: TextPlace | null; pictureId: string | null };
 
-export function TextTopExample({ initial, fixed = false }: { initial: Top; fixed?: boolean }) {
+export function TextTopExample({ initial, fixed = false, link }: { initial: Top; fixed?: boolean; link?: string }) {
   return (
     <Logged>
       {(log) => (
@@ -18,6 +18,7 @@ export function TextTopExample({ initial, fixed = false }: { initial: Top; fixed
               header={top.header}
               place={top.place}
               pictureId={top.pictureId}
+              link={link}
               onChange={(change) => set({ ...top, ...change })}
               findPlaces={async (input) => {
                 log("findPlaces")(input);
