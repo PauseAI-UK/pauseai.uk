@@ -195,6 +195,34 @@ function MapTop({ place }: { place: TextPlace }) {
   );
 }
 
+/** A text's top: its picture, or its map, or else the card for its link, if it has one. */
+export function BubbleTop({
+  place,
+  picture,
+  card,
+}: {
+  place?: TextPlace | null;
+  picture?: string | null;
+  card?: LinkCard | null;
+}) {
+  // eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent
+  if (picture) return <img className={styles.pictureTop} src={picture} alt="" />;
+  if (place) return <MapTop place={place} />;
+  return card ? <LinkCardView card={card} /> : null;
+}
+
+/** A text's buttons, each its words, under its bubble, as WhatsApp shows them. */
+export function BubbleButtons({ buttons }: { buttons: string[] }) {
+  if (!buttons.length) return null;
+  return (
+    <ul className={styles.replyButtons}>
+      {buttons.map((words, i) => (
+        <li key={i}>{words}</li>
+      ))}
+    </ul>
+  );
+}
+
 /**
  * A text as a messaging app shows it, a phone's width: the words in a bubble
  * from us, on the left as it is on their phone, formatted as WhatsApp does,
@@ -227,14 +255,7 @@ export default function TextBubble({
     <div className={styles.phone}>
       <ChatWall>
         <div className={`${styles.bubble} ${styles.phoneBubble}`}>
-          {picture ? (
-            // eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent
-            <img className={styles.pictureTop} src={picture} alt="" />
-          ) : place ? (
-            <MapTop place={place} />
-          ) : (
-            card && <LinkCardView card={card} />
-          )}
+          <BubbleTop place={place} picture={picture} card={card} />
           {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
           <TextFold key={JSON.stringify(words.content)}>
             <Blocks blocks={words.content} />
@@ -242,13 +263,7 @@ export default function TextBubble({
           <span className={styles.footer}>{footer}</span>
           <span className={styles.time}>{time}</span>
         </div>
-        {buttons.length > 0 && (
-          <ul className={styles.replyButtons}>
-            {buttons.map((words, i) => (
-              <li key={i}>{words}</li>
-            ))}
-          </ul>
-        )}
+        <BubbleButtons buttons={buttons} />
       </ChatWall>
     </div>
   );

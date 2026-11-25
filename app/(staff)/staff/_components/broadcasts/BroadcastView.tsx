@@ -20,7 +20,6 @@ import Bubble from "@/components/ui/Bubble";
 import { buttonClass } from "@/components/ui/Button";
 import { ChangeTimesForm } from "./BroadcastTimes";
 import { sortHref, type SortSpec } from "@/lib/staff-sort";
-import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import Strip from "../ui/Strip";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "@/components/ui/ChannelIcon";
@@ -30,7 +29,7 @@ import MailingFiles from "../mailings/MailingFiles";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { CopyMailing, ResumeBroadcast } from "../mailings/MailingButtons";
 import { fromDetail, MailingStanding, MailingWhen } from "../mailings/MailingView";
-import TextBubble from "./TextBubble";
+import WrittenText from "./WrittenText";
 import Band, { BandFact } from "../ui/Band";
 import { countsFiltering, type Count } from "../ui/Counts";
 import { CountGroups } from "../mailings/CopyCounts";
@@ -263,11 +262,7 @@ function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: 
   if (written.channel === "text") {
     return (
       <Card span={3} look="aside" title={copy.textTitle} id="words-title">
-        <TextBubble
-          words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
-          footer={written.template?.footer ?? TEMPLATE_FOOTER}
-          time={staffClock(sendsAt(written.dueAt!))}
-        />
+        <WrittenText written={written} labels={parts} time={staffClock(sendsAt(written.dueAt!))} />
       </Card>
     );
   }

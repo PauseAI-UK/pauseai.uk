@@ -502,3 +502,10 @@
   font-size: var(--text-sm);
   text-align: center;
 }
+
+/* A written text: its version's toggle, then the text. */
+.writtenText {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}

@@ -1281,6 +1281,33 @@ INSERT INTO broadcast_versions (mailing_id, condition, body, template_id)
 SELECT m.id, 'event:evt-fixture-past-london-march', version.body, version.id
 FROM mailings m, version WHERE m.audience = 'supporters' AND m.title = 'We are flyering on Saturday.';
 
+-- Texts with what a text can have, as they went to WhatsApp and went out:
+-- the scheduled march text, a map of where to meet and two reply buttons;
+-- the sent PauseCon change, the march's picture and a link button; and the
+-- one sending now, a second version for those who went to the London march,
+-- on a template of its own.
+UPDATE whatsapp_templates SET header = 'location', buttons = '[{"text": "I''m coming"}, {"text": "Can''t make it"}]'
+WHERE name = 'The march meets at 11:00 at Parliament Square.';
+UPDATE mailings SET header = 'location',
+  place = '{"name": "Parliament Square, by the statues", "address": "Westminster, London SW1P 3BD", "latitude": 51.5005, "longitude": -0.1268}',
+  buttons = '[{"text": "I''m coming"}, {"text": "Can''t make it"}]'
+WHERE audience = 'supporters' AND title = 'The march meets at 11:00 at Parliament Square.';
+UPDATE whatsapp_templates SET header = 'image', buttons = '[{"text": "The new room", "url": "https://pauseai.uk/pausecon"}]'
+WHERE name = 'PauseCon room change';
+UPDATE mailings SET header = 'image', picture_id = '00000000-0000-4000-8000-000000000001',
+  buttons = '[{"text": "The new room", "url": "https://pauseai.uk/pausecon"}]'
+WHERE audience = 'supporters' AND title = 'PauseCon room change';
+WITH version AS (
+  INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, created_at, footer)
+  VALUES ('Our next event is on Saturday, for those who registered for “PauseAI London March”',
+    pg_temp.seed_words('thank you for marching. Our next event is on Saturday, and we would love you there.'), 'approved',
+    'jo@pauseai.uk', now() - interval '40 days', now() - interval '41 days', 'Reply STOP to stop these texts')
+  RETURNING id, body
+)
+INSERT INTO broadcast_versions (mailing_id, condition, body, template_id)
+SELECT m.id, 'event:evt-fixture-past-london-march', version.body, version.id
+FROM mailings m, version WHERE m.audience = 'supporters' AND m.title = 'Our next event is on Saturday.';
+
 -- Each copy of those sent, sending or stopped, as sending left it: one for
 -- each supporter the broadcast's Consent found when it went, at their
 -- address or number that said yes. Every way one can go: delivered, a text

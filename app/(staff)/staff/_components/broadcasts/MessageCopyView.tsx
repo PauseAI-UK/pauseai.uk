@@ -11,7 +11,8 @@ import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { CopyStatus } from "../letters/CopyStatus";
-import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
+import { BubbleButtons, BubbleTop, ChatBubble, ChatWall, TextWords } from "./TextBubble";
+import { textShown, type WrittenText } from "@/lib/broadcasts/text-shown";
 import { LetterHistory, type HistoryEntry } from "../letters/LetterHistory";
 import { Thread } from "../letters/LetterThread";
 import ThreadEmail from "../letters/ThreadEmail";
@@ -56,10 +57,16 @@ function NotReached({ one }: { one: MessageCopy }) {
   return <Strip tone="amber">{words}</Strip>;
 }
 
-/** The message as they got it: a text as a conversation, an email as a mail app shows it. */
-function Message({ one, name }: { one: MessageCopy; name: string }) {
+/**
+ * The message as they got it: a text as a conversation, its own or its second
+ * version as they meet its condition, with its top and buttons (`written`,
+ * the broadcast's text); an email as a mail app shows it.
+ */
+function Message({ one, name, written }: { one: MessageCopy; name: string; written?: WrittenText }) {
   const merge = one.merge ?? FIELDS_AS_WORDS;
   if (one.channel === "text") {
+    const condition = written?.textVersion?.condition;
+    const shown = written && textShown(written, Boolean(condition && merge.meets.includes(condition)));
     return (
       <ChatWall>
         <ChatBubble
@@ -69,10 +76,12 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
           receipt={one.sentAt ? receiptOf(one.events) : undefined}
           badge={theirReaction(one, null)}
         >
-          <TextWords words={letterFor(one.body, merge)} />
+          <BubbleTop place={shown?.place} picture={shown?.picture} />
+          <TextWords words={letterFor(shown ? { type: "doc", content: shown.blocks } : one.body, merge)} />
           {/* Its footer, as they got it, where we know it. */}
           {one.footer && <span className={bubble.footer}>{one.footer}</span>}
         </ChatBubble>
+        <BubbleButtons buttons={shown?.buttons ?? []} />
       </ChatWall>
     );
   }
@@ -273,10 +282,13 @@ function OpenInGmail({ one }: { one: MessageCopy }) {
  */
 export default function MessageCopyView({
   one,
+  written,
   actions,
   signer,
 }: {
   one: MessageCopy;
+  /** A text's broadcast as it was written, for the version they got, its top and buttons. */
+  written?: WrittenText;
   actions?: ReplyHandlers;
   /** The staff member's first name, which an email's answer is signed with. */
   signer?: string;
@@ -299,7 +311,7 @@ export default function MessageCopyView({
           <Thread title={copy.threadTitle} link={<OpenInGmail one={one} />}>
             {/* A text's thread is one conversation, its parts touching; an email's, a mail each, apart. */}
             <div className={one.channel === "text" ? own.chat : own.mails}>
-              <Message one={one} name={name} />
+              <Message one={one} name={name} written={written} />
               {one.replies.map((reply) => (
                 <Reply key={reply.id} reply={reply} one={one} actions={actions} signer={signer} />
               ))}

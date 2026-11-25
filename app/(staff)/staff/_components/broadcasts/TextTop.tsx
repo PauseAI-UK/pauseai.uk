@@ -12,7 +12,10 @@ import Choices from "../ui/Choices";
 import { menuWiderClass } from "../ui/Menu";
 import { menuRow } from "../ui/MenuSelect";
 import PlaceMap from "./PlaceMap";
+import { pictureSource } from "@/lib/broadcasts/text-shown";
 import styles from "./TextTop.module.css";
+
+export { pictureSource };
 
 const copy = broadcastsCopy.broadcastPages;
 
@@ -23,12 +26,6 @@ export type FindPlaces = (input: string) => Promise<TextPlace[]>;
 export type UploadPicture = (
   file: File,
 ) => Promise<{ pictureId: string } | { refused: "not-picture" | "too-big" } | undefined>;
-
-/**
- * Where a picture kept for a text is served, for the writer to show it; an
- * example's, given whole as a data: address, is its own (BroadcastWriter.examples.ts).
- */
-export const pictureSource = (id: string) => (id.startsWith("data:") ? id : `/api/text-pictures/${id}`);
 
 /**
  * A place's name or address under its map: words on one line that wrap, as
