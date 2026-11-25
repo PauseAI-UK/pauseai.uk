@@ -93,7 +93,7 @@ export const broadcastsCopy = {
     // found; then the place's name and address under the map, its map's link to check its pin, and taking it off.
     placeChooser: {
       find: "⁂ Search for a place, or paste a Google Maps link",
-      findButton: "⁂ Find",
+      findButton: "Find",
       found: "⁂ Places found",
       none: "⁂ No place found. Try other words, or a Google Maps link.",
       name: "⁂ Name",

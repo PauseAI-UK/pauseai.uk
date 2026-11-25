@@ -69,10 +69,6 @@
   background: var(--surface);
 }
 
-.placeCard a {
-  display: block;
-}
-
 .placeName,
 .placeAddress {
   margin: 0 var(--space-2);
