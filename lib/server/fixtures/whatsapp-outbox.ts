@@ -12,7 +12,8 @@ export type OutboxPlace = { name: string; address: string; latitude: number; lon
 
 /** A text in the outbox: to whom (+447…), and its template, its place or picture if it has one, and fields; or its own words. */
 export type OutboxText = { to: string } & (
-  { template: { name: string; params: Record<string, string>; place?: OutboxPlace; picture?: string } } | { words: string }
+  | { template: { name: string; params: Record<string, string>; place?: OutboxPlace; picture?: string } }
+  | { words: string }
 );
 
 const PLACE = /^Place: (.*), (.*) \((-?[\d.]+), (-?[\d.]+)\)$/;

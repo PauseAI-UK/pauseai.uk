@@ -16,7 +16,14 @@ import { staffDate } from "@/lib/staff-time";
 import { anyAndNone, valuesOf, type ParamValue } from "@/lib/list-params";
 import type { SortColumns } from "@/lib/staff-sort";
 import { broadcastsCopy } from "./copy";
-import { buttonsFit, inOrder, type TextButton, type TextHeader, type TextPlace, type TextTemplateParts } from "./text-parts";
+import {
+  buttonsFit,
+  inOrder,
+  type TextButton,
+  type TextHeader,
+  type TextPlace,
+  type TextTemplateParts,
+} from "./text-parts";
 
 // The rules of broadcasts to supporters, for the server to keep and the pages
 // to say: how the Consent filter fixes a broadcast's channel and topics, its
@@ -527,7 +534,10 @@ export type SchedulingBroadcast = {
   pictureId: string | null;
   buttons: TextButton[];
   /** A text's second version, as far as scheduling it goes; none for one version. */
-  textVersion: Pick<SchedulingBroadcast, "body" | "approved" | "sameWords" | "header" | "place" | "pictureId" | "buttons"> | null;
+  textVersion: Pick<
+    SchedulingBroadcast,
+    "body" | "approved" | "sameWords" | "header" | "place" | "pictureId" | "buttons"
+  > | null;
 };
 
 /**

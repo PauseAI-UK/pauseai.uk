@@ -78,7 +78,14 @@ function PlaceChooser({
             }}
           />
         </Field>
-        <Button variant="primary" size="small" fit disabled={disabled || !input.trim()} pending={finding} onClick={find}>
+        <Button
+          variant="primary"
+          size="small"
+          fit
+          disabled={disabled || !input.trim()}
+          pending={finding}
+          onClick={find}
+        >
           {words.findButton}
         </Button>
       </div>

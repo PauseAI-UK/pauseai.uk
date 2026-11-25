@@ -104,7 +104,10 @@ export function buttonsFit(buttons: TextButton[]): boolean {
  * A text shows and sends them in this order.
  */
 export function inOrder(buttons: TextButton[]): TextButton[] {
-  return [...buttons.filter((button) => button.url === undefined), ...buttons.filter((button) => button.url !== undefined)];
+  return [
+    ...buttons.filter((button) => button.url === undefined),
+    ...buttons.filter((button) => button.url !== undefined),
+  ];
 }
 
 /** A second version as saved, or none (null); undefined for anything else. */

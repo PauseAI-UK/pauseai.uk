@@ -79,7 +79,13 @@ import { ARMED_FOR } from "../ui/DeleteTwice";
 import { DeleteDraft } from "../mailings/MailingButtons";
 import MailingEditor from "../mailings/MailingEditor";
 import ConditionMenu from "../mailings/ConditionMenu";
-import { inOrder, type TextButton, type TextHeader, type TextPlace, type TextVersion } from "@/lib/broadcasts/text-parts";
+import {
+  inOrder,
+  type TextButton,
+  type TextHeader,
+  type TextPlace,
+  type TextVersion,
+} from "@/lib/broadcasts/text-parts";
 import TextTop, { pictureSource } from "./TextTop";
 import TextButtons from "./TextButtons";
 import TextVersions, { type VersionSide } from "./TextVersions";
@@ -407,9 +413,7 @@ function BroadcastPreview({
     ]),
   ];
   // The second version's condition is met as the writer's open tab says.
-  const meets = Object.fromEntries(
-    used.map((c) => [c, c === textVersion?.condition ? textVersion.met : !lacks[c]]),
-  );
+  const meets = Object.fromEntries(used.map((c) => [c, c === textVersion?.condition ? textVersion.met : !lacks[c]]));
   // The version the made-up recipient gets: the second one, if they meet its condition.
   const theirs = textVersion?.met ? textVersion : { body, words, footer, ...top };
   const met = used.filter((c) => meets[c]);

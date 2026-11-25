@@ -259,7 +259,8 @@ export const broadcastsCopy = {
       "field-twice": "WhatsApp templates can't use the same field twice.",
       "same-words": "An approved template already has these words.",
       "no-place": "⁂ Choose the place its map shows.",
-      "button-words": "⁂ Give each button words, 25 characters at most, and each link button an address. A text can have two link buttons.",
+      "button-words":
+        "⁂ Give each button words, 25 characters at most, and each link button an address. A text can have two link buttons.",
       "no-picture": "⁂ Add the picture for its top.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": "That's too many to send before it stops trying. Send it to fewer people, or keep trying for longer.",

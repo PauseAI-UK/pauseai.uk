@@ -211,9 +211,7 @@ describe("TextTop's picture", () => {
 
   it("shows the picture chosen, small, over a box to drop another on, which can change after approval", async () => {
     await renderTop({ header: "image", pictureId: examplePictureId });
-    await expect
-      .element(page.getByRole("img", { name: pictures.shown }))
-      .toHaveAttribute("src", examplePictureId);
+    await expect.element(page.getByRole("img", { name: pictures.shown })).toHaveAttribute("src", examplePictureId);
     // A kept picture is served by the site; an example's, given whole, is its own.
     expect(pictureSource("00000000-0000-4000-8000-000000000001")).toBe(
       "/api/text-pictures/00000000-0000-4000-8000-000000000001",
