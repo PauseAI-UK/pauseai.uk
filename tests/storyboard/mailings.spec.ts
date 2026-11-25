@@ -12,7 +12,7 @@ import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { caretAtEnd, caretInLink } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { openBubble, scrollSettled } from "./settle";
+import { openBubble, reload, scrollSettled } from "./settle";
 import type { Section } from "./report/frames";
 import { emailCopy } from "@/app/(staff)/staff/_components/email/copy";
 import { politiciansCopy } from "@/app/(staff)/staff/_components/politicians/copy";
@@ -215,7 +215,7 @@ test("A new mailing", async ({ page, request, flowDatabase }) => {
   story("Reloaded, the draft is as they left it, to go from their Gmail.");
 
   // Reopened, it's the draft as it was.
-  await page.reload();
+  await reload(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Edinburgh: one week to go");
   await expect(page.getByLabel(copy.fromLegend, { exact: false })).toHaveValue(staffEmail());
 });
@@ -563,7 +563,7 @@ test("A run stops while sending", async ({ page, request, flowDatabase }) => {
     headers: { Authorization: "Bearer fixture-cron-secret" },
   });
   expect(await run.json()).toMatchObject({ started: [], sent: 0, left: 0 });
-  await page.reload();
+  await reload(page);
   await expect(page.getByText(stateWords.tags["error:unfinished"]!)).toBeVisible();
   await frame(page, "The mailing sent, one letter uncertain");
   story("The letter's page says so, and its history says when and to whom it may have gone, for someone to check.");
@@ -774,7 +774,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
   await emailFrame(page, letter, "The email Morag gets");
   story("The mailing's page shows it sent, to its one recipient.");
 
-  await page.reload();
+  await reload(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("See you in Edinburgh");
   await expect(page.getByText("Fri 16 Oct at 14:03", { exact: true })).not.toBeVisible();
   await frame(page, "The sent mailing");
@@ -804,7 +804,7 @@ test("Sending from your Gmail", async ({ page, request, flowDatabase }) => {
      VALUES (${letterId}, '${staffEmail()}', 'reply-1', 'thread-1', 'morag.example.msp@parliament.example', 'Morag Example',
        'Re: See you in Edinburgh', '2026-10-16T15:00:00Z', false, 'fixture/morag-edinburgh.eml.gz', 512)`,
   );
-  await page.reload();
+  await reload(page);
   await expect(page.getByText("I look", { exact: false })).toBeVisible();
   // Her signature, and the letter she quotes, which is above it already, are folded away.
   await expect(page.getByText("Member of the Scottish Parliament for", { exact: false })).toBeHidden();

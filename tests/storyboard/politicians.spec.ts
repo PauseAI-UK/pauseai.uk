@@ -6,7 +6,7 @@ import { addFilter, changeFilter } from "./list-steps";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, markInvited, PM_LETTER, recordAnswers } from "./politician-steps";
 import { BASE, expect, frame, story, test } from "./fixtures";
-import { openBubble, press, wholePage } from "./settle";
+import { openBubble, press, reload, wholePage } from "./settle";
 import { POLLY_PERSONAL } from "@/lib/server/fixtures/policy-mailbox";
 import { importPath } from "@/lib/import-runs";
 import { STAND_IN_PHOTO } from "@/lib/politicians/photo-hosts";
@@ -917,7 +917,7 @@ test("A salutation to check", async ({ page, request, flowDatabase }) => {
   await bubble.getByRole("button", { name: words.save }).click();
   // The bubble closes once it's saved: a reload before then would beat the save.
   await expect(bubble).toHaveCount(0);
-  await page.reload();
+  await reload(page);
   await expect(page.getByText(words.fromName)).toHaveCount(0);
   await expect(page.getByText(words.dear("Ms Example"))).toBeVisible();
   // The reload puts the window back where it was, to a fraction of a pixel

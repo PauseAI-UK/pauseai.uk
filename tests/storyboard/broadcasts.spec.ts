@@ -11,7 +11,7 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { caretAtStart, caretInEmpty } from "./editor-steps";
 import { emailFrame } from "./email-frame";
 import { holdActions } from "./loading-steps";
-import { hydrated, openBubble, scrollSettled } from "./settle";
+import { hydrated, openBubble, reload, scrollSettled } from "./settle";
 import { BASE, expect, expectConsole, frame, story, test } from "./fixtures";
 import { newestText, OUR_CHAT, shownText, templateSent, textFrame } from "./whatsapp-steps";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
@@ -859,7 +859,7 @@ test("Our answer to a text fails", async ({ page, request, flowDatabase }) => {
   story(
     "Their reply is back for staff to deal with, as no one has: under our answer, why it didn't go, and the buttons again, at the foot of the thread.",
   );
-  await page.reload();
+  await reload(page);
   const undelivered = page.getByText(copy.replies.undelivered("Message undeliverable"));
   await expect(undelivered).toBeVisible();
   // The reload puts the window back about where it was, but where differs between runs as the page

@@ -19,6 +19,7 @@ import { FLOW_DATABASES, LETTERS_INBOX_DIR, LOCAL_URL, REQUESTS_DIR, TEMPLATE_DA
 import { FIXTURE_NOW, FLOW_DATABASE_COOKIE } from "@/lib/server/fixtures/fixture-env.mjs";
 import { historyIdNow } from "@/lib/server/fixtures/inbox-clock";
 import { emptyLettersInbox } from "@/lib/server/fixtures/letters-inbox";
+import { OPENING_BUBBLE } from "./settle";
 
 export { expect } from "@playwright/test";
 export { frame, story } from "./frame";
@@ -181,9 +182,39 @@ async function logRejections(context: BrowserContext) {
   }, REJECTION);
 }
 
+/** What a page logs of a bubble that opened outside openBubble. */
+export const PLAIN_BUBBLE = "[bubble opened outside openBubble]";
+
+/**
+ * Logs, in every page of `context`, each bubble (BubbleBox, which names its
+ * anchor in --bubble-anchor) that opens while openBubble isn't opening one
+ * (OPENING_BUBBLE, tests/storyboard/settle.ts). A bubble scrolls the page to
+ * show itself a moment after it opens, and openBubble waits for that; a flow
+ * that presses the button itself can take its frame, or press inside the
+ * bubble, mid-scroll.
+ */
+async function logPlainBubbles(context: BrowserContext) {
+  await context.addInitScript(
+    ([marker, flag]: [string, string]) => {
+      document.addEventListener(
+        "toggle",
+        (event) => {
+          const target = event.target;
+          if ((event as ToggleEvent).newState !== "open" || !(target instanceof HTMLElement)) return;
+          if (!target.style.getPropertyValue("--bubble-anchor")) return;
+          if ((window as unknown as Record<string, unknown>)[flag]) return;
+          console.error(`${marker} #${target.id}`);
+        },
+        true,
+      );
+    },
+    [PLAIN_BUBBLE, OPENING_BUBBLE] as [string, string],
+  );
+}
+
 /**
  * Adds to `problems` what every page of `context` logs that a flow fails
- * on: an uncaught error, a promise failing with nothing waiting on it
+ * on: a bubble opened without openBubble (logPlainBubbles), an uncaught error, a promise failing with nothing waiting on it
  * (logRejections), a console error from our own code (an embedded site's
  * isn't), and React's hydration messages. A page that doesn't hydrate as it
  * rendered on the server, such as one whose text depends on the browser,
@@ -193,6 +224,7 @@ async function watchConsole(context: BrowserContext, problems: string[]) {
   if (watched.has(context)) return;
   watched.add(context);
   await logRejections(context);
+  await logPlainBubbles(context);
   const watch = (page: Page) => {
     page.on("console", (message) => {
       const origin = message.location().url;

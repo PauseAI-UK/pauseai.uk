@@ -34,6 +34,16 @@ const OPEN_BUBBLE_RULES = [
   { selector: "TemplateElement[value.raw=/:popover-open/]", message: OPEN_BUBBLE_MESSAGE },
 ];
 
+// A flow reloads a page with reload (tests/storyboard/settle.ts), from the
+// top. The browser puts a reloaded page back where it was scrolled, at a
+// moment that depends on how far the page has loaded, so a frame after a
+// reload of a scrolled page landed a few dozen pixels apart between runs.
+const RELOAD_RULE = {
+  selector: "CallExpression[callee.property.name='reload']",
+  message:
+    "Reload with reload (tests/storyboard/settle.ts), which scrolls to the top first, so the frame lands the same.",
+};
+
 // A flow puts the caret at the start or end of an editor with caretAtStart or
 // caretAtEnd (tests/storyboard/editor-steps.ts), which wait until it's there.
 // Ctrl+Home pressed by itself, straight after a click, lost to ProseMirror
@@ -633,13 +643,16 @@ const eslintConfig = defineConfig([
         ...EXTERNAL_LINK_RULES,
         ...OPEN_BUBBLE_RULES,
         CARET_KEYS_RULE,
+        RELOAD_RULE,
       ],
     },
   },
   // The editor's steps, which press those keys and wait for the caret.
   {
     files: ["tests/storyboard/editor-steps.ts"],
-    rules: { "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...EXTERNAL_LINK_RULES, ...OPEN_BUBBLE_RULES] },
+    rules: {
+      "no-restricted-syntax": ["error", DATABASE_URL_RULE, ...EXTERNAL_LINK_RULES, ...OPEN_BUBBLE_RULES, RELOAD_RULE],
+    },
   },
   // The bindings' tests, which call outsideFetch and Postmark's binding directly.
   { files: [`${OUTSIDE}/**/*.test.ts`], rules: { "no-restricted-imports": ["error", { paths: [PG_IMPORT] }] } },
@@ -718,6 +731,7 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".next-serve/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

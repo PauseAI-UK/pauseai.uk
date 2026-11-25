@@ -7,7 +7,7 @@ import { importCivicrm, importLuma } from "./supporter-steps";
 import { fakeTurnstile } from "./turnstile-steps";
 import { emailFrame } from "./email-frame";
 import { BASE, expect, expectConsole, frame, story, test } from "./fixtures";
-import { hydrated } from "./settle";
+import { hydrated, reload } from "./settle";
 import type { Section } from "./report/frames";
 
 export const section: Section = { name: "Contact preferences", part: "Public site", order: 55 };
@@ -231,7 +231,7 @@ test("An email's unsubscribe link", { tag: "@phone" }, async ({ page, request, f
   story(
     "Later she opens the email's link again. She no longer gets the newsletter, so the page says that, with no button.",
   );
-  await page.reload();
+  await reload(page);
   await hydrated(page);
   const off = page.getByRole("heading", { name: copy.unsubscribe.off(copy.inSentence.newsletter) });
   await expect(off).toBeVisible();
