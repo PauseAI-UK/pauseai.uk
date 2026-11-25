@@ -230,6 +230,13 @@ describe("threads through the House of Lords' shared inbox", () => {
     expect(lordFor("Request to co-sign, for Baroness Verma")).toBeNull();
   });
 
+  it("reads a long subject with no colon in time linear in its length", () => {
+    // Anyone can send the inbox a subject. A pattern that backtracks over its spaces takes seconds on this one.
+    const started = performance.now();
+    expect(lordFor(`For Lord${" ".repeat(100_000)}`)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
   it("matches a name to one sitting Lord, with or without their territorial part, or to none", () => {
     const lords = [
       { id: 1, name: "Baroness Verma" },
