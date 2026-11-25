@@ -393,7 +393,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
-  await expect(send.getByText(copy.schedulesForApproval)).toBeVisible();
+  await expect(send.getByText(copy.schedulesForApproval(1))).toBeVisible();
   await frame(page, "New words: Schedule sends them to WhatsApp for approval too", { window: true });
   story(
     "Or they send them on their own first, from under their preview, before the test copy, as a test can't go till WhatsApp approves them.",

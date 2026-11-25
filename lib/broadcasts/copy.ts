@@ -130,7 +130,7 @@ export const broadcastsCopy = {
     // only one condition.
     textVersions: {
       templates: (n: number) => `⁂ Goes to WhatsApp as ${n} template${n === 1 ? "" : "s"}`,
-      submit: (n: number) => (n === 1 ? "⁂ Send for approval" : `⁂ Send ${n} templates for approval`),
+      submit: (n: number) => (n === 1 ? "Send for approval" : `Send ${n} templates for approval`),
     },
     // A second version's template, as it's named for its list: the text's name, then who it's for.
     versionTemplateName: (name: string, who: string) => `⁂ ${name}, for those who ${who}`,
@@ -318,7 +318,10 @@ export const broadcastsCopy = {
     ],
     // Under Schedule, for a text whose template WhatsApp hasn't approved: scheduling sends it for approval, if it
     // isn't with WhatsApp already.
-    schedulesForApproval: "Scheduling also sends the template to WhatsApp for approval.",
+    schedulesForApproval: (templates: number) =>
+      templates === 1
+        ? "Scheduling also sends the template to WhatsApp for approval."
+        : `⁂ Scheduling also sends the ${templates} templates to WhatsApp for approval.`,
     // Under its time, for a text whose template WhatsApp hasn't approved, due in less than a day.
     approvalSoon:
       "WhatsApp can take 24 hours to approve a template, but you've scheduled the broadcast to start sooner than that. It will still be sent, but late, if approval is slow.",
