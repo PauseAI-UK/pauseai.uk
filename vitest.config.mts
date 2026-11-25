@@ -136,19 +136,31 @@ export default defineConfig({
         "app/**/*.{ts,tsx}",
         "components/**/*.{ts,tsx}",
         "lib/**/*.{ts,tsx}",
-        "tests/fixtures/**/*.ts",
         "next.config.ts",
         "proxy.ts",
         "instrumentation.ts",
         "netlify/functions/**/*.ts",
         "netlify/scheduled.ts",
       ],
-      // page.tsx and layout.tsx are the one scope rule: async server
-      // components can't render in Vitest and layout.tsx needs next/font.
-      // They're kept thin, and tests/storyboard/public-pages.spec.ts loads
-      // every route instead. No other exclusions, and no ignore comments
-      // (tests/checks/coverage-ignores.test.ts).
-      exclude: ["**/*.test.{ts,tsx}", "**/page.tsx", "**/layout.tsx"],
+      // Only code that runs on the live site. page.tsx and layout.tsx are
+      // left out as async server components can't render in Vitest and
+      // layout.tsx needs next/font: they're kept thin, and
+      // tests/storyboard/public-pages.spec.ts loads every route instead.
+      // The fakes that answer for outside services in a fixture build, and
+      // the gallery's examples, never run there. The gallery's guard does,
+      // so it stays. No other exclusions, and no ignore comments
+      // (tests/checks/coverage-ignores.test.ts). A glob's brackets are
+      // escaped, as (tools) would otherwise be read as a pattern.
+      exclude: [
+        "**/*.test.{ts,tsx}",
+        "**/page.tsx",
+        "**/layout.tsx",
+        "lib/server/fixtures/**",
+        "app/\\(tools\\)/gallery/_examples/**",
+        "app/\\(tools\\)/gallery/_components/!(enabled.server).{ts,tsx}",
+        "**/*.gallery.{ts,tsx}",
+        "**/*.gallery.client.{ts,tsx}",
+      ],
       reporter: ["text-summary", "json-summary", "html"],
       // Every file, on its own, at 100%.
       thresholds: { 100: true, perFile: true },

@@ -76,7 +76,14 @@ copy waits for approval still has its coverage checked.
   banned (`tests/checks/coverage-ignores.test.ts` fails on one). If code is hard to
   reach, test it in the browser project, or restructure it so it can be
   tested.
-- **The one scope rule:** `page.tsx` and `layout.tsx` are outside the
+- **Only code that runs on the live site is in the report.** The fakes
+  that answer for outside services in a fixture build
+  (`lib/server/fixtures/`), the tests' own helpers (`tests/`) and the
+  gallery's examples (`app/(tools)/gallery/`, and each
+  `*.gallery.tsx` beside its component) are left out. The gallery's guard,
+  which keeps it out of the live site, stays in. A fake that flows rely on
+  still has tests of how it behaves, but none just to reach its lines.
+- **The one rule for pages:** `page.tsx` and `layout.tsx` are outside the
   report. Async server components can't render in Vitest, and `layout.tsx`
   needs `next/font`. That's safe only because they have no branches:
   `tests/checks/thin-pages.test.ts` parses every one and fails on `if`,
