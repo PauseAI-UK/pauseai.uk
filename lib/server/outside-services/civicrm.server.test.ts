@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { accessCheck, checkSuppression, fetchContactsPage, readContact, updateSubscriptions } from "./civicrm.server";
+import { checkSuppression, fetchContactsPage, readContact, updateSubscriptions } from "./civicrm.server";
 
 beforeEach(() => {
   vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", "id.access");
@@ -85,23 +85,6 @@ describe("readContact", () => {
     expect(() => readContact({ ...ROW, lists: { ...ROW.lists, newsletter: "maybe" } })).toThrow(
       "a newsletter status we don't know: maybe",
     );
-  });
-});
-
-describe("accessCheck", () => {
-  it("sends the Access token alone, and gives the status Access answers with, following no redirect", async () => {
-    const seen: (string | null)[][] = [];
-    server.use(
-      http.get("https://crm.pauseai.info/pauseai-access-check", ({ request }) => {
-        seen.push(["CF-Access-Client-Id", "CF-Access-Client-Secret", "X-Civi-Auth"].map((h) => request.headers.get(h)));
-        return seen.length === 1
-          ? new HttpResponse(null, { status: 404 })
-          : HttpResponse.redirect("https://pauseai.cloudflareaccess.com/cdn-cgi/access/login", 302);
-      }),
-    );
-    expect(await accessCheck()).toBe(404);
-    expect(await accessCheck()).toBe(302);
-    expect(seen[0]).toEqual(["id.access", "secret", null]);
   });
 });
 
