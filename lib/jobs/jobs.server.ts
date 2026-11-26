@@ -39,7 +39,7 @@ const RUNS: Record<ImportJob, RunJob> = {
   "import-controlai": (by) => importControlAiLetter(by),
   "import-controlai-statement": (by) => importControlAiStatement(by),
   "import-edm": (by) => importEdm(by),
-  // Loaded when it runs, as it reads pages with jsdom, which a server can fail to load: that fails this job alone.
+  // Loaded when it runs, with the packages it reads pages with, so one the server can't load fails this job alone.
   "import-press": async (by, request) => (await import("@/lib/press/survey.server")).runPressSurvey(by, request),
   "tidy-logs": (by) => runTidying(by),
 };

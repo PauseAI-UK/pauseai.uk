@@ -10,6 +10,15 @@ const DATABASE_URL_RULE = {
 };
 const PG_IMPORT = { name: "pg", message: "Only lib/server/db.server.ts connects to the database. Query through it." };
 
+// Next keeps jsdom out of the server's bundle, and Node loads it, which on
+// Netlify (AWS Lambda) fails: part of it is an ES module loaded with
+// require(), which Lambda's Node refuses (tests/checks/lambda-require.test.ts).
+const JSDOM_IMPORT = {
+  name: "jsdom",
+  message:
+    'jsdom can\'t load on Netlify. Parse HTML with linkedom, as lib/press/page.ts does (docs/code-structure.md, "Server code").',
+};
+
 // A test runs on the schema the migrations make, so what it proves holds for
 // the site's. Changing the schema to force an error proves only that a
 // changed schema errs, and can leave the change behind for the next test.
@@ -319,6 +328,7 @@ function siteCodeRules({
       {
         paths: [
           ...(database ? [] : [PG_IMPORT]),
+          JSDOM_IMPORT,
           ...NETWORK_IMPORTS.filter((path) => !(undici && path.name === "undici")),
         ],
         patterns: [
