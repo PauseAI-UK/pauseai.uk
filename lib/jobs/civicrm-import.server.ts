@@ -3,6 +3,7 @@ import type { CivicrmImportResult } from "@/lib/import-run-types";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import { asRun } from "@/lib/server/import-runs.server";
 import {
+  accessCheck,
   civicrmKey,
   fetchContactsPage,
   PAGE_SIZE,
@@ -11,6 +12,7 @@ import {
 import { sendCivicrmUpdates } from "@/lib/supporters/civicrm-updates.server";
 import { recordCivicrmLists } from "@/lib/supporters/opt-outs.server";
 import { problem } from "@/lib/server/problems.server";
+import { orFallback } from "@/lib/server/outside-services/fallback.server";
 import { withNumbersRead, type NumbersRead } from "@/lib/phone";
 import { resendAfterFix } from "@/lib/letters/relays.server";
 import { refreshSupporterFacts, refreshSupportersList } from "@/lib/supporters/facts.server";
@@ -186,6 +188,9 @@ export async function importCivicrm(startedBy: string): Promise<CivicrmImportRes
   let unblocked: string[] = [];
   const { result } = await asRun(JOB, startedBy, async () => {
     const key = civicrmKey();
+    // Whether Cloudflare Access takes our token, which it doesn't yet need for the calls below.
+    const access = await orFallback(jobProblems.civicrmAccessRefused({ status: 0 }), 404, accessCheck);
+    if (access !== 404) problem(jobProblems.civicrmAccessRefused({ status: access }));
     // Ours first, so the pull already has them.
     const updates = await sendCivicrmUpdates(key);
     const sentAny = updates.sent + updates.refused + updates.unanswered > 0;

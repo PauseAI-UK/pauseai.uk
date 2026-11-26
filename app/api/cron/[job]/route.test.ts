@@ -10,6 +10,8 @@ import { POST } from "./route";
 beforeEach(() => {
   vi.stubEnv("CRON_SECRET", "s3cret");
   vi.stubEnv("CIVICRM_CHAPTER_KEY", "key");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", "id");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "secret");
   vi.stubEnv("LUMA_API_KEY", "k");
 });
 afterEach(() => vi.unstubAllEnvs());

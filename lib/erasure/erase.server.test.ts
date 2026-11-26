@@ -19,6 +19,8 @@ import { erasureProblems } from "./copy";
 beforeEach(() => {
   vi.stubEnv("LUMA_API_KEY", "k");
   vi.stubEnv("CIVICRM_CHAPTER_KEY", "k");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", "id");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "secret");
 });
 afterEach(() => vi.unstubAllEnvs());
 

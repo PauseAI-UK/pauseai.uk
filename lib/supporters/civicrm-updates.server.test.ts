@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { query } from "@/lib/server/db.server";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -89,6 +89,12 @@ it("sends a yes from the page as a resubscribe to the list its opt-out unsubscri
   expect(civicrmResubscribe("events", "email")).toBeUndefined();
   expect(civicrmResubscribe("newsletter", "text")).toBeUndefined();
 });
+
+beforeEach(() => {
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", "id");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "secret");
+});
+afterEach(() => vi.unstubAllEnvs());
 
 describeWithDatabase("our opt-outs sent to CiviCRM", () => {
   useTestDatabase();

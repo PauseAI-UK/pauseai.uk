@@ -11,6 +11,7 @@ import { jobProblems, jobsCopy } from "./copy";
 
 const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
 const UPDATE = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/updateSubscriptions";
+const ACCESS_CHECK = "https://crm.pauseai.info/pauseai-access-check";
 
 type Row = Record<string, unknown>;
 
@@ -64,7 +65,12 @@ async function optOuts() {
   );
 }
 
-beforeEach(() => vi.stubEnv("CIVICRM_CHAPTER_KEY", "k"));
+beforeEach(() => {
+  vi.stubEnv("CIVICRM_CHAPTER_KEY", "k");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", "id");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "secret");
+  server.use(http.get(ACCESS_CHECK, () => new HttpResponse(null, { status: 404 })));
+});
 afterEach(() => vi.unstubAllEnvs());
 
 describeWithDatabase("importCivicrm", () => {
@@ -303,6 +309,19 @@ describeWithDatabase("importCivicrm", () => {
     await expect(importCivicrm("nightly")).rejects.toThrow("CiviCRM request failed with status 503: Down");
     expect(await kept()).toEqual([]);
     expect(await query("SELECT status FROM import_runs")).toEqual([{ status: "failed" }]);
+  });
+
+  it("says when Cloudflare Access refuses our token, or doesn't answer, and imports anyway", async () => {
+    const problems = async () =>
+      (await query<{ problems: unknown }>("SELECT problems FROM import_runs ORDER BY id DESC LIMIT 1"))[0].problems;
+    server.use(http.get(GET, () => HttpResponse.json({ values: [contact(1, "jane.smith@example.com")] })));
+    server.use(http.get(ACCESS_CHECK, () => new HttpResponse("<html>Forbidden</html>", { status: 403 })));
+    await importCivicrm("nightly");
+    expect(await problems()).toEqual([jobProblems.civicrmAccessRefused({ status: 403 })]);
+    server.use(http.get(ACCESS_CHECK, () => HttpResponse.error()));
+    await importCivicrm("nightly");
+    expect(await problems()).toMatchObject([jobProblems.civicrmAccessRefused({ status: 0 })]);
+    expect(await kept()).toHaveLength(1);
   });
 
   it("fails without the key", async () => {
