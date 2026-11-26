@@ -16,7 +16,7 @@ import { publicText } from "@/lib/problems";
 import { pressCopy, pressProblems } from "./copy";
 import { MOST_READS } from "./finds";
 import { mediumOf } from "./medium";
-import { excerpts, LEAST_ARTICLE, readPage } from "./page";
+import { excerpts, LEAST_ARTICLE, type Page, readPage } from "./page";
 import {
   readJudgements,
   reviewPrompt,
@@ -154,12 +154,11 @@ type Unread = {
 type Judged = { candidate: Candidate; org: Org; site: string | null; thin: boolean; failed?: boolean };
 
 /**
- * A find that couldn't be read this time, reported, and its failure kept on
- * it for staff: tried again next time, or, after its last try, judged by its
- * headline.
+ * A find that couldn't be read this time, its failure kept on it for staff
+ * (the caller reports it): tried again next time, or, after its last try,
+ * judged by its headline.
  */
-async function notRead(find: Unread, error: OutsideFailure, url?: string): Promise<Judged | "failed"> {
-  problem(pressProblems.findNotRead({ find: find.id }), error);
+async function notRead(find: Unread, error: unknown, url?: string): Promise<Judged | "failed"> {
   await query(
     `UPDATE press_finds SET reads = reads + 1, read_failure = $2, url = COALESCE($3, url), site = COALESCE($4, site)
      WHERE id = $1`,
@@ -225,9 +224,17 @@ async function readOne(find: Unread, known: Set<string>): Promise<Judged | "know
     }
     // A news site that refuses a script refuses it every time, which is no fault of ours: the find is judged by its headline.
     if (refusedUs(error)) return headlineOnly(find, url as string, error);
+    problem(pressProblems.findNotRead({ find: find.id }), error);
     return notRead(find, error, url);
   }
-  const page = readPage(html);
+  let page: Page;
+  try {
+    page = readPage(html);
+  } catch (error) {
+    // A page the reader fails on fails that find's try, not the run: the page is anything a site sends.
+    problem(pressProblems.findNotRead({ find: find.id }), error);
+    return notRead(find, error, url);
+  }
   const captions = page.captions.slice(0, 8).flatMap((caption) => plain(caption, 300) ?? []);
   const reading = readOrg([page.text, ...page.captions, page.title ?? ""].join(" "), PEOPLE);
   // An excerpt is around a mention, so it's never blank.

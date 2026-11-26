@@ -8,6 +8,7 @@ import { query } from "@/lib/server/db.server";
 import * as googleNews from "@/lib/server/outside-services/google-news.server";
 import { pressCopy } from "./copy";
 import { MOST_READS } from "./finds";
+import { readPage } from "./page";
 import type { Candidate } from "./review";
 import { GAP_MS, runPressSurvey } from "./survey.server";
 
@@ -17,6 +18,12 @@ vi.mock("@/lib/server/outside-services/public-address.server", () => ({ isPublic
 vi.mock("@/lib/server/outside-services/google-news.server", async (original) => {
   const real = await original<typeof import("@/lib/server/outside-services/google-news.server")>();
   return { ...real, articleAddress: vi.fn(real.articleAddress) };
+});
+
+// The page reader as it is, but for a test that makes it fail on a page.
+vi.mock("./page", async (original) => {
+  const real = await original<typeof import("./page")>();
+  return { ...real, readPage: vi.fn(real.readPage) };
 });
 
 // The fixture clock's day: the first night searches from 1 October, the
@@ -569,6 +576,30 @@ describeWithDatabase("runPressSurvey", () => {
     notifications();
     expect(await runPressSurvey("nightly")).toMatchObject({ read: 2 });
     expect(taken.count).toBe(gaps);
+  });
+
+  it("counts a page the reader fails on as a try that failed, keeping why, and reads on", async () => {
+    await query("UPDATE press_search SET searched_to = '2026-10-15'");
+    await query(
+      `INSERT INTO press_finds (google_link, title) VALUES
+         ('https://news.google.com/rss/articles/fixture-march', 'A find'),
+         ('https://news.google.com/rss/articles/fixture-global', 'Another')`,
+    );
+    vi.mocked(readPage).mockImplementationOnce(() => {
+      throw new TypeError("Cannot read properties of null (reading 'tagName')");
+    });
+    notifications();
+    expect(await runPressSurvey("nightly", undefined, 0)).toMatchObject({ unreadable: 1, read: 1, left: 1 });
+    const [failed] = await query<{ state: string; reads: number; url: string; failure: { said: string } }>(
+      "SELECT state, reads, url, read_failure AS failure FROM press_finds WHERE title = 'A find'",
+    );
+    expect(failed).toEqual({
+      state: "unread",
+      reads: 1,
+      url: "https://www.examplegazette.co.uk/news/march",
+      failure: { said: expect.stringContaining("reading 'tagName'") },
+    });
+    expect(await problemCodes()).toEqual(["press.findNotRead"]);
   });
 
   it("throws on anything going wrong that isn't the service failing, which is a bug of ours", async () => {

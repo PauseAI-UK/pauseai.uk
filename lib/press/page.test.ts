@@ -66,6 +66,18 @@ describe("readPage", () => {
     expect(page.text).toContain("The day ended. Then the rain came.");
   });
 
+  // Some pages close the document early, ahead of the article, and a browser reads on as if they hadn't.
+  it("reads the article that comes after a page closes its body and document early", () => {
+    const page = readPage(
+      `<html><head><title>The march</title></head><body><nav>Menu</nav></body></html>
+       <div><main><article><h1>The march</h1>${paragraph("First.")}${paragraph("Second.")}</article></main></div>
+       <footer>Footer</footer></body></html>`,
+    );
+    expect(page.text).toMatch(/^First\. The march went on/);
+    expect(page.text).toContain("Second.");
+    expect(page.text).not.toMatch(/Menu|Footer/);
+  });
+
   it("reads a page with too many elements to be an article whole", () => {
     const page = readPage(newsPage(`<div>${"<span></span>".repeat(30_000)}</div>`));
     expect(page.text).toContain("PauseAI in the menu");
