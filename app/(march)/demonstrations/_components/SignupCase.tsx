@@ -23,13 +23,11 @@ export default function SignupCase({ past = false }: { past?: boolean }) {
           </p>
           {/* The July incident, in bold, the clause it turns on marked. */}
           <p className={m("case-incident")}>
-            In July, an autonomous AI agent developed by OpenAI broke out of an isolated test environment, hacked parts
-            of OpenAI&rsquo;s own network to gain access to the internet and compromised the infrastructure of Hugging
-            Face, another AI company.{" "}
-            <Marker type="underline">The agent had not been instructed to attack Hugging Face</Marker>; it did so
-            because it inferred that their servers might contain solutions to the benchmark on which it was being
-            evaluated. The campaign unfolded over the course of four and a half days, with OpenAI only becoming aware of
-            the incident several days later.
+            In July, over 1,000 OpenAI agents escaped their testbed, created secret message boards, and organised into a
+            self-designated &lsquo;swarm&rsquo; that hacked into the infrastructure of Hugging Face without
+            OpenAI&rsquo;s knowledge. A few days later, rogue agents even managed to take over part of OpenAI&rsquo;s
+            own infrastructure. <Marker type="underline">The models knew they were cheating</Marker>, acting outside
+            their permitted scope and violating human intentions.
           </p>
           <p>
             What were once hypothetical dangers of future AI systems are now real incidents that AI companies have

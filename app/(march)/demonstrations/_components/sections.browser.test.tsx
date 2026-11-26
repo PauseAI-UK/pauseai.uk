@@ -170,14 +170,14 @@ describe("the sign-up's sections", () => {
 
   it("marks the July incident's turn", async () => {
     await render(<SignupCase />);
-    await expect.element(page.getByText("The agent had not been instructed to attack Hugging Face")).toBeVisible();
+    await expect.element(page.getByText("The models knew they were cheating")).toBeVisible();
   });
 
   it("heads a past march's case in the past", async () => {
     await render(<SignupCase past />);
     expect(page.getByRole("heading", { name: /Why we.re marching/ }).query()).toBeNull();
     await expect.element(page.getByRole("heading", { level: 2, name: "Why we marched" })).toBeVisible();
-    await expect.element(page.getByText("The agent had not been instructed to attack Hugging Face")).toBeVisible();
+    await expect.element(page.getByText("The models knew they were cheating")).toBeVisible();
   });
 
   it("says what we want: a treaty, legislation, and the demand", async () => {
