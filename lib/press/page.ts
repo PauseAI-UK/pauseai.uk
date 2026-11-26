@@ -63,9 +63,14 @@ function day(value: string | undefined): string | undefined {
   return value?.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
 }
 
-/** The article's own HTML and text in `html`, as Readability reads it; none if it isn't an article, or it found only a headline. */
+/**
+ * The article's own HTML and text in `html`, as Readability reads it; none if it isn't an article, or it found only a
+ * headline. Its `</body>` and `</html>` are taken out first: some pages close them early, ahead of the article, and a
+ * browser reads on regardless, but linkedom ends the document there and leaves the rest outside its body, where
+ * Readability fails. Both tags are optional in HTML, so the page means the same without them.
+ */
 function articleIn(html: string): { content: string; text: string } | undefined {
-  const { document } = parseHTML(html);
+  const { document } = parseHTML(html.replace(/<\/(?:body|html)\s*>/gi, ""));
   // Counted with querySelectorAll, as linkedom's getElementsByTagName("*") finds none.
   if (document.querySelectorAll("*").length > MOST_ELEMENTS || !isProbablyReaderable(document)) return undefined;
   const article = new Readability(document, { maxElemsToParse: MOST_ELEMENTS }).parse();
