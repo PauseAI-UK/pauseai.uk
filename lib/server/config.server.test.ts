@@ -85,6 +85,15 @@ describe("config", () => {
     }
   });
 
+  it("trims the CiviCRM Access token's parts, which go in headers", () => {
+    vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", " id.access\n");
+    vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "secret\n");
+    expect([config.civicrmAccessClientId, config.civicrmAccessClientSecret]).toEqual(["id.access", "secret"]);
+    vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", " ");
+    vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", undefined);
+    expect([config.civicrmAccessClientId, config.civicrmAccessClientSecret]).toEqual([undefined, undefined]);
+  });
+
   it("trims Luma's key, which goes in a header", () => {
     vi.stubEnv("LUMA_API_KEY", " key\n");
     expect(config.lumaApiKey).toBe("key");

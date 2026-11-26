@@ -584,7 +584,14 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   paste it. The hourly CiviCRM import reads its `get` with the UK chapter's
   key, `CIVICRM_CHAPTER_KEY`, in Netlify, and sends our opt-outs to its
   `updateSubscriptions`; each broadcast's copies are checked with its
-  `checkSuppression` just before they go.
+  `checkSuppression` just before they go. Cloudflare Access sits in front of
+  the CRM, so every call also carries our service token for it, as
+  `CIVICRM_ACCESS_CLIENT_ID` and `CIVICRM_ACCESS_CLIENT_SECRET` (in Netlify
+  beside the key, and in Psono as "CRM API: pauseai-uk"), and follows no
+  redirect; without both, no call is made. Each hourly import also asks
+  Access's check whether it takes the token, and records a problem if it
+  doesn't, as a wrong token isn't refused until Global switches Access on. How the token is used is in
+  `docs/api-access-tokens.md` in the same private repo.
   Without the key, fixture builds answer from
   `lib/server/fixtures/civicrm-contacts.json`.
 - **WhatsApp.** Texts to supporters go by Meta's WhatsApp Cloud API
@@ -864,7 +871,7 @@ Each is a Netlify scheduled function in `netlify/functions/` that calls its rout
 | `import-luma`                                | every 5 minutes, from 2 past the hour | `LUMA_API_KEY`. Its background function does the work. The first copy of the calendar takes a few runs; after that each run reads what's changed ("Supporters" in `docs/domain-concepts.md`).                                                                                                                                           |
 | `read-gmail`                                 | every 5 minutes                       | The connected Gmail accounts                                                                                                                                                                                                                                                                                                            |
 | `send-mailings`                              | 3, 18, 33 and 48 past every hour      | The connected Gmail accounts. Its background function sends what one call can't (`send-mailings-background`), which credit-based plans have (https://docs.netlify.com/build/functions/background-functions/). Staff choose times between 06:00 and midnight in London, but it starts a mailing due at any hour.                         |
-| `import-civicrm`                             | 49 past every hour                    | `CIVICRM_CHAPTER_KEY`, our UK chapter's key to Global's chapter contacts API. A run reads every UK chapter contact, a page of 500 at a time.                                                                                                                                                                                            |
+| `import-civicrm`                             | 49 past every hour                    | `CIVICRM_CHAPTER_KEY`, our UK chapter's key to Global's chapter contacts API, and the Access token beside it. A run reads every UK chapter contact, a page of 500 at a time.                                                                                                                                                            |
 
 The database sleeps after five minutes without a query, and is billed while it's awake: about 10 credits an hour at its smallest. The 5-minute jobs keep it awake all day.
 

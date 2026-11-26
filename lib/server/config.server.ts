@@ -105,6 +105,14 @@ export const config = {
   get civicrmChapterKey(): string | undefined {
     return value(process.env.CIVICRM_CHAPTER_KEY);
   },
+  /** The Client ID of our Cloudflare Access service token, which every call to CiviCRM carries; trimmed, as it goes in a header. */
+  get civicrmAccessClientId(): string | undefined {
+    return value(process.env.CIVICRM_ACCESS_CLIENT_ID?.trim());
+  },
+  /** The Client Secret of the same token; trimmed, as it goes in a header. */
+  get civicrmAccessClientSecret(): string | undefined {
+    return value(process.env.CIVICRM_ACCESS_CLIENT_SECRET?.trim());
+  },
   /** WhatsApp's permanent access token, set only on the live site, so a deploy preview can't send from the real number. */
   get whatsappToken(): string | undefined {
     return value(process.env.WHATSAPP_TOKEN);

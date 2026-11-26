@@ -89,6 +89,8 @@ const stateOf = async (id: number) =>
 
 beforeEach(() => {
   vi.stubEnv("CIVICRM_CHAPTER_KEY", "k");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", "id");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "secret");
   vi.stubEnv("POSTMARK_SERVER_TOKEN", "token");
   vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
   vi.setSystemTime(new Date("2026-11-02T10:18:00Z"));

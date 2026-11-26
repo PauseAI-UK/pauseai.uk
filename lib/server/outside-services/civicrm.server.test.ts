@@ -1,7 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { checkSuppression, fetchContactsPage, readContact, updateSubscriptions } from "./civicrm.server";
+import { accessCheck, checkSuppression, fetchContactsPage, readContact, updateSubscriptions } from "./civicrm.server";
+
+beforeEach(() => {
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", "id.access");
+  vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "secret");
+});
+afterEach(() => vi.unstubAllEnvs());
 
 const ROW = {
   contact_id: 12345,
@@ -82,25 +88,85 @@ describe("readContact", () => {
   });
 });
 
+describe("accessCheck", () => {
+  it("sends the Access token alone, and gives the status Access answers with, following no redirect", async () => {
+    const seen: (string | null)[][] = [];
+    server.use(
+      http.get("https://crm.pauseai.info/pauseai-access-check", ({ request }) => {
+        seen.push(["CF-Access-Client-Id", "CF-Access-Client-Secret", "X-Civi-Auth"].map((h) => request.headers.get(h)));
+        return seen.length === 1
+          ? new HttpResponse(null, { status: 404 })
+          : HttpResponse.redirect("https://pauseai.cloudflareaccess.com/cdn-cgi/access/login", 302);
+      }),
+    );
+    expect(await accessCheck()).toBe(404);
+    expect(await accessCheck()).toBe(302);
+    expect(seen[0]).toEqual(["id.access", "secret", null]);
+  });
+});
+
 describe("fetchContactsPage", () => {
   const GET = "https://crm.pauseai.info/civicrm/ajax/api4/PauseaiChapterContact/get";
 
-  it("pages by GET with the key in its header", async () => {
-    const seen: { method: string; url: string; auth: string | null; body: string }[] = [];
+  it("pages by GET with the key and the Access token in its headers", async () => {
+    const seen: {
+      method: string;
+      url: string;
+      auth: string | null;
+      id: string | null;
+      secret: string | null;
+      body: string;
+    }[] = [];
     server.use(
       http.all(GET, async ({ request }) => {
         seen.push({
           method: request.method,
           url: request.url,
           auth: request.headers.get("X-Civi-Auth"),
+          id: request.headers.get("CF-Access-Client-Id"),
+          secret: request.headers.get("CF-Access-Client-Secret"),
           body: await request.text(),
         });
         return HttpResponse.json({ values: [ROW] });
       }),
     );
     expect(await fetchContactsPage("key", 7)).toHaveLength(1);
-    expect(seen[0]).toMatchObject({ method: "GET", auth: "Bearer key", body: "" });
+    expect(seen[0]).toMatchObject({ method: "GET", auth: "Bearer key", id: "id.access", secret: "secret", body: "" });
     expect(JSON.parse(new URL(seen[0].url).searchParams.get("params")!)).toEqual({ limit: 500, after_contact_id: 7 });
+  });
+
+  it("calls nothing without both parts of the Access token", async () => {
+    let called = false;
+    server.use(
+      http.all(GET, () => {
+        called = true;
+        return HttpResponse.json({ values: [] });
+      }),
+    );
+    vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "");
+    await expect(fetchContactsPage("key", 0)).rejects.toMatchObject({ kind: "unauthorised" });
+    vi.stubEnv("CIVICRM_ACCESS_CLIENT_SECRET", "secret");
+    vi.stubEnv("CIVICRM_ACCESS_CLIENT_ID", undefined);
+    await expect(fetchContactsPage("key", 0)).rejects.toThrow(
+      "CIVICRM_ACCESS_CLIENT_ID or CIVICRM_ACCESS_CLIENT_SECRET isn't set",
+    );
+    expect(called).toBe(false);
+  });
+
+  it("follows no redirect, which fails the call", async () => {
+    let followed = false;
+    server.use(
+      http.get(GET, () => HttpResponse.redirect("https://pauseai.cloudflareaccess.com/cdn-cgi/access/login", 302)),
+      http.all("https://pauseai.cloudflareaccess.com/*", () => {
+        followed = true;
+        return HttpResponse.json({ values: [] });
+      }),
+    );
+    await expect(fetchContactsPage("key", 0)).rejects.toMatchObject({
+      kind: "refused",
+      message: expect.stringContaining("CiviCRM's get answered with a redirect, status 302"),
+    });
+    expect(followed).toBe(false);
   });
 
   it("refuses an answer with no list of contacts", async () => {

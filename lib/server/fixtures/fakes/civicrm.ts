@@ -4,6 +4,9 @@ import civicrmContacts from "../civicrm-contacts.json";
 // CiviCRM's API for the UK chapter's contacts.
 
 export const civicrmFake: Fake = ({ hostname, pathname, searchParams }, init) => {
+  // Cloudflare Access letting the token through to a page the CRM doesn't have.
+  if (hostname === "crm.pauseai.info" && pathname === "/pauseai-access-check")
+    return new Response(null, { status: 404 });
   if (hostname === "crm.pauseai.info" && pathname === "/civicrm/ajax/api4/PauseaiChapterContact/get") {
     // The UK chapter contacts staff-data.sql holds, and Erin's, erased there: a page after a contact ID.
     const params = JSON.parse(searchParams.get("params") ?? "{}") as { limit?: number; after_contact_id?: number };

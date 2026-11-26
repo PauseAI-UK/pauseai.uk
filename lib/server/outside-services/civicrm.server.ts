@@ -7,7 +7,10 @@ import { outsideFetch, type Outside } from "./outside-fetch.server";
 const CIVICRM: Outside = { service: "civicrm", fake: civicrmFake };
 
 // The only file that talks to Global's CRM, CiviCRM, through its chapter
-// contacts API, with our UK chapter's key, CIVICRM_CHAPTER_KEY. Its spec is
+// contacts API, with our UK chapter's key, CIVICRM_CHAPTER_KEY, and our
+// Cloudflare Access service token, which gets each call past the Cloudflare
+// Access in front of the CRM (PauseAI/pauseai-civicrm's
+// docs/api-access-tokens.md). Its spec is
 // https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/chapter-contacts-api.md,
 // in a private repo. Three actions: `get`,
 // every UK chapter contact a page at a time, or those with some addresses;
@@ -68,6 +71,37 @@ export function civicrmKey(): string {
     });
   }
   return key;
+}
+
+/**
+ * The Cloudflare Access service token's headers, or throws: Access refuses a
+ * call without them, and they're sent to API's host alone, never logged.
+ */
+function accessHeaders(): Record<string, string> {
+  const id = config.civicrmAccessClientId;
+  const secret = config.civicrmAccessClientSecret;
+  if (!id || !secret) {
+    throw new OutsideFailure("civicrm", "unauthorised", {
+      message: "CIVICRM_ACCESS_CLIENT_ID or CIVICRM_ACCESS_CLIENT_SECRET isn't set, so CiviCRM can't be called",
+    });
+  }
+  return { "CF-Access-Client-Id": id, "CF-Access-Client-Secret": secret };
+}
+
+/**
+ * The status Cloudflare Access's check answers the token with: 404 when
+ * Access lets it through to the CRM, which has no page there, and 401 or
+ * 403 when it refuses it. Until Access guards the API, a wrong token still
+ * gets an answer from it, so this is the only way to know the token is
+ * right before then. The check takes the token alone, never the key.
+ */
+export async function accessCheck(): Promise<number> {
+  const res = await outsideFetch(CIVICRM, "https://crm.pauseai.info/pauseai-access-check", {
+    headers: accessHeaders(),
+    cache: "no-store",
+    redirect: "manual",
+  });
+  return res.status;
 }
 
 /** A field that must be true or false. */
@@ -163,7 +197,10 @@ function said(answer: string): string {
 
 /**
  * Calls `action` with `params`, by GET in the URL, or by POST in the body,
- * which keeps addresses out of URL logs, and gives its rows.
+ * which keeps addresses out of URL logs, and gives its rows. A redirect
+ * isn't followed, as it would take the key and the token with it to wherever
+ * it leads: it fails the call, as Access answers a call it doesn't let
+ * through with one to its login page.
  */
 async function call(
   key: string,
@@ -175,13 +212,18 @@ async function call(
   const res = await outsideFetch(CIVICRM, method === "GET" ? `${API}/${action}?${encoded}` : `${API}/${action}`, {
     method,
     headers: {
+      ...accessHeaders(),
       "X-Civi-Auth": `Bearer ${key}`,
       "X-Requested-With": "XMLHttpRequest",
       ...(method === "POST" && { "Content-Type": "application/x-www-form-urlencoded" }),
     },
     ...(method === "POST" && { body: encoded.toString() }),
     cache: "no-store",
+    redirect: "manual",
   });
+  if (res.status >= 300 && res.status < 400) {
+    throw new CivicrmRequestError(`CiviCRM's ${action} answered with a redirect, status ${res.status}`, res.status);
+  }
   if (!res.ok)
     throw new CivicrmRequestError(
       `CiviCRM request failed with status ${res.status}: ${said(await res.text())}`,

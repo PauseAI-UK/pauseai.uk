@@ -256,6 +256,10 @@ export const jobProblems = defineProblems("jobs", {
   // and how many.
   civicrmNumbersUnread: (p: { count: number }) =>
     `Some contacts' phone numbers were badly formatted, so they were imported without them. Fix them in CiviCRM: ${p.count}`,
+  // The CiviCRM import: Cloudflare Access's check didn't let our service token through (status 0 when it didn't
+  // answer), so once Access guards the CRM's API, every call will be refused; the token in Netlify needs fixing.
+  civicrmAccessRefused: (p: { status: number }) =>
+    `⁂ Cloudflare Access refused our CiviCRM token, so once Global switches Access on, imports will stop. Check CIVICRM_ACCESS_CLIENT_ID and CIVICRM_ACCESS_CLIENT_SECRET in Netlify. Status: ${p.status}`,
   // ControlAI's statement's import: links on the page to politicians we don't have.
   controlAiUnmatched: (p: { supporters: readonly SafeText[] }) =>
     `Supporters on ControlAI's page we couldn't find here: ${listed(p.supporters)}`,
