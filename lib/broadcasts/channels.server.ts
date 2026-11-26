@@ -5,6 +5,7 @@ import { FIXTURE_KEYS } from "@/lib/server/fixtures/whatsapp";
 import { gmailEmail, postmarkBroadcast } from "@/lib/mailings/channels.server";
 import type { MailingChannel } from "@/lib/letters/channels.server";
 import { businessNumber, type BusinessNumber, type WhatsAppKeys } from "@/lib/server/outside-services/whatsapp.server";
+import { GMAIL_SEND_GAP_MS } from "@/lib/server/outside-services/gmail.server";
 import { problem } from "@/lib/server/problems.server";
 import { broadcastProblems } from "./copy";
 
@@ -17,8 +18,7 @@ import { broadcastProblems } from "./copy";
 
 /** The channel each way of sending an email to supporters goes by, and the gap it keeps between two sends, in ms. */
 const EMAIL_CHANNELS: Record<BroadcastSendBy, { channel: MailingChannel; gapMs: number }> = {
-  // Gmail takes 60 a minute from one account: 3,600 an hour.
-  gmail: { channel: gmailEmail, gapMs: 1000 },
+  gmail: { channel: gmailEmail, gapMs: GMAIL_SEND_GAP_MS },
   // Postmark asks for no more than 20,000 an hour on a broadcast stream's first day
   // (https://postmarkapp.com/support/article/can-i-send-bulk-emails). 180ms apart is 333 a minute, 20,000 an hour
   // sending without a break; as the sending runs about 12 minutes in each 15 (RUN_MS in
