@@ -83,6 +83,7 @@ together, and which feature depends on which can be seen and held.
 | `broadcasts`  | Broadcasts to supporters, by email and WhatsApp: the writer, who they're for, sending, replies and our answers                                                                    |
 | `oversight`   | What staff check the site by: the audit log's page, the emails sent, the errors seen, what each feature's emails do about a bounce, and the health checks an outside monitor asks |
 | `jobs`        | The scheduled jobs: what runs each, the schedule's calls, reading Gmail, sending, the CiviCRM and ControlAI imports, tidying the logs                                             |
+| `press`       | Press coverage: what `/press` shows, the nightly press survey that finds new coverage in Google News and asks an LLM about it, and the staff Press page's finds and pieces |
 
 Beside the features, `_components/` has `ui/`, the staff kit (the page
 frame, tables, filters, menus), and `shell/`, the frame every staff page

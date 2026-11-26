@@ -12,7 +12,7 @@ export const shellCopy = {
     // The sections the pages are in, in the sidebar.
     sections: {
       supporters: "Supporters",
-      events: "Events",
+      events: "Outreach",
       politicians: "Politicians",
       admin: "Admin",
       // Over your address, which leads to your own page.
@@ -24,6 +24,7 @@ export const shellCopy = {
     mailings: "Mailings",
     broadcasts: "Broadcasts",
     events: "Events",
+    press: "Press",
     import: "Scheduled jobs",
     changes: "Audit log",
     campaigns: "Campaigns",

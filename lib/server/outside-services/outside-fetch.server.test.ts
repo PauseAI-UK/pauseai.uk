@@ -100,6 +100,31 @@ describe("outsideFetch", () => {
     });
   });
 
+  it("reads an answer with more headers than fetch takes when asked to, as some news sites send", async () => {
+    // A real server on this machine, as msw passes the request on to fetch, with the pool it's given.
+    const site = createServer((_, res) => {
+      res.writeHead(200, { "x-padding": "a".repeat(64 * 1024), "content-type": "text/plain" });
+      res.end("read");
+    });
+    await new Promise<void>((resolve) => site.listen(0, "127.0.0.1", resolve));
+    const { port } = site.address() as AddressInfo;
+    server.use(http.all(`http://127.0.0.1:${port}/*`, () => passthrough()));
+    const url = `http://127.0.0.1:${port}/page`;
+
+    const usual = await outsideFetch(LUMA, url).catch((error: unknown) => error);
+    const large = await outsideFetch(LUMA, url, { largeHeaders: true });
+    // And again, through the pool made for the first.
+    const again = await outsideFetch(LUMA, url, { largeHeaders: true });
+    site.close();
+    expect(usual).toMatchObject({
+      service: "luma",
+      kind: "unreachable",
+      cause: { cause: { code: "UND_ERR_HEADERS_OVERFLOW" } },
+    });
+    expect(await large.text()).toBe("read");
+    expect(await again.text()).toBe("read");
+  });
+
   it("hands back an answer with no body, such as a 204, as it came", async () => {
     server.use(
       http.get("https://public-api.luma.com/v1/calendars/events/list", () => new HttpResponse(null, { status: 204 })),

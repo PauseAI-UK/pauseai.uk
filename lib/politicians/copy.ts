@@ -326,7 +326,6 @@ export const politiciansCopy = {
       "import-senedd": "Import MSs now",
       "import-ni-assembly": "Import MLAs now",
     },
-    never: "Not imported yet.",
     result: (r: { added: number; changed: number; left: number }) =>
       `${r.added} added, ${r.changed} changed, ${r.left} left.`,
     added: "Added",

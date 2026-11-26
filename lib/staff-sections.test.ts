@@ -14,18 +14,18 @@ describe("sectionsFor", () => {
   it("shows each section with only the pages the permissions open, and hides an empty one", () => {
     expect(pages([])).toEqual([
       ["politicians", ["politicians", "asks", "mailings", "emails", "mpEmails"]],
-      ["events", ["events"]],
+      ["events", ["events", "press"]],
       ["admin", ["import"]],
     ]);
     expect(pages(["supporters"])).toEqual([
       ["supporters", ["supporters", "campaigns", "broadcasts", "supporterEmails", "signupUpload"]],
       ["politicians", ["politicians", "asks", "mailings", "emails", "mpEmails"]],
-      ["events", ["events"]],
+      ["events", ["events", "press"]],
       ["admin", ["import"]],
     ]);
     expect(pages(["admin"])).toEqual([
       ["politicians", ["politicians", "asks", "mailings", "emails", "mpEmails"]],
-      ["events", ["events"]],
+      ["events", ["events", "press"]],
       ["admin", ["import", "sentEmails", "changes", "errors", "accounts"]],
     ]);
   });

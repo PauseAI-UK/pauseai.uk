@@ -10,14 +10,17 @@ import "server-only";
 
 /** The outside services, each with its name as an error's words say it. */
 export const OUTSIDE_SERVICES = {
+  anthropic: "Anthropic",
   blobs: "Netlify Blobs",
   civicrm: "CiviCRM",
   controlai: "ControlAI",
   gmail: "Gmail",
   "google-maps": "Google Maps",
+  "google-news": "Google News",
   "link-page": "A linked page",
   luma: "Luma",
   "map-tiles": "OpenStreetMap's map",
+  "news-page": "A news page",
   netlify: "Netlify",
   "ni-assembly": "The Northern Ireland Assembly",
   parliament: "Parliament",

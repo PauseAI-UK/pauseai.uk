@@ -12,6 +12,7 @@ import type {
   PoliticianImportResult,
   SendingResult,
   TidyingResult,
+  PressSurveyResult,
 } from "@/lib/import-run-types";
 import type { Problem } from "@/lib/problems";
 
@@ -19,6 +20,7 @@ type Results = Record<PoliticianImportJob, PoliticianImportResult> & {
   "import-controlai": ControlAiImportResult;
   "import-controlai-statement": ControlAiStatementResult;
   "import-edm": EdmResult;
+  "import-press": PressSurveyResult;
   "import-luma": LumaImportResult;
   "import-civicrm": CivicrmImportResult;
   "read-gmail": GmailReadResult;
@@ -211,6 +213,19 @@ export const exampleEdmResult: EdmResult = {
   added: 2,
   removed: 0,
   unmatched: ["Jane Smith (99999)"],
+};
+
+/** A first night's press survey: weeks searched, some finds read and judged, more left for the next call. */
+export const examplePressResult: PressSurveyResult = {
+  searched: 2,
+  found: 14,
+  read: 5,
+  known: 1,
+  unreadable: 1,
+  waiting: 2,
+  notOurs: 3,
+  left: 7,
+  told: 0,
 };
 
 /** What an hour's sending did: a mailing started and most of it sent. */

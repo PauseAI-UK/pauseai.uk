@@ -1202,6 +1202,14 @@ that drives it or why nothing does.
   - the lists by tag, with an event in two lists, each with its own Edit;
   - the lists by owner without online events, on Future then Past;
   - an event earlier today staying on Future and in the lists by owner, and yesterday's on Past.
+- `press.spec.ts`: The press survey and the staff Press page:
+  - a night's search of the fake Google News, run from the job's page: the run, the email to the notification inbox, and the finds waiting;
+  - a find added to `/press`, and `/press` with it at the top;
+  - a find's outlet, kind and note edited before it's added;
+  - a find removed, then added back from Removed;
+  - a piece on `/press` edited, then removed;
+  - a piece staff found themselves, added, and the same link refused;
+  - a night with Anthropic's API down: the run's problem, and the finds waiting without the LLM's verdict.
 - `audit-log.spec.ts`: The audit log's filters:
   - by who;
   - a chip's row swapping;
@@ -1299,6 +1307,7 @@ that drives it or why nothing does.
     - `replies` and `letters`: `readInbox()` in `tests/storyboard/letters-inbox-steps.ts` runs it, after a flow puts a reply or a bounce in the letters inbox.
     - `imports`: the read that finds Google has disconnected a Gmail. The Gmail page's button runs the same `readGmail()`.
     - `mailings`: not through the route. A staff member's fixture Gmail has no messages to read, so the flow adds the reply that the read would keep.
+  - `import-press`: `press`: `surveyNight()` in `tests/storyboard/press.spec.ts`, before the flows that need finds; the first flow runs it from its page.
   - `import-luma`: `supporters`: `importLuma()` in `tests/storyboard/supporter-steps.ts` fills a flow's database from the fixture calendar; the `imports` page runs it too.
 - `/api/backup/messages`: Not driven: it's for the backup's container, and shows nothing. Vitest-tested.
 - `/api/csp-report`: Not driven: a browser posts to it only on a CSP violation. Vitest-tested.

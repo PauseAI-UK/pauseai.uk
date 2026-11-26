@@ -1,0 +1,26 @@
+/* The one a link picked out, or each of them (docs/style-guide.md, "Drawing
+   the eye"): a bar of the accent at its left, in a deep tint of it. As the
+   page appears it swells into that tint from plain, glowing a little past it
+   before it settles, so the eye is drawn to it. A change of colour, not a
+   movement, so it stays with motion turned off. Used on the Asks list and
+   on /press. */
+.picked {
+  box-shadow:
+    inset 4px 0 var(--accent),
+    inset 0 0 0 100vmax rgb(var(--pause-orange-rgb) / 0.4);
+  animation: picked 1.4s 0.15s ease-in-out backwards;
+}
+
+@keyframes picked {
+  0% {
+    box-shadow:
+      inset 4px 0 var(--accent),
+      inset 0 0 0 100vmax rgb(var(--pause-orange-rgb) / 0);
+  }
+
+  40% {
+    box-shadow:
+      inset 4px 0 var(--accent),
+      inset 0 0 0 100vmax rgb(var(--pause-orange-rgb) / 0.6);
+  }
+}

@@ -48,14 +48,22 @@ export function servePorts(dir) {
   return { proxy, next: proxy + 1 };
 }
 
-/** What the command line asks for: a branch, a PR's number, or neither, and whether to stop it. */
+/**
+ * What the command line asks for: a branch, a PR's number, or neither,
+ * whether to stop it, and with `--real <services>`, the outside services,
+ * comma-separated, to ask for real rather than fake (REAL_SERVICES).
+ */
 export function parseArgs(args) {
   const stop = args.includes("--stop");
-  const rest = args.filter((arg) => arg !== "--stop");
+  const at = args.indexOf("--real");
+  const real = at === -1 ? undefined : args[at + 1];
+  if (at !== -1 && (!real || real.startsWith("-"))) return undefined;
+  const rest = args.filter((arg, i) => arg !== "--stop" && (at === -1 || (i !== at && i !== at + 1)));
   if (rest.length > 1 || rest.some((arg) => arg.startsWith("-"))) return undefined;
   const [target] = rest;
-  if (target === undefined) return { stop };
-  return /^\d+$/.test(target) ? { pr: Number(target), stop } : { branch: target, stop };
+  const asked = { stop, ...(real && { real: real.split(",") }) };
+  if (target === undefined) return asked;
+  return /^\d+$/.test(target) ? { pr: Number(target), ...asked } : { branch: target, ...asked };
 }
 
 /** The worktree that has `branch` checked out, from `git worktree list --porcelain`, if one does. */
@@ -235,7 +243,7 @@ const ADMIN = "admin@pauseai.uk";
 async function main(args) {
   const asked = parseArgs(args);
   if (!asked) {
-    console.error("Usage: npm run serve -- [<branch> | <PR number>] [--stop]");
+    console.error("Usage: npm run serve -- [<branch> | <PR number>] [--stop] [--real <service>,<service>]");
     process.exit(2);
   }
   const dir = worktreeFor(asked);
@@ -251,6 +259,11 @@ async function main(args) {
   // The clock runs, and no analytics: it's to use, not to picture.
   delete env.FIXTURE_NOW;
   delete env.ANALYTICS;
+  // The services asked for for real, with any key of theirs from this shell rather than the fixture's.
+  if (asked.real) {
+    env.REAL_SERVICES = asked.real.join(",");
+    if (asked.real.includes("anthropic")) env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
+  }
   env.NEXT_DIST_DIR = SERVE_DIST_DIR;
   env.NETLIFY_DB_URL = freshDatabase(dir, `pauseai_serve_${hash}`, TEST_MP_EMAIL, env.GMAIL_TOKEN_KEY);
 

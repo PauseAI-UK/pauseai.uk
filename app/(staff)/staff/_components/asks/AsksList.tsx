@@ -13,6 +13,7 @@ import Grid, { spanClass } from "../ui/Grid";
 import Strip from "../ui/Strip";
 import StaffLink from "../ui/StaffLink";
 import styles from "./AsksList.module.css";
+import pickedStyles from "@/components/ui/Picked.module.css";
 import { asksCopy, standingWord } from "@/lib/asks/copy";
 
 const copy = asksCopy.asks;
@@ -94,7 +95,11 @@ function AskStanding({ ask }: { ask: AskWithCounts }) {
 /** One ask's row: who asked them to do what and when, its title and its answers; the campaigns and mailings that asked it; and how it stands. */
 function AskRow({ ask, picked, Title }: { ask: AskWithCounts; picked: boolean; Title: "h2" | "h3" }) {
   return (
-    <li id={ask.slug} className={styles.ask} aria-current={picked || undefined}>
+    <li
+      id={ask.slug}
+      className={picked ? `${styles.ask} ${pickedStyles.picked}` : styles.ask}
+      aria-current={picked || undefined}
+    >
       <div className={styles.what}>
         <span className={styles.asked}>{[askedLine(ask), askPeriod(ask)].filter(Boolean).join(" · ")}</span>
         {/* Its kind's picture before its title, as a broadcast's channel is before its; the line above says it in words. */}

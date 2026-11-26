@@ -1643,3 +1643,25 @@ SELECT setval(pg_get_serial_sequence('errors_seen', 'id'), (SELECT max(id) FROM 
 UPDATE mailings SET topic = 'newsletter', also_topics = '{events}',
   filter = jsonb_set(filter, '{params,contact}', to_jsonb(channel || ':newsletter:yes ' || channel || ':events:yes'))
 WHERE audience = 'supporters' AND state = 'draft' AND topic = 'events' AND also_topics = '{}';
+
+-- ------------------------------------------------------------------ press
+
+-- What the press survey found on an earlier night (lib/press/survey.server.ts):
+-- a piece the LLM couldn't place, waiting for staff, who were told of it;
+-- and one it judged not ours, folded away under Removed on the Press page.
+-- Their links aren't the fake Google News's (fixtures/fakes/google-news.ts),
+-- so a run of the survey finds its own beside them. Their sites are tiered
+-- as the survey would have had them tiered (press_sources).
+INSERT INTO press_sources (site, name, tier, reason) VALUES
+  ('exampledaily.co.uk', 'Example Daily', 3, 'A regional daily.'),
+  ('examplebusiness.com', 'Example Business', 2, 'A national business paper.');
+INSERT INTO press_finds (google_link, title, outlet_name, published, found_at, state, url, passage, verdict, org, reason, reads, notified_at, medium, site)
+VALUES
+  ('https://news.google.com/rss/articles/seed-unclear', 'Campaigners call for a pause on frontier AI', 'Example Daily',
+   '2026-10-05', now() - interval '3 days', 'waiting', 'https://www.exampledaily.co.uk/campaigners-pause',
+   'Members of PauseAI handed in a petition at the town hall.', 'unclear', 'unclear',
+   'It names PauseAI, but not which group.', 1, now() - interval '3 days', 'Article', 'exampledaily.co.uk'),
+  ('https://news.google.com/rss/articles/seed-phrase', 'Bank to pause AI loan decisions', 'Example Business',
+   '2026-10-04', now() - interval '3 days', 'not ours', 'https://www.examplebusiness.com/bank-ai',
+   'The bank will pause AI decisions on loans while regulators review them.', 'not ours', 'none',
+   'Only the phrase "pause AI", about a bank.', 1, NULL, 'Article', 'examplebusiness.com');

@@ -12,7 +12,7 @@ import PeopleSection from "@/app/(site)/_components/PeopleSection";
 import PressMarquee, { NewsRow } from "@/app/(site)/_components/PressMarquee";
 import ShopBanner from "@/app/(site)/_components/ShopBanner";
 import { people } from "@/lib/content/people";
-import { newsRow1, newsRow2 } from "@/lib/content/press-coverage";
+import { newsRow1, newsRow2 } from "@/lib/content/press-logos";
 import type { LumaEvent } from "@/lib/site-events";
 import type { Group } from "../_components/types";
 import { EventsPlacePickerExample } from "./home.client";

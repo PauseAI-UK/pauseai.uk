@@ -26,7 +26,6 @@ export const COLOUR_TOKENS = [
   "--on-dark",
   "--charcoal",
   "--peach",
-  "--logo-swlondoner",
   "--neutral-50",
   "--neutral-100",
   "--neutral-200",

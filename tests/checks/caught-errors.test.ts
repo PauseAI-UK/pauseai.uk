@@ -120,6 +120,8 @@ const OWN_CATCHES = [
   "lib/politicians/aliases.server.ts",
   // Answers the visitor politely whether postcodes.io or our database failed.
   "lib/politicians/find-mp.server.ts",
+  // Keeps why a press find couldn't be read on the find, for staff, and reports it, as the run reads the next.
+  "lib/press/survey.server.ts",
   // The database's connection: a transaction rolls back and throws on, and a warning in development fails no query.
   "lib/server/db.server.ts",
   // A fixture build's outbox that isn't there yet holds no emails: the catch is the question.

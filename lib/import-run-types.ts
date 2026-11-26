@@ -88,6 +88,26 @@ export type EdmResult = {
 };
 export type EdmImport = ImportRun<"import-edm", EdmResult>;
 
+/**
+ * What a call of the press survey did (lib/press/survey.server.ts): the
+ * week-long windows of Google News it searched and the pieces new to it,
+ * then the finds it read, how many it found known, couldn't read, left
+ * waiting for staff or set aside, how many are left to read, and how many
+ * finds it told the notification inbox of.
+ */
+export type PressSurveyResult = {
+  searched: number;
+  found: number;
+  read: number;
+  known: number;
+  unreadable: number;
+  waiting: number;
+  notOurs: number;
+  left: number;
+  told: number;
+};
+export type PressSurvey = ImportRun<"import-press", PressSurveyResult>;
+
 /** Where supporters are, looked up after a Luma import: the postcodes and towns looked up, and whether postcodes.io failed partway. */
 export type PlacesLookup = { postcodes: number; towns: number; failed: boolean };
 
@@ -238,6 +258,7 @@ export type AnyImportRun =
   | ControlAiImport
   | ControlAiStatementImport
   | EdmImport
+  | PressSurvey
   | LumaImport
   | CivicrmImport
   | GmailReading

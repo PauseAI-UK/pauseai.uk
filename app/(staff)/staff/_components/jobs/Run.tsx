@@ -13,9 +13,11 @@ import type {
   PoliticianImport,
   Sending,
   Tidying,
+  PressSurvey,
 } from "@/lib/import-run-types";
 import type { House } from "@/lib/politicians/filters";
 import { importChangeCount } from "@/lib/politicians/import-changes";
+import { pressCopy } from "@/lib/press/copy";
 import RunBox from "./RunBox";
 import { Muted } from "@/components/ui/Text";
 import Table from "@/components/ui/Table";
@@ -183,6 +185,18 @@ function EdmRun({ run, open, variant }: { run: EdmImport; open?: boolean; varian
     <RunBox
       run={run}
       summary={run.status === "failed" ? null : jobsCopy.edm.result(run.result)}
+      open={open}
+      variant={variant}
+    />
+  );
+}
+
+/** A call of the press survey: what it searched, found and read, and what's left to read. */
+function PressRun({ run, open, variant }: { run: PressSurvey; open?: boolean; variant?: Variant }) {
+  return (
+    <RunBox
+      run={run}
+      summary={run.status === "failed" ? null : pressCopy.job.result(run.result)}
       open={open}
       variant={variant}
     />
@@ -363,6 +377,8 @@ export default function Run({
       return <ControlAiStatementRun run={run} open={open} variant={variant} />;
     case "import-edm":
       return <EdmRun run={run} open={open} variant={variant} />;
+    case "import-press":
+      return <PressRun run={run} open={open} variant={variant} />;
     case "import-luma":
       return <LumaRun run={run} open={open} variant={variant} />;
     case "import-civicrm":

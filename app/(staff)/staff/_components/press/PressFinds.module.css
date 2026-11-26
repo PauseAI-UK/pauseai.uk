@@ -1,0 +1,113 @@
+/* The staff Press page: what's waiting as cards, each with its buttons at its top right; what's on /press as rows. */
+/* Headlines, passages and links can hold a word longer than a card is wide, such as an address: it breaks, rather than widening the page. */
+.page {
+  display: grid;
+  gap: var(--space-7);
+  overflow-wrap: anywhere;
+}
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+.heading {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.cards,
+.pieces {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.cards {
+  gap: var(--space-3);
+}
+
+/* A find. */
+.card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+.headline {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+.passage {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+/* A piece on /press. */
+/* A piece: when, where and what kind on one line, its headline under it, its buttons at the right. */
+.piece {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: start;
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+.date {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.outlet {
+  font-weight: 600;
+}
+.kind {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.title {
+  min-width: 0;
+}
+/* A piece's form, in its bubble: wide enough for a long headline on one line, narrowing to fit a phone. */
+.editor {
+  --bubble-width: 44rem;
+}
+.editor form {
+  width: 40rem;
+  max-width: 100%;
+}
+.editor form,
+.editor label {
+  display: grid;
+  gap: var(--space-2);
+}
+.removed summary {
+  cursor: pointer;
+  margin-bottom: var(--space-3);
+}
+.removed summary h2 {
+  display: inline;
+}
+.pieceLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  align-items: baseline;
+}

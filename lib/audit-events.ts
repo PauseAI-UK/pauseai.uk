@@ -109,6 +109,17 @@ export type AuditDetails = { [A in DownloadAction]: DownloadDetails } & {
   "unblock address": { address: string; note: string };
   "set event owner": { eventId: string; owner: string; previous: string | null };
   "set event doc": { eventId: string; url: string | null; previous: string | null };
+  /** A find of the press survey put on /press (lib/press/finds.server.ts), as the piece `coverageId`. */
+  "add press find": { findId: number; coverageId: number; title: string; article: string };
+  "remove press find": { findId: number; title: string };
+  /** A piece on /press edited: each field `changed`, before and after. */
+  "edit press piece": { coverageId: number; title: string; changed: Record<string, FieldChange> };
+  "remove press piece": { coverageId: number; title: string };
+  /** What a find goes on /press with, set by staff before adding it. */
+  "edit press find": { findId: number; title: string; changed: Record<string, FieldChange> };
+  /** A piece staff found themselves, put on /press by hand. */
+  "add press piece": { coverageId: number; title: string; article: string };
+  "restore press piece": { coverageId: number; title: string };
   "create mailing": { id: number };
   "schedule mailing": { id: number; recipients: number };
   "reschedule mailing": { id: number; dueAt: string };

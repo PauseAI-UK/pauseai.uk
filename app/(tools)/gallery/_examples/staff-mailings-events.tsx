@@ -1,5 +1,6 @@
 // The staff interface's mailings to politicians and our events: writing,
-// scheduling and viewing a mailing, and the events list and its editing.
+// scheduling and viewing a mailing, the events list and its editing, and
+// the Press page, below Events in the sidebar.
 // Their links go to /staff pages, which send anyone without a session to the
 // login page.
 import { eventColumnsGallery } from "@/app/(staff)/staff/_components/events/EventColumns.gallery";
@@ -7,6 +8,7 @@ import { eventEditGallery } from "@/app/(staff)/staff/_components/events/EventEd
 import { eventFiltersGallery } from "@/app/(staff)/staff/_components/events/EventFilters.gallery";
 import { eventsTableGallery } from "@/app/(staff)/staff/_components/events/EventsTable.gallery";
 import type { Group } from "../_components/types";
+import { pressFindsGallery } from "@/app/(staff)/staff/_components/press/PressFinds.gallery";
 import { mailingEditorGallery } from "@/app/(staff)/staff/_components/mailings/MailingEditor.gallery";
 import { conditionMenuGallery } from "@/app/(staff)/staff/_components/mailings/ConditionMenu.gallery";
 import { partBoxGallery } from "@/app/(staff)/staff/_components/mailings/PartBox.gallery";
@@ -42,6 +44,7 @@ export const staffMailingsEvents: Group = {
     missing,
     eventColumns,
     ...eventFiltersGallery,
+    ...pressFindsGallery,
     ...eventEditGallery,
     eventsIntro,
     ...mailingsOverviewGallery,

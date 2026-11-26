@@ -14,6 +14,7 @@ const PAGES: Record<StaffPageName, true> = {
   broadcasts: true,
   sentEmails: true,
   events: true,
+  press: true,
   supporterEmails: true,
   politicians: true,
   asks: true,

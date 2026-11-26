@@ -1,5 +1,6 @@
 // The import log's words (lib/import-runs.ts, lib/server/import-runs.server.ts): each job's title, and the
 // emails to staff when a job's run fails or has problems.
+import { pressCopy } from "@/lib/press/copy";
 import type { ImportJob } from "@/lib/import-runs";
 import { jobsCopy } from "@/lib/jobs/copy";
 import { politiciansCopy } from "@/lib/politicians/copy";
@@ -11,6 +12,7 @@ export const importRunsCopy = {
     "import-controlai": jobsCopy.controlAi.title,
     "import-controlai-statement": jobsCopy.controlAiStatement.title,
     "import-edm": jobsCopy.edm.title,
+    "import-press": pressCopy.job.title,
     "import-luma": jobsCopy.luma.title,
     "import-civicrm": jobsCopy.civicrm.title,
     "read-gmail": jobsCopy.gmailReading.title,

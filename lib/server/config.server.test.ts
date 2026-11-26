@@ -94,6 +94,13 @@ describe("config", () => {
     expect([config.civicrmAccessClientId, config.civicrmAccessClientSecret]).toEqual([undefined, undefined]);
   });
 
+  it("trims Anthropic's key, which goes in a header", () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", " key\n");
+    expect(config.anthropicApiKey).toBe("key");
+    vi.stubEnv("ANTHROPIC_API_KEY", undefined);
+    expect(config.anthropicApiKey).toBeUndefined();
+  });
+
   it("trims Luma's key, which goes in a header", () => {
     vi.stubEnv("LUMA_API_KEY", " key\n");
     expect(config.lumaApiKey).toBe("key");

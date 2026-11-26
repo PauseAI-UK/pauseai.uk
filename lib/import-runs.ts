@@ -37,6 +37,7 @@ export const JOBS = {
   "import-controlai": { slug: "controlai", schedule: "nightly", cron: "25 6 * * *" },
   "import-controlai-statement": { slug: "controlai-statement", schedule: "nightly", cron: "26 6 * * *" },
   "import-edm": { slug: "edm", schedule: "nightly", cron: "28 6 * * *" },
+  "import-press": { slug: "press", schedule: "nightly", cron: "29 6 * * *", budgetMs: 22_000 },
   "tidy-logs": { slug: "tidying", schedule: "nightly", cron: "27 6 * * *" },
 } as const satisfies Record<string, { slug: string; schedule: JobSchedule; cron: string; budgetMs?: number }>;
 

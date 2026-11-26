@@ -94,7 +94,7 @@
   width: auto;
 }
 
-/* Logos are sized per item via --logo-h (set inline from lib/content/press-coverage.ts) so
+/* Logos are sized per item via --logo-h (set inline from lib/content/press-logos.ts) so
    every mark carries roughly equal visual area — wide wordmarks render
    shorter, square marks taller. --logo-scale shrinks the whole set on
    phone. Explicit height (not max-height) means no letterboxing, so
@@ -165,40 +165,4 @@
   to {
     transform: translate3d(var(--copy-shift, -50%), 0, 0);
   }
-}
-
-/* Outlets with no logo file are set in text, from the HTML in
-   lib/content/press-coverage.ts, so these class names are global. */
-.logoBox :global(.news-logo-text) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-weight: bold;
-}
-
-.logoBox :global(.news-logo-text--swlondoner) {
-  font-size: calc(2rem * var(--logo-scale, 1));
-  white-space: nowrap;
-  font-family: Georgia, "Times New Roman", serif;
-  letter-spacing: -0.01em;
-}
-
-.logoBox :global(.news-logo-text--swlondoner .sw) {
-  color: var(--logo-swlondoner);
-  font-style: italic;
-}
-
-.logoBox :global(.news-logo-text--ibtimes) {
-  font-size: calc(1.1rem * var(--logo-scale, 1));
-  white-space: nowrap;
-  font-family: system-ui, sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-}
-
-.logoBox :global(.news-logo-text--ibtimes .uk) {
-  font-size: 0.5em;
-  vertical-align: super;
-  margin-left: 2px;
 }

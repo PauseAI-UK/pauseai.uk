@@ -45,6 +45,13 @@ const PATHS: Record<StaffPageId | "home" | "me" | "logout", ReactNode> = {
       <path d="M4 10h16M8 3v4M16 3v4" />
     </>
   ),
+  // A folded newspaper, as the press survey's job has.
+  press: (
+    <>
+      <path d="M5 4h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2V8h1" />
+      <path d="M18 8h2v10a2 2 0 0 1-2 2M8 8h6M8 12h6M8 16h4" />
+    </>
+  ),
   supporterEmails: BLOCKED,
   // An arrow up, out of a tray.
   signupUpload: <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" />,

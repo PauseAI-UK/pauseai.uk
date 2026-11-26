@@ -20,7 +20,9 @@ import PersonHeader from "@/app/(site)/people/_components/PersonHeader";
 import PersonStory from "@/app/(site)/people/_components/PersonStory";
 import ShareYourStory from "@/app/(site)/people/_components/ShareYourStory";
 import StoryGrid from "@/app/(site)/people/_components/StoryGrid";
+import CoverageList from "@/app/(site)/press/_components/CoverageList";
 import PressKit from "@/app/(site)/press/_components/PressKit";
+import { EXAMPLE_COVERAGE } from "@/app/(site)/press/_components/PressKit.examples";
 import PrivacyPolicy from "@/app/(site)/privacy/_components/PrivacyPolicy";
 import ChangeSteps from "@/app/(site)/theory-of-change/_components/ChangeSteps";
 import ChangeForeword from "@/app/(site)/theory-of-change/_components/Foreword";
@@ -193,7 +195,22 @@ export const pages: Group = {
     {
       name: "PressKit",
       file: "app/(site)/press/_components/PressKit.tsx",
-      variants: [{ label: "Contacts, assets and coverage", render: () => <PressKit /> }],
+      variants: [
+        {
+          label: "The media contact, boilerplate and brand assets beside the coverage",
+          render: () => <PressKit coverage={EXAMPLE_COVERAGE} />,
+        },
+      ],
+    },
+    {
+      name: "CoverageList",
+      file: "app/(site)/press/_components/CoverageList.tsx",
+      variants: [
+        {
+          label: "Newest first: an article's kind, a cross-posted clip's platforms, and a dash for no date",
+          render: () => <CoverageList coverage={EXAMPLE_COVERAGE} />,
+        },
+      ],
     },
     {
       name: "Foreword",

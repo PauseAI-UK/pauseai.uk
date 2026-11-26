@@ -9,6 +9,7 @@ import type {
   ControlAiStatementImport,
   EdmImport,
   PoliticianImport,
+  PressSurvey,
 } from "@/lib/import-run-types";
 import type { Decide } from "./Run";
 import RunList from "./RunList";
@@ -17,6 +18,7 @@ import {
   exampleControlAiResult,
   exampleControlAiStatementResult,
   exampleEdmResult,
+  examplePressResult,
   exampleFailedRun,
   exampleHeldImport,
   exampleImportResult,
@@ -36,6 +38,7 @@ import { supporterProblems } from "@/lib/supporters/copy";
 import { jobProblems } from "@/lib/jobs/copy";
 import { lettersCopy } from "../letters/copy";
 import { jobsCopy } from "./copy";
+import { pressCopy } from "@/lib/press/copy";
 import { politiciansCopy } from "../politicians/copy";
 import { staffAccount } from "@/lib/problems";
 
@@ -328,6 +331,16 @@ describe("RunList", () => {
     await render(<RunList runs={runs} none="None" />);
     await expect.element(page.getByText(jobsCopy.edm.result(exampleEdmResult), { exact: false })).toBeVisible();
     await expect.element(page.getByText(/No one has signed the EDM/)).toBeVisible();
+  });
+
+  it("says what a call of the press survey did, and why one failed", async () => {
+    const runs: PressSurvey[] = [
+      ran("import-press", examplePressResult, { id: 2 }),
+      failed("import-press", "Couldn't reach the database", { id: 1 }),
+    ];
+    await render(<RunList runs={runs} none="None" />);
+    await expect.element(page.getByText(pressCopy.job.result(examplePressResult), { exact: false })).toBeVisible();
+    await expect.element(page.getByText(/Couldn't reach the database/)).toBeVisible();
   });
 
   it("says what each ControlAI read did, and why one failed", async () => {
