@@ -634,7 +634,10 @@ holds it.
   Netlify applies before each publish. Each is backward compatible (expand,
   then contract), works with or without a transaction, and is never
   edited once pushed (AGENTS.md, "Migrations are fixed once pushed";
-  `docs/development.md`, "Adding a migration").
+  `docs/development.md`, "Adding a migration"). A change to what tables
+  hold or how they relate is planned with the person you're working with
+  before its migration is written (AGENTS.md, "A new data structure gets a
+  plan first").
 - **A letter's status** changes only through `transition()`
   (`lib/letters/lifecycle.server.ts`): one statement that moves letters
   from the statuses it's allowed from and logs each one's event, so two

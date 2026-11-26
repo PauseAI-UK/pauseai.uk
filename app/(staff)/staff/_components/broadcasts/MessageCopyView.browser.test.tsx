@@ -11,6 +11,7 @@ import {
   exampleTextAnswers,
   exampleTextReplies,
   exampleUndeliveredReaction,
+  exampleVariant,
 } from "./BroadcastWriter.examples";
 import { SITE_ACTOR } from "@/lib/broadcasts/broadcasts";
 import { supportersCopy } from "../supporters/copy";
@@ -103,12 +104,11 @@ describe("MessageCopyView", () => {
           type: "doc" as const,
           content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "Thanks for writing" }] }],
         },
-        templateId: null,
         header: "image" as const,
         place: null,
         pictureId: examplePictureId,
         buttons: [{ text: "Details", url: "https://pauseai.uk/march" }],
-        template: null,
+        variant: exampleVariant(8, null, { status: "draft", approvedAt: null }),
       },
     },
   };

@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { query } from "@/lib/server/db.server";
 import { SITE_ACTOR } from "./broadcasts";
 import { stopAnswer } from "./whatsapp-template";
-import { addFollower, addTemplate } from "@/tests/broadcast-fixtures";
+import { addFollower, addTemplate, variantsOf } from "@/tests/broadcast-fixtures";
 import { describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { notifications, type Notification } from "@/tests/notifications";
@@ -483,23 +483,27 @@ describeWithDatabase("WhatsApp's webhook", () => {
 
   it("applies what WhatsApp decided of a template, and the category it gave it", async () => {
     const id = await addTemplate("March day", { status: "pending" });
-    await query("UPDATE whatsapp_templates SET meta_name = 'march_day_1' WHERE id = $1", [id]);
+    await query("UPDATE whatsapp_template_variants SET meta_name = 'march_day_1' WHERE id = $1", [
+      (await variantsOf(id)).first,
+    ]);
     const decided = (event: string, reason: unknown) =>
       hook("message_template_status_update", { event, message_template_name: "march_day_1", reason });
     expect(await recordWhatsAppWebhook(decided("REJECTED", "INVALID_FORMAT"))).toBe(1);
-    expect(await query("SELECT rejected_reason AS reason FROM whatsapp_templates")).toEqual([
+    expect(await query("SELECT rejected_reason AS reason FROM whatsapp_template_variants")).toEqual([
       { reason: "INVALID_FORMAT" },
     ]);
-    await query("UPDATE whatsapp_templates SET status = 'pending', rejected_at = NULL, rejected_reason = NULL");
+    await query("UPDATE whatsapp_template_variants SET status = 'pending', rejected_at = NULL, rejected_reason = NULL");
     expect(await recordWhatsAppWebhook(decided("REJECTED", undefined))).toBe(1);
-    expect(await query("SELECT rejected_reason AS reason FROM whatsapp_templates")).toEqual([{ reason: "NONE" }]);
+    expect(await query("SELECT rejected_reason AS reason FROM whatsapp_template_variants")).toEqual([
+      { reason: "NONE" },
+    ]);
     const category = hook("template_category_update", {
       message_template_name: "march_day_1",
       new_category: "UTILITY",
       previous_category: "MARKETING",
     });
     expect(await recordWhatsAppWebhook(category)).toBe(0);
-    expect(await query("SELECT category FROM whatsapp_templates")).toEqual([{ category: "UTILITY" }]);
+    expect(await query("SELECT category FROM whatsapp_template_variants")).toEqual([{ category: "UTILITY" }]);
   });
 
   it("emails staff what WhatsApp says of our number, a template's quality or our account, linking to it in WhatsApp Manager", async () => {

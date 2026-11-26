@@ -1171,15 +1171,17 @@ INSERT INTO job_presses (job, started_by) VALUES ('tidy-logs', 'jo@pauseai.uk');
 -- whose days ran out with them, and a text whose days ran out while WhatsApp
 -- held one of its copies. A text's
 -- draft also comes with no template yet, an approved one, new words, new
--- words waiting for WhatsApp's approval, and words it rejected. After the
--- rest, so no ID above moves.
+-- words waiting for WhatsApp's approval, and words it rejected. A text's
+-- words are its template's variants', so each has a template: one variant
+-- for everyone, or with a condition, a second for those who meet it. After
+-- the rest, so no ID above moves.
 CREATE FUNCTION pg_temp.seed_words(words text) RETURNS jsonb LANGUAGE sql AS $$
   SELECT jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(
     jsonb_build_object('type', 'text', 'text', 'Hi '), jsonb_build_object('type', 'field', 'attrs', jsonb_build_object('field', 'firstName')),
     jsonb_build_object('type', 'text', 'text', ', ' || words)))))
 $$;
 
-INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at, footer)
+INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, rejected_at, rejected_reason, created_at, footer)
 SELECT t.name, pg_temp.seed_words(t.words), t.status, t.by,
   CASE WHEN t.status = 'approved' THEN now() - t.ago END, CASE WHEN t.status = 'rejected' THEN now() - t.ago END,
   -- WhatsApp's code for why, which the draft and the email put in words (rejectionWords, lib/broadcasts/broadcasts.ts).
@@ -1198,6 +1200,11 @@ FROM (VALUES
   ('Coach times', 'the coach to the march leaves at 08:00 from outside the library.', 'pending', 'sam@pauseai.uk', interval '3 hours'),
   ('Have you written to your MP?', 'have you written to your MP?', 'rejected', 'jo@pauseai.uk', interval '1 day')
 ) t (name, words, status, by, ago);
+
+-- Each is a template of one variant, named as the variant is; two get a
+-- conditional variant below.
+INSERT INTO whatsapp_templates (name, default_variant_id, created_by, created_at)
+SELECT v.name, v.id, v.created_by, v.created_at FROM whatsapp_template_variants v ORDER BY v.id;
 
 CREATE TEMP TABLE seed_broadcasts ON COMMIT DROP AS
 SELECT nextval(pg_get_serial_sequence('mailings', 'id')) AS id, m.* FROM (VALUES
@@ -1236,7 +1243,8 @@ SELECT m.id, m.title, CASE WHEN m.channel = 'email' THEN m.title ELSE '' END, 's
          WHEN 'Rain on Saturday' THEN '{"campaign": "regulate-letter-pm", "wrote": "no"}'::jsonb
          ELSE '{}'::jsonb
        END),
-  CASE WHEN m.words IS NOT NULL THEN pg_temp.seed_words(m.words) ELSE coalesce(t.body, '{"type": "doc", "content": []}'::jsonb) END,
+  -- An email's words are its own; a text's are its template's variants'.
+  CASE WHEN m.channel = 'email' THEN pg_temp.seed_words(m.words) ELSE '{"type": "doc", "content": []}'::jsonb END,
   'jo@pauseai.uk', CASE WHEN m.channel = 'email' THEN 'hello@pauseai.uk' ELSE '+447700900000' END, 'PauseAI UK',
   now() + m.due, m.state, t.id, least(now(), now() + m.due) - interval '2 days', now() - interval '1 hour'
 FROM seed_broadcasts m LEFT JOIN whatsapp_templates t ON t.name = m.template;
@@ -1253,60 +1261,73 @@ UPDATE mailings SET send_by = 'postmark' WHERE audience = 'supporters' AND title
 INSERT INTO text_pictures (id, content, content_type, created_by) VALUES
   ('00000000-0000-4000-8000-000000000001', decode('89504e470d0a1a0a0000000d4948445200000280000001400403000000dee3d03900000030504c5445a6c1d9adc0cfbfbdb69fc3e2c6bbad5b6770b9bebfb3bfc7ccbaa5d2b99dd8b895e87722f39b4affffffdcdee08f9396b1677ac5000000097048597300000b1300000b1301009a9c1800000eaf4944415478daed9a3b6f1b4916858bd01fa022e582e0d8c0fe0382811698b4ed40231130202a920d0596a2d94d1c889e093710390e3770d34a07d8b19c0ab025028e2447a42269226a22ce26abe156d5adaa7ef055d50f52cd3987d55db71fecc7c773abaa5b627f83528901010002200002200480000880000801200002200042003857802b4f515214eec0159414853de5145750121799c24f511217b60207a6284f790a730b4209b5c2537885249b42cc1de79ca10608b98b091332e461f2f4951439470913c5ad4803f289c9450622eef8c8766a1948dc0ad92ef01e90381691b9c44f6a85418e12ddafac994c604a6bea9711d804e4bba74f61a5e41e0402d05c9c56d07340100441d0235089954b6242712992990838bf92a488e256ca3493ec4a2531a13814cdafac1d5846712a94c10a235f80dc243b0ea62096a8251438cb2504364159761fd286da816262abb412c18c401950a7b154894fab6c55a044302b28eb5a885152533ba80923981eb0722015af6ab025049681721ee34bab2591c362be2ae608a606253589055e910369bb068b604a50269266352bad720b6a82e55551104c0924ac0097ec59b425c52a59104c09242c83ab4c0ed422d408a604a492596422a616b22ced49e98c605240065495e844425825d81282a941d88925e940289518912c451ac23282494179d5b02ac989990c2e2ba72251ad72b8147620943285210004400004402819c003288dd81a4c94466b0c1e4ae9c0d5b5d50394e4851dadadad0992a246e01cacb13525d99920700d0e4c1b08532574a05971b40620ae019ff336f0e0e8e8684d547276246a0476019f33ed3c4df0406c406019f036f04869ed080e740d8ea403551fc28bd87220131a814d208b71a0f1a1c08ac02690d2000fd406c8510c0800100001100021005c14c0c3a33d9414453bf0105e4aa44376483ada831289697287500209078aece5652f5430594edc7d3285f7f6ea62a6e798eca6baa0c5c634817a19f5ccfaf09009db1dd26c8f4c289604dc3aeae9350124607bb4462671dda0443dbe26112f56d7d05409c23dd4636beebfbdba01c56859ae0ef3e3411df5d83ac2afcec47ab9754fceea3493fd4c1df5985a4c878a195f60348ad9a32d3210fdb3b0a3a850c76b89a7ae98ed9103c78abe823a5ec71502685278fc9e9042b3370920944400088000088000082507f8024a2338100e5cb058fd09ffa0242eec45fd8948e52798279bb327500af114a6be8416105bc77a4d9d1cb82eb628a8886d62bd661d299c5218c6a41dc6ac43690407c2810b167b817e2085d6e1c0d40e0482b4005f004262bd800391c2000880000801e002015636b8d62b15cc92cc2a15b65ee11837d6798599fb4c3850725c171566ce33e3c00d011433e7d9fa06134d604564345f8599c34c3b50b687328da124920e447fea3c33d898ea8df5680691552453583264954a7543b58388aca3ea86283285752e038a7d14625665956a75a3ca55e19f6a452c219a1109601be2c3d754585541ad4ac26209d18c482e558860956d08aed2811b926d05d18ca82add46fc782722b6c9749626ad124f4453a28a6aef64cb671c4826a5fd104d8bcc928cb903a1a4921664b155154453a31131d33a6a55104d8e36aaa601dcd000a15402400004400004402839c0379b79481d7db3fa66d9958f03df9e5e9e71752edeff051c98bdde76ce8c3ebd5f7213329e6d6f32fd6c9e9e457491f5091ed56733eb36b0dab83c8be9d3bf36975655eec06cf5f7117e9ce0bf9797e066c66d60630c3fe1c1256e038f37333cdaf1587e9ce0f192faeff898bde1f7c6a74ccaf187b309fa98d5291e59a90a071e6776bc9fce26eaf39212dc643c83b3f25fe36c8a4e8e970fdeb14861e9c04cb4f9611ac08fc7cb274e70939930f5e7edd954bd5f360392ef38c08c0c38a9070e7ae2a51433063c4e397d7736439f978bdc1b513615c0391870592d9819c0b76733f51e00a7e8c36c801f0130950197d3825901fcd106e07f961260837f4e744950cb68761742dd4863893e448089d0a891a03eb1ce6091c3cbc32f9cc2278d340e14c18f76007f5da2dc6d1036d66834741e26ab65706907f0536379246e9b4f4c515096b2ae83665314cb0ce6397c12fb66c6a57dda116a9f1ce77c228381699a1aabd2ace54062f54fb6003fe76a8a76c7a83d2f23b29384fe8de8832dc08f637e816cd468bc3ded8474f1fe642e62c9bed68cf2bcb405f8a99997134e5a9d98fc3939906e29d5afd03ab3969f971346f8cd8920136e1210a9b22dd1e59fec017e713b8f756976c6289f534541b0269ddff19ba188cf7fb607f86b4efc4ec701bcc89d5fb3c95358a8d174d289891ae29b1fec017e6ce6a2779db1fad2cc59274d96a8090cba0281d0be0fc9ab1779db99203fe73eb8d960297f0269dd3307e56284d349002ff2b66093a53771b3e502d0cfe1265a9d89f2f30798aef1960d900bc02f3934e4a793015e3473ee4558162db81bc0791a307f0b6601f0671780bfceb1059c472b9805c00f2e007318c774a60a00138e01b53e3f7e80972e003f65de029e4e0778913b403ff1a7950ca09fe9a7d59921719d797d04c054fc5a5c4ee3683e92ce96dfac0ce6cf7339f2f37dd64a7ef17e8b2ce808305b82fee92c8017f93ad0e7045bc92679fd5cae0e6cb5b29bfc6667a69ae21ef3995a2d26afa39560f27dba0b5707263cddf88997d900a547046b3fdb49526032f05b66857ddc5272746092534d8efd77b3015ec8cb94bb37db4d3fbb5884aca57ece24a20c76ee4402f619e8d402205d670e12294c264aa3b61bc076daf3454f6e03b0ddca49c281ea3a927edfbd1389e04b7f6b1d0bf9f9a9cdf83d88a22ac7425f757760ec08294adb0a60bb955369f9acedb7dbe24242ab6d62b546de83db9348abdd6ec78ea02e21497c6a03f04b047946b1ba7cee409ff819f916b19284e1bb01940e8c1f53ac7188652597df59018c5c732b9b580160842edc30b5430dd3a438dc083a3a9000987385ce691f9bd0ce8117e146ab9d4dacdb70e1c038d860c99f1047e5f63aab25ad1f1c3538a7436c423b80e19bf3b389b5d8283567b9018c7cd56fa79433c0acc53238460a80a9d5b1d2230778ea02f06211005b8f1be0bbc501f497c2814ecf726da43000660ef0d271180880c9bbe18f000880d9033c5dd828664900b617d6872c0bc0cb45f5218f00a09785b66c01fee265acffd9f0fbeae527007c14003d5b80995ffff73600cf1f3fc0ad0519100001d02987b3bffe9a0dc001004e960d40af0000b71693c1cb03d05b90016dc6315f0b01706b3106b4e945ce0b01d05b8c019708e0d6420c68d3087a00f89700388b604efc66e7f07951007a0b68016d86d283c200dc5a840167e7b0571880de220c383387cf0b04706b11069c95c38302019c4cf0973cef6191199c31c0490473e5373d87cf8b05d09b770338d3825ec1007a0be037cd82e78503e8cd9fdf340b7ac503186f077fc99fdf640b9e17116004e13cf04db1a0574c802691e7846fe25870505c80f3d6f78b49e0e50138eed5fe570f005335831e00a622e801609a2cfeea01609abe78e001602284d2855f07f33be392019cbf0010000110000110024000044000840010000110002100044000044008000110000170aa6ac3fc2f6f1ee7c81ae0cebdd06faf82a55b19fde3fe7e9757cfefefefe4adf5bbdd6e4feef5f29ef47be828cfcc728d4766b5d86da0b7df05eb28a2031d0ef4de7f8873dcd1debfa96fdd3d7e805dd2b55c7ae0d18d8cf8cdecd2e66bcd8feb8ab684be111ce51b01e491592d7695bfc7b6c06fb6770766abd02eedfc272df1c33c533bef444ff2b80112b7be011305f8d09d0e506e1f0ff0466f2780cfc49eaf23004364e930c504286fdb043180fd19007f30be1a01f84d07c4695b1f263810f1dc2f30c07b792bb7ca1e0422025050b97b55ef4f04d8edea641d01d8d5eeea055e35ad44ef5ef394bbdcfdf1b28800af89dc95b6e3ed08407d277f2880b7f1ded3d8730c407e98e701c07e24bc95adeb8d72e6efb2b52d2440914037d21ef70a441ce05598caebd183f4d4cd8e02bc5279db535eedf50393bf96e7bca64640b585c50448b7c131d6d5454f051877200774ab6e3a0eb02f7e987dc1b7a7fa90eb7dd5f1d281b6e984ddd0518b08906e83df454d5d7c1ce0b73095ddd8410412e5ab38c00771386eef80c9cd76d04a10c01bfada6e91013e88db90f0148808c06766144d5b7e1f720dbc30a8c1037d210ef0bf7c135ff74a31e17bddee0463264ae12b6a25bd304071863f0b045036e5cfc54c25d8482f6c10ea5ef836dc87f48493aec6001c724a3b81b1c5d19f05ad047522b7d48a860176c774f58f16e0b7e1f0a56cec25830733da1b1d07de8c072889285fc5010ef8d887a7b10628b7aa5df430a6e7151ca079a212f9a5414401ee84a08d02dc36f93f06e083e8356e82ad3d2fd44a9847b9ed702b5b4c80fac6540b1e05a81f54afc70294e0bd60cc1c01288730b73563b46bbd7fc4d64be0c05d8d80e63180f4aa443a87077775ae41ac5fa6f908404963a0006eeb61e155ec97180128cef0b24800ffe985bc371805a810ee8e1b0712d87db97e04a07cccd309beaf7b0c65e5bb97ea697927de0b176918d3536392a039bc3598b643f750eb869c167e19d80dbdd11905d81787a8991f277803d3574daea0ffccbce42ae838d00bbdb3ead2c383067813192f8f71e04eb8c51a0528bb7502580b1ab7811e07d2c35eade84f2291174aaaa1bfd2036cf17c1a0118756000be3b0ee08e1cee4926a1dec1fc120f269faf8b0eb01b06f1406d539f9e13be0d229dc56dfc412ef0d528c09a9af5d44b05f366911ca85abf07fd2cb75f588035d5f7d5bbca37fc89ed25dd165f381c0ef74de6f5eeef437ffad0dfeb2babc5007ac3a11e000ab7893de9dd4fdff43abbca9caf86bca72a2cc09dd0dbfcd7a1e6ca53eff3426d7ff00a3b3cf2d38d5d1ca079da13efac5e0739aade8bf5a3839ae20234fd05357ffba1bf9544fe7012fd53466808b7adbadbc900a3effd555ba01ac1e78507b8af5ffa052f9804a64178a03218e340035edef73480c13699b67d3386ee86fba2c20234bdeb73ba7e49ad47ab6a3f040b71800f1a7c4d3d724c0418f9b16e35c09af6e59ffa072b14c0691ad687a17f1aa8e7fe6f03b5e1ab21fe37c6c3ffc64000088000088010000220000220048000088000080120000220004200985aff07eb669db4a9e9f59b0000000049454e44ae426082', 'hex'), 'image/png', 'jo@pauseai.uk');
 
--- The stall's text has a map of where the stall is at its top, and a reply
--- button; and a second version, for those who went to the London march,
--- thanking them first, with the march's picture at its top, on a template of
--- its own.
-UPDATE mailings SET header = 'location',
-  place = '{"name": "Piccadilly Gardens", "address": "Manchester M1 1RG", "latitude": 53.4808, "longitude": -2.2372}',
-  buttons = '[{"text": "I can help"}]'
-WHERE audience = 'supporters' AND title = 'The stall needs a hand on Saturday.';
-INSERT INTO broadcast_versions (mailing_id, condition, body, header, picture_id, buttons)
-SELECT id, 'event:evt-fixture-past-london-march',
-  pg_temp.seed_words('thank you for marching in London. The stall needs a hand on Saturday.'), 'image',
-  '00000000-0000-4000-8000-000000000001', buttons
-FROM mailings WHERE audience = 'supporters' AND title = 'The stall needs a hand on Saturday.';
+-- The stall's text is new words, on a template still being written, its
+-- variants drafts: a map of where the stall is in its header, and a reply
+-- button; and a conditional variant, for those who went to the London
+-- march, thanking them first, with the march's picture in its header.
+WITH first AS (
+  INSERT INTO whatsapp_template_variants (body, status, created_by, header, buttons)
+  VALUES (pg_temp.seed_words('the stall needs a hand on Saturday.'), 'draft', 'jo@pauseai.uk', 'location',
+    '[{"text": "I can help"}]')
+  RETURNING id
+), second AS (
+  INSERT INTO whatsapp_template_variants (body, status, created_by, header, buttons)
+  VALUES (pg_temp.seed_words('thank you for marching in London. The stall needs a hand on Saturday.'), 'draft',
+    'jo@pauseai.uk', 'image', '[{"text": "I can help"}]')
+  RETURNING id
+), template AS (
+  INSERT INTO whatsapp_templates (name, condition, default_variant_id, conditional_variant_id, created_by)
+  SELECT 'The stall needs a hand on Saturday.', 'event:evt-fixture-past-london-march', first.id, second.id, 'jo@pauseai.uk'
+  FROM first, second
+  RETURNING id
+)
+UPDATE mailings m SET template_id = template.id FROM template
+WHERE m.audience = 'supporters' AND m.title = 'The stall needs a hand on Saturday.';
+INSERT INTO broadcast_headers (mailing_id, variant, place, picture_id)
+SELECT m.id, h.variant, h.place, h.picture_id
+FROM mailings m, (VALUES
+  ('default', '{"name": "Piccadilly Gardens", "address": "Manchester M1 1RG", "latitude": 53.4808, "longitude": -2.2372}'::jsonb, NULL::uuid),
+  ('conditional', NULL, '00000000-0000-4000-8000-000000000001')
+) h (variant, place, picture_id)
+WHERE m.audience = 'supporters' AND m.title = 'The stall needs a hand on Saturday.';
 
--- The flyering text went out as a pair of approved templates: its own, and a
--- second version thanking those who went to the London march, on a template of
--- its own; so the two can be chosen again as one.
-WITH version AS (
-  INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, created_at, footer)
+-- The flyering text's template has two approved variants: one for everyone
+-- else, and one thanking those who went to the London march.
+WITH variant AS (
+  INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, created_at, footer)
   VALUES ('We are flyering on Saturday, for those who registered for “PauseAI London March”',
     pg_temp.seed_words('thank you for marching. We are flyering on Saturday. Could you spare an hour?'), 'approved',
     'jo@pauseai.uk', now() - interval '50 days', now() - interval '51 days', 'Reply STOP to stop these texts')
-  RETURNING id, body
+  RETURNING id
 )
-INSERT INTO broadcast_versions (mailing_id, condition, body, template_id)
-SELECT m.id, 'event:evt-fixture-past-london-march', version.body, version.id
-FROM mailings m, version WHERE m.audience = 'supporters' AND m.title = 'We are flyering on Saturday.';
+UPDATE whatsapp_templates t SET condition = 'event:evt-fixture-past-london-march', conditional_variant_id = variant.id
+FROM variant WHERE t.name = 'We are flyering on Saturday.';
 
 -- Texts with what a text can have, as they went to WhatsApp and went out:
 -- the scheduled march text, a map of where to meet and two reply buttons;
 -- the sent PauseCon change, the march's picture and a link button; and the
--- one sending now, a second version for those who went to the London march,
--- on a template of its own.
-UPDATE whatsapp_templates SET header = 'location', buttons = '[{"text": "I''m coming"}, {"text": "Can''t make it"}]'
+-- one sending now, a conditional variant for those who went to the London
+-- march.
+UPDATE whatsapp_template_variants SET header = 'location', buttons = '[{"text": "I''m coming"}, {"text": "Can''t make it"}]'
 WHERE name = 'The march meets at 11:00 at Parliament Square.';
-UPDATE mailings SET header = 'location',
-  place = '{"name": "Parliament Square, by the statues", "address": "Westminster, London SW1P 3BD", "latitude": 51.5005, "longitude": -0.1268}',
-  buttons = '[{"text": "I''m coming"}, {"text": "Can''t make it"}]'
-WHERE audience = 'supporters' AND title = 'The march meets at 11:00 at Parliament Square.';
-UPDATE whatsapp_templates SET header = 'image', buttons = '[{"text": "The new room", "url": "https://pauseai.uk/pausecon"}]'
+INSERT INTO broadcast_headers (mailing_id, variant, place)
+SELECT id, 'default',
+  '{"name": "Parliament Square, by the statues", "address": "Westminster, London SW1P 3BD", "latitude": 51.5005, "longitude": -0.1268}'
+FROM mailings WHERE audience = 'supporters' AND title = 'The march meets at 11:00 at Parliament Square.';
+UPDATE whatsapp_template_variants SET header = 'image', buttons = '[{"text": "The new room", "url": "https://pauseai.uk/pausecon"}]'
 WHERE name = 'PauseCon room change';
-UPDATE mailings SET header = 'image', picture_id = '00000000-0000-4000-8000-000000000001',
-  buttons = '[{"text": "The new room", "url": "https://pauseai.uk/pausecon"}]'
-WHERE audience = 'supporters' AND title = 'PauseCon room change';
-WITH version AS (
-  INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, created_at, footer)
+INSERT INTO broadcast_headers (mailing_id, variant, picture_id)
+SELECT id, 'default', '00000000-0000-4000-8000-000000000001'
+FROM mailings WHERE audience = 'supporters' AND title = 'PauseCon room change';
+WITH variant AS (
+  INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, created_at, footer)
   VALUES ('Our next event is on Saturday, for those who registered for “PauseAI London March”',
     pg_temp.seed_words('thank you for marching. Our next event is on Saturday, and we would love you there.'), 'approved',
     'jo@pauseai.uk', now() - interval '40 days', now() - interval '41 days', 'Reply STOP to stop these texts')
-  RETURNING id, body
+  RETURNING id
 )
-INSERT INTO broadcast_versions (mailing_id, condition, body, template_id)
-SELECT m.id, 'event:evt-fixture-past-london-march', version.body, version.id
-FROM mailings m, version WHERE m.audience = 'supporters' AND m.title = 'Our next event is on Saturday.';
+UPDATE whatsapp_templates t SET condition = 'event:evt-fixture-past-london-march', conditional_variant_id = variant.id
+FROM variant WHERE t.name = 'Our next event is on Saturday.';
 
 -- Each copy of those sent, sending or stopped, as sending left it: one for
 -- each supporter the broadcast's Consent found when it went, at their

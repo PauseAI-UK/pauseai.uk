@@ -627,12 +627,25 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, pending]);
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [ready, approved]);
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [turnedDown, rejected]);
+    // A template with a conditional variant stands by both: waiting or rejected if either is, approved once both are.
+    const on = async (conditional: { status: string; reason?: string }) => {
+      const draft = (await createBroadcastDraft(JO, TEXT_FILTER))!;
+      const template = await addTemplate("Fog on Friday", { condition: "has:firstName", conditional });
+      await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [draft, template]);
+      return draft;
+    };
+    const halfWaiting = await on({ status: "pending" });
+    const bothReady = await on({ status: "approved" });
+    const halfTurnedDown = await on({ status: "rejected" });
     const drafts = (await broadcastsPage()).groups[0].mailings;
     expect(drafts.map((m) => [m.id, m.waiting, m.approved, m.rejected]).sort()).toEqual([
       [plain, false, false, false],
       [id, true, false, false],
       [ready, false, true, false],
       [turnedDown, false, false, true],
+      [halfWaiting, true, false, false],
+      [bothReady, false, true, false],
+      [halfTurnedDown, false, false, true],
     ]);
   });
 

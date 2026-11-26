@@ -28,24 +28,26 @@ export async function applyTemplateStatus(
   category?: string,
 ): Promise<boolean> {
   const [template] = await query<{ id: number; status: string; name: string }>(
-    "SELECT id::int AS id, status, name FROM whatsapp_templates WHERE coalesce(meta_name, name) = $1 AND status <> 'deleted'",
+    "SELECT id::int AS id, status, name FROM whatsapp_template_variants WHERE coalesce(meta_name, name) = $1 AND status <> 'deleted'",
     [name],
   );
   if (!template) return false;
   if (category && ["MARKETING", "UTILITY", "AUTHENTICATION"].includes(category)) {
-    await query("UPDATE whatsapp_templates SET category = $2 WHERE id = $1", [template.id, category]);
+    await query("UPDATE whatsapp_template_variants SET category = $2 WHERE id = $1", [template.id, category]);
   }
   if (status === "APPROVED" || status === "REINSTATED") {
     if (template.status === "pending") return reviewTemplate(template.id, { approved: true });
     if (template.status !== "paused" && template.status !== "disabled") return false;
-    await query("UPDATE whatsapp_templates SET status = 'approved', stopped_at = NULL WHERE id = $1", [template.id]);
+    await query("UPDATE whatsapp_template_variants SET status = 'approved', stopped_at = NULL WHERE id = $1", [
+      template.id,
+    ]);
     return true;
   }
   if (status === "REJECTED") {
     return template.status === "pending" && reviewTemplate(template.id, { approved: false, reason: reason ?? "NONE" });
   }
   if ((status === "PAUSED" || status === "DISABLED") && template.status === "approved") {
-    await query("UPDATE whatsapp_templates SET status = $2, stopped_at = now() WHERE id = $1", [
+    await query("UPDATE whatsapp_template_variants SET status = $2, stopped_at = now() WHERE id = $1", [
       template.id,
       status.toLowerCase(),
     ]);
@@ -63,7 +65,7 @@ export async function applyTemplateStatus(
  */
 export async function checkTemplates(): Promise<void> {
   const [{ needed }] = await query<{ needed: boolean }>(
-    `SELECT EXISTS (SELECT 1 FROM whatsapp_templates WHERE status = 'pending')
+    `SELECT EXISTS (SELECT 1 FROM whatsapp_template_variants WHERE status = 'pending')
        OR EXISTS (SELECT 1 FROM mailings WHERE channel = 'text' AND state IN ('scheduled', 'sending')) AS needed`,
   );
   if (!needed) return;

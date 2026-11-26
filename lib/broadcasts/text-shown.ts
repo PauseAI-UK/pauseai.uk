@@ -10,10 +10,10 @@ import type { MailingBlock } from "@/lib/mailings/doc";
  */
 export const pictureSource = (id: string) => (id.startsWith("data:") ? id : `/api/text-pictures/${id}`);
 
-/** What a text written for a broadcast is: its own parts, and its second version, each with its template. */
+/** What a WhatsApp broadcast says: its default variant's parts, and its conditional variant's, each with the variant. */
 export type WrittenText = Pick<
   WrittenBroadcast,
-  "body" | "header" | "place" | "pictureId" | "buttons" | "template" | "textVersion"
+  "body" | "header" | "place" | "pictureId" | "buttons" | "variant" | "textVersion"
 >;
 
 /**
@@ -25,7 +25,7 @@ export function textShown(written: WrittenText, met: boolean) {
   const one = met && written.textVersion ? written.textVersion : written;
   return {
     blocks: one.body.content.filter((block): block is MailingBlock => block.type !== "onlyFor"),
-    footer: one.template?.footer ?? TEMPLATE_FOOTER,
+    footer: one.variant?.footer ?? TEMPLATE_FOOTER,
     place: one.header === "location" ? one.place : null,
     picture: one.header === "image" && one.pictureId ? pictureSource(one.pictureId) : null,
     buttons: inOrder(one.buttons).map((button) => button.text),

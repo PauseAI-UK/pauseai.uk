@@ -23,26 +23,29 @@ export function newestText(to: string, matches: (text: OutboxText) => boolean = 
     .at(-1);
 }
 
-/** A template's words in `database`, by the name WhatsApp has it by, its fields as {{first_name}}. */
+/** A template variant's words in `database`, by the name WhatsApp has it by, its fields as {{first_name}}. */
 function templateWords(database: string, name: string): string {
-  const [body] = runSql(database, `SELECT body FROM whatsapp_templates WHERE coalesce(meta_name, name) = '${name}'`);
+  const [body] = runSql(
+    database,
+    `SELECT body FROM whatsapp_template_variants WHERE coalesce(meta_name, name) = '${name}'`,
+  );
   return templateText(JSON.parse(body!) as MailingDoc);
 }
 
-/** A template's footer as it went to WhatsApp, by the name WhatsApp has it by; none where it isn't known. */
+/** A variant's footer as it went to WhatsApp, by the name WhatsApp has it by; none where it isn't known. */
 function footerOf(database: string, name: string): string | undefined {
   const [footer] = runSql(
     database,
-    `SELECT footer FROM whatsapp_templates WHERE coalesce(meta_name, name) = '${name}'`,
+    `SELECT footer FROM whatsapp_template_variants WHERE coalesce(meta_name, name) = '${name}'`,
   );
   return footer;
 }
 
-/** A template's header and buttons, by the name WhatsApp has it by. */
+/** A variant's header and buttons, by the name WhatsApp has it by. */
 function partsOf(database: string, name: string): { header: string; buttons: TextShown["buttons"] } {
   const [row] = runSql(
     database,
-    `SELECT coalesce(header, '') || '|' || buttons::text FROM whatsapp_templates WHERE coalesce(meta_name, name) = '${name}'`,
+    `SELECT coalesce(header, '') || '|' || buttons::text FROM whatsapp_template_variants WHERE coalesce(meta_name, name) = '${name}'`,
   );
   const [header, buttons] = [row!.slice(0, row!.indexOf("|")), row!.slice(row!.indexOf("|") + 1)];
   return { header, buttons: JSON.parse(buttons) as TextShown["buttons"] };

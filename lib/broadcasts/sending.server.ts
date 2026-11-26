@@ -16,7 +16,7 @@ import { now } from "@/lib/now";
 import type { StoredFilter } from "@/lib/staff-search";
 import { staffTime } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
-import { SEND_AGAIN, TOPICS_OF } from "./drafts.server";
+import { ON_VARIANT, SEND_AGAIN, TOPICS_OF } from "./drafts.server";
 import { broadcastEmailChannel, textBackend } from "./channels.server";
 import { supporterAudience } from "./recipients.server";
 import { query } from "@/lib/server/db.server";
@@ -105,16 +105,16 @@ type Due = {
   title: string;
   waitingSince: Date | null;
   waitReason: string | null;
-  /** A text's templates' state with WhatsApp: pending till it approves them, its own and its second version's. */
+  /** Its template's variants' state with WhatsApp: pending while it's reviewing either, approved once it has approved each. */
   templateStatus: string | null;
 };
 
 const DUE_COLUMNS = `id::int AS id, state, channel, send_by AS "sendBy", ${TOPICS_OF} AS topics, filter, due_at AS "dueAt",
   finish_minutes AS "finishMinutes", coalesce(nullif(subject, ''), title) AS title, waiting_since AS "waitingSince",
   wait_reason AS "waitReason",
-  (SELECT CASE WHEN bool_or(t.status = 'pending') THEN 'pending' ELSE min(t.status) END FROM whatsapp_templates t
-   WHERE t.id = template_id OR t.id = (SELECT v.template_id FROM broadcast_versions v WHERE v.mailing_id = mailings.id))
-    AS "templateStatus"`;
+  (SELECT CASE WHEN bool_or(v.status = 'pending') THEN 'pending' ELSE min(v.status) END
+   FROM whatsapp_templates t JOIN whatsapp_template_variants v ON v.id IN (t.default_variant_id, t.conditional_variant_id)
+   WHERE t.id = template_id) AS "templateStatus"`;
 
 /** Whether a complete CiviCRM pull has finished in the last FRESH_HOURS. */
 async function pullFresh(): Promise<boolean> {
@@ -191,12 +191,11 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
  * sending, as one that hasn't all gone in time stops (giveUp), each
  * whoever scheduled it told. Returns how many it stopped.
  */
-export async function stopTextsOn(templateId: number): Promise<number> {
+export async function stopTextsOn(variantId: number): Promise<number> {
   const texts = await query<Due>(
     `SELECT ${DUE_COLUMNS} FROM mailings
-     WHERE audience = 'supporters' AND state IN ('scheduled', 'sending')
-       AND (template_id = $1 OR id IN (SELECT mailing_id FROM broadcast_versions WHERE template_id = $1)) ORDER BY id`,
-    [templateId],
+     WHERE audience = 'supporters' AND state IN ('scheduled', 'sending') AND ${ON_VARIANT} ORDER BY id`,
+    [variantId],
   );
   for (const text of texts) await giveUp(text, "template");
   return texts.length;
@@ -838,12 +837,19 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
   const backend = await textBackend();
   if (!backend) return undefined;
   const versions = await query<SentVersion>(
-    `SELECT NULL AS condition, coalesce(t.meta_name, t.name) AS name, t.status, t.body, m.place, t.header,
-       m.picture_id AS "pictureId"
-     FROM mailings m LEFT JOIN whatsapp_templates t ON t.id = m.template_id WHERE m.id = $1
+    `SELECT NULL AS condition, coalesce(d.meta_name, d.name) AS name, d.status, d.body, h.place, d.header,
+       h.picture_id AS "pictureId", 1 AS place_in_order
+     FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id
+       JOIN whatsapp_template_variants d ON d.id = t.default_variant_id
+       LEFT JOIN broadcast_headers h ON h.mailing_id = m.id AND h.variant = 'default'
+     WHERE m.id = $1
      UNION ALL
-     SELECT v.condition, coalesce(t.meta_name, t.name), t.status, t.body, v.place, t.header, v.picture_id
-     FROM broadcast_versions v LEFT JOIN whatsapp_templates t ON t.id = v.template_id WHERE v.mailing_id = $1`,
+     SELECT t.condition, coalesce(c.meta_name, c.name), c.status, c.body, h.place, c.header, h.picture_id, 2
+     FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id
+       JOIN whatsapp_template_variants c ON c.id = t.conditional_variant_id
+       LEFT JOIN broadcast_headers h ON h.mailing_id = m.id AND h.variant = 'conditional'
+     WHERE m.id = $1
+     ORDER BY place_in_order`,
     [broadcast.id],
   );
   if (!versions.length || versions.some((version) => version.status !== "approved")) return "template";

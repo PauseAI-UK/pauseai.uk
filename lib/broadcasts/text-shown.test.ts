@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MailingDoc } from "@/lib/mailings/doc";
 import { pictureSource, textShown, type WrittenText } from "./text-shown";
-import type { WhatsAppTemplate } from "./drafts.server";
+import type { WhatsAppVariant } from "./drafts.server";
 import { TEMPLATE_FOOTER } from "./whatsapp-template";
 
 const PICTURE = "00000000-0000-4000-8000-000000000001";
@@ -10,7 +10,7 @@ const words = (text: string): MailingDoc => ({
   type: "doc",
   content: [{ type: "paragraph", content: [{ type: "text", text }] }],
 });
-const template = (footer: string | null) => ({ footer }) as WhatsAppTemplate;
+const variant = (footer: string | null) => ({ footer }) as WhatsAppVariant;
 
 /** A text with a map, a link button before a reply button, and words only for some among its own. */
 const written: WrittenText = {
@@ -29,7 +29,7 @@ const written: WrittenText = {
   place: PLACE,
   pictureId: null,
   buttons: [{ text: "Details", url: "https://pauseai.uk/march" }, { text: "I'm coming" }],
-  template: null,
+  variant: null,
   textVersion: null,
 };
 
@@ -55,10 +55,8 @@ describe("textShown", () => {
     expect(textShown(written, true).blocks).toEqual(words("Everyone").content);
   });
 
-  it("gives the footer its template went with", () => {
-    expect(textShown({ ...written, template: template("Reply STOP to stop") }, false).footer).toBe(
-      "Reply STOP to stop",
-    );
+  it("gives the footer its variant went with", () => {
+    expect(textShown({ ...written, variant: variant("Reply STOP to stop") }, false).footer).toBe("Reply STOP to stop");
   });
 
   it("shows a map only for a place's top, and a picture only for a picture's top with a picture", () => {
@@ -87,7 +85,7 @@ describe("textShown", () => {
         place: null,
         pictureId: PICTURE,
         buttons: [{ text: "Thanks" }],
-        template: template(null),
+        variant: variant(null),
       },
     };
     expect(textShown(both, true)).toEqual({

@@ -93,6 +93,24 @@ A title, then what the change does and why, in plain words, as short paragraphs.
 
 The types, ESLint and `tests/checks/` hold most of this, and each failure says what to use instead. What they can't check is judgement: which `kind` a failure is, whether an error should be caught at all, and whether an action's bad input is the form's own doing (throw) or staff's (a reason).
 
+## A new data structure gets a plan first
+
+Before a change adds a table, or changes what tables hold or how they relate, ask the person you're working with whether to write a plan first, and wait for their yes to the structure before writing the migration. The plan (`plans/`, `plans/README.md`) says in plain words:
+
+- each table, and what one row of it is, in the words the site's pages use;
+- a small example, as rows a real case would have;
+- what isn't stored, and is worked out each time instead;
+- what a person sees on the pages because of it.
+
+Don't fit a new thing into the tables that happen to be there. These are signs of a structure bolted on:
+
+- the same thing kept in two places, with rules to keep them in step;
+- two of a kind kept in two shapes, such as one as columns on a row and the other in a table of its own;
+- something people name and pick that no table holds, so it's worked out from other rows each time;
+- meaning written into a name, such as who something is for.
+
+When you see one, in your own change or in the code you're adding to, stop and say so, rather than build on it.
+
 ## Migrations are fixed once pushed
 
 Pushing a branch with an open PR makes a deploy preview, and Netlify applies its migrations to that preview's database, as it does to production's on deploy. It refuses a migration changed since it was applied, which fails the deploy. So once a migration has been pushed, it can't be edited, even if the branch hasn't merged.

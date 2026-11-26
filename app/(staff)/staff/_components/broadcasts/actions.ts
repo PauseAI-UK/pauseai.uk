@@ -37,6 +37,7 @@ import {
   sendBroadcastTest,
   stopBroadcast,
   submitTemplate,
+  sweepDraftTemplates,
   withdrawTemplate,
   type BroadcastScheduled,
   type TemplateDeleteResult,
@@ -373,7 +374,11 @@ export async function findPlacesFor(input: string): Promise<FormResult<never, { 
 export async function deleteBroadcastDraft(form: FormData): Promise<never> {
   const { email } = await requireStaff("supporters");
   const id = ownId(form);
-  if (await getWrittenBroadcast(id)) await deleteDraft(id, email);
+  if (await getWrittenBroadcast(id)) {
+    await deleteDraft(id, email);
+    // Its template, if it was still being written, goes with it.
+    await sweepDraftTemplates();
+  }
   revalidatePath(LIST);
   redirect(LIST);
 }

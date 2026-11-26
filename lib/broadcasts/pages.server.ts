@@ -31,8 +31,6 @@ import {
   broadcastSender,
   TOPICS_OF,
   getWrittenBroadcast,
-  templatePairs,
-  type TemplatePair,
   type WhatsAppTemplate,
   type WrittenBroadcast,
 } from "./drafts.server";
@@ -83,9 +81,9 @@ const SELECT_BROADCASTS = `
   SELECT m.id::int AS id, m.title, m.ask, NULL AS "askTitle", false AS imported, m.state, m.created_by AS "createdBy",
     coalesce(nullif(m.from_name, ''), m.sent_from) AS "fromName", m.sent_from AS "sentFrom", m.due_at AS "dueAt",
     m.updated_at AS "updatedAt", m.channel, m.send_by AS "sendBy", m.finish_minutes AS "finishMinutes",
-    EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'pending') AS waiting,
-    EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'approved') AS approved,
-    EXISTS (SELECT 1 FROM whatsapp_templates t WHERE t.id = m.template_id AND t.status = 'rejected') AS rejected,
+    EXISTS (SELECT 1 FROM whatsapp_templates t JOIN whatsapp_template_variants v ON v.id IN (t.default_variant_id, t.conditional_variant_id) WHERE t.id = m.template_id AND v.status = 'pending') AS waiting,
+    (m.template_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM whatsapp_templates t JOIN whatsapp_template_variants v ON v.id IN (t.default_variant_id, t.conditional_variant_id) WHERE t.id = m.template_id AND v.status <> 'approved')) AS approved,
+    EXISTS (SELECT 1 FROM whatsapp_templates t JOIN whatsapp_template_variants v ON v.id IN (t.default_variant_id, t.conditional_variant_id) WHERE t.id = m.template_id AND v.status = 'rejected') AS rejected,
     m.gave_up AS "gaveUp", m.wait_reason AS "waitReason", m.waiting_since AS "waitingSince", coalesce(m.wait_failure->>'said', m.wait_said) AS "waitSaid",
     m.try_failed_at AS "tryFailedAt", min(c.not_before) FILTER (WHERE ${HELD}) AS "heldTill",
     min(c.sent_at) AS "sentAt",
@@ -228,8 +226,6 @@ export type BroadcastWriterData = {
   templates: WhatsAppTemplate[];
   /** The WhatsApp business account's number, if one is set. */
   textNumber: string | null;
-  /** The pairs of approved templates texts have gone out on, to choose again as one (templatePairs). */
-  pairs: TemplatePair[];
   /** Whether a place's map is OpenStreetMap's, or a drawing, as a fixture build asks no one (realMaps). */
   realMaps: boolean;
 };
@@ -264,14 +260,13 @@ export type BroadcastPageData =
 
 /** What a draft's writer shows, each part asked for at once, as changing its Consent waits for it all. */
 async function writerData(draft: WrittenBroadcast, me: string): Promise<BroadcastWriterData> {
-  const [audience, unknown, choices, sender, templates, textNumber, pairs] = await Promise.all([
+  const [audience, unknown, choices, sender, templates, textNumber] = await Promise.all([
     supporterAudience(draft.filter, draft),
     filterProblems(draft.filter),
     supporterChoices(),
     broadcastSender(draft),
     approvedTemplates(),
     textSenderNumber(),
-    templatePairs(),
   ]);
   return {
     filter: draft.filter,
@@ -286,7 +281,6 @@ async function writerData(draft: WrittenBroadcast, me: string): Promise<Broadcas
     textsSend: channelSends("text"),
     templates,
     textNumber,
-    pairs,
     realMaps: realMaps(),
   };
 }
@@ -300,13 +294,12 @@ export async function newBroadcastPageData(
   me: string,
 ): Promise<{ draft: WrittenBroadcast; data: BroadcastWriterData }> {
   const start = { channel: "email", sendBy: DEFAULT_SEND_BY, sentFrom: BROADCAST_SENDER.email } as const;
-  const [choices, sender, templates, parts, textNumber, pairs] = await Promise.all([
+  const [choices, sender, templates, parts, textNumber] = await Promise.all([
     supporterChoices(),
     broadcastSender(start),
     approvedTemplates(),
     broadcastParts(),
     textSenderNumber(),
-    templatePairs(),
   ]);
   const filter = storedFilter("supporters", {});
   return {
@@ -327,6 +320,7 @@ export async function newBroadcastPageData(
       channel: "email",
       topics: ["newsletter"],
       template: null,
+      variant: null,
       sendBy: start.sendBy,
       finishMinutes: null,
       waitingSince: null,
@@ -351,7 +345,6 @@ export async function newBroadcastPageData(
       textsSend: channelSends("text"),
       templates,
       textNumber,
-      pairs,
       realMaps: realMaps(),
     },
   };
@@ -521,7 +514,8 @@ export async function messageCopy(broadcastId: number, copyId: number): Promise<
        CASE WHEN c.merge_values ? 'values' THEN c.merge_values END AS merge, c.status, c.skip_reason AS "skipReason", c.sent_at AS "sentAt",
        c.provider_message_id AS "providerId",
        ${COPY_STATE} AS state, ${COPY_WHY} AS why, c.topics,
-       (SELECT t.footer FROM whatsapp_templates t WHERE t.id = m.template_id) AS footer
+       (SELECT d.footer FROM whatsapp_templates t JOIN whatsapp_template_variants d ON d.id = t.default_variant_id
+        WHERE t.id = m.template_id) AS footer
      FROM broadcast_messages c JOIN mailings m ON m.id = c.mailing_id
      WHERE c.id = $2 AND m.id = $1 AND m.audience = 'supporters'`,
     [broadcastId, copyId],

@@ -145,8 +145,9 @@ export function BroadcastWaiting({
   pause: SendingPause | null;
   resume?: ReactNode;
 }) {
-  const template = written.template;
-  if (written.state === "scheduled" && template?.status === "pending") {
+  // The variant WhatsApp is reviewing, either of its template's.
+  const template = [written.variant, written.textVersion?.variant].find((one) => one?.status === "pending");
+  if (written.state === "scheduled" && template) {
     return (
       <Strip tone="blue" waiting>
         {copy.approvalStrip(

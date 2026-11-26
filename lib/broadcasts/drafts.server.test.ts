@@ -7,12 +7,19 @@ import { EMPTY_MAILING_DOC, letterFor } from "@/lib/mailings/doc";
 import { connectTestGmail, describeWithDatabase, useTestDatabase } from "@/tests/database";
 import { recordGmail } from "@/tests/gmail-sends";
 import { TEMPLATE_FOOTER } from "./whatsapp-template";
-import { addFollower, addTemplate, EVENT_WORDS, startSending } from "@/tests/broadcast-fixtures";
+import {
+  addFollower,
+  addTemplate,
+  addVariant,
+  EVENT_WORDS,
+  startSending,
+  variantsOf,
+} from "@/tests/broadcast-fixtures";
 import { toNotifications } from "@/tests/notifications";
 import { getWrittenMailing, saveDraft } from "@/lib/mailings/drafts.server";
 import {
   approvedTemplates,
-  templatePairs,
+  getTemplate,
   deleteApprovedTemplate,
   changeBroadcastConsent,
   changeBroadcastFilter,
@@ -144,8 +151,9 @@ it("takes only what a broadcast may change, by its channel", () => {
   expect(broadcastChangesFrom({ finishMinutes: 90 }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ finishMinutes: 8 * 24 * 60 }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ finishMinutes: "90" }, "email")).toBeUndefined();
+  // A template chosen, by its ID: a WhatsApp broadcast says none other way, as its words say which they are.
   expect(broadcastChangesFrom({ templateId: 3 }, "text")).toEqual({ templateId: 3 });
-  expect(broadcastChangesFrom({ templateId: null }, "text")).toEqual({ templateId: null });
+  expect(broadcastChangesFrom({ templateId: null }, "text")).toBeUndefined();
   // A text's title of its own, but not an email's, whose subject is its title.
   expect(broadcastChangesFrom({ title: "March day" }, "text")).toEqual({ title: "March day" });
   expect(broadcastChangesFrom({ title: "March day", templateId: 3 }, "text")).toEqual({
@@ -169,12 +177,8 @@ it("takes a text's top, place, picture, buttons and second version, each a prope
   expect(broadcastChangesFrom({ buttons: [{ words: "Coming" }] }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ pictureId: "banner.png" }, "text")).toBeUndefined();
   expect(broadcastChangesFrom({ textVersion: versionOf({ condition: "" }) }, "text")).toBeUndefined();
-  // The second version's template is said apart from it, as the text's own is: one chosen, or none, for new words.
-  expect(broadcastChangesFrom({ versionTemplateId: 3 }, "text")).toEqual({ versionTemplateId: 3 });
-  expect(broadcastChangesFrom({ versionTemplateId: null }, "text")).toEqual({ versionTemplateId: null });
-  expect(broadcastChangesFrom({ versionTemplateId: "three" }, "text")).toBeUndefined();
+  // A conditional variant names no variant or template: the save tells which its words are.
   expect(broadcastChangesFrom({ textVersion: { ...versionOf(), templateId: 3 } }, "text")).toBeUndefined();
-  expect(broadcastChangesFrom({ versionTemplateId: 3 }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ header: "location" }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ place: PLACE }, "email")).toBeUndefined();
   expect(broadcastChangesFrom({ buttons: [] }, "email")).toBeUndefined();
@@ -281,33 +285,57 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await saveBroadcastDraft(broadcast, 1, { subject: "Late" })).toEqual({ saved: false, reason: "conflict" });
   });
 
-  it("gives a text the words and name of an approved template, and none other", async () => {
+  it("puts a WhatsApp broadcast on the approved template chosen, or on one of its own for new words", async () => {
     const id = await draftOf(TEXT_FILTER);
     const template = await addTemplate("March day");
-    const pending = await addTemplate("Waiting", { status: "pending" });
+    const pending = await addTemplate("Waiting", { status: "pending", body: SATURDAY });
     const broadcast = (await getWrittenBroadcast(id))!;
-    expect(await saveBroadcastDraft(broadcast, 1, { templateId: pending })).toEqual({
-      saved: false,
-      reason: "conflict",
-    });
+    // Only one WhatsApp has approved every variant of can be chosen.
+    for (const none of [pending, 999]) {
+      expect(await saveBroadcastDraft(broadcast, 1, { templateId: none })).toEqual({
+        saved: false,
+        reason: "conflict",
+      });
+    }
     expect(await saveBroadcastDraft(broadcast, 1, { templateId: template })).toEqual({ saved: true, version: 2 });
     expect(await getWrittenBroadcast(id)).toMatchObject({
       title: "March day",
       body: EVENT_WORDS,
-      template: { id: template, name: "March day", createdBy: JO, lastUsedAt: null, lastUsedTo: 0 },
+      template: { id: template, name: "March day", condition: null, listed: true },
+      variant: { status: "approved", createdBy: JO },
     });
-    // New words, and no template, are named as staff name them, and words alone change no name.
-    expect(await saveBroadcastDraft(broadcast, 2, { templateId: null, body: EVENT_WORDS, title: "" })).toEqual({
-      saved: true,
-      version: 3,
+    // New words are a template of the draft's own, still being written, named as staff name it; and words alone
+    // change no name.
+    expect(await saveBroadcastDraft(broadcast, 2, { body: SATURDAY, title: "" })).toEqual({ saved: true, version: 3 });
+    const written = (await getWrittenBroadcast(id))!;
+    expect(written).toMatchObject({
+      title: "",
+      body: SATURDAY,
+      template: { name: "", listed: false },
+      variant: { status: "draft", name: null, body: SATURDAY },
     });
-    expect(await getWrittenBroadcast(id)).toMatchObject({ title: "", template: null });
-    await saveBroadcastDraft(broadcast, 3, { title: "See you there" });
-    await saveBroadcastDraft(broadcast, 4, { body: EVENT_WORDS });
-    expect((await getWrittenBroadcast(id))!.title).toBe("See you there");
-    // A template with a title given keeps the title.
-    await saveBroadcastDraft(broadcast, 5, { templateId: template, title: "March day: London" });
-    expect((await getWrittenBroadcast(id))!.title).toBe("March day: London");
+    expect(written.template!.id).not.toBe(template);
+    await saveBroadcastDraft(broadcast, 3, { title: "See you Saturday" });
+    await saveBroadcastDraft(broadcast, 4, { body: SATURDAY });
+    expect(await getWrittenBroadcast(id)).toMatchObject({
+      title: "See you Saturday",
+      template: { id: written.template!.id, name: "See you Saturday" },
+      variant: { id: written.variant!.id },
+    });
+    // Words an approved template has are that template, whatever staff called them, and the draft's own is gone.
+    await saveBroadcastDraft(broadcast, 5, { body: EVENT_WORDS, title: "My own name" });
+    expect(await getWrittenBroadcast(id)).toMatchObject({
+      title: "March day",
+      template: { id: template, listed: true },
+    });
+    expect(await query("SELECT id::int AS id FROM whatsapp_templates ORDER BY id")).toEqual([
+      { id: template },
+      { id: pending },
+    ]);
+    expect(await query("SELECT id FROM whatsapp_template_variants WHERE status = 'draft'")).toEqual([]);
+    // With no words and no name, it has no template.
+    await saveBroadcastDraft(broadcast, 6, { body: EMPTY_MAILING_DOC, title: "" });
+    expect(await getWrittenBroadcast(id)).toMatchObject({ title: "", template: null, variant: null });
   });
 
   it("schedules an email, leaving who gets it for sending to find", async () => {
@@ -385,7 +413,10 @@ describeWithDatabase("broadcasts to supporters", () => {
     const template = await addTemplate("March day");
     const on = await draftOf(TEXT_FILTER);
     expect(await scheduleBroadcast(on, await readied(on, { templateId: template }), JO)).toEqual({ scheduled: true });
-    expect((await getWrittenBroadcast(on))!.template).toMatchObject({ id: template, status: "approved" });
+    expect(await getWrittenBroadcast(on)).toMatchObject({
+      template: { id: template },
+      variant: { status: "approved" },
+    });
 
     // New words, not the template's.
     const saturday = structuredClone(EVENT_WORDS);
@@ -396,14 +427,21 @@ describeWithDatabase("broadcasts to supporters", () => {
     ).toEqual({ scheduled: true });
     expect(await getWrittenBroadcast(fresh)).toMatchObject({
       state: "scheduled",
-      template: { status: "pending", name: "See you Saturday.", body: saturday },
+      template: { name: "See you Saturday." },
+      variant: { status: "pending", name: "See you Saturday.", body: saturday },
     });
     expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toHaveLength(1);
-    // The very words of the approved template: nothing new to approve.
+    // The very words of the approved template are that template, by any name: nothing new to approve.
     const same = await draftOf(TEXT_FILTER);
     expect(
       await scheduleBroadcast(same, await readied(same, { body: EVENT_WORDS, title: "See you there." }), JO),
-    ).toEqual({ scheduled: false, problems: ["same-words"] });
+    ).toEqual({ scheduled: true });
+    expect(await getWrittenBroadcast(same)).toMatchObject({ title: "March day", template: { id: template } });
+    expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toHaveLength(1);
+    // Its words with a button of their own would be a second template of them, which WhatsApp rejects.
+    const again = await draftOf(TEXT_FILTER);
+    const buttoned = await readied(again, { body: EVENT_WORDS, title: "See you.", buttons: [{ text: "Coming" }] });
+    expect(await scheduleBroadcast(again, buttoned, JO)).toEqual({ scheduled: false, problems: ["same-words"] });
   });
 
   it("sends new words for approval, emailing who sent them and the inbox, and locks them till WhatsApp decides", async () => {
@@ -414,12 +452,14 @@ describeWithDatabase("broadcasts to supporters", () => {
     const version = await readied(id, { body: EVENT_WORDS, title: "See you there." });
     expect(await submitTemplate(id, JO)).toBe("submitted");
     const broadcast = (await getWrittenBroadcast(id))!;
-    expect(broadcast.template).toMatchObject({
+    expect(broadcast.variant).toMatchObject({
       status: "pending",
       createdBy: JO,
       name: "See you there.",
       body: EVENT_WORDS,
     });
+    // The draft they were sent from is gone: what WhatsApp has is the one variant.
+    expect(await query("SELECT status FROM whatsapp_template_variants")).toEqual([{ status: "pending" }]);
     const words = broadcastsCopy.notifications.templateSubmitted;
     expect(sent()).toEqual([
       expect.objectContaining({
@@ -468,37 +508,66 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await submitTemplate(id, JO)).toBe("not-ready");
     await readied(id, { title: " March day " });
     expect(await submitTemplate(id, JO)).toBe("submitted");
-    expect(await getWrittenBroadcast(id)).toMatchObject({ title: "March day", template: { name: "March day" } });
+    expect(await getWrittenBroadcast(id)).toMatchObject({
+      title: "March day",
+      template: { name: "March day" },
+      variant: { name: "March day" },
+    });
   });
 
-  it("sends a rejected text's words for approval again, as a new template", async () => {
+  it("sends a rejected variant's words for approval again, as a new variant, keeping the one WhatsApp rejected", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
-    const rejected = await addTemplate("Old words", { status: "rejected" });
     const id = await draftOf(TEXT_FILTER);
-    await readied(id, { body: EVENT_WORDS, templateId: null, title: "See you there." });
-    await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, rejected]);
-    expect((await getWrittenBroadcast(id))!.template).toMatchObject({
+    await readied(id, { body: EVENT_WORDS, title: "See you there." });
+    const rejected = (await getWrittenBroadcast(id))!.variant!.id;
+    await query(
+      `UPDATE whatsapp_template_variants SET status = 'rejected', name = 'See you there.', rejected_at = now(),
+         rejected_reason = 'INVALID_FORMAT' WHERE id = $1`,
+      [rejected],
+    );
+    expect((await getWrittenBroadcast(id))!.variant).toMatchObject({
       status: "rejected",
       rejectedReason: expect.any(String),
     });
     expect(await submitTemplate(id, JO)).toBe("submitted");
-    expect((await getWrittenBroadcast(id))!.template).toMatchObject({ status: "pending" });
+    const sent = (await getWrittenBroadcast(id))!.variant!;
+    expect(sent).toMatchObject({ status: "pending" });
+    expect(sent.id).not.toBe(rejected);
+    expect(await query("SELECT status FROM whatsapp_template_variants ORDER BY id")).toEqual([
+      { status: "rejected" },
+      { status: "pending" },
+    ]);
   });
 
-  it("takes words back from WhatsApp's review, so they can be changed", async () => {
+  it("takes words back from WhatsApp's review, so they can be changed: a draft again, with no name there", async () => {
     await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
     const id = await draftOf(TEXT_FILTER);
-    await readied(id, { body: EVENT_WORDS, title: "See you there." });
+    const version = await readied(id, { body: EVENT_WORDS, title: "See you there." });
     expect(await withdrawTemplate(id, JO)).toBe(false);
     await submitTemplate(id, JO);
     expect(await withdrawTemplate(id, JO)).toBe(true);
-    expect(await getWrittenBroadcast(id)).toMatchObject({ template: null, body: EVENT_WORDS });
-    expect(await query("SELECT id FROM whatsapp_templates")).toEqual([]);
+    const broadcast = (await getWrittenBroadcast(id))!;
+    expect(broadcast).toMatchObject({
+      title: "See you there.",
+      body: EVENT_WORDS,
+      variant: { status: "draft", name: null, metaName: null },
+    });
+    expect(await query("SELECT status FROM whatsapp_template_variants")).toEqual([{ status: "draft" }]);
     expect(await query("SELECT action FROM audit_log WHERE action = 'withdraw broadcast template'")).toHaveLength(1);
+    // And changed they are, in place.
+    expect(await saveBroadcastDraft(broadcast, version, { body: SATURDAY })).toMatchObject({ saved: true });
+    expect((await getWrittenBroadcast(id))!.variant).toMatchObject({ id: broadcast.variant!.id, body: SATURDAY });
   });
 
-  describe("a text's top, buttons and second version", () => {
-    it("saves a text's top, place, buttons and second version with the rest, replaces the version, and takes it away", async () => {
+  describe("a WhatsApp broadcast's variants, headers and buttons", () => {
+    /** Saves `changes` to draft `id` at its version, and gives it as it's then stored. */
+    const save = async (id: number, changes: BroadcastChanges) => {
+      const broadcast = (await getWrittenBroadcast(id))!;
+      expect(await saveBroadcastDraft(broadcast, broadcast.version, changes)).toMatchObject({ saved: true });
+      return (await getWrittenBroadcast(id))!;
+    };
+
+    it("saves a header kind, what it shows, buttons and a conditional variant with the rest, replaces the variant, and takes it away", async () => {
       const id = await draftOf(TEXT_FILTER);
       const broadcast = (await getWrittenBroadcast(id))!;
       expect(broadcast).toMatchObject({ header: null, place: null, buttons: [], textVersion: null });
@@ -506,170 +575,181 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await saveBroadcastDraft(broadcast, 1, { body: EVENT_WORDS, ...parts, textVersion: versionOf() })).toEqual(
         { saved: true, version: 2 },
       );
-      expect(await getWrittenBroadcast(id)).toMatchObject({
+      const written = (await getWrittenBroadcast(id))!;
+      expect(written).toMatchObject({
         body: EVENT_WORDS,
         ...parts,
-        textVersion: { ...versionOf(), template: null },
+        template: { condition: registeredFor("evt-1"), listed: false },
+        variant: { status: "draft", header: "location", buttons: [{ text: "Coming" }] },
+        textVersion: { ...versionOf(), variant: { status: "draft", body: SATURDAY } },
       });
+      expect(written.textVersion!.variant.id).not.toBe(written.variant!.id);
       // Saved at a version changed since, neither is.
       const plain = versionOf({ condition: "has:firstName", header: null, place: null, buttons: [] });
       expect(await saveBroadcastDraft(broadcast, 1, { body: SATURDAY, textVersion: plain })).toEqual(CONFLICT);
       expect(await getWrittenBroadcast(id)).toMatchObject({ body: EVENT_WORDS, textVersion: versionOf() });
+      // Replaced: the same draft variant, with the new words, for who it's now for.
       expect(await saveBroadcastDraft(broadcast, 2, { textVersion: plain })).toEqual({ saved: true, version: 3 });
-      expect((await getWrittenBroadcast(id))!.textVersion).toEqual({ ...plain, template: null });
+      expect(await getWrittenBroadcast(id)).toMatchObject({
+        template: { id: written.template!.id, condition: "has:firstName" },
+        textVersion: { ...plain, variant: { id: written.textVersion!.variant.id } },
+      });
+      // Taken away, its draft variant goes, and what its header showed.
       expect(await saveBroadcastDraft(broadcast, 3, { textVersion: null })).toEqual({ saved: true, version: 4 });
-      expect(await getWrittenBroadcast(id)).toMatchObject({ body: EVENT_WORDS, ...parts, textVersion: null });
-      expect(await query("SELECT mailing_id FROM broadcast_versions")).toEqual([]);
+      expect(await getWrittenBroadcast(id)).toMatchObject({
+        body: EVENT_WORDS,
+        ...parts,
+        template: { condition: null },
+        textVersion: null,
+      });
+      expect(await query("SELECT id FROM whatsapp_template_variants")).toHaveLength(1);
+      expect(await query("SELECT variant FROM broadcast_headers WHERE mailing_id = $1", [id])).toEqual([
+        { variant: "default" },
+      ]);
     });
 
-    it("saves a picture at a text's top, and at its second version's, and takes them away", async () => {
+    it("saves the picture each variant's header shows, and takes them away", async () => {
       const id = await draftOf(TEXT_FILTER);
-      const broadcast = (await getWrittenBroadcast(id))!;
-      expect(broadcast.pictureId).toBeNull();
+      expect((await getWrittenBroadcast(id))!.pictureId).toBeNull();
       const [mine, theirs] = [await aPicture(), await aPicture("image/jpeg")];
       const pictured = versionOf({ header: "image", place: null, pictureId: theirs });
-      expect(
-        await saveBroadcastDraft(broadcast, 1, { header: "image", pictureId: mine, textVersion: pictured }),
-      ).toEqual({ saved: true, version: 2 });
-      expect(await getWrittenBroadcast(id)).toMatchObject({
+      expect(await save(id, { header: "image", pictureId: mine, textVersion: pictured })).toMatchObject({
         header: "image",
         pictureId: mine,
         textVersion: { header: "image", pictureId: theirs },
       });
       expect(
-        await saveBroadcastDraft(broadcast, 2, {
-          header: null,
-          pictureId: null,
-          textVersion: { ...pictured, pictureId: null },
-        }),
-      ).toEqual({ saved: true, version: 3 });
-      expect(await getWrittenBroadcast(id)).toMatchObject({
-        header: null,
-        pictureId: null,
-        textVersion: { pictureId: null },
-      });
+        await save(id, { header: null, pictureId: null, textVersion: { ...pictured, pictureId: null } }),
+      ).toMatchObject({ header: null, pictureId: null, textVersion: { pictureId: null } });
     });
 
-    it("gives a text and its second version the words, top and buttons of the approved templates chosen, and none other", async () => {
+    it("gives a broadcast both variants of the approved template chosen, and who the conditional one is for", async () => {
       const id = await draftOf(TEXT_FILTER);
-      const template = await addTemplate("March day");
-      await query(`UPDATE whatsapp_templates SET header = 'location', buttons = '[{"text": "Coming"}]' WHERE id = $1`, [
-        template,
-      ]);
-      const broadcast = (await getWrittenBroadcast(id))!;
-      expect(
-        await saveBroadcastDraft(broadcast, 1, {
-          templateId: template,
-          versionTemplateId: template,
-          textVersion: versionOf({ header: null, buttons: [] }),
-        }),
-      ).toEqual({ saved: true, version: 2 });
-      const parts = { body: EVENT_WORDS, header: "location", buttons: [{ text: "Coming" }] };
-      expect(await getWrittenBroadcast(id)).toMatchObject({
-        ...parts,
+      const template = await addTemplate("March day", {
+        header: "location",
+        buttons: [{ text: "Coming" }],
+        condition: "has:firstName",
+        conditional: { body: SATURDAY },
+      });
+      const { first, second } = await variantsOf(template);
+      expect(await save(id, { templateId: template, place: PLACE })).toMatchObject({
         title: "March day",
-        template: { id: template },
-        // Its place is its own, as each send gives it.
-        textVersion: { ...parts, place: PLACE, template: { id: template } },
+        body: EVENT_WORDS,
+        header: "location",
+        buttons: [{ text: "Coming" }],
+        place: PLACE,
+        template: { id: template, condition: "has:firstName", listed: true },
+        variant: { id: first },
+        textVersion: { condition: "has:firstName", body: SATURDAY, header: null, buttons: [], variant: { id: second } },
       });
-      // Not one that isn't there, nor one that isn't approved.
-      expect(await saveBroadcastDraft(broadcast, 2, { versionTemplateId: 999 })).toEqual(CONFLICT);
-      const pending = await addTemplate("Waiting", { status: "pending" });
-      expect(await saveBroadcastDraft(broadcast, 2, { versionTemplateId: pending })).toEqual(CONFLICT);
-      expect(await saveBroadcastDraft(broadcast, 2, { templateId: pending })).toEqual(CONFLICT);
-      // Nor for a second version the text doesn't have, as one taken away elsewhere.
-      const plain = await draftOf(TEXT_FILTER);
-      expect(await saveBroadcastDraft((await getWrittenBroadcast(plain))!, 1, { versionTemplateId: template })).toEqual(
-        CONFLICT,
-      );
+      // Not one with a variant WhatsApp hasn't approved.
+      const waiting = await addTemplate("Waiting", {
+        body: SATURDAY,
+        conditional: { status: "pending" },
+        condition: "x",
+      });
+      const broadcast = (await getWrittenBroadcast(id))!;
+      expect(await saveBroadcastDraft(broadcast, broadcast.version, { templateId: waiting })).toEqual(CONFLICT);
+      // One template alone after, the conditional variant is gone.
+      const alone = await addTemplate("Alone", { body: SATURDAY });
+      expect(await save(id, { templateId: alone })).toMatchObject({
+        title: "Alone",
+        body: SATURDAY,
+        template: { id: alone, condition: null },
+        textVersion: null,
+      });
     });
 
-    it("keeps each version on its approved template while its words, top and buttons are the template's, whatever its place or picture", async () => {
+    it("tells which variant each one's words are: an approved one's are that variant, shared, and other words a draft of its own", async () => {
       const id = await draftOf(TEXT_FILTER);
-      const template = await addTemplate("March day");
-      const chosen = { body: EVENT_WORDS, header: null, buttons: [] };
-      await readied(id, { templateId: template, versionTemplateId: template, textVersion: versionOf(chosen) });
-      const save = async (changes: BroadcastChanges) => {
-        const broadcast = (await getWrittenBroadcast(id))!;
-        expect(await saveBroadcastDraft(broadcast, broadcast.version, changes)).toMatchObject({ saved: true });
-        return (await getWrittenBroadcast(id))!;
-      };
-      // The version is saved whole, naming no template: a place or picture is its own, so it's the template still.
+      const march = await addTemplate("March day");
+      const { first: marchWords } = await variantsOf(march);
+      // New words for some, beside an approved template's for everyone else: only theirs is a draft.
+      const mixed = await save(id, { body: EVENT_WORDS, title: "March day, two ways", textVersion: versionOf() });
+      expect(mixed).toMatchObject({
+        title: "March day, two ways",
+        template: { listed: false },
+        variant: { id: marchWords, status: "approved" },
+        textVersion: { variant: { status: "draft" } },
+      });
+      expect(mixed.template!.id).not.toBe(march);
+      // A place or a picture is the broadcast's own: the same variants, on the same template.
       const elsewhere = { ...PLACE, name: "Elsewhere" };
       expect(
-        await save({
-          place: elsewhere,
-          textVersion: versionOf({ ...chosen, place: elsewhere, pictureId: await aPicture() }),
+        await save(id, { place: elsewhere, textVersion: versionOf({ place: elsewhere, pictureId: await aPicture() }) }),
+      ).toMatchObject({
+        place: elsewhere,
+        template: { id: mixed.template!.id },
+        variant: { id: marchWords },
+        textVersion: { place: elsewhere, variant: { id: mixed.textVersion!.variant.id } },
+      });
+      // The same words for both are one variant for both; with every variant approved, a template of its own
+      // that can be chosen, named as staff named it.
+      const both = await save(id, { textVersion: versionOf({ body: EVENT_WORDS, header: null, buttons: [] }) });
+      expect(both).toMatchObject({
+        title: "March day, two ways",
+        template: { id: mixed.template!.id, listed: true },
+        variant: { id: marchWords },
+        textVersion: { variant: { id: marchWords } },
+      });
+      expect((await approvedTemplates()).map((one) => one.name).sort()).toEqual(["March day", "March day, two ways"]);
+      expect(await query("SELECT id FROM whatsapp_template_variants WHERE status = 'draft'")).toEqual([]);
+      // Another draft with those variants and that condition is on that template; with none, on the first.
+      const other = await draftOf(TEXT_FILTER);
+      expect(
+        await save(other, {
+          body: EVENT_WORDS,
+          textVersion: versionOf({ body: EVENT_WORDS, header: null, buttons: [] }),
         }),
-      ).toMatchObject({ template: { id: template }, textVersion: { place: elsewhere, template: { id: template } } });
-      // Other words, top or buttons are new words, on no template, each version by itself.
-      expect(await save({ textVersion: versionOf({ ...chosen, buttons: [{ text: "Coming" }] }) })).toMatchObject({
-        template: { id: template },
-        textVersion: { template: null },
-      });
-      expect(await save({ body: SATURDAY })).toMatchObject({ body: SATURDAY, template: null });
-      // Chosen again, then said to be new words, as they are: on no template, the words kept.
-      expect(await save({ templateId: template, versionTemplateId: template })).toMatchObject({
-        body: EVENT_WORDS,
-        template: { id: template },
-        textVersion: { body: EVENT_WORDS, buttons: [], template: { id: template } },
-      });
-      expect(await save({ templateId: null, versionTemplateId: null })).toMatchObject({
-        body: EVENT_WORDS,
-        template: null,
-        textVersion: { body: EVENT_WORDS, template: null },
-      });
-      // Taken away, the page says it has no template either, which is so.
-      expect(await save({ textVersion: null, versionTemplateId: null })).toMatchObject({ textVersion: null });
+      ).toMatchObject({ title: "March day, two ways", template: { id: both.template!.id } });
+      expect(await save(other, { textVersion: null })).toMatchObject({ title: "March day", template: { id: march } });
+      // An approved template is never changed: words changed on it are a template of the draft's own.
+      const changed = await save(other, { body: SATURDAY });
+      expect(changed).toMatchObject({ body: SATURDAY, template: { listed: false }, variant: { status: "draft" } });
+      expect(changed.template!.id).not.toBe(march);
+      expect((await getTemplate(march))!.default.body).toEqual(EVENT_WORDS);
     });
 
-    it("keeps a second version's template through a save from a page that hasn't heard WhatsApp approved it, or that it was taken back", async () => {
+    it("keeps a conditional variant through a save from a page that hasn't heard WhatsApp approved it, or that it was taken back", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const elsewhere = { ...PLACE, name: "Elsewhere" };
-      // The page saves the version whole, naming no template, so it can't say the wrong one.
-      const moved = async (id: number) => {
-        const broadcast = (await getWrittenBroadcast(id))!;
-        expect(
-          await saveBroadcastDraft(broadcast, broadcast.version, { textVersion: versionOf({ place: elsewhere }) }),
-        ).toMatchObject({ saved: true });
-        return (await getWrittenBroadcast(id))!.textVersion;
-      };
-      // Taken back since the page loaded: its place moved, they're new words still.
+      // The page saves the variant whole, naming none, so it can't say the wrong one.
+      const moved = async (id: number) =>
+        (await save(id, { textVersion: versionOf({ place: elsewhere }) })).textVersion;
+      // Taken back since the page loaded: its place moved, they're a draft still.
       const withdrawn = await draftOf(TEXT_FILTER);
       await readied(withdrawn, { templateId: await addTemplate("April day"), textVersion: versionOf() });
       expect(await submitTemplate(withdrawn, JO)).toBe("submitted");
       expect(await withdrawTemplate(withdrawn, JO)).toBe(true);
-      expect(await moved(withdrawn)).toMatchObject({ place: elsewhere, template: null });
-      // Approved since the page loaded: its place moved, it's the approved template still.
+      expect(await moved(withdrawn)).toMatchObject({ place: elsewhere, variant: { status: "draft" } });
+      await save(withdrawn, { textVersion: null });
+      // Approved since the page loaded: its place moved, it's the approved variant still.
       const id = await draftOf(TEXT_FILTER);
       await readied(id, { templateId: await addTemplate("March day"), textVersion: versionOf() });
       expect(await submitTemplate(id, JO)).toBe("submitted");
-      const theirs = (await getWrittenBroadcast(id))!.textVersion!.template!.id;
+      const theirs = (await getWrittenBroadcast(id))!.textVersion!.variant.id;
       await reviewTemplate(theirs, { approved: true });
-      expect(await moved(id)).toMatchObject({ place: elsewhere, template: { id: theirs, status: "approved" } });
+      expect(await moved(id)).toMatchObject({ place: elsewhere, variant: { id: theirs, status: "approved" } });
     });
 
-    it("keeps the template WhatsApp rejected on each version's words as they change, to say why till they're sent again", async () => {
+    it("keeps the variant WhatsApp rejected as its words change, to say why till they're sent again", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const id = await draftOf(TEXT_FILTER);
       await readied(id, { body: EVENT_WORDS, title: "See you there.", textVersion: versionOf() });
-      const rejected = await addTemplate("Old words", { status: "rejected" });
-      await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, rejected]);
-      await query("UPDATE broadcast_versions SET template_id = $2 WHERE mailing_id = $1", [id, rejected]);
-      const broadcast = (await getWrittenBroadcast(id))!;
-      expect(
-        await saveBroadcastDraft(broadcast, broadcast.version, {
-          body: SATURDAY,
-          textVersion: versionOf({ body: EVENT_WORDS }),
-        }),
-      ).toMatchObject({ saved: true });
-      expect(await getWrittenBroadcast(id)).toMatchObject({
-        body: SATURDAY,
-        template: { id: rejected },
-        textVersion: { body: EVENT_WORDS, template: { id: rejected } },
+      expect(await submitTemplate(id, JO)).toBe("submitted");
+      const sent = (await getWrittenBroadcast(id))!;
+      await reviewTemplate(sent.variant!.id, { approved: false, reason: "SCAM" });
+      await reviewTemplate(sent.textVersion!.variant.id, { approved: false, reason: "SCAM" });
+      const other = structuredClone(SATURDAY);
+      other.content[0].content[0] = { type: "text", text: "Rain is forecast." };
+      expect(await save(id, { body: other, textVersion: versionOf({ body: EVENT_WORDS }) })).toMatchObject({
+        body: other,
+        variant: { id: sent.variant!.id, status: "rejected", rejectedReason: "SCAM" },
+        textVersion: { body: EVENT_WORDS, variant: { id: sent.textVersion!.variant.id, status: "rejected" } },
       });
     });
 
-    it("keeps what WhatsApp is reviewing as it was sent, a text's own or its version's, but not where their maps are", async () => {
+    it("keeps what WhatsApp is reviewing as it was sent, either variant's, but not what their headers show", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const id = await draftOf(TEXT_FILTER);
       const parts = { header: "location" as const, place: PLACE, buttons: [{ text: "Coming" }] };
@@ -677,16 +757,14 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await submitTemplate(id, JO)).toBe("submitted");
       const broadcast = (await getWrittenBroadcast(id))!;
       const { version } = broadcast;
-      // The version as the writer has it, which names no template.
+      // The conditional variant as the writer has it, whole.
       const sent = versionOf();
-      const approved = await addTemplate("March day");
+      const approved = await addTemplate("March day", { body: SATURDAY });
       const refused: BroadcastChanges[] = [
         { header: null },
         { buttons: [] },
-        { templateId: null },
+        { body: SATURDAY },
         { templateId: approved },
-        { versionTemplateId: null },
-        { versionTemplateId: approved },
         { textVersion: null },
         { textVersion: { ...sent, condition: "has:firstName" } },
         { textVersion: { ...sent, body: EVENT_WORDS } },
@@ -696,86 +774,96 @@ describeWithDatabase("broadcasts to supporters", () => {
       for (const changes of refused) expect(await saveBroadcastDraft(broadcast, version, changes)).toEqual(CONFLICT);
       const elsewhere = { ...PLACE, name: "Elsewhere" };
       expect(
-        await saveBroadcastDraft(broadcast, version, { place: elsewhere, textVersion: { ...sent, place: elsewhere } }),
+        await saveBroadcastDraft(broadcast, version, {
+          place: elsewhere,
+          title: "See you",
+          body: EVENT_WORDS,
+          textVersion: { ...sent, place: elsewhere },
+        }),
       ).toEqual({ saved: true, version: version + 1 });
       expect(await getWrittenBroadcast(id)).toMatchObject({
         place: elsewhere,
-        template: { status: "pending" },
-        textVersion: { place: elsewhere, body: SATURDAY, template: { status: "pending" } },
+        title: "See you",
+        variant: { id: broadcast.variant!.id, status: "pending" },
+        textVersion: { place: elsewhere, body: SATURDAY, variant: { status: "pending" } },
       });
     });
 
-    it("copies a text's top, place, picture, buttons and second version", async () => {
+    it("copies an approved template as it is, and one still being written with draft variants of its own", async () => {
       const id = await draftOf(TEXT_FILTER);
+      const approved = await addTemplate("March day");
       await readied(id, {
-        body: EVENT_WORDS,
-        header: "location",
+        templateId: approved,
+        header: null,
         place: PLACE,
         pictureId: await aPicture(),
-        buttons: [{ text: "Coming" }],
-        versionTemplateId: await addTemplate("March day"),
         textVersion: versionOf({ pictureId: await aPicture() }),
       });
-      const { header, place, pictureId, buttons, textVersion } = (await getWrittenBroadcast(id))!;
-      expect(pictureId).toEqual(expect.any(String));
-      expect(textVersion!.pictureId).toEqual(expect.any(String));
-      const { template, ...version } = textVersion!;
-      expect(template).toMatchObject({ name: "March day" });
-      const copy = (await copyBroadcast(id, JO))!;
-      expect(await getWrittenBroadcast(copy)).toMatchObject({
-        header,
-        place,
-        pictureId,
-        buttons,
-        textVersion: { ...version, template: { id: template!.id } },
+      const from = (await getWrittenBroadcast(id))!;
+      expect(from).toMatchObject({ template: { listed: false }, variant: { status: "approved" } });
+      const copy = (await getWrittenBroadcast((await copyBroadcast(id, JO))!))!;
+      expect(copy).toMatchObject({
+        title: from.title,
+        body: from.body,
+        place: from.place,
+        pictureId: from.pictureId,
+        template: { name: from.template!.name, condition: from.template!.condition, listed: false },
+        // The approved variant shared, the draft one a copy.
+        variant: { id: from.variant!.id },
+        textVersion: { ...versionOf({ pictureId: from.textVersion!.pictureId }), variant: { status: "draft" } },
       });
+      expect(copy.template!.id).not.toBe(from.template!.id);
+      expect(copy.textVersion!.variant.id).not.toBe(from.textVersion!.variant.id);
+      // Changing the copy's words leaves the first one's.
+      await save(copy.id, { textVersion: versionOf({ body: EVENT_WORDS, buttons: [] }) });
+      expect((await getWrittenBroadcast(id))!.textVersion).toMatchObject({ body: SATURDAY });
+      // A copy of one on an approved template is on that template.
+      const on = await draftOf(TEXT_FILTER);
+      await readied(on, { templateId: approved });
+      expect(await getWrittenBroadcast((await copyBroadcast(on, JO))!)).toMatchObject({ template: { id: approved } });
     });
 
-    it("clears a text's top, place, picture, buttons and second version when its Consent moves it to email", async () => {
+    it("clears a broadcast's template and what its headers show when its Consent moves it to email", async () => {
       const id = await draftOf(TEXT_FILTER);
       await readied(id, {
         header: "location",
         place: PLACE,
         pictureId: await aPicture(),
         buttons: [{ text: "Coming" }],
-        textVersion: versionOf(),
       });
+      // It has words of its own only once it has a subject or a template, so a header alone moves.
+      await query("UPDATE mailings SET template_id = NULL WHERE id = $1", [id]);
       expect(await changeBroadcastConsent(id, EMAIL_FILTER.contact, JO)).toEqual(expect.any(Number));
       expect(await getWrittenBroadcast(id)).toMatchObject({
         channel: "email",
+        template: null,
         header: null,
         place: null,
         pictureId: null,
         buttons: [],
         textVersion: null,
       });
+      expect(await query("SELECT id FROM whatsapp_templates")).toEqual([]);
+      expect(await query("SELECT id FROM whatsapp_template_variants")).toEqual([]);
     });
 
-    it("lists each pair of approved templates a text has had, by the newest text's title, newest first", async () => {
-      const own = await addTemplate("Own");
-      const version = await addTemplate("Theirs");
-      const pending = await addTemplate("Waiting", { status: "pending" });
-      const had = async (title: string, ownId: number, versionId: number, condition = registeredFor("evt-1")) => {
-        const id = await draftOf(TEXT_FILTER);
-        await query("UPDATE mailings SET template_id = $2, title = $3 WHERE id = $1", [id, ownId, title]);
-        await query(
-          "INSERT INTO broadcast_versions (mailing_id, condition, body, template_id) VALUES ($1, $2, $3, $4)",
-          [id, condition, JSON.stringify(SATURDAY), versionId],
-        );
-      };
-      await had("Older", own, version);
-      await had("Newer", own, version);
-      await had("For writers", own, version, "wrote:regulate-ai");
-      // Not a pair: one not approved, and one template for both.
-      await had("Waiting", own, pending);
-      await had("One for both", own, own);
-      expect(await templatePairs()).toEqual([
-        { own, version, condition: "wrote:regulate-ai", title: "For writers" },
-        { own, version, condition: registeredFor("evt-1"), title: "Newer" },
+    it("lists a template with two variants once WhatsApp has approved both, with who the conditional one is for", async () => {
+      const both = await addTemplate("Both", { condition: "has:firstName", conditional: { body: SATURDAY } });
+      await addTemplate("Half", { condition: "has:firstName", conditional: { body: SATURDAY, status: "pending" } });
+      await addTemplate("Stopped", { status: "paused" });
+      expect(await approvedTemplates()).toEqual([
+        expect.objectContaining({
+          id: both,
+          name: "Both",
+          condition: "has:firstName",
+          default: expect.objectContaining({ status: "approved", body: EVENT_WORDS }),
+          conditional: expect.objectContaining({ status: "approved", body: SATURDAY }),
+          approvedAt: expect.any(Date),
+        }),
       ]);
     });
 
-    it("sends a second version's words for approval as a template of its own, each named for who it's for, without the title's full stop", async () => {
+    it("sends each variant's new words for approval, each named for who it's for, without the name's full stop", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const id = await draftOf(TEXT_FILTER);
       await readied(id, {
@@ -786,15 +874,16 @@ describeWithDatabase("broadcasts to supporters", () => {
         textVersion: versionOf(),
       });
       expect(await submitTemplate(id, JO)).toBe("submitted");
-      const { template, textVersion } = (await getWrittenBroadcast(id))!;
+      const { template, variant, textVersion } = (await getWrittenBroadcast(id))!;
       const who = broadcastsCopy.broadcastPages.conditions.registered("evt-1");
-      expect(template).toMatchObject({
+      expect(template).toMatchObject({ name: "March day.", listed: false });
+      expect(variant).toMatchObject({
         name: broadcastsCopy.broadcastPages.othersTemplateName("March day", who),
         status: "pending",
         header: "location",
         buttons: [],
       });
-      expect(textVersion!.template).toMatchObject({
+      expect(textVersion!.variant).toMatchObject({
         name: broadcastsCopy.broadcastPages.versionTemplateName("March day", who),
         status: "pending",
         body: SATURDAY,
@@ -803,15 +892,21 @@ describeWithDatabase("broadcasts to supporters", () => {
       });
       expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toHaveLength(2);
       expect(await submitTemplate(id, JO)).toBe("already");
-      // Both taken back from WhatsApp's review.
+      // Both taken back from WhatsApp's review: drafts again.
       expect(await withdrawTemplate(id, JO)).toBe(true);
-      expect(await getWrittenBroadcast(id)).toMatchObject({ template: null, textVersion: { template: null } });
-      expect(await query("SELECT id FROM whatsapp_templates")).toEqual([]);
+      expect(await getWrittenBroadcast(id)).toMatchObject({
+        variant: { status: "draft" },
+        textVersion: { variant: { status: "draft" } },
+      });
+      expect(await query("SELECT status FROM whatsapp_template_variants")).toEqual([
+        { status: "draft" },
+        { status: "draft" },
+      ]);
       // Nothing to take back for a broadcast that isn't there.
       expect(await withdrawTemplate(999, JO)).toBe(false);
     });
 
-    it("sends one template for both when the second version would be the same template, whatever its place", async () => {
+    it("sends one variant for both when their words, header kind and buttons are the same, whatever each header shows", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const id = await draftOf(TEXT_FILTER);
       await readied(id, {
@@ -823,12 +918,14 @@ describeWithDatabase("broadcasts to supporters", () => {
         textVersion: versionOf({ body: EVENT_WORDS, place: { ...PLACE, name: "Elsewhere" } }),
       });
       expect(await submitTemplate(id, JO)).toBe("submitted");
-      const { template, textVersion } = (await getWrittenBroadcast(id))!;
-      expect(textVersion).toMatchObject({ template: { id: template!.id }, place: { name: "Elsewhere" } });
-      expect(await query("SELECT name FROM whatsapp_templates")).toEqual([{ name: "March day" }]);
+      const { variant, textVersion } = (await getWrittenBroadcast(id))!;
+      expect(textVersion).toMatchObject({ variant: { id: variant!.id }, place: { name: "Elsewhere" } });
+      expect(await query("SELECT name, status FROM whatsapp_template_variants")).toEqual([
+        { name: "March day", status: "pending" },
+      ]);
     });
 
-    it("sends only a second version's words for a text on an approved template, named by its condition where no part has it", async () => {
+    it("sends only the conditional variant's words for a broadcast whose default one is approved, named by its condition where no part has it", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const own = await addTemplate("March day");
       const id = await draftOf(TEXT_FILTER);
@@ -838,9 +935,9 @@ describeWithDatabase("broadcasts to supporters", () => {
       });
       expect(await submitTemplate(id, JO)).toBe("submitted");
       expect(await getWrittenBroadcast(id)).toMatchObject({
-        template: { id: own, status: "approved" },
+        variant: { id: (await variantsOf(own)).first, status: "approved" },
         textVersion: {
-          template: {
+          variant: {
             name: broadcastsCopy.broadcastPages.versionTemplateName("March day", "has:firstName"),
             status: "pending",
           },
@@ -848,7 +945,7 @@ describeWithDatabase("broadcasts to supporters", () => {
       });
     });
 
-    it("sends a second version's new words for approval when a text on an approved template is scheduled, and again once WhatsApp rejects them", async () => {
+    it("sends a conditional variant's new words for approval when a broadcast on an approved template is scheduled, and again once WhatsApp rejects them", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const own = await addTemplate("March day");
       const id = await draftOf(TEXT_FILTER);
@@ -860,22 +957,22 @@ describeWithDatabase("broadcasts to supporters", () => {
       const scheduled = (await getWrittenBroadcast(id))!;
       expect(scheduled).toMatchObject({
         state: "scheduled",
-        template: { id: own, status: "approved" },
-        textVersion: { template: { status: "pending" } },
+        variant: { status: "approved" },
+        textVersion: { variant: { status: "pending" } },
       });
       expect(await query("SELECT action FROM audit_log WHERE action = 'submit broadcast template'")).toHaveLength(1);
-      // Rejected, it's a draft again, and scheduling it sends the version's words afresh.
-      const rejected = scheduled.textVersion!.template!.id;
+      // Rejected, it's a draft again, and scheduling it sends the variant's words afresh.
+      const rejected = scheduled.textVersion!.variant.id;
       await reviewTemplate(rejected, { approved: false, reason: "SCAM" });
       const draft = (await getWrittenBroadcast(id))!;
-      expect(draft).toMatchObject({ state: "draft", textVersion: { template: { status: "rejected" } } });
+      expect(draft).toMatchObject({ state: "draft", textVersion: { variant: { status: "rejected" } } });
       expect(await scheduleBroadcast(id, draft.version, JO)).toEqual({ scheduled: true });
       const again = (await getWrittenBroadcast(id))!;
-      expect(again).toMatchObject({ state: "scheduled", textVersion: { template: { status: "pending" } } });
-      expect(again.textVersion!.template!.id).not.toBe(rejected);
+      expect(again).toMatchObject({ state: "scheduled", textVersion: { variant: { status: "pending" } } });
+      expect(again.textVersion!.variant.id).not.toBe(rejected);
     });
 
-    it("schedules and sends for approval no text whose versions have the same new words but other buttons", async () => {
+    it("schedules and sends for approval no broadcast whose variants have the same new words but other buttons", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const id = await draftOf(TEXT_FILTER);
       const version = await readied(id, {
@@ -888,13 +985,19 @@ describeWithDatabase("broadcasts to supporters", () => {
         problems: ["versions-same-words"],
       });
       expect(await submitTemplate(id, JO)).toBe("not-ready");
-      expect(await query("SELECT id FROM whatsapp_templates")).toEqual([]);
+      expect(await query("SELECT status FROM whatsapp_template_variants")).toEqual([
+        { status: "draft" },
+        { status: "draft" },
+      ]);
     });
 
-    it("counts a template only a second version has as used: by drafts, and not deleted", async () => {
-      const template = await addTemplate("Came before");
+    it("counts a template as used by the drafts on it, and deletes none that's used", async () => {
+      const template = await addTemplate("Came before", {
+        condition: "has:firstName",
+        conditional: { body: SATURDAY },
+      });
       const id = await draftOf(TEXT_FILTER);
-      await readied(id, { body: SATURDAY, versionTemplateId: template, textVersion: versionOf() });
+      await readied(id, { templateId: template });
       expect((await approvedTemplates())[0]).toMatchObject({
         id: template,
         uses: { sent: 0, scheduled: 0, drafts: 1 },
@@ -902,18 +1005,18 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await deleteApprovedTemplate(template, JO)).toBe("used");
     });
 
-    it("makes a text whose second version's words WhatsApp rejects a draft again, emailing with it named", async () => {
+    it("makes a broadcast whose conditional variant WhatsApp rejects a draft again, emailing with it named", async () => {
       vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       const id = await draftOf(TEXT_FILTER);
       const version = await readied(id, { body: EVENT_WORDS, title: "See you there.", textVersion: versionOf() });
       expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
-      const theirs = (await getWrittenBroadcast(id))!.textVersion!.template!.id;
+      const theirs = (await getWrittenBroadcast(id))!.textVersion!.variant.id;
       const sent = outbox();
       expect(await reviewTemplate(theirs, { approved: false, reason: "SCAM" })).toBe(true);
       expect(await getWrittenBroadcast(id)).toMatchObject({
         state: "draft",
-        textVersion: { template: { id: theirs } },
+        textVersion: { variant: { id: theirs, status: "rejected" } },
       });
       const words = broadcastsCopy.notifications;
       expect(sent()[0].TextBody).toBe(
@@ -942,6 +1045,19 @@ describeWithDatabase("broadcasts to supporters", () => {
       return id;
     }
 
+    /** Makes draft `id`'s default variant one WhatsApp rejected, or has with no name there yet; its ID. */
+    async function variantNow(id: number, status: "rejected" | "pending"): Promise<number> {
+      const variant = (await getWrittenBroadcast(id))!.variant!.id;
+      await query(
+        `UPDATE whatsapp_template_variants SET status = $2, name = 'Old words',
+           rejected_at = CASE WHEN $2 = 'rejected' THEN now() END,
+           rejected_reason = CASE WHEN $2 = 'rejected' THEN 'INVALID_FORMAT' END
+         WHERE id = $1`,
+        [variant, status],
+      );
+      return variant;
+    }
+
     it("sends new words as a marketing template, its field an example, with how to stop, keeping its ID", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       let made: Record<string, unknown> = {};
@@ -953,7 +1069,7 @@ describeWithDatabase("broadcasts to supporters", () => {
       );
       const id = await written();
       expect(await submitTemplate(id, JO)).toBe("submitted");
-      const template = (await getWrittenBroadcast(id))!.template!;
+      const template = (await getWrittenBroadcast(id))!.variant!;
       expect(template.metaName).toBe(`see_you_there_${template.id}`);
       expect(made).toEqual({
         name: template.metaName,
@@ -971,7 +1087,7 @@ describeWithDatabase("broadcasts to supporters", () => {
         ],
       });
       // Its footer kept as it went, for every page to show.
-      expect(await query("SELECT meta_id, footer FROM whatsapp_templates")).toEqual([
+      expect(await query("SELECT meta_id, footer FROM whatsapp_template_variants")).toEqual([
         { meta_id: "meta-1", footer: TEMPLATE_FOOTER },
       ]);
     });
@@ -979,16 +1095,15 @@ describeWithDatabase("broadcasts to supporters", () => {
     it("leaves the draft as it was, reporting it, when WhatsApp doesn't take the words or answer", async () => {
       await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
       server.use(http.post(TEMPLATES, () => HttpResponse.json({ error: { message: "Bad" } }, { status: 400 })));
-      const rejected = await addTemplate("Old words", { status: "rejected" });
       const id = await written();
-      await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, rejected]);
+      const rejected = await variantNow(id, "rejected");
       // With WhatsApp's reason, to show staff.
       expect(await submitTemplate(id, JO)).toEqual({ failed: "Bad" });
-      expect((await getWrittenBroadcast(id))!.template).toMatchObject({ id: rejected, status: "rejected" });
+      expect((await getWrittenBroadcast(id))!.variant).toMatchObject({ id: rejected, status: "rejected" });
       // The request itself failing gives none.
       server.use(http.post(TEMPLATES, () => HttpResponse.error()));
       expect(await submitTemplate(id, JO)).toEqual({ failed: null });
-      expect(await query("SELECT id::int AS id FROM whatsapp_templates")).toEqual([{ id: rejected }]);
+      expect(await query("SELECT id::int AS id FROM whatsapp_template_variants")).toEqual([{ id: rejected }]);
       expect(console.error).toHaveBeenCalled();
       // WhatsApp answering the check before, but not when the words go, the number kept from the check having gone
       // stale in between.
@@ -1014,7 +1129,8 @@ describeWithDatabase("broadcasts to supporters", () => {
       const id = await written();
       const { version } = (await getWrittenBroadcast(id))!;
       expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: false, submit: { failed: "Bad" } });
-      expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft", template: null });
+      expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft", variant: { status: "draft" } });
+      expect(await query("SELECT status FROM whatsapp_template_variants")).toEqual([{ status: "draft" }]);
       expect(console.error).toHaveBeenCalled();
     });
 
@@ -1031,7 +1147,7 @@ describeWithDatabase("broadcasts to supporters", () => {
       );
       const id = await written();
       await submitTemplate(id, JO);
-      const name = (await getWrittenBroadcast(id))!.template!.metaName;
+      const name = (await getWrittenBroadcast(id))!.variant!.metaName;
       expect(await withdrawTemplate(id, JO)).toBe(true);
       expect(deleted).toEqual([name]);
       await submitTemplate(id, JO);
@@ -1039,11 +1155,9 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(deleted).toHaveLength(2);
       expect(console.error).toHaveBeenCalled();
       // One made before it had a name there, only here.
-      const other = await written();
-      await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [
-        other,
-        await addTemplate("Never sent", { status: "pending" }),
-      ]);
+      const other = await draftOf(TEXT_FILTER);
+      await readied(other, { body: SATURDAY, title: "Never sent" });
+      await variantNow(other, "pending");
       expect(await withdrawTemplate(other, JO)).toBe(true);
       expect(deleted).toHaveLength(2);
     });
@@ -1060,7 +1174,8 @@ describeWithDatabase("broadcasts to supporters", () => {
         }),
       );
       const old = await addTemplate("Old words");
-      await query("UPDATE whatsapp_templates SET meta_name = 'old_words_1' WHERE id = $1", [old]);
+      const { first } = await variantsOf(old);
+      await query("UPDATE whatsapp_template_variants SET meta_name = 'old_words_1' WHERE id = $1", [first]);
       // WhatsApp refusing: it's kept as it was, and reported.
       refuse = true;
       expect(await deleteApprovedTemplate(old, JO)).toBe("failed");
@@ -1071,12 +1186,13 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(deleted).toEqual(["old_words_1", "old_words_1"]);
       expect(
         await query(
-          "SELECT status, deleted_by, deleted_at IS NOT NULL AS dated FROM whatsapp_templates WHERE id = $1",
-          [old],
+          "SELECT status, deleted_by, deleted_at IS NOT NULL AS dated FROM whatsapp_template_variants WHERE id = $1",
+          [first],
         ),
       ).toEqual([{ status: "deleted", deleted_by: JO, dated: true }]);
+      expect(await query("SELECT id FROM whatsapp_templates WHERE id = $1", [old])).toEqual([]);
       expect(await query("SELECT actor, details FROM audit_log WHERE action = 'delete broadcast template'")).toEqual([
-        { actor: JO, details: { id: old, name: "old_words_1" } },
+        { actor: JO, details: { id: old, name: "Old words" } },
       ]);
       expect(await approvedTemplates()).toEqual([]);
       // Gone already: nothing more to do.
@@ -1086,9 +1202,20 @@ describeWithDatabase("broadcasts to supporters", () => {
       const id = await draftOf(TEXT_FILTER);
       await readied(id, { templateId: kept });
       expect(await deleteApprovedTemplate(kept, JO)).toBe("used");
-      const manager = await addTemplate("made_in_manager", { createdBy: null });
+      const manager = await addTemplate("made_in_manager", { createdBy: null, body: SATURDAY });
       expect(await deleteApprovedTemplate(manager, JO)).toBe("deleted");
       expect(deleted).toEqual(["old_words_1", "old_words_1", "made_in_manager"]);
+      // A variant another template has too stays at WhatsApp: only the template goes.
+      const shared = await addTemplate("Shared");
+      await query(
+        `INSERT INTO whatsapp_templates (name, condition, default_variant_id, conditional_variant_id)
+         SELECT 'Shared, two ways', 'has:firstName', default_variant_id, default_variant_id
+         FROM whatsapp_templates WHERE id = $1`,
+        [shared],
+      );
+      expect(await deleteApprovedTemplate(shared, JO)).toBe("deleted");
+      expect(deleted).toHaveLength(3);
+      expect((await approvedTemplates()).map((t) => t.name)).toEqual(["Shared, two ways", "Kept"]);
       // With no keys, as on a deploy preview, WhatsApp can't be reached.
       vi.stubEnv("WHATSAPP_TOKEN", "");
       expect(await deleteApprovedTemplate(await addTemplate("No keys"), JO)).toBe("failed");
@@ -1125,7 +1252,9 @@ describeWithDatabase("broadcasts to supporters", () => {
       );
       const id = await draftOf(TEXT_FILTER);
       const template = await addTemplate("March day");
-      await query("UPDATE whatsapp_templates SET meta_name = 'march_day_9' WHERE id = $1", [template]);
+      await query("UPDATE whatsapp_template_variants SET meta_name = 'march_day_9' WHERE id = $1", [
+        (await variantsOf(template)).first,
+      ]);
       await readied(id, { templateId: template });
       const text = (await getWrittenBroadcast(id))!;
       const to = fakeRecipient([], "text");
@@ -1145,18 +1274,17 @@ describeWithDatabase("broadcasts to supporters", () => {
           return HttpResponse.json({ messages: [{ id: "wamid.test" }] });
         }),
       );
-      const own = await addTemplate("March day");
-      const theirs = await addTemplate("For those who came");
-      await query("UPDATE whatsapp_templates SET header = 'location', body = $2 WHERE id = $1", [
-        theirs,
-        JSON.stringify(SATURDAY),
-      ]);
+      const template = await addTemplate("March day", {
+        condition: registeredFor("evt-1"),
+        conditional: { body: SATURDAY, header: "location", buttons: [{ text: "Coming" }] },
+      });
       const id = await draftOf(TEXT_FILTER);
-      await readied(id, { templateId: own, versionTemplateId: theirs, textVersion: versionOf() });
+      await readied(id, { templateId: template, textVersion: versionOf() });
       const text = (await getWrittenBroadcast(id))!;
+      expect(text.template).toMatchObject({ id: template, listed: true });
       await sendBroadcastTest(text, fakeRecipient([], "text"), "+447700900002");
       await sendBroadcastTest(text, fakeRecipient([registeredFor("evt-1")], "text"), "+447700900002");
-      expect(sent.map((one) => one.template.name)).toEqual(["March day", "For those who came"]);
+      expect(sent.map((one) => one.template.name)).toEqual(["March day", "March day, for some"]);
       expect(sent.map((one) => one.template.components.map((part) => part.type))).toEqual([
         ["body"],
         ["header", "body"],
@@ -1246,7 +1374,7 @@ describeWithDatabase("broadcasts to supporters", () => {
         [{ type: "HEADER", format: "IMAGE", example: { header_handle: ["4::2"] } }, body, footer],
       ]);
       expect(await getWrittenBroadcast(id)).toMatchObject({
-        template: {
+        variant: {
           header: "image",
           buttons: [
             { text: "Read", url: " https://pauseai.uk/news " },
@@ -1272,8 +1400,8 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await submitTemplate(id, JO)).toBe("no-app");
       expect(error.mock.calls.map(([what]) => what)).toEqual([broadcastProblems.noMetaApp().what]);
       expect(asked).toBe(0);
-      expect(await getWrittenBroadcast(id)).toMatchObject({ template: null, header: "image" });
-      expect(await query("SELECT id FROM whatsapp_templates")).toEqual([]);
+      expect(await getWrittenBroadcast(id)).toMatchObject({ variant: { status: "draft" }, header: "image" });
+      expect(await query("SELECT status FROM whatsapp_template_variants")).toEqual([{ status: "draft" }]);
       // A second version's picture needs the app as much, though the text's own words have no picture.
       const two = await draftOf(TEXT_FILTER);
       await readied(two, {
@@ -1297,8 +1425,7 @@ describeWithDatabase("broadcasts to supporters", () => {
           return HttpResponse.json({ messages: [{ id: "wamid.test" }] });
         }),
       );
-      const template = await addTemplate("March day");
-      await query("UPDATE whatsapp_templates SET header = 'image' WHERE id = $1", [template]);
+      const template = await addTemplate("March day", { header: "image" });
       const picture = await aPicture();
       const id = await draftOf(TEXT_FILTER);
       await readied(id, { templateId: template, pictureId: picture, place: PLACE });
@@ -1325,18 +1452,26 @@ describeWithDatabase("broadcasts to supporters", () => {
           return HttpResponse.json({ success: true });
         }),
       );
-      const rejected = await addTemplate("Old words", { status: "rejected" });
       const id = await draftOf(TEXT_FILTER);
       await readied(id, { body: EVENT_WORDS, title: "See you there.", textVersion: versionOf() });
-      await query("UPDATE broadcast_versions SET template_id = $2 WHERE mailing_id = $1", [id, rejected]);
+      // Its conditional variant one WhatsApp rejected before.
+      const rejected = (await getWrittenBroadcast(id))!.textVersion!.variant.id;
+      await query(
+        `UPDATE whatsapp_template_variants SET status = 'rejected', name = 'Old words', rejected_at = now(),
+           rejected_reason = 'INVALID_FORMAT' WHERE id = $1`,
+        [rejected],
+      );
       expect(await submitTemplate(id, JO)).toEqual({ failed: "Bad" });
       // The one it took, everyone else's, named for who it's for.
       expect(deleted).toEqual([expect.stringMatching(/^see_you_there_for_all_but_those_who_.*_\d+$/)]);
       expect(await getWrittenBroadcast(id)).toMatchObject({
-        template: null,
-        textVersion: { template: { id: rejected } },
+        variant: { status: "draft" },
+        textVersion: { variant: { id: rejected, status: "rejected" } },
       });
-      expect(await query("SELECT id::int AS id FROM whatsapp_templates")).toEqual([{ id: rejected }]);
+      expect(await query("SELECT status FROM whatsapp_template_variants ORDER BY id")).toEqual([
+        { status: "draft" },
+        { status: "rejected" },
+      ]);
       expect(console.error).toHaveBeenCalled();
     });
   });
@@ -1347,7 +1482,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     const id = await draftOf(TEXT_FILTER);
     const version = await readied(id, { body: EVENT_WORDS, title: "See you there." });
     await submitTemplate(id, JO);
-    const template = (await getWrittenBroadcast(id))!.template!.id;
+    const template = (await getWrittenBroadcast(id))!.variant!.id;
     const sent = outbox();
     const link = `https://pauseai.uk/staff/broadcasts/${id}`;
     const words = broadcastsCopy.notifications;
@@ -1363,7 +1498,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     // Decided already: nothing to record.
     expect(await reviewTemplate(template, { approved: false, reason: "Too late." })).toBe(false);
 
-    const other = await addTemplate("Made in WhatsApp Manager", { status: "pending", createdBy: null });
+    const other = await addVariant("Made in WhatsApp Manager", { status: "pending", createdBy: null });
     expect(await reviewTemplate(other, { approved: false, reason: "SCAM" })).toBe(true);
     expect(sent()[1]).toMatchObject({
       Subject: words.templateRejected.subject("Made in WhatsApp Manager"),
@@ -1371,9 +1506,9 @@ describeWithDatabase("broadcasts to supporters", () => {
     });
     expect(sent()[1].Cc).toBeUndefined();
     // WhatsApp's code is kept, and put in words where it's shown.
-    expect(await query("SELECT status, rejected_reason FROM whatsapp_templates WHERE id = $1", [other])).toEqual([
-      { status: "rejected", rejected_reason: "SCAM" },
-    ]);
+    expect(
+      await query("SELECT status, rejected_reason FROM whatsapp_template_variants WHERE id = $1", [other]),
+    ).toEqual([{ status: "rejected", rejected_reason: "SCAM" }]);
   });
 
   it("makes a text scheduled on words WhatsApp rejects a draft again, saying so", async () => {
@@ -1384,7 +1519,7 @@ describeWithDatabase("broadcasts to supporters", () => {
     expect(await scheduleBroadcast(id, version, JO)).toEqual({ scheduled: true });
     // Past its time, waiting for WhatsApp.
     await query("UPDATE mailings SET waiting_since = now(), wait_reason = 'approval' WHERE id = $1", [id]);
-    const template = (await getWrittenBroadcast(id))!.template!.id;
+    const template = (await getWrittenBroadcast(id))!.variant!.id;
     const sent = outbox();
     expect(await reviewTemplate(template, { approved: false, reason: "SCAM" })).toBe(true);
     expect(await getWrittenBroadcast(id)).toMatchObject({ state: "draft", waitingSince: null, waitReason: null });
@@ -1430,7 +1565,9 @@ describeWithDatabase("broadcasts to supporters", () => {
     const used = await addTemplate("Used");
     // Approved after the other was last sent (in 2099, as the fixtures send): first.
     const newest = await addTemplate("Newest");
-    await query("UPDATE whatsapp_templates SET approved_at = '2100-01-01' WHERE id = $1", [newest]);
+    await query("UPDATE whatsapp_template_variants SET approved_at = '2100-01-01' WHERE id = $1", [
+      (await variantsOf(newest)).first,
+    ]);
     await addTemplate("Rejected", { status: "rejected" });
     const id = await draftOf(TEXT_FILTER);
     await scheduleBroadcast(id, await readied(id, { templateId: used }), JO);

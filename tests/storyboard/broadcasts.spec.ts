@@ -101,14 +101,15 @@ async function startFromList(page: Page, filters: string, n: number) {
 }
 
 /**
- * Templates WhatsApp has approved, each with its own words, named as they
- * will be: most by staff, and one made in WhatsApp Manager, named as Meta
- * names them.
+ * Templates WhatsApp has approved, each of one variant with its own words,
+ * named as they will be: most by staff, and one made in WhatsApp Manager,
+ * named as Meta names them.
  */
 function addTemplates(database: string) {
   runSql(
     database,
-    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, footer)
+    `WITH variants AS (
+     INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, footer)
      SELECT name, jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph',
          'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Hi '),
            jsonb_build_object('type', 'field', 'attrs', jsonb_build_object('field', 'firstName')),
@@ -121,7 +122,11 @@ function addTemplates(database: string) {
        ('Local group meetup', 'your local group meets on Thursday. Everyone is welcome.', 'jo@pauseai.uk', 4),
        ('write_to_your_mp', 'the AI bill has its second reading next week. Could you write to your MP?', NULL, 5),
        ('Thank you for coming.', 'thank you for coming. Here is what happens next.', 'sam@pauseai.uk', 6)
-     ) t (name, words, by, n)`,
+     ) t (name, words, by, n)
+     RETURNING id, name, created_by
+     )
+     INSERT INTO whatsapp_templates (name, default_variant_id, created_by)
+     SELECT name, id, created_by FROM variants ORDER BY id`,
   );
 }
 
@@ -428,7 +433,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   story(
     "WhatsApp rejects them, and its webhook tells the site why, as a code. The draft says what it means in plain words, and the words can be changed and sent again.",
   );
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await postWhatsAppWebhook(request, BASE, templateStatus(name, "REJECTED", "INVALID_FORMAT"));
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   await expect(
@@ -495,7 +500,7 @@ test("A text scheduled before WhatsApp approves it", async ({ page, request, flo
   story(
     "WhatsApp rejects the template. The text is a draft again, to change and schedule again, and the email of the rejection says so.",
   );
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await postWhatsAppWebhook(request, BASE, templateStatus(name!, "REJECTED", "INVALID_FORMAT"));
   const rejected = newestEmail(
     (one) => one.Subject === broadcastsCopy.notifications.templateRejected.subject("March day: where to meet"),
@@ -608,7 +613,7 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.submitTemplate }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
   story("What goes to WhatsApp: the words, with a footer saying how to stop and a Stop button, as every text has.");
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await textFrame(
     page,
     OUR_CHAT,
@@ -637,17 +642,22 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
 });
 
 /**
- * A text to those who can be texted, on an approved template, or one
- * WhatsApp is still reviewing (`status`), scheduled for an hour ago by
- * `scheduledBy`, as scheduling leaves one; its ID.
+ * A text to those who can be texted, on a template of one variant,
+ * approved, or one WhatsApp is still reviewing (`status`), scheduled for an
+ * hour ago by `scheduledBy`, as scheduling leaves one; its ID.
  */
 function addDueText(database: string, title: string, scheduledBy: string, status = "approved"): string {
   const approved = status === "approved";
   const [template] = runSql(
     database,
-    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category, footer)
-     VALUES ('${title}', '${WORDS}', '${status}', 'jo@pauseai.uk', ${approved ? "now() - interval '1 day'" : "NULL"},
-       'flow_text_1', ${approved ? "'MARKETING'" : "NULL"}, '${TEMPLATE_FOOTER}')
+    `WITH variant AS (
+       INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, meta_name, category, footer)
+       VALUES ('${title}', '${WORDS}', '${status}', 'jo@pauseai.uk', ${approved ? "now() - interval '1 day'" : "NULL"},
+         'flow_text_1', ${approved ? "'MARKETING'" : "NULL"}, '${TEMPLATE_FOOTER}')
+       RETURNING id
+     )
+     INSERT INTO whatsapp_templates (name, default_variant_id, created_by)
+     SELECT '${title}', id, 'jo@pauseai.uk' FROM variant
      RETURNING id`,
   );
   const [id] = runSql(
@@ -655,7 +665,7 @@ function addDueText(database: string, title: string, scheduledBy: string, status
     `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at,
        state, template_id)
      VALUES ('${title}', '', 'supporters', 'text', 'events', '{"list": "supporters", "params": {"contact": "text:events:yes"}}',
-       '${WORDS}', 'jo@pauseai.uk', '+447700900000', 'PauseAI UK', now() - interval '1 hour', 'scheduled', ${template})
+       '{"type": "doc", "content": []}', 'jo@pauseai.uk', '+447700900000', 'PauseAI UK', now() - interval '1 hour', 'scheduled', ${template})
      RETURNING id`,
   );
   runSql(
@@ -724,7 +734,7 @@ test("A text with a map of where to meet", async ({ page, request, flowDatabase 
   );
   await preview.getByRole("button", { name: copy.submitTemplate }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
-  const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await textFrame(
     page,
     OUR_CHAT,
@@ -764,7 +774,7 @@ test("A text with a picture at its top", async ({ page, request, flowDatabase })
   story("Sent for approval, WhatsApp gets the picture as the template's example, uploaded to the site's Meta app.");
   await preview.getByRole("button", { name: copy.submitTemplate }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
-  const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await textFrame(
     page,
     OUR_CHAT,
@@ -775,56 +785,51 @@ test("A text with a picture at its top", async ({ page, request, flowDatabase })
 });
 
 /**
- * A text that went out on a pair of approved templates, as `database` keeps it: draft `id` made the text, on its own
- * template, with a second version for those who registered for the past London march, on a template of its own.
+ * A template with two variants WhatsApp has approved: one for those who registered for the past London march, and one
+ * for everyone else.
  */
-function addPair(database: string, id: number) {
+function addTwoVariants(database: string) {
   const words = (text: string) =>
     `jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', '${text}')))))`;
   runSql(
     database,
-    `WITH own AS (
-       INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, footer)
+    `WITH first AS (
+       INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, footer)
        VALUES ('We are flyering on Saturday, for all but those who registered', ${words("We are flyering on Saturday. Could you spare an hour?")},
          'approved', 'jo@pauseai.uk', '2026-10-01T10:00:00Z', '${TEMPLATE_FOOTER}') RETURNING id
-     ), theirs AS (
-       INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, footer)
+     ), second AS (
+       INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, footer)
        VALUES ('We are flyering on Saturday, for those who registered', ${words("Thank you for marching. We are flyering on Saturday.")},
-         'approved', 'jo@pauseai.uk', '2026-10-01T10:00:00Z', '${TEMPLATE_FOOTER}') RETURNING id, body
-     ), made AS (
-       UPDATE mailings SET template_id = (SELECT id FROM own), title = 'We are flyering on Saturday.'
-       WHERE id = ${id}
+         'approved', 'jo@pauseai.uk', '2026-10-01T10:00:00Z', '${TEMPLATE_FOOTER}') RETURNING id
      )
-     INSERT INTO broadcast_versions (mailing_id, condition, body, template_id)
-     SELECT ${id}, '${registeredFor("evt-fixture-past-london-march")}', body, id FROM theirs`,
+     INSERT INTO whatsapp_templates (name, condition, default_variant_id, conditional_variant_id, created_by)
+     SELECT 'We are flyering on Saturday.', '${registeredFor("evt-fixture-past-london-march")}', first.id, second.id, 'jo@pauseai.uk'
+     FROM first, second`,
   );
 }
 
-test("A pair of templates chosen again", async ({ page, request, flowDatabase }) => {
+test("A template with two variants chosen", async ({ page, request, flowDatabase }) => {
   story(
-    "A text went out before as a pair of templates WhatsApp approved: its own, and a second version for those who went to the London march. Staff choose the pair again, as one.",
+    "A template has two variants WhatsApp approved: one for those who went to the London march, and one for everyone else. Staff choose it as they would any template.",
   );
   await importLuma(request, BASE);
   addTemplates(flowDatabase);
+  addTwoVariants(flowDatabase);
   await logIn(page, flowDatabase);
   await startFromList(page, TEXT, TEXTABLE);
-  addPair(flowDatabase, Number(new URL(page.url()).pathname.split("/").pop()));
-  await startFromList(page, TEXT, TEXTABLE);
   await templateBox(page).click();
-  const pair = page.getByRole("button", { name: "We are flyering on Saturday.", exact: true });
-  await expect(pair).toBeVisible();
-  await frame(page, "The pair in the list, marked with who its version is for", { window: true });
-  story(
-    "Choosing it brings both: the text's own words, and a tab for the version, with its words, as WhatsApp approved them.",
-  );
-  await savedAfter(page, () => pair.click());
+  const both = page.getByRole("button", { name: "We are flyering on Saturday.", exact: true });
+  await expect(both).toBeVisible();
+  await frame(page, "The template in the list, marked with who its second variant is for", { window: true });
+  story("Choosing it brings both variants, a tab each, with their words as WhatsApp approved them.");
+  await savedAfter(page, () => both.click());
   await expect(page.getByRole("tab").first()).toBeVisible();
   await page.getByRole("tab").first().scrollIntoViewIfNeeded();
-  await frame(page, "Both chosen: the version's tab open", { window: true });
-  story("Choosing one template alone makes it the whole text again, the version gone.");
+  await frame(page, "Chosen: a tab for each variant, the London marchers' open", { window: true });
+  story("Choosing a template with one variant makes that the whole text, with no tabs.");
   await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
   await expect(page.getByRole("tab")).toHaveCount(0);
-  await frame(page, "One template alone, no version", { window: true });
+  await frame(page, "A template with one variant, no tabs", { window: true });
 });
 
 test("A text with a second version for some", async ({ page, request, flowDatabase }) => {
@@ -872,7 +877,7 @@ test("A text with a second version for some", async ({ page, request, flowDataba
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
   const [rejected] = runSql(
     flowDatabase,
-    "SELECT t.meta_name FROM whatsapp_templates t JOIN broadcast_versions v ON v.template_id = t.id",
+    "SELECT v.meta_name FROM whatsapp_template_variants v JOIN whatsapp_templates t ON t.conditional_variant_id = v.id",
   );
   await postWhatsAppWebhook(request, BASE, templateStatus(rejected!, "REJECTED", "INVALID_FORMAT"));
   await reload(page);
@@ -1020,7 +1025,10 @@ test("A text with two versions, written, approved and sent", async ({ page, requ
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).first().selectOption("14"));
   await preview.getByRole("button", { name: copy.textVersions.submit(2) }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
-  const sent = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending' ORDER BY id");
+  const sent = runSql(
+    flowDatabase,
+    "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending' ORDER BY id",
+  );
   expect(sent).toHaveLength(2);
   for (const name of sent) await postWhatsAppWebhook(request, BASE, templateStatus(name, "APPROVED"));
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
@@ -1987,7 +1995,7 @@ test("WhatsApp approves a template as it's withdrawn", async ({ page, request, f
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   await page.getByRole("button", { name: copy.submitTemplate }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await postWhatsAppWebhook(request, BASE, templateStatus(name!, "APPROVED"));
   story(
     "Withdraw approval request, pressed twice, finds nothing waiting to take back. The page says so at its top, and no longer offers to withdraw.",

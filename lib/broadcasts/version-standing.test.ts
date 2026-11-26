@@ -1,31 +1,60 @@
 import { describe, expect, it } from "vitest";
+import type { MailingDoc } from "@/lib/mailings/doc";
 import { versionStanding } from "./version-standing";
 
-const approved = { id: 1, status: "approved" };
-const pending = { id: 2, status: "pending" };
-const rejected = { id: 3, status: "rejected" };
+const words = (text: string): MailingDoc => ({
+  type: "doc",
+  content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+});
+const variant = (id: number, status: string, text: string) => ({
+  id,
+  status,
+  body: words(text),
+  header: null,
+  buttons: [],
+});
+const march = variant(1, "approved", "The march is on Saturday.");
+const written = (text: string) => ({ body: words(text), header: null, buttons: [] });
 
 describe("versionStanding", () => {
-  it("stands on nothing with no template chosen or stored: new words, free to change", () => {
-    const none = { chosen: undefined, waiting: undefined, rejected: undefined, fixed: false };
-    expect(versionStanding(null, null, [approved])).toEqual(none);
-    expect(versionStanding(null, undefined, [])).toEqual(none);
+  it("stands on nothing for new words: free to change, to go for approval", () => {
+    const none = { approved: undefined, chosen: undefined, waiting: undefined, rejected: undefined, fixed: false };
+    expect(versionStanding(written("Rain on Saturday."), null, [march], false)).toEqual(none);
+    expect(versionStanding(written("Rain on Saturday."), undefined, [], false)).toEqual(none);
   });
 
-  it("is fixed as the approved template chosen, found in the list, or the stored one where the list lacks it", () => {
-    expect(versionStanding(1, null, [approved])).toMatchObject({ chosen: approved, fixed: true });
-    expect(versionStanding(1, approved, [])).toMatchObject({ chosen: approved, fixed: true });
-    // One the page chose that isn't approved, or isn't the stored one, is no template.
-    expect(versionStanding(4, approved, [])).toMatchObject({ chosen: undefined, fixed: false });
-    expect(versionStanding(2, pending, [])).toMatchObject({ chosen: undefined });
+  it("is fixed as the approved variant its words are, found among the approved ones or the stored one itself", () => {
+    expect(versionStanding(written("The march is on Saturday."), null, [march], false)).toMatchObject({
+      approved: march,
+      chosen: march,
+      fixed: true,
+    });
+    const stored = variant(2, "approved", "Rain on Saturday.");
+    expect(versionStanding(written("Rain on Saturday."), stored, [march], false)).toMatchObject({ chosen: stored });
+    // Not once its words, its header kind or its buttons differ, nor for one that's not approved now.
+    expect(versionStanding(written("Rain on Sunday."), stored, [march], false)).toMatchObject({ approved: undefined });
+    const mapped = { ...written("The march is on Saturday."), header: "location" as const };
+    expect(versionStanding(mapped, null, [march], false)).toMatchObject({ approved: undefined, fixed: false });
+    const paused = variant(3, "paused", "Rain on Saturday.");
+    expect(versionStanding(written("Rain on Saturday."), paused, [paused], false)).toMatchObject({
+      approved: undefined,
+    });
   });
 
-  it("is new words when the page has chosen none, though the draft has an approved one stored", () => {
-    expect(versionStanding(null, approved, [approved])).toMatchObject({ chosen: undefined, fixed: false });
+  it("is free to change while it's edited as a new template, though its words are still an approved variant's", () => {
+    expect(versionStanding(written("The march is on Saturday."), march, [march], true)).toEqual({
+      approved: march,
+      chosen: undefined,
+      waiting: undefined,
+      rejected: undefined,
+      fixed: false,
+    });
   });
 
-  it("is fixed while WhatsApp reviews its words", () => {
-    expect(versionStanding(null, pending, [approved])).toEqual({
+  it("is fixed while WhatsApp reviews its words, whatever is approved", () => {
+    const pending = variant(4, "pending", "The march is on Saturday.");
+    expect(versionStanding(written("The march is on Saturday."), pending, [march], false)).toEqual({
+      approved: undefined,
       chosen: undefined,
       waiting: pending,
       rejected: undefined,
@@ -33,8 +62,15 @@ describe("versionStanding", () => {
     });
   });
 
-  it("says its words were rejected, free to change, till a template is chosen", () => {
-    expect(versionStanding(null, rejected, [approved])).toMatchObject({ rejected, fixed: false });
-    expect(versionStanding(1, rejected, [approved])).toMatchObject({ chosen: approved, rejected: undefined });
+  it("says its words were rejected, free to change, till they're an approved variant's", () => {
+    const rejected = variant(5, "rejected", "Rain on Saturday.");
+    expect(versionStanding(written("Rain, again."), rejected, [march], false)).toMatchObject({
+      rejected,
+      fixed: false,
+    });
+    expect(versionStanding(written("The march is on Saturday."), rejected, [march], false)).toMatchObject({
+      chosen: march,
+      rejected: undefined,
+    });
   });
 });

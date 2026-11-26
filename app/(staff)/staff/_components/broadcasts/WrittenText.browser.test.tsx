@@ -3,7 +3,7 @@ import { render } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import type { WrittenText as Written } from "@/lib/broadcasts/text-shown";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import { examplePictureId, examplePlace } from "./BroadcastWriter.examples";
+import { examplePictureId, examplePlace, exampleVariant } from "./BroadcastWriter.examples";
 import WrittenText from "./WrittenText";
 import { writtenTextGallery } from "./WrittenText.gallery";
 
@@ -19,7 +19,7 @@ const written: Written = {
   place: examplePlace,
   pictureId: null,
   buttons: [{ text: "I'm coming" }],
-  template: null,
+  variant: null,
   textVersion: {
     condition: "wrote:regulate-ai",
     body: words("Thanks for writing"),
@@ -27,7 +27,7 @@ const written: Written = {
     place: null,
     pictureId: examplePictureId,
     buttons: [{ text: "Details", url: "https://pauseai.uk/march" }],
-    template: null,
+    variant: exampleVariant(8, null, { status: "draft", approvedAt: null }),
   },
 };
 

@@ -1,6 +1,12 @@
 // WrittenText in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import { exampleBroadcastText, examplePictureId, examplePlace, exampleTextWords } from "./BroadcastWriter.examples";
+import {
+  exampleBroadcastText,
+  examplePictureId,
+  examplePlace,
+  exampleTextWords,
+  exampleVariant,
+} from "./BroadcastWriter.examples";
 import WrittenText from "./WrittenText";
 
 /** A text as written with a map and a button, and a second version for those who wrote, with a picture. */
@@ -17,7 +23,7 @@ const withVersion = {
     place: null,
     pictureId: examplePictureId,
     buttons: [{ text: "Details", url: "https://pauseai.uk/march" }],
-    template: null,
+    variant: exampleVariant(8, null, { status: "draft", approvedAt: null }),
   },
 };
 

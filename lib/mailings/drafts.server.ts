@@ -75,11 +75,6 @@ export type MailingChanges = Partial<
     sendBy: string;
     /** When a broadcast to supporters stops, in minutes after its time; null for the most (sendingStopsAt in lib/broadcasts/broadcasts.ts). */
     finishMinutes: number | null;
-    /** A text's top, place, picture and buttons, as lib/broadcasts/text-parts.ts has them, checked before they're saved. */
-    header: "location" | "image" | null;
-    place: { name: string; address: string; latitude: number; longitude: number } | null;
-    pictureId: string | null;
-    buttons: { text: string; url?: string }[];
   }
 >;
 
@@ -96,10 +91,6 @@ const COLUMNS: Record<keyof MailingChanges, string> = {
   templateId: "template_id",
   sendBy: "send_by",
   finishMinutes: "finish_minutes",
-  header: "header",
-  place: "place",
-  pictureId: "picture_id",
-  buttons: "buttons",
 };
 
 /** A save, or why not: someone else saved since, it's no longer a draft, or it's gone. */
@@ -114,7 +105,7 @@ const SELECT_WRITTEN = `
 
 /** The values a save writes, as SQL's parameters: JSON as text, the rest as it is. */
 function columnValue(name: keyof MailingChanges, value: unknown): unknown {
-  return ["filter", "body", "place", "buttons"].includes(name) ? JSON.stringify(value) : value;
+  return ["filter", "body"].includes(name) ? JSON.stringify(value) : value;
 }
 
 /** The changes that are set, as `column = $n` and their values, from $`first`. */

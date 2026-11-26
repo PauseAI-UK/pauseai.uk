@@ -1,35 +1,45 @@
-// How a version of a text stands with WhatsApp, as its writer works it out:
-// the text's own version and its second, by the same rule.
+import { sameTemplate } from "./broadcasts";
+import type { TextTemplateParts } from "./text-parts";
 
-/** A template as far as a version's standing goes. */
-type Template = { id: number; status: string };
+// How a variant of a WhatsApp broadcast stands with WhatsApp, as its writer
+// works it out from what's written: the default variant and the conditional
+// one, by the same rule. The page keeps no note of which variant its words
+// are; it's told by the words.
 
-/** How one version of a text stands with WhatsApp. */
-export type VersionStanding<T extends Template> = {
-  /** The approved template chosen for it: its words, top and buttons are the template's. */
-  chosen: T | undefined;
-  /** The template of its words that WhatsApp is reviewing. */
-  waiting: T | undefined;
-  /** The template of its words that WhatsApp rejected, to say why till they're sent again or a template is chosen. */
-  rejected: T | undefined;
-  /** Whether its words, top and buttons can't change: they're a chosen template's, or WhatsApp is reviewing them. */
+/** A variant as far as its standing goes: its words, header kind and buttons, and how it is with WhatsApp. */
+type Variant = TextTemplateParts & { id: number; status: string };
+
+/** How one variant of a broadcast stands with WhatsApp. */
+export type VersionStanding<V extends Variant> = {
+  /** The approved variant its words are, with its header kind and buttons: those words needn't go for approval. */
+  approved: V | undefined;
+  /** The same, while its words are fixed as that variant's: not once they're being edited as a new template. */
+  chosen: V | undefined;
+  /** The variant of its words that WhatsApp is reviewing. */
+  waiting: V | undefined;
+  /** The variant of its words that WhatsApp rejected, to say why till they're sent again or are an approved one's. */
+  rejected: V | undefined;
+  /** Whether its words, header kind and buttons can't change: they're an approved variant's, or WhatsApp is reviewing them. */
   fixed: boolean;
 };
 
 /**
- * How a version stands. `chosenId` is the approved template the page has
- * chosen for it, or none; `stored` is the template the draft has it on, as
- * the page last heard; `approved`, the approved templates, where the one
- * chosen is found, or else is the stored one itself.
+ * How a variant stands. `parts` are its words, header kind and buttons as
+ * written; `stored` is the variant the draft has for it, as the page last
+ * heard; `approved`, the variants WhatsApp has approved; `editing`, whether
+ * staff are editing an approved template's words as a new one, which frees
+ * them to change.
  */
-export function versionStanding<T extends Template>(
-  chosenId: number | null,
-  stored: T | null | undefined,
-  approved: T[],
-): VersionStanding<T> {
-  const held = stored?.status === "approved" && stored.id === chosenId ? stored : undefined;
-  const chosen = chosenId === null ? undefined : (approved.find((one) => one.id === chosenId) ?? held);
+export function versionStanding<V extends Variant>(
+  parts: TextTemplateParts,
+  stored: V | null | undefined,
+  approved: V[],
+  editing: boolean,
+): VersionStanding<V> {
   const waiting = stored?.status === "pending" ? stored : undefined;
-  const rejected = !chosen && stored?.status === "rejected" ? stored : undefined;
-  return { chosen, waiting, rejected, fixed: Boolean(chosen ?? waiting) };
+  const same = (one: V) => one.status === "approved" && sameTemplate(parts, one);
+  const match = waiting ? undefined : stored && same(stored) ? stored : approved.find(same);
+  const chosen = editing ? undefined : match;
+  const rejected = !match && stored?.status === "rejected" ? stored : undefined;
+  return { approved: match, chosen, waiting, rejected, fixed: Boolean(chosen ?? waiting) };
 }

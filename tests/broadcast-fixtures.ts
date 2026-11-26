@@ -58,26 +58,65 @@ export async function addFollower(
   return supporter;
 }
 
-/** A template in `status`, with these words; returns its ID. */
-export async function addTemplate(
-  name: string,
-  more: { status?: string; createdBy?: string | null; reason?: string } = {},
-): Promise<number> {
+/** What a variant made for a test may say of itself: its state, who made it, why it was rejected, and its words, header kind and buttons. */
+type VariantMore = {
+  status?: string;
+  createdBy?: string | null;
+  reason?: string;
+  body?: object;
+  header?: "location" | "image" | null;
+  buttons?: { text: string; url?: string }[];
+};
+
+/** A template variant in `status`, with these words, or the event's; returns its ID. */
+export async function addVariant(name: string, more: VariantMore = {}): Promise<number> {
   const status = more.status ?? "approved";
   const [{ id }] = await query<{ id: number }>(
-    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, rejected_at, rejected_reason, stopped_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $3 IN ('paused', 'disabled') THEN now() END) RETURNING id::int AS id`,
+    `INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, rejected_at, rejected_reason,
+       stopped_at, header, buttons)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $3 IN ('paused', 'disabled') THEN now() END, $8, $9)
+     RETURNING id::int AS id`,
     [
       name,
-      JSON.stringify(EVENT_WORDS),
+      JSON.stringify(more.body ?? EVENT_WORDS),
       status,
       more.createdBy === undefined ? "jo@pauseai.uk" : more.createdBy,
       status === "approved" ? "2026-10-01T10:00:00Z" : null,
       status === "rejected" ? "2026-10-02T10:00:00Z" : null,
       status === "rejected" ? (more.reason ?? "INVALID_FORMAT") : null,
+      more.header ?? null,
+      JSON.stringify(more.buttons ?? []),
     ],
   );
   return id;
+}
+
+/**
+ * A template of one variant, in `status`, with these words; or of two,
+ * with `conditional`'s for those who meet `condition`. Returns its ID.
+ */
+export async function addTemplate(
+  name: string,
+  more: VariantMore & { condition?: string; conditional?: VariantMore } = {},
+): Promise<number> {
+  const { condition, conditional, ...first } = more;
+  const one = await addVariant(name, first);
+  const other = conditional ? await addVariant(`${name}, for some`, conditional) : null;
+  const [{ id }] = await query<{ id: number }>(
+    `INSERT INTO whatsapp_templates (name, condition, default_variant_id, conditional_variant_id, created_by)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id::int AS id`,
+    [name, other ? condition : null, one, other, more.createdBy === undefined ? "jo@pauseai.uk" : more.createdBy],
+  );
+  return id;
+}
+
+/** The variants template `id` has: its default one's ID, and its conditional one's, if it has one. */
+export async function variantsOf(id: number): Promise<{ first: number; second: number | null }> {
+  const [row] = await query<{ first: number; second: number | null }>(
+    `SELECT default_variant_id::int AS first, conditional_variant_id::int AS second FROM whatsapp_templates WHERE id = $1`,
+    [id],
+  );
+  return row;
 }
 
 /**

@@ -5,7 +5,7 @@ import type { LetterDoc } from "@/lib/letters/format";
 import type { LinkCard } from "@/lib/broadcasts/link-card";
 import type { MailingDoc } from "@/lib/mailings/doc";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
-import type { WhatsAppTemplate, WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
+import type { WhatsAppTemplate, WhatsAppVariant, WrittenBroadcast } from "@/lib/broadcasts/drafts.server";
 import type {
   MessageCopy,
   BroadcastPageData,
@@ -136,7 +136,12 @@ const exampleTemplateWords: MailingDoc = {
   ],
 };
 
-const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}): WhatsAppTemplate => ({
+/** A variant WhatsApp has approved, with these words, or the first template's; `more` for another state. */
+export const exampleVariant = (
+  id: number,
+  name: string | null,
+  more: Partial<WhatsAppVariant> = {},
+): WhatsAppVariant => ({
   id,
   name,
   body: exampleTemplateWords,
@@ -151,6 +156,38 @@ const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}
   footer: TEMPLATE_FOOTER,
   header: null,
   buttons: [],
+  ...more,
+});
+
+/** Words of its own for each template after the first, as no two approved templates have the same. */
+const wordsOf = (name: string): MailingDoc => ({
+  type: "doc",
+  content: [
+    {
+      type: "paragraph",
+      content: [
+        { type: "text", text: "Hi " },
+        { type: "field", attrs: { field: "firstName" } },
+        { type: "text", text: `, ${name}` },
+      ],
+    },
+  ],
+});
+
+/** An approved template with one variant: `more` of the template's own, `variant` of its variant's. */
+export const exampleTemplate = (
+  id: number,
+  name: string,
+  more: Partial<WhatsAppTemplate> = {},
+  variant: Partial<WhatsAppVariant> = {},
+): WhatsAppTemplate => ({
+  id,
+  name,
+  condition: null,
+  default: exampleVariant(id, name, { ...(id > 1 && { body: wordsOf(name) }), ...variant }),
+  conditional: null,
+  createdBy: "jo@pauseai.uk",
+  approvedAt: new Date("2026-10-20T10:00:00Z"),
   lastUsedAt: null,
   lastUsedTo: 0,
   nextScheduledAt: null,
@@ -158,18 +195,46 @@ const template = (id: number, name: string, more: Partial<WhatsAppTemplate> = {}
   ...more,
 });
 
+/**
+ * A draft on a template, as the site reads one: the template's words, header
+ * kind and buttons, each variant's, and its name for a title.
+ */
+export const onTemplate = (draft: WrittenBroadcast, template: WhatsAppTemplate): WrittenBroadcast => ({
+  ...draft,
+  title: template.name,
+  body: template.default.body,
+  header: template.default.header,
+  buttons: template.default.buttons,
+  template: {
+    id: template.id,
+    name: template.name,
+    condition: template.condition,
+    listed: template.default.status === "approved" && (template.conditional?.status ?? "approved") === "approved",
+  },
+  variant: template.default,
+  textVersion: template.conditional && {
+    condition: template.condition!,
+    body: template.conditional.body,
+    header: template.conditional.header,
+    buttons: template.conditional.buttons,
+    place: null,
+    pictureId: null,
+    variant: template.conditional,
+  },
+});
+
 /** More templates than show at first: one used, one made in WhatsApp Manager. */
 export const exampleTemplates: WhatsAppTemplate[] = [
-  template(1, "The march meets at 11:00 at Parliament Square.", {
+  exampleTemplate(1, "The march meets at 11:00 at Parliament Square.", {
     lastUsedAt: new Date("2026-11-02T08:00:00Z"),
     lastUsedTo: 318,
     uses: { sent: 2, scheduled: 1, drafts: 1 },
   }),
-  template(2, "PauseCon room change", { createdBy: null, footer: null }),
-  template(3, "Our next event is on Saturday."),
-  template(4, "Local group meetup"),
-  template(5, "write_to_your_mp"),
-  template(6, "Thank you for coming."),
+  exampleTemplate(2, "PauseCon room change", { createdBy: null }, { createdBy: null, footer: null }),
+  exampleTemplate(3, "Our next event is on Saturday."),
+  exampleTemplate(4, "Local group meetup"),
+  exampleTemplate(5, "write_to_your_mp"),
+  exampleTemplate(6, "Thank you for coming."),
 ];
 
 export const exampleSupporterChoices: SupporterChoices = {
@@ -224,7 +289,6 @@ export const exampleBroadcastData: BroadcastWriterData = {
   textsSend: true,
   templates: exampleTemplates,
   textNumber: "+447700900000",
-  pairs: [],
   realMaps: false,
 };
 
@@ -254,6 +318,7 @@ export const exampleBroadcastEmail: WrittenBroadcast = {
   channel: "email",
   topics: ["newsletter"],
   template: null,
+  variant: null,
   sendBy: "gmail",
   finishMinutes: null,
   waitingSince: null,

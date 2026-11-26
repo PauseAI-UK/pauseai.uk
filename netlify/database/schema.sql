@@ -1113,6 +1113,18 @@ ALTER TABLE public.broadcast_answers ALTER COLUMN id ADD GENERATED ALWAYS AS IDE
 );
 
 --
+-- Name: broadcast_headers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.broadcast_headers (
+    mailing_id bigint NOT NULL,
+    variant text NOT NULL,
+    place jsonb,
+    picture_id uuid,
+    CONSTRAINT broadcast_headers_variant_check CHECK ((variant = ANY (ARRAY['default'::text, 'conditional'::text])))
+);
+
+--
 -- Name: broadcast_message_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1229,22 +1241,6 @@ ALTER TABLE public.broadcast_replies ALTER COLUMN id ADD GENERATED ALWAYS AS IDE
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
-);
-
---
--- Name: broadcast_versions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.broadcast_versions (
-    mailing_id bigint NOT NULL,
-    condition text NOT NULL,
-    body jsonb NOT NULL,
-    template_id bigint,
-    header text,
-    place jsonb,
-    picture_id uuid,
-    buttons jsonb DEFAULT '[]'::jsonb NOT NULL,
-    CONSTRAINT broadcast_versions_header_check CHECK ((header = ANY (ARRAY['location'::text, 'image'::text])))
 );
 
 --
@@ -2236,7 +2232,6 @@ CREATE TABLE public.mailings (
     imported_text jsonb,
     imported_text_approximate boolean DEFAULT false NOT NULL,
     old_letters_key text,
-    template_id bigint,
     also_topics text[] DEFAULT '{}'::text[] NOT NULL,
     waiting_since timestamp with time zone,
     wait_reason text,
@@ -2250,10 +2245,7 @@ CREATE TABLE public.mailings (
     pasted jsonb,
     finish_minutes integer,
     wait_failure jsonb,
-    header text,
-    place jsonb,
-    picture_id uuid,
-    buttons jsonb DEFAULT '[]'::jsonb NOT NULL,
+    template_id bigint,
     CONSTRAINT mailings_also_topics CHECK (((cardinality(also_topics) = 0) OR ((topic IS NOT NULL) AND (NOT (topic = ANY (also_topics)))))),
     CONSTRAINT mailings_also_topics_check CHECK ((also_topics <@ ARRAY['newsletter'::text, 'events'::text, 'volunteering'::text])),
     CONSTRAINT mailings_audience_check CHECK ((audience = ANY (ARRAY['politicians'::text, 'supporters'::text]))),
@@ -2263,7 +2255,6 @@ CREATE TABLE public.mailings (
     CONSTRAINT mailings_failed_in_a_row_check CHECK ((failed_in_a_row >= 0)),
     CONSTRAINT mailings_finish_minutes CHECK (((finish_minutes IS NULL) OR ((audience = 'supporters'::text) AND ((finish_minutes >= 1) AND (finish_minutes <= ((7 * 24) * 60)))))),
     CONSTRAINT mailings_gave_up CHECK (((NOT gave_up) OR ((state = 'cancelled'::text) AND (wait_reason IS NOT NULL)))),
-    CONSTRAINT mailings_header_check CHECK ((header = ANY (ARRAY['location'::text, 'image'::text]))),
     CONSTRAINT mailings_imported_or_written CHECK ((((airtable_field IS NOT NULL) OR (airtable_sent_between IS NOT NULL)) = ((body IS NULL) AND (filter IS NULL) AND (created_by IS NULL)))),
     CONSTRAINT mailings_imported_sent CHECK (((body IS NOT NULL) OR (state = 'sent'::text))),
     CONSTRAINT mailings_imported_text CHECK (((imported_text IS NULL) OR (body IS NULL))),
@@ -2777,12 +2768,12 @@ CREATE TABLE public.whatsapp_erased (
 );
 
 --
--- Name: whatsapp_templates; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_template_variants; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.whatsapp_templates (
+CREATE TABLE public.whatsapp_template_variants (
     id bigint NOT NULL,
-    name text NOT NULL,
+    name text,
     body jsonb NOT NULL,
     status text NOT NULL,
     created_by text,
@@ -2799,18 +2790,48 @@ CREATE TABLE public.whatsapp_templates (
     deleted_by text,
     header text,
     buttons jsonb DEFAULT '[]'::jsonb NOT NULL,
-    CONSTRAINT whatsapp_templates_category_check CHECK ((category = ANY (ARRAY['MARKETING'::text, 'UTILITY'::text, 'AUTHENTICATION'::text]))),
-    CONSTRAINT whatsapp_templates_check CHECK (((status <> 'approved'::text) OR (approved_at IS NOT NULL))),
-    CONSTRAINT whatsapp_templates_check1 CHECK (((status = 'rejected'::text) = (rejected_at IS NOT NULL))),
-    CONSTRAINT whatsapp_templates_check2 CHECK (((status = 'rejected'::text) = (rejected_reason IS NOT NULL))),
-    CONSTRAINT whatsapp_templates_created_by_check CHECK ((created_by = lower(created_by))),
-    CONSTRAINT whatsapp_templates_deleted CHECK (((status = 'deleted'::text) = ((deleted_at IS NOT NULL) AND (deleted_by IS NOT NULL)))),
-    CONSTRAINT whatsapp_templates_deleted_by_check CHECK ((deleted_by = lower(deleted_by))),
-    CONSTRAINT whatsapp_templates_header_check CHECK ((header = ANY (ARRAY['location'::text, 'image'::text]))),
-    CONSTRAINT whatsapp_templates_meta_name_check CHECK ((meta_name ~ '^[a-z0-9_]+$'::text)),
-    CONSTRAINT whatsapp_templates_name_check CHECK ((name <> ''::text)),
-    CONSTRAINT whatsapp_templates_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'paused'::text, 'disabled'::text, 'deleted'::text]))),
-    CONSTRAINT whatsapp_templates_stopped CHECK (((status = ANY (ARRAY['paused'::text, 'disabled'::text])) = (stopped_at IS NOT NULL)))
+    CONSTRAINT whatsapp_template_variants_category_check CHECK ((category = ANY (ARRAY['MARKETING'::text, 'UTILITY'::text, 'AUTHENTICATION'::text]))),
+    CONSTRAINT whatsapp_template_variants_check CHECK (((status <> 'approved'::text) OR (approved_at IS NOT NULL))),
+    CONSTRAINT whatsapp_template_variants_check1 CHECK (((status = 'rejected'::text) = (rejected_at IS NOT NULL))),
+    CONSTRAINT whatsapp_template_variants_check2 CHECK (((status = 'rejected'::text) = (rejected_reason IS NOT NULL))),
+    CONSTRAINT whatsapp_template_variants_created_by_check CHECK ((created_by = lower(created_by))),
+    CONSTRAINT whatsapp_template_variants_deleted CHECK (((status = 'deleted'::text) = ((deleted_at IS NOT NULL) AND (deleted_by IS NOT NULL)))),
+    CONSTRAINT whatsapp_template_variants_deleted_by_check CHECK ((deleted_by = lower(deleted_by))),
+    CONSTRAINT whatsapp_template_variants_header_check CHECK ((header = ANY (ARRAY['location'::text, 'image'::text]))),
+    CONSTRAINT whatsapp_template_variants_meta_name_check CHECK ((meta_name ~ '^[a-z0-9_]+$'::text)),
+    CONSTRAINT whatsapp_template_variants_name_check CHECK ((name <> ''::text)),
+    CONSTRAINT whatsapp_template_variants_named CHECK (((status = 'draft'::text) OR (name IS NOT NULL))),
+    CONSTRAINT whatsapp_template_variants_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'pending'::text, 'approved'::text, 'rejected'::text, 'paused'::text, 'disabled'::text, 'deleted'::text]))),
+    CONSTRAINT whatsapp_template_variants_stopped CHECK (((status = ANY (ARRAY['paused'::text, 'disabled'::text])) = (stopped_at IS NOT NULL)))
+);
+
+--
+-- Name: whatsapp_template_variants_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.whatsapp_template_variants ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.whatsapp_template_variants_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
+-- Name: whatsapp_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.whatsapp_templates (
+    id bigint NOT NULL,
+    name text NOT NULL,
+    condition text,
+    default_variant_id bigint NOT NULL,
+    conditional_variant_id bigint,
+    created_by text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT whatsapp_templates_conditional CHECK (((condition IS NULL) = (conditional_variant_id IS NULL))),
+    CONSTRAINT whatsapp_templates_created_by_check CHECK ((created_by = lower(created_by)))
 );
 
 --
@@ -2907,6 +2928,13 @@ ALTER TABLE ONLY public.broadcast_answers
     ADD CONSTRAINT broadcast_answers_pkey PRIMARY KEY (id);
 
 --
+-- Name: broadcast_headers broadcast_headers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_headers
+    ADD CONSTRAINT broadcast_headers_pkey PRIMARY KEY (mailing_id, variant);
+
+--
 -- Name: broadcast_message_events broadcast_message_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2968,13 +2996,6 @@ ALTER TABLE ONLY public.broadcast_replies
 
 ALTER TABLE ONLY public.broadcast_replies
     ADD CONSTRAINT broadcast_replies_provider_message_id_key UNIQUE (provider_message_id);
-
---
--- Name: broadcast_versions broadcast_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.broadcast_versions
-    ADD CONSTRAINT broadcast_versions_pkey PRIMARY KEY (mailing_id);
 
 --
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3558,18 +3579,25 @@ ALTER TABLE ONLY public.whatsapp_erased
     ADD CONSTRAINT whatsapp_erased_pkey PRIMARY KEY (number_hash);
 
 --
--- Name: whatsapp_templates whatsapp_templates_meta_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_template_variants whatsapp_template_variants_meta_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.whatsapp_templates
-    ADD CONSTRAINT whatsapp_templates_meta_id_key UNIQUE (meta_id);
+ALTER TABLE ONLY public.whatsapp_template_variants
+    ADD CONSTRAINT whatsapp_template_variants_meta_id_key UNIQUE (meta_id);
 
 --
--- Name: whatsapp_templates whatsapp_templates_meta_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_template_variants whatsapp_template_variants_meta_name_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.whatsapp_templates
-    ADD CONSTRAINT whatsapp_templates_meta_name_key UNIQUE (meta_name);
+ALTER TABLE ONLY public.whatsapp_template_variants
+    ADD CONSTRAINT whatsapp_template_variants_meta_name_key UNIQUE (meta_name);
+
+--
+-- Name: whatsapp_template_variants whatsapp_template_variants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whatsapp_template_variants
+    ADD CONSTRAINT whatsapp_template_variants_pkey PRIMARY KEY (id);
 
 --
 -- Name: whatsapp_templates whatsapp_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -3674,12 +3702,6 @@ CREATE INDEX broadcast_replies_reaction_to ON public.broadcast_replies USING btr
 --
 
 CREATE INDEX broadcast_replies_waiting ON public.broadcast_replies USING btree (received_at) WHERE ((outcome IS NULL) AND (NOT automatic));
-
---
--- Name: broadcast_versions_template; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX broadcast_versions_template ON public.broadcast_versions USING btree (template_id) WHERE (template_id IS NOT NULL);
 
 --
 -- Name: civicrm_contacts_airtable_id; Type: INDEX; Schema: public; Owner: -
@@ -4076,6 +4098,18 @@ CREATE UNIQUE INDEX supporters_list_id ON public.supporters_list USING btree (id
 CREATE INDEX unmatched_mail_waiting ON public.unmatched_mail USING btree (found_at) WHERE (reported_at IS NULL);
 
 --
+-- Name: whatsapp_templates_conditional_variant; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX whatsapp_templates_conditional_variant ON public.whatsapp_templates USING btree (conditional_variant_id) WHERE (conditional_variant_id IS NOT NULL);
+
+--
+-- Name: whatsapp_templates_default_variant; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX whatsapp_templates_default_variant ON public.whatsapp_templates USING btree (default_variant_id);
+
+--
 -- Name: ask_statuses ask_statuses_ask_ask_kind_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4102,6 +4136,20 @@ ALTER TABLE ONLY public.ask_statuses
 
 ALTER TABLE ONLY public.broadcast_answers
     ADD CONSTRAINT broadcast_answers_reply_id_fkey FOREIGN KEY (reply_id) REFERENCES public.broadcast_replies(id) ON DELETE CASCADE;
+
+--
+-- Name: broadcast_headers broadcast_headers_mailing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_headers
+    ADD CONSTRAINT broadcast_headers_mailing_id_fkey FOREIGN KEY (mailing_id) REFERENCES public.mailings(id) ON DELETE CASCADE;
+
+--
+-- Name: broadcast_headers broadcast_headers_picture_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.broadcast_headers
+    ADD CONSTRAINT broadcast_headers_picture_id_fkey FOREIGN KEY (picture_id) REFERENCES public.text_pictures(id) ON DELETE SET NULL;
 
 --
 -- Name: broadcast_message_events broadcast_message_events_answer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -4137,27 +4185,6 @@ ALTER TABLE ONLY public.broadcast_messages
 
 ALTER TABLE ONLY public.broadcast_replies
     ADD CONSTRAINT broadcast_replies_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.broadcast_messages(id) ON DELETE CASCADE;
-
---
--- Name: broadcast_versions broadcast_versions_mailing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.broadcast_versions
-    ADD CONSTRAINT broadcast_versions_mailing_id_fkey FOREIGN KEY (mailing_id) REFERENCES public.mailings(id) ON DELETE CASCADE;
-
---
--- Name: broadcast_versions broadcast_versions_picture_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.broadcast_versions
-    ADD CONSTRAINT broadcast_versions_picture_id_fkey FOREIGN KEY (picture_id) REFERENCES public.text_pictures(id) ON DELETE SET NULL;
-
---
--- Name: broadcast_versions broadcast_versions_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.broadcast_versions
-    ADD CONSTRAINT broadcast_versions_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.whatsapp_templates(id) ON DELETE SET NULL;
 
 --
 -- Name: campaigns campaigns_ask_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -4363,18 +4390,11 @@ ALTER TABLE ONLY public.mailings
     ADD CONSTRAINT mailings_ask_fkey FOREIGN KEY (ask) REFERENCES public.asks(slug);
 
 --
--- Name: mailings mailings_picture_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.mailings
-    ADD CONSTRAINT mailings_picture_id_fkey FOREIGN KEY (picture_id) REFERENCES public.text_pictures(id) ON DELETE SET NULL;
-
---
 -- Name: mailings mailings_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mailings
-    ADD CONSTRAINT mailings_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.whatsapp_templates(id) ON DELETE SET NULL;
+    ADD CONSTRAINT mailings_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.whatsapp_templates(id);
 
 --
 -- Name: notes notes_notable_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -4508,6 +4528,20 @@ ALTER TABLE ONLY public.supporter_links
 
 ALTER TABLE ONLY public.supporter_merges
     ADD CONSTRAINT supporter_merges_into_id_fkey FOREIGN KEY (into_id) REFERENCES public.supporters(id) ON DELETE CASCADE;
+
+--
+-- Name: whatsapp_templates whatsapp_templates_conditional_variant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whatsapp_templates
+    ADD CONSTRAINT whatsapp_templates_conditional_variant_id_fkey FOREIGN KEY (conditional_variant_id) REFERENCES public.whatsapp_template_variants(id);
+
+--
+-- Name: whatsapp_templates whatsapp_templates_default_variant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.whatsapp_templates
+    ADD CONSTRAINT whatsapp_templates_default_variant_id_fkey FOREIGN KEY (default_variant_id) REFERENCES public.whatsapp_template_variants(id);
 
 --
 -- Name: whatsapp_unreachable whatsapp_unreachable_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

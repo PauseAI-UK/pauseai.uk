@@ -14,7 +14,7 @@ import { GUEST_STATUSES, type ImportList } from "@/lib/events/luma-import.server
 import type { mailingChannel } from "@/lib/mailings/channels.server";
 import type { MailingState } from "@/lib/mailings/drafts.server";
 import type { SkipReason } from "@/lib/letters/copy-states";
-import type { WhatsAppTemplate } from "@/lib/broadcasts/drafts.server";
+import type { WhatsAppVariant } from "@/lib/broadcasts/drafts.server";
 import type { AddressSource } from "@/lib/politicians/aliases.server";
 import type { OptOutList, OptOutSource } from "@/lib/supporters/opt-outs.server";
 import type { BroadcastReply } from "@/lib/broadcasts/replies.server";
@@ -94,7 +94,8 @@ const LISTED: Record<string, readonly string[]> = {
   "mailings.state": every<MailingState>()(["draft", "scheduled", "sending", "sent", "cancelled"]),
   "mailings.topic": TOPICS,
   "mailings.also_topics": TOPICS,
-  "whatsapp_templates.status": every<WhatsAppTemplate["status"]>()([
+  "whatsapp_template_variants.status": every<WhatsAppVariant["status"]>()([
+    "draft",
     "approved",
     "pending",
     "rejected",
@@ -102,7 +103,7 @@ const LISTED: Record<string, readonly string[]> = {
     "disabled",
     "deleted",
   ]),
-  "whatsapp_templates.category": every<NonNullable<WhatsAppTemplate["category"]>>()([
+  "whatsapp_template_variants.category": every<NonNullable<WhatsAppVariant["category"]>>()([
     "MARKETING",
     "UTILITY",
     "AUTHENTICATION",
@@ -150,9 +151,8 @@ const LISTED: Record<string, readonly string[]> = {
   ]),
   "signup_uploads.kind": SIGNUP_KINDS,
   "staff_accounts.permissions": PERMISSIONS,
-  "mailings.header": every<TextHeader>()(["location", "image"]),
-  "broadcast_versions.header": every<TextHeader>()(["location", "image"]),
-  "whatsapp_templates.header": every<TextHeader>()(["location", "image"]),
+  "whatsapp_template_variants.header": every<TextHeader>()(["location", "image"]),
+  "broadcast_headers.variant": ["default", "conditional"],
   "text_pictures.content_type": PICTURE_TYPES,
 };
 

@@ -571,21 +571,38 @@ job all leave broadcasts out.
   events, past or to come (`broadcastParts()`). Each field and part is a
   condition (`has:firstName`, `wrote:<campaign>`, `event:<id>`), and the
   preview has a button for each condition the words use.
-- **A text's words** are a WhatsApp template (`whatsapp_templates`). It's
-  either an approved template, chosen in the writer and read-only there, or
-  new words, which staff send for approval from the foot of the writer.
-  Until WhatsApp decides, the new words can't be changed, only withdrawn,
-  and the text can't be scheduled. When words are sent for approval, and
-  when WhatsApp decides, an email with the words goes to whoever sent them
-  and to the notification inbox. A template has no parts that only some
-  people get, as its words are the same for everyone. New words go to
+- **A text's words** are its WhatsApp template's: the broadcast has none of
+  its own, and points at its template (`whatsapp_templates`). A template is
+  what staff name and pick. It has one variant, for everyone; or, with a
+  condition, a conditional variant for those who meet it and a default one
+  for everyone else (`whatsapp_template_variants`). A variant is what
+  WhatsApp has: its words, the kind of header it has (none, a place or a
+  picture), its buttons, and how it stands there, a draft till it's sent.
+  Two templates can share a variant, as a template made from an approved
+  one's words keeps the variants it hasn't changed. What each variant's
+  header shows in one broadcast, a place or a picture, is the broadcast's
+  own (`broadcast_headers`), as each send gives it. A template whose
+  variants WhatsApp has all approved can be chosen in the writer, and is
+  read-only there. Other words are a template still being written. The
+  writer keeps only what's written, and a save works out which variant each
+  one's words are (`saveBroadcastDraft`): words an approved variant has,
+  with its header kind and buttons, are that variant, so they never go for
+  approval twice. Staff send new words for approval from the foot of the
+  writer, each variant that's a draft or that WhatsApp rejected. Until
+  WhatsApp decides, they can't be changed, only withdrawn; the text can be
+  scheduled meanwhile, and goes once they're approved. When words are sent
+  for approval, and when WhatsApp decides, an email with the words goes to
+  whoever sent them and to the notification inbox. A variant has no parts
+  that only some people get, as its words are the same for everyone who
+  gets it. New words go to
   WhatsApp (`createTemplate`) as a marketing template in British English,
   named by its name and ID in WhatsApp's lower case (`meta_name`), each
   field a named parameter (`{{first_name}}`) with an example, and the
   footer every text has, "Reply STOP to stop these texts"
   (`TEMPLATE_FOOTER`), so any template can go under any topics. If
   WhatsApp doesn't take them, the
-  draft is as it was, and says so. Withdrawn, they're deleted there too.
+  draft is as it was, and says so. Withdrawn, they're deleted there too, and
+  are a draft again.
   WhatsApp's decision comes by its webhook, and each run of the sending asks
   it too while a template waits or a text is to go, in case a webhook went
   astray (`lib/broadcasts/whatsapp-templates.server.ts`). A rejection is put in plain
@@ -645,7 +662,7 @@ job all leave broadcasts out.
   the WhatsApp account, where its keys are set: on the live site alone, and
   a fixture build's fake (`lib/broadcasts/channels.server.ts`). Anywhere
   else nothing sends a text, so scheduling one is refused and the pages say
-  so. A copy is the text's template, its fields filled in for the person.
+  so. A copy is the variant the person gets, its fields filled in for them.
   Before a copy goes, its number is checked with CiviCRM's
   `checkSuppression`, and one with "Do not SMS" is skipped, as is a number
   WhatsApp couldn't deliver to in the last two months (`whatsapp_unreachable`,
