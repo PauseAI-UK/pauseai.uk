@@ -13,3 +13,4 @@ Have `scripts/worktree.mjs` make `tmp/` in the new checkout.
 ## Hits
 
 - 2026-11-25: the first gate in a new worktree failed on the missing log folder and had to be started again, ~2 min
+- 2026-11-26: a test run writing its log to tmp/ in a new worktree failed on the missing folder, ~2 min
