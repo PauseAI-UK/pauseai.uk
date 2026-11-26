@@ -831,7 +831,7 @@ Set up outside the code:
   2. Give it a staff account (`/staff/accounts`).
   3. Log in as it, and connect its Gmail on `/staff/me`. There it also asks for `gmail.modify`, to label and trash its mail.
 
-  Until it's connected, letters are kept and wait in the queue.
+  Until it's connected, letters are kept and wait in the queue. From when it has its staff account, each read of Gmail records that it isn't connected, as it does for `POLICY_INBOX`.
 
 - **The notification inbox:** `NOTIFICATION_INBOX` is where the site emails when something needs a person (`docs/domain-concepts.md`, "Email"). On the live site it's `notification@pauseai.uk`. When it's unset, nothing is sent.
 - **Staff accounts:** every database starts with one account, `admin@pauseai.uk`, with the admin permission. Anyone else at pauseai.uk gets an account with no permissions on their first login, or an admin adds them on `/staff/accounts`, where permissions are set. What an account opens depends on its permissions:
@@ -865,3 +865,29 @@ Each is a Netlify scheduled function in `netlify/functions/` that calls its rout
 | `import-civicrm`                             | 49 past every hour                    | `CIVICRM_CHAPTER_KEY`, our UK chapter's key to Global's chapter contacts API. A run reads every UK chapter contact, a page of 500 at a time.                                                                                                                                                                                            |
 
 The database sleeps after five minutes without a query, and is billed while it's awake: about 10 credits an hour at its smallest. The 5-minute jobs keep it awake all day.
+
+### The health checks
+
+UptimeRobot asks the site whether it's doing its work, and posts in Discord when it isn't. Each monitor asks one address, which answers 200 when every check in its group is good and 503 when any is bad (`lib/oversight/health.ts`, `app/api/health/`). Anyone can load an address, and its page says what each check found: job names, times and limits, never an error's words, a name or an email address. `/api/health` alone lists every group.
+
+A check only reads the database, so a monitor costs a few small queries. With the database down every check fails, so every monitor goes red. A technical monitor going red means something is broken. A product monitor going red means something has stopped happening, which may be a fault or may be a quiet week, so it means "have a look".
+
+| Monitor's name               | Address, after `https://pauseai.uk`       | Bad when                                                                                                                                                    |
+| ---------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Technical: database and jobs | `/api/health/technical/database-and-jobs` | The database doesn't answer; or a scheduled job is late, or has gone wrong at three scheduled times in a row                                                |
+| Technical: sending           | `/api/health/technical/sending`           | The three newest emails the site tried to send all failed; or fewer than half of the texts handed to WhatsApp between 2 hours and 3 days ago were delivered |
+| Product: sign-ups            | `/api/health/product/sign-ups`            | No new person from CiviCRM for a day; or no new sign-up to an event on Luma for a day                                                                       |
+| Product: letters written     | `/api/health/product/letters-written`     | No supporter has written to a politician for 4 days                                                                                                         |
+| Product: replies             | `/api/health/product/replies`             | No politician has replied to a supporter's letter for 3 days; or a mailing or a broadcast sent days ago has had nothing back                                |
+
+The rules in full, each with its numbers as constants in `lib/oversight/health.ts`:
+
+- **A job is late** when its next run was due and hasn't happened, after 15 minutes for a job that runs every 5, 45 minutes for `send-mailings`, 2 hours for `import-civicrm` and 3 hours for a nightly one. A job that has never run isn't late.
+- **A job has gone wrong** when it failed or recorded a problem at three scheduled times in a row. One bad run is routine, and staff get its email. Runs within a minute of each other count once. The read of Gmail records a problem on every run while the letters inbox or the policy inbox has a staff account and no Gmail connected, so one Google has disconnected turns this red after 15 minutes.
+- **Email sending** leaves out an email refused for a blocked address, which was never tried.
+- **WhatsApp sending** needs 50 texts in its time to say anything. It also goes red if WhatsApp stops telling the site what was delivered.
+- **Replies to supporters' letters** counts any reply from a politician's side, an automatic one too, as it came by the same route. It goes red in a recess.
+- **Replies to mailings** is bad when a mailing went to 20 or more politicians, its first letter was sent 3 to 14 days ago, and no politician has replied to any of its letters. An automatic reply isn't one.
+- **Replies to broadcasts** is bad when a broadcast went to 200 or more people on WhatsApp, or 2,000 or more by email, its first copy was sent 2 to 14 days ago, and nothing has come back: no reply, automatic reply or reaction. To check whether it's a real fault, reply to the broadcast from your own phone or inbox. If the monitor goes green, replies are being collected.
+
+To set a monitor up in UptimeRobot, add an HTTP monitor with the name and address in the table, and the Discord channel as its alert contact. The monitors point only at the live site: scheduled jobs don't run on a deploy preview, so its jobs are always late.

@@ -239,6 +239,9 @@ export const jobProblems = defineProblems("jobs", {
   // The Gmail read: Gmail errored or refused for a connected account, so its new mail wasn't read this time.
   couldntRead: (p: { account: SafeText }) =>
     `Gmail gave errors or refused connection, or our internal error, for ${p.account}`,
+  // The Gmail read: the letters or the policy inbox, which the site depends on, has a staff account and no
+  // Gmail connected, so its mail isn't read at all.
+  notConnected: (p: { account: SafeText }) => `${p.account} isn't connected to Gmail, so its mail isn't being read`,
   // The Gmail read: the mailbox was read, but Gmail wouldn't give the account's name.
   nameUnknown: (p: { account: SafeText }) => `Couldn't fetch name of ${p.account} from Gmail`,
   // The Gmail read: mail in the letters inbox that couldn't be matched to anything, so a person must look, and

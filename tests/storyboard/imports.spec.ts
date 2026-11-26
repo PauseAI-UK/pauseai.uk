@@ -253,7 +253,9 @@ test("Google disconnects a Gmail", async ({ page, request, flowDatabase }) => {
   const words = emailCopy.notifications.gmailDisconnected;
   await emailFrame(page, notified(words.subject(staffEmail()))!, "The email to the notification inbox");
 
-  story("The Gmail import's page shows that run failed, and why.");
+  story(
+    "The Gmail import's page shows that run failed, and why. It also says the letters inbox isn't connected, as every read does until it is.",
+  );
   await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
   await expect(page.getByText(jobsCopy.gmailReading.disconnected)).toBeVisible();
   await frame(page, "The Gmail import's page");

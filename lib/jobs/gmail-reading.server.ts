@@ -327,6 +327,18 @@ export async function readGmail(startedBy: string, request?: Request): Promise<G
   return result;
 }
 
+/**
+ * Those of `emails` that have a staff account and no Gmail connected: one
+ * that was disconnected, or that's waiting to be connected.
+ */
+async function withoutGmail(emails: string[]): Promise<string[]> {
+  const rows = await query<{ email: string }>(
+    "SELECT email FROM staff_accounts WHERE email = ANY($1) AND gmail_token IS NULL ORDER BY email",
+    [emails],
+  );
+  return rows.map((row) => row.email);
+}
+
 /** A run of readGmail. */
 async function readAll(request: Request | undefined): Promise<Ran<GmailReadResult>> {
   // First, as reading the mailboxes takes most of a run, and the search is rare and brief.
@@ -347,6 +359,16 @@ async function readAll(request: Request | undefined): Promise<Ran<GmailReadResul
         error: describeError(error),
         ...(disconnected && { disconnected }),
       });
+    }
+  }
+  // The two inboxes the site depends on, looked for every run, so that one Google disconnected, which is no
+  // longer among the accounts read, goes on being a problem of each run, for the health check to see
+  // (lib/oversight/health.ts). One with no staff account isn't set up here at all. Staff were told when it was
+  // disconnected (gmail-accounts.server.ts), so a run's email leaves it out, and so does the run that found out.
+  const dependedOn = [lettersInbox(), config.policyInbox].filter((inbox) => inbox !== undefined);
+  for (const inbox of await withoutGmail(dependedOn)) {
+    if (!accounts.some((read) => read.account === inbox)) {
+      problem(jobProblems.notConnected({ account: staffAccount(inbox) }), undefined, { told: true });
     }
   }
   const found = accounts.some(

@@ -27,7 +27,7 @@ it("says what a sending run did with broadcasts, when it has them", () => {
 });
 
 it("names the account in a Gmail read's problems", () => {
-  for (const said of [jobProblems.couldntRead, jobProblems.nameUnknown]) {
+  for (const said of [jobProblems.couldntRead, jobProblems.nameUnknown, jobProblems.notConnected]) {
     expect(said({ account: staffAccount("jo@pauseai.uk") }).what).toContain("jo@pauseai.uk");
   }
 });

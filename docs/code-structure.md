@@ -67,22 +67,22 @@ name: its components in `app/(staff)/staff/_components/<feature>/` and its
 logic in `lib/<feature>/`. So everything about one thing is found
 together, and which feature depends on which can be seen and held.
 
-| Feature       | What it is                                                                                                                                                          |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `email`       | The sending layer: sending, the connected Gmail accounts, blocked addresses, Postmark's bounce and delivery webhooks, the notifications to staff, kept messages     |
-| `accounts`    | Staff accounts: login, sessions, permissions, your own page                                                                                                         |
-| `asks`        | What we ask politicians: the asks, their kinds and the answers each allows                                                                                          |
-| `notes`       | The notes on a supporter's or a politician's page                                                                                                                   |
-| `letters`     | Letters to politicians and their lifecycle: sending, the letters inbox, replies, relays, threads, the one-off emails, and how a copy of something sent to many went |
-| `politicians` | Politicians: their records, staff's edits, addresses and aliases, correspondence, the imports of each body's members, finding an MP by postcode                     |
-| `supporters`  | Supporters and the records linked into them: places, sources, contact permissions, opt-outs, form entries, sign-up uploads                                          |
-| `mailings`    | Mailings to politicians: drafts, the letter and its merge fields, who they're for, schedule, sending; and the campaigns' pages                                      |
-| `events`      | Our events: the list, tags, owners, the Luma import and webhooks, the march's and PauseFest's events                                                                |
-| `erasure`     | Erasing a supporter from every table that holds them                                                                                                                |
-| `dashboard`   | The staff home: the tiles, each loading its own numbers, and what needs a person                                                                                    |
-| `broadcasts`  | Broadcasts to supporters, by email and WhatsApp: the writer, who they're for, sending, replies and our answers                                                      |
-| `oversight`   | What staff check the site by: the audit log's page, the emails sent, the errors seen, and what each feature's emails do about a bounce                              |
-| `jobs`        | The scheduled jobs: what runs each, the schedule's calls, reading Gmail, sending, the CiviCRM and ControlAI imports, tidying the logs                               |
+| Feature       | What it is                                                                                                                                                                        |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `email`       | The sending layer: sending, the connected Gmail accounts, blocked addresses, Postmark's bounce and delivery webhooks, the notifications to staff, kept messages                   |
+| `accounts`    | Staff accounts: login, sessions, permissions, your own page                                                                                                                       |
+| `asks`        | What we ask politicians: the asks, their kinds and the answers each allows                                                                                                        |
+| `notes`       | The notes on a supporter's or a politician's page                                                                                                                                 |
+| `letters`     | Letters to politicians and their lifecycle: sending, the letters inbox, replies, relays, threads, the one-off emails, and how a copy of something sent to many went               |
+| `politicians` | Politicians: their records, staff's edits, addresses and aliases, correspondence, the imports of each body's members, finding an MP by postcode                                   |
+| `supporters`  | Supporters and the records linked into them: places, sources, contact permissions, opt-outs, form entries, sign-up uploads                                                        |
+| `mailings`    | Mailings to politicians: drafts, the letter and its merge fields, who they're for, schedule, sending; and the campaigns' pages                                                    |
+| `events`      | Our events: the list, tags, owners, the Luma import and webhooks, the march's and PauseFest's events                                                                              |
+| `erasure`     | Erasing a supporter from every table that holds them                                                                                                                              |
+| `dashboard`   | The staff home: the tiles, each loading its own numbers, and what needs a person                                                                                                  |
+| `broadcasts`  | Broadcasts to supporters, by email and WhatsApp: the writer, who they're for, sending, replies and our answers                                                                    |
+| `oversight`   | What staff check the site by: the audit log's page, the emails sent, the errors seen, what each feature's emails do about a bounce, and the health checks an outside monitor asks |
+| `jobs`        | The scheduled jobs: what runs each, the schedule's calls, reading Gmail, sending, the CiviCRM and ControlAI imports, tidying the logs                                             |
 
 Beside the features, `_components/` has `ui/`, the staff kit (the page
 frame, tables, filters, menus), and `shell/`, the frame every staff page
