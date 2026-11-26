@@ -831,7 +831,7 @@ Set up outside the code:
   2. Give it a staff account (`/staff/accounts`).
   3. Log in as it, and connect its Gmail on `/staff/me`. There it also asks for `gmail.modify`, to label and trash its mail.
 
-  Until it's connected, letters are kept and wait in the queue, and each read of Gmail records that it isn't connected, as it does for `POLICY_INBOX`.
+  Until it's connected, letters are kept and wait in the queue. From when it has its staff account, each read of Gmail records that it isn't connected, as it does for `POLICY_INBOX`.
 
 - **The notification inbox:** `NOTIFICATION_INBOX` is where the site emails when something needs a person (`docs/domain-concepts.md`, "Email"). On the live site it's `notification@pauseai.uk`. When it's unset, nothing is sent.
 - **Staff accounts:** every database starts with one account, `admin@pauseai.uk`, with the admin permission. Anyone else at pauseai.uk gets an account with no permissions on their first login, or an admin adds them on `/staff/accounts`, where permissions are set. What an account opens depends on its permissions:
@@ -883,7 +883,7 @@ A check only reads the database, so a monitor costs a few small queries. With th
 The rules in full, each with its numbers as constants in `lib/oversight/health.ts`:
 
 - **A job is late** when its next run was due and hasn't happened, after 15 minutes for a job that runs every 5, 45 minutes for `send-mailings`, 2 hours for `import-civicrm` and 3 hours for a nightly one. A job that has never run isn't late.
-- **A job has gone wrong** when it failed or recorded a problem at three scheduled times in a row. One bad run is routine, and staff get its email. Runs within a minute of each other count once. The read of Gmail records a problem on every run while the letters inbox or the policy inbox isn't connected, so a disconnected one turns this red after 15 minutes.
+- **A job has gone wrong** when it failed or recorded a problem at three scheduled times in a row. One bad run is routine, and staff get its email. Runs within a minute of each other count once. The read of Gmail records a problem on every run while the letters inbox or the policy inbox has a staff account and no Gmail connected, so one Google has disconnected turns this red after 15 minutes.
 - **Email sending** leaves out an email refused for a blocked address, which was never tried.
 - **WhatsApp sending** needs 50 texts in its time to say anything. It also goes red if WhatsApp stops telling the site what was delivered.
 - **Replies to supporters' letters** counts any reply from a politician's side, an automatic one too, as it came by the same route. It goes red in a recess.

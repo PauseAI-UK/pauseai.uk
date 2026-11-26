@@ -33,6 +33,7 @@ describe("linesWithMark", () => {
     const root = folderOf({
       "node_modules/pkg/index.js": MARK,
       ".next/server/page.js": MARK,
+      ".next-serve/dev/server/chunk.js": MARK,
       "tmp/worktrees/other/lib/copy.ts": MARK,
       "public/images/photo.png": MARK,
       "lib/node_modules/pkg/index.js": MARK,

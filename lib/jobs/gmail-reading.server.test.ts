@@ -572,8 +572,6 @@ describeWithDatabase("reading Gmail", () => {
   });
 
   it("reads an account whose name Gmail won't give all the same, keeping that as a problem", async () => {
-    // With no letters inbox, which a run says isn't connected.
-    vi.stubEnv("LETTERS_INBOX", "");
     await connectTestGmail(JO, "8");
     vi.spyOn(console, "error").mockImplementation(() => {});
     mailbox({});
@@ -620,8 +618,6 @@ describeWithDatabase("reading Gmail", () => {
   });
 
   it("keeps an account it couldn't read as a problem of the run, and tells the notification inbox once until it's read again", async () => {
-    // With no letters inbox, which a run says isn't connected.
-    vi.stubEnv("LETTERS_INBOX", "");
     const sent = notifications();
     await connectTestGmail("al@pauseai.uk", "7");
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -667,9 +663,9 @@ describeWithDatabase("reading Gmail", () => {
   });
 
   it("says an account Google refused was disconnected, and reads the rest", async () => {
-    // With no letters inbox, which a run says isn't connected.
-    vi.stubEnv("LETTERS_INBOX", "");
     const sent = notifications();
+    // The policy inbox, which the run that finds out says once: as an account it couldn't read.
+    vi.stubEnv("POLICY_INBOX", "al@pauseai.uk");
     await connectTestGmail("al@pauseai.uk");
     await connectTestGmail(JO, "8");
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -693,29 +689,35 @@ describeWithDatabase("reading Gmail", () => {
       { account: JO, replies: 0, autoReplies: 0, bounces: 0 },
     ]);
     expect(await query("SELECT email FROM staff_accounts WHERE gmail_token IS NOT NULL")).toEqual([{ email: JO }]);
+    expect((await latestRun("read-gmail"))?.problems.map((p) => p.code)).toEqual(["jobs.couldntRead"]);
     // Its own email, that it was disconnected, and not the one for an account that can't be read too.
     expect(sent.map((s) => s.Subject)).toEqual([emailCopy.notifications.gmailDisconnected.subject("al@pauseai.uk")]);
   });
 
-  it("says each run that the letters or the policy inbox isn't connected, without an email of the run's", async () => {
+  it("says each run that the letters or the policy inbox has an account and no Gmail connected, without an email of the run's", async () => {
     const sent = notifications();
     vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
     vi.spyOn(console, "error").mockImplementation(() => {});
     await connectTestGmail(JO, "8");
     mailbox({});
+    // With no staff account, neither is set up here, so there's nothing to say of it.
+    await read();
+    expect((await latestRun("read-gmail"))?.problems).toEqual([]);
+    await query("INSERT INTO staff_accounts (email, added_by) VALUES ($1, 'test'), ('policy@pauseai.uk', 'test')", [
+      LETTERS_INBOX,
+    ]);
     const missing = [LETTERS_INBOX, "policy@pauseai.uk"].map((inbox) => ({
       ...jobProblems.notConnected({ account: staffAccount(inbox) }),
       told: true,
     }));
     await read();
     await read();
-    expect((await listRuns("read-gmail")).map((run) => run.problems)).toEqual([missing, missing]);
+    expect((await listRuns("read-gmail")).slice(0, 2).map((run) => run.problems)).toEqual([missing, missing]);
     expect(sent).toEqual([]);
-    // Connected, the policy inbox is read like any account; and a site with no letters inbox has none to connect.
+    // Connected, the policy inbox is read like any account.
     await connectTestGmail("policy@pauseai.uk", "8");
-    vi.stubEnv("LETTERS_INBOX", "");
     await read();
-    expect((await latestRun("read-gmail"))?.problems).toEqual([]);
+    expect((await latestRun("read-gmail"))?.problems).toEqual([missing[0]]);
   });
 
   it("keeps each run in the import log, unchanged when it found nothing, and who started it", async () => {

@@ -1,8 +1,7 @@
 import type { Page } from "@playwright/test";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { runSql } from "@/scripts/fresh-database.mjs";
-import { connectGmail, connectPolicyMailboxes } from "./gmail-steps";
-import { POLICY_INBOX } from "./staff-inboxes";
+import { connectPolicyMailboxes } from "./gmail-steps";
 import { addFilter, changeFilter } from "./list-steps";
 import { addStaffAccount, logInAsStaff } from "./login-steps";
 import { addPauseaiEmails, importPoliticians, markInvited, PM_LETTER, recordAnswers } from "./politician-steps";
@@ -733,8 +732,6 @@ test("A politician's own address", async ({ page, request, flowDatabase }) => {
   );
   await importPoliticians(request, BASE, flowDatabase);
   connectPolicyMailboxes(flowDatabase);
-  // The site's own policy inbox, so the read of Gmail has nothing to say of it.
-  connectGmail(flowDatabase, POLICY_INBOX);
   await logIn(page, flowDatabase, ["supporters", "admin"]);
   const [polly] = runSql(flowDatabase, "SELECT id FROM notable_people WHERE airtable_id = 'recPlaceholder'");
   await page.goto(`${BASE}/staff/politicians/${polly}`);

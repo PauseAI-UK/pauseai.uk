@@ -6,11 +6,11 @@ import { runSql } from "@/scripts/fresh-database.mjs";
 import { FIXTURE_NOW, LETTERS_INBOX } from "@/lib/server/fixtures/fixture-env.mjs";
 import { FAILING_DIR } from "../checkout.mjs";
 import { failService } from "@/lib/server/fixtures/failing-services";
-import { connectGmail, connectPolicyMailboxes } from "./gmail-steps";
+import { connectPolicyMailboxes } from "./gmail-steps";
 import { addStaffAccount, logIn, logInAsStaff, staffEmail } from "./login-steps";
 import { newestEmail } from "./outbox-steps";
 import { importPoliticians } from "./politician-steps";
-import { POLICY_INBOX, TO_NOTIFICATIONS } from "./staff-inboxes";
+import { TO_NOTIFICATIONS } from "./staff-inboxes";
 import { emailFrame } from "./email-frame";
 import { press } from "./settle";
 import { BASE, expect, frame, story, test } from "./fixtures";
@@ -117,8 +117,6 @@ test("Reading Gmail", async ({ page, flowDatabase }) => {
   story(
     "A staff member connects their Gmail from their account page. The Gmail import's page says it hasn't been read yet.",
   );
-  // The policy inbox is connected, as the letters inbox is in every flow, so a read has nothing to say of either.
-  connectGmail(flowDatabase, POLICY_INBOX);
   await logIn(page, flowDatabase);
   await page.goto(`${BASE}/staff/me`);
   await page.getByRole("link", { name: emailCopy.gmail.connect }).click();
@@ -256,7 +254,7 @@ test("Google disconnects a Gmail", async ({ page, request, flowDatabase }) => {
   await emailFrame(page, notified(words.subject(staffEmail()))!, "The email to the notification inbox");
 
   story(
-    "The Gmail import's page shows that run failed, and why. It also says that this site's letters inbox and policy inbox aren't connected, as every read does until they are.",
+    "The Gmail import's page shows that run failed, and why. It also says the letters inbox isn't connected, as every read does until it is.",
   );
   await page.goto(`${BASE}/staff/scheduled-jobs/gmail`);
   await expect(page.getByText(jobsCopy.gmailReading.disconnected)).toBeVisible();

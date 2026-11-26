@@ -32,6 +32,8 @@ const SKIP_DIRS = new Set([
   ".git",
   ".netlify",
   ".next",
+  // What `npm run serve` builds into (scripts/serve.mjs), which keeps a served branch's old copy.
+  ".next-serve",
   ".vitest",
   "node_modules",
   "coverage",
