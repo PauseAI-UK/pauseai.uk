@@ -1888,7 +1888,10 @@ A job that copies data in from outside:
   the wires; 3, other real journalism; 4, what isn't independent journalism
   (`press_sources`). A tier 4 site's finds go straight to Removed; a find
   known only by its headline does too if the LLM says it isn't ours, the
-  headline doesn't name us, and its site is tier 3 or unknown.
+  headline doesn't name us, and its site is tier 3 or unknown. On the
+  Press page, a detail of a piece that can't be checked, such as its date
+  or who it quotes, is left blank or said in its note as unchecked, never
+  guessed.
 
 Two more jobs don't import but run on a schedule all the same: the
 15-minute sending and the nightly tidying (`JOBS` in `lib/import-runs.ts`). Whatever a

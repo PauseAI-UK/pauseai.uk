@@ -4,7 +4,7 @@ import { logChange } from "@/lib/server/audit.server";
 import { query, transaction, type Queryable } from "@/lib/server/db.server";
 import type { Medium } from "./coverage";
 import type { FindFailure } from "./finds";
-import { TIER_UNKNOWN, type Tier } from "./sources";
+import type { Tier } from "./sources";
 import type { FindOrg, Verdict } from "./review";
 import { mediumOf } from "./medium";
 import { hostOf, urlKey } from "./urls";
@@ -103,9 +103,8 @@ export async function pressPage(): Promise<PressPage> {
       WHERE c.state = '${state}'`;
   const [waiting, shown, notOurs, removed, outlets, sites] = await Promise.all([
     query<FindRow>(
-      // The sources worth most first, a site with no tier as the third.
       `SELECT ${FIND_COLUMNS} FROM ${FINDS} WHERE f.state = 'waiting'
-        ORDER BY COALESCE(s.tier, ${TIER_UNKNOWN}), f.published DESC NULLS LAST, f.id DESC`,
+        ORDER BY f.published DESC NULLS LAST, f.id DESC`,
     ),
     query<ShownPiece>(`${pieces("shown")} ORDER BY c.published DESC NULLS LAST, c.id`),
     query<FindRow>(

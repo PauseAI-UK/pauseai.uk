@@ -307,7 +307,7 @@ describeWithDatabase("pressPage", () => {
     ]);
   });
 
-  it("shows each find's source's tier, and each piece's outlet's best, the finds waiting from the most worth first", async () => {
+  it("shows each find's source's tier, and each piece's outlet's best, the finds waiting newest first", async () => {
     await addTestPiece("TIME", { title: "On TIME", url: "https://time.com/1/" });
     await addTestPiece("Example Wire", { title: "On the wire", url: "https://www.examplewire.com/1" });
     await addTestSource("time.com", 2, "TIME");
@@ -337,13 +337,13 @@ describeWithDatabase("pressPage", () => {
     const removed = await addTestFind({ title: "Removed", state: "not ours", ...site("https://time.com/3/") });
 
     const page = await pressPage();
-    // A site with no tier, or none kept, comes among the third, by date.
+    // By date, whatever the tier; a site with no tier, or none kept, has none.
     expect(page.waiting.map(({ id, tier }) => [id, tier])).toEqual([
-      [gazette, 1],
-      [time, 2],
-      [unmet, null],
-      [unknown, null],
       [wire, 4],
+      [unmet, null],
+      [time, 2],
+      [unknown, null],
+      [gazette, 1],
     ]);
     expect(page.notOurs).toMatchObject([{ id: removed, tier: 2 }]);
     expect(page.shown.map(({ outlet, tier }) => [outlet, tier])).toEqual([
