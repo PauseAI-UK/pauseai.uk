@@ -17,6 +17,8 @@ export function TimelineList({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<string | null>(null);
 
   useEffect(() => {
+    // A browser with IntersectionObserver turned off highlights none.
+    if (typeof IntersectionObserver === "undefined") return;
     const entries = Array.from(list.current!.children);
     const io = new IntersectionObserver(
       (items) => {

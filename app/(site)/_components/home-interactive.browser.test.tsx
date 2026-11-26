@@ -247,6 +247,16 @@ describe("OnboardingFormEmbed", () => {
     await unmount();
   });
 
+  it("waits for the page to load before fetching the form in a browser with IntersectionObserver turned off", async () => {
+    vi.spyOn(document, "readyState", "get").mockReturnValue("loading");
+    vi.stubGlobal("IntersectionObserver", undefined);
+    const { srcs, unmount } = await renderEmbed();
+    expect(srcs).toEqual([]);
+    window.dispatchEvent(new Event("load"));
+    expect(srcs).toHaveLength(1);
+    await unmount();
+  });
+
   it("ignores messages from other sites and messages without a height", async () => {
     const { container } = await renderEmbed();
     post({ height: 10 }, "https://evil.example");

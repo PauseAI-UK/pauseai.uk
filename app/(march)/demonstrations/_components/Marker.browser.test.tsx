@@ -135,6 +135,21 @@ describe("Marker", () => {
     expect(strokes()[0].style.animationName).toBe("");
   });
 
+  it("highlights at once, out of view too, in a browser with IntersectionObserver turned off", async () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    try {
+      await render(
+        <Below>
+          <Marker type="highlight">Still</Marker>
+        </Below>,
+      );
+      await expect.poll(() => strokes().length).toBe(1);
+      expect(strokes()[0].style.animationName).toBe("");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("takes its mark away with it, drawn in or not", async () => {
     for (const type of ["underline", "highlight"] as const) {
       const { unmount } = await render(<Marker type={type}>Gone</Marker>);

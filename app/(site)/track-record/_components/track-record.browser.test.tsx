@@ -262,6 +262,17 @@ describe("TimelineList", () => {
     expect(entries.filter((e) => e.hasAttribute("data-active"))).toHaveLength(1);
   });
 
+  it("highlights no entry in a browser with IntersectionObserver turned off", async () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    try {
+      const { container } = await render(<Entries />);
+      await expect.element(page.getByRole("heading", { name: "a" })).toBeVisible();
+      expect(container.querySelectorAll("[data-active]")).toHaveLength(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("copes with an empty list", async () => {
     const { unmount } = await render(<TimelineList>{null}</TimelineList>);
     await unmount();

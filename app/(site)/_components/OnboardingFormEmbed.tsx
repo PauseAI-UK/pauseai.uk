@@ -105,15 +105,19 @@ export default function OnboardingFormEmbed() {
     // page. The wait for the form to report in starts then too.
     const iframe = iframeRef.current!;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    const near = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) start();
-      },
-      { rootMargin: NEAR_MARGIN },
-    );
+    // A browser with IntersectionObserver turned off waits for the load event.
+    const near =
+      typeof IntersectionObserver === "undefined"
+        ? undefined
+        : new IntersectionObserver(
+            (entries) => {
+              if (entries.some((entry) => entry.isIntersecting)) start();
+            },
+            { rootMargin: NEAR_MARGIN },
+          );
     function start() {
       window.removeEventListener("load", start);
-      near.disconnect();
+      near?.disconnect();
       if (!iframe.getAttribute("src")) iframe.src = EMBED_URL;
       timeoutId = setTimeout(() => {
         if (!messageReceivedRef.current) setShowFallback(true);
@@ -123,14 +127,14 @@ export default function OnboardingFormEmbed() {
       start();
     } else {
       window.addEventListener("load", start);
-      near.observe(iframe);
+      near?.observe(iframe);
     }
 
     return () => {
       window.removeEventListener("message", handleMessage);
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("load", start);
-      near.disconnect();
+      near?.disconnect();
       clearTimeout(settleTimerRef.current);
       clearTimeout(timeoutId);
     };
