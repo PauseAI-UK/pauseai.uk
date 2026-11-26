@@ -246,6 +246,9 @@ const TEMPLATE_PARTS_PROBLEMS: BroadcastScheduleProblem[] = [
 /** How a draft's words stand: an email's own, or a text's template chosen, new words, or none yet. */
 type Words = "email" | "chosen" | "new" | "none";
 
+/** Each field's words, for fixed words to show it by, as the editor's chip does: First name, not firstName. */
+const FIELD_WORDS: Record<string, string> = { ...copy.fieldWords };
+
 /**
  * Under words WhatsApp is reviewing: who sent them, and when, and the button
  * that takes them back to change them. Pressed a second time, the button is
@@ -302,7 +305,6 @@ function TemplateWithdraw({ template, withdraw }: { template: WhatsAppTemplate; 
  * back (TemplateWithdraw).
  */
 function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; withdraw: () => Promise<void> }) {
-  const fields = Object.fromEntries(Object.entries(copy.fieldWords));
   return (
     <>
       {/* As sent: its name and its words, each under its label, as when they were written. */}
@@ -312,7 +314,7 @@ function TemplatePending({ template, withdraw }: { template: WhatsAppTemplate; w
       </div>
       <div className={styles.letter}>
         <p className={styles.label}>{copy.templateWords}</p>
-        <MailingLetter doc={template.body} fields={fields} />
+        <MailingLetter doc={template.body} fields={FIELD_WORDS} />
       </div>
       <TemplateWithdraw template={template} withdraw={withdraw} />
     </>
@@ -1126,7 +1128,7 @@ export default function BroadcastWriter({
               {copy.templateWords}
             </p>
             {fixed ? (
-              <MailingLetter doc={version.body} />
+              <MailingLetter doc={version.body} fields={FIELD_WORDS} />
             ) : (
               <MailingEditor
                 key={`${restored}-${version.condition}`}
@@ -1157,7 +1159,8 @@ export default function BroadcastWriter({
     }
     const fixed = !writingNew || Boolean(waiting);
     return (
-      <div className={own.textWords}>
+      // In its box, once there's a second version, which has no padding under it of its own.
+      <div className={textVersion ? `${own.textWords} ${own.versionWords}` : own.textWords}>
         <TextTop
           header={values.header}
           place={values.place}

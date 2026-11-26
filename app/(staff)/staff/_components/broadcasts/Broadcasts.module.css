@@ -304,7 +304,7 @@
   gap: var(--space-3);
 }
 
-/* A version's, in its box, which has no padding under it of its own. */
+/* Either version's, in its box, which has no padding under it of its own. */
 .versionWords {
   padding-bottom: var(--space-4);
 }
