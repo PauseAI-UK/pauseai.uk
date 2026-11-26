@@ -588,9 +588,7 @@ Delete `DATA_FIXTURES` from `.env.local`, and fill in the keys you need. Each is
   the CRM, so every call also carries our service token for it, as
   `CIVICRM_ACCESS_CLIENT_ID` and `CIVICRM_ACCESS_CLIENT_SECRET` (in Netlify
   beside the key, and in Psono as "CRM API: pauseai-uk"), and follows no
-  redirect; without both, no call is made. Each hourly import also asks
-  Access's check whether it takes the token, and records a problem if it
-  doesn't, as a wrong token isn't refused until Global switches Access on. How the token is used is in
+  redirect; without both, no call is made. How the token is used is in
   [a document in the same private repo](https://github.com/PauseAI/pauseai-civicrm/blob/main/docs/api-access-tokens.md).
   Without the key, fixture builds answer from
   `lib/server/fixtures/civicrm-contacts.json`.

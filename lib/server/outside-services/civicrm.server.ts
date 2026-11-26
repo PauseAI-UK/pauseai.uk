@@ -88,22 +88,6 @@ function accessHeaders(): Record<string, string> {
   return { "CF-Access-Client-Id": id, "CF-Access-Client-Secret": secret };
 }
 
-/**
- * The status Cloudflare Access's check answers the token with: 404 when
- * Access lets it through to the CRM, which has no page there, and 401 or
- * 403 when it refuses it. Until Access guards the API, a wrong token still
- * gets an answer from it, so this is the only way to know the token is
- * right before then. The check takes the token alone, never the key.
- */
-export async function accessCheck(): Promise<number> {
-  const res = await outsideFetch(CIVICRM, "https://crm.pauseai.info/pauseai-access-check", {
-    headers: accessHeaders(),
-    cache: "no-store",
-    redirect: "manual",
-  });
-  return res.status;
-}
-
 /** A field that must be true or false. */
 function flag(row: Record<string, unknown>, field: string): boolean {
   const value = row[field];
