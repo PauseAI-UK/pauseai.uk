@@ -1153,7 +1153,7 @@ that drives it or why nothing does.
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
   - a text with a map of where to meet, its place found from a short Google Maps link, taken off with its ×, and found by its name, renamed, with a reply button, the preview's map and button, and the template as it goes to WhatsApp;
   - a text with a picture at its top, added from a file, the preview's picture, and the template as it goes to WhatsApp, its example uploaded;
-  - a pair of approved templates chosen again, marked in the list with who its version is for, both brought as the text and its version's tab, and one template alone after, the version gone;
+  - a template with two variants chosen, marked in the dropdown with who its conditional variant is for, a tab for each, and a template with one variant after, with no tabs;
   - a text with two versions written in the writer, a map and a link button for everyone and a picture, other words and a reply button for those registered for an event, the preview's toggle choosing between them, both templates approved by WhatsApp's webhook, scheduled, its page showing both versions under their headings, then sent to two supporters, each one's text as they get it, and one's copy on its page;
   - a text with a second version for those registered for an event, chosen from the email's conditional parts menu by a search, a tab each, a button on the same words stopped, its own words, two templates sent for approval, the version's rejected by WhatsApp's webhook, and sent again;
   - a second version added to an approved template, which starts as that template, edited as a new one, sent for approval, taken back from its tab, and scheduled, which sends it again;

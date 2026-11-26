@@ -332,19 +332,22 @@ test("A template's words edited as a new one, and an unused one deleted", async 
   await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
   await page.getByRole("button", { name: copy.deleteTemplate }).scrollIntoViewIfNeeded();
   await frame(page, "A template chosen, with Edit and Delete under it", { window: true });
-  story("Edit takes its words, under its name numbered, as new words, to change and send for approval.");
+  story(
+    "Edit frees its words to change, under its name numbered. Till they change they're the approved template's still, so there's nothing to send for approval.",
+  );
   await savedAfter(page, () => page.getByRole("button", { name: copy.editTemplate }).click());
   await expect(page.getByLabel(copy.templateName)).toHaveValue(copy.copyName("PauseCon room change", 2));
+  const approval = page.getByRole("button", { name: copy.submitTemplate });
+  await expect(approval).toHaveCount(0);
   await page.getByLabel(copy.templateName).scrollIntoViewIfNeeded();
   await frame(page, "Its words as a new template", { window: true });
-  story(
-    "Unchanged, they're an approved template's already, so there's nothing to approve: Send for approval is greyed, and a red line under it says why.",
-  );
-  const approval = page.getByRole("button", { name: copy.submitTemplate });
-  await expect(approval).toBeDisabled();
-  await expect(page.getByText(copy.problems["same-words"]).first()).toBeVisible();
+  story("Once they've changed, they're new words, and Send for approval is under the preview.");
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.press("End");
+  await savedAfter(page, () => page.keyboard.type(" Follow the signs."));
+  await expect(approval).toBeEnabled();
   await approval.scrollIntoViewIfNeeded();
-  await frame(page, "Send for approval, greyed, and why", { window: true });
+  await frame(page, "Changed, to send for approval", { window: true });
   story(
     "They choose an old template instead, and delete it: pressed twice, it goes from WhatsApp and from the dropdown, and the draft chooses again.",
   );
@@ -909,10 +912,11 @@ test("A second version on an approved template", async ({ page, request, flowDat
   await tabs.first().scrollIntoViewIfNeeded();
   await frame(page, "The version, the same template", { window: true });
   story(
-    "To say something else to those who registered, staff edit its words as a new template. Only those go to WhatsApp, as the text's own are approved.",
+    "To say something else to those who registered, staff edit it as a new template, which frees the words. Only the ones they change go to WhatsApp, as everyone else's are approved.",
   );
-  await savedAfter(page, () => page.getByRole("button", { name: copy.editTemplate }).nth(1).click());
+  await page.getByRole("button", { name: copy.editTemplate }).click();
   const words = page.getByRole("textbox", { name: copy.templateWords });
+  await expect(words).toBeVisible();
   // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.
   await words.selectText();
   await savedAfter(page, () => page.keyboard.type("PauseCon has moved to the Main Hall. Your seat is saved."));
@@ -1034,7 +1038,7 @@ test("A text with two versions, written, approved and sent", async ({ page, requ
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   await expect(templateBox(page)).toBeVisible();
   await tabs.first().scrollIntoViewIfNeeded();
-  await frame(page, "Both approved, the pair chosen, its words fixed", { window: true });
+  await frame(page, "Both approved: the template chosen, its words fixed", { window: true });
   story("Scheduled, its page shows both versions, each under who it's for.");
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.getByRole("button", { name: copy.schedule(TEXTABLE_MEMBERS, "text") }).click();

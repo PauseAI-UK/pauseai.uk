@@ -471,7 +471,7 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     expect(await submitTemplateNow(id)).toEqual({ ok: true, taken: false, said: "Bad" });
     // As fixture builds' WhatsApp takes them.
     expect(await submitTemplateNow(id)).toEqual({ ok: true, taken: true });
-    expect((await getWrittenBroadcast(id))!.template).toMatchObject({ status: "pending" });
+    expect((await getWrittenBroadcast(id))!.variant).toMatchObject({ status: "pending" });
   });
 
   it("withdraws words WhatsApp is reviewing, and says when there are none to take back", async () => {
@@ -483,7 +483,8 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}`);
     await submitTemplateNow(id);
     expect(await withdrawTemplateNow(id)).toEqual({ ok: true });
-    expect((await getWrittenBroadcast(id))!.template).toBeNull();
+    // Its words are a draft again, to change.
+    expect((await getWrittenBroadcast(id))!.variant).toMatchObject({ status: "draft", name: null });
   });
 
   it("deletes a template, as its writer's page asks, refreshing the broadcasts' pages, and says why not", async () => {

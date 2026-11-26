@@ -1,8 +1,11 @@
 # WhatsApp texts: what's left
 
-A text can have a picture or a map of a place at its top, reply and link
-buttons, and a second version for those who meet a condition, each version
-a template of its own. What's left is below.
+A WhatsApp broadcast has no words of its own: they're its template's
+(`docs/domain-concepts.md`). A template has one variant for everyone, or,
+with a condition, two: a conditional variant for those who meet it, and
+the default one for everyone else. A variant is what WhatsApp approves:
+its words, the kind of header it has (a picture, or a map of a place) and
+its reply and link buttons. What's left is below.
 
 ## Where Read more falls
 
@@ -15,7 +18,7 @@ What a text has changes where WhatsApp folds its words under Read more
 - else: 4 lines.
 
 The preview folds at 5 lines whatever the text has (`TextFold`). It could
-take the number from the text's top and buttons, once a real send shows
+take the number from the variant's header and buttons, once a real send shows
 Meta's page, written for its Marketing Messages API, holds for ours: the 5
 matched a phone, but a picture with a link is untested, and so is a map.
 Whether the small card still shows for a link in the words once there's a
@@ -37,7 +40,7 @@ first:
 - **No email.** Luma's call needs the supporter's email address, which we
   don't have for everyone we text. They could get the event's page to sign
   up themselves, be asked for their email in WhatsApp, or not see the
-  button (a version only for those we have an email for).
+  button (a conditional variant only for those we have an email for).
 - **Sign-up questions.** The call skips an event's sign-up questions
   unless the site answers them, so the organisers could miss answers they
   rely on. The button could be offered only for events without required
@@ -98,12 +101,15 @@ A real send to an iPhone, an Android phone and WhatsApp Web answers each:
   approved example, with no mark against the account's quality;
 - what WhatsApp Web does when the map is clicked, and whether the name we
   send shows in the map app;
-- whether Meta takes a template with an approved one's words but another
-  top or buttons. Its review page says one "with the same wording in the
-  body and footer of an existing template" is rejected as a duplicate
+- whether Meta takes a variant with an approved one's words but another
+  kind of header or other buttons. Its review page says one "with the same
+  wording in the body and footer of an existing template" is rejected as a
+  duplicate
   ([Template review, "Duplication"](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-review)),
   and every text has the same footer. Till a try shows otherwise, the site
-  takes it that another top or buttons doesn't make a template different,
-  so the writer won't send new words an approved template has, nor two
-  versions whose new words are the same with another top or buttons;
+  takes it that another header or buttons doesn't make words different, so
+  the writer won't send words an approved variant has under another header
+  or buttons, nor two variants whose new words are the same but for those.
+  Words with an approved variant's header and buttons too are that
+  variant, and go for approval no more;
 - where Read more falls with a picture or a map (above).

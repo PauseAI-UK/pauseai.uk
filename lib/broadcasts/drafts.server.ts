@@ -230,7 +230,7 @@ function variantFrom(row: Record<string, unknown>, prefix: string): WhatsAppVari
 const LISTED = "d.status = 'approved' AND (c.id IS NULL OR c.status = 'approved')";
 
 /** Whether a template in a query of `whatsapp_templates` has variant $1. */
-export const HAS_VARIANT = "(default_variant_id = $1 OR conditional_variant_id = $1)";
+const HAS_VARIANT = "(default_variant_id = $1 OR conditional_variant_id = $1)";
 
 const SELECT_TEMPLATES = `
   SELECT t.id::int AS id, t.name, t.condition, t.created_by AS "createdBy",
@@ -289,7 +289,7 @@ export async function getTemplate(id: number, db?: Queryable): Promise<WhatsAppT
 }
 
 /** Whether WhatsApp has approved every variant of a template, so it's one to choose, which no longer changes. */
-export const isListed = (template: Pick<WhatsAppTemplate, "default" | "conditional">): boolean =>
+const isListed = (template: Pick<WhatsAppTemplate, "default" | "conditional">): boolean =>
   template.default.status === "approved" && (!template.conditional || template.conditional.status === "approved");
 
 /** A broadcast's topics, in a query of `mailings`: its first (`topic`), then the others (`also_topics`). */
@@ -933,12 +933,13 @@ export async function scheduleBroadcast(id: number, version: number, by: string)
     const broadcast = (await getWrittenBroadcast(id))!;
     const { problems, recipients } = await scheduleProblems(broadcast);
     if (problems.length) return { scheduled: false, problems };
-    // New words, never sent or rejected, the text's own or its second version's: with no problems, each has
-    // words (no-template).
-    const versions = [broadcast, ...(broadcast.textVersion ? [broadcast.textVersion] : [])];
+    // A WhatsApp broadcast with a variant WhatsApp has neither approved nor is reviewing: its words go for approval
+    // first. With no problems, it has words (no-template), so a default variant to hold them.
     if (
       broadcast.channel === "text" &&
-      versions.some((one) => !["approved", "pending"].includes(one.variant?.status ?? ""))
+      [broadcast.variant!, ...(broadcast.textVersion ? [broadcast.textVersion.variant] : [])].some(
+        (one) => !["approved", "pending"].includes(one.status),
+      )
     ) {
       return "submit";
     }

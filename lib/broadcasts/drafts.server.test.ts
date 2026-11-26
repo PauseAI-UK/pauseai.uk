@@ -821,6 +821,19 @@ describeWithDatabase("broadcasts to supporters", () => {
       const on = await draftOf(TEXT_FILTER);
       await readied(on, { templateId: approved });
       expect(await getWrittenBroadcast((await copyBroadcast(on, JO))!)).toMatchObject({ template: { id: approved } });
+      // One draft variant for both, where their words are the same, is one in the copy too, its own.
+      const same = await draftOf(TEXT_FILTER);
+      await readied(same, {
+        body: SATURDAY,
+        title: "Saturday",
+        textVersion: versionOf({ header: null, place: null, buttons: [] }),
+      });
+      const both = (await getWrittenBroadcast(same))!;
+      expect(both.textVersion!.variant.id).toBe(both.variant!.id);
+      const copied = (await getWrittenBroadcast((await copyBroadcast(same, JO))!))!;
+      expect(copied.textVersion!.variant.id).toBe(copied.variant!.id);
+      expect(copied.variant).toMatchObject({ status: "draft", body: SATURDAY });
+      expect(copied.variant!.id).not.toBe(both.variant!.id);
     });
 
     it("clears a broadcast's template and what its headers show when its Consent moves it to email", async () => {
@@ -942,6 +955,25 @@ describeWithDatabase("broadcasts to supporters", () => {
             status: "pending",
           },
         },
+      });
+    });
+
+    it("sends only the default variant's words for a broadcast whose conditional one is another, approved", async () => {
+      await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+      const theirs = await addTemplate("For those with a name", { body: SATURDAY });
+      const id = await draftOf(TEXT_FILTER);
+      await readied(id, {
+        body: EVENT_WORDS,
+        title: "March day",
+        textVersion: versionOf({ condition: "has:firstName", header: null, place: null, buttons: [] }),
+      });
+      expect(await submitTemplate(id, JO)).toBe("submitted");
+      expect(await getWrittenBroadcast(id)).toMatchObject({
+        variant: {
+          name: broadcastsCopy.broadcastPages.othersTemplateName("March day", "has:firstName"),
+          status: "pending",
+        },
+        textVersion: { variant: { id: (await variantsOf(theirs)).first, status: "approved" } },
       });
     });
 
@@ -1216,6 +1248,10 @@ describeWithDatabase("broadcasts to supporters", () => {
       expect(await deleteApprovedTemplate(shared, JO)).toBe("deleted");
       expect(deleted).toHaveLength(3);
       expect((await approvedTemplates()).map((t) => t.name)).toEqual(["Shared, two ways", "Kept"]);
+      // One with two variants of its own takes both from WhatsApp.
+      const two = await addTemplate("Two ways", { condition: "has:firstName", conditional: { body: SATURDAY } });
+      expect(await deleteApprovedTemplate(two, JO)).toBe("deleted");
+      expect(deleted.slice(3).sort()).toEqual(["Two ways", "Two ways, for some"]);
       // With no keys, as on a deploy preview, WhatsApp can't be reached.
       vi.stubEnv("WHATSAPP_TOKEN", "");
       expect(await deleteApprovedTemplate(await addTemplate("No keys"), JO)).toBe("failed");

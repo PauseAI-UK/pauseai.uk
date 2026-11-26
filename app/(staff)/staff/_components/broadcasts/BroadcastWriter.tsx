@@ -127,7 +127,10 @@ type Changes = {
   dueAt: Date | null;
   /** When it stops trying, in minutes after its time; null for the most (sendingStopsAt). */
   finishMinutes: number | null;
-  /** An approved template chosen, said to the save once, as it's chosen: the page keeps what's written, not which template it is. */
+  /**
+   * An approved template chosen in the dropdown, said to the save once, as it's chosen. The page keeps what's
+   * written, not which template it is, so this only tells two templates with the same words apart.
+   */
   templateId?: number;
   /** A WhatsApp broadcast's, which has no subject to be one: its template's name. */
   title: string;
@@ -744,8 +747,8 @@ export default function BroadcastWriter({
   const { waiting } = stands.except;
   // Words WhatsApp is reviewing, either variant's, which taking back takes back together.
   const reviewing = waiting ?? (textVersion ? stands.only.waiting : undefined);
-  // The approved template what's written is, whole, which the dropdown shows as chosen: the draft's own, where
-  // more than one has the same words.
+  // The approved template what's written is, whole, which the dropdown shows as chosen. Where more than one has
+  // the same words, the one chosen here, or else the draft's own.
   const whole = data.templates.filter(
     (one) =>
       sameTemplate(ownParts, one.default) &&
@@ -755,7 +758,11 @@ export default function BroadcastWriter({
           sameTemplate(textVersion, one.conditional)
         : !one.conditional),
   );
-  const template = editing ? undefined : (whole.find((one) => one.id === draft.template?.id) ?? whole[0]);
+  const template = editing
+    ? undefined
+    : (whole.find((one) => one.id === values.templateId) ??
+      whole.find((one) => one.id === draft.template?.id) ??
+      whole[0]);
   // Once taken back, the words can be changed again: Write is brought fully into view once the page has them.
   const withdrew = useRef(false);
   const writeCard = useRef<HTMLElement>(null);
@@ -817,7 +824,8 @@ export default function BroadcastWriter({
   const versionLabel = useId();
   const condition = textVersion && data.conditions.find((one) => one.id === textVersion.condition);
   const versionWho = condition?.label ?? textVersion?.condition ?? "";
-  // Who a pair's second version is for, as its tab says it, or its condition where the parts don't have it.
+  // Who a template's conditional variant is for, as its tab says it, or its condition where the site has no words
+  // for it.
   const conditionWords = (id: string) => data.conditions.find((one) => one.id === id)?.label ?? id;
   const versionCovers = condition?.covers ?? 0;
   // Whose words are new, to go to WhatsApp for approval: neither an approved variant's nor with it already.
