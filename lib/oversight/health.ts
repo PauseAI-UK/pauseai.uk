@@ -49,7 +49,7 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
 /** How long after a job's run was due it may still arrive, before the job is late. */
-export const LATE_AFTER_MS: Record<JobSchedule, number> = {
+const LATE_AFTER_MS: Record<JobSchedule, number> = {
   frequent: 15 * MINUTE,
   "quarter-hour": 45 * MINUTE,
   hourly: 2 * HOUR,
@@ -60,7 +60,7 @@ export const LATE_AFTER_MS: Record<JobSchedule, number> = {
 export const WRONG_IN_A_ROW = 3;
 
 /** Runs this close together are one time: a run that fails and is tried again at once is one bad run. */
-export const SAME_TIME_MS = MINUTE;
+const SAME_TIME_MS = MINUTE;
 
 /** How many of a job's newest runs are read, enough for WRONG_IN_A_ROW times each tried three times. */
 export const RUNS_READ = WRONG_IN_A_ROW * 3;
@@ -125,9 +125,9 @@ export const EMAILS_FAILED_IN_A_ROW = 3;
 export const TEXTS_FROM_HOURS = 3 * 24;
 export const TEXTS_TO_HOURS = 2;
 /** Fewer texts than this say nothing either way. */
-export const TEXTS_ENOUGH = 50;
+const TEXTS_ENOUGH = 50;
 /** The share of the texts that must have been delivered. A broadcast loses a few to numbers that have left WhatsApp. */
-export const TEXTS_DELIVERED_SHARE = 0.5;
+const TEXTS_DELIVERED_SHARE = 0.5;
 
 /** WhatsApp sending's answer, from how many texts were handed over in its hours and how many of them arrived. */
 export function textsFound(handed: number, delivered: number): Found {

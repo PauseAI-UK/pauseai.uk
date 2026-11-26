@@ -37,6 +37,7 @@ import { letterReply } from "@/lib/server/outside-services/blobs.server";
 import { RELAY_CAP } from "./relays.server";
 import { lettersCopy } from "./copy";
 import { jobProblems } from "@/lib/jobs/copy";
+import { staffAccount } from "@/lib/problems";
 
 const REQUEST = new Request("https://pauseai.uk/api/cron/read-gmail", { method: "POST" });
 const MP = '"Testy McTestface MP" <test-mp@parliament.example>';
@@ -407,7 +408,11 @@ describeWithDatabase("reading the letters inbox", () => {
     );
     // Mail a person has to look at is a problem of the run, told by the alert above.
     expect(runStatus(run)).toBe("problems");
-    expect(run.problems).toEqual([{ ...jobProblems.notUnderstood({ count: 3 }), told: true }]);
+    expect(run.problems).toEqual([
+      // The policy inbox, which these tests set and don't connect.
+      { ...jobProblems.notConnected({ account: staffAccount("policy@example.org") }), told: true },
+      { ...jobProblems.notUnderstood({ count: 3 }), told: true },
+    ]);
   });
 
   it("doesn't understand a stranger answering one of our emails at the plain address, or writing to the MP's proxy", async () => {

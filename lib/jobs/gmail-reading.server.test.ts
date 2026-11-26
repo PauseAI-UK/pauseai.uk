@@ -697,19 +697,20 @@ describeWithDatabase("reading Gmail", () => {
     expect(sent.map((s) => s.Subject)).toEqual([emailCopy.notifications.gmailDisconnected.subject("al@pauseai.uk")]);
   });
 
-  it("says each run that the letters or the policy inbox isn't connected, and tells the notification inbox once", async () => {
+  it("says each run that the letters or the policy inbox isn't connected, without an email of the run's", async () => {
     const sent = notifications();
     vi.stubEnv("POLICY_INBOX", "policy@pauseai.uk");
     vi.spyOn(console, "error").mockImplementation(() => {});
     await connectTestGmail(JO, "8");
     mailbox({});
-    const missing = [LETTERS_INBOX, "policy@pauseai.uk"].map((inbox) =>
-      jobProblems.notConnected({ account: staffAccount(inbox) }),
-    );
+    const missing = [LETTERS_INBOX, "policy@pauseai.uk"].map((inbox) => ({
+      ...jobProblems.notConnected({ account: staffAccount(inbox) }),
+      told: true,
+    }));
     await read();
     await read();
     expect((await listRuns("read-gmail")).map((run) => run.problems)).toEqual([missing, missing]);
-    expect(sent).toHaveLength(1);
+    expect(sent).toEqual([]);
     // Connected, the policy inbox is read like any account; and a site with no letters inbox has none to connect.
     await connectTestGmail("policy@pauseai.uk", "8");
     vi.stubEnv("LETTERS_INBOX", "");

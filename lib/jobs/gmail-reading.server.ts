@@ -349,11 +349,13 @@ async function readAll(request: Request | undefined): Promise<Ran<GmailReadResul
       });
     }
   }
-  // The two inboxes the site depends on, tried every run whether connected or not, so that one Google
-  // disconnected, which is no longer among the accounts read, goes on being a problem of each run.
+  // The two inboxes the site depends on, looked for every run, so that one Google disconnected, which is no
+  // longer among the accounts read, goes on being a problem of each run, for the health check to see
+  // (lib/oversight/health.ts). Staff were told when it was disconnected (gmail-accounts.server.ts), so a run's
+  // email leaves it out.
   for (const inbox of [lettersInbox(), config.policyInbox]) {
     if (inbox && !accounts.some((read) => read.account === inbox)) {
-      problem(jobProblems.notConnected({ account: staffAccount(inbox) }));
+      problem(jobProblems.notConnected({ account: staffAccount(inbox) }), undefined, { told: true });
     }
   }
   const found = accounts.some(
