@@ -59,7 +59,7 @@ we keep a copy. That does the job of "CC us" in the notes, and better,
 as the site sees every reply.
 
 So asking an MP for a meeting would be a campaign. Campaigns are
-defined in code now: their letters, their pages and their order. Three
+defined in code now: their letters, their pages and their order. Four
 ways to make one for each lobbying day:
 
 O5. A new campaign in code for each lobbying day, as the Sobel bill's
@@ -75,8 +75,19 @@ letter, its subject and its dates. This helps every campaign, not just
 lobbying, but it's the most work, and it has to keep each letter as it
 was sent, even after the campaign has been edited.
 
-I recommend O6 for PauseCon. O7 is worth its own plan if staff want to
-start campaigns without a developer.
+O14. The middle way. Staff edit a campaign's subject and letter on the
+staff site, and the rest stays in code: the campaign's page and its
+words, its attachments, and its place in the order. The letter editor
+would be the broadcast writer's, with the MP's fields (their name,
+constituency, and what they've already done) where a broadcast has the
+reader's. Each sent letter is kept whole already, but the site measures
+how much of the letter a supporter changed, so a letter keeps which
+version it started from.
+
+We're doing O14 for now. With it, a lobbying day's letter is a campaign
+whose subject and letter staff write for that day, so it covers O6
+too. O7 is worth its own plan if staff later want to start whole
+campaigns without a developer.
 
 ## What the MP said
 
