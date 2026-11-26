@@ -12,6 +12,7 @@ import {
   textCost,
   broadcastScheduleProblems,
   misplacedFields,
+  sameTemplate,
   sameWords,
   rejectionWords,
   broadcastTerms,
@@ -492,6 +493,11 @@ describe("broadcastScheduleProblems", () => {
     sameWords: false,
     numbered: true,
     sends: true,
+    header: null,
+    place: null,
+    pictureId: null,
+    buttons: [],
+    textVersion: null,
   };
 
   it("finds nothing wrong with one ready to go, even with no Gmail connected", () => {
@@ -607,6 +613,155 @@ describe("broadcastScheduleProblems", () => {
     ).toBe(true);
     expect(sameWords(hi, [words(text("Hi "), field("name"), text(", see you there."))])).toBe(false);
     expect(sameWords(hi, [])).toBe(false);
+  });
+
+  it("finds two texts one template (sameTemplate) when their words, top, and buttons' words and addresses are the same", () => {
+    const one = { body: WORDS, header: "location" as const, buttons: [{ text: "Coming" }, { text: "Not coming" }] };
+    expect(sameTemplate(one, { ...one, buttons: [{ text: " Coming " }, { text: "Not coming" }] })).toBe(true);
+    expect(sameTemplate(one, { ...one, body: EMPTY_MAILING_DOC })).toBe(false);
+    expect(sameTemplate(one, { ...one, header: null })).toBe(false);
+    expect(sameTemplate(one, { ...one, buttons: [{ text: "Coming" }] })).toBe(false);
+    expect(sameTemplate(one, { ...one, buttons: [{ text: "Not coming" }, { text: "Coming" }] })).toBe(false);
+  });
+
+  it("finds two texts one template whose link buttons open the same addresses, as WhatsApp orders them", () => {
+    const link = { text: "Read", url: "https://pauseai.uk/news" };
+    const one = { body: WORDS, header: null, buttons: [link, { text: "Coming" }] };
+    expect(
+      sameTemplate(one, { ...one, buttons: [{ text: "Coming" }, { ...link, url: " https://pauseai.uk/news " }] }),
+    ).toBe(true);
+    expect(sameTemplate(one, { ...one, buttons: [{ ...link, url: "https://pauseai.uk" }, { text: "Coming" }] })).toBe(
+      false,
+    );
+    expect(sameTemplate(one, { ...one, buttons: [{ text: "Read" }, { text: "Coming" }] })).toBe(false);
+  });
+
+  it("wants a text whose top is a map to have a place, but not one without a top, nor an email", () => {
+    const text = { ...good, channel: "text" as const };
+    const place = { name: "Padella", address: "6 Southwark St", latitude: 51.5, longitude: -0.09 };
+    expect(broadcastScheduleProblems({ ...text, header: "location" })).toEqual(["no-place"]);
+    expect(broadcastScheduleProblems({ ...text, header: "location", place })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...good, header: "location" })).toEqual([]);
+  });
+
+  it("wants a text's place to have a name and an address, and its version's", () => {
+    const text = { ...good, channel: "text" as const };
+    const place = { name: "Padella", address: "6 Southwark St", latitude: 51.5, longitude: -0.09 };
+    expect(broadcastScheduleProblems({ ...text, header: "location", place: { ...place, name: " " } })).toEqual([
+      "place-words",
+    ]);
+    expect(broadcastScheduleProblems({ ...text, header: "location", place: { ...place, address: "" } })).toEqual([
+      "place-words",
+    ]);
+    const version = {
+      body: WORDS,
+      approved: true,
+      sameWords: false,
+      header: "location" as const,
+      pictureId: null,
+      buttons: [],
+    };
+    expect(
+      broadcastScheduleProblems({ ...text, textVersion: { ...version, place: { ...place, address: "" } } }),
+    ).toEqual(["place-words"]);
+  });
+
+  it("wants a text whose top is a picture to have one, but not an email", () => {
+    const text = { ...good, channel: "text" as const };
+    expect(broadcastScheduleProblems({ ...text, header: "image" })).toEqual(["no-picture"]);
+    expect(
+      broadcastScheduleProblems({ ...text, header: "image", pictureId: "00000000-0000-4000-8000-000000000001" }),
+    ).toEqual([]);
+    expect(broadcastScheduleProblems({ ...good, header: "image" })).toEqual([]);
+  });
+
+  it("wants each of a text's buttons to have words, 25 characters at most, but an email's are no matter", () => {
+    const text = { ...good, channel: "text" as const };
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }] })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }, { text: " " }] })).toEqual([
+      "button-no-words",
+    ]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "x".repeat(26) }] })).toEqual(["button-too-long"]);
+    expect(broadcastScheduleProblems({ ...good, buttons: [{ text: "" }] })).toEqual([]);
+  });
+
+  it("wants each of a text's link buttons to open a web page, two at most, and no reply buttons with them", () => {
+    const text = { ...good, channel: "text" as const };
+    const link = { text: "Read", url: "https://pauseai.uk/news" };
+    expect(broadcastScheduleProblems({ ...text, buttons: [link, link] })).toEqual([]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ text: "Coming" }, link, link] })).toEqual([
+      "buttons-mixed",
+    ]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ ...link, url: "" }] })).toEqual(["link-no-address"]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [{ ...link, url: "pauseai.uk" }] })).toEqual([
+      "link-not-address",
+    ]);
+    expect(broadcastScheduleProblems({ ...text, buttons: [link, link, link] })).toEqual(["too-many-links"]);
+  });
+
+  it("checks a text's second version as it does its first", () => {
+    const field = (name: string): MailingInline => ({ type: "field", attrs: { field: name } });
+    const text = { ...good, channel: "text" as const };
+    type Version = NonNullable<SchedulingBroadcast["textVersion"]>;
+    const version: Version = {
+      body: WORDS,
+      approved: true,
+      sameWords: false,
+      header: null,
+      place: null,
+      pictureId: null,
+      buttons: [],
+    };
+    const problems = (textVersion: Partial<Version>, broadcast: Partial<SchedulingBroadcast> = {}) =>
+      broadcastScheduleProblems({ ...text, ...broadcast, textVersion: { ...version, ...textVersion } });
+    expect(problems({})).toEqual([]);
+    expect(problems({ body: EMPTY_MAILING_DOC })).toEqual(["no-template"]);
+    // New words in either version are a template to name.
+    expect(problems({ approved: false }, { title: " " })).toEqual(["no-name"]);
+    expect(problems({}, { title: " " })).toEqual([]);
+    const misplaced: MailingDoc = { type: "doc", content: [{ type: "paragraph", content: [field("firstName")] }] };
+    expect(problems({ approved: false, body: misplaced })).toEqual(["field-edge"]);
+    // An approved second version is WhatsApp's to judge.
+    expect(problems({ body: misplaced, sameWords: true })).toEqual([]);
+    expect(problems({ approved: false, sameWords: true })).toEqual(["same-words"]);
+    expect(problems({ header: "location" })).toEqual(["no-place"]);
+    expect(problems({ header: "image" })).toEqual(["no-picture"]);
+    expect(problems({ buttons: [{ text: "" }] })).toEqual(["button-no-words"]);
+    // An email has no versions to check.
+    expect(broadcastScheduleProblems({ ...good, textVersion: { ...version, body: EMPTY_MAILING_DOC } })).toEqual([]);
+  });
+
+  it("stops two versions with the same new words but another top or buttons, which WhatsApp would reject as a duplicate", () => {
+    const text = { ...good, channel: "text" as const, approved: false };
+    type Version = NonNullable<SchedulingBroadcast["textVersion"]>;
+    const version: Version = {
+      body: WORDS,
+      approved: false,
+      sameWords: false,
+      header: null,
+      place: null,
+      pictureId: null,
+      buttons: [{ text: "Coming" }],
+    };
+    const problems = (textVersion: Partial<Version>, broadcast: Partial<SchedulingBroadcast> = {}) =>
+      broadcastScheduleProblems({ ...text, ...broadcast, textVersion: { ...version, ...textVersion } });
+    expect(problems({})).toEqual(["versions-same-words"]);
+    const place = { name: "Parliament Square", address: "London SW1P 3BD", latitude: 51.5, longitude: -0.127 };
+    expect(problems({ buttons: [], header: "location", place })).toEqual(["versions-same-words"]);
+    // The same top and buttons too are one template for both, whatever each one's place.
+    expect(problems({ buttons: [] })).toEqual([]);
+    expect(
+      problems({ header: "location", place }, { header: "location", place, buttons: [{ text: "Coming" }] }),
+    ).toEqual([]);
+    // Other words are another template.
+    const other: MailingDoc = {
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Hi" }] }],
+    };
+    expect(problems({ body: other })).toEqual([]);
+    // Either WhatsApp has approved already is its to judge.
+    expect(problems({ approved: true })).toEqual([]);
+    expect(problems({}, { approved: true })).toEqual([]);
   });
 
   it("wants a WhatsApp number for a text to come from, but not for an email", () => {

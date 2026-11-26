@@ -27,6 +27,12 @@ export type OutsideInit = RequestInit & {
    */
   retries?: number;
   /**
+   * The longest it waits to ask again, in seconds: told to wait longer, it
+   * gives the answer it has, for the caller to carry on without the service,
+   * as a page someone is waiting on can't wait long.
+   */
+  mostWait?: number;
+  /**
    * For a URL someone typed: one whose host is or resolves to an internal
    * address, such as a loopback, private or link-local one, throws an
    * OutsideFailure of kind `unreachable`, and nothing is sent
@@ -38,8 +44,8 @@ export type OutsideInit = RequestInit & {
 
 /**
  * fetch() for calls to outside services (Luma, Airtable, postcodes.io, ...). With
- * DATA_FIXTURES=1 the service's fake answers instead, unless the storyboard
- * flow has made the service fail (lib/server/fixtures/failing-services.ts), so a test build
+ * DATA_FIXTURES=1 the service's fake answers instead, unless it's one of
+ * config.realServices, or the storyboard flow has made the service fail (lib/server/fixtures/failing-services.ts), so a test build
  * renders the same data every time and works offline (docs/testing.md).
  * The calling code still parses the response, so it is exercised either way.
  * A service that can't be reached, or doesn't answer in time, throws an
@@ -48,8 +54,8 @@ export type OutsideInit = RequestInit & {
  * refusal it is.
  */
 export async function outsideFetch({ service, fake }: Outside, url: string, init: OutsideInit = {}): Promise<Response> {
-  const { retries = 0, publicOnly = false, ...request } = init;
-  if (config.fixtures) {
+  const { retries = 0, mostWait = Infinity, publicOnly = false, ...request } = init;
+  if (config.fixtures && !config.realServices.includes(service)) {
     // The storyboard flow's database, for the fakes that keep what they're sent, one set each flow, and the
     // services it has made fail. Imported here, as they read Node's files, so a component that renders on
     // fixture data in the browser doesn't load them.
@@ -71,7 +77,9 @@ export async function outsideFetch({ service, fake }: Outside, url: string, init
   for (let attempt = 0; ; attempt++) {
     const res = await answer(service, url, request);
     if (!ASKED_AGAIN.includes(res.status) || attempt === retries) return res;
-    await wait((retryAfterOf(res) ?? 2 ** attempt) * 1000);
+    const seconds = retryAfterOf(res) ?? 2 ** attempt;
+    if (seconds > mostWait) return res;
+    await wait(seconds * 1000);
   }
 }
 

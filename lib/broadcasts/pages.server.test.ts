@@ -19,7 +19,7 @@ import {
 } from "./pages.server";
 import { choosingConsent, choosingBroadcast, broadcastsToSupporter, withChoosing } from "./supporter-pages.server";
 import { broadcastsCopy } from "./copy";
-import { restsUntil, sendingStopsAt, waitEndsAt } from "./broadcasts";
+import { registeredFor, restsUntil, sendingStopsAt, waitEndsAt } from "./broadcasts";
 
 const JO = "jo@pauseai.uk";
 const HELLO = "hello@pauseai.uk";
@@ -627,13 +627,39 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [id, pending]);
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [ready, approved]);
     await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [turnedDown, rejected]);
+    // A template with a conditional variant stands by both: waiting or rejected if either is, approved once both are.
+    const on = async (conditional: { status: string; reason?: string }) => {
+      const draft = (await createBroadcastDraft(JO, TEXT_FILTER))!;
+      const template = await addTemplate("Fog on Friday", { condition: "has:firstName", conditional });
+      await query("UPDATE mailings SET template_id = $2 WHERE id = $1", [draft, template]);
+      return draft;
+    };
+    const halfWaiting = await on({ status: "pending" });
+    const bothReady = await on({ status: "approved" });
+    const halfTurnedDown = await on({ status: "rejected" });
     const drafts = (await broadcastsPage()).groups[0].mailings;
+    // Each says who its conditional variant is for, as stored where no part has words for it; none for one variant.
+    expect(drafts.find((m) => m.id === bothReady)!.variantFor).toBe("has:firstName");
+    expect(drafts.find((m) => m.id === plain)!.variantFor).toBeNull();
     expect(drafts.map((m) => [m.id, m.waiting, m.approved, m.rejected]).sort()).toEqual([
       [plain, false, false, false],
       [id, true, false, false],
       [ready, false, true, false],
       [turnedDown, false, false, true],
+      [halfWaiting, true, false, false],
+      [bothReady, false, true, false],
+      [halfTurnedDown, false, false, true],
     ]);
+  });
+
+  it("says who a broadcast's conditional variant is for in the words of the part that has it, in the list and on its page", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane", { phone: "07700 900001" });
+    const template = await addTemplate("Ice on Sunday", { condition: registeredFor("evt-1"), conditional: {} });
+    const id = await scheduled(TEXT_FILTER, { templateId: template });
+    const who = broadcastsCopy.broadcastPages.conditions.registered("evt-1");
+    const [{ mailings }] = (await broadcastsPage()).groups;
+    expect(mailings.map((m) => [m.id, m.variantFor])).toEqual([[id, who]]);
+    expect(await broadcastPageData(id, {}, JO)).toMatchObject({ kind: "written", summary: { variantFor: who } });
   });
 
   it("lists who one scheduled would go to now, by name, a page at a time, each yet to be sent", async () => {
@@ -663,6 +689,8 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       address: "+447700900001",
       merge: { values: { firstName: "Jane" } },
       events: [],
+      // Its broadcast as written, for the version they got, its top and buttons.
+      written: { id, channel: "text", textVersion: null },
     });
     await query(
       "INSERT INTO broadcast_message_events (message_id, kind, at) VALUES ($1, 'delivered', '2026-10-20T08:01:00Z'), ($1, 'read', '2026-10-20T08:02:00Z')",
@@ -681,6 +709,17 @@ describeWithDatabase("the pages of broadcasts to supporters", () => {
       merge: null,
       supporterId: null,
     });
+  });
+
+  it("gives an email's copy no text as written, nor a text's whose broadcast has no words kept", async () => {
+    await addFollower("usr-1", "jane@example.com", "Jane Smith", { phone: "07700 900001" });
+    const email = await scheduled(EMAIL_FILTER, { subject: "Events", body: EVENT_WORDS });
+    const [emailCopy] = await sent(email, [["delivered", null]]);
+    expect(await messageCopy(email, emailCopy)).toMatchObject({ channel: "email", written: null });
+    const text = await scheduled(TEXT_FILTER, { templateId: await addTemplate("March day") });
+    const [textCopy] = await sent(text, [["delivered", null]]);
+    await query("UPDATE mailings SET body = NULL, state = 'sent' WHERE id = $1", [text]);
+    expect(await messageCopy(text, textCopy)).toMatchObject({ channel: "text", written: null });
   });
 
   it("lists the broadcasts a supporter was sent, newest first", async () => {

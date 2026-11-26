@@ -8,6 +8,11 @@ import { broadcastConsentGallery } from "@/app/(staff)/staff/_components/broadca
 import { broadcastSupportersGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastSupporters.gallery";
 import { channelWriterGallery } from "@/app/(staff)/staff/_components/broadcasts/ChannelWriter.gallery";
 import { broadcastWriterGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastWriter.gallery";
+import { textTopGallery } from "@/app/(staff)/staff/_components/broadcasts/TextTop.gallery";
+import { textButtonsGallery } from "@/app/(staff)/staff/_components/broadcasts/TextButtons.gallery";
+import { placeMapGallery } from "@/app/(staff)/staff/_components/broadcasts/PlaceMap.gallery";
+import { textVersionsGallery } from "@/app/(staff)/staff/_components/broadcasts/TextVersions.gallery";
+import { twoVariantsGallery } from "@/app/(staff)/staff/_components/broadcasts/TwoVariants.gallery";
 import { broadcastTimesGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastTimes.gallery";
 import { broadcastsOverviewGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastsOverview.gallery";
 import { broadcastViewGallery } from "@/app/(staff)/staff/_components/broadcasts/BroadcastView.gallery";
@@ -18,6 +23,7 @@ import { replyReactionsGallery } from "@/app/(staff)/staff/_components/broadcast
 import { copyReplyGallery } from "@/app/(staff)/staff/_components/broadcasts/CopyReply.gallery";
 import { supporterBroadcastsGallery } from "@/app/(staff)/staff/_components/broadcasts/SupporterBroadcasts.gallery";
 import { textBubbleGallery } from "@/app/(staff)/staff/_components/broadcasts/TextBubble.gallery";
+import { writtenTextGallery } from "@/app/(staff)/staff/_components/broadcasts/WrittenText.gallery";
 import { textFoldGallery } from "@/app/(staff)/staff/_components/broadcasts/TextFold.gallery";
 
 // BroadcastView's examples, with how a copy went between its first two.
@@ -33,6 +39,11 @@ export const staffBroadcasts: Group = {
     ...broadcastSupportersGallery,
     ...channelWriterGallery,
     ...broadcastWriterGallery,
+    ...textTopGallery,
+    ...textButtonsGallery,
+    ...placeMapGallery,
+    ...textVersionsGallery,
+    ...twoVariantsGallery,
     ...broadcastTimesGallery,
     ...draftWriterGallery,
     ...broadcastsOverviewGallery,
@@ -48,6 +59,7 @@ export const staffBroadcasts: Group = {
     ...copyReplyGallery,
     ...supporterBroadcastsGallery,
     ...textBubbleGallery,
+    ...writtenTextGallery,
     ...textFoldGallery,
   ],
 };

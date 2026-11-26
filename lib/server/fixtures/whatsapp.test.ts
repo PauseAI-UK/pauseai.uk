@@ -64,6 +64,43 @@ it("writes each send to the outbox: a template with its fields, words of our own
     method: "POST",
     body: JSON.stringify({ to: "447700900001", type: "text", text: { body: "Thanks, see you there" } }),
   });
+  whatsAppResponse(at(`${FIXTURE_PHONE_ID}/messages`), {
+    method: "POST",
+    body: JSON.stringify({
+      to: "447700900001",
+      type: "template",
+      template: {
+        name: "march_day_2",
+        components: [
+          {
+            type: "header",
+            parameters: [
+              {
+                type: "location",
+                location: { latitude: "51.5005", longitude: "-0.1268", name: "Parliament Square", address: "London" },
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  });
+  whatsAppResponse(at(`${FIXTURE_PHONE_ID}/messages`), {
+    method: "POST",
+    body: JSON.stringify({
+      to: "447700900001",
+      type: "template",
+      template: {
+        name: "march_day_3",
+        components: [
+          {
+            type: "header",
+            parameters: [{ type: "image", image: { link: "https://pauseai.uk/api/text-pictures/1" } }],
+          },
+        ],
+      },
+    }),
+  });
   for (const emoji of ["👍", ""]) {
     whatsAppResponse(at(`${FIXTURE_PHONE_ID}/messages`), {
       method: "POST",
@@ -74,9 +111,24 @@ it("writes each send to the outbox: a template with its fields, words of our own
   expect(written()).toEqual([
     "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_1\n  first_name: Jane\n",
     "WhatsApp text from +44 7700 900000 to +447700900001\n\nThanks, see you there\n",
+    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_2\nPlace: Parliament Square (51.5005, -0.1268)\nAddress: London\n",
+    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_3\nPicture: https://pauseai.uk/api/text-pictures/1\n",
     "WhatsApp reaction from +44 7700 900000 to +447700900001\n\n👍 on wamid.theirs\n",
     "WhatsApp reaction from +44 7700 900000 to +447700900001\n\nOurs taken away from wamid.theirs\n",
   ]);
+});
+
+it("takes a picture uploaded for a template's approval, a session and then the file, giving its handle", async () => {
+  expect(await json(whatsAppResponse(at("fixture-app/uploads"), { method: "POST" }))).toEqual({
+    id: "upload:fixture-session",
+  });
+  expect(await json(whatsAppResponse(at("upload:fixture-session"), { method: "POST", body: "bytes" }))).toEqual({
+    h: "4::fixture-handle",
+  });
+  // Not an upload, nor a session it gave.
+  expect(whatsAppResponse(at("fixture-app/uploads"))).toBeUndefined();
+  expect(whatsAppResponse(at("upload:fixture-session"))).toBeUndefined();
+  expect(written()).toEqual([]);
 });
 
 it("writes to tmp/outbox in the dev server, and nowhere in the tests without an outbox", () => {
@@ -115,6 +167,42 @@ it("takes templates for approval, writing each to the outbox, deletes them, and 
   expect(written()).toEqual([
     "WhatsApp template sent for approval: march_day_1\n\nHi {{first_name}}, the march is on Saturday.\n\nReply STOP to stop event texts\n",
   ]);
+  whatsAppResponse(at("fixture-account/message_templates"), {
+    method: "POST",
+    body: JSON.stringify({
+      name: "march_day_2",
+      components: [
+        { type: "HEADER", format: "LOCATION" },
+        { type: "BODY", text: "We meet here." },
+        { type: "FOOTER", text: "Reply STOP" },
+        { type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "I'm coming" }] },
+      ],
+    }),
+  });
+  expect(written()[1]).toBe(
+    "WhatsApp template sent for approval: march_day_2\n\n[A place, its map given with each send]\n\nWe meet here.\n\nReply STOP\n\n[I'm coming]\n",
+  );
+  whatsAppResponse(at("fixture-account/message_templates"), {
+    method: "POST",
+    body: JSON.stringify({
+      name: "march_day_3",
+      components: [
+        { type: "HEADER", format: "IMAGE", example: { header_handle: ["4::fixture-handle"] } },
+        { type: "BODY", text: "Our banner." },
+        { type: "FOOTER", text: "Reply STOP" },
+        {
+          type: "BUTTONS",
+          buttons: [
+            { type: "QUICK_REPLY", text: "I'm coming" },
+            { type: "URL", text: "Read more", url: "https://pauseai.uk/march" },
+          ],
+        },
+      ],
+    }),
+  });
+  expect(written()[2]).toBe(
+    "WhatsApp template sent for approval: march_day_3\n\n[A picture, given with each send]\n\nOur banner.\n\nReply STOP\n\n[I'm coming]\n[Read more → https://pauseai.uk/march]\n",
+  );
   expect(await json(whatsAppResponse(at("fixture-account/message_templates"), { method: "DELETE" }))).toEqual({
     success: true,
   });

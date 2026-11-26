@@ -1,0 +1,115 @@
+/* A part only some recipients get: a green dashed box, or a grey one for all
+   but some. Its body is a flow root, so the last paragraph's own margin is
+   the space under it, inside the box. */
+.box {
+  position: relative;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3) 0;
+  border: 1px dashed var(--status-green);
+  border-radius: var(--radius-md);
+  background: var(--status-green-bg);
+}
+
+/* Room at the right for its ×. */
+.box[data-closable] {
+  padding-right: calc(var(--space-3) + 22px);
+}
+
+.box[data-except] {
+  border-color: var(--text-secondary);
+  background: var(--surface-2);
+}
+
+.label {
+  margin: 0 0 var(--space-1);
+  color: var(--status-green);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  user-select: none;
+}
+
+.box[data-except] .label {
+  color: var(--text-secondary);
+}
+
+.body {
+  display: flow-root;
+}
+
+/* Its ×, which makes it for everyone: in its top right corner, just the ×,
+   with no ring round it till the mouse is over it. */
+.close {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+}
+
+.close:not(:hover) {
+  border-color: transparent;
+}
+
+/* A button in a part's look: green dashed, or grey for all but some, solid
+   under the mouse. As a tab, the one open is solid, the other paler. The same
+   look on words that do nothing, a text's version's heading, is still under
+   the mouse, with no pointer. */
+.button,
+.exceptButton,
+.mark {
+  border: 1px dashed var(--status-green);
+  border-radius: var(--radius-md);
+  background: var(--status-green-bg);
+  color: var(--status-green);
+  font: inherit;
+  font-weight: 600;
+}
+
+.button,
+.exceptButton {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* A small mark in a part's look, beside a name: an icon and a word or two, on one line. Inline, not flex, so its
+   icon is centred on its words (IconText). */
+.mark {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.exceptButton {
+  border-color: var(--text-secondary);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+}
+
+button.button,
+button.exceptButton {
+  cursor: pointer;
+}
+
+button.button:hover,
+button.exceptButton:hover,
+.button[aria-selected="true"],
+.exceptButton[aria-selected="true"] {
+  border-style: solid;
+}
+
+.button[aria-selected="false"],
+.exceptButton[aria-selected="false"] {
+  background: none;
+}
+
+/* A button's words, on one line, cut short with "…" where the row is too narrow: a long event's name on a phone. */
+.words {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

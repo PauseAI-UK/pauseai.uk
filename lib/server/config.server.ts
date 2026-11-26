@@ -29,6 +29,15 @@ export const config = {
     return process.env.DATA_FIXTURES === "1";
   },
   /**
+   * The outside services a fixture build asks for real all the same
+   * (REAL_SERVICES, a list such as "photon,google-maps"), to try what they
+   * answer by hand (REAL_SERVICES=photon,google-maps npm run serve). None
+   * by default.
+   */
+  get realServices(): string[] {
+    return (process.env.REAL_SERVICES ?? "").split(",").filter(Boolean);
+  },
+  /**
    * The live site: Netlify's deploy context is "production". DEPLOY_CONTEXT is
    * Netlify's CONTEXT, fixed at build time by next.config.ts.
    */
@@ -103,6 +112,10 @@ export const config = {
   /** The Meta app's secret, which signs WhatsApp's webhooks (X-Hub-Signature-256). */
   get whatsappAppSecret(): string | undefined {
     return value(process.env.WHATSAPP_APP_SECRET);
+  },
+  /** The Meta app's ID, which a template's picture is uploaded through for its approval (uploadExample). */
+  get whatsappAppId(): string | undefined {
+    return value(process.env.WHATSAPP_APP_ID);
   },
   get lumaApiKey(): string | undefined {
     return value(process.env.LUMA_API_KEY?.trim());

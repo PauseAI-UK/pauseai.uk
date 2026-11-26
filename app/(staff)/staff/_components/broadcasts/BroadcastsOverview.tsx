@@ -2,6 +2,7 @@ import type { MailingGroup } from "@/lib/mailings/groups";
 import type { BroadcastSummary } from "@/lib/broadcasts/pages.server";
 import { textSender } from "@/lib/broadcasts/broadcasts";
 import MailingsOverview, { type OverviewLook, type Sentence } from "../mailings/MailingsOverview";
+import TwoVariants from "./TwoVariants";
 import { BroadcastChannelMark, broadcastCounts, pauseInBrief } from "./BroadcastView";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 
@@ -39,6 +40,8 @@ const LOOK: OverviewLook<BroadcastSummary> = {
   untitled: copy.untitled,
   none: copy.none,
   mark: (broadcast) => <BroadcastChannelMark channel={broadcast.channel} />,
+  // One on a template with two variants says so beside its title.
+  after: (broadcast) => broadcast.variantFor && <TwoVariants who={broadcast.variantFor} />,
   // The channel's word alone, as the mark beside it is its picture.
   lead: (broadcast) => copy.channels[broadcast.channel],
   // A text's number, which isn't an address to put in <>.

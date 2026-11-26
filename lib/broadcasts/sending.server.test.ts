@@ -1,16 +1,18 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { emailSettingsCopy } from "@/lib/content/email-settings";
 import { query } from "@/lib/server/db.server";
 import { staffTime } from "@/lib/staff-time";
-import { addFollower, addTemplate, EVENT_WORDS } from "@/tests/broadcast-fixtures";
+import { addFollower, addTemplate, addVariant, EVENT_WORDS, variantsOf } from "@/tests/broadcast-fixtures";
 import { connectTestGmail, describeWithDatabase, refuseWrites, useTestDatabase } from "@/tests/database";
 import { server } from "@/tests/fixtures/msw";
 import { forgetNumbers } from "./channels.server";
 import { recordGmail } from "@/tests/gmail-sends";
 import { notifications, NOTIFICATIONS, type Notification } from "@/tests/notifications";
 import { createBroadcastDraft, resumeBroadcast } from "./drafts.server";
-import { sendDueBroadcasts, startDueBroadcasts } from "./sending.server";
+import { sendDueBroadcasts, startDueBroadcasts, stopTextsOn } from "./sending.server";
+import { registeredFor } from "./broadcasts";
+import { keepPicture } from "./text-pictures.server";
 import { hashOf } from "@/lib/supporters/email-settings.server";
 import { recordOptOut } from "@/lib/supporters/opt-outs.server";
 import { recordProblem } from "@/lib/email/email.server";
@@ -1028,7 +1030,9 @@ describeWithDatabase("sending texts", () => {
   async function text(status = "approved"): Promise<number> {
     const id = (await createBroadcastDraft("jo@pauseai.uk", { contact: "text:events:yes" }))!;
     const template = await addTemplate("March day", { status });
-    await query("UPDATE whatsapp_templates SET meta_name = 'march_day_' || id WHERE id = $1", [template]);
+    await query("UPDATE whatsapp_template_variants SET meta_name = 'march_day_' || id WHERE id = $1", [
+      (await variantsOf(template)).first,
+    ]);
     await query(
       `UPDATE mailings SET title = 'March day', body = $2, due_at = $3, state = 'scheduled', sent_from = '+447700900000',
          from_name = 'PauseAI UK', template_id = $4
@@ -1254,7 +1258,7 @@ describeWithDatabase("sending texts", () => {
     expect(await startDueBroadcasts()).toEqual([]);
     expect(sent.filter((email) => email.Subject === words.subject("March day"))).toHaveLength(1);
     // Approved, it waits for nothing, and goes.
-    await query("UPDATE whatsapp_templates SET status = 'approved', approved_at = now()");
+    await query("UPDATE whatsapp_template_variants SET status = 'approved', approved_at = now()");
     expect(await startDueBroadcasts()).toEqual([id]);
     expect(await stateOf(id)).toEqual({ state: "sending", waiting: false, reason: null, gaveUp: false });
     await sendDueBroadcasts(LATER);
@@ -1266,7 +1270,7 @@ describeWithDatabase("sending texts", () => {
     const sent = notifications();
     const id = await text("pending");
     expect(await startDueBroadcasts()).toEqual([]);
-    await query("UPDATE whatsapp_templates SET status = 'approved', approved_at = now()");
+    await query("UPDATE whatsapp_template_variants SET status = 'approved', approved_at = now()");
     expect(await startDueBroadcasts()).toEqual([]);
     expect(await stateOf(id)).toMatchObject({ state: "scheduled", waiting: true, reason: "pull" });
     expect(sent.filter((email) => email.Subject.startsWith("Not sent yet"))).toHaveLength(2);
@@ -1371,5 +1375,158 @@ describeWithDatabase("sending texts", () => {
       { address: "+447700900123", status: "failed" },
       { address: "+447700900124", status: "sent" },
     ]);
+  });
+
+  describe("with a second version", () => {
+    const PLACE = { name: "Parliament Square", address: "London SW1P 3JX", latitude: 51.5, longitude: -0.127 };
+
+    /** Jane, registered for evt-1, and Sam, registered for evt-2 as well, who meets the second version's condition. */
+    async function janeAndSam(): Promise<void> {
+      await addFollower("usr-jane", "jane@example.com", "Jane Smith", { phone: "+447700900123" });
+      await addFollower("usr-sam", "sam@example.com", "Sam Jones", { phone: "+447700900124" });
+      await query(
+        `INSERT INTO luma_events (id, name, url, start_at, access, city, latitude, longitude)
+         VALUES ('evt-2', 'evt-2', 'evt-2', '2026-10-08T18:00:00Z', 'manage', 'London', 51.5, -0.12)`,
+      );
+      await query(
+        `INSERT INTO luma_guests (id, event_id, user_id, approval_status, registered_at)
+         VALUES ('gst-sam-2', 'evt-2', 'usr-sam', 'approved', '2026-09-21T10:00:00Z')`,
+      );
+    }
+
+    /**
+     * Gives broadcast `id`'s template a conditional variant, for those registered for evt-2, in `status`, with a
+     * place for its header, or with the picture `picture`, which the broadcast shows there; the variant's ID.
+     */
+    async function versionOf(id: number, status = "approved", picture: string | null = null): Promise<number> {
+      const variant = await addVariant("March day, for those who came", {
+        status,
+        header: picture ? "image" : "location",
+      });
+      await query("UPDATE whatsapp_template_variants SET meta_name = 'came_' || id WHERE id = $1", [variant]);
+      await query(
+        `UPDATE whatsapp_templates SET condition = $2, conditional_variant_id = $3
+         WHERE id = (SELECT template_id FROM mailings WHERE id = $1)`,
+        [id, registeredFor("evt-2"), variant],
+      );
+      await query(
+        "INSERT INTO broadcast_headers (mailing_id, variant, place, picture_id) VALUES ($1, 'conditional', $2, $3)",
+        [id, picture ? null : JSON.stringify(PLACE), picture],
+      );
+      return variant;
+    }
+
+    /** A picture kept for a text's top; its ID. */
+    async function aPicture(): Promise<string> {
+      const kept = await keepPicture({ type: "image/png", content: Buffer.from([137, 80, 78, 71]) }, "jo@pauseai.uk");
+      if (!("id" in kept)) throw new Error("not kept");
+      return kept.id;
+    }
+
+    it("sends each person the version whose condition they meet, with its place, and everyone else the text's own", async () => {
+      await janeAndSam();
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      const theirs = await versionOf(id);
+      expect(await startDueBroadcasts()).toEqual([id]);
+      expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 2, failed: 0, left: 0 });
+      const to = (number: string) => sent.find((one) => one.to === number)!.template;
+      // Jane gets the text's own, which has no place.
+      expect(to("447700900123")).toMatchObject({
+        name: expect.stringMatching(/^march_day_\d+$/),
+        components: [{ type: "body" }],
+      });
+      expect(to("447700900124")).toEqual({
+        name: `came_${theirs}`,
+        language: { code: "en_GB" },
+        components: [
+          {
+            type: "header",
+            parameters: [
+              {
+                type: "location",
+                location: { latitude: "51.5", longitude: "-0.127", name: PLACE.name, address: PLACE.address },
+              },
+            ],
+          },
+          { type: "body", parameters: [{ type: "text", parameter_name: "first_name", text: "Sam" }] },
+        ],
+      });
+    });
+
+    it("sends each version's picture by its address on the site, the text's own and the second version's", async () => {
+      await janeAndSam();
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      const [mine, theirs] = [await aPicture(), await aPicture()];
+      await query(
+        `UPDATE whatsapp_template_variants SET header = 'image'
+         WHERE id = (SELECT t.default_variant_id FROM whatsapp_templates t JOIN mailings m ON m.template_id = t.id
+                     WHERE m.id = $1)`,
+        [id],
+      );
+      // A place kept from before its header was a picture is no part of it.
+      await query(
+        "INSERT INTO broadcast_headers (mailing_id, variant, place, picture_id) VALUES ($1, 'default', $3, $2)",
+        [id, mine, JSON.stringify(PLACE)],
+      );
+      await versionOf(id, "approved", theirs);
+      expect(await startDueBroadcasts()).toEqual([id]);
+      expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 2, failed: 0, left: 0 });
+      const header = (number: string) => sent.find((one) => one.to === number)!.template.components[0];
+      const shows = (picture: string) => ({
+        type: "header",
+        parameters: [{ type: "image", image: { link: `https://pauseai.uk/api/text-pictures/${picture}` } }],
+      });
+      expect(header("447700900123")).toEqual(shows(mine));
+      expect(header("447700900124")).toEqual(shows(theirs));
+      expect(sent[0].template.components).toHaveLength(2);
+    });
+
+    it("waits past its time while the second version's template waits for WhatsApp, though the text's own is approved", async () => {
+      await janeAndSam();
+      await pulled();
+      const id = await text();
+      await versionOf(id, "pending");
+      expect(await startDueBroadcasts()).toEqual([]);
+      expect(await stateOf(id)).toEqual({ state: "scheduled", waiting: true, reason: "approval", gaveUp: false });
+    });
+
+    it("sends nothing of one whose second version WhatsApp rejected, though the text's own is approved", async () => {
+      await janeAndSam();
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      await versionOf(id, "rejected");
+      await startDueBroadcasts();
+      await sendDueBroadcasts(LATER);
+      expect(sent).toEqual([]);
+      expect(await stateOf(id)).toMatchObject({ state: "cancelled", gaveUp: true, reason: "template" });
+    });
+
+    it("stops one whose second version's words were never sent to WhatsApp when it sends", async () => {
+      await janeAndSam();
+      const sent = whatsApp();
+      await pulled();
+      const id = await text();
+      await versionOf(id, "draft");
+      expect(await startDueBroadcasts()).toEqual([id]);
+      expect(await sendDueBroadcasts(LATER)).toMatchObject({ sent: 0 });
+      expect(await stateOf(id)).toMatchObject({ state: "cancelled", gaveUp: true, reason: "template" });
+      expect(sent).toEqual([]);
+    });
+
+    it("stops the texts whose second version has a template WhatsApp stopped, and no others", async () => {
+      await janeAndSam();
+      await pulled();
+      const id = await text();
+      const theirs = await versionOf(id);
+      const other = await text();
+      expect(await stopTextsOn(theirs)).toBe(1);
+      expect(await stateOf(id)).toMatchObject({ state: "cancelled", gaveUp: true, reason: "template" });
+      expect(await stateOf(other)).toMatchObject({ state: "scheduled", gaveUp: false });
+    });
   });
 });

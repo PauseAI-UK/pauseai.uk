@@ -2,10 +2,12 @@ import { Fragment, type ReactNode } from "react";
 import { FIELD_WORDS } from "@/lib/broadcasts/broadcasts";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
 import type { LinkCard } from "@/lib/broadcasts/link-card";
+import type { TextPlace } from "@/lib/broadcasts/text-parts";
 import type { Receipt } from "@/lib/broadcasts/receipts";
 import type { MailingBlock, MailingInline } from "@/lib/mailings/doc";
 import IconText from "../ui/IconText";
 import letter from "../mailings/MailingLetter.module.css";
+import PlaceMap from "./PlaceMap";
 import styles from "./Broadcasts.module.css";
 import TextFold from "./TextFold";
 
@@ -37,7 +39,8 @@ function Ticks({ receipt }: { receipt: "sent" | "delivered" | "read" }) {
  * right in green, each with who and when; ours with its ticks, or, under its
  * words, that WhatsApp couldn't deliver it. Theirs can have something
  * `beside` it, in the space to its right, and our emoji on it (`badge`), at
- * its foot, as WhatsApp shows a reaction.
+ * its foot, as WhatsApp shows a reaction. Ours can have its text's buttons
+ * (`buttons`), under it and as wide, as WhatsApp shows them.
  */
 export function ChatBubble({
   who,
@@ -46,6 +49,7 @@ export function ChatBubble({
   receipt,
   beside,
   badge,
+  buttons = [],
   children,
 }: {
   who: string;
@@ -54,10 +58,11 @@ export function ChatBubble({
   receipt?: Receipt;
   beside?: ReactNode;
   badge?: string;
+  buttons?: string[];
   children: ReactNode;
 }) {
   const classes = [styles.bubble, ours && styles.ours, badge && styles.badged].filter(Boolean).join(" ");
-  return (
+  const bubble = (
     <div className={classes}>
       {beside && <span className={styles.beside}>{beside}</span>}
       {badge && (
@@ -77,6 +82,13 @@ export function ChatBubble({
           when
         )}
       </span>
+    </div>
+  );
+  if (!buttons.length) return bubble;
+  return (
+    <div className={styles.withButtons}>
+      {bubble}
+      <BubbleButtons buttons={buttons} />
     </div>
   );
 }
@@ -176,28 +188,89 @@ function LinkCardView({ card }: { card: LinkCard }) {
 }
 
 /**
+ * A text's map, as WhatsApp shows one at its top: a map with a pin, then
+ * the place's name and address. A drawing of a map, not the place's own,
+ * as the preview fetches no map; the place's own name and address are
+ * under it.
+ */
+function MapTop({ place, realMap }: { place: TextPlace; realMap?: boolean }) {
+  return (
+    <div className={styles.mapTop}>
+      <PlaceMap place={place} real={realMap} />
+      <span className={styles.mapPlace}>
+        <strong>{place.name}</strong>
+        <span>{place.address}</span>
+      </span>
+    </div>
+  );
+}
+
+/** A text's top: its picture, or its map, OpenStreetMap's where `realMap` says (PlaceMap), or else its link's card. */
+export function BubbleTop({
+  place,
+  picture,
+  card,
+  realMap,
+}: {
+  place?: TextPlace | null;
+  picture?: string | null;
+  card?: LinkCard | null;
+  realMap?: boolean;
+}) {
+  // eslint-disable-next-line @next/next/no-img-element -- a staff upload, or an example's data: address, shown as sent
+  if (picture) return <img className={styles.pictureTop} src={picture} alt="" />;
+  if (place) return <MapTop place={place} realMap={realMap} />;
+  return card ? <LinkCardView card={card} /> : null;
+}
+
+/** A text's buttons, each its words, under its bubble, as WhatsApp shows them. */
+function BubbleButtons({ buttons }: { buttons: string[] }) {
+  if (!buttons.length) return null;
+  return (
+    <ul className={styles.replyButtons}>
+      {buttons.map((words, i) => (
+        <li key={i}>{words}</li>
+      ))}
+    </ul>
+  );
+}
+
+/**
  * A text as a messaging app shows it, a phone's width: the words in a bubble
  * from us, on the left as it is on their phone, formatted as WhatsApp does,
- * under the card for their link if there is one, folded at five lines, with
- * its footer, the grey line saying how to stop, and the time. No name on it,
+ * under its picture or map, if it has one, or the card for their link if there is
+ * one, folded at five lines, with its footer, the grey line saying how to
+ * stop, and the time; under it, its reply buttons. No name on it,
  * as WhatsApp puts none on a bubble in a chat with one business.
  */
 export default function TextBubble({
   words,
   card,
+  place,
+  picture,
+  buttons = [],
   footer,
   time,
+  realMap,
 }: {
   words: TextDoc;
   card?: LinkCard | null;
+  /** The place its map shows, at its top in place of a link's card. */
+  place?: TextPlace | null;
+  /** Where the picture at its top is, in place of a link's card. */
+  picture?: string | null;
+  /** Its reply buttons' words, each a button under it, as WhatsApp shows them. */
+  buttons?: string[];
   footer: string;
   time: string;
+  /** Whether its map is OpenStreetMap's, for a page drawn on the server (PlaceMap); else as the writer says. */
+  realMap?: boolean;
 }) {
   return (
     <div className={styles.phone}>
       <ChatWall>
         <div className={`${styles.bubble} ${styles.phoneBubble}`}>
-          {card && <LinkCardView card={card} />}
+          <BubbleTop place={place} picture={picture} card={card} realMap={realMap} />
           {/* Folded again once the words change, so the preview shows where the fold falls in what's just been written. */}
           <TextFold key={JSON.stringify(words.content)}>
             <Blocks blocks={words.content} />
@@ -205,6 +278,7 @@ export default function TextBubble({
           <span className={styles.footer}>{footer}</span>
           <span className={styles.time}>{time}</span>
         </div>
+        <BubbleButtons buttons={buttons} />
       </ChatWall>
     </div>
   );

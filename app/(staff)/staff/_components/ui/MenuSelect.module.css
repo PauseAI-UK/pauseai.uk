@@ -48,6 +48,16 @@
   flex: none;
 }
 
+/* A choice with facts, as its row in the menu is: its name and tag on a line, its facts under them, the box's
+   width. */
+.chosenRich {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-1) 0;
+}
+
 .placeholder {
   color: var(--text-secondary);
 }

@@ -105,7 +105,7 @@ const SELECT_WRITTEN = `
 
 /** The values a save writes, as SQL's parameters: JSON as text, the rest as it is. */
 function columnValue(name: keyof MailingChanges, value: unknown): unknown {
-  return name === "filter" || name === "body" ? JSON.stringify(value) : value;
+  return ["filter", "body"].includes(name) ? JSON.stringify(value) : value;
 }
 
 /** The changes that are set, as `column = $n` and their values, from $`first`. */
@@ -321,22 +321,30 @@ export async function openWrittenMailing(
 }
 
 /** Why a save to `id` at a version didn't happen. */
-async function notSaved(id: number): Promise<SaveResult> {
-  const [row] = await query<{ state: MailingState }>("SELECT state FROM mailings WHERE id = $1 AND body IS NOT NULL", [
-    id,
-  ]);
+async function notSaved(id: number, db?: Queryable): Promise<SaveResult> {
+  const [row] = await query<{ state: MailingState }>(
+    "SELECT state FROM mailings WHERE id = $1 AND body IS NOT NULL",
+    [id],
+    db,
+  );
   return { saved: false, reason: !row ? "gone" : row.state === "draft" ? "conflict" : "not-draft" };
 }
 
 /** Saves changes to a draft, if it's still at `version`: no one else has saved it since. */
-export async function saveDraft(id: number, version: number, changes: MailingChanges): Promise<SaveResult> {
+export async function saveDraft(
+  id: number,
+  version: number,
+  changes: MailingChanges,
+  db?: Queryable,
+): Promise<SaveResult> {
   const [sql, values] = assignments(changes, 3);
   const [row] = await query<{ version: number }>(
     `UPDATE mailings SET ${[...sql, "version = version + 1", "updated_at = now()"].join(", ")}
      WHERE id = $1 AND version = $2 AND state = 'draft' AND body IS NOT NULL RETURNING version`,
     [id, version, ...values],
+    db,
   );
-  return row ? { saved: true, version: row.version } : notSaved(id);
+  return row ? { saved: true, version: row.version } : notSaved(id, db);
 }
 
 /** Attaches a file to a draft at `version`, which counts as a save; not one too big to send. */
@@ -414,11 +422,15 @@ export async function deleteDraft(id: number, by: string): Promise<boolean> {
   });
 }
 
-/** Deletes the drafts with no subject, letter or file that nobody has opened for a day. Returns how many. */
+/**
+ * Deletes the drafts with no subject, letter, file or template that nobody has opened for a day: a WhatsApp
+ * broadcast's words are its template's, not its own. Returns how many.
+ */
 export async function deleteForgottenDrafts(): Promise<number> {
   const drafts = await query<{ id: number; body: unknown }>(
     `SELECT m.id::int AS id, m.body FROM mailings m
-     WHERE m.state = 'draft' AND m.body IS NOT NULL AND m.subject = '' AND m.opened_at < now() - interval '1 day'
+     WHERE m.state = 'draft' AND m.body IS NOT NULL AND m.subject = '' AND m.template_id IS NULL
+       AND m.opened_at < now() - interval '1 day'
        AND NOT EXISTS (SELECT 1 FROM mailing_attachments a WHERE a.mailing_id = m.id)`,
   );
   const blank = drafts.filter((draft) => isBlankMailing(checkMailingDoc(draft.body)!)).map((draft) => draft.id);

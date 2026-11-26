@@ -31,6 +31,7 @@ const groups = mailingGroups(
         title: "PauseCon doors",
         to: 96,
         approved: true,
+        variantFor: "registered for “PauseCon 2026”",
         sentFrom: "+447700900000",
         fromName: "PauseAI UK",
       },

@@ -37,6 +37,7 @@ import {
   sendBroadcastTest,
   stopBroadcast,
   submitTemplate,
+  sweepDraftTemplates,
   withdrawTemplate,
   type BroadcastScheduled,
   type TemplateDeleteResult,
@@ -48,6 +49,9 @@ import type { LinkCard } from "@/lib/broadcasts/link-card";
 import { linkCard } from "@/lib/server/outside-services/link-pages.server";
 import { refused, type FormResult } from "@/lib/form-result";
 import { dueAtFrom, ownId } from "@/lib/staff-forms";
+import { findPlaces } from "@/lib/broadcasts/places.server";
+import { keepPicture, type PictureRefusal } from "@/lib/broadcasts/text-pictures.server";
+import type { Place } from "@/lib/broadcasts/places";
 import { storedFilter } from "@/lib/staff-search";
 import { filtersPath, type Params } from "@/lib/list-params";
 
@@ -238,6 +242,19 @@ export async function attachToBroadcast(form: FormData): Promise<FormResult<Save
   return { ok: true, version: added.version, attachments: (await getWrittenBroadcast(id))!.attachments };
 }
 
+/**
+ * Keeps a picture for the top of a text, uploaded by the writer, dragged
+ * on or pasted: its ID, for the draft to save; or why not, for a file
+ * WhatsApp won't take.
+ */
+export async function uploadTextPicture(form: FormData): Promise<FormResult<PictureRefusal, { pictureId: string }>> {
+  const { email } = await requireStaff("supporters");
+  const file = form.get("file");
+  if (!(file instanceof File)) throw new Error("A text's picture came without the file");
+  const kept = await keepPicture({ type: file.type, content: Buffer.from(await file.arrayBuffer()) }, email);
+  return "refused" in kept ? refused(kept.refused) : { ok: true, pictureId: kept.id };
+}
+
 /** Takes a file off a draft email at its version. */
 export async function detachFromBroadcast(
   id: number,
@@ -346,11 +363,22 @@ export async function linkCardFor(url: string): Promise<FormResult<never, { card
   return { ok: true, card: await linkCard(url) };
 }
 
+/** The places a Google Maps link or words point at, for a text's map. */
+export async function findPlacesFor(input: string): Promise<FormResult<never, { places: Place[] }>> {
+  await requireStaff("supporters");
+  if (typeof input !== "string") throw new Error("Places were asked for without words to find them by");
+  return { ok: true, places: await findPlaces(input) };
+}
+
 /** Deletes the form's draft, then goes to the list of broadcasts. One that's gone already is as deleted as was asked. */
 export async function deleteBroadcastDraft(form: FormData): Promise<never> {
   const { email } = await requireStaff("supporters");
   const id = ownId(form);
-  if (await getWrittenBroadcast(id)) await deleteDraft(id, email);
+  if (await getWrittenBroadcast(id)) {
+    await deleteDraft(id, email);
+    // Its template, if it was still being written, goes with it.
+    await sweepDraftTemplates();
+  }
   revalidatePath(LIST);
   redirect(LIST);
 }

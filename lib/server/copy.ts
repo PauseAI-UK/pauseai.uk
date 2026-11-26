@@ -42,6 +42,10 @@ export const serverProblems = defineProblems("server", {
   stripeDown: "Stripe couldn't be queried, so the wall of thanks is empty",
   // A flyering tracker or the march's sign-up count shows no number.
   lumaGuestsDown: "Luma couldn't be asked about an event's guests",
+  // Staff looking for a text's place get no matches, or a place from a Google Maps link without its address.
+  photonDown: "Photon couldn't be asked about a place",
+  // Staff who pasted a short Google Maps link get no place for it, and can search instead.
+  mapsLinkUnfollowed: "A short Google Maps link couldn't be followed",
   // A page that lists events shows none.
   lumaEventsDown: "Luma couldn't be asked for the events, so the page shows none",
   // An import of sign-ups registered people on Luma, and they're copied at the next scheduled run instead.

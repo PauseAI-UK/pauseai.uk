@@ -51,6 +51,7 @@ import { filterBarGallery } from "@/app/(staff)/staff/_components/ui/FilterBar.g
 import { savedFiltersGallery } from "@/app/(staff)/staff/_components/ui/SavedFilters.gallery";
 import { filterBarLinesGallery } from "@/app/(staff)/staff/_components/ui/FilterBarLines.gallery";
 import { copyButtonGallery } from "@/app/(staff)/staff/_components/ui/CopyButton.gallery";
+import { dropAreaGallery } from "@/app/(staff)/staff/_components/ui/DropArea.gallery";
 import { choicesGallery } from "@/app/(staff)/staff/_components/ui/Choices.gallery";
 import { manyChoicesGallery } from "@/app/(staff)/staff/_components/ui/ManyChoices.gallery";
 import { menuGallery } from "@/app/(staff)/staff/_components/ui/Menu.gallery";
@@ -118,6 +119,7 @@ export const staffKit: Group = {
     ...filterBarLinesGallery,
     savedFilterGone,
     ...copyButtonGallery,
+    ...dropAreaGallery,
     ...choicesGallery,
     ...manyChoicesGallery,
     ...menuGallery,

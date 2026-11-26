@@ -1,7 +1,7 @@
 // TextBubble in the component gallery (app/(tools)/gallery/), in the staff broadcasts group (app/(tools)/gallery/_examples/staff-broadcasts.tsx).
 import type { Example } from "@/app/(tools)/gallery/_components/types";
-import { exampleLinkCard, exampleWhatsAppWords } from "./BroadcastWriter.examples";
-import TextBubble, { ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
+import { exampleLinkCard, examplePictureId, examplePlace, exampleWhatsAppWords } from "./BroadcastWriter.examples";
+import TextBubble, { BubbleTop, ChatBubble, ChatWall, LinkedText, TextWords } from "./TextBubble";
 import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 
 export const textBubbleGallery: Example[] = [
@@ -22,6 +22,27 @@ export const textBubbleGallery: Example[] = [
     ],
   },
   {
+    name: "BubbleTop",
+    file: "app/(staff)/staff/_components/broadcasts/TextBubble.tsx",
+    variants: [
+      {
+        label: "A text's top in a bubble of our own: its map, then its picture",
+        render: () => (
+          <ChatWall>
+            <ChatBubble who="PauseAI UK" when="07:18" ours>
+              <BubbleTop place={examplePlace} />
+              <TextWords words={exampleWhatsAppWords} />
+            </ChatBubble>
+            <ChatBubble who="PauseAI UK" when="07:19" ours>
+              <BubbleTop picture={examplePictureId} />
+              <TextWords words={exampleWhatsAppWords} />
+            </ChatBubble>
+          </ChatWall>
+        ),
+      },
+    ],
+  },
+  {
     name: "TextWords",
     file: "app/(staff)/staff/_components/broadcasts/TextBubble.tsx",
     variants: [
@@ -30,6 +51,16 @@ export const textBubbleGallery: Example[] = [
         render: () => (
           <ChatWall>
             <ChatBubble who="PauseAI UK" when="07:18" ours>
+              <TextWords words={exampleWhatsAppWords} />
+            </ChatBubble>
+          </ChatWall>
+        ),
+      },
+      {
+        label: "With its buttons under it, as wide",
+        render: () => (
+          <ChatWall>
+            <ChatBubble who="PauseAI UK" when="07:18" ours buttons={["I'm coming", "Can't make it"]}>
               <TextWords words={exampleWhatsAppWords} />
             </ChatBubble>
           </ChatWall>

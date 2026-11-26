@@ -304,10 +304,31 @@
   gap: var(--space-3);
 }
 
-/* Under the template chosen: its line, then its quiet buttons, close under it. */
-.templateFacts {
+/* Either version's, in its box, which has no padding under it of its own. */
+.versionWords {
+  padding-bottom: var(--space-4);
+}
+
+/* Under a chosen template's header and buttons, as its words have no editor to have it beside: a conditional
+   variant for some. */
+.textParts {
   display: grid;
   gap: var(--space-2);
+  justify-items: start;
+}
+
+/* The template dropdown, and beside it, at its foot, what can be done to the template; under it where there's no
+   room, as on a phone. */
+.templateRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+.templateRow > :first-child {
+  flex: 0 1 22rem;
+  min-width: 0;
 }
 
 .templateActions {
@@ -439,4 +460,83 @@
   .spinner {
     animation-duration: 2.4s;
   }
+}
+
+/* A text's picture at its top, set into the bubble's top corners as a link's card is. */
+.pictureTop {
+  display: block;
+  width: calc(100% + 2 * (var(--space-2) - var(--space-1)));
+  height: auto;
+  margin: calc(var(--space-1) - var(--space-2)) calc(var(--space-1) - var(--space-2)) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+/* A text's map at its top, set into the bubble's top corners as a link's
+   card is: a drawing of a map with a pin, then the place's name and address. */
+.mapTop {
+  display: grid;
+  margin: calc(var(--space-1) - var(--space-2)) calc(var(--space-1) - var(--space-2)) var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--chat-card);
+  white-space: normal;
+}
+
+.mapPlace {
+  display: grid;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.mapPlace span {
+  color: var(--text-secondary);
+}
+
+/* A text's reply buttons under its bubble, as WhatsApp draws them: a white
+   bar each, as wide as the bubble, its words in WhatsApp's blue. */
+.replyButtons {
+  display: grid;
+  gap: var(--space-1);
+  max-width: calc(200px + 2 * var(--space-2));
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.replyButtons li {
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--chat-read);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+/* A written text with a second version: each, one under the other, headed by who it's for. */
+.writtenText {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.writtenVersion {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+/* Our bubble with its text's buttons: on the right, the buttons under it and as wide. */
+.withButtons {
+  display: grid;
+  gap: var(--space-1);
+  align-self: flex-end;
+  margin-left: var(--space-8);
+}
+
+.withButtons > .bubble {
+  margin-left: 0;
+}
+
+.withButtons > .replyButtons {
+  max-width: none;
+  margin: 0;
 }

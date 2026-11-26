@@ -203,6 +203,7 @@ const SERVICES = [
     why: "and email is sent with send() from lib/email/sending.server.ts",
   },
   { name: "postcodes.io", files: ["postcodes.server.ts"], host: "api\\.postcodes\\.io" },
+  { name: "Photon", files: ["photon.server.ts"], host: "photon\\.komoot\\.io" },
   // Stripe's API, not the donate links, which are payment pages on donate.stripe.com.
   {
     name: "Stripe's API",

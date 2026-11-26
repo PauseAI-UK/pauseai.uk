@@ -3,6 +3,10 @@ import styles from "./Menu.module.css";
 
 /** A list of choices that do something, in a menu's box, and one of them, a button or a link; one that sends a form is MenuSubmit. */
 export const menuItemsClass = styles.items;
+/** A menu's box, for a popover something else opens, such as who a part of a letter is for (ConditionMenu). */
+export const menuClass = styles.menu;
+/** A menu's box, wider, for choices with a line of facts, in a popover something else opens, such as the places a search finds (TextTop). */
+export const menuWiderClass = `${styles.menu} ${styles.wide} ${styles.wider}`;
 export const menuItemClass = styles.item;
 /** One that destroys something: red words, and red all over when asking to be pressed again. */
 export const menuItemDangerClass = `${styles.item} ${styles.danger}`;

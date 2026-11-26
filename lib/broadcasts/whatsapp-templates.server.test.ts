@@ -18,18 +18,21 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-/** A template named `name` here and `meta` at WhatsApp, in `status`; its ID. */
+/** The variant of template $1, which has one, in a query of `whatsapp_template_variants`. */
+const ITS_VARIANT = "id = (SELECT default_variant_id FROM whatsapp_templates WHERE id = $1)";
+
+/** A template of one variant, named `name` here and `meta` at WhatsApp, in `status`; the template's ID. */
 async function template(name: string, status = "pending", meta: string | null = `${name}_1`): Promise<number> {
   const id = await addTemplate(name, { status });
-  await query("UPDATE whatsapp_templates SET meta_name = $2 WHERE id = $1", [id, meta]);
+  await query(`UPDATE whatsapp_template_variants SET meta_name = $2 WHERE ${ITS_VARIANT}`, [id, meta]);
   return id;
 }
 
-/** A template as kept: its status, category, and whether it's stopped. */
+/** A template's variant as kept: its status, category, and whether it's stopped. */
 const stateOf = async (id: number) =>
   (
     await query<{ status: string; category: string | null; stopped: boolean }>(
-      `SELECT status, category, stopped_at IS NOT NULL AS stopped FROM whatsapp_templates WHERE id = $1`,
+      `SELECT status, category, stopped_at IS NOT NULL AS stopped FROM whatsapp_template_variants WHERE ${ITS_VARIANT}`,
       [id],
     )
   )[0];
@@ -77,9 +80,11 @@ describeWithDatabase("what WhatsApp decides of our templates", () => {
     const sent = notifications();
     const id = await template("march");
     expect(await applyTemplateStatus("march_1", "REJECTED", "PROMOTIONAL")).toBe(true);
-    expect(await query("SELECT status, rejected_reason AS reason FROM whatsapp_templates WHERE id = $1", [id])).toEqual(
-      [{ status: "rejected", reason: "PROMOTIONAL" }],
-    );
+    expect(
+      await query(`SELECT status, rejected_reason AS reason FROM whatsapp_template_variants WHERE ${ITS_VARIANT}`, [
+        id,
+      ]),
+    ).toEqual([{ status: "rejected", reason: "PROMOTIONAL" }]);
     expect(sent.map((email) => email.Subject)).toEqual([
       broadcastsCopy.notifications.templateRejected.subject("march"),
     ]);

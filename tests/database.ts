@@ -31,12 +31,26 @@ const DATABASE_HOOK = 60_000;
 /**
  * The tables not truncated before each test: those whose rows the migrations
  * seed, which tests read and leave alone (the asks and campaigns, and their
- * statuses), and two emptied by a DELETE instead: the
- * mailings, of only those a test wrote, and the message templates, as
+ * statuses), and those emptied by a DELETE instead: the mailings, of only
+ * those a test wrote, and the WhatsApp templates and their variants, as
  * truncating them would take the imported mailings that refer to them. Every
  * other table in the database is truncated.
  */
-const SEEDED = ["ask_kind_statuses", "asks", "campaigns", "mailings", "whatsapp_templates"];
+const SEEDED = [
+  "ask_kind_statuses",
+  "asks",
+  "campaigns",
+  "mailings",
+  "whatsapp_templates",
+  "whatsapp_template_variants",
+];
+
+/**
+ * Tables emptied by DELETE once the mailings a test wrote are gone, as the
+ * mailings refer to them: truncating them would take the imported mailings
+ * too, by CASCADE.
+ */
+const MAILINGS_REFER_TO = ["text_pictures"];
 
 /**
  * Gives this test file its own database, empty before each test: a copy of
@@ -53,7 +67,7 @@ export function useTestDatabase() {
     process.env.NETLIFY_DB_URL = databaseUrl(name);
     const rows = await query<{ name: string }>(
       "SELECT quote_ident(tablename) AS name FROM pg_tables WHERE schemaname = 'public' AND NOT tablename = ANY($1) ORDER BY 1",
-      [SEEDED],
+      [[...SEEDED, ...MAILINGS_REFER_TO]],
     );
     tables = rows.map((row) => row.name).join(", ");
   }, DATABASE_HOOK);
@@ -61,7 +75,11 @@ export function useTestDatabase() {
     await query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
     // The mailings written here; the imported ones come with the migrations.
     await query("DELETE FROM mailings WHERE body IS NOT NULL");
+    // A mailing left, as one a test took its words from, lets go of its template, which goes next.
+    await query("UPDATE mailings SET template_id = NULL WHERE template_id IS NOT NULL");
     await query("DELETE FROM whatsapp_templates");
+    await query("DELETE FROM whatsapp_template_variants");
+    for (const table of MAILINGS_REFER_TO) await query(`DELETE FROM ${table}`);
     // The kept supporters list, emptied with the tables it's made from.
     await query("REFRESH MATERIALIZED VIEW supporters_list");
   });

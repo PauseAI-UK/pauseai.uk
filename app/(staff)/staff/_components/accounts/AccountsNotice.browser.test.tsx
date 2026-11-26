@@ -20,7 +20,7 @@ describe("AccountsNotice", () => {
 
   it("says what removing an account leaves them, till its × closes it", async () => {
     await render(<AccountsNotice notice="removed" />);
-    await expect.element(page.getByRole("status")).toHaveTextContent(`${accountsCopy.accounts.removeNote}×`);
+    await expect.element(page.getByRole("status")).toHaveTextContent(accountsCopy.accounts.removeNote);
     await page.getByRole("button", { name: accountsCopy.accounts.closeRemoved }).click();
     expect(document.querySelector("[role=status]")!.textContent).toBe("");
   });

@@ -16,7 +16,7 @@ import { now } from "@/lib/now";
 import type { StoredFilter } from "@/lib/staff-search";
 import { staffTime } from "@/lib/staff-time";
 import { logChange } from "@/lib/server/audit.server";
-import { SEND_AGAIN, TOPICS_OF } from "./drafts.server";
+import { ON_VARIANT, SEND_AGAIN, TOPICS_OF } from "./drafts.server";
 import { broadcastEmailChannel, textBackend } from "./channels.server";
 import { supporterAudience } from "./recipients.server";
 import { query } from "@/lib/server/db.server";
@@ -41,6 +41,8 @@ import { recordWhatsAppStop } from "./whatsapp-stops.server";
 import { templateParams, textResult, textsLeftToday } from "./whatsapp-texts.server";
 import { markUnreachable, unreachable } from "./unreachable.server";
 import { broadcastProblems, broadcastsCopy } from "./copy";
+import type { TextPlace } from "./text-parts";
+import { pictureAddress } from "./text-pictures.server";
 import { emailProblems } from "@/lib/email/copy";
 
 // Sending broadcasts to supporters, in the send-mailings run every 15 minutes, as
@@ -103,13 +105,16 @@ type Due = {
   title: string;
   waitingSince: Date | null;
   waitReason: string | null;
-  /** A text's template's state with WhatsApp: pending till it approves it. */
+  /** Its template's variants' state with WhatsApp: pending while it's reviewing either, approved once it has approved each. */
   templateStatus: string | null;
 };
 
 const DUE_COLUMNS = `id::int AS id, state, channel, send_by AS "sendBy", ${TOPICS_OF} AS topics, filter, due_at AS "dueAt",
   finish_minutes AS "finishMinutes", coalesce(nullif(subject, ''), title) AS title, waiting_since AS "waitingSince",
-  wait_reason AS "waitReason", (SELECT t.status FROM whatsapp_templates t WHERE t.id = template_id) AS "templateStatus"`;
+  wait_reason AS "waitReason",
+  (SELECT CASE WHEN bool_or(v.status = 'pending') THEN 'pending' ELSE min(v.status) END
+   FROM whatsapp_templates t JOIN whatsapp_template_variants v ON v.id IN (t.default_variant_id, t.conditional_variant_id)
+   WHERE t.id = template_id) AS "templateStatus"`;
 
 /** Whether a complete CiviCRM pull has finished in the last FRESH_HOURS. */
 async function pullFresh(): Promise<boolean> {
@@ -186,11 +191,11 @@ async function giveUp(broadcast: Due, reason: StopReason): Promise<void> {
  * sending, as one that hasn't all gone in time stops (giveUp), each
  * whoever scheduled it told. Returns how many it stopped.
  */
-export async function stopTextsOn(templateId: number): Promise<number> {
+export async function stopTextsOn(variantId: number): Promise<number> {
   const texts = await query<Due>(
     `SELECT ${DUE_COLUMNS} FROM mailings
-     WHERE audience = 'supporters' AND template_id = $1 AND state IN ('scheduled', 'sending') ORDER BY id`,
-    [templateId],
+     WHERE audience = 'supporters' AND state IN ('scheduled', 'sending') AND ${ON_VARIANT} ORDER BY id`,
+    [variantId],
   );
   for (const text of texts) await giveUp(text, "template");
   return texts.length;
@@ -809,23 +814,49 @@ async function emailSender(broadcast: Sending, gapOverride?: number): Promise<Co
   };
 }
 
+/** A version of a text as it's sent: who it's for, none for its own; its template; and its place. */
+type SentVersion = {
+  condition: string | null;
+  name: string | null;
+  status: string | null;
+  body: unknown;
+  place: TextPlace | null;
+  header: string | null;
+  pictureId: string | null;
+};
+
 /**
- * A text's sender: by WhatsApp, its template filled in for each person, up
- * to our number's daily limit. None where WhatsApp doesn't send, or doesn't
- * answer; `template` when the text's template isn't approved now, as
- * WhatsApp paused or disabled it, which stops the text.
+ * A text's sender: by WhatsApp, its template filled in for each person, with
+ * its place or picture, if its top has one, up to our number's daily limit; for someone who
+ * meets its second version's condition, that version's. None where
+ * WhatsApp doesn't send, or doesn't answer; `template` when a template of
+ * the text's isn't approved now, as WhatsApp paused or disabled it, which
+ * stops the text.
  */
 async function textSender(broadcast: Sending): Promise<CopySender | "template" | undefined> {
   const backend = await textBackend();
   if (!backend) return undefined;
-  const [template] = await query<{ name: string; status: string; body: unknown }>(
-    `SELECT coalesce(t.meta_name, t.name) AS name, t.status, t.body
-     FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id WHERE m.id = $1`,
+  const versions = await query<SentVersion>(
+    `SELECT NULL AS condition, coalesce(d.meta_name, d.name) AS name, d.status, d.body, h.place, d.header,
+       h.picture_id AS "pictureId", 1 AS place_in_order
+     FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id
+       JOIN whatsapp_template_variants d ON d.id = t.default_variant_id
+       LEFT JOIN broadcast_headers h ON h.mailing_id = m.id AND h.variant = 'default'
+     WHERE m.id = $1
+     UNION ALL
+     SELECT t.condition, coalesce(c.meta_name, c.name), c.status, c.body, h.place, c.header, h.picture_id, 2
+     FROM mailings m JOIN whatsapp_templates t ON t.id = m.template_id
+       JOIN whatsapp_template_variants c ON c.id = t.conditional_variant_id
+       LEFT JOIN broadcast_headers h ON h.mailing_id = m.id AND h.variant = 'conditional'
+     WHERE m.id = $1
+     ORDER BY place_in_order`,
     [broadcast.id],
   );
-  if (template?.status !== "approved") return "template";
-  // Its fields are the template's, as WhatsApp has them.
-  const body = checkMailingDoc(template.body)!;
+  if (!versions.length || versions.some((version) => version.status !== "approved")) return "template";
+  const [own, other] = versions;
+  // Its fields are each template's, as WhatsApp has them.
+  const bodies = new Map(versions.map((version) => [version, checkMailingDoc(version.body)!]));
+  const versionFor = (copy: Copy) => (other && copy.mergeValues.meets.includes(other.condition!) ? other : own);
   return {
     gap: 0,
     ready: async () => true,
@@ -838,10 +869,16 @@ async function textSender(broadcast: Sending): Promise<CopySender | "template" |
     blocked: blockedNumbers,
     send: async (copy) => {
       // Its words can't be made: thrown, as nothing has gone, so it's put back.
-      const params = templateParams(body, copy.mergeValues);
+      const version = versionFor(copy);
+      const params = templateParams(bodies.get(version)!, copy.mergeValues);
       try {
         return textResult(
-          await sendTemplate(backend.keys, backend.number.id, copy.address, { name: template.name, params }),
+          await sendTemplate(backend.keys, backend.number.id, copy.address, {
+            name: version.name!,
+            params,
+            ...(version.header === "location" && version.place && { place: version.place }),
+            ...(version.header === "image" && version.pictureId && { picture: pictureAddress(version.pictureId) }),
+          }),
         );
       } catch (error) {
         // The send broke off, and WhatsApp may have taken it by then: failed, as an email is, never sent twice.
@@ -945,7 +982,7 @@ export async function sendDueBroadcasts(until: number, gap?: number): Promise<Br
     `SELECT ${DUE_COLUMNS}, subject, body, sent_from AS "sentFrom", from_name AS "fromName",
        coalesce(try_failed_at > now() - make_interval(mins => $1), false) AS resting,
        failed_in_a_row AS "failedInARow", held_back_since AS "heldBackSince"
-     FROM mailings m WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
+     FROM mailings WHERE audience = 'supporters' AND state = 'sending' ORDER BY due_at, id`,
     [REST_MINUTES],
   );
   for (const broadcast of sending) {

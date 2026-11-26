@@ -6,9 +6,12 @@ import MessageCopyView from "./MessageCopyView";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import {
   exampleMessageCopy,
+  examplePictureId,
+  examplePlace,
   exampleTextAnswers,
   exampleTextReplies,
   exampleUndeliveredReaction,
+  exampleVariant,
 } from "./BroadcastWriter.examples";
 import { SITE_ACTOR } from "@/lib/broadcasts/broadcasts";
 import { supportersCopy } from "../supporters/copy";
@@ -88,6 +91,59 @@ describe("MessageCopyView", () => {
     await expect
       .element(page.getByLabelText(copy.threadTitle).getByRole("img", { name: copy.events.read }))
       .toBeVisible();
+  });
+
+  /** Its broadcast with a second version, for those who wrote: other words, a picture and a link button. */
+  const withVersion = {
+    ...exampleMessageCopy,
+    written: {
+      ...exampleMessageCopy.written!,
+      textVersion: {
+        condition: "wrote:regulate-ai",
+        body: {
+          type: "doc" as const,
+          content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "Thanks for writing" }] }],
+        },
+        header: "image" as const,
+        place: null,
+        pictureId: examplePictureId,
+        buttons: [{ text: "Details", url: "https://pauseai.uk/march" }],
+        variant: exampleVariant(8, null, { status: "draft", approvedAt: null }),
+      },
+    },
+  };
+  const thread = () => page.getByLabelText(copy.threadTitle);
+
+  it("shows a text with its broadcast's map and buttons, the version for everyone else to one who didn't meet its condition", async () => {
+    await render(<MessageCopyView one={withVersion} />);
+    await expect.element(thread().getByText(/the march meets/)).toBeVisible();
+    await expect.element(thread().getByText(examplePlace.name, { exact: true })).toBeVisible();
+    await expect.element(thread().getByText("I'm coming")).toBeVisible();
+    expect(thread().element().querySelector("img[src^='data:']")).toBeNull();
+    await expect.element(thread().getByText("Thanks for writing")).not.toBeInTheDocument();
+  });
+
+  it("shows one who met the version's condition the version, with its picture and buttons", async () => {
+    await render(
+      <MessageCopyView
+        one={{
+          ...withVersion,
+          merge: { values: { firstName: "Jane" }, meets: ["has:firstName", "wrote:regulate-ai"] },
+        }}
+      />,
+    );
+    await expect.element(thread().getByText("Thanks for writing")).toBeVisible();
+    expect(thread().element().querySelector("img")!.getAttribute("src")).toBe(examplePictureId);
+    await expect.element(thread().getByText("Details")).toBeVisible();
+    await expect.element(thread().getByText("I'm coming")).not.toBeInTheDocument();
+    await expect.element(thread().getByText(examplePlace.name, { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("shows a text whose broadcast as written is gone as it was sent, with no top or buttons", async () => {
+    await render(<MessageCopyView one={{ ...withVersion, written: null }} />);
+    await expect.element(thread().getByText(/the march meets/)).toBeVisible();
+    await expect.element(thread().getByText(examplePlace.name, { exact: true })).not.toBeInTheDocument();
+    expect(thread().element().querySelector("ul")).toBeNull();
   });
 
   /** The history as a tree: each line's words, its fields, and the lines under it, newest first. */
@@ -252,12 +308,14 @@ describe("MessageCopyView", () => {
       address: "jane@example.com",
       place: null,
       events: [],
+      written: null,
     };
     await render(<MessageCopyView one={one} />);
     await expect
       .element(page.getByRole("heading", { level: 1 }))
       .toHaveTextContent(copy.copyTitle("email", "Jane Example"));
     await expect.element(page.getByRole("article", { name: "Thank you" })).toBeVisible();
+    await expect.element(page.getByText(examplePlace.name, { exact: true })).not.toBeInTheDocument();
     await expect.element(page.getByText(lettersCopy.letters.detail.noHistory)).toBeVisible();
   });
 

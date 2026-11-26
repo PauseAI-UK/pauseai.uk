@@ -20,7 +20,6 @@ import Bubble from "@/components/ui/Bubble";
 import { buttonClass } from "@/components/ui/Button";
 import { ChangeTimesForm } from "./BroadcastTimes";
 import { sortHref, type SortSpec } from "@/lib/staff-sort";
-import { TEMPLATE_FOOTER } from "@/lib/broadcasts/whatsapp-template";
 import Strip from "../ui/Strip";
 import { phoneWords } from "@/lib/phone";
 import ChannelIcon from "@/components/ui/ChannelIcon";
@@ -30,7 +29,7 @@ import MailingFiles from "../mailings/MailingFiles";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { CopyMailing, ResumeBroadcast } from "../mailings/MailingButtons";
 import { fromDetail, MailingStanding, MailingWhen } from "../mailings/MailingView";
-import TextBubble from "./TextBubble";
+import WrittenText from "./WrittenText";
 import Band, { BandFact } from "../ui/Band";
 import { countsFiltering, type Count } from "../ui/Counts";
 import { CountGroups } from "../mailings/CopyCounts";
@@ -146,8 +145,9 @@ export function BroadcastWaiting({
   pause: SendingPause | null;
   resume?: ReactNode;
 }) {
-  const template = written.template;
-  if (written.state === "scheduled" && template?.status === "pending") {
+  // The variant WhatsApp is reviewing, either of its template's.
+  const template = [written.variant, written.textVersion?.variant].find((one) => one?.status === "pending");
+  if (written.state === "scheduled" && template) {
     return (
       <Strip tone="blue" waiting>
         {copy.approvalStrip(
@@ -259,15 +259,19 @@ function recipientColumns(
 }
 
 /** The email as a mail app shows it, or the text as a bubble, with its fields as chips. */
-function BroadcastWords({ written, parts }: { written: WrittenBroadcast; parts: Record<string, string> }) {
+function BroadcastWords({
+  written,
+  parts,
+  realMaps,
+}: {
+  written: WrittenBroadcast;
+  parts: Record<string, string>;
+  realMaps: boolean;
+}) {
   if (written.channel === "text") {
     return (
       <Card span={3} look="aside" title={copy.textTitle} id="words-title">
-        <TextBubble
-          words={{ content: written.body.content.filter((block) => block.type !== "onlyFor") }}
-          footer={written.template?.footer ?? TEMPLATE_FOOTER}
-          time={staffClock(sendsAt(written.dueAt!))}
-        />
+        <WrittenText written={written} labels={parts} time={staffClock(sendsAt(written.dueAt!))} realMaps={realMaps} />
       </Card>
     );
   }
@@ -417,7 +421,7 @@ export default function BroadcastView({
         resume={<ResumeBroadcast id={written.id} action={resume} says={copy.refusals.resume} atTop={["gone"]} />}
       />
       <Grid>
-        <BroadcastWords written={written} parts={data.parts} />
+        <BroadcastWords written={written} parts={data.parts} realMaps={data.realMaps} />
         <Card span={3} as="div">
           <div className={view.recipientsHead}>
             <h2>{tab === "all" ? copy.recipientsTitle : lettersCopy.copyStates.tabs[tab]}</h2>

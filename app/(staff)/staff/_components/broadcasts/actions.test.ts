@@ -36,6 +36,8 @@ import {
   submitTemplateNow,
   withdrawTemplateNow,
   linkCardFor,
+  findPlacesFor,
+  uploadTextPicture,
 } from "./actions";
 import { broadcastWriterActions } from "./writer-actions";
 
@@ -469,7 +471,7 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     expect(await submitTemplateNow(id)).toEqual({ ok: true, taken: false, said: "Bad" });
     // As fixture builds' WhatsApp takes them.
     expect(await submitTemplateNow(id)).toEqual({ ok: true, taken: true });
-    expect((await getWrittenBroadcast(id))!.template).toMatchObject({ status: "pending" });
+    expect((await getWrittenBroadcast(id))!.variant).toMatchObject({ status: "pending" });
   });
 
   it("withdraws words WhatsApp is reviewing, and says when there are none to take back", async () => {
@@ -481,7 +483,8 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith(`/staff/broadcasts/${id}`);
     await submitTemplateNow(id);
     expect(await withdrawTemplateNow(id)).toEqual({ ok: true });
-    expect((await getWrittenBroadcast(id))!.template).toBeNull();
+    // Its words are a draft again, to change.
+    expect((await getWrittenBroadcast(id))!.variant).toMatchObject({ status: "draft", name: null });
   });
 
   it("deletes a template, as its writer's page asks, refreshing the broadcasts' pages, and says why not", async () => {
@@ -498,6 +501,36 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
     });
   });
 
+  it("finds the places some words name, for a text's map, only for staff, and only by words", async () => {
+    expect(await findPlacesFor("Parliament Square")).toEqual({
+      ok: true,
+      places: [expect.objectContaining({ name: "Parliament Square" })],
+    });
+    await expect(findPlacesFor(undefined as unknown as string)).rejects.toThrow();
+    await query("UPDATE staff_accounts SET permissions = '{}' WHERE email = $1", [JO]);
+    await expect(findPlacesFor("Parliament Square")).rejects.toThrow();
+  });
+
+  it("keeps a picture for a text's top, for staff, and refuses a file that isn't a JPEG or PNG, or is too big", async () => {
+    const png = new File([new Uint8Array([137, 80, 78, 71])], "banner.png", { type: "image/png" });
+    const kept = await uploadTextPicture(form({ file: png }));
+    expect(kept).toEqual({ ok: true, pictureId: expect.stringMatching(/^[0-9a-f-]{36}$/) });
+    expect(await query("SELECT content_type, created_by FROM text_pictures")).toEqual([
+      { content_type: "image/png", created_by: JO },
+    ]);
+    const gif = new File(["GIF89a"], "banner.gif", { type: "image/gif" });
+    expect(await uploadTextPicture(form({ file: gif }))).toEqual({ ok: false, reason: "not-picture" });
+    const big = new File([new Uint8Array(4 * 1024 * 1024 + 1)], "big.jpg", { type: "image/jpeg" });
+    expect(await uploadTextPicture(form({ file: big }))).toEqual({ ok: false, reason: "too-big" });
+    expect(await query("SELECT id FROM text_pictures")).toHaveLength(1);
+    // The writer always sends a file.
+    await expect(uploadTextPicture(form({ file: "banner.png" }))).rejects.toThrow("without the file");
+    await expect(uploadTextPicture(form({}))).rejects.toThrow("without the file");
+    await query("UPDATE staff_accounts SET permissions = '{}' WHERE email = $1", [JO]);
+    await expect(uploadTextPicture(form({ file: png }))).rejects.toThrow();
+    expect(await query("SELECT id FROM text_pictures")).toHaveLength(1);
+  });
+
   it("gives the writer each of its actions", () => {
     expect(broadcastWriterActions).toMatchObject({
       submitTemplate: submitTemplateNow,
@@ -505,6 +538,8 @@ describeWithDatabase("the broadcast pages' Server Actions", () => {
       deleteTemplate: deleteTemplateNow,
       linkCard: linkCardFor,
       schedule: scheduleBroadcastNow,
+      findPlaces: findPlacesFor,
+      uploadPicture: uploadTextPicture,
     });
   });
 

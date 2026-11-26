@@ -81,6 +81,64 @@ export const broadcastsCopy = {
     // Under the approved ones, past a rule: new words, to send for approval.
     newTemplate: "New template",
     templateMadeIn: "Made in WhatsApp Manager",
+    // A text's top, over its words: a choice of the card for the words' first link, or a map of a place.
+    textTop: {
+      label: "Header",
+      none: "None",
+      linkPreview: "Link preview",
+      picture: "Picture",
+      place: "Place",
+    },
+    // Choosing a text's place: a box for a Google Maps link or words to search for, its button, the places it
+    // found; then the place's name and address under the map, its map's link to check its pin, and taking it off.
+    placeChooser: {
+      find: "Search for a place, or paste a Google Maps link",
+      findButton: "Find",
+      none: "No place found. Try different terms, or paste a Google Maps link.",
+      name: "Name",
+      address: "Address",
+      checkMap: "Check it on a map",
+      needsWords: "WhatsApp needs a name and an address for the place.",
+      remove: "Remove place",
+    },
+    // Choosing a text's picture: the picture chosen, the box to drop or paste one on, its button, why a file won't
+    // do, and what can change once approved.
+    pictureChooser: {
+      shown: "Header picture",
+      drop: "Drop or paste a picture here",
+      remove: "Remove picture",
+      choose: "Add picture",
+      refusals: {
+        "not-picture": "WhatsApp needs a JPEG or PNG picture. Choose one of those.",
+        "too-big": "That picture is too big. Choose one of 4 MB or less.",
+      },
+    },
+    // A text's buttons, under its words: their heading; each button's kind, a reply or a link, its words, a link's
+    // address, and its Remove; and adding one.
+    replyButtons: {
+      heading: "Buttons",
+      reply: "Reply",
+      link: "Link",
+      words: "On the button",
+      address: "https://...",
+      remove: "Remove",
+      addReply: "+ Reply button",
+      addLink: "+ Link button",
+    },
+    // A template's two variants, once it has a condition: how many of them go to WhatsApp for approval, beside
+    // their tabs, and on the button that sends them.
+    textVersions: {
+      templates: (n: number) =>
+        n === 1 ? "1 variant goes to WhatsApp for approval" : `${n} variants go to WhatsApp for approval`,
+      submit: (n: number) => (n === 1 ? "Send for approval" : `Send ${n} variants for approval`),
+    },
+    // A second version's template, as it's named for its list: the text's name, then who it's for.
+    versionTemplateName: (name: string, who: string) => `${name}, for those who ${who}`,
+    othersTemplateName: (name: string, who: string) => `${name}, for all but those who ${who}`,
+    // Beside the name of a template with two variants, in the dropdown and on the list of broadcasts; and, under
+    // the mouse, who each is for.
+    twoVariants: "2 variants",
+    twoVariantsFor: (who: string) => `One variant for those who ${who}, and one for everyone else`,
     // A template in the dropdown, and under the one chosen: a tag by its name when nothing has ever had it; on a line,
     // who made it; when it was last sent and to how many, or else when it's first scheduled for, or else when it was
     // approved; and how many other drafts have it, if any do.
@@ -93,7 +151,9 @@ export const broadcastsCopy = {
     },
     // Under the template chosen: its words as new words, under a new name, to send for approval; and deleting it,
     // from WhatsApp too, offered only while no other broadcast has it.
-    editTemplate: "Edit as a new template",
+    editTemplate: "Edit as new template",
+    // Beside the dropdown, for a new template being written, which greys the dropdown till it's discarded.
+    discardTemplate: "Discard",
     copyName: (name: string, n: number) => `${name} (${n})`,
     deleteTemplate: "Delete template",
     deleteRefused: {
@@ -110,7 +170,7 @@ export const broadcastsCopy = {
     findRecipient: "Show a fake recipient who…",
     // Under the text, when its first link is to Google Maps, whose card WhatsApp gets wrong in a template's text.
     mapsFirst:
-      "WhatsApp shows a broken preview for a Google Maps link when it's the first link in a text. Put another link before it, such as the event's page.",
+      "WhatsApp shows a broken preview for a Google Maps link. To show a map, choose Place in the Header and paste the link there.",
     testTo: "Send a test copy to",
     sendTest: "Send test",
     testVia: {
@@ -168,6 +228,7 @@ export const broadcastsCopy = {
     submitRefused: {
       "no-words": "The template is empty, so it wasn't sent for approval.",
       "not-ready": "Something has changed under my feet. Reload the page to see what needs fixing.",
+      "no-app": "The site isn't set up to send a picture to WhatsApp, so the template wasn't sent for approval.",
       already: "This template is already with WhatsApp. Reload the page to see it.",
       "not-text": "This broadcast is an email, so it has no template to approve.",
       "not-draft": "This text isn't a draft any more. Reload the page to see what it is now.",
@@ -189,6 +250,8 @@ export const broadcastsCopy = {
     problems: {
       // Before a Consent by the channel picked is chosen, first of what stops it.
       "no-consent": "Choose a Consent first.",
+      // Under Schedule, once, when the Preview section says what's wrong under Send for approval.
+      "fix-preview": "Fix errors in Preview section above first.",
       "unknown-filter": "The filter has values that have changed or are no longer supported.",
       "no-recipients": "There's nobody to send to.",
       "no-subject": "Fill in the subject.",
@@ -198,7 +261,20 @@ export const broadcastsCopy = {
       "field-edge": "WhatsApp templates can't have a field at the very start or end.",
       "fields-together": "WhatsApp templates can't have two fields next to each other.",
       "field-twice": "WhatsApp templates can't use the same field twice.",
-      "same-words": "An approved template already has these words.",
+      "same-words":
+        "An approved WhatsApp template already has this exact message, with a different header or buttons. WhatsApp won't approve the same copy twice, so make a change to it.",
+      "versions-same-words":
+        "Both template variants have the same text, which WhatsApp won't approve twice. Change the copy in one of them.",
+      "no-place": "Choose where the map header shows.",
+      "place-words": "Give the map header's place a name and an address.",
+      "button-no-words": "Each button must have text.",
+      "button-too-long": "Shorten the words on each button to 25 characters or fewer.",
+      "link-no-address": "Set the address for each link button.",
+      "link-not-address": "A link button's address must be a web page, starting https://.",
+      "too-many-links": "A text can have two link buttons at most.",
+      "too-many-buttons": "A text can have three buttons at most.",
+      "buttons-mixed": "A text's buttons must all be reply buttons, or all link buttons.",
+      "no-picture": "Choose the picture the header shows.",
       "not-connected": "The Gmail inbox it's sent from isn't connected.",
       "too-slow": "That's too many to send before it stops trying. Send it to fewer people, or keep trying for longer.",
       "no-number": "No WhatsApp number is configured, so texts can't be sent.",
@@ -256,7 +332,10 @@ export const broadcastsCopy = {
     ],
     // Under Schedule, for a text whose template WhatsApp hasn't approved: scheduling sends it for approval, if it
     // isn't with WhatsApp already.
-    schedulesForApproval: "Scheduling also sends the template to WhatsApp for approval.",
+    schedulesForApproval: (templates: number) =>
+      templates === 1
+        ? "Scheduling also sends the template to WhatsApp for approval."
+        : `Scheduling also sends the ${templates} variants of the template to WhatsApp for approval.`,
     // Under its time, for a text whose template WhatsApp hasn't approved, due in less than a day.
     approvalSoon:
       "WhatsApp can take 24 hours to approve a template, but you've scheduled the broadcast to start sooner than that. It will still be sent, but late, if approval is slow.",
@@ -347,6 +426,7 @@ export const broadcastsCopy = {
         voice: "Voice note, which can't be shown here",
         sticker: "Sticker, which can't be shown here",
         location: "A location they shared",
+        button: "Tapped a button",
         contacts: "A contact card they shared",
       } as Record<string, string>,
       // Any other kind, by WhatsApp's name for it.
@@ -634,6 +714,8 @@ export const broadcastProblems = defineProblems("broadcasts", {
   whatsAppUnanswered: "WhatsApp didn't answer, so no text could go just then",
   // A text's new words couldn't be sent to WhatsApp for approval, or taken back from it.
   templateNotSent: (p: { template: SafeText }) => `WhatsApp didn't take template ${p.template} for approval`,
+  // A text with a picture couldn't go for approval, as the Meta app's ID, which its picture is uploaded through, isn't set.
+  noMetaApp: "A template with a picture couldn't be sent to WhatsApp for approval, as WHATSAPP_APP_ID isn't set",
   templateNotDeleted: (p: { template: SafeText }) =>
     `WhatsApp didn't delete template ${p.template}, which was withdrawn here`,
   // An approved template staff deleted, which WhatsApp then wouldn't: it's kept, as it was.

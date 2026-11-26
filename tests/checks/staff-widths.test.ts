@@ -15,7 +15,7 @@ const COMPONENTS = join(ROOT, "app", "(staff)", "staff", "_components");
 const ALLOWED: Record<string, string> = {
   // Over the page, where the grid doesn't reach.
   "DeletePolitician.module.css .confirm": "a popover",
-  "MailingEditor.module.css .partMenu": "a popover",
+  "ConditionMenu.module.css .partMenu": "a popover",
   "StackedBars.module.css .label": "a tooltip, wider than its chart",
   "MailingWriter.module.css .ask": "a field",
   "MailingWriter.module.css .sender": "a field",
@@ -28,6 +28,14 @@ const ALLOWED: Record<string, string> = {
   "Broadcasts.module.css .phone": "a phone's screen",
   // Its bubble, wrapping the words where a phone did, so the fold falls where it did.
   "Broadcasts.module.css .phoneBubble": "a phone's line of words",
+  // A text's reply buttons under its bubble, as wide as it.
+  "Broadcasts.module.css .replyButtons": "a phone's line of words",
+  // Under our bubble on a copy's page, as wide as the bubble.
+  "Broadcasts.module.css .withButtons > .replyButtons": "its bubble's width",
+  // A text's place or picture, under the choice of its top.
+  "TextTop.module.css .form": "a field",
+  // A square of OpenStreetMap's map, its own size, as the map is drawn in pixels.
+  "PlaceMap.module.css .tile": "a map tile",
   // The login page: one card in the middle of the window, with no grid.
   "LoginCard.module.css .login": "the login page",
   "DevLogin.module.css .dev": "the login page",

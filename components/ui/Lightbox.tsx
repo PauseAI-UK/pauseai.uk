@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import IconButton from "./IconButton";
+import IconButton, { CrossIcon } from "./IconButton";
 import styles from "./Lightbox.module.css";
 
 /**
@@ -50,9 +50,7 @@ export default function Lightbox({
       }}
     >
       <IconButton look="dark" className={styles.close} aria-label="Close" onClick={onClose}>
-        <svg viewBox="0 0 24 24" width={20} height={20} aria-hidden="true">
-          <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
+        <CrossIcon size={20} />
       </IconButton>
       {onPrevious && (
         <IconButton look="dark" className={styles.previous} aria-label="Previous" onClick={onPrevious}>

@@ -1,0 +1,17 @@
+/* The menu of who a part is for, under its button (PartBox's partButton), in
+   a menu's box (Menu): the asks, then the answers to the one chosen. */
+
+/* An ask, which opens its answers. */
+.toAsk::after {
+  content: " ›" / "";
+  color: var(--text-secondary);
+}
+
+.back {
+  color: var(--text-secondary);
+}
+
+.askTitle {
+  margin: var(--space-1) var(--space-2);
+  font-weight: 600;
+}

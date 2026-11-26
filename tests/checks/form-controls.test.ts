@@ -17,6 +17,8 @@ const OWN_CONTROLS: Record<string, string> = {
     "a tick box with no words beside it, saved as it's clicked, or part ticked",
   "app/(tools)/tools/collateral/_components/Slider.tsx": "a range slider, the one control the kit hasn't",
   "components/tools/kit/Choices.tsx": "a choice card, with its checkbox in its corner",
+  "app/(staff)/staff/_components/broadcasts/TextTop.tsx":
+    "a place's name and address under its map, words that wrap as WhatsApp's do, not boxes",
   "app/(site)/campaigns/_components/LetterForm.tsx": "the honeypot field, hidden from people for bots to fill",
   "app/(march)/demonstrations/_components/SignupForm.tsx":
     "the march sign-up's fields, drawn to match the site's, and its honeypot",

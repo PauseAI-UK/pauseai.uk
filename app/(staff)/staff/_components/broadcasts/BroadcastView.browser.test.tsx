@@ -15,7 +15,10 @@ import {
   exampleBroadcastSent,
   exampleBroadcastSummary,
   exampleBroadcastText,
+  examplePlace,
   exampleTemplates,
+  exampleVariant,
+  onTemplate,
   exampleTextWords,
 } from "./BroadcastWriter.examples";
 import { staffMemberText } from "@/lib/staff-member";
@@ -252,6 +255,33 @@ describe("a broadcast's page", () => {
     expect(words.querySelector("[class*=field]")!.textContent).toBe(copy.fieldWords.firstName);
     await expect.element(page.getByText(TEMPLATE_FOOTER, { exact: true })).toBeVisible();
     await expect.element(page.getByText(stateWords.tags["not-sent:unsubscribed"]!)).toBeVisible();
+  });
+
+  it("shows a text as written, its map and buttons, and its second version above it, headed by its condition", async () => {
+    const written = {
+      ...text.written,
+      header: "location" as const,
+      place: examplePlace,
+      buttons: [{ text: "I'm coming" }],
+      textVersion: {
+        condition: "wrote:regulate-ai",
+        body: exampleTextWords,
+        header: null,
+        place: null,
+        pictureId: null,
+        buttons: [{ text: "Thanks" }],
+        variant: exampleVariant(8, null, { status: "draft", approvedAt: null }),
+      },
+    };
+    await render(<BroadcastView data={{ ...text, written }} who={who} contact={null} {...actions} />);
+    const words = page.getByRole("region", { name: copy.textTitle });
+    await expect.element(words.getByText(examplePlace.name, { exact: true })).toBeVisible();
+    await expect.element(words.getByText("I'm coming")).toBeVisible();
+    await expect.element(words.getByText("Thanks", { exact: true })).toBeVisible();
+    await expect.element(words.getByText(copy.conditions.wrote("Regulate AI"), { exact: true }).first()).toBeVisible();
+    await expect
+      .element(words.getByRole("button", { name: copy.conditions.wrote("Regulate AI") }))
+      .not.toBeInTheDocument();
   });
 
   it("says one scheduled goes as it is, with no counts", async () => {
@@ -657,15 +687,43 @@ describe("BroadcastWaiting", () => {
   });
 
   it("says, in blue, that one scheduled waits for WhatsApp to approve its template, before its time or after", async () => {
-    const template = { ...exampleTemplates[0], status: "pending" as const, approvedAt: null };
+    const variant = exampleVariant(7, "Hi there", { status: "pending", approvedAt: null });
     const scheduled = (dueAt: Date) => (
-      <BroadcastWaiting written={{ ...exampleBroadcastText, state: "scheduled", dueAt, template }} pause={null} />
+      <BroadcastWaiting written={{ ...exampleBroadcastText, state: "scheduled", dueAt, variant }} pause={null} />
     );
-    const by = staffMemberText(template.createdBy!);
+    const by = staffMemberText(variant.createdBy!);
     const { rerender } = await render(scheduled(new Date("2099-01-01T09:18:00Z")));
-    await expect.element(page.getByText(copy.approvalStrip(by, staffTime(template.requestedAt), false))).toBeVisible();
+    await expect.element(page.getByText(copy.approvalStrip(by, staffTime(variant.requestedAt), false))).toBeVisible();
     await rerender(scheduled(new Date("2020-01-01T09:18:00Z")));
-    await expect.element(page.getByText(copy.approvalStrip(by, staffTime(template.requestedAt), true))).toBeVisible();
+    await expect.element(page.getByText(copy.approvalStrip(by, staffTime(variant.requestedAt), true))).toBeVisible();
+  });
+
+  it("says the same while WhatsApp reviews only its conditional variant, its default one approved", async () => {
+    const sent = exampleVariant(7, "Hi there, for those who wrote", {
+      status: "pending",
+      approvedAt: null,
+      createdBy: "sam@pauseai.uk",
+    });
+    const written = {
+      ...onTemplate(exampleBroadcastText, exampleTemplates[0]),
+      state: "scheduled" as const,
+      dueAt: new Date("2099-01-01T09:18:00Z"),
+      textVersion: {
+        condition: "wrote:regulate-ai",
+        body: exampleTextWords,
+        header: null,
+        place: null,
+        pictureId: null,
+        buttons: [],
+        variant: sent,
+      },
+    };
+    await render(<BroadcastWaiting written={written} pause={null} />);
+    await expect
+      .element(
+        page.getByText(copy.approvalStrip(staffMemberText("sam@pauseai.uk"), staffTime(sent.requestedAt), false)),
+      )
+      .toBeVisible();
   });
 });
 

@@ -212,37 +212,21 @@
   max-width: 28rem;
 }
 
+/* The list no wider than its card, and each button no wider than the list, so a long condition's words are cut
+   short in its button, not run off a phone's edge. */
 .toggles {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.toggles button {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-1) var(--space-3);
-  border: 1px dashed var(--text-secondary);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.toggles button[aria-pressed="true"] {
-  border-color: var(--status-green);
-  background: var(--status-green-bg);
-  color: var(--status-green);
-}
-
-.toggles button:hover {
-  border-style: solid;
+.toggles li {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Where the email would be, when no one has the answers chosen. */

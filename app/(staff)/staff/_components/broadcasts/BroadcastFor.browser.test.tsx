@@ -38,6 +38,7 @@ function fakeActions() {
     withdrawTemplate: action(() => ({ ok: true })),
     deleteTemplate: action(() => ({ ok: true })),
     linkCard: action(() => ({ ok: true, card: null })),
+    findPlaces: action(() => ({ ok: true, places: [] })),
   };
 }
 

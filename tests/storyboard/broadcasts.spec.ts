@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { staffVocabulary } from "@/lib/staff-vocabulary";
 import { emailSettingsCopy as settingsCopy } from "@/lib/content/email-settings";
@@ -21,6 +22,7 @@ import { supportersCopy } from "@/app/(staff)/staff/_components/supporters/copy"
 import { mailingsCopy } from "@/app/(staff)/staff/_components/mailings/copy";
 import { lettersCopy } from "@/app/(staff)/staff/_components/letters/copy";
 import { broadcastsCopy } from "@/lib/broadcasts/copy";
+import { registeredFor } from "@/lib/broadcasts/broadcasts";
 import { emailCopy } from "@/lib/email/copy";
 import { shellCopy } from "@/app/(staff)/staff/_components/shell/copy";
 import { dashboardCopy } from "@/app/(staff)/staff/_components/dashboard/copy";
@@ -45,6 +47,8 @@ const EMAILABLE = 3;
 /** Where an email to supporters is from, whose connected Gmail sends it. */
 const HELLO = "hello@pauseai.uk";
 const TEXTABLE = 1;
+/** And how many it finds once CiviCRM's members are imported too. */
+const TEXTABLE_MEMBERS = 4;
 const WORDS =
   '{"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Hi "}, {"type": "field", "attrs": {"field": "firstName"}}, {"type": "text", "text": ", the march meets at 11:00 at Parliament Square."}]}]}';
 
@@ -97,14 +101,15 @@ async function startFromList(page: Page, filters: string, n: number) {
 }
 
 /**
- * Templates WhatsApp has approved, each with its own words, named as they
- * will be: most by staff, and one made in WhatsApp Manager, named as Meta
- * names them.
+ * Templates WhatsApp has approved, each of one variant with its own words,
+ * named as they will be: most by staff, and one made in WhatsApp Manager,
+ * named as Meta names them.
  */
 function addTemplates(database: string) {
   runSql(
     database,
-    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, footer)
+    `WITH variants AS (
+     INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, footer)
      SELECT name, jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph',
          'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'Hi '),
            jsonb_build_object('type', 'field', 'attrs', jsonb_build_object('field', 'firstName')),
@@ -117,7 +122,11 @@ function addTemplates(database: string) {
        ('Local group meetup', 'your local group meets on Thursday. Everyone is welcome.', 'jo@pauseai.uk', 4),
        ('write_to_your_mp', 'the AI bill has its second reading next week. Could you write to your MP?', NULL, 5),
        ('Thank you for coming.', 'thank you for coming. Here is what happens next.', 'sam@pauseai.uk', 6)
-     ) t (name, words, by, n)`,
+     ) t (name, words, by, n)
+     RETURNING id, name, created_by
+     )
+     INSERT INTO whatsapp_templates (name, default_variant_id, created_by)
+     SELECT name, id, created_by FROM variants ORDER BY id`,
   );
 }
 
@@ -323,19 +332,30 @@ test("A template's words edited as a new one, and an unused one deleted", async 
   await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
   await page.getByRole("button", { name: copy.deleteTemplate }).scrollIntoViewIfNeeded();
   await frame(page, "A template chosen, with Edit and Delete under it", { window: true });
-  story("Edit takes its words, under its name numbered, as new words, to change and send for approval.");
+  story(
+    "Edit frees its words to change, under its name numbered. Till they change they're the approved template's still, so there's nothing to send for approval.",
+  );
   await savedAfter(page, () => page.getByRole("button", { name: copy.editTemplate }).click());
   await expect(page.getByLabel(copy.templateName)).toHaveValue(copy.copyName("PauseCon room change", 2));
+  const approval = page.getByRole("button", { name: copy.submitTemplate });
+  await expect(approval).toHaveCount(0);
   await page.getByLabel(copy.templateName).scrollIntoViewIfNeeded();
   await frame(page, "Its words as a new template", { window: true });
-  story(
-    "Unchanged, they're an approved template's already, so there's nothing to approve: Send for approval is greyed, and a red line under it says why.",
-  );
-  const approval = page.getByRole("button", { name: copy.submitTemplate });
-  await expect(approval).toBeDisabled();
-  await expect(page.getByText(copy.problems["same-words"]).first()).toBeVisible();
+  story("Once they've changed, they're new words, and Send for approval is under the preview.");
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.press("End");
+  await savedAfter(page, () => page.keyboard.type(" Follow the signs."));
+  await expect(approval).toBeEnabled();
   await approval.scrollIntoViewIfNeeded();
-  await frame(page, "Send for approval, greyed, and why", { window: true });
+  await frame(page, "Changed, to send for approval", { window: true });
+  story(
+    "While a new template has anything written, the dropdown is greyed, so choosing another can't lose it. They discard it, pressed twice, which frees the dropdown.",
+  );
+  const discard = page.getByRole("button", { name: copy.discardTemplate });
+  await discard.scrollIntoViewIfNeeded();
+  await frame(page, "The dropdown greyed, with Discard beside it", { window: true });
+  await discard.click();
+  await savedAfter(page, () => page.getByRole("button", { name: staffVocabulary.deleteItShort }).click());
   story(
     "They choose an old template instead, and delete it: pressed twice, it goes from WhatsApp and from the dropdown, and the draft chooses again.",
   );
@@ -393,7 +413,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   const send = page.getByRole("region", { name: copy.sections.send });
   await send.scrollIntoViewIfNeeded();
-  await expect(send.getByText(copy.schedulesForApproval)).toBeVisible();
+  await expect(send.getByText(copy.schedulesForApproval(1))).toBeVisible();
   await frame(page, "New words: Schedule sends them to WhatsApp for approval too", { window: true });
   story(
     "Or they send them on their own first, from under their preview, before the test copy, as a test can't go till WhatsApp approves them.",
@@ -424,7 +444,7 @@ test("A text on new words", async ({ page, request, flowDatabase }) => {
   story(
     "WhatsApp rejects them, and its webhook tells the site why, as a code. The draft says what it means in plain words, and the words can be changed and sent again.",
   );
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await postWhatsAppWebhook(request, BASE, templateStatus(name, "REJECTED", "INVALID_FORMAT"));
   await page.goto(`${BASE}/staff/broadcasts/${id}`);
   await expect(
@@ -491,7 +511,7 @@ test("A text scheduled before WhatsApp approves it", async ({ page, request, flo
   story(
     "WhatsApp rejects the template. The text is a draft again, to change and schedule again, and the email of the rejection says so.",
   );
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await postWhatsAppWebhook(request, BASE, templateStatus(name!, "REJECTED", "INVALID_FORMAT"));
   const rejected = newestEmail(
     (one) => one.Subject === broadcastsCopy.notifications.templateRejected.subject("March day: where to meet"),
@@ -604,7 +624,7 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
   await page.getByRole("button", { name: copy.submitTemplate }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
   story("What goes to WhatsApp: the words, with a footer saying how to stop and a Stop button, as every text has.");
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await textFrame(
     page,
     OUR_CHAT,
@@ -633,17 +653,22 @@ test("WhatsApp approves new words", async ({ page, request, flowDatabase }) => {
 });
 
 /**
- * A text to those who can be texted, on an approved template, or one
- * WhatsApp is still reviewing (`status`), scheduled for an hour ago by
- * `scheduledBy`, as scheduling leaves one; its ID.
+ * A text to those who can be texted, on a template of one variant,
+ * approved, or one WhatsApp is still reviewing (`status`), scheduled for an
+ * hour ago by `scheduledBy`, as scheduling leaves one; its ID.
  */
 function addDueText(database: string, title: string, scheduledBy: string, status = "approved"): string {
   const approved = status === "approved";
   const [template] = runSql(
     database,
-    `INSERT INTO whatsapp_templates (name, body, status, created_by, approved_at, meta_name, category, footer)
-     VALUES ('${title}', '${WORDS}', '${status}', 'jo@pauseai.uk', ${approved ? "now() - interval '1 day'" : "NULL"},
-       'flow_text_1', ${approved ? "'MARKETING'" : "NULL"}, '${TEMPLATE_FOOTER}')
+    `WITH variant AS (
+       INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, meta_name, category, footer)
+       VALUES ('${title}', '${WORDS}', '${status}', 'jo@pauseai.uk', ${approved ? "now() - interval '1 day'" : "NULL"},
+         'flow_text_1', ${approved ? "'MARKETING'" : "NULL"}, '${TEMPLATE_FOOTER}')
+       RETURNING id
+     )
+     INSERT INTO whatsapp_templates (name, default_variant_id, created_by)
+     SELECT '${title}', id, 'jo@pauseai.uk' FROM variant
      RETURNING id`,
   );
   const [id] = runSql(
@@ -651,7 +676,7 @@ function addDueText(database: string, title: string, scheduledBy: string, status
     `INSERT INTO mailings (title, subject, audience, channel, topic, filter, body, created_by, sent_from, from_name, due_at,
        state, template_id)
      VALUES ('${title}', '', 'supporters', 'text', 'events', '{"list": "supporters", "params": {"contact": "text:events:yes"}}',
-       '${WORDS}', 'jo@pauseai.uk', '+447700900000', 'PauseAI UK', now() - interval '1 hour', 'scheduled', ${template})
+       '{"type": "doc", "content": []}', 'jo@pauseai.uk', '+447700900000', 'PauseAI UK', now() - interval '1 hour', 'scheduled', ${template})
      RETURNING id`,
   );
   runSql(
@@ -673,6 +698,387 @@ async function textSent(request: APIRequestContext, database: string) {
   )[0].split("|");
   return { id, copy, number, wamid };
 }
+
+test("A text with a map of where to meet", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write new words for a text, and choose a place for its top: a map of where to meet, which opens their map app when tapped.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("We meet at noon. Look for the orange flags.");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March day: where to meet"));
+  await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.place }).click());
+  const find = page.getByLabel(copy.placeChooser.find);
+  await find.scrollIntoViewIfNeeded();
+  await frame(page, "A place for its top, to find", { window: true });
+  story(
+    "They paste the short link Google Maps' Share button gives. The site follows it, and finds the place it points at.",
+  );
+  await find.fill("https://maps.app.goo.gl/G5TcwgTuzbJg7i2v5");
+  await savedAfter(page, () => page.getByRole("button", { name: copy.placeChooser.findButton }).click());
+  const name = page.getByLabel(copy.placeChooser.name, { exact: true });
+  await expect(name).toHaveValue("All Souls' Place");
+  await frame(page, "The place the link points at", { window: true });
+  story(
+    "Or they search for it by name: they take that place off with its ×, and search. WhatsApp shows the name under the map, so they make it say where exactly.",
+  );
+  await page.getByRole("button", { name: copy.placeChooser.remove }).click();
+  await find.fill("Parliament Square");
+  await savedAfter(page, () => find.press("Enter"));
+  await expect(name).toHaveValue("Parliament Square");
+  await savedAfter(page, () => name.fill("Parliament Square, by the statues"));
+  story("They add a reply button, whose tap comes back as the supporter's reply.");
+  await page.getByRole("button", { name: copy.replyButtons.addReply }).click();
+  await savedAfter(page, () => page.getByLabel(copy.replyButtons.words).fill("I'm coming"));
+  await page.getByLabel(copy.replyButtons.words).scrollIntoViewIfNeeded();
+  await frame(page, "Found by name and renamed, and a reply button", { window: true });
+  story("The preview shows the map at the top of the text, the place's name and address under it, and the button.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.scrollIntoViewIfNeeded();
+  await expect(preview.getByText("Parliament Square, by the statues")).toBeVisible();
+  await frame(page, "The preview, with its map and button", { window: true });
+  story(
+    "Sent for approval, WhatsApp gets a template with a place at its top and the button. The place itself goes with each text, so it can change later.",
+  );
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
+  await textFrame(
+    page,
+    OUR_CHAT,
+    templateSent(flowDatabase, template!),
+    "What went to WhatsApp for approval",
+    `Sent to WhatsApp for approval: ${template}`,
+  );
+});
+
+test("A text with a picture at its top", async ({ page, request, flowDatabase }) => {
+  story("Staff write new words for a text, and add a picture for its top, which WhatsApp shows over the words.");
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("The march is on Saturday. See you there!");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March banner"));
+  await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.picture }).click());
+  const add = page.getByRole("button", { name: copy.pictureChooser.choose });
+  await add.scrollIntoViewIfNeeded();
+  await frame(page, "A box to drop, paste or add a picture", { window: true });
+  story("They add the march's banner. The site keeps it, and it can change after approval, as each text sends it.");
+  await savedAfter(page, () =>
+    page
+      .locator('input[type=file][accept="image/jpeg,image/png"]')
+      .setInputFiles(join(__dirname, "..", "fixtures", "pictures", "march-banner.png")),
+  );
+  const shown = page.getByRole("img", { name: copy.pictureChooser.shown });
+  await expect(shown).toBeVisible();
+  await frame(page, "The picture chosen, with its × to take it off", { window: true });
+  story("The preview shows the picture over the words.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.scrollIntoViewIfNeeded();
+  await expect(preview.locator('img[src^="/api/text-pictures/"]')).toBeVisible();
+  await frame(page, "The preview, with the picture at its top", { window: true });
+  story("Sent for approval, WhatsApp gets the picture as the template's example, uploaded to the site's Meta app.");
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  const [template] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
+  await textFrame(
+    page,
+    OUR_CHAT,
+    templateSent(flowDatabase, template!),
+    "What went to WhatsApp for approval",
+    `Sent to WhatsApp for approval: ${template}`,
+  );
+});
+
+/**
+ * A template with two variants WhatsApp has approved: one for those who registered for the past London march, and one
+ * for everyone else.
+ */
+function addTwoVariants(database: string) {
+  const words = (text: string) =>
+    `jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', '${text}')))))`;
+  runSql(
+    database,
+    `WITH first AS (
+       INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, footer)
+       VALUES ('We are flyering on Saturday, for all but those who registered', ${words("We are flyering on Saturday. Could you spare an hour?")},
+         'approved', 'jo@pauseai.uk', '2026-10-01T10:00:00Z', '${TEMPLATE_FOOTER}') RETURNING id
+     ), second AS (
+       INSERT INTO whatsapp_template_variants (name, body, status, created_by, approved_at, footer)
+       VALUES ('We are flyering on Saturday, for those who registered', ${words("Thank you for marching. We are flyering on Saturday.")},
+         'approved', 'jo@pauseai.uk', '2026-10-01T10:00:00Z', '${TEMPLATE_FOOTER}') RETURNING id
+     )
+     INSERT INTO whatsapp_templates (name, condition, default_variant_id, conditional_variant_id, created_by)
+     SELECT 'We are flyering on Saturday.', '${registeredFor("evt-fixture-past-london-march")}', first.id, second.id, 'jo@pauseai.uk'
+     FROM first, second`,
+  );
+}
+
+test("A template with two variants chosen", async ({ page, request, flowDatabase }) => {
+  story(
+    "A template has two variants WhatsApp approved: one for those who went to the London march, and one for everyone else. Staff choose it as they would any template.",
+  );
+  await importLuma(request, BASE);
+  addTemplates(flowDatabase);
+  addTwoVariants(flowDatabase);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await templateBox(page).click();
+  const both = page.getByRole("button", { name: "We are flyering on Saturday.", exact: true });
+  await expect(both).toBeVisible();
+  await frame(page, "The template in the dropdown, marked as having two variants", { window: true });
+  story("Choosing it brings both variants, a tab each, with their words as WhatsApp approved them.");
+  await savedAfter(page, () => both.click());
+  await expect(page.getByRole("tab").first()).toBeVisible();
+  await page.getByRole("tab").first().scrollIntoViewIfNeeded();
+  await frame(page, "Chosen: a tab for each variant, the London marchers' open", { window: true });
+  story("The list of broadcasts marks the draft the same way, beside its title.");
+  const draft = page.url();
+  await page.goto(`${BASE}/staff/broadcasts`);
+  await expect(page.getByText(copy.twoVariants)).toBeVisible();
+  await frame(page, "The draft in the list, marked as having two variants");
+  await page.goto(draft);
+  story("Choosing a template with one variant makes that the whole text, with no tabs.");
+  await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  await frame(page, "A template with one variant, no tabs", { window: true });
+});
+
+test("A text with a variant for some", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff write new words for a text, then give those who registered for an event a variant of their own, with the button an email's conditional parts have, beside the words.",
+  );
+  await importLuma(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await chooseTemplate(page, copy.newTemplate);
+  await page.getByRole("textbox", { name: copy.templateWords }).click();
+  await page.keyboard.type("The march is this Saturday at noon. Will you join us?");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("March this Saturday"));
+  await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
+  await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
+  await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
+  await frame(page, "Any event, searched", { window: true });
+  story(
+    "Choosing one splits the text in two: a variant for those who registered, and one for everyone else, a tab each, worded as the preview's toggle is, with how many each goes to. Both start as copies of what was written.",
+  );
+  await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
+  const who = copy.conditions.registered("PauseAI London: Protest at Parliament");
+  const tabs = page.getByRole("tab");
+  await expect(tabs.first()).toContainText(who);
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "Two variants, a tab each", { window: true });
+  story(
+    "They give those who registered a reply button. Its words are still everyone else's, and WhatsApp rejects a second template with the same words, so the draft says to change one's before anything is sent.",
+  );
+  await page.getByRole("button", { name: copy.replyButtons.addReply }).click();
+  await savedAfter(page, () => page.getByLabel(copy.replyButtons.words).fill("I'm coming"));
+  await page.getByText(copy.problems["versions-same-words"]).scrollIntoViewIfNeeded();
+  await frame(page, "The same words with a button of its own: stopped", { window: true });
+  story("They change the words of the variant for those who registered, who know about the march already.");
+  const words = page.getByRole("textbox", { name: copy.templateWords });
+  // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.
+  await words.selectText();
+  await savedAfter(page, () => page.keyboard.type("Thank you for registering. See you at noon on Saturday."));
+  await frame(page, "Their own words", { window: true });
+  story(
+    "WhatsApp approves each variant by itself, so two go. It rejects the variant for those who registered. Its tab says why, and it can be changed and sent again.",
+  );
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.getByRole("button", { name: copy.textVersions.submit(2) }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  const [rejected] = runSql(
+    flowDatabase,
+    "SELECT v.meta_name FROM whatsapp_template_variants v JOIN whatsapp_templates t ON t.conditional_variant_id = v.id",
+  );
+  await postWhatsAppWebhook(request, BASE, templateStatus(rejected!, "REJECTED", "INVALID_FORMAT"));
+  await reload(page);
+  const why = page.getByText(broadcastsCopy.notifications.templateRejectedWhy.reasons.INVALID_FORMAT, { exact: false });
+  await why.scrollIntoViewIfNeeded();
+  await frame(page, "The variant WhatsApp rejected, and why", { window: true });
+  await words.click();
+  await page.keyboard.press("End");
+  await savedAfter(page, () => page.keyboard.type(" Bring a friend."));
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
+  await expect(why).not.toBeVisible();
+  await frame(page, "Changed and sent again");
+});
+
+test("A conditional variant on an approved template", async ({ page, request, flowDatabase }) => {
+  story(
+    "Staff choose a template WhatsApp has approved, then give those who registered for an event a variant of their own. It starts as a copy of the template's own words, so it's the same approved variant, and nothing goes for approval, but it's a new template now, so its words are free to change.",
+  );
+  await importLuma(request, BASE);
+  addTemplates(flowDatabase);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE);
+  await savedAfter(page, () => chooseTemplate(page, "PauseCon room change"));
+  await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
+  await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
+  await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
+  await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
+  const tabs = page.getByRole("tab");
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "The variant, the same approved words", { window: true });
+  story(
+    "To say something else to those who registered, staff change their words. Only those go to WhatsApp, as everyone else's are approved.",
+  );
+  const words = page.getByRole("textbox", { name: copy.templateWords });
+  await expect(words).toBeVisible();
+  // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.
+  await words.selectText();
+  await savedAfter(page, () => page.keyboard.type("PauseCon has moved to the Main Hall. Your seat is saved."));
+  await frame(page, "Its own words, one template to approve", { window: true });
+  story("They choose the time. Schedule says it sends the variant's words for approval too.");
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).first().selectOption("14"));
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.scrollIntoViewIfNeeded();
+  await expect(send.getByText(copy.schedulesForApproval(1))).toBeVisible();
+  await frame(page, "Schedule sends the variant's words too", { window: true });
+  story("Or they send them first, from under the preview. The top of the draft says WhatsApp has them.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.getByRole("button", { name: copy.submitTemplate }).click();
+  const withdraw = page.getByRole("button", { name: copy.withdrawTemplate });
+  await expect(withdraw).toBeVisible();
+  await frame(page, "The draft, the variant's words sent for approval");
+  story("The variant's tab has its words as they went, locked, with the button that takes them back.");
+  await withdraw.scrollIntoViewIfNeeded();
+  await frame(page, "The variant's words, locked", { window: true });
+  await withdraw.click();
+  await page.getByRole("button", { name: copy.withdrawSure }).click();
+  await expect(words).toBeVisible();
+  await frame(page, "Taken back, to change", { window: true });
+  story("Scheduled as it is, the variant's words go to WhatsApp again, and the text waits for its approval.");
+  await send.getByRole("button", { name: copy.schedule(TEXTABLE, "text") }).click();
+  await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
+  await frame(page, "The text, scheduled");
+});
+
+test("A reply button tapped", async ({ page, request, flowDatabase }) => {
+  story(
+    "A supporter taps a text's reply button. WhatsApp sends the button's words back as their reply, which the site keeps on the page of the copy it answers, marked as a tap.",
+  );
+  const sent = await textSent(request, flowDatabase);
+  await postWhatsAppWebhook(
+    request,
+    BASE,
+    messageFrom(sent.number, "wamid.flow-tap", sent.wamid, { button: "I'm coming" }),
+  );
+  await logIn(page, flowDatabase);
+  await page.goto(`${BASE}/staff/broadcasts/${sent.id}/${sent.copy}`);
+  await expect(page.getByText("I'm coming")).toBeVisible();
+  await frame(page, "Their tap, as a reply");
+});
+
+test("A text with two variants, written, approved and sent", async ({ page, request, flowDatabase }) => {
+  story(
+    "Jane registered for the protest at Parliament. Mara, a member, didn't. Staff write one text for everyone who can be texted: a map of where it meets, and a link to sign up.",
+  );
+  await importLuma(request, BASE);
+  await importCivicrm(request, BASE);
+  await logIn(page, flowDatabase);
+  await startFromList(page, TEXT, TEXTABLE_MEMBERS);
+  const id = new URL(page.url()).pathname.split("/").at(-1);
+  await chooseTemplate(page, copy.newTemplate);
+  const words = page.getByRole("textbox", { name: copy.templateWords });
+  await words.click();
+  await page.keyboard.type("We protest at Parliament on Saturday at noon. Will you join us?");
+  await savedAfter(page, () => page.getByLabel(copy.templateName).fill("Protest this Saturday"));
+  await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.place }).click());
+  const find = page.getByLabel(copy.placeChooser.find);
+  await find.fill("Parliament Square");
+  await savedAfter(page, () => find.press("Enter"));
+  await page.getByRole("button", { name: copy.replyButtons.addLink }).click();
+  await page.getByLabel(copy.replyButtons.words).fill("Sign up");
+  await savedAfter(page, () =>
+    page.getByLabel(copy.replyButtons.address).fill("https://luma.com/fixture-london-protest"),
+  );
+  story(
+    "Then a variant for those who registered, which starts as a copy. They give it the march's picture in place of the map, words of its own, and a reply button in place of the link.",
+  );
+  await page.getByRole("button", { name: mailingsCopy.mailingEditor.addOnlyFor }).click();
+  await page.getByRole("menuitem", { name: copy.conditions.registeredGroup }).click();
+  await page.getByLabel(staffVocabulary.filters.narrow).fill("protest");
+  await savedAfter(page, () => page.getByRole("menuitem", { name: /Protest at Parliament/ }).click());
+  const who = copy.conditions.registered("PauseAI London: Protest at Parliament");
+  const tabs = page.getByRole("tab");
+  await expect(tabs.first()).toContainText(who);
+  await savedAfter(page, () => page.getByRole("radio", { name: copy.textTop.picture }).click());
+  await savedAfter(page, () =>
+    page
+      .locator('input[type=file][accept="image/jpeg,image/png"]')
+      .setInputFiles(join(__dirname, "..", "fixtures", "pictures", "march-banner.png")),
+  );
+  await expect(page.getByRole("img", { name: copy.pictureChooser.shown })).toBeVisible();
+  // Selected whole by the page, not a shortcut, which the phone's browser doesn't take.
+  await words.selectText();
+  await savedAfter(page, () => page.keyboard.type("Thank you for registering. See you at noon on Saturday."));
+  await savedAfter(page, () => page.getByRole("button", { name: copy.replyButtons.remove, exact: true }).click());
+  await page.getByRole("button", { name: copy.replyButtons.addReply }).click();
+  await savedAfter(page, () => page.getByLabel(copy.replyButtons.words).fill("I'm coming"));
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "For those who registered: a picture, their own words, a reply button", { window: true });
+  await tabs.last().click();
+  await expect(find).toBeHidden();
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "For everyone else: the map, and a link to sign up", { window: true });
+  story("The preview's toggle chooses whose copy it shows, as it does for an email's parts.");
+  const preview = page.getByRole("region", { name: copy.sections.preview });
+  await preview.getByRole("button", { name: who }).click();
+  await preview.scrollIntoViewIfNeeded();
+  await expect(preview.getByText(/Thank you for registering/)).toBeVisible();
+  await frame(page, "The preview, for someone who registered", { window: true });
+  await preview.getByRole("button", { name: who }).click();
+  await expect(preview.getByText(/Will you join us/)).toBeVisible();
+  await frame(page, "The preview, for everyone else", { window: true });
+  story(
+    "WhatsApp approves each variant by itself, so two go for approval. It approves both, and its webhook tells the site.",
+  );
+  await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).first().selectOption("14"));
+  await preview.getByRole("button", { name: copy.textVersions.submit(2) }).click();
+  await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
+  const sent = runSql(
+    flowDatabase,
+    "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending' ORDER BY id",
+  );
+  expect(sent).toHaveLength(2);
+  for (const name of sent) await postWhatsAppWebhook(request, BASE, templateStatus(name, "APPROVED"));
+  await page.goto(`${BASE}/staff/broadcasts/${id}`);
+  await expect(templateBox(page)).toBeVisible();
+  await tabs.first().scrollIntoViewIfNeeded();
+  await frame(page, "Both approved: the template chosen, its words fixed", { window: true });
+  story("Scheduled, its page shows both variants, each under who it's for.");
+  const send = page.getByRole("region", { name: copy.sections.send });
+  await send.getByRole("button", { name: copy.schedule(TEXTABLE_MEMBERS, "text") }).click();
+  await expect(page.getByRole("button", { name: mailingCopy.unschedule })).toBeVisible();
+  const text = page.getByRole("region", { name: copy.textTitle });
+  await text.scrollIntoViewIfNeeded();
+  await frame(page, "Scheduled: the variant for those who registered, then everyone else's", { window: true });
+  story("Its time comes, and it goes. Jane registered, so she gets the picture, her words and the reply button.");
+  runSql(flowDatabase, `UPDATE mailings SET due_at = now() - interval '1 hour' WHERE id = ${id}`);
+  await runSending(request);
+  const got = (number: string) =>
+    shownText(
+      flowDatabase,
+      newestText(number, (one) => "template" in one)!,
+    );
+  await textFrame(page, OUR_CHAT, got("+447700900001"), "Jane's text: she registered");
+  story("Mara didn't, so she gets the map of where it meets, everyone else's words, and the link to sign up.");
+  await textFrame(page, OUR_CHAT, got("+447700900123"), "Mara's text: she didn't register");
+  story("Each one's copy has its own page, which shows the variant they got.");
+  const [copyId] = runSql(
+    flowDatabase,
+    `SELECT id FROM broadcast_messages WHERE mailing_id = ${id} AND address = '+447700900123'`,
+  );
+  await page.goto(`${BASE}/staff/broadcasts/${id}/${copyId}`);
+  await expect(page.getByText(/Will you join us/)).toBeVisible();
+  await frame(page, "Mara's copy: everyone else's variant, its link under it");
+});
 
 test("A text goes by WhatsApp", async ({ page, request, flowDatabase }) => {
   story(
@@ -1606,7 +2012,7 @@ test("WhatsApp approves a template as it's withdrawn", async ({ page, request, f
   await savedAfter(page, () => page.getByLabel(mailingCopy.hour, { exact: false }).selectOption("14"));
   await page.getByRole("button", { name: copy.submitTemplate }).click();
   await expect(page.getByRole("button", { name: copy.withdrawTemplate })).toBeVisible();
-  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_templates WHERE status = 'pending'");
+  const [name] = runSql(flowDatabase, "SELECT meta_name FROM whatsapp_template_variants WHERE status = 'pending'");
   await postWhatsAppWebhook(request, BASE, templateStatus(name!, "APPROVED"));
   story(
     "Withdraw approval request, pressed twice, finds nothing waiting to take back. The page says so at its top, and no longer offers to withdraw.",

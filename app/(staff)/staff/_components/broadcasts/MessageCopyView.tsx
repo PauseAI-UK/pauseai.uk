@@ -11,7 +11,8 @@ import { staffTime } from "@/lib/staff-time";
 import { FIELDS_AS_WORDS, SITE_ACTOR, TEXT_SENDER_NAME } from "@/lib/broadcasts/broadcasts";
 import { MailingLetter } from "../mailings/MailingLetter";
 import { CopyStatus } from "../letters/CopyStatus";
-import { ChatBubble, ChatWall, TextWords } from "./TextBubble";
+import { BubbleTop, ChatBubble, ChatWall, TextWords } from "./TextBubble";
+import { textShown } from "@/lib/broadcasts/text-shown";
 import { LetterHistory, type HistoryEntry } from "../letters/LetterHistory";
 import { Thread } from "../letters/LetterThread";
 import ThreadEmail from "../letters/ThreadEmail";
@@ -56,10 +57,17 @@ function NotReached({ one }: { one: MessageCopy }) {
   return <Strip tone="amber">{words}</Strip>;
 }
 
-/** The message as they got it: a text as a conversation, an email as a mail app shows it. */
+/**
+ * The message as they got it: a text as a conversation, its own or its second
+ * version as they meet its condition, with its top and buttons (from the
+ * broadcast as written); an email as a mail app shows it.
+ */
 function Message({ one, name }: { one: MessageCopy; name: string }) {
+  const written = one.written;
   const merge = one.merge ?? FIELDS_AS_WORDS;
   if (one.channel === "text") {
+    const condition = written?.textVersion?.condition;
+    const shown = written && textShown(written, Boolean(condition && merge.meets.includes(condition)));
     return (
       <ChatWall>
         <ChatBubble
@@ -68,8 +76,10 @@ function Message({ one, name }: { one: MessageCopy; name: string }) {
           ours
           receipt={one.sentAt ? receiptOf(one.events) : undefined}
           badge={theirReaction(one, null)}
+          buttons={shown?.buttons}
         >
-          <TextWords words={letterFor(one.body, merge)} />
+          <BubbleTop place={shown?.place} picture={shown?.picture} realMap={one.realMaps} />
+          <TextWords words={letterFor(shown ? { type: "doc", content: shown.blocks } : one.body, merge)} />
           {/* Its footer, as they got it, where we know it. */}
           {one.footer && <span className={bubble.footer}>{one.footer}</span>}
         </ChatBubble>

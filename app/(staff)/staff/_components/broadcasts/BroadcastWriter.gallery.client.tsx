@@ -10,7 +10,11 @@ import {
   exampleBroadcastEmail,
   exampleBroadcastText,
   exampleLinkCard,
+  examplePictureId,
+  examplePlace,
   exampleTemplates,
+  exampleVariant,
+  onTemplate,
   exampleTextSender,
   exampleTextWords,
 } from "./BroadcastWriter.examples";
@@ -37,6 +41,8 @@ export function broadcastActions(log: (name: string) => (...args: unknown[]) => 
     withdrawTemplate: logged("withdrawTemplateNow", { ok: true as const }),
     deleteTemplate: logged("deleteTemplateNow", { ok: true as const }),
     linkCard: logged("linkCardFor", { ok: true as const, card: exampleLinkCard }),
+    findPlaces: logged("findPlacesFor", { ok: true as const, places: [examplePlace] }),
+    uploadPicture: logged("uploadTextPicture", { ok: true as const, pictureId: examplePictureId }),
   };
 }
 
@@ -52,24 +58,20 @@ export function BroadcastWriterExample({
       : kind === "choose" || kind === "off"
         ? exampleBroadcastText
         : kind === "template"
-          ? {
-              ...exampleBroadcastText,
-              title: exampleTemplates[0].name,
-              body: exampleTextWords,
-              template: exampleTemplates[0],
-            }
+          ? onTemplate(exampleBroadcastText, exampleTemplates[0])
           : kind === "new"
             ? { ...exampleBroadcastText, title: "Hi {first name}", body: exampleTextWords }
             : {
                 ...exampleBroadcastText,
                 title: "Hi {first name}",
                 body: exampleTextWords,
-                template: {
-                  ...exampleTemplates[0],
-                  status: "rejected" as const,
+                variant: exampleVariant(9, "Hi {first name}", {
+                  body: exampleTextWords,
+                  status: "rejected",
+                  approvedAt: null,
                   rejectedAt: new Date("2026-11-05T14:02:00Z"),
                   rejectedReason: "INVALID_FORMAT",
-                },
+                }),
               };
   const data =
     kind === "off"

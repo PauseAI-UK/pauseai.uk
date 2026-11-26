@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { useEffect, useRef, useState } from "react";
 import type { MailingAttachmentSummary } from "@/lib/mailings/drafts.server";
+import DropArea from "../ui/DropArea";
 import styles from "./MailingFiles.module.css";
 import { mailingsCopy } from "./copy";
 
@@ -111,9 +111,6 @@ export default function MailingFiles({
   /** What's wrong with the last file added, if anything. */
   problem?: string;
 }) {
-  const picker = useRef<HTMLInputElement>(null);
-  const hint = useId();
-  const [over, setOver] = useState(false);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<number>();
   async function add(chosen: File[]) {
@@ -163,41 +160,13 @@ export default function MailingFiles({
             </li>
           ))}
           {onAdd && (
-            <li
-              className={styles.drop}
-              data-over={over || undefined}
-              onDragOver={(event) => {
-                event.preventDefault();
-                setOver(true);
-              }}
-              onDragLeave={() => setOver(false)}
-              onDrop={(event) => {
-                event.preventDefault();
-                setOver(false);
-                void add([...event.dataTransfer.files]);
-              }}
-            >
-              <span id={hint}>{copy.dropFiles}</span>
-              <Button
-                variant="ghost"
-                size="small"
-                fit
-                aria-describedby={hint}
+            <li>
+              <DropArea
+                hint={copy.dropFiles}
+                choose={copy.addFiles}
                 pending={adding}
-                onClick={() => picker.current!.click()}
-              >
-                {copy.addFiles}
-              </Button>
-              <input
-                ref={picker}
-                type="file"
                 multiple
-                hidden
-                onChange={(event) => {
-                  const chosen = [...event.target.files!];
-                  event.target.value = "";
-                  void add(chosen);
-                }}
+                onFiles={(files) => void add(files)}
               />
             </li>
           )}

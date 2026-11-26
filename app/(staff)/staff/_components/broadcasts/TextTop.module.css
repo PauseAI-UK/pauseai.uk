@@ -1,0 +1,104 @@
+/* A text's top: its choice, then a place's or a picture's own form under it, a field's width, not the card's. */
+.top {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.label {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* A place's or a picture's form: a field's width, not the card's. */
+.form {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 36rem;
+}
+
+/* The box and its Find, side by side. */
+.findRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Wide enough for the box's words, where there's room. */
+.findRow > :first-child {
+  flex: 0 1 24rem;
+}
+
+/* A place chosen, as WhatsApp shows it: its map, then its name and address, which are boxes that look like words. */
+.placeCard {
+  display: grid;
+  width: 14rem;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.placeName,
+.placeAddress {
+  margin: 0 var(--space-2);
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed var(--border-strong);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  overflow: hidden;
+  resize: none;
+}
+
+.placeName {
+  margin-top: var(--space-1);
+  font-weight: 600;
+}
+
+.placeAddress {
+  margin-bottom: var(--space-2);
+  color: var(--text-secondary);
+}
+
+/* Dotted under the words always, so they read as ones to change; the accent's colour under the mouse or the cursor. */
+.placeName:hover,
+.placeName:focus,
+.placeAddress:hover,
+.placeAddress:focus {
+  border-bottom-color: var(--accent);
+  outline: none;
+}
+
+/* The picture chosen, with its × beside its top corner, as a notice's is. */
+.shownBox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+.remove {
+  flex: none;
+}
+
+/* A picture chosen, small, as a check it's the right one. */
+.shown {
+  display: block;
+  width: 14rem;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.refusal {
+  margin: 0;
+  color: var(--status-red);
+  font-size: var(--text-sm);
+}

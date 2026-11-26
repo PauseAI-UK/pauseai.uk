@@ -16,6 +16,45 @@ it("writes a text as a person can read it, and reads it back", () => {
   );
   expect(readTextNote(textNote("+44 7700 900000", onTemplate))).toEqual(onTemplate);
   expect(readTextNote(textNote("+44 7700 900000", ownWords))).toEqual(ownWords);
+  const withPlace: OutboxText = {
+    to: "+447700900001",
+    template: {
+      name: "march_day_2",
+      params: { first_name: "Jane" },
+      place: { name: "Parliament Square", address: "London SW1P 3BD", latitude: 51.5005, longitude: -0.1268 },
+    },
+  };
+  expect(textNote("+44 7700 900000", withPlace)).toBe(
+    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_2\nPlace: Parliament Square (51.5005, -0.1268)\nAddress: London SW1P 3BD\n  first_name: Jane\n",
+  );
+  expect(readTextNote(textNote("+44 7700 900000", withPlace))).toEqual(withPlace);
+  // A name and an address with commas of their own are each read back whole.
+  const commas: OutboxText = {
+    to: "+447700900001",
+    template: {
+      name: "march_day_2",
+      params: {},
+      place: {
+        name: "Parliament Square, by the statues",
+        address: "Westminster, London SW1P 3BD",
+        latitude: 51.5005,
+        longitude: -0.1268,
+      },
+    },
+  };
+  expect(readTextNote(textNote("+44 7700 900000", commas))).toEqual(commas);
+  const withPicture: OutboxText = {
+    to: "+447700900001",
+    template: {
+      name: "march_day_3",
+      params: { first_name: "Jane" },
+      picture: "https://pauseai.uk/api/text-pictures/1",
+    },
+  };
+  expect(textNote("+44 7700 900000", withPicture)).toBe(
+    "WhatsApp text from +44 7700 900000 to +447700900001\nTemplate: march_day_3\nPicture: https://pauseai.uk/api/text-pictures/1\n  first_name: Jane\n",
+  );
+  expect(readTextNote(textNote("+44 7700 900000", withPicture))).toEqual(withPicture);
   // A template sent for approval isn't a text.
   expect(readTextNote("WhatsApp template sent for approval: march_day_1\n\nHi\n")).toBeUndefined();
 });

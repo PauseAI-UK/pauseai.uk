@@ -1151,6 +1151,12 @@ that drives it or why nothing does.
   - a text whose first link is to Google Maps, warned of under the preview, then not once another link comes first;
   - a new template WhatsApp won't take, too long, with its reason in a red alert under the button;
   - new words WhatsApp approves by its webhook, with the email saying so, then ready to schedule;
+  - a text with a map of where to meet, its place found from a short Google Maps link, taken off with its ×, and found by its name, renamed, with a reply button, the preview's map and button, and the template as it goes to WhatsApp;
+  - a text with a picture at its top, added from a file, the preview's picture, and the template as it goes to WhatsApp, its example uploaded;
+  - a template with two variants chosen, marked as having two in the dropdown and on the list of broadcasts, a tab for each, and a template with one variant after, with no tabs;
+  - a text with two variants written in the writer, a map and a link button for everyone and a picture, other words and a reply button for those registered for an event, the preview's toggle choosing between them, both templates approved by WhatsApp's webhook, scheduled, its page showing both versions under their headings, then sent to two supporters, each one's text as they get it, and one's copy on its page;
+  - a text with a conditional variant for those registered for an event, chosen from the email's conditional parts menu by a search, a tab each, a button on the same words stopped, its own words, two templates sent for approval, the version's rejected by WhatsApp's webhook, and sent again;
+  - a conditional variant added to an approved template, which starts as that template's own, edited as a new one, sent for approval, taken back from its tab, and scheduled, which sends it again;
   - who it goes to changed from the list, with its Consent locked there and those who can be texted left out;
   - an email and a text sent, with their counts, recipients and each one's copy, and on the supporter's page, made in the database as sending would make them;
   - an email sent copied by Copy broadcast to a new draft;
@@ -1167,6 +1173,7 @@ that drives it or why nothing does.
   - a text sent by the sending job, by the fake WhatsApp, then delivered and read by its webhook;
   - a reply to a text by WhatsApp's webhook, as a bubble, answered from its thread by WhatsApp;
   - a reply to a text left waiting two hours, and the sending job's email to the notification inbox about it;
+  - a reply button tapped, kept as a reply marked as a tap;
   - a reaction to a text by WhatsApp's webhook, as a bubble quoting the text, then taken back, and a photo kept as its caption;
   - our thumbs up on a reply to a text, from the smiley beside it, on its bubble and settling it, then taken away;
   - our answer to a text delivered and read by its webhook, ticked in its bubble as the text is;
@@ -1298,6 +1305,8 @@ that drives it or why nothing does.
 - `/api/health` and `/api/health/[kind]/[group]`: Not driven: they answer the outside monitors, and show no page. Vitest-tested.
 - `/api/browser-error`: `errors`: a page breaking in someone's browser, which the error page posts, and a button's click throwing, which the listener does.
 - `/api/whatsapp`: `broadcasts`: WhatsApp's webhook, signed as Meta signs it (`postWhatsAppWebhook` in `tests/whatsapp-webhooks.ts`): a template approved and rejected, a text delivered and read, a reply, a reaction made and taken back, a photo, our answer delivered, read and failed, and Stop pressed. Its check of the callback URL is Vitest-tested.
+- `/api/text-pictures/[id]`: `broadcasts`: a text's picture, which the writer's preview shows and WhatsApp fetches as each text goes. Vitest-tested.
+- `/staff/map-tiles/[zoom]/[x]/[y]`: `broadcasts`: a square of OpenStreetMap's map for a text's place, fetched for staff. The storyboard draws a map instead, as it can't reach OpenStreetMap; the route is Vitest-tested.
 - `/api/luma/webhook`: `supporters`: Luma's unsubscribe and subscribe webhooks for a supporter, signed as Luma signs them (`postLumaWebhook` in `supporters.spec.ts`), and the redelivery that changes nothing.
 - `/staff/api/google/start`, `/staff/api/google/callback`: `staff-login`: logging in with the fixture build's Google (`logInWithGoogle` in `staff-login.spec.ts`).
 - `/staff/api/google/handoff`: Not driven: only a deploy preview uses it, with a login the live site signed. Vitest-tested.
