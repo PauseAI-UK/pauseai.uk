@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
 import { query } from "@/lib/server/db.server";
+import { runningNow } from "@/lib/server/import-run-lists.server";
 import { getPolitician } from "@/lib/politicians/records.server";
 import { createSession } from "@/lib/accounts/auth.server";
 import { addTestPolitician, describeWithDatabase, useTestDatabase } from "@/tests/database";
@@ -13,6 +14,17 @@ vi.mock("next/headers", () => import("@/tests/next-headers"));
 // revalidatePath needs a Next request; here it only needs to have been asked.
 const { revalidatePath } = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath }));
+// Next's after() only works inside a request. Here it keeps what it's given, for each test to run when it says.
+const later = vi.hoisted(() => [] as (() => Promise<unknown>)[]);
+vi.mock("next/server", async (importActual) => ({
+  ...(await importActual<typeof import("next/server")>()),
+  after: (work: () => Promise<unknown>) => void later.push(work),
+}));
+
+/** Runs what a button left to do once it has answered, as Next does once the page has gone. */
+async function afterwards() {
+  while (later.length > 0) await later.shift()!();
+}
 
 function form(fields: Record<string, string>) {
   const data = new FormData();
@@ -43,9 +55,38 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
   });
 
+  it("a job's button answers before its run, with the job marked running by the staff member", async () => {
+    expect(await runJobNow("tidy-logs")).toEqual({ ok: true });
+    expect(await runningNow("tidy-logs")).toMatchObject({ startedBy: "jo@pauseai.uk" });
+    expect(await runs()).toEqual([]);
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/tidying");
+    await afterwards();
+    expect(await runs()).toEqual([{ job: "tidy-logs", status: "unchanged", startedBy: "jo@pauseai.uk" }]);
+    expect(await runningNow("tidy-logs")).toBeUndefined();
+  });
+
+  it("a job's button keeps the error when Netlify won't start the run, leaving the job free to run", async () => {
+    vi.stubEnv("DEPLOY_CONTEXT", "production");
+    vi.stubEnv("SITE_ORIGIN", "https://pauseai.uk");
+    vi.stubEnv("CRON_SECRET", "s3cret");
+    server.use(
+      http.post(
+        "https://pauseai.uk/.netlify/functions/run-job-background",
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
+    expect(await runJobNow("tidy-logs")).toEqual({ ok: true });
+    expect(await query("SELECT kind, route, words FROM errors_seen")).toEqual([
+      { kind: "action", route: "/staff/scheduled-jobs/tidying", words: "Netlify answered <n>" },
+    ]);
+    expect(await runningNow("tidy-logs")).toBeUndefined();
+    expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/tidying");
+  });
+
   it("a job's button runs it as the staff member, here ControlAI's letter, and keeps a failure rather than crashing the page", async () => {
     const id = await addTestPolitician();
     expect(await runJobNow("import-controlai")).toEqual({ ok: true });
+    await afterwards();
     expect((await getPolitician(id))!.statuses["controlai-letter"]).toMatchObject({ updatedBy: "controlai" });
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
     // Its own page, the overview, and the home page's actions.
@@ -57,6 +98,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     revalidatePath.mockClear();
     // Done all the same: the run's failure is in the job's log, on the page it refreshes.
     expect(await runJobNow("import-controlai")).toEqual({ ok: true });
+    await afterwards();
     // That nobody could be emailed about the failed run, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith(emailProblems.noInbox().what);
@@ -79,6 +121,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
   it("the Luma import's button copies the Luma calendar as the staff member", async () => {
     vi.stubEnv("LUMA_API_KEY", "k");
     await runJobNow("import-luma");
+    await afterwards();
     expect(await runs()).toEqual([{ job: "import-luma", status: "ok", startedBy: "jo@pauseai.uk" }]);
     expect(await query("SELECT count(*)::int AS n FROM luma_events")).toEqual([{ n: 9 }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
@@ -86,15 +129,18 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
 
   it("the Gmail reading's button reads the connected Gmail as the staff member", async () => {
     await runJobNow("read-gmail");
+    await afterwards();
     expect(await runs()).toEqual([{ job: "read-gmail", status: "unchanged", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/gmail");
   });
 
   it("the sending's button sends what's waiting, and the tidying's tidies the logs, each as the staff member", async () => {
     await runJobNow("send-mailings");
+    await afterwards();
     expect(await runs()).toEqual([{ job: "send-mailings", status: "unchanged", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/sending");
     await runJobNow("tidy-logs");
+    await afterwards();
     expect(await runs()).toEqual([
       { job: "send-mailings", status: "unchanged", startedBy: "jo@pauseai.uk" },
       { job: "tidy-logs", status: "unchanged", startedBy: "jo@pauseai.uk" },
@@ -104,6 +150,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
 
   it("an import's button imports its body's members", async () => {
     await runJobNow("import-senedd");
+    await afterwards();
     expect(await runs()).toEqual([{ job: "import-senedd", status: "applied", startedBy: "jo@pauseai.uk" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs");
   });
@@ -112,6 +159,7 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     server.use(http.get("https://business.senedd.wales/*", () => new HttpResponse(null, { status: 500 })));
     await runJobNow("import-senedd");
+    await afterwards();
     // That nobody could be emailed about the failed run, as NOTIFICATION_INBOX isn't set here.
     expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith(emailProblems.noInbox().what);
@@ -173,10 +221,12 @@ describeWithDatabase("the scheduled jobs' Server Actions", () => {
     const runs = () => query("SELECT 1 FROM import_runs WHERE job = 'tidy-logs'");
     await query("INSERT INTO job_presses (job, started_by) VALUES ('tidy-logs', 'sam@pauseai.uk')");
     await runJobNow("tidy-logs");
+    await afterwards();
     expect(await runs()).toHaveLength(0);
     expect(revalidatePath).toHaveBeenCalledWith("/staff/scheduled-jobs/tidying");
     await query("UPDATE job_presses SET started_at = now() - interval '17 minutes'");
     await runJobNow("tidy-logs");
+    await afterwards();
     expect(await runs()).toHaveLength(1);
     expect(await query("SELECT 1 FROM job_presses")).toEqual([]);
   });

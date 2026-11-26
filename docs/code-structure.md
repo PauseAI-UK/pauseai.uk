@@ -670,14 +670,18 @@ holds it.
   `siteUrl(path, request)` (`lib/site-url.server.ts`) on the deploy's own
   address, never from a request's URL or Host, which on Netlify are
   another host or anyone's to set (ESLint). Links in pages are relative.
-- **Scheduled jobs** are Netlify scheduled functions, each in its folder in
-  `netlify/functions/`, that POST to `/api/cron/<job>` with `CRON_SECRET`
-  (`netlify/scheduled.ts`). The work stays in the app: `lib/jobs/jobs.server.ts`
-  says what runs each job, for that route and for the job's button, and runs
-  it as a run of the import log (`tests/checks/cron-runs.test.ts`). Each is a
-  job on `/staff/scheduled-jobs` (`docs/domain-concepts.md`, "Imports"). A
-  scheduled function gets 30 seconds; a longer job has a
-  `<job>-background` function beside it, which can run for 15 minutes.
+- **Scheduled jobs** all run in one Netlify background function,
+  `netlify/functions/run-job-background/`, which POSTs to `/api/cron/<job>`
+  with `CRON_SECRET`, saying who started the run, and again while the job
+  has more to do, for up to 15 minutes (`netlify/scheduled.ts`). Each job's
+  scheduled function, in its folder in `netlify/functions/`, only starts it,
+  and so does the job's button on its page, as the staff member
+  (`lib/jobs/start-job.server.ts`), so the button answers at once. A build
+  without Netlify's functions, such as a local or fixture one, runs a
+  button's job itself, after answering. The work stays in the app:
+  `lib/jobs/jobs.server.ts` says what runs each job, and runs it as a run of
+  the import log (`tests/checks/cron-runs.test.ts`). Each is a job on
+  `/staff/scheduled-jobs` (`docs/domain-concepts.md`, "Imports").
 
 ### Naming and data
 

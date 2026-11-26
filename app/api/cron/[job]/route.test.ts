@@ -16,10 +16,13 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-const call = (job: string, authorization = "Bearer s3cret") =>
-  POST(new Request(`https://pauseai.uk/api/cron/${job}`, { method: "POST", headers: { authorization } }), {
+const call = (job: string, authorization = "Bearer s3cret", body?: string) =>
+  POST(new Request(`https://pauseai.uk/api/cron/${job}`, { method: "POST", headers: { authorization }, body }), {
     params: Promise.resolve({ job }),
   });
+
+/** A call to tidy the logs, with `body`. */
+const tidy = (body: string) => call("tidy-logs", undefined, body);
 
 const answer = async (job: string) => (await call(job)).json();
 
@@ -138,6 +141,29 @@ describeWithDatabase("POST /api/cron/<job>", () => {
          'jo@pauseai.uk', 'draft', now() - interval '2 days')`,
     );
     expect(await answer("tidy-logs")).toEqual({ importRuns: 1, auditEntries: 0, drafts: 1, errors: 0 });
+  });
+
+  it("keeps a run as whoever the call says started it, and runs one they marked running already", async () => {
+    await startRunning("tidy-logs", "jo@pauseai.uk");
+    // Marked by its starter, the run is theirs to go on with.
+    expect((await tidy(JSON.stringify({ startedBy: "jo@pauseai.uk", marked: true }))).status).toBe(200);
+    expect(await runningNow("tidy-logs")).toBeUndefined();
+    await tidy(JSON.stringify({ startedBy: "sam@pauseai.uk" }));
+    await tidy(JSON.stringify({}));
+    expect((await listRuns("tidy-logs")).map((run) => run.startedBy)).toEqual([
+      "nightly",
+      "sam@pauseai.uk",
+      "jo@pauseai.uk",
+    ]);
+  });
+
+  it("refuses a call whose body isn't a job's start, running nothing", async () => {
+    expect((await tidy("not json")).status).toBe(400);
+    expect((await tidy("null")).status).toBe(400);
+    expect((await tidy("7")).status).toBe(400);
+    expect((await tidy(JSON.stringify({ startedBy: 7 }))).status).toBe(400);
+    expect((await tidy(JSON.stringify({ marked: "yes" }))).status).toBe(400);
+    expect(await query("SELECT count(*)::int AS n FROM import_runs")).toEqual([{ n: 0 }]);
   });
 
   it("runs no job that isn't one, running nothing", async () => {

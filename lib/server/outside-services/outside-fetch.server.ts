@@ -62,12 +62,14 @@ export async function outsideFetch({ service, fake }: Outside, url: string, init
   const { retries = 0, mostWait = Infinity, publicOnly = false, largeHeaders = false, ...request } = init;
   if (config.fixtures && !config.realServices.includes(service)) {
     // The storyboard flow's database, for the fakes that keep what they're sent, one set each flow, and the
-    // services it has made fail. Imported here, as they read Node's files, so a component that renders on
+    // services it has made fail or holds. Imported here, as they read Node's files, so a component that renders on
     // fixture data in the browser doesn't load them.
     const { flowDatabase } = await import("../flow-database.server");
     const { failingResponse } = await import("@/lib/server/fixtures/failing-services");
+    const { whileHeld } = await import("@/lib/server/fixtures/held-services");
     const scope = await flowDatabase();
     const parsed = new URL(url);
+    await whileHeld(parsed.hostname, scope);
     return (
       failingResponse(parsed.hostname, scope) ??
       fake(parsed, request, scope) ??

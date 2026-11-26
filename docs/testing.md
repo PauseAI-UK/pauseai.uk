@@ -1066,7 +1066,7 @@ that drives it or why nothing does.
   - the Scheduled jobs page and each job's own page, with Parliament's import run twice on its page;
   - a held politician import, of 21 MPs Parliament no longer lists: the notification inbox is emailed, the home has an action for it, and it's discarded, then applied;
   - an import held for a renamed politician;
-  - the Luma import run twice from its page;
+  - the Luma import run twice from its page, the page saying it's running until the run's end shows in its log;
   - the CiviCRM import, skipping an erased contact;
   - the logs of Luma, the Gmail reading and CiviCRM, a row a run under each day, with the newest opened, a row for quiet runs, a problem's amber line and a folded stretch;
   - the connected Gmail read from its page, and the button pressed again while the scheduled read is going;
@@ -1456,8 +1456,7 @@ not a mock.
   migrations itself, all at once, outlasts the hook timeout on a loaded CI
   runner.
 
-- **Jobs that can overlap** (a scheduled run, its background twin and a
-  press on its page) are tested running at once: `atOnce()`
+- **Jobs that can overlap** (a scheduled run and a press on its page) are tested running at once: `atOnce()`
   (`tests/at-once.ts`) starts several runs together on the test file's
   database, and the test checks each letter, guest or message was handled
   once (`lib/jobs/sending.server.test.ts`, `lib/events/luma-import.server.test.ts`).

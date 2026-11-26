@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/tests/fixtures/msw";
-import { IMPORT_JOBS, JOBS, type JobSchedule, isImportJob, jobSchedule } from "@/lib/import-runs";
-import { callSite, fromSchedule, runsJob, startBackground } from "./scheduled";
+import { IMPORT_JOBS, JOBS, type JobSchedule, isImportJob, jobSchedule, NIGHTLY } from "@/lib/import-runs";
+import { SENDING } from "@/lib/staff-time";
+import { callSite, hasSecret, startsJob } from "./scheduled";
 
 beforeEach(() => {
   vi.stubEnv("URL", "https://pauseai.uk");
@@ -63,76 +64,74 @@ describe("the scheduled functions", () => {
     }
   });
 
-  it("each ask the site to run their own job, but those that start a background function", async () => {
-    const asked: string[] = [];
+  it("each start the background function, to run their own job on the schedule's behalf, with the secret", async () => {
+    const started: unknown[] = [];
     server.use(
-      http.post("https://pauseai.uk/api/cron/:job", ({ params }) => {
-        asked.push(String(params.job));
-        return HttpResponse.json({ sent: 0, skipped: 0, failed: 0, left: 0 });
+      http.post("https://pauseai.uk/.netlify/functions/run-job-background", async ({ request }) => {
+        expect(request.headers.get("authorization")).toBe("Bearer s3cret");
+        started.push(await request.json());
+        return new HttpResponse(null, { status: 202 });
       }),
-      http.post("https://pauseai.uk/.netlify/functions/:name", () => new HttpResponse(null, { status: 202 })),
     );
     for (const job of IMPORT_JOBS) {
-      asked.length = 0;
-      await functions[job].default(new Request("https://pauseai.uk/"));
-      expect(asked, job).toEqual(job === "import-luma" ? [] : [job]);
+      started.length = 0;
+      expect(await (await functions[job].default(new Request("https://pauseai.uk/")))!.text(), job).toBe("Started");
+      expect(started, job).toEqual([{ job, startedBy: NIGHTLY }]);
     }
+  });
+
+  it("send at the times the staff pages offer a mailing", () => {
+    expect(functions["send-mailings"].config!.schedule).toBe(`${SENDING.minutes.join(",")} * * * *`);
+  });
+
+  it("fail loudly if the background function won't start", async () => {
+    server.use(
+      http.post(
+        "https://pauseai.uk/.netlify/functions/run-job-background",
+        () => new HttpResponse(null, { status: 404 }),
+      ),
+    );
+    await expect(startsJob("import-luma")()).rejects.toThrow("run-job-background returned 404");
   });
 });
 
 describe("callSite", () => {
-  it("asks the site to run a job with the secret, and gives its answer", async () => {
-    let auth: string | null = null;
+  it("asks the site to run a job with the secret, as whoever started it, and gives its answer", async () => {
+    const asked: unknown[] = [];
     server.use(
-      http.post("https://pauseai.uk/api/cron/check-mps", ({ request }) => {
-        auth = request.headers.get("authorization");
-        return HttpResponse.json({ problems: 0 });
+      http.post("https://pauseai.uk/api/cron/tidy-logs", async ({ request }) => {
+        expect(request.headers.get("authorization")).toBe("Bearer s3cret");
+        asked.push(await request.json());
+        return HttpResponse.json({ importRuns: 0 });
       }),
     );
-    expect(JSON.parse(await callSite("check-mps"))).toEqual({ problems: 0 });
-    expect(auth).toBe("Bearer s3cret");
-    expect(await (await runsJob("check-mps")()).json()).toEqual({ problems: 0 });
+    expect(JSON.parse(await callSite("https://pauseai.uk", { job: "tidy-logs", startedBy: NIGHTLY }))).toEqual({
+      importRuns: 0,
+    });
+    await callSite("https://pauseai.uk", { job: "tidy-logs", startedBy: "jo@pauseai.uk", marked: true });
+    expect(asked).toEqual([
+      { startedBy: NIGHTLY, marked: false },
+      { startedBy: "jo@pauseai.uk", marked: true },
+    ]);
   });
 
   it("fails loudly if the site does", async () => {
-    server.use(http.post("https://pauseai.uk/api/cron/check-mps", () => new HttpResponse("nope", { status: 401 })));
-    await expect(callSite("check-mps")).rejects.toThrow("/api/cron/check-mps returned 401: nope");
+    server.use(http.post("https://pauseai.uk/api/cron/tidy-logs", () => new HttpResponse("nope", { status: 401 })));
+    await expect(callSite("https://pauseai.uk", { job: "tidy-logs", startedBy: NIGHTLY })).rejects.toThrow(
+      "/api/cron/tidy-logs returned 401: nope",
+    );
   });
 });
 
-describe("startBackground", () => {
-  it("starts a background function with the secret", async () => {
-    let auth: string | null = null;
-    server.use(
-      http.post("https://pauseai.uk/.netlify/functions/import-luma-background", ({ request }) => {
-        auth = request.headers.get("authorization");
-        return new HttpResponse(null, { status: 202 });
-      }),
-    );
-    await startBackground("import-luma-background");
-    expect(auth).toBe("Bearer s3cret");
-  });
-
-  it("fails loudly if it doesn't start", async () => {
-    server.use(
-      http.post(
-        "https://pauseai.uk/.netlify/functions/import-luma-background",
-        () => new HttpResponse(null, { status: 404 }),
-      ),
-    );
-    await expect(startBackground("import-luma-background")).rejects.toThrow("import-luma-background returned 404");
-  });
-});
-
-describe("fromSchedule", () => {
+describe("hasSecret", () => {
   const call = (authorization?: string) =>
     new Request("https://pauseai.uk/.netlify/functions/x", { headers: authorization ? { authorization } : {} });
 
   it("is a call with the secret, never one when none is set", () => {
-    expect(fromSchedule(call("Bearer s3cret"))).toBe(true);
-    expect(fromSchedule(call("Bearer guess"))).toBe(false);
-    expect(fromSchedule(call())).toBe(false);
+    expect(hasSecret(call("Bearer s3cret"))).toBe(true);
+    expect(hasSecret(call("Bearer guess"))).toBe(false);
+    expect(hasSecret(call())).toBe(false);
     vi.stubEnv("CRON_SECRET", "");
-    expect(fromSchedule(call("Bearer "))).toBe(false);
+    expect(hasSecret(call("Bearer "))).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 // The nightly import of MPs and peers from Parliament's list (netlify/scheduled.ts).
-import { runsJob } from "../../scheduled";
+import { startsJob } from "../../scheduled";
 
-export default runsJob("import-parliament");
+export default startsJob("import-parliament");
 
 // 06:21 UTC, just after the day's first Luma (06:17) and members (06:19) imports, sharing their wake of the database rather than waking it overnight (import-luma.ts).
 export const config = { schedule: "21 6 * * *" };

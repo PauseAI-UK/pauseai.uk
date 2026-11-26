@@ -1,0 +1,4 @@
+/* A run still going, set off from the job's band above it and its runs under it. */
+.running {
+  margin-block: var(--space-4);
+}

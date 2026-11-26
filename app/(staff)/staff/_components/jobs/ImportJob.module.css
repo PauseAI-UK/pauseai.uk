@@ -4,8 +4,3 @@
   color: var(--text-secondary);
   font-size: var(--text-sm);
 }
-
-/* A press still running, set off from the job's runs under it. */
-.running {
-  margin-block-end: var(--space-4);
-}

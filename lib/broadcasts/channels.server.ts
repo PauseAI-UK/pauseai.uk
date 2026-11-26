@@ -22,7 +22,7 @@ const EMAIL_CHANNELS: Record<BroadcastSendBy, { channel: MailingChannel; gapMs: 
   // Postmark asks for no more than 20,000 an hour on a broadcast stream's first day
   // (https://postmarkapp.com/support/article/can-i-send-bulk-emails). 180ms apart is 333 a minute, 20,000 an hour
   // sending without a break; as the sending runs about 12 minutes in each 15 (RUN_MS in
-  // netlify/functions/send-mailings-background), about 16,000 an hour in all.
+  // netlify/functions/run-job-background), about 16,000 an hour in all.
   postmark: { channel: postmarkBroadcast, gapMs: 180 },
 };
 

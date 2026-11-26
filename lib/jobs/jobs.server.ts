@@ -15,10 +15,12 @@ import { runSending } from "./sending.server";
 
 // What runs each job (lib/import-runs.ts, JOBS), whoever starts it, one run
 // of a job at a time: a function that does it as a run of the import log,
-// inside asRun() (tests/checks/cron-runs.test.ts), which keeps it. A
-// scheduled run comes through /api/cron/<job> (app/api/cron/[job]/route.ts),
-// a staff member's through the job's button (runJobNow in
-// app/(staff)/staff/_components/oversight/actions.ts).
+// inside asRun() (tests/checks/cron-runs.test.ts), which keeps it. Every
+// run comes through /api/cron/<job> (app/api/cron/[job]/route.ts), called
+// by the background function that runs every job (netlify/scheduled.ts),
+// whether its schedule started it or a staff member's button did (startJob
+// in ./start-job.server.ts); on a build without Netlify's functions, a
+// button's run is the site's own, after it answers.
 
 /**
  * Runs a job. `startedBy` is NIGHTLY or the staff member's email, and
@@ -60,10 +62,17 @@ export const ANOTHER_RUNNING = { stoppedBy: "running" } as const;
  * then thrown on. `request` is the call's, for the links a run emails: the
  * cron route's own, or a Server Action's stand-in (actionRequest). It must
  * be given, even as undefined, so a caller can't forget it and leave a
- * local build unable to say its own address.
+ * local build unable to say its own address. `marked` is for a run its
+ * starter has marked running already, which this run is (startJob in
+ * ./start-job.server.ts).
  */
-export async function runJob(job: ImportJob, startedBy: string, request: Request | undefined): Promise<unknown> {
-  if (!(await startRunning(job, startedBy))) return ANOTHER_RUNNING;
+export async function runJob(
+  job: ImportJob,
+  startedBy: string,
+  request: Request | undefined,
+  { marked = false }: { marked?: boolean } = {},
+): Promise<unknown> {
+  if (!marked && !(await startRunning(job, startedBy))) return ANOTHER_RUNNING;
   try {
     return await RUNS[job](startedBy, request);
   } finally {

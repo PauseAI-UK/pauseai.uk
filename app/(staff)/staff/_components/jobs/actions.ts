@@ -6,7 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { refused, type FormResult } from "@/lib/form-result";
 import { type ImportJob, importPath, isImportJob } from "@/lib/import-runs";
-import { runJob } from "@/lib/jobs/jobs.server";
+import { startJob } from "@/lib/jobs/start-job.server";
 import { keepCaught } from "@/lib/oversight/errors-seen.server";
 import { actionRequest } from "@/lib/site-url.server";
 import { ownId } from "@/lib/staff-forms";
@@ -21,18 +21,19 @@ function refreshImport(job: ImportJob): void {
 }
 
 /**
- * A job's button, bound to the job's name: runs it as the staff member,
- * unless a run of it is going (lib/jobs/jobs.server.ts), then refreshes its
- * pages. Any staff member may run any job. A failure is in the import log,
- * shown on its page like a scheduled one, so it's kept as an error, as a
- * scheduled run's is when it's thrown, rather than crashing the page. The
+ * A job's button, bound to the job's name: starts a run of it by the staff
+ * member, unless a run of it is going (lib/jobs/start-job.server.ts), and
+ * answers at once, its pages refreshed to show it running. Any staff member
+ * may run any job. The run's end is in the import log, shown on its page
+ * like a scheduled one's. A run that won't start is kept as an error, as a
+ * scheduled one's is when it's thrown, rather than crashing the page. The
  * name is the page's own, so thrown when it isn't a job's.
  */
 export async function runJobNow(job: string): Promise<FormResult<never>> {
   const { email } = await requireStaff();
   if (!isImportJob(job)) throw new Error("A job's button came with a name that isn't a job's");
   try {
-    await runJob(job, email, await actionRequest());
+    await startJob(job, email, await actionRequest());
   } catch (error) {
     await keepCaught(error, importPath(job));
   }
