@@ -6,6 +6,7 @@ import { logChange } from "@/lib/server/audit.server";
 import { query } from "@/lib/server/db.server";
 import { isBlocked, sentBy } from "@/lib/email/email.server";
 import { gmailAccount } from "@/lib/email/gmail-accounts.server";
+import { GMAIL_SEND_GAP_MS } from "@/lib/server/outside-services/gmail.server";
 import { sendLetterVia, transition, transitionReading } from "@/lib/letters/lifecycle.server";
 import { attachmentsOf, emailFor } from "./drafts.server";
 import { mailingChannel } from "./channels.server";
@@ -25,9 +26,6 @@ import { mailingProblems } from "./copy";
 
 /** Who the audit log says started a mailing. */
 const JOB = "send-mailings";
-
-/** The gap between two sends from one account: Gmail takes 60 a minute. */
-const SEND_GAP_MS = 1000;
 
 /** Starts every scheduled mailing that's due. Returns their IDs. */
 export async function startDueMailings(): Promise<number[]> {
@@ -114,7 +112,7 @@ async function skipped(letterId: number, reason: SkipReason): Promise<Unsent> {
  */
 export async function sendDueLetters({
   until,
-  gap = SEND_GAP_MS,
+  gap = GMAIL_SEND_GAP_MS,
   channel = mailingChannel("email")!,
 }: {
   until: number;

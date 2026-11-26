@@ -692,7 +692,8 @@ job all leave broadcasts out.
   `send()`, to its supporter by name, or to their address alone if they
   have none, with its files, its unsubscribe link at its foot and in its
   `List-Unsubscribe` and `List-Unsubscribe-Post` headers:
-  - **Gmail**, `hello@`'s own connected Gmail, one a second, up to the
+  - **Gmail**, `hello@`'s own connected Gmail, 46 a minute
+    (`GMAIL_SEND_GAP_MS`), up to the
     account's daily limit (`GMAIL_DAILY_LIMIT`, 1,800, which leaves room
     under Google's 2,000 for answers to replies). At the limit the rest wait,
     and go over the following days; the broadcast's page says how far it's
@@ -875,7 +876,7 @@ logged-in staff member's own address. The refresh token is kept encrypted
   between 06:00 and midnight in London; one due at another time goes on
   the next run.
 
-  Then the job sends the mailings' letters at Gmail's pace, one a second,
+  Then the job sends the mailings' letters at Gmail's pace, 46 a minute (`GMAIL_SEND_GAP_MS`),
   marking each as it goes. A scheduled function has 30 seconds, so while
   letters are left it starts a background function, which calls the site
   again and again for up to 12 minutes. The next run takes up the rest.

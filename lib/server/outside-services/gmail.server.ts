@@ -29,6 +29,16 @@ const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
 
+/**
+ * The gap to keep between two sends from one account, in ms. Gmail allows
+ * each account 6,000 quota units a minute
+ * (https://developers.google.com/workspace/gmail/api/reference/quota), and
+ * an email costs 120: 100 to send it and 20 to ask its Message-ID (`send()`
+ * in lib/email/email.server.ts). 1.3s apart is 46 a minute, 5,520 units,
+ * which leaves room for reading the account's mail.
+ */
+export const GMAIL_SEND_GAP_MS = 1300;
+
 /** What the site asks for: to send as the account, and to read it (it reads only replies to our letters, bounces and, while the account keeps them, threads with politicians). */
 const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.send",
